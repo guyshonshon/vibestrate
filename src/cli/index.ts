@@ -6,8 +6,10 @@ import { runStatusCommand } from "./commands/status.js";
 import { runAbortCommand } from "./commands/abort.js";
 import { runDoctorCommand } from "./commands/doctor.js";
 import { runSetupCommand } from "./commands/setup.js";
+import { runUiCommand } from "./commands/ui.js";
 import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
+import { buildSkillsCommand } from "./commands/skills/index.js";
 
 const program = new Command();
 
@@ -43,13 +45,34 @@ program
 
 program.addCommand(buildProviderCommand());
 program.addCommand(buildConfigCommand());
+program.addCommand(buildSkillsCommand());
 
 program
   .command("run <task...>")
   .description("Run the default plan→architect→implement→review→verify workflow.")
-  .action(async (taskParts: string[]) => {
-    const task = taskParts.join(" ").trim();
-    const code = await runRunCommand(task);
+  .option("--ui", "start the local supervisor dashboard alongside the run")
+  .option("--ui-port <port>", "port for the supervisor dashboard (default 4317)", (v) => parseInt(v, 10))
+  .action(
+    async (
+      taskParts: string[],
+      opts: { ui?: boolean; uiPort?: number },
+    ) => {
+      const task = taskParts.join(" ").trim();
+      const code = await runRunCommand(task, {
+        ui: opts.ui,
+        uiPort: opts.uiPort,
+      });
+      process.exit(code);
+    },
+  );
+
+program
+  .command("ui")
+  .description("Start the local supervisor dashboard for this project.")
+  .option("--port <port>", "port to bind (default 4317)", (v) => parseInt(v, 10))
+  .option("--open", "open the dashboard in your browser after starting")
+  .action(async (opts: { port?: number; open?: boolean }) => {
+    const code = await runUiCommand({ port: opts.port, open: opts.open });
     process.exit(code);
   });
 

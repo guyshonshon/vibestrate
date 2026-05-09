@@ -3,27 +3,33 @@ import { ConfigError } from "../utils/errors.js";
 import { readText, pathExists } from "../utils/fs.js";
 import { isPathInside, projectSkillsDir } from "../utils/paths.js";
 import { skillReferenceSchema, type LoadedSkill } from "./skill-schema.js";
+import { discoverSkills } from "./skill-discovery.js";
 
 export async function loadSkill(
   projectRoot: string,
   reference: string,
 ): Promise<LoadedSkill> {
   skillReferenceSchema.parse(reference);
+
+  // 1. Try the legacy flat .amaco/skills/<name>.md path (kept for back-compat).
   const skillsDir = projectSkillsDir(projectRoot);
-  const skillPath = path.join(skillsDir, `${reference}.md`);
-
-  if (!isPathInside(skillsDir, skillPath)) {
-    throw new ConfigError(`Skill path outside skills dir: ${reference}`);
+  const flatPath = path.join(skillsDir, `${reference}.md`);
+  if (isPathInside(skillsDir, flatPath) && (await pathExists(flatPath))) {
+    const content = await readText(flatPath);
+    return { name: reference, filePath: flatPath, content };
   }
 
-  if (!(await pathExists(skillPath))) {
-    throw new ConfigError(
-      `Configured skill "${reference}" not found at ${skillPath}.`,
-    );
+  // 2. Fall back to discovery (handles .claude/skills/<dir>/SKILL.md and .amaco/skills/<dir>/SKILL.md).
+  const discovered = await discoverSkills(projectRoot);
+  const match = discovered.find((s) => s.name === reference);
+  if (match) {
+    const content = await readText(match.filePath);
+    return { name: reference, filePath: match.filePath, content };
   }
 
-  const content = await readText(skillPath);
-  return { name: reference, filePath: skillPath, content };
+  throw new ConfigError(
+    `Configured skill "${reference}" was not found. Looked at .amaco/skills/${reference}.md, .amaco/skills/<dir>/SKILL.md, and .claude/skills/<dir>/SKILL.md.`,
+  );
 }
 
 export async function loadSkills(

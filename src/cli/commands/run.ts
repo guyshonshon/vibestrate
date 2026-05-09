@@ -4,6 +4,7 @@ import { configExists, loadConfig } from "../../project/config-loader.js";
 import { Orchestrator } from "../../core/orchestrator.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isAmacoError } from "../../utils/errors.js";
+import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -38,7 +39,15 @@ function rewriteFriendly(message: string): string {
   return message;
 }
 
-export async function runRunCommand(task: string): Promise<number> {
+export type RunCommandOptions = {
+  ui?: boolean;
+  uiPort?: number;
+};
+
+export async function runRunCommand(
+  task: string,
+  options: RunCommandOptions = {},
+): Promise<number> {
   if (!task || !task.trim()) {
     console.error(
       `${symbol.fail()} A task description is required.`,
@@ -102,6 +111,33 @@ export async function runRunCommand(task: string): Promise<number> {
     return 1;
   }
 
+  // Optionally bring up the supervisor server alongside the run.
+  let server: Awaited<ReturnType<typeof startServer>> | null = null;
+  if (options.ui) {
+    try {
+      server = await startServer({
+        projectRoot: detected.projectRoot,
+        port: options.uiPort ?? DEFAULT_AMACO_PORT,
+        host: "127.0.0.1",
+      });
+      console.log(
+        `${symbol.ok()} Supervisor: ${color.bold(server.url)}${
+          server.uiAvailable ? "" : color.dim(" (API only — UI bundle missing)")
+        }`,
+      );
+    } catch (err) {
+      console.error(
+        `${symbol.warn()} Could not start supervisor: ${
+          isAmacoError(err) ? err.message : String(err)
+        }`,
+      );
+      console.error(
+        `  ${symbol.arrow()} Continuing without UI. The run will still execute normally.`,
+      );
+      server = null;
+    }
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -120,6 +156,12 @@ export async function runRunCommand(task: string): Promise<number> {
     console.error("");
     console.error(`${symbol.fail()} Run failed.`);
     console.error(indent(friendly));
+    if (server) {
+      console.error("");
+      console.error(
+        `${symbol.arrow()} Supervisor still running at ${color.bold(server.url)}.`,
+      );
+    }
     return 2;
   }
 
@@ -162,6 +204,29 @@ export async function runRunCommand(task: string): Promise<number> {
     for (const w of result.policyWarnings) {
       console.log(indent(`- ${w.code}: ${w.message}`));
     }
+  }
+
+  if (server) {
+    console.log("");
+    console.log(
+      `${symbol.arrow()} Supervisor: ${color.bold(server.url)} (Ctrl+C to stop)`,
+    );
+    // Keep server alive so the user can inspect the run.
+    let resolveExit: ((code: number) => void) | null = null;
+    const exitPromise = new Promise<number>((resolve) => {
+      resolveExit = resolve;
+    });
+    const shutdown = async (code: number) => {
+      try {
+        await server!.close();
+      } catch {
+        // ignore
+      }
+      if (resolveExit) resolveExit(code);
+    };
+    process.on("SIGINT", () => void shutdown(0));
+    process.on("SIGTERM", () => void shutdown(0));
+    return exitPromise;
   }
 
   switch (result.state.status) {

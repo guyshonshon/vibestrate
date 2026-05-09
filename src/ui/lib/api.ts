@@ -1,0 +1,143 @@
+import type {
+  AmacoEvent,
+  ArtifactEntry,
+  DiffSnapshot,
+  DiscoveredSkill,
+  FileDiff,
+  Note,
+  RunState,
+  RuntimeMetrics,
+  SkillAssignmentSummary,
+} from "./types.js";
+
+class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+async function jsonGet<T>(path: string): Promise<T> {
+  const res = await fetch(path);
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) msg = body.error;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, msg);
+  }
+  return (await res.json()) as T;
+}
+
+async function jsonPost<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, msg);
+  }
+  return (await res.json()) as T;
+}
+
+export const api = {
+  async listRuns(): Promise<RunState[]> {
+    const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
+    return r.runs;
+  },
+  async getRun(runId: string): Promise<RunState> {
+    const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);
+    return r.run;
+  },
+  async listEvents(runId: string): Promise<AmacoEvent[]> {
+    const r = await jsonGet<{ events: AmacoEvent[] }>(
+      `/api/runs/${runId}/events`,
+    );
+    return r.events;
+  },
+  async listArtifacts(runId: string): Promise<ArtifactEntry[]> {
+    const r = await jsonGet<{ artifacts: ArtifactEntry[] }>(
+      `/api/runs/${runId}/artifacts`,
+    );
+    return r.artifacts;
+  },
+  async readArtifact(runId: string, relPath: string): Promise<string> {
+    const url = `/api/runs/${runId}/artifacts/${relPath
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/")}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new ApiError(res.status, await res.text());
+    return res.text();
+  },
+  async getDiff(runId: string): Promise<DiffSnapshot | null> {
+    const r = await jsonGet<{ snapshot: DiffSnapshot | null }>(
+      `/api/runs/${runId}/diff`,
+    );
+    return r.snapshot;
+  },
+  async getFileDiff(runId: string, filePath: string): Promise<FileDiff> {
+    const r = await jsonGet<{ fileDiff: FileDiff }>(
+      `/api/runs/${runId}/diff/file?path=${encodeURIComponent(filePath)}`,
+    );
+    return r.fileDiff;
+  },
+  async listNotes(runId: string, includeResolved = true): Promise<Note[]> {
+    const r = await jsonGet<{ notes: Note[] }>(
+      `/api/runs/${runId}/notes?includeResolved=${includeResolved}`,
+    );
+    return r.notes;
+  },
+  async addNote(input: {
+    runId: string;
+    scope: Note["scope"];
+    target: string;
+    message: string;
+  }): Promise<Note> {
+    const r = await jsonPost<{ note: Note }>(`/api/runs/${input.runId}/notes`, {
+      scope: input.scope,
+      target: input.target,
+      message: input.message,
+    });
+    return r.note;
+  },
+  async resolveNote(runId: string, noteId: string): Promise<Note> {
+    const r = await jsonPost<{ note: Note }>(
+      `/api/runs/${runId}/notes/${noteId}/resolve`,
+    );
+    return r.note;
+  },
+  async abortRun(runId: string): Promise<RunState> {
+    const r = await jsonPost<{ run: RunState }>(
+      `/api/runs/${runId}/abort`,
+    );
+    return r.run;
+  },
+  async listSkills(): Promise<{
+    skills: DiscoveredSkill[];
+    assignments: SkillAssignmentSummary[];
+  }> {
+    return jsonGet("/api/skills");
+  },
+  async getMetrics(runId: string): Promise<RuntimeMetrics | null> {
+    try {
+      const r = await jsonGet<{ metrics: RuntimeMetrics }>(
+        `/api/runs/${runId}/metrics`,
+      );
+      return r.metrics;
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return null;
+      throw err;
+    }
+  },
+};

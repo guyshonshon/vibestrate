@@ -22,6 +22,7 @@ import {
   builtinAgentIds,
   type BuiltinAgentId,
 } from "../agents/agent-schema.js";
+import { discoverSkills } from "../skills/skill-discovery.js";
 import {
   ensureProvider,
   assignAgentsToProvider,
@@ -253,12 +254,16 @@ export async function runDoctor(input: {
     });
   }
 
-  // Check skills referenced exist.
+  // Check skills referenced exist (discovery covers .amaco/skills/<name>.md, .amaco/skills/<dir>/SKILL.md, .claude/skills/<dir>/SKILL.md).
+  const discovered = await discoverSkills(projectRoot);
+  const knownNames = new Set(discovered.map((s) => s.name));
   const missingSkills: { agentId: string; skill: string }[] = [];
   for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
     for (const skill of agent.skills) {
-      const candidate = path.join(projectSkillsDir(projectRoot), `${skill}.md`);
-      if (!(await pathExists(candidate))) {
+      // Legacy: check flat .amaco/skills/<name>.md too.
+      const flat = path.join(projectSkillsDir(projectRoot), `${skill}.md`);
+      const flatExists = await pathExists(flat);
+      if (!flatExists && !knownNames.has(skill)) {
         missingSkills.push({ agentId, skill });
       }
     }
@@ -269,10 +274,17 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Skills referenced by agents are missing",
       detail: missingSkills
-        .map((m) => `${m.agentId} → ${m.skill}.md`)
+        .map((m) => `${m.agentId} → ${m.skill}`)
         .join("; "),
       fixHint:
-        "Create the missing files in `.amaco/skills/` or remove the references with `amaco config set agents.<agent>.skills \"[]\"`.",
+        "Create the missing skill in `.amaco/skills/<name>/SKILL.md`, drop a flat `.amaco/skills/<name>.md`, or unassign with `amaco skills unassign <agent> <skill>`.",
+      fixable: false,
+    });
+  } else if (Object.values(loaded.config.agents).some((a) => a.skills.length > 0)) {
+    findings.push({
+      id: "skills-present",
+      severity: "ok",
+      title: "All skills referenced by agents are present",
       fixable: false,
     });
   }

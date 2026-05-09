@@ -1,0 +1,157 @@
+import path from "node:path";
+import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import Fastify, { type FastifyInstance } from "fastify";
+import fastifyStatic from "@fastify/static";
+import { registerRunsRoutes } from "./routes/runs.js";
+import { registerArtifactRoutes } from "./routes/artifacts.js";
+import { registerDiffRoutes } from "./routes/diff.js";
+import { registerNotesRoutes } from "./routes/notes.js";
+import { registerSkillsRoutes } from "./routes/skills.js";
+import { registerMetricsRoutes } from "./routes/metrics.js";
+import { registerSetupRoutes } from "./routes/setup.js";
+import { HttpError } from "./security.js";
+
+export const DEFAULT_AMACO_PORT = 4317;
+
+export type StartServerOptions = {
+  projectRoot: string;
+  port?: number;
+  host?: string;
+  uiDir?: string;
+  logger?: boolean;
+};
+
+export type StartedServer = {
+  app: FastifyInstance;
+  url: string;
+  port: number;
+  host: string;
+  uiAvailable: boolean;
+  close: () => Promise<void>;
+};
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+async function locateUiDir(explicit?: string): Promise<string | null> {
+  const candidates = [
+    explicit,
+    // Source layout (tsx dev): src/server/server.ts → ../../dist/ui
+    path.resolve(here, "..", "..", "dist", "ui"),
+    // Bundled layout (dist/index.js): dist/ui sits beside the bundle.
+    path.resolve(here, "ui"),
+    path.resolve(here, "..", "ui"),
+  ].filter((c): c is string => typeof c === "string");
+  for (const c of candidates) {
+    try {
+      const stat = await fs.stat(c);
+      if (stat.isDirectory()) {
+        const indexPath = path.join(c, "index.html");
+        const idxStat = await fs.stat(indexPath).catch(() => null);
+        if (idxStat) return c;
+      }
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
+export async function startServer(opts: StartServerOptions): Promise<StartedServer> {
+  const port = opts.port ?? DEFAULT_AMACO_PORT;
+  const host = opts.host ?? "127.0.0.1";
+
+  const app = Fastify({
+    logger: opts.logger === true,
+    disableRequestLogging: !opts.logger,
+  });
+
+  // Lock down to localhost: refuse forwarded host headers, allow only local origins.
+  app.addHook("onRequest", async (req, reply) => {
+    const origin = req.headers["origin"];
+    if (typeof origin === "string" && origin.length > 0) {
+      try {
+        const url = new URL(origin);
+        const allowed =
+          url.hostname === "localhost" ||
+          url.hostname === "127.0.0.1" ||
+          url.hostname === host;
+        if (!allowed) {
+          await reply.code(403).send({ error: "Cross-origin requests are not allowed." });
+        }
+      } catch {
+        // Malformed origin: continue to next handler.
+      }
+    }
+  });
+
+  // Map HttpError → typed JSON.
+  app.setErrorHandler((error: unknown, _req, reply) => {
+    if (error instanceof HttpError) {
+      return reply.code(error.statusCode).send({ error: error.message });
+    }
+    const message =
+      error instanceof Error ? error.message : "Internal Server Error";
+    if (error && typeof error === "object" && "validation" in error) {
+      return reply.code(400).send({ error: message });
+    }
+    reply.code(500).send({ error: message });
+  });
+
+  // Health.
+  app.get("/api/health", async () => ({ ok: true, projectRoot: opts.projectRoot }));
+
+  await registerRunsRoutes(app, { projectRoot: opts.projectRoot });
+  await registerArtifactRoutes(app, { projectRoot: opts.projectRoot });
+  await registerDiffRoutes(app, { projectRoot: opts.projectRoot });
+  await registerNotesRoutes(app, { projectRoot: opts.projectRoot });
+  await registerSkillsRoutes(app, { projectRoot: opts.projectRoot });
+  await registerMetricsRoutes(app, { projectRoot: opts.projectRoot });
+  await registerSetupRoutes(app, { projectRoot: opts.projectRoot });
+
+  const uiDir = await locateUiDir(opts.uiDir);
+  let uiAvailable = false;
+  if (uiDir) {
+    await app.register(fastifyStatic, {
+      root: uiDir,
+      prefix: "/",
+      decorateReply: false,
+    });
+    // SPA fallback: any non-API GET that didn't match → index.html.
+    app.setNotFoundHandler(async (req, reply) => {
+      if (req.url.startsWith("/api/")) {
+        return reply.code(404).send({ error: "Not found." });
+      }
+      const indexPath = path.join(uiDir, "index.html");
+      const html = await fs.readFile(indexPath, "utf8");
+      return reply.type("text/html").send(html);
+    });
+    uiAvailable = true;
+  } else {
+    app.setNotFoundHandler(async (req, reply) => {
+      if (req.url.startsWith("/api/")) {
+        return reply.code(404).send({ error: "Not found." });
+      }
+      return reply
+        .type("text/html")
+        .send(
+          `<!doctype html><meta charset="utf-8"><title>Amaco</title><body style="font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e13;color:#cfd8e3;padding:24px;line-height:1.5"><h1 style="margin:0 0 8px">Amaco</h1><p>The dashboard UI bundle is not built yet.</p><p>Run <code>pnpm build:ui</code> from the Amaco project, then restart the server.</p></body>`,
+        );
+    });
+  }
+
+  await app.listen({ port, host });
+  // Resolve the actual bound port (matters when port=0 is passed in tests).
+  const addresses = app.addresses();
+  const actualAddr = addresses[0];
+  const actualPort = actualAddr ? actualAddr.port : port;
+  const safeHost = host === "0.0.0.0" ? "127.0.0.1" : host;
+  return {
+    app,
+    url: `http://${safeHost}:${actualPort}`,
+    port: actualPort,
+    host: safeHost,
+    uiAvailable,
+    close: () => app.close(),
+  };
+}

@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-amaco-canvas: #0b0e13;
+  --color-amaco-panel: #11151c;
+  --color-amaco-panel-2: #161b24;
+  --color-amaco-border: #232a36;
+  --color-amaco-border-soft: #1a212c;
+  --color-amaco-fg: #d6dde6;
+  --color-amaco-fg-dim: #8a93a3;
+  --color-amaco-fg-muted: #5b6370;
+  --color-amaco-accent: #4ea1ff;
+  --color-amaco-accent-soft: #1e2a3d;
+  --color-amaco-success: #5ec27c;
+  --color-amaco-warn: #d8a23a;
+  --color-amaco-fail: #d96666;
+  --color-amaco-diff-add: #1e3327;
+  --color-amaco-diff-add-fg: #9fdcb0;
+  --color-amaco-diff-del: #3d2326;
+  --color-amaco-diff-del-fg: #f0a5a5;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono", "Fira Code", "SFMono-Regular", "Menlo", Consolas,
+    ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: rgba(78, 161, 255, 0.35);
+}
+
+@keyframes amaco-pulse {
+  0%, 100% { opacity: 0.4; transform: scaleX(0.6); }
+  50% { opacity: 1; transform: scaleX(1); }
+}
+
+.amaco-pulse-bar {
+  position: relative;
+  display: block;
+  height: 1px;
+  background: var(--color-amaco-accent);
+  transform-origin: left center;
+  animation: amaco-pulse 1200ms ease-in-out infinite;
+}
+
+.amaco-mono {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}

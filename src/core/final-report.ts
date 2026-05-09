@@ -1,6 +1,7 @@
 import type { RunState } from "./state-machine.js";
 import type { ValidationResults } from "./validation-runner.js";
 import type { PolicyWarning } from "./policy-engine.js";
+import type { RuntimeMetrics } from "./runtime-metrics.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -14,6 +15,7 @@ export type FinalReportInput = {
   validation: ValidationResults | null;
   policyWarnings: PolicyWarning[];
   reviewLoops: number;
+  metrics: RuntimeMetrics | null;
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -66,8 +68,51 @@ function renderNextSteps(state: RunState): string {
   }
 }
 
+function formatCost(usd: number | null | undefined): string {
+  if (usd === null || usd === undefined) return "_not reported by provider_";
+  return `$${usd.toFixed(4)} USD`;
+}
+
+function formatTokens(t: { input?: number; output?: number; cacheRead?: number; cacheCreation?: number } | null | undefined): string {
+  if (!t) return "_not reported by provider_";
+  const parts: string[] = [];
+  if (t.input !== undefined) parts.push(`in: ${t.input}`);
+  if (t.output !== undefined) parts.push(`out: ${t.output}`);
+  if (t.cacheRead !== undefined) parts.push(`cache-read: ${t.cacheRead}`);
+  if (t.cacheCreation !== undefined) parts.push(`cache-create: ${t.cacheCreation}`);
+  return parts.length > 0 ? parts.join(" · ") : "_not reported by provider_";
+}
+
+function renderMetricsSection(metrics: RuntimeMetrics | null): string {
+  if (!metrics || metrics.agents.length === 0) {
+    return "_No runtime metrics recorded._";
+  }
+  const head = `| Stage | Agent | Provider | Duration | Exit | Skills | Diff (+/-) | Cost | Tokens | Decision |`;
+  const sep = `| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- | --- |`;
+  const rows = metrics.agents.map((a) => {
+    const skills = a.skillsAttached.length > 0 ? a.skillsAttached.join(", ") : "—";
+    const diff =
+      a.diffInsertionsAfter !== null && a.diffDeletionsAfter !== null
+        ? `${a.diffInsertionsAfter}/${a.diffDeletionsAfter}`
+        : "—";
+    const cost = a.totalCostUsd !== null ? `$${a.totalCostUsd.toFixed(4)}` : "—";
+    const tokens =
+      a.tokenUsage && (a.tokenUsage.input || a.tokenUsage.output)
+        ? `${a.tokenUsage.input ?? 0}→${a.tokenUsage.output ?? 0}`
+        : "—";
+    const decision = a.reviewDecision ?? a.verificationDecision ?? "—";
+    return `| ${a.stageId} | ${a.agentId} | ${a.providerId} | ${a.durationMs}ms | ${a.exitCode} | ${skills} | ${diff} | ${cost} | ${tokens} | ${decision} |`;
+  });
+  const totals = [
+    `**Total provider calls:** ${metrics.totalProviderCalls}`,
+    `**Total agent duration:** ${metrics.totalDurationMs}ms`,
+    `**Total cost:** ${formatCost(metrics.totalCostUsd)}`,
+  ];
+  return [head, sep, ...rows, "", ...totals].join("\n");
+}
+
 export function renderFinalReport(input: FinalReportInput): string {
-  const { state, artifactPaths, validation, policyWarnings, reviewLoops } = input;
+  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics } = input;
 
   return `# Amaco Final Report
 
@@ -108,6 +153,10 @@ Path: ${renderPath(artifactPaths.execution)}
 ## Validation Results
 
 ${renderValidation(validation)}
+
+## Runtime Metrics
+
+${renderMetricsSection(metrics)}
 
 ## Review Output
 

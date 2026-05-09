@@ -23,13 +23,16 @@ import { getAgentConfig } from "../agents/agent-registry.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
 import { assertExecutableContext, resolveCwd } from "../permissions/access-policy.js";
 import { loadSkills } from "../skills/skill-loader.js";
-import { runProvider } from "../providers/provider-runner.js";
+import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable } from "../git/git.js";
 import { GitError, AmacoError, describeError } from "../utils/errors.js";
-import { formatRunIdTimestamp, nowIso } from "../utils/time.js";
+import { formatRunIdTimestamp, nowIso, durationMs } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
 import type { ProviderRunResult } from "../providers/provider-types.js";
+import { MetricsStore } from "./metrics-store.js";
+import { makeEmptyMetrics, type AgentMetrics } from "./runtime-metrics.js";
+import { getDiffSnapshot } from "./diff-service.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -94,7 +97,15 @@ export class Orchestrator {
     const artifactStore = new ArtifactStore(this.projectRoot, runId);
     const stateStore = new RunStateStore(this.projectRoot, runId);
     const eventLog = new EventLog(this.projectRoot, runId);
+    const metricsStore = new MetricsStore(this.projectRoot, runId);
     await artifactStore.init();
+    await metricsStore.write(
+      makeEmptyMetrics({
+        runId,
+        task: this.task,
+        startedAt: nowIso(),
+      }),
+    );
 
     let state = createInitialState({
       runId,
@@ -179,10 +190,12 @@ export class Orchestrator {
       await stateStore.write(state);
       planArtifact = await this.runAgent({
         agentId: "planner",
+        stageId: "planning",
         promptIndex: 1,
         outputName: "02-plan.md",
         priorArtifacts: [],
         validationResults: null,
+        metricsStore,
         ctx,
       });
       state = applyTransition(state, "planned");
@@ -194,10 +207,12 @@ export class Orchestrator {
       await stateStore.write(state);
       architectureArtifact = await this.runAgent({
         agentId: "architect",
+        stageId: "architecting",
         promptIndex: 3,
         outputName: "04-architecture.md",
         priorArtifacts: [{ label: "Plan", content: planArtifact.output }],
         validationResults: null,
+        metricsStore,
         ctx,
       });
       state = applyTransition(state, "architected");
@@ -209,6 +224,7 @@ export class Orchestrator {
       await stateStore.write(state);
       executionArtifact = await this.runAgent({
         agentId: "executor",
+        stageId: "executing",
         promptIndex: 5,
         outputName: "06-execution-output.md",
         priorArtifacts: [
@@ -216,6 +232,7 @@ export class Orchestrator {
           { label: "Architecture", content: architectureArtifact.output },
         ],
         validationResults: null,
+        metricsStore,
         ctx,
       });
 
@@ -238,6 +255,7 @@ export class Orchestrator {
       this.onProgress("Reviewing...");
       reviewArtifact = await this.runAgent({
         agentId: "reviewer",
+        stageId: "reviewing",
         promptIndex: 8,
         outputName: "09-review.md",
         priorArtifacts: this.collectPriors({
@@ -246,6 +264,7 @@ export class Orchestrator {
           execution: executionArtifact,
         }),
         validationResults: lastValidation,
+        metricsStore,
         ctx,
       });
       reviewDecision = effectiveReviewDecision(reviewArtifact.output);
@@ -272,6 +291,7 @@ export class Orchestrator {
 
         const fixArtifact = await this.runAgent({
           agentId: "fixer",
+          stageId: "fixing",
           promptIndex: 0,
           outputName: fixerOutputName,
           promptName: path.posix.join(loopRel, "fixer-prompt.md"),
@@ -284,6 +304,7 @@ export class Orchestrator {
             { label: "Latest Review", content: reviewArtifact.output },
           ],
           validationResults: lastValidation,
+          metricsStore,
           ctx,
         });
 
@@ -302,6 +323,7 @@ export class Orchestrator {
         this.onProgress(`Reviewing (loop ${reviewLoopsCompleted})...`);
         reviewArtifact = await this.runAgent({
           agentId: "reviewer",
+          stageId: "reviewing",
           promptIndex: 0,
           outputName: path.posix.join(loopRel, "review.md"),
           promptName: path.posix.join(loopRel, "reviewer-prompt.md"),
@@ -314,6 +336,7 @@ export class Orchestrator {
             { label: "Latest Fix", content: fixArtifact.output },
           ],
           validationResults: lastValidation,
+          metricsStore,
           ctx,
         });
         reviewDecision = effectiveReviewDecision(reviewArtifact.output);
@@ -351,6 +374,7 @@ export class Orchestrator {
         this.onProgress("Verifying...");
         verificationArtifact = await this.runAgent({
           agentId: "verifier",
+          stageId: "verifying",
           promptIndex: 10,
           outputName: "11-verification.md",
           priorArtifacts: [
@@ -362,6 +386,7 @@ export class Orchestrator {
             { label: "Latest Review", content: reviewArtifact.output },
           ],
           validationResults: lastValidation,
+          metricsStore,
           ctx,
         });
         verificationDecision = effectiveVerificationDecision(
@@ -400,12 +425,19 @@ export class Orchestrator {
         type: "run.failed",
         message: `Run failed: ${message}`,
       });
+      try {
+        await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
+      } catch {
+        // metrics finalize best-effort
+      }
+      const failureMetrics = (await metricsStore.read()) ?? null;
       await this.writeFinalReport({
         artifactStore,
         state,
         validation: lastValidation,
         policyWarnings: policy.warnings,
         reviewLoops: reviewLoopsCompleted,
+        metrics: failureMetrics,
         artifacts: {
           plan: planArtifact?.outputArtifactPath,
           architecture: architectureArtifact?.outputArtifactPath,
@@ -418,12 +450,29 @@ export class Orchestrator {
       throw err instanceof Error ? err : new Error(message);
     }
 
+    // Finalize metrics (record final status + review loops).
+    await metricsStore.update((m) => ({
+      ...m,
+      finalStatus: state.status,
+      reviewLoopCount: reviewLoopsCompleted,
+      validationSummary: lastValidation
+        ? {
+            total: lastValidation.summary.total,
+            passed: lastValidation.summary.passed,
+            failed: lastValidation.summary.failed,
+          }
+        : null,
+    }));
+
+    const finalMetrics = (await metricsStore.read()) ?? null;
+
     const finalReportPath = await this.writeFinalReport({
       artifactStore,
       state,
       validation: lastValidation,
       policyWarnings: policy.warnings,
       reviewLoops: reviewLoopsCompleted,
+      metrics: finalMetrics,
       artifacts: {
         plan: planArtifact?.outputArtifactPath,
         architecture: architectureArtifact?.outputArtifactPath,
@@ -459,11 +508,15 @@ export class Orchestrator {
 
   private async runAgent(input: {
     agentId: string;
+    stageId: string;
     promptIndex: number;
     outputName: string;
     promptName?: string;
     priorArtifacts: PriorArtifact[];
     validationResults: ValidationResults | null;
+    metricsStore: MetricsStore;
+    reviewDecisionForStage?: string | null;
+    verificationDecisionForStage?: string | null;
     ctx: {
       runId: string;
       worktreePath: string | null;
@@ -524,7 +577,8 @@ export class Orchestrator {
       data: { agentId, provider: agent.provider, cwd },
     });
 
-    let providerResult: ProviderRunResult;
+    let providerResult: RichProviderRunResult;
+    const stageStart = new Date();
     try {
       providerResult = await runProvider(this.config.providers, {
         providerId: agent.provider,
@@ -532,6 +586,7 @@ export class Orchestrator {
         cwd,
       });
     } catch (err) {
+      const stageEnd = new Date();
       await ctx.eventLog.append({
         type: "provider.failed",
         message: `Provider ${agent.provider} failed for ${agentId}: ${describeError(err)}`,
@@ -542,6 +597,38 @@ export class Orchestrator {
         message: `Agent ${agentId} failed.`,
         data: { agentId },
       });
+      // Record a partial metric so the dashboard reflects the failure.
+      const providerCfg = this.config.providers[agent.provider];
+      const failedMetric: AgentMetrics = {
+        agentId,
+        stageId: input.stageId,
+        providerId: agent.provider,
+        providerType: providerCfg?.type ?? "cli",
+        command: providerCfg?.command ?? "",
+        args: [...(providerCfg?.args ?? [])],
+        cwd,
+        startedAt: stageStart.toISOString(),
+        endedAt: stageEnd.toISOString(),
+        durationMs: durationMs(stageStart, stageEnd),
+        exitCode: -1,
+        sessionId: null,
+        model: null,
+        totalCostUsd: null,
+        perModelCost: [],
+        tokenUsage: null,
+        toolCallCount: null,
+        filesChangedBefore: null,
+        filesChangedAfter: null,
+        diffInsertionsAfter: null,
+        diffDeletionsAfter: null,
+        validationSummary: null,
+        reviewDecision: null,
+        verificationDecision: null,
+        skillsAttached: skills.map((s) => s.name),
+        skillsRequested: agent.skills.slice(),
+        notes: ["agent invocation failed before completion"],
+      };
+      await input.metricsStore.appendAgentMetrics(failedMetric);
       throw err;
     }
 
@@ -572,6 +659,64 @@ export class Orchestrator {
       message: `Agent ${agentId} completed.`,
       data: { agentId, exitCode: providerResult.exitCode },
     });
+
+    // Compute diff snapshot after this stage when worktree exists.
+    let filesChangedAfter: number | null = null;
+    let diffInsertionsAfter: number | null = null;
+    let diffDeletionsAfter: number | null = null;
+    if (ctx.worktreePath) {
+      try {
+        const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
+        filesChangedAfter = snap.totals.files;
+        diffInsertionsAfter = snap.totals.insertions;
+        diffDeletionsAfter = snap.totals.deletions;
+      } catch {
+        // Diff unavailable; leave nulls.
+      }
+    }
+
+    const claudeMetrics = providerResult.claudeMetrics;
+    const providerCfg = this.config.providers[agent.provider];
+    const metric: AgentMetrics = {
+      agentId,
+      stageId: input.stageId,
+      providerId: agent.provider,
+      providerType: providerCfg?.type ?? "cli",
+      command: providerResult.command,
+      args: providerResult.args,
+      cwd: providerResult.cwd,
+      startedAt: providerResult.startedAt,
+      endedAt: providerResult.endedAt,
+      durationMs: providerResult.durationMs,
+      exitCode: providerResult.exitCode,
+      promptArtifactPath: ctx.artifactStore.relPath(promptArtifactPathAbs),
+      outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
+      sessionId: claudeMetrics?.sessionId ?? null,
+      model: claudeMetrics?.model ?? null,
+      totalCostUsd: claudeMetrics?.totalCostUsd ?? null,
+      perModelCost: claudeMetrics?.perModelCost ?? [],
+      tokenUsage: claudeMetrics?.tokenUsage ?? null,
+      toolCallCount: claudeMetrics?.toolCallCount ?? null,
+      filesChangedBefore: null,
+      filesChangedAfter,
+      diffInsertionsAfter,
+      diffDeletionsAfter,
+      validationSummary: input.validationResults
+        ? {
+            total: input.validationResults.summary.total,
+            passed: input.validationResults.summary.passed,
+            failed: input.validationResults.summary.failed,
+          }
+        : null,
+      reviewDecision: input.reviewDecisionForStage ?? null,
+      verificationDecision: input.verificationDecisionForStage ?? null,
+      skillsAttached: skills.map((s) => s.name),
+      skillsRequested: agent.skills.slice(),
+      notes: claudeMetrics && !claudeMetrics.parseAvailable
+        ? ["claude-code metrics not reported by provider"]
+        : [],
+    };
+    await input.metricsStore.appendAgentMetrics(metric);
 
     return {
       agentId,
@@ -630,6 +775,7 @@ export class Orchestrator {
     validation: ValidationResults | null;
     policyWarnings: PolicyWarning[];
     reviewLoops: number;
+    metrics: import("./runtime-metrics.js").RuntimeMetrics | null;
     artifacts: {
       plan?: string;
       architecture?: string;
@@ -644,6 +790,7 @@ export class Orchestrator {
       validation: input.validation,
       policyWarnings: input.policyWarnings,
       reviewLoops: input.reviewLoops,
+      metrics: input.metrics,
     });
     return input.artifactStore.write("12-final-report.md", report);
   }

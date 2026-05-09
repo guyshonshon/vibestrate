@@ -20,6 +20,19 @@ amaco run "Add dark mode to settings"
 
 That's the whole flow. If Claude Code is installed and on your PATH, Amaco detects it automatically and writes a runnable config. You never have to open YAML.
 
+Want to watch a run visually? Run with `--ui`:
+
+```bash
+amaco run "Add dark mode to settings" --ui
+# Supervisor: http://127.0.0.1:4317
+```
+
+Or open the dashboard standalone any time:
+
+```bash
+amaco ui --open
+```
+
 ## What Amaco does for you
 
 - Detects your project type (Next.js, Vite, TypeScript, Node) and package manager (pnpm/npm/yarn/bun).
@@ -186,9 +199,11 @@ amaco config set commands.validate '["pnpm lint","pnpm test"]'
 amaco init [--yes] [--interactive] [--force]
 amaco setup
 amaco doctor [--json] [--fix]
-amaco run "task description"
+amaco run "task description" [--ui] [--ui-port <port>]
 amaco status [--json]
 amaco abort <runId>
+
+amaco ui [--port <port>] [--open]
 
 amaco provider detect [--json]
 amaco provider list [--json]
@@ -200,6 +215,11 @@ amaco config show [--json]
 amaco config get <path> [--json]
 amaco config set <path> <value>
 amaco config validate [--json]
+
+amaco skills list [--json]
+amaco skills show <name>
+amaco skills assign <agent> <skill>
+amaco skills unassign <agent> <skill>
 ```
 
 ## How a run works
@@ -268,6 +288,115 @@ Final status is `merge_ready` only when the reviewer approved **and** the verifi
 
 > Amaco is not a full sandbox. It runs local CLI tools on your machine. Configure only providers you trust.
 
+## Local Supervisor Dashboard
+
+`amaco ui` starts a small local web server (default `127.0.0.1:4317`) that serves a React dashboard supervising every Amaco run in the current project.
+
+The dashboard is a **read-and-annotate** surface. It can:
+
+- list runs and watch the active one update over an SSE event stream,
+- render the workflow timeline with the active stage,
+- show the current agent's provider, command, duration, exit code, and attached skills,
+- list changed files in the worktree with `+/-` counts and a unified diff per file,
+- read run artifacts (planner/architect/executor/reviewer/verifier outputs, validation results JSON, final report) directly,
+- attach plain-text **notes** to any run, stage, file, artifact, validation command, or event,
+- list discovered **skills** from `.amaco/skills/` and `.claude/skills/` and show which agents use them,
+- show **runtime metrics** per agent (duration, exit code, diff stats, cost, tokens) when the provider exposes them.
+
+### What the dashboard does NOT do
+
+- It does not spawn Claude Code, Codex, or any other CLI from the browser.
+- It does not have an arbitrary-shell endpoint.
+- It does not show `.env` diffs — `.env`, `.env.*`, `*.pem`, `*.key`, and similar paths are flagged as secret-like and the body is suppressed (filename only).
+- It does not push, merge, or contact GitHub.
+- It binds to `127.0.0.1` only. Cross-origin requests are refused.
+
+### Why the browser does not run Claude directly
+
+Amaco's design separates the supervisor (UI + local server) from the executor (Amaco core, which spawns provider CLIs as child processes). The UI reads `.amaco/runs/<run-id>/` and calls the local server's safe API; the local server calls the same Amaco core that the CLI calls; the core spawns providers. There is no path from the browser to a shell, by design.
+
+```
+browser ──HTTP──► local server ──fn calls──► Amaco core ──child_process──► provider CLI
+                       │                          │
+                       └──── reads files ─────────┘
+                            (state, events, artifacts, diff, metrics)
+```
+
+This keeps the CLI fully usable without the UI, and keeps the UI from accidentally becoming a remote-code-execution surface.
+
+## Skills
+
+Skills attach reusable instructions to agents at run time. Amaco discovers skills from two roots:
+
+- `.amaco/skills/<name>/SKILL.md` (or legacy flat `.amaco/skills/<name>.md`)
+- `.claude/skills/<name>/SKILL.md`
+
+```bash
+amaco skills list
+amaco skills show example-skill
+amaco skills assign reviewer security
+amaco skills unassign reviewer security
+```
+
+When an agent runs, every skill assigned to it is loaded and embedded in that agent's prompt under an `# Attached Skills` section, alongside the project rules. The skill name and body preview also show up in the run's runtime metrics so you can audit what each agent had access to.
+
+> Amaco does **not** train Claude or any other model. Skills are reusable instruction bundles that get attached at run time — nothing more.
+
+## Claude Code provider notes
+
+The default generic CLI provider (`type: cli`) shells out to a command and pipes the prompt to it. For Claude Code specifically, Amaco also ships a richer provider type, `claude-code`, that:
+
+- reuses the same prompt-building, permission, and worktree-isolation contract,
+- accepts an optional `settings` block (output format, max turns, permission mode, allowed tools, settings file, etc.) and only adds CLI flags for keys the user actually set — Amaco never invents flags,
+- best-effort parses session id, model, total cost USD, per-model cost, token usage, and tool-call count from JSON or stream-JSON output,
+- writes those fields into `.amaco/runs/<run-id>/runtime-metrics.json` so the dashboard and final report can show them.
+
+If you don't configure `settings.outputFormat`, Claude runs in plain text mode and Amaco honestly reports cost/tokens as **"not reported by provider"** — never as zero, never as fabricated values.
+
+To opt in to the richer type, set the provider type in `.amaco/project.yml`:
+
+```yaml
+providers:
+  claude:
+    type: claude-code
+    command: claude
+    args: ["-p"]
+    input: stdin
+    settings:
+      outputFormat: stream-json
+```
+
+The generic `type: cli` provider continues to work for any other local CLI.
+
+## Runtime telemetry
+
+After every agent invocation, Amaco appends an entry to:
+
+```
+.amaco/runs/<run-id>/runtime-metrics.json
+.amaco/runs/<run-id>/agent-metrics/<agent>-<timestamp>.json
+```
+
+Each entry includes: agent id, stage id, provider id and type, command, args, cwd, started/ended timestamps, duration, exit code, prompt and output artifact paths, post-stage diff stats, validation summary, attached skills, and — when the provider reports them — session id, model, cost, per-model cost, token usage, and tool call count.
+
+The final report at `12-final-report.md` includes a "Runtime Metrics" table with the same data. Cost and tokens that the provider didn't report are shown as `—` (or "not reported by provider"), never as 0 or invented numbers.
+
+## Live logs vs interactive terminal
+
+The dashboard's "Logs" tab is **read-only**: it tails artifact files (planner output, executor output, validation stdout/stderr, etc.) and renders them live. There is no interactive terminal, no `xterm.js`, no `node-pty`, and no way to send commands from the browser to a running process in V0.
+
+A future "interactive terminal with strict approval gates" is documented in the roadmap but intentionally not in this phase.
+
+## Security model for local UI
+
+- Bound to `127.0.0.1` only.
+- Cross-origin requests rejected at request time.
+- All API paths use a strict `runId` allow-list pattern; `..` is rejected.
+- Artifact paths are resolved against the run's `artifacts/` dir and rejected if they escape it.
+- Diff service redacts `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, and similar paths — file names visible, body suppressed.
+- The server has no endpoint that runs arbitrary shell commands. The only mutating endpoints are: add note, resolve note, abort run.
+- `amaco run --ui` and `amaco ui` reuse the exact same setup/doctor/config services the CLI uses — there is no parallel UI-only logic.
+
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
@@ -275,6 +404,8 @@ Final status is `merge_ready` only when the reviewer approved **and** the verifi
 - Permissions are orchestration-level, not OS-level sandboxing.
 - One built-in linear workflow. Custom DAGs are documented but not implemented.
 - No cloud or Docker backends.
+- The dashboard's "Logs" tab is read-only — no interactive terminal yet.
+- Token/cost metrics depend on the provider exposing them. Generic CLIs and unconfigured Claude Code will show "not reported".
 
 ## Roadmap
 
