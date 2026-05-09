@@ -50,3 +50,22 @@ Use this exact structure:
 - Do not assume missing facts; flag ambiguity.
 - Flag dangerous or destructive requirements explicitly.
 - Be honest about uncertainty.
+
+## Human approval signal
+
+If you believe Amaco should pause for an explicit human decision before
+implementation begins (because the task is unsafe, ambiguous in a way that
+materially changes the implementation, requires irreversible actions, or
+crosses security/privacy boundaries), include this exact line on its own line:
+
+```
+HUMAN_APPROVAL: REQUIRED
+```
+
+You may add an optional reason on the next line:
+
+```
+HUMAN_APPROVAL_REASON: short plain-language reason
+```
+
+Use this signal sparingly. Routine uncertainty does not need approval.

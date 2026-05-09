@@ -2,6 +2,7 @@ import type { RunState } from "./state-machine.js";
 import type { ValidationResults } from "./validation-runner.js";
 import type { PolicyWarning } from "./policy-engine.js";
 import type { RuntimeMetrics } from "./runtime-metrics.js";
+import type { ApprovalRequest } from "./approval-types.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -16,6 +17,7 @@ export type FinalReportInput = {
   policyWarnings: PolicyWarning[];
   reviewLoops: number;
   metrics: RuntimeMetrics | null;
+  approvals: ApprovalRequest[];
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -83,6 +85,20 @@ function formatTokens(t: { input?: number; output?: number; cacheRead?: number; 
   return parts.length > 0 ? parts.join(" · ") : "_not reported by provider_";
 }
 
+function renderApprovalsSection(approvals: ApprovalRequest[]): string {
+  if (approvals.length === 0) return "_No approval requests recorded._";
+  const head = `| Approval ID | Stage | Agent | Status | Reason | Decision Note | Created | Resolved |`;
+  const sep = `| --- | --- | --- | --- | --- | --- | --- | --- |`;
+  const rows = approvals.map((a) => {
+    const reason = a.reason ? a.reason.replace(/\|/g, "\\|") : "—";
+    const note = a.decisionNote
+      ? a.decisionNote.replace(/\|/g, "\\|")
+      : "—";
+    return `| \`${a.id}\` | ${a.stageId} | ${a.agentId} | ${a.status} | ${reason} | ${note} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
+  });
+  return [head, sep, ...rows].join("\n");
+}
+
 function renderMetricsSection(metrics: RuntimeMetrics | null): string {
   if (!metrics || metrics.agents.length === 0) {
     return "_No runtime metrics recorded._";
@@ -112,7 +128,11 @@ function renderMetricsSection(metrics: RuntimeMetrics | null): string {
 }
 
 export function renderFinalReport(input: FinalReportInput): string {
-  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics } = input;
+  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals } = input;
+  const summary = metrics?.approvalsSummary ?? null;
+  const approvalSummaryLine = summary
+    ? `**Total:** ${summary.total} · **Approved:** ${summary.approved} · **Rejected:** ${summary.rejected}${summary.expired ? ` · **Expired:** ${summary.expired}` : ""}${summary.pending ? ` · **Pending:** ${summary.pending}` : ""}${summary.totalWaitMs ? ` · **Total wait:** ${summary.totalWaitMs}ms` : ""}`
+    : "";
 
   return `# Amaco Final Report
 
@@ -157,6 +177,12 @@ ${renderValidation(validation)}
 ## Runtime Metrics
 
 ${renderMetricsSection(metrics)}
+
+## Approval Decisions
+
+${approvalSummaryLine}
+
+${renderApprovalsSection(approvals)}
 
 ## Review Output
 

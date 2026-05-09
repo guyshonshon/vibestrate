@@ -25,6 +25,7 @@ const ORDERED: RunStatus[] = [
   "reviewing",
   "fixing",
   "verifying",
+  "waiting_for_approval",
   "merge_ready",
   "blocked",
   "failed",
@@ -34,7 +35,17 @@ const ORDERED: RunStatus[] = [
 function stageState(
   current: RunStatus,
   stageStatuses: RunStatus[],
-): "done" | "active" | "pending" {
+  pausedAt: RunStatus | null,
+): "done" | "active" | "awaiting" | "pending" {
+  // If the run is paused for approval, the stage that triggered the pause
+  // shows as "awaiting" (cyan, no pulse) instead of "done".
+  if (current === "waiting_for_approval" && pausedAt) {
+    if (stageStatuses.includes(pausedAt)) return "awaiting";
+    const pausedIdx = ORDERED.indexOf(pausedAt);
+    const lastStageIdx = Math.max(...stageStatuses.map((s) => ORDERED.indexOf(s)));
+    if (pausedIdx > lastStageIdx) return "done";
+    return "pending";
+  }
   if (stageStatuses.includes(current)) return "active";
   const currentIdx = ORDERED.indexOf(current);
   const lastStageIdx = Math.max(...stageStatuses.map((s) => ORDERED.indexOf(s)));
@@ -47,10 +58,12 @@ export function WorkflowTimeline({
   status,
   onSelectStage,
   selectedStage,
+  pausedAtStatus = null,
 }: {
   status: RunStatus;
   onSelectStage?: (stageId: string) => void;
   selectedStage?: string | null;
+  pausedAtStatus?: RunStatus | null;
 }) {
   return (
     <div className="rounded border border-amaco-border bg-amaco-panel p-3">
@@ -59,18 +72,20 @@ export function WorkflowTimeline({
       </div>
       <ol className="mt-2 grid grid-cols-7 gap-2">
         {STAGES.map((s) => {
-          const state = stageState(status, s.statuses);
+          const state = stageState(status, s.statuses, pausedAtStatus);
           const isSelected = selectedStage === s.id;
           const dot =
             state === "done"
               ? "bg-amaco-success"
               : state === "active"
                 ? "bg-amaco-accent"
-                : "bg-amaco-fg-muted/40";
+                : state === "awaiting"
+                  ? "bg-amaco-accent"
+                  : "bg-amaco-fg-muted/40";
           const text =
             state === "done"
               ? "text-amaco-fg"
-              : state === "active"
+              : state === "active" || state === "awaiting"
                 ? "text-amaco-accent"
                 : "text-amaco-fg-muted";
           return (
@@ -83,7 +98,14 @@ export function WorkflowTimeline({
               >
                 <span className="flex w-full items-center gap-1.5">
                   <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-                  <span className={`text-[12px] ${text}`}>{s.label}</span>
+                  <span className={`text-[12px] ${text}`}>
+                    {s.label}
+                    {state === "awaiting" ? (
+                      <span className="ml-1 text-[10.5px] text-amaco-fg-muted">
+                        · awaiting
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 <span className="block h-px w-full overflow-hidden">
                   {state === "active" ? (
@@ -93,7 +115,9 @@ export function WorkflowTimeline({
                       className={`block h-px w-full ${
                         state === "done"
                           ? "bg-amaco-success/60"
-                          : "bg-amaco-border"
+                          : state === "awaiting"
+                            ? "bg-amaco-accent/60"
+                            : "bg-amaco-border"
                       }`}
                     />
                   )}

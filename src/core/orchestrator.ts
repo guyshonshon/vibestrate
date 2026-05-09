@@ -33,6 +33,9 @@ import type { ProviderRunResult } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type AgentMetrics } from "./runtime-metrics.js";
 import { getDiffSnapshot } from "./diff-service.js";
+import { ApprovalService } from "./approval-service.js";
+import { detectApprovalRequest } from "./approval-types.js";
+import type { RunStatus } from "../workflow/workflow-types.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -62,6 +65,58 @@ type AgentRunResult = {
 
 export function makeRunId(task: string): string {
   return `${formatRunIdTimestamp()}-${slugify(task)}`;
+}
+
+class __ApprovalRejectedSignal extends Error {
+  constructor() {
+    super("Run blocked after approval rejected");
+    this.name = "ApprovalRejectedSignal";
+  }
+}
+
+function summarizeApprovals(
+  approvals: import("./approval-types.js").ApprovalRequest[],
+): {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  expired: number;
+  totalWaitMs: number;
+} {
+  let pending = 0;
+  let approved = 0;
+  let rejected = 0;
+  let expired = 0;
+  let totalWaitMs = 0;
+  for (const a of approvals) {
+    switch (a.status) {
+      case "pending":
+        pending += 1;
+        break;
+      case "approved":
+        approved += 1;
+        break;
+      case "rejected":
+        rejected += 1;
+        break;
+      case "expired":
+        expired += 1;
+        break;
+    }
+    if (a.resolvedAt) {
+      totalWaitMs +=
+        Date.parse(a.resolvedAt) - Date.parse(a.createdAt) || 0;
+    }
+  }
+  return {
+    total: approvals.length,
+    pending,
+    approved,
+    rejected,
+    expired,
+    totalWaitMs,
+  };
 }
 
 export class Orchestrator {
@@ -98,6 +153,7 @@ export class Orchestrator {
     const stateStore = new RunStateStore(this.projectRoot, runId);
     const eventLog = new EventLog(this.projectRoot, runId);
     const metricsStore = new MetricsStore(this.projectRoot, runId);
+    const approvalService = new ApprovalService(this.projectRoot, runId);
     await artifactStore.init();
     await metricsStore.write(
       makeEmptyMetrics({
@@ -200,6 +256,26 @@ export class Orchestrator {
       });
       state = applyTransition(state, "planned");
       await stateStore.write(state);
+      {
+        const gate = await this.maybeAwaitApproval({
+          state,
+          fromStatus: "planned",
+          stageId: "planning",
+          agentId: "planner",
+          agentArtifact: planArtifact,
+          approvalService,
+          stateStore,
+          eventLog,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          await eventLog.append({
+            type: "run.completed",
+            message: `Run ${runId} blocked after rejected approval.`,
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+      }
 
       // Stage: architecting
       this.onProgress("Architecting...");
@@ -217,6 +293,26 @@ export class Orchestrator {
       });
       state = applyTransition(state, "architected");
       await stateStore.write(state);
+      {
+        const gate = await this.maybeAwaitApproval({
+          state,
+          fromStatus: "architected",
+          stageId: "architecting",
+          agentId: "architect",
+          agentArtifact: architectureArtifact,
+          approvalService,
+          stateStore,
+          eventLog,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          await eventLog.append({
+            type: "run.completed",
+            message: `Run ${runId} blocked after rejected approval.`,
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+      }
 
       // Stage: executing
       this.onProgress("Executing...");
@@ -235,6 +331,26 @@ export class Orchestrator {
         metricsStore,
         ctx,
       });
+      {
+        const gate = await this.maybeAwaitApproval({
+          state,
+          fromStatus: "executing",
+          stageId: "executing",
+          agentId: "executor",
+          agentArtifact: executionArtifact,
+          approvalService,
+          stateStore,
+          eventLog,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          await eventLog.append({
+            type: "run.completed",
+            message: `Run ${runId} blocked after rejected approval.`,
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+      }
 
       // Stage: validate -> review (loop)
       let approved = false;
@@ -268,6 +384,26 @@ export class Orchestrator {
         ctx,
       });
       reviewDecision = effectiveReviewDecision(reviewArtifact.output);
+      {
+        const gate = await this.maybeAwaitApproval({
+          state,
+          fromStatus: "reviewing",
+          stageId: "reviewing",
+          agentId: "reviewer",
+          agentArtifact: reviewArtifact,
+          approvalService,
+          stateStore,
+          eventLog,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          await eventLog.append({
+            type: "run.completed",
+            message: `Run ${runId} blocked after rejected approval.`,
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+      }
       await eventLog.append({
         type: "review.decision",
         message: `Reviewer decision: ${reviewDecision}`,
@@ -307,6 +443,26 @@ export class Orchestrator {
           metricsStore,
           ctx,
         });
+        {
+          const gate = await this.maybeAwaitApproval({
+            state,
+            fromStatus: "fixing",
+            stageId: "fixing",
+            agentId: "fixer",
+            agentArtifact: fixArtifact,
+            approvalService,
+            stateStore,
+            eventLog,
+          });
+          state = gate.state;
+          if (gate.rejected) {
+            await eventLog.append({
+              type: "run.completed",
+              message: `Run ${runId} blocked after rejected approval.`,
+            });
+            throw new __ApprovalRejectedSignal();
+          }
+        }
 
         // Re-validate
         state = applyTransition(state, "validating");
@@ -340,6 +496,26 @@ export class Orchestrator {
           ctx,
         });
         reviewDecision = effectiveReviewDecision(reviewArtifact.output);
+        {
+          const gate = await this.maybeAwaitApproval({
+            state,
+            fromStatus: "reviewing",
+            stageId: "reviewing",
+            agentId: "reviewer",
+            agentArtifact: reviewArtifact,
+            approvalService,
+            stateStore,
+            eventLog,
+          });
+          state = gate.state;
+          if (gate.rejected) {
+            await eventLog.append({
+              type: "run.completed",
+              message: `Run ${runId} blocked after rejected approval.`,
+            });
+            throw new __ApprovalRejectedSignal();
+          }
+        }
         await eventLog.append({
           type: "review.decision",
           message: `Reviewer decision: ${reviewDecision}`,
@@ -392,6 +568,26 @@ export class Orchestrator {
         verificationDecision = effectiveVerificationDecision(
           verificationArtifact.output,
         );
+        {
+          const gate = await this.maybeAwaitApproval({
+            state,
+            fromStatus: "verifying",
+            stageId: "verifying",
+            agentId: "verifier",
+            agentArtifact: verificationArtifact,
+            approvalService,
+            stateStore,
+            eventLog,
+          });
+          state = gate.state;
+          if (gate.rejected) {
+            await eventLog.append({
+              type: "run.completed",
+              message: `Run ${runId} blocked after rejected approval.`,
+            });
+            throw new __ApprovalRejectedSignal();
+          }
+        }
         await eventLog.append({
           type: "verification.decision",
           message: `Verifier decision: ${verificationDecision}`,
@@ -413,6 +609,48 @@ export class Orchestrator {
         });
       }
     } catch (err) {
+      // Approval-rejection short-circuit: state is already 'blocked' and the
+      // approval.rejected event is already written. Do not mark the run as failed.
+      if (err instanceof __ApprovalRejectedSignal) {
+        try {
+          const allApprovals = await approvalService.readAll();
+          const summary = summarizeApprovals(allApprovals);
+          await metricsStore.update((m) => ({
+            ...m,
+            finalStatus: state.status,
+            approvalsSummary: summary,
+          }));
+        } catch {
+          // best-effort
+        }
+        const blockedMetrics = (await metricsStore.read()) ?? null;
+        const blockedApprovals = await approvalService.readAll().catch(() => []);
+        const finalReportPath = await this.writeFinalReport({
+          artifactStore,
+          state,
+          validation: lastValidation,
+          policyWarnings: policy.warnings,
+          reviewLoops: reviewLoopsCompleted,
+          metrics: blockedMetrics,
+          approvals: blockedApprovals,
+          artifacts: {
+            plan: planArtifact?.outputArtifactPath,
+            architecture: architectureArtifact?.outputArtifactPath,
+            execution: executionArtifact?.outputArtifactPath,
+            review: reviewArtifact?.outputArtifactPath,
+            verification: verificationArtifact?.outputArtifactPath,
+          },
+        });
+        return {
+          runId,
+          state,
+          worktreePath,
+          branchName,
+          finalReportPath,
+          policyWarnings: policy.warnings,
+        };
+      }
+
       const message = describeError(err);
       try {
         state = applyTransition(state, "failed");
@@ -431,6 +669,7 @@ export class Orchestrator {
         // metrics finalize best-effort
       }
       const failureMetrics = (await metricsStore.read()) ?? null;
+      const failureApprovals = await approvalService.readAll().catch(() => []);
       await this.writeFinalReport({
         artifactStore,
         state,
@@ -438,6 +677,7 @@ export class Orchestrator {
         policyWarnings: policy.warnings,
         reviewLoops: reviewLoopsCompleted,
         metrics: failureMetrics,
+        approvals: failureApprovals,
         artifacts: {
           plan: planArtifact?.outputArtifactPath,
           architecture: architectureArtifact?.outputArtifactPath,
@@ -450,7 +690,9 @@ export class Orchestrator {
       throw err instanceof Error ? err : new Error(message);
     }
 
-    // Finalize metrics (record final status + review loops).
+    // Finalize metrics (record final status + review loops + approvals summary).
+    const allApprovals = await approvalService.readAll();
+    const approvalsSummary = summarizeApprovals(allApprovals);
     await metricsStore.update((m) => ({
       ...m,
       finalStatus: state.status,
@@ -462,9 +704,11 @@ export class Orchestrator {
             failed: lastValidation.summary.failed,
           }
         : null,
+      approvalsSummary,
     }));
 
     const finalMetrics = (await metricsStore.read()) ?? null;
+    const finalApprovals = allApprovals;
 
     const finalReportPath = await this.writeFinalReport({
       artifactStore,
@@ -473,6 +717,7 @@ export class Orchestrator {
       policyWarnings: policy.warnings,
       reviewLoops: reviewLoopsCompleted,
       metrics: finalMetrics,
+      approvals: finalApprovals,
       artifacts: {
         plan: planArtifact?.outputArtifactPath,
         architecture: architectureArtifact?.outputArtifactPath,
@@ -504,6 +749,113 @@ export class Orchestrator {
     if (input.execution)
       out.push({ label: "Implementation Summary", content: input.execution.output });
     return out;
+  }
+
+  /**
+   * If `agentArtifact.output` contains `HUMAN_APPROVAL: REQUIRED`, transition
+   * the run to `waiting_for_approval`, persist a pending approval request, and
+   * poll until the user resolves it via CLI/API. Returns the new state and
+   * whether the run was rejected (caller must transition to `blocked`).
+   *
+   * If no approval signal is present, returns the input state unchanged.
+   */
+  private async maybeAwaitApproval(input: {
+    state: RunState;
+    fromStatus: RunStatus;
+    stageId: string;
+    agentId: string;
+    agentArtifact: AgentRunResult | null;
+    approvalService: ApprovalService;
+    stateStore: RunStateStore;
+    eventLog: EventLog;
+  }): Promise<{ state: RunState; rejected: boolean }> {
+    if (!input.agentArtifact) return { state: input.state, rejected: false };
+    const detection = detectApprovalRequest(input.agentArtifact.output);
+    if (!detection.required) return { state: input.state, rejected: false };
+
+    this.onProgress(
+      `Pausing for human approval (${input.agentId} requested it)...`,
+    );
+
+    // Create approval request and pause.
+    const req = await input.approvalService.create({
+      stageId: input.stageId,
+      agentId: input.agentId,
+      reason: detection.reason,
+      prompt: input.agentArtifact.promptArtifactPath,
+      sourceArtifactPath: input.agentArtifact.outputArtifactPath,
+      requestedAction: `continue past ${input.stageId} stage`,
+      riskLevel: "medium",
+    });
+
+    let pendingState: RunState = applyTransition(input.state, "waiting_for_approval");
+    pendingState = {
+      ...pendingState,
+      pendingApprovalId: req.id,
+      approvalRequestedFromStatus: input.fromStatus,
+    };
+    await input.stateStore.write(pendingState);
+    await input.eventLog.append({
+      type: "approval.requested",
+      message: `Approval requested by ${input.agentId} at stage ${input.stageId}.`,
+      data: {
+        approvalId: req.id,
+        agentId: input.agentId,
+        stageId: input.stageId,
+        reason: detection.reason ?? null,
+        riskLevel: req.riskLevel,
+      },
+    });
+
+    const resolved = await input.approvalService.waitForResolution(req.id, {
+      pollMs: 1500,
+    });
+
+    if (resolved.status === "approved") {
+      // Round-trip back to the prior status so the caller's next transition works.
+      let next: RunState = applyTransition(pendingState, input.fromStatus);
+      next = {
+        ...next,
+        pendingApprovalId: null,
+        approvalRequestedFromStatus: null,
+      };
+      await input.stateStore.write(next);
+      await input.eventLog.append({
+        type: "approval.approved",
+        message: `Approval ${req.id} approved by ${resolved.resolvedBy ?? "local-user"}.`,
+        data: {
+          approvalId: req.id,
+          decisionNote: resolved.decisionNote ?? null,
+        },
+      });
+      await input.eventLog.append({
+        type: "run.resumed",
+        message: `Run resumed at stage ${input.stageId}.`,
+        data: { stageId: input.stageId },
+      });
+      return { state: next, rejected: false };
+    }
+
+    // rejected (or expired — treat as rejected for safety)
+    let blockedState: RunState = applyTransition(pendingState, "blocked");
+    blockedState = {
+      ...blockedState,
+      pendingApprovalId: null,
+      approvalRequestedFromStatus: null,
+    };
+    await input.stateStore.write(blockedState);
+    await input.eventLog.append({
+      type: resolved.status === "rejected" ? "approval.rejected" : "approval.expired",
+      message:
+        resolved.status === "rejected"
+          ? `Approval ${req.id} rejected by ${resolved.resolvedBy ?? "local-user"}.`
+          : `Approval ${req.id} expired without a decision.`,
+      data: {
+        approvalId: req.id,
+        decisionNote: resolved.decisionNote ?? null,
+      },
+    });
+    return { state: blockedState, rejected: true };
   }
 
   private async runAgent(input: {
@@ -776,6 +1128,7 @@ export class Orchestrator {
     policyWarnings: PolicyWarning[];
     reviewLoops: number;
     metrics: import("./runtime-metrics.js").RuntimeMetrics | null;
+    approvals: import("./approval-types.js").ApprovalRequest[];
     artifacts: {
       plan?: string;
       architecture?: string;
@@ -791,6 +1144,7 @@ export class Orchestrator {
       policyWarnings: input.policyWarnings,
       reviewLoops: input.reviewLoops,
       metrics: input.metrics,
+      approvals: input.approvals,
     });
     return input.artifactStore.write("12-final-report.md", report);
   }

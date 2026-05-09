@@ -220,6 +220,11 @@ amaco skills list [--json]
 amaco skills show <name>
 amaco skills assign <agent> <skill>
 amaco skills unassign <agent> <skill>
+
+amaco approvals list <runId> [--json]
+amaco approvals show <runId> <approvalId> [--json]
+amaco approvals approve <runId> <approvalId> [--note "..."]
+amaco approvals reject <runId> <approvalId> [--note "..."]
 ```
 
 ## How a run works
@@ -394,8 +399,95 @@ A future "interactive terminal with strict approval gates" is documented in the 
 - All API paths use a strict `runId` allow-list pattern; `..` is rejected.
 - Artifact paths are resolved against the run's `artifacts/` dir and rejected if they escape it.
 - Diff service redacts `.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, and similar paths — file names visible, body suppressed.
-- The server has no endpoint that runs arbitrary shell commands. The only mutating endpoints are: add note, resolve note, abort run.
+- The server has no endpoint that runs arbitrary shell commands. Mutating endpoints are: add note, resolve note, abort run, **assign skill, unassign skill, approve approval, reject approval**.
 - `amaco run --ui` and `amaco ui` reuse the exact same setup/doctor/config services the CLI uses — there is no parallel UI-only logic.
+
+## Dashboard skill assignment
+
+You can attach skills to agents from the dashboard without touching YAML.
+
+In the **Skills** tab of the inspector, each skill row has six toggleable agent chips (planner / architect / executor / fixer / reviewer / verifier). Click one to attach; click again to detach. The change is written to `.amaco/project.yml` through the same schema-validated path that `amaco skills assign` uses on the CLI.
+
+What skills are:
+
+- Reusable instructions Amaco loads at run time and embeds in the agent's prompt.
+- Discovered from `.amaco/skills/<name>/SKILL.md` (or legacy flat `.amaco/skills/<name>.md`) and `.claude/skills/<name>/SKILL.md`.
+- **Skills do not train the model.** They are run-time guidance that gets attached to specific agents.
+
+Server endpoints used by the UI (and available to scripts):
+
+```
+POST /api/skills/:skillId/assign     { "agentId": "executor" }
+POST /api/skills/:skillId/unassign   { "agentId": "executor" }
+```
+
+Both endpoints validate that the skill exists, the agent exists, and the resulting `.amaco/project.yml` is still valid before writing. Invalid writes are refused.
+
+## Human approval gates
+
+Amaco can pause a run for an explicit human decision. The signal is opt-in per agent output: when an agent's response includes the line
+
+```
+HUMAN_APPROVAL: REQUIRED
+```
+
+(optionally followed by `HUMAN_APPROVAL_REASON: <plain-language reason>`), the orchestrator transitions the run to `waiting_for_approval`, persists an approval request to `.amaco/runs/<run-id>/approvals.json`, and waits.
+
+The default planner / architect / reviewer / verifier prompts now mention this signal and tell the agent to use it sparingly — only for genuinely high-risk decisions (auth/privacy boundaries, destructive operations, irreversible migrations, ambiguous requirements that need human judgment). Routine uncertainty does not pause the run.
+
+### Why Amaco pauses
+
+The orchestrator owns the workflow and never silently accepts or rejects human-approval signals. If an agent says "this needs you", the run pauses. You decide. The run resumes (or blocks) based on your decision, never on an agent's recommendation.
+
+### Approve or reject from CLI
+
+```bash
+amaco approvals list <runId>
+amaco approvals show <runId> <approvalId>
+amaco approvals approve <runId> <approvalId> --note "looked at it"
+amaco approvals reject <runId> <approvalId> --note "wait for design review"
+```
+
+If `amaco run` is still attached, the run resumes (or blocks) automatically as soon as you decide. If you killed the CLI, the approval is still persisted in `approvals.json` — you can run the same `amaco approvals approve/reject` later and the next time you re-run the workflow you can pick up from a clean state.
+
+### Approve or reject from dashboard
+
+When a run is paused, the dashboard shows an approval banner at the top of the run detail page with:
+
+- the agent and stage that asked,
+- the reason (if provided),
+- the requested action,
+- a link to the source artifact,
+- an optional decision-note field,
+- **Approve** and **Reject** buttons.
+
+The browser POSTs to `/api/runs/:runId/approvals/:approvalId/approve` or `/reject`. The orchestrator's polling loop sees the resolution and resumes (or transitions to `blocked`).
+
+### Resume behavior
+
+V0 uses **in-process polling**. While `amaco run` is attached, it polls `approvals.json` every ~1.5s and continues as soon as the file shows the request resolved. Ctrl+C stops the polling but the state on disk (`waiting_for_approval`, the pending approval, every event so far) is preserved.
+
+If the CLI process exited while waiting, the run remains in `waiting_for_approval` and you can resolve the approval whenever you like — there is no separate `amaco resume` command in V0; rather than fake a resume by reading prior artifacts back into memory, Amaco prefers honesty: the persisted approval is the audit record.
+
+### Audit trail
+
+Every approval request and decision is durable:
+
+- `.amaco/runs/<run-id>/approvals.json` — full history (creation, status, reason, requested action, source artifact, decision note, resolved-by, timestamps).
+- `events.ndjson` — `approval.requested`, `approval.approved`, `approval.rejected`, `approval.expired`, `run.resumed` events.
+- `runtime-metrics.json` — `approvalsSummary` (total / approved / rejected / pending / expired / total wait ms).
+- `12-final-report.md` — Approval Decisions section with the full table and the summary line.
+
+These are local files. They are not cloud approvals. They are not synced to a team service. They live next to the run.
+
+### Safety model for approvals
+
+- Only approve/reject endpoints exist for resolving approvals — no arbitrary "resume with custom payload" endpoint.
+- Approving an already-resolved approval returns 409.
+- Rejecting an already-resolved approval returns 409.
+- `amaco doctor` reports pending approvals as warnings but **never auto-decides** them.
+- `amaco doctor --fix` does not touch any approval.
+- Rejection always transitions the run to `blocked` — it is never a soft warning.
 
 ## Limitations of V0
 
@@ -406,6 +498,8 @@ A future "interactive terminal with strict approval gates" is documented in the 
 - No cloud or Docker backends.
 - The dashboard's "Logs" tab is read-only — no interactive terminal yet.
 - Token/cost metrics depend on the provider exposing them. Generic CLIs and unconfigured Claude Code will show "not reported".
+- Approval gates use in-process polling. If you kill `amaco run` while a run is `waiting_for_approval`, the approval still resolves correctly, but the orchestrator is gone — there is no `amaco resume` command in V0. The persisted approval and events remain a complete audit record.
+- Skill assignment from the dashboard updates `.amaco/project.yml` directly. There is no "stage approval" gate around config writes.
 
 ## Roadmap
 

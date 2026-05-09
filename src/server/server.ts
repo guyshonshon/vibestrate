@@ -10,6 +10,7 @@ import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSkillsRoutes } from "./routes/skills.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerSetupRoutes } from "./routes/setup.js";
+import { registerApprovalsRoutes } from "./routes/approvals.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -108,6 +109,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerSkillsRoutes(app, { projectRoot: opts.projectRoot });
   await registerMetricsRoutes(app, { projectRoot: opts.projectRoot });
   await registerSetupRoutes(app, { projectRoot: opts.projectRoot });
+  await registerApprovalsRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

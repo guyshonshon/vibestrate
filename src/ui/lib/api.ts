@@ -1,5 +1,6 @@
 import type {
   AmacoEvent,
+  ApprovalRequest,
   ArtifactEntry,
   DiffSnapshot,
   DiscoveredSkill,
@@ -139,5 +140,53 @@ export const api = {
       if (err instanceof ApiError && err.status === 404) return null;
       throw err;
     }
+  },
+  async listApprovals(runId: string): Promise<ApprovalRequest[]> {
+    const r = await jsonGet<{ approvals: ApprovalRequest[] }>(
+      `/api/runs/${runId}/approvals`,
+    );
+    return r.approvals;
+  },
+  async approveApproval(input: {
+    runId: string;
+    approvalId: string;
+    note?: string;
+  }): Promise<ApprovalRequest> {
+    const r = await jsonPost<{ approval: ApprovalRequest }>(
+      `/api/runs/${input.runId}/approvals/${input.approvalId}/approve`,
+      { note: input.note },
+    );
+    return r.approval;
+  },
+  async rejectApproval(input: {
+    runId: string;
+    approvalId: string;
+    note?: string;
+  }): Promise<ApprovalRequest> {
+    const r = await jsonPost<{ approval: ApprovalRequest }>(
+      `/api/runs/${input.runId}/approvals/${input.approvalId}/reject`,
+      { note: input.note },
+    );
+    return r.approval;
+  },
+  async assignSkill(input: {
+    skillId: string;
+    agentId: string;
+  }): Promise<{ assignments: SkillAssignmentSummary[] }> {
+    const r = await jsonPost<{ assignments: SkillAssignmentSummary[] }>(
+      `/api/skills/${encodeURIComponent(input.skillId)}/assign`,
+      { agentId: input.agentId },
+    );
+    return r;
+  },
+  async unassignSkill(input: {
+    skillId: string;
+    agentId: string;
+  }): Promise<{ assignments: SkillAssignmentSummary[] }> {
+    const r = await jsonPost<{ assignments: SkillAssignmentSummary[] }>(
+      `/api/skills/${encodeURIComponent(input.skillId)}/unassign`,
+      { agentId: input.agentId },
+    );
+    return r;
   },
 };

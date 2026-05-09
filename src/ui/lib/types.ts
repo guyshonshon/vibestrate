@@ -9,6 +9,7 @@ export type RunStatus =
   | "reviewing"
   | "fixing"
   | "verifying"
+  | "waiting_for_approval"
   | "merge_ready"
   | "blocked"
   | "failed"
@@ -31,6 +32,29 @@ export type RunState = {
   finalDecision: ReviewDecision | null;
   verification: VerificationDecision | null;
   error: string | null;
+  pendingApprovalId?: string | null;
+  approvalRequestedFromStatus?: RunStatus | null;
+};
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
+
+export type ApprovalRequest = {
+  id: string;
+  runId: string;
+  stageId: string;
+  agentId: string;
+  createdAt: string;
+  updatedAt: string;
+  status: ApprovalStatus;
+  reason: string | null;
+  prompt: string | null;
+  sourceArtifactPath: string | null;
+  requestedAction: string | null;
+  riskLevel: "low" | "medium" | "high";
+  userMessage: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  decisionNote: string | null;
 };
 
 export type AmacoEvent = {

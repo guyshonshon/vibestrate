@@ -54,3 +54,22 @@ VERIFICATION: PASSED | FAILED | NEEDS_HUMAN
 - Do not push.
 - Do not merge.
 - Do not fake results.
+
+## Human approval signal
+
+If the run is technically clean but a human should still sign off before it is
+labelled merge-ready (e.g. the change touches sensitive code, or the reviewer
+flagged something the verifier cannot independently confirm), include this
+exact line on its own line:
+
+```
+HUMAN_APPROVAL: REQUIRED
+```
+
+Optional reason:
+
+```
+HUMAN_APPROVAL_REASON: short plain-language reason
+```
+
+Use sparingly. Most VERIFICATION: PASSED runs do not need it.

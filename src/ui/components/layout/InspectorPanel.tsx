@@ -7,6 +7,7 @@ export type InspectorTabId =
   | "logs"
   | "notes"
   | "skills"
+  | "approvals"
   | "metrics";
 
 const TABS: { id: InspectorTabId; label: string }[] = [
@@ -16,6 +17,7 @@ const TABS: { id: InspectorTabId; label: string }[] = [
   { id: "logs", label: "Logs" },
   { id: "notes", label: "Notes" },
   { id: "skills", label: "Skills" },
+  { id: "approvals", label: "Approvals" },
   { id: "metrics", label: "Metrics" },
 ];
 

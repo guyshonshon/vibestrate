@@ -11,6 +11,7 @@ export type RunStatus =
   | "reviewing"
   | "fixing"
   | "verifying"
+  | "waiting_for_approval"
   | "merge_ready"
   | "blocked"
   | "failed"

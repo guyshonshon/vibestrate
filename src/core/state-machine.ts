@@ -18,6 +18,7 @@ export const runStatusSchema = z.enum([
   "reviewing",
   "fixing",
   "verifying",
+  "waiting_for_approval",
   "merge_ready",
   "blocked",
   "failed",
@@ -52,6 +53,8 @@ export const runStateSchema = z.object({
   finalDecision: reviewDecisionSchema.nullable().default(null),
   verification: verificationDecisionSchema.nullable().default(null),
   error: z.string().nullable().default(null),
+  pendingApprovalId: z.string().nullable().default(null),
+  approvalRequestedFromStatus: runStatusSchema.nullable().default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -59,14 +62,32 @@ export type RunState = z.infer<typeof runStateSchema>;
 const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
   created: ["planning", "failed", "aborted", "blocked"],
   planning: ["planned", "failed", "aborted", "blocked"],
-  planned: ["architecting", "failed", "aborted", "blocked"],
+  planned: ["architecting", "waiting_for_approval", "failed", "aborted", "blocked"],
   architecting: ["architected", "failed", "aborted", "blocked"],
-  architected: ["executing", "failed", "aborted", "blocked"],
-  executing: ["validating", "failed", "aborted", "blocked"],
+  architected: ["executing", "waiting_for_approval", "failed", "aborted", "blocked"],
+  executing: ["validating", "waiting_for_approval", "failed", "aborted", "blocked"],
   validating: ["reviewing", "failed", "aborted", "blocked"],
-  reviewing: ["verifying", "fixing", "blocked", "failed", "aborted"],
-  fixing: ["validating", "blocked", "failed", "aborted"],
-  verifying: ["merge_ready", "blocked", "failed", "aborted"],
+  reviewing: [
+    "verifying",
+    "fixing",
+    "waiting_for_approval",
+    "blocked",
+    "failed",
+    "aborted",
+  ],
+  fixing: ["validating", "waiting_for_approval", "blocked", "failed", "aborted"],
+  verifying: ["merge_ready", "waiting_for_approval", "blocked", "failed", "aborted"],
+  waiting_for_approval: [
+    "planned",
+    "architected",
+    "executing",
+    "reviewing",
+    "fixing",
+    "verifying",
+    "blocked",
+    "failed",
+    "aborted",
+  ],
   merge_ready: [],
   blocked: [],
   failed: [],
@@ -123,6 +144,8 @@ export function createInitialState(input: {
     finalDecision: null,
     verification: null,
     error: null,
+    pendingApprovalId: null,
+    approvalRequestedFromStatus: null,
   };
 }
 

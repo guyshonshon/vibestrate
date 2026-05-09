@@ -58,6 +58,16 @@ export const agentMetricsSchema = z.object({
 });
 export type AgentMetrics = z.infer<typeof agentMetricsSchema>;
 
+export const approvalsSummarySchema = z.object({
+  total: z.number().default(0),
+  pending: z.number().default(0),
+  approved: z.number().default(0),
+  rejected: z.number().default(0),
+  expired: z.number().default(0),
+  totalWaitMs: z.number().default(0),
+});
+export type ApprovalsSummary = z.infer<typeof approvalsSummarySchema>;
+
 export const runtimeMetricsSchema = z.object({
   runId: z.string(),
   task: z.string(),
@@ -79,6 +89,14 @@ export const runtimeMetricsSchema = z.object({
     })
     .nullable()
     .default(null),
+  approvalsSummary: approvalsSummarySchema.default({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    expired: 0,
+    totalWaitMs: 0,
+  }),
   notesProvided: z.array(z.string()).default([]),
   agents: z.array(agentMetricsSchema).default([]),
 });
@@ -103,6 +121,14 @@ export function makeEmptyMetrics(input: {
     diffInsertions: null,
     diffDeletions: null,
     validationSummary: null,
+    approvalsSummary: {
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      expired: 0,
+      totalWaitMs: 0,
+    },
     notesProvided: [],
     agents: [],
   };

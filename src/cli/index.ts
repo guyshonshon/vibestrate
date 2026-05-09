@@ -10,6 +10,7 @@ import { runUiCommand } from "./commands/ui.js";
 import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
 import { buildSkillsCommand } from "./commands/skills/index.js";
+import { buildApprovalsCommand } from "./commands/approvals/index.js";
 
 const program = new Command();
 
@@ -46,6 +47,7 @@ program
 program.addCommand(buildProviderCommand());
 program.addCommand(buildConfigCommand());
 program.addCommand(buildSkillsCommand());
+program.addCommand(buildApprovalsCommand());
 
 program
   .command("run <task...>")

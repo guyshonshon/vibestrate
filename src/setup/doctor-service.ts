@@ -418,6 +418,49 @@ export async function runDoctor(input: {
     });
   }
 
+  // Approvals health: scan recent runs for pending approval requests.
+  try {
+    const fs = await import("node:fs/promises");
+    const runsDir = projectRunsDir(projectRoot);
+    if (await pathExists(runsDir)) {
+      const entries = (await fs.readdir(runsDir)).sort();
+      const pendingRuns: string[] = [];
+      for (const id of entries.slice(-10)) {
+        const approvalsFile = path.join(runsDir, id, "approvals.json");
+        if (!(await pathExists(approvalsFile))) continue;
+        try {
+          const raw = await fs.readFile(approvalsFile, "utf8");
+          const arr = JSON.parse(raw) as Array<{ status: string }>;
+          if (Array.isArray(arr) && arr.some((a) => a?.status === "pending")) {
+            pendingRuns.push(id);
+          }
+        } catch {
+          // malformed approvals.json — surface as warn.
+          findings.push({
+            id: `approvals-malformed-${id}`,
+            severity: "warn",
+            title: `approvals.json for run ${id} is unreadable`,
+            detail: "The file is present but not valid JSON.",
+            fixable: false,
+          });
+        }
+      }
+      if (pendingRuns.length > 0) {
+        findings.push({
+          id: "approvals-pending",
+          severity: "warn",
+          title: `${pendingRuns.length} run(s) awaiting your approval`,
+          detail: pendingRuns.join(", "),
+          fixHint:
+            "Resolve via `amaco approvals list <runId>` and `approve` / `reject`, or open the dashboard with `amaco ui`.",
+          fixable: false,
+        });
+      }
+    }
+  } catch {
+    // best-effort — never fail doctor over approval scanning.
+  }
+
   // Build next-step recommendations.
   const failures = findings.filter((f) => f.severity === "fail");
   const warnings = findings.filter((f) => f.severity === "warn");

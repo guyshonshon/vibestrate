@@ -144,7 +144,25 @@ export async function runRunCommand(
     rules: loaded.rules,
     task,
     isGitRepo: detected.isGitRepo,
-    onProgress: (msg) => console.log(`${symbol.bullet()} ${msg}`),
+    onProgress: (msg) => {
+      console.log(`${symbol.bullet()} ${msg}`);
+      if (msg.startsWith("Pausing for human approval")) {
+        const url = server?.url;
+        if (url) {
+          console.log(
+            indent(
+              `${symbol.arrow()} Open ${color.bold(url)} to approve or reject.`,
+            ),
+          );
+        } else {
+          console.log(
+            indent(
+              `${symbol.arrow()} Run ${color.bold("amaco approvals list <runId>")} (or ${color.bold("amaco ui")}) to decide.`,
+            ),
+          );
+        }
+      }
+    },
   });
 
   let result;

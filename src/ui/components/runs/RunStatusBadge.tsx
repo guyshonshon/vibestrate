@@ -16,6 +16,9 @@ const STATUS_COLORS: Record<RunStatus, { dot: string; text: string }> = {
   reviewing: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
   fixing: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
   verifying: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
+  // Awaiting human approval is *attention-needed*, not failure.
+  // Cyan accent matches in-flight stages so it never reads as "broken".
+  waiting_for_approval: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
   merge_ready: { dot: "bg-amaco-success", text: "text-amaco-success" },
   blocked: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
   failed: { dot: "bg-amaco-fail", text: "text-amaco-fail" },
@@ -33,6 +36,7 @@ const STATUS_LABEL: Record<RunStatus, string> = {
   reviewing: "reviewing",
   fixing: "fixing",
   verifying: "verifying",
+  waiting_for_approval: "awaiting approval",
   merge_ready: "merge ready",
   blocked: "blocked",
   failed: "failed",

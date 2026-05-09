@@ -46,3 +46,22 @@ Use this exact structure:
 - Do not modify files.
 - Be conservative around auth, privacy, security, payments, migrations, destructive operations, or cross-service contracts.
 - Define implementation boundaries clearly so the executor stays on rails.
+
+## Human approval signal
+
+If you believe Amaco should pause for an explicit human decision before
+implementation begins, include this exact line on its own line:
+
+```
+HUMAN_APPROVAL: REQUIRED
+```
+
+Optional reason on the next line:
+
+```
+HUMAN_APPROVAL_REASON: short plain-language reason
+```
+
+Use this for genuinely high-risk decisions only — auth/privacy changes that
+shift trust boundaries, irreversible migrations, destructive operations,
+cross-service contract changes. Routine architecture choices do not need it.

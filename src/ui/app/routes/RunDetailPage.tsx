@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import type {
   AmacoEvent,
+  ApprovalRequest,
   RunState,
   RuntimeMetrics,
 } from "../../lib/types.js";
@@ -22,10 +23,13 @@ import { ArtifactViewer } from "../../components/artifacts/ArtifactViewer.js";
 import { NotesPanel } from "../../components/notes/NotesPanel.js";
 import { SkillsPanel } from "../../components/skills/SkillsPanel.js";
 import { RuntimeLogPanel } from "../../components/logs/RuntimeLogPanel.js";
+import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
+import { ApprovalsList } from "../../components/approvals/ApprovalsList.js";
 
 export function RunDetailPage({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunState | null>(null);
   const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null);
+  const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<InspectorTabId>("diff");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -35,13 +39,15 @@ export function RunDetailPage({ runId }: { runId: string }) {
     let cancelled = false;
     const load = async () => {
       try {
-        const [r, m] = await Promise.all([
+        const [r, m, a] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
+          api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
         ]);
         if (!cancelled) {
           setRun(r);
           setMetrics(m);
+          setApprovals(a);
           setError(null);
         }
       } catch (err) {
@@ -50,7 +56,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
       }
     };
     void load();
-    const interval = setInterval(load, 3000);
+    const interval = setInterval(load, 2000);
     return () => {
       cancelled = true;
       clearInterval(interval);
@@ -64,16 +70,14 @@ export function RunDetailPage({ runId }: { runId: string }) {
       <div className="px-6 py-8 text-amaco-fg-muted">Loading run…</div>
     );
 
+  const pending = approvals.find((a) => a.status === "pending") ?? null;
+
   function handleSelectFile(p: string) {
     setSelectedFile(p);
     setTab("diff");
   }
-  function handleSelectArtifact(p: string) {
-    setSelectedArtifact(p);
-    setTab("artifact");
-  }
   function handleSelectEvent(_e: AmacoEvent) {
-    // Future: jump to artifact related to event. For now just keep current tab.
+    // Future: jump to artifact related to event.
   }
 
   return (
@@ -81,7 +85,22 @@ export function RunDetailPage({ runId }: { runId: string }) {
       <RunHeader run={run} />
       <div className="grid flex-1 grid-cols-[1fr_440px] overflow-hidden">
         <section className="flex flex-col gap-3 overflow-y-auto p-4">
-          <WorkflowTimeline status={run.status} />
+          {pending ? (
+            <ApprovalBanner
+              runId={runId}
+              approval={pending}
+              onResolved={(updated) => {
+                setApprovals((prev) =>
+                  prev.map((p) => (p.id === updated.id ? updated : p)),
+                );
+                setTab("approvals");
+              }}
+            />
+          ) : null}
+          <WorkflowTimeline
+            status={run.status}
+            pausedAtStatus={run.approvalRequestedFromStatus ?? null}
+          />
           <ActiveAgentCard
             status={run.status}
             agents={metrics?.agents ?? []}
@@ -115,6 +134,8 @@ export function RunDetailPage({ runId }: { runId: string }) {
             <NotesPanel runId={runId} />
           ) : tab === "skills" ? (
             <SkillsPanel />
+          ) : tab === "approvals" ? (
+            <ApprovalsList approvals={approvals} />
           ) : (
             <MetricsDashboard metrics={metrics} />
           )}

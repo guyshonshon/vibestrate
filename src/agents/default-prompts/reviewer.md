@@ -65,3 +65,24 @@ DECISION: APPROVED | CHANGES_REQUESTED | BLOCKED
 - Do not approve unless validation results justify approval.
 - Do not approve if scope was broadened.
 - Do not approve if security, privacy, or destructive risks remain.
+
+## Human approval signal
+
+In addition to your DECISION line, you may request an explicit human pause
+before the verifier runs. Use this only when the change carries real-world
+risk that a human should sign off on (e.g. shipping a privacy-sensitive
+change, an auth boundary shift, or an irreversible operation).
+
+Add this exact line on its own line:
+
+```
+HUMAN_APPROVAL: REQUIRED
+```
+
+Optional reason:
+
+```
+HUMAN_APPROVAL_REASON: short plain-language reason
+```
+
+Routine APPROVED reviews do not need it. Use sparingly.

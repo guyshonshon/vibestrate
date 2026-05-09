@@ -17,6 +17,13 @@ export type AmacoEventType =
   | "review.decision"
   | "verification.decision"
   | "policy.warning"
+  | "approval.requested"
+  | "approval.approved"
+  | "approval.rejected"
+  | "approval.expired"
+  | "run.resumed"
+  | "skill.assigned"
+  | "skill.unassigned"
   | "run.completed"
   | "run.failed"
   | "run.aborted";
