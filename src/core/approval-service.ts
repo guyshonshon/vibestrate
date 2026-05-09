@@ -8,6 +8,7 @@ import {
   approvalRequestSchema,
   type ApprovalRequest,
   type ApprovalRisk,
+  type ApprovalSource,
 } from "./approval-types.js";
 
 const APPROVALS_FILE = "approvals.json";
@@ -73,6 +74,8 @@ export class ApprovalService {
     sourceArtifactPath: string | null;
     requestedAction: string | null;
     riskLevel?: ApprovalRisk;
+    source?: ApprovalSource;
+    alsoRequiredByPolicy?: boolean;
     userMessage?: string | null;
   }): Promise<ApprovalRequest> {
     const ts = nowIso();
@@ -89,6 +92,8 @@ export class ApprovalService {
       sourceArtifactPath: input.sourceArtifactPath,
       requestedAction: input.requestedAction,
       riskLevel: input.riskLevel ?? "medium",
+      source: input.source ?? "agent",
+      alsoRequiredByPolicy: input.alsoRequiredByPolicy ?? false,
       userMessage: input.userMessage ?? null,
       resolvedAt: null,
       resolvedBy: null,

@@ -66,23 +66,25 @@ DECISION: APPROVED | CHANGES_REQUESTED | BLOCKED
 - Do not approve if scope was broadened.
 - Do not approve if security, privacy, or destructive risks remain.
 
-## Human approval signal
+## Human approval signal (structured)
 
 In addition to your DECISION line, you may request an explicit human pause
 before the verifier runs. Use this only when the change carries real-world
-risk that a human should sign off on (e.g. shipping a privacy-sensitive
-change, an auth boundary shift, or an irreversible operation).
+risk that a human should sign off on.
 
-Add this exact line on its own line:
+Emit a structured request — each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED
+HUMAN_APPROVAL_REASON: <one-sentence plain-language reason>
+HUMAN_APPROVAL_RISK: low | medium | high
+HUMAN_APPROVAL_REQUEST: <the specific thing the human should sign off on>
 ```
 
-Optional reason:
+Use `HUMAN_APPROVAL_RISK: high` only for destructive, security-sensitive,
+privacy-sensitive, data-loss, auth, payment, migration, or irreversible
+decisions. `medium` for significant-but-reversible items. Routine APPROVED
+reviews do not need it. Use sparingly.
 
-```
-HUMAN_APPROVAL_REASON: short plain-language reason
-```
-
-Routine APPROVED reviews do not need it. Use sparingly.
+Make `HUMAN_APPROVAL_REQUEST` specific (e.g. "Approve shipping the new
+session-token rotation") rather than generic.

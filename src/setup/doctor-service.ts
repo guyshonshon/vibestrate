@@ -418,6 +418,30 @@ export async function runDoctor(input: {
     });
   }
 
+  // Approval policy: surface configured stages so users can confirm they
+  // match expectations. Schema validation already rejects unknown stages
+  // before this point, so by the time we get here every value is canonical.
+  const requiredStages = loaded.config.policies.requireApprovalAtStages;
+  if (requiredStages.length > 0) {
+    findings.push({
+      id: "approval-policy",
+      severity: "ok",
+      title: `Approval required at: ${requiredStages.join(", ")}`,
+      detail:
+        "Amaco will pause for human approval at these stage boundaries even if no agent emits HUMAN_APPROVAL: REQUIRED.",
+      fixable: false,
+    });
+  } else {
+    findings.push({
+      id: "approval-policy",
+      severity: "ok",
+      title: "No stage-level approval policy configured",
+      detail:
+        "Approvals only happen when an agent emits HUMAN_APPROVAL: REQUIRED. To force approval at specific stages: `amaco config set policies.requireApprovalAtStages \"[\\\"architecting\\\",\\\"verifying\\\"]\"`.",
+      fixable: false,
+    });
+  }
+
   // Approvals health: scan recent runs for pending approval requests.
   try {
     const fs = await import("node:fs/promises");

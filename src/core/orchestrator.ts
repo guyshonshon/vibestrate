@@ -239,6 +239,11 @@ export class Orchestrator {
       onProgress: this.onProgress,
     };
 
+    // Tracks which policy-required stages have already paused this run.
+    // The same stage running again (e.g. reviewing inside a fixer loop) does
+    // not re-trigger policy approval — V0 keeps it once-per-stage-per-run.
+    const policyStagesAlreadyForced = new Set<string>();
+
     try {
       // Stage: planning
       this.onProgress("Planning...");
@@ -266,6 +271,7 @@ export class Orchestrator {
           approvalService,
           stateStore,
           eventLog,
+          policyStagesAlreadyForced,
         });
         state = gate.state;
         if (gate.rejected) {
@@ -303,6 +309,7 @@ export class Orchestrator {
           approvalService,
           stateStore,
           eventLog,
+          policyStagesAlreadyForced,
         });
         state = gate.state;
         if (gate.rejected) {
@@ -341,6 +348,7 @@ export class Orchestrator {
           approvalService,
           stateStore,
           eventLog,
+          policyStagesAlreadyForced,
         });
         state = gate.state;
         if (gate.rejected) {
@@ -394,6 +402,7 @@ export class Orchestrator {
           approvalService,
           stateStore,
           eventLog,
+          policyStagesAlreadyForced,
         });
         state = gate.state;
         if (gate.rejected) {
@@ -453,6 +462,7 @@ export class Orchestrator {
             approvalService,
             stateStore,
             eventLog,
+            policyStagesAlreadyForced,
           });
           state = gate.state;
           if (gate.rejected) {
@@ -506,6 +516,7 @@ export class Orchestrator {
             approvalService,
             stateStore,
             eventLog,
+            policyStagesAlreadyForced,
           });
           state = gate.state;
           if (gate.rejected) {
@@ -578,6 +589,7 @@ export class Orchestrator {
             approvalService,
             stateStore,
             eventLog,
+            policyStagesAlreadyForced,
           });
           state = gate.state;
           if (gate.rejected) {
@@ -768,24 +780,58 @@ export class Orchestrator {
     approvalService: ApprovalService;
     stateStore: RunStateStore;
     eventLog: EventLog;
+    /** Tracks which policy stages have already triggered approval this run (mutated). */
+    policyStagesAlreadyForced: Set<string>;
   }): Promise<{ state: RunState; rejected: boolean }> {
-    if (!input.agentArtifact) return { state: input.state, rejected: false };
-    const detection = detectApprovalRequest(input.agentArtifact.output);
-    if (!detection.required) return { state: input.state, rejected: false };
+    const detection = input.agentArtifact
+      ? detectApprovalRequest(input.agentArtifact.output)
+      : null;
+    const policyStages = this.config.policies.requireApprovalAtStages;
+    const policyForcedThisStage =
+      policyStages.includes(input.stageId as (typeof policyStages)[number]) &&
+      !input.policyStagesAlreadyForced.has(input.stageId);
+
+    const agentRequested = !!detection?.required;
+    if (!agentRequested && !policyForcedThisStage) {
+      return { state: input.state, rejected: false };
+    }
+
+    // Build approval payload. Prefer agent-provided metadata when present,
+    // fall back to policy defaults otherwise. If both apply, we record one
+    // approval with source="agent" and alsoRequiredByPolicy=true.
+    const fallbackReason = `Project policy requires approval before continuing past the ${input.stageId} stage.`;
+    const fallbackRequestedAction = `Approve continuing after ${input.stageId}.`;
+    const reason = detection?.reason ?? (policyForcedThisStage ? fallbackReason : null);
+    const requestedAction =
+      detection?.requestedAction ??
+      (policyForcedThisStage
+        ? fallbackRequestedAction
+        : `Continue past the ${input.stageId} stage.`);
+    const riskLevel = detection?.riskLevel ?? "medium";
+    const source: "agent" | "policy" = agentRequested ? "agent" : "policy";
+    const alsoRequiredByPolicy = agentRequested && policyForcedThisStage;
+
+    if (policyForcedThisStage) {
+      input.policyStagesAlreadyForced.add(input.stageId);
+    }
 
     this.onProgress(
-      `Pausing for human approval (${input.agentId} requested it)...`,
+      agentRequested
+        ? `Pausing for human approval (${input.agentId} requested it)...`
+        : `Pausing for human approval (project policy requires approval at ${input.stageId})...`,
     );
 
-    // Create approval request and pause.
+    // Create the (single) approval request and pause.
     const req = await input.approvalService.create({
       stageId: input.stageId,
       agentId: input.agentId,
-      reason: detection.reason,
-      prompt: input.agentArtifact.promptArtifactPath,
-      sourceArtifactPath: input.agentArtifact.outputArtifactPath,
-      requestedAction: `continue past ${input.stageId} stage`,
-      riskLevel: "medium",
+      reason,
+      prompt: input.agentArtifact?.promptArtifactPath ?? null,
+      sourceArtifactPath: input.agentArtifact?.outputArtifactPath ?? null,
+      requestedAction,
+      riskLevel,
+      source,
+      alsoRequiredByPolicy,
     });
 
     let pendingState: RunState = applyTransition(input.state, "waiting_for_approval");
@@ -797,13 +843,18 @@ export class Orchestrator {
     await input.stateStore.write(pendingState);
     await input.eventLog.append({
       type: "approval.requested",
-      message: `Approval requested by ${input.agentId} at stage ${input.stageId}.`,
+      message: agentRequested
+        ? `Approval requested by ${input.agentId} at stage ${input.stageId}.`
+        : `Approval required by project policy at stage ${input.stageId}.`,
       data: {
         approvalId: req.id,
         agentId: input.agentId,
         stageId: input.stageId,
-        reason: detection.reason ?? null,
-        riskLevel: req.riskLevel,
+        reason: reason ?? null,
+        requestedAction,
+        riskLevel,
+        source,
+        alsoRequiredByPolicy,
       },
     });
 

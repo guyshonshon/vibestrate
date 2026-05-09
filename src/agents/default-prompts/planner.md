@@ -51,21 +51,28 @@ Use this exact structure:
 - Flag dangerous or destructive requirements explicitly.
 - Be honest about uncertainty.
 
-## Human approval signal
+## Human approval signal (structured)
 
 If you believe Amaco should pause for an explicit human decision before
 implementation begins (because the task is unsafe, ambiguous in a way that
 materially changes the implementation, requires irreversible actions, or
-crosses security/privacy boundaries), include this exact line on its own line:
+crosses security/privacy/auth/payment/migration boundaries), emit a
+structured approval request — each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED
+HUMAN_APPROVAL_REASON: <one-sentence plain-language reason>
+HUMAN_APPROVAL_RISK: low | medium | high
+HUMAN_APPROVAL_REQUEST: <the specific action you want the human to approve>
 ```
 
-You may add an optional reason on the next line:
+Rules:
 
-```
-HUMAN_APPROVAL_REASON: short plain-language reason
-```
-
-Use this signal sparingly. Routine uncertainty does not need approval.
+- `HUMAN_APPROVAL: REQUIRED` is the trigger; without it, no approval is created.
+- Use `HUMAN_APPROVAL_RISK: high` only for destructive, security-sensitive,
+  privacy-sensitive, data-loss, auth, payment, migration, or irreversible
+  decisions. Default to `medium` when unsure.
+- Make `HUMAN_APPROVAL_REQUEST` specific (e.g. "Approve switching session
+  storage from cookie to localStorage"), not generic ("Approve the plan").
+- Keep `HUMAN_APPROVAL_REASON` short and plain.
+- Do not request approval for routine implementation choices.

@@ -23,12 +23,29 @@ export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]),
 });
 
+// Stage names a project may flag for forced human approval. These map to the
+// transition boundaries the orchestrator already exposes.
+export const policyApprovalStageSchema = z.enum([
+  "planning",
+  "architecting",
+  "executing",
+  "validating",
+  "reviewing",
+  "fixing",
+  "verifying",
+]);
+export type PolicyApprovalStage = z.infer<typeof policyApprovalStageSchema>;
+
 export const policiesConfigSchema = z.object({
   forbidMainBranchWrites: z.boolean().default(true),
   forbidSecretsAccess: z.boolean().default(true),
   forbidAutoPush: z.boolean().default(true),
   forbidAutoMerge: z.boolean().default(true),
   preserveArtifacts: z.boolean().default(true),
+  // Stages where Amaco MUST pause for human approval before continuing,
+  // regardless of whether the agent emitted HUMAN_APPROVAL: REQUIRED.
+  // Default empty: do not force approvals.
+  requireApprovalAtStages: z.array(policyApprovalStageSchema).default([]),
 });
 
 export const projectConfigSchema = z.object({
@@ -61,6 +78,7 @@ export const projectConfigSchema = z.object({
     forbidAutoPush: true,
     forbidAutoMerge: true,
     preserveArtifacts: true,
+    requireApprovalAtStages: [],
   }),
 });
 

@@ -425,15 +425,93 @@ Both endpoints validate that the skill exists, the agent exists, and the resulti
 
 ## Human approval gates
 
-Amaco can pause a run for an explicit human decision. The signal is opt-in per agent output: when an agent's response includes the line
+Amaco pauses a run for an explicit human decision in two situations:
+
+1. **Agent-requested** — an agent emits `HUMAN_APPROVAL: REQUIRED` in its output.
+2. **Policy-required** — your `.amaco/project.yml` lists the stage in `policies.requireApprovalAtStages`.
+
+In either case the orchestrator transitions the run to `waiting_for_approval`, persists a single approval request to `.amaco/runs/<run-id>/approvals.json`, and waits. You approve or reject from CLI or dashboard; the run resumes or becomes `blocked`.
+
+### Structured approval requests
+
+Agents can describe *what* they want signed off on, not just "this needs you". The full signal is:
 
 ```
 HUMAN_APPROVAL: REQUIRED
+HUMAN_APPROVAL_REASON: <one-sentence plain-language reason>
+HUMAN_APPROVAL_RISK: low | medium | high
+HUMAN_APPROVAL_REQUEST: <the specific action you want the human to approve>
 ```
 
-(optionally followed by `HUMAN_APPROVAL_REASON: <plain-language reason>`), the orchestrator transitions the run to `waiting_for_approval`, persists an approval request to `.amaco/runs/<run-id>/approvals.json`, and waits.
+Only the first line is required. Defaults when the others are missing:
 
-The default planner / architect / reviewer / verifier prompts now mention this signal and tell the agent to use it sparingly — only for genuinely high-risk decisions (auth/privacy boundaries, destructive operations, irreversible migrations, ambiguous requirements that need human judgment). Routine uncertainty does not pause the run.
+| Field | Default |
+| --- | --- |
+| `HUMAN_APPROVAL_REASON` | `null` |
+| `HUMAN_APPROVAL_RISK` | `medium` |
+| `HUMAN_APPROVAL_REQUEST` | `Continue past the <stage> stage.` |
+
+Invalid risk values fall back to `medium`. The marker is **case-sensitive** so casual mentions in prose do not trigger the gate.
+
+### Approval risk levels
+
+| Risk | When to use |
+| --- | --- |
+| `low` | Cosmetic boundary clarifications. If you can pick `low`, you probably do not need to pause the run. |
+| `medium` | Significant-but-reversible decisions. The default. |
+| `high` | Destructive, security-sensitive, privacy-sensitive, data-loss, auth, payment, migration, or irreversible decisions. |
+
+The dashboard renders `low` as neutral, `medium` as cyan accent (matches in-flight stages), and `high` as warm warning — clearly more attention-getting but **never** panic-red. Failure red is reserved for actually-broken runs.
+
+### Approval requested action
+
+The `HUMAN_APPROVAL_REQUEST` line should describe a concrete action. Good:
+
+> Approve switching session storage from cookie to server-side
+> Approve dropping the `legacy_users` table
+> Approve adding `payments` write access to the worker role
+
+Bad:
+
+> Approve the plan
+> Continue
+> Continue with implementation
+
+The dashboard banner shows the requested action prominently above the reason. The CLI shows it in `amaco approvals show`. The final report records it in the Approval Decisions table.
+
+### Per-stage approval policies
+
+Configure stages where Amaco **must** pause regardless of what agents emit:
+
+```bash
+amaco config set policies.requireApprovalAtStages "[\"architecting\",\"verifying\"]"
+```
+
+Allowed stage names: `planning`, `architecting`, `executing`, `validating`, `reviewing`, `fixing`, `verifying`. The schema rejects unknown stages and refuses to write the change. The default is an empty array (no forced approvals).
+
+A policy-required approval is created **once per stage per run** — it does not re-trigger on fixer-loop revisits of the same stage.
+
+If both an agent emits `HUMAN_APPROVAL: REQUIRED` and the project policy lists that stage, Amaco creates **one** approval, not two. The agent's metadata wins (more specific) and the approval record is marked `alsoRequiredByPolicy: true` so the audit trail is honest about the dual cause.
+
+#### CLI examples
+
+```bash
+# Force human approval before implementation begins, and again before merge-ready.
+amaco config set policies.requireApprovalAtStages "[\"architecting\",\"verifying\"]"
+
+# Disable forced approvals.
+amaco config set policies.requireApprovalAtStages "[]"
+
+# Inspect.
+amaco config get policies.requireApprovalAtStages
+amaco doctor   # shows "Approval required at: architecting, verifying"
+```
+
+#### Dashboard behavior
+
+When a run is paused, the dashboard shows an approval banner at the top of the run detail page with a risk pill, an `agent-requested` / `policy` / `agent + policy` source pill, the requested action prominently, the reason, a link to the source artifact, an optional decision-note field, and Approve / Reject buttons. The Approvals inspector tab shows the same fields for every approval in the run.
+
+The default planner / architect / reviewer / verifier prompts mention the structured syntax and tell agents to use `high` risk only for genuinely high-stakes decisions. Routine uncertainty does not pause the run.
 
 ### Why Amaco pauses
 

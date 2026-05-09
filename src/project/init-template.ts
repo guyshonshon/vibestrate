@@ -220,6 +220,10 @@ policies:
   forbidAutoPush: true
   forbidAutoMerge: true
   preserveArtifacts: true
+  # Stages where Amaco MUST pause for human approval before continuing.
+  # Allowed values: planning, architecting, executing, validating, reviewing, fixing, verifying.
+  # Example: requireApprovalAtStages: ["architecting", "verifying"]
+  requireApprovalAtStages: []
 `;
 }
 

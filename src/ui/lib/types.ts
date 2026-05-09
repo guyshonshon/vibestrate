@@ -51,6 +51,8 @@ export type ApprovalRequest = {
   sourceArtifactPath: string | null;
   requestedAction: string | null;
   riskLevel: "low" | "medium" | "high";
+  source: "agent" | "policy";
+  alsoRequiredByPolicy: boolean;
   userMessage: string | null;
   resolvedAt: string | null;
   resolvedBy: string | null;

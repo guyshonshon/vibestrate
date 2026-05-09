@@ -55,6 +55,8 @@ describe("final report — approval section", () => {
         sourceArtifactPath: "artifacts/04-architecture.md",
         requestedAction: "continue past architecting",
         riskLevel: "medium",
+        source: "agent",
+        alsoRequiredByPolicy: false,
         userMessage: null,
         resolvedAt: "2026-01-01T00:00:30.000Z",
         resolvedBy: "local-user",

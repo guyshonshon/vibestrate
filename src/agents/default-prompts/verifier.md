@@ -55,21 +55,23 @@ VERIFICATION: PASSED | FAILED | NEEDS_HUMAN
 - Do not merge.
 - Do not fake results.
 
-## Human approval signal
+## Human approval signal (structured)
 
-If the run is technically clean but a human should still sign off before it is
-labelled merge-ready (e.g. the change touches sensitive code, or the reviewer
-flagged something the verifier cannot independently confirm), include this
-exact line on its own line:
+If the run is technically clean but a human should still sign off before it
+is labelled merge-ready (e.g. the change touches sensitive code, or the
+reviewer flagged something the verifier cannot independently confirm), emit
+a structured request — each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED
+HUMAN_APPROVAL_REASON: <one-sentence plain-language reason>
+HUMAN_APPROVAL_RISK: low | medium | high
+HUMAN_APPROVAL_REQUEST: <the specific thing the human should sign off on>
 ```
 
-Optional reason:
+Use `HUMAN_APPROVAL_RISK: high` only for destructive, security-sensitive,
+privacy-sensitive, data-loss, auth, payment, migration, or irreversible
+decisions. Most VERIFICATION: PASSED runs do not need any signal.
 
-```
-HUMAN_APPROVAL_REASON: short plain-language reason
-```
-
-Use sparingly. Most VERIFICATION: PASSED runs do not need it.
+Make `HUMAN_APPROVAL_REQUEST` specific to the action being signed off
+(e.g. "Approve marking this change as merge-ready"), not generic.

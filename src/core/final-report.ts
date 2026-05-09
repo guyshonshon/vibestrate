@@ -87,14 +87,18 @@ function formatTokens(t: { input?: number; output?: number; cacheRead?: number; 
 
 function renderApprovalsSection(approvals: ApprovalRequest[]): string {
   if (approvals.length === 0) return "_No approval requests recorded._";
-  const head = `| Approval ID | Stage | Agent | Status | Reason | Decision Note | Created | Resolved |`;
-  const sep = `| --- | --- | --- | --- | --- | --- | --- | --- |`;
+  const head = `| Approval ID | Stage | Agent | Source | Risk | Status | Requested Action | Reason | Decision Note | Created | Resolved |`;
+  const sep = `| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`;
   const rows = approvals.map((a) => {
-    const reason = a.reason ? a.reason.replace(/\|/g, "\\|") : "—";
-    const note = a.decisionNote
-      ? a.decisionNote.replace(/\|/g, "\\|")
-      : "—";
-    return `| \`${a.id}\` | ${a.stageId} | ${a.agentId} | ${a.status} | ${reason} | ${note} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
+    const escape = (s: string | null | undefined) =>
+      s ? s.replace(/\|/g, "\\|") : "—";
+    const sourceLabel =
+      a.source === "policy"
+        ? "policy"
+        : a.alsoRequiredByPolicy
+          ? "agent + policy"
+          : "agent";
+    return `| \`${a.id}\` | ${a.stageId} | ${a.agentId} | ${sourceLabel} | ${a.riskLevel} | ${a.status} | ${escape(a.requestedAction)} | ${escape(a.reason)} | ${escape(a.decisionNote)} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
   });
   return [head, sep, ...rows].join("\n");
 }
