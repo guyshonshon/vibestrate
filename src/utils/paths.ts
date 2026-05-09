@@ -6,6 +6,8 @@ export const RULES_FILENAME = "rules.md";
 export const AGENTS_DIRNAME = "agents";
 export const SKILLS_DIRNAME = "skills";
 export const RUNS_DIRNAME = "runs";
+export const ROADMAP_DIRNAME = "roadmap";
+export const SCHEDULER_DIRNAME = "scheduler";
 
 export function amacoRoot(projectRoot: string): string {
   return path.join(projectRoot, AMACO_DIR);
@@ -45,6 +47,54 @@ export function runStatePath(projectRoot: string, runId: string): string {
 
 export function runEventsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "events.ndjson");
+}
+
+export function roadmapDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), ROADMAP_DIRNAME);
+}
+
+export function roadmapFile(projectRoot: string): string {
+  return path.join(roadmapDir(projectRoot), "roadmap.json");
+}
+
+export function roadmapTasksDir(projectRoot: string): string {
+  return path.join(roadmapDir(projectRoot), "tasks");
+}
+
+export function roadmapTaskFile(projectRoot: string, taskId: string): string {
+  return path.join(roadmapTasksDir(projectRoot), `${taskId}.json`);
+}
+
+export function roadmapCommentsDir(projectRoot: string): string {
+  return path.join(roadmapDir(projectRoot), "comments");
+}
+
+export function roadmapCommentsFile(projectRoot: string, taskId: string): string {
+  return path.join(roadmapCommentsDir(projectRoot), `${taskId}.json`);
+}
+
+export function roadmapProposalsDir(projectRoot: string): string {
+  return path.join(roadmapDir(projectRoot), "proposals");
+}
+
+export function roadmapTaskReportFile(projectRoot: string, taskId: string): string {
+  return path.join(roadmapTasksDir(projectRoot), `${taskId}-report.md`);
+}
+
+export function schedulerDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), SCHEDULER_DIRNAME);
+}
+
+export function schedulerQueueFile(projectRoot: string): string {
+  return path.join(schedulerDir(projectRoot), "queue.json");
+}
+
+export function schedulerStateFile(projectRoot: string): string {
+  return path.join(schedulerDir(projectRoot), "state.json");
+}
+
+export function schedulerConflictsFile(projectRoot: string): string {
+  return path.join(schedulerDir(projectRoot), "conflicts.json");
 }
 
 export function isPathInside(parent: string, candidate: string): boolean {

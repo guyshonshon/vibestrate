@@ -34,6 +34,123 @@ export type RunState = {
   error: string | null;
   pendingApprovalId?: string | null;
   approvalRequestedFromStatus?: RunStatus | null;
+  taskId?: string | null;
+};
+
+export type Priority = "low" | "medium" | "high";
+
+export type RoadmapItem = {
+  id: string;
+  title: string;
+  description: string;
+  status: "idea" | "planned" | "active" | "blocked" | "done" | "archived";
+  priority: Priority;
+  createdAt: string;
+  updatedAt: string;
+  linkedTaskIds: string[];
+  notes: string;
+};
+
+export type TaskStatus =
+  | "backlog"
+  | "ready"
+  | "queued"
+  | "running"
+  | "waiting_for_approval"
+  | "blocked"
+  | "review"
+  | "done"
+  | "failed"
+  | "cancelled";
+
+export type Task = {
+  id: string;
+  roadmapItemId: string | null;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: Priority;
+  dependencies: string[];
+  createdAt: string;
+  updatedAt: string;
+  assignedAgents: string[];
+  requiredSkills: string[];
+  validationProfile: string | null;
+  branchName: string | null;
+  worktreePath: string | null;
+  runIds: string[];
+  currentRunId: string | null;
+  touchedFiles: string[];
+  riskLevel: Priority;
+  commentsCount: number;
+  lastEventAt: string | null;
+};
+
+export type TaskComment = {
+  id: string;
+  taskId: string;
+  createdAt: string;
+  updatedAt: string;
+  author: string;
+  body: string;
+  resolved: boolean;
+  resolvedAt: string | null;
+  target:
+    | "task"
+    | "step"
+    | "artifact"
+    | "file"
+    | "diff"
+    | "approval"
+    | "run";
+  targetRef: string | null;
+};
+
+export type MicroStep = {
+  id: string;
+  taskId: string;
+  stage:
+    | "planning"
+    | "architecting"
+    | "executing"
+    | "validating"
+    | "reviewing"
+    | "fixing"
+    | "verifying";
+  status: "pending" | "running" | "passed" | "failed" | "blocked" | "skipped";
+  agentId: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  artifactPaths: string[];
+  diffSnapshotPath: string | null;
+  validationResultPath: string | null;
+  approvalIds: string[];
+  notes: string[];
+};
+
+export type QueueEntry = {
+  taskId: string;
+  enqueuedAt: string;
+  priority: Priority;
+};
+
+export type SchedulerState = {
+  runningTaskIds: string[];
+  paused: boolean;
+  lastUpdatedAt: string;
+  maxConcurrentRuns: number;
+  conflictPolicy: "warn" | "block";
+  queuePolicy: "fifo" | "priority";
+};
+
+export type ConflictWarning = {
+  id: string;
+  taskId: string;
+  conflictsWith: string[];
+  overlappingFiles: string[];
+  policy: "warn" | "block";
+  blocked: boolean;
+  createdAt: string;
 };
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";

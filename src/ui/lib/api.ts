@@ -2,13 +2,20 @@ import type {
   AmacoEvent,
   ApprovalRequest,
   ArtifactEntry,
+  ConflictWarning,
   DiffSnapshot,
   DiscoveredSkill,
   FileDiff,
+  MicroStep,
   Note,
+  QueueEntry,
+  RoadmapItem,
   RunState,
   RuntimeMetrics,
+  SchedulerState,
   SkillAssignmentSummary,
+  Task,
+  TaskComment,
 } from "./types.js";
 
 class ApiError extends Error {
@@ -188,5 +195,99 @@ export const api = {
       { agentId: input.agentId },
     );
     return r;
+  },
+
+  // ─── roadmap ──────────────────────────────────────────────────────────────
+  async listRoadmap(): Promise<RoadmapItem[]> {
+    const r = await jsonGet<{ items: RoadmapItem[] }>("/api/roadmap");
+    return r.items;
+  },
+  async addRoadmapItem(input: {
+    title: string;
+    description?: string;
+    priority?: "low" | "medium" | "high";
+  }): Promise<RoadmapItem> {
+    const r = await jsonPost<{ item: RoadmapItem }>(
+      "/api/roadmap/items",
+      input,
+    );
+    return r.item;
+  },
+
+  // ─── tasks ────────────────────────────────────────────────────────────────
+  async listTasks(): Promise<Task[]> {
+    const r = await jsonGet<{ tasks: Task[] }>("/api/tasks");
+    return r.tasks;
+  },
+  async addTask(input: {
+    title: string;
+    description?: string;
+    priority?: "low" | "medium" | "high";
+    roadmapItemId?: string | null;
+    dependencies?: string[];
+    requiredSkills?: string[];
+    touchedFiles?: string[];
+    riskLevel?: "low" | "medium" | "high";
+  }): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>("/api/tasks", input);
+    return r.task;
+  },
+  async getTask(taskId: string): Promise<{
+    task: Task;
+    comments: TaskComment[];
+    microSteps: { runId: string; steps: MicroStep[] }[];
+  }> {
+    return jsonGet(`/api/tasks/${encodeURIComponent(taskId)}`);
+  },
+  async addTaskComment(input: {
+    taskId: string;
+    body: string;
+    target?: TaskComment["target"];
+    targetRef?: string | null;
+  }): Promise<TaskComment> {
+    const r = await jsonPost<{ comment: TaskComment }>(
+      `/api/tasks/${encodeURIComponent(input.taskId)}/comments`,
+      {
+        body: input.body,
+        target: input.target,
+        targetRef: input.targetRef ?? null,
+      },
+    );
+    return r.comment;
+  },
+  async resolveTaskComment(input: {
+    taskId: string;
+    commentId: string;
+  }): Promise<TaskComment> {
+    const r = await jsonPost<{ comment: TaskComment }>(
+      `/api/tasks/${encodeURIComponent(input.taskId)}/comments/${encodeURIComponent(input.commentId)}/resolve`,
+    );
+    return r.comment;
+  },
+  async queueTask(taskId: string): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/queue`,
+    );
+    return r.task;
+  },
+  async cancelTask(taskId: string): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/cancel`,
+    );
+    return r.task;
+  },
+
+  // ─── queue ────────────────────────────────────────────────────────────────
+  async getQueue(): Promise<{
+    queue: QueueEntry[];
+    state: SchedulerState;
+  }> {
+    return jsonGet("/api/queue");
+  },
+  async listConflicts(): Promise<ConflictWarning[]> {
+    const r = await jsonGet<{ warnings: ConflictWarning[] }>(
+      "/api/scheduler/conflicts",
+    );
+    return r.warnings;
   },
 };

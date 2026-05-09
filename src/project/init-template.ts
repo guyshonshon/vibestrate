@@ -224,6 +224,19 @@ policies:
   # Allowed values: planning, architecting, executing, validating, reviewing, fixing, verifying.
   # Example: requireApprovalAtStages: ["architecting", "verifying"]
   requireApprovalAtStages: []
+
+scheduler:
+  # Concurrency for the local task scheduler (\`amaco queue run\`).
+  # Default 1 = one task run at a time. Increase to opt in to parallel runs;
+  # each task still gets its own branch and worktree.
+  maxConcurrentRuns: 1
+  maxConcurrentWriteAgents: 1
+  # warn  → start the second task and surface a warning if files overlap
+  # block → keep the second task queued until the first finishes
+  conflictPolicy: warn
+  # fifo     → run in enqueue order
+  # priority → run high before medium before low (FIFO within a priority)
+  queuePolicy: fifo
 `;
 }
 

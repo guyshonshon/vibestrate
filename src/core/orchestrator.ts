@@ -44,6 +44,8 @@ export type OrchestratorInput = {
   task: string;
   isGitRepo: boolean;
   onProgress?: (message: string) => void;
+  /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
+  taskId?: string | null;
 };
 
 export type OrchestratorOutput = {
@@ -126,6 +128,7 @@ export class Orchestrator {
   private readonly task: string;
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
+  private readonly taskId: string | null;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -134,6 +137,7 @@ export class Orchestrator {
     this.task = input.task;
     this.isGitRepo = input.isGitRepo;
     this.onProgress = input.onProgress ?? (() => {});
+    this.taskId = input.taskId ?? null;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -171,11 +175,12 @@ export class Orchestrator {
       branchName: null,
       maxReviewLoops: this.config.workflow.maxReviewLoops,
     });
+    state = { ...state, taskId: this.taskId };
     await stateStore.write(state);
     await eventLog.append({
       type: "run.created",
       message: `Run ${runId} created.`,
-      data: { task: this.task },
+      data: { task: this.task, taskId: this.taskId },
     });
 
     for (const w of policy.warnings) {

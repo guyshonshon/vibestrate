@@ -23,6 +23,14 @@ export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]),
 });
 
+export const schedulerConfigSchema = z.object({
+  maxConcurrentRuns: z.number().int().min(1).max(16).default(1),
+  maxConcurrentWriteAgents: z.number().int().min(1).max(32).default(1),
+  conflictPolicy: z.enum(["warn", "block"]).default("warn"),
+  queuePolicy: z.enum(["fifo", "priority"]).default("fifo"),
+});
+export type SchedulerConfig = z.infer<typeof schedulerConfigSchema>;
+
 // Stage names a project may flag for forced human approval. These map to the
 // transition boundaries the orchestrator already exposes.
 export const policyApprovalStageSchema = z.enum([
@@ -79,6 +87,12 @@ export const projectConfigSchema = z.object({
     forbidAutoMerge: true,
     preserveArtifacts: true,
     requireApprovalAtStages: [],
+  }),
+  scheduler: schedulerConfigSchema.default({
+    maxConcurrentRuns: 1,
+    maxConcurrentWriteAgents: 1,
+    conflictPolicy: "warn",
+    queuePolicy: "fifo",
   }),
 });
 

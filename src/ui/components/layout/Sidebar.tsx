@@ -1,16 +1,35 @@
 import { useEffect, useState } from "react";
-import { GitBranch, Home, Folder, Activity } from "lucide-react";
+import {
+  GitBranch,
+  Home,
+  Folder,
+  Activity,
+  LayoutGrid,
+  ListChecks,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "../runs/RunStatusBadge.js";
 
+export type NavId = "runs" | "board" | "queue";
+
 type Props = {
   currentRunId: string | null;
+  currentNav: NavId;
   onSelectRun: (runId: string) => void;
   onShowRunsList: () => void;
+  onShowBoard: () => void;
+  onShowQueue: () => void;
 };
 
-export function Sidebar({ currentRunId, onSelectRun, onShowRunsList }: Props) {
+export function Sidebar({
+  currentRunId,
+  currentNav,
+  onSelectRun,
+  onShowRunsList,
+  onShowBoard,
+  onShowQueue,
+}: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
 
   useEffect(() => {
@@ -50,9 +69,31 @@ export function Sidebar({ currentRunId, onSelectRun, onShowRunsList }: Props) {
 
       <nav className="flex flex-col gap-1 px-2 pb-3">
         <button
+          onClick={onShowBoard}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "board"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Board
+        </button>
+        <button
+          onClick={onShowQueue}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "queue"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <ListChecks className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Queue
+        </button>
+        <button
           onClick={onShowRunsList}
           className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
-            currentRunId === null
+            currentNav === "runs" && currentRunId === null
               ? "bg-amaco-panel-2 text-amaco-fg"
               : "text-amaco-fg-dim"
           }`}

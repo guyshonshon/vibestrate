@@ -55,6 +55,9 @@ export const runStateSchema = z.object({
   error: z.string().nullable().default(null),
   pendingApprovalId: z.string().nullable().default(null),
   approvalRequestedFromStatus: runStatusSchema.nullable().default(null),
+  // Optional roadmap task this run is associated with. Set by `amaco run --task`
+  // or by the scheduler. Existing runs round-trip safely (defaults to null).
+  taskId: z.string().nullable().default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -146,6 +149,7 @@ export function createInitialState(input: {
     error: null,
     pendingApprovalId: null,
     approvalRequestedFromStatus: null,
+    taskId: null,
   };
 }
 

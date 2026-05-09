@@ -42,6 +42,7 @@ function rewriteFriendly(message: string): string {
 export type RunCommandOptions = {
   ui?: boolean;
   uiPort?: number;
+  taskId?: string | null;
 };
 
 export async function runRunCommand(
@@ -138,12 +139,36 @@ export async function runRunCommand(
     }
   }
 
+  // Resolve roadmap task linkage if --task was provided.
+  let roadmapTaskId: string | null = options.taskId ?? null;
+  if (roadmapTaskId) {
+    try {
+      const { RoadmapService } = await import(
+        "../../roadmap/roadmap-service.js"
+      );
+      const svc = new RoadmapService(detected.projectRoot);
+      const t = await svc.getTask(roadmapTaskId);
+      if (!t) {
+        console.error(
+          `${symbol.fail()} Roadmap task "${roadmapTaskId}" not found.`,
+        );
+        return 1;
+      }
+    } catch (err) {
+      console.error(
+        `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      );
+      return 1;
+    }
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
     rules: loaded.rules,
     task,
     isGitRepo: detected.isGitRepo,
+    taskId: roadmapTaskId,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {
@@ -165,6 +190,17 @@ export async function runRunCommand(
     },
   });
 
+  // Snapshot of the linked roadmap service so we can reuse it for both happy
+  // and failure paths (cannot move into the orchestrator: it shouldn't depend
+  // on the roadmap module).
+  const roadmapModule = roadmapTaskId
+    ? await import("../../roadmap/roadmap-service.js")
+    : null;
+  const roadmapSvc =
+    roadmapModule && roadmapTaskId
+      ? new roadmapModule.RoadmapService(detected.projectRoot)
+      : null;
+
   let result;
   try {
     result = await orchestrator.run();
@@ -180,7 +216,51 @@ export async function runRunCommand(
         `${symbol.arrow()} Supervisor still running at ${color.bold(server.url)}.`,
       );
     }
+    if (roadmapSvc && roadmapTaskId) {
+      try {
+        await roadmapSvc.clearTaskCurrentRun(roadmapTaskId, "failed");
+      } catch {
+        // best-effort
+      }
+    }
     return 2;
+  }
+
+  // Update the linked roadmap task with the run id, branch, worktree, and
+  // final status so the board reflects the outcome immediately.
+  if (roadmapSvc && roadmapTaskId) {
+    try {
+      const taskStatus = (() => {
+        switch (result.state.status) {
+          case "merge_ready":
+            return "done" as const;
+          case "blocked":
+            return "blocked" as const;
+          case "failed":
+            return "failed" as const;
+          case "aborted":
+            return "cancelled" as const;
+          case "waiting_for_approval":
+            return "waiting_for_approval" as const;
+          default:
+            return "running" as const;
+        }
+      })();
+      await roadmapSvc.setTaskRun({
+        taskId: roadmapTaskId,
+        runId: result.runId,
+        branchName: result.branchName,
+        worktreePath: result.worktreePath,
+        status: taskStatus,
+      });
+      await roadmapSvc.clearTaskCurrentRun(roadmapTaskId, taskStatus);
+    } catch (err) {
+      console.error(
+        `${symbol.warn()} Run finished but linked task update failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   console.log("");

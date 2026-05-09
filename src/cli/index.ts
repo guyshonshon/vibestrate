@@ -11,6 +11,9 @@ import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
 import { buildSkillsCommand } from "./commands/skills/index.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
+import { buildRoadmapCommand } from "./commands/roadmap.js";
+import { buildTasksCommand } from "./commands/tasks.js";
+import { buildQueueCommand } from "./commands/queue.js";
 
 const program = new Command();
 
@@ -48,21 +51,29 @@ program.addCommand(buildProviderCommand());
 program.addCommand(buildConfigCommand());
 program.addCommand(buildSkillsCommand());
 program.addCommand(buildApprovalsCommand());
+program.addCommand(buildRoadmapCommand());
+program.addCommand(buildTasksCommand());
+program.addCommand(buildQueueCommand());
 
 program
   .command("run <task...>")
   .description("Run the default plan→architect→implement→review→verify workflow.")
   .option("--ui", "start the local supervisor dashboard alongside the run")
   .option("--ui-port <port>", "port for the supervisor dashboard (default 4317)", (v) => parseInt(v, 10))
+  .option(
+    "--task <taskId>",
+    "link this run to a roadmap task; updates task status and runIds.",
+  )
   .action(
     async (
       taskParts: string[],
-      opts: { ui?: boolean; uiPort?: number },
+      opts: { ui?: boolean; uiPort?: number; task?: string },
     ) => {
       const task = taskParts.join(" ").trim();
       const code = await runRunCommand(task, {
         ui: opts.ui,
         uiPort: opts.uiPort,
+        taskId: opts.task ?? null,
       });
       process.exit(code);
     },

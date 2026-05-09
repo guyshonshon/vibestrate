@@ -225,6 +225,31 @@ amaco approvals list <runId> [--json]
 amaco approvals show <runId> <approvalId> [--json]
 amaco approvals approve <runId> <approvalId> [--note "..."]
 amaco approvals reject <runId> <approvalId> [--note "..."]
+
+amaco roadmap add <title> [--description ...] [--priority low|medium|high]
+amaco roadmap list [--json]
+amaco roadmap show <id>
+amaco roadmap update <id> [--title ...] [--status ...]
+amaco roadmap archive <id>
+
+amaco tasks add <title> [--roadmap <id>] [--priority ...] [--skills ...] [--files ...]
+amaco tasks list [--status ...] [--json]
+amaco tasks show <id>
+amaco tasks comment <id> "<body>"
+amaco tasks ready <id>
+amaco tasks queue <id>
+amaco tasks cancel <id>
+amaco tasks run <id>
+amaco tasks report <id>
+
+amaco run "<task text>" [--task <taskId>]
+
+amaco queue list [--json]
+amaco queue add <taskId>
+amaco queue remove <taskId>
+amaco queue run [--exit-when-drained]
+amaco queue pause | amaco queue resume
+amaco queue status [--json]
 ```
 
 ## How a run works
@@ -567,6 +592,83 @@ These are local files. They are not cloud approvals. They are not synced to a te
 - `amaco doctor --fix` does not touch any approval.
 - Rejection always transitions the run to `blocked` — it is never a soft warning.
 
+## Roadmap board
+
+`amaco ui` includes a Board view at `#/board` that breaks broad goals into supervised tasks.
+
+- **Roadmap items** are big ideas: `Build onboarding`, `Add billing`, `Migrate to React 19`. They live in `.amaco/roadmap/roadmap.json`.
+- **Tasks** are units of work small enough that a single Amaco run can plausibly complete one. They live in `.amaco/roadmap/tasks/<id>.json`.
+- **Comments** are persisted Markdown notes scoped to a task, file, artifact, run, approval, etc. They live in `.amaco/roadmap/comments/<taskId>.json`.
+
+CLI:
+
+```bash
+amaco roadmap add "Build onboarding flow" --description "Make first-run setup simple for vibe coders"
+amaco tasks add "Create setup wizard" --roadmap rm-build-onboarding-…
+amaco tasks comment task-create-setup-wizard-… "Make sure this works without editing YAML"
+amaco tasks queue task-create-setup-wizard-…
+amaco queue run
+```
+
+Or `amaco run "<text>" --task <taskId>` to run a single task in the foreground.
+
+### Tasks and micro-steps
+
+Inside a single task, the orchestrator runs the existing pipeline in order:
+
+```
+planning → architecting → executing → validating → reviewing → fixing → verifying
+```
+
+The task detail page shows this as a **micro-step pipeline**, derived live from the run's events / metrics / approvals. Each step displays its agent, status (pending / running / passed / failed / blocked), and links to the artifacts and approvals it produced. Nothing in the pipeline is faked: the steps are a presentation view over the same audit data the existing run detail page already shows.
+
+### Comments and review
+
+Comments support targets: `task`, `step`, `artifact`, `file`, `diff`, `approval`, `run`. The dashboard exposes adding and resolving comments on a task; the CLI mirrors it via `amaco tasks comment` and (server side) `POST /api/tasks/:id/comments`. Resolution is soft — comments stay on disk under `.amaco/roadmap/comments/<task>.json` for the audit trail.
+
+## Concurrent runs
+
+A single task's pipeline is sequential. Across **independent** tasks, Amaco can run multiple at once if you opt in.
+
+```yaml
+scheduler:
+  maxConcurrentRuns: 1            # default — safe
+  maxConcurrentWriteAgents: 1     # reserved for a future per-agent budget
+  conflictPolicy: warn            # warn | block
+  queuePolicy: fifo               # fifo | priority
+```
+
+```bash
+amaco config set scheduler.maxConcurrentRuns 2
+amaco config set scheduler.conflictPolicy block
+amaco queue add <taskA-id>
+amaco queue add <taskB-id>
+amaco queue run        # process-bound; Ctrl+C stops the loop, queue persists
+```
+
+### Worktree per task
+
+Every task run gets a fresh git branch and worktree (this is the same `local-worktree` backend `amaco run` already uses). Two concurrent tasks therefore have **separate worktrees** — they cannot accidentally write to the same files.
+
+### Conflict detection
+
+Before the scheduler starts a queued task, it compares that task's declared `touchedFiles` (and the live `git diff` file lists of currently-running tasks) against the candidate's hints. If the lists overlap:
+
+- `conflictPolicy: warn` — start the second task anyway and surface a warning under `.amaco/scheduler/conflicts.json` and in the dashboard's Queue view.
+- `conflictPolicy: block` — keep the second task queued and mark it `blocked` until the conflicting run finishes.
+
+This is **best-effort**, not perfect static analysis. Globs and prefix matching are intentionally not in V0; the policy must be predictable and explainable.
+
+### Why the scheduler is process-bound (not a daemon)
+
+`amaco queue run` is the loop. While it is running, queued tasks become children of that process. When you press Ctrl+C (or kill the process), the queue, scheduler state, and any conflict warnings remain persisted on disk; the next `amaco queue run` picks up where you left off. There is no background daemon in V0 — this keeps the operational model honest and the audit trail simple.
+
+### Dashboard
+
+The Board page shows columns: Ideas, Ready, Queued, Running, Waiting Approval, Review, Blocked, Done. The Queue page shows the running tasks, the queue, the policy snapshot, and any conflict warnings (amber-warn, never panic-red). Adding tasks/comments and queueing happens in the dashboard via the same safe routes the CLI uses.
+
+There is **no** `POST /api/tasks/:id/run` endpoint — spawning a child Amaco process from the browser would be an arbitrary-shell vector. The dashboard surfaces `amaco tasks run <id>` as copy-paste guidance instead.
+
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
@@ -578,6 +680,12 @@ These are local files. They are not cloud approvals. They are not synced to a te
 - Token/cost metrics depend on the provider exposing them. Generic CLIs and unconfigured Claude Code will show "not reported".
 - Approval gates use in-process polling. If you kill `amaco run` while a run is `waiting_for_approval`, the approval still resolves correctly, but the orchestrator is gone — there is no `amaco resume` command in V0. The persisted approval and events remain a complete audit record.
 - Skill assignment from the dashboard updates `.amaco/project.yml` directly. There is no "stage approval" gate around config writes.
+- The scheduler is **process-bound**, not a daemon. `amaco queue run` is the loop; killing it stops scheduling (queue and conflict warnings persist).
+- Conflict detection is best-effort: it compares declared `touchedFiles` and live `git diff` file lists. Globs, prefix matching, and import-graph reasoning are intentionally not in V0.
+- Stages within a single task are still strictly sequential. There is no parallel execution within a single task.
+- The dashboard does **not** have a "start scheduler" button — that would require spawning a child Amaco process from HTTP. Use `amaco queue run` from your terminal.
+- AI-assisted roadmap planning is partial in V0: `roadmap-planner.md` is a default prompt and proposals are saved under `.amaco/roadmap/proposals/`, but converting a proposal back into typed roadmap items is documented as the next step rather than an automated parser.
+- No external Slack/Telegram/PR pipelines, no auto-merge, no auto-deploy.
 
 ## Roadmap
 

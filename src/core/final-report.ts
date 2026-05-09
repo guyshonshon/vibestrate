@@ -144,6 +144,7 @@ export function renderFinalReport(input: FinalReportInput): string {
 
 - Run ID: ${state.runId}
 - Task: ${state.task}
+- Roadmap task: ${state.taskId ? `\`${state.taskId}\`` : "_(unlinked)_"}
 - Status: ${state.status}
 - Branch: ${state.branchName ?? "_(none)_"}
 - Worktree: ${state.worktreePath ?? "_(none)_"}
