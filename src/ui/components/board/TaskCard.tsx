@@ -1,4 +1,4 @@
-import { MessageSquare, Workflow, Hourglass } from "lucide-react";
+import { MessageSquare, Workflow, Hourglass, Lock, Unlock } from "lucide-react";
 import type { Task } from "../../lib/types.js";
 
 const PRIORITY_PILL: Record<Task["priority"], string> = {
@@ -10,9 +10,15 @@ const PRIORITY_PILL: Record<Task["priority"], string> = {
 export function TaskCard({
   task,
   onOpen,
+  blockedBy = 0,
+  unlocks = 0,
 }: {
   task: Task;
   onOpen: (taskId: string) => void;
+  /** Open dependency count (tasks this one is waiting on). */
+  blockedBy?: number;
+  /** Tasks that depend on this one. */
+  unlocks?: number;
 }) {
   return (
     <button
@@ -40,6 +46,24 @@ export function TaskCard({
           <span className="inline-flex items-center gap-0.5">
             <MessageSquare className="h-3 w-3" strokeWidth={1.5} />
             {task.commentsCount}
+          </span>
+        ) : null}
+        {blockedBy > 0 ? (
+          <span
+            className="inline-flex items-center gap-0.5 text-amaco-warn"
+            title={`Blocked by ${blockedBy} unfinished dependency`}
+          >
+            <Lock className="h-3 w-3" strokeWidth={1.5} />
+            blocked by {blockedBy}
+          </span>
+        ) : null}
+        {unlocks > 0 ? (
+          <span
+            className="inline-flex items-center gap-0.5"
+            title={`${unlocks} task(s) depend on this one`}
+          >
+            <Unlock className="h-3 w-3" strokeWidth={1.5} />
+            unlocks {unlocks}
           </span>
         ) : null}
         {task.touchedFiles.length > 0 ? (

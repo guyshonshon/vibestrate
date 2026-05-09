@@ -9,6 +9,7 @@ type AppShellProps = {
   onShowRunsList: () => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
+  onShowProposals: () => void;
 };
 
 export function AppShell({
@@ -19,6 +20,7 @@ export function AppShell({
   onShowRunsList,
   onShowBoard,
   onShowQueue,
+  onShowProposals,
 }: AppShellProps) {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-amaco-canvas text-amaco-fg">
@@ -29,6 +31,7 @@ export function AppShell({
         onShowRunsList={onShowRunsList}
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}
+        onShowProposals={onShowProposals}
       />
       <main className="flex-1 overflow-hidden">{children}</main>
     </div>

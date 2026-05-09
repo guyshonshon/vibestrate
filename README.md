@@ -250,6 +250,12 @@ amaco queue remove <taskId>
 amaco queue run [--exit-when-drained]
 amaco queue pause | amaco queue resume
 amaco queue status [--json]
+
+amaco roadmap proposals [--json]
+amaco roadmap proposal show <id>
+amaco roadmap proposal parse <id> [--json]
+amaco roadmap accept <id> [--dry-run] [--allow-unresolved-dependencies]
+amaco roadmap plan "<broad goal>" [--id <proposalId>]
 ```
 
 ## How a run works
@@ -669,6 +675,95 @@ The Board page shows columns: Ideas, Ready, Queued, Running, Waiting Approval, R
 
 There is **no** `POST /api/tasks/:id/run` endpoint — spawning a child Amaco process from the browser would be an arbitrary-shell vector. The dashboard surfaces `amaco tasks run <id>` as copy-paste guidance instead.
 
+## Roadmap proposals
+
+The planner agent can draft a roadmap from a broad goal. The user reviews, dry-runs, and accepts. Nothing is written until accept succeeds.
+
+```bash
+amaco roadmap plan "Build the first public beta experience"
+# → saved as .amaco/roadmap/proposals/<id>.md
+
+amaco roadmap proposals
+amaco roadmap proposal show <id>
+amaco roadmap accept <id> --dry-run
+amaco roadmap accept <id>
+```
+
+### Proposal marker format
+
+The planner agent emits plain-text marker blocks (no fenced code required):
+
+```
+AMACO_ROADMAP_ITEM:
+TITLE: Build onboarding
+DESCRIPTION: Make first-run setup simple for vibe coders.
+PRIORITY: high
+TAGS: onboarding, setup
+
+AMACO_TASK:
+TITLE: Create setup wizard
+ROADMAP: Build onboarding
+DESCRIPTION: Add guided setup flow.
+RISK: medium
+SKILLS: typescript-node-cli, ux-design
+LIKELY_FILES: src/cli/commands/setup.ts, src/setup/setup-service.ts
+VALIDATION: pnpm typecheck, pnpm test
+
+AMACO_TASK:
+TITLE: Add setup tests
+ROADMAP: Build onboarding
+DEPENDS_ON: Create setup wizard
+RISK: low
+SKILLS: testing
+LIKELY_FILES: tests/setup-service.test.ts
+```
+
+Required: `TITLE` on every block. Everything else is optional with sane defaults (`PRIORITY` and `RISK` default to `medium`; invalid values fall back with a warning). `LIKELY_FILES` paths are validated for traversal — entries with `..` or absolute paths are rejected. Duplicate task or roadmap titles in the same proposal are fatal errors.
+
+### Reviewing and dry-running
+
+```bash
+amaco roadmap accept <id> --dry-run
+```
+
+prints the would-be roadmap items, tasks, and dependency edges, plus any warnings/errors. **No files are written.** If the proposal has unresolved `DEPENDS_ON` references that don't match any task title (in the proposal *or* on the existing roadmap), dry-run shows a fatal error — re-run with `--allow-unresolved-dependencies` to skip them instead.
+
+### Accepting
+
+```bash
+amaco roadmap accept <id>
+```
+
+is **atomic**: parses → validates → detects cycles → resolves dependencies → only then writes the roadmap items + tasks. If a write fails midway, the records this transaction created are rolled back. The acceptance is recorded in `.amaco/roadmap/proposals/<id>-accepted.json` so accepting the same proposal twice is refused.
+
+### Dashboard
+
+The `Proposals` view in the dashboard lists drafts and lets you preview, dry-run, and accept from the browser. Errors and warnings are surfaced inline; the Accept button is disabled when there are errors. The accept flow uses the same safe API the CLI uses; there is no separate write path.
+
+## Dependency graph
+
+Tasks can declare dependencies on other tasks (`task.dependencies: string[]` of task ids). Once accepted, the system surfaces these everywhere:
+
+- **Board cards** show "Blocked by N · Unlocks N" pills (amber when blocked, neutral when unlocking other tasks).
+- **Task detail** has a Dependencies section with two columns: Blocked by (with each blocker's status colour-coded) and Unlocks. Both lists are click-through.
+- **Task report** (`amaco tasks report <id>`) includes dependency lists, an explicit blocker explanation when the task can't start yet, and a link back to the source proposal id when the task came from one.
+
+This is **a clean dependency list, not a graph canvas**. V0 deliberately avoids visual graph rendering — a sortable list is more readable for the kinds of dependency depth real projects have.
+
+### Scheduler dependency handling
+
+`amaco queue run` walks queued entries in policy order (FIFO or priority) and picks the **first ready** one — meaning every dependency is `done` (or `cancelled`). Blocked entries stay queued and the scheduler re-checks on the next tick. So:
+
+```bash
+amaco queue add <taskB-id>   # depends on A
+amaco queue add <taskA-id>
+amaco queue run
+```
+
+works fine — the scheduler skips B (A is open), runs A, sees B becomes ready, runs B. No out-of-order execution.
+
+Cycles are caught at proposal-accept time, not at scheduler time. The only way a cycle could appear in `.amaco/roadmap/tasks/` is via manual JSON editing — the CLI / UI never produce one.
+
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
@@ -684,7 +779,8 @@ There is **no** `POST /api/tasks/:id/run` endpoint — spawning a child Amaco pr
 - Conflict detection is best-effort: it compares declared `touchedFiles` and live `git diff` file lists. Globs, prefix matching, and import-graph reasoning are intentionally not in V0.
 - Stages within a single task are still strictly sequential. There is no parallel execution within a single task.
 - The dashboard does **not** have a "start scheduler" button — that would require spawning a child Amaco process from HTTP. Use `amaco queue run` from your terminal.
-- AI-assisted roadmap planning is partial in V0: `roadmap-planner.md` is a default prompt and proposals are saved under `.amaco/roadmap/proposals/`, but converting a proposal back into typed roadmap items is documented as the next step rather than an automated parser.
+- AI-assisted roadmap planning depends on the local planner provider's output. The parser is forgiving but agents will not always produce perfect marker blocks; the dry-run is the user's safety net.
+- Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
 - No external Slack/Telegram/PR pipelines, no auto-merge, no auto-deploy.
 
 ## Roadmap

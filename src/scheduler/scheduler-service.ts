@@ -7,7 +7,32 @@ import { RunQueue } from "./run-queue.js";
 import { ConflictsStore, detectConflicts } from "./conflict-detector.js";
 import type { SchedulerConfig } from "../project/config-schema.js";
 import type { Task } from "../roadmap/roadmap-types.js";
+import {
+  buildDependencyGraph,
+  explainBlock,
+  isReady,
+} from "../roadmap/dependency-graph.js";
 import { nowIso } from "../utils/time.js";
+import type { QueueEntry } from "./scheduler-types.js";
+
+const PRIORITY_RANK: Record<"low" | "medium" | "high", number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+function orderQueue(
+  entries: QueueEntry[],
+  policy: "fifo" | "priority",
+): QueueEntry[] {
+  if (policy === "fifo") return entries;
+  return [...entries].sort((a, b) => {
+    const pa = PRIORITY_RANK[a.priority];
+    const pb = PRIORITY_RANK[b.priority];
+    if (pa !== pb) return pa - pb;
+    return a.enqueuedAt.localeCompare(b.enqueuedAt);
+  });
+}
 
 export type SchedulerLogger = (line: string) => void;
 
@@ -110,33 +135,50 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
     if (queueFile.entries.length === 0) {
       return { launched: false, idle: true };
     }
-    const next = queue.pickNext(queueFile, cfg.queuePolicy);
-    if (!next) return { launched: false, idle: true };
 
-    // Skip tasks whose dependencies are not done yet.
-    const candidate = await roadmap.getTask(next.taskId);
-    if (!candidate) {
-      log(`[scheduler] queued task "${next.taskId}" not found; removing from queue.`);
-      await queue.remove(next.taskId);
-      return { launched: false, idle: false };
-    }
-
-    if (candidate.dependencies.length > 0) {
-      const tasks = await roadmap.listTasks();
-      const open = candidate.dependencies.filter((depId) => {
-        const dep = tasks.find((t) => t.id === depId);
-        return !dep || dep.status !== "done";
-      });
-      if (open.length > 0) {
-        log(
-          `[scheduler] task ${candidate.id} waiting on dependencies: ${open.join(", ")}`,
-        );
-        return { launched: false, idle: true };
+    // Walk the queue (in policy order) and pick the first entry whose
+    // dependencies are all satisfied. Blocked entries stay queued and are
+    // reconsidered on the next tick — this is what makes "queue B before A"
+    // work: we skip B and try A next.
+    const allTasks = await roadmap.listTasks();
+    const graph = buildDependencyGraph(allTasks);
+    const orderedIds = orderQueue(queueFile.entries.slice(), cfg.queuePolicy).map(
+      (e) => e.taskId,
+    );
+    let candidate: typeof allTasks[number] | null = null;
+    let everyEntryBlocked = true;
+    for (const id of orderedIds) {
+      const t = await roadmap.getTask(id);
+      if (!t) {
+        log(`[scheduler] queued task "${id}" not found; removing from queue.`);
+        await queue.remove(id);
+        return { launched: false, idle: false };
       }
+      if (!isReady(graph, t.id)) {
+        const reason = explainBlock(graph, t.id);
+        const human = [
+          ...reason.blockedByOpenTaskIds.map(
+            (id2) => `${id2} (${graph.taskById.get(id2)?.status ?? "?"})`,
+          ),
+          ...reason.blockedByMissing.map((id2) => `${id2} (missing)`),
+        ];
+        log(
+          `[scheduler] task ${t.id} blocked by dependency: ${human.join(", ")}`,
+        );
+        continue;
+      }
+      candidate = t;
+      everyEntryBlocked = false;
+      break;
+    }
+    if (!candidate) {
+      // Every queued task is blocked on a dependency. Stay idle and let the
+      // next loop tick re-check (the user may mark a dep done, or another
+      // task may finish via concurrent runs).
+      return { launched: false, idle: everyEntryBlocked };
     }
 
     // Conflict detection against currently-running tasks.
-    const allTasks = await roadmap.listTasks();
     const runningTasks = allTasks.filter((t) => inflight.has(t.id));
     const overlap = await detectConflicts({
       candidate,

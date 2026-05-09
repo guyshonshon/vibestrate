@@ -195,11 +195,28 @@ export function BoardPage({ onOpenTask }: { onOpenTask: (taskId: string) => void
                   {colTasks.length === 0 ? (
                     <li className="px-1 py-1 text-[11px] text-amaco-fg-muted">—</li>
                   ) : (
-                    colTasks.map((t) => (
-                      <li key={t.id}>
-                        <TaskCard task={t} onOpen={onOpenTask} />
-                      </li>
-                    ))
+                    colTasks.map((t) => {
+                      const openDeps = t.dependencies.filter((depId) => {
+                        const dep = tasks.find((tt) => tt.id === depId);
+                        return (
+                          !dep ||
+                          (dep.status !== "done" && dep.status !== "cancelled")
+                        );
+                      });
+                      const unlocks = tasks.filter((tt) =>
+                        tt.dependencies.includes(t.id),
+                      ).length;
+                      return (
+                        <li key={t.id}>
+                          <TaskCard
+                            task={t}
+                            onOpen={onOpenTask}
+                            blockedBy={openDeps.length}
+                            unlocks={unlocks}
+                          />
+                        </li>
+                      );
+                    })
                   )}
                 </ol>
               </section>

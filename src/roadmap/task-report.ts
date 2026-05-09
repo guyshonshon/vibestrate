@@ -6,12 +6,15 @@ export type TaskReportInput = {
   task: Task;
   parent: RoadmapItem | null;
   comments: Comment[];
+  proposalId?: string | null;
+  allTasks?: readonly Task[];
 };
 
 export function renderTaskReport(input: TaskReportInput): string {
   const { task, parent, comments } = input;
   const open = comments.filter((c) => !c.resolved);
   const resolved = comments.filter((c) => c.resolved);
+  const others = input.allTasks ?? [];
 
   const lines: string[] = [];
   lines.push(`# Task Report — ${task.title}`);
@@ -63,6 +66,62 @@ export function renderTaskReport(input: TaskReportInput): string {
     lines.push(`- Branch: \`${task.branchName}\``);
     if (task.worktreePath) lines.push(`- Worktree: \`${task.worktreePath}\``);
     lines.push("");
+  }
+
+  if (input.proposalId) {
+    lines.push(`## Source proposal`);
+    lines.push("");
+    lines.push(`- Proposal id: \`${input.proposalId}\``);
+    lines.push(
+      `- Audit: \`.amaco/roadmap/proposals/${input.proposalId}-accepted.json\``,
+    );
+    lines.push("");
+  }
+
+  // Dependencies (blocked by + unlocks). Best-effort given the supplied tasks
+  // list — the CLI command always passes the full list.
+  const titleStatus = (id: string): { title: string; status: string } | null => {
+    const t = others.find((x) => x.id === id);
+    if (!t) return null;
+    return { title: t.title, status: t.status };
+  };
+  const blockers = task.dependencies;
+  const unlocks = others.filter((t) => t.dependencies.includes(task.id));
+  const openBlockers = blockers.filter((id) => {
+    const ts = titleStatus(id);
+    return !ts || (ts.status !== "done" && ts.status !== "cancelled");
+  });
+
+  if (blockers.length > 0 || unlocks.length > 0) {
+    lines.push(`## Dependencies`);
+    lines.push("");
+    if (blockers.length > 0) {
+      lines.push(`### Blocked by (${blockers.length})`);
+      lines.push("");
+      for (const id of blockers) {
+        const ts = titleStatus(id);
+        if (ts) {
+          lines.push(`- \`${id}\` — ${ts.title} _(${ts.status})_`);
+        } else {
+          lines.push(`- \`${id}\` — _missing_`);
+        }
+      }
+      lines.push("");
+      if (openBlockers.length > 0 && task.status !== "done") {
+        lines.push(
+          `_This task cannot start until ${openBlockers.length} blocker(s) reach done._`,
+        );
+        lines.push("");
+      }
+    }
+    if (unlocks.length > 0) {
+      lines.push(`### Unlocks (${unlocks.length})`);
+      lines.push("");
+      for (const u of unlocks) {
+        lines.push(`- \`${u.id}\` — ${u.title} _(${u.status})_`);
+      }
+      lines.push("");
+    }
   }
 
   lines.push(`## Comments`);

@@ -223,7 +223,37 @@ async function cmdReport(taskId: string): Promise<number> {
     }
     const parent = t.roadmapItemId ? await s.getRoadmapItem(t.roadmapItemId) : null;
     const comments = await s.listComments(taskId);
-    const target = await writeTaskReport(root, { task: t, parent, comments });
+    const allTasks = await s.listTasks();
+    // Resolve a proposal source by scanning audit files for this task id.
+    const { roadmapProposalsDir } = await import("../../utils/paths.js");
+    const fsp = await import("node:fs/promises");
+    const dir = roadmapProposalsDir(root);
+    let proposalId: string | null = null;
+    try {
+      for (const file of await fsp.readdir(dir)) {
+        if (!file.endsWith("-accepted.json")) continue;
+        try {
+          const audit = JSON.parse(
+            await fsp.readFile(path.join(dir, file), "utf8"),
+          ) as { proposalId: string; createdTaskIds: string[] };
+          if (audit.createdTaskIds?.includes(taskId)) {
+            proposalId = audit.proposalId;
+            break;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    } catch {
+      // proposals dir absent — fine
+    }
+    const target = await writeTaskReport(root, {
+      task: t,
+      parent,
+      comments,
+      allTasks,
+      proposalId,
+    });
     console.log(`${symbol.ok()} Wrote ${path.relative(root, target)}`);
     return 0;
   } catch (err) {

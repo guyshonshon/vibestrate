@@ -5,13 +5,19 @@ import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { QueuePage } from "./routes/QueuePage.js";
+import {
+  ProposalsPage,
+  ProposalDetailPage,
+} from "./routes/ProposalsPage.js";
 
 type Route =
   | { kind: "runs" }
   | { kind: "run"; runId: string }
   | { kind: "board" }
   | { kind: "task"; taskId: string }
-  | { kind: "queue" };
+  | { kind: "queue" }
+  | { kind: "proposals" }
+  | { kind: "proposal"; proposalId: string };
 
 function parseRoute(): Route {
   const hash = window.location.hash.replace(/^#\/?/, "");
@@ -20,6 +26,9 @@ function parseRoute(): Route {
   if (parts[0] === "board") return { kind: "board" };
   if (parts[0] === "tasks" && parts[1]) return { kind: "task", taskId: parts[1] };
   if (parts[0] === "queue") return { kind: "queue" };
+  if (parts[0] === "proposals" && parts[1])
+    return { kind: "proposal", proposalId: parts.slice(1).join("/") };
+  if (parts[0] === "proposals") return { kind: "proposals" };
   return { kind: "runs" };
 }
 
@@ -39,6 +48,12 @@ export function navigate(route: Route): void {
       break;
     case "queue":
       window.location.hash = "#/queue";
+      break;
+    case "proposals":
+      window.location.hash = "#/proposals";
+      break;
+    case "proposal":
+      window.location.hash = `#/proposals/${route.proposalId}`;
       break;
   }
 }
@@ -60,12 +75,15 @@ export function App() {
           ? "board"
           : route.kind === "queue"
             ? "queue"
-            : "runs"
+            : route.kind === "proposals" || route.kind === "proposal"
+              ? "proposals"
+              : "runs"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
+      onShowProposals={() => navigate({ kind: "proposals" })}
     >
       {route.kind === "runs" ? (
         <RunsPage onSelect={(runId) => navigate({ kind: "run", runId })} />
@@ -77,9 +95,20 @@ export function App() {
         <TaskDetailPage
           taskId={route.taskId}
           onOpenRun={(runId) => navigate({ kind: "run", runId })}
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+        />
+      ) : route.kind === "queue" ? (
+        <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
+      ) : route.kind === "proposals" ? (
+        <ProposalsPage
+          onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}
         />
       ) : (
-        <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
+        <ProposalDetailPage
+          proposalId={route.proposalId}
+          onAccepted={() => navigate({ kind: "board" })}
+          onBack={() => navigate({ kind: "proposals" })}
+        />
       )}
     </AppShell>
   );

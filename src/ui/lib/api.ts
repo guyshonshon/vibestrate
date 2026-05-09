@@ -8,6 +8,10 @@ import type {
   FileDiff,
   MicroStep,
   Note,
+  ProposalAcceptResponse,
+  ProposalDryRunResponse,
+  ProposalParseSummary,
+  ProposalSummary,
   QueueEntry,
   RoadmapItem,
   RunState,
@@ -289,5 +293,49 @@ export const api = {
       "/api/scheduler/conflicts",
     );
     return r.warnings;
+  },
+
+  // ─── proposals ────────────────────────────────────────────────────────────
+  async listProposals(): Promise<ProposalSummary[]> {
+    const r = await jsonGet<{ proposals: ProposalSummary[] }>(
+      "/api/roadmap/proposals",
+    );
+    return r.proposals;
+  },
+  async getProposal(id: string): Promise<{
+    proposalId: string;
+    body: string;
+    accepted: { acceptedAt: string } | null;
+  }> {
+    return jsonGet(
+      `/api/roadmap/proposals/${encodeURIComponent(id)}`,
+    );
+  },
+  async parseProposal(id: string): Promise<ProposalParseSummary> {
+    return jsonGet(`/api/roadmap/proposals/${encodeURIComponent(id)}/parse`);
+  },
+  async dryRunProposal(input: {
+    id: string;
+    allowUnresolvedDependencies?: boolean;
+  }): Promise<ProposalDryRunResponse> {
+    return jsonPost(
+      `/api/roadmap/proposals/${encodeURIComponent(input.id)}/accept`,
+      {
+        dryRun: true,
+        allowUnresolvedDependencies: input.allowUnresolvedDependencies,
+      },
+    );
+  },
+  async acceptProposal(input: {
+    id: string;
+    allowUnresolvedDependencies?: boolean;
+  }): Promise<ProposalAcceptResponse> {
+    return jsonPost(
+      `/api/roadmap/proposals/${encodeURIComponent(input.id)}/accept`,
+      {
+        dryRun: false,
+        allowUnresolvedDependencies: input.allowUnresolvedDependencies,
+      },
+    );
   },
 };

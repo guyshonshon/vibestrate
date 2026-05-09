@@ -7,23 +7,30 @@ import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 export function TaskDetailPage({
   taskId,
   onOpenRun,
+  onOpenTask,
 }: {
   taskId: string;
   onOpenRun: (runId: string) => void;
+  onOpenTask: (taskId: string) => void;
 }) {
   const [data, setData] = useState<{
     task: Task;
     comments: TaskComment[];
     microSteps: { runId: string; steps: MicroStep[] }[];
   } | null>(null);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
 
   async function load() {
     try {
-      const r = await api.getTask(taskId);
+      const [r, list] = await Promise.all([
+        api.getTask(taskId),
+        api.listTasks(),
+      ]);
       setData(r);
+      setAllTasks(list);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -191,6 +198,12 @@ export function TaskDetailPage({
           <MicroStepPipeline key={runId} runId={runId} steps={steps} />
         ))}
 
+        <DependenciesSection
+          task={task}
+          allTasks={allTasks}
+          onOpenTask={onOpenTask}
+        />
+
         <section className="rounded border border-amaco-border bg-amaco-panel p-3">
           <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
             comments
@@ -257,5 +270,110 @@ export function TaskDetailPage({
         </section>
       </div>
     </div>
+  );
+}
+
+function DependenciesSection({
+  task,
+  allTasks,
+  onOpenTask,
+}: {
+  task: Task;
+  allTasks: Task[];
+  onOpenTask: (taskId: string) => void;
+}) {
+  const blockers = task.dependencies
+    .map((id) => allTasks.find((t) => t.id === id) ?? null)
+    .filter((t): t is Task => t !== null);
+  const missingBlockers = task.dependencies.filter(
+    (id) => !allTasks.find((t) => t.id === id),
+  );
+  const unlocks = allTasks.filter((t) => t.dependencies.includes(task.id));
+
+  if (
+    blockers.length === 0 &&
+    missingBlockers.length === 0 &&
+    unlocks.length === 0
+  ) {
+    return null;
+  }
+
+  const isDone = (s: Task["status"]) => s === "done" || s === "cancelled";
+
+  return (
+    <section className="rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        dependencies
+      </div>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <div>
+          <div className="text-[11px] text-amaco-fg-muted">
+            Blocked by ({blockers.length + missingBlockers.length})
+          </div>
+          {blockers.length === 0 && missingBlockers.length === 0 ? (
+            <div className="mt-1 text-[12px] text-amaco-fg-muted">—</div>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {blockers.map((b) => {
+                const open = !isDone(b.status);
+                return (
+                  <li key={b.id}>
+                    <button
+                      onClick={() => onOpenTask(b.id)}
+                      className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left hover:bg-amaco-panel"
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-amaco-warn" : "bg-amaco-success"}`}
+                      />
+                      <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+                        {b.title}
+                      </span>
+                      <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                        {b.status}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              {missingBlockers.map((id) => (
+                <li
+                  key={id}
+                  className="flex items-center gap-2 rounded border border-amaco-fail/40 bg-amaco-fail/5 px-2 py-1 text-[12px] text-amaco-fail"
+                >
+                  <span className="amaco-mono flex-1 truncate">{id}</span>
+                  <span className="amaco-mono text-[10.5px]">missing</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <div className="text-[11px] text-amaco-fg-muted">
+            Unlocks ({unlocks.length})
+          </div>
+          {unlocks.length === 0 ? (
+            <div className="mt-1 text-[12px] text-amaco-fg-muted">—</div>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {unlocks.map((u) => (
+                <li key={u.id}>
+                  <button
+                    onClick={() => onOpenTask(u.id)}
+                    className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left hover:bg-amaco-panel"
+                  >
+                    <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+                      {u.title}
+                    </span>
+                    <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                      {u.status}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

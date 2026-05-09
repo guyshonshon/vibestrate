@@ -6,12 +6,13 @@ import {
   Activity,
   LayoutGrid,
   ListChecks,
+  FileText,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "../runs/RunStatusBadge.js";
 
-export type NavId = "runs" | "board" | "queue";
+export type NavId = "runs" | "board" | "queue" | "proposals";
 
 type Props = {
   currentRunId: string | null;
@@ -20,6 +21,7 @@ type Props = {
   onShowRunsList: () => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
+  onShowProposals: () => void;
 };
 
 export function Sidebar({
@@ -29,6 +31,7 @@ export function Sidebar({
   onShowRunsList,
   onShowBoard,
   onShowQueue,
+  onShowProposals,
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
 
@@ -89,6 +92,17 @@ export function Sidebar({
         >
           <ListChecks className="h-3.5 w-3.5" strokeWidth={1.5} />
           Queue
+        </button>
+        <button
+          onClick={onShowProposals}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "proposals"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <FileText className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Proposals
         </button>
         <button
           onClick={onShowRunsList}
