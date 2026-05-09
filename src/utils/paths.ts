@@ -1,0 +1,64 @@
+import path from "node:path";
+
+export const AMACO_DIR = ".amaco";
+export const CONFIG_FILENAME = "project.yml";
+export const RULES_FILENAME = "rules.md";
+export const AGENTS_DIRNAME = "agents";
+export const SKILLS_DIRNAME = "skills";
+export const RUNS_DIRNAME = "runs";
+
+export function amacoRoot(projectRoot: string): string {
+  return path.join(projectRoot, AMACO_DIR);
+}
+
+export function projectConfigPath(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), CONFIG_FILENAME);
+}
+
+export function projectRulesPath(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), RULES_FILENAME);
+}
+
+export function projectAgentsDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), AGENTS_DIRNAME);
+}
+
+export function projectSkillsDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), SKILLS_DIRNAME);
+}
+
+export function projectRunsDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), RUNS_DIRNAME);
+}
+
+export function runDir(projectRoot: string, runId: string): string {
+  return path.join(projectRunsDir(projectRoot), runId);
+}
+
+export function runArtifactsDir(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "artifacts");
+}
+
+export function runStatePath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "state.json");
+}
+
+export function runEventsPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "events.ndjson");
+}
+
+export function isPathInside(parent: string, candidate: string): boolean {
+  const rel = path.relative(parent, candidate);
+  if (!rel) return true;
+  if (rel.startsWith("..")) return false;
+  if (path.isAbsolute(rel)) return false;
+  return true;
+}
+
+export function safeJoin(parent: string, ...segments: string[]): string {
+  const joined = path.join(parent, ...segments);
+  if (!isPathInside(parent, joined)) {
+    throw new Error(`Path traversal blocked: ${segments.join("/")}`);
+  }
+  return joined;
+}

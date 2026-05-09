@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.amaco/runs/
+.amaco-worktrees/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+.vitest-cache/
+.tsbuildinfo

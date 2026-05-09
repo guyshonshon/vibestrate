@@ -1,0 +1,70 @@
+import path from "node:path";
+import { PolicyError } from "../utils/errors.js";
+import { pathExists } from "../utils/fs.js";
+import { resolveProfile } from "../permissions/permission-profiles.js";
+import type { ProjectConfig } from "../project/config-schema.js";
+
+export type PolicyWarning = {
+  code: string;
+  message: string;
+};
+
+export type PolicyResult = {
+  warnings: PolicyWarning[];
+};
+
+const ENV_FILES = [".env", ".env.local", ".env.development", ".env.production"];
+
+export async function runPreflightChecks(input: {
+  projectRoot: string;
+  config: ProjectConfig;
+  isGitRepo: boolean;
+}): Promise<PolicyResult> {
+  const { projectRoot, config, isGitRepo } = input;
+  const warnings: PolicyWarning[] = [];
+
+  if (!isGitRepo) {
+    throw new PolicyError(
+      `Amaco requires a git repository. ${projectRoot} is not inside a git repo.`,
+    );
+  }
+
+  if (config.policies.forbidAutoPush && config.git.allowAutoPush) {
+    throw new PolicyError(
+      "policies.forbidAutoPush is true but git.allowAutoPush is true.",
+    );
+  }
+  if (config.policies.forbidAutoMerge && config.git.allowAutoMerge) {
+    throw new PolicyError(
+      "policies.forbidAutoMerge is true but git.allowAutoMerge is true.",
+    );
+  }
+
+  for (const [agentId, agent] of Object.entries(config.agents)) {
+    const profile = resolveProfile(config.permissions.profiles, agent.permissions);
+    if (profile.allowWrite && profile.cwd !== "worktree") {
+      throw new PolicyError(
+        `Agent "${agentId}" has write permissions but cwd is "${profile.cwd}". Write-enabled agents must run inside the worktree.`,
+      );
+    }
+  }
+
+  for (const envFile of ENV_FILES) {
+    const candidate = path.join(projectRoot, envFile);
+    if (await pathExists(candidate)) {
+      warnings.push({
+        code: "ENV_FILE_PRESENT",
+        message: `${envFile} exists in project. Amaco will not read its contents into prompts; ensure agents do not edit it.`,
+      });
+    }
+  }
+
+  if (config.commands.validate.length === 0) {
+    warnings.push({
+      code: "NO_VALIDATION_COMMANDS",
+      message: `No validation commands configured. Reviewer/verifier will have weak signal.`,
+    });
+  }
+
+  return { warnings };
+}
