@@ -5,6 +5,9 @@ import { runRunCommand } from "./commands/run.js";
 import { runStatusCommand } from "./commands/status.js";
 import { runAbortCommand } from "./commands/abort.js";
 import { runDoctorCommand } from "./commands/doctor.js";
+import { runSetupCommand } from "./commands/setup.js";
+import { buildProviderCommand } from "./commands/provider/index.js";
+import { buildConfigCommand } from "./commands/config/index.js";
 
 const program = new Command();
 
@@ -18,11 +21,28 @@ program
 program
   .command("init")
   .description("Initialize Amaco in the current project (.amaco/ scaffold).")
-  .option("--force", "overwrite existing config files")
-  .action(async (opts: { force?: boolean }) => {
-    const code = await runInitCommand({ force: opts.force });
+  .option("--force", "overwrite existing config files (runs are preserved)")
+  .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
+  .option("--interactive", "force the guided wizard even when --yes would default to non-interactive")
+  .action(async (opts: { force?: boolean; yes?: boolean; interactive?: boolean }) => {
+    const code = await runInitCommand({
+      force: opts.force,
+      yes: opts.yes,
+      interactive: opts.interactive,
+    });
     process.exit(code);
   });
+
+program
+  .command("setup")
+  .description("Guided wizard for provider, validation commands, and run defaults.")
+  .action(async () => {
+    const code = await runSetupCommand();
+    process.exit(code);
+  });
+
+program.addCommand(buildProviderCommand());
+program.addCommand(buildConfigCommand());
 
 program
   .command("run <task...>")
@@ -52,9 +72,11 @@ program
 
 program
   .command("doctor")
-  .description("Check environment, config, and provider availability.")
-  .action(async () => {
-    const code = await runDoctorCommand();
+  .description("Check environment, config, providers, and recommend next steps.")
+  .option("--json", "emit JSON")
+  .option("--fix", "apply safe fixes (create missing dirs/templates, add Claude provider if detected, suggest validation)")
+  .action(async (opts: { json?: boolean; fix?: boolean }) => {
+    const code = await runDoctorCommand({ json: opts.json, fix: opts.fix });
     process.exit(code);
   });
 

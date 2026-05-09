@@ -2,219 +2,232 @@
 
 Amaco is a local-first autonomous multi-agent completion orchestrator for software tasks.
 
-It runs your existing local agent CLIs through a controlled
+It runs the local agent CLIs you already use — Claude Code, or any custom CLI you wire up — through a controlled
 **plan → architect → implement → validate → review → fix → verify**
 loop in isolated git worktrees.
 
-> Working name. Designed so it can be renamed without touching the core architecture.
+> No API keys. No cloud. No auto-push or auto-merge. Just your local CLIs and your project.
 
-## What It Is
+## Quickstart for vibe coders
 
-- A deterministic TypeScript orchestrator around the local agent CLIs you already use.
-- Role-specific agents (planner, architect, executor, fixer, reviewer, verifier) backed by editable Markdown prompts.
-- A bounded review/fix loop with real validation commands and durable artifacts.
-- Worktree-isolated runs with a strict permission model around what each agent may do.
+```bash
+npm install -g amaco
+cd your-project
+amaco init
+amaco doctor
+amaco run "Add dark mode to settings"
+```
 
-## What It Is Not
+That's the whole flow. If Claude Code is installed and on your PATH, Amaco detects it automatically and writes a runnable config. You never have to open YAML.
 
-- Not a chatbot.
-- Not a hosted agent or cloud service.
-- Not a Claude Code wrapper. Claude Code is one supported provider; any local CLI works.
-- Not a clone of Devin / OpenHands / Open SWE / SWE-Agent / Aider / Codex / OpenCode.
-- Not a model API client. Amaco does **not** call Anthropic, OpenAI, or any other model API in V0.
+## What Amaco does for you
 
-## Why This Exists
+- Detects your project type (Next.js, Vite, TypeScript, Node) and package manager (pnpm/npm/yarn/bun).
+- Detects your local coding CLI (Claude Code, Codex, OpenCode, Aider).
+- Generates a complete `.amaco/project.yml`, agent prompts, and skills folder.
+- Runs an isolated workflow on a fresh branch in a git worktree.
+- Runs your real validation (typecheck/lint/tests) and feeds the results into the reviewer.
+- Bounded fix loop, then a verifier, then `merge_ready` or `blocked` — never auto-merged.
+- Writes durable artifacts (Markdown + JSON + NDJSON) so a future dashboard can render every run.
 
-Most agent tools either run a single chat in a terminal or hide everything behind a SaaS. Amaco gives you something in between: a small, deterministic, file-based orchestrator that runs your favorite agent CLIs through a sane workflow and leaves audit-friendly artifacts on disk.
+## Zero-config setup
 
-## How It Works
+`amaco init` is genuinely out-of-the-box.
+
+When run inside a git repository:
+
+1. Verifies it's a git repo.
+2. Detects project name, type, and package manager.
+3. Detects local coding CLIs.
+4. Generates `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents/*`, `.amaco/skills/`, and `.amaco/runs/`.
+5. Prints a friendly summary and tells you exactly what to run next.
+
+If a provider is detected:
 
 ```
-user task idea
-      │
-      ▼
-  planner ─►  architect ─►  executor ─►  validate ─►  reviewer
-                                                          │
-                                              CHANGES_REQUESTED
-                                                          │
-                                                       fixer ──► validate ──► reviewer (bounded loop)
-                                                          │
-                                                       APPROVED
-                                                          │
-                                                          ▼
-                                                       verifier
-                                                          │
-                                                          ▼
+✓ Amaco initialized.
+
+Project:
+  Name: my-app
+  Type: Next.js
+  Package manager: pnpm
+
+Provider:
+  ✓ Claude Code detected: claude (v2.x)
+  Default agents will use: claude -p
+
+Validation:
+  • pnpm typecheck
+  • pnpm test
+
+Next:
+  → amaco doctor
+  → amaco run "your task"
+```
+
+If no provider is detected:
+
+```
+✓ Amaco initialized, but no local coding CLI was detected.
+
+Next:
+  → amaco provider setup
+  → amaco doctor
+  → amaco run "your task"
+```
+
+### Init flags
+
+- `amaco init` — uses a short wizard if your terminal is interactive, otherwise behaves like `--yes`.
+- `amaco init --yes` — non-interactive: use safe detected defaults, never wait for input.
+- `amaco init --interactive` — force the guided wizard.
+- `amaco init --force` — overwrite templates (your `.amaco/runs/` are preserved).
+
+## Provider detection
+
+```bash
+amaco provider detect
+```
+
+Output:
+
+```
+Detected local coding CLIs:
+
+✓ Claude Code — ready
+  Command: claude (v2.x)
+
+○ Codex CLI — not found
+○ OpenCode — not found
+○ Aider — not found
+```
+
+Detection only runs `<command> --version` with a short timeout. It never sends a real prompt and never authenticates.
+
+Claude Code ships a verified preset (`claude -p` with stdin). Other CLIs detect as `detected, needs setup` because Amaco does not invent prompt-flag conventions for tools whose interfaces aren't pinned. Wire them up with `amaco provider setup`.
+
+## Guided setup
+
+Two wizards:
+
+- `amaco setup` — provider, validation, and run defaults.
+- `amaco provider setup` — provider only.
+
+Both are short, plain-language, and always show what will be saved before saving.
+
+```
+? Which local coding CLI should Amaco use for its agents?
+> Claude Code (detected: claude v2.x)
+  Custom command
+```
+
+For custom CLIs you'll be asked for: provider id, command, args, input mode (stdin / arg). You can opt in to a safe smoke test that sends only a tiny no-op prompt and looks for a magic token — no real task is sent.
+
+## Config without editing YAML
+
+`amaco config` lets you read and edit `.amaco/project.yml` without ever opening it:
+
+```bash
+amaco config show
+amaco config validate
+amaco config get commands.validate
+amaco config set workflow.maxReviewLoops 3
+amaco config set git.mainBranch main
+amaco config set commands.validate '["pnpm typecheck","pnpm test"]'
+```
+
+- Booleans / numbers / strings are parsed automatically.
+- Arrays and objects via JSON.
+- Every write is validated against the schema before saving — invalid writes are refused with a clear message.
+- Comments and structure in the YAML are preserved.
+
+## Doctor and recovery
+
+```bash
+amaco doctor
+amaco doctor --fix
+amaco doctor --json
+```
+
+Doctor checks: git availability and repo, config presence and validity, provider availability, all agents referencing valid providers, prompt files, skills, write-permission cwd policy, validation commands, `.env` files, auto-push/merge.
+
+`--fix` makes only safe restorations:
+
+- Recreates missing `.amaco/runs`, `.amaco/skills`, and `.amaco/agents` directories.
+- Restores missing default agent prompt files (never overwrites your edits).
+- Restores `.amaco/skills/README.md` if missing.
+- Adds the Claude provider when `claude` is on PATH and no providers are configured.
+- Adds detected validation commands when none are configured.
+
+`--fix` never deletes files, never overwrites custom prompts, never runs model prompts, never pushes, and never merges.
+
+## Validation commands
+
+Amaco runs your real checks inside the worktree, and the reviewer/verifier see the results.
+
+If your `package.json` has `lint`, `typecheck`, `test` (and similar), Amaco suggests them automatically based on your detected package manager:
+
+| Manager | Example command |
+| --- | --- |
+| pnpm   | `pnpm typecheck`, `pnpm test` |
+| npm    | `npm run typecheck`, `npm run test` |
+| yarn   | `yarn typecheck`, `yarn test` |
+| bun    | `bun run typecheck`, `bun run test` |
+
+You can override anytime:
+
+```bash
+amaco config set commands.validate '["pnpm lint","pnpm test"]'
+```
+
+## CLI commands at a glance
+
+```bash
+amaco init [--yes] [--interactive] [--force]
+amaco setup
+amaco doctor [--json] [--fix]
+amaco run "task description"
+amaco status [--json]
+amaco abort <runId>
+
+amaco provider detect [--json]
+amaco provider list [--json]
+amaco provider test [providerId] [--yes]
+amaco provider set <providerId>
+amaco provider setup
+
+amaco config show [--json]
+amaco config get <path> [--json]
+amaco config set <path> <value>
+amaco config validate [--json]
+```
+
+## How a run works
+
+```
+your task
+   │
+   ▼
+planner ─►  architect ─►  executor ─►  validate ─►  reviewer
+                                                       │
+                                          CHANGES_REQUESTED
+                                                       │
+                                                    fixer ──► validate ──► reviewer (bounded loop)
+                                                       │
+                                                    APPROVED
+                                                       │
+                                                       ▼
+                                                    verifier
+                                                       │
+                                                       ▼
                                               merge_ready / blocked
 ```
 
-Every stage is deterministic TypeScript code. Each agent is a small role definition with an editable prompt. The orchestrator owns the workflow; agents only do their step and hand back artifacts.
+Every stage is deterministic TypeScript. Each agent has its own role and editable Markdown prompt. The orchestrator owns the workflow; agents only do their step and hand back artifacts.
 
-## Local-First / No API Calls
+Final status is `merge_ready` only when the reviewer approved **and** the verifier passed. Amaco never pushes or merges. You inspect the worktree, decide, and merge manually.
 
-- Amaco does not import the Anthropic SDK, OpenAI SDK, Claude Agent SDK, OpenAI Agents SDK, LangChain, or LangGraph.
-- It does not require any API keys.
-- It does not push, merge, or talk to GitHub.
-- It runs the local CLI commands you already trust.
-
-## Installation
-
-```bash
-pnpm add -D amaco        # local
-# or
-pnpm add -g amaco        # global
-```
-
-> Until published, link from a checkout:
-> ```bash
-> pnpm install
-> pnpm build
-> pnpm link --global
-> ```
-
-## Quickstart
-
-Inside a git repository:
-
-```bash
-amaco init
-amaco doctor
-amaco run "Add policy re-acceptance when Terms or Privacy version changes"
-amaco status
-amaco abort 20260509-143012-add-policy-reacceptance
-```
-
-`amaco run` will:
-
-1. Create a run folder in `.amaco/runs/<run-id>/`.
-2. Create a git worktree at `../.amaco-worktrees/<run-id>` on a new branch `amaco/<run-id>`.
-3. Walk planner → architect → executor → validate → reviewer (→ fixer loop) → verifier.
-4. Write durable artifacts and a final report.
-
-Amaco never pushes or merges. You inspect the worktree, decide, and merge manually.
-
-## Project Configuration
-
-`amaco init` creates:
-
-```
-.amaco/
-  project.yml
-  rules.md
-  agents/
-    planner.md
-    architect.md
-    executor.md
-    fixer.md
-    reviewer.md
-    verifier.md
-  skills/
-    README.md
-  runs/
-```
-
-Edit `.amaco/project.yml` to point each agent at the provider you want, configure validation commands, and tune permissions.
-
-### Validation Commands
-
-```yaml
-commands:
-  validate:
-    - pnpm lint
-    - pnpm typecheck
-    - pnpm test
-```
-
-Validation runs in the worktree. All commands run; one failure does not stop the rest. Reviewer and verifier see the results.
-
-If you don't configure any, Amaco still runs, but reviewer/verifier will be honest about the weak signal.
-
-## Agent Configuration
-
-```yaml
-agents:
-  reviewer:
-    provider: claude
-    prompt: .amaco/agents/reviewer.md
-    permissions: read_only
-    skills:
-      - security
-      - testing
-```
-
-Each agent has its own editable Markdown prompt. The orchestrator wraps every prompt with safety boundaries and the relevant context (rules, prior artifacts, validation results, permission summary).
-
-## Skills
-
-Skills are reusable instruction bundles in `.amaco/skills/<name>.md`. To attach them, list the filename stem under an agent's `skills` array. Amaco will fail loudly if a configured skill file is missing. There is no automatic skill selection in V0.
-
-## Permission Profiles
-
-Built-in profiles: `read_only`, `code_write`, `review_only`, `verify_only`.
-
-```yaml
-permissions:
-  profiles:
-    code_write:
-      allowWrite: true
-      allowShell: true
-      cwd: worktree
-      forbiddenPaths:
-        - ".env"
-        - ".env.*"
-      forbiddenOperations:
-        - "push"
-        - "merge"
-        - "delete-worktree"
-```
-
-Permissions in V0 are **orchestration-level**, not OS sandboxing. They control:
-
-- which cwd the agent runs in (always `worktree` for write-enabled agents),
-- what boundaries are injected into the prompt,
-- what invariants the orchestrator enforces before invoking the provider.
-
-A V0 permission profile cannot stop a misbehaving CLI from doing something destructive on your machine. Use providers you trust.
-
-## CLI Provider Model
-
-A provider is just a local CLI you can pipe a prompt to.
-
-```ts
-type CliProvider = {
-  type: "cli";
-  command: string;
-  args?: string[];
-  input: "stdin" | "arg";
-  env?: Record<string, string>;
-};
-```
-
-### Claude Code Example
-
-```yaml
-providers:
-  claude:
-    type: cli
-    command: claude
-    args: ["-p"]
-    input: stdin
-```
-
-### Custom CLI Example
-
-You can wire any CLI that accepts a prompt via stdin or a single argument. Aider, Codex, OpenCode, or your own script all fit. (Amaco does not prescribe specific flags for those — configure whatever your tool actually expects.)
-
-```yaml
-providers:
-  myagent:
-    type: cli
-    command: ./bin/myagent
-    args: ["--prompt"]
-    input: arg
-```
-
-## Run Artifacts
+## Run artifacts
 
 ```
 .amaco/runs/<run-id>/
@@ -243,59 +256,57 @@ providers:
         review.md
 ```
 
-Artifacts are durable Markdown / JSON. The state file is JSON; events are NDJSON. A future GUI can render this without any extra plumbing.
+## Safety model
 
-## Safety Model
-
-- Worktree isolation. All write-enabled agents run in a fresh worktree on a fresh branch.
-- No auto-push. No auto-merge. The orchestrator refuses to enable either.
-- `.env` files are flagged but never read into prompts. Their contents are never inlined.
-- Recursive repo dumps are avoided. Agents inspect files themselves through their own CLIs.
+- Worktree isolation. Write-enabled agents always run in a fresh worktree on a fresh branch.
+- No auto-push. No auto-merge. Amaco refuses to enable either.
+- `.env` files are flagged but never read into prompts.
 - Bounded fix loops via `workflow.maxReviewLoops`. After exhaustion, the run becomes `blocked`.
-- Reviewer must emit a `DECISION: ...` line. Missing/invalid decisions are treated as `BLOCKED`.
-- Verifier must emit a `VERIFICATION: ...` line. Missing/invalid verifications are treated as `NEEDS_HUMAN`.
-- Final status is `merge_ready` only when reviewer approved **and** verifier passed.
+- Reviewer must emit a `DECISION:` line. Missing/invalid → `BLOCKED`.
+- Verifier must emit a `VERIFICATION:` line. Missing/invalid → `NEEDS_HUMAN`.
+- `merge_ready` only when reviewer **APPROVED** and verifier **PASSED**.
 
-> Amaco is not a full sandbox in V0. It runs local CLI tools on your machine. Configure only providers you trust.
+> Amaco is not a full sandbox. It runs local CLI tools on your machine. Configure only providers you trust.
 
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
-- No GitHub / GitLab integration.
-- No real-time daemon. Runs are synchronous; abort marks state but does not kill child processes (V0 runs are sequential).
+- No GitHub/GitLab integration, no auto-push, no auto-merge.
 - Permissions are orchestration-level, not OS-level sandboxing.
 - One built-in linear workflow. Custom DAGs are documented but not implemented.
-- No cloud backend, no Docker backend.
+- No cloud or Docker backends.
 
 ## Roadmap
 
-Documented but not implemented in V0:
-
-- Pause/resume active runs and `/btw` notes during runs.
-- Interactive approval gates and human-in-the-loop UI.
+- Pause/resume active runs and `/btw` notes.
+- Interactive approval gates.
 - Custom workflow DAGs and parallel agents.
 - Docker, remote sandbox, and cloud-runner execution backends.
-- GUI dashboard (desktop and web).
+- Local supervisor dashboard (UI on top of these services).
 - GitHub PR creation, GitLab support, optional auto-merge under strict gates.
-- Richer JSON review schemas.
-- Provider presets for OpenCode / Aider / Codex.
-- Claude Agent SDK and OpenAI Agents SDK adapters.
+- Provider presets for Codex / OpenCode / Aider once their flag conventions are pinned.
 - Secret scanning, policy plugins, run replay UI.
-- Multi-project workspace and team mode.
+
+## Advanced: manual YAML configuration
+
+Manual editing of `.amaco/project.yml` is supported but is not the normal user path. Prefer `amaco config set ...` and `amaco provider ...` so writes are schema-validated and the YAML stays clean.
+
+If you do edit by hand, run `amaco config validate` after each change.
+
+The full schema lives in `src/project/config-schema.ts`. Top-level keys: `project`, `git`, `workflow`, `execution`, `providers`, `agents`, `commands`, `permissions`, `policies`.
 
 ## Contributing
 
-Amaco is small on purpose. Issues and PRs welcome.
+Architecture conventions:
 
-Architecture conventions to keep contributions coherent:
-
-- `src/core/` — orchestrator and durable run primitives. Don't reach into provider/git directly from CLI.
-- `src/workflow/` — workflow definitions. The default workflow is data; custom workflows will plug in here.
-- `src/providers/` — provider abstractions. Adding a new local CLI preset is a small change here.
-- `src/execution/` — execution backends. The local-worktree backend is the only V0 implementation; new backends slot in behind the same interface.
-- `src/permissions/` — permission profiles and access policy. Don't bypass profile resolution.
-- `src/project/` — project config schema and init template. Renaming `.amaco` later only requires changes in `src/utils/paths.ts`.
-- `src/utils/` — small helpers. Keep them dependency-free.
+- `src/core/` — orchestrator and durable run primitives.
+- `src/setup/` — UI-agnostic services: setup, provider setup, config update, doctor. CLI commands and a future local dashboard share this layer.
+- `src/cli/` — Commander commands and small UI helpers (`ui/format.ts`, `wizards/`). Commands should be thin: parse args, call services, render results.
+- `src/providers/` — provider abstractions and detection. Adding a new local CLI preset is a small change here.
+- `src/execution/` — execution backends. Local-worktree is the only V0 implementation.
+- `src/permissions/` — permission profiles and access policy.
+- `src/project/` — project config schema, init template, project detection.
+- `src/utils/` — small helpers, dependency-free.
 
 ## License
 

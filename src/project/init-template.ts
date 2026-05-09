@@ -13,6 +13,7 @@ import {
   readDefaultPrompt,
 } from "../agents/default-agents.js";
 import { defaultProjectName } from "./project-detector.js";
+import type { SetupPlan } from "../setup/setup-service.js";
 
 const RULES_TEMPLATE = `# Project Rules for Amaco
 
@@ -80,9 +81,62 @@ Examples:
 Skills are explicit only in V0 — they are loaded only when listed in config.
 `;
 
-function projectYaml(projectName: string): string {
+type ProjectYamlInput = {
+  projectName: string;
+  providerSection: string;
+  validationCommands: readonly string[];
+  defaultProviderRef: string;
+};
+
+function renderValidationYaml(commands: readonly string[]): string {
+  if (commands.length === 0) {
+    return `commands:
+  validate: []`;
+  }
+  const list = commands.map((c) => `    - "${c.replace(/"/g, '\\"')}"`).join("\n");
+  return `commands:
+  validate:
+${list}`;
+}
+
+function renderProvidersYaml(input: SetupPlan | null): {
+  section: string;
+  defaultRef: string;
+} {
+  // If recommended provider is Claude → ship a verified preset.
+  if (input?.recommendedProvider && input.recommendedProvider.id === "claude") {
+    const cmd = input.recommendedProvider.command || "claude";
+    return {
+      section: `providers:
+  claude:
+    type: cli
+    command: ${cmd}
+    args:
+      - "-p"
+    input: stdin`,
+      defaultRef: "claude",
+    };
+  }
+
+  // Otherwise, leave a placeholder claude provider so the schema validates;
+  // doctor will warn if the command is not on PATH and `amaco provider setup`
+  // can swap it.
+  return {
+    section: `providers:
+  claude:
+    type: cli
+    command: claude
+    args:
+      - "-p"
+    input: stdin`,
+    defaultRef: "claude",
+  };
+}
+
+function projectYaml(input: ProjectYamlInput): string {
+  const ref = input.defaultProviderRef;
   return `project:
-  name: "${projectName}"
+  name: "${input.projectName}"
   type: generic
 
 git:
@@ -101,53 +155,46 @@ workflow:
 execution:
   backend: local-worktree
 
-providers:
-  claude:
-    type: cli
-    command: claude
-    args:
-      - "-p"
-    input: stdin
+${input.providerSection}
 
 agents:
   planner:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/planner.md
     permissions: read_only
     skills: []
 
   architect:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/architect.md
     permissions: read_only
     skills: []
 
   executor:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/executor.md
     permissions: code_write
     skills: []
 
   fixer:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/fixer.md
     permissions: code_write
     skills: []
 
   reviewer:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/reviewer.md
     permissions: read_only
     skills: []
 
   verifier:
-    provider: claude
+    provider: ${ref}
     prompt: .amaco/agents/verifier.md
     permissions: read_only
     skills: []
 
-commands:
-  validate: []
+${renderValidationYaml(input.validationCommands)}
 
 permissions:
   profiles:
@@ -179,11 +226,14 @@ policies:
 export type InitOptions = {
   projectRoot: string;
   force?: boolean;
+  plan?: SetupPlan | null;
 };
 
 export type InitResult = {
   created: string[];
   skipped: string[];
+  configWritten: boolean;
+  plan: SetupPlan | null;
 };
 
 async function writeIfMissing(
@@ -205,20 +255,40 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   const { projectRoot } = opts;
   const force = !!opts.force;
 
-  const result: InitResult = { created: [], skipped: [] };
+  const result: InitResult = {
+    created: [],
+    skipped: [],
+    configWritten: false,
+    plan: opts.plan ?? null,
+  };
 
   await ensureDir(amacoRoot(projectRoot));
   await ensureDir(projectAgentsDir(projectRoot));
   await ensureDir(projectSkillsDir(projectRoot));
   await ensureDir(projectRunsDir(projectRoot));
 
-  const name = await defaultProjectName(projectRoot);
-  await writeIfMissing(
-    projectConfigPath(projectRoot),
-    projectYaml(name),
-    result,
-    force,
-  );
+  const name = opts.plan?.project.name ?? (await defaultProjectName(projectRoot));
+  const providerYaml = renderProvidersYaml(opts.plan ?? null);
+  const validation = opts.plan?.validationCommands ?? [];
+
+  const configPath = projectConfigPath(projectRoot);
+  const configExisted = await pathExists(configPath);
+  if (!configExisted || force) {
+    await writeText(
+      configPath,
+      projectYaml({
+        projectName: name,
+        providerSection: providerYaml.section,
+        validationCommands: validation,
+        defaultProviderRef: providerYaml.defaultRef,
+      }),
+    );
+    result.created.push(configPath);
+    result.configWritten = true;
+  } else {
+    result.skipped.push(configPath);
+  }
+
   await writeIfMissing(projectRulesPath(projectRoot), RULES_TEMPLATE, result, force);
   await writeIfMissing(
     path.join(projectSkillsDir(projectRoot), "README.md"),
