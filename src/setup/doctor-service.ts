@@ -371,6 +371,103 @@ export async function runDoctor(input: {
     });
   }
 
+  // Validation profiles: report named profiles + warn on stale references.
+  // Doctor never invents or rewrites profiles; it tells the user what their
+  // project.yml says and which suggestions/bundles point at names that no
+  // longer exist.
+  try {
+    const namedProfiles = loaded.config.commands.validationProfiles ?? {};
+    const namedNames = Object.keys(namedProfiles).sort();
+    if (namedNames.length === 0) {
+      findings.push({
+        id: "validation-profiles-named",
+        severity: "ok",
+        title:
+          "No named validation profiles configured (default profile only)",
+        detail:
+          "Add per-suggestion command sets under commands.validationProfiles when you want quick/full splits.",
+        fixable: false,
+      });
+    } else {
+      const summary = namedNames
+        .map((n) => `${n} (${namedProfiles[n]!.commands.length})`)
+        .join(", ");
+      const empties = namedNames.filter(
+        (n) => (namedProfiles[n]!.commands ?? []).length === 0,
+      );
+      if (empties.length > 0) {
+        findings.push({
+          id: "validation-profiles-empty",
+          severity: "warn",
+          title: `Validation profile(s) with no commands: ${empties.join(", ")}`,
+          detail:
+            "An empty profile resolves to no_commands_configured at runtime.",
+          fixHint:
+            "Add at least one command per profile in commands.validationProfiles.<name>.commands.",
+          fixable: false,
+        });
+      }
+      findings.push({
+        id: "validation-profiles-named",
+        severity: "ok",
+        title: `${namedNames.length} named validation profile(s): ${summary}`,
+        fixable: false,
+      });
+    }
+
+    const audit = await import("../core/validation-profile-audit-service.js")
+      .then((m) =>
+        m.auditValidationProfileReferences(projectRoot, loaded.config),
+      )
+      .catch(() => null);
+    if (audit) {
+      if (audit.malformedFiles.length > 0) {
+        findings.push({
+          id: "validation-profiles-malformed",
+          severity: "warn",
+          title: `${audit.malformedFiles.length} unreadable suggestions/bundles file(s) skipped during audit`,
+          detail: audit.malformedFiles.slice(0, 5).join("\n"),
+          fixable: false,
+        });
+      }
+      if (audit.staleSuggestionReferences.length > 0) {
+        const head = audit.staleSuggestionReferences.slice(0, 5);
+        findings.push({
+          id: "validation-profiles-stale-suggestions",
+          severity: "warn",
+          title: `${audit.staleSuggestionReferences.length} suggestion(s) reference missing validation profile(s)`,
+          detail: head
+            .map(
+              (r) =>
+                `run ${r.runId} · suggestion ${r.id} → "${r.profileName}"`,
+            )
+            .join("\n"),
+          fixHint:
+            "Recreate the named profile in commands.validationProfiles, or run `amaco suggestions profile clear <runId> <suggestionId>` / `… profile set <runId> <suggestionId> <profile>`.",
+          fixable: false,
+        });
+      }
+      if (audit.staleBundleReferences.length > 0) {
+        const head = audit.staleBundleReferences.slice(0, 5);
+        findings.push({
+          id: "validation-profiles-stale-bundles",
+          severity: "warn",
+          title: `${audit.staleBundleReferences.length} review pass(es) reference missing validation profile(s)`,
+          detail: head
+            .map(
+              (r) => `run ${r.runId} · bundle ${r.id} → "${r.profileName}"`,
+            )
+            .join("\n"),
+          fixHint:
+            "Recreate the named profile, or run `amaco bundles profile clear <runId> <bundleId>` / `… profile set <runId> <bundleId> <profile>`.",
+          fixable: false,
+        });
+      }
+    }
+  } catch {
+    // Doctor never crashes because of a profile-audit hiccup.
+  }
+
   // .env warnings
   for (const envFile of ENV_FILES) {
     if (await pathExists(path.join(projectRoot, envFile))) {

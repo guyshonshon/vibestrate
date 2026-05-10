@@ -728,6 +728,29 @@ export const api = {
     );
     return r.profiles;
   },
+
+  async updateSuggestionProfile(input: {
+    runId: string;
+    suggestionId: string;
+    validationProfile: string | null;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPatch<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/profile`,
+      { validationProfile: input.validationProfile },
+    );
+    return r.suggestion;
+  },
+  async updateBundleProfile(input: {
+    runId: string;
+    bundleId: string;
+    validationProfile: string | null;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPatch<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/profile`,
+      { validationProfile: input.validationProfile },
+    );
+    return r.bundle;
+  },
   async revertBundle(input: {
     runId: string;
     bundleId: string;

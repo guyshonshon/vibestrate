@@ -190,6 +190,26 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
       },
     }));
   }
+  async function persistBundleProfile(
+    b: SuggestionBundle,
+    next: string | null,
+  ): Promise<void> {
+    if ((b.validationProfile ?? null) === next) return;
+    setBusy(b.id);
+    try {
+      await api.updateBundleProfile({
+        runId,
+        bundleId: b.id,
+        validationProfile: next,
+      });
+      await load();
+      onChange();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
   async function validate(b: SuggestionBundle) {
     setBusy(b.id);
     try {
@@ -375,9 +395,13 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                       bundleProfile={
                         bundleProfiles[b.id] ?? b.validationProfile ?? null
                       }
-                      onChangeBundleProfile={(p) =>
-                        setBundleProfiles((prev) => ({ ...prev, [b.id]: p }))
-                      }
+                      onChangeBundleProfile={(p) => {
+                        // Optimistic local + persist via PATCH so subsequent
+                        // bundle.validate calls and the bundle list both
+                        // read the same profile back.
+                        setBundleProfiles((prev) => ({ ...prev, [b.id]: p }));
+                        void persistBundleProfile(b, p);
+                      }}
                       opts={
                         smartOpts[b.id] ?? {
                           validateEachStep: true,

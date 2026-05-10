@@ -1357,6 +1357,54 @@ export class SuggestionBundleService {
     return updated;
   }
 
+  /**
+   * Edit the bundle's validationProfile metadata. null / "" / "default" all
+   * clear back to default; a non-null name must exist in
+   * commands.validationProfiles. Never runs validation; never changes the
+   * apply/revert lifecycle.
+   */
+  async updateValidationProfile(
+    bundleId: string,
+    profileName: string | null,
+  ): Promise<SuggestionBundle> {
+    const bundle = await this.requireBundle(bundleId);
+    const trimmed = (profileName ?? "").trim();
+    const next = trimmed === "" || trimmed === "default" ? null : trimmed;
+
+    if (next !== null) {
+      try {
+        const cfg = await loadConfig(this.projectRoot);
+        resolveValidationProfile(cfg.config, next, "override");
+      } catch (err) {
+        if (err instanceof ValidationProfileError) {
+          throw new SuggestionBundleError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    }
+
+    if ((bundle.validationProfile ?? null) === next) {
+      return bundle;
+    }
+
+    const updated: SuggestionBundle = {
+      ...bundle,
+      validationProfile: next,
+      updatedAt: nowIso(),
+    };
+    await this.bundleStore.upsert(updated);
+    await this.events.append({
+      type: "bundle.validation_profile_updated",
+      message: `bundle ${bundleId} validation profile set to "${next ?? "default"}"`,
+      data: {
+        bundleId,
+        previous: bundle.validationProfile,
+        next,
+      },
+    });
+    return updated;
+  }
+
   // ─── helpers ──────────────────────────────────────────────────────────────
 
   private notify(input: {

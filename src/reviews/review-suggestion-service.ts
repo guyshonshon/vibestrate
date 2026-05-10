@@ -777,6 +777,66 @@ export class ReviewSuggestionService {
     return updated;
   }
 
+  /**
+   * Edit the validationProfile metadata on an existing suggestion. Pass null
+   * to clear back to default (suggestion will use commands.validate or
+   * whatever the caller passes via --profile at validate time).
+   *
+   * Pass "default" or "" interchangeably with null — both clear the profile.
+   * Non-null profile names must exist in commands.validationProfiles.
+   *
+   * Never runs validation. Never changes apply/revert status. Never touches
+   * proposedPatch. Just stamps the metadata + emits an event so audit
+   * tooling sees the change.
+   */
+  async updateValidationProfile(
+    id: string,
+    profileName: string | null,
+  ): Promise<ReviewSuggestion> {
+    const current = await this.requireSuggestion(id);
+
+    // "default" / "" / null all mean "clear back to default".
+    const trimmed = (profileName ?? "").trim();
+    const next =
+      trimmed === "" || trimmed === "default" ? null : trimmed;
+
+    if (next !== null) {
+      // Resolve against the live config to confirm the profile exists. Reuses
+      // the same resolver the apply/validate paths use, so behavior matches.
+      try {
+        const cfg = await loadConfig(this.projectRoot);
+        resolveValidationProfile(cfg.config, next, "override");
+      } catch (err) {
+        if (err instanceof ValidationProfileError) {
+          throw new SuggestionServiceError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    }
+
+    if ((current.validationProfile ?? null) === next) {
+      // No-op edit: skip persistence + events to keep things quiet.
+      return current;
+    }
+
+    const updated: ReviewSuggestion = {
+      ...current,
+      validationProfile: next,
+      updatedAt: nowIso(),
+    };
+    await this.store.upsert(updated);
+    await this.events.append({
+      type: "suggestion.validation_profile_updated",
+      message: `suggestion ${id} validation profile set to "${next ?? "default"}"`,
+      data: {
+        id,
+        previous: current.validationProfile,
+        next,
+      },
+    });
+    return updated;
+  }
+
   private async markFailed(
     current: ReviewSuggestion,
     errorMessage: string,

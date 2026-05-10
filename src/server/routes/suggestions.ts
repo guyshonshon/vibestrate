@@ -187,6 +187,29 @@ export async function registerSuggestionRoutes(
     },
   );
 
+  app.patch<{
+    Params: { runId: string; suggestionId: string };
+    Body: { validationProfile?: string | null };
+  }>(
+    "/api/runs/:runId/suggestions/:suggestionId/profile",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      await requireRun(req.params.runId);
+      try {
+        const r = await svc(req.params.runId).updateValidationProfile(
+          req.params.suggestionId,
+          req.body?.validationProfile ?? null,
+        );
+        return { suggestion: r };
+      } catch (err) {
+        if (err instanceof SuggestionServiceError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
   app.post<{
     Params: { runId: string; suggestionId: string };
   }>(

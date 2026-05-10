@@ -58,7 +58,9 @@ export type AmacoEventType =
   | "bundle.smart_apply_step_failed"
   | "bundle.smart_apply_step_reverted"
   | "bundle.smart_apply_completed"
-  | "bundle.smart_apply_stopped";
+  | "bundle.smart_apply_stopped"
+  | "suggestion.validation_profile_updated"
+  | "bundle.validation_profile_updated";
 
 export type AmacoEvent = {
   timestamp: string;

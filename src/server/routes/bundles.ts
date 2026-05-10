@@ -174,6 +174,29 @@ export async function registerBundlesRoutes(
     return s.revert((req.params as { bundleId: string }).bundleId);
   });
 
+  app.patch<{
+    Params: { runId: string; bundleId: string };
+    Body: { validationProfile?: string | null };
+  }>(
+    "/api/runs/:runId/suggestion-bundles/:bundleId/profile",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      await requireRun(req.params.runId);
+      try {
+        const r = await svc(req.params.runId).updateValidationProfile(
+          req.params.bundleId,
+          req.body?.validationProfile ?? null,
+        );
+        return { bundle: r };
+      } catch (err) {
+        if (err instanceof SuggestionBundleError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
   app.get<{ Params: { runId: string; bundleId: string } }>(
     "/api/runs/:runId/suggestion-bundles/:bundleId/preflight",
     async (req) => {

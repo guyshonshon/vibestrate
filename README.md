@@ -1252,6 +1252,67 @@ Every validation result file (`.amaco/runs/<runId>/suggestion-validations/<id>.j
 
 Smart-apply step results (`.../<bundleId>-smart-apply.json`) carry the same per-step profile in `steps[i].validation`. The final report's Review Passes table now includes a `Profile` column.
 
+### Doctor support for validation profiles
+
+`amaco doctor` adds a *Validation profiles* section that reports:
+
+- the default profile (count of commands from `commands.validate`),
+- each named profile and its command count,
+- a warning if any named profile has zero commands,
+- a warning when recent suggestions or review passes reference a profile name that no longer exists in `commands.validationProfiles`,
+- a warning when a `suggestions.json` / `suggestion-bundles.json` file is unreadable (the audit skips it instead of crashing).
+
+The audit is bounded: it scans the most-recent **50 runs** and tolerates malformed or partially-written files defensively. It never reads anything outside `.amaco/runs/`.
+
+Example output:
+
+```
+Validation profiles:
+  ✓ Default profile: 2 commands from commands.validate
+  ✓ 2 named validation profile(s): quick (1), full (3)
+  ⚠ 1 suggestion(s) reference missing validation profile(s)
+    run 2026-… · suggestion s-… → "quick-old"
+    Recreate the named profile in commands.validationProfiles, or run
+    `amaco suggestions profile clear <runId> <suggestionId>` /
+    `… profile set <runId> <suggestionId> <profile>`.
+```
+
+### Why doctor does not auto-fix profiles
+
+Doctor's profile section is **read-only**. `amaco doctor --fix` does not create profiles, edit `commands.validationProfiles`, edit any `suggestions.json`, edit any `suggestion-bundles.json`, or rewrite stale references. It only prints next-step commands. Profiles are user-owned command lists; we don't invent them, we don't pick a substitute when one disappears, and we don't decide what `quick` should mean for your project.
+
+### Updating a suggestion's validation profile
+
+```bash
+amaco suggestions profile show <runId> <suggestionId>
+amaco suggestions profile set <runId> <suggestionId> quick
+amaco suggestions profile clear <runId> <suggestionId>
+```
+
+API: `PATCH /api/runs/:runId/suggestions/:suggestionId/profile` with body `{ "validationProfile": "quick" | null }`.
+
+In the dashboard, the Suggestions inspector tab shows a profile dropdown on every applicable suggestion row. Editing it PATCHes immediately and reloads the row. **The dropdown does not run validation** — the next time you click *Validate* / *Apply & validate* / *Smart apply*, that's when the profile is read.
+
+### Updating a review pass validation profile
+
+```bash
+amaco bundles profile show <runId> <bundleId>
+amaco bundles profile set <runId> <bundleId> full
+amaco bundles profile clear <runId> <bundleId>
+```
+
+API: `PATCH /api/runs/:runId/suggestion-bundles/:bundleId/profile` with the same body shape. The Review Pass panel's *Bundle profile* selector PATCHes on change. Smart apply still respects the per-suggestion choice when *Use each suggestion's profile* is checked; the bundle profile applies when validating the whole pass.
+
+### Clearing back to default
+
+`null`, the empty string, and the literal `"default"` are all interchangeable: any of them clears the suggestion's or bundle's `validationProfile` back to `null` so the next validation run reads from `commands.validate`. The CLI exposes this as `clear`; the API accepts `validationProfile: null`; the dashboard's dropdown has a `default` option that does the same.
+
+### Stale profile references
+
+If you delete or rename a profile in `validationProfiles`, suggestions and bundles that pointed at it become *stale*. Validation flow refuses to run with a stale profile name (`404` from the resolver), the dashboard surfaces the dropdown's option as `(empty)` if the recreated profile has no commands, and `amaco doctor` lists each stale reference with the run id, suggestion or bundle id, and the offending name. Recovery is up to you: recreate the named profile, or run `… profile clear …` / `… profile set … <new>` to retag the records.
+
+Old validation result files keep the profile metadata they ran with (`profileName` + `profileSource` + `profileCommands` are still in the JSON) — renaming or deleting a profile does not rewrite history.
+
 ## Why validation is explicit
 
 Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`. The opt-in flags below stack on top of that explicit posture — they never run validation as a side effect of a plain *Apply*.

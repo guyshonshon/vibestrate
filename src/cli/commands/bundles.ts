@@ -384,6 +384,65 @@ export function buildBundlesCommand(): Command {
       }
     });
 
+  // ─── bundles profile ─────────────────────────────────────────────────────
+  const profile = cmd
+    .command("profile")
+    .description("Read or edit a review pass's validation profile metadata.");
+
+  profile
+    .command("show <runId> <bundleId>")
+    .description("Print the bundle's current validation profile (if any).")
+    .action(async (runId: string, bundleId: string) => {
+      await requireRun(runId);
+      const svc = new SuggestionBundleService(process.cwd(), runId);
+      const b = await svc.get(bundleId);
+      if (!b) {
+        console.error(color.red(`Bundle ${bundleId} not found.`));
+        process.exit(2);
+      }
+      if (b.validationProfile) {
+        console.log(`${b.id}: ${color.cyan(b.validationProfile)}`);
+      } else {
+        console.log(`${b.id}: ${color.dim("default (commands.validate)")}`);
+      }
+    });
+
+  profile
+    .command("set <runId> <bundleId> <profileName>")
+    .description(
+      "Set the bundle's validation profile. Future validation runs use this profile. Does NOT re-run validation.",
+    )
+    .action(async (runId: string, bundleId: string, profileName: string) => {
+      await requireRun(runId);
+      try {
+        const svc = new SuggestionBundleService(process.cwd(), runId);
+        const r = await svc.updateValidationProfile(bundleId, profileName);
+        console.log(
+          `${symbol.ok()} bundle ${r.id} validation profile set to ${color.cyan(r.validationProfile ?? "default")}.`,
+        );
+      } catch (err) {
+        handle(err);
+      }
+    });
+
+  profile
+    .command("clear <runId> <bundleId>")
+    .description(
+      "Clear the bundle's validation profile back to default (commands.validate).",
+    )
+    .action(async (runId: string, bundleId: string) => {
+      await requireRun(runId);
+      try {
+        const svc = new SuggestionBundleService(process.cwd(), runId);
+        const r = await svc.updateValidationProfile(bundleId, null);
+        console.log(
+          `${symbol.ok()} bundle ${r.id} validation profile cleared (uses default).`,
+        );
+      } catch (err) {
+        handle(err);
+      }
+    });
+
   return cmd;
 }
 

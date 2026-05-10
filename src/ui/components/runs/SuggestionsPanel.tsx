@@ -145,6 +145,25 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
       setBusy(null);
     }
   }
+  async function updateProfile(
+    s: ReviewSuggestion,
+    next: string | null,
+  ): Promise<void> {
+    if ((s.validationProfile ?? null) === next) return;
+    setBusy(s.id);
+    try {
+      await api.updateSuggestionProfile({
+        runId,
+        suggestionId: s.id,
+        validationProfile: next,
+      });
+      await load();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
   async function revert(s: ReviewSuggestion) {
     if (
       typeof window !== "undefined" &&
@@ -400,6 +419,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
               onApply={(mode, profile) => apply(s, mode, profile)}
               onValidate={(profile) => validate(s, profile)}
               onRevert={() => revert(s)}
+              onProfileChange={(p) => updateProfile(s, p)}
             />
           ))}
         </ul>
@@ -426,6 +446,7 @@ function Row({
   onApply,
   onValidate,
   onRevert,
+  onProfileChange,
 }: {
   s: ReviewSuggestion;
   busy: boolean;
@@ -441,8 +462,12 @@ function Row({
   ) => void;
   onValidate: (profileName?: string | null) => void;
   onRevert: () => void;
+  onProfileChange: (next: string | null) => void;
 }) {
-  // Per-row profile selection; preselect the suggestion's marker if any.
+  // The row's "profile" mirrors what's persisted on the suggestion. Editing
+  // PATCHes immediately (via onProfileChange) so this dropdown is the
+  // canonical edit affordance — the Validate / Apply buttons read from
+  // s.validationProfile via props on the next render.
   const [profile, setProfile] = useState<string | null>(s.validationProfile);
   useEffect(() => {
     setProfile(s.validationProfile);
@@ -517,12 +542,28 @@ function Row({
       ) : null}
       {validation ? <ValidationBlock result={validation} /> : null}
       {s.status === "approved" || isApplied ? (
-        <div className="mt-1.5">
+        <div className="mt-1.5 space-y-0.5">
           <ProfileSelect
             value={profile}
-            onChange={setProfile}
-            suggestedFromMarker={s.validationProfile}
+            onChange={(next) => {
+              // Optimistic local state so the preview updates immediately;
+              // PATCH happens via onProfileChange and the parent reload
+              // brings everything back into sync.
+              setProfile(next);
+              onProfileChange(next);
+            }}
+            suggestedFromMarker={
+              s.source === "reviewer" ||
+              s.source === "verifier" ||
+              s.source === "artifact"
+                ? s.validationProfile
+                : null
+            }
           />
+          <p className="text-[10px] text-amaco-fg-muted">
+            Editing only changes future validation runs. It does not re-run
+            validation.
+          </p>
         </div>
       ) : null}
       <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">

@@ -226,6 +226,70 @@ export function buildSuggestionsCommand(): Command {
       }
     });
 
+  // ─── suggestions profile ─────────────────────────────────────────────────
+  const profile = cmd
+    .command("profile")
+    .description("Read or edit a suggestion's validation profile metadata.");
+
+  profile
+    .command("show <runId> <suggestionId>")
+    .description("Print the suggestion's current validation profile (if any).")
+    .action(async (runId: string, suggestionId: string) => {
+      await requireRun(runId);
+      const svc = new ReviewSuggestionService(process.cwd(), runId);
+      const s = await svc.get(suggestionId);
+      if (!s) {
+        console.error(color.red(`Suggestion ${suggestionId} not found.`));
+        process.exit(2);
+      }
+      if (s.validationProfile) {
+        console.log(`${s.id}: ${color.cyan(s.validationProfile)}`);
+      } else {
+        console.log(`${s.id}: ${color.dim("default (commands.validate)")}`);
+      }
+    });
+
+  profile
+    .command("set <runId> <suggestionId> <profileName>")
+    .description(
+      "Set the suggestion's validation profile. Future validation runs use this profile. Does NOT re-run validation.",
+    )
+    .action(
+      async (runId: string, suggestionId: string, profileName: string) => {
+        await requireRun(runId);
+        try {
+          const svc = new ReviewSuggestionService(process.cwd(), runId);
+          const r = await svc.updateValidationProfile(
+            suggestionId,
+            profileName,
+          );
+          console.log(
+            `${symbol.ok()} suggestion ${r.id} validation profile set to ${color.cyan(r.validationProfile ?? "default")}.`,
+          );
+        } catch (err) {
+          handleErr(err);
+        }
+      },
+    );
+
+  profile
+    .command("clear <runId> <suggestionId>")
+    .description(
+      "Clear the suggestion's validation profile back to default (commands.validate).",
+    )
+    .action(async (runId: string, suggestionId: string) => {
+      await requireRun(runId);
+      try {
+        const svc = new ReviewSuggestionService(process.cwd(), runId);
+        const r = await svc.updateValidationProfile(suggestionId, null);
+        console.log(
+          `${symbol.ok()} suggestion ${r.id} validation profile cleared (uses default).`,
+        );
+      } catch (err) {
+        handleErr(err);
+      }
+    });
+
   return cmd;
 }
 
