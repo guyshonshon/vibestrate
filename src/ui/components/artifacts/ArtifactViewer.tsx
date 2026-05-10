@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
+import { CodeReferenceText } from "../codebase/CodeReferenceText.js";
+import type { CodeReference } from "../../lib/types.js";
 
-export function ArtifactViewer({
-  runId,
-  path,
-}: {
+type Props = {
   runId: string;
   path: string | null;
-}) {
+  onOpenReference?: (ref: CodeReference) => void;
+};
+
+export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +45,9 @@ export function ArtifactViewer({
   if (content === null)
     return <div className="text-[12px] text-amaco-fg-muted">Loading…</div>;
 
+  // Pretty-print JSON for readability while keeping the original text in the
+  // raw `content` state. The reference parser runs against the prettified
+  // text so line numbers users see still match the references they click.
   let body: string;
   if (path.endsWith(".json")) {
     try {
@@ -60,7 +65,13 @@ export function ArtifactViewer({
         <span className="amaco-mono text-[11.5px] text-amaco-fg-dim">{path}</span>
       </header>
       <pre className="amaco-mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-amaco-fg">
-        {body}
+        <CodeReferenceText
+          text={body}
+          runId={runId}
+          onOpenReference={(ref) => {
+            if (onOpenReference) onOpenReference(ref);
+          }}
+        />
       </pre>
     </div>
   );

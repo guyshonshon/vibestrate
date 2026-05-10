@@ -1,16 +1,23 @@
 import type {
+  AgentWorkReport,
   AmacoEvent,
   ApprovalRequest,
   ArtifactEntry,
+  CodeReference,
   ConflictWarning,
   DiffSnapshot,
   DiscoveredSkill,
   FileDiff,
+  FileTreeResult,
+  FileView,
   GatewayView,
+  GitHistory,
+  GitStatus,
   MicroStep,
   NotificationRecord,
   NotificationSettings,
   Note,
+  ProjectMetadata,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
   ProposalParseSummary,
@@ -25,7 +32,7 @@ import type {
   TaskComment,
 } from "./types.js";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
   }
@@ -396,5 +403,104 @@ export const api = {
   },
   async testGateway(id: string): Promise<{ ok: boolean; message: string }> {
     return jsonPost(`/api/gateways/${encodeURIComponent(id)}/test`);
+  },
+
+  // ─── project / codebase / git / agent-work ────────────────────────────────
+  async getProjectMetadata(): Promise<ProjectMetadata> {
+    const r = await jsonGet<{ metadata: ProjectMetadata }>(
+      "/api/project/metadata",
+    );
+    return r.metadata;
+  },
+  async getProjectTree(input?: {
+    depth?: number;
+    maxEntries?: number;
+    includeHidden?: boolean;
+    includeAmaco?: boolean;
+  }): Promise<FileTreeResult> {
+    const q = new URLSearchParams();
+    if (input?.depth !== undefined) q.set("depth", String(input.depth));
+    if (input?.maxEntries !== undefined)
+      q.set("maxEntries", String(input.maxEntries));
+    if (input?.includeHidden) q.set("includeHidden", "true");
+    if (input?.includeAmaco) q.set("includeAmaco", "true");
+    const qs = q.toString();
+    const r = await jsonGet<{ tree: FileTreeResult }>(
+      `/api/project/tree${qs ? `?${qs}` : ""}`,
+    );
+    return r.tree;
+  },
+  async getProjectFile(input: {
+    path: string;
+    lineStart?: number;
+    lineEnd?: number;
+  }): Promise<FileView> {
+    const q = new URLSearchParams({ path: input.path });
+    if (input.lineStart !== undefined) q.set("lineStart", String(input.lineStart));
+    if (input.lineEnd !== undefined) q.set("lineEnd", String(input.lineEnd));
+    const r = await jsonGet<{ file: FileView }>(
+      `/api/project/file?${q.toString()}`,
+    );
+    return r.file;
+  },
+  async getRunTree(runId: string): Promise<FileTreeResult> {
+    const r = await jsonGet<{ tree: FileTreeResult }>(
+      `/api/runs/${encodeURIComponent(runId)}/tree`,
+    );
+    return r.tree;
+  },
+  async getRunFile(input: {
+    runId: string;
+    path: string;
+    lineStart?: number;
+    lineEnd?: number;
+  }): Promise<FileView> {
+    const q = new URLSearchParams({ path: input.path });
+    if (input.lineStart !== undefined) q.set("lineStart", String(input.lineStart));
+    if (input.lineEnd !== undefined) q.set("lineEnd", String(input.lineEnd));
+    const r = await jsonGet<{ file: FileView }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/file?${q.toString()}`,
+    );
+    return r.file;
+  },
+  async getProjectGitStatus(): Promise<GitStatus> {
+    const r = await jsonGet<{ status: GitStatus }>(
+      "/api/project/git/status",
+    );
+    return r.status;
+  },
+  async getProjectGitHistory(limit = 20): Promise<GitHistory> {
+    const r = await jsonGet<{ history: GitHistory }>(
+      `/api/project/git/history?limit=${limit}`,
+    );
+    return r.history;
+  },
+  async getRunGitStatus(runId: string): Promise<GitStatus> {
+    const r = await jsonGet<{ status: GitStatus }>(
+      `/api/runs/${encodeURIComponent(runId)}/git/status`,
+    );
+    return r.status;
+  },
+  async getRunGitHistory(runId: string, limit = 20): Promise<GitHistory> {
+    const r = await jsonGet<{ history: GitHistory }>(
+      `/api/runs/${encodeURIComponent(runId)}/git/history?limit=${limit}`,
+    );
+    return r.history;
+  },
+  async getAgentWork(runId: string): Promise<AgentWorkReport> {
+    const r = await jsonGet<{ report: AgentWorkReport }>(
+      `/api/runs/${encodeURIComponent(runId)}/agent-work`,
+    );
+    return r.report;
+  },
+  async parseCodeReferences(input: {
+    text: string;
+    runId?: string | null;
+  }): Promise<CodeReference[]> {
+    const r = await jsonPost<{ references: CodeReference[] }>(
+      "/api/code-references",
+      input,
+    );
+    return r.references;
   },
 };

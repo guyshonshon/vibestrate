@@ -1,0 +1,442 @@
+import { useEffect, useState } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  Boxes,
+  CheckCircle2,
+  Copy,
+  GitBranch,
+  GitCommit,
+  Layers,
+  ListChecks,
+  Package,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
+import { api } from "../../lib/api.js";
+import type { ProjectMetadata } from "../../lib/types.js";
+import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
+
+type Props = {
+  onSelectRun: (runId: string) => void;
+  onShowQueue: () => void;
+};
+
+export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
+  const [meta, setMeta] = useState<ProjectMetadata | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      setMeta(await api.getProjectMetadata());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    const i = setInterval(load, 6_000);
+    return () => clearInterval(i);
+  }, []);
+
+  if (error)
+    return (
+      <div className="p-6 text-[12.5px] text-amaco-fail">
+        Failed to load project metadata: {error}
+      </div>
+    );
+  if (!meta)
+    return (
+      <div className="p-6 text-[12.5px] text-amaco-fg-muted">Loading…</div>
+    );
+
+  const cards: StatusCard[] = [
+    {
+      label: "Git",
+      value: meta.git.isGitRepo
+        ? meta.git.currentBranch ?? "(no branch)"
+        : "not a git repo",
+      tone: meta.git.isGitRepo ? "ok" : "warn",
+      icon: GitBranch,
+    },
+    {
+      label: "Providers",
+      value: `${meta.providers.length} configured`,
+      tone: meta.providers.length > 0 ? "ok" : "warn",
+      icon: Boxes,
+    },
+    {
+      label: "Validation",
+      value:
+        meta.validationCommands.length > 0
+          ? `${meta.validationCommands.length} cmd${meta.validationCommands.length > 1 ? "s" : ""}`
+          : "none configured",
+      tone: meta.validationCommands.length > 0 ? "ok" : "warn",
+      icon: Wrench,
+    },
+    {
+      label: "Skills",
+      value: `${meta.skills.length} discovered`,
+      tone: "info",
+      icon: Layers,
+    },
+    {
+      label: "Pending approvals",
+      value: `${meta.counts.pendingApprovals}`,
+      tone: meta.counts.pendingApprovals > 0 ? "warn" : "ok",
+      icon: AlertTriangle,
+    },
+    {
+      label: "Running tasks",
+      value: `${meta.counts.runningTaskIds.length}`,
+      tone: "info",
+      icon: Activity,
+    },
+    {
+      label: "Queue",
+      value: `${meta.counts.queueLength} entries`,
+      tone: "info",
+      icon: ListChecks,
+    },
+  ];
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <header className="border-b border-amaco-border bg-amaco-panel/40 px-4 py-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+            This dashboard is supervising
+          </span>
+        </div>
+        <div className="mt-1 flex items-center gap-2">
+          <h1 className="text-[18px] font-medium text-amaco-fg">
+            {meta.projectName}
+          </h1>
+          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
+            {meta.projectTypeLabel}
+          </span>
+          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
+            {meta.packageManager}
+          </span>
+          {!meta.status.initialised ? (
+            <span className="amaco-mono rounded border border-amaco-warn/40 px-1.5 py-0.5 text-[10.5px] text-amaco-warn">
+              .amaco not initialised
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-1 flex items-center gap-1.5 text-[12px] text-amaco-fg-dim">
+          <span className="amaco-mono truncate">{meta.projectRoot}</span>
+          <CopyButton text={meta.projectRoot} title="Copy project root" />
+        </div>
+      </header>
+
+      <div className="grid gap-3 p-4 md:grid-cols-2 lg:grid-cols-4">
+        {cards.map((c) => (
+          <StatusCardView key={c.label} card={c} />
+        ))}
+      </div>
+
+      <div className="grid gap-4 px-4 pb-6 lg:grid-cols-2">
+        <Section title="Git">
+          <KV label="Repo">
+            <span
+              className={
+                meta.git.isGitRepo ? "text-amaco-success" : "text-amaco-warn"
+              }
+            >
+              {meta.git.isGitRepo ? "yes" : "no"}
+            </span>
+          </KV>
+          <KV label="Main branch">
+            <span className="amaco-mono">{meta.git.mainBranch ?? "—"}</span>
+          </KV>
+          <KV label="Current branch">
+            <span className="amaco-mono">{meta.git.currentBranch ?? "—"}</span>
+          </KV>
+          <KV label="HEAD">
+            {meta.git.headHash ? (
+              <span className="flex items-center gap-2">
+                <GitCommit className="h-3 w-3" strokeWidth={1.5} />
+                <span className="amaco-mono">{meta.git.headHash}</span>
+                <span className="truncate text-amaco-fg-dim">
+                  {meta.git.headSubject ?? ""}
+                </span>
+              </span>
+            ) : (
+              "—"
+            )}
+          </KV>
+          <KV label="Worktree dir">
+            <span className="amaco-mono truncate">{meta.worktreeDir}</span>
+          </KV>
+        </Section>
+
+        <Section title="Validation commands">
+          {meta.validationCommands.length === 0 ? (
+            <div className="text-[12px] text-amaco-fg-muted">
+              No commands configured. Run{" "}
+              <span className="amaco-mono">amaco config set commands.validate</span>.
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {meta.validationCommands.map((c) => (
+                <li
+                  key={c}
+                  className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px]"
+                >
+                  {c}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title={`Providers (${meta.providers.length})`}>
+          {meta.providers.length === 0 ? (
+            <Empty>
+              No providers configured. Run{" "}
+              <span className="amaco-mono">amaco provider add</span>.
+            </Empty>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {meta.providers.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                >
+                  <span className="font-medium">{p.id}</span>
+                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                    {p.type}
+                  </span>
+                  {p.command ? (
+                    <span className="amaco-mono ml-auto truncate text-[11px] text-amaco-fg-muted">
+                      {p.command}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title={`Agents (${meta.agents.length})`}>
+          {meta.agents.length === 0 ? (
+            <Empty>No agents configured.</Empty>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {meta.agents.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-wrap items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                >
+                  <span className="font-medium">{a.id}</span>
+                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                    {a.provider}
+                  </span>
+                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                    {a.permissions}
+                  </span>
+                  {a.skills.length > 0 ? (
+                    <span className="text-[11px] text-amaco-fg-dim">
+                      skills: {a.skills.join(", ")}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title={`Skills (${meta.skills.length})`}>
+          {meta.skills.length === 0 ? (
+            <Empty>No skills discovered.</Empty>
+          ) : (
+            <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+              {meta.skills.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-baseline gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                  title={s.filePath}
+                >
+                  <Layers
+                    className="h-3 w-3 text-amaco-fg-muted"
+                    strokeWidth={1.5}
+                  />
+                  <span>{s.name}</span>
+                  <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+                    {s.source}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="Scheduler">
+          <KV label="Max concurrent runs">
+            {meta.scheduler.maxConcurrentRuns}
+          </KV>
+          <KV label="Max write agents">
+            {meta.scheduler.maxConcurrentWriteAgents}
+          </KV>
+          <KV label="Conflict policy">
+            <span className="amaco-mono">{meta.scheduler.conflictPolicy}</span>
+          </KV>
+          <KV label="Queue policy">
+            <span className="amaco-mono">{meta.scheduler.queuePolicy}</span>
+          </KV>
+          <KV label="Queue length">
+            <button
+              type="button"
+              onClick={onShowQueue}
+              className="amaco-mono text-amaco-accent hover:underline"
+            >
+              {meta.counts.queueLength} entries →
+            </button>
+          </KV>
+          <KV label="Roadmap items">{meta.counts.roadmapItems}</KV>
+          <KV label="Tasks">{meta.counts.tasks}</KV>
+        </Section>
+
+        <Section title={`Recent runs (${meta.recentRuns.length})`}>
+          {meta.recentRuns.length === 0 ? (
+            <Empty>No runs yet.</Empty>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {meta.recentRuns.map((r) => (
+                <li key={r.runId}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectRun(r.runId)}
+                    className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[12px] hover:border-amaco-accent/40"
+                  >
+                    <RunStatusBadge status={r.status} compact />
+                    <span className="truncate">{r.task}</span>
+                    <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+                      {r.runId}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+
+        <Section title="Policies">
+          <KV label="Forbid main-branch writes">
+            <Toggle on={meta.policies.forbidMainBranchWrites} />
+          </KV>
+          <KV label="Forbid secrets access">
+            <Toggle on={meta.policies.forbidSecretsAccess} />
+          </KV>
+          <KV label="Forbid auto-push">
+            <Toggle on={meta.policies.forbidAutoPush} />
+          </KV>
+          <KV label="Forbid auto-merge">
+            <Toggle on={meta.policies.forbidAutoMerge} />
+          </KV>
+          <KV label="Forced approval stages">
+            {meta.policies.requireApprovalAtStages.length === 0
+              ? "—"
+              : meta.policies.requireApprovalAtStages.join(", ")}
+          </KV>
+        </Section>
+      </div>
+    </div>
+  );
+}
+
+type StatusCard = {
+  label: string;
+  value: string;
+  tone: "ok" | "warn" | "info";
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+};
+
+function StatusCardView({ card }: { card: StatusCard }) {
+  const tone =
+    card.tone === "ok"
+      ? "border-amaco-success/40 text-amaco-success"
+      : card.tone === "warn"
+        ? "border-amaco-warn/40 text-amaco-warn"
+        : "border-amaco-border text-amaco-fg";
+  const Icon = card.icon;
+  return (
+    <div className={`rounded border ${tone} bg-amaco-panel-2/60 px-3 py-2`}>
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <Icon className="h-3 w-3" strokeWidth={1.5} />
+        {card.label}
+      </div>
+      <div className="mt-1 text-[14px] font-medium">{card.value}</div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded border border-amaco-border bg-amaco-panel/30">
+      <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-1.5 text-[11.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+        <Package className="h-3 w-3" strokeWidth={1.5} />
+        {title}
+      </header>
+      <div className="p-3 text-[12px] text-amaco-fg">{children}</div>
+    </section>
+  );
+}
+
+function KV({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[160px_1fr] gap-3 py-0.5 text-[12px]">
+      <span className="text-amaco-fg-muted">{label}</span>
+      <span className="text-amaco-fg">{children}</span>
+    </div>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11.5px] text-amaco-fg-muted">{children}</div>
+  );
+}
+
+function Toggle({ on }: { on: boolean }) {
+  return on ? (
+    <span className="inline-flex items-center gap-1 text-amaco-success">
+      <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} /> on
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-amaco-warn">
+      <ShieldCheck className="h-3 w-3" strokeWidth={1.5} /> off
+    </span>
+  );
+}
+
+function CopyButton({ text, title }: { text: string; title: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        } catch {
+          // ignore
+        }
+      }}
+      className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+      title={title}
+    >
+      <Copy className="h-3 w-3" strokeWidth={1.5} />
+      {copied ? "copied" : "copy"}
+    </button>
+  );
+}

@@ -16,6 +16,10 @@ import { registerTasksRoutes } from "./routes/tasks.js";
 import { registerQueueRoutes } from "./routes/queue.js";
 import { registerProposalsRoutes } from "./routes/proposals.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
+import { registerProjectRoutes } from "./routes/project.js";
+import { registerGitRoutes } from "./routes/git.js";
+import { registerAgentWorkRoutes } from "./routes/agent-work.js";
+import { registerCodeReferenceRoutes } from "./routes/code-references.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -120,6 +124,10 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerQueueRoutes(app, { projectRoot: opts.projectRoot });
   await registerProposalsRoutes(app, { projectRoot: opts.projectRoot });
   await registerNotificationRoutes(app, { projectRoot: opts.projectRoot });
+  await registerProjectRoutes(app, { projectRoot: opts.projectRoot });
+  await registerGitRoutes(app, { projectRoot: opts.projectRoot });
+  await registerAgentWorkRoutes(app, { projectRoot: opts.projectRoot });
+  await registerCodeReferenceRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

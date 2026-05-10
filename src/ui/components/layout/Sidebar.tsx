@@ -7,12 +7,23 @@ import {
   LayoutGrid,
   ListChecks,
   FileText,
+  FolderTree,
+  GitCommit,
+  Box,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "../runs/RunStatusBadge.js";
 
-export type NavId = "runs" | "board" | "queue" | "proposals" | "settings";
+export type NavId =
+  | "runs"
+  | "board"
+  | "queue"
+  | "proposals"
+  | "settings"
+  | "project"
+  | "codebase"
+  | "git";
 
 type Props = {
   currentRunId: string | null;
@@ -22,6 +33,9 @@ type Props = {
   onShowBoard: () => void;
   onShowQueue: () => void;
   onShowProposals: () => void;
+  onShowProject: () => void;
+  onShowCodebase: () => void;
+  onShowGit: () => void;
 };
 
 export function Sidebar({
@@ -32,6 +46,9 @@ export function Sidebar({
   onShowBoard,
   onShowQueue,
   onShowProposals,
+  onShowProject,
+  onShowCodebase,
+  onShowGit,
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
 
@@ -71,6 +88,39 @@ export function Sidebar({
       </header>
 
       <nav className="flex flex-col gap-1 px-2 pb-3">
+        <button
+          onClick={onShowProject}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "project"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <Box className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Project
+        </button>
+        <button
+          onClick={onShowCodebase}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "codebase"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <FolderTree className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Codebase
+        </button>
+        <button
+          onClick={onShowGit}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "git"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <GitCommit className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Git
+        </button>
         <button
           onClick={onShowBoard}
           className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${

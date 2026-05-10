@@ -6,7 +6,10 @@ import type {
   RunState,
   RuntimeMetrics,
 } from "../../lib/types.js";
+import { navigate } from "../App.js";
 import { RunHeader } from "../../components/runs/RunHeader.js";
+import { RunWorktreeBlock } from "../../components/runs/RunWorktreeBlock.js";
+import { AgentWorkPanel } from "../../components/runs/AgentWorkPanel.js";
 import { WorkflowTimeline } from "../../components/workflow/WorkflowTimeline.js";
 import { ActiveAgentCard } from "../../components/workflow/ActiveAgentCard.js";
 import { EventStream } from "../../components/workflow/EventStream.js";
@@ -25,6 +28,7 @@ import { SkillsPanel } from "../../components/skills/SkillsPanel.js";
 import { RuntimeLogPanel } from "../../components/logs/RuntimeLogPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { ApprovalsList } from "../../components/approvals/ApprovalsList.js";
+import { RunGitInspector } from "../../components/runs/RunGitInspector.js";
 
 export function RunDetailPage({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunState | null>(null);
@@ -97,6 +101,22 @@ export function RunDetailPage({ runId }: { runId: string }) {
               }}
             />
           ) : null}
+          <RunWorktreeBlock
+            runId={runId}
+            worktreePath={run.worktreePath}
+            branchName={run.branchName}
+            taskId={run.taskId ?? null}
+            onOpenCodebase={() =>
+              navigate({
+                kind: "codebase",
+                filePath: null,
+                line: null,
+                runId,
+              })
+            }
+            onOpenGit={() => navigate({ kind: "git", runId })}
+            onOpenTask={(tid) => navigate({ kind: "task", taskId: tid })}
+          />
           <WorkflowTimeline
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}
@@ -116,7 +136,26 @@ export function RunDetailPage({ runId }: { runId: string }) {
         </section>
         <InspectorPanel activeTab={tab} onChangeTab={setTab}>
           {tab === "diff" ? (
-            <DiffViewer runId={runId} filePath={selectedFile} />
+            <DiffViewer
+              runId={runId}
+              filePath={selectedFile}
+              onOpenInProject={(p) =>
+                navigate({
+                  kind: "codebase",
+                  filePath: p,
+                  line: null,
+                  runId: null,
+                })
+              }
+              onOpenInWorktree={(p) =>
+                navigate({
+                  kind: "codebase",
+                  filePath: p,
+                  line: null,
+                  runId,
+                })
+              }
+            />
           ) : tab === "artifact" ? (
             <div className="space-y-2">
               <ArtifactList
@@ -124,8 +163,34 @@ export function RunDetailPage({ runId }: { runId: string }) {
                 selectedPath={selectedArtifact}
                 onSelect={setSelectedArtifact}
               />
-              <ArtifactViewer runId={runId} path={selectedArtifact} />
+              <ArtifactViewer
+                runId={runId}
+                path={selectedArtifact}
+                onOpenReference={(ref) =>
+                  navigate({
+                    kind: "codebase",
+                    filePath: ref.file,
+                    line: ref.lineStart,
+                    runId,
+                  })
+                }
+              />
             </div>
+          ) : tab === "agent-work" ? (
+            <AgentWorkPanel
+              runId={runId}
+              onOpenArtifact={(rel) => {
+                // Artifact paths are relative to the run dir, e.g.
+                // "artifacts/2_implement.md". The artifact list uses paths
+                // relative to .amaco/runs/<id>/artifacts/, so strip that
+                // prefix when present.
+                const stripped = rel.replace(/^artifacts\//, "");
+                setSelectedArtifact(stripped);
+                setTab("artifact");
+              }}
+            />
+          ) : tab === "git" ? (
+            <RunGitInspector runId={runId} />
           ) : tab === "validation" ? (
             <ValidationSummary runId={runId} />
           ) : tab === "logs" ? (

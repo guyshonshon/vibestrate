@@ -8,11 +8,15 @@ export type InspectorTabId =
   | "notes"
   | "skills"
   | "approvals"
-  | "metrics";
+  | "metrics"
+  | "agent-work"
+  | "git";
 
 const TABS: { id: InspectorTabId; label: string }[] = [
   { id: "diff", label: "Diff" },
   { id: "artifact", label: "Artifact" },
+  { id: "agent-work", label: "Agent work" },
+  { id: "git", label: "Git" },
   { id: "validation", label: "Validation" },
   { id: "logs", label: "Logs" },
   { id: "notes", label: "Notes" },

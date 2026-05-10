@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink, FileCode, Lock } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { MicroStep, Task, TaskComment } from "../../lib/types.js";
+import { navigate } from "../App.js";
+import type {
+  ChangedFile,
+  MicroStep,
+  Task,
+  TaskComment,
+} from "../../lib/types.js";
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 
 export function TaskDetailPage({
@@ -198,6 +204,9 @@ export function TaskDetailPage({
           <MicroStepPipeline key={runId} runId={runId} steps={steps} />
         ))}
 
+        <FilesSection task={task} />
+
+
         <DependenciesSection
           task={task}
           allTasks={allTasks}
@@ -375,5 +384,131 @@ function DependenciesSection({
         </div>
       </div>
     </section>
+  );
+}
+
+function FilesSection({ task }: { task: Task }) {
+  const [runFiles, setRunFiles] = useState<ChangedFile[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const out: ChangedFile[] = [];
+      for (const runId of task.runIds) {
+        try {
+          const snap = await api.getDiff(runId);
+          if (snap) {
+            for (const f of snap.files) out.push(f);
+          }
+        } catch {
+          // skip stale runs
+        }
+      }
+      if (!cancelled) setRunFiles(dedupe(out));
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [task.runIds.join(",")]);
+
+  if (
+    task.touchedFiles.length === 0 &&
+    runFiles.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <section className="rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        Files
+      </div>
+      {task.touchedFiles.length > 0 ? (
+        <div className="mt-2">
+          <div className="text-[10.5px] text-amaco-fg-muted">
+            declared (touchedFiles)
+          </div>
+          <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+            {task.touchedFiles.map((p) => (
+              <li key={`d-${p}`}>
+                <FileLink path={p} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {runFiles.length > 0 ? (
+        <div className="mt-3">
+          <div className="text-[10.5px] text-amaco-fg-muted">
+            changed by linked runs
+          </div>
+          <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+            {runFiles.map((f) => (
+              <li key={`r-${f.path}`}>
+                <FileLink
+                  path={f.path}
+                  status={f.status}
+                  redacted={f.isSecretLike}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function dedupe(files: ChangedFile[]): ChangedFile[] {
+  const map = new Map<string, ChangedFile>();
+  for (const f of files) {
+    if (!map.has(f.path)) map.set(f.path, f);
+  }
+  return [...map.values()].sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function FileLink({
+  path,
+  status,
+  redacted,
+}: {
+  path: string;
+  status?: string;
+  redacted?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        redacted
+          ? undefined
+          : navigate({
+              kind: "codebase",
+              filePath: path,
+              line: null,
+              runId: null,
+            })
+      }
+      disabled={redacted}
+      className={`flex w-full items-center gap-1.5 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] ${
+        redacted
+          ? "text-amaco-warn opacity-80"
+          : "text-amaco-fg-dim hover:border-amaco-accent/40 hover:text-amaco-fg"
+      }`}
+      title={redacted ? "Secret file — contents redacted" : path}
+    >
+      {redacted ? (
+        <Lock className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+      ) : (
+        <FileCode className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+      )}
+      <span className="truncate amaco-mono">{path}</span>
+      {status ? (
+        <span className="amaco-mono ml-auto rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+          {status}
+        </span>
+      ) : null}
+    </button>
   );
 }

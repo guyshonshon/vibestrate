@@ -462,3 +462,191 @@ export type GatewayView = {
   envVarsReferenced?: string[];
   missingEnvVars: string[];
 };
+
+// ─── codebase / project context ──────────────────────────────────────────────
+
+export type PackageManager = "pnpm" | "npm" | "yarn" | "bun" | "unknown";
+export type ProjectType =
+  | "nextjs"
+  | "vite"
+  | "typescript"
+  | "node"
+  | "generic";
+
+export type ProjectMetadata = {
+  status: {
+    initialised: boolean;
+    isGitRepo: boolean;
+    hasNotifications: boolean;
+  };
+  projectRoot: string;
+  amacoRoot: string;
+  worktreeDir: string;
+  projectName: string;
+  projectType: ProjectType;
+  projectTypeLabel: string;
+  packageManager: PackageManager;
+  git: {
+    isGitRepo: boolean;
+    gitRoot: string | null;
+    mainBranch: string | null;
+    currentBranch: string | null;
+    headHash: string | null;
+    headSubject: string | null;
+  };
+  validationCommands: string[];
+  providers: { id: string; type: string; command: string | null }[];
+  agents: {
+    id: string;
+    provider: string;
+    permissions: string;
+    skills: string[];
+  }[];
+  skills: {
+    id: string;
+    name: string;
+    source: string;
+    filePath: string;
+  }[];
+  scheduler: {
+    maxConcurrentRuns: number;
+    maxConcurrentWriteAgents: number;
+    conflictPolicy: "warn" | "block";
+    queuePolicy: "fifo" | "priority";
+  };
+  policies: {
+    forbidMainBranchWrites: boolean;
+    forbidSecretsAccess: boolean;
+    forbidAutoPush: boolean;
+    forbidAutoMerge: boolean;
+    requireApprovalAtStages: string[];
+  };
+  counts: {
+    runs: number;
+    activeRuns: number;
+    runningTaskIds: string[];
+    queueLength: number;
+    roadmapItems: number;
+    tasks: number;
+    pendingApprovals: number;
+  };
+  recentRuns: RunState[];
+};
+
+export type FileTreeEntry = {
+  name: string;
+  path: string;
+  kind: "file" | "directory";
+  size: number | null;
+  isSecretLike: boolean;
+  truncated?: boolean;
+  children?: FileTreeEntry[];
+};
+
+export type FileTreeResult = {
+  root: string;
+  rootKind: "project" | "worktree";
+  rootLabel: string;
+  depth: number;
+  maxEntries: number;
+  truncated: boolean;
+  totalCount: number;
+  tree: FileTreeEntry;
+};
+
+export type FileViewLine = { number: number; text: string };
+
+export type FileView = {
+  path: string;
+  rootKind: "project" | "worktree";
+  rootLabel: string;
+  language: string;
+  size: number;
+  isBinary: boolean;
+  isSecretLike: boolean;
+  isTruncated: boolean;
+  totalLines: number | null;
+  lineStart: number | null;
+  lineEnd: number | null;
+  notice?: string;
+  lines: FileViewLine[];
+};
+
+export type CodeReference = {
+  raw: string;
+  file: string;
+  lineStart: number | null;
+  lineEnd: number | null;
+  existsInProject?: boolean;
+  existsInWorktree?: boolean;
+  targetUrl: string;
+  startIndex: number;
+  endIndex: number;
+};
+
+export type GitChangedFile = { path: string; status: string };
+
+export type GitStatus = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  branch: string | null;
+  upstream: string | null;
+  ahead: number | null;
+  behind: number | null;
+  isDirty: boolean;
+  headHash: string | null;
+  headSubject: string | null;
+  changedFiles: GitChangedFile[];
+};
+
+export type GitCommit = {
+  hash: string;
+  shortHash: string;
+  subject: string;
+  author: string;
+  authorEmail: string;
+  date: string;
+  refs: string[];
+};
+
+export type GitHistory = {
+  available: boolean;
+  worktreePath: string;
+  gitRoot: string | null;
+  branch: string | null;
+  commits: GitCommit[];
+  truncated: boolean;
+};
+
+export type AgentWorkRow = {
+  agentId: string;
+  stage: string;
+  providerId: string;
+  providerType: string;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+  exitCode: number;
+  skillsAttached: string[];
+  skillsRequested: string[];
+  artifacts: { kind: string; path: string }[];
+  filesChangedAfter: number | null;
+  diffInsertionsAfter: number | null;
+  diffDeletionsAfter: number | null;
+  validationSummary: { total: number; passed: number; failed: number } | null;
+  reviewDecision: string | null;
+  verificationDecision: string | null;
+  notes: string[];
+  bestEffort: boolean;
+};
+
+export type AgentWorkReport = {
+  runId: string;
+  available: boolean;
+  bestEffort: true;
+  totalDurationMs: number;
+  totalCostUsd: number | null;
+  rows: AgentWorkRow[];
+  notice: string;
+};

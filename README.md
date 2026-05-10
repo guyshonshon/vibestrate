@@ -872,6 +872,116 @@ amaco doctor   # → ✓ slack gateway: ready  /  ✗ slack gateway: SLACK_WEBHO
 
 If a gateway throws, Amaco records a failed receipt — with the URL/token stripped via the same redactor used for error logging — and the run continues. Bearer tokens, Slack/Discord webhook paths, and Telegram bot URLs are also redacted by pattern, so even a misbehaving error message can't leak credentials.
 
+## Project-aware dashboard
+
+The dashboard is bound to the directory you launched Amaco from. The header tells you exactly which project it is supervising, and `#/project` opens a single page that answers *“what is Amaco controlling right now?”*:
+
+- project name, root path (one-click copy), package manager, project type
+- git: main branch, current branch, latest commit hash and subject
+- configured providers, agents, skills, validation commands
+- scheduler config, recent runs, queue length, pending approvals, running tasks
+- policies (forbid main-branch writes / secrets / auto-push / auto-merge, forced approval stages)
+
+Status cards at the top summarise the same data into glanceable counts (Git clean/dirty, Providers configured, Validation configured, Skills count, Pending approvals, Running tasks, Queue length).
+
+The dashboard is **read-only** in this phase. It can inspect the project, but it does not edit files, push, fetch, or merge.
+
+## Codebase explorer
+
+`#/codebase` is a three-pane explorer:
+
+- **left** — file tree (project root by default; flip to a run worktree to inspect what an Amaco branch produced),
+- **center** — file viewer with line numbers, language hint, byte size, and total-line count,
+- **right** — context inspector with copy buttons for path / file:line references.
+
+Clicking a line number copies a `path:line` reference to your clipboard. References parsed from artifacts/reviews/comments are clickable and deep-link back into this view at the right line.
+
+Tree exclusions are baked in: `.git`, `node_modules`, `dist`, `build`, `out`, `coverage`, `.next`, `.turbo`, `.cache`, `.parcel-cache`, `.vite`, `.svelte-kit`, `.gradle`, `.idea`, `.pytest_cache`, `.mypy_cache`, `__pycache__`, `target`, `venv`, and a few more. The `.amaco/` directory only appears when you opt in with `?includeAmaco=true`. Hidden files are off by default.
+
+## Project bounds and safety
+
+Every UI file read goes through one central guard (`src/core/path-guard.ts`):
+
+- absolute paths must resolve inside an allowed root (project root, or a known Amaco run worktree); anything else is `400`.
+- `..` segments are rejected outright.
+- the resolved path's `realpath` must still live inside the same root, so symlinks that point outside the project are rejected too (and macOS `/var` ↔ `/private/var` is handled explicitly).
+- secret-like files (`.env`, `.env.*`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, `id_rsa.pub`, common `secrets.{json,yaml,toml}`) are flagged before any read happens — Amaco returns metadata and a redaction notice but never their bytes.
+
+Routes that surface files (`/api/project/file`, `/api/runs/:runId/file`, `/api/project/tree`, `/api/runs/:runId/tree`) all share this guard. There is no other path used by the UI to read code.
+
+## File viewer and line references
+
+`/api/project/file?path=…&lineStart=…&lineEnd=…` returns:
+
+```json
+{
+  "file": {
+    "path": "src/example.ts",
+    "rootKind": "project",
+    "language": "typescript",
+    "size": 421,
+    "isBinary": false,
+    "isSecretLike": false,
+    "isTruncated": false,
+    "totalLines": 24,
+    "lineStart": 1,
+    "lineEnd": 24,
+    "lines": [{ "number": 1, "text": "export const x = 1" }]
+  }
+}
+```
+
+- Files larger than 512 KB are returned with `isTruncated: true` and an empty `lines` array (use the CLI for big files).
+- Binary files come back with `isBinary: true` and no text.
+- Secret files come back with `isSecretLike: true`, no lines, and a `notice` explaining why.
+- Line ranges are clamped to a 4 000-line window per response.
+
+Reference parsing (`POST /api/code-references` + `parseCodeReferences()`) recognises `src/foo.ts`, `src/foo.ts:42`, `src/foo.ts:42-57`, `src/foo.ts#L42`, `src/foo.ts#L42-L57`, and `src/foo.ts line 12`. Each match is annotated with `existsInProject` (and, when a `runId` is supplied, `existsInWorktree`). The dashboard's artifact viewer turns those matches into accent-coloured buttons that jump straight to `#/codebase?path=…&line=…`.
+
+## Run worktree view
+
+Run detail now leads with a worktree block: branch, dirty/clean badge, ahead/behind versus upstream, latest commit, the worktree path (one-click copy), and shortcuts to the Codebase and Git views scoped to that run. The diff viewer's per-file header gains *Open in project* / *Open in worktree* / *Copy path* buttons. Artifact viewer shows the raw artifact text but turns code references inside it into clickable links.
+
+A new **Agent work** tab in the inspector summarises each agent's stage, provider, duration, skills attached, validation summary, review/verification decisions, files-changed delta, diff stats, artifacts, and notes. Attribution is **best effort** — Amaco snapshots the worktree diff after each stage but does not snapshot per-file authorship.
+
+The **Git** inspector tab on a run shows the same status + bounded history (`git log --max-count=N`) as the dedicated `#/git` page, scoped to that run's worktree.
+
+## Git status and history
+
+`#/git` is the dashboard view; the routes are:
+
+- `GET /api/project/git/status` and `…/history?limit=N` for the project,
+- `GET /api/runs/:runId/git/status` and `…/history?limit=N` for a run worktree.
+
+Status reports branch, upstream (when configured), ahead/behind counts, dirty/clean, the latest commit hash + subject, and the per-file `git status --porcelain=v1` codes. History caps at `limit` commits (default 20, max 200) and uses `git log` with a strict format string.
+
+The dashboard never calls `git fetch`, `git push`, or `git merge`. There are no buttons for those actions. All git access is local-only.
+
+## Agent work attribution
+
+`/api/runs/:runId/agent-work` builds its rows from the persisted runtime metrics file. Each row carries:
+
+- agent id + stage + provider id/type
+- start/end timestamps + duration + exit code
+- skills attached + skills the agent requested
+- artifact paths (prompt / output / stdout / stderr) — clickable into the Artifact tab
+- files-changed-after, diff insertions/deletions after this stage
+- validation summary (when the stage is `validating`)
+- review / verification decision (when relevant)
+- per-stage notes the orchestrator collected
+
+The endpoint always sets `bestEffort: true` and includes a `notice` explaining what that means. We never invent per-file authorship: when the per-stage diff is unknown, the row says so.
+
+## Secret redaction
+
+The same matchers used by the diff redactor (`src/core/diff-service.ts` → `isSecretLikePath`) apply to the file tree, the file viewer, and the task Files section. A secret-like file is visible in the tree as a `redacted` chip but its bytes never leave the server. In the Task page, declared `touchedFiles` that look like secrets render as a disabled `🔒` row.
+
+## What the UI can and cannot do
+
+It **can**: read the project metadata, browse the file tree (project + run worktrees), view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view.
+
+It **cannot** (this phase): edit or save files, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level.
+
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
@@ -891,6 +1001,7 @@ If a gateway throws, Amaco records a failed receipt — with the URL/token strip
 - Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
 - WhatsApp is intentionally a placeholder; Slack/Discord/Telegram/webhook gateways ship real, but Amaco still does **not** open PRs or trigger deploys.
 - Notifications poll on a 4-second cadence in the dashboard; there is no live SSE stream for the bell yet.
+- The dashboard is **read-only** for code: no editing, no saving, no terminal. Per-agent file attribution is best-effort, not authorship.
 
 ## Roadmap
 

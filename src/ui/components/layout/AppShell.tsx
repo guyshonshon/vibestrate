@@ -14,6 +14,9 @@ type AppShellProps = {
   onShowQueue: () => void;
   onShowProposals: () => void;
   onShowSettings: () => void;
+  onShowProject: () => void;
+  onShowCodebase: () => void;
+  onShowGit: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
 };
 
@@ -27,6 +30,9 @@ export function AppShell({
   onShowQueue,
   onShowProposals,
   onShowSettings,
+  onShowProject,
+  onShowCodebase,
+  onShowGit,
   onOpenNotification,
 }: AppShellProps) {
   return (
@@ -39,6 +45,9 @@ export function AppShell({
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}
         onShowProposals={onShowProposals}
+        onShowProject={onShowProject}
+        onShowCodebase={onShowCodebase}
+        onShowGit={onShowGit}
       />
       <main className="relative flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">

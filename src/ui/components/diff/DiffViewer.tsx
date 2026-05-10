@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Copy, FolderOpen, GitBranch } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { FileDiff } from "../../lib/types.js";
 import { SecretDiffWarning } from "./SecretDiffWarning.js";
@@ -14,13 +15,19 @@ function classifyLine(line: string): Line {
   return { kind: "context", text: line };
 }
 
+type Props = {
+  runId: string;
+  filePath: string | null;
+  onOpenInProject?: (path: string) => void;
+  onOpenInWorktree?: (path: string) => void;
+};
+
 export function DiffViewer({
   runId,
   filePath,
-}: {
-  runId: string;
-  filePath: string | null;
-}) {
+  onOpenInProject,
+  onOpenInWorktree,
+}: Props) {
   const [diff, setDiff] = useState<FileDiff | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,8 +79,43 @@ export function DiffViewer({
 
   return (
     <div className="overflow-auto rounded border border-amaco-border bg-amaco-canvas">
-      <header className="border-b border-amaco-border bg-amaco-panel px-3 py-1.5 text-[11.5px] text-amaco-fg-dim">
-        <span className="amaco-mono">{diff.path}</span>
+      <header className="flex items-center gap-1.5 border-b border-amaco-border bg-amaco-panel px-3 py-1.5 text-[11.5px] text-amaco-fg-dim">
+        <span className="amaco-mono truncate">{diff.path}</span>
+        <div className="ml-auto flex items-center gap-1">
+          {onOpenInProject ? (
+            <button
+              type="button"
+              onClick={() => onOpenInProject(diff.path)}
+              className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+              title="Open this file in the project codebase view"
+            >
+              <FolderOpen className="h-3 w-3" strokeWidth={1.5} />
+              project
+            </button>
+          ) : null}
+          {onOpenInWorktree ? (
+            <button
+              type="button"
+              onClick={() => onOpenInWorktree(diff.path)}
+              className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+              title="Open this file in the run's worktree"
+            >
+              <GitBranch className="h-3 w-3" strokeWidth={1.5} />
+              worktree
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(diff.path).catch(() => {});
+            }}
+            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            title="Copy path"
+          >
+            <Copy className="h-3 w-3" strokeWidth={1.5} />
+            copy
+          </button>
+        </div>
       </header>
       <pre className="amaco-mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
         {lines.map((line, i) => {
