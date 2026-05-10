@@ -121,29 +121,43 @@ export function buildSuggestionsCommand(): Command {
     .description(
       "Apply an approved suggestion's proposedPatch inside the run's worktree (git apply, never push/merge).",
     )
-    .option("--validate", "after applying, run commands.validate inside the worktree")
+    .option(
+      "--validate",
+      "after applying, run commands.validate inside the worktree",
+    )
+    .option(
+      "--auto-revert-on-fail",
+      "if validation fails, revert the patch (only valid with --validate)",
+    )
     .action(
       async (
         runId: string,
         suggestionId: string,
-        opts: { validate?: boolean },
+        opts: { validate?: boolean; autoRevertOnFail?: boolean },
       ) => {
+        if (opts.autoRevertOnFail && !opts.validate) {
+          console.error(
+            color.red(
+              "--auto-revert-on-fail requires --validate (auto-revert only fires after validation actually runs).",
+            ),
+          );
+          process.exit(2);
+        }
         await requireRun(runId);
         try {
           const svc = new ReviewSuggestionService(process.cwd(), runId);
-          const r = await svc.apply(suggestionId);
-          if (r.status === "applied") {
-            console.log(`${symbol.ok()} applied ${r.id}.`);
-          } else {
-            console.error(
-              color.red(
-                `${symbol.fail()} apply failed: ${r.errorMessage ?? "unknown reason"}`,
-              ),
-            );
+          const r = await svc.apply(suggestionId, {
+            validateAfterApply: opts.validate,
+            autoRevertOnValidationFail: opts.autoRevertOnFail,
+          });
+          renderApplyResult(r);
+          // Non-zero exit on anything that didn't end clean.
+          if (
+            r.status === "failed" ||
+            r.status === "validation_failed" ||
+            r.status === "validation_failed_revert_failed"
+          ) {
             process.exit(1);
-          }
-          if (opts.validate) {
-            await runValidationCli(svc, suggestionId);
           }
         } catch (err) {
           handleErr(err);
@@ -192,6 +206,45 @@ export function buildSuggestionsCommand(): Command {
     });
 
   return cmd;
+}
+
+function renderApplyResult(s: import("../../reviews/review-suggestion-types.js").ReviewSuggestion): void {
+  switch (s.status) {
+    case "applied":
+      console.log(`${symbol.ok()} applied ${s.id}.`);
+      return;
+    case "validation_passed":
+      console.log(`${symbol.ok()} applied + validation passed (${s.id}).`);
+      return;
+    case "reverted_after_validation_failed":
+      console.log(
+        color.yellow(
+          `! validation failed and the patch was auto-reverted (${s.id}).`,
+        ),
+      );
+      return;
+    case "validation_failed":
+      console.error(
+        color.red(
+          `${symbol.fail()} validation failed (${s.id}). Patch is still applied; run "amaco suggestions revert" to roll it back.`,
+        ),
+      );
+      return;
+    case "validation_failed_revert_failed":
+      console.error(
+        color.red(
+          `${symbol.fail()} validation failed AND auto-revert failed (${s.id}). Inspect the worktree.`,
+        ),
+      );
+      return;
+    case "failed":
+    default:
+      console.error(
+        color.red(
+          `${symbol.fail()} ${s.status}: ${s.errorMessage ?? "no detail"}`,
+        ),
+      );
+  }
 }
 
 async function runValidationCli(

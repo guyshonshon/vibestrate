@@ -682,6 +682,8 @@ export type SuggestionStatus =
   | "validation_failed"
   | "revert_failed"
   | "reverted"
+  | "reverted_after_validation_failed"
+  | "validation_failed_revert_failed"
   | "failed"
   | "resolved";
 
@@ -745,8 +747,42 @@ export type BundleStatus =
   | "validation_passed"
   | "validation_failed"
   | "reverted"
+  | "reverted_after_validation_failed"
+  | "validation_failed_revert_failed"
   | "revert_failed"
-  | "rejected";
+  | "rejected"
+  | "smart_applying"
+  | "smart_applied"
+  | "smart_stopped"
+  | "smart_reverted_failing"
+  | "smart_failed";
+
+export type SmartApplyStep = {
+  suggestionId: string;
+  applyStatus: "applied" | "failed" | "skipped";
+  applyError: string | null;
+  validation:
+    | {
+        status: "passed" | "failed" | "no_commands_configured";
+        passed: number;
+        failed: number;
+      }
+    | null;
+  revertStatus: "reverted" | "revert_failed" | null;
+  revertError: string | null;
+};
+
+export type SmartApplyResult = {
+  bundleId: string;
+  runId: string;
+  startedAt: string;
+  endedAt: string;
+  mode: { validateEachStep: boolean; autoRevertFailing: boolean };
+  steps: SmartApplyStep[];
+  finalStatus: BundleStatus;
+  failedAt: number | null;
+  resultPath: string;
+};
 
 export type SuggestionBundle = {
   id: string;

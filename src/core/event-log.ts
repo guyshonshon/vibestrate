@@ -48,7 +48,17 @@ export type AmacoEventType =
   | "bundle.validation_passed"
   | "bundle.validation_failed"
   | "bundle.reverted"
-  | "bundle.revert_failed";
+  | "bundle.revert_failed"
+  | "suggestion.auto_revert_succeeded"
+  | "suggestion.auto_revert_failed"
+  | "bundle.auto_revert_succeeded"
+  | "bundle.auto_revert_failed"
+  | "bundle.smart_apply_started"
+  | "bundle.smart_apply_step_passed"
+  | "bundle.smart_apply_step_failed"
+  | "bundle.smart_apply_step_reverted"
+  | "bundle.smart_apply_completed"
+  | "bundle.smart_apply_stopped";
 
 export type AmacoEvent = {
   timestamp: string;

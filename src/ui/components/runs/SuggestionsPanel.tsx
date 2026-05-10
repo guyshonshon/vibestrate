@@ -96,10 +96,26 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
       setBusy(null);
     }
   }
-  async function apply(s: ReviewSuggestion) {
+  async function apply(
+    s: ReviewSuggestion,
+    mode: "plain" | "validate" | "validate-revert" = "plain",
+  ) {
+    if (mode === "validate-revert") {
+      const ok =
+        typeof window === "undefined" ||
+        window.confirm(
+          `If validation fails, Amaco will revert the patch for "${s.title}" in the run worktree (git apply -R, never push or merge). Continue?`,
+        );
+      if (!ok) return;
+    }
     setBusy(s.id);
     try {
-      await api.applySuggestion({ runId, suggestionId: s.id });
+      await api.applySuggestion({
+        runId,
+        suggestionId: s.id,
+        validateAfterApply: mode !== "plain",
+        autoRevertOnValidationFail: mode === "validate-revert",
+      });
       await load();
     } catch (err) {
       setError(messageFor(err));
@@ -371,7 +387,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
               validation={validations[s.id] ?? null}
               onApprove={() => approve(s)}
               onReject={() => reject(s)}
-              onApply={() => apply(s)}
+              onApply={(mode) => apply(s, mode)}
               onValidate={() => validate(s)}
               onRevert={() => revert(s)}
             />
@@ -409,7 +425,7 @@ function Row({
   validation: SuggestionValidationResult | null;
   onApprove: () => void;
   onReject: () => void;
-  onApply: () => void;
+  onApply: (mode: "plain" | "validate" | "validate-revert") => void;
   onValidate: () => void;
   onRevert: () => void;
 }) {
@@ -505,15 +521,7 @@ function Row({
           </>
         ) : null}
         {s.status === "approved" && s.proposedPatch ? (
-          <button
-            type="button"
-            onClick={onApply}
-            disabled={busy}
-            className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
-          >
-            <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
-            Apply patch
-          </button>
+          <ApplyMenu busy={busy} onApply={onApply} />
         ) : null}
         {isApplied ? (
           <>
@@ -607,4 +615,92 @@ function StatusBadge({ status }: { status: SuggestionStatus }) {
 function messageFor(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   return err instanceof Error ? err.message : String(err);
+}
+
+function ApplyMenu({
+  busy,
+  onApply,
+}: {
+  busy: boolean;
+  onApply: (mode: "plain" | "validate" | "validate-revert") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <div className="inline-flex divide-x divide-amaco-accent/40 overflow-hidden rounded border border-amaco-accent/40 bg-amaco-accent-soft/30">
+        <button
+          type="button"
+          onClick={() => onApply("plain")}
+          disabled={busy}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
+        >
+          <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
+          Apply patch
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          disabled={busy}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label="More apply options"
+          className="inline-flex items-center px-1 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
+        >
+          ▾
+        </button>
+      </div>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-10 mt-1 w-72 rounded border border-amaco-border bg-amaco-panel shadow-lg"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onApply("plain");
+            }}
+            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-amaco-panel-2"
+          >
+            <div className="text-amaco-fg">Apply</div>
+            <div className="text-[10.5px] text-amaco-fg-muted">
+              Just apply the patch.
+            </div>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onApply("validate");
+            }}
+            className="block w-full px-3 py-1.5 text-left text-[11.5px] hover:bg-amaco-panel-2"
+          >
+            <div className="text-amaco-fg">Apply &amp; validate</div>
+            <div className="text-[10.5px] text-amaco-fg-muted">
+              After apply, run commands.validate against the worktree.
+            </div>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onApply("validate-revert");
+            }}
+            className="block w-full border-t border-amaco-border px-3 py-1.5 text-left text-[11.5px] hover:bg-amaco-panel-2"
+          >
+            <div className="text-amaco-fg">
+              Apply, validate, revert if validation fails
+            </div>
+            <div className="text-[10.5px] text-amaco-warn">
+              If validation fails, Amaco will attempt to revert the patch in the
+              run worktree (git apply -R, never push or merge).
+            </div>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
 }

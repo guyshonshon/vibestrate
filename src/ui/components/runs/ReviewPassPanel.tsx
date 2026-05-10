@@ -13,6 +13,7 @@ import { ApiError, api } from "../../lib/api.js";
 import type {
   BundlePreflightResult,
   ReviewSuggestion,
+  SmartApplyResult,
   SuggestionBundle,
   SuggestionValidationResult,
 } from "../../lib/types.js";
@@ -40,6 +41,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   >({});
   const [validations, setValidations] = useState<
     Record<string, SuggestionValidationResult | null>
+  >({});
+  const [smartResults, setSmartResults] = useState<
+    Record<string, SmartApplyResult | null>
+  >({});
+  const [smartOpts, setSmartOpts] = useState<
+    Record<string, { validateEachStep: boolean; autoRevertFailing: boolean }>
   >({});
 
   async function load() {
@@ -104,6 +111,46 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     } finally {
       setBusy(null);
     }
+  }
+  async function smartApply(b: SuggestionBundle) {
+    const opts = smartOpts[b.id] ?? {
+      validateEachStep: true,
+      autoRevertFailing: false,
+    };
+    if (opts.autoRevertFailing) {
+      const ok =
+        typeof window === "undefined" ||
+        window.confirm(
+          `Smart apply "${b.title}": if a step's validation fails, Amaco will revert ONLY that step in the worktree. Earlier steps stay applied. Continue?`,
+        );
+      if (!ok) return;
+    }
+    setBusy(b.id);
+    try {
+      const r = await api.smartApplyBundle({
+        runId,
+        bundleId: b.id,
+        validateEachStep: opts.validateEachStep,
+        autoRevertFailing: opts.autoRevertFailing,
+      });
+      setSmartResults((prev) => ({ ...prev, [b.id]: r.result }));
+      await load();
+      onChange();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+  function setSmartOpt(bundleId: string, patch: Partial<{ validateEachStep: boolean; autoRevertFailing: boolean }>) {
+    setSmartOpts((prev) => ({
+      ...prev,
+      [bundleId]: {
+        validateEachStep: prev[bundleId]?.validateEachStep ?? true,
+        autoRevertFailing: prev[bundleId]?.autoRevertFailing ?? false,
+        ...patch,
+      },
+    }));
   }
   async function validate(b: SuggestionBundle) {
     setBusy(b.id);
@@ -177,7 +224,10 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
             const isApplied =
               b.status === "applied" ||
               b.status === "validation_passed" ||
-              b.status === "validation_failed";
+              b.status === "validation_failed" ||
+              b.status === "smart_applied" ||
+              b.status === "smart_stopped" ||
+              b.status === "smart_reverted_failing";
             return (
               <li
                 key={b.id}
@@ -236,6 +286,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         last validation: {b.validationResultPath}
                       </div>
                     ) : null}
+                    {smartResults[b.id] ? (
+                      <SmartApplyResultBlock
+                        result={smartResults[b.id]!}
+                        titleFor={titleFor}
+                      />
+                    ) : null}
                   </div>
                 ) : null}
                 <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
@@ -270,15 +326,19 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                     </>
                   ) : null}
                   {b.status === "approved" ? (
-                    <button
-                      type="button"
-                      onClick={() => void apply(b)}
-                      disabled={busy === b.id}
-                      className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
-                      Apply review pass
-                    </button>
+                    <SmartApplyControls
+                      bundleId={b.id}
+                      busy={busy === b.id}
+                      opts={
+                        smartOpts[b.id] ?? {
+                          validateEachStep: true,
+                          autoRevertFailing: false,
+                        }
+                      }
+                      onChangeOpts={(patch) => setSmartOpt(b.id, patch)}
+                      onApply={() => void apply(b)}
+                      onSmartApply={() => void smartApply(b)}
+                    />
                   ) : null}
                   {isApplied ? (
                     <>
@@ -401,4 +461,143 @@ function BundleStatusBadge({ status }: { status: SuggestionBundle["status"] }) {
 function messageFor(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   return err instanceof Error ? err.message : String(err);
+}
+
+function SmartApplyControls({
+  bundleId,
+  busy,
+  opts,
+  onChangeOpts,
+  onApply,
+  onSmartApply,
+}: {
+  bundleId: string;
+  busy: boolean;
+  opts: { validateEachStep: boolean; autoRevertFailing: boolean };
+  onChangeOpts: (patch: Partial<{ validateEachStep: boolean; autoRevertFailing: boolean }>) => void;
+  onApply: () => void;
+  onSmartApply: () => void;
+}) {
+  void bundleId;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={busy}
+          className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
+          title="All-or-nothing apply: every patch lands together, with rollback on first failure."
+        >
+          <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
+          Apply review pass
+        </button>
+        <button
+          type="button"
+          onClick={onSmartApply}
+          disabled={busy}
+          className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-panel disabled:opacity-50"
+          title="Apply step-by-step. Earlier passing steps stay applied if a later step fails."
+        >
+          Smart apply
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-3 text-[10.5px] text-amaco-fg-dim">
+        <label className="inline-flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={opts.validateEachStep}
+            onChange={(e) =>
+              onChangeOpts({ validateEachStep: e.target.checked })
+            }
+          />
+          Validate after each step
+        </label>
+        <label className="inline-flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={opts.autoRevertFailing}
+            disabled={!opts.validateEachStep}
+            onChange={(e) =>
+              onChangeOpts({ autoRevertFailing: e.target.checked })
+            }
+          />
+          Revert failing step
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function SmartApplyResultBlock({
+  result,
+  titleFor,
+}: {
+  result: SmartApplyResult;
+  titleFor: (id: string) => string;
+}) {
+  return (
+    <div className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[11px]">
+      <div className="flex items-baseline gap-2">
+        <span className="font-medium">Smart apply</span>
+        <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+          {result.finalStatus}
+        </span>
+        {result.failedAt !== null && result.failedAt >= 0 ? (
+          <span className="amaco-mono text-[10.5px] text-amaco-warn">
+            stopped at step {result.failedAt + 1}
+          </span>
+        ) : null}
+      </div>
+      <ol className="mt-1 ml-4 list-decimal space-y-0.5">
+        {result.steps.map((step) => (
+          <li key={step.suggestionId} className="amaco-mono text-[10.5px]">
+            <span className="text-amaco-fg-dim">{titleFor(step.suggestionId)}</span>
+            {" — "}
+            <span
+              className={
+                step.applyStatus === "applied"
+                  ? "text-amaco-success"
+                  : step.applyStatus === "skipped"
+                    ? "text-amaco-fg-muted"
+                    : "text-amaco-fail"
+              }
+            >
+              apply {step.applyStatus}
+            </span>
+            {step.validation ? (
+              <>
+                {" · "}
+                <span
+                  className={
+                    step.validation.status === "passed"
+                      ? "text-amaco-success"
+                      : step.validation.status === "failed"
+                        ? "text-amaco-fail"
+                        : "text-amaco-warn"
+                  }
+                >
+                  validation {step.validation.status}
+                </span>
+              </>
+            ) : null}
+            {step.revertStatus ? (
+              <>
+                {" · "}
+                <span
+                  className={
+                    step.revertStatus === "reverted"
+                      ? "text-amaco-warn"
+                      : "text-amaco-fail"
+                  }
+                >
+                  {step.revertStatus}
+                </span>
+              </>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }

@@ -156,10 +156,23 @@ function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
         ? `\`${b.validationResultPath}\``
         : "—";
       const reverted = b.revertedAt ?? "—";
-      return `| ${b.status} | ${b.title.replace(/\|/g, "\\|")} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
+      const titleCell = isSmartStatus(b.status)
+        ? `${b.title.replace(/\|/g, "\\|")} _(smart apply)_`
+        : b.title.replace(/\|/g, "\\|");
+      return `| ${b.status} | ${titleCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
     })
     .join("\n");
   return [summary, "", head, rows].join("\n");
+}
+
+function isSmartStatus(s: string): boolean {
+  return (
+    s === "smart_applied" ||
+    s === "smart_stopped" ||
+    s === "smart_reverted_failing" ||
+    s === "smart_failed" ||
+    s === "smart_applying"
+  );
 }
 
 function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string {

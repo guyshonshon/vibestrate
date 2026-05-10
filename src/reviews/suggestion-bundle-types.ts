@@ -10,8 +10,15 @@ export const bundleStatusSchema = z.enum([
   "validation_passed",
   "validation_failed",
   "reverted",
+  "reverted_after_validation_failed",
+  "validation_failed_revert_failed",
   "revert_failed",
   "rejected",
+  "smart_applying",
+  "smart_applied",
+  "smart_stopped",
+  "smart_reverted_failing",
+  "smart_failed",
 ]);
 export type BundleStatus = z.infer<typeof bundleStatusSchema>;
 

@@ -1168,7 +1168,103 @@ We do not use `git reset`. We do not touch the project root. We do not push. We 
 
 ## Why validation is explicit
 
-Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`.
+Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`. The opt-in flags below stack on top of that explicit posture — they never run validation as a side effect of a plain *Apply*.
+
+## Apply and validate
+
+Single suggestion:
+
+```bash
+amaco suggestions apply <runId> <suggestionId>                       # apply only
+amaco suggestions apply <runId> <suggestionId> --validate            # apply, then run commands.validate against the worktree
+amaco suggestions apply <runId> <suggestionId> --validate --auto-revert-on-fail
+```
+
+The dashboard surfaces the same three options on the suggestion's *Apply* split-button:
+
+- **Apply** — patch only.
+- **Apply & validate** — runs `commands.validate` after the patch lands.
+- **Apply, validate, revert if validation fails** — opens a confirm prompt that explains what will happen, then chains the three steps.
+
+`--auto-revert-on-fail` is **only** valid with `--validate`. Without `--validate` the CLI exits with a clear error and the API returns 400; the dashboard disables the auto-revert checkbox until the validate option is selected. We never try to revert a patch that didn't go through validation.
+
+`commands.validate` empty? The auto-revert flag is silently downgraded — there's nothing to fail. Status flips to `applied` (not `validation_passed`) and the dashboard shows the "configure validation" hint.
+
+## Auto-revert on validation failure
+
+When validation runs **and** fails **and** the user opted in:
+
+1. Amaco runs `git apply -R --check` against the captured forward patch.
+2. If the check passes, runs `git apply -R` and stamps the suggestion `reverted_after_validation_failed`.
+3. If the check fails, leaves the worktree byte-for-byte unchanged and stamps `validation_failed_revert_failed` with the underlying error.
+
+The bundle-level flow is identical: `amaco bundles apply ... --validate --auto-revert-on-fail` runs the bundle's combined revert if the post-apply validation fails. Same statuses (`reverted_after_validation_failed` / `validation_failed_revert_failed`) at the bundle level.
+
+Auto-revert *cannot always succeed* — the revert is patch-based, so user edits made after the apply on the same lines can stop `git apply -R --check` cold. When that happens we tell you, in the suggestion's `errorMessage`, in the events log, and in a notification.
+
+## Smart apply review passes
+
+All-or-nothing apply (`amaco bundles apply`) preflights every patch up front and applies them as one transaction with rollback on first failure. **Smart apply** is different: it walks the suggestions one-by-one, optionally validating after each step, optionally reverting only the failing step. Earlier successful steps **stay applied** when a later step fails — that's the whole point.
+
+```bash
+amaco bundles smart-apply <runId> <bundleId>
+amaco bundles smart-apply <runId> <bundleId> --stop-on-validation-fail
+amaco bundles smart-apply <runId> <bundleId> --stop-on-validation-fail --auto-revert-failing
+```
+
+Bundle status flow:
+
+- `smart_applied` — every step applied (and validated, if `--stop-on-validation-fail` was on).
+- `smart_stopped` — a step's validation failed, the failing step was **not** auto-reverted, prior steps stay applied.
+- `smart_reverted_failing` — a step failed validation, the failing step was reverted via `--auto-revert-failing`, prior steps stay applied.
+- `smart_failed` — `git apply --check` or `git apply` outright rejected a step (rare; preflight usually catches static issues).
+
+The full step-by-step result is persisted to `.amaco/runs/<runId>/suggestion-bundles/<bundleId>-smart-apply.json`:
+
+```json
+{
+  "bundleId": "b-…",
+  "mode": { "validateEachStep": true, "autoRevertFailing": true },
+  "steps": [
+    { "suggestionId": "s-1", "applyStatus": "applied", "validation": { "status": "passed", "passed": 1, "failed": 0 }, "revertStatus": null },
+    { "suggestionId": "s-2", "applyStatus": "applied", "validation": { "status": "failed", "passed": 0, "failed": 1 }, "revertStatus": "reverted" }
+  ],
+  "finalStatus": "smart_reverted_failing",
+  "failedAt": 1
+}
+```
+
+The dashboard renders this same step list inline on the review pass (Smart apply block), with status pills per step.
+
+## All-or-nothing vs smart apply
+
+| Mode | When to use | Worktree state on failure |
+| --- | --- | --- |
+| `bundles apply` (all-or-nothing) | The patches must land together — they depend on each other. | Worktree is restored. The bundle either fully landed or didn't. |
+| `bundles apply --validate --auto-revert-on-fail` | Same as above, *plus* you want the patches gone if validation fails. | Worktree is restored if validation fails (or `validation_failed_revert_failed` if the revert itself can't run cleanly). |
+| `bundles smart-apply` | Independent patches, you'd rather keep partial progress. | Earlier passing steps stay applied. |
+| `bundles smart-apply --stop-on-validation-fail [--auto-revert-failing]` | You want a per-step "is this safe?" gate, optionally reverting only the offending step. | Earlier passing steps stay applied; failing step optionally reverted; later steps not run. |
+
+Smart apply is **not atomic**. If you need atomic, use the all-or-nothing apply. The dashboard labels them as separate buttons; the CLI uses different verbs (`apply` vs `smart-apply`). We never call smart apply atomic.
+
+## Why auto-revert is opt-in
+
+Validation failure does not automatically mean the code is broken. Lint can be cosmetic; a flaky test can be flaky; a typecheck failure can be on a file the user is mid-fix on. Auto-reverting unconditionally would surprise the user and discard work they may have wanted to inspect. Auto-revert is therefore opt-in **per action**: you check a box (or pass `--auto-revert-on-fail`), and the dashboard's confirm prompt restates exactly what's about to happen before fired.
+
+There is no global *always auto-revert* setting. By design.
+
+## Partial states and how to recover
+
+| Status | What it means | Recovery path |
+| --- | --- | --- |
+| `applied` | Patch on disk, no validation run. | `amaco suggestions validate` or `… revert`. |
+| `validation_failed` | Patch on disk, validation failed, no auto-revert opted in. | Inspect, fix, or `amaco suggestions revert`. |
+| `reverted_after_validation_failed` | Validation failed, auto-revert restored the worktree. | Done — worktree is back to the pre-apply state. |
+| `validation_failed_revert_failed` | Validation failed, auto-revert couldn't run cleanly (drift). | `amaco suggestions revert` after resolving the drift, or manually edit. |
+| `smart_stopped` | Smart apply stopped after a failing step; that step is still on disk. | `amaco suggestions revert <runId> <failingId>` to drop just that step, or `amaco bundles revert` to roll the whole pass back. |
+| `smart_reverted_failing` | Smart apply stopped, failing step already reverted. Earlier steps on disk. | `amaco bundles revert` if you want to roll back the rest, or leave it. |
+| `smart_failed` | `git apply --check` rejected a step. Worktree was not touched. | Inspect the offending suggestion's `errorMessage` and re-author the patch. |
+| `partially_applied` (legacy) | Bundle apply mid-failure rollback didn't fully restore. | Manual cleanup; consult `events.ndjson`. Should be very rare. |
 
 ## Why revert is patch-based and worktree-only
 
@@ -1176,13 +1272,13 @@ Auto-running validation after every apply would either be noisy (validation is s
 
 ## Notifications integration
 
-`suggestion.validation_passed`, `suggestion.validation_failed`, and the bundle-level `bundle.created` / `approved` / `applied` / `validation_passed` / `validation_failed` / `reverted` / `revert_failed` events all flow through the existing notification gateways. Internal preflight steps do **not** notify — the bell stays quiet unless something attention-worthy happened.
+`suggestion.validation_passed`, `suggestion.validation_failed`, the bundle-level `bundle.created` / `approved` / `applied` / `validation_passed` / `validation_failed` / `reverted` / `revert_failed` events, plus the new `suggestion.auto_revert_succeeded` / `auto_revert_failed`, `bundle.auto_revert_succeeded` / `auto_revert_failed`, and `bundle.smart_apply_started` / `step_passed` / `step_failed` / `step_reverted` / `completed` / `stopped` events, all flow through the existing notification gateways. Internal preflight steps still do **not** notify — the bell stays quiet unless something attention-worthy happened.
 
 ## What the UI can and cannot do
 
-It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view, hand off to a configured local editor, capture review suggestions, apply approved patches inside the run worktree only, group suggestions into review passes, run the project's configured `commands.validate` against the run worktree on demand, and revert applied suggestions or whole review passes via `git apply -R`.
+It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers, ranges, and syntax highlighting, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, hand off to a configured local editor, capture review suggestions, apply approved patches inside the run worktree only, group suggestions into review passes, run the project's configured `commands.validate` against the run worktree on demand, opt into auto-revert when validation fails, smart-apply review passes step-by-step with optional per-step validation and per-step revert, and revert applied suggestions or whole review passes via `git apply -R`.
 
-It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion + review-pass *apply* / *validate* / *revert* are the only write-side actions; every other surface remains read-only.
+It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion + review-pass *apply* / *validate* / *revert* / *smart-apply* are the only write-side actions; every other surface remains read-only. Auto-revert is opt-in per action — there is no global *always auto-revert* setting.
 
 ## Limitations of V0
 
@@ -1206,7 +1302,9 @@ It **cannot** (this phase): edit or save arbitrary files in-browser, push or fet
 - The dashboard is **read-first**. The only write-side actions are: applying an approved suggestion's patch inside the run worktree, applying a review pass (bundle of approved suggestions), running the project's configured `commands.validate` against the run worktree, and reverting an applied suggestion or pass via `git apply -R`. There is no in-browser editor, no terminal, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
 - Bundle apply is all-or-nothing through `git apply --check` for every patch up front; downstream conflicts mid-apply trigger a reverse-apply rollback. If even the rollback fails, the bundle flips to `partially_applied` rather than pretending success.
 - Revert is patch-based via `git apply -R --check` followed by `git apply -R`. If you edited the same lines after the apply, revert can fail cleanly — Amaco never tries to overwrite drifted files with `git reset`.
-- Validation is explicit: there is no auto-validate-after-apply, no auto-revert-on-validation-failure, and no auto-bisect.
+- Validation is explicit by default. The `--validate` flag (or the dashboard's *Apply & validate* option) opts into a single post-apply validation. The optional `--auto-revert-on-fail` flag (and the corresponding dashboard option) chains a revert when validation fails, but only when validation actually ran. There is no global *always auto-revert* setting and no auto-bisect.
+- Smart apply is **not atomic**. Earlier passing steps stay applied when a later step fails — that is what the user opted into. Use the all-or-nothing `bundles apply` if you need atomic.
+- Auto-revert is patch-based (`git apply -R`). If you edit the same lines after the apply, `--check` will refuse and the suggestion flips to `validation_failed_revert_failed` with the worktree byte-for-byte unchanged. Manual cleanup is on you in that case.
 - Suggestion extraction only recognises explicit `AMACO_SUGGESTION:` marker blocks — natural-language prose is intentionally not auto-parsed.
 - Editor handoff launches a single configured command via fixed argv. We do not embed a full editor.
 

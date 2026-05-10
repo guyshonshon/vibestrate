@@ -122,13 +122,30 @@ export async function registerSuggestionRoutes(
 
   app.post<{
     Params: { runId: string; suggestionId: string };
+    Body: {
+      validateAfterApply?: boolean;
+      autoRevertOnValidationFail?: boolean;
+    };
   }>(
     "/api/runs/:runId/suggestions/:suggestionId/apply",
     async (req) => {
       assertSafeRunId(req.params.runId);
       await requireRun(req.params.runId);
+      const body = req.body ?? {};
+      if (body.autoRevertOnValidationFail && !body.validateAfterApply) {
+        throw new HttpError(
+          400,
+          "autoRevertOnValidationFail requires validateAfterApply.",
+        );
+      }
       try {
-        const r = await svc(req.params.runId).apply(req.params.suggestionId);
+        const r = await svc(req.params.runId).apply(
+          req.params.suggestionId,
+          {
+            validateAfterApply: body.validateAfterApply,
+            autoRevertOnValidationFail: body.autoRevertOnValidationFail,
+          },
+        );
         return { suggestion: r };
       } catch (err) {
         if (err instanceof SuggestionServiceError) {

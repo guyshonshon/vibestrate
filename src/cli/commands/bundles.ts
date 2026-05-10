@@ -161,16 +161,31 @@ export function buildBundlesCommand(): Command {
       "Apply every suggestion in the review pass to the run worktree (all-or-nothing with rollback).",
     )
     .option("--validate", "after applying, run commands.validate")
+    .option(
+      "--auto-revert-on-fail",
+      "if validation fails, revert the bundle (only valid with --validate)",
+    )
     .action(
       async (
         runId: string,
         bundleId: string,
-        opts: { validate?: boolean },
+        opts: { validate?: boolean; autoRevertOnFail?: boolean },
       ) => {
+        if (opts.autoRevertOnFail && !opts.validate) {
+          console.error(
+            color.red(
+              "--auto-revert-on-fail requires --validate (auto-revert only fires after validation actually runs).",
+            ),
+          );
+          process.exit(2);
+        }
         await requireRun(runId);
         try {
           const svc = new SuggestionBundleService(process.cwd(), runId);
-          const r = await svc.apply(bundleId);
+          const r = await svc.apply(bundleId, {
+            validateAfterApply: opts.validate,
+            autoRevertOnValidationFail: opts.autoRevertOnFail,
+          });
           renderApplyResult(r.bundle);
           if (r.preflight.sameFileWarnings.length > 0) {
             console.log(
@@ -184,11 +199,62 @@ export function buildBundlesCommand(): Command {
               );
             }
           }
-          if (r.bundle.status !== "applied") {
+          if (
+            r.bundle.status !== "applied" &&
+            r.bundle.status !== "validation_passed" &&
+            r.bundle.status !== "reverted_after_validation_failed"
+          ) {
             process.exit(1);
           }
-          if (opts.validate) {
-            await runBundleValidate(svc, bundleId);
+        } catch (err) {
+          handle(err);
+        }
+      },
+    );
+
+  cmd
+    .command("smart-apply <runId> <bundleId>")
+    .description(
+      "Apply suggestions one-by-one in order. Earlier successes stay applied if a later step fails.",
+    )
+    .option(
+      "--stop-on-validation-fail",
+      "validate after each step; stop at the first failing validation",
+    )
+    .option(
+      "--auto-revert-failing",
+      "when --stop-on-validation-fail is set, revert ONLY the failing step (prior steps stay applied)",
+    )
+    .action(
+      async (
+        runId: string,
+        bundleId: string,
+        opts: {
+          stopOnValidationFail?: boolean;
+          autoRevertFailing?: boolean;
+        },
+      ) => {
+        if (opts.autoRevertFailing && !opts.stopOnValidationFail) {
+          console.error(
+            color.red(
+              "--auto-revert-failing requires --stop-on-validation-fail.",
+            ),
+          );
+          process.exit(2);
+        }
+        await requireRun(runId);
+        try {
+          const svc = new SuggestionBundleService(process.cwd(), runId);
+          const r = await svc.smartApply(bundleId, {
+            validateEachStep: opts.stopOnValidationFail,
+            autoRevertFailing: opts.autoRevertFailing,
+          });
+          renderSmartApplyResult(r.result);
+          if (
+            r.result.finalStatus !== "smart_applied" &&
+            r.result.finalStatus !== "smart_reverted_failing"
+          ) {
+            process.exit(1);
           }
         } catch (err) {
           handle(err);
@@ -318,6 +384,44 @@ function renderApplyResult(b: SuggestionBundle): void {
       `${symbol.fail()} bundle ${b.status}: ${b.errorMessage ?? "no detail"}`,
     ),
   );
+}
+
+function renderSmartApplyResult(
+  result: import("../../reviews/suggestion-bundle-service.js").SmartApplyResult,
+): void {
+  console.log(
+    `${color.bold("Smart apply")} → ${result.finalStatus} (${result.steps.length} step${result.steps.length === 1 ? "" : "s"})`,
+  );
+  result.steps.forEach((step, i) => {
+    const idx = `${i + 1}.`.padEnd(3);
+    const apply =
+      step.applyStatus === "applied"
+        ? color.green("apply ✓")
+        : step.applyStatus === "skipped"
+          ? color.dim("skipped")
+          : color.red("apply ✗");
+    const v = step.validation
+      ? step.validation.status === "passed"
+        ? color.green("validation ✓")
+        : step.validation.status === "failed"
+          ? color.red(`validation ✗ (${step.validation.failed} failed)`)
+          : color.yellow("no commands")
+      : "";
+    const r = step.revertStatus
+      ? step.revertStatus === "reverted"
+        ? color.yellow("reverted")
+        : color.red("revert ✗")
+      : "";
+    console.log(
+      `  ${idx} ${color.dim(step.suggestionId)}  ${apply}  ${v}  ${r}`,
+    );
+    if (step.applyError) console.log(color.dim(`     apply error: ${step.applyError.split("\n")[0]}`));
+    if (step.revertError) console.log(color.dim(`     revert error: ${step.revertError.split("\n")[0]}`));
+  });
+  if (result.failedAt !== null && result.failedAt >= 0) {
+    console.log(color.dim(`Stopped at step ${result.failedAt + 1}.`));
+  }
+  console.log(color.dim(`Result: ${result.resultPath}`));
 }
 
 async function runBundleValidate(

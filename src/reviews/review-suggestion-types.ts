@@ -10,6 +10,8 @@ export const suggestionStatusSchema = z.enum([
   "validation_failed",
   "revert_failed",
   "reverted",
+  "reverted_after_validation_failed",
+  "validation_failed_revert_failed",
   "failed",
   "resolved",
 ]);

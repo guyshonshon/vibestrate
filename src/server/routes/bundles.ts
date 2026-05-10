@@ -99,8 +99,41 @@ export async function registerBundlesRoutes(
     return s.reject((req.params as { bundleId: string }).bundleId, note);
   });
   registerBundleAction(app, projectRoot, "apply", async (s, req) => {
-    const r = await s.apply((req.params as { bundleId: string }).bundleId);
+    const body = (req.body ?? {}) as {
+      validateAfterApply?: boolean;
+      autoRevertOnValidationFail?: boolean;
+    };
+    if (body.autoRevertOnValidationFail && !body.validateAfterApply) {
+      throw new HttpError(
+        400,
+        "autoRevertOnValidationFail requires validateAfterApply.",
+      );
+    }
+    const r = await s.apply((req.params as { bundleId: string }).bundleId, {
+      validateAfterApply: body.validateAfterApply,
+      autoRevertOnValidationFail: body.autoRevertOnValidationFail,
+    });
     return { bundle: r.bundle, preflight: r.preflight };
+  });
+  registerBundleAction(app, projectRoot, "smart-apply", async (s, req) => {
+    const body = (req.body ?? {}) as {
+      validateEachStep?: boolean;
+      autoRevertFailing?: boolean;
+    };
+    if (body.autoRevertFailing && !body.validateEachStep) {
+      throw new HttpError(
+        400,
+        "autoRevertFailing requires validateEachStep.",
+      );
+    }
+    const r = await s.smartApply(
+      (req.params as { bundleId: string }).bundleId,
+      {
+        validateEachStep: body.validateEachStep,
+        autoRevertFailing: body.autoRevertFailing,
+      },
+    );
+    return { bundle: r.bundle, result: r.result };
   });
   registerBundleAction(app, projectRoot, "validate", async (s, req) => {
     const r = await s.validate(

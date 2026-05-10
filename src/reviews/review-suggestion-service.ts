@@ -260,8 +260,22 @@ export class ReviewSuggestionService {
    *   - `git apply --check` fails
    * Updates suggestion status accordingly and emits events. Never throws on
    * apply failure: the failure is recorded as `status: "failed"`.
+   *
+   * Optional flags:
+   *   - validateAfterApply: run commands.validate after a successful apply.
+   *   - autoRevertOnValidationFail: ignored unless validateAfterApply is
+   *     true AND validation actually executed (no_commands_configured does
+   *     NOT count). When validation fails, attempt revert immediately.
+   *     Status flips to reverted_after_validation_failed on success or
+   *     validation_failed_revert_failed when the revert itself fails.
    */
-  async apply(id: string): Promise<ReviewSuggestion> {
+  async apply(
+    id: string,
+    options: {
+      validateAfterApply?: boolean;
+      autoRevertOnValidationFail?: boolean;
+    } = {},
+  ): Promise<ReviewSuggestion> {
     const current = await this.requireSuggestion(id);
     if (current.status !== "approved") {
       throw new SuggestionServiceError(
@@ -351,6 +365,130 @@ export class ReviewSuggestionService {
       message: `suggestion ${id} applied to worktree`,
       data: { id, files: safety.touchedFiles },
     });
+
+    // Optional follow-on: validate after apply, optionally auto-revert on
+    // validation failure. autoRevertOnValidationFail is **ignored** if
+    // validateAfterApply is false, and also ignored when validation itself
+    // is skipped (no_commands_configured) — we never auto-revert on empty
+    // validation.
+    if (!options.validateAfterApply) {
+      return updated;
+    }
+    const validated = await this.validate(id);
+    if (
+      !options.autoRevertOnValidationFail ||
+      validated.result.status !== "failed"
+    ) {
+      return validated.suggestion;
+    }
+    // Auto-revert path.
+    return this.autoRevertAfterValidationFailure(validated.suggestion);
+  }
+
+  /**
+   * Internal: triggered only by apply()/bundle apply when:
+   *   1. validation actually ran (no_commands_configured does not qualify),
+   *   2. it returned status=failed,
+   *   3. the caller opted in via autoRevertOnValidationFail.
+   *
+   * Calls revert(), then translates the resulting status into one of the
+   * combined codes so callers can tell the validation failure from a plain
+   * post-apply revert. Failure of the revert itself is captured as
+   * validation_failed_revert_failed.
+   */
+  private async autoRevertAfterValidationFailure(
+    suggestion: ReviewSuggestion,
+  ): Promise<ReviewSuggestion> {
+    let reverted: ReviewSuggestion;
+    try {
+      reverted = await this.revert(suggestion.id);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message.slice(0, 500) : String(err);
+      const updated: ReviewSuggestion = {
+        ...suggestion,
+        status: "validation_failed_revert_failed",
+        errorMessage,
+        updatedAt: nowIso(),
+      };
+      await this.store.upsert(updated);
+      await this.events.append({
+        type: "suggestion.auto_revert_failed",
+        message: `suggestion ${suggestion.id} auto-revert failed after validation failure`,
+        data: { id: suggestion.id, errorMessage },
+      });
+      void new NotificationService(this.projectRoot)
+        .notify({
+          severity: "warning",
+          category: "review",
+          title: "Auto-revert failed",
+          message: `Validation failed and the auto-revert for "${suggestion.title}" did not complete. Inspect the worktree.`,
+          runId: this.runId,
+          sourceEventType: "suggestion.auto_revert_failed",
+          actionRequired: true,
+          actionLabel: "Open run",
+          actionUrl: `#/runs/${this.runId}`,
+          metadata: { suggestionId: suggestion.id },
+        })
+        .catch(() => {
+          // best-effort
+        });
+      return updated;
+    }
+
+    // revert() may itself have flipped to revert_failed. Translate the
+    // status into the combined name so the UI reads a single clear story.
+    const combinedStatus: ReviewSuggestion["status"] =
+      reverted.status === "reverted"
+        ? "reverted_after_validation_failed"
+        : "validation_failed_revert_failed";
+    const updated: ReviewSuggestion = {
+      ...reverted,
+      status: combinedStatus,
+      updatedAt: nowIso(),
+    };
+    await this.store.upsert(updated);
+    await this.events.append({
+      type:
+        combinedStatus === "reverted_after_validation_failed"
+          ? "suggestion.auto_revert_succeeded"
+          : "suggestion.auto_revert_failed",
+      message: `suggestion ${suggestion.id} auto-revert ${combinedStatus === "reverted_after_validation_failed" ? "succeeded" : "failed"}`,
+      data: {
+        id: suggestion.id,
+        finalStatus: combinedStatus,
+        errorMessage: reverted.errorMessage,
+      },
+    });
+    void new NotificationService(this.projectRoot)
+      .notify({
+        severity:
+          combinedStatus === "reverted_after_validation_failed"
+            ? "warning"
+            : "warning",
+        category: "review",
+        title:
+          combinedStatus === "reverted_after_validation_failed"
+            ? "Auto-revert succeeded after validation failure"
+            : "Auto-revert failed after validation failure",
+        message:
+          combinedStatus === "reverted_after_validation_failed"
+            ? `Validation failed and the patch for "${suggestion.title}" was reverted in the run worktree.`
+            : `Validation failed and the auto-revert did not complete. Inspect the worktree.`,
+        runId: this.runId,
+        sourceEventType:
+          combinedStatus === "reverted_after_validation_failed"
+            ? "suggestion.auto_revert_succeeded"
+            : "suggestion.auto_revert_failed",
+        actionRequired:
+          combinedStatus !== "reverted_after_validation_failed",
+        actionLabel: "Open run",
+        actionUrl: `#/runs/${this.runId}`,
+        metadata: { suggestionId: suggestion.id },
+      })
+      .catch(() => {
+        // best-effort
+      });
     return updated;
   }
 
@@ -473,7 +611,8 @@ export class ReviewSuggestionService {
     if (
       current.status !== "applied" &&
       current.status !== "validation_passed" &&
-      current.status !== "validation_failed"
+      current.status !== "validation_failed" &&
+      current.status !== "validation_failed_revert_failed"
     ) {
       throw new SuggestionServiceError(
         409,

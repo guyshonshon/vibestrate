@@ -52,6 +52,37 @@ export type BundlePreflightResult = {
   sameFileWarnings: { file: string; suggestionIds: string[] }[];
 };
 
+export type SmartApplyStep = {
+  suggestionId: string;
+  /** "applied" if git apply succeeded; "skipped" when smart apply stopped. */
+  applyStatus: "applied" | "failed" | "skipped";
+  applyError: string | null;
+  /** Only set when validateEachStep was true. */
+  validation:
+    | { status: "passed" | "failed" | "no_commands_configured"; passed: number; failed: number }
+    | null;
+  /** Set when autoRevertFailing was true and we attempted to revert this step. */
+  revertStatus: "reverted" | "revert_failed" | null;
+  revertError: string | null;
+};
+
+export type SmartApplyResult = {
+  bundleId: string;
+  runId: string;
+  startedAt: string;
+  endedAt: string;
+  mode: {
+    validateEachStep: boolean;
+    autoRevertFailing: boolean;
+  };
+  steps: SmartApplyStep[];
+  finalStatus: BundleStatus;
+  /** Index of the failing step in `steps`, or null on full success. */
+  failedAt: number | null;
+  /** Path of the persisted JSON inside .amaco/runs/<runId>/. */
+  resultPath: string;
+};
+
 const FORWARD_TIMEOUT_MS = 15_000;
 const CHECK_TIMEOUT_MS = 10_000;
 
@@ -357,7 +388,13 @@ export class SuggestionBundleService {
    *
    * Notifications are fire-and-forget through the event log.
    */
-  async apply(bundleId: string): Promise<{
+  async apply(
+    bundleId: string,
+    options: {
+      validateAfterApply?: boolean;
+      autoRevertOnValidationFail?: boolean;
+    } = {},
+  ): Promise<{
     bundle: SuggestionBundle;
     preflight: BundlePreflightResult;
   }> {
@@ -534,7 +571,474 @@ export class SuggestionBundleService {
       kind: "applied",
       message: `Review pass "${bundle.title}" applied to the worktree (${applied.length} patch${applied.length === 1 ? "" : "es"}).`,
     });
-    return { bundle: finalBundle, preflight };
+
+    // Optional follow-on: validate-after-apply, auto-revert-on-validation-fail.
+    // Auto-revert is ignored unless validation actually ran AND failed.
+    if (!options.validateAfterApply) {
+      return { bundle: finalBundle, preflight };
+    }
+    const validated = await this.validate(bundleId);
+    if (
+      !options.autoRevertOnValidationFail ||
+      validated.result.status !== "failed"
+    ) {
+      return { bundle: validated.bundle, preflight };
+    }
+    const reverted = await this.autoRevertAfterValidationFailure(
+      validated.bundle,
+    );
+    return { bundle: reverted, preflight };
+  }
+
+  /**
+   * Internal: triggered only by apply() when validateAfterApply ran AND
+   * returned status=failed. Calls revert(); translates the resulting bundle
+   * status into one of the combined codes so the UI reads a single clear
+   * story (and so callers can distinguish a validation-failure-driven
+   * revert from a manual one).
+   */
+  private async autoRevertAfterValidationFailure(
+    bundle: SuggestionBundle,
+  ): Promise<SuggestionBundle> {
+    let reverted: SuggestionBundle;
+    try {
+      reverted = await this.revert(bundle.id);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message.slice(0, 500) : String(err);
+      const updated: SuggestionBundle = {
+        ...bundle,
+        status: "validation_failed_revert_failed",
+        errorMessage,
+        updatedAt: nowIso(),
+      };
+      await this.bundleStore.upsert(updated);
+      await this.events.append({
+        type: "bundle.auto_revert_failed",
+        message: `bundle ${bundle.id} auto-revert failed after validation failure`,
+        data: { bundleId: bundle.id, errorMessage },
+      });
+      this.notify({
+        bundleId: bundle.id,
+        kind: "revert_failed",
+        message: `Validation failed and the auto-revert for "${bundle.title}" did not complete.`,
+      });
+      return updated;
+    }
+    const combinedStatus: SuggestionBundle["status"] =
+      reverted.status === "reverted"
+        ? "reverted_after_validation_failed"
+        : "validation_failed_revert_failed";
+    const updated: SuggestionBundle = {
+      ...reverted,
+      status: combinedStatus,
+      updatedAt: nowIso(),
+    };
+    await this.bundleStore.upsert(updated);
+    await this.events.append({
+      type:
+        combinedStatus === "reverted_after_validation_failed"
+          ? "bundle.auto_revert_succeeded"
+          : "bundle.auto_revert_failed",
+      message: `bundle ${bundle.id} auto-revert ${combinedStatus === "reverted_after_validation_failed" ? "succeeded" : "failed"}`,
+      data: {
+        bundleId: bundle.id,
+        finalStatus: combinedStatus,
+        errorMessage: reverted.errorMessage,
+      },
+    });
+    this.notify({
+      bundleId: bundle.id,
+      kind:
+        combinedStatus === "reverted_after_validation_failed"
+          ? "reverted"
+          : "revert_failed",
+      message:
+        combinedStatus === "reverted_after_validation_failed"
+          ? `Validation failed and "${bundle.title}" was reverted in the run worktree.`
+          : `Validation failed and the auto-revert did not complete.`,
+    });
+    return updated;
+  }
+
+  /**
+   * Smart apply: walk the bundle suggestion-by-suggestion, optionally
+   * validating after each one, optionally reverting only the failing
+   * suggestion. This is **NOT atomic**. Earlier suggestions that already
+   * applied stay applied even when a later step fails — that is the entire
+   * point of the mode and what the user opted into.
+   *
+   * Final bundle status:
+   *   - smart_applied              every step applied (and validated, if
+   *                                validateEachStep was on);
+   *   - smart_stopped              a step's validation failed, the failing
+   *                                step was NOT auto-reverted, prior steps
+   *                                stay applied;
+   *   - smart_reverted_failing     a step failed validation, the failing
+   *                                step was reverted via autoRevertFailing,
+   *                                prior steps stay applied;
+   *   - smart_failed               git apply --check or git apply outright
+   *                                rejected a step (very rare, since the
+   *                                up-front preflight catches static issues).
+   *
+   * The full step-by-step result is persisted to
+   * .amaco/runs/<runId>/suggestion-bundles/<bundleId>-smart-apply.json so a
+   * later UI/CLI can render it without re-running the chain.
+   */
+  async smartApply(
+    bundleId: string,
+    options: {
+      validateEachStep?: boolean;
+      autoRevertFailing?: boolean;
+    } = {},
+  ): Promise<{ bundle: SuggestionBundle; result: SmartApplyResult }> {
+    const bundle = await this.requireBundle(bundleId);
+    if (bundle.status !== "approved") {
+      throw new SuggestionBundleError(
+        409,
+        `Bundle ${bundleId} must be approved before smart apply (current: ${bundle.status}).`,
+      );
+    }
+    const worktreePath = await this.requireWorktree();
+    const preflight = await this.preflight(bundleId);
+
+    const steps: SmartApplyStep[] = bundle.suggestionIds.map((sid) => ({
+      suggestionId: sid,
+      applyStatus: "skipped",
+      applyError: null,
+      validation: null,
+      revertStatus: null,
+      revertError: null,
+    }));
+
+    const startedAt = nowIso();
+    await this.events.append({
+      type: "bundle.smart_apply_started",
+      message: `bundle ${bundleId} smart apply started (${bundle.suggestionIds.length} step${bundle.suggestionIds.length === 1 ? "" : "s"})`,
+      data: {
+        bundleId,
+        validateEachStep: !!options.validateEachStep,
+        autoRevertFailing: !!options.autoRevertFailing,
+      },
+    });
+
+    if (!preflight.ok) {
+      const offenders = preflight.findings.filter((f) => f.reason !== null);
+      const summary = offenders
+        .map((f) => `${f.suggestionId}: ${f.reason}`)
+        .join("; ")
+        .slice(0, 1_000);
+      const result: SmartApplyResult = {
+        bundleId,
+        runId: this.runId,
+        startedAt,
+        endedAt: nowIso(),
+        mode: {
+          validateEachStep: !!options.validateEachStep,
+          autoRevertFailing: !!options.autoRevertFailing,
+        },
+        steps,
+        finalStatus: "smart_failed",
+        failedAt: -1,
+        resultPath: "",
+      };
+      const finalBundle = await this.markFailed(
+        bundle,
+        `Smart-apply preflight rejected ${offenders.length} suggestion(s): ${summary}`,
+        preflight.sameFileWarnings,
+        "smart_failed",
+      );
+      result.resultPath = await this.persistSmartApplyResult(bundle.id, result);
+      return { bundle: finalBundle, result };
+    }
+
+    // Mark applying so the UI can show progress.
+    const applyingBundle: SuggestionBundle = {
+      ...bundle,
+      status: "smart_applying",
+      sameFileWarnings: preflight.sameFileWarnings,
+      updatedAt: nowIso(),
+    };
+    await this.bundleStore.upsert(applyingBundle);
+
+    let finalStatus: BundleStatus = "smart_applied";
+    let failedAt: number | null = null;
+    let stopReason: string | null = null;
+
+    for (let i = 0; i < bundle.suggestionIds.length; i++) {
+      const sid = bundle.suggestionIds[i]!;
+      const step = steps[i]!;
+      const s = await this.suggestionService.get(sid);
+      if (!s || !s.proposedPatch) {
+        step.applyStatus = "failed";
+        step.applyError = "Suggestion vanished or has no proposedPatch.";
+        finalStatus = "smart_failed";
+        failedAt = i;
+        stopReason = step.applyError;
+        break;
+      }
+
+      // git apply --check then git apply, single suggestion.
+      const check = await execa(
+        "git",
+        ["apply", "--check", "--whitespace=nowarn"],
+        {
+          cwd: worktreePath,
+          input: s.proposedPatch,
+          reject: false,
+          timeout: CHECK_TIMEOUT_MS,
+          stdin: "pipe",
+        },
+      );
+      if (check.exitCode !== 0) {
+        const reason = (check.stderr || check.stdout || "git apply --check failed")
+          .toString()
+          .slice(0, 500);
+        step.applyStatus = "failed";
+        step.applyError = reason;
+        finalStatus = "smart_failed";
+        failedAt = i;
+        stopReason = `git apply --check rejected ${sid}: ${reason}`;
+        break;
+      }
+      const applied = await execa(
+        "git",
+        ["apply", "--whitespace=nowarn"],
+        {
+          cwd: worktreePath,
+          input: s.proposedPatch,
+          reject: false,
+          timeout: FORWARD_TIMEOUT_MS,
+          stdin: "pipe",
+        },
+      );
+      if (applied.exitCode !== 0) {
+        const reason = (applied.stderr || applied.stdout || "git apply failed")
+          .toString()
+          .slice(0, 500);
+        step.applyStatus = "failed";
+        step.applyError = reason;
+        finalStatus = "smart_failed";
+        failedAt = i;
+        stopReason = `git apply rejected ${sid}: ${reason}`;
+        break;
+      }
+      step.applyStatus = "applied";
+      // Stamp the suggestion as applied + capture its patches.
+      await this.markSuggestionApplied(sid, bundle.id);
+
+      // Per-step validation, if requested.
+      if (options.validateEachStep) {
+        let commands: readonly string[] = [];
+        try {
+          const cfg = await loadConfig(this.projectRoot);
+          commands = cfg.config.commands.validate;
+        } catch {
+          commands = [];
+        }
+        const v = await runSuggestionValidation({
+          projectRoot: this.projectRoot,
+          runId: this.runId,
+          worktreePath,
+          commands,
+          // Validate at suggestion-scope so the artifacts file naming stays
+          // honest — this is a per-step probe, not a bundle-level pass.
+          scope: { kind: "suggestion", suggestionId: sid },
+        });
+        step.validation = {
+          status: v.status,
+          passed: v.summary.passed,
+          failed: v.summary.failed,
+        };
+        if (v.status === "passed") {
+          await this.events.append({
+            type: "bundle.smart_apply_step_passed",
+            message: `smart apply: ${sid} validation passed`,
+            data: { bundleId, suggestionId: sid },
+          });
+        } else if (v.status === "failed") {
+          await this.events.append({
+            type: "bundle.smart_apply_step_failed",
+            message: `smart apply: ${sid} validation failed`,
+            data: { bundleId, suggestionId: sid, failed: v.summary.failed },
+          });
+          // Stop; optionally revert THIS step only.
+          if (options.autoRevertFailing) {
+            const rev = await this.suggestionService
+              .revert(sid)
+              .catch((err) => ({ status: "revert_failed", errorMessage: err instanceof Error ? err.message : String(err) }) as ReviewSuggestion);
+            if (rev.status === "reverted") {
+              step.revertStatus = "reverted";
+              await this.events.append({
+                type: "bundle.smart_apply_step_reverted",
+                message: `smart apply: ${sid} reverted after validation failure`,
+                data: { bundleId, suggestionId: sid },
+              });
+              finalStatus = "smart_reverted_failing";
+            } else {
+              step.revertStatus = "revert_failed";
+              step.revertError = rev.errorMessage ?? null;
+              finalStatus = "smart_stopped";
+            }
+          } else {
+            finalStatus = "smart_stopped";
+          }
+          failedAt = i;
+          stopReason = `validation failed at step ${i + 1}`;
+          break;
+        } else {
+          // no_commands_configured — we still consider the step passed
+          // (the user opted into validateEachStep but nothing is wired up).
+          // We do NOT pretend validation passed; we record it as the
+          // honest no_commands_configured value and continue.
+        }
+      }
+    }
+
+    const endedAt = nowIso();
+    const result: SmartApplyResult = {
+      bundleId,
+      runId: this.runId,
+      startedAt,
+      endedAt,
+      mode: {
+        validateEachStep: !!options.validateEachStep,
+        autoRevertFailing: !!options.autoRevertFailing,
+      },
+      steps,
+      finalStatus,
+      failedAt,
+      resultPath: "",
+    };
+    result.resultPath = await this.persistSmartApplyResult(bundle.id, result);
+
+    const appliedSteps = steps.filter((s) => s.applyStatus === "applied");
+    const touched = unique(
+      preflight.findings
+        .filter((f) =>
+          appliedSteps.some((step) => step.suggestionId === f.suggestionId),
+        )
+        .flatMap((f) => f.touchedFiles),
+    );
+
+    let finalBundle: SuggestionBundle;
+    if (finalStatus === "smart_applied") {
+      // Persist combined applied + reverse patches across the steps that
+      // actually applied so a single bundle revert still works.
+      const combinedPatch = await this.collectCombinedPatch(appliedSteps);
+      const dir = bundlePatchesDir(this.projectRoot, this.runId);
+      await ensureDir(dir);
+      const appliedPath = path.join(dir, `${bundle.id}-applied.patch`);
+      const reversePath = path.join(dir, `${bundle.id}-reverse.patch`);
+      await writeText(appliedPath, combinedPatch);
+      await writeText(reversePath, combinedPatch);
+      finalBundle = {
+        ...applyingBundle,
+        status: "smart_applied",
+        appliedAt: endedAt,
+        appliedPatchPath: relToRun(this.projectRoot, this.runId, appliedPath),
+        reversePatchPath: relToRun(this.projectRoot, this.runId, reversePath),
+        touchedFiles: touched,
+        errorMessage: null,
+        updatedAt: endedAt,
+      };
+      await this.bundleStore.upsert(finalBundle);
+      await this.events.append({
+        type: "bundle.smart_apply_completed",
+        message: `bundle ${bundleId} smart apply completed`,
+        data: { bundleId, steps: appliedSteps.length },
+      });
+      this.notify({
+        bundleId,
+        kind: "applied",
+        message: `Smart apply completed: ${appliedSteps.length}/${steps.length} step${steps.length === 1 ? "" : "s"}.`,
+      });
+    } else {
+      // Stopped or failed mid-pass: leave the previously applied steps
+      // applied. Persist what was actually applied so a later bundle revert
+      // can clean it up safely.
+      const combinedPatch =
+        appliedSteps.length > 0
+          ? await this.collectCombinedPatch(appliedSteps)
+          : "";
+      const dir = bundlePatchesDir(this.projectRoot, this.runId);
+      await ensureDir(dir);
+      const appliedPath = path.join(dir, `${bundle.id}-applied.patch`);
+      const reversePath = path.join(dir, `${bundle.id}-reverse.patch`);
+      if (combinedPatch) {
+        await writeText(appliedPath, combinedPatch);
+        await writeText(reversePath, combinedPatch);
+      }
+      finalBundle = {
+        ...applyingBundle,
+        status: finalStatus,
+        appliedAt: appliedSteps.length > 0 ? endedAt : null,
+        appliedPatchPath: combinedPatch
+          ? relToRun(this.projectRoot, this.runId, appliedPath)
+          : null,
+        reversePatchPath: combinedPatch
+          ? relToRun(this.projectRoot, this.runId, reversePath)
+          : null,
+        touchedFiles: touched,
+        errorMessage: stopReason ?? null,
+        updatedAt: endedAt,
+      };
+      await this.bundleStore.upsert(finalBundle);
+      await this.events.append({
+        type: "bundle.smart_apply_stopped",
+        message: `bundle ${bundleId} smart apply ${finalStatus} after ${appliedSteps.length} step(s)`,
+        data: {
+          bundleId,
+          finalStatus,
+          failedAt,
+          appliedSteps: appliedSteps.length,
+        },
+      });
+      this.notify({
+        bundleId,
+        kind:
+          finalStatus === "smart_reverted_failing"
+            ? "reverted"
+            : "apply_failed",
+        message:
+          finalStatus === "smart_reverted_failing"
+            ? `Smart apply reverted the failing suggestion; ${appliedSteps.length - 1} prior step(s) remain applied.`
+            : `Smart apply stopped at step ${(failedAt ?? 0) + 1}: ${stopReason ?? "no detail"}.`,
+      });
+    }
+
+    return { bundle: finalBundle, result };
+  }
+
+  private async persistSmartApplyResult(
+    bundleId: string,
+    result: SmartApplyResult,
+  ): Promise<string> {
+    const dir = bundlePatchesDir(this.projectRoot, this.runId);
+    await ensureDir(dir);
+    const target = path.join(dir, `${bundleId}-smart-apply.json`);
+    await writeText(target, `${JSON.stringify(result, null, 2)}\n`);
+    return relToRun(this.projectRoot, this.runId, target);
+  }
+
+  /**
+   * Concatenate the captured forward patch text for a list of applied
+   * steps. Each suggestion-scoped patch already lives under
+   * suggestion-patches/<id>-applied.patch (markSuggestionApplied wrote it).
+   */
+  private async collectCombinedPatch(
+    steps: SmartApplyStep[],
+  ): Promise<string> {
+    const out: string[] = [];
+    for (const s of steps) {
+      const file = path.join(
+        suggestionPatchesDir(this.projectRoot, this.runId),
+        `${s.suggestionId}-applied.patch`,
+      );
+      if (!(await pathExists(file))) continue;
+      out.push(await readText(file));
+    }
+    return out.join("\n");
   }
 
   /**
@@ -635,7 +1139,11 @@ export class SuggestionBundleService {
     if (
       bundle.status !== "applied" &&
       bundle.status !== "validation_passed" &&
-      bundle.status !== "validation_failed"
+      bundle.status !== "validation_failed" &&
+      bundle.status !== "validation_failed_revert_failed" &&
+      bundle.status !== "smart_applied" &&
+      bundle.status !== "smart_stopped" &&
+      bundle.status !== "smart_reverted_failing"
     ) {
       throw new SuggestionBundleError(
         409,
