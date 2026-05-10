@@ -69,8 +69,8 @@ describe("splitHighlightedHtmlByLine", () => {
       '<span class="hljs-template-literal">hello <span class="hljs-template-variable">${x}</span>\nrest</span>';
     const lines = splitHighlightedHtmlByLine(html);
     expect(lines).toHaveLength(2);
-    expect(lines[0].endsWith("</span>")).toBe(true);
-    expect(lines[1].startsWith("<span")).toBe(true);
+    expect(lines[0]!.endsWith("</span>")).toBe(true);
+    expect(lines[1]!.startsWith("<span")).toBe(true);
   });
 
   it("preserves a plain newline outside any span", () => {
