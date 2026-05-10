@@ -26,7 +26,14 @@ export type AmacoEventType =
   | "skill.unassigned"
   | "run.completed"
   | "run.failed"
-  | "run.aborted";
+  | "run.aborted"
+  | "editor.opened"
+  | "editor.open_failed"
+  | "suggestion.created"
+  | "suggestion.approved"
+  | "suggestion.rejected"
+  | "suggestion.applied"
+  | "suggestion.apply_failed";
 
 export type AmacoEvent = {
   timestamp: string;

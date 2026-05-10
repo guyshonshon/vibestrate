@@ -16,6 +16,8 @@ import {
 import { api } from "../../lib/api.js";
 import type { ProjectMetadata } from "../../lib/types.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
+import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 type Props = {
   onSelectRun: (runId: string) => void;
@@ -25,6 +27,7 @@ type Props = {
 export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const freshness = useCodebaseEvents("/api/project/events/stream");
 
   async function load() {
     try {
@@ -34,11 +37,18 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
     }
   }
 
+  // Initial load + drop down to a slow heartbeat poll. SSE drives most updates.
   useEffect(() => {
     void load();
-    const i = setInterval(load, 6_000);
+    const i = setInterval(load, 30_000);
     return () => clearInterval(i);
   }, []);
+
+  // Re-fetch metadata on any codebase event so the page never feels stale.
+  useEffect(() => {
+    if (!freshness.lastEvent) return;
+    void load();
+  }, [freshness.lastEvent]);
 
   if (error)
     return (
@@ -108,6 +118,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           <span className="text-[11px] uppercase tracking-[0.14em] text-amaco-fg-muted">
             This dashboard is supervising
           </span>
+          <FreshnessIndicator freshness={freshness} onRefresh={load} />
         </div>
         <div className="mt-1 flex items-center gap-2">
           <h1 className="text-[18px] font-medium text-amaco-fg">

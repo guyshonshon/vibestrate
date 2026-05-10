@@ -31,6 +31,19 @@ export const schedulerConfigSchema = z.object({
 });
 export type SchedulerConfig = z.infer<typeof schedulerConfigSchema>;
 
+/**
+ * Optional local editor handoff. Disabled by default. The dashboard launches
+ * `command` with `args` via fixed argv (no shell). `{file}/{line}/{column}`
+ * placeholders inside any arg are substituted with values supplied by the
+ * user, after the path has passed the central path guard.
+ */
+export const editorConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  command: z.string().min(1).default("code"),
+  args: z.array(z.string()).default(["--goto", "{file}:{line}:{column}"]),
+});
+export type EditorConfig = z.infer<typeof editorConfigSchema>;
+
 // Stage names a project may flag for forced human approval. These map to the
 // transition boundaries the orchestrator already exposes.
 export const policyApprovalStageSchema = z.enum([
@@ -93,6 +106,11 @@ export const projectConfigSchema = z.object({
     maxConcurrentWriteAgents: 1,
     conflictPolicy: "warn",
     queuePolicy: "fifo",
+  }),
+  editor: editorConfigSchema.default({
+    enabled: false,
+    command: "code",
+    args: ["--goto", "{file}:{line}:{column}"],
   }),
 });
 

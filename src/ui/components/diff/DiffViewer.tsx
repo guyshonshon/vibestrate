@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Copy, FolderOpen, GitBranch } from "lucide-react";
-import { api } from "../../lib/api.js";
+import { Copy, ExternalLink, FolderOpen, GitBranch } from "lucide-react";
+import { ApiError, api } from "../../lib/api.js";
 import type { FileDiff } from "../../lib/types.js";
 import { SecretDiffWarning } from "./SecretDiffWarning.js";
 
@@ -114,6 +114,23 @@ export function DiffViewer({
           >
             <Copy className="h-3 w-3" strokeWidth={1.5} />
             copy
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void api
+                .openInEditor({ path: diff.path, runId })
+                .catch((err) => {
+                  if (err instanceof ApiError && err.status === 409) {
+                    // Editor not configured — silent. The file viewer surfaces the same hint.
+                  }
+                });
+            }}
+            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            title="Open in editor (if configured)"
+          >
+            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+            editor
           </button>
         </div>
       </header>

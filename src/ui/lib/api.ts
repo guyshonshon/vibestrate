@@ -7,6 +7,7 @@ import type {
   ConflictWarning,
   DiffSnapshot,
   DiscoveredSkill,
+  EditorStatus,
   FileDiff,
   FileTreeResult,
   FileView,
@@ -18,6 +19,7 @@ import type {
   NotificationSettings,
   Note,
   ProjectMetadata,
+  ReviewSuggestion,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
   ProposalParseSummary,
@@ -502,5 +504,70 @@ export const api = {
       input,
     );
     return r.references;
+  },
+
+  // ─── editor / suggestions ─────────────────────────────────────────────────
+  async getEditorStatus(): Promise<EditorStatus> {
+    return jsonGet("/api/editor/status");
+  },
+  async openInEditor(input: {
+    path: string;
+    runId?: string | null;
+    line?: number | null;
+    column?: number | null;
+  }): Promise<{ ok: boolean; command?: string; path?: string; message?: string }> {
+    return jsonPost("/api/editor/open", input);
+  },
+  async listSuggestions(runId: string): Promise<ReviewSuggestion[]> {
+    const r = await jsonGet<{ suggestions: ReviewSuggestion[] }>(
+      `/api/runs/${encodeURIComponent(runId)}/suggestions`,
+    );
+    return r.suggestions;
+  },
+  async createSuggestion(input: {
+    runId: string;
+    title: string;
+    body?: string;
+    file?: string | null;
+    lineStart?: number | null;
+    lineEnd?: number | null;
+    proposedPatch?: string | null;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions`,
+      input,
+    );
+    return r.suggestion;
+  },
+  async approveSuggestion(input: {
+    runId: string;
+    suggestionId: string;
+    note?: string;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/approve`,
+      { note: input.note },
+    );
+    return r.suggestion;
+  },
+  async rejectSuggestion(input: {
+    runId: string;
+    suggestionId: string;
+    note?: string;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/reject`,
+      { note: input.note },
+    );
+    return r.suggestion;
+  },
+  async applySuggestion(input: {
+    runId: string;
+    suggestionId: string;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/apply`,
+    );
+    return r.suggestion;
   },
 };

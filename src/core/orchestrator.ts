@@ -43,6 +43,8 @@ import {
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
+import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js";
+import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -422,6 +424,13 @@ export class Orchestrator {
         ctx,
       });
       reviewDecision = effectiveReviewDecision(reviewArtifact.output);
+      await this.ingestSuggestionsFromArtifact({
+        runId,
+        artifactRelPath: reviewArtifact.outputArtifactPath,
+        artifactBody: reviewArtifact.output,
+        source: "reviewer",
+        notify,
+      });
       {
         const gate = await this.maybeAwaitApproval({
           state,
@@ -536,6 +545,13 @@ export class Orchestrator {
           ctx,
         });
         reviewDecision = effectiveReviewDecision(reviewArtifact.output);
+        await this.ingestSuggestionsFromArtifact({
+          runId,
+          artifactRelPath: reviewArtifact.outputArtifactPath,
+          artifactBody: reviewArtifact.output,
+          source: "reviewer",
+          notify,
+        });
         {
           const gate = await this.maybeAwaitApproval({
             state,
@@ -609,6 +625,13 @@ export class Orchestrator {
         verificationDecision = effectiveVerificationDecision(
           verificationArtifact.output,
         );
+        await this.ingestSuggestionsFromArtifact({
+          runId,
+          artifactRelPath: verificationArtifact.outputArtifactPath,
+          artifactBody: verificationArtifact.output,
+          source: "verifier",
+          notify,
+        });
         {
           const gate = await this.maybeAwaitApproval({
             state,
@@ -815,6 +838,44 @@ export class Orchestrator {
     if (input.execution)
       out.push({ label: "Implementation Summary", content: input.execution.output });
     return out;
+  }
+
+  /**
+   * Capture AMACO_SUGGESTION marker blocks from a stage artifact. Best-effort:
+   * never throws into the orchestrator's hot path. Notifies the dashboard via
+   * the notification service when a suggestion was extracted (one summary
+   * notification per stage, not one per suggestion).
+   */
+  private async ingestSuggestionsFromArtifact(input: {
+    runId: string;
+    artifactRelPath: string;
+    artifactBody: string;
+    source: SuggestionSource;
+    notify?: (draft: NotificationDraft) => void;
+  }): Promise<void> {
+    try {
+      const svc = new ReviewSuggestionService(this.projectRoot, input.runId);
+      const created = await svc.ingestArtifact({
+        artifactRelPath: input.artifactRelPath,
+        artifactBody: input.artifactBody,
+        source: input.source,
+      });
+      if (created.length === 0) return;
+      input.notify?.({
+        severity: "attention",
+        category: "review",
+        title: `${created.length} suggestion${created.length > 1 ? "s" : ""} ready for review`,
+        message: `Captured from ${input.source} artifact ${input.artifactRelPath}.`,
+        runId: input.runId,
+        sourceEventType: "suggestion.created",
+        actionRequired: true,
+        actionLabel: "Open run",
+        actionUrl: `#/runs/${input.runId}`,
+      });
+    } catch {
+      // Suggestion ingestion is best-effort — never fail a run because the
+      // marker parser hiccupped.
+    }
   }
 
   /**
@@ -1256,6 +1317,15 @@ export class Orchestrator {
       verification?: string;
     };
   }): Promise<string> {
+    let suggestions: import("../reviews/review-suggestion-types.js").ReviewSuggestion[] = [];
+    try {
+      suggestions = await new ReviewSuggestionService(
+        this.projectRoot,
+        input.state.runId,
+      ).list();
+    } catch {
+      suggestions = [];
+    }
     const report = renderFinalReport({
       state: input.state,
       artifactPaths: input.artifacts,
@@ -1264,6 +1334,7 @@ export class Orchestrator {
       reviewLoops: input.reviewLoops,
       metrics: input.metrics,
       approvals: input.approvals,
+      suggestions,
     });
     return input.artifactStore.write("12-final-report.md", report);
   }

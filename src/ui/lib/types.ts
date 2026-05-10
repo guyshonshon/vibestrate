@@ -650,3 +650,86 @@ export type AgentWorkReport = {
   rows: AgentWorkRow[];
   notice: string;
 };
+
+// ─── editor / suggestions / freshness ────────────────────────────────────────
+
+export type EditorCandidate = {
+  command: string;
+  displayName: string;
+  description: string;
+  available: boolean;
+};
+
+export type EditorStatus = {
+  candidates: EditorCandidate[];
+  configured: {
+    config: { enabled: boolean; command: string; args: string[] };
+    validation: {
+      ok: boolean;
+      reason?: string;
+      resolvedPlaceholders: string[];
+    };
+  } | null;
+};
+
+export type SuggestionStatus =
+  | "open"
+  | "approved"
+  | "rejected"
+  | "applied"
+  | "failed"
+  | "resolved";
+
+export type SuggestionSource = "reviewer" | "verifier" | "user" | "artifact";
+
+export type ReviewSuggestion = {
+  id: string;
+  runId: string;
+  createdAt: string;
+  updatedAt: string;
+  source: SuggestionSource;
+  sourceArtifactPath: string | null;
+  file: string | null;
+  lineStart: number | null;
+  lineEnd: number | null;
+  title: string;
+  body: string;
+  status: SuggestionStatus;
+  proposedPatch: string | null;
+  requiresApproval: boolean;
+  approvalId: string | null;
+  decisionNote: string | null;
+  errorMessage: string | null;
+};
+
+export type CodebaseEvent =
+  | {
+      kind: "project.git.changed";
+      timestamp: string;
+      summary: GitStatusSummary;
+    }
+  | {
+      kind: "run.git.changed";
+      runId: string;
+      timestamp: string;
+      summary: GitStatusSummary;
+    }
+  | {
+      kind: "filetree.changed";
+      rootKind: "project" | "worktree";
+      runId?: string;
+      timestamp: string;
+      changedPaths: string[];
+    }
+  | {
+      kind: "codebase.snapshot.updated";
+      timestamp: string;
+      summary: GitStatusSummary | null;
+    };
+
+export type GitStatusSummary = {
+  branch: string | null;
+  isDirty: boolean;
+  changedFileCount: number;
+  headHash: string | null;
+};

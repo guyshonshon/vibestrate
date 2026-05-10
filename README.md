@@ -976,11 +976,135 @@ The endpoint always sets `bestEffort: true` and includes a `notice` explaining w
 
 The same matchers used by the diff redactor (`src/core/diff-service.ts` → `isSecretLikePath`) apply to the file tree, the file viewer, and the task Files section. A secret-like file is visible in the tree as a `redacted` chip but its bytes never leave the server. In the Task page, declared `touchedFiles` that look like secrets render as a disabled `🔒` row.
 
+## Live codebase freshness
+
+The Project, Codebase, Git, and Run-detail views subscribe to a server-sent-events channel that pushes light freshness deltas (`project.git.changed`, `run.git.changed`, `filetree.changed`, `codebase.snapshot.updated`). Payloads are small — a status summary or up to ~32 changed-file paths — and **never include file contents**.
+
+Routes:
+
+- `GET /api/project/events/stream`
+- `GET /api/runs/:runId/codebase/events/stream`
+
+The UI shows a `live · 12s ago` pill in each header. If the channel drops the pill flips to `reconnecting` with exponential backoff up to 30 s; manual refresh always works. Heartbeats every 15 s keep proxies from dropping idle connections.
+
+Watcher cadence is intentionally low-cost: 4 s polling for git status, 8 s polling for filesystem mtimes, and a hard cap of 8 000 walked entries. There is **no** native file-system watcher and no per-file content read for freshness.
+
+## Open in editor
+
+The dashboard ships a narrow handoff to a local editor — never an IDE, never a terminal. Disabled by default. Configure once, per project:
+
+```bash
+amaco editor detect            # probes code, code-insiders, cursor
+amaco editor set code          # or: amaco editor set cursor
+amaco editor test src/foo.ts   # confirms the launch works
+```
+
+The `editor` config block in `.amaco/project.yml`:
+
+```yaml
+editor:
+  enabled: true
+  command: code
+  args:
+    - --goto
+    - "{file}:{line}:{column}"
+```
+
+`{file}`, `{line}`, `{column}` are substituted **after** the path passes the central path guard. The command itself must be a single token (`a–z A–Z 0–9 _ -`) — no spaces, no shell metacharacters, no path separators. Launches use fixed argv (`shell: false`) with a 10 s timeout.
+
+UI surfaces:
+
+- **File viewer** — header has an `editor` button; secret-like files block the click.
+- **Diff viewer** — per-file header gains an `editor` button alongside *Open in project / Open in worktree / Copy path*.
+- **Artifact viewer** — clickable code references already deep-link to `#/codebase`; the editor button next to the file viewer takes it the rest of the way.
+
+Each successful or failed launch is logged into the run's `events.ndjson` as `editor.opened` / `editor.open_failed`.
+
+## Review suggestions
+
+Reviewer/verifier artifacts can carry an explicit suggestion block:
+
+```text
+AMACO_SUGGESTION:
+TITLE: Replace blocking call with async
+FILE: src/queue.ts
+LINES: 42-58
+BODY:
+The current implementation deadlocks under contention.
+PROPOSED_PATCH:
+diff --git a/src/queue.ts b/src/queue.ts
+--- a/src/queue.ts
++++ b/src/queue.ts
+@@
+-…
++…
+AMACO_SUGGESTION_END
+```
+
+Only blocks that begin with the literal `AMACO_SUGGESTION:` marker are recognised — the parser **never** invents suggestions from prose. Each block becomes a record under `.amaco/runs/<runId>/suggestions.json`:
+
+```json
+{
+  "id": "s-…",
+  "source": "reviewer",
+  "sourceArtifactPath": "artifacts/09-review.md",
+  "file": "src/queue.ts",
+  "lineStart": 42,
+  "lineEnd": 58,
+  "title": "Replace blocking call with async",
+  "body": "…",
+  "status": "open",
+  "proposedPatch": "diff --git …",
+  "requiresApproval": true,
+  "approvalId": null
+}
+```
+
+CLI:
+
+```bash
+amaco suggestions list <runId>
+amaco suggestions show <runId> <suggestionId>
+amaco suggestions approve <runId> <suggestionId> --note "looks right"
+amaco suggestions reject <runId> <suggestionId>
+amaco suggestions apply <runId> <suggestionId>
+```
+
+The dashboard exposes the same flow on a **Suggestions** inspector tab in Run Detail. You can also create a suggestion manually from the file viewer.
+
+## Applying suggestions safely
+
+Suggestion *application* is gated. The flow is:
+
+1. Suggestion is created (parsed or manual).
+2. User clicks **Approve** — Amaco writes a fresh approval into `approvals.json`, immediately resolves it as approved, and stamps the suggestion's `approvalId`.
+3. User clicks **Apply** — Amaco runs `git apply --check` against the run's worktree first, then `git apply` only if the check passes.
+
+Hard refusals before any git command runs:
+
+- the run has no worktree (project root is **never** a target),
+- the suggestion has no `proposedPatch`,
+- the suggestion is not in `approved` state,
+- any patched path escapes the worktree (`..`, absolute, or `~/`-rooted),
+- any patched path matches the secret-file allow-list (`.env`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, `secrets.*`).
+
+If `git apply --check` fails, Amaco never invokes `git apply`. Either way, the suggestion's status flips to `applied` or `failed`, and a `suggestion.applied` / `suggestion.apply_failed` event lands in the run's events log. The worktree is left untouched on failure.
+
+Applying a suggestion **does not** push, merge, or run validation — exactly the same posture as a normal Amaco run reaching `merge_ready`. You stay in control of the merge.
+
+## Why apply is approval-gated
+
+Suggestions can come from a non-deterministic reviewer/verifier model, from a teammate, or from yourself half a coffee in. Routing the apply step through the existing approval system means every patch leaves an audit record in `approvals.json` *and* `events.ndjson`, with the same UI/CLI tooling that already governs every other write-side action in Amaco. There is no path to a one-click apply that bypasses the gate.
+
+## Notifications integration
+
+`suggestion.created` for new attention-worthy suggestions and `suggestion.applied` / `suggestion.apply_failed` for outcomes are routed through the existing notification gateways. We deliberately do **not** push a notification for every filesystem event during a run — freshness lives in the in-page pill, not in the bell.
+
 ## What the UI can and cannot do
 
-It **can**: read the project metadata, browse the file tree (project + run worktrees), view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view.
+It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view, hand off to a configured local editor, capture review suggestions, and apply approved patches inside the run worktree only.
 
-It **cannot** (this phase): edit or save files, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level.
+It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion *application* is the only write-side action; everything else remains read-only.
 
 ## Limitations of V0
 
@@ -1001,7 +1125,9 @@ It **cannot** (this phase): edit or save files, push or fetch from a remote, mer
 - Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
 - WhatsApp is intentionally a placeholder; Slack/Discord/Telegram/webhook gateways ship real, but Amaco still does **not** open PRs or trigger deploys.
 - Notifications poll on a 4-second cadence in the dashboard; there is no live SSE stream for the bell yet.
-- The dashboard is **read-only** for code: no editing, no saving, no terminal. Per-agent file attribution is best-effort, not authorship.
+- The dashboard is **read-first**. The only write-side action is *applying an approved suggestion's patch inside the run worktree* — there is no in-browser editor, no terminal, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
+- Suggestion extraction only recognises explicit `AMACO_SUGGESTION:` marker blocks — natural-language prose is intentionally not auto-parsed.
+- Editor handoff launches a single configured command via fixed argv. We do not embed a full editor.
 
 ## Roadmap
 

@@ -3,6 +3,7 @@ import type { ValidationResults } from "./validation-runner.js";
 import type { PolicyWarning } from "./policy-engine.js";
 import type { RuntimeMetrics } from "./runtime-metrics.js";
 import type { ApprovalRequest } from "./approval-types.js";
+import type { ReviewSuggestion } from "../reviews/review-suggestion-types.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -18,6 +19,8 @@ export type FinalReportInput = {
   reviewLoops: number;
   metrics: RuntimeMetrics | null;
   approvals: ApprovalRequest[];
+  /** Suggestions captured for this run (optional). */
+  suggestions?: ReviewSuggestion[];
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -131,8 +134,32 @@ function renderMetricsSection(metrics: RuntimeMetrics | null): string {
   return [head, sep, ...rows, "", ...totals].join("\n");
 }
 
+function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string {
+  if (!items || items.length === 0) {
+    return "_No suggestions were captured for this run._";
+  }
+  const counts = items.reduce<Record<string, number>>((acc, s) => {
+    acc[s.status] = (acc[s.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const summary = ["open", "approved", "rejected", "applied", "failed", "resolved"]
+    .filter((k) => (counts[k] ?? 0) > 0)
+    .map((k) => `**${k}:** ${counts[k]}`)
+    .join(" · ");
+  const head = "| Status | Source | File | Title | Approval |\n| --- | --- | --- | --- | --- |";
+  const rows = items
+    .map((s) => {
+      const target = s.file
+        ? `${s.file}${s.lineStart ? `:${s.lineStart}${s.lineEnd ? `-${s.lineEnd}` : ""}` : ""}`
+        : "—";
+      return `| ${s.status} | ${s.source} | \`${target}\` | ${s.title.replace(/\|/g, "\\|")} | ${s.approvalId ? `\`${s.approvalId}\`` : "—"} |`;
+    })
+    .join("\n");
+  return [summary, "", head, rows].join("\n");
+}
+
 export function renderFinalReport(input: FinalReportInput): string {
-  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals } = input;
+  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals, suggestions } = input;
   const summary = metrics?.approvalsSummary ?? null;
   const approvalSummaryLine = summary
     ? `**Total:** ${summary.total} · **Approved:** ${summary.approved} · **Rejected:** ${summary.rejected}${summary.expired ? ` · **Expired:** ${summary.expired}` : ""}${summary.pending ? ` · **Pending:** ${summary.pending}` : ""}${summary.totalWaitMs ? ` · **Total wait:** ${summary.totalWaitMs}ms` : ""}`
@@ -200,6 +227,10 @@ Completed: ${reviewLoops} (max ${state.maxReviewLoops})
 ## Policy Warnings
 
 ${renderWarnings(policyWarnings)}
+
+## Review Suggestions
+
+${renderSuggestionsSection(suggestions)}
 
 ## Next Steps
 

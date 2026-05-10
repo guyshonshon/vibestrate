@@ -18,6 +18,8 @@ import {
   buildGatewaysCommand,
   buildNotificationsCommand,
 } from "./commands/notifications.js";
+import { buildEditorCommand } from "./commands/editor.js";
+import { buildSuggestionsCommand } from "./commands/suggestions.js";
 
 const program = new Command();
 
@@ -60,6 +62,8 @@ program.addCommand(buildTasksCommand());
 program.addCommand(buildQueueCommand());
 program.addCommand(buildNotificationsCommand());
 program.addCommand(buildGatewaysCommand());
+program.addCommand(buildEditorCommand());
+program.addCommand(buildSuggestionsCommand());
 
 program
   .command("run <task...>")

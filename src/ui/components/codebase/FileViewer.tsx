@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Copy, Hash } from "lucide-react";
+import { Copy, ExternalLink, Hash } from "lucide-react";
+import { ApiError, api } from "../../lib/api.js";
 import type { FileView } from "../../lib/types.js";
 
 type Props = {
@@ -12,6 +13,28 @@ type Props = {
 };
 
 export function FileViewer({ view, loading, error, runId, highlightLine }: Props) {
+  const [openMsg, setOpenMsg] = useState<string | null>(null);
+
+  async function openInEditor(line: number | null) {
+    if (!view) return;
+    setOpenMsg(null);
+    try {
+      const r = await api.openInEditor({
+        path: view.path,
+        runId: view.rootKind === "worktree" ? runId ?? null : null,
+        line,
+      });
+      setOpenMsg(
+        r.ok
+          ? `Opened in ${r.command}.`
+          : r.message ?? "Editor refused to open the file.",
+      );
+    } catch (err) {
+      if (err instanceof ApiError) setOpenMsg(err.message);
+      else setOpenMsg(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   if (loading) {
     return (
       <div className="px-4 py-6 text-[12.5px] text-amaco-fg-muted">
@@ -54,7 +77,26 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
           </span>
         )}
         <CopyButton text={view.path} title="Copy path" />
+        <button
+          type="button"
+          onClick={() => void openInEditor(highlightLine ?? null)}
+          disabled={view.isSecretLike}
+          className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:opacity-40"
+          title={
+            view.isSecretLike
+              ? "Editor handoff is blocked for secret-like files"
+              : "Open in configured editor"
+          }
+        >
+          <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+          editor
+        </button>
       </header>
+      {openMsg ? (
+        <div className="border-b border-amaco-border bg-amaco-panel-2/60 px-3 py-1 text-[10.5px] text-amaco-fg-dim">
+          {openMsg}
+        </div>
+      ) : null}
       {view.notice ? (
         <div className="border-b border-amaco-warn/40 bg-amaco-warn/10 px-3 py-1.5 text-[11.5px] text-amaco-warn">
           {view.notice}

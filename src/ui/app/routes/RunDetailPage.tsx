@@ -29,6 +29,9 @@ import { RuntimeLogPanel } from "../../components/logs/RuntimeLogPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { ApprovalsList } from "../../components/approvals/ApprovalsList.js";
 import { RunGitInspector } from "../../components/runs/RunGitInspector.js";
+import { SuggestionsPanel } from "../../components/runs/SuggestionsPanel.js";
+import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 export function RunDetailPage({ runId }: { runId: string }) {
   const [run, setRun] = useState<RunState | null>(null);
@@ -38,6 +41,9 @@ export function RunDetailPage({ runId }: { runId: string }) {
   const [tab, setTab] = useState<InspectorTabId>("diff");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
+  const freshness = useCodebaseEvents(
+    `/api/runs/${encodeURIComponent(runId)}/codebase/events/stream`,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -87,6 +93,12 @@ export function RunDetailPage({ runId }: { runId: string }) {
   return (
     <div className="flex h-full flex-col">
       <RunHeader run={run} />
+      <div className="flex items-center gap-2 border-b border-amaco-border bg-amaco-panel/40 px-4 py-1">
+        <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          run worktree
+        </span>
+        <FreshnessIndicator freshness={freshness} />
+      </div>
       <div className="grid flex-1 grid-cols-[1fr_440px] overflow-hidden">
         <section className="flex flex-col gap-3 overflow-y-auto p-4">
           {pending ? (
@@ -176,6 +188,8 @@ export function RunDetailPage({ runId }: { runId: string }) {
                 }
               />
             </div>
+          ) : tab === "suggestions" ? (
+            <SuggestionsPanel runId={runId} />
           ) : tab === "agent-work" ? (
             <AgentWorkPanel
               runId={runId}

@@ -7,6 +7,8 @@ import type {
 } from "../../lib/types.js";
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
 import { FileViewer } from "../../components/codebase/FileViewer.js";
+import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 type Props = {
   /** Optional initial state from the URL: ?path=&line=&runId=. */
@@ -37,6 +39,22 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   useEffect(() => {
     void api.listRuns().then((r) => setRuns(r)).catch(() => {});
   }, []);
+
+  const sseUrl =
+    source === "project"
+      ? "/api/project/events/stream"
+      : runId
+        ? `/api/runs/${encodeURIComponent(runId)}/codebase/events/stream`
+        : null;
+  const freshness = useCodebaseEvents(sseUrl);
+
+  // When the SSE channel reports a change, force-reload the tree + file view.
+  useEffect(() => {
+    if (!freshness.lastEvent) return;
+    void reloadTree();
+    void reloadFile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshness.lastEvent]);
 
   const reloadTree = useCallback(async () => {
     setError(null);
@@ -158,6 +176,13 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
             onChange={(e) => setFilter(e.target.value)}
             placeholder="filter…"
             className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px] text-amaco-fg placeholder-amaco-fg-muted"
+          />
+          <FreshnessIndicator
+            freshness={freshness}
+            onRefresh={() => {
+              void reloadTree();
+              void reloadFile();
+            }}
           />
         </header>
         <div className="flex-1 overflow-y-auto py-1">

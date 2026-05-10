@@ -6,6 +6,8 @@ import type {
   GitStatus,
   RunState,
 } from "../../lib/types.js";
+import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 type Props = {
   initialRunId?: string | null;
@@ -20,8 +22,12 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
   const [runStatus, setRunStatus] = useState<GitStatus | null>(null);
   const [runHistory, setRunHistory] = useState<GitHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const projectFresh = useCodebaseEvents("/api/project/events/stream");
+  const runFresh = useCodebaseEvents(
+    runId ? `/api/runs/${encodeURIComponent(runId)}/codebase/events/stream` : null,
+  );
 
-  useEffect(() => {
+  function loadProject() {
     Promise.all([
       api.getProjectGitStatus(),
       api.getProjectGitHistory(20),
@@ -33,9 +39,19 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
         setRuns(r);
       })
       .catch((err) => setError(err instanceof Error ? err.message : String(err)));
-  }, []);
+  }
 
   useEffect(() => {
+    loadProject();
+  }, []);
+
+  // Auto-refetch on incoming events.
+  useEffect(() => {
+    if (!projectFresh.lastEvent) return;
+    loadProject();
+  }, [projectFresh.lastEvent]);
+
+  function loadRun() {
     if (!runId) {
       setRunStatus(null);
       setRunHistory(null);
@@ -48,7 +64,14 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
       setRunStatus(s);
       setRunHistory(h);
     });
-  }, [runId]);
+  }
+
+  useEffect(loadRun, [runId]);
+
+  useEffect(() => {
+    if (!runFresh.lastEvent) return;
+    loadRun();
+  }, [runFresh.lastEvent]);
 
   return (
     <div className="h-full overflow-y-auto px-4 py-4">
@@ -57,6 +80,16 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
         <span className="text-[11.5px] text-amaco-fg-muted">
           local-only · no fetch / push / merge
         </span>
+        <FreshnessIndicator
+          freshness={projectFresh}
+          onRefresh={loadProject}
+        />
+        {runId ? (
+          <FreshnessIndicator
+            freshness={runFresh}
+            onRefresh={loadRun}
+          />
+        ) : null}
       </header>
 
       {error ? (
