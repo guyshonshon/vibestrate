@@ -119,8 +119,13 @@ function parseBlock(block: string[]): ParsedSuggestion | null {
     file,
     lineStart,
     lineEnd,
+    // Unified diffs need to end on a newline — git apply rejects "corrupt
+    // patch" otherwise. Strip stray blank lines but keep exactly one
+    // trailing newline so apply / -R --check accepts the captured text.
     proposedPatch:
-      patchLines.length > 0 ? patchLines.join("\n").replace(/\s+$/, "") : null,
+      patchLines.length > 0
+        ? `${patchLines.join("\n").replace(/\s+$/, "")}\n`
+        : null,
   };
 }
 
