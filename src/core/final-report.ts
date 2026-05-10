@@ -149,7 +149,7 @@ function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
     .map(([k, v]) => `**${k}:** ${v}`)
     .join(" · ");
   const head =
-    "| Status | Title | Suggestions | Validation | Reverted | Approval |\n| --- | --- | --- | --- | --- | --- |";
+    "| Status | Title | Profile | Suggestions | Validation | Reverted | Approval |\n| --- | --- | --- | --- | --- | --- | --- |";
   const rows = items
     .map((b) => {
       const validation = b.validationResultPath
@@ -159,7 +159,8 @@ function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
       const titleCell = isSmartStatus(b.status)
         ? `${b.title.replace(/\|/g, "\\|")} _(smart apply)_`
         : b.title.replace(/\|/g, "\\|");
-      return `| ${b.status} | ${titleCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
+      const profileCell = b.validationProfile ? `\`${b.validationProfile}\`` : "default";
+      return `| ${b.status} | ${titleCell} | ${profileCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
     })
     .join("\n");
   return [summary, "", head, rows].join("\n");

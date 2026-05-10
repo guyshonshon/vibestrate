@@ -227,6 +227,7 @@ BODY: also short
         lineStart: 1,
         lineEnd: null,
         proposedPatch: null,
+        validationProfile: null,
       },
     });
     expect(rec.status).toBe("open");
@@ -261,6 +262,7 @@ describe("ReviewSuggestionStore", () => {
       appliedPatchPath: null,
       reversePatchPath: null,
       validationResultPath: null,
+      validationProfile: null,
     });
     const back = await store.readAll();
     expect(back).toHaveLength(1);
@@ -470,6 +472,7 @@ describe("renderFinalReport — suggestions section", () => {
           appliedPatchPath: null,
           reversePatchPath: null,
           validationResultPath: null,
+          validationProfile: null,
         },
       ],
     });

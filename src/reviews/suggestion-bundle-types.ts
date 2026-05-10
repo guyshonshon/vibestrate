@@ -52,6 +52,13 @@ export const suggestionBundleSchema = z.object({
       }),
     )
     .default([]),
+  /**
+   * Bundle-level validation profile. Used when validating the whole pass.
+   * For smart-apply, callers can either pass useSuggestionProfiles=true
+   * (each step uses its own validationProfile) or override every step with
+   * an explicit profile name.
+   */
+  validationProfile: z.string().nullable().default(null),
 });
 export type SuggestionBundle = z.infer<typeof suggestionBundleSchema>;
 

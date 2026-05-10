@@ -21,6 +21,7 @@ import {
 import { buildEditorCommand } from "./commands/editor.js";
 import { buildSuggestionsCommand } from "./commands/suggestions.js";
 import { buildBundlesCommand } from "./commands/bundles.js";
+import { buildValidationCommand } from "./commands/validation.js";
 
 const program = new Command();
 
@@ -66,6 +67,7 @@ program.addCommand(buildGatewaysCommand());
 program.addCommand(buildEditorCommand());
 program.addCommand(buildSuggestionsCommand());
 program.addCommand(buildBundlesCommand());
+program.addCommand(buildValidationCommand());
 
 program
   .command("run <task...>")

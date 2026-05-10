@@ -554,6 +554,7 @@ describe("final report — bundles section", () => {
           reversePatchPath: "suggestion-bundles/b-1-reverse.patch",
           touchedFiles: ["src/a.ts", "src/b.ts"],
           sameFileWarnings: [],
+          validationProfile: null,
         },
       ],
     });

@@ -10,6 +10,8 @@ export type ParsedSuggestion = {
   lineStart: number | null;
   lineEnd: number | null;
   proposedPatch: string | null;
+  /** Optional VALIDATION_PROFILE: <name> tag from the marker block. Trimmed. */
+  validationProfile: string | null;
 };
 
 /**
@@ -64,6 +66,7 @@ function parseBlock(block: string[]): ParsedSuggestion | null {
   let file: string | null = null;
   let lineStart: number | null = null;
   let lineEnd: number | null = null;
+  let validationProfile: string | null = null;
   const bodyLines: string[] = [];
   const patchLines: string[] = [];
 
@@ -85,6 +88,9 @@ function parseBlock(block: string[]): ParsedSuggestion | null {
             lineStart = Number(r[1]);
             lineEnd = r[2] ? Number(r[2]) : null;
           }
+        } else if (key === "VALIDATION_PROFILE") {
+          const v = value.trim();
+          if (v) validationProfile = v;
         } else if (key === "BODY") {
           // Inline single-line BODY allowed: "BODY: short text".
           if (value.trim()) bodyLines.push(value);
@@ -119,6 +125,7 @@ function parseBlock(block: string[]): ParsedSuggestion | null {
     file,
     lineStart,
     lineEnd,
+    validationProfile,
     // Unified diffs need to end on a newline — git apply rejects "corrupt
     // patch" otherwise. Strip stray blank lines but keep exactly one
     // trailing newline so apply / -R --check accepts the captured text.
@@ -164,5 +171,6 @@ export function makeSuggestionRecord(input: {
     appliedPatchPath: null,
     reversePatchPath: null,
     validationResultPath: null,
+    validationProfile: input.parsed.validationProfile,
   };
 }

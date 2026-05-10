@@ -17,6 +17,7 @@ import type {
   SuggestionBundle,
   SuggestionValidationResult,
 } from "../../lib/types.js";
+import { ProfileSelect } from "./ProfileSelect.js";
 
 type Props = {
   runId: string;
@@ -46,7 +47,18 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     Record<string, SmartApplyResult | null>
   >({});
   const [smartOpts, setSmartOpts] = useState<
-    Record<string, { validateEachStep: boolean; autoRevertFailing: boolean }>
+    Record<
+      string,
+      {
+        validateEachStep: boolean;
+        autoRevertFailing: boolean;
+        useSuggestionProfiles: boolean;
+        profileOverride: string | null;
+      }
+    >
+  >({});
+  const [bundleProfiles, setBundleProfiles] = useState<
+    Record<string, string | null>
   >({});
 
   async function load() {
@@ -102,10 +114,18 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   async function apply(b: SuggestionBundle) {
     setBusy(b.id);
     try {
-      const r = await api.applyBundle({ runId, bundleId: b.id });
+      const profile = bundleProfiles[b.id] ?? b.validationProfile ?? null;
+      const r = await api.applyBundle({
+        runId,
+        bundleId: b.id,
+        // The plain apply does not run validation; we never auto-promote it.
+        validateAfterApply: false,
+        validationProfile: null,
+      });
       setPreflights((prev) => ({ ...prev, [b.id]: r.preflight }));
       await load();
       onChange();
+      void profile;
     } catch (err) {
       setError(messageFor(err));
     } finally {
@@ -116,6 +136,8 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     const opts = smartOpts[b.id] ?? {
       validateEachStep: true,
       autoRevertFailing: false,
+      useSuggestionProfiles: false,
+      profileOverride: null,
     };
     if (opts.autoRevertFailing) {
       const ok =
@@ -132,6 +154,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
         bundleId: b.id,
         validateEachStep: opts.validateEachStep,
         autoRevertFailing: opts.autoRevertFailing,
+        // server rejects providing both at once; UI keeps them mutually
+        // exclusive by disabling the dropdown when useSuggestionProfiles is on.
+        useSuggestionProfiles: opts.useSuggestionProfiles,
+        validationProfile: opts.useSuggestionProfiles
+          ? null
+          : opts.profileOverride,
       });
       setSmartResults((prev) => ({ ...prev, [b.id]: r.result }));
       await load();
@@ -142,12 +170,22 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
       setBusy(null);
     }
   }
-  function setSmartOpt(bundleId: string, patch: Partial<{ validateEachStep: boolean; autoRevertFailing: boolean }>) {
+  function setSmartOpt(
+    bundleId: string,
+    patch: Partial<{
+      validateEachStep: boolean;
+      autoRevertFailing: boolean;
+      useSuggestionProfiles: boolean;
+      profileOverride: string | null;
+    }>,
+  ) {
     setSmartOpts((prev) => ({
       ...prev,
       [bundleId]: {
         validateEachStep: prev[bundleId]?.validateEachStep ?? true,
         autoRevertFailing: prev[bundleId]?.autoRevertFailing ?? false,
+        useSuggestionProfiles: prev[bundleId]?.useSuggestionProfiles ?? false,
+        profileOverride: prev[bundleId]?.profileOverride ?? null,
         ...patch,
       },
     }));
@@ -155,7 +193,12 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   async function validate(b: SuggestionBundle) {
     setBusy(b.id);
     try {
-      const r = await api.validateBundle({ runId, bundleId: b.id });
+      const r = await api.validateBundle({
+        runId,
+        bundleId: b.id,
+        validationProfile:
+          bundleProfiles[b.id] ?? b.validationProfile ?? null,
+      });
       setValidations((prev) => ({ ...prev, [b.id]: r.result }));
       await load();
     } catch (err) {
@@ -329,10 +372,18 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                     <SmartApplyControls
                       bundleId={b.id}
                       busy={busy === b.id}
+                      bundleProfile={
+                        bundleProfiles[b.id] ?? b.validationProfile ?? null
+                      }
+                      onChangeBundleProfile={(p) =>
+                        setBundleProfiles((prev) => ({ ...prev, [b.id]: p }))
+                      }
                       opts={
                         smartOpts[b.id] ?? {
                           validateEachStep: true,
                           autoRevertFailing: false,
+                          useSuggestionProfiles: false,
+                          profileOverride: null,
                         }
                       }
                       onChangeOpts={(patch) => setSmartOpt(b.id, patch)}
@@ -466,6 +517,8 @@ function messageFor(err: unknown): string {
 function SmartApplyControls({
   bundleId,
   busy,
+  bundleProfile,
+  onChangeBundleProfile,
   opts,
   onChangeOpts,
   onApply,
@@ -473,8 +526,22 @@ function SmartApplyControls({
 }: {
   bundleId: string;
   busy: boolean;
-  opts: { validateEachStep: boolean; autoRevertFailing: boolean };
-  onChangeOpts: (patch: Partial<{ validateEachStep: boolean; autoRevertFailing: boolean }>) => void;
+  bundleProfile: string | null;
+  onChangeBundleProfile: (next: string | null) => void;
+  opts: {
+    validateEachStep: boolean;
+    autoRevertFailing: boolean;
+    useSuggestionProfiles: boolean;
+    profileOverride: string | null;
+  };
+  onChangeOpts: (
+    patch: Partial<{
+      validateEachStep: boolean;
+      autoRevertFailing: boolean;
+      useSuggestionProfiles: boolean;
+      profileOverride: string | null;
+    }>,
+  ) => void;
   onApply: () => void;
   onSmartApply: () => void;
 }) {
@@ -524,6 +591,34 @@ function SmartApplyControls({
           />
           Revert failing step
         </label>
+        <label className="inline-flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={opts.useSuggestionProfiles}
+            disabled={!opts.validateEachStep}
+            onChange={(e) =>
+              onChangeOpts({
+                useSuggestionProfiles: e.target.checked,
+                // Mutually exclusive with profileOverride.
+                profileOverride: e.target.checked ? null : opts.profileOverride,
+              })
+            }
+          />
+          Use each suggestion's profile
+        </label>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <ProfileSelect
+          value={bundleProfile}
+          onChange={onChangeBundleProfile}
+          label="Bundle profile"
+        />
+        <ProfileSelect
+          value={opts.profileOverride}
+          onChange={(p) => onChangeOpts({ profileOverride: p })}
+          disabled={!opts.validateEachStep || opts.useSuggestionProfiles}
+          label="Smart-apply override"
+        />
       </div>
     </div>
   );
@@ -567,6 +662,13 @@ function SmartApplyResultBlock({
             </span>
             {step.validation ? (
               <>
+                {" · "}
+                <span className="text-amaco-fg-muted">
+                  {step.validation.profileName}
+                  {step.validation.profileSource !== "default"
+                    ? `(${step.validation.profileSource})`
+                    : ""}
+                </span>
                 {" · "}
                 <span
                   className={

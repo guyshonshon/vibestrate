@@ -19,6 +19,7 @@ import type {
   SuggestionValidationResult,
 } from "../../lib/types.js";
 import { ReviewPassPanel } from "./ReviewPassPanel.js";
+import { ProfileSelect } from "./ProfileSelect.js";
 
 type Props = {
   runId: string;
@@ -99,6 +100,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
   async function apply(
     s: ReviewSuggestion,
     mode: "plain" | "validate" | "validate-revert" = "plain",
+    profileName?: string | null,
   ) {
     if (mode === "validate-revert") {
       const ok =
@@ -115,6 +117,10 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
         suggestionId: s.id,
         validateAfterApply: mode !== "plain",
         autoRevertOnValidationFail: mode === "validate-revert",
+        // Only forward when actually validating; the server rejects this
+        // combo otherwise.
+        validationProfile:
+          mode !== "plain" ? (profileName ?? s.validationProfile ?? null) : null,
       });
       await load();
     } catch (err) {
@@ -123,10 +129,14 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
       setBusy(null);
     }
   }
-  async function validate(s: ReviewSuggestion) {
+  async function validate(s: ReviewSuggestion, profileName?: string | null) {
     setBusy(s.id);
     try {
-      const r = await api.validateSuggestion({ runId, suggestionId: s.id });
+      const r = await api.validateSuggestion({
+        runId,
+        suggestionId: s.id,
+        validationProfile: profileName ?? s.validationProfile ?? null,
+      });
       setValidations((prev) => ({ ...prev, [s.id]: r.result }));
       await load();
     } catch (err) {
@@ -387,8 +397,8 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
               validation={validations[s.id] ?? null}
               onApprove={() => approve(s)}
               onReject={() => reject(s)}
-              onApply={(mode) => apply(s, mode)}
-              onValidate={() => validate(s)}
+              onApply={(mode, profile) => apply(s, mode, profile)}
+              onValidate={(profile) => validate(s, profile)}
               onRevert={() => revert(s)}
             />
           ))}
@@ -425,10 +435,19 @@ function Row({
   validation: SuggestionValidationResult | null;
   onApprove: () => void;
   onReject: () => void;
-  onApply: (mode: "plain" | "validate" | "validate-revert") => void;
-  onValidate: () => void;
+  onApply: (
+    mode: "plain" | "validate" | "validate-revert",
+    profileName?: string | null,
+  ) => void;
+  onValidate: (profileName?: string | null) => void;
   onRevert: () => void;
 }) {
+  // Per-row profile selection; preselect the suggestion's marker if any.
+  const [profile, setProfile] = useState<string | null>(s.validationProfile);
+  useEffect(() => {
+    setProfile(s.validationProfile);
+  }, [s.validationProfile]);
+
   const isApplied =
     s.status === "applied" ||
     s.status === "validation_passed" ||
@@ -497,6 +516,15 @@ function Row({
         </div>
       ) : null}
       {validation ? <ValidationBlock result={validation} /> : null}
+      {s.status === "approved" || isApplied ? (
+        <div className="mt-1.5">
+          <ProfileSelect
+            value={profile}
+            onChange={setProfile}
+            suggestedFromMarker={s.validationProfile}
+          />
+        </div>
+      ) : null}
       <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
         {s.status === "open" ? (
           <>
@@ -521,13 +549,16 @@ function Row({
           </>
         ) : null}
         {s.status === "approved" && s.proposedPatch ? (
-          <ApplyMenu busy={busy} onApply={onApply} />
+          <ApplyMenu
+            busy={busy}
+            onApply={(mode) => onApply(mode, profile)}
+          />
         ) : null}
         {isApplied ? (
           <>
             <button
               type="button"
-              onClick={onValidate}
+              onClick={() => onValidate(profile)}
               disabled={busy}
               className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
               title="Run commands.validate inside the run worktree"

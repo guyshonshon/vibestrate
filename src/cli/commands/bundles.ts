@@ -165,16 +165,32 @@ export function buildBundlesCommand(): Command {
       "--auto-revert-on-fail",
       "if validation fails, revert the bundle (only valid with --validate)",
     )
+    .option(
+      "--profile <name>",
+      "validation profile to run after apply (only meaningful with --validate)",
+    )
     .action(
       async (
         runId: string,
         bundleId: string,
-        opts: { validate?: boolean; autoRevertOnFail?: boolean },
+        opts: {
+          validate?: boolean;
+          autoRevertOnFail?: boolean;
+          profile?: string;
+        },
       ) => {
         if (opts.autoRevertOnFail && !opts.validate) {
           console.error(
             color.red(
               "--auto-revert-on-fail requires --validate (auto-revert only fires after validation actually runs).",
+            ),
+          );
+          process.exit(2);
+        }
+        if (opts.profile && !opts.validate) {
+          console.error(
+            color.red(
+              "--profile only applies when --validate is set.",
             ),
           );
           process.exit(2);
@@ -185,6 +201,7 @@ export function buildBundlesCommand(): Command {
           const r = await svc.apply(bundleId, {
             validateAfterApply: opts.validate,
             autoRevertOnValidationFail: opts.autoRevertOnFail,
+            profileName: opts.profile ?? null,
           });
           renderApplyResult(r.bundle);
           if (r.preflight.sameFileWarnings.length > 0) {
@@ -225,6 +242,14 @@ export function buildBundlesCommand(): Command {
       "--auto-revert-failing",
       "when --stop-on-validation-fail is set, revert ONLY the failing step (prior steps stay applied)",
     )
+    .option(
+      "--profile <name>",
+      "force every step to use this named validation profile",
+    )
+    .option(
+      "--use-suggestion-profiles",
+      "let each step use its own VALIDATION_PROFILE (falls back to bundle/default)",
+    )
     .action(
       async (
         runId: string,
@@ -232,6 +257,8 @@ export function buildBundlesCommand(): Command {
         opts: {
           stopOnValidationFail?: boolean;
           autoRevertFailing?: boolean;
+          profile?: string;
+          useSuggestionProfiles?: boolean;
         },
       ) => {
         if (opts.autoRevertFailing && !opts.stopOnValidationFail) {
@@ -242,12 +269,30 @@ export function buildBundlesCommand(): Command {
           );
           process.exit(2);
         }
+        if (opts.profile && opts.useSuggestionProfiles) {
+          console.error(
+            color.red(
+              "--profile and --use-suggestion-profiles are mutually exclusive (override vs per-step).",
+            ),
+          );
+          process.exit(2);
+        }
+        if ((opts.profile || opts.useSuggestionProfiles) && !opts.stopOnValidationFail) {
+          console.error(
+            color.red(
+              "--profile / --use-suggestion-profiles only apply when --stop-on-validation-fail is set.",
+            ),
+          );
+          process.exit(2);
+        }
         await requireRun(runId);
         try {
           const svc = new SuggestionBundleService(process.cwd(), runId);
           const r = await svc.smartApply(bundleId, {
             validateEachStep: opts.stopOnValidationFail,
             autoRevertFailing: opts.autoRevertFailing,
+            profileName: opts.profile ?? null,
+            useSuggestionProfiles: opts.useSuggestionProfiles,
           });
           renderSmartApplyResult(r.result);
           if (
@@ -267,11 +312,15 @@ export function buildBundlesCommand(): Command {
     .description(
       "Run commands.validate against the run worktree, attached to a bundle.",
     )
-    .action(async (runId: string, bundleId: string) => {
+    .option(
+      "--profile <name>",
+      "named validation profile from commands.validationProfiles",
+    )
+    .action(async (runId: string, bundleId: string, opts: { profile?: string }) => {
       await requireRun(runId);
       try {
         const svc = new SuggestionBundleService(process.cwd(), runId);
-        await runBundleValidate(svc, bundleId);
+        await runBundleValidate(svc, bundleId, opts.profile);
       } catch (err) {
         handle(err);
       }
@@ -427,11 +476,16 @@ function renderSmartApplyResult(
 async function runBundleValidate(
   svc: SuggestionBundleService,
   bundleId: string,
+  profileName?: string,
 ): Promise<void> {
-  const r = await svc.validate(bundleId);
+  const r = await svc.validate(bundleId, { profileName: profileName ?? null });
+  const profileTag =
+    r.result.profileName === "default"
+      ? color.dim("(default)")
+      : color.dim(`(profile: ${r.result.profileName} · ${r.result.profileSource})`);
   if (r.result.status === "passed") {
     console.log(
-      `${symbol.ok()} validation passed: ${r.result.summary.passed}/${r.result.summary.total}.`,
+      `${symbol.ok()} validation passed: ${r.result.summary.passed}/${r.result.summary.total} ${profileTag}`,
     );
   } else if (r.result.status === "failed") {
     console.error(

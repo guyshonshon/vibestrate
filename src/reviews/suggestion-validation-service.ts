@@ -30,6 +30,17 @@ export type SuggestionValidationResult = {
   commands: SuggestionValidationCommand[];
   /** Path to the persisted JSON inside .amaco/runs/<runId>/. */
   resultPath: string;
+  /** Which validation profile was used. "default" means commands.validate. */
+  profileName: string;
+  /** Where that profile choice came from. */
+  profileSource:
+    | "default"
+    | "named"
+    | "suggestion"
+    | "bundle"
+    | "override";
+  /** Resolved command list — what actually ran (or would have run). */
+  profileCommands: string[];
 };
 
 const TIMEOUT_PER_COMMAND_MS = 5 * 60_000;
@@ -57,11 +68,19 @@ export type RunValidationInput = {
   projectRoot: string;
   runId: string;
   worktreePath: string;
-  /** Configured commands.validate from project.yml. */
+  /** Resolved command list (already chosen via the validation profile resolver). */
   commands: readonly string[];
   scope:
     | { kind: "suggestion"; suggestionId: string }
     | { kind: "bundle"; bundleId: string };
+  /** Which profile was used. "default" means commands.validate. */
+  profileName?: string;
+  profileSource?:
+    | "default"
+    | "named"
+    | "suggestion"
+    | "bundle"
+    | "override";
 };
 
 /**
@@ -93,6 +112,10 @@ export async function runSuggestionValidation(
   const startedAt = nowIso();
   const startMs = Date.now();
 
+  const profileName = input.profileName ?? "default";
+  const profileSource = input.profileSource ?? "default";
+  const profileCommands = [...input.commands];
+
   if (!input.commands || input.commands.length === 0) {
     const out: SuggestionValidationResult = {
       scope: `${input.scope.kind}:${fileBaseId}`,
@@ -107,6 +130,9 @@ export async function runSuggestionValidation(
       summary: { total: 0, passed: 0, failed: 0 },
       commands: [],
       resultPath,
+      profileName,
+      profileSource,
+      profileCommands,
     };
     await writeText(resultPath, `${JSON.stringify(out, null, 2)}\n`);
     return out;
@@ -163,6 +189,9 @@ export async function runSuggestionValidation(
     summary: { total: commandResults.length, passed, failed },
     commands: commandResults,
     resultPath,
+    profileName,
+    profileSource,
+    profileCommands,
   };
   await writeText(resultPath, `${JSON.stringify(out, null, 2)}\n`);
   return out;

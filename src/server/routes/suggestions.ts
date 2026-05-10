@@ -125,6 +125,7 @@ export async function registerSuggestionRoutes(
     Body: {
       validateAfterApply?: boolean;
       autoRevertOnValidationFail?: boolean;
+      validationProfile?: string | null;
     };
   }>(
     "/api/runs/:runId/suggestions/:suggestionId/apply",
@@ -138,12 +139,19 @@ export async function registerSuggestionRoutes(
           "autoRevertOnValidationFail requires validateAfterApply.",
         );
       }
+      if (body.validationProfile && !body.validateAfterApply) {
+        throw new HttpError(
+          400,
+          "validationProfile requires validateAfterApply (validation never runs from a plain apply).",
+        );
+      }
       try {
         const r = await svc(req.params.runId).apply(
           req.params.suggestionId,
           {
             validateAfterApply: body.validateAfterApply,
             autoRevertOnValidationFail: body.autoRevertOnValidationFail,
+            profileName: body.validationProfile ?? null,
           },
         );
         return { suggestion: r };
@@ -158,13 +166,17 @@ export async function registerSuggestionRoutes(
 
   app.post<{
     Params: { runId: string; suggestionId: string };
+    Body: { validationProfile?: string | null };
   }>(
     "/api/runs/:runId/suggestions/:suggestionId/validate",
     async (req) => {
       assertSafeRunId(req.params.runId);
       await requireRun(req.params.runId);
       try {
-        const r = await svc(req.params.runId).validate(req.params.suggestionId);
+        const r = await svc(req.params.runId).validate(
+          req.params.suggestionId,
+          { profileName: req.body?.validationProfile ?? null },
+        );
         return { suggestion: r.suggestion, result: r.result };
       } catch (err) {
         if (err instanceof SuggestionServiceError) {

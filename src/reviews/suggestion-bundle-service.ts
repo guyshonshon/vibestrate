@@ -27,6 +27,11 @@ import {
 } from "./suggestion-validation-service.js";
 import { NotificationService } from "../notifications/notification-service.js";
 import { draftBundleEvent } from "../notifications/notification-router.js";
+import {
+  resolveValidationProfile,
+  ValidationProfileError,
+  type ValidationProfileSource,
+} from "../core/validation-profile-service.js";
 
 export class SuggestionBundleError extends Error {
   constructor(
@@ -59,7 +64,14 @@ export type SmartApplyStep = {
   applyError: string | null;
   /** Only set when validateEachStep was true. */
   validation:
-    | { status: "passed" | "failed" | "no_commands_configured"; passed: number; failed: number }
+    | {
+        status: "passed" | "failed" | "no_commands_configured";
+        passed: number;
+        failed: number;
+        /** Which profile drove this step's validation. */
+        profileName: string;
+        profileSource: ValidationProfileSource;
+      }
     | null;
   /** Set when autoRevertFailing was true and we attempted to revert this step. */
   revertStatus: "reverted" | "revert_failed" | null;
@@ -74,6 +86,10 @@ export type SmartApplyResult = {
   mode: {
     validateEachStep: boolean;
     autoRevertFailing: boolean;
+    /** When set, every step was forced to this profile name. */
+    profileOverride: string | null;
+    /** When true, each step preferred its own validationProfile. */
+    useSuggestionProfiles: boolean;
   };
   steps: SmartApplyStep[];
   finalStatus: BundleStatus;
@@ -133,6 +149,7 @@ export class SuggestionBundleService {
       suggestionIds: ids,
       approvalId: null,
       validationResultPath: null,
+      validationProfile: null,
       createdBy: "local-user",
       decisionNote: null,
       appliedAt: null,
@@ -393,6 +410,8 @@ export class SuggestionBundleService {
     options: {
       validateAfterApply?: boolean;
       autoRevertOnValidationFail?: boolean;
+      /** Override profile for the post-apply validation. */
+      profileName?: string | null;
     } = {},
   ): Promise<{
     bundle: SuggestionBundle;
@@ -577,7 +596,9 @@ export class SuggestionBundleService {
     if (!options.validateAfterApply) {
       return { bundle: finalBundle, preflight };
     }
-    const validated = await this.validate(bundleId);
+    const validated = await this.validate(bundleId, {
+      profileName: options.profileName,
+    });
     if (
       !options.autoRevertOnValidationFail ||
       validated.result.status !== "failed"
@@ -690,6 +711,18 @@ export class SuggestionBundleService {
     options: {
       validateEachStep?: boolean;
       autoRevertFailing?: boolean;
+      /**
+       * Profile to use for the per-step validation. Resolution order:
+       *   1. options.profileName (explicit override; "override" source)
+       *   2. options.useSuggestionProfiles=true → each step's own
+       *      validationProfile, falling back to the bundle's own
+       *      validationProfile, falling back to default
+       *   3. bundle.validationProfile (when set; "bundle" source)
+       *   4. default commands.validate
+       * Has no effect unless validateEachStep is true.
+       */
+      profileName?: string | null;
+      useSuggestionProfiles?: boolean;
     } = {},
   ): Promise<{ bundle: SuggestionBundle; result: SmartApplyResult }> {
     const bundle = await this.requireBundle(bundleId);
@@ -700,6 +733,27 @@ export class SuggestionBundleService {
       );
     }
     const worktreePath = await this.requireWorktree();
+
+    // Validate the explicit override up-front so a missing profile fails
+    // BEFORE we touch the worktree. The per-step path will resolve again
+    // (since useSuggestionProfiles can vary per step), but pre-validating
+    // a single override saves the user from a partial state caused by a typo.
+    if (options.validateEachStep && options.profileName?.trim()) {
+      try {
+        const cfg = await loadConfig(this.projectRoot);
+        resolveValidationProfile(
+          cfg.config,
+          options.profileName.trim(),
+          "override",
+        );
+      } catch (err) {
+        if (err instanceof ValidationProfileError) {
+          throw new SuggestionBundleError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    }
+
     const preflight = await this.preflight(bundleId);
 
     const steps: SmartApplyStep[] = bundle.suggestionIds.map((sid) => ({
@@ -736,6 +790,8 @@ export class SuggestionBundleService {
         mode: {
           validateEachStep: !!options.validateEachStep,
           autoRevertFailing: !!options.autoRevertFailing,
+          profileOverride: options.profileName?.trim() || null,
+          useSuggestionProfiles: !!options.useSuggestionProfiles,
         },
         steps,
         finalStatus: "smart_failed",
@@ -829,26 +885,54 @@ export class SuggestionBundleService {
 
       // Per-step validation, if requested.
       if (options.validateEachStep) {
-        let commands: readonly string[] = [];
+        let profile;
         try {
           const cfg = await loadConfig(this.projectRoot);
-          commands = cfg.config.commands.validate;
-        } catch {
-          commands = [];
+          const explicit = options.profileName?.trim();
+          if (explicit) {
+            profile = resolveValidationProfile(
+              cfg.config,
+              explicit,
+              "override",
+            );
+          } else if (options.useSuggestionProfiles && s.validationProfile) {
+            profile = resolveValidationProfile(
+              cfg.config,
+              s.validationProfile,
+              "suggestion",
+            );
+          } else if (bundle.validationProfile) {
+            profile = resolveValidationProfile(
+              cfg.config,
+              bundle.validationProfile,
+              "bundle",
+            );
+          } else {
+            profile = resolveValidationProfile(cfg.config, null, "default");
+          }
+        } catch (err) {
+          if (err instanceof ValidationProfileError) {
+            throw new SuggestionBundleError(err.statusCode, err.message);
+          }
+          throw err;
         }
         const v = await runSuggestionValidation({
           projectRoot: this.projectRoot,
           runId: this.runId,
           worktreePath,
-          commands,
+          commands: profile.commands,
           // Validate at suggestion-scope so the artifacts file naming stays
           // honest — this is a per-step probe, not a bundle-level pass.
           scope: { kind: "suggestion", suggestionId: sid },
+          profileName: profile.profileName,
+          profileSource: profile.source,
         });
         step.validation = {
           status: v.status,
           passed: v.summary.passed,
           failed: v.summary.failed,
+          profileName: profile.profileName,
+          profileSource: profile.source,
         };
         if (v.status === "passed") {
           await this.events.append({
@@ -904,6 +988,8 @@ export class SuggestionBundleService {
       mode: {
         validateEachStep: !!options.validateEachStep,
         autoRevertFailing: !!options.autoRevertFailing,
+        profileOverride: options.profileName?.trim() || null,
+        useSuggestionProfiles: !!options.useSuggestionProfiles,
       },
       steps,
       finalStatus,
@@ -1045,7 +1131,13 @@ export class SuggestionBundleService {
    * Validate the worktree the same way single-suggestion validation does, but
    * stamp the bundle so the dashboard can show a per-pass result.
    */
-  async validate(bundleId: string): Promise<{
+  async validate(
+    bundleId: string,
+    options: {
+      /** Override; takes precedence over the bundle's own validationProfile. */
+      profileName?: string | null;
+    } = {},
+  ): Promise<{
     bundle: SuggestionBundle;
     result: SuggestionValidationResult;
   }> {
@@ -1053,7 +1145,10 @@ export class SuggestionBundleService {
     if (
       bundle.status !== "applied" &&
       bundle.status !== "validation_passed" &&
-      bundle.status !== "validation_failed"
+      bundle.status !== "validation_failed" &&
+      bundle.status !== "smart_applied" &&
+      bundle.status !== "smart_stopped" &&
+      bundle.status !== "smart_reverted_failing"
     ) {
       throw new SuggestionBundleError(
         409,
@@ -1061,19 +1156,36 @@ export class SuggestionBundleService {
       );
     }
     const worktreePath = await this.requireWorktree();
-    let commands: readonly string[] = [];
+
+    const explicit = options.profileName?.trim();
+    let profile;
     try {
       const cfg = await loadConfig(this.projectRoot);
-      commands = cfg.config.commands.validate;
-    } catch {
-      commands = [];
+      const useExplicit = explicit !== undefined && explicit !== "";
+      const sourceHint: ValidationProfileSource = useExplicit
+        ? "override"
+        : bundle.validationProfile
+          ? "bundle"
+          : "default";
+      profile = resolveValidationProfile(
+        cfg.config,
+        useExplicit ? explicit : (bundle.validationProfile ?? null),
+        sourceHint,
+      );
+    } catch (err) {
+      if (err instanceof ValidationProfileError) {
+        throw new SuggestionBundleError(err.statusCode, err.message);
+      }
+      throw err;
     }
     const result = await runSuggestionValidation({
       projectRoot: this.projectRoot,
       runId: this.runId,
       worktreePath,
-      commands,
+      commands: profile.commands,
       scope: { kind: "bundle", bundleId: bundle.id },
+      profileName: profile.profileName,
+      profileSource: profile.source,
     });
 
     let nextStatus: BundleStatus = bundle.status;

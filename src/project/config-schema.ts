@@ -19,9 +19,55 @@ export const gitConfigSchema = z.object({
   allowAutoPush: z.boolean().default(false),
 });
 
+/**
+ * Profile names must be a single token of letters/digits/dash/underscore so
+ * they round-trip safely through CLI flags, URL params, and YAML keys. We
+ * reject empty strings and reserved names (the literal "default", "all", and
+ * "none") to avoid confusion with the implicit default profile coming from
+ * commands.validate.
+ */
+export const VALIDATION_PROFILE_NAME_RE = /^[a-zA-Z0-9_-]{1,40}$/;
+const RESERVED_PROFILE_NAMES = new Set(["default", "all", "none"]);
+
+const profileNameSchema = z
+  .string()
+  .min(1)
+  .max(40)
+  .regex(
+    VALIDATION_PROFILE_NAME_RE,
+    "Profile names must use letters, digits, dashes, or underscores.",
+  )
+  .refine(
+    (v) => !RESERVED_PROFILE_NAMES.has(v),
+    'Profile names cannot be "default", "all", or "none".',
+  );
+
+const validationProfileEntrySchema = z.object({
+  description: z.string().max(200).optional(),
+  commands: z
+    .array(z.string().min(1))
+    .min(1, "A validation profile must list at least one command."),
+});
+
 export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]),
+  /**
+   * Optional named validation profiles. The implicit *default* profile is the
+   * `validate` array above — it always exists and stays the fallback whenever
+   * a caller doesn't pick a named profile. If validationProfiles is absent or
+   * empty, every existing flow keeps working exactly as before.
+   *
+   * Keys are validated against VALIDATION_PROFILE_NAME_RE; reserved names
+   * ("default" / "all" / "none") are rejected to avoid clashes with the
+   * implicit default. Profiles must list at least one command.
+   */
+  validationProfiles: z
+    .record(profileNameSchema, validationProfileEntrySchema)
+    .optional()
+    .default({}),
 });
+
+export type ValidationProfileEntry = z.infer<typeof validationProfileEntrySchema>;
 
 export const schedulerConfigSchema = z.object({
   maxConcurrentRuns: z.number().int().min(1).max(16).default(1),

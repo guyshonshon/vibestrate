@@ -1166,6 +1166,92 @@ Hard refusals before any git command runs:
 
 We do not use `git reset`. We do not touch the project root. We do not push. We do not merge.
 
+## Validation profiles
+
+The `commands.validate` array is the **default** validation profile — every existing flow keeps using it when no profile is specified. To run a different command set per suggestion or per review pass, configure named profiles under `commands.validationProfiles`:
+
+```yaml
+commands:
+  validate:
+    - pnpm test
+  validationProfiles:
+    quick:
+      description: Fast TypeScript check
+      commands:
+        - pnpm typecheck
+    full:
+      description: Full local validation
+      commands:
+        - pnpm typecheck
+        - pnpm test
+        - pnpm build
+```
+
+Profile names must be a single token of letters/digits/dash/underscore. The names `default`, `all`, and `none` are reserved. Profiles must list at least one command.
+
+```bash
+amaco validation profiles                 # list default + every named profile with the resolved commands
+amaco validation profile show quick       # show one profile's commands and source
+```
+
+### Suggestion-level profile (marker)
+
+Reviewer/verifier artifacts can declare the right profile per suggestion right inside the marker block:
+
+```text
+AMACO_SUGGESTION:
+TITLE: Fix settings type guard
+FILE: src/settings.ts
+LINES: 10-20
+VALIDATION_PROFILE: quick
+BODY: Use a narrower guard before reading settings.value
+PROPOSED_PATCH:
+diff --git a/src/settings.ts b/src/settings.ts
+…
+AMACO_SUGGESTION_END
+```
+
+The parser captures the profile name verbatim (trimmed). It never invents one from prose. The dashboard preselects this profile in the suggestion's row dropdown ("(from marker)" label) and the CLI honors it without an explicit `--profile`.
+
+### CLI
+
+```bash
+amaco suggestions validate <runId> <id> --profile quick
+amaco suggestions apply <runId> <id> --validate --profile quick
+amaco suggestions apply <runId> <id> --validate --auto-revert-on-fail --profile quick
+
+amaco bundles validate <runId> <bundleId> --profile full
+amaco bundles apply <runId> <bundleId> --validate --profile full
+amaco bundles smart-apply <runId> <bundleId> --stop-on-validation-fail --profile quick
+amaco bundles smart-apply <runId> <bundleId> --stop-on-validation-fail --use-suggestion-profiles
+```
+
+`--profile` only applies when validation actually runs (`--validate` or `--stop-on-validation-fail`). The CLI rejects the combo otherwise. `--profile` and `--use-suggestion-profiles` are mutually exclusive — pick the override **or** "let each step decide".
+
+### Resolution rules
+
+1. Caller-supplied `--profile` / `validationProfile` wins (`source: override`).
+2. For smart apply with `--use-suggestion-profiles`, each step's own `validationProfile` wins (`source: suggestion`), falling back to the bundle's profile, then to the default.
+3. For validate / apply without an override, the suggestion's own `validationProfile` is used when present (`source: suggestion`), then the bundle's profile (`source: bundle`), then the default (`source: default`).
+4. Missing profile → 404. Empty profile → 400. Empty default → `no_commands_configured` (the existing behavior is preserved exactly).
+
+Profiles are just named command lists. They are **not** safer than the commands you already configure under `commands.validate` — they only let you scope the validation cost to what each change actually needs. A profile that runs `rm -rf /` is just as dangerous as `commands.validate: ["rm -rf /"]` would be. Configure thoughtfully.
+
+### Persistence
+
+Every validation result file (`.amaco/runs/<runId>/suggestion-validations/<id>.json` and `.../suggestion-bundle-validations/<id>.json`) now records:
+
+```json
+{
+  "profileName": "quick",
+  "profileSource": "suggestion",
+  "profileCommands": ["pnpm typecheck"],
+  …
+}
+```
+
+Smart-apply step results (`.../<bundleId>-smart-apply.json`) carry the same per-step profile in `steps[i].validation`. The final report's Review Passes table now includes a `Profile` column.
+
 ## Why validation is explicit
 
 Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`. The opt-in flags below stack on top of that explicit posture — they never run validation as a side effect of a plain *Apply*.

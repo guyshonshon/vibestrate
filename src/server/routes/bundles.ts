@@ -102,6 +102,7 @@ export async function registerBundlesRoutes(
     const body = (req.body ?? {}) as {
       validateAfterApply?: boolean;
       autoRevertOnValidationFail?: boolean;
+      validationProfile?: string | null;
     };
     if (body.autoRevertOnValidationFail && !body.validateAfterApply) {
       throw new HttpError(
@@ -109,9 +110,16 @@ export async function registerBundlesRoutes(
         "autoRevertOnValidationFail requires validateAfterApply.",
       );
     }
+    if (body.validationProfile && !body.validateAfterApply) {
+      throw new HttpError(
+        400,
+        "validationProfile requires validateAfterApply.",
+      );
+    }
     const r = await s.apply((req.params as { bundleId: string }).bundleId, {
       validateAfterApply: body.validateAfterApply,
       autoRevertOnValidationFail: body.autoRevertOnValidationFail,
+      profileName: body.validationProfile ?? null,
     });
     return { bundle: r.bundle, preflight: r.preflight };
   });
@@ -119,6 +127,8 @@ export async function registerBundlesRoutes(
     const body = (req.body ?? {}) as {
       validateEachStep?: boolean;
       autoRevertFailing?: boolean;
+      validationProfile?: string | null;
+      useSuggestionProfiles?: boolean;
     };
     if (body.autoRevertFailing && !body.validateEachStep) {
       throw new HttpError(
@@ -126,18 +136,37 @@ export async function registerBundlesRoutes(
         "autoRevertFailing requires validateEachStep.",
       );
     }
+    if (body.validationProfile && body.useSuggestionProfiles) {
+      throw new HttpError(
+        400,
+        "validationProfile and useSuggestionProfiles are mutually exclusive.",
+      );
+    }
+    if (
+      (body.validationProfile || body.useSuggestionProfiles) &&
+      !body.validateEachStep
+    ) {
+      throw new HttpError(
+        400,
+        "validationProfile / useSuggestionProfiles only apply when validateEachStep is true.",
+      );
+    }
     const r = await s.smartApply(
       (req.params as { bundleId: string }).bundleId,
       {
         validateEachStep: body.validateEachStep,
         autoRevertFailing: body.autoRevertFailing,
+        profileName: body.validationProfile ?? null,
+        useSuggestionProfiles: body.useSuggestionProfiles,
       },
     );
     return { bundle: r.bundle, result: r.result };
   });
   registerBundleAction(app, projectRoot, "validate", async (s, req) => {
+    const body = (req.body ?? {}) as { validationProfile?: string | null };
     const r = await s.validate(
       (req.params as { bundleId: string }).bundleId,
+      { profileName: body.validationProfile ?? null },
     );
     return { bundle: r.bundle, result: r.result };
   });

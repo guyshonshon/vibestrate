@@ -50,6 +50,13 @@ export const reviewSuggestionSchema = z.object({
   reversePatchPath: z.string().nullable().default(null),
   /** Most recent validation result file for this suggestion, if any. */
   validationResultPath: z.string().nullable().default(null),
+  /**
+   * Optional named validation profile to run by default for this suggestion.
+   * "default" / null / undefined all resolve to commands.validate. Honored by
+   * `validate`, `apply --validate`, and smart-apply (when
+   * useSuggestionProfiles=true).
+   */
+  validationProfile: z.string().nullable().default(null),
 });
 export type ReviewSuggestion = z.infer<typeof reviewSuggestionSchema>;
 

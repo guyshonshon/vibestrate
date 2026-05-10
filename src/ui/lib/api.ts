@@ -24,6 +24,7 @@ import type {
   SuggestionBundle,
   SuggestionValidationResult,
   BundlePreflightResult,
+  ValidationProfileSummary,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
   ProposalParseSummary,
@@ -570,12 +571,14 @@ export const api = {
     suggestionId: string;
     validateAfterApply?: boolean;
     autoRevertOnValidationFail?: boolean;
+    validationProfile?: string | null;
   }): Promise<ReviewSuggestion> {
     const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/apply`,
       {
         validateAfterApply: input.validateAfterApply,
         autoRevertOnValidationFail: input.autoRevertOnValidationFail,
+        validationProfile: input.validationProfile,
       },
     );
     return r.suggestion;
@@ -583,12 +586,14 @@ export const api = {
   async validateSuggestion(input: {
     runId: string;
     suggestionId: string;
+    validationProfile?: string | null;
   }): Promise<{
     suggestion: ReviewSuggestion;
     result: SuggestionValidationResult;
   }> {
     return jsonPost(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/validate`,
+      { validationProfile: input.validationProfile },
     );
   },
   async revertSuggestion(input: {
@@ -675,12 +680,14 @@ export const api = {
     bundleId: string;
     validateAfterApply?: boolean;
     autoRevertOnValidationFail?: boolean;
+    validationProfile?: string | null;
   }): Promise<{ bundle: SuggestionBundle; preflight: BundlePreflightResult }> {
     return jsonPost(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/apply`,
       {
         validateAfterApply: input.validateAfterApply,
         autoRevertOnValidationFail: input.autoRevertOnValidationFail,
+        validationProfile: input.validationProfile,
       },
     );
   },
@@ -689,25 +696,37 @@ export const api = {
     bundleId: string;
     validateEachStep?: boolean;
     autoRevertFailing?: boolean;
+    validationProfile?: string | null;
+    useSuggestionProfiles?: boolean;
   }): Promise<{ bundle: SuggestionBundle; result: SmartApplyResult }> {
     return jsonPost(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/smart-apply`,
       {
         validateEachStep: input.validateEachStep,
         autoRevertFailing: input.autoRevertFailing,
+        validationProfile: input.validationProfile,
+        useSuggestionProfiles: input.useSuggestionProfiles,
       },
     );
   },
   async validateBundle(input: {
     runId: string;
     bundleId: string;
+    validationProfile?: string | null;
   }): Promise<{
     bundle: SuggestionBundle;
     result: SuggestionValidationResult;
   }> {
     return jsonPost(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/validate`,
+      { validationProfile: input.validationProfile },
     );
+  },
+  async listValidationProfiles(): Promise<ValidationProfileSummary[]> {
+    const r = await jsonGet<{ profiles: ValidationProfileSummary[] }>(
+      "/api/validation/profiles",
+    );
+    return r.profiles;
   },
   async revertBundle(input: {
     runId: string;

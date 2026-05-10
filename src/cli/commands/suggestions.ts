@@ -129,16 +129,32 @@ export function buildSuggestionsCommand(): Command {
       "--auto-revert-on-fail",
       "if validation fails, revert the patch (only valid with --validate)",
     )
+    .option(
+      "--profile <name>",
+      "validation profile to run after apply (only meaningful with --validate)",
+    )
     .action(
       async (
         runId: string,
         suggestionId: string,
-        opts: { validate?: boolean; autoRevertOnFail?: boolean },
+        opts: {
+          validate?: boolean;
+          autoRevertOnFail?: boolean;
+          profile?: string;
+        },
       ) => {
         if (opts.autoRevertOnFail && !opts.validate) {
           console.error(
             color.red(
               "--auto-revert-on-fail requires --validate (auto-revert only fires after validation actually runs).",
+            ),
+          );
+          process.exit(2);
+        }
+        if (opts.profile && !opts.validate) {
+          console.error(
+            color.red(
+              "--profile only applies when --validate is set (validation never runs from a plain apply).",
             ),
           );
           process.exit(2);
@@ -149,6 +165,7 @@ export function buildSuggestionsCommand(): Command {
           const r = await svc.apply(suggestionId, {
             validateAfterApply: opts.validate,
             autoRevertOnValidationFail: opts.autoRevertOnFail,
+            profileName: opts.profile ?? null,
           });
           renderApplyResult(r);
           // Non-zero exit on anything that didn't end clean.
@@ -170,11 +187,15 @@ export function buildSuggestionsCommand(): Command {
     .description(
       "Run the project's commands.validate inside the run's worktree against an applied suggestion.",
     )
-    .action(async (runId: string, suggestionId: string) => {
+    .option(
+      "--profile <name>",
+      "named validation profile from commands.validationProfiles",
+    )
+    .action(async (runId: string, suggestionId: string, opts: { profile?: string }) => {
       await requireRun(runId);
       try {
         const svc = new ReviewSuggestionService(process.cwd(), runId);
-        await runValidationCli(svc, suggestionId);
+        await runValidationCli(svc, suggestionId, opts.profile);
       } catch (err) {
         handleErr(err);
       }
@@ -250,11 +271,18 @@ function renderApplyResult(s: import("../../reviews/review-suggestion-types.js")
 async function runValidationCli(
   svc: ReviewSuggestionService,
   suggestionId: string,
+  profileName?: string,
 ): Promise<void> {
-  const r = await svc.validate(suggestionId);
+  const r = await svc.validate(suggestionId, {
+    profileName: profileName ?? null,
+  });
+  const profileTag =
+    r.result.profileName === "default"
+      ? color.dim(`(default)`)
+      : color.dim(`(profile: ${r.result.profileName} · ${r.result.profileSource})`);
   if (r.result.status === "passed") {
     console.log(
-      `${symbol.ok()} validation passed: ${r.result.summary.passed}/${r.result.summary.total} commands.`,
+      `${symbol.ok()} validation passed: ${r.result.summary.passed}/${r.result.summary.total} commands ${profileTag}`,
     );
   } else if (r.result.status === "failed") {
     console.error(

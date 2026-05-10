@@ -711,6 +711,7 @@ export type ReviewSuggestion = {
   appliedPatchPath: string | null;
   reversePatchPath: string | null;
   validationResultPath: string | null;
+  validationProfile: string | null;
 };
 
 export type SuggestionValidationCommand = {
@@ -721,6 +722,13 @@ export type SuggestionValidationCommand = {
   stdoutHead: string;
   stderrHead: string;
 };
+
+export type ValidationProfileSource =
+  | "default"
+  | "named"
+  | "suggestion"
+  | "bundle"
+  | "override";
 
 export type SuggestionValidationResult = {
   scope: string;
@@ -735,6 +743,17 @@ export type SuggestionValidationResult = {
   summary: { total: number; passed: number; failed: number };
   commands: SuggestionValidationCommand[];
   resultPath: string;
+  profileName: string;
+  profileSource: ValidationProfileSource;
+  profileCommands: string[];
+};
+
+export type ValidationProfileSummary = {
+  profileName: string;
+  source: ValidationProfileSource;
+  commands: string[];
+  description: string | null;
+  hasCommands: boolean;
 };
 
 export type BundleStatus =
@@ -766,6 +785,8 @@ export type SmartApplyStep = {
         status: "passed" | "failed" | "no_commands_configured";
         passed: number;
         failed: number;
+        profileName: string;
+        profileSource: ValidationProfileSource;
       }
     | null;
   revertStatus: "reverted" | "revert_failed" | null;
@@ -777,7 +798,12 @@ export type SmartApplyResult = {
   runId: string;
   startedAt: string;
   endedAt: string;
-  mode: { validateEachStep: boolean; autoRevertFailing: boolean };
+  mode: {
+    validateEachStep: boolean;
+    autoRevertFailing: boolean;
+    profileOverride: string | null;
+    useSuggestionProfiles: boolean;
+  };
   steps: SmartApplyStep[];
   finalStatus: BundleStatus;
   failedAt: number | null;
@@ -804,6 +830,7 @@ export type SuggestionBundle = {
   reversePatchPath: string | null;
   touchedFiles: string[];
   sameFileWarnings: { file: string; suggestionIds: string[] }[];
+  validationProfile: string | null;
 };
 
 export type BundlePreflightResult = {

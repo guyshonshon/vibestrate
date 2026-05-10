@@ -24,6 +24,7 @@ import { registerCodebaseEventRoutes } from "./routes/codebase-events.js";
 import { registerEditorRoutes } from "./routes/editor.js";
 import { registerSuggestionRoutes } from "./routes/suggestions.js";
 import { registerBundlesRoutes } from "./routes/bundles.js";
+import { registerValidationRoutes } from "./routes/validation.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -136,6 +137,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerEditorRoutes(app, { projectRoot: opts.projectRoot });
   await registerSuggestionRoutes(app, { projectRoot: opts.projectRoot });
   await registerBundlesRoutes(app, { projectRoot: opts.projectRoot });
+  await registerValidationRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

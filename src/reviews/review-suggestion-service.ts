@@ -27,6 +27,10 @@ import {
 } from "./suggestion-validation-service.js";
 import { NotificationService } from "../notifications/notification-service.js";
 import { draftSuggestionValidation } from "../notifications/notification-router.js";
+import {
+  resolveValidationProfile,
+  ValidationProfileError,
+} from "../core/validation-profile-service.js";
 
 export type SuggestionApplyOutcome = {
   ok: boolean;
@@ -104,6 +108,7 @@ export class ReviewSuggestionService {
       appliedPatchPath: null,
       reversePatchPath: null,
       validationResultPath: null,
+      validationProfile: null,
     };
     await this.store.upsert(rec);
     await this.events.append({
@@ -274,6 +279,11 @@ export class ReviewSuggestionService {
     options: {
       validateAfterApply?: boolean;
       autoRevertOnValidationFail?: boolean;
+      /**
+       * Optional profile to use for the post-apply validation. Forwarded to
+       * validate(); has no effect when validateAfterApply is false.
+       */
+      profileName?: string | null;
     } = {},
   ): Promise<ReviewSuggestion> {
     const current = await this.requireSuggestion(id);
@@ -374,7 +384,9 @@ export class ReviewSuggestionService {
     if (!options.validateAfterApply) {
       return updated;
     }
-    const validated = await this.validate(id);
+    const validated = await this.validate(id, {
+      profileName: options.profileName,
+    });
     if (
       !options.autoRevertOnValidationFail ||
       validated.result.status !== "failed"
@@ -498,7 +510,18 @@ export class ReviewSuggestionService {
    * suggestion's status flips to validation_passed / validation_failed; we
    * never silently overwrite the applied state if commands.validate is empty.
    */
-  async validate(id: string): Promise<{
+  async validate(
+    id: string,
+    options: {
+      /**
+       * Profile name from CLI/API. When undefined, we fall back to the
+       * suggestion's own validationProfile metadata, then to "default"
+       * (commands.validate). Pass "default" to force the implicit profile
+       * even if the suggestion declares its own.
+       */
+      profileName?: string | null;
+    } = {},
+  ): Promise<{
     suggestion: ReviewSuggestion;
     result: SuggestionValidationResult;
   }> {
@@ -520,21 +543,41 @@ export class ReviewSuggestionService {
         "This run has no worktree; cannot validate.",
       );
     }
-    let commands: readonly string[] = [];
+
+    // Resolve the profile. Caller-supplied "default" forces the implicit
+    // default; undefined falls back to the suggestion's own profile if any.
+    const explicit = options.profileName?.trim();
+    let profile;
     try {
       const cfg = await loadConfig(this.projectRoot);
-      commands = cfg.config.commands.validate;
-    } catch {
-      commands = [];
+      const useExplicit = explicit !== undefined && explicit !== "";
+      const sourceHint = useExplicit
+        ? "override"
+        : current.validationProfile
+          ? "suggestion"
+          : "default";
+      profile = resolveValidationProfile(
+        cfg.config,
+        useExplicit ? explicit : (current.validationProfile ?? null),
+        sourceHint,
+      );
+    } catch (err) {
+      if (err instanceof ValidationProfileError) {
+        throw new SuggestionServiceError(err.statusCode, err.message);
+      }
+      throw err;
     }
+
     let result: SuggestionValidationResult;
     try {
       result = await runSuggestionValidation({
         projectRoot: this.projectRoot,
         runId: this.runId,
         worktreePath,
-        commands,
+        commands: profile.commands,
         scope: { kind: "suggestion", suggestionId: id },
+        profileName: profile.profileName,
+        profileSource: profile.source,
       });
     } catch (err) {
       if (err instanceof SuggestionValidationError) {
