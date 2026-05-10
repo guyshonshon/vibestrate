@@ -442,6 +442,62 @@ export async function runDoctor(input: {
     });
   }
 
+  // Notification gateways: surface configured gateways and any env vars they
+  // reference but cannot resolve.
+  try {
+    const { NotificationStore } = await import(
+      "../notifications/notification-store.js"
+    );
+    const store = new NotificationStore(projectRoot);
+    const gateways = await store.readGateways();
+    const enabledIds = Object.entries(gateways.gateways)
+      .filter(([, cfg]) => cfg.enabled)
+      .map(([id]) => id);
+    if (enabledIds.length === 0) {
+      findings.push({
+        id: "notification-gateways",
+        severity: "ok",
+        title: "No external notification gateways enabled",
+        detail:
+          "Local in-app and CLI notifications still work. Enable an external gateway with `amaco gateways enable <id>` when you want external delivery.",
+        fixable: false,
+      });
+    } else {
+      const { envVarName } = await import(
+        "../notifications/gateways/secret-resolver.js"
+      );
+      const missing: string[] = [];
+      for (const id of enabledIds) {
+        const cfg = gateways.gateways[id]!;
+        for (const v of [cfg.url, cfg.token, cfg.target]) {
+          const env = envVarName(v);
+          if (env && !process.env[env]) missing.push(`${id} → ${env}`);
+        }
+      }
+      if (missing.length > 0) {
+        findings.push({
+          id: "notification-gateways",
+          severity: "warn",
+          title: `Notification gateway env vars are not set: ${missing.join(", ")}`,
+          detail:
+            "Gateway-secret values stored as env:NAME require the named env var to be set when Amaco runs. Notifications will be skipped until the env var is present.",
+          fixHint:
+            "Export the env var(s) in your shell, then re-run the gateway test (`amaco gateways test <id>`).",
+          fixable: false,
+        });
+      } else {
+        findings.push({
+          id: "notification-gateways",
+          severity: "ok",
+          title: `Notification gateways enabled: ${enabledIds.join(", ")}`,
+          fixable: false,
+        });
+      }
+    }
+  } catch {
+    // best-effort — never let notification health checks break doctor.
+  }
+
   // Approvals health: scan recent runs for pending approval requests.
   try {
     const fs = await import("node:fs/promises");

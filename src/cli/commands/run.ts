@@ -5,6 +5,7 @@ import { Orchestrator } from "../../core/orchestrator.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isAmacoError } from "../../utils/errors.js";
 import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
+import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -59,6 +60,9 @@ export async function runRunCommand(
     return 1;
   }
 
+  // Attach a CLI writer for the notifications gateway so attention-needed
+  // events (approvals, validation failures, run final status) print inline.
+  setCliWriter((line) => console.log(color.dim(line)));
   const cwd = process.cwd();
   const detected = await detectProject(cwd);
 

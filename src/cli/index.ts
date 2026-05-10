@@ -14,6 +14,10 @@ import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
 import { buildQueueCommand } from "./commands/queue.js";
+import {
+  buildGatewaysCommand,
+  buildNotificationsCommand,
+} from "./commands/notifications.js";
 
 const program = new Command();
 
@@ -54,6 +58,8 @@ program.addCommand(buildApprovalsCommand());
 program.addCommand(buildRoadmapCommand());
 program.addCommand(buildTasksCommand());
 program.addCommand(buildQueueCommand());
+program.addCommand(buildNotificationsCommand());
+program.addCommand(buildGatewaysCommand());
 
 program
   .command("run <task...>")

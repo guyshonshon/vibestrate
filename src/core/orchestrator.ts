@@ -35,6 +35,13 @@ import { makeEmptyMetrics, type AgentMetrics } from "./runtime-metrics.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { ApprovalService } from "./approval-service.js";
 import { detectApprovalRequest } from "./approval-types.js";
+import { NotificationService } from "../notifications/notification-service.js";
+import {
+  draftApprovalRequested,
+  draftRunCompleted,
+  draftValidationFailed,
+} from "../notifications/notification-router.js";
+import type { NotificationDraft } from "../notifications/notification-router.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
 
 export type OrchestratorInput = {
@@ -158,6 +165,15 @@ export class Orchestrator {
     const eventLog = new EventLog(this.projectRoot, runId);
     const metricsStore = new MetricsStore(this.projectRoot, runId);
     const approvalService = new ApprovalService(this.projectRoot, runId);
+    const notifications = new NotificationService(this.projectRoot);
+    const notify = (draft: NotificationDraft): void => {
+      // Fire-and-forget: gateway delivery never blocks the orchestrator and
+      // never bubbles errors. Failed delivery is recorded as a receipt.
+      void notifications.notify(draft).catch(() => {});
+    };
+    // Stash for private methods (maybeAwaitApproval, etc.) so they can fire
+    // notifications without the call sites threading the closure through.
+    (this as unknown as { _notify?: typeof notify })._notify = notify;
     await artifactStore.init();
     await metricsStore.write(
       makeEmptyMetrics({
@@ -377,6 +393,15 @@ export class Orchestrator {
         artifactsName: "07-validation-results.json",
         ctx,
       });
+      if (lastValidation.summary.failed > 0) {
+        notify(
+          draftValidationFailed({
+            runId,
+            taskId: this.taskId,
+            failedCount: lastValidation.summary.failed,
+          }),
+        );
+      }
 
       // Reviewing loop
       state = applyTransition(state, "reviewing");
@@ -624,6 +649,15 @@ export class Orchestrator {
           message: `Run ${runId} ${state.status}.`,
           data: { decision: reviewDecision, verification: verificationDecision },
         });
+        notify(
+          draftRunCompleted({
+            runId,
+            taskId: this.taskId,
+            status: state.status as "merge_ready" | "blocked" | "failed",
+            decision: reviewDecision,
+            verification: verificationDecision,
+          }),
+        );
       }
     } catch (err) {
       // Approval-rejection short-circuit: state is already 'blocked' and the
@@ -658,6 +692,14 @@ export class Orchestrator {
             verification: verificationArtifact?.outputArtifactPath,
           },
         });
+        notify(
+          draftRunCompleted({
+            runId,
+            taskId: this.taskId,
+            status: "blocked",
+            decision: state.finalDecision,
+          }),
+        );
         return {
           runId,
           state,
@@ -680,6 +722,13 @@ export class Orchestrator {
         type: "run.failed",
         message: `Run failed: ${message}`,
       });
+      notify(
+        draftRunCompleted({
+          runId,
+          taskId: this.taskId,
+          status: "failed",
+        }),
+      );
       try {
         await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
       } catch {
@@ -846,6 +895,20 @@ export class Orchestrator {
       approvalRequestedFromStatus: input.fromStatus,
     };
     await input.stateStore.write(pendingState);
+    // Fire a notification so the dashboard / CLI / external gateways can
+    // alert the user; never blocks the gate loop.
+    const _notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
+    if (_notify) {
+      _notify(
+        draftApprovalRequested({
+          runId: input.state.runId,
+          approvalId: req.id,
+          agentId: input.agentId,
+          stageId: input.stageId,
+          reason: reason ?? null,
+        }),
+      );
+    }
     await input.eventLog.append({
       type: "approval.requested",
       message: agentRequested

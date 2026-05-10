@@ -12,6 +12,11 @@ import {
   explainBlock,
   isReady,
 } from "../roadmap/dependency-graph.js";
+import { NotificationService } from "../notifications/notification-service.js";
+import {
+  draftQueueDrained,
+  draftSchedulerConflict,
+} from "../notifications/notification-router.js";
 import { nowIso } from "../utils/time.js";
 import type { QueueEntry } from "./scheduler-types.js";
 
@@ -108,7 +113,14 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
   const roadmap = new RoadmapService(input.projectRoot);
   const queue = new RunQueue(input.projectRoot);
   const conflicts = new ConflictsStore(input.projectRoot);
+  const notifications = new NotificationService(input.projectRoot);
+  const notify = (
+    draft: import("../notifications/notification-router.js").NotificationDraft,
+  ): void => {
+    void notifications.notify(draft).catch(() => {});
+  };
   const cfg = input.schedulerConfig;
+  const completedThisLoop: string[] = [];
 
   await queue.writeState({
     paused: false,
@@ -193,6 +205,14 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
         policy: cfg.conflictPolicy,
         blocked,
       });
+      notify(
+        draftSchedulerConflict({
+          taskId: candidate.id,
+          conflictsWith: overlap.conflictsWith,
+          blocked,
+          overlappingFiles: overlap.overlappingFiles,
+        }),
+      );
       if (blocked) {
         log(
           `[scheduler] task ${candidate.id} blocked by file overlap with ${overlap.conflictsWith.join(", ")}`,
@@ -240,6 +260,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
           ...s,
           runningTaskIds: s.runningTaskIds.filter((id) => id !== candidate.id),
         });
+        completedThisLoop.push(candidate.id);
       }
     })();
     inflight.set(candidate.id, promise);
@@ -263,6 +284,9 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
     }
     // Drain in-flight before returning.
     await Promise.all(inflight.values());
+    if (completedThisLoop.length > 0) {
+      notify(draftQueueDrained({ completedTaskIds: completedThisLoop.slice() }));
+    }
     const s = await queue.readState();
     await queue.writeState({ ...s, runningTaskIds: [] });
   })();

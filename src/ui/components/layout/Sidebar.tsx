@@ -12,7 +12,7 @@ import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "../runs/RunStatusBadge.js";
 
-export type NavId = "runs" | "board" | "queue" | "proposals";
+export type NavId = "runs" | "board" | "queue" | "proposals" | "settings";
 
 type Props = {
   currentRunId: string | null;

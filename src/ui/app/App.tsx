@@ -5,10 +5,12 @@ import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { QueuePage } from "./routes/QueuePage.js";
+import { SettingsPage } from "./routes/SettingsPage.js";
 import {
   ProposalsPage,
   ProposalDetailPage,
 } from "./routes/ProposalsPage.js";
+import type { NotificationRecord } from "../lib/types.js";
 
 type Route =
   | { kind: "runs" }
@@ -17,7 +19,8 @@ type Route =
   | { kind: "task"; taskId: string }
   | { kind: "queue" }
   | { kind: "proposals" }
-  | { kind: "proposal"; proposalId: string };
+  | { kind: "proposal"; proposalId: string }
+  | { kind: "settings" };
 
 function parseRoute(): Route {
   const hash = window.location.hash.replace(/^#\/?/, "");
@@ -26,6 +29,7 @@ function parseRoute(): Route {
   if (parts[0] === "board") return { kind: "board" };
   if (parts[0] === "tasks" && parts[1]) return { kind: "task", taskId: parts[1] };
   if (parts[0] === "queue") return { kind: "queue" };
+  if (parts[0] === "settings") return { kind: "settings" };
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -55,7 +59,16 @@ export function navigate(route: Route): void {
     case "proposal":
       window.location.hash = `#/proposals/${route.proposalId}`;
       break;
+    case "settings":
+      window.location.hash = "#/settings";
+      break;
   }
+}
+
+function notificationRoute(n: NotificationRecord): Route {
+  if (n.runId) return { kind: "run", runId: n.runId };
+  if (n.taskId) return { kind: "task", taskId: n.taskId };
+  return { kind: "runs" };
 }
 
 export function App() {
@@ -77,13 +90,17 @@ export function App() {
             ? "queue"
             : route.kind === "proposals" || route.kind === "proposal"
               ? "proposals"
-              : "runs"
+              : route.kind === "settings"
+                ? "settings"
+                : "runs"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
+      onShowSettings={() => navigate({ kind: "settings" })}
+      onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
       {route.kind === "runs" ? (
         <RunsPage onSelect={(runId) => navigate({ kind: "run", runId })} />
@@ -99,6 +116,8 @@ export function App() {
         />
       ) : route.kind === "queue" ? (
         <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
+      ) : route.kind === "settings" ? (
+        <SettingsPage />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}

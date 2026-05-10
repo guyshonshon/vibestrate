@@ -15,6 +15,7 @@ import { registerRoadmapRoutes } from "./routes/roadmap.js";
 import { registerTasksRoutes } from "./routes/tasks.js";
 import { registerQueueRoutes } from "./routes/queue.js";
 import { registerProposalsRoutes } from "./routes/proposals.js";
+import { registerNotificationRoutes } from "./routes/notifications.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -118,6 +119,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerTasksRoutes(app, { projectRoot: opts.projectRoot });
   await registerQueueRoutes(app, { projectRoot: opts.projectRoot });
   await registerProposalsRoutes(app, { projectRoot: opts.projectRoot });
+  await registerNotificationRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

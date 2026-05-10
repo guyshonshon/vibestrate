@@ -764,6 +764,114 @@ works fine — the scheduler skips B (A is open), runs A, sees B becomes ready, 
 
 Cycles are caught at proposal-accept time, not at scheduler time. The only way a cycle could appear in `.amaco/roadmap/tasks/` is via manual JSON editing — the CLI / UI never produce one.
 
+## Notification center
+
+Every state transition that warrants attention — approvals requested, runs reaching `merge_ready`/`blocked`/`failed`, validation failures, scheduler conflicts, queue drains — is recorded as a structured notification under `.amaco/notifications/notifications.json`. Notifications never block the orchestrator: delivery is fire-and-forget, and a gateway that errors records a failed receipt without affecting the run.
+
+In the dashboard, the bell icon in the header shows an unread badge and opens a side-drawer with filters (all / unread / attention; filterable by category). Each item links back to the relevant run, task, or queue page; mark-read and resolve are one click. The bell polls every four seconds.
+
+```bash
+amaco notifications list                # latest 25 with unread/resolved markers
+amaco notifications read <id>           # mark as read
+amaco notifications resolve <id>        # close the loop
+amaco notifications settings            # show enabled toggles + gateway status
+amaco notifications test                # write one test notification
+```
+
+Notification rules live in `.amaco/notifications/rules.json` and respect:
+
+- a global `enabled` switch + per-channel toggles (`cli`, `inApp`, `browser`, `desktop`),
+- a `defaultMinSeverity` (`info` → `critical`),
+- per-trigger toggles (`notifyOnApprovalRequested`, `notifyOnRunCompleted`, `notifyOnRunBlocked`, `notifyOnRunFailed`, `notifyOnValidationFailed`, `notifyOnSchedulerConflict`, `notifyOnTaskBlocked`),
+- `enabledCategories` / `quietCategories` (run, approval, task, scheduler, conflict, validation, review, system, gateway).
+
+## Browser notifications
+
+The dashboard can surface high-attention events as system notifications through the browser's `Notification` API. The first time you visit `Settings`, click "Allow browser notifications" — Amaco never auto-requests permission. When granted, the bell automatically posts a system notification for new unread items at `attention` or `critical` severity. Other severities stay in-app only.
+
+If you deny the permission, everything keeps working — the bell still shows the unread count and the drawer behaves the same way.
+
+## Communication gateways
+
+Amaco can fan a notification out to outside-the-laptop channels. Configuration lives in `.amaco/notifications/gateways.json` (kept separate from `project.yml` so secrets never bleed into the project config). Channels available in V0:
+
+| id          | type       | what it does                                                      | needs                    |
+| ----------- | ---------- | ----------------------------------------------------------------- | ------------------------ |
+| `in-app`    | built-in   | appears in the dashboard bell — persistence is the delivery       | nothing                  |
+| `cli`       | built-in   | prints a single dim line in the running terminal                  | nothing                  |
+| `webhook`   | HTTP POST  | generic JSON `POST` of the notification record                    | url                      |
+| `discord`   | webhook    | rich embed via a Discord channel webhook                           | discord webhook url      |
+| `slack`     | webhook    | bullet text via a Slack incoming webhook                           | slack webhook url        |
+| `telegram`  | bot API    | MarkdownV2 message via a Telegram bot                              | bot token + chat id      |
+| `whatsapp`  | placeholder| **planned**: returns a `skipped` receipt and reports planned status | n/a — see below          |
+
+```bash
+amaco gateways list                     # show every gateway with config status
+amaco gateways enable webhook --url "env:AMACO_WEBHOOK"
+amaco gateways enable slack --url "env:SLACK_WEBHOOK_URL"
+amaco gateways enable discord --url "env:DISCORD_WEBHOOK_URL"
+amaco gateways enable telegram --token "env:TELEGRAM_BOT_TOKEN" --target "env:TELEGRAM_CHAT_ID"
+amaco gateways test slack               # send a test ping
+amaco gateways disable telegram
+```
+
+In the dashboard, the gear icon in the header opens **Settings**. Each gateway shows enabled/disabled, its severity threshold, and (for `url`/`token`/`target`) whether the value is a literal or an `env:NAME` reference and whether the env var is currently set. **Secret values never round-trip to the browser** — the API returns only `{ kind: "env-ref" | "literal", envVarSet?: boolean, hasValue?: boolean }`.
+
+### Webhook gateway
+
+```bash
+amaco gateways enable webhook --url "env:AMACO_WEBHOOK"
+```
+
+POSTs JSON of the form:
+
+```json
+{
+  "type": "amaco.notification",
+  "notification": {
+    "id": "nf-run-…",
+    "severity": "success",
+    "category": "run",
+    "title": "Run reached merge_ready",
+    "message": "Run … finished cleanly. Inspect the diff before merging.",
+    "runId": "…",
+    "taskId": null,
+    "approvalId": null,
+    "actionRequired": false,
+    "actionLabel": "Open run",
+    "actionUrl": "#/runs/…",
+    "createdAt": "2026-05-10T…Z"
+  }
+}
+```
+
+Timeout: 5 s. Failures are recorded in `receipts.json` with the URL/token redacted, never logged.
+
+### Discord, Slack, Telegram
+
+These three are thin formatters on top of the webhook transport.
+
+- **Discord** — paste a channel webhook URL (Server Settings → Integrations → Webhooks).
+- **Slack** — create an Incoming Webhook (`api.slack.com/messaging/webhooks`).
+- **Telegram** — create a bot via `@BotFather`, get a chat id (e.g. via `@userinfobot`). The bot must have permission to message the chat.
+
+All three render an emoji per severity, escape MarkdownV2 reserved characters where applicable, and only relay messages that meet the gateway's `minSeverity`.
+
+### WhatsApp (planned)
+
+WhatsApp is intentionally a placeholder in V0. A safe adapter requires a verified provider (Twilio, WhatsApp Cloud API) plus phone-number registration that we cannot fake. The schema and routing layer are real, so a future commit can drop in a real adapter without touching anything else; for now `deliver` always returns a `skipped` receipt with a clear "planned" reason and `test` reports the planned status without ever making an HTTP call.
+
+### Secrets via environment variables
+
+Any gateway value (`url`, `token`, `target`) accepts the `env:VAR_NAME` syntax — the resolved value is read from `process.env` at delivery time and is never written to disk, never logged, never returned by the API. `amaco doctor` cross-checks enabled gateways against the current environment and reports missing env vars.
+
+```bash
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/T0/B0/xxx"
+amaco doctor   # → ✓ slack gateway: ready  /  ✗ slack gateway: SLACK_WEBHOOK_URL not set
+```
+
+If a gateway throws, Amaco records a failed receipt — with the URL/token stripped via the same redactor used for error logging — and the run continues. Bearer tokens, Slack/Discord webhook paths, and Telegram bot URLs are also redacted by pattern, so even a misbehaving error message can't leak credentials.
+
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
@@ -781,7 +889,8 @@ Cycles are caught at proposal-accept time, not at scheduler time. The only way a
 - The dashboard does **not** have a "start scheduler" button — that would require spawning a child Amaco process from HTTP. Use `amaco queue run` from your terminal.
 - AI-assisted roadmap planning depends on the local planner provider's output. The parser is forgiving but agents will not always produce perfect marker blocks; the dry-run is the user's safety net.
 - Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
-- No external Slack/Telegram/PR pipelines, no auto-merge, no auto-deploy.
+- WhatsApp is intentionally a placeholder; Slack/Discord/Telegram/webhook gateways ship real, but Amaco still does **not** open PRs or trigger deploys.
+- Notifications poll on a 4-second cadence in the dashboard; there is no live SSE stream for the bell yet.
 
 ## Roadmap
 
@@ -793,6 +902,7 @@ Cycles are caught at proposal-accept time, not at scheduler time. The only way a
 - GitHub PR creation, GitLab support, optional auto-merge under strict gates.
 - Provider presets for Codex / OpenCode / Aider once their flag conventions are pinned.
 - Secret scanning, policy plugins, run replay UI.
+- Replace the WhatsApp placeholder with a real Twilio / WhatsApp-Cloud-API adapter.
 
 ## Advanced: manual YAML configuration
 

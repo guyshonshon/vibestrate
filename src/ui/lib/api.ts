@@ -6,7 +6,10 @@ import type {
   DiffSnapshot,
   DiscoveredSkill,
   FileDiff,
+  GatewayView,
   MicroStep,
+  NotificationRecord,
+  NotificationSettings,
   Note,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
@@ -48,6 +51,25 @@ async function jsonPost<T>(path: string, body?: unknown): Promise<T> {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const j = (await res.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(res.status, msg);
+  }
+  return (await res.json()) as T;
+}
+
+async function jsonPatch<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
@@ -337,5 +359,42 @@ export const api = {
         allowUnresolvedDependencies: input.allowUnresolvedDependencies,
       },
     );
+  },
+
+  // ─── notifications ────────────────────────────────────────────────────────
+  async listNotifications(): Promise<{
+    notifications: NotificationRecord[];
+    unread: number;
+  }> {
+    return jsonGet("/api/notifications");
+  },
+  async markNotificationRead(id: string): Promise<NotificationRecord> {
+    const r = await jsonPost<{ notification: NotificationRecord }>(
+      `/api/notifications/${encodeURIComponent(id)}/read`,
+    );
+    return r.notification;
+  },
+  async resolveNotification(id: string): Promise<NotificationRecord> {
+    const r = await jsonPost<{ notification: NotificationRecord }>(
+      `/api/notifications/${encodeURIComponent(id)}/resolve`,
+    );
+    return r.notification;
+  },
+  async markAllNotificationsRead(): Promise<{ read: number }> {
+    return jsonPost("/api/notifications/read-all");
+  },
+  async getNotificationSettings(): Promise<{
+    settings: NotificationSettings;
+    gateways: GatewayView[];
+  }> {
+    return jsonGet("/api/notifications/settings");
+  },
+  async patchNotificationSettings(
+    patch: Partial<NotificationSettings>,
+  ): Promise<{ settings: NotificationSettings }> {
+    return jsonPatch("/api/notifications/settings", patch);
+  },
+  async testGateway(id: string): Promise<{ ok: boolean; message: string }> {
+    return jsonPost(`/api/gateways/${encodeURIComponent(id)}/test`);
   },
 };

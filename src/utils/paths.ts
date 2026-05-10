@@ -8,6 +8,7 @@ export const SKILLS_DIRNAME = "skills";
 export const RUNS_DIRNAME = "runs";
 export const ROADMAP_DIRNAME = "roadmap";
 export const SCHEDULER_DIRNAME = "scheduler";
+export const NOTIFICATIONS_DIRNAME = "notifications";
 
 export function amacoRoot(projectRoot: string): string {
   return path.join(projectRoot, AMACO_DIR);
@@ -95,6 +96,26 @@ export function schedulerStateFile(projectRoot: string): string {
 
 export function schedulerConflictsFile(projectRoot: string): string {
   return path.join(schedulerDir(projectRoot), "conflicts.json");
+}
+
+export function notificationsDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), NOTIFICATIONS_DIRNAME);
+}
+
+export function notificationsFile(projectRoot: string): string {
+  return path.join(notificationsDir(projectRoot), "notifications.json");
+}
+
+export function notificationRulesFile(projectRoot: string): string {
+  return path.join(notificationsDir(projectRoot), "rules.json");
+}
+
+export function notificationReceiptsFile(projectRoot: string): string {
+  return path.join(notificationsDir(projectRoot), "receipts.json");
+}
+
+export function notificationGatewaysFile(projectRoot: string): string {
+  return path.join(notificationsDir(projectRoot), "gateways.json");
 }
 
 export function isPathInside(parent: string, candidate: string): boolean {
