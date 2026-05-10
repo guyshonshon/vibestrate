@@ -60,3 +60,74 @@ body {
   font-family: var(--font-mono);
   font-size: 12.5px;
 }
+
+/* highlight.js theme — minimal, tuned to the amaco dark palette. We don't
+   import a stock theme because most of them are too saturated against the
+   panel background; the colors below pull from the existing tokens where
+   it makes sense and add a small set of accent hues for syntax tokens. */
+.hljs-comment,
+.hljs-quote {
+  color: var(--color-amaco-fg-muted);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-meta .hljs-keyword,
+.hljs-doctag {
+  color: #c792ea;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition {
+  color: #9fdcb0;
+}
+.hljs-number,
+.hljs-literal,
+.hljs-symbol {
+  color: #f78c6c;
+}
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title,
+.hljs-type {
+  color: #ffcb6b;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-name {
+  color: var(--color-amaco-accent);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params,
+.hljs-property {
+  color: #82aaff;
+}
+.hljs-tag,
+.hljs-meta,
+.hljs-meta .hljs-string {
+  color: var(--color-amaco-fg-dim);
+}
+.hljs-section,
+.hljs-bullet,
+.hljs-link {
+  color: var(--color-amaco-accent);
+}
+.hljs-link {
+  text-decoration: underline;
+}
+.hljs-strong {
+  font-weight: 600;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-deletion {
+  color: var(--color-amaco-diff-del-fg);
+}
+.hljs-operator,
+.hljs-punctuation {
+  color: var(--color-amaco-fg-dim);
+}

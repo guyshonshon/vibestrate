@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Copy, ExternalLink, Hash } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { FileView } from "../../lib/types.js";
+import { highlightLines } from "../../lib/syntax-highlight.js";
 
 type Props = {
   view: FileView | null;
@@ -14,6 +15,23 @@ type Props = {
 
 export function FileViewer({ view, loading, error, runId, highlightLine }: Props) {
   const [openMsg, setOpenMsg] = useState<string | null>(null);
+
+  // Highlight the visible window of source as a single block, then map back
+  // onto the per-line array. Memoised so re-renders (hover, selection,
+  // openMsg toggles) don't re-tokenise the file. When the window only covers
+  // part of a file the highlighter starts mid-context — usually fine for
+  // typical languages, but multi-line constructs that begin before the
+  // window may render unstyled. We accept that as a documented trade-off
+  // rather than always loading the full file.
+  const highlighted = useMemo<string[] | null>(() => {
+    if (!view || view.lines.length === 0) return null;
+    if (view.isBinary || view.isSecretLike) return null;
+    if (view.language === "text") return null;
+    const joined = view.lines.map((l) => l.text).join("\n");
+    const result = highlightLines(joined, view.language);
+    if (result.length !== view.lines.length) return null;
+    return result;
+  }, [view]);
 
   async function openInEditor(line: number | null) {
     if (!view) return;
@@ -113,7 +131,7 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
           </div>
         ) : (
           <pre className="amaco-mono m-0 text-[12px] leading-[1.45]">
-            {view.lines.map((l) => (
+            {view.lines.map((l, idx) => (
               <div
                 key={l.number}
                 className={`group flex border-b border-transparent ${
@@ -136,7 +154,18 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
                   {l.number}
                   <Hash className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60" />
                 </button>
-                <span className="whitespace-pre px-2 py-0.5">{l.text}</span>
+                {highlighted ? (
+                  <span
+                    className="hljs whitespace-pre px-2 py-0.5"
+                    /* highlight.js output is HTML-escaped + only emits its
+                       own <span class="hljs-..."> wrappers; safe to inject. */
+                    dangerouslySetInnerHTML={{
+                      __html: highlighted[idx] ?? "",
+                    }}
+                  />
+                ) : (
+                  <span className="whitespace-pre px-2 py-0.5">{l.text}</span>
+                )}
               </div>
             ))}
           </pre>
