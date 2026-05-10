@@ -257,6 +257,10 @@ describe("ReviewSuggestionStore", () => {
       approvalId: null,
       decisionNote: null,
       errorMessage: null,
+      bundleId: null,
+      appliedPatchPath: null,
+      reversePatchPath: null,
+      validationResultPath: null,
     });
     const back = await store.readAll();
     expect(back).toHaveLength(1);
@@ -462,6 +466,10 @@ describe("renderFinalReport — suggestions section", () => {
           approvalId: "ap-1",
           decisionNote: null,
           errorMessage: null,
+          bundleId: null,
+          appliedPatchPath: null,
+          reversePatchPath: null,
+          validationResultPath: null,
         },
       ],
     });

@@ -4,6 +4,7 @@ import type { PolicyWarning } from "./policy-engine.js";
 import type { RuntimeMetrics } from "./runtime-metrics.js";
 import type { ApprovalRequest } from "./approval-types.js";
 import type { ReviewSuggestion } from "../reviews/review-suggestion-types.js";
+import type { SuggestionBundle } from "../reviews/suggestion-bundle-types.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -21,6 +22,8 @@ export type FinalReportInput = {
   approvals: ApprovalRequest[];
   /** Suggestions captured for this run (optional). */
   suggestions?: ReviewSuggestion[];
+  /** Review passes (suggestion bundles) for this run (optional). */
+  bundles?: SuggestionBundle[];
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -134,6 +137,31 @@ function renderMetricsSection(metrics: RuntimeMetrics | null): string {
   return [head, sep, ...rows, "", ...totals].join("\n");
 }
 
+function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
+  if (!items || items.length === 0) {
+    return "_No review passes were created for this run._";
+  }
+  const counts = items.reduce<Record<string, number>>((acc, b) => {
+    acc[b.status] = (acc[b.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const summary = Object.entries(counts)
+    .map(([k, v]) => `**${k}:** ${v}`)
+    .join(" · ");
+  const head =
+    "| Status | Title | Suggestions | Validation | Reverted | Approval |\n| --- | --- | --- | --- | --- | --- |";
+  const rows = items
+    .map((b) => {
+      const validation = b.validationResultPath
+        ? `\`${b.validationResultPath}\``
+        : "—";
+      const reverted = b.revertedAt ?? "—";
+      return `| ${b.status} | ${b.title.replace(/\|/g, "\\|")} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
+    })
+    .join("\n");
+  return [summary, "", head, rows].join("\n");
+}
+
 function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string {
   if (!items || items.length === 0) {
     return "_No suggestions were captured for this run._";
@@ -159,7 +187,7 @@ function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string
 }
 
 export function renderFinalReport(input: FinalReportInput): string {
-  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals, suggestions } = input;
+  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals, suggestions, bundles } = input;
   const summary = metrics?.approvalsSummary ?? null;
   const approvalSummaryLine = summary
     ? `**Total:** ${summary.total} · **Approved:** ${summary.approved} · **Rejected:** ${summary.rejected}${summary.expired ? ` · **Expired:** ${summary.expired}` : ""}${summary.pending ? ` · **Pending:** ${summary.pending}` : ""}${summary.totalWaitMs ? ` · **Total wait:** ${summary.totalWaitMs}ms` : ""}`
@@ -231,6 +259,10 @@ ${renderWarnings(policyWarnings)}
 ## Review Suggestions
 
 ${renderSuggestionsSection(suggestions)}
+
+## Review Passes
+
+${renderBundlesSection(bundles)}
 
 ## Next Steps
 

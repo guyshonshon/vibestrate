@@ -4,7 +4,12 @@ export const suggestionStatusSchema = z.enum([
   "open",
   "approved",
   "rejected",
+  "applying",
   "applied",
+  "validation_passed",
+  "validation_failed",
+  "revert_failed",
+  "reverted",
   "failed",
   "resolved",
 ]);
@@ -36,6 +41,13 @@ export const reviewSuggestionSchema = z.object({
   approvalId: z.string().nullable().default(null),
   decisionNote: z.string().nullable().default(null),
   errorMessage: z.string().max(2_000).nullable().default(null),
+  /** When part of a review pass / bundle, the owning bundle id. */
+  bundleId: z.string().nullable().default(null),
+  /** Where the applied + reverse patches live, when capture succeeded. */
+  appliedPatchPath: z.string().nullable().default(null),
+  reversePatchPath: z.string().nullable().default(null),
+  /** Most recent validation result file for this suggestion, if any. */
+  validationResultPath: z.string().nullable().default(null),
 });
 export type ReviewSuggestion = z.infer<typeof reviewSuggestionSchema>;
 

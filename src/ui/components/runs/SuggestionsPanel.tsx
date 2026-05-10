@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -6,13 +6,19 @@ import {
   Lightbulb,
   Plus,
   RefreshCw,
+  RotateCcw,
+  Square,
+  CheckSquare,
+  Wrench,
   X,
 } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type {
   ReviewSuggestion,
   SuggestionStatus,
+  SuggestionValidationResult,
 } from "../../lib/types.js";
+import { ReviewPassPanel } from "./ReviewPassPanel.js";
 
 type Props = {
   runId: string;
@@ -29,6 +35,11 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [validations, setValidations] = useState<
+    Record<string, SuggestionValidationResult | null>
+  >({});
   const [draft, setDraft] = useState({
     title: "",
     body: "",
@@ -53,7 +64,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
       setItems(await api.listSuggestions(runId));
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(messageFor(err));
     }
   }
 
@@ -96,6 +107,37 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
       setBusy(null);
     }
   }
+  async function validate(s: ReviewSuggestion) {
+    setBusy(s.id);
+    try {
+      const r = await api.validateSuggestion({ runId, suggestionId: s.id });
+      setValidations((prev) => ({ ...prev, [s.id]: r.result }));
+      await load();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function revert(s: ReviewSuggestion) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        `Revert suggestion "${s.title}" in the worktree? This runs git apply -R; the project root is never touched.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(s.id);
+    try {
+      await api.revertSuggestion({ runId, suggestionId: s.id });
+      await load();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
   async function submitDraft(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.title.trim()) return;
@@ -127,8 +169,43 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
     }
   }
 
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const selectedIds = useMemo(() => [...selected], [selected]);
+
+  async function createReviewPassFromSelection() {
+    if (selectedIds.length === 0) return;
+    const title = window.prompt(
+      `Title for the review pass (${selectedIds.length} suggestion${selectedIds.length === 1 ? "" : "s"}):`,
+      "Review pass",
+    );
+    if (!title) return;
+    setBusy("create-bundle");
+    try {
+      await api.createBundle({
+        runId,
+        title,
+        suggestionIds: selectedIds,
+      });
+      setSelected(new Set());
+      setSelectMode(false);
+      await load();
+    } catch (err) {
+      setError(messageFor(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <div className="space-y-2 text-[12px]">
+    <div className="space-y-3 text-[12px]">
       <header className="flex items-center gap-2">
         <Lightbulb className="h-3.5 w-3.5 text-amaco-accent" strokeWidth={1.5} />
         <span className="text-[12px] font-medium text-amaco-fg">Suggestions</span>
@@ -137,8 +214,32 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
         </span>
         <button
           type="button"
+          onClick={() => {
+            setSelectMode((v) => !v);
+            setSelected(new Set());
+          }}
+          className={`ml-auto inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] ${
+            selectMode
+              ? "border-amaco-accent/50 bg-amaco-accent-soft/30 text-amaco-fg"
+              : "border-amaco-border text-amaco-fg-dim hover:bg-amaco-panel-2"
+          }`}
+          title={
+            selectMode
+              ? "Exit selection"
+              : "Select suggestions to group into a review pass"
+          }
+        >
+          {selectMode ? (
+            <CheckSquare className="h-3 w-3" strokeWidth={1.5} />
+          ) : (
+            <Square className="h-3 w-3" strokeWidth={1.5} />
+          )}
+          {selectMode ? `${selectedIds.length} selected` : "Select"}
+        </button>
+        <button
+          type="button"
           onClick={() => void load()}
-          className="ml-auto rounded border border-amaco-border p-1 text-amaco-fg-dim hover:bg-amaco-panel-2"
+          className="rounded border border-amaco-border p-1 text-amaco-fg-dim hover:bg-amaco-panel-2"
           title="Refresh"
         >
           <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
@@ -152,11 +253,30 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
           New
         </button>
       </header>
+
+      {selectMode && selectedIds.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5 rounded border border-amaco-accent/40 bg-amaco-accent-soft/20 px-2 py-1.5 text-[11px]">
+          <span className="text-amaco-fg">
+            Group {selectedIds.length} suggestion
+            {selectedIds.length === 1 ? "" : "s"} into a review pass.
+          </span>
+          <button
+            type="button"
+            onClick={() => void createReviewPassFromSelection()}
+            disabled={busy !== null}
+            className="ml-auto rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2 py-0.5 text-[11px] text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
+          >
+            New review pass…
+          </button>
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11.5px] text-amaco-fail">
           {error}
         </div>
       ) : null}
+
       {creating ? (
         <form
           onSubmit={submitDraft}
@@ -232,6 +352,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
           </div>
         </form>
       ) : null}
+
       {items.length === 0 ? (
         <div className="rounded border border-dashed border-amaco-border px-3 py-4 text-center text-[11.5px] text-amaco-fg-muted">
           No suggestions yet. Reviewer/verifier `AMACO_SUGGESTION` blocks land
@@ -244,13 +365,25 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
               key={s.id}
               s={s}
               busy={busy === s.id}
+              selectMode={selectMode}
+              selected={selected.has(s.id)}
+              onToggleSelect={() => toggleSelected(s.id)}
+              validation={validations[s.id] ?? null}
               onApprove={() => approve(s)}
               onReject={() => reject(s)}
               onApply={() => apply(s)}
+              onValidate={() => validate(s)}
+              onRevert={() => revert(s)}
             />
           ))}
         </ul>
       )}
+
+      <ReviewPassPanel
+        runId={runId}
+        suggestions={items}
+        onChange={() => void load()}
+      />
     </div>
   );
 }
@@ -258,23 +391,65 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
 function Row({
   s,
   busy,
+  selectMode,
+  selected,
+  onToggleSelect,
+  validation,
   onApprove,
   onReject,
   onApply,
+  onValidate,
+  onRevert,
 }: {
   s: ReviewSuggestion;
   busy: boolean;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+  validation: SuggestionValidationResult | null;
   onApprove: () => void;
   onReject: () => void;
   onApply: () => void;
+  onValidate: () => void;
+  onRevert: () => void;
 }) {
+  const isApplied =
+    s.status === "applied" ||
+    s.status === "validation_passed" ||
+    s.status === "validation_failed";
+
   return (
     <li className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
+        {selectMode ? (
+          <button
+            type="button"
+            onClick={onToggleSelect}
+            className="rounded p-0.5 text-amaco-fg-dim hover:bg-amaco-panel"
+            aria-label={selected ? "Deselect" : "Select"}
+          >
+            {selected ? (
+              <CheckSquare
+                className="h-3.5 w-3.5 text-amaco-accent"
+                strokeWidth={1.5}
+              />
+            ) : (
+              <Square className="h-3.5 w-3.5" strokeWidth={1.5} />
+            )}
+          </button>
+        ) : null}
         <StatusBadge status={s.status} />
         <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
           {s.source}
         </span>
+        {s.bundleId ? (
+          <span
+            className="amaco-mono rounded border border-amaco-accent/40 px-1 text-[10px] text-amaco-accent"
+            title={`Part of review pass ${s.bundleId}`}
+          >
+            review pass
+          </span>
+        ) : null}
         <span className="font-medium text-amaco-fg">{s.title}</span>
         {s.file ? (
           <span className="amaco-mono ml-auto truncate text-[10.5px] text-amaco-fg-muted">
@@ -305,30 +480,31 @@ function Row({
           {s.errorMessage}
         </div>
       ) : null}
-      {s.status === "open" ? (
-        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-          <button
-            type="button"
-            onClick={onApprove}
-            disabled={busy}
-            className="inline-flex items-center gap-1 rounded border border-amaco-success/40 bg-amaco-success/10 px-1.5 py-0.5 text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
-          >
-            <Check className="h-3 w-3" strokeWidth={1.5} />
-            Approve
-          </button>
-          <button
-            type="button"
-            onClick={onReject}
-            disabled={busy}
-            className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
-          >
-            <X className="h-3 w-3" strokeWidth={1.5} />
-            Reject
-          </button>
-        </div>
-      ) : null}
-      {s.status === "approved" && s.proposedPatch ? (
-        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+      {validation ? <ValidationBlock result={validation} /> : null}
+      <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+        {s.status === "open" ? (
+          <>
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded border border-amaco-success/40 bg-amaco-success/10 px-1.5 py-0.5 text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
+            >
+              <Check className="h-3 w-3" strokeWidth={1.5} />
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={onReject}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+            >
+              <X className="h-3 w-3" strokeWidth={1.5} />
+              Reject
+            </button>
+          </>
+        ) : null}
+        {s.status === "approved" && s.proposedPatch ? (
           <button
             type="button"
             onClick={onApply}
@@ -338,19 +514,85 @@ function Row({
             <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
             Apply patch
           </button>
-        </div>
-      ) : null}
+        ) : null}
+        {isApplied ? (
+          <>
+            <button
+              type="button"
+              onClick={onValidate}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
+              title="Run commands.validate inside the run worktree"
+            >
+              <Wrench className="h-3 w-3" strokeWidth={1.5} />
+              Validate
+            </button>
+            <button
+              type="button"
+              onClick={onRevert}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+              title="Revert this suggestion's patch via git apply -R"
+            >
+              <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
+              Revert
+            </button>
+          </>
+        ) : null}
+      </div>
     </li>
+  );
+}
+
+function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
+  if (result.status === "no_commands_configured") {
+    return (
+      <div className="mt-1.5 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[11px] text-amaco-warn">
+        No `commands.validate` configured. Run{" "}
+        <span className="amaco-mono">amaco config set commands.validate '["pnpm test"]'</span>.
+      </div>
+    );
+  }
+  const ok = result.status === "passed";
+  return (
+    <div
+      className={`mt-1.5 rounded border px-2 py-1 text-[11px] ${
+        ok
+          ? "border-amaco-success/40 bg-amaco-success/10 text-amaco-success"
+          : "border-amaco-fail/40 bg-amaco-fail/10 text-amaco-fail"
+      }`}
+    >
+      <div>
+        Validation {ok ? "passed" : "failed"}: {result.summary.passed}/
+        {result.summary.total} commands.
+      </div>
+      {!ok ? (
+        <ul className="mt-1 space-y-0.5">
+          {result.commands
+            .filter((c) => c.status === "failed")
+            .map((c, i) => (
+              <li key={i} className="amaco-mono text-[10.5px]">
+                {c.command} → exit {c.exitCode}
+              </li>
+            ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
 function StatusBadge({ status }: { status: SuggestionStatus }) {
   const tone =
-    status === "applied" || status === "approved"
+    status === "applied" ||
+    status === "approved" ||
+    status === "validation_passed"
       ? "border-amaco-success/40 text-amaco-success"
-      : status === "rejected" || status === "failed"
+      : status === "rejected" ||
+          status === "failed" ||
+          status === "validation_failed" ||
+          status === "revert_failed"
         ? "border-amaco-fail/40 text-amaco-fail"
-        : status === "resolved"
+        : status === "resolved" || status === "reverted"
           ? "border-amaco-border text-amaco-fg-muted"
           : "border-amaco-accent/40 text-amaco-accent";
   return (

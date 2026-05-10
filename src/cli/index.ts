@@ -20,6 +20,7 @@ import {
 } from "./commands/notifications.js";
 import { buildEditorCommand } from "./commands/editor.js";
 import { buildSuggestionsCommand } from "./commands/suggestions.js";
+import { buildBundlesCommand } from "./commands/bundles.js";
 
 const program = new Command();
 
@@ -64,6 +65,7 @@ program.addCommand(buildNotificationsCommand());
 program.addCommand(buildGatewaysCommand());
 program.addCommand(buildEditorCommand());
 program.addCommand(buildSuggestionsCommand());
+program.addCommand(buildBundlesCommand());
 
 program
   .command("run <task...>")

@@ -1100,11 +1100,89 @@ Suggestions can come from a non-deterministic reviewer/verifier model, from a te
 
 `suggestion.created` for new attention-worthy suggestions and `suggestion.applied` / `suggestion.apply_failed` for outcomes are routed through the existing notification gateways. We deliberately do **not** push a notification for every filesystem event during a run — freshness lives in the in-page pill, not in the bell.
 
+## Validating applied suggestions
+
+Once a suggestion's patch is applied to the run worktree, you can run the project's configured `commands.validate` against it. Validation is **explicit** — Amaco never quietly runs your test suite, your linter, or your typechecker. You opt in, per suggestion.
+
+```bash
+amaco suggestions apply <runId> <suggestionId> --validate
+amaco suggestions validate <runId> <suggestionId>
+```
+
+The dashboard shows a **Validate** button on every applied suggestion in the Suggestions inspector. Results are persisted to `.amaco/runs/<runId>/suggestion-validations/<suggestionId>.json` and the suggestion's status flips to `validation_passed` or `validation_failed`. If `commands.validate` is empty, the call returns a clear *no commands configured* notice with the exact CLI command to set one — we never claim validation passed when nothing actually ran.
+
+Validation **does not** auto-revert on failure. You decide the next step.
+
+## Review passes / suggestion bundles
+
+A **review pass** is just a named group of suggestions that approve, apply, validate, and revert as a unit. Internally we call them bundles; the user-facing UI says "review pass". Persisted under `.amaco/runs/<runId>/suggestion-bundles.json`.
+
+```bash
+amaco bundles list <runId>
+amaco bundles create <runId> --title "Reviewer fixes" --suggestion s-1 s-2
+amaco bundles add <runId> <bundleId> <suggestionId>
+amaco bundles remove <runId> <bundleId> <suggestionId>
+amaco bundles preflight <runId> <bundleId>
+amaco bundles approve <runId> <bundleId> --note "all good"
+amaco bundles apply <runId> <bundleId> --validate
+amaco bundles validate <runId> <bundleId>
+amaco bundles revert <runId> <bundleId>
+```
+
+A bundle:
+
+- can only contain suggestions that belong to the **same run** (cross-run mixing is rejected at create time)
+- rejects duplicate suggestion ids
+- needs **its own** approval before apply (created and resolved through the same `approvals.json` flow as everything else)
+- only edits membership while in `draft`
+
+## Applying multiple suggestions safely
+
+Bundle apply is genuinely **all-or-nothing**:
+
+1. **Static preflight** — every suggestion exists, has a `proposedPatch`, passes the secret-file matcher, has no `..`/absolute/`~/`-rooted targets, and resolves inside the worktree. Same-file overlaps are surfaced as warnings (we still apply; we just tell you).
+2. **`git apply --check` for every patch up front.** If any check fails, **nothing is applied** and the bundle flips to `failed`. The worktree is not touched.
+3. **Apply each patch in declared order.** If a downstream conflict appears mid-apply (rare — the up-front check usually catches it), Amaco reverse-applies the patches it already landed and leaves the worktree as it was when we started. The bundle flips to `failed`. If even the rollback fails (vanishingly rare with `git apply -R`), the bundle flips to `partially_applied` and the error message surfaces in `errorMessage`.
+4. **Persist** the combined applied + reverse patches under `.amaco/runs/<runId>/suggestion-bundles/<bundleId>-applied.patch` and `…-reverse.patch` for safe revert.
+
+The dashboard's review-pass panel surfaces preflight findings inline and labels same-file warnings as warnings, not errors.
+
+## Reverting applied suggestions
+
+Single-suggestion revert uses the captured patch and `git apply -R --check` followed by `git apply -R`:
+
+```bash
+amaco suggestions revert <runId> <suggestionId>
+amaco bundles revert <runId> <bundleId>
+```
+
+Hard refusals before any git command runs:
+
+- the suggestion or bundle was never applied,
+- the captured patch file is missing,
+- the reverse path would touch secret-like or out-of-worktree files.
+
+`git apply -R --check` runs first. If the worktree has drifted in ways `git apply -R` can no longer reconcile (you edited the same lines manually, or another patch overlaps), the revert flips the suggestion/bundle to `revert_failed` with a clear error and the worktree is **left untouched**. Successful revert flips the status to `reverted` and stamps every member suggestion as `reverted` for bundle-level operations.
+
+We do not use `git reset`. We do not touch the project root. We do not push. We do not merge.
+
+## Why validation is explicit
+
+Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`.
+
+## Why revert is patch-based and worktree-only
+
+`git apply -R` is the only revert mechanism that respects the rest of the worktree's state. `git reset --hard` would clobber unrelated changes; a manual snapshot would lose the user's later edits. Patch-based revert with a `--check` pre-flight gives an honest answer: either the patch *can* be reversed cleanly, or it tells you what stopped it. There is no destructive fallback.
+
+## Notifications integration
+
+`suggestion.validation_passed`, `suggestion.validation_failed`, and the bundle-level `bundle.created` / `approved` / `applied` / `validation_passed` / `validation_failed` / `reverted` / `revert_failed` events all flow through the existing notification gateways. Internal preflight steps do **not** notify — the bell stays quiet unless something attention-worthy happened.
+
 ## What the UI can and cannot do
 
-It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view, hand off to a configured local editor, capture review suggestions, and apply approved patches inside the run worktree only.
+It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers and ranges, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, surface every existing approval/note/skill/comment hook into the codebase view, hand off to a configured local editor, capture review suggestions, apply approved patches inside the run worktree only, group suggestions into review passes, run the project's configured `commands.validate` against the run worktree on demand, and revert applied suggestions or whole review passes via `git apply -R`.
 
-It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion *application* is the only write-side action; everything else remains read-only.
+It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion + review-pass *apply* / *validate* / *revert* are the only write-side actions; every other surface remains read-only.
 
 ## Limitations of V0
 
@@ -1125,7 +1203,10 @@ It **cannot** (this phase): edit or save arbitrary files in-browser, push or fet
 - Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
 - WhatsApp is intentionally a placeholder; Slack/Discord/Telegram/webhook gateways ship real, but Amaco still does **not** open PRs or trigger deploys.
 - Notifications poll on a 4-second cadence in the dashboard; there is no live SSE stream for the bell yet.
-- The dashboard is **read-first**. The only write-side action is *applying an approved suggestion's patch inside the run worktree* — there is no in-browser editor, no terminal, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
+- The dashboard is **read-first**. The only write-side actions are: applying an approved suggestion's patch inside the run worktree, applying a review pass (bundle of approved suggestions), running the project's configured `commands.validate` against the run worktree, and reverting an applied suggestion or pass via `git apply -R`. There is no in-browser editor, no terminal, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
+- Bundle apply is all-or-nothing through `git apply --check` for every patch up front; downstream conflicts mid-apply trigger a reverse-apply rollback. If even the rollback fails, the bundle flips to `partially_applied` rather than pretending success.
+- Revert is patch-based via `git apply -R --check` followed by `git apply -R`. If you edited the same lines after the apply, revert can fail cleanly — Amaco never tries to overwrite drifted files with `git reset`.
+- Validation is explicit: there is no auto-validate-after-apply, no auto-revert-on-validation-failure, and no auto-bisect.
 - Suggestion extraction only recognises explicit `AMACO_SUGGESTION:` marker blocks — natural-language prose is intentionally not auto-parsed.
 - Editor handoff launches a single configured command via fixed argv. We do not embed a full editor.
 

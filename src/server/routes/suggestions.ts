@@ -138,4 +138,42 @@ export async function registerSuggestionRoutes(
       }
     },
   );
+
+  app.post<{
+    Params: { runId: string; suggestionId: string };
+  }>(
+    "/api/runs/:runId/suggestions/:suggestionId/validate",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      await requireRun(req.params.runId);
+      try {
+        const r = await svc(req.params.runId).validate(req.params.suggestionId);
+        return { suggestion: r.suggestion, result: r.result };
+      } catch (err) {
+        if (err instanceof SuggestionServiceError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.post<{
+    Params: { runId: string; suggestionId: string };
+  }>(
+    "/api/runs/:runId/suggestions/:suggestionId/revert",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      await requireRun(req.params.runId);
+      try {
+        const r = await svc(req.params.runId).revert(req.params.suggestionId);
+        return { suggestion: r };
+      } catch (err) {
+        if (err instanceof SuggestionServiceError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    },
+  );
 }

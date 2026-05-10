@@ -17,8 +17,16 @@ import type {
 import { isSecretLikePath } from "../core/diff-service.js";
 import { isPathInside } from "../utils/paths.js";
 import { runStateSchema } from "../core/state-machine.js";
-import { runStatePath } from "../utils/paths.js";
-import { pathExists, readText } from "../utils/fs.js";
+import { runStatePath, runDir } from "../utils/paths.js";
+import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
+import { loadConfig } from "../project/config-loader.js";
+import {
+  runSuggestionValidation,
+  SuggestionValidationError,
+  type SuggestionValidationResult,
+} from "./suggestion-validation-service.js";
+import { NotificationService } from "../notifications/notification-service.js";
+import { draftSuggestionValidation } from "../notifications/notification-router.js";
 
 export type SuggestionApplyOutcome = {
   ok: boolean;
@@ -92,6 +100,10 @@ export class ReviewSuggestionService {
       approvalId: null,
       decisionNote: null,
       errorMessage: null,
+      bundleId: null,
+      appliedPatchPath: null,
+      reversePatchPath: null,
+      validationResultPath: null,
     };
     await this.store.upsert(rec);
     await this.events.append({
@@ -314,17 +326,259 @@ export class ReviewSuggestionService {
       return this.markFailed(current, `git apply failed: ${reason}`);
     }
 
+    // Capture forward + reverse patch text for safe revert later.
+    const dir = suggestionPatchesDir(this.projectRoot, this.runId);
+    await ensureDir(dir);
+    const appliedPatchPath = path.join(dir, `${id}-applied.patch`);
+    const reversePatchPath = path.join(dir, `${id}-reverse.patch`);
+    await writeText(appliedPatchPath, current.proposedPatch);
+    // The "reverse" patch is the forward patch text — `git apply -R` reverses it
+    // at apply time. Storing it as a separate file makes the revert flow
+    // self-describing in the run dir.
+    await writeText(reversePatchPath, current.proposedPatch);
+
     const updated: ReviewSuggestion = {
       ...current,
       status: "applied",
       errorMessage: null,
       updatedAt: nowIso(),
+      appliedPatchPath: relToRun(this.projectRoot, this.runId, appliedPatchPath),
+      reversePatchPath: relToRun(this.projectRoot, this.runId, reversePatchPath),
     };
     await this.store.upsert(updated);
     await this.events.append({
       type: "suggestion.applied",
       message: `suggestion ${id} applied to worktree`,
       data: { id, files: safety.touchedFiles },
+    });
+    return updated;
+  }
+
+  /**
+   * Run the project's configured `commands.validate` against the run worktree
+   * after an apply. Validation is **explicit**: callers (CLI/UI) opt in. The
+   * suggestion's status flips to validation_passed / validation_failed; we
+   * never silently overwrite the applied state if commands.validate is empty.
+   */
+  async validate(id: string): Promise<{
+    suggestion: ReviewSuggestion;
+    result: SuggestionValidationResult;
+  }> {
+    const current = await this.requireSuggestion(id);
+    if (
+      current.status !== "applied" &&
+      current.status !== "validation_passed" &&
+      current.status !== "validation_failed"
+    ) {
+      throw new SuggestionServiceError(
+        409,
+        `Suggestion ${id} must be applied before validation (current: ${current.status}).`,
+      );
+    }
+    const worktreePath = await loadWorktreePath(this.projectRoot, this.runId);
+    if (!worktreePath) {
+      throw new SuggestionServiceError(
+        409,
+        "This run has no worktree; cannot validate.",
+      );
+    }
+    let commands: readonly string[] = [];
+    try {
+      const cfg = await loadConfig(this.projectRoot);
+      commands = cfg.config.commands.validate;
+    } catch {
+      commands = [];
+    }
+    let result: SuggestionValidationResult;
+    try {
+      result = await runSuggestionValidation({
+        projectRoot: this.projectRoot,
+        runId: this.runId,
+        worktreePath,
+        commands,
+        scope: { kind: "suggestion", suggestionId: id },
+      });
+    } catch (err) {
+      if (err instanceof SuggestionValidationError) {
+        throw new SuggestionServiceError(err.statusCode, err.message);
+      }
+      throw err;
+    }
+
+    let nextStatus: SuggestionStatus = current.status;
+    if (result.status === "passed") nextStatus = "validation_passed";
+    else if (result.status === "failed") nextStatus = "validation_failed";
+    // "no_commands_configured" leaves the status as `applied` so the user
+    // can still see the message and configure validation later.
+
+    const updated: ReviewSuggestion = {
+      ...current,
+      status: nextStatus,
+      validationResultPath: relToRun(
+        this.projectRoot,
+        this.runId,
+        result.resultPath,
+      ),
+      errorMessage:
+        result.status === "no_commands_configured"
+          ? "No validation commands configured. Run `amaco config set commands.validate '[\"<cmd>\"]'`."
+          : null,
+      updatedAt: nowIso(),
+    };
+    await this.store.upsert(updated);
+    await this.events.append({
+      type:
+        result.status === "passed"
+          ? "suggestion.validation_passed"
+          : result.status === "failed"
+            ? "suggestion.validation_failed"
+            : "suggestion.applied",
+      message:
+        result.status === "no_commands_configured"
+          ? `suggestion ${id} validate skipped: no commands configured`
+          : `suggestion ${id} validation ${result.status}`,
+      data: {
+        id,
+        resultPath: updated.validationResultPath,
+        passed: result.summary.passed,
+        failed: result.summary.failed,
+      },
+    });
+    if (result.status !== "no_commands_configured") {
+      void new NotificationService(this.projectRoot)
+        .notify(
+          draftSuggestionValidation({
+            runId: this.runId,
+            suggestionId: id,
+            passed: result.status === "passed",
+            failedCount: result.summary.failed,
+          }),
+        )
+        .catch(() => {
+          // Notifications are best-effort — never block the validation flow.
+        });
+    }
+    return { suggestion: updated, result };
+  }
+
+  /**
+   * Revert a previously-applied suggestion using the captured patch and
+   * `git apply -R --check` followed by `git apply -R`. Refuses when the
+   * suggestion was never applied, the captured patch file is missing, or the
+   * worktree no longer matches the patch (later edits, validation that didn't
+   * preserve hunks, etc.). Failure leaves the worktree untouched.
+   */
+  async revert(id: string): Promise<ReviewSuggestion> {
+    const current = await this.requireSuggestion(id);
+    if (
+      current.status !== "applied" &&
+      current.status !== "validation_passed" &&
+      current.status !== "validation_failed"
+    ) {
+      throw new SuggestionServiceError(
+        409,
+        `Suggestion ${id} cannot be reverted from status "${current.status}".`,
+      );
+    }
+    const worktreePath = await loadWorktreePath(this.projectRoot, this.runId);
+    if (!worktreePath) {
+      throw new SuggestionServiceError(
+        409,
+        "This run has no worktree; cannot revert.",
+      );
+    }
+    if (!current.reversePatchPath) {
+      throw new SuggestionServiceError(
+        409,
+        "No captured patch is available for revert. (Suggestion was applied before patch capture was added.)",
+      );
+    }
+    const reverseAbs = path.resolve(
+      runDir(this.projectRoot, this.runId),
+      current.reversePatchPath,
+    );
+    if (!(await pathExists(reverseAbs))) {
+      throw new SuggestionServiceError(
+        409,
+        "Captured reverse patch file is missing.",
+      );
+    }
+    const patchText = await readText(reverseAbs);
+    const safety = checkPatchSafety(patchText, worktreePath);
+    if (!safety.ok) {
+      const updated = await this.markRevertFailed(current, safety.reason!);
+      return updated;
+    }
+
+    const check = await execa(
+      "git",
+      ["apply", "-R", "--check", "--whitespace=nowarn"],
+      {
+        cwd: worktreePath,
+        input: patchText,
+        reject: false,
+        timeout: 10_000,
+        stdin: "pipe",
+      },
+    );
+    if (check.exitCode !== 0) {
+      const reason = (check.stderr || check.stdout || "git apply -R --check failed")
+        .toString()
+        .slice(0, 500);
+      return this.markRevertFailed(
+        current,
+        `git apply -R --check rejected the reverse patch: ${reason}`,
+      );
+    }
+
+    const reverted = await execa(
+      "git",
+      ["apply", "-R", "--whitespace=nowarn"],
+      {
+        cwd: worktreePath,
+        input: patchText,
+        reject: false,
+        timeout: 15_000,
+        stdin: "pipe",
+      },
+    );
+    if (reverted.exitCode !== 0) {
+      const reason = (reverted.stderr || reverted.stdout || "git apply -R failed")
+        .toString()
+        .slice(0, 500);
+      return this.markRevertFailed(current, `git apply -R failed: ${reason}`);
+    }
+
+    const updated: ReviewSuggestion = {
+      ...current,
+      status: "reverted",
+      errorMessage: null,
+      updatedAt: nowIso(),
+    };
+    await this.store.upsert(updated);
+    await this.events.append({
+      type: "suggestion.reverted",
+      message: `suggestion ${id} reverted in worktree`,
+      data: { id, files: safety.touchedFiles },
+    });
+    return updated;
+  }
+
+  private async markRevertFailed(
+    current: ReviewSuggestion,
+    errorMessage: string,
+  ): Promise<ReviewSuggestion> {
+    const updated: ReviewSuggestion = {
+      ...current,
+      status: "revert_failed",
+      errorMessage,
+      updatedAt: nowIso(),
+    };
+    await this.store.upsert(updated);
+    await this.events.append({
+      type: "suggestion.revert_failed",
+      message: `suggestion ${current.id} revert failed`,
+      data: { id: current.id, errorMessage },
     });
     return updated;
   }
@@ -367,6 +621,22 @@ export class ReviewSuggestionService {
     }
     return s;
   }
+}
+
+export function suggestionPatchesDir(
+  projectRoot: string,
+  runId: string,
+): string {
+  return path.join(runDir(projectRoot, runId), "suggestion-patches");
+}
+
+function relToRun(projectRoot: string, runId: string, abs: string): string {
+  const root = runDir(projectRoot, runId);
+  if (path.isAbsolute(abs)) {
+    const rel = path.relative(root, abs);
+    return rel.split(path.sep).join("/");
+  }
+  return abs.replace(/\\/g, "/");
 }
 
 async function loadWorktreePath(

@@ -676,7 +676,12 @@ export type SuggestionStatus =
   | "open"
   | "approved"
   | "rejected"
+  | "applying"
   | "applied"
+  | "validation_passed"
+  | "validation_failed"
+  | "revert_failed"
+  | "reverted"
   | "failed"
   | "resolved";
 
@@ -700,6 +705,79 @@ export type ReviewSuggestion = {
   approvalId: string | null;
   decisionNote: string | null;
   errorMessage: string | null;
+  bundleId: string | null;
+  appliedPatchPath: string | null;
+  reversePatchPath: string | null;
+  validationResultPath: string | null;
+};
+
+export type SuggestionValidationCommand = {
+  command: string;
+  exitCode: number;
+  durationMs: number;
+  status: "passed" | "failed";
+  stdoutHead: string;
+  stderrHead: string;
+};
+
+export type SuggestionValidationResult = {
+  scope: string;
+  scopeKind: "suggestion" | "bundle";
+  scopeId: string;
+  runId: string;
+  worktreePath: string;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+  status: "passed" | "failed" | "no_commands_configured";
+  summary: { total: number; passed: number; failed: number };
+  commands: SuggestionValidationCommand[];
+  resultPath: string;
+};
+
+export type BundleStatus =
+  | "draft"
+  | "approved"
+  | "applying"
+  | "applied"
+  | "partially_applied"
+  | "failed"
+  | "validation_passed"
+  | "validation_failed"
+  | "reverted"
+  | "revert_failed"
+  | "rejected";
+
+export type SuggestionBundle = {
+  id: string;
+  runId: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  status: BundleStatus;
+  suggestionIds: string[];
+  approvalId: string | null;
+  validationResultPath: string | null;
+  createdBy: string;
+  decisionNote: string | null;
+  appliedAt: string | null;
+  revertedAt: string | null;
+  errorMessage: string | null;
+  appliedPatchPath: string | null;
+  reversePatchPath: string | null;
+  touchedFiles: string[];
+  sameFileWarnings: { file: string; suggestionIds: string[] }[];
+};
+
+export type BundlePreflightResult = {
+  ok: boolean;
+  findings: {
+    suggestionId: string;
+    reason: string | null;
+    touchedFiles: string[];
+  }[];
+  sameFileWarnings: { file: string; suggestionIds: string[] }[];
 };
 
 export type CodebaseEvent =

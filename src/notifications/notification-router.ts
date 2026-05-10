@@ -198,6 +198,96 @@ export function draftQueueDrained(input: {
   };
 }
 
+export function draftSuggestionValidation(input: {
+  runId: string;
+  suggestionId: string;
+  passed: boolean;
+  failedCount: number;
+}): NotificationDraft {
+  return {
+    severity: input.passed ? "success" : "warning",
+    category: "review",
+    title: input.passed
+      ? "Suggestion validation passed"
+      : "Suggestion validation failed",
+    message: input.passed
+      ? `Validation passed against the worktree.`
+      : `${input.failedCount} command(s) failed in the run worktree.`,
+    runId: input.runId,
+    sourceEventType: input.passed
+      ? "suggestion.validation_passed"
+      : "suggestion.validation_failed",
+    actionRequired: !input.passed,
+    actionLabel: "Open run",
+    actionUrl: `#/runs/${input.runId}`,
+    metadata: { suggestionId: input.suggestionId },
+  };
+}
+
+export function draftBundleEvent(input: {
+  runId: string;
+  bundleId: string;
+  kind:
+    | "created"
+    | "approved"
+    | "applied"
+    | "validation_passed"
+    | "validation_failed"
+    | "reverted"
+    | "revert_failed"
+    | "apply_failed";
+  message: string;
+}): NotificationDraft {
+  const sev =
+    input.kind === "validation_failed" ||
+    input.kind === "apply_failed" ||
+    input.kind === "revert_failed"
+      ? "warning"
+      : input.kind === "applied" ||
+          input.kind === "validation_passed" ||
+          input.kind === "reverted"
+        ? "success"
+        : "info";
+  return {
+    severity: sev,
+    category: "review",
+    title: titleForBundle(input.kind),
+    message: input.message,
+    runId: input.runId,
+    sourceEventType: `bundle.${input.kind}`,
+    actionRequired:
+      input.kind === "validation_failed" ||
+      input.kind === "apply_failed" ||
+      input.kind === "revert_failed",
+    actionLabel: "Open run",
+    actionUrl: `#/runs/${input.runId}`,
+    metadata: { bundleId: input.bundleId },
+  };
+}
+
+function titleForBundle(kind: string): string {
+  switch (kind) {
+    case "created":
+      return "Review pass created";
+    case "approved":
+      return "Review pass approved";
+    case "applied":
+      return "Review pass applied";
+    case "validation_passed":
+      return "Review pass validation passed";
+    case "validation_failed":
+      return "Review pass validation failed";
+    case "reverted":
+      return "Review pass reverted";
+    case "revert_failed":
+      return "Review pass revert failed";
+    case "apply_failed":
+      return "Review pass apply failed";
+    default:
+      return `Review pass: ${kind}`;
+  }
+}
+
 export function draftProviderFailed(input: {
   runId: string;
   providerId: string;

@@ -155,5 +155,9 @@ export function makeSuggestionRecord(input: {
     approvalId: null,
     decisionNote: null,
     errorMessage: null,
+    bundleId: null,
+    appliedPatchPath: null,
+    reversePatchPath: null,
+    validationResultPath: null,
   };
 }

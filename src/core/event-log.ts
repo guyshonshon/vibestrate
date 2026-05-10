@@ -33,7 +33,22 @@ export type AmacoEventType =
   | "suggestion.approved"
   | "suggestion.rejected"
   | "suggestion.applied"
-  | "suggestion.apply_failed";
+  | "suggestion.apply_failed"
+  | "suggestion.validation_passed"
+  | "suggestion.validation_failed"
+  | "suggestion.reverted"
+  | "suggestion.revert_failed"
+  | "bundle.created"
+  | "bundle.updated"
+  | "bundle.approved"
+  | "bundle.rejected"
+  | "bundle.applied"
+  | "bundle.apply_failed"
+  | "bundle.partially_applied"
+  | "bundle.validation_passed"
+  | "bundle.validation_failed"
+  | "bundle.reverted"
+  | "bundle.revert_failed";
 
 export type AmacoEvent = {
   timestamp: string;

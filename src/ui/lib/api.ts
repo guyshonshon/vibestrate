@@ -20,6 +20,9 @@ import type {
   Note,
   ProjectMetadata,
   ReviewSuggestion,
+  SuggestionBundle,
+  SuggestionValidationResult,
+  BundlePreflightResult,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
   ProposalParseSummary,
@@ -569,5 +572,131 @@ export const api = {
       `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/apply`,
     );
     return r.suggestion;
+  },
+  async validateSuggestion(input: {
+    runId: string;
+    suggestionId: string;
+  }): Promise<{
+    suggestion: ReviewSuggestion;
+    result: SuggestionValidationResult;
+  }> {
+    return jsonPost(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/validate`,
+    );
+  },
+  async revertSuggestion(input: {
+    runId: string;
+    suggestionId: string;
+  }): Promise<ReviewSuggestion> {
+    const r = await jsonPost<{ suggestion: ReviewSuggestion }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestions/${encodeURIComponent(input.suggestionId)}/revert`,
+    );
+    return r.suggestion;
+  },
+
+  // ─── bundles (review passes) ──────────────────────────────────────────────
+  async listBundles(runId: string): Promise<SuggestionBundle[]> {
+    const r = await jsonGet<{ bundles: SuggestionBundle[] }>(
+      `/api/runs/${encodeURIComponent(runId)}/suggestion-bundles`,
+    );
+    return r.bundles;
+  },
+  async getBundle(runId: string, bundleId: string): Promise<SuggestionBundle> {
+    const r = await jsonGet<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(runId)}/suggestion-bundles/${encodeURIComponent(bundleId)}`,
+    );
+    return r.bundle;
+  },
+  async createBundle(input: {
+    runId: string;
+    title: string;
+    description?: string;
+    suggestionIds?: string[];
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles`,
+      input,
+    );
+    return r.bundle;
+  },
+  async addToBundle(input: {
+    runId: string;
+    bundleId: string;
+    suggestionId: string;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/add`,
+      { suggestionId: input.suggestionId },
+    );
+    return r.bundle;
+  },
+  async removeFromBundle(input: {
+    runId: string;
+    bundleId: string;
+    suggestionId: string;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/remove`,
+      { suggestionId: input.suggestionId },
+    );
+    return r.bundle;
+  },
+  async approveBundle(input: {
+    runId: string;
+    bundleId: string;
+    note?: string;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/approve`,
+      { note: input.note },
+    );
+    return r.bundle;
+  },
+  async rejectBundle(input: {
+    runId: string;
+    bundleId: string;
+    note?: string;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/reject`,
+      { note: input.note },
+    );
+    return r.bundle;
+  },
+  async applyBundle(input: {
+    runId: string;
+    bundleId: string;
+  }): Promise<{ bundle: SuggestionBundle; preflight: BundlePreflightResult }> {
+    return jsonPost(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/apply`,
+    );
+  },
+  async validateBundle(input: {
+    runId: string;
+    bundleId: string;
+  }): Promise<{
+    bundle: SuggestionBundle;
+    result: SuggestionValidationResult;
+  }> {
+    return jsonPost(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/validate`,
+    );
+  },
+  async revertBundle(input: {
+    runId: string;
+    bundleId: string;
+  }): Promise<SuggestionBundle> {
+    const r = await jsonPost<{ bundle: SuggestionBundle }>(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/revert`,
+    );
+    return r.bundle;
+  },
+  async preflightBundle(input: {
+    runId: string;
+    bundleId: string;
+  }): Promise<BundlePreflightResult> {
+    return jsonGet(
+      `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/preflight`,
+    );
   },
 };

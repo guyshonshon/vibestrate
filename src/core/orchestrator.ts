@@ -1326,6 +1326,18 @@ export class Orchestrator {
     } catch {
       suggestions = [];
     }
+    let bundles: import("../reviews/suggestion-bundle-types.js").SuggestionBundle[] = [];
+    try {
+      const { SuggestionBundleService } = await import(
+        "../reviews/suggestion-bundle-service.js"
+      );
+      bundles = await new SuggestionBundleService(
+        this.projectRoot,
+        input.state.runId,
+      ).list();
+    } catch {
+      bundles = [];
+    }
     const report = renderFinalReport({
       state: input.state,
       artifactPaths: input.artifacts,
@@ -1335,6 +1347,7 @@ export class Orchestrator {
       metrics: input.metrics,
       approvals: input.approvals,
       suggestions,
+      bundles,
     });
     return input.artifactStore.write("12-final-report.md", report);
   }

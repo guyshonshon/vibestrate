@@ -121,19 +121,67 @@ export function buildSuggestionsCommand(): Command {
     .description(
       "Apply an approved suggestion's proposedPatch inside the run's worktree (git apply, never push/merge).",
     )
+    .option("--validate", "after applying, run commands.validate inside the worktree")
+    .action(
+      async (
+        runId: string,
+        suggestionId: string,
+        opts: { validate?: boolean },
+      ) => {
+        await requireRun(runId);
+        try {
+          const svc = new ReviewSuggestionService(process.cwd(), runId);
+          const r = await svc.apply(suggestionId);
+          if (r.status === "applied") {
+            console.log(`${symbol.ok()} applied ${r.id}.`);
+          } else {
+            console.error(
+              color.red(
+                `${symbol.fail()} apply failed: ${r.errorMessage ?? "unknown reason"}`,
+              ),
+            );
+            process.exit(1);
+          }
+          if (opts.validate) {
+            await runValidationCli(svc, suggestionId);
+          }
+        } catch (err) {
+          handleErr(err);
+        }
+      },
+    );
+
+  cmd
+    .command("validate <runId> <suggestionId>")
+    .description(
+      "Run the project's commands.validate inside the run's worktree against an applied suggestion.",
+    )
     .action(async (runId: string, suggestionId: string) => {
       await requireRun(runId);
       try {
-        const r = await new ReviewSuggestionService(
-          process.cwd(),
-          runId,
-        ).apply(suggestionId);
-        if (r.status === "applied") {
-          console.log(`${symbol.ok()} applied ${r.id}.`);
+        const svc = new ReviewSuggestionService(process.cwd(), runId);
+        await runValidationCli(svc, suggestionId);
+      } catch (err) {
+        handleErr(err);
+      }
+    });
+
+  cmd
+    .command("revert <runId> <suggestionId>")
+    .description(
+      "Revert a previously-applied suggestion using the captured patch (git apply -R).",
+    )
+    .action(async (runId: string, suggestionId: string) => {
+      await requireRun(runId);
+      try {
+        const svc = new ReviewSuggestionService(process.cwd(), runId);
+        const r = await svc.revert(suggestionId);
+        if (r.status === "reverted") {
+          console.log(`${symbol.ok()} reverted ${r.id}.`);
         } else {
           console.error(
             color.red(
-              `${symbol.fail()} apply failed: ${r.errorMessage ?? "unknown reason"}`,
+              `${symbol.fail()} revert failed: ${r.errorMessage ?? "unknown reason"}`,
             ),
           );
           process.exit(1);
@@ -144,6 +192,34 @@ export function buildSuggestionsCommand(): Command {
     });
 
   return cmd;
+}
+
+async function runValidationCli(
+  svc: ReviewSuggestionService,
+  suggestionId: string,
+): Promise<void> {
+  const r = await svc.validate(suggestionId);
+  if (r.result.status === "passed") {
+    console.log(
+      `${symbol.ok()} validation passed: ${r.result.summary.passed}/${r.result.summary.total} commands.`,
+    );
+  } else if (r.result.status === "failed") {
+    console.error(
+      color.red(
+        `${symbol.fail()} validation failed: ${r.result.summary.failed} of ${r.result.summary.total} commands failed.`,
+      ),
+    );
+    for (const c of r.result.commands.filter((c) => c.status === "failed")) {
+      console.error(color.dim(`  ${c.command} → exit ${c.exitCode}`));
+    }
+    process.exit(1);
+  } else {
+    console.log(
+      color.yellow(
+        '! No commands.validate configured. Try: amaco config set commands.validate \'["pnpm test"]\'',
+      ),
+    );
+  }
 }
 
 function renderStatus(status: string): string {
