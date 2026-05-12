@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { RunsPage } from "./routes/RunsPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { QueuePage } from "./routes/QueuePage.js";
-import { SettingsPage } from "./routes/SettingsPage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
@@ -14,6 +13,14 @@ import {
   ProposalDetailPage,
 } from "./routes/ProposalsPage.js";
 import type { NotificationRecord, CodeReference } from "../lib/types.js";
+
+// Settings is only visited when the user explicitly opens it. Splitting it
+// (with its ProfileMaintenancePanel + GatewaySettings forms) into an async
+// chunk shaves form-heavy code off the eager bundle. Inline lazy decl
+// keeps the wrapper-per-page boilerplate down.
+const SettingsPage = lazy(() =>
+  import("./routes/SettingsPage.js").then((m) => ({ default: m.SettingsPage })),
+);
 
 type Route =
   | { kind: "runs" }
@@ -188,7 +195,15 @@ export function App() {
       ) : route.kind === "queue" ? (
         <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
       ) : route.kind === "settings" ? (
-        <SettingsPage />
+        <Suspense
+          fallback={
+            <div className="px-4 py-6 text-[11.5px] text-amaco-fg-muted">
+              Loading settings…
+            </div>
+          }
+        >
+          <SettingsPage />
+        </Suspense>
       ) : route.kind === "project" ? (
         <ProjectPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
