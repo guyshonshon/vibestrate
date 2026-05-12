@@ -14,7 +14,10 @@ import type {
   SuggestionSource,
   SuggestionStatus,
 } from "./review-suggestion-types.js";
-import { isSecretLikePath } from "../core/diff-service.js";
+import {
+  isSecretLikePath,
+  scanPatchContentForSecrets,
+} from "../core/diff-service.js";
 import { isPathInside } from "../utils/paths.js";
 import { runStateSchema } from "../core/state-machine.js";
 import { runStatePath, runDir } from "../utils/paths.js";
@@ -969,6 +972,20 @@ export function checkPatchSafety(
         touchedFiles: [...touched],
       };
     }
+  }
+  // Content-based scan: catches secrets pasted into otherwise-normal files
+  // (e.g. a literal AWS key in src/config.ts). Path-based redaction above
+  // only blocks .env-style files. Patterns are high-precision so this
+  // shouldn't false-positive on real code.
+  const secretHits = scanPatchContentForSecrets(patch);
+  if (secretHits.length > 0) {
+    const first = secretHits[0]!;
+    const target = first.filePath ?? "(unknown)";
+    return {
+      ok: false,
+      reason: `Patch adds a likely ${first.pattern} on line ${first.line + 1} of ${target} (${first.redactedSnippet}). Refusing to apply.`,
+      touchedFiles: [...touched],
+    };
   }
   return { ok: true, touchedFiles: [...touched] };
 }

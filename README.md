@@ -1086,7 +1086,8 @@ Hard refusals before any git command runs:
 - the suggestion has no `proposedPatch`,
 - the suggestion is not in `approved` state,
 - any patched path escapes the worktree (`..`, absolute, or `~/`-rooted),
-- any patched path matches the secret-file allow-list (`.env`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, `secrets.*`).
+- any patched path matches the secret-file allow-list (`.env`, `*.pem`, `*.key`, `*.p12`, `id_rsa`, `secrets.*`),
+- any **added** content matches a high-precision secret pattern (AWS access key, GitHub PAT, Slack token, Stripe live key, Google API key, Anthropic API key, or a PEM private-key header). The error message redacts the token — the first few characters and the length are shown so you can locate it, the rest never leaves the server.
 
 If `git apply --check` fails, Amaco never invokes `git apply`. Either way, the suggestion's status flips to `applied` or `failed`, and a `suggestion.applied` / `suggestion.apply_failed` event lands in the run's events log. The worktree is left untouched on failure.
 

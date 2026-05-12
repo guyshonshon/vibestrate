@@ -56,6 +56,90 @@ export function isSecretLikePath(filePath: string): boolean {
   return SECRET_FILE_PATTERNS.some((re) => re.test(normalized));
 }
 
+/**
+ * High-precision secret patterns. Tuned for low false-positive rate: each
+ * pattern matches a vendor-published token *shape* (length + alphabet +
+ * prefix), not generic high-entropy strings. The cost of a false positive
+ * is blocking a real patch from being applied, so prefer underfitting.
+ *
+ * If you add a pattern, ensure (a) it includes a vendor-specific prefix
+ * and (b) the entropy budget after the prefix is large enough that random
+ * source code is unlikely to collide.
+ */
+const SECRET_CONTENT_PATTERNS: { name: string; re: RegExp }[] = [
+  { name: "AWS access key id", re: /\bAKIA[0-9A-Z]{16}\b/g },
+  { name: "GitHub fine-grained PAT", re: /\bgithub_pat_[A-Za-z0-9_]{82}\b/g },
+  { name: "GitHub classic token", re: /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g },
+  { name: "Slack token", re: /\bxox[bapsr]-[A-Za-z0-9-]{10,}\b/g },
+  { name: "Stripe live secret key", re: /\b[rs]k_live_[A-Za-z0-9]{20,}\b/g },
+  { name: "Google API key", re: /\bAIza[0-9A-Za-z\-_]{35}\b/g },
+  { name: "Anthropic API key", re: /\bsk-ant-[A-Za-z0-9_-]{40,}\b/g },
+  {
+    name: "PEM private key block",
+    re: /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/g,
+  },
+];
+
+export type SecretContentMatch = {
+  /** Human-readable pattern name. */
+  pattern: string;
+  /** 0-based line offset within the patch text. */
+  line: number;
+  /** Path of the patched file the match occurred in (best-effort; may be null
+   *  for matches inside the first file's header lines). */
+  filePath: string | null;
+  /** Redacted snippet showing the first 4 chars of the match + length, so the
+   *  full token never lands in error messages, logs, or UI surfaces. */
+  redactedSnippet: string;
+};
+
+/**
+ * Scan only the **added** content of a unified diff (lines starting with `+`,
+ * excluding the `+++` file header) for high-precision secret patterns. Used
+ * by `checkPatchSafety` so that an LLM-generated patch that pastes a literal
+ * AWS key into a regular .ts file gets blocked, not just patches that touch
+ * .env-style paths.
+ */
+export function scanPatchContentForSecrets(
+  patch: string,
+): SecretContentMatch[] {
+  const matches: SecretContentMatch[] = [];
+  const lines = patch.split(/\r?\n/);
+  let currentFile: string | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const fileHeader = /^\+\+\+ (?:b\/)?(.+)$/.exec(line);
+    if (fileHeader) {
+      const target = fileHeader[1]!.trim();
+      currentFile = target === "/dev/null" ? null : target;
+      continue;
+    }
+    if (line.startsWith("+++") || line.startsWith("---")) continue;
+    if (!line.startsWith("+")) continue;
+    // Strip the leading "+" so the patterns see the actual added content.
+    const added = line.slice(1);
+    for (const { name, re } of SECRET_CONTENT_PATTERNS) {
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(added))) {
+        const token = m[0];
+        matches.push({
+          pattern: name,
+          line: i,
+          filePath: currentFile,
+          redactedSnippet: redactSecret(token),
+        });
+      }
+    }
+  }
+  return matches;
+}
+
+function redactSecret(token: string): string {
+  if (token.length <= 8) return `${token.slice(0, 2)}…(${token.length})`;
+  return `${token.slice(0, 4)}…(${token.length} chars)`;
+}
+
 function parseStatusCode(code: string): ChangedFileStatus {
   if (code.startsWith("A")) return "added";
   if (code.startsWith("M")) return "modified";

@@ -296,6 +296,155 @@ describe("checkPatchSafety", () => {
     );
     expect(r.ok).toBe(true);
   });
+
+  it("rejects a patch that adds an AWS-shaped access key in a normal file", () => {
+    const fakeKey = `AKIA${"A".repeat(16)}`;
+    const r = checkPatchSafety(
+      [
+        "diff --git a/src/config.ts b/src/config.ts",
+        "--- a/src/config.ts",
+        "+++ b/src/config.ts",
+        "@@ -1 +1,2 @@",
+        " export const x = 1",
+        `+export const aws = "${fakeKey}"`,
+        "",
+      ].join("\n"),
+      wt,
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/AWS access key id/);
+    // Reason must redact — never leak the full token back at the caller.
+    expect(r.reason).not.toContain(fakeKey);
+  });
+
+  it("rejects a patch that adds a GitHub PAT", () => {
+    const fakeToken = `ghp_${"a".repeat(40)}`;
+    const r = checkPatchSafety(
+      [
+        "diff --git a/src/x.ts b/src/x.ts",
+        "--- a/src/x.ts",
+        "+++ b/src/x.ts",
+        "@@ -1 +1,2 @@",
+        " ok",
+        `+const t = "${fakeToken}"`,
+        "",
+      ].join("\n"),
+      wt,
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/GitHub/);
+  });
+
+  it("does not flag secrets that appear only in removed (-) lines", () => {
+    const fakeKey = `AKIA${"B".repeat(16)}`;
+    const r = checkPatchSafety(
+      [
+        "diff --git a/src/x.ts b/src/x.ts",
+        "--- a/src/x.ts",
+        "+++ b/src/x.ts",
+        "@@ -1,2 +1 @@",
+        ` const old = "${fakeKey}"`,
+        `-const removed = "${fakeKey}"`,
+        " const kept = 1",
+        "",
+      ].join("\n"),
+      wt,
+    );
+    // The added line ("const kept = 1") is clean. The removed line carrying
+    // the key is fine — removing a secret is what we want, not what we
+    // block.
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe("scanPatchContentForSecrets", () => {
+  // Import path differs from the top-of-file imports because the scanner
+  // lives in diff-service.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  it("returns no matches for a clean patch", async () => {
+    const { scanPatchContentForSecrets } = await import(
+      "../src/core/diff-service.js"
+    );
+    const r = scanPatchContentForSecrets(
+      "diff --git a/x b/x\n--- a/x\n+++ b/x\n@@ -1 +1,2 @@\n a\n+b\n",
+    );
+    expect(r).toEqual([]);
+  });
+
+  it("matches multiple distinct patterns and never leaks the full token", async () => {
+    const { scanPatchContentForSecrets } = await import(
+      "../src/core/diff-service.js"
+    );
+    const aws = `AKIA${"C".repeat(16)}`;
+    const stripe = `sk_live_${"d".repeat(24)}`;
+    const r = scanPatchContentForSecrets(
+      [
+        "diff --git a/a.ts b/a.ts",
+        "--- a/a.ts",
+        "+++ b/a.ts",
+        "@@ -1 +1,3 @@",
+        " keep",
+        `+const a = "${aws}"`,
+        `+const s = "${stripe}"`,
+        "",
+      ].join("\n"),
+    );
+    expect(r).toHaveLength(2);
+    const patterns = r.map((m) => m.pattern).sort();
+    expect(patterns).toEqual(["AWS access key id", "Stripe live secret key"]);
+    for (const m of r) {
+      expect(m.redactedSnippet).not.toContain(aws);
+      expect(m.redactedSnippet).not.toContain(stripe);
+      // Snippet must use the ellipsis-redact format, not the raw token.
+      expect(m.redactedSnippet).toContain("…");
+      expect(m.redactedSnippet.length).toBeLessThan(aws.length);
+    }
+  });
+
+  it("matches a PEM private key header", async () => {
+    const { scanPatchContentForSecrets } = await import(
+      "../src/core/diff-service.js"
+    );
+    const r = scanPatchContentForSecrets(
+      [
+        "diff --git a/k.ts b/k.ts",
+        "--- a/k.ts",
+        "+++ b/k.ts",
+        "@@ -1 +1,2 @@",
+        " ok",
+        "+const pem = `-----BEGIN RSA PRIVATE KEY-----`",
+        "",
+      ].join("\n"),
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0]!.pattern).toMatch(/PEM/);
+  });
+
+  it("attributes matches to the right file when the patch touches multiple", async () => {
+    const { scanPatchContentForSecrets } = await import(
+      "../src/core/diff-service.js"
+    );
+    const aws = `AKIA${"E".repeat(16)}`;
+    const r = scanPatchContentForSecrets(
+      [
+        "diff --git a/clean.ts b/clean.ts",
+        "--- a/clean.ts",
+        "+++ b/clean.ts",
+        "@@ -1 +1,2 @@",
+        " a",
+        "+b",
+        "diff --git a/dirty.ts b/dirty.ts",
+        "--- a/dirty.ts",
+        "+++ b/dirty.ts",
+        "@@ -1 +1,2 @@",
+        " a",
+        `+const k = "${aws}"`,
+        "",
+      ].join("\n"),
+    );
+    expect(r).toHaveLength(1);
+    expect(r[0]!.filePath).toBe("dirty.ts");
+  });
 });
 
 describe("ReviewSuggestionService apply (gated)", () => {
