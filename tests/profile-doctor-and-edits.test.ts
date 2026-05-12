@@ -3,7 +3,10 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
-import { auditValidationProfileReferences } from "../src/core/validation-profile-audit-service.js";
+import {
+  auditValidationProfileReferences,
+  ValidationProfileAuditError,
+} from "../src/core/validation-profile-audit-service.js";
 import { runDoctor } from "../src/setup/doctor-service.js";
 import { applyDoctorFixes } from "../src/setup/doctor-service.js";
 import { ReviewSuggestionService } from "../src/reviews/review-suggestion-service.js";
@@ -167,6 +170,100 @@ describe("validation-profile-audit-service", () => {
     const cfg = await loadConfig(t.project);
     const r = await auditValidationProfileReferences(t.project, cfg.config);
     expect(r.staleSuggestionReferences).toEqual([]);
+  });
+
+  it("recent scope (default) caps the scan at 50 runs", async () => {
+    const t = await tempProjectWithProfiles({ validate: ["true"] });
+    // Create 60 extra run dirs, each with a single stale suggestion. Lex
+    // sort puts the oldest first — so the most recent 50 should win.
+    for (let i = 1; i <= 60; i++) {
+      const id = `run-${String(i + 100).padStart(4, "0")}`;
+      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        JSON.stringify({
+          suggestions: [{ id: "s-1", validationProfile: "missing" }],
+        }),
+      );
+    }
+    const cfg = await loadConfig(t.project);
+    const r = await auditValidationProfileReferences(t.project, cfg.config);
+    expect(r.scope).toEqual({ kind: "recent" });
+    expect(r.scannedRuns).toBe(50);
+    // The recent-50 window includes the harness-created run-1 (no
+    // suggestions.json), so 49 of the 50 contribute stale refs. The point
+    // of the test is that the cap is observed — not the exact stale count.
+    expect(r.staleSuggestionReferences.length).toBeLessThan(60);
+    expect(r.staleSuggestionReferences.length).toBeGreaterThanOrEqual(49);
+  });
+
+  it("all scope lifts the 50-run cap", async () => {
+    const t = await tempProjectWithProfiles({ validate: ["true"] });
+    for (let i = 1; i <= 60; i++) {
+      const id = `run-${String(i + 100).padStart(4, "0")}`;
+      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        JSON.stringify({
+          suggestions: [{ id: "s-1", validationProfile: "missing" }],
+        }),
+      );
+    }
+    const cfg = await loadConfig(t.project);
+    const r = await auditValidationProfileReferences(t.project, cfg.config, {
+      scope: { kind: "all" },
+    });
+    expect(r.scope).toEqual({ kind: "all" });
+    // 60 extras + the run-1 from tempProjectWithProfiles (which has no
+    // suggestions.json by default).
+    expect(r.scannedRuns).toBe(61);
+    expect(r.staleSuggestionReferences.length).toBe(60);
+  });
+
+  it("run scope only scans the given runId", async () => {
+    const t = await tempProjectWithProfiles({ validate: ["true"] });
+    for (const id of ["run-aaa", "run-bbb"]) {
+      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+        recursive: true,
+      });
+      await fs.writeFile(
+        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        JSON.stringify({
+          suggestions: [{ id: `${id}-s`, validationProfile: "missing" }],
+        }),
+      );
+    }
+    const cfg = await loadConfig(t.project);
+    const r = await auditValidationProfileReferences(t.project, cfg.config, {
+      scope: { kind: "run", runId: "run-bbb" },
+    });
+    expect(r.scope).toEqual({ kind: "run", runId: "run-bbb" });
+    expect(r.scannedRuns).toBe(1);
+    expect(r.staleSuggestionReferences.map((s) => s.id)).toEqual(["run-bbb-s"]);
+  });
+
+  it("run scope returns scannedRuns:0 for a missing runId without throwing", async () => {
+    const t = await tempProjectWithProfiles({ validate: ["true"] });
+    const cfg = await loadConfig(t.project);
+    const r = await auditValidationProfileReferences(t.project, cfg.config, {
+      scope: { kind: "run", runId: "run-ghost" },
+    });
+    expect(r.scannedRuns).toBe(0);
+    expect(r.staleSuggestionReferences).toEqual([]);
+  });
+
+  it("run scope rejects an unsafe runId", async () => {
+    const t = await tempProjectWithProfiles({ validate: ["true"] });
+    const cfg = await loadConfig(t.project);
+    await expect(
+      auditValidationProfileReferences(t.project, cfg.config, {
+        scope: { kind: "run", runId: "../escape" },
+      }),
+    ).rejects.toBeInstanceOf(ValidationProfileAuditError);
   });
 });
 

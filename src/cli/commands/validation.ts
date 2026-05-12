@@ -21,6 +21,14 @@ import {
   type RenamePreview,
 } from "../../core/validation-profile-rename-service.js";
 import { readUsageReport } from "../../core/validation-profile-usage-service.js";
+import {
+  auditValidationProfileReferences,
+  ValidationProfileAuditError,
+  type AuditScope,
+  type ProfileAuditResult,
+  type StaleProfileReference,
+} from "../../core/validation-profile-audit-service.js";
+import { suggestProfileName } from "../../core/validation-profile-migration-service.js";
 
 export function buildValidationCommand(): Command {
   const cmd = new Command("validation").description(
@@ -60,8 +68,38 @@ export function buildValidationCommand(): Command {
       }
     });
 
+  // ─── usage ────────────────────────────────────────────────────────────────
   cmd
-    .command("profile show <name>")
+    .command("usage")
+    .description(
+      "Show how often each validation profile has actually run (`commands.validate` use counts as 'default').",
+    )
+    .option("--json", "emit JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const report = await readUsageReport(process.cwd());
+      if (opts.json) {
+        console.log(JSON.stringify(report, null, 2));
+        return;
+      }
+      if (report.entries.length === 0) {
+        console.log(color.dim("No validation runs recorded yet."));
+        return;
+      }
+      for (const e of report.entries) {
+        const src = e.source === "default" ? color.dim("default") : color.cyan("named");
+        console.log(
+          `${color.bold(e.profileName)} ${src}  uses=${e.totalUses}  last=${color.dim(e.lastUsedAt ?? "—")}`,
+        );
+      }
+    });
+
+  // ─── profile subgroup ─────────────────────────────────────────────────────
+  const profileSub = cmd
+    .command("profile")
+    .description("Inspect, manage, and migrate validation profile references.");
+
+  profileSub
+    .command("show <name>")
     .description(
       "Show the resolved commands for a named profile (or 'default').",
     )
@@ -99,36 +137,6 @@ export function buildValidationCommand(): Command {
         throw err;
       }
     });
-
-  // ─── usage ────────────────────────────────────────────────────────────────
-  cmd
-    .command("usage")
-    .description(
-      "Show how often each validation profile has actually run (`commands.validate` use counts as 'default').",
-    )
-    .option("--json", "emit JSON")
-    .action(async (opts: { json?: boolean }) => {
-      const report = await readUsageReport(process.cwd());
-      if (opts.json) {
-        console.log(JSON.stringify(report, null, 2));
-        return;
-      }
-      if (report.entries.length === 0) {
-        console.log(color.dim("No validation runs recorded yet."));
-        return;
-      }
-      for (const e of report.entries) {
-        const src = e.source === "default" ? color.dim("default") : color.cyan("named");
-        console.log(
-          `${color.bold(e.profileName)} ${src}  uses=${e.totalUses}  last=${color.dim(e.lastUsedAt ?? "—")}`,
-        );
-      }
-    });
-
-  // ─── profile migrate ──────────────────────────────────────────────────────
-  const profileSub = cmd
-    .command("profile")
-    .description("Manage and migrate validation profile references.");
 
   profileSub
     .command("migrate <fromProfile> <toProfile>")
@@ -203,6 +211,23 @@ export function buildValidationCommand(): Command {
           toProfile,
           dryRun: !!opts.dryRun,
           scope: pickScope(opts),
+        });
+      },
+    );
+
+  profileSub
+    .command("doctor")
+    .description(
+      "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `amaco doctor` (recent 50 runs); use --all to lift the cap.",
+    )
+    .option("--all", "scan every run instead of the recent 50")
+    .option("--run <runId>", "limit the audit to a single run")
+    .option("--json", "emit JSON (machine-readable; includes didYouMean per record)")
+    .action(
+      async (opts: { all?: boolean; run?: string; json?: boolean }) => {
+        await runProfileDoctor({
+          scope: pickScope({ all: opts.all, run: opts.run }),
+          json: !!opts.json,
         });
       },
     );
@@ -394,5 +419,138 @@ function renderRenamePreview(preview: RenamePreview, dryRun: boolean): void {
         "Dry run — wrote nothing. Re-run without --dry-run to apply.",
       ),
     );
+  }
+}
+
+async function runProfileDoctor(input: {
+  scope: AuditScope;
+  json: boolean;
+}): Promise<void> {
+  const cfg = await loadConfig(process.cwd()).catch(() => null);
+  if (!cfg) {
+    if (input.json) {
+      console.log(
+        JSON.stringify(
+          { error: "Project not initialised. Run `amaco init`." },
+          null,
+          2,
+        ),
+      );
+    } else {
+      console.error(color.red("Project not initialised. Run `amaco init`."));
+    }
+    process.exit(2);
+  }
+  let result: ProfileAuditResult;
+  try {
+    result = await auditValidationProfileReferences(
+      process.cwd(),
+      cfg.config,
+      { scope: input.scope },
+    );
+  } catch (err) {
+    if (err instanceof ValidationProfileAuditError) {
+      if (input.json) {
+        console.log(JSON.stringify({ error: err.message }, null, 2));
+      } else {
+        console.error(color.red(`${symbol.fail()} ${err.message}`));
+      }
+      process.exit(err.statusCode === 404 ? 2 : 1);
+    }
+    throw err;
+  }
+
+  const liveProfiles = [
+    "default",
+    ...Object.keys(cfg.config.commands.validationProfiles ?? {}),
+  ];
+  const liveNamed = liveProfiles.filter((n) => n !== "default");
+  const annotate = (r: StaleProfileReference) => ({
+    ...r,
+    didYouMean: suggestProfileName(r.profileName, liveNamed),
+  });
+
+  if (input.json) {
+    console.log(
+      JSON.stringify(
+        {
+          scope: result.scope,
+          scannedRuns: result.scannedRuns,
+          malformedFiles: result.malformedFiles,
+          staleSuggestionReferences:
+            result.staleSuggestionReferences.map(annotate),
+          staleBundleReferences: result.staleBundleReferences.map(annotate),
+          liveProfiles,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+
+  const scopeLabel =
+    result.scope.kind === "run"
+      ? `scope=run:${result.scope.runId}`
+      : `scope=${result.scope.kind}`;
+  console.log(
+    `${color.bold("Validation profile audit")}  ${color.dim(`${scopeLabel}, scanned=${result.scannedRuns} run(s)`)}`,
+  );
+
+  const stale =
+    result.staleSuggestionReferences.length +
+    result.staleBundleReferences.length;
+  if (stale === 0 && result.malformedFiles.length === 0) {
+    console.log(
+      `${symbol.ok()} All suggestion + bundle profile references are healthy.`,
+    );
+    return;
+  }
+
+  if (result.staleSuggestionReferences.length > 0) {
+    console.log(
+      color.yellow(
+        `${symbol.warn()} ${result.staleSuggestionReferences.length} suggestion(s) reference missing validation profile(s)`,
+      ),
+    );
+    for (const r of result.staleSuggestionReferences) {
+      const guess = suggestProfileName(r.profileName, liveNamed);
+      const suffix = guess
+        ? color.dim(
+            `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+          )
+        : "";
+      console.log(
+        `  run ${r.runId} · suggestion ${r.id} → "${r.profileName}"${suffix}`,
+      );
+    }
+  }
+
+  if (result.staleBundleReferences.length > 0) {
+    console.log(
+      color.yellow(
+        `${symbol.warn()} ${result.staleBundleReferences.length} review pass(es) reference missing validation profile(s)`,
+      ),
+    );
+    for (const r of result.staleBundleReferences) {
+      const guess = suggestProfileName(r.profileName, liveNamed);
+      const suffix = guess
+        ? color.dim(
+            `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+          )
+        : "";
+      console.log(
+        `  run ${r.runId} · bundle ${r.id} → "${r.profileName}"${suffix}`,
+      );
+    }
+  }
+
+  if (result.malformedFiles.length > 0) {
+    console.log(
+      color.yellow(
+        `${symbol.warn()} ${result.malformedFiles.length} unreadable file(s) skipped during audit`,
+      ),
+    );
+    for (const f of result.malformedFiles) console.log(color.dim(`  ${f}`));
   }
 }

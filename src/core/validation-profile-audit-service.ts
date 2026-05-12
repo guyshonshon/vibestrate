@@ -1,10 +1,15 @@
 import path from "node:path";
-import fs from "node:fs/promises";
 import { readDirSafe, pathExists, readText } from "../utils/fs.js";
 import { projectRunsDir, runDir } from "../utils/paths.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 
-const SCAN_RUN_LIMIT = 50;
+const DEFAULT_RECENT_RUNS = 50;
+const SAFE_RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+export type AuditScope =
+  | { kind: "recent"; limit?: number }
+  | { kind: "all" }
+  | { kind: "run"; runId: string };
 
 export type StaleProfileReference = {
   runId: string;
@@ -19,6 +24,8 @@ export type StaleProfileReference = {
 };
 
 export type ProfileAuditResult = {
+  /** Scope the audit was actually run with (after defaulting). */
+  scope: AuditScope;
   /** Total runs we attempted to scan. */
   scannedRuns: number;
   /** Runs where the suggestions.json or bundles.json file was malformed. */
@@ -28,12 +35,27 @@ export type ProfileAuditResult = {
   staleBundleReferences: StaleProfileReference[];
 };
 
+export class ValidationProfileAuditError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ValidationProfileAuditError";
+  }
+}
+
 /**
- * Walk the most-recent runs (capped at SCAN_RUN_LIMIT) and report any
- * suggestion or bundle whose `validationProfile` does not exist in the
- * project's current commands.validationProfiles map. Tolerant of malformed
- * files: a corrupt suggestions.json is recorded under malformedFiles and
- * never crashes the caller.
+ * Walk runs in scope and report any suggestion or bundle whose
+ * `validationProfile` does not exist in the project's current
+ * commands.validationProfiles map. Tolerant of malformed files: a corrupt
+ * suggestions.json is recorded under malformedFiles and never crashes the
+ * caller.
+ *
+ * Scope semantics mirror MigrationScope:
+ *  - `recent` (default, 50 runs) — fast feedback for `amaco doctor`
+ *  - `all` — full scan, used by `amaco validation profile doctor --all`
+ *  - `run` — single run, used for targeted inspection
  *
  * The scan is purely read-only and bounded to the project's `.amaco/runs`
  * tree — never reads arbitrary paths.
@@ -41,13 +63,16 @@ export type ProfileAuditResult = {
 export async function auditValidationProfileReferences(
   projectRoot: string,
   config: ProjectConfig,
+  opts: { scope?: AuditScope } = {},
 ): Promise<ProfileAuditResult> {
+  const scope: AuditScope = opts.scope ?? { kind: "recent" };
   const profiles = new Set(
     Object.keys(config.commands.validationProfiles ?? {}),
   );
   const runsDir = projectRunsDir(projectRoot);
   if (!(await pathExists(runsDir))) {
     return {
+      scope,
       scannedRuns: 0,
       malformedFiles: [],
       staleSuggestionReferences: [],
@@ -55,9 +80,7 @@ export async function auditValidationProfileReferences(
     };
   }
 
-  // Sort lexicographically — run ids embed an ISO-ish timestamp prefix, so the
-  // tail is the newest. We slice from the end and bound the scan.
-  const ids = (await readDirSafe(runsDir)).sort().slice(-SCAN_RUN_LIMIT);
+  const ids = await listRunsForScope(runsDir, scope);
 
   const malformedFiles: string[] = [];
   const staleSuggestions: StaleProfileReference[] = [];
@@ -81,12 +104,36 @@ export async function auditValidationProfileReferences(
   }
 
   return {
+    scope,
     scannedRuns: ids.length,
     malformedFiles,
     staleSuggestionReferences: staleSuggestions,
     staleBundleReferences: staleBundles,
   };
-  void fs;
+}
+
+async function listRunsForScope(
+  runsDir: string,
+  scope: AuditScope,
+): Promise<string[]> {
+  if (scope.kind === "run") {
+    if (!SAFE_RUN_ID_RE.test(scope.runId) || scope.runId.includes("..")) {
+      throw new ValidationProfileAuditError(
+        400,
+        `Unsafe runId: ${scope.runId}`,
+      );
+    }
+    // Only return the runId if it actually exists — otherwise the audit
+    // reports scannedRuns:0 rather than throwing.
+    const all = await readDirSafe(runsDir);
+    return all.includes(scope.runId) ? [scope.runId] : [];
+  }
+  // Sort lexicographically — run ids embed an ISO-ish timestamp prefix, so
+  // the tail is the newest. `all` keeps everything; `recent` slices.
+  const all = (await readDirSafe(runsDir)).sort();
+  if (scope.kind === "all") return all;
+  const limit = Math.max(1, scope.limit ?? DEFAULT_RECENT_RUNS);
+  return all.slice(-limit);
 }
 
 async function scanSuggestions(
