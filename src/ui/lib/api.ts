@@ -43,6 +43,10 @@ import type {
   TaskComment,
   TerminalAvailability,
   TerminalSession,
+  PolicyStoreSnapshot,
+  PolicyDoctorResult,
+  PolicyCheckResult,
+  PolicySurface,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -852,5 +856,18 @@ export const api = {
       `/api/terminal/sessions/${encodeURIComponent(id)}/close`,
     );
     return r.session;
+  },
+
+  async getPolicies(): Promise<PolicyStoreSnapshot> {
+    return jsonGet("/api/policies");
+  },
+  async getPolicyDoctor(): Promise<PolicyDoctorResult> {
+    return jsonGet("/api/policies/doctor");
+  },
+  async checkPatchAgainstPolicies(input: {
+    patch: string;
+    surface: PolicySurface;
+  }): Promise<PolicyCheckResult> {
+    return jsonPost("/api/policies/check", input);
   },
 };

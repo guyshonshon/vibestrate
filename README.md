@@ -433,6 +433,55 @@ There is also an **opt-in interactive Terminal panel** in the inspector. It is o
 
 CLI helpers: `amaco terminal list` (json/text) and `amaco terminal close <sessionId>` to mark a persisted session record closed. Live sessions also live in the dashboard server process and exit when that process exits.
 
+## User policy rules
+
+User-supplied rules in `.amaco/policies/*.yml` can refuse a suggestion or bundle apply that would otherwise pass the built-in safety checks. They are **purely additive** — rules can refuse, never permit a patch that path-based or content-based secret scanning would refuse.
+
+V0 surface and limits:
+
+- **Surfaces:** `suggestion-apply` and `bundle-apply` only. The orchestrator state machine, validation runner, and other state transitions are deliberately not gated by user rules in V0.
+- **Rule shape (YAML, no code):**
+  ```yaml
+  rules:
+    - id: no-console-log
+      description: Use the logger, not console.log.
+      appliesTo: [suggestion-apply, bundle-apply]
+      matchAddedContent:
+        regex: 'console\.log'
+        # flags is optional; subset of [gimsuy]
+        flags: i
+      # matchTouchedFiles is optional. When both matchers are present
+      # both must hit (AND). At least one matcher is required.
+      matchTouchedFiles:
+        glob: 'src/**'
+      message: "Use the logger instead of console.log."
+  ```
+- **Refusal format:** `<message> (policy rule: <id>)`. Identical from the CLI, the dashboard, and the actual apply call site.
+- **No JS plugins.** No `eval`, no `new Function`, no user-supplied code is loaded. The YAML parser is the only interpreter that touches rule files; tests assert this.
+- **Bounded.** Regex length capped at 256 chars, glob at 256, message at 512; per-line scan input is truncated to 4096 chars to keep one pathological line from blowing the budget. These are defensive caps, not a sandbox.
+- **Severity:** V0 is block-only. There is no `warn` severity that logs without blocking.
+- **Editing:** authoring is file-based. The dashboard surfaces what's loaded and lets you simulate a patch through the engine, but does not edit rule files.
+- **Malformed files** (YAML parse error, schema rejection, uncompilable regex, malformed glob) are **skipped** with a clear reason; well-formed rules in sibling files still apply. `amaco policies doctor` and the dashboard's Policies panel surface every malformed file.
+- **Duplicate rule ids across files:** first occurrence wins; the duplicate is surfaced by doctor and the dashboard, never silently merged.
+
+CLI:
+
+```
+amaco policies list [--json]
+amaco policies check <patchFile> [--surface suggestion-apply|bundle-apply] [--json]
+amaco policies doctor [--json]
+```
+
+Server endpoints (read-only):
+
+```
+GET  /api/policies          # full snapshot
+GET  /api/policies/doctor   # counts + malformed + dupes
+POST /api/policies/check    # { patch, surface } → { violations, ... }
+```
+
+The check endpoint accepts only patch *text* (never a filesystem path supplied by the browser), caps payload at 1 MB, and never applies or executes anything.
+
 ## Security model for local UI
 
 - Bound to `127.0.0.1` only.

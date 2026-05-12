@@ -963,3 +963,48 @@ export type TerminalSession = {
   closedAt: string | null;
   exitCode: number | null;
 };
+
+export type PolicySurface = "suggestion-apply" | "bundle-apply";
+
+export type PolicyRuleSummary = {
+  id: string;
+  description: string;
+  appliesTo: PolicySurface[];
+  matchAddedContent?: { regex: string; flags?: string };
+  matchTouchedFiles?: { glob: string };
+  message: string;
+};
+
+export type MalformedPolicyFile = {
+  file: string;
+  reason: string;
+};
+
+export type PolicyStoreSnapshot = {
+  rules: PolicyRuleSummary[];
+  ruleFiles: { file: string; ruleIds: string[] }[];
+  malformedFiles: MalformedPolicyFile[];
+  duplicateIds: string[];
+};
+
+export type PolicyDoctorResult = {
+  ruleCount: number;
+  fileCount: number;
+  malformedFiles: MalformedPolicyFile[];
+  duplicateIds: string[];
+};
+
+export type PolicyViolation = {
+  ruleId: string;
+  message: string;
+  matchedFile: string | null;
+};
+
+export type PolicyCheckResult = {
+  surface: PolicySurface;
+  evaluatedRuleIds: string[];
+  violations: PolicyViolation[];
+  ruleCountTotal: number;
+  ruleCountForSurface: number;
+  limits: { maxScanItemLength: number; maxPatchBytes: number };
+};

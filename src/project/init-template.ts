@@ -2,6 +2,7 @@ import path from "node:path";
 import { ensureDir, writeText, pathExists } from "../utils/fs.js";
 import {
   amacoRoot,
+  policiesDir,
   projectAgentsDir,
   projectConfigPath,
   projectRulesPath,
@@ -60,6 +61,49 @@ Add product behavior, UX, and copywriting rules here.
 ## Additional Notes
 
 Add anything planner, architect, executor, reviewer, and verifier agents should know.
+`;
+
+const POLICIES_README = `# Amaco Policies
+
+User-supplied rules that refuse a suggestion or bundle apply if they match.
+They never *permit* a patch — built-in safety (path-based + content-based
+secret scanning) always runs first.
+
+Drop \`*.yml\` (or \`*.yaml\`) files into this directory. Example:
+
+\`\`\`yaml
+rules:
+  - id: no-console-log
+    description: Use the logger, not console.log.
+    appliesTo: [suggestion-apply, bundle-apply]
+    matchAddedContent:
+      regex: 'console\\.log'
+      # flags is optional; subset of [gimsuy]
+      flags: i
+    # matchTouchedFiles is optional. When both matchers are present
+    # both must hit (AND). At least one matcher is required.
+    matchTouchedFiles:
+      glob: 'src/**'
+    message: "Use the logger instead of console.log."
+\`\`\`
+
+V0 limits:
+
+- Surfaces: \`suggestion-apply\` and \`bundle-apply\` only.
+- Severity: block-only (no warn yet).
+- Authoring: file-based. The dashboard surfaces what's loaded.
+- No JS plugins. No code is executed. The YAML parser is the only
+  interpreter that touches rule files.
+- Regex / glob / message lengths are capped; per-line scan input is
+  truncated to 4096 chars.
+
+CLI:
+- \`amaco policies list [--json]\`
+- \`amaco policies check <patchFile> [--surface suggestion-apply|bundle-apply]\`
+- \`amaco policies doctor [--json]\`
+
+Malformed files (parse / schema / regex / glob errors) are skipped with a
+clear reason. Sibling well-formed files still apply.
 `;
 
 const SKILLS_README = `# Project Skills
@@ -292,6 +336,7 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   await ensureDir(projectAgentsDir(projectRoot));
   await ensureDir(projectSkillsDir(projectRoot));
   await ensureDir(projectRunsDir(projectRoot));
+  await ensureDir(policiesDir(projectRoot));
 
   const name = opts.plan?.project.name ?? (await defaultProjectName(projectRoot));
   const providerYaml = renderProvidersYaml(opts.plan ?? null);
@@ -319,6 +364,12 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   await writeIfMissing(
     path.join(projectSkillsDir(projectRoot), "README.md"),
     SKILLS_README,
+    result,
+    force,
+  );
+  await writeIfMissing(
+    path.join(policiesDir(projectRoot), "README.md"),
+    POLICIES_README,
     result,
     force,
   );

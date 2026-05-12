@@ -23,6 +23,7 @@ import { buildSuggestionsCommand } from "./commands/suggestions.js";
 import { buildBundlesCommand } from "./commands/bundles.js";
 import { buildValidationCommand } from "./commands/validation.js";
 import { buildTerminalCommand } from "./commands/terminal.js";
+import { buildPoliciesCommand } from "./commands/policies.js";
 
 const program = new Command();
 
@@ -70,6 +71,7 @@ program.addCommand(buildSuggestionsCommand());
 program.addCommand(buildBundlesCommand());
 program.addCommand(buildValidationCommand());
 program.addCommand(buildTerminalCommand());
+program.addCommand(buildPoliciesCommand());
 
 program
   .command("run <task...>")

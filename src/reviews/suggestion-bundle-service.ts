@@ -33,6 +33,7 @@ import {
   type ValidationProfileSource,
 } from "../core/validation-profile-service.js";
 import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
+import { applyPolicyGate } from "../policies/policy-service.js";
 
 export class SuggestionBundleError extends Error {
   constructor(
@@ -369,9 +370,18 @@ export class SuggestionBundleService {
           touchedFiles: safety.touchedFiles,
         });
       } else {
+        // User policy rules run after built-in safety checks pass, with
+        // the surface set to bundle-apply (a rule with appliesTo:
+        // [suggestion-apply] only would not fire here).
+        const policy = await applyPolicyGate({
+          projectRoot: this.projectRoot,
+          patch: s.proposedPatch,
+          touchedFiles: safety.touchedFiles,
+          surface: "bundle-apply",
+        });
         findings.push({
           suggestionId: sid,
-          reason: null,
+          reason: policy.ok ? null : policy.reason,
           touchedFiles: safety.touchedFiles,
         });
       }

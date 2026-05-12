@@ -29,6 +29,7 @@ import {
   registerTerminalRoutes,
   type TerminalRoutesDeps,
 } from "./routes/terminal.js";
+import { registerPoliciesRoutes } from "./routes/policies.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -148,6 +149,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     projectRoot: opts.projectRoot,
     driver: opts.terminalDriver,
   });
+  await registerPoliciesRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

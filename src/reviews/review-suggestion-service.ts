@@ -35,6 +35,7 @@ import {
   ValidationProfileError,
 } from "../core/validation-profile-service.js";
 import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
+import { applyPolicyGate } from "../policies/policy-service.js";
 
 export type SuggestionApplyOutcome = {
   ok: boolean;
@@ -313,6 +314,18 @@ export class ReviewSuggestionService {
     const safety = checkPatchSafety(current.proposedPatch, worktreePath);
     if (!safety.ok) {
       const updated = await this.markFailed(current, safety.reason!);
+      return updated;
+    }
+    // Built-in safety checks above (path-based redaction + content secret
+    // scan) refuse first; user policy rules only add refusals on top.
+    const policy = await applyPolicyGate({
+      projectRoot: this.projectRoot,
+      patch: current.proposedPatch,
+      touchedFiles: safety.touchedFiles,
+      surface: "suggestion-apply",
+    });
+    if (!policy.ok) {
+      const updated = await this.markFailed(current, policy.reason);
       return updated;
     }
 

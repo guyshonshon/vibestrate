@@ -10,6 +10,7 @@ export const ROADMAP_DIRNAME = "roadmap";
 export const SCHEDULER_DIRNAME = "scheduler";
 export const NOTIFICATIONS_DIRNAME = "notifications";
 export const TERMINAL_DIRNAME = "terminal";
+export const POLICIES_DIRNAME = "policies";
 
 export function amacoRoot(projectRoot: string): string {
   return path.join(projectRoot, AMACO_DIR);
@@ -125,6 +126,10 @@ export function terminalDir(projectRoot: string): string {
 
 export function terminalSessionsFile(projectRoot: string): string {
   return path.join(terminalDir(projectRoot), "sessions.json");
+}
+
+export function policiesDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), POLICIES_DIRNAME);
 }
 
 export function isPathInside(parent: string, candidate: string): boolean {
