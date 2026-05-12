@@ -178,6 +178,122 @@ describe("server: validation profile migrations + usage", () => {
     expect(res.status).toBe(404);
   });
 
+  it("POST profile-renames/preview returns affected refs and preserved metadata", async () => {
+    const t = await makeProject();
+    server = await startServer({
+      projectRoot: t.project,
+      port: 0,
+      host: "127.0.0.1",
+    });
+    const svc = new ReviewSuggestionService(t.project, t.runId);
+    const s = await svc.addManual({ title: "S", proposedPatch: PATCH_A });
+    await svc.store.upsert({ ...s, validationProfile: "quick" });
+    const res = await fetch(
+      `${server.url}/api/validation/profile-renames/preview`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fromProfile: "quick",
+          toProfile: "smoke",
+        }),
+      },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      preview: {
+        affectedSuggestions: unknown[];
+        preservedCommandCount: number;
+        toProfile: string;
+      };
+    };
+    expect(body.preview.affectedSuggestions.length).toBe(1);
+    expect(body.preview.toProfile).toBe("smoke");
+    expect(body.preview.preservedCommandCount).toBe(1);
+    // project.yml untouched
+    const yml = await fs.readFile(
+      path.join(t.project, ".amaco/project.yml"),
+      "utf8",
+    );
+    expect(yml).toMatch(/\bquick:/);
+  });
+
+  it("POST profile-renames/apply renames project.yml and migrates references", async () => {
+    const t = await makeProject();
+    server = await startServer({
+      projectRoot: t.project,
+      port: 0,
+      host: "127.0.0.1",
+    });
+    const svc = new ReviewSuggestionService(t.project, t.runId);
+    const s = await svc.addManual({ title: "S", proposedPatch: PATCH_A });
+    await svc.store.upsert({ ...s, validationProfile: "quick" });
+    const res = await fetch(
+      `${server.url}/api/validation/profile-renames/apply`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fromProfile: "quick",
+          toProfile: "smoke",
+        }),
+      },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      audit: { id: string; kind: string; affectedSuggestions: unknown[] };
+    };
+    expect(body.audit.kind).toBe("rename_profile");
+    expect(body.audit.affectedSuggestions.length).toBe(1);
+    const after = await svc.get(s.id);
+    expect(after?.validationProfile).toBe("smoke");
+    const yml = await fs.readFile(
+      path.join(t.project, ".amaco/project.yml"),
+      "utf8",
+    );
+    expect(yml).toMatch(/\bsmoke:/);
+    expect(yml).not.toMatch(/\bquick:/);
+  });
+
+  it("POST profile-renames/apply 409s when toProfile already exists", async () => {
+    const t = await makeProject();
+    server = await startServer({
+      projectRoot: t.project,
+      port: 0,
+      host: "127.0.0.1",
+    });
+    // Inject a second profile so we can collide on it.
+    const ymlPath = path.join(t.project, ".amaco/project.yml");
+    const before = await fs.readFile(ymlPath, "utf8");
+    await fs.writeFile(
+      ymlPath,
+      before.replace(
+        /    quick:\n      commands:\n        - "true"\n/,
+        [
+          "    quick:",
+          "      commands:",
+          '        - "true"',
+          "    smoke:",
+          "      commands:",
+          '        - "true"',
+          "",
+        ].join("\n"),
+      ),
+    );
+    const res = await fetch(
+      `${server.url}/api/validation/profile-renames/apply`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fromProfile: "quick",
+          toProfile: "smoke",
+        }),
+      },
+    );
+    expect(res.status).toBe(409);
+  });
+
   it("GET usage returns the entries written by validate()", async () => {
     const t = await makeProject();
     server = await startServer({

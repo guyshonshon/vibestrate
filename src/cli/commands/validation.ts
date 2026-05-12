@@ -14,6 +14,12 @@ import {
   type MigrationPreview,
   type MigrationScope,
 } from "../../core/validation-profile-migration-service.js";
+import {
+  applyRename,
+  previewRename,
+  ValidationProfileRenameError,
+  type RenamePreview,
+} from "../../core/validation-profile-rename-service.js";
 import { readUsageReport } from "../../core/validation-profile-usage-service.js";
 
 export function buildValidationCommand(): Command {
@@ -176,6 +182,32 @@ export function buildValidationCommand(): Command {
     );
 
   profileSub
+    .command("rename <fromProfile> <toProfile>")
+    .description(
+      "Rename a validation profile in project.yml AND migrate every suggestion/bundle reference in one atomic operation. Preserves the profile's description and commands. Refuses if <toProfile> already exists.",
+    )
+    .option(
+      "--dry-run",
+      "preview the project.yml rename + affected references; write nothing",
+    )
+    .option("--all", "scan every run instead of the recent 50")
+    .option("--run <runId>", "limit the reference scan to a single run")
+    .action(
+      async (
+        fromProfile: string,
+        toProfile: string,
+        opts: { dryRun?: boolean; all?: boolean; run?: string },
+      ) => {
+        await runRename({
+          fromProfile,
+          toProfile,
+          dryRun: !!opts.dryRun,
+          scope: pickScope(opts),
+        });
+      },
+    );
+
+  profileSub
     .command("migrations")
     .description("List previously-applied profile migrations.")
     .option("--json", "emit JSON")
@@ -191,8 +223,15 @@ export function buildValidationCommand(): Command {
       }
       for (const m of all) {
         const to = m.toProfile ?? color.dim("default");
+        const kind = m.kind ?? "migrate_references";
+        const kindTag =
+          kind === "rename_profile"
+            ? color.cyan("rename")
+            : kind === "clear_references"
+              ? color.dim("clear")
+              : color.dim("migrate");
         console.log(
-          `${color.bold(m.id)}  ${m.fromProfile} → ${to}  ${color.dim(`${m.affectedSuggestions.length} suggestion(s), ${m.affectedBundles.length} bundle(s)`)}`,
+          `${color.bold(m.id)}  ${kindTag}  ${m.fromProfile} → ${to}  ${color.dim(`${m.affectedSuggestions.length} suggestion(s), ${m.affectedBundles.length} bundle(s)`)}`,
         );
       }
     });
@@ -276,6 +315,79 @@ function renderPreview(preview: MigrationPreview, dryRun: boolean): void {
   if (preview.malformedFiles.length > 0) {
     console.log(color.yellow(`! Skipped ${preview.malformedFiles.length} malformed file(s).`));
   }
+  if (dryRun) {
+    console.log(
+      color.dim(
+        "Dry run — wrote nothing. Re-run without --dry-run to apply.",
+      ),
+    );
+  }
+}
+
+async function runRename(input: {
+  fromProfile: string;
+  toProfile: string;
+  dryRun: boolean;
+  scope: MigrationScope;
+}): Promise<void> {
+  const cfg = await loadConfig(process.cwd()).catch(() => null);
+  if (!cfg) {
+    console.error(color.red("Project not initialised. Run `amaco init`."));
+    process.exit(2);
+  }
+  try {
+    const preview = await previewRename({
+      projectRoot: process.cwd(),
+      config: cfg.config,
+      fromProfile: input.fromProfile,
+      toProfile: input.toProfile,
+      scope: input.scope,
+    });
+    renderRenamePreview(preview, input.dryRun);
+    if (input.dryRun) return;
+    const audit = await applyRename({
+      projectRoot: process.cwd(),
+      config: cfg.config,
+      fromProfile: input.fromProfile,
+      toProfile: input.toProfile,
+      scope: input.scope,
+    });
+    console.log(
+      `${symbol.ok()} Renamed ${color.bold(preview.fromProfile)} → ${color.bold(preview.toProfile)}. Audit: ${color.dim(`.amaco/validation-profile-migrations/${audit.id}.json`)}`,
+    );
+  } catch (err) {
+    if (err instanceof ValidationProfileRenameError) {
+      console.error(color.red(`${symbol.fail()} ${err.message}`));
+      process.exit(err.statusCode === 404 ? 2 : 1);
+    }
+    if (err instanceof ValidationProfileMigrationError) {
+      console.error(color.red(`${symbol.fail()} ${err.message}`));
+      process.exit(err.statusCode === 404 ? 2 : 1);
+    }
+    throw err;
+  }
+}
+
+function renderRenamePreview(preview: RenamePreview, dryRun: boolean): void {
+  console.log(
+    `${color.bold(preview.fromProfile)} → ${color.bold(preview.toProfile)}  ${color.dim(`scope=${preview.scope.kind}, scanned=${preview.scannedRuns} run(s)`)}`,
+  );
+  console.log(
+    `  project.yml: rename profile key (preserves ${preview.preservedCommandCount} command${preview.preservedCommandCount === 1 ? "" : "s"}${preview.preservedDescription ? `, description "${preview.preservedDescription}"` : ""})`,
+  );
+  console.log(
+    `  references: ${preview.affectedSuggestions.length} suggestion(s), ${preview.affectedBundles.length} bundle(s), ${preview.malformedFiles.length} malformed`,
+  );
+  for (const w of preview.warnings) console.log(color.yellow(`  ! ${w}`));
+  const sample = [
+    ...preview.affectedSuggestions.slice(0, 5).map(
+      (r) => `    suggestion ${r.runId}/${r.id}`,
+    ),
+    ...preview.affectedBundles.slice(0, 5).map(
+      (r) => `    bundle ${r.runId}/${r.id}`,
+    ),
+  ];
+  for (const line of sample) console.log(color.dim(line));
   if (dryRun) {
     console.log(
       color.dim(

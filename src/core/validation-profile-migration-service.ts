@@ -43,8 +43,21 @@ export type MigrationPreview = {
   malformedFiles: string[];
 };
 
+export type MigrationAuditKind =
+  /** Existing flow: rewrite references only. */
+  | "migrate_references"
+  /** Existing flow: rewrite references back to default. */
+  | "clear_references"
+  /** New rename flow: rename the profile key inside project.yml AND
+   *  migrate every matching reference in one transaction. */
+  | "rename_profile";
+
 export type MigrationAuditRecord = {
   id: string;
+  /** Discriminator for the dashboard's "Migration history" view. Older
+   *  audit JSONs without this field are treated as "migrate_references"
+   *  by readers. */
+  kind?: MigrationAuditKind;
   createdAt: string;
   appliedAt: string | null;
   fromProfile: string;
@@ -55,6 +68,12 @@ export type MigrationAuditRecord = {
   malformedFiles: string[];
   dryRun: boolean;
   appliedBy: string;
+  /** Only present when kind === "rename_profile". */
+  renamedProfile?: boolean;
+  /** Only present when kind === "rename_profile". */
+  preservedDescription?: string | null;
+  /** Only present when kind === "rename_profile". */
+  preservedCommandCount?: number;
 };
 
 export class ValidationProfileMigrationError extends Error {
@@ -70,7 +89,7 @@ export class ValidationProfileMigrationError extends Error {
 const DEFAULT_RECENT_RUNS = 50;
 const SAFE_RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
-function migrationsDir(projectRoot: string): string {
+export function migrationsDir(projectRoot: string): string {
   return path.join(amacoRoot(projectRoot), "validation-profile-migrations");
 }
 
@@ -261,6 +280,8 @@ export async function applyMigration(input: {
   const auditId = `m-${nowIso().replace(/[:.]/g, "-").replace(/Z$/, "")}-${randomUUID().slice(0, 4)}`;
   const audit: MigrationAuditRecord = {
     id: auditId,
+    kind:
+      preview.toProfile === null ? "clear_references" : "migrate_references",
     createdAt: nowIso(),
     appliedAt: null,
     fromProfile: preview.fromProfile,

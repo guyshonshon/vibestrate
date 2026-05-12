@@ -1362,6 +1362,46 @@ Body shape (preview + apply):
 
 Pass `toProfile: null` to clear-to-default. `toProfile` must exist in `commands.validationProfiles` unless null. `fromProfile` cannot be `"default"`.
 
+### Renaming a profile (project.yml + references in one shot)
+
+`migrate` and `clear-references` only touch suggestion/bundle records — they don't rename the profile key in `commands.validationProfiles`. When you want to actually rename a profile in `project.yml` *and* point every reference at the new name, use `rename` instead:
+
+```bash
+amaco validation profile rename quikc quick --dry-run
+amaco validation profile rename quikc quick
+amaco validation profile rename quikc quick --all
+amaco validation profile rename quikc quick --run <runId>
+```
+
+What rename does, in order:
+
+1. validates the request (`fromProfile` must exist; `toProfile` must be a valid profile id, must not be reserved, must not already exist),
+2. snapshots the current `.amaco/project.yml` text,
+3. rewrites the profile key inside `commands.validationProfiles` (preserving `description` and `commands`),
+4. runs the same reference-migration pass as `migrate` against the new name,
+5. writes a single audit JSON tagged `kind: "rename_profile"` under `.amaco/validation-profile-migrations/`.
+
+If step 4 throws, project.yml is restored to the snapshot before the error is re-raised — there is no half-renamed state. Historical validation results are never rewritten and the usage counter file is never modified by a rename.
+
+API:
+
+```
+POST /api/validation/profile-renames/preview
+POST /api/validation/profile-renames/apply
+```
+
+Body shape (same scope object as `profile-migrations`):
+
+```json
+{
+  "fromProfile": "quikc",
+  "toProfile": "quick",
+  "scope": { "kind": "recent", "limit": 50 }
+}
+```
+
+`toProfile` is required (no `null`). To migrate references onto a profile that already exists in `project.yml`, use the `profile-migrations` endpoints instead.
+
 ### Dry-run before apply
 
 `--dry-run` always writes nothing. It returns a preview with `scannedRuns`, `affectedSuggestions`, `affectedBundles`, and `malformedFiles` so you can confirm the change before committing. The dashboard's Settings → Validation profiles section enforces the same posture: a *Preview changes* button populates the list, a separate *Apply migration* button (behind a confirm prompt) is the only thing that writes.
@@ -1375,6 +1415,10 @@ Every applied migration writes a JSON audit to:
 ```
 
 The audit records `id`, `createdAt`, `appliedAt`, `fromProfile`, `toProfile`, `scope`, `affectedSuggestions[]`, `affectedBundles[]`, `malformedFiles[]`, `dryRun`, and `appliedBy: "local-user"`.
+
+Rename audits add a `kind: "rename_profile"` discriminator plus `renamedProfile: true`, `preservedDescription`, and `preservedCommandCount` so the migration history view can distinguish a rename (which also touched `project.yml`) from a reference-only `migrate_references` / `clear_references`. Audits written before the rename feature have no `kind` field and should be read as `"migrate_references"`.
+
+`amaco validation profile migrations` and the Settings → *Migration history* list both surface this discriminator so you can see at a glance which entries renamed a profile vs. which only retagged references. List newest-first; one audit JSON per operation.
 
 ### Profile usage counters
 
@@ -1401,6 +1445,8 @@ The Settings page now embeds a *Validation profiles* section that shows:
 - the default profile (count of commands from `commands.validate`),
 - each named profile, its description, command preview, and usage counter,
 - a migration form (`from` / `to` + *Clear to default* checkbox) with separate *Preview changes* and *Apply migration* buttons,
+- a *Rename profile* form (`from` / `to`) with *Preview rename* / *Apply rename* buttons that atomically rewrite `project.yml` and migrate references in one operation,
+- a *Migration history* list of recent audits tagged by kind (`rename profile` / `migrate references` / `clear references`) with reference counts and timestamps,
 - a confirm prompt before the apply call.
 
 UI copy is intentionally explicit: *"This updates future validation profile assignments only. Historical validation results are not rewritten."*
@@ -1414,7 +1460,7 @@ Suggestion and review-pass panels now subscribe to the existing run event stream
 - Validation result JSON files retain the `profileName`, `profileSource`, and `profileCommands` they ran with at the time of validation.
 - Smart-apply step results retain their per-step `validation.profileName` + `validation.profileSource`.
 - Patches and statuses on migrated records are untouched.
-- `commands.validationProfiles` itself is **never** modified by a migration. Migrating `quikc → quick` updates the *references* — the named profile in `project.yml` still has to be set up the way you want it.
+- `commands.validationProfiles` itself is **never** modified by a `migrate` or `clear-references` — those only touch references. Use `amaco validation profile rename <from> <to>` (or the dashboard's *Rename profile* form) when you want the YAML key in `project.yml` itself to change in lockstep with the references.
 
 ## Why validation is explicit
 

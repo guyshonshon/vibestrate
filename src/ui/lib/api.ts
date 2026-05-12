@@ -27,6 +27,7 @@ import type {
   ValidationProfileSummary,
   ProfileMigrationPreview,
   ProfileMigrationAudit,
+  ProfileRenamePreview,
   ValidationProfileUsageEntry,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
@@ -774,6 +775,20 @@ export const api = {
       "/api/validation/profile-migrations",
     );
     return r.migrations;
+  },
+  async previewProfileRename(input: {
+    fromProfile: string;
+    toProfile: string;
+    scope?: { kind: "recent"; limit?: number } | { kind: "all" } | { kind: "run"; runId: string };
+  }): Promise<{ preview: ProfileRenamePreview }> {
+    return jsonPost("/api/validation/profile-renames/preview", input);
+  },
+  async applyProfileRename(input: {
+    fromProfile: string;
+    toProfile: string;
+    scope?: { kind: "recent"; limit?: number } | { kind: "all" } | { kind: "run"; runId: string };
+  }): Promise<{ audit: ProfileMigrationAudit }> {
+    return jsonPost("/api/validation/profile-renames/apply", input);
   },
   async getProfileUsage(): Promise<{
     entries: ValidationProfileUsageEntry[];

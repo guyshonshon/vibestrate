@@ -780,8 +780,15 @@ export type ProfileMigrationPreview = {
   malformedFiles: string[];
 };
 
+export type ProfileMigrationAuditKind =
+  | "migrate_references"
+  | "clear_references"
+  | "rename_profile";
+
 export type ProfileMigrationAudit = {
   id: string;
+  /** Legacy audits written before the rename feature have no `kind` — readers should default them to "migrate_references". */
+  kind?: ProfileMigrationAuditKind;
   createdAt: string;
   appliedAt: string | null;
   fromProfile: string;
@@ -792,6 +799,22 @@ export type ProfileMigrationAudit = {
   malformedFiles: string[];
   dryRun: boolean;
   appliedBy: string;
+  renamedProfile?: boolean;
+  preservedDescription?: string | null;
+  preservedCommandCount?: number;
+};
+
+export type ProfileRenamePreview = {
+  fromProfile: string;
+  toProfile: string;
+  preservedDescription: string | null;
+  preservedCommandCount: number;
+  scope: ProfileMigrationScope;
+  scannedRuns: number;
+  affectedSuggestions: ProfileMigrationAffected[];
+  affectedBundles: ProfileMigrationAffected[];
+  malformedFiles: string[];
+  warnings: string[];
 };
 
 export type ValidationProfileUsageEntry = {

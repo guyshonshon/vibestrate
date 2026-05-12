@@ -8,6 +8,11 @@ import {
   ValidationProfileMigrationError,
   type MigrationScope,
 } from "../../core/validation-profile-migration-service.js";
+import {
+  applyRename,
+  previewRename,
+  ValidationProfileRenameError,
+} from "../../core/validation-profile-rename-service.js";
 import { readUsageReport } from "../../core/validation-profile-usage-service.js";
 import { HttpError, assertSafeRunId } from "../security.js";
 
@@ -97,9 +102,77 @@ export async function registerValidationRoutes(
     }
   });
 
-  /** List previously-applied migrations. */
+  /** List previously-applied migrations (renames + reference-only). */
   app.get("/api/validation/profile-migrations", async () => {
     return { migrations: await listMigrations(projectRoot) };
+  });
+
+  /**
+   * Preview a profile rename. Writes nothing. Returns what the project.yml
+   * change would look like + the affected reference list. 4xx errors are
+   * surfaced as `error` with the same status codes the CLI uses.
+   */
+  app.post<{
+    Body: {
+      fromProfile?: string;
+      toProfile?: string;
+      scope?: { kind?: string; runId?: string; limit?: number };
+    };
+  }>("/api/validation/profile-renames/preview", async (req) => {
+    const body = req.body ?? {};
+    const cfg = await requireConfig(projectRoot);
+    try {
+      const r = await previewRename({
+        projectRoot,
+        config: cfg,
+        fromProfile: body.fromProfile ?? "",
+        toProfile: body.toProfile ?? "",
+        scope: parseScope(body.scope),
+      });
+      return { preview: r };
+    } catch (err) {
+      if (err instanceof ValidationProfileRenameError) {
+        throw new HttpError(err.statusCode, err.message);
+      }
+      if (err instanceof ValidationProfileMigrationError) {
+        throw new HttpError(err.statusCode, err.message);
+      }
+      throw err;
+    }
+  });
+
+  /**
+   * Apply a profile rename atomically. Mutates `.amaco/project.yml` and
+   * every matching suggestion/bundle reference. Rolls back project.yml if
+   * the reference migration step fails.
+   */
+  app.post<{
+    Body: {
+      fromProfile?: string;
+      toProfile?: string;
+      scope?: { kind?: string; runId?: string; limit?: number };
+    };
+  }>("/api/validation/profile-renames/apply", async (req) => {
+    const body = req.body ?? {};
+    const cfg = await requireConfig(projectRoot);
+    try {
+      const r = await applyRename({
+        projectRoot,
+        config: cfg,
+        fromProfile: body.fromProfile ?? "",
+        toProfile: body.toProfile ?? "",
+        scope: parseScope(body.scope),
+      });
+      return { audit: r };
+    } catch (err) {
+      if (err instanceof ValidationProfileRenameError) {
+        throw new HttpError(err.statusCode, err.message);
+      }
+      if (err instanceof ValidationProfileMigrationError) {
+        throw new HttpError(err.statusCode, err.message);
+      }
+      throw err;
+    }
   });
 }
 

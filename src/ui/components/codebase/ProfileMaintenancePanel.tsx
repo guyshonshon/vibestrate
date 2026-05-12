@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "../../lib/api.js";
 import type {
+  ProfileMigrationAudit,
   ProfileMigrationPreview,
+  ProfileRenamePreview,
   ValidationProfileSummary,
   ValidationProfileUsageEntry,
 } from "../../lib/types.js";
@@ -19,24 +21,38 @@ import type {
 export function ProfileMaintenancePanel() {
   const [profiles, setProfiles] = useState<ValidationProfileSummary[]>([]);
   const [usage, setUsage] = useState<ValidationProfileUsageEntry[]>([]);
+  const [history, setHistory] = useState<ProfileMigrationAudit[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Migration form state
+  // Reference-migration form state
   const [fromProfile, setFromProfile] = useState("");
   const [toProfile, setToProfile] = useState<string>("");
   const [clear, setClear] = useState(false);
   const [preview, setPreview] = useState<ProfileMigrationPreview | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Rename form state
+  const [renameFrom, setRenameFrom] = useState("");
+  const [renameTo, setRenameTo] = useState("");
+  const [renamePreview, setRenamePreview] =
+    useState<ProfileRenamePreview | null>(null);
+
   async function load(): Promise<void> {
     try {
-      const [p, u] = await Promise.all([
+      const [p, u, h] = await Promise.all([
         api.listValidationProfiles(),
         api.getProfileUsage(),
+        api.listProfileMigrations(),
       ]);
       setProfiles(p);
       setUsage(u.entries);
+      // newest first
+      setHistory(
+        [...h].sort((a, b) =>
+          (b.appliedAt ?? b.createdAt).localeCompare(a.appliedAt ?? a.createdAt),
+        ),
+      );
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -70,6 +86,65 @@ export function ProfileMaintenancePanel() {
     } catch (err) {
       setError(messageFor(err));
       setPreview(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doRenamePreview(): Promise<void> {
+    if (!renameFrom.trim() || !renameTo.trim()) {
+      setError("Both fromProfile and toProfile are required.");
+      return;
+    }
+    setBusy(true);
+    setInfo(null);
+    setError(null);
+    try {
+      const r = await api.previewProfileRename({
+        fromProfile: renameFrom.trim(),
+        toProfile: renameTo.trim(),
+      });
+      setRenamePreview(r.preview);
+    } catch (err) {
+      setError(messageFor(err));
+      setRenamePreview(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doRenameApply(): Promise<void> {
+    if (!renamePreview) return;
+    const total =
+      renamePreview.affectedSuggestions.length +
+      renamePreview.affectedBundles.length;
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        `Rename profile "${renamePreview.fromProfile}" → "${renamePreview.toProfile}" in project.yml AND migrate ${total} reference(s)?\n\n` +
+          `This rewrites .amaco/project.yml. The profile's ${renamePreview.preservedCommandCount} command(s)` +
+          (renamePreview.preservedDescription
+            ? ` and description "${renamePreview.preservedDescription}"`
+            : "") +
+          ` will be preserved. Historical validation results will NOT be rewritten.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.applyProfileRename({
+        fromProfile: renamePreview.fromProfile,
+        toProfile: renamePreview.toProfile,
+      });
+      setInfo(`Renamed. Audit: ${r.audit.id}`);
+      setRenamePreview(null);
+      setRenameFrom("");
+      setRenameTo("");
+      await load();
+    } catch (err) {
+      setError(messageFor(err));
     } finally {
       setBusy(false);
     }
@@ -294,6 +369,149 @@ export function ProfileMaintenancePanel() {
             )}
           </div>
         ) : null}
+      </section>
+
+      <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+          Rename profile
+        </h3>
+        <p className="text-[10.5px] text-amaco-fg-muted">
+          Renames a profile key in <code>commands.validationProfiles</code> and
+          migrates every matching suggestion/bundle reference atomically.
+          Preview first; apply requires confirmation.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1 text-[10.5px]">
+            from
+            <input
+              type="text"
+              value={renameFrom}
+              onChange={(e) => {
+                setRenameFrom(e.target.value);
+                setRenamePreview(null);
+              }}
+              placeholder="quikc"
+              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px]"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-[10.5px]">
+            to
+            <input
+              type="text"
+              value={renameTo}
+              onChange={(e) => {
+                setRenameTo(e.target.value);
+                setRenamePreview(null);
+              }}
+              placeholder="quick"
+              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px]"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void doRenamePreview()}
+            disabled={busy}
+            className="rounded border border-amaco-border px-2 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel"
+          >
+            Preview rename
+          </button>
+          {renamePreview ? (
+            <button
+              type="button"
+              onClick={() => void doRenameApply()}
+              disabled={busy}
+              className="rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2 py-0.5 text-[11px] text-amaco-fg hover:bg-amaco-accent-soft/50"
+            >
+              Apply rename
+            </button>
+          ) : null}
+        </div>
+        {renamePreview ? (
+          <div className="mt-2 rounded border border-amaco-border bg-amaco-panel px-2 py-1.5">
+            <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">
+              {renamePreview.fromProfile} → {renamePreview.toProfile} · scanned{" "}
+              {renamePreview.scannedRuns} run(s)
+            </div>
+            <div className="amaco-mono mt-1 text-[10.5px]">
+              preserves {renamePreview.preservedCommandCount} command
+              {renamePreview.preservedCommandCount === 1 ? "" : "s"}
+              {renamePreview.preservedDescription
+                ? ` · description "${renamePreview.preservedDescription}"`
+                : ""}
+            </div>
+            <div className="amaco-mono mt-1 text-[10.5px]">
+              references: {renamePreview.affectedSuggestions.length} suggestion(s),{" "}
+              {renamePreview.affectedBundles.length} bundle(s),{" "}
+              {renamePreview.malformedFiles.length} malformed
+            </div>
+            {renamePreview.warnings.length > 0 ? (
+              <ul className="mt-1 text-[10.5px] text-amaco-warn">
+                {renamePreview.warnings.map((w) => (
+                  <li key={w}>! {w}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section>
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+          Migration history
+        </h3>
+        <p className="text-[10.5px] text-amaco-fg-muted">
+          Every rename/migrate/clear writes a single audit JSON under{" "}
+          <code>.amaco/validation-profile-migrations/</code>.
+        </p>
+        {history.length === 0 ? (
+          <p className="mt-1 text-[10.5px] text-amaco-fg-muted">
+            No migrations recorded yet.
+          </p>
+        ) : (
+          <ul className="amaco-mono mt-1 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
+            {history.map((m) => {
+              const kind = m.kind ?? "migrate_references";
+              const tagClass =
+                kind === "rename_profile"
+                  ? "text-amaco-accent"
+                  : kind === "clear_references"
+                    ? "text-amaco-warn"
+                    : "text-amaco-fg-muted";
+              const target = m.toProfile ?? "default";
+              const total =
+                m.affectedSuggestions.length + m.affectedBundles.length;
+              const stamp = m.appliedAt ?? m.createdAt;
+              return (
+                <li
+                  key={m.id}
+                  className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1"
+                >
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className={tagClass}>
+                      {kind.replace("_", " ")}
+                    </span>
+                    <span className="text-amaco-fg">
+                      {m.fromProfile} → {target}
+                    </span>
+                    <span className="text-amaco-fg-muted">
+                      {total} reference{total === 1 ? "" : "s"}
+                    </span>
+                    <span className="ml-auto text-[10px] text-amaco-fg-muted">
+                      {stamp}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-amaco-fg-muted">
+                    {m.id}
+                    {m.renamedProfile &&
+                    typeof m.preservedCommandCount === "number"
+                      ? ` · preserved ${m.preservedCommandCount} command(s)`
+                      : ""}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
     </div>
   );
