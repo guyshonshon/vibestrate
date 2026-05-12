@@ -25,6 +25,9 @@ import type {
   SuggestionValidationResult,
   BundlePreflightResult,
   ValidationProfileSummary,
+  ProfileMigrationPreview,
+  ProfileMigrationAudit,
+  ValidationProfileUsageEntry,
   ProposalAcceptResponse,
   ProposalDryRunResponse,
   ProposalParseSummary,
@@ -751,6 +754,34 @@ export const api = {
     );
     return r.bundle;
   },
+
+  async previewProfileMigration(input: {
+    fromProfile: string;
+    toProfile: string | null;
+    scope?: { kind: "recent"; limit?: number } | { kind: "all" } | { kind: "run"; runId: string };
+  }): Promise<{ preview: ProfileMigrationPreview }> {
+    return jsonPost("/api/validation/profile-migrations/preview", input);
+  },
+  async applyProfileMigration(input: {
+    fromProfile: string;
+    toProfile: string | null;
+    scope?: { kind: "recent"; limit?: number } | { kind: "all" } | { kind: "run"; runId: string };
+  }): Promise<{ audit: ProfileMigrationAudit }> {
+    return jsonPost("/api/validation/profile-migrations/apply", input);
+  },
+  async listProfileMigrations(): Promise<ProfileMigrationAudit[]> {
+    const r = await jsonGet<{ migrations: ProfileMigrationAudit[] }>(
+      "/api/validation/profile-migrations",
+    );
+    return r.migrations;
+  },
+  async getProfileUsage(): Promise<{
+    entries: ValidationProfileUsageEntry[];
+    filePath: string;
+  }> {
+    return jsonGet("/api/validation/profile-usage");
+  },
+
   async revertBundle(input: {
     runId: string;
     bundleId: string;

@@ -1313,6 +1313,109 @@ If you delete or rename a profile in `validationProfiles`, suggestions and bundl
 
 Old validation result files keep the profile metadata they ran with (`profileName` + `profileSource` + `profileCommands` are still in the JSON) — renaming or deleting a profile does not rewrite history.
 
+### Did-you-mean suggestions
+
+When doctor finds a stale profile reference, it computes a cheap edit-distance against the live profile names. If a known profile is within distance ≤ 2 of the stale name, doctor's `detail` line appends `did you mean "<X>"?` along with the exact `amaco validation profile migrate <from> <X> --dry-run` to run. Read-only — doctor never picks a substitution on the user's behalf.
+
+Example:
+
+```
+⚠ 1 suggestion(s) reference missing validation profile(s)
+  run 2026-… · suggestion s-… → "quikc"  did you mean "quick"?  (amaco validation profile migrate quikc quick --dry-run)
+```
+
+When no profile is within distance 2, doctor lists the stale reference without a hint.
+
+### Migrating profile references
+
+Once you've decided that `quikc` should become `quick`, you can rewrite every suggestion / bundle in one explicit pass. **Migrations only update profile assignments on suggestion and bundle records.** They do not touch validation result history, patches, statuses, or any other fields.
+
+```bash
+amaco validation profile migrate quikc quick --dry-run
+amaco validation profile migrate quikc quick
+amaco validation profile migrate quikc quick --all
+amaco validation profile migrate quikc quick --run <runId>
+amaco validation profile clear-references old-full --dry-run
+amaco validation profile clear-references old-full
+amaco validation profile migrations
+```
+
+Scope defaults to the **recent 50 runs**. Use `--all` to scan every run on disk; use `--run <runId>` to scope to one run.
+
+API:
+
+```
+POST /api/validation/profile-migrations/preview
+POST /api/validation/profile-migrations/apply
+GET  /api/validation/profile-migrations
+```
+
+Body shape (preview + apply):
+
+```json
+{
+  "fromProfile": "quikc",
+  "toProfile": "quick",
+  "scope": { "kind": "recent", "limit": 50 }
+}
+```
+
+Pass `toProfile: null` to clear-to-default. `toProfile` must exist in `commands.validationProfiles` unless null. `fromProfile` cannot be `"default"`.
+
+### Dry-run before apply
+
+`--dry-run` always writes nothing. It returns a preview with `scannedRuns`, `affectedSuggestions`, `affectedBundles`, and `malformedFiles` so you can confirm the change before committing. The dashboard's Settings → Validation profiles section enforces the same posture: a *Preview changes* button populates the list, a separate *Apply migration* button (behind a confirm prompt) is the only thing that writes.
+
+### Audit records
+
+Every applied migration writes a JSON audit to:
+
+```
+.amaco/validation-profile-migrations/<migrationId>.json
+```
+
+The audit records `id`, `createdAt`, `appliedAt`, `fromProfile`, `toProfile`, `scope`, `affectedSuggestions[]`, `affectedBundles[]`, `malformedFiles[]`, `dryRun`, and `appliedBy: "local-user"`.
+
+### Profile usage counters
+
+When validation actually runs (passed or failed — *not* `no_commands_configured`), Amaco increments a counter for the profile that was used. The counters live in a separate file so they never pollute `project.yml`:
+
+```
+.amaco/validation-profile-usage.json
+```
+
+Per profile: `totalUses`, `lastUsedAt`, `lastRunId`, `lastSuggestionId`, `lastBundleId`, and `source` (`default` or `named`). Inspect via:
+
+```bash
+amaco validation usage
+```
+
+The Settings → Validation profiles panel shows the same data inline (e.g. `quick · 12 uses · last 2026-05-12…`). Editing a profile selection does **not** count. Listing the profiles does **not** count. Only actual validation execution counts.
+
+The usage file is best-effort telemetry: a corrupt file is treated as empty and the next recorded use overwrites it. No information from `project.yml` ever moves into the usage file.
+
+### Dashboard profile maintenance
+
+The Settings page now embeds a *Validation profiles* section that shows:
+
+- the default profile (count of commands from `commands.validate`),
+- each named profile, its description, command preview, and usage counter,
+- a migration form (`from` / `to` + *Clear to default* checkbox) with separate *Preview changes* and *Apply migration* buttons,
+- a confirm prompt before the apply call.
+
+UI copy is intentionally explicit: *"This updates future validation profile assignments only. Historical validation results are not rewritten."*
+
+### Live freshness for profile edits
+
+Suggestion and review-pass panels now subscribe to the existing run event stream and refetch on any `suggestion.validation_profile_updated` / `bundle.validation_profile_updated` / apply / validate / revert event. Polling stays as a 5 s fallback in case the SSE channel drops, but the round-trip after a profile edit no longer waits for the next poll tick.
+
+### What is not rewritten
+
+- Validation result JSON files retain the `profileName`, `profileSource`, and `profileCommands` they ran with at the time of validation.
+- Smart-apply step results retain their per-step `validation.profileName` + `validation.profileSource`.
+- Patches and statuses on migrated records are untouched.
+- `commands.validationProfiles` itself is **never** modified by a migration. Migrating `quikc → quick` updates the *references* — the named profile in `project.yml` still has to be set up the way you want it.
+
 ## Why validation is explicit
 
 Auto-running validation after every apply would either be noisy (validation is slow on real projects) or dishonest (we'd have to invent partial-success modes). Making it a single button keeps the cost visible: you ran it, you got a result. The result file is small (only the head of stdout/stderr — first 4 KB each — and exit codes) so it never bloats `.amaco/`. The opt-in flags below stack on top of that explicit posture — they never run validation as a side effect of a plain *Apply*.

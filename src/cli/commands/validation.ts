@@ -6,6 +6,15 @@ import {
   resolveValidationProfile,
   ValidationProfileError,
 } from "../../core/validation-profile-service.js";
+import {
+  applyMigration,
+  listMigrations,
+  previewMigration,
+  ValidationProfileMigrationError,
+  type MigrationPreview,
+  type MigrationScope,
+} from "../../core/validation-profile-migration-service.js";
+import { readUsageReport } from "../../core/validation-profile-usage-service.js";
 
 export function buildValidationCommand(): Command {
   const cmd = new Command("validation").description(
@@ -85,5 +94,193 @@ export function buildValidationCommand(): Command {
       }
     });
 
+  // ─── usage ────────────────────────────────────────────────────────────────
+  cmd
+    .command("usage")
+    .description(
+      "Show how often each validation profile has actually run (`commands.validate` use counts as 'default').",
+    )
+    .option("--json", "emit JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const report = await readUsageReport(process.cwd());
+      if (opts.json) {
+        console.log(JSON.stringify(report, null, 2));
+        return;
+      }
+      if (report.entries.length === 0) {
+        console.log(color.dim("No validation runs recorded yet."));
+        return;
+      }
+      for (const e of report.entries) {
+        const src = e.source === "default" ? color.dim("default") : color.cyan("named");
+        console.log(
+          `${color.bold(e.profileName)} ${src}  uses=${e.totalUses}  last=${color.dim(e.lastUsedAt ?? "—")}`,
+        );
+      }
+    });
+
+  // ─── profile migrate ──────────────────────────────────────────────────────
+  const profileSub = cmd
+    .command("profile")
+    .description("Manage and migrate validation profile references.");
+
+  profileSub
+    .command("migrate <fromProfile> <toProfile>")
+    .description(
+      "Rewrite suggestion and bundle records that reference <fromProfile> to point at <toProfile>. Use --clear to migrate to the default profile.",
+    )
+    .option("--dry-run", "preview affected records; write nothing")
+    .option("--clear", "interpret <toProfile> as a placeholder for clear-to-default")
+    .option("--all", "scan every run instead of the recent 50")
+    .option("--run <runId>", "limit to a single run")
+    .action(
+      async (
+        fromProfile: string,
+        toProfile: string,
+        opts: {
+          dryRun?: boolean;
+          clear?: boolean;
+          all?: boolean;
+          run?: string;
+        },
+      ) => {
+        await runMigration({
+          fromProfile,
+          toProfile: opts.clear ? null : toProfile,
+          dryRun: !!opts.dryRun,
+          scope: pickScope(opts),
+        });
+      },
+    );
+
+  profileSub
+    .command("clear-references <profileName>")
+    .description(
+      "Clear every suggestion/bundle that references <profileName> back to the default profile.",
+    )
+    .option("--dry-run", "preview affected records; write nothing")
+    .option("--all", "scan every run instead of the recent 50")
+    .option("--run <runId>", "limit to a single run")
+    .action(
+      async (
+        profileName: string,
+        opts: { dryRun?: boolean; all?: boolean; run?: string },
+      ) => {
+        await runMigration({
+          fromProfile: profileName,
+          toProfile: null,
+          dryRun: !!opts.dryRun,
+          scope: pickScope(opts),
+        });
+      },
+    );
+
+  profileSub
+    .command("migrations")
+    .description("List previously-applied profile migrations.")
+    .option("--json", "emit JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const all = await listMigrations(process.cwd());
+      if (opts.json) {
+        console.log(JSON.stringify(all, null, 2));
+        return;
+      }
+      if (all.length === 0) {
+        console.log(color.dim("No migrations recorded."));
+        return;
+      }
+      for (const m of all) {
+        const to = m.toProfile ?? color.dim("default");
+        console.log(
+          `${color.bold(m.id)}  ${m.fromProfile} → ${to}  ${color.dim(`${m.affectedSuggestions.length} suggestion(s), ${m.affectedBundles.length} bundle(s)`)}`,
+        );
+      }
+    });
+
   return cmd;
+}
+
+function pickScope(opts: {
+  all?: boolean;
+  run?: string;
+}): MigrationScope {
+  if (opts.run) return { kind: "run", runId: opts.run };
+  if (opts.all) return { kind: "all" };
+  return { kind: "recent" };
+}
+
+async function runMigration(input: {
+  fromProfile: string;
+  toProfile: string | null;
+  dryRun: boolean;
+  scope: MigrationScope;
+}): Promise<void> {
+  const cfg = await loadConfig(process.cwd()).catch(() => null);
+  if (!cfg) {
+    console.error(color.red("Project not initialised. Run `amaco init`."));
+    process.exit(2);
+  }
+  try {
+    const preview: MigrationPreview = await previewMigration({
+      projectRoot: process.cwd(),
+      config: cfg.config,
+      fromProfile: input.fromProfile,
+      toProfile: input.toProfile,
+      scope: input.scope,
+    });
+    renderPreview(preview, input.dryRun);
+    if (input.dryRun) return;
+    if (
+      preview.affectedSuggestions.length === 0 &&
+      preview.affectedBundles.length === 0
+    ) {
+      console.log(color.dim("Nothing to apply."));
+      return;
+    }
+    const audit = await applyMigration({
+      projectRoot: process.cwd(),
+      config: cfg.config,
+      fromProfile: input.fromProfile,
+      toProfile: input.toProfile,
+      scope: input.scope,
+    });
+    console.log(
+      `${symbol.ok()} Applied. Audit: ${color.dim(`.amaco/validation-profile-migrations/${audit.id}.json`)}`,
+    );
+  } catch (err) {
+    if (err instanceof ValidationProfileMigrationError) {
+      console.error(color.red(`${symbol.fail()} ${err.message}`));
+      process.exit(err.statusCode === 404 ? 2 : 1);
+    }
+    throw err;
+  }
+}
+
+function renderPreview(preview: MigrationPreview, dryRun: boolean): void {
+  const target = preview.toProfile ?? "default (clear)";
+  console.log(
+    `${color.bold(preview.fromProfile)} → ${color.bold(target)}  ${color.dim(`scope=${preview.scope.kind}, scanned=${preview.scannedRuns} run(s)`)}`,
+  );
+  console.log(
+    `  suggestions: ${preview.affectedSuggestions.length}  bundles: ${preview.affectedBundles.length}  malformed: ${preview.malformedFiles.length}`,
+  );
+  const sample = [
+    ...preview.affectedSuggestions.slice(0, 5).map(
+      (r) => `    suggestion ${r.runId}/${r.id}`,
+    ),
+    ...preview.affectedBundles.slice(0, 5).map(
+      (r) => `    bundle ${r.runId}/${r.id}`,
+    ),
+  ];
+  for (const line of sample) console.log(color.dim(line));
+  if (preview.malformedFiles.length > 0) {
+    console.log(color.yellow(`! Skipped ${preview.malformedFiles.length} malformed file(s).`));
+  }
+  if (dryRun) {
+    console.log(
+      color.dim(
+        "Dry run — wrote nothing. Re-run without --dry-run to apply.",
+      ),
+    );
+  }
 }

@@ -18,6 +18,7 @@ import type {
   SuggestionValidationResult,
 } from "../../lib/types.js";
 import { ProfileSelect } from "./ProfileSelect.js";
+import { streamRunEvents } from "../../lib/events.js";
 
 type Props = {
   runId: string;
@@ -74,6 +75,16 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     void load();
     const i = setInterval(load, 5_000);
     return () => clearInterval(i);
+  }, [runId]);
+
+  // Live updates via the existing run event stream. Profile edits, apply,
+  // validate, and revert events all trigger a refetch so the panel never
+  // waits the full 5 s poll cycle for canonical state.
+  useEffect(() => {
+    const handle = streamRunEvents(runId, (event) => {
+      if (event.type.startsWith("bundle.")) void load();
+    });
+    return () => handle.close();
   }, [runId]);
 
   async function preflight(b: SuggestionBundle) {

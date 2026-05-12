@@ -20,6 +20,7 @@ import type {
 } from "../../lib/types.js";
 import { ReviewPassPanel } from "./ReviewPassPanel.js";
 import { ProfileSelect } from "./ProfileSelect.js";
+import { streamRunEvents } from "../../lib/events.js";
 
 type Props = {
   runId: string;
@@ -71,8 +72,34 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
 
   useEffect(() => {
     void load();
+    // Background poll is a fallback for the SSE channel below; the channel
+    // does the heavy lifting whenever a profile / status event lands.
     const i = setInterval(load, 5_000);
     return () => clearInterval(i);
+  }, [runId]);
+
+  // Subscribe to the run's event stream so profile edits + suggestion/bundle
+  // state changes refresh the list immediately instead of waiting for the
+  // 5 s poll. Falls back to polling if the SSE channel drops.
+  useEffect(() => {
+    const handle = streamRunEvents(runId, (event) => {
+      if (
+        event.type === "suggestion.validation_profile_updated" ||
+        event.type === "bundle.validation_profile_updated" ||
+        event.type === "suggestion.created" ||
+        event.type === "suggestion.applied" ||
+        event.type === "suggestion.reverted" ||
+        event.type === "suggestion.validation_passed" ||
+        event.type === "suggestion.validation_failed" ||
+        event.type === "bundle.applied" ||
+        event.type === "bundle.reverted" ||
+        event.type === "bundle.validation_passed" ||
+        event.type === "bundle.validation_failed"
+      ) {
+        void load();
+      }
+    });
+    return () => handle.close();
   }, [runId]);
 
   async function approve(s: ReviewSuggestion) {

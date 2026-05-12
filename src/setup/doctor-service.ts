@@ -430,36 +430,50 @@ export async function runDoctor(input: {
           fixable: false,
         });
       }
+      // Did-you-mean hints reuse the live profile list. We compute them in
+      // the doctor layer (not the audit service) so the audit stays a pure
+      // data scan and this layer can decide what to render.
+      const liveProfileNames = Object.keys(
+        loaded.config.commands.validationProfiles ?? {},
+      );
+      const { suggestProfileName } = await import(
+        "../core/validation-profile-migration-service.js"
+      );
       if (audit.staleSuggestionReferences.length > 0) {
         const head = audit.staleSuggestionReferences.slice(0, 5);
+        const lines = head.map((r) => {
+          const guess = suggestProfileName(r.profileName, liveProfileNames);
+          const suffix = guess
+            ? `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            : "";
+          return `run ${r.runId} · suggestion ${r.id} → "${r.profileName}"${suffix}`;
+        });
         findings.push({
           id: "validation-profiles-stale-suggestions",
           severity: "warn",
           title: `${audit.staleSuggestionReferences.length} suggestion(s) reference missing validation profile(s)`,
-          detail: head
-            .map(
-              (r) =>
-                `run ${r.runId} · suggestion ${r.id} → "${r.profileName}"`,
-            )
-            .join("\n"),
+          detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile in commands.validationProfiles, or run `amaco suggestions profile clear <runId> <suggestionId>` / `… profile set <runId> <suggestionId> <profile>`.",
+            "Recreate the named profile in commands.validationProfiles, run `amaco validation profile migrate <from> <to> --dry-run`, or `amaco suggestions profile clear <runId> <suggestionId>`.",
           fixable: false,
         });
       }
       if (audit.staleBundleReferences.length > 0) {
         const head = audit.staleBundleReferences.slice(0, 5);
+        const lines = head.map((r) => {
+          const guess = suggestProfileName(r.profileName, liveProfileNames);
+          const suffix = guess
+            ? `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            : "";
+          return `run ${r.runId} · bundle ${r.id} → "${r.profileName}"${suffix}`;
+        });
         findings.push({
           id: "validation-profiles-stale-bundles",
           severity: "warn",
           title: `${audit.staleBundleReferences.length} review pass(es) reference missing validation profile(s)`,
-          detail: head
-            .map(
-              (r) => `run ${r.runId} · bundle ${r.id} → "${r.profileName}"`,
-            )
-            .join("\n"),
+          detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile, or run `amaco bundles profile clear <runId> <bundleId>` / `… profile set <runId> <bundleId> <profile>`.",
+            "Recreate the named profile, run `amaco validation profile migrate <from> <to> --dry-run`, or `amaco bundles profile clear <runId> <bundleId>`.",
           fixable: false,
         });
       }

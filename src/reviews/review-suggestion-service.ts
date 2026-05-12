@@ -31,6 +31,7 @@ import {
   resolveValidationProfile,
   ValidationProfileError,
 } from "../core/validation-profile-service.js";
+import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
 
 export type SuggestionApplyOutcome = {
   ok: boolean;
@@ -591,6 +592,18 @@ export class ReviewSuggestionService {
     else if (result.status === "failed") nextStatus = "validation_failed";
     // "no_commands_configured" leaves the status as `applied` so the user
     // can still see the message and configure validation later.
+
+    // Usage counter: count only actual validation execution. We deliberately
+    // skip no_commands_configured so the counter reflects real work.
+    if (result.status === "passed" || result.status === "failed") {
+      await recordValidationProfileUsage({
+        projectRoot: this.projectRoot,
+        profileName: result.profileName,
+        source: result.profileSource === "default" ? "default" : "named",
+        runId: this.runId,
+        suggestionId: id,
+      });
+    }
 
     const updated: ReviewSuggestion = {
       ...current,

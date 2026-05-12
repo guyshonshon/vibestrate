@@ -32,6 +32,7 @@ import {
   ValidationProfileError,
   type ValidationProfileSource,
 } from "../core/validation-profile-service.js";
+import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
 
 export class SuggestionBundleError extends Error {
   constructor(
@@ -934,6 +935,17 @@ export class SuggestionBundleService {
           profileName: profile.profileName,
           profileSource: profile.source,
         };
+        // Count this step's profile usage only when validation actually ran.
+        if (v.status === "passed" || v.status === "failed") {
+          await recordValidationProfileUsage({
+            projectRoot: this.projectRoot,
+            profileName: v.profileName,
+            source: v.profileSource === "default" ? "default" : "named",
+            runId: this.runId,
+            bundleId,
+            suggestionId: sid,
+          });
+        }
         if (v.status === "passed") {
           await this.events.append({
             type: "bundle.smart_apply_step_passed",
@@ -1191,6 +1203,16 @@ export class SuggestionBundleService {
     let nextStatus: BundleStatus = bundle.status;
     if (result.status === "passed") nextStatus = "validation_passed";
     else if (result.status === "failed") nextStatus = "validation_failed";
+
+    if (result.status === "passed" || result.status === "failed") {
+      await recordValidationProfileUsage({
+        projectRoot: this.projectRoot,
+        profileName: result.profileName,
+        source: result.profileSource === "default" ? "default" : "named",
+        runId: this.runId,
+        bundleId: bundle.id,
+      });
+    }
 
     const updated: SuggestionBundle = {
       ...bundle,

@@ -756,6 +756,54 @@ export type ValidationProfileSummary = {
   hasCommands: boolean;
 };
 
+export type ProfileMigrationScope =
+  | { kind: "recent"; limit?: number }
+  | { kind: "all" }
+  | { kind: "run"; runId: string };
+
+export type ProfileMigrationAffected = {
+  runId: string;
+  kind: "suggestion" | "bundle";
+  id: string;
+  currentProfile: string;
+  nextProfile: string | null;
+  sourceFile: string;
+};
+
+export type ProfileMigrationPreview = {
+  fromProfile: string;
+  toProfile: string | null;
+  scope: ProfileMigrationScope;
+  scannedRuns: number;
+  affectedSuggestions: ProfileMigrationAffected[];
+  affectedBundles: ProfileMigrationAffected[];
+  malformedFiles: string[];
+};
+
+export type ProfileMigrationAudit = {
+  id: string;
+  createdAt: string;
+  appliedAt: string | null;
+  fromProfile: string;
+  toProfile: string | null;
+  scope: ProfileMigrationScope;
+  affectedSuggestions: ProfileMigrationAffected[];
+  affectedBundles: ProfileMigrationAffected[];
+  malformedFiles: string[];
+  dryRun: boolean;
+  appliedBy: string;
+};
+
+export type ValidationProfileUsageEntry = {
+  profileName: string;
+  source: "default" | "named";
+  totalUses: number;
+  lastUsedAt: string | null;
+  lastRunId: string | null;
+  lastSuggestionId: string | null;
+  lastBundleId: string | null;
+};
+
 export type BundleStatus =
   | "draft"
   | "approved"
