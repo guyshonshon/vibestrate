@@ -11,7 +11,8 @@ export type InspectorTabId =
   | "metrics"
   | "agent-work"
   | "git"
-  | "suggestions";
+  | "suggestions"
+  | "terminal";
 
 const TABS: { id: InspectorTabId; label: string }[] = [
   { id: "diff", label: "Diff" },
@@ -20,6 +21,7 @@ const TABS: { id: InspectorTabId; label: string }[] = [
   { id: "agent-work", label: "Agent work" },
   { id: "git", label: "Git" },
   { id: "validation", label: "Validation" },
+  { id: "terminal", label: "Terminal" },
   { id: "logs", label: "Logs" },
   { id: "notes", label: "Notes" },
   { id: "skills", label: "Skills" },

@@ -41,6 +41,8 @@ import type {
   SkillAssignmentSummary,
   Task,
   TaskComment,
+  TerminalAvailability,
+  TerminalSession,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -813,5 +815,42 @@ export const api = {
     return jsonGet(
       `/api/runs/${encodeURIComponent(input.runId)}/suggestion-bundles/${encodeURIComponent(input.bundleId)}/preflight`,
     );
+  },
+
+  async getTerminalAvailability(): Promise<TerminalAvailability> {
+    return jsonGet("/api/terminal/availability");
+  },
+  async listTerminalSessions(): Promise<TerminalSession[]> {
+    const r = await jsonGet<{ sessions: TerminalSession[] }>(
+      "/api/terminal/sessions",
+    );
+    return r.sessions;
+  },
+  async createTerminalSession(input: {
+    runId: string;
+    cols: number;
+    rows: number;
+  }): Promise<TerminalSession> {
+    const r = await jsonPost<{ session: TerminalSession }>(
+      "/api/terminal/sessions",
+      input,
+    );
+    return r.session;
+  },
+  async resizeTerminalSession(input: {
+    id: string;
+    cols: number;
+    rows: number;
+  }): Promise<void> {
+    await jsonPost(
+      `/api/terminal/sessions/${encodeURIComponent(input.id)}/resize`,
+      { cols: input.cols, rows: input.rows },
+    );
+  },
+  async closeTerminalSession(id: string): Promise<TerminalSession> {
+    const r = await jsonPost<{ session: TerminalSession }>(
+      `/api/terminal/sessions/${encodeURIComponent(id)}/close`,
+    );
+    return r.session;
   },
 };

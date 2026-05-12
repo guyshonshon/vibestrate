@@ -30,6 +30,7 @@ import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { ApprovalsList } from "../../components/approvals/ApprovalsList.js";
 import { RunGitInspector } from "../../components/runs/RunGitInspector.js";
 import { SuggestionsPanel } from "../../components/runs/SuggestionsPanel.js";
+import { TerminalPanel } from "../../components/terminal/TerminalPanel.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
@@ -207,6 +208,8 @@ export function RunDetailPage({ runId }: { runId: string }) {
             <RunGitInspector runId={runId} />
           ) : tab === "validation" ? (
             <ValidationSummary runId={runId} />
+          ) : tab === "terminal" ? (
+            <TerminalPanel runId={runId} />
           ) : tab === "logs" ? (
             <RuntimeLogPanel runId={runId} />
           ) : tab === "notes" ? (

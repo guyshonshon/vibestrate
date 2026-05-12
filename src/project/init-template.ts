@@ -224,6 +224,15 @@ policies:
   # Allowed values: planning, architecting, executing, validating, reviewing, fixing, verifying.
   # Example: requireApprovalAtStages: ["architecting", "verifying"]
   requireApprovalAtStages: []
+  # OFF by default. When true, the dashboard exposes a per-run terminal panel
+  # that opens an interactive shell inside that run's worktree. Browser
+  # keystrokes are forwarded to an already-created PTY over a WebSocket;
+  # the HTTP layer never accepts a command string to execute. The CWD is
+  # restricted to known run worktrees only (no project root, no arbitrary
+  # path). Sessions are user-launched only and not transcript-logged by
+  # default. Requires the optional 'node-pty' native module to be
+  # installable in your environment.
+  allowInteractiveTerminal: false
 
 scheduler:
   # Concurrency for the local task scheduler (\`amaco queue run\`).

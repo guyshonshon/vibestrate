@@ -419,9 +419,19 @@ The final report at `12-final-report.md` includes a "Runtime Metrics" table with
 
 ## Live logs vs interactive terminal
 
-The dashboard's "Logs" tab is **read-only**: it tails artifact files (planner output, executor output, validation stdout/stderr, etc.) and renders them live. There is no interactive terminal, no `xterm.js`, no `node-pty`, and no way to send commands from the browser to a running process in V0.
+The dashboard's "Logs" tab is **read-only**: it tails artifact files (planner output, executor output, validation stdout/stderr, etc.) and renders them live.
 
-A future "interactive terminal with strict approval gates" is documented in the roadmap but intentionally not in this phase.
+There is also an **opt-in interactive Terminal panel** in the inspector. It is off by default. When enabled, it lets you open a per-run interactive shell scoped to the run's worktree:
+
+- **Off by default.** Flip `policies.allowInteractiveTerminal: true` in `.amaco/project.yml` to enable. Even when enabled, the panel still has to be opened by clicking *Open terminal in this worktree* — sessions are never auto-spawned.
+- **Worktree-scoped CWD.** The CWD is resolved server-side from the run's `state.json` `worktreePath`. The project root is **never** an allowed CWD; runs without a worktree are refused; worktrees that happen to live inside the project root are refused.
+- **No command string over HTTP.** REST endpoints only manage session lifecycle (`create / list / get / resize / close`). PTY I/O rides a WebSocket — the browser sends keystrokes; the server forwards them to an already-created PTY's stdin. There is no `/api/terminal/exec` route. Tests assert the absence of every nearby endpoint shape (`exec`, `run`, `command`, `:id/exec`, `:id/run`).
+- **No PATH widening.** Only a tight allowlist of env vars crosses into the PTY (`HOME`, `USER`, `LOGNAME`, `LANG`, `LC_ALL`, `LC_CTYPE`, `PATH`). `LD_PRELOAD`, `DYLD_*`, and similar linker-attack vectors are stripped.
+- **No transcript by default.** Session metadata (`id`, `runId`, `cwd`, `cols`, `rows`, `shell`, `createdAt`, `closedAt`, `exitCode`) is persisted to `.amaco/terminal/sessions.json` as an audit trail. PTY bytes are not.
+- **Concurrency cap.** At most 8 live sessions; over the cap, create returns 429.
+- **Honest disabled state.** The terminal relies on the optional `node-pty` native module. If it can't compile in your environment, the panel renders a disabled state with the actual error — Amaco does not ship a fake shell.
+
+CLI helpers: `amaco terminal list` (json/text) and `amaco terminal close <sessionId>` to mark a persisted session record closed. Live sessions also live in the dashboard server process and exit when that process exits.
 
 ## Security model for local UI
 
@@ -1584,7 +1594,7 @@ It **cannot** (this phase): edit or save arbitrary files in-browser, push or fet
 - Permissions are orchestration-level, not OS-level sandboxing.
 - One built-in linear workflow. Custom DAGs are documented but not implemented.
 - No cloud or Docker backends.
-- The dashboard's "Logs" tab is read-only — no interactive terminal yet.
+- The dashboard's "Logs" tab is read-only. The opt-in **Terminal** panel (off by default behind `policies.allowInteractiveTerminal`) ships a per-run interactive shell scoped to that run's worktree — it requires the optional `node-pty` native module to install in your environment, otherwise the panel renders a clear disabled state.
 - Token/cost metrics depend on the provider exposing them. Generic CLIs and unconfigured Claude Code will show "not reported".
 - Approval gates use in-process polling. If you kill `amaco run` while a run is `waiting_for_approval`, the approval still resolves correctly, but the orchestrator is gone — there is no `amaco resume` command in V0. The persisted approval and events remain a complete audit record.
 - Skill assignment from the dashboard updates `.amaco/project.yml` directly. There is no "stage approval" gate around config writes.
@@ -1596,7 +1606,7 @@ It **cannot** (this phase): edit or save arbitrary files in-browser, push or fet
 - Dependency surfacing in the UI is **a clean list, not a graph canvas**. V0 deliberately avoids fancy graph rendering.
 - WhatsApp is intentionally a placeholder; Slack/Discord/Telegram/webhook gateways ship real, but Amaco still does **not** open PRs or trigger deploys.
 - Notifications poll on a 4-second cadence in the dashboard; there is no live SSE stream for the bell yet.
-- The dashboard is **read-first**. The only write-side actions are: applying an approved suggestion's patch inside the run worktree, applying a review pass (bundle of approved suggestions), running the project's configured `commands.validate` against the run worktree, and reverting an applied suggestion or pass via `git apply -R`. There is no in-browser editor, no terminal, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
+- The dashboard is **read-first**. Write-side actions are narrow and explicit: applying an approved suggestion's patch inside the run worktree, applying a review pass (bundle of approved suggestions), running the project's configured `commands.validate` against the run worktree, reverting an applied suggestion or pass via `git apply -R`, and — when `policies.allowInteractiveTerminal` is enabled — opening a per-run interactive shell inside that run's worktree (no command string crosses HTTP; PTY I/O only). There is no in-browser editor, no save-any-file endpoint, and no auto-merge. Per-agent file attribution remains best-effort.
 - Bundle apply is all-or-nothing through `git apply --check` for every patch up front; downstream conflicts mid-apply trigger a reverse-apply rollback. If even the rollback fails, the bundle flips to `partially_applied` rather than pretending success.
 - Revert is patch-based via `git apply -R --check` followed by `git apply -R`. If you edited the same lines after the apply, revert can fail cleanly — Amaco never tries to overwrite drifted files with `git reset`.
 - Validation is explicit by default. The `--validate` flag (or the dashboard's *Apply & validate* option) opts into a single post-apply validation. The optional `--auto-revert-on-fail` flag (and the corresponding dashboard option) chains a revert when validation fails, but only when validation actually ran. There is no global *always auto-revert* setting and no auto-bisect.

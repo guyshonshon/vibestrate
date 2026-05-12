@@ -25,6 +25,10 @@ import { registerEditorRoutes } from "./routes/editor.js";
 import { registerSuggestionRoutes } from "./routes/suggestions.js";
 import { registerBundlesRoutes } from "./routes/bundles.js";
 import { registerValidationRoutes } from "./routes/validation.js";
+import {
+  registerTerminalRoutes,
+  type TerminalRoutesDeps,
+} from "./routes/terminal.js";
 import { HttpError } from "./security.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
@@ -35,6 +39,8 @@ export type StartServerOptions = {
   host?: string;
   uiDir?: string;
   logger?: boolean;
+  /** Optional driver injection for the terminal feature (tests). */
+  terminalDriver?: TerminalRoutesDeps["driver"];
 };
 
 export type StartedServer = {
@@ -138,6 +144,10 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerSuggestionRoutes(app, { projectRoot: opts.projectRoot });
   await registerBundlesRoutes(app, { projectRoot: opts.projectRoot });
   await registerValidationRoutes(app, { projectRoot: opts.projectRoot });
+  await registerTerminalRoutes(app, {
+    projectRoot: opts.projectRoot,
+    driver: opts.terminalDriver,
+  });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

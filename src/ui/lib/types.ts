@@ -945,3 +945,21 @@ export type GitStatusSummary = {
   changedFileCount: number;
   headHash: string | null;
 };
+
+export type TerminalAvailability = {
+  policyEnabled: boolean;
+  driverAvailable: boolean;
+  reason: string | null;
+};
+
+export type TerminalSession = {
+  id: string;
+  runId: string;
+  cwd: string;
+  cols: number;
+  rows: number;
+  shell: string;
+  createdAt: string;
+  closedAt: string | null;
+  exitCode: number | null;
+};

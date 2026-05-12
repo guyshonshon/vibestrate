@@ -113,6 +113,13 @@ export const policiesConfigSchema = z.object({
   // regardless of whether the agent emitted HUMAN_APPROVAL: REQUIRED.
   // Default empty: do not force approvals.
   requireApprovalAtStages: z.array(policyApprovalStageSchema).default([]),
+  // Enables the dashboard's local terminal panel. Default OFF: enrolling
+  // requires the user to flip this explicitly in project.yml. Even when
+  // enabled, every session is user-launched, scoped to a known run
+  // worktree, and started in a constrained env. Browser keystrokes go to
+  // an already-created PTY over a WS channel; the server never executes
+  // a shell command string supplied over HTTP.
+  allowInteractiveTerminal: z.boolean().default(false),
 });
 
 export const projectConfigSchema = z.object({
@@ -146,6 +153,7 @@ export const projectConfigSchema = z.object({
     forbidAutoMerge: true,
     preserveArtifacts: true,
     requireApprovalAtStages: [],
+    allowInteractiveTerminal: false,
   }),
   scheduler: schedulerConfigSchema.default({
     maxConcurrentRuns: 1,
