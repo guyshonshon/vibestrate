@@ -47,6 +47,7 @@ import type {
   PolicyDoctorResult,
   PolicyCheckResult,
   PolicySurface,
+  RunReplay,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -869,5 +870,9 @@ export const api = {
     surface: PolicySurface;
   }): Promise<PolicyCheckResult> {
     return jsonPost("/api/policies/check", input);
+  },
+
+  async getRunReplay(runId: string): Promise<RunReplay> {
+    return jsonGet(`/api/runs/${encodeURIComponent(runId)}/replay`);
   },
 };

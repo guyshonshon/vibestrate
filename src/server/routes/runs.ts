@@ -13,6 +13,10 @@ import { EventLog } from "../../core/event-log.js";
 import { writeJson, readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { streamRunEvents } from "../sse.js";
+import {
+  buildRunReplay,
+  RunReplayError,
+} from "../../core/run-replay-service.js";
 
 export type RunRoutesDeps = {
   projectRoot: string;
@@ -142,6 +146,27 @@ export async function registerRunsRoutes(
       }
       const snap = await getDiffSnapshotMod({ worktreePath: state.worktreePath });
       return { snapshot: snap };
+    },
+  );
+
+  /**
+   * Read-only replay projection over a run's persisted files. Reuses the
+   * existing runId path guard. The service tolerates missing optional
+   * files (older runs may not have all of them) and caps events at 10k —
+   * truncation is reported in the response, never silent.
+   */
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/replay",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      try {
+        return await buildRunReplay(projectRoot, req.params.runId);
+      } catch (err) {
+        if (err instanceof RunReplayError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
     },
   );
 

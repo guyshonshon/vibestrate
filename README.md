@@ -482,6 +482,27 @@ POST /api/policies/check    # { patch, surface } → { violations, ... }
 
 The check endpoint accepts only patch *text* (never a filesystem path supplied by the browser), caps payload at 1 MB, and never applies or executes anything.
 
+## Run replay
+
+The **Replay** inspector tab on a run detail page renders a read-only projection over the run's persisted files — `events.ndjson`, `state.json`, `approvals.json`, `suggestions.json`, `suggestion-bundles.json`, `runtime-metrics.json`, plus the project-scoped `notifications.json` and `terminal/sessions.json` (filtered to this run). The projection is computed server-side by `GET /api/runs/:runId/replay` and rendered by a lazy-loaded `ReplayPanel` (so users who never open the tab don't pay for the chunk).
+
+Replay is **read-only** and explicitly cannot:
+
+- re-execute any agent or provider call,
+- apply a suggestion or run validation,
+- show terminal stdout/stderr (Amaco never persists it — only session metadata is replayed),
+- read `.env` contents or anything outside the run's normal artifact tree,
+- mutate any file.
+
+Phase grouping mirrors the state machine plus four cross-cutting buckets:
+
+- `planning`, `architecting`, `executing`, `validating`, `reviewing`, `fixing`, `verifying` — derived from `state.changed` events and event-type prefixes;
+- `approvals`, `suggestions`, `policies`, `notifications`, `terminal` — derived from event-type prefixes plus synthetic timeline rows for notifications and terminal session open/close (so they're visible in the same scrubber).
+
+Event logs are capped at the most recent 10 000 rows. When the cap fires, the projection's `truncation` field reports it honestly and the UI shows a banner; the full `events.ndjson` is still on disk untouched.
+
+Missing or malformed optional files (older runs that predate a feature, or corrupted JSON) never crash the projection — each is listed under `missingOrMalformed` with a clear reason and the rest of the projection still renders.
+
 ## Security model for local UI
 
 - Bound to `127.0.0.1` only.

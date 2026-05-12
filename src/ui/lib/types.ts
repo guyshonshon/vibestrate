@@ -1008,3 +1008,155 @@ export type PolicyCheckResult = {
   ruleCountForSurface: number;
   limits: { maxScanItemLength: number; maxPatchBytes: number };
 };
+
+export type ReplayPhaseKey =
+  | "planning"
+  | "architecting"
+  | "executing"
+  | "validating"
+  | "reviewing"
+  | "fixing"
+  | "verifying"
+  | "approvals"
+  | "suggestions"
+  | "policies"
+  | "notifications"
+  | "terminal"
+  | "other";
+
+export type ReplayEvent = {
+  index: number;
+  timestamp: string;
+  source: "event" | "synthetic";
+  type: string;
+  message: string;
+  data: Record<string, unknown> | null;
+  phaseKey: ReplayPhaseKey;
+  artifactRefs: string[];
+};
+
+export type ReplayPhase = {
+  key: ReplayPhaseKey;
+  label: string;
+  eventIndices: number[];
+  startTimestamp: string | null;
+  endTimestamp: string | null;
+};
+
+export type ReplayStateSnapshot = {
+  timestamp: string;
+  status: string;
+  previousStatus: string | null;
+};
+
+export type ReplayApproval = {
+  id: string;
+  stageId: string;
+  agentId: string;
+  status: string;
+  riskLevel: string;
+  source: string;
+  reason: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  decisionNote: string | null;
+};
+
+export type ReplaySuggestion = {
+  id: string;
+  title: string;
+  source: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  file: string | null;
+  validationProfile: string | null;
+  bundleId: string | null;
+  errorMessage: string | null;
+};
+
+export type ReplayBundle = {
+  id: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  suggestionIds: string[];
+  validationProfile: string | null;
+  errorMessage: string | null;
+};
+
+export type ReplayPolicyRefusal = {
+  timestamp: string;
+  surface: "suggestion-apply" | "bundle-apply" | "unknown";
+  ruleId: string;
+  message: string;
+  targetId: string | null;
+};
+
+export type ReplayNotification = {
+  id: string;
+  createdAt: string;
+  severity: string;
+  category: string;
+  title: string;
+  message: string;
+  runId: string | null;
+  taskId: string | null;
+  approvalId: string | null;
+};
+
+export type ReplayTerminalSession = {
+  id: string;
+  runId: string;
+  cwd: string;
+  cols: number;
+  rows: number;
+  shell: string;
+  createdAt: string;
+  closedAt: string | null;
+  exitCode: number | null;
+};
+
+export type ReplayMetricsSummary = {
+  totalDurationMs: number;
+  totalProviderCalls: number;
+  totalCostUsd: number | null;
+  reviewLoopCount: number;
+  filesChanged: number | null;
+  diffInsertions: number | null;
+  diffDeletions: number | null;
+  agentStageOrder: string[];
+};
+
+export type ReplayTruncation = {
+  truncated: boolean;
+  totalEventCount: number;
+  keptEventCount: number;
+  keptKind: "latest";
+  note: string;
+};
+
+export type RunReplay = {
+  runId: string;
+  task: string;
+  taskId: string | null;
+  finalStatus: string;
+  branchName: string | null;
+  worktreePath: string | null;
+  startedAt: string;
+  updatedAt: string;
+  events: ReplayEvent[];
+  phases: ReplayPhase[];
+  snapshots: ReplayStateSnapshot[];
+  truncation: ReplayTruncation;
+  approvals: ReplayApproval[];
+  suggestions: ReplaySuggestion[];
+  bundles: ReplayBundle[];
+  policyRefusals: ReplayPolicyRefusal[];
+  notifications: ReplayNotification[];
+  terminalSessions: ReplayTerminalSession[];
+  artifacts: { path: string }[];
+  metrics: ReplayMetricsSummary | null;
+  missingOrMalformed: { file: string; reason: string }[];
+};
