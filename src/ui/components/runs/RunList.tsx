@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { History } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
 
 export function RunList({
   onSelect,
+  onOpenReplay,
 }: {
   onSelect: (runId: string) => void;
+  onOpenReplay?: (runId: string) => void;
 }) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,7 @@ export function RunList({
             <th className="px-4 py-2 text-left font-medium">Review</th>
             <th className="px-4 py-2 text-left font-medium">Verify</th>
             <th className="px-4 py-2 text-right font-medium">Updated</th>
+            <th className="px-4 py-2 text-right font-medium" aria-label="Replay" />
           </tr>
         </thead>
         <tbody>
@@ -88,6 +92,24 @@ export function RunList({
               </td>
               <td className="amaco-mono px-4 py-2 text-right text-amaco-fg-muted">
                 {new Date(run.updatedAt).toLocaleString()}
+              </td>
+              <td className="px-4 py-2 text-right">
+                {onOpenReplay ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      // The whole row navigates to the run's default tab;
+                      // this button skips that and opens straight to Replay.
+                      e.stopPropagation();
+                      onOpenReplay(run.runId);
+                    }}
+                    className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel"
+                    title="Open the read-only Replay timeline for this run"
+                  >
+                    <History className="h-3 w-3" strokeWidth={1.5} />
+                    Replay
+                  </button>
+                ) : null}
               </td>
             </tr>
           ))}

@@ -171,7 +171,12 @@ export function App() {
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
       {route.kind === "runs" ? (
-        <RunsPage onSelect={(runId) => navigate({ kind: "run", runId })} />
+        <RunsPage
+          onSelect={(runId) => navigate({ kind: "run", runId })}
+          onOpenReplay={(runId) =>
+            navigate({ kind: "run", runId, tab: "replay" })
+          }
+        />
       ) : route.kind === "run" ? (
         <RunDetailPage
           runId={route.runId}

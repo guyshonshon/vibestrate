@@ -1,6 +1,12 @@
 import { RunList } from "../../components/runs/RunList.js";
 
-export function RunsPage({ onSelect }: { onSelect: (runId: string) => void }) {
+export function RunsPage({
+  onSelect,
+  onOpenReplay,
+}: {
+  onSelect: (runId: string) => void;
+  onOpenReplay?: (runId: string) => void;
+}) {
   return (
     <div className="flex h-full flex-col">
       <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
@@ -13,7 +19,7 @@ export function RunsPage({ onSelect }: { onSelect: (runId: string) => void }) {
         </div>
       </header>
       <div className="flex-1 overflow-hidden">
-        <RunList onSelect={onSelect} />
+        <RunList onSelect={onSelect} onOpenReplay={onOpenReplay} />
       </div>
     </div>
   );
