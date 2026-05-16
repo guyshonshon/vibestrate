@@ -8,6 +8,7 @@ import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
+import { LoadingScreen } from "./components/LoadingScreen.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -280,9 +281,7 @@ export function App({ projectRoot, refreshMs }: Props) {
             renderPage(ui.page, snapshot, ui, dispatch)
           )
         ) : (
-          <Box paddingY={1}>
-            <Text dimColor>loading project state…</Text>
-          </Box>
+          <LoadingScreen projectRoot={projectRoot} />
         )}
       </Box>
       <Box marginTop={1}>
