@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { runShell } from "../../shell/shell-runtime.js";
+import { runInkShell } from "../../shell/ink/runtime.js";
 import { buildShellSnapshot } from "../../shell/shell-snapshot.js";
 import { isAmacoError } from "../../utils/errors.js";
 
@@ -26,7 +26,7 @@ export function buildShellCommand(): Command {
             process.stdout.write(`${JSON.stringify(snap, null, 2)}\n`);
             process.exit(0);
           }
-          const code = await runShell({
+          const code = await runInkShell({
             projectRoot: detected.projectRoot,
             refreshMs: opts.refresh,
           });

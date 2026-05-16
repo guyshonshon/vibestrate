@@ -6,7 +6,6 @@ import {
   buildShellSnapshot,
   activeRunRows,
 } from "../src/shell/shell-snapshot.js";
-import { renderShell } from "../src/shell/shell-render.js";
 import { createInitialState } from "../src/core/state-machine.js";
 
 async function tempProject(): Promise<string> {
@@ -124,54 +123,6 @@ describe("buildShellSnapshot", () => {
   });
 });
 
-describe("renderShell", () => {
-  it("renders a non-empty frame including the run id + status + agent", async () => {
-    const root = await tempProject();
-    await writeRun(root, "run-xyz", { status: "executing" });
-    await appendEvent(root, "run-xyz", {
-      type: "agent.started",
-      message: "go",
-      data: { agentId: "executor", provider: "claude-code" },
-    });
-    const snap = await buildShellSnapshot(root);
-    const frame = renderShell({
-      snapshot: snap,
-      ui: { selectedIndex: 0, view: "runs", toast: null, pendingConfirm: null },
-      size: { cols: 120, rows: 30 },
-    });
-    expect(frame).toContain("amaco shell");
-    expect(frame).toContain("run-xyz");
-    expect(frame).toContain("executor");
-    expect(frame).toContain("claude-code");
-    expect(frame).toContain("p pause");
-  });
-
-  it("renders the abort confirmation prompt when pendingConfirm is set", async () => {
-    const root = await tempProject();
-    await writeRun(root, "run-xyz", { status: "executing" });
-    const snap = await buildShellSnapshot(root);
-    const frame = renderShell({
-      snapshot: snap,
-      ui: {
-        selectedIndex: 0,
-        view: "runs",
-        toast: null,
-        pendingConfirm: { action: "abort", runId: "run-xyz" },
-      },
-      size: { cols: 120, rows: 30 },
-    });
-    expect(frame).toContain("confirm abort of run-xyz");
-  });
-
-  it("renders the help overlay in help mode", async () => {
-    const root = await tempProject();
-    const snap = await buildShellSnapshot(root);
-    const frame = renderShell({
-      snapshot: snap,
-      ui: { selectedIndex: 0, view: "help", toast: null, pendingConfirm: null },
-      size: { cols: 80, rows: 20 },
-    });
-    expect(frame).toContain("keybindings");
-    expect(frame).toContain("Ctrl+C");
-  });
-});
+// Render-side coverage moved to component tests under `tests/shell-ui-state`
+// + `tests/shell-palette`. The ink view layer renders into a real terminal
+// stream and isn't string-comparable like the old hand-rolled renderer.

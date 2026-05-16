@@ -1,0 +1,163 @@
+// Pure UI state for the ink-based panel. Kept import-free so it can
+// be exercised under the node-only Vitest environment.
+
+export const PAGE_IDS = [
+  "dashboard",
+  "runs",
+  "roadmap",
+  "queue",
+  "agents",
+  "skills",
+  "approvals",
+  "suggestions",
+  "notifications",
+  "doctor",
+] as const;
+export type PageId = (typeof PAGE_IDS)[number];
+
+export type ToastKind = "ok" | "err" | "info";
+export type Toast = { id: number; kind: ToastKind; message: string };
+
+export type PendingConfirm =
+  | { action: "abort"; runId: string }
+  | null;
+
+export type ShellUiStateV2 = {
+  page: PageId;
+  /**
+   * Per-page selection cursor. We keep one index per page so switching
+   * tabs round-trips back to where you were. Pages without a list
+   * (Dashboard, Doctor) just ignore their slot.
+   */
+  selection: Record<PageId, number>;
+  paletteOpen: boolean;
+  paletteQuery: string;
+  helpOpen: boolean;
+  toasts: Toast[];
+  pendingConfirm: PendingConfirm;
+};
+
+export const initialUiState: ShellUiStateV2 = {
+  page: "runs",
+  selection: PAGE_IDS.reduce(
+    (acc, id) => ({ ...acc, [id]: 0 }),
+    {} as Record<PageId, number>,
+  ),
+  paletteOpen: false,
+  paletteQuery: "",
+  helpOpen: false,
+  toasts: [],
+  pendingConfirm: null,
+};
+
+export type ShellUiAction =
+  | { type: "page.set"; page: PageId }
+  | { type: "selection.set"; page: PageId; index: number }
+  | { type: "selection.move"; page: PageId; delta: number; max: number }
+  | { type: "palette.open" }
+  | { type: "palette.close" }
+  | { type: "palette.query"; value: string }
+  | { type: "help.toggle" }
+  | { type: "toast.push"; kind: ToastKind; message: string }
+  | { type: "toast.dismiss"; id: number }
+  | { type: "confirm.set"; value: PendingConfirm };
+
+let toastId = 0;
+function nextToastId(): number {
+  toastId += 1;
+  return toastId;
+}
+
+export function reduceShellUi(
+  state: ShellUiStateV2,
+  action: ShellUiAction,
+): ShellUiStateV2 {
+  switch (action.type) {
+    case "page.set":
+      // Closing any modal layer when navigating keeps the keymap honest.
+      return {
+        ...state,
+        page: action.page,
+        paletteOpen: false,
+        paletteQuery: "",
+        helpOpen: false,
+        pendingConfirm: null,
+      };
+    case "selection.set":
+      return {
+        ...state,
+        selection: { ...state.selection, [action.page]: Math.max(0, action.index) },
+      };
+    case "selection.move": {
+      const current = state.selection[action.page] ?? 0;
+      const next = Math.max(0, Math.min(action.max, current + action.delta));
+      return {
+        ...state,
+        selection: { ...state.selection, [action.page]: next },
+      };
+    }
+    case "palette.open":
+      return { ...state, paletteOpen: true, paletteQuery: "" };
+    case "palette.close":
+      return { ...state, paletteOpen: false, paletteQuery: "" };
+    case "palette.query":
+      return { ...state, paletteQuery: action.value };
+    case "help.toggle":
+      return { ...state, helpOpen: !state.helpOpen };
+    case "toast.push":
+      return {
+        ...state,
+        toasts: [
+          ...state.toasts,
+          { id: nextToastId(), kind: action.kind, message: action.message },
+        ].slice(-3),
+      };
+    case "toast.dismiss":
+      return {
+        ...state,
+        toasts: state.toasts.filter((t) => t.id !== action.id),
+      };
+    case "confirm.set":
+      return { ...state, pendingConfirm: action.value };
+  }
+}
+
+export function pageLabel(id: PageId): string {
+  switch (id) {
+    case "dashboard":
+      return "Dashboard";
+    case "runs":
+      return "Runs";
+    case "roadmap":
+      return "Roadmap";
+    case "queue":
+      return "Queue";
+    case "agents":
+      return "Agents";
+    case "skills":
+      return "Skills";
+    case "approvals":
+      return "Approvals";
+    case "suggestions":
+      return "Suggestions";
+    case "notifications":
+      return "Notifs";
+    case "doctor":
+      return "Doctor";
+  }
+}
+
+export function pageHotkey(id: PageId): string {
+  const idx = PAGE_IDS.indexOf(id);
+  // Hotkeys 1..9 then 0 for the tenth tab — matches the user's mental
+  // model of a numbered tab strip.
+  if (idx < 9) return String(idx + 1);
+  return "0";
+}
+
+export function pageIdFromHotkey(key: string): PageId | null {
+  if (key === "0") return PAGE_IDS[9] ?? null;
+  const n = parseInt(key, 10);
+  if (!Number.isFinite(n) || n < 1 || n > 9) return null;
+  return PAGE_IDS[n - 1] ?? null;
+}

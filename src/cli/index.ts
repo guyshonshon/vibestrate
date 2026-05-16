@@ -187,9 +187,9 @@ if (extraArgv.length === 0) {
   void (async () => {
     try {
       const { detectProject } = await import("../project/project-detector.js");
-      const { runShell } = await import("../shell/shell-runtime.js");
+      const { runInkShell } = await import("../shell/ink/runtime.js");
       const detected = await detectProject(process.cwd());
-      const code = await runShell({ projectRoot: detected.projectRoot });
+      const code = await runInkShell({ projectRoot: detected.projectRoot });
       process.exit(code);
     } catch (err) {
       process.stderr.write(
