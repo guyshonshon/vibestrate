@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, X } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ReplayEvent,
@@ -7,6 +8,7 @@ import type {
   RunReplay,
 } from "../../lib/types.js";
 import type { ReplayFocus } from "../../app/App.js";
+import { filterReplayEvents } from "./replay-filter.js";
 
 /**
  * Read-only Replay panel.
@@ -37,6 +39,12 @@ export function ReplayPanel({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [collapsed, setCollapsed] = useState<Set<ReplayPhaseKey>>(() => new Set());
   const [focusUnresolved, setFocusUnresolved] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  // Empty set === wildcard (see replay-filter.ts). The chips at the top
+  // are additive — clicking one adds, clicking again removes.
+  const [phaseFilter, setPhaseFilter] = useState<Set<ReplayPhaseKey>>(
+    () => new Set(),
+  );
   // Per-event-row refs so the resolver can scroll the matched row into view.
   // Map<eventIndex, HTMLLIElement>.
   const rowRefs = useRef<Map<number, HTMLLIElement>>(new Map());
@@ -107,6 +115,18 @@ export function ReplayPanel({
     if (!replay || selectedIndex === null) return null;
     return replay.events[selectedIndex] ?? null;
   }, [replay, selectedIndex]);
+
+  // Set of event indices that pass the current filter. Empty filter →
+  // every index is in the set. We pre-compute this so the render loop is
+  // O(1) per row instead of re-running the substring match on every event
+  // every render.
+  const visibleIndices = useMemo<ReadonlySet<number>>(() => {
+    if (!replay) return new Set();
+    return new Set(
+      filterReplayEvents(replay.events, { search, phases: phaseFilter }),
+    );
+  }, [replay, search, phaseFilter]);
+  const filterActive = search.trim().length > 0 || phaseFilter.size > 0;
 
   const snapshotAtSelected = useMemo<{
     status: string;
@@ -197,12 +217,39 @@ export function ReplayPanel({
         ) : null}
       </header>
 
+      <FilterBar
+        search={search}
+        onSearchChange={setSearch}
+        phaseFilter={phaseFilter}
+        onTogglePhase={(key) =>
+          setPhaseFilter((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+          })
+        }
+        onClear={() => {
+          setSearch("");
+          setPhaseFilter(new Set());
+        }}
+        phases={replay.phases}
+        visibleCount={visibleIndices.size}
+        totalCount={replay.events.length}
+        active={filterActive}
+      />
+
       <div className="grid flex-1 grid-cols-[200px_1fr] gap-2 overflow-hidden">
         {/* Left: phase + event timeline */}
         <aside className="overflow-y-auto rounded border border-amaco-border bg-amaco-panel-2 p-1.5 text-[10.5px]">
           {replay.phases
-            .filter((p) => p.eventIndices.length > 0)
+            .filter((p) =>
+              p.eventIndices.some((i) => visibleIndices.has(i)),
+            )
             .map((phase) => {
+              const visibleInPhase = phase.eventIndices.filter((i) =>
+                visibleIndices.has(i),
+              );
               const isCollapsed = collapsed.has(phase.key);
               return (
                 <div key={phase.key} className="mb-1.5">
@@ -215,12 +262,14 @@ export function ReplayPanel({
                       {phase.label}
                     </span>
                     <span className="amaco-mono text-[9.5px] text-amaco-fg-muted">
-                      {phase.eventIndices.length}
+                      {filterActive
+                        ? `${visibleInPhase.length}/${phase.eventIndices.length}`
+                        : phase.eventIndices.length}
                     </span>
                   </button>
                   {!isCollapsed ? (
                     <ul className="ml-1 mt-0.5 space-y-0.5">
-                      {phase.eventIndices.map((idx) => {
+                      {visibleInPhase.map((idx) => {
                         const ev = replay.events[idx]!;
                         const isSel = selectedIndex === idx;
                         return (
@@ -256,6 +305,8 @@ export function ReplayPanel({
             })}
           {replay.events.length === 0 ? (
             <div className="text-amaco-fg-muted">No events recorded.</div>
+          ) : filterActive && visibleIndices.size === 0 ? (
+            <div className="text-amaco-fg-muted">No events match the filter.</div>
           ) : null}
         </aside>
 
@@ -548,6 +599,81 @@ function SummaryCard({
 
 function Empty() {
   return <div className="text-amaco-fg-muted text-[10.5px]">None.</div>;
+}
+
+function FilterBar({
+  search,
+  onSearchChange,
+  phaseFilter,
+  onTogglePhase,
+  onClear,
+  phases,
+  visibleCount,
+  totalCount,
+  active,
+}: {
+  search: string;
+  onSearchChange: (next: string) => void;
+  phaseFilter: ReadonlySet<ReplayPhaseKey>;
+  onTogglePhase: (key: ReplayPhaseKey) => void;
+  onClear: () => void;
+  phases: ReplayPhase[];
+  visibleCount: number;
+  totalCount: number;
+  active: boolean;
+}) {
+  const nonEmpty = phases.filter((p) => p.eventIndices.length > 0);
+  return (
+    <div className="space-y-1 rounded border border-amaco-border bg-amaco-panel-2 p-1.5">
+      <div className="flex items-center gap-1.5">
+        <Search
+          className="h-3 w-3 shrink-0 text-amaco-fg-muted"
+          strokeWidth={1.5}
+        />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Filter events by type or message…"
+          className="amaco-mono flex-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent/60 focus:outline-none"
+        />
+        {active ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            title="Clear filter"
+          >
+            <X className="h-3 w-3" strokeWidth={1.5} />
+            Clear
+          </button>
+        ) : null}
+        <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+          {active ? `${visibleCount}/${totalCount}` : `${totalCount}`}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {nonEmpty.map((p) => {
+          const on = phaseFilter.has(p.key);
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => onTogglePhase(p.key)}
+              className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                on
+                  ? "border-amaco-accent/60 bg-amaco-accent-soft/30 text-amaco-fg"
+                  : "border-amaco-border bg-amaco-panel text-amaco-fg-dim hover:bg-amaco-panel-2"
+              }`}
+              title={`${on ? "Hide" : "Show only"} ${p.label} events`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function formatShortTime(ts: string): string {
