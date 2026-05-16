@@ -6,6 +6,7 @@ import {
   filterPalette,
   type PaletteCommand,
 } from "../palette.js";
+import { CARD_PROPS } from "../theme.js";
 
 type Props = {
   query: string;
@@ -14,25 +15,28 @@ type Props = {
   onCancel: () => void;
 };
 
-export function CommandPalette({ query, onChange, onSubmit, onCancel }: Props) {
+export function CommandPalette({
+  query,
+  onChange,
+  onSubmit,
+  onCancel,
+}: Props) {
   const matches = filterPalette(DEFAULT_PALETTE, query, 8);
   return (
     <Box
-      flexDirection="column"
-      borderStyle="round"
+      {...CARD_PROPS}
       borderColor="cyan"
-      paddingX={1}
-      paddingY={0}
+      flexDirection="column"
     >
       <Box>
         <Text color="cyan" bold>
-          :{" "}
+          ›{" "}
         </Text>
         <TextInput
           value={query}
           onChange={onChange}
           onSubmit={() => onSubmit(matches[0] ?? null)}
-          placeholder="type a command — Enter to run, Esc to cancel"
+          placeholder="search commands…"
         />
       </Box>
       <Box flexDirection="column" marginTop={1}>
@@ -41,17 +45,21 @@ export function CommandPalette({ query, onChange, onSubmit, onCancel }: Props) {
         ) : (
           matches.map((m, i) => (
             <Box key={m.id}>
-              <Text color={i === 0 ? "cyan" : undefined}>
-                {i === 0 ? "› " : "  "}
-                {m.title}
+              <Text>
+                <Text color={i === 0 ? "cyan" : undefined}>
+                  {i === 0 ? "  ▸ " : "    "}
+                </Text>
+                <Text bold={i === 0}>{m.title}</Text>
+                {m.hint ? <Text dimColor>   {m.hint}</Text> : null}
               </Text>
-              {m.hint ? <Text dimColor>  {m.hint}</Text> : null}
             </Box>
           ))
         )}
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>↵ run · Esc cancel</Text>
+        <Text dimColor>
+          <Text color="cyan">↵</Text> run · <Text color="cyan">Esc</Text> cancel
+        </Text>
       </Box>
     </Box>
   );

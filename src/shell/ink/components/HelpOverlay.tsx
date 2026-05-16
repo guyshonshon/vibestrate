@@ -1,45 +1,59 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { CARD_PROPS } from "../theme.js";
+
+const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
+  {
+    heading: "Navigation",
+    entries: [
+      ["1 – 0", "switch tabs (Dashboard, Runs, Roadmap, …)"],
+      ["↑ ↓  /  k j", "move selection in a list"],
+      ["← →  /  h l", "switch column on the Roadmap board"],
+      ["tab", "cycle inspector sections on the Runs page"],
+      [":", "command palette"],
+      ["/", "filter the events list"],
+      ["?", "toggle this help"],
+    ],
+  },
+  {
+    heading: "Run actions",
+    entries: [
+      ["p", "pause the selected run"],
+      ["r", "resume the selected run"],
+      ["a", "abort the selected run (asks y / N)"],
+    ],
+  },
+  {
+    heading: "Roadmap actions",
+    entries: [
+      ["n", "new task (form)"],
+      ["e", "edit selected task"],
+      ["d", "delete selected task (asks y / N)"],
+      ["Q", "queue selected task"],
+      ["c", "cycle a backlog task to ready"],
+      ["D", "open description in $EDITOR"],
+    ],
+  },
+];
 
 export function HelpOverlay() {
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
-      paddingX={2}
-      paddingY={1}
-    >
-      <Text bold>amaco panel — keybindings</Text>
-      <Box marginTop={1} flexDirection="column">
-        <Text>
-          <Text color="cyan" bold>1-0</Text>
-          <Text dimColor>   switch tabs (Dashboard, Runs, Roadmap, …)</Text>
-        </Text>
-        <Text>
-          <Text color="cyan" bold>↑/↓ or k/j</Text>
-          <Text dimColor>   move selection inside a list</Text>
-        </Text>
-        <Text>
-          <Text color="cyan" bold>:</Text>
-          <Text dimColor>   open the command palette</Text>
-        </Text>
-        <Text>
-          <Text color="cyan" bold>p / r / a</Text>
-          <Text dimColor>   pause / resume / abort the selected run (with y/N confirm for abort)</Text>
-        </Text>
-        <Text>
-          <Text color="cyan" bold>?</Text>
-          <Text dimColor>   toggle this help overlay</Text>
-        </Text>
-        <Text>
-          <Text color="cyan" bold>q / Ctrl+C</Text>
-          <Text dimColor>   quit</Text>
-        </Text>
-      </Box>
-      <Box marginTop={1}>
-        <Text dimColor>press ? again or Esc to close</Text>
-      </Box>
+    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+      <Text bold>Keybindings</Text>
+      <Text dimColor>amaco panel · press ? or Esc to close</Text>
+      {SECTIONS.map((section) => (
+        <Box key={section.heading} flexDirection="column" marginTop={1}>
+          <Text color="cyan">{section.heading}</Text>
+          {section.entries.map(([key, label]) => (
+            <Box key={key}>
+              <Text>
+                <Text color="cyan">{key.padEnd(14)}</Text>
+                <Text dimColor>{label}</Text>
+              </Text>
+            </Box>
+          ))}
+        </Box>
+      ))}
     </Box>
   );
 }

@@ -1,186 +1,193 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { ShellSnapshot } from "../../shell-snapshot.js";
+import {
+  CARD_PROPS,
+  clip,
+  eventTypeColor,
+  runStatusToken,
+  timeAgo,
+} from "../theme.js";
 
 type Props = {
   snapshot: ShellSnapshot;
 };
 
-const FAILED_TYPES = new Set([
-  "agent.failed",
-  "provider.failed",
-  "run.failed",
-  "run.aborted",
-  "suggestion.apply_failed",
-  "bundle.apply_failed",
-  "suggestion.validation_failed",
-  "bundle.validation_failed",
-]);
-
-function truncate(s: string, w: number): string {
-  if (s.length <= w) return s;
-  return `${s.slice(0, Math.max(0, w - 1))}…`;
-}
-
-function statusColor(status: string): string | undefined {
-  switch (status) {
-    case "failed":
-    case "aborted":
-    case "blocked":
-      return "red";
-    case "paused":
-    case "waiting_for_approval":
-      return "yellow";
-    case "merge_ready":
-      return "green";
-    case "planning":
-    case "architecting":
-    case "verifying":
-    case "validating":
-    case "reviewing":
-      return "blue";
-    case "executing":
-    case "fixing":
-      return "magenta";
-    default:
-      return undefined;
-  }
-}
-
-function eventTypeColor(type: string): string | undefined {
-  if (FAILED_TYPES.has(type)) return "red";
-  if (type === "run.completed" || type === "agent.completed") return "green";
-  if (type.startsWith("approval.")) return "yellow";
-  if (type.startsWith("run.pause") || type.startsWith("run.resume"))
-    return "yellow";
-  if (type === "mcp.attached") return "magenta";
-  if (type === "agent.started" || type === "provider.started") return "cyan";
-  return undefined;
-}
-
 export function DashboardPage({ snapshot }: Props) {
   const agg = snapshot.aggregates;
   const sched = snapshot.scheduler;
-  const activeRuns = snapshot.runs.filter(
-    (r) => !["failed", "aborted", "merge_ready", "blocked"].includes(r.status),
-  );
+  const activeRuns = snapshot.runs.filter((r) => {
+    const t = runStatusToken(r.status);
+    return t.color !== "red" && t.color !== "green" && r.status !== "blocked";
+  });
   const recentlyDone = snapshot.runs
-    .filter((r) =>
-      ["failed", "aborted", "merge_ready"].includes(r.status),
-    )
-    .slice(0, 4);
+    .filter((r) => ["failed", "aborted", "merge_ready"].includes(r.status))
+    .slice(0, 3);
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Text dimColor>OVERVIEW</Text>
-      <Box marginTop={1} flexDirection="row">
-        <Stat label="active runs" value={String(agg.activeRuns)} />
-        <Stat
+    <Box flexDirection="column">
+      {/* Stat strip — five cards across the top, no clutter inside. */}
+      <Box flexDirection="row" gap={1}>
+        <StatCard label="active" value={String(agg.activeRuns)} accent />
+        <StatCard
           label="queue"
-          value={`${agg.queueRunning} running · ${agg.queueWaiting} waiting`}
+          value={`${agg.queueRunning}/${agg.queueWaiting}`}
+          hint="running / waiting"
         />
-        <Stat
+        <StatCard
           label="approvals"
           value={String(agg.pendingApprovalsTotal)}
           tint={agg.pendingApprovalsTotal > 0 ? "yellow" : undefined}
         />
-        <Stat
+        <StatCard
           label="suggestions"
           value={String(agg.pendingSuggestionsTotal)}
           tint={agg.pendingSuggestionsTotal > 0 ? "yellow" : undefined}
         />
-        <Stat
+        <StatCard
           label="scheduler"
           value={sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—"}
           tint={sched?.paused ? "yellow" : undefined}
         />
       </Box>
 
-      <Box marginTop={1} flexDirection="column">
-        <Text dimColor>ACTIVE RUNS</Text>
-        {activeRuns.length === 0 ? (
-          <Text dimColor>
-            no active runs — press <Text bold>2</Text> to open the Runs tab or{" "}
-            <Text bold>:</Text> for the command palette.
-          </Text>
-        ) : (
-          activeRuns.slice(0, 6).map((r) => (
-            <Text key={r.runId}>
-              <Text dimColor>{"  "}</Text>
-              {truncate(r.runId, 18).padEnd(18)}{" "}
-              <Text color={statusColor(r.status)}>
-                {r.status.padEnd(14)}
-              </Text>
+      {/* Two-column body: Active Runs and Recent Activity. */}
+      <Box flexDirection="row" marginTop={1} gap={1}>
+        <Box flexBasis={0} flexGrow={1}>
+          <SectionCard title="active runs" count={activeRuns.length}>
+            {activeRuns.length === 0 ? (
               <Text dimColor>
-                {" "}
-                {(r.currentAgent ?? "—").padEnd(11)}{" "}
-                {(r.currentProvider ?? r.resolvedProviderId ?? "—").padEnd(14)}
-              </Text>{" "}
-              {truncate(r.task, 50)}
-              {r.pendingApprovals > 0 ? (
-                <Text color="yellow">  {r.pendingApprovals} appr</Text>
-              ) : null}
-              {r.pendingSuggestions > 0 ? (
-                <Text color="yellow">  {r.pendingSuggestions} sug</Text>
-              ) : null}
-            </Text>
-          ))
-        )}
-      </Box>
-
-      <Box marginTop={1} flexDirection="column">
-        <Text dimColor>RECENT ACTIVITY</Text>
-        {snapshot.recentActivity.length === 0 ? (
-          <Text dimColor>no events yet</Text>
-        ) : (
-          snapshot.recentActivity.slice(0, 10).map((a, i) => (
-            <Text key={`${a.runId}-${i}`}>
-              <Text dimColor>{a.event.timestamp.slice(11, 19)}</Text>
-              {"  "}
-              {truncate(a.runId, 18).padEnd(18)}{" "}
-              <Text color={eventTypeColor(a.event.type)}>
-                {a.event.type.padEnd(22)}
-              </Text>{" "}
-              {truncate(a.event.message, 60)}
-            </Text>
-          ))
-        )}
+                press <Text color="cyan">2</Text> to open Runs ·{" "}
+                <Text color="cyan">:</Text> for commands
+              </Text>
+            ) : (
+              <Box flexDirection="column">
+                {activeRuns.slice(0, 6).map((r) => {
+                  const tok = runStatusToken(r.status);
+                  return (
+                    <Box key={r.runId}>
+                      <Text>
+                        <Text color={tok.color}>{tok.glyph}</Text>
+                        {"  "}
+                        <Text>{clip(r.task, 38).padEnd(38)}</Text>
+                        {"  "}
+                        <Text dimColor>{clip(r.currentAgent ?? "—", 10)}</Text>
+                        {r.pendingApprovals > 0 ? (
+                          <Text color="yellow">  ⏳{r.pendingApprovals}</Text>
+                        ) : null}
+                        {r.pendingSuggestions > 0 ? (
+                          <Text color="yellow">  ✎{r.pendingSuggestions}</Text>
+                        ) : null}
+                      </Text>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+          </SectionCard>
+        </Box>
+        <Box flexBasis={0} flexGrow={1}>
+          <SectionCard
+            title="recent activity"
+            count={snapshot.recentActivity.length}
+          >
+            {snapshot.recentActivity.length === 0 ? (
+              <Text dimColor>no events yet</Text>
+            ) : (
+              <Box flexDirection="column">
+                {snapshot.recentActivity.slice(0, 8).map((a, i) => (
+                  <Box key={`${a.runId}-${i}`}>
+                    <Text>
+                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(8)}</Text>
+                      <Text color={eventTypeColor(a.event.type)}>
+                        {clip(a.event.type, 18).padEnd(18)}
+                      </Text>
+                      <Text dimColor>{"  "}</Text>
+                      <Text>{clip(a.event.message, 36)}</Text>
+                    </Text>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </SectionCard>
+        </Box>
       </Box>
 
       {recentlyDone.length > 0 ? (
-        <Box marginTop={1} flexDirection="column">
-          <Text dimColor>RECENTLY FINISHED</Text>
-          {recentlyDone.map((r) => (
-            <Text key={r.runId}>
-              <Text dimColor>{"  "}</Text>
-              {truncate(r.runId, 18).padEnd(18)}{" "}
-              <Text color={statusColor(r.status)}>
-                {r.status.padEnd(14)}
-              </Text>{" "}
-              <Text dimColor>{truncate(r.task, 50)}</Text>
-            </Text>
-          ))}
+        <Box marginTop={1}>
+          <SectionCard title="recently finished" count={recentlyDone.length}>
+            <Box flexDirection="column">
+              {recentlyDone.map((r) => {
+                const tok = runStatusToken(r.status);
+                return (
+                  <Box key={r.runId}>
+                    <Text>
+                      <Text color={tok.color}>{tok.glyph}</Text>
+                      <Text dimColor>  {tok.label.padEnd(14)}</Text>
+                      <Text>{clip(r.task, 60)}</Text>
+                      <Text dimColor>   {timeAgo(r.updatedAt)}</Text>
+                    </Text>
+                  </Box>
+                );
+              })}
+            </Box>
+          </SectionCard>
         </Box>
       ) : null}
     </Box>
   );
 }
 
-function Stat({
+function StatCard({
   label,
   value,
+  hint,
   tint,
+  accent,
 }: {
   label: string;
   value: string;
+  hint?: string;
   tint?: "yellow" | "red" | "green";
+  accent?: boolean;
 }) {
   return (
-    <Box flexDirection="column" marginRight={3} minWidth={16}>
+    <Box
+      {...CARD_PROPS}
+      borderColor={accent ? "cyan" : undefined}
+      flexDirection="column"
+      flexBasis={0}
+      flexGrow={1}
+    >
       <Text dimColor>{label}</Text>
-      <Text bold color={tint}>
+      <Text bold color={tint ?? (accent ? "cyan" : undefined)}>
         {value}
       </Text>
+      {hint ? <Text dimColor>{hint}</Text> : null}
+    </Box>
+  );
+}
+
+function SectionCard({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Box {...CARD_PROPS} flexDirection="column">
+      <Box>
+        <Text dimColor>
+          {title}
+          {typeof count === "number" ? `   (${count})` : ""}
+        </Text>
+      </Box>
+      <Box marginTop={1} flexDirection="column">
+        {children}
+      </Box>
     </Box>
   );
 }

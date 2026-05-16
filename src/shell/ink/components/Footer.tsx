@@ -15,38 +15,46 @@ export function Footer({ ui, hints, capturedAt }: Props) {
   return (
     <Box flexDirection="column">
       <Box>
-        {hints.map((h, i) => (
-          <React.Fragment key={h.key}>
-            {i > 0 ? <Text dimColor>   </Text> : null}
-            <Text color="cyan" bold>
-              {h.key}
-            </Text>
-            <Text dimColor> {h.label}</Text>
-          </React.Fragment>
-        ))}
+        <Text>
+          {hints.map((h, i) => (
+            <React.Fragment key={h.key}>
+              {i > 0 ? <Text dimColor>   </Text> : null}
+              <Text color="cyan">{h.key}</Text>
+              <Text dimColor> {h.label}</Text>
+            </React.Fragment>
+          ))}
+        </Text>
         <Box flexGrow={1} />
         {capturedAt ? (
-          <Text dimColor>{capturedAt.slice(11, 19)}</Text>
+          <Text dimColor>
+            {capturedAt.slice(11, 19)}
+          </Text>
         ) : null}
       </Box>
       {ui.pendingConfirm?.action === "abort" ? (
-        <Text color="yellow">
-          confirm abort of {ui.pendingConfirm.runId}? press y to confirm, any
-          other key to cancel.
-        </Text>
+        <Box marginTop={1}>
+          <Text color="yellow">
+            confirm abort of {ui.pendingConfirm.runId} — press{" "}
+            <Text bold>y</Text> to confirm · any other key to cancel
+          </Text>
+        </Box>
       ) : null}
       {toast ? (
-        <Text
-          color={
-            toast.kind === "ok"
-              ? "green"
-              : toast.kind === "err"
-                ? "red"
-                : "cyan"
-          }
-        >
-          {toast.message}
-        </Text>
+        <Box marginTop={1}>
+          <Text
+            color={
+              toast.kind === "ok"
+                ? "green"
+                : toast.kind === "err"
+                  ? "red"
+                  : "cyan"
+            }
+          >
+            {toast.kind === "ok" ? "✓" : toast.kind === "err" ? "✗" : "›"}
+            {" "}
+            {toast.message}
+          </Text>
+        </Box>
       ) : null}
     </Box>
   );

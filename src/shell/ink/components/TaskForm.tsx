@@ -7,6 +7,7 @@ import {
   type TaskFormField,
   type TaskFormState,
 } from "../roadmap/form.js";
+import { CARD_PROPS } from "../theme.js";
 
 type Props = {
   form: TaskFormState;
@@ -37,16 +38,12 @@ export function TaskForm({
 }: Props) {
   const isCreate = form.mode === "create";
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor="cyan"
-      paddingX={2}
-      paddingY={1}
-    >
-      <Text bold>{isCreate ? "New task" : `Edit ${form.existingId}`}</Text>
+    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+      <Text bold color="cyan">
+        {isCreate ? "new task" : `edit task`}
+      </Text>
       <Text dimColor>
-        tab cycles fields · D edit description in $EDITOR · Enter saves · Esc cancels
+        tab cycles fields · ←/→ on enums · space toggles flags · D opens $EDITOR
       </Text>
       <Box marginTop={1} flexDirection="column">
         {TASK_FORM_FIELDS.map((field) => (
@@ -61,7 +58,7 @@ export function TaskForm({
       </Box>
       <Box marginTop={1}>
         <Text dimColor>
-          [Enter] save · [Esc] cancel · [D] edit description
+          <Text color="cyan">↵</Text> save · <Text color="cyan">Esc</Text> cancel
         </Text>
       </Box>
       {Object.values(form.errors).some((v) => v) ? (
@@ -95,11 +92,15 @@ function FieldRow({
   dispatch: React.Dispatch<TaskFormAction>;
 }) {
   const focused = form.focused === field;
-  const focusMark = focused ? <Text color="cyan">›</Text> : <Text>{" "}</Text>;
+  const focusMark = focused ? (
+    <Text color="cyan">▸</Text>
+  ) : (
+    <Text>{" "}</Text>
+  );
   return (
     <Box>
       {focusMark}
-      <Text dimColor>{" "}{label.padEnd(20)}</Text>
+      <Text dimColor>{" "}{label.padEnd(18)}</Text>
       {field === "title" ? (
         focused ? (
           <TextInput
@@ -159,15 +160,13 @@ function FieldRow({
         // readOnly toggle
         <Text>
           {focused ? (
-            <Text color="cyan">
-              {form.readOnly ? "[x] " : "[ ] "}
-            </Text>
+            <Text color="cyan">{form.readOnly ? "◉" : "○"}</Text>
           ) : (
-            <Text dimColor>{form.readOnly ? "[x] " : "[ ] "}</Text>
+            <Text dimColor>{form.readOnly ? "◉" : "○"}</Text>
           )}
-          read-only
+          <Text> read-only</Text>
           {focused ? (
-            <Text dimColor>  (space toggles)</Text>
+            <Text dimColor>   space toggles</Text>
           ) : null}
         </Text>
       )}

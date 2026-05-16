@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { CARD_PROPS } from "../theme.js";
 
 type Props = {
   title: string;
@@ -8,15 +9,15 @@ type Props = {
 
 export function PlaceholderPage({ title, upcomingPhase }: Props) {
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Text dimColor>{title.toUpperCase()}</Text>
+    <Box {...CARD_PROPS} flexDirection="column">
+      <Text dimColor>{title.toLowerCase()}</Text>
       <Box marginTop={1} flexDirection="column">
         <Text>
-          This page lands in <Text bold>{upcomingPhase}</Text>.
+          this page lands in <Text color="cyan">{upcomingPhase}</Text>
         </Text>
         <Text dimColor>
-          The Phase 1 foundation only ships the Runs view; tabs are wired so
-          the whole structure is visible from day one.
+          the foundation already wires the tab into the router — content is
+          coming.
         </Text>
       </Box>
     </Box>

@@ -2,7 +2,6 @@ import React, { useMemo, useReducer, useState } from "react";
 import { Box, Text, useInput, useApp } from "ink";
 import type { Task } from "../../../roadmap/roadmap-types.js";
 import {
-  BOARD_COLUMNS,
   buildBoard,
   clampCursor,
   moveCursor,
@@ -23,6 +22,7 @@ import {
   markReady,
 } from "../roadmap/task-actions.js";
 import { editInEditor } from "../roadmap/editor-handoff.js";
+import { CARD_PROPS, clip, taskStatusToken } from "../theme.js";
 
 type Props = {
   projectRoot: string;
@@ -262,48 +262,60 @@ export function RoadmapPage({
   );
 
   return (
-    <Box flexDirection="column" flexGrow={1}>
-      <Text dimColor>
-        ROADMAP · {tasks.length} task(s) · {board.columns.reduce((n, c) => n + c.tasks.length, 0)} on the board
-      </Text>
-      <Box marginTop={1} flexDirection="row">
-        {board.columns.map((col, ci) => (
-          <Box
-            key={col.id}
-            flexDirection="column"
-            marginRight={1}
-            width={Math.floor(100 / BOARD_COLUMNS.length) + "%"}
-          >
-            <Text
-              dimColor={ci !== cursor.col}
-              color={ci === cursor.col ? "cyan" : undefined}
-              bold={ci === cursor.col}
+    <Box flexDirection="column">
+      <Box {...CARD_PROPS} flexDirection="column">
+        <Text dimColor>
+          roadmap   ({tasks.length})
+        </Text>
+        <Box marginTop={1} flexDirection="row">
+          {board.columns.map((col, ci) => (
+            <Box
+              key={col.id}
+              flexDirection="column"
+              marginRight={2}
+              flexBasis={0}
+              flexGrow={1}
             >
-              {col.label}{" "}
-              <Text dimColor>({col.tasks.length})</Text>
-            </Text>
-            {col.tasks.slice(0, 6).map((t, ri) => (
-              <CardRow
-                key={t.id}
-                task={t}
-                selected={ci === cursor.col && ri === cursor.row}
-              />
-            ))}
-            {col.tasks.length > 6 ? (
-              <Text dimColor>… {col.tasks.length - 6} more</Text>
-            ) : null}
-          </Box>
-        ))}
+              <Text
+                dimColor={ci !== cursor.col}
+                color={ci === cursor.col ? "cyan" : undefined}
+                bold={ci === cursor.col}
+              >
+                {col.label.toLowerCase()}  ({col.tasks.length})
+              </Text>
+              <Box marginTop={1} flexDirection="column">
+                {col.tasks.slice(0, 6).map((t, ri) => (
+                  <CardRow
+                    key={t.id}
+                    task={t}
+                    selected={ci === cursor.col && ri === cursor.row}
+                  />
+                ))}
+                {col.tasks.length > 6 ? (
+                  <Text dimColor>+ {col.tasks.length - 6} more</Text>
+                ) : null}
+              </Box>
+            </Box>
+          ))}
+        </Box>
       </Box>
-      <Box marginTop={1} flexDirection="column">
-        <Text dimColor>DETAIL</Text>
-        {selected ? <TaskDetail task={selected} /> : <Text dimColor>(no task selected)</Text>}
+      <Box marginTop={1} {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+        <Text dimColor>detail</Text>
+        <Box marginTop={1}>
+          {selected ? (
+            <TaskDetail task={selected} />
+          ) : (
+            <Text dimColor>
+              select a task with ← ↑ ↓ → · <Text color="cyan">n</Text> creates one
+            </Text>
+          )}
+        </Box>
       </Box>
       {ui.pendingDeleteTaskId ? (
         <Box marginTop={1}>
           <Text color="yellow">
-            confirm delete of {ui.pendingDeleteTaskId}? press y to confirm,
-            any other key to cancel.
+            confirm delete of {ui.pendingDeleteTaskId} — press{" "}
+            <Text bold>y</Text> to confirm · any other key to cancel
           </Text>
         </Box>
       ) : null}
@@ -323,47 +335,41 @@ export function RoadmapPage({
 }
 
 function CardRow({ task, selected }: { task: Task; selected: boolean }) {
-  const titleRaw = task.title.length > 28 ? task.title.slice(0, 27) + "…" : task.title;
+  const tok = taskStatusToken(task.status);
+  const titleRaw = clip(task.title, 26);
   return (
     <Box>
-      <Text color={selected ? "cyan" : undefined}>
-        {selected ? "›" : " "}
-      </Text>
-      <Text inverse={selected}>
-        <Text> {titleRaw}</Text>
-        <Text dimColor> {task.priority[0]}</Text>
-        {task.effort ? <Text dimColor>·{task.effort[0]}</Text> : null}
-        {task.readOnly ? <Text dimColor>·ro</Text> : null}
+      <Text>
+        <Text color={selected ? "cyan" : undefined}>
+          {selected ? "▸" : " "}
+        </Text>
+        <Text> </Text>
+        <Text color={tok.color}>{tok.glyph}</Text>
+        <Text bold={selected} color={selected ? "cyan" : undefined}>
+          {" "}
+          {titleRaw}
+        </Text>
+        {task.readOnly ? <Text dimColor> ◔</Text> : null}
       </Text>
     </Box>
   );
 }
 
 function TaskDetail({ task }: { task: Task }) {
+  const tok = taskStatusToken(task.status);
   return (
     <Box flexDirection="column">
-      <Box>
-        <Text bold>{task.title}</Text>
-        <Text dimColor>  {task.id}</Text>
-      </Box>
-      <Box>
-        <Text dimColor>status: </Text>
-        <Text>{task.status}</Text>
-        <Text dimColor>   priority: </Text>
-        <Text>{task.priority}</Text>
-        {task.effort ? (
-          <>
-            <Text dimColor>   effort: </Text>
-            <Text>{task.effort}</Text>
-          </>
-        ) : null}
+      <Text>
+        <Text color={tok.color}>{tok.glyph}</Text>
+        <Text bold>  {task.title}</Text>
+      </Text>
+      <Text dimColor>{task.id}   ·   {tok.label}   ·   priority {task.priority}</Text>
+      <Box flexDirection="row" flexWrap="wrap" marginTop={1}>
+        {task.effort ? <Field label="effort" value={task.effort} /> : null}
         {task.providerOverride ? (
-          <>
-            <Text dimColor>   provider: </Text>
-            <Text>{task.providerOverride}</Text>
-          </>
+          <Field label="override" value={task.providerOverride} />
         ) : null}
-        {task.readOnly ? <Text color="yellow">   read-only</Text> : null}
+        {task.readOnly ? <Field label="mode" value="read-only" tint="yellow" /> : null}
       </Box>
       {task.description ? (
         <Box marginTop={1} flexDirection="column">
@@ -383,10 +389,31 @@ function TaskDetail({ task }: { task: Task }) {
       ) : null}
       {task.runIds.length > 0 ? (
         <Box marginTop={1}>
-          <Text dimColor>runs: </Text>
-          <Text>{task.runIds.join(", ")}</Text>
+          <Text>
+            <Text dimColor>runs   </Text>
+            <Text>{task.runIds.join(", ")}</Text>
+          </Text>
         </Box>
       ) : null}
+    </Box>
+  );
+}
+
+function Field({
+  label,
+  value,
+  tint,
+}: {
+  label: string;
+  value: string;
+  tint?: "yellow" | "red";
+}) {
+  return (
+    <Box marginRight={3}>
+      <Text>
+        <Text dimColor>{label} </Text>
+        <Text color={tint}>{value}</Text>
+      </Text>
     </Box>
   );
 }

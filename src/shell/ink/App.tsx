@@ -253,9 +253,9 @@ export function App({ projectRoot, refreshMs }: Props) {
           : COMMON_HINTS;
 
   return (
-    <Box flexDirection="column" paddingX={1} paddingY={0}>
+    <Box flexDirection="column" paddingX={2} paddingY={1}>
       <TabBar current={ui.page} />
-      <Box marginTop={1} flexDirection="column" flexGrow={1}>
+      <Box marginTop={1} flexDirection="column">
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
@@ -280,7 +280,9 @@ export function App({ projectRoot, refreshMs }: Props) {
             renderPage(ui.page, snapshot, ui, dispatch)
           )
         ) : (
-          <Text dimColor>loading…</Text>
+          <Box paddingY={1}>
+            <Text dimColor>loading project state…</Text>
+          </Box>
         )}
       </Box>
       <Box marginTop={1}>

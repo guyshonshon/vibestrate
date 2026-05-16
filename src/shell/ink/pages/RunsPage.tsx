@@ -8,6 +8,7 @@ import {
   type ShellUiStateV2,
 } from "../ui-state.js";
 import { filterEvents } from "../event-filter.js";
+import { CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -16,53 +17,11 @@ type Props = {
   onFilterSubmit: () => void;
 };
 
-function statusColor(status: string): string | undefined {
-  switch (status) {
-    case "failed":
-    case "aborted":
-    case "blocked":
-      return "red";
-    case "paused":
-    case "waiting_for_approval":
-      return "yellow";
-    case "merge_ready":
-      return "green";
-    case "planning":
-    case "architecting":
-    case "verifying":
-    case "validating":
-    case "reviewing":
-      return "blue";
-    case "executing":
-    case "fixing":
-      return "magenta";
-    default:
-      return undefined;
-  }
-}
-
-function eventTypeColor(type: string): string | undefined {
-  if (type.endsWith(".failed") || type === "run.aborted") return "red";
-  if (type === "run.completed" || type === "agent.completed") return "green";
-  if (type.startsWith("approval.")) return "yellow";
-  if (type.startsWith("run.pause") || type.startsWith("run.resume"))
-    return "yellow";
-  if (type === "mcp.attached") return "magenta";
-  if (type === "agent.started" || type === "provider.started") return "cyan";
-  return undefined;
-}
-
-function truncate(s: string, w: number): string {
-  if (s.length <= w) return s;
-  return `${s.slice(0, Math.max(0, w - 1))}…`;
-}
-
 const TAB_LABELS: Record<RunInspectorTab, string> = {
   overview: "Overview",
   events: "Events",
   validation: "Validation",
 };
-
 const TAB_KEYS: Record<RunInspectorTab, string> = {
   overview: "o",
   events: "e",
@@ -79,63 +38,45 @@ export function RunsPage({
   const selectedIndex = ui.selection.runs ?? 0;
   const selected = runs[selectedIndex] ?? null;
   return (
-    <Box flexDirection="row" flexGrow={1}>
-      {/* Left: runs list */}
-      <Box
-        flexDirection="column"
-        width="38%"
-        marginRight={1}
-      >
-        <Text dimColor>
-          RUNS · {runs.length}
-          {snapshot.scheduler
-            ? `  ${snapshot.scheduler.paused ? "scheduler paused" : snapshot.scheduler.queuePolicy}`
-            : ""}
-        </Text>
-        <Box flexDirection="column" marginTop={1}>
-          {runs.length === 0 ? (
-            <Text dimColor>
-              no runs yet — <Text bold>amaco run "describe the change"</Text>
-            </Text>
-          ) : (
-            runs.slice(0, 14).map((r, i) => (
-              <RunRow
-                key={r.runId}
-                row={r}
-                selected={i === selectedIndex}
-              />
-            ))
-          )}
-        </Box>
-        <Box flexDirection="column" marginTop={1}>
-          <Text dimColor>
-            QUEUE · {snapshot.queue.length} waiting ·{" "}
-            {snapshot.scheduler?.runningTaskIds.length ?? 0} running
-          </Text>
-          {snapshot.queue.slice(0, 3).map((e) => (
-            <Text key={e.taskId} dimColor>
-              {"  "}
-              {truncate(e.taskId, 22)} <Text>prio={e.priority}</Text>{" "}
-              <Text>src={e.source}</Text>
-            </Text>
-          ))}
-        </Box>
+    <Box flexDirection="row" gap={1}>
+      <Box flexBasis={0} flexGrow={2}>
+        <RunsList runs={runs} selectedIndex={selectedIndex} />
       </Box>
+      <Box flexBasis={0} flexGrow={3}>
+        <InspectorCard
+          snapshot={snapshot}
+          row={selected}
+          tab={ui.runs.inspectorTab}
+          eventFilter={ui.runs.eventFilter}
+          eventFilterOpen={ui.runs.eventFilterOpen}
+          onFilterChange={onFilterChange}
+          onFilterSubmit={onFilterSubmit}
+        />
+      </Box>
+    </Box>
+  );
+}
 
-      {/* Right: inspector */}
-      <Box flexDirection="column" flexGrow={1}>
-        {selected ? (
-          <Inspector
-            snapshot={snapshot}
-            row={selected}
-            tab={ui.runs.inspectorTab}
-            eventFilter={ui.runs.eventFilter}
-            eventFilterOpen={ui.runs.eventFilterOpen}
-            onFilterChange={onFilterChange}
-            onFilterSubmit={onFilterSubmit}
-          />
+function RunsList({
+  runs,
+  selectedIndex,
+}: {
+  runs: ShellRunRow[];
+  selectedIndex: number;
+}) {
+  return (
+    <Box {...CARD_PROPS} flexDirection="column">
+      <Text dimColor>runs   ({runs.length})</Text>
+      <Box marginTop={1} flexDirection="column">
+        {runs.length === 0 ? (
+          <Text dimColor>
+            no runs yet —{" "}
+            <Text color="cyan">amaco run "describe the change"</Text>
+          </Text>
         ) : (
-          <Text dimColor>(no run selected)</Text>
+          runs.slice(0, 14).map((r, i) => (
+            <RunRow key={r.runId} row={r} selected={i === selectedIndex} />
+          ))
         )}
       </Box>
     </Box>
@@ -143,24 +84,29 @@ export function RunsPage({
 }
 
 function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
+  const tok = runStatusToken(row.status);
+  const cursor = selected ? "▸" : " ";
   return (
     <Box>
-      <Text color={selected ? "cyan" : undefined}>{selected ? "›" : " "} </Text>
-      <Text inverse={selected}>
-        <Text>{truncate(row.runId, 18).padEnd(18)} </Text>
-        <Text color={statusColor(row.status)}>{row.status.padEnd(12)}</Text>
+      <Text color={selected ? "cyan" : undefined}>{cursor}</Text>
+      <Text> </Text>
+      <Text bold={selected} color={selected ? "cyan" : undefined}>
+        <Text color={tok.color}>{tok.glyph}</Text>
+        <Text>  {clip(row.task, 30).padEnd(30)}</Text>
+        <Text dimColor>  {clip(row.currentAgent ?? "—", 10).padEnd(10)}</Text>
+        <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (
-          <Text color="yellow"> a{row.pendingApprovals}</Text>
+          <Text color="yellow">  ⏳{row.pendingApprovals}</Text>
         ) : null}
         {row.pendingSuggestions > 0 ? (
-          <Text color="yellow"> s{row.pendingSuggestions}</Text>
+          <Text color="yellow">  ✎{row.pendingSuggestions}</Text>
         ) : null}
       </Text>
     </Box>
   );
 }
 
-function Inspector({
+function InspectorCard({
   snapshot,
   row,
   tab,
@@ -170,7 +116,7 @@ function Inspector({
   onFilterSubmit,
 }: {
   snapshot: ShellSnapshot;
-  row: ShellRunRow;
+  row: ShellRunRow | null;
   tab: RunInspectorTab;
   eventFilter: string;
   eventFilterOpen: boolean;
@@ -178,44 +124,71 @@ function Inspector({
   onFilterSubmit: () => void;
 }) {
   return (
+    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+      {row ? (
+        <>
+          <InspectorHeader row={row} />
+          <TabStrip current={tab} />
+          <Box marginTop={1} flexDirection="column">
+            {tab === "overview" ? (
+              <OverviewSection row={row} />
+            ) : tab === "events" ? (
+              <EventsSection
+                snapshot={snapshot}
+                row={row}
+                eventFilter={eventFilter}
+                eventFilterOpen={eventFilterOpen}
+                onFilterChange={onFilterChange}
+                onFilterSubmit={onFilterSubmit}
+              />
+            ) : (
+              <ValidationSection snapshot={snapshot} row={row} />
+            )}
+          </Box>
+        </>
+      ) : (
+        <Text dimColor>select a run on the left</Text>
+      )}
+    </Box>
+  );
+}
+
+function InspectorHeader({ row }: { row: ShellRunRow }) {
+  const tok = runStatusToken(row.status);
+  return (
     <Box flexDirection="column">
-      <Box>
-        <Text bold>{row.runId}</Text>
-        <Text>  </Text>
-        <Text color={statusColor(row.status)}>{row.status}</Text>
-        {row.pauseRequested && row.status !== "paused" ? (
-          <Text color="yellow">  (pausing)</Text>
-        ) : null}
-      </Box>
-      <Box marginTop={1}>
+      <Text>
+        <Text color={tok.color}>{tok.glyph}</Text>
+        <Text bold>  {clip(row.task, 60)}</Text>
+      </Text>
+      <Text dimColor>
+        {row.runId}   ·   {tok.label}
+        {row.pauseRequested && row.status !== "paused" ? "   · pausing" : ""}
+      </Text>
+    </Box>
+  );
+}
+
+function TabStrip({ current }: { current: RunInspectorTab }) {
+  return (
+    <Box marginTop={1}>
+      <Text>
         {RUN_INSPECTOR_TABS.map((t, i) => (
           <React.Fragment key={t}>
-            {i > 0 ? <Text dimColor>  ·  </Text> : null}
-            <Text color={t === tab ? "cyan" : undefined} dimColor={t !== tab}>
-              <Text bold={t === tab}>
+            {i > 0 ? <Text dimColor>   </Text> : null}
+            {t === current ? (
+              <Text color="cyan" bold>
                 {TAB_KEYS[t]} {TAB_LABELS[t]}
               </Text>
-            </Text>
+            ) : (
+              <Text dimColor>
+                {TAB_KEYS[t]} {TAB_LABELS[t]}
+              </Text>
+            )}
           </React.Fragment>
         ))}
-        <Text dimColor>   tab to cycle</Text>
-      </Box>
-      <Box marginTop={1} flexDirection="column">
-        {tab === "overview" ? (
-          <OverviewSection row={row} />
-        ) : tab === "events" ? (
-          <EventsSection
-            snapshot={snapshot}
-            row={row}
-            eventFilter={eventFilter}
-            eventFilterOpen={eventFilterOpen}
-            onFilterChange={onFilterChange}
-            onFilterSubmit={onFilterSubmit}
-          />
-        ) : (
-          <ValidationSection snapshot={snapshot} row={row} />
-        )}
-      </Box>
+        <Text dimColor>     tab cycles</Text>
+      </Text>
     </Box>
   );
 }
@@ -223,46 +196,50 @@ function Inspector({
 function OverviewSection({ row }: { row: ShellRunRow }) {
   return (
     <Box flexDirection="column">
-      <FactLine label="task">{row.task}</FactLine>
-      {row.taskId ? <FactLine label="task id">{row.taskId}</FactLine> : null}
-      <FactLine label="updated">{row.updatedAt}</FactLine>
-      {row.effort ? <FactLine label="effort">{row.effort}</FactLine> : null}
-      {row.providerOverride ? (
-        <FactLine label="provider override">{row.providerOverride}</FactLine>
-      ) : null}
-      {row.resolvedProviderId ? (
-        <FactLine label="resolved provider">{row.resolvedProviderId}</FactLine>
-      ) : null}
-      {row.readOnly ? (
-        <FactLine label="mode">
-          <Text color="yellow">read-only</Text>
-        </FactLine>
-      ) : null}
-      {row.pausedAtStatus ? (
-        <FactLine label="paused at">{row.pausedAtStatus}</FactLine>
-      ) : null}
+      <Box flexDirection="row" flexWrap="wrap">
+        <Field label="updated" value={timeAgo(row.updatedAt)} />
+        {row.taskId ? <Field label="task" value={row.taskId} /> : null}
+        {row.effort ? <Field label="effort" value={row.effort} /> : null}
+        {row.providerOverride ? (
+          <Field label="override" value={row.providerOverride} />
+        ) : null}
+        {row.resolvedProviderId ? (
+          <Field label="provider" value={row.resolvedProviderId} />
+        ) : null}
+        {row.readOnly ? <Field label="mode" value="read-only" tint="yellow" /> : null}
+        {row.pausedAtStatus ? (
+          <Field label="paused at" value={row.pausedAtStatus} />
+        ) : null}
+      </Box>
       <Box marginTop={1}>
         {row.currentAgent ? (
           <Text>
-            current agent: <Text color="cyan">{row.currentAgent}</Text>
-            {row.currentProvider
-              ? `  provider=${row.currentProvider}`
-              : ""}
+            <Text dimColor>current  </Text>
+            <Text color="cyan">{row.currentAgent}</Text>
+            {row.currentProvider ? (
+              <Text dimColor>   via {row.currentProvider}</Text>
+            ) : null}
           </Text>
         ) : (
           <Text dimColor>no active agent</Text>
         )}
       </Box>
       {row.currentSkills.length > 0 ? (
-        <Text>skills: {row.currentSkills.join(", ")}</Text>
+        <Text>
+          <Text dimColor>skills   </Text>
+          <Text>{row.currentSkills.join(", ")}</Text>
+        </Text>
       ) : null}
       {row.currentMcpServers.length > 0 ? (
-        <Text>mcp: {row.currentMcpServers.join(", ")}</Text>
+        <Text>
+          <Text dimColor>mcp      </Text>
+          <Text>{row.currentMcpServers.join(", ")}</Text>
+        </Text>
       ) : null}
       <Box marginTop={1}>
         <Text dimColor>
-          pending: {row.pendingApprovals} approval(s), {row.pendingSuggestions}{" "}
-          suggestion(s)
+          {row.pendingApprovals} pending approval(s) ·{" "}
+          {row.pendingSuggestions} pending suggestion(s)
         </Text>
       </Box>
     </Box>
@@ -290,7 +267,7 @@ function EventsSection({
     <Box flexDirection="column">
       <Box>
         {eventFilterOpen ? (
-          <>
+          <Box>
             <Text color="cyan" bold>
               /{" "}
             </Text>
@@ -298,20 +275,19 @@ function EventsSection({
               value={eventFilter}
               onChange={onFilterChange}
               onSubmit={onFilterSubmit}
-              placeholder="filter events — Enter to commit, Esc to clear"
+              placeholder="filter — Enter to commit · Esc to clear"
             />
-          </>
+          </Box>
         ) : (
           <Text dimColor>
-            press <Text bold>/</Text> to filter
+            press <Text color="cyan">/</Text> to filter ·{" "}
             {eventFilter ? (
               <Text>
-                {" "}
-                · filter <Text color="cyan">{eventFilter}</Text> matched{" "}
+                <Text color="cyan">{eventFilter}</Text> matches{" "}
                 {visible.length}/{totalCount}
               </Text>
             ) : (
-              <Text> · {totalCount} event(s)</Text>
+              <Text>{totalCount} event{totalCount === 1 ? "" : "s"}</Text>
             )}
           </Text>
         )}
@@ -320,15 +296,19 @@ function EventsSection({
         {visible.length === 0 ? (
           <Text dimColor>no matching events</Text>
         ) : (
-          visible
-            .slice(-Math.min(visible.length, 12))
-            .map((ev, i) => (
-              <Box key={`${ev.timestamp}-${i}`}>
-                <Text dimColor>{ev.timestamp.slice(11, 19)}  </Text>
-                <Text color={eventTypeColor(ev.type)}>{ev.type}</Text>
-                <Text>  {truncate(ev.message, 80)}</Text>
-              </Box>
-            ))
+          visible.slice(-12).map((ev, i) => (
+            <Box key={`${ev.timestamp}-${i}`}>
+              <Text>
+                <Text dimColor>{timeAgo(ev.timestamp).padStart(7)}</Text>
+                {"  "}
+                <Text color={eventTypeColor(ev.type)}>
+                  {clip(ev.type, 22).padEnd(22)}
+                </Text>
+                {"  "}
+                <Text>{clip(ev.message, 80)}</Text>
+              </Text>
+            </Box>
+          ))
         )}
       </Box>
     </Box>
@@ -344,52 +324,49 @@ function ValidationSection({
 }) {
   const events = snapshot.recentEvents[row.runId] ?? [];
   const valEvents = events.filter((e) => e.type.startsWith("validation"));
-  const lastResult = [...valEvents]
-    .reverse()
-    .find(
-      (e) =>
-        e.type === "validation.command.completed" ||
-        e.type === "validation.started",
-    );
   if (valEvents.length === 0) {
     return (
       <Text dimColor>
-        no validation events for this run yet — they appear after{" "}
-        <Text bold>amaco validation run</Text> or a post-apply validate.
+        no validation events yet — they appear after{" "}
+        <Text color="cyan">amaco validation run</Text> or a post-apply
+        validate.
       </Text>
     );
   }
   return (
     <Box flexDirection="column">
-      <Text dimColor>recent validation events</Text>
-      {valEvents.slice(-8).map((ev, i) => (
+      {valEvents.slice(-10).map((ev, i) => (
         <Box key={`${ev.timestamp}-${i}`}>
-          <Text dimColor>{ev.timestamp.slice(11, 19)}  </Text>
-          <Text color={eventTypeColor(ev.type)}>{ev.type}</Text>
-          <Text>  {truncate(ev.message, 80)}</Text>
+          <Text>
+            <Text dimColor>{timeAgo(ev.timestamp).padStart(7)}</Text>
+            {"  "}
+            <Text color={eventTypeColor(ev.type)}>
+              {clip(ev.type, 22).padEnd(22)}
+            </Text>
+            {"  "}
+            <Text>{clip(ev.message, 80)}</Text>
+          </Text>
         </Box>
       ))}
-      {lastResult ? (
-        <Box marginTop={1}>
-          <Text dimColor>last: </Text>
-          <Text>{lastResult.message}</Text>
-        </Box>
-      ) : null}
     </Box>
   );
 }
 
-function FactLine({
+function Field({
   label,
-  children,
+  value,
+  tint,
 }: {
   label: string;
-  children: React.ReactNode;
+  value: string;
+  tint?: "yellow" | "red";
 }) {
   return (
-    <Box>
-      <Text dimColor>{label}: </Text>
-      <Text>{children}</Text>
+    <Box marginRight={3}>
+      <Text>
+        <Text dimColor>{label} </Text>
+        <Text color={tint}>{value}</Text>
+      </Text>
     </Box>
   );
 }
