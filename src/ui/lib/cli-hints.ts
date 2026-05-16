@@ -38,7 +38,8 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Browse, start, and inspect runs. Everything you see here is also exposed on the CLI.",
         commands: [
-          { cmd: "amaco status", note: "list recent runs (id, status, age)" },
+          { cmd: "amaco shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
+          { cmd: "amaco status", note: "one-shot run table" },
           { cmd: 'amaco run "describe the change"', note: "start a new run" },
           { cmd: "amaco replay <runId>", note: "open the run timeline in the terminal" },
         ],

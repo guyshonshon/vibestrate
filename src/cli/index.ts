@@ -26,6 +26,7 @@ import { buildTerminalCommand } from "./commands/terminal.js";
 import { buildPoliciesCommand } from "./commands/policies.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
+import { buildShellCommand } from "./commands/shell.js";
 
 const program = new Command();
 
@@ -77,6 +78,7 @@ program.addCommand(buildPoliciesCommand());
 program.addCommand(buildReplayCommand());
 program.addCommand(buildPauseCommand());
 program.addCommand(buildResumeCommand());
+program.addCommand(buildShellCommand());
 
 program
   .command("run <task...>")
