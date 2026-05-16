@@ -179,7 +179,28 @@ program
 
 program.showHelpAfterError();
 
-program.parseAsync(process.argv).catch((err: unknown) => {
-  console.error(err instanceof Error ? err.message : String(err));
-  process.exit(1);
-});
+// `amaco` with no subcommand opens the interactive shell. Use `amaco
+// --help` (or any other subcommand) to opt out. We only treat *zero*
+// extra args as the shell trigger so `amaco --version` etc still work.
+const extraArgv = process.argv.slice(2);
+if (extraArgv.length === 0) {
+  void (async () => {
+    try {
+      const { detectProject } = await import("../project/project-detector.js");
+      const { runShell } = await import("../shell/shell-runtime.js");
+      const detected = await detectProject(process.cwd());
+      const code = await runShell({ projectRoot: detected.projectRoot });
+      process.exit(code);
+    } catch (err) {
+      process.stderr.write(
+        `amaco: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+      process.exit(1);
+    }
+  })();
+} else {
+  program.parseAsync(process.argv).catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+}
