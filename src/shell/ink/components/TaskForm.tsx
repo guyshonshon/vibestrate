@@ -56,7 +56,6 @@ export function TaskForm({
             label={FIELD_LABELS[field]}
             form={form}
             dispatch={dispatch}
-            onEditDescription={onEditDescription}
           />
         ))}
       </Box>
@@ -76,12 +75,12 @@ export function TaskForm({
           )}
         </Box>
       ) : null}
-      {/* These props are wired through the parent's input handler; the
-          presence of onSubmit/onCancel here keeps the API symmetrical. */}
-      {void onSubmit /* swallow lint */ as React.ReactNode}
-      {void onCancel as React.ReactNode}
     </Box>
   );
+  // onSubmit / onCancel are driven by the parent's useInput; the props
+  // are accepted for API symmetry. Silence the unused warnings.
+  void onSubmit;
+  void onCancel;
 }
 
 function FieldRow({
@@ -89,13 +88,11 @@ function FieldRow({
   label,
   form,
   dispatch,
-  onEditDescription,
 }: {
   field: TaskFormField;
   label: string;
   form: TaskFormState;
   dispatch: React.Dispatch<TaskFormAction>;
-  onEditDescription: () => void;
 }) {
   const focused = form.focused === field;
   const focusMark = focused ? <Text color="cyan">›</Text> : <Text>{" "}</Text>;
@@ -127,7 +124,7 @@ function FieldRow({
             )}
           </Text>
           {focused ? (
-            <Text dimColor>press D to edit in $EDITOR{void onEditDescription}</Text>
+            <Text dimColor>press D to edit in $EDITOR</Text>
           ) : null}
         </Box>
       ) : field === "priority" ? (
@@ -203,9 +200,8 @@ function EnumPicker({
           </Text>
         </React.Fragment>
       ))}
-      {focused ? (
-        <Text dimColor>   ←/→ cycle{void onChange}</Text>
-      ) : null}
+      {focused ? <Text dimColor>   ←/→ cycle</Text> : null}
     </Box>
   );
+  void onChange;
 }

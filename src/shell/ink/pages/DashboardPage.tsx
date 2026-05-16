@@ -105,24 +105,25 @@ export function DashboardPage({ snapshot }: Props) {
           </Text>
         ) : (
           activeRuns.slice(0, 6).map((r) => (
-            <Box key={r.runId}>
+            <Text key={r.runId}>
               <Text dimColor>{"  "}</Text>
-              <Text>{truncate(r.runId, 18).padEnd(18)} </Text>
+              {truncate(r.runId, 18).padEnd(18)}{" "}
               <Text color={statusColor(r.status)}>
                 {r.status.padEnd(14)}
-              </Text>{" "}
+              </Text>
               <Text dimColor>
+                {" "}
                 {(r.currentAgent ?? "—").padEnd(11)}{" "}
                 {(r.currentProvider ?? r.resolvedProviderId ?? "—").padEnd(14)}
               </Text>{" "}
-              <Text>{truncate(r.task, 50)}</Text>
+              {truncate(r.task, 50)}
               {r.pendingApprovals > 0 ? (
                 <Text color="yellow">  {r.pendingApprovals} appr</Text>
               ) : null}
               {r.pendingSuggestions > 0 ? (
                 <Text color="yellow">  {r.pendingSuggestions} sug</Text>
               ) : null}
-            </Box>
+            </Text>
           ))
         )}
       </Box>
@@ -133,14 +134,15 @@ export function DashboardPage({ snapshot }: Props) {
           <Text dimColor>no events yet</Text>
         ) : (
           snapshot.recentActivity.slice(0, 10).map((a, i) => (
-            <Box key={`${a.runId}-${i}`}>
-              <Text dimColor>{a.event.timestamp.slice(11, 19)}  </Text>
-              <Text>{truncate(a.runId, 18).padEnd(18)} </Text>
+            <Text key={`${a.runId}-${i}`}>
+              <Text dimColor>{a.event.timestamp.slice(11, 19)}</Text>
+              {"  "}
+              {truncate(a.runId, 18).padEnd(18)}{" "}
               <Text color={eventTypeColor(a.event.type)}>
                 {a.event.type.padEnd(22)}
               </Text>{" "}
-              <Text>{truncate(a.event.message, 60)}</Text>
-            </Box>
+              {truncate(a.event.message, 60)}
+            </Text>
           ))
         )}
       </Box>
@@ -149,14 +151,14 @@ export function DashboardPage({ snapshot }: Props) {
         <Box marginTop={1} flexDirection="column">
           <Text dimColor>RECENTLY FINISHED</Text>
           {recentlyDone.map((r) => (
-            <Box key={r.runId}>
+            <Text key={r.runId}>
               <Text dimColor>{"  "}</Text>
-              <Text>{truncate(r.runId, 18).padEnd(18)} </Text>
+              {truncate(r.runId, 18).padEnd(18)}{" "}
               <Text color={statusColor(r.status)}>
                 {r.status.padEnd(14)}
               </Text>{" "}
               <Text dimColor>{truncate(r.task, 50)}</Text>
-            </Box>
+            </Text>
           ))}
         </Box>
       ) : null}
