@@ -18,26 +18,7 @@ import {
   draftSchedulerConflict,
 } from "../notifications/notification-router.js";
 import { nowIso } from "../utils/time.js";
-import type { QueueEntry } from "./scheduler-types.js";
-
-const PRIORITY_RANK: Record<"low" | "medium" | "high", number> = {
-  high: 0,
-  medium: 1,
-  low: 2,
-};
-
-function orderQueue(
-  entries: QueueEntry[],
-  policy: "fifo" | "priority",
-): QueueEntry[] {
-  if (policy === "fifo") return entries;
-  return [...entries].sort((a, b) => {
-    const pa = PRIORITY_RANK[a.priority];
-    const pb = PRIORITY_RANK[b.priority];
-    if (pa !== pb) return pa - pb;
-    return a.enqueuedAt.localeCompare(b.enqueuedAt);
-  });
-}
+import { pickNextEntry } from "./picker.js";
 
 export type SchedulerLogger = (line: string) => void;
 
@@ -129,13 +110,17 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
     maxConcurrentRuns: cfg.maxConcurrentRuns,
     conflictPolicy: cfg.conflictPolicy,
     queuePolicy: cfg.queuePolicy,
+    sourceQuotas: cfg.sourceQuotas,
+    defaultSourceConcurrency: cfg.defaultSourceConcurrency,
   });
 
   const runTask = input.runTask ?? defaultRunTask(input.projectRoot);
   const idlePollMs = input.idlePollMs ?? 1000;
 
   let stopRequested = false;
-  const inflight = new Map<string, Promise<void>>();
+  // Tracks the source for each in-flight task so the picker can apply
+  // per-source quotas without re-reading the queue file.
+  const inflight = new Map<string, { promise: Promise<void>; source: string }>();
 
   async function tick(): Promise<{ launched: boolean; idle: boolean }> {
     const state = await queue.readState();
@@ -148,46 +133,68 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
       return { launched: false, idle: true };
     }
 
-    // Walk the queue (in policy order) and pick the first entry whose
-    // dependencies are all satisfied. Blocked entries stay queued and are
-    // reconsidered on the next tick — this is what makes "queue B before A"
-    // work: we skip B and try A next.
+    // Walk the queue (in policy order) and pick the first entry that
+    // is dependency-ready AND respects its source quota. Blocked
+    // entries stay queued and are reconsidered on the next tick —
+    // this is what makes "queue B before A" work: we skip B and try A
+    // next.
     const allTasks = await roadmap.listTasks();
     const graph = buildDependencyGraph(allTasks);
-    const orderedIds = orderQueue(queueFile.entries.slice(), cfg.queuePolicy).map(
-      (e) => e.taskId,
-    );
-    let candidate: typeof allTasks[number] | null = null;
-    let everyEntryBlocked = true;
-    for (const id of orderedIds) {
-      const t = await roadmap.getTask(id);
+
+    // Drop any queued entries whose underlying task disappeared.
+    for (const e of queueFile.entries) {
+      const t = await roadmap.getTask(e.taskId);
       if (!t) {
-        log(`[scheduler] queued task "${id}" not found; removing from queue.`);
-        await queue.remove(id);
+        log(`[scheduler] queued task "${e.taskId}" not found; removing from queue.`);
+        await queue.remove(e.taskId);
         return { launched: false, idle: false };
       }
-      if (!isReady(graph, t.id)) {
-        const reason = explainBlock(graph, t.id);
-        const human = [
-          ...reason.blockedByOpenTaskIds.map(
-            (id2) => `${id2} (${graph.taskById.get(id2)?.status ?? "?"})`,
-          ),
-          ...reason.blockedByMissing.map((id2) => `${id2} (missing)`),
-        ];
-        log(
-          `[scheduler] task ${t.id} blocked by dependency: ${human.join(", ")}`,
-        );
-        continue;
-      }
-      candidate = t;
-      everyEntryBlocked = false;
-      break;
     }
+
+    const inflightSources = [...inflight.values()].map((v) => v.source);
+    const verdict = pickNextEntry({
+      queue: queueFile.entries,
+      inflightSources,
+      config: {
+        queuePolicy: cfg.queuePolicy,
+        maxConcurrentRuns: cfg.maxConcurrentRuns,
+        sourceQuotas: cfg.sourceQuotas,
+        defaultSourceConcurrency: cfg.defaultSourceConcurrency,
+      },
+      isEligible: (e) => isReady(graph, e.taskId),
+    });
+    if (verdict.kind === "empty") return { launched: false, idle: true };
+    if (verdict.kind === "at-capacity") {
+      return { launched: false, idle: false };
+    }
+    if (verdict.kind === "all-blocked") {
+      for (const r of verdict.reasons) {
+        if (r.reason === "deps") {
+          const reason = explainBlock(graph, r.taskId);
+          const human = [
+            ...reason.blockedByOpenTaskIds.map(
+              (id2) => `${id2} (${graph.taskById.get(id2)?.status ?? "?"})`,
+            ),
+            ...reason.blockedByMissing.map((id2) => `${id2} (missing)`),
+          ];
+          log(
+            `[scheduler] task ${r.taskId} blocked by dependency: ${human.join(", ")}`,
+          );
+        } else {
+          log(
+            `[scheduler] task ${r.taskId} held: source quota exhausted.`,
+          );
+        }
+      }
+      return { launched: false, idle: true };
+    }
+
+    const candidateEntry = verdict.entry;
+    const candidate = await roadmap.getTask(candidateEntry.taskId);
     if (!candidate) {
-      // Every queued task is blocked on a dependency. Stay idle and let the
-      // next loop tick re-check (the user may mark a dep done, or another
-      // task may finish via concurrent runs).
-      return { launched: false, idle: everyEntryBlocked };
+      // Should not happen — we filtered missing tasks above.
+      await queue.remove(candidateEntry.taskId);
+      return { launched: false, idle: false };
     }
 
     // Conflict detection against currently-running tasks.
@@ -263,7 +270,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
         completedThisLoop.push(candidate.id);
       }
     })();
-    inflight.set(candidate.id, promise);
+    inflight.set(candidate.id, { promise, source: candidateEntry.source });
     return { launched: true, idle: false };
   }
 
@@ -283,7 +290,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
       }
     }
     // Drain in-flight before returning.
-    await Promise.all(inflight.values());
+    await Promise.all([...inflight.values()].map((v) => v.promise));
     if (completedThisLoop.length > 0) {
       notify(draftQueueDrained({ completedTaskIds: completedThisLoop.slice() }));
     }

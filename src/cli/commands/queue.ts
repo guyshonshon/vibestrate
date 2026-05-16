@@ -49,7 +49,10 @@ async function cmdList(opts: { json?: boolean }): Promise<number> {
   return 0;
 }
 
-async function cmdAdd(taskId: string): Promise<number> {
+async function cmdAdd(
+  taskId: string,
+  opts: { source?: string },
+): Promise<number> {
   const { queue, root } = await context();
   const roadmap = new RoadmapService(root);
   const task = await roadmap.getTask(taskId);
@@ -61,9 +64,10 @@ async function cmdAdd(taskId: string): Promise<number> {
     taskId,
     enqueuedAt: nowIso(),
     priority: task.priority,
+    source: opts.source ?? "user",
   });
   await roadmap.updateTaskStatus(taskId, "queued");
-  console.log(`${symbol.ok()} Queued ${color.bold(taskId)}.`);
+  console.log(`${symbol.ok()} Queued ${color.bold(taskId)} (source ${opts.source ?? "user"}).`);
   return 0;
 }
 
@@ -181,8 +185,12 @@ export function buildQueueCommand(): Command {
   cmd
     .command("add <taskId>")
     .description("Add a task to the queue.")
-    .action(async (id: string) => {
-      const code = await cmdAdd(id);
+    .option(
+      "--source <name>",
+      "origin label for fairness / per-source quotas (default: user)",
+    )
+    .action(async (id: string, opts: { source?: string }) => {
+      const code = await cmdAdd(id, opts);
       process.exit(code);
     });
 

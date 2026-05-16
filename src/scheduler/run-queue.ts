@@ -50,6 +50,7 @@ export class RunQueue {
         maxConcurrentRuns: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       };
     }
     const text = await readText(file);
@@ -63,6 +64,7 @@ export class RunQueue {
         maxConcurrentRuns: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       };
     }
   }

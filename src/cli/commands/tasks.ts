@@ -235,6 +235,7 @@ async function cmdQueue(taskId: string): Promise<number> {
       taskId,
       enqueuedAt: nowIso(),
       priority: t.priority,
+      source: "user",
     });
     console.log(`${symbol.ok()} Task ${color.bold(taskId)} queued.`);
     console.log(

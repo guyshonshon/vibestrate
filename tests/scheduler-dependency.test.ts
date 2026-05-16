@@ -29,7 +29,7 @@ describe("scheduler dependency handling", () => {
     const queue = new RunQueue(projectRoot);
     // Queue B FIRST so the scheduler is forced to skip it; only when A is done
     // (we mark it manually) should B start.
-    await queue.enqueue({ taskId: b.id, enqueuedAt: nowIso(), priority: "medium" });
+    await queue.enqueue({ taskId: b.id, enqueuedAt: nowIso(), priority: "medium", source: "user" });
 
     const ranIds: string[] = [];
     const handle = await runSchedulerLoop({
@@ -39,6 +39,7 @@ describe("scheduler dependency handling", () => {
         maxConcurrentWriteAgents: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       },
       log: () => {},
       idlePollMs: 30,

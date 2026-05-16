@@ -73,7 +73,15 @@ export const schedulerConfigSchema = z.object({
   maxConcurrentRuns: z.number().int().min(1).max(16).default(1),
   maxConcurrentWriteAgents: z.number().int().min(1).max(32).default(1),
   conflictPolicy: z.enum(["warn", "block"]).default("warn"),
-  queuePolicy: z.enum(["fifo", "priority"]).default("fifo"),
+  // `fair` rotates origins (the `source` tag on each queue entry) so
+  // one source can't monopolize the in-flight slots while another has
+  // work waiting. Falls back to FIFO within a source.
+  queuePolicy: z.enum(["fifo", "priority", "fair"]).default("fifo"),
+  // Per-source in-flight cap. Any source not listed here falls back to
+  // `defaultSourceConcurrency` if set, otherwise is unbounded (the
+  // global `maxConcurrentRuns` still applies on top).
+  sourceQuotas: z.record(z.string(), z.number().int().min(1)).default({}),
+  defaultSourceConcurrency: z.number().int().min(1).optional(),
 });
 export type SchedulerConfig = z.infer<typeof schedulerConfigSchema>;
 
@@ -175,6 +183,7 @@ export const projectConfigSchema = z.object({
     maxConcurrentWriteAgents: 1,
     conflictPolicy: "warn",
     queuePolicy: "fifo",
+    sourceQuotas: {},
   }),
   editor: editorConfigSchema.default({
     enabled: false,

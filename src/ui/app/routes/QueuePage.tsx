@@ -71,6 +71,21 @@ export function QueuePage({
             <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
               policy: {state.queuePolicy}
             </span>
+            {Object.keys(state.sourceQuotas).length > 0 ? (
+              <span
+                className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5"
+                title={Object.entries(state.sourceQuotas)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join("\n")}
+              >
+                quotas: {Object.keys(state.sourceQuotas).length}
+              </span>
+            ) : null}
+            {typeof state.defaultSourceConcurrency === "number" ? (
+              <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
+                default/source: {state.defaultSourceConcurrency}
+              </span>
+            ) : null}
             <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
               conflict: {state.conflictPolicy}
             </span>
@@ -124,6 +139,12 @@ export function QueuePage({
                   >
                     <span className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1 text-[10.5px] text-amaco-fg-muted">
                       {e.priority}
+                    </span>
+                    <span
+                      className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1 text-[10.5px] text-amaco-fg-dim"
+                      title={`source: ${e.source}`}
+                    >
+                      {e.source}
                     </span>
                     <span className="flex-1 truncate">{titleFor(e.taskId)}</span>
                     <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">

@@ -99,9 +99,12 @@ export function hintForRoute(route: Route): CliHint {
         commands: [
           { cmd: "amaco queue list", note: "what's enqueued, in order" },
           { cmd: "amaco queue status", note: "runner state + active item" },
-          { cmd: "amaco queue add <taskId>", note: "enqueue an existing task" },
+          { cmd: "amaco queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
           { cmd: "amaco queue run", note: "drain the queue (one task at a time)" },
           { cmd: "amaco queue conflicts", note: "show predicted worktree conflicts" },
+        ],
+        tips: [
+          "Set `scheduler.queuePolicy: fair` + `sourceQuotas: { cron: 1, user: 3 }` in project.yml to stop one origin from starving others.",
         ],
       };
     case "proposals":

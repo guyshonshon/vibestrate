@@ -167,6 +167,7 @@ export async function registerTasksRoutes(
         taskId: task.id,
         enqueuedAt: nowIso(),
         priority: task.priority,
+        source: "user",
       });
       const updated = await svc.updateTaskStatus(task.id, "queued");
       return { task: updated };

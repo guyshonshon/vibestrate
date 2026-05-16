@@ -23,25 +23,25 @@ describe("RunQueue", () => {
 
   it("enqueue is idempotent (no duplicate task ids)", async () => {
     const q = new RunQueue(projectRoot);
-    await q.enqueue({ taskId: "task-aaa", enqueuedAt: nowIso(), priority: "medium" });
-    await q.enqueue({ taskId: "task-aaa", enqueuedAt: nowIso(), priority: "medium" });
+    await q.enqueue({ taskId: "task-aaa", enqueuedAt: nowIso(), priority: "medium", source: "user" });
+    await q.enqueue({ taskId: "task-aaa", enqueuedAt: nowIso(), priority: "medium", source: "user" });
     const file = await q.readQueue();
     expect(file.entries).toHaveLength(1);
   });
 
   it("fifo policy returns the oldest entry first", async () => {
     const q = new RunQueue(projectRoot);
-    await q.enqueue({ taskId: "task-aaa", enqueuedAt: "2026-01-01T00:00:00Z", priority: "low" });
-    await q.enqueue({ taskId: "task-bbb", enqueuedAt: "2026-01-02T00:00:00Z", priority: "high" });
+    await q.enqueue({ taskId: "task-aaa", enqueuedAt: "2026-01-01T00:00:00Z", priority: "low", source: "user" });
+    await q.enqueue({ taskId: "task-bbb", enqueuedAt: "2026-01-02T00:00:00Z", priority: "high", source: "user" });
     const file = await q.readQueue();
     expect(q.pickNext(file, "fifo")?.taskId).toBe("task-aaa");
   });
 
   it("priority policy returns highest priority first; FIFO within tie", async () => {
     const q = new RunQueue(projectRoot);
-    await q.enqueue({ taskId: "task-low", enqueuedAt: "2026-01-01T00:00:00Z", priority: "low" });
-    await q.enqueue({ taskId: "task-high1", enqueuedAt: "2026-01-02T00:00:00Z", priority: "high" });
-    await q.enqueue({ taskId: "task-high2", enqueuedAt: "2026-01-01T00:00:00Z", priority: "high" });
+    await q.enqueue({ taskId: "task-low", enqueuedAt: "2026-01-01T00:00:00Z", priority: "low", source: "user" });
+    await q.enqueue({ taskId: "task-high1", enqueuedAt: "2026-01-02T00:00:00Z", priority: "high", source: "user" });
+    await q.enqueue({ taskId: "task-high2", enqueuedAt: "2026-01-01T00:00:00Z", priority: "high", source: "user" });
     const file = await q.readQueue();
     expect(q.pickNext(file, "priority")?.taskId).toBe("task-high2");
   });
@@ -51,6 +51,7 @@ describe("RunQueue", () => {
       taskId: "task-aaa",
       enqueuedAt: nowIso(),
       priority: "medium",
+      source: "user",
     });
     const fresh = await new RunQueue(projectRoot).readQueue();
     expect(fresh.entries).toHaveLength(1);
@@ -133,8 +134,8 @@ describe("scheduler loop", () => {
     const a = await svc.addTask({ title: "A", touchedFiles: ["a.ts"] });
     const b = await svc.addTask({ title: "B", touchedFiles: ["b.ts"] });
     const queue = new RunQueue(projectRoot);
-    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium" });
-    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium" });
+    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium", source: "user" });
+    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium", source: "user" });
 
     const ranIds: string[] = [];
     const concurrencyObserved: number[] = [];
@@ -147,6 +148,7 @@ describe("scheduler loop", () => {
         maxConcurrentWriteAgents: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       },
       log: () => {},
       idlePollMs: 50,
@@ -179,8 +181,8 @@ describe("scheduler loop", () => {
     const a = await svc.addTask({ title: "A", touchedFiles: ["a.ts"] });
     const b = await svc.addTask({ title: "B", touchedFiles: ["b.ts"] });
     const queue = new RunQueue(projectRoot);
-    await queue.enqueue({ taskId: a.id, enqueuedAt: nowIso(), priority: "medium" });
-    await queue.enqueue({ taskId: b.id, enqueuedAt: nowIso(), priority: "medium" });
+    await queue.enqueue({ taskId: a.id, enqueuedAt: nowIso(), priority: "medium", source: "user" });
+    await queue.enqueue({ taskId: b.id, enqueuedAt: nowIso(), priority: "medium", source: "user" });
 
     let active = 0;
     let maxActive = 0;
@@ -192,6 +194,7 @@ describe("scheduler loop", () => {
         maxConcurrentWriteAgents: 2,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       },
       log: () => {},
       idlePollMs: 50,
@@ -214,8 +217,8 @@ describe("scheduler loop", () => {
     const a = await svc.addTask({ title: "A", touchedFiles: ["src/shared.ts"] });
     const b = await svc.addTask({ title: "B", touchedFiles: ["src/shared.ts"] });
     const queue = new RunQueue(projectRoot);
-    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium" });
-    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium" });
+    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium", source: "user" });
+    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium", source: "user" });
 
     const ranIds: string[] = [];
     const handle = await runSchedulerLoop({
@@ -225,6 +228,7 @@ describe("scheduler loop", () => {
         maxConcurrentWriteAgents: 2,
         conflictPolicy: "block",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       },
       log: () => {},
       idlePollMs: 30,
@@ -250,8 +254,8 @@ describe("scheduler loop", () => {
     const a = await svc.addTask({ title: "A", touchedFiles: ["src/shared.ts"] });
     const b = await svc.addTask({ title: "B", touchedFiles: ["src/shared.ts"] });
     const queue = new RunQueue(projectRoot);
-    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium" });
-    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium" });
+    await queue.enqueue({ taskId: a.id, enqueuedAt: "2026-01-01T00:00:00Z", priority: "medium", source: "user" });
+    await queue.enqueue({ taskId: b.id, enqueuedAt: "2026-01-02T00:00:00Z", priority: "medium", source: "user" });
 
     const ranIds: string[] = [];
     const handle = await runSchedulerLoop({
@@ -261,6 +265,7 @@ describe("scheduler loop", () => {
         maxConcurrentWriteAgents: 2,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
+        sourceQuotas: {},
       },
       log: () => {},
       idlePollMs: 30,

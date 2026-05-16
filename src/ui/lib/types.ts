@@ -142,6 +142,7 @@ export type QueueEntry = {
   taskId: string;
   enqueuedAt: string;
   priority: Priority;
+  source: string;
 };
 
 export type SchedulerState = {
@@ -150,7 +151,9 @@ export type SchedulerState = {
   lastUpdatedAt: string;
   maxConcurrentRuns: number;
   conflictPolicy: "warn" | "block";
-  queuePolicy: "fifo" | "priority";
+  queuePolicy: "fifo" | "priority" | "fair";
+  sourceQuotas: Record<string, number>;
+  defaultSourceConcurrency?: number;
 };
 
 export type ConflictWarning = {

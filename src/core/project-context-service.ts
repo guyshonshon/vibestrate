@@ -193,6 +193,7 @@ export async function getProjectMetadata(
       maxConcurrentWriteAgents: 1,
       conflictPolicy: "warn",
       queuePolicy: "fifo",
+      sourceQuotas: {},
     },
     policies: {
       forbidMainBranchWrites: config?.policies.forbidMainBranchWrites ?? true,
