@@ -182,6 +182,18 @@ export const api = {
     );
     return r.run;
   },
+  async pauseRun(runId: string): Promise<RunState> {
+    const r = await jsonPost<{ run: RunState }>(
+      `/api/runs/${runId}/pause`,
+    );
+    return r.run;
+  },
+  async resumeRun(runId: string): Promise<RunState> {
+    const r = await jsonPost<{ run: RunState }>(
+      `/api/runs/${runId}/resume`,
+    );
+    return r.run;
+  },
   async listSkills(): Promise<{
     skills: DiscoveredSkill[];
     assignments: SkillAssignmentSummary[];

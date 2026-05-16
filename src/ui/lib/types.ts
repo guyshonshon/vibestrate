@@ -10,6 +10,7 @@ export type RunStatus =
   | "fixing"
   | "verifying"
   | "waiting_for_approval"
+  | "paused"
   | "merge_ready"
   | "blocked"
   | "failed"
@@ -35,6 +36,8 @@ export type RunState = {
   pendingApprovalId?: string | null;
   approvalRequestedFromStatus?: RunStatus | null;
   taskId?: string | null;
+  pauseRequested?: boolean;
+  pausedAtStatus?: RunStatus | null;
 };
 
 export type Priority = "low" | "medium" | "high";

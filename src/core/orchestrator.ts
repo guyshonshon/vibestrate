@@ -45,6 +45,8 @@ import type { NotificationDraft } from "../notifications/notification-router.js"
 import type { RunStatus } from "../workflow/workflow-types.js";
 import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js";
 import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
+import { applyPauseIfRequested } from "./pause-service.js";
+import { isTerminal } from "./state-machine.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -268,6 +270,14 @@ export class Orchestrator {
     const policyStagesAlreadyForced = new Set<string>();
 
     try {
+      // Earliest pause gate: a user who queued `amaco pause <runId>`
+      // before the run started gets paused before any agent runs.
+      state = await applyPauseIfRequested({
+        state,
+        store: stateStore,
+        events: eventLog,
+      });
+      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
       // Stage: planning
       this.onProgress("Planning...");
       state = applyTransition(state, "planning");
@@ -306,6 +316,13 @@ export class Orchestrator {
         }
       }
 
+      // Pause gate: between planning and architecting.
+      state = await applyPauseIfRequested({
+        state,
+        store: stateStore,
+        events: eventLog,
+      });
+      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
       // Stage: architecting
       this.onProgress("Architecting...");
       state = applyTransition(state, "architecting");
@@ -344,6 +361,13 @@ export class Orchestrator {
         }
       }
 
+      // Pause gate: between architecting and executing.
+      state = await applyPauseIfRequested({
+        state,
+        store: stateStore,
+        events: eventLog,
+      });
+      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
       // Stage: executing
       this.onProgress("Executing...");
       state = applyTransition(state, "executing");
@@ -383,6 +407,13 @@ export class Orchestrator {
         }
       }
 
+      // Pause gate: between executing and the validate→review loop.
+      state = await applyPauseIfRequested({
+        state,
+        store: stateStore,
+        events: eventLog,
+      });
+      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
       // Stage: validate -> review (loop)
       let approved = false;
       let blocked = false;
@@ -601,6 +632,13 @@ export class Orchestrator {
           data: { decision: reviewDecision },
         });
       } else if (approved) {
+        // Pause gate: between approved-review and verifying.
+        state = await applyPauseIfRequested({
+          state,
+          store: stateStore,
+          events: eventLog,
+        });
+        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
         // Stage: verifying
         state = applyTransition(state, "verifying");
         await stateStore.write(state);

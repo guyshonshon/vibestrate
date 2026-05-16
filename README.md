@@ -202,6 +202,8 @@ amaco doctor [--json] [--fix]
 amaco run "task description" [--ui] [--ui-port <port>]
 amaco status [--json]
 amaco abort <runId>
+amaco pause <runId>
+amaco resume <runId>
 
 amaco ui [--port <port>] [--open]
 
@@ -515,6 +517,55 @@ The Replay tab is integrated with the rest of the dashboard via deep-links:
 - keyboard scrubbing inside the tab: `↑`/`k` previous, `↓`/`j` next, `Home`/`End` jump (disabled while the search input is focused).
 
 There's also a CLI surface — `amaco replay <runId>` prints a short text summary (status, phase counts, approvals/suggestions/notifications, runtime metrics, missing files). `amaco replay <runId> --json` dumps the full projection for piping into `jq` or saving alongside the run folder. No provider or worktree writes happen on either path — it's the same read-only projection the UI uses.
+
+## Pause and resume
+
+Long-running runs can be paused between stages. Pause is a **request** the
+orchestrator picks up at the next stage boundary — it never interrupts an
+agent mid-call. While paused, the run sits at `status: paused` with the
+pre-pause stage remembered in `pausedAtStatus`, so resume always continues
+from exactly where it left off.
+
+Where pause-checks fire (today):
+
+- before `planning` starts (so a run paused before it ran respects that),
+- between `planning` and `architecting`,
+- between `architecting` and `executing`,
+- between `executing` and the first `validating`,
+- between an approved review and `verifying`.
+
+Pause inside long stages (a 5-minute `executing`, a slow `reviewing`) only
+takes effect when that stage finishes — the orchestrator never abandons an
+agent mid-run.
+
+CLI:
+
+```bash
+amaco pause  <runId>   # set state.pauseRequested = true
+amaco resume <runId>   # clear it; or cancel a pending pause that hadn't kicked in
+```
+
+Pausing a terminal run (`merge_ready` / `blocked` / `failed` / `aborted`)
+exits non-zero with a clear message. Pausing an already-paused run, or
+resuming a non-paused / non-pending run, is similarly refused — no silent
+no-ops.
+
+Dashboard: the run header carries a **Pause** button while the run is
+moving and a **Resume** button while it's paused. If you pause and the
+orchestrator hasn't picked it up yet, the badge reads `pause queued` and
+the button flips to **Cancel pause** so you can back out.
+
+Posture:
+
+- Pause writes a single boolean to `state.json` and one event row to
+  `events.ndjson`. No provider call, no worktree write, no shell exec.
+- Pause does NOT interact with the `waiting_for_approval` state — if a
+  run is waiting on a human approval, the pause request is just buffered
+  until the approval is resolved, then the next stage boundary observes
+  the pause.
+- An external abort while paused is observed by the orchestrator's
+  polling loop and exits the run cleanly; the final report reflects the
+  actual terminal state.
 
 ## Security model for local UI
 

@@ -20,6 +20,8 @@ const baseState = {
   pendingApprovalId: null,
   approvalRequestedFromStatus: null,
   taskId: null,
+  pauseRequested: false,
+  pausedAtStatus: null,
 };
 
 describe("final report — approval section", () => {

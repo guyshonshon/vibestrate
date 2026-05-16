@@ -19,6 +19,9 @@ const STATUS_COLORS: Record<RunStatus, { dot: string; text: string }> = {
   // Awaiting human approval is *attention-needed*, not failure.
   // Cyan accent matches in-flight stages so it never reads as "broken".
   waiting_for_approval: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
+  // Paused is "intentional halt" — not an error, not in-flight. Use a
+  // dim warn tint so it reads as "the user did this" rather than "broken."
+  paused: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
   merge_ready: { dot: "bg-amaco-success", text: "text-amaco-success" },
   blocked: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
   failed: { dot: "bg-amaco-fail", text: "text-amaco-fail" },
@@ -37,6 +40,7 @@ const STATUS_LABEL: Record<RunStatus, string> = {
   fixing: "fixing",
   verifying: "verifying",
   waiting_for_approval: "awaiting approval",
+  paused: "paused",
   merge_ready: "merge ready",
   blocked: "blocked",
   failed: "failed",

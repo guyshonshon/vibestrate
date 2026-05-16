@@ -8,8 +8,13 @@ import {
   runDir,
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
-import { applyTransition, isTerminal } from "../../core/state-machine.js";
+import { applyTransition, isTerminal, RunStateStore } from "../../core/state-machine.js";
 import { EventLog } from "../../core/event-log.js";
+import {
+  PauseError,
+  requestPause,
+  requestResume,
+} from "../../core/pause-service.js";
 import { writeJson, readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { streamRunEvents } from "../sse.js";
@@ -125,6 +130,53 @@ export async function registerRunsRoutes(
         message: `Run ${req.params.runId} aborted via dashboard.`,
       });
       return { run: next, alreadyTerminal: false };
+    },
+  );
+
+  // Pause / resume — write-side toggles on state.pauseRequested. The
+  // orchestrator's pause gates (src/core/pause-service.ts) read this
+  // flag at every stage boundary. No provider call, no worktree write.
+  app.post<{ Params: { runId: string } }>(
+    "/api/runs/:runId/pause",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const store = new RunStateStore(projectRoot, req.params.runId);
+      const events = new EventLog(projectRoot, req.params.runId);
+      try {
+        const next = await requestPause(store, events);
+        return { run: next };
+      } catch (err) {
+        if (err instanceof PauseError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+    },
+  );
+
+  app.post<{ Params: { runId: string } }>(
+    "/api/runs/:runId/resume",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const store = new RunStateStore(projectRoot, req.params.runId);
+      const events = new EventLog(projectRoot, req.params.runId);
+      try {
+        const next = await requestResume(store, events);
+        return { run: next };
+      } catch (err) {
+        if (err instanceof PauseError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
     },
   );
 

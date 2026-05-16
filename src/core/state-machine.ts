@@ -19,6 +19,7 @@ export const runStatusSchema = z.enum([
   "fixing",
   "verifying",
   "waiting_for_approval",
+  "paused",
   "merge_ready",
   "blocked",
   "failed",
@@ -58,28 +59,38 @@ export const runStateSchema = z.object({
   // Optional roadmap task this run is associated with. Set by `amaco run --task`
   // or by the scheduler. Existing runs round-trip safely (defaults to null).
   taskId: z.string().nullable().default(null),
+  // ─── Pause / resume ────────────────────────────────────────────────────
+  // pauseRequested is a write-side signal from CLI / dashboard. The
+  // orchestrator polls between stages and, when it observes the flag, it
+  // transitions to "paused" and waits for the flag to clear before
+  // resuming. pausedAtStatus remembers the stage we were entering so
+  // resume can transition back into it. Both default to safe values for
+  // existing runs that predate pause/resume.
+  pauseRequested: z.boolean().default(false),
+  pausedAtStatus: runStatusSchema.nullable().default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
 
 const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
-  created: ["planning", "failed", "aborted", "blocked"],
-  planning: ["planned", "failed", "aborted", "blocked"],
-  planned: ["architecting", "waiting_for_approval", "failed", "aborted", "blocked"],
-  architecting: ["architected", "failed", "aborted", "blocked"],
-  architected: ["executing", "waiting_for_approval", "failed", "aborted", "blocked"],
-  executing: ["validating", "waiting_for_approval", "failed", "aborted", "blocked"],
-  validating: ["reviewing", "failed", "aborted", "blocked"],
+  created: ["planning", "paused", "failed", "aborted", "blocked"],
+  planning: ["planned", "paused", "failed", "aborted", "blocked"],
+  planned: ["architecting", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
+  architecting: ["architected", "paused", "failed", "aborted", "blocked"],
+  architected: ["executing", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
+  executing: ["validating", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
+  validating: ["reviewing", "paused", "failed", "aborted", "blocked"],
   reviewing: [
     "verifying",
     "fixing",
     "waiting_for_approval",
+    "paused",
     "blocked",
     "failed",
     "aborted",
   ],
-  fixing: ["validating", "waiting_for_approval", "blocked", "failed", "aborted"],
-  verifying: ["merge_ready", "waiting_for_approval", "blocked", "failed", "aborted"],
+  fixing: ["validating", "waiting_for_approval", "paused", "blocked", "failed", "aborted"],
+  verifying: ["merge_ready", "waiting_for_approval", "paused", "blocked", "failed", "aborted"],
   waiting_for_approval: [
     "planned",
     "architected",
@@ -90,6 +101,23 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "blocked",
     "failed",
     "aborted",
+  ],
+  // From paused we can return to any non-terminal pre-pause status, or be
+  // aborted outright. The actual round-trip status is tracked separately
+  // in state.pausedAtStatus.
+  paused: [
+    "created",
+    "planning",
+    "planned",
+    "architecting",
+    "architected",
+    "executing",
+    "validating",
+    "reviewing",
+    "fixing",
+    "verifying",
+    "aborted",
+    "failed",
   ],
   merge_ready: [],
   blocked: [],
@@ -150,6 +178,8 @@ export function createInitialState(input: {
     pendingApprovalId: null,
     approvalRequestedFromStatus: null,
     taskId: null,
+    pauseRequested: false,
+    pausedAtStatus: null,
   };
 }
 

@@ -111,7 +111,7 @@ export function RunDetailPage({
 
   return (
     <div className="flex h-full flex-col">
-      <RunHeader run={run} />
+      <RunHeader run={run} onRunUpdated={(next) => setRun(next)} />
       <div className="flex items-center gap-2 border-b border-amaco-border bg-amaco-panel/40 px-4 py-1">
         <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
           run worktree
