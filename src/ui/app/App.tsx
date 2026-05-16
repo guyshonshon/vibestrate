@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
+import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
@@ -240,6 +241,7 @@ export function App() {
           onBack={() => navigate({ kind: "proposals" })}
         />
       )}
+      <CliHintOverlay route={route} />
     </AppShell>
   );
 }
