@@ -22,6 +22,19 @@ export type PendingConfirm =
   | { action: "abort"; runId: string }
   | null;
 
+/**
+ * Sub-section the Runs page inspector is showing for the selected
+ * run. "overview" is the default landing card; "events" is the full
+ * scrollable tail; "validation" surfaces the most recent validation
+ * results.
+ */
+export type RunInspectorTab = "overview" | "events" | "validation";
+export const RUN_INSPECTOR_TABS: RunInspectorTab[] = [
+  "overview",
+  "events",
+  "validation",
+];
+
 export type ShellUiStateV2 = {
   page: PageId;
   /**
@@ -35,10 +48,16 @@ export type ShellUiStateV2 = {
   helpOpen: boolean;
   toasts: Toast[];
   pendingConfirm: PendingConfirm;
+  /** Runs page state: which inspector sub-tab + event filter query. */
+  runs: {
+    inspectorTab: RunInspectorTab;
+    eventFilter: string;
+    eventFilterOpen: boolean;
+  };
 };
 
 export const initialUiState: ShellUiStateV2 = {
-  page: "runs",
+  page: "dashboard",
   selection: PAGE_IDS.reduce(
     (acc, id) => ({ ...acc, [id]: 0 }),
     {} as Record<PageId, number>,
@@ -48,6 +67,11 @@ export const initialUiState: ShellUiStateV2 = {
   helpOpen: false,
   toasts: [],
   pendingConfirm: null,
+  runs: {
+    inspectorTab: "overview",
+    eventFilter: "",
+    eventFilterOpen: false,
+  },
 };
 
 export type ShellUiAction =
@@ -60,7 +84,12 @@ export type ShellUiAction =
   | { type: "help.toggle" }
   | { type: "toast.push"; kind: ToastKind; message: string }
   | { type: "toast.dismiss"; id: number }
-  | { type: "confirm.set"; value: PendingConfirm };
+  | { type: "confirm.set"; value: PendingConfirm }
+  | { type: "runs.inspector.set"; tab: RunInspectorTab }
+  | { type: "runs.inspector.cycle"; direction: 1 | -1 }
+  | { type: "runs.filter.open" }
+  | { type: "runs.filter.close" }
+  | { type: "runs.filter.set"; value: string };
 
 let toastId = 0;
 function nextToastId(): number {
@@ -119,6 +148,42 @@ export function reduceShellUi(
       };
     case "confirm.set":
       return { ...state, pendingConfirm: action.value };
+    case "runs.inspector.set":
+      return {
+        ...state,
+        runs: { ...state.runs, inspectorTab: action.tab, eventFilterOpen: false },
+      };
+    case "runs.inspector.cycle": {
+      const idx = RUN_INSPECTOR_TABS.indexOf(state.runs.inspectorTab);
+      const next =
+        RUN_INSPECTOR_TABS[
+          (idx + action.direction + RUN_INSPECTOR_TABS.length) %
+            RUN_INSPECTOR_TABS.length
+        ] ?? "overview";
+      return {
+        ...state,
+        runs: { ...state.runs, inspectorTab: next, eventFilterOpen: false },
+      };
+    }
+    case "runs.filter.open":
+      return {
+        ...state,
+        runs: {
+          ...state.runs,
+          eventFilterOpen: true,
+          inspectorTab: "events",
+        },
+      };
+    case "runs.filter.close":
+      return {
+        ...state,
+        runs: { ...state.runs, eventFilterOpen: false },
+      };
+    case "runs.filter.set":
+      return {
+        ...state,
+        runs: { ...state.runs, eventFilter: action.value },
+      };
   }
 }
 

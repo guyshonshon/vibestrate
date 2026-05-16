@@ -126,3 +126,58 @@ describe("buildShellSnapshot", () => {
 // Render-side coverage moved to component tests under `tests/shell-ui-state`
 // + `tests/shell-palette`. The ink view layer renders into a real terminal
 // stream and isn't string-comparable like the old hand-rolled renderer.
+
+describe("aggregates and recentActivity", () => {
+  let root: string;
+  beforeEach(async () => {
+    root = await tempProject();
+  });
+
+  it("counts pending approvals and suggestions per run", async () => {
+    await writeRun(root, "run-1", { status: "executing" });
+    await fs.writeFile(
+      path.join(root, ".amaco", "runs", "run-1", "approvals.json"),
+      JSON.stringify({
+        approvals: [{ status: "pending" }, { status: "approved" }, { status: "pending" }],
+      }),
+    );
+    await fs.writeFile(
+      path.join(root, ".amaco", "runs", "run-1", "suggestions.json"),
+      JSON.stringify({
+        suggestions: [
+          { status: "pending" },
+          { status: "applied" },
+        ],
+      }),
+    );
+    const snap = await buildShellSnapshot(root);
+    expect(snap.runs[0]!.pendingApprovals).toBe(2);
+    expect(snap.runs[0]!.pendingSuggestions).toBe(1);
+    expect(snap.aggregates.pendingApprovalsTotal).toBe(2);
+    expect(snap.aggregates.pendingSuggestionsTotal).toBe(1);
+  });
+
+  it("recentActivity is sorted newest first across runs", async () => {
+    await writeRun(root, "run-a", { status: "executing" });
+    await writeRun(root, "run-b", { status: "executing" });
+    await fs.appendFile(
+      path.join(root, ".amaco", "runs", "run-a", "events.ndjson"),
+      JSON.stringify({
+        timestamp: "2026-05-16T10:00:00Z",
+        type: "agent.started",
+        message: "x",
+      }) + "\n",
+    );
+    await fs.appendFile(
+      path.join(root, ".amaco", "runs", "run-b", "events.ndjson"),
+      JSON.stringify({
+        timestamp: "2026-05-16T11:00:00Z",
+        type: "agent.started",
+        message: "y",
+      }) + "\n",
+    );
+    const snap = await buildShellSnapshot(root);
+    expect(snap.recentActivity[0]?.runId).toBe("run-b");
+    expect(snap.recentActivity[1]?.runId).toBe("run-a");
+  });
+});

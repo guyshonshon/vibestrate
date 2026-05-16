@@ -5,6 +5,7 @@ import { Footer, COMMON_HINTS } from "./components/Footer.js";
 import { CommandPalette } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
 import { RunsPage } from "./pages/RunsPage.js";
+import { DashboardPage } from "./pages/DashboardPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import {
   initialUiState,
@@ -23,7 +24,6 @@ type Props = {
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  dashboard: "Phase 2",
   roadmap: "Phase 3",
   queue: "Phase 4",
   agents: "Phase 5",
@@ -118,6 +118,12 @@ export function App({ projectRoot, refreshMs }: Props) {
       if (key.escape) dispatch({ type: "palette.close" });
       return; // TextInput handles the typing.
     }
+    if (ui.page === "runs" && ui.runs.eventFilterOpen) {
+      // While the event filter TextInput is focused, only Esc closes
+      // it; everything else flows through ink-text-input.
+      if (key.escape) dispatch({ type: "runs.filter.close" });
+      return;
+    }
     if (ui.pendingConfirm?.action === "abort") {
       const runId = ui.pendingConfirm.runId;
       dispatch({ type: "confirm.set", value: null });
@@ -164,6 +170,26 @@ export function App({ projectRoot, refreshMs }: Props) {
         dispatch({ type: "selection.move", page: "runs", delta: 1, max });
         return;
       }
+      if (key.tab) {
+        dispatch({ type: "runs.inspector.cycle", direction: 1 });
+        return;
+      }
+      if (input === "o") {
+        dispatch({ type: "runs.inspector.set", tab: "overview" });
+        return;
+      }
+      if (input === "e") {
+        dispatch({ type: "runs.inspector.set", tab: "events" });
+        return;
+      }
+      if (input === "v") {
+        dispatch({ type: "runs.inspector.set", tab: "validation" });
+        return;
+      }
+      if (input === "/") {
+        dispatch({ type: "runs.filter.open" });
+        return;
+      }
       if (input === "p" && selectedRun) {
         void runAction("pause", selectedRun.runId);
         return;
@@ -186,19 +212,28 @@ export function App({ projectRoot, refreshMs }: Props) {
     ui.page === "runs"
       ? [
           { key: "↑/↓", label: "select" },
+          { key: "tab", label: "section" },
+          { key: "/", label: "filter" },
           { key: "p", label: "pause" },
           { key: "r", label: "resume" },
           { key: "a", label: "abort" },
           ...COMMON_HINTS,
         ]
-      : COMMON_HINTS;
+      : ui.page === "dashboard"
+        ? [
+            { key: "2", label: "runs" },
+            { key: ":", label: "palette" },
+            { key: "?", label: "help" },
+            { key: "q", label: "quit" },
+          ]
+        : COMMON_HINTS;
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={0}>
       <TabBar current={ui.page} />
       <Box marginTop={1} flexDirection="column" flexGrow={1}>
         {snapshot ? (
-          renderPage(ui.page, snapshot, ui.selection[ui.page] ?? 0)
+          renderPage(ui.page, snapshot, ui, dispatch)
         ) : (
           <Text dimColor>loading…</Text>
         )}
@@ -232,10 +267,21 @@ export function App({ projectRoot, refreshMs }: Props) {
 function renderPage(
   page: PageId,
   snapshot: import("../shell-snapshot.js").ShellSnapshot,
-  selectedIndex: number,
+  ui: import("./ui-state.js").ShellUiStateV2,
+  dispatch: React.Dispatch<import("./ui-state.js").ShellUiAction>,
 ) {
+  if (page === "dashboard") {
+    return <DashboardPage snapshot={snapshot} />;
+  }
   if (page === "runs") {
-    return <RunsPage snapshot={snapshot} selectedIndex={selectedIndex} />;
+    return (
+      <RunsPage
+        snapshot={snapshot}
+        ui={ui}
+        onFilterChange={(v) => dispatch({ type: "runs.filter.set", value: v })}
+        onFilterSubmit={() => dispatch({ type: "runs.filter.close" })}
+      />
+    );
   }
   const phase = FUTURE_PHASES[page] ?? "a later phase";
   return <PlaceholderPage title={pageLabel(page)} upcomingPhase={phase} />;

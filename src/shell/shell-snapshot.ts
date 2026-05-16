@@ -60,6 +60,22 @@ export type ShellRunRow = {
   currentMcpServers: string[];
   /** Most-recent event of any kind (for the row's "last activity" line). */
   lastEvent: ShellEvent | null;
+  /** Pending approvals / suggestions for this run (best-effort). */
+  pendingApprovals: number;
+  pendingSuggestions: number;
+};
+
+export type ShellActivityEntry = {
+  runId: string;
+  event: ShellEvent;
+};
+
+export type ShellAggregates = {
+  activeRuns: number;
+  pendingApprovalsTotal: number;
+  pendingSuggestionsTotal: number;
+  queueWaiting: number;
+  queueRunning: number;
 };
 
 export type ShellSnapshot = {
@@ -70,6 +86,9 @@ export type ShellSnapshot = {
   runs: ShellRunRow[];
   /** Tail of events keyed by runId, for the inspector pane. */
   recentEvents: Record<string, ShellEvent[]>;
+  /** Most-recent events across all runs, newest first. Capped. */
+  recentActivity: ShellActivityEntry[];
+  aggregates: ShellAggregates;
 };
 
 type LoadOptions = {
@@ -113,9 +132,17 @@ export async function buildShellSnapshot(
 
   const rows: ShellRunRow[] = [];
   const recentEvents: Record<string, ShellEvent[]> = {};
+  let pendingApprovalsTotal = 0;
+  let pendingSuggestionsTotal = 0;
   for (const s of rowsSource) {
     const events = await readEventsTail(projectRoot, s.runId, eventTail);
     const live = deriveLive(events);
+    const [pendingApprovals, pendingSuggestions] = await Promise.all([
+      countPendingApprovals(projectRoot, s.runId),
+      countPendingSuggestions(projectRoot, s.runId),
+    ]);
+    pendingApprovalsTotal += pendingApprovals;
+    pendingSuggestionsTotal += pendingSuggestions;
     rows.push({
       runId: s.runId,
       task: s.task,
@@ -129,9 +156,13 @@ export async function buildShellSnapshot(
       pausedAtStatus: s.pausedAtStatus,
       updatedAt: s.updatedAt,
       ...live,
+      pendingApprovals,
+      pendingSuggestions,
     });
     recentEvents[s.runId] = events;
   }
+
+  const recentActivity = buildRecentActivity(recentEvents, 20);
 
   return {
     capturedAt: nowIso(),
@@ -140,7 +171,67 @@ export async function buildShellSnapshot(
     queue: queueEntries,
     runs: rows,
     recentEvents,
+    recentActivity,
+    aggregates: {
+      activeRuns: rows.filter((r) => !isTerminal(r.status)).length,
+      pendingApprovalsTotal,
+      pendingSuggestionsTotal,
+      queueWaiting: queueEntries.length,
+      queueRunning: scheduler?.runningTaskIds.length ?? 0,
+    },
   };
+}
+
+async function countPendingApprovals(
+  projectRoot: string,
+  runId: string,
+): Promise<number> {
+  const file = path.join(projectRunsDir(projectRoot), runId, "approvals.json");
+  if (!(await pathExists(file))) return 0;
+  try {
+    const text = await readText(file);
+    if (!text.trim()) return 0;
+    const data = JSON.parse(text) as {
+      approvals?: { status?: unknown }[];
+    };
+    return (data.approvals ?? []).filter(
+      (a) => typeof a?.status === "string" && a.status === "pending",
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
+async function countPendingSuggestions(
+  projectRoot: string,
+  runId: string,
+): Promise<number> {
+  const file = path.join(projectRunsDir(projectRoot), runId, "suggestions.json");
+  if (!(await pathExists(file))) return 0;
+  try {
+    const text = await readText(file);
+    if (!text.trim()) return 0;
+    const data = JSON.parse(text) as {
+      suggestions?: { status?: unknown }[];
+    };
+    return (data.suggestions ?? []).filter(
+      (s) => typeof s?.status === "string" && s.status === "pending",
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
+function buildRecentActivity(
+  byRun: Record<string, ShellEvent[]>,
+  limit: number,
+): ShellActivityEntry[] {
+  const out: ShellActivityEntry[] = [];
+  for (const [runId, events] of Object.entries(byRun)) {
+    for (const event of events) out.push({ runId, event });
+  }
+  out.sort((a, b) => b.event.timestamp.localeCompare(a.event.timestamp));
+  return out.slice(0, limit);
 }
 
 async function readRunState(

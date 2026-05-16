@@ -67,6 +67,38 @@ describe("reduceShellUi", () => {
   });
 });
 
+describe("runs inspector + filter actions", () => {
+  it("runs.inspector.cycle rotates through the three sub-tabs", () => {
+    let s = initialUiState;
+    expect(s.runs.inspectorTab).toBe("overview");
+    s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
+    expect(s.runs.inspectorTab).toBe("events");
+    s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
+    expect(s.runs.inspectorTab).toBe("validation");
+    s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: 1 });
+    expect(s.runs.inspectorTab).toBe("overview");
+    s = reduceShellUi(s, { type: "runs.inspector.cycle", direction: -1 });
+    expect(s.runs.inspectorTab).toBe("validation");
+  });
+
+  it("runs.filter.open jumps to the events tab and opens the filter input", () => {
+    const s = reduceShellUi(initialUiState, { type: "runs.filter.open" });
+    expect(s.runs.eventFilterOpen).toBe(true);
+    expect(s.runs.inspectorTab).toBe("events");
+  });
+
+  it("page.set clears the open filter input", () => {
+    let s = reduceShellUi(initialUiState, { type: "runs.filter.open" });
+    s = reduceShellUi(s, { type: "runs.filter.set", value: "fail" });
+    s = reduceShellUi(s, { type: "page.set", page: "dashboard" });
+    // The reducer doesn't reset the filter text (so going back to Runs
+    // keeps the user's last query) but it does close modal layers.
+    expect(s.runs.eventFilter).toBe("fail");
+    expect(s.paletteOpen).toBe(false);
+    expect(s.helpOpen).toBe(false);
+  });
+});
+
 describe("pageIdFromHotkey", () => {
   it("maps '1'..'9' to the first nine pages in order", () => {
     expect(pageIdFromHotkey("1")).toBe(PAGE_IDS[0]);
