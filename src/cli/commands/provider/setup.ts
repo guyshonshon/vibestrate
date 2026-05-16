@@ -4,6 +4,7 @@ import { configExists } from "../../../project/config-loader.js";
 import {
   addProvider,
   buildClaudeProviderFromDetection,
+  buildCodexProviderFromDetection,
   setDefaultProvider,
 } from "../../../setup/provider-setup-service.js";
 import { detectAllProviders } from "../../../providers/provider-detection.js";
@@ -36,8 +37,12 @@ export async function runProviderSetup(): Promise<number> {
   const detections = await detectAllProviders();
   const ready = detections.filter((d) => d.confidence === "ready" && d.available);
   const claude = ready.find((d) => d.id === "claude");
+  // Codex doesn't graduate to "ready" in detection (its flag matrix
+  // moves), but if it's on PATH we surface the starter preset as an
+  // explicit choice so the user doesn't have to type the flags.
+  const codex = detections.find((d) => d.id === "codex" && d.available);
 
-  type Choice = "claude" | "custom";
+  type Choice = "claude" | "codex" | "custom";
   const choices: { name: string; value: Choice; description?: string }[] = [];
   if (claude) {
     choices.push({
@@ -45,12 +50,20 @@ export async function runProviderSetup(): Promise<number> {
       value: "claude",
     });
   }
+  if (codex) {
+    choices.push({
+      name: `Codex CLI — starter preset (detected: ${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
+      value: "codex",
+      description:
+        "Applies `codex exec -q` with stdin prompt. Run `amaco provider test codex` after to verify the flags work in your version.",
+    });
+  }
   choices.push({ name: "Custom command", value: "custom" });
 
   const choice = await select<Choice>({
     message: "Which local coding CLI should Amaco use for its agents?",
     choices,
-    default: claude ? "claude" : "custom",
+    default: claude ? "claude" : codex ? "codex" : "custom",
   });
 
   try {
@@ -64,6 +77,23 @@ export async function runProviderSetup(): Promise<number> {
       if (setRes.ok) {
         console.log(
           `${symbol.ok()} Claude Code is now configured for all default agents.`,
+        );
+      } else {
+        console.log(`${symbol.warn()} ${setRes.reason}`);
+      }
+    } else if (choice === "codex" && codex) {
+      await addProvider(detected.projectRoot, {
+        id: "codex",
+        config: buildCodexProviderFromDetection(codex),
+        alsoAssignAllAgents: false,
+      });
+      const setRes = await setDefaultProvider(detected.projectRoot, "codex");
+      if (setRes.ok) {
+        console.log(
+          `${symbol.ok()} Codex CLI is now configured for all default agents with the starter preset.`,
+        );
+        console.log(
+          `  ${symbol.arrow()} Verify the invocation: ${color.bold("amaco provider test codex")}`,
         );
       } else {
         console.log(`${symbol.warn()} ${setRes.reason}`);

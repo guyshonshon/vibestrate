@@ -42,10 +42,13 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Codex CLI",
     command: "codex",
     versionArgs: ["--version"],
+    // Starter preset exists (src/providers/presets/codex.ts) but Codex's
+    // flag matrix moves across releases — we don't claim "ready" so
+    // doctor --fix never silently auto-configures it.
     presetReady: false,
     notes: [
-      "Detected, but Amaco does not ship a verified prompt-flag preset.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Starter preset available: `codex exec -q` with stdin prompt.",
+      "Run `amaco provider setup` to apply it, then `amaco provider test codex` to verify the flags work in your installed version.",
     ],
   },
   {

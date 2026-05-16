@@ -117,7 +117,7 @@ Detected local coding CLIs:
 
 Detection only runs `<command> --version` with a short timeout. It never sends a real prompt and never authenticates.
 
-Claude Code ships a verified preset (`claude -p` with stdin). Other CLIs detect as `detected, needs setup` because Amaco does not invent prompt-flag conventions for tools whose interfaces aren't pinned. Wire them up with `amaco provider setup`.
+Claude Code ships a verified preset (`claude -p` with stdin). Codex CLI ships a **starter preset** (`codex exec -q` with stdin) — Amaco will apply it on opt-in via `amaco provider setup`, but it never auto-configures from `doctor --fix` because Codex's flag matrix has moved across releases. Always follow `amaco provider setup codex` with `amaco provider test codex` to verify the invocation works in your installed version. OpenCode and Aider detect as `detected, needs setup` for the same reason and don't yet ship a starter preset.
 
 ## Guided setup
 
@@ -131,8 +131,13 @@ Both are short, plain-language, and always show what will be saved before saving
 ```
 ? Which local coding CLI should Amaco use for its agents?
 > Claude Code (detected: claude v2.x)
+  Codex CLI — starter preset (detected: codex v0.9.x)
   Custom command
 ```
+
+Picking the Codex starter preset writes `codex exec -q` with stdin into
+`.amaco/project.yml` and prompts you to run `amaco provider test codex`
+before relying on it.
 
 For custom CLIs you'll be asked for: provider id, command, args, input mode (stdin / arg). You can opt in to a safe smoke test that sends only a tiny no-op prompt and looks for a magic token — no real task is sent.
 

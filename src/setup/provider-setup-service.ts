@@ -206,3 +206,41 @@ export function buildClaudeProviderFromDetection(d: DetectedProvider): CliProvid
     input: "stdin",
   };
 }
+
+/**
+ * Starter preset for the OpenAI Codex CLI. Unlike the Claude preset,
+ * Amaco does NOT auto-apply this in `doctor --fix` — Codex's flag matrix
+ * has moved across releases and we don't want to silently configure a
+ * provider that might not work. The user opts in via `amaco provider
+ * setup codex` (or the dashboard's setup wizard), and we recommend they
+ * follow up with `amaco provider test codex` before a real run depends
+ * on it.
+ *
+ * Default invocation: `codex exec -q` with the prompt on stdin.
+ *   - `exec` runs a one-shot rather than dropping into the REPL.
+ *   - `-q` keeps the output machine-readable.
+ *
+ * The starter source of truth is `src/providers/presets/codex.ts`;
+ * this function exists so the setup wizard / doctor have one call site
+ * that returns a fresh config object (matching the buildClaudePresetConfig
+ * pattern).
+ */
+export function buildCodexPresetConfig(): CliProviderConfig {
+  return {
+    type: "cli",
+    command: "codex",
+    args: ["exec", "-q"],
+    input: "stdin",
+  };
+}
+
+export function buildCodexProviderFromDetection(
+  d: DetectedProvider,
+): CliProviderConfig {
+  return {
+    type: "cli",
+    command: d.command,
+    args: ["exec", "-q"],
+    input: "stdin",
+  };
+}
