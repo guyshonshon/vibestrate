@@ -16,15 +16,25 @@ export async function loadSkill(
   const flatPath = path.join(skillsDir, `${reference}.md`);
   if (isPathInside(skillsDir, flatPath) && (await pathExists(flatPath))) {
     const content = await readText(flatPath);
-    return { name: reference, filePath: flatPath, content };
+    return { name: reference, filePath: flatPath, content, mcpServers: {} };
   }
 
   // 2. Fall back to discovery (handles .claude/skills/<dir>/SKILL.md and .amaco/skills/<dir>/SKILL.md).
   const discovered = await discoverSkills(projectRoot);
   const match = discovered.find((s) => s.name === reference);
   if (match) {
+    if (match.mcpError) {
+      throw new ConfigError(
+        `Skill "${reference}" has an invalid .mcp.json: ${match.mcpError}`,
+      );
+    }
     const content = await readText(match.filePath);
-    return { name: reference, filePath: match.filePath, content };
+    return {
+      name: reference,
+      filePath: match.filePath,
+      content,
+      mcpServers: match.mcpServers,
+    };
   }
 
   throw new ConfigError(

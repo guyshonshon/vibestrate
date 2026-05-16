@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { McpServersMap } from "../mcp/mcp-schema.js";
 
 export const skillReferenceSchema = z
   .string()
@@ -11,4 +12,5 @@ export type LoadedSkill = {
   name: string;
   filePath: string;
   content: string;
+  mcpServers: McpServersMap;
 };

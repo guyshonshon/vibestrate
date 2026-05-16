@@ -138,6 +138,22 @@ export function SkillsPanel() {
                   ) : (
                     <span>· not assigned to any agent</span>
                   )}
+                  {Object.keys(s.mcpServers).length > 0 ? (
+                    <span
+                      className="rounded border border-amaco-border bg-amaco-panel px-1 text-amaco-fg-dim"
+                      title={`MCP servers: ${Object.keys(s.mcpServers).join(", ")}`}
+                    >
+                      {Object.keys(s.mcpServers).length} MCP
+                    </span>
+                  ) : null}
+                  {s.mcpError ? (
+                    <span
+                      className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1 text-amaco-warn"
+                      title={s.mcpError}
+                    >
+                      .mcp.json error
+                    </span>
+                  ) : null}
                 </div>
               </button>
 

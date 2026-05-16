@@ -253,6 +253,13 @@ export type DiscoveredSkill = {
   rootDir: string;
   bodyPreview: string;
   frontmatter: Record<string, unknown>;
+  /**
+   * Names of MCP servers declared by a sibling `.mcp.json`. The full
+   * server config (command/args/env) is not echoed to the UI — it can
+   * carry tokens. The chip just signals "this skill brings N servers".
+   */
+  mcpServers: Record<string, { command: string }>;
+  mcpError: string | null;
 };
 
 export type SkillAssignmentSummary = {

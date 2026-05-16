@@ -2,6 +2,8 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import { pathExists, readText } from "../utils/fs.js";
 import { isPathInside, projectSkillsDir } from "../utils/paths.js";
+import { readSkillMcpServers } from "../mcp/mcp-resolve.js";
+import type { McpServersMap } from "../mcp/mcp-schema.js";
 
 export type SkillSource = "amaco" | "claude" | "user";
 
@@ -14,6 +16,15 @@ export type DiscoveredSkill = {
   rootDir: string;
   bodyPreview: string;
   frontmatter: Record<string, unknown>;
+  /**
+   * MCP servers declared by a sibling `.mcp.json` next to the skill's
+   * `SKILL.md`. Empty when no file exists or for flat `.md` skills.
+   * Errors during parsing are surfaced via `mcpError` so the UI/CLI
+   * can tell the user the file exists but failed validation, rather
+   * than silently dropping it.
+   */
+  mcpServers: McpServersMap;
+  mcpError: string | null;
 };
 
 const SKILL_FILE_NAMES = ["SKILL.md", "skill.md"];
@@ -86,6 +97,13 @@ async function discoverFromDir(input: {
         typeof frontmatter.description === "string"
           ? frontmatter.description
           : null;
+      let mcpServers: McpServersMap = {};
+      let mcpError: string | null = null;
+      try {
+        mcpServers = await readSkillMcpServers(skillFile);
+      } catch (err) {
+        mcpError = err instanceof Error ? err.message : String(err);
+      }
       out.push({
         id: makeSkillId(input.source, fmName),
         name: fmName,
@@ -95,6 +113,8 @@ async function discoverFromDir(input: {
         rootDir: input.rootDir,
         bodyPreview: body.slice(0, 240),
         frontmatter,
+        mcpServers,
+        mcpError,
       });
       continue;
     }
@@ -109,6 +129,8 @@ async function discoverFromDir(input: {
         typeof frontmatter.description === "string"
           ? frontmatter.description
           : null;
+      // Flat skills can't carry a sibling .mcp.json (they have no
+      // dedicated dir), so MCP servers are always empty for this shape.
       out.push({
         id: makeSkillId(input.source, name),
         name,
@@ -118,6 +140,8 @@ async function discoverFromDir(input: {
         rootDir: input.rootDir,
         bodyPreview: body.slice(0, 240),
         frontmatter,
+        mcpServers: {},
+        mcpError: null,
       });
     }
   }

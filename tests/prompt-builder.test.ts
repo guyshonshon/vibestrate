@@ -44,8 +44,8 @@ describe("prompt builder", () => {
       rules: "rules",
       agentPromptTemplate: "Review.",
       skills: [
-        { name: "security", filePath: "/sec.md", content: "be safe" },
-        { name: "testing", filePath: "/t.md", content: "test it" },
+        { name: "security", filePath: "/sec.md", content: "be safe", mcpServers: {} },
+        { name: "testing", filePath: "/t.md", content: "test it", mcpServers: {} },
       ],
       priorArtifacts: [],
       permission: readProfile,

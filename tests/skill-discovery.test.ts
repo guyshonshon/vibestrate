@@ -57,6 +57,37 @@ describe("skill discovery", () => {
     expect(flat.source).toBe("amaco");
   });
 
+  it("picks up sibling .mcp.json as the skill's MCP servers", async () => {
+    const skillDir = path.join(projectRoot, ".claude", "skills", "fs-skill");
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      `---\nname: fs-skill\n---\n\n# fs skill\n`,
+    );
+    await fs.writeFile(
+      path.join(skillDir, ".mcp.json"),
+      JSON.stringify({
+        mcpServers: { fs: { command: "mcp-fs", args: ["--root", "/tmp"] } },
+      }),
+    );
+    const [skill] = await discoverSkills(projectRoot);
+    expect(skill?.mcpServers.fs?.command).toBe("mcp-fs");
+    expect(skill?.mcpError).toBeNull();
+  });
+
+  it("surfaces a malformed .mcp.json as mcpError instead of throwing", async () => {
+    const skillDir = path.join(projectRoot, ".claude", "skills", "broken");
+    await fs.mkdir(skillDir, { recursive: true });
+    await fs.writeFile(
+      path.join(skillDir, "SKILL.md"),
+      `---\nname: broken\n---\n\n# broken\n`,
+    );
+    await fs.writeFile(path.join(skillDir, ".mcp.json"), "{ not json");
+    const [skill] = await discoverSkills(projectRoot);
+    expect(skill?.mcpServers).toEqual({});
+    expect(skill?.mcpError).toMatch(/not valid JSON/);
+  });
+
   it("returns [] when no skill folders exist", async () => {
     const skills = await discoverSkills(projectRoot);
     expect(skills).toEqual([]);

@@ -23,6 +23,8 @@ import { getAgentConfig } from "../agents/agent-registry.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
 import { assertExecutableContext, resolveCwd } from "../permissions/access-policy.js";
 import { loadSkills } from "../skills/skill-loader.js";
+import { resolveMcpServers } from "../mcp/mcp-resolve.js";
+import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable } from "../git/git.js";
@@ -1210,6 +1212,42 @@ export class Orchestrator {
     const promptTemplate = await loadAgentPrompt(this.projectRoot, agent.prompt);
     const skills = await loadSkills(this.projectRoot, agent.skills);
 
+    // MCP: gather servers from the agent + each skill, materialize them
+    // into a per-invocation `mcp/<stage>-mcp.json` under the run's
+    // artifacts directory, and surface the attachment as an event so
+    // the run replay / dashboard can show what was wired in.
+    const mcpResolved = resolveMcpServers({
+      agentServers: agent.mcpServers,
+      skills: skills.map((s) => ({ name: s.name, servers: s.mcpServers })),
+    });
+    const mcpConfigRelDir = path.join("mcp");
+    const mcpConfigRelPath = path.join(
+      mcpConfigRelDir,
+      `${input.stageId}-${agentId}.json`,
+    );
+    let mcpConfigAbsPath: string | null = null;
+    if (mcpResolved.servers.length > 0) {
+      mcpConfigAbsPath = await writeMcpConfigFile({
+        dir: path.dirname(ctx.artifactStore.resolveArtifactPath(mcpConfigRelPath)),
+        servers: mcpResolved.servers,
+      });
+      await ctx.eventLog.append({
+        type: "mcp.attached",
+        message: `Attached ${mcpResolved.servers.length} MCP server(s) for ${agentId}.`,
+        data: {
+          agentId,
+          stageId: input.stageId,
+          configPath: ctx.artifactStore.relPath(mcpConfigAbsPath ?? ""),
+          servers: mcpResolved.servers.map((s) => ({
+            name: s.name,
+            source: s.source,
+            command: s.config.command,
+          })),
+          collisions: mcpResolved.collisions,
+        },
+      });
+    }
+
     const prompt = buildAgentPrompt({
       agentId,
       task: this.task,
@@ -1246,6 +1284,7 @@ export class Orchestrator {
         providerId: effectiveProviderId,
         prompt,
         cwd,
+        mcpConfigPath: mcpConfigAbsPath ?? undefined,
       });
     } catch (err) {
       const stageEnd = new Date();

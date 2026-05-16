@@ -20,6 +20,9 @@ export async function runCliProvider(
     ...(config.env ?? {}),
     ...(input.env ?? {}),
   };
+  if (input.mcpConfigPath) {
+    env.AMACO_MCP_CONFIG = input.mcpConfigPath;
+  }
 
   let result;
   try {

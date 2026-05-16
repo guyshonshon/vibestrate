@@ -19,6 +19,13 @@ export async function runClaudeCodeProvider(
   input: ProviderRunInput,
 ): Promise<ClaudeCodeProviderRunResult> {
   const args = buildClaudeCodeArgs(config.args ?? [], config.settings);
+  if (input.mcpConfigPath) {
+    // `--mcp-config <path>` is the documented Claude Code flag for
+    // pointing the runtime at an `.mcp.json`. Inject it before the
+    // prompt so a `input: "arg"` provider keeps the prompt as the
+    // final positional.
+    args.push("--mcp-config", input.mcpConfigPath);
+  }
   let stdin: string | undefined;
 
   if (config.input === "arg") {
@@ -31,6 +38,9 @@ export async function runClaudeCodeProvider(
     ...(config.env ?? {}),
     ...(input.env ?? {}),
   };
+  if (input.mcpConfigPath) {
+    env.AMACO_MCP_CONFIG = input.mcpConfigPath;
+  }
 
   let result;
   try {
