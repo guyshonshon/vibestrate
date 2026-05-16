@@ -32,9 +32,13 @@ type Props = {
     lineStart: number | null;
     lineEnd: number | null;
   } | null;
+  /** When true, write-side actions (approve/apply/validate/revert) are
+   * hidden — the server refuses them with 409 anyway, but hiding the
+   * controls keeps the surface honest about what's possible. */
+  readOnly?: boolean;
 };
 
-export function SuggestionsPanel({ runId, prefill }: Props) {
+export function SuggestionsPanel({ runId, prefill, readOnly }: Props) {
   const [items, setItems] = useState<ReviewSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -450,6 +454,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
               onValidate={(profile) => validate(s, profile)}
               onRevert={() => revert(s)}
               onProfileChange={(p) => updateProfile(s, p)}
+              readOnly={readOnly ?? false}
             />
           ))}
         </ul>
@@ -478,6 +483,7 @@ function Row({
   onValidate,
   onRevert,
   onProfileChange,
+  readOnly,
 }: {
   s: ReviewSuggestion;
   runId: string;
@@ -495,6 +501,7 @@ function Row({
   onValidate: (profileName?: string | null) => void;
   onRevert: () => void;
   onProfileChange: (next: string | null) => void;
+  readOnly: boolean;
 }) {
   // The row's "profile" mirrors what's persisted on the suggestion. Editing
   // PATCHes immediately (via onProfileChange) so this dropdown is the
@@ -599,58 +606,69 @@ function Row({
         </div>
       ) : null}
       <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-        {s.status === "open" ? (
+        {readOnly ? (
+          <span
+            className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-[10.5px] text-amaco-warn"
+            title="This run is read-only. Apply / Validate / Revert are disabled. Start a non-read-only run on the same task to act on this suggestion."
+          >
+            read-only run — actions disabled
+          </span>
+        ) : (
           <>
-            <button
-              type="button"
-              onClick={onApprove}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded border border-amaco-success/40 bg-amaco-success/10 px-1.5 py-0.5 text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
-            >
-              <Check className="h-3 w-3" strokeWidth={1.5} />
-              Approve
-            </button>
-            <button
-              type="button"
-              onClick={onReject}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
-            >
-              <X className="h-3 w-3" strokeWidth={1.5} />
-              Reject
-            </button>
+            {s.status === "open" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onApprove}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 rounded border border-amaco-success/40 bg-amaco-success/10 px-1.5 py-0.5 text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
+                >
+                  <Check className="h-3 w-3" strokeWidth={1.5} />
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={onReject}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+                >
+                  <X className="h-3 w-3" strokeWidth={1.5} />
+                  Reject
+                </button>
+              </>
+            ) : null}
+            {s.status === "approved" && s.proposedPatch ? (
+              <ApplyMenu
+                busy={busy}
+                onApply={(mode) => onApply(mode, profile)}
+              />
+            ) : null}
+            {isApplied ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onValidate(profile)}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
+                  title="Run commands.validate inside the run worktree"
+                >
+                  <Wrench className="h-3 w-3" strokeWidth={1.5} />
+                  Validate
+                </button>
+                <button
+                  type="button"
+                  onClick={onRevert}
+                  disabled={busy}
+                  className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+                  title="Revert this suggestion's patch via git apply -R"
+                >
+                  <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
+                  Revert
+                </button>
+              </>
+            ) : null}
           </>
-        ) : null}
-        {s.status === "approved" && s.proposedPatch ? (
-          <ApplyMenu
-            busy={busy}
-            onApply={(mode) => onApply(mode, profile)}
-          />
-        ) : null}
-        {isApplied ? (
-          <>
-            <button
-              type="button"
-              onClick={() => onValidate(profile)}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
-              title="Run commands.validate inside the run worktree"
-            >
-              <Wrench className="h-3 w-3" strokeWidth={1.5} />
-              Validate
-            </button>
-            <button
-              type="button"
-              onClick={onRevert}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
-              title="Revert this suggestion's patch via git apply -R"
-            >
-              <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
-              Revert
-            </button>
-          </>
-        ) : null}
+        )}
         <button
           type="button"
           onClick={() =>

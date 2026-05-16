@@ -131,7 +131,37 @@ export function TaskDetailPage({
               roadmap: {task.roadmapItemId}
             </span>
           ) : null}
+          {task.effort ? (
+            <span
+              className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]"
+              title="Maps to a provider via project.yml#effortMap."
+            >
+              effort: {task.effort}
+            </span>
+          ) : null}
+          {task.providerOverride ? (
+            <span
+              className="amaco-mono rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"
+              title="Every agent in runs spawned from this task uses this provider."
+            >
+              provider: {task.providerOverride}
+            </span>
+          ) : null}
+          {task.readOnly ? (
+            <span
+              className="amaco-mono rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
+              title="Investigation-only — runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
+            >
+              read-only
+            </span>
+          ) : null}
         </div>
+        <TaskRunMode
+          task={task}
+          onPatched={(next) =>
+            setData((d) => (d ? { ...d, task: next } : d))
+          }
+        />
         <div className="mt-3 flex items-center gap-2">
           <button
             onClick={queue}
@@ -510,5 +540,117 @@ function FileLink({
         </span>
       ) : null}
     </button>
+  );
+}
+
+
+function TaskRunMode({
+  task,
+  onPatched,
+}: {
+  task: Task;
+  onPatched: (next: Task) => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function setField<K extends "effort" | "providerOverride" | "readOnly">(
+    field: K,
+    value:
+      | "low"
+      | "medium"
+      | "high"
+      | null
+      | boolean
+      | string,
+  ): Promise<void> {
+    setBusy(field);
+    setError(null);
+    try {
+      // Cast through the patch shape — the api method accepts a partial
+      // and we know `field` matches `value` by construction.
+      const next = await api.patchTask(task.id, {
+        [field]: value as never,
+      });
+      onPatched(next);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="mt-3 grid grid-cols-1 gap-2 rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12px] md:grid-cols-3">
+      <label className="flex flex-col gap-1">
+        <span
+          className="amaco-mono text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted"
+          title="Maps to a provider via project.yml#effortMap. Leave unset to use each agent's configured provider."
+        >
+          effort
+        </span>
+        <select
+          value={task.effort ?? ""}
+          disabled={busy !== null}
+          onChange={(e) =>
+            void setField(
+              "effort",
+              e.target.value === ""
+                ? null
+                : (e.target.value as "low" | "medium" | "high"),
+            )
+          }
+          className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-1 text-[11.5px] text-amaco-fg focus:border-amaco-accent/60 focus:outline-none"
+        >
+          <option value="">— none —</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span
+          className="amaco-mono text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted"
+          title="Pin every agent in runs spawned from this task to a specific provider id. Wins over effort."
+        >
+          provider override
+        </span>
+        <input
+          type="text"
+          value={task.providerOverride ?? ""}
+          disabled={busy !== null}
+          placeholder="e.g. codex"
+          onBlur={(e) => {
+            const v = e.target.value.trim();
+            if (v === (task.providerOverride ?? "")) return;
+            void setField("providerOverride", v.length === 0 ? null : v);
+          }}
+          className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-1 text-[11.5px] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent/60 focus:outline-none"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 self-end">
+        <input
+          type="checkbox"
+          checked={task.readOnly ?? false}
+          disabled={busy !== null}
+          onChange={(e) => void setField("readOnly", e.target.checked)}
+          className="h-3.5 w-3.5"
+        />
+        <span
+          className="amaco-mono text-[11px] uppercase tracking-[0.10em] text-amaco-fg-dim"
+          title="Investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
+        >
+          read-only
+        </span>
+      </label>
+
+      {error ? (
+        <div className="md:col-span-3 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[10.5px] text-amaco-fail">
+          {error}
+        </div>
+      ) : null}
+    </div>
   );
 }

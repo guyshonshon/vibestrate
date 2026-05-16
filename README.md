@@ -209,6 +209,8 @@ amaco status [--json]
 amaco abort <runId>
 amaco pause <runId>
 amaco resume <runId>
+amaco run "<task>" [--effort low|medium|high] [--provider <id>] [--read-only]
+amaco tasks add "<title>" [--effort low|medium|high] [--provider <id>] [--read-only]
 
 amaco ui [--port <port>] [--open]
 
@@ -522,6 +524,78 @@ The Replay tab is integrated with the rest of the dashboard via deep-links:
 - keyboard scrubbing inside the tab: `↑`/`k` previous, `↓`/`j` next, `Home`/`End` jump (disabled while the search input is focused).
 
 There's also a CLI surface — `amaco replay <runId>` prints a short text summary (status, phase counts, approvals/suggestions/notifications, runtime metrics, missing files). `amaco replay <runId> --json` dumps the full projection for piping into `jq` or saving alongside the run folder. No provider or worktree writes happen on either path — it's the same read-only projection the UI uses.
+
+## Per-task effort + provider override
+
+A task can declare how much of a model it needs and the orchestrator
+will route every agent in the resulting run accordingly:
+
+- `effort: low | medium | high` resolves through the project-shared
+  `providers.effortMap` in `project.yml`. Example:
+
+  ```yaml
+  providers:
+    claude: { type: cli, command: claude, args: ["-p"], input: stdin }
+    haiku:  { type: cli, command: claude-haiku, args: ["-p"], input: stdin }
+  effortMap:
+    low: haiku
+    medium: claude
+    high: claude
+  ```
+
+- `providerOverride` pins every agent in the run to a specific provider
+  id (e.g. `codex`) and wins over `effort` when both are set.
+
+Resolution rule (deterministic):
+
+1. `providerOverride` if set **and** present in `providers`
+2. `effortMap[effort]` if both the key and the provider exist
+3. each agent's `provider` from `project.yml#agents` (the V0 default)
+
+When the requested override or effort key isn't resolvable, the run
+**falls back to the agent default** and logs a `policy.warning` event
+that names the failing key — never a silent miss.
+
+CLI:
+
+```bash
+amaco tasks add "explore the auth module" --effort low --provider codex
+amaco run "summarize repo" --effort low
+amaco run "tricky refactor" --provider codex
+```
+
+The task's effort / providerOverride is inherited by `amaco run --task <id>`
+unless the CLI flags explicitly override them.
+
+Dashboard: the task detail page has a small panel for editing effort,
+provider override, and the read-only flag. The run header shows the
+resolved provider id and the effort bucket as chips.
+
+## Read-only tasks
+
+A task marked `readOnly` produces an **investigation-only** run:
+
+- Stages run: planning → architecting → reviewing → (merge_ready or
+  blocked, based on review decision).
+- Executor and the fix loop are **skipped entirely** — there's no
+  attempt to edit files.
+- Verifying is skipped (nothing was changed, nothing to verify).
+- Every agent is forced to the `readOnly` permission profile, ignoring
+  whatever profile the agent normally uses.
+- The server refuses `POST` to `…/suggestions/<id>/apply`,
+  `…/validate`, `…/revert`, and the matching bundle endpoints with
+  HTTP **409**.
+- The dashboard hides Apply / Validate / Revert buttons and surfaces a
+  bright READ-ONLY badge in the run header.
+
+CLI:
+
+```bash
+amaco tasks add "investigate why login is flaky" --read-only
+amaco run "audit the auth flow" --read-only
+```
+
+Use it when you want the agents to *report*, not *change*.
 
 ## Pause and resume
 

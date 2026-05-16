@@ -87,16 +87,46 @@ program
     "--task <taskId>",
     "link this run to a roadmap task; updates task status and runIds.",
   )
+  .option(
+    "--effort <level>",
+    "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+  )
+  .option(
+    "--provider <id>",
+    "override the provider for every agent in this run (wins over --effort).",
+  )
+  .option(
+    "--read-only",
+    "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every agent.",
+  )
   .action(
     async (
       taskParts: string[],
-      opts: { ui?: boolean; uiPort?: number; task?: string },
+      opts: {
+        ui?: boolean;
+        uiPort?: number;
+        task?: string;
+        effort?: string;
+        provider?: string;
+        readOnly?: boolean;
+      },
     ) => {
       const task = taskParts.join(" ").trim();
+      let effort: "low" | "medium" | "high" | null = null;
+      if (opts.effort) {
+        if (opts.effort !== "low" && opts.effort !== "medium" && opts.effort !== "high") {
+          console.error(`--effort must be one of low|medium|high (got "${opts.effort}").`);
+          process.exit(2);
+        }
+        effort = opts.effort;
+      }
       const code = await runRunCommand(task, {
         ui: opts.ui,
         uiPort: opts.uiPort,
         taskId: opts.task ?? null,
+        effort,
+        providerOverride: opts.provider ?? null,
+        readOnly: opts.readOnly ?? false,
       });
       process.exit(code);
     },

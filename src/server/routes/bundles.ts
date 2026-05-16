@@ -220,6 +220,16 @@ type BundleActionHandler = (
   req: import("fastify").FastifyRequest,
 ) => Promise<unknown>;
 
+// Phase B: actions that mutate the worktree must be refused on a
+// read-only run. Add / remove / approve / reject / preflight only touch
+// metadata and stay allowed.
+const READ_ONLY_REFUSED_ACTIONS = new Set([
+  "apply",
+  "smart-apply",
+  "validate",
+  "revert",
+]);
+
 function registerBundleAction(
   app: FastifyInstance,
   projectRoot: string,
@@ -235,6 +245,27 @@ function registerBundleAction(
       assertSafeRunId(req.params.runId);
       if (!(await pathExists(runStatePath(projectRoot, req.params.runId)))) {
         throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      if (READ_ONLY_REFUSED_ACTIONS.has(action)) {
+        // Inline read-only guard. Reading state.json here keeps the
+        // helper signature unchanged; the call is O(1) per request.
+        try {
+          const { readJson } = await import("../../utils/json.js");
+          const { runStateSchema } = await import("../../core/state-machine.js");
+          const raw = await readJson<unknown>(
+            runStatePath(projectRoot, req.params.runId),
+          );
+          const parsed = runStateSchema.safeParse(raw);
+          if (parsed.success && parsed.data.readOnly === true) {
+            throw new HttpError(
+              409,
+              `Run ${req.params.runId} is read-only. Bundle ${action} refused.`,
+            );
+          }
+        } catch (err) {
+          if (err instanceof HttpError) throw err;
+          // Unreadable state.json → fall through to the original handler
+        }
       }
       try {
         const svc = new SuggestionBundleService(projectRoot, req.params.runId);

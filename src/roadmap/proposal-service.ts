@@ -222,6 +222,9 @@ export class ProposalService {
       riskLevel: t.riskLevel,
       commentsCount: 0,
       lastEventAt: null,
+      effort: null,
+      providerOverride: null,
+      readOnly: false,
     }));
     const graph = buildDependencyGraph(tempTasks);
     const cycleReport = findFirstCycle(graph);

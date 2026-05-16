@@ -47,6 +47,7 @@ import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js
 import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
+import { resolveEffort } from "./effort-resolver.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -57,6 +58,14 @@ export type OrchestratorInput = {
   onProgress?: (message: string) => void;
   /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
   taskId?: string | null;
+  /** Effort hint (low|medium|high) that maps to a provider via
+   * project.yml#effortMap. Optional; defaults to no override. */
+  effort?: "low" | "medium" | "high" | null;
+  /** Explicit provider override. Wins over effort when both are set. */
+  providerOverride?: string | null;
+  /** Investigation-only run: force readOnly permissions on every agent,
+   * skip the executor / fix loop entirely, refuse write-side actions. */
+  readOnly?: boolean;
 };
 
 export type OrchestratorOutput = {
@@ -140,6 +149,9 @@ export class Orchestrator {
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
+  private readonly effort: "low" | "medium" | "high" | null;
+  private readonly providerOverride: string | null;
+  private readonly readOnly: boolean;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -149,6 +161,9 @@ export class Orchestrator {
     this.isGitRepo = input.isGitRepo;
     this.onProgress = input.onProgress ?? (() => {});
     this.taskId = input.taskId ?? null;
+    this.effort = input.effort ?? null;
+    this.providerOverride = input.providerOverride ?? null;
+    this.readOnly = input.readOnly ?? false;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -195,13 +210,52 @@ export class Orchestrator {
       branchName: null,
       maxReviewLoops: this.config.workflow.maxReviewLoops,
     });
-    state = { ...state, taskId: this.taskId };
+    // Resolve effort/provider override before persisting initial state so
+    // events.ndjson + state.json carry the exact provider that will be
+    // used. Read-only runs are stamped too — every subsequent enforcement
+    // (route guards, executor short-circuit) reads from state.readOnly.
+    const resolution = resolveEffort({
+      effort: this.effort,
+      providerOverride: this.providerOverride,
+      config: this.config,
+    });
+    state = {
+      ...state,
+      taskId: this.taskId,
+      effort: this.effort,
+      providerOverride: this.providerOverride,
+      resolvedProviderId: resolution.providerId,
+      readOnly: this.readOnly,
+    };
     await stateStore.write(state);
     await eventLog.append({
       type: "run.created",
       message: `Run ${runId} created.`,
-      data: { task: this.task, taskId: this.taskId },
+      data: {
+        task: this.task,
+        taskId: this.taskId,
+        effort: this.effort,
+        providerOverride: this.providerOverride,
+        resolvedProviderId: resolution.providerId,
+        resolutionSource: resolution.source,
+        readOnly: this.readOnly,
+      },
     });
+    // Honest log line so users can see *why* a given provider was
+    // picked (or *why* the override was ignored).
+    await eventLog.append({
+      type: "policy.warning",
+      message: resolution.note,
+      data: { kind: "effort-resolution", source: resolution.source },
+    });
+    if (this.readOnly) {
+      await eventLog.append({
+        type: "policy.warning",
+        message:
+          "Read-only run: executor and fix loop will be skipped. Every agent is forced to the readOnly permission profile. Apply/validate/revert routes are refused.",
+        data: { kind: "read-only-run" },
+      });
+    }
 
     for (const w of policy.warnings) {
       await eventLog.append({
@@ -368,72 +422,76 @@ export class Orchestrator {
         events: eventLog,
       });
       if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: executing
-      this.onProgress("Executing...");
-      state = applyTransition(state, "executing");
-      await stateStore.write(state);
-      executionArtifact = await this.runAgent({
-        agentId: "executor",
-        stageId: "executing",
-        promptIndex: 5,
-        outputName: "06-execution-output.md",
-        priorArtifacts: [
-          { label: "Plan", content: planArtifact.output },
-          { label: "Architecture", content: architectureArtifact.output },
-        ],
-        validationResults: null,
-        metricsStore,
-        ctx,
-      });
-      {
-        const gate = await this.maybeAwaitApproval({
-          state,
-          fromStatus: "executing",
-          stageId: "executing",
-          agentId: "executor",
-          agentArtifact: executionArtifact,
-          approvalService,
-          stateStore,
-          eventLog,
-          policyStagesAlreadyForced,
-        });
-        state = gate.state;
-        if (gate.rejected) {
-          await eventLog.append({
-            type: "run.completed",
-            message: `Run ${runId} blocked after rejected approval.`,
-          });
-          throw new __ApprovalRejectedSignal();
-        }
-      }
-
-      // Pause gate: between executing and the validate→review loop.
-      state = await applyPauseIfRequested({
-        state,
-        store: stateStore,
-        events: eventLog,
-      });
-      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: validate -> review (loop)
+      // Stage: executing — SKIPPED for read-only runs. Read-only runs
+      // are investigation-only; the reviewer reviews plan + architecture
+      // and we transition straight to merge_ready (or blocked). The
+      // validation runner is also skipped (nothing to validate). The fix
+      // loop is gated below (line further down) so it can't fire.
       let approved = false;
       let blocked = false;
+      if (!this.readOnly) {
+        this.onProgress("Executing...");
+        state = applyTransition(state, "executing");
+        await stateStore.write(state);
+        executionArtifact = await this.runAgent({
+          agentId: "executor",
+          stageId: "executing",
+          promptIndex: 5,
+          outputName: "06-execution-output.md",
+          priorArtifacts: [
+            { label: "Plan", content: planArtifact.output },
+            { label: "Architecture", content: architectureArtifact.output },
+          ],
+          validationResults: null,
+          metricsStore,
+          ctx,
+        });
+        {
+          const gate = await this.maybeAwaitApproval({
+            state,
+            fromStatus: "executing",
+            stageId: "executing",
+            agentId: "executor",
+            agentArtifact: executionArtifact,
+            approvalService,
+            stateStore,
+            eventLog,
+            policyStagesAlreadyForced,
+          });
+          state = gate.state;
+          if (gate.rejected) {
+            await eventLog.append({
+              type: "run.completed",
+              message: `Run ${runId} blocked after rejected approval.`,
+            });
+            throw new __ApprovalRejectedSignal();
+          }
+        }
 
-      // First validation
-      state = applyTransition(state, "validating");
-      await stateStore.write(state);
-      this.onProgress("Validating...");
-      lastValidation = await this.runValidation({
-        artifactsName: "07-validation-results.json",
-        ctx,
-      });
-      if (lastValidation.summary.failed > 0) {
-        notify(
-          draftValidationFailed({
-            runId,
-            taskId: this.taskId,
-            failedCount: lastValidation.summary.failed,
-          }),
-        );
+        // Pause gate: between executing and the validate→review loop.
+        state = await applyPauseIfRequested({
+          state,
+          store: stateStore,
+          events: eventLog,
+        });
+        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+        // First validation
+        state = applyTransition(state, "validating");
+        await stateStore.write(state);
+        this.onProgress("Validating...");
+        lastValidation = await this.runValidation({
+          artifactsName: "07-validation-results.json",
+          ctx,
+        });
+        if (lastValidation.summary.failed > 0) {
+          notify(
+            draftValidationFailed({
+              runId,
+              taskId: this.taskId,
+              failedCount: lastValidation.summary.failed,
+            }),
+          );
+        }
       }
 
       // Reviewing loop
@@ -489,7 +547,16 @@ export class Orchestrator {
         data: { decision: reviewDecision, loop: 0 },
       });
 
+      // Fix loop is unreachable for read-only runs: there's nothing to
+      // fix (no executor output). On a read-only CHANGES_REQUESTED, treat
+      // it as BLOCKED so the run ends with an honest verdict rather than
+      // sitting in a half-completed state.
+      if (this.readOnly && reviewDecision === "CHANGES_REQUESTED") {
+        reviewDecision = "BLOCKED";
+      }
+
       while (
+        !this.readOnly &&
         reviewDecision === "CHANGES_REQUESTED" &&
         reviewLoopsCompleted < state.maxReviewLoops
       ) {
@@ -630,6 +697,17 @@ export class Orchestrator {
           type: "run.completed",
           message: `Run ${runId} blocked.`,
           data: { decision: reviewDecision },
+        });
+      } else if (approved && this.readOnly) {
+        // Read-only approved: skip verifying (nothing was changed, nothing
+        // to verify), transition straight to merge_ready. The final
+        // report's "Verification" section honestly shows "skipped — read-only run".
+        state = applyTransition(state, "merge_ready");
+        await stateStore.write(state);
+        await eventLog.append({
+          type: "run.completed",
+          message: `Run ${runId} completed (read-only — investigation approved).`,
+          data: { decision: reviewDecision, readOnly: true },
         });
       } else if (approved) {
         // Pause gate: between approved-review and verifying.
@@ -1099,7 +1177,21 @@ export class Orchestrator {
   }): Promise<AgentRunResult> {
     const { agentId, ctx } = input;
     const agent = getAgentConfig(this.config.agents, agentId);
-    const profile = resolveProfile(this.config.permissions.profiles, agent.permissions);
+    // Read-only runs override every agent's permission profile to
+    // "readOnly", regardless of how the agent is configured. resolveProfile
+    // will throw if the project doesn't define `readOnly`; we surface that
+    // as a config error rather than silently letting writes through.
+    const effectivePermissions = this.readOnly ? "readOnly" : agent.permissions;
+    const profile = resolveProfile(
+      this.config.permissions.profiles,
+      effectivePermissions,
+    );
+    // Effective provider id: run-wide resolved override (effort or
+    // explicit) beats the agent's default. Falls back to the agent's
+    // configured provider when no override applies or the override
+    // couldn't be resolved.
+    const effectiveProviderId =
+      this.runtimeProviderId() ?? agent.provider;
 
     assertExecutableContext({
       agentId,
@@ -1139,19 +1231,19 @@ export class Orchestrator {
     await ctx.eventLog.append({
       type: "agent.started",
       message: `Agent ${agentId} starting.`,
-      data: { agentId, provider: agent.provider, permissions: agent.permissions },
+      data: { agentId, provider: effectiveProviderId, permissions: effectivePermissions },
     });
     await ctx.eventLog.append({
       type: "provider.started",
-      message: `Provider ${agent.provider} invoked for ${agentId}.`,
-      data: { agentId, provider: agent.provider, cwd },
+      message: `Provider ${effectiveProviderId} invoked for ${agentId}.`,
+      data: { agentId, provider: effectiveProviderId, cwd },
     });
 
     let providerResult: RichProviderRunResult;
     const stageStart = new Date();
     try {
       providerResult = await runProvider(this.config.providers, {
-        providerId: agent.provider,
+        providerId: effectiveProviderId,
         prompt,
         cwd,
       });
@@ -1159,8 +1251,8 @@ export class Orchestrator {
       const stageEnd = new Date();
       await ctx.eventLog.append({
         type: "provider.failed",
-        message: `Provider ${agent.provider} failed for ${agentId}: ${describeError(err)}`,
-        data: { agentId, provider: agent.provider },
+        message: `Provider ${effectiveProviderId} failed for ${agentId}: ${describeError(err)}`,
+        data: { agentId, provider: effectiveProviderId },
       });
       await ctx.eventLog.append({
         type: "agent.failed",
@@ -1168,11 +1260,11 @@ export class Orchestrator {
         data: { agentId },
       });
       // Record a partial metric so the dashboard reflects the failure.
-      const providerCfg = this.config.providers[agent.provider];
+      const providerCfg = this.config.providers[effectiveProviderId];
       const failedMetric: AgentMetrics = {
         agentId,
         stageId: input.stageId,
-        providerId: agent.provider,
+        providerId: effectiveProviderId,
         providerType: providerCfg?.type ?? "cli",
         command: providerCfg?.command ?? "",
         args: [...(providerCfg?.args ?? [])],
@@ -1216,10 +1308,10 @@ export class Orchestrator {
 
     await ctx.eventLog.append({
       type: "provider.completed",
-      message: `Provider ${agent.provider} completed for ${agentId}.`,
+      message: `Provider ${effectiveProviderId} completed for ${agentId}.`,
       data: {
         agentId,
-        provider: agent.provider,
+        provider: effectiveProviderId,
         exitCode: providerResult.exitCode,
         durationMs: providerResult.durationMs,
       },
@@ -1246,11 +1338,11 @@ export class Orchestrator {
     }
 
     const claudeMetrics = providerResult.claudeMetrics;
-    const providerCfg = this.config.providers[agent.provider];
+    const providerCfg = this.config.providers[effectiveProviderId];
     const metric: AgentMetrics = {
       agentId,
       stageId: input.stageId,
-      providerId: agent.provider,
+      providerId: effectiveProviderId,
       providerType: providerCfg?.type ?? "cli",
       command: providerResult.command,
       args: providerResult.args,
@@ -1337,6 +1429,21 @@ export class Orchestrator {
   private defaultPromptName(index: number, agentId: string): string {
     const padded = index.toString().padStart(2, "0");
     return `${padded}-${agentId}-prompt.md`;
+  }
+
+  /**
+   * The provider id that should override agent.provider for this run, OR
+   * null when no override is in effect. Cached at run start
+   * (state.resolvedProviderId) but re-derived here so the orchestrator
+   * never has to thread state through to every runAgent call.
+   */
+  private runtimeProviderId(): string | null {
+    const resolution = resolveEffort({
+      effort: this.effort,
+      providerOverride: this.providerOverride,
+      config: this.config,
+    });
+    return resolution.providerId;
   }
 
   private async writeFinalReport(input: {

@@ -41,6 +41,17 @@ export type TaskStatus = z.infer<typeof taskStatusSchema>;
 export const prioritySchema = z.enum(["low", "medium", "high"]);
 export type Priority = z.infer<typeof prioritySchema>;
 
+/**
+ * "Effort" is a project-shared abstraction over which provider/model to
+ * use. The mapping from effort → provider id lives in
+ * `project.yml#effortMap` so a low-effort task in one repo can route to
+ * `claude-haiku` and in another to `codex`. The same three buckets
+ * (low/medium/high) work across every provider Amaco knows about — see
+ * the design note in `effort-resolver.ts`.
+ */
+export const effortSchema = z.enum(["low", "medium", "high"]);
+export type Effort = z.infer<typeof effortSchema>;
+
 export const microStepStageSchema = z.enum([
   "planning",
   "architecting",
@@ -132,6 +143,16 @@ export const taskSchema = z.object({
   riskLevel: prioritySchema.default("medium"),
   commentsCount: z.number().int().min(0).default(0),
   lastEventAt: z.string().nullable().default(null),
+  // ─── Per-task effort / provider override / read-only ──────────────────
+  // effort routes to a provider id via project.yml#effortMap. Explicit
+  // providerOverride wins over effort when both are set. readOnly forces
+  // every agent in the resulting run to the readOnly permission profile
+  // and short-circuits the executor / fix loop — investigation only.
+  // All three default-null/false so existing roadmap files round-trip
+  // through the schema unchanged.
+  effort: effortSchema.nullable().default(null),
+  providerOverride: z.string().nullable().default(null),
+  readOnly: z.boolean().default(false),
 });
 export type Task = z.infer<typeof taskSchema>;
 

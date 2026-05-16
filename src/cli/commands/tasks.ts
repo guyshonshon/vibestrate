@@ -35,11 +35,18 @@ async function cmdAdd(
     skills?: string;
     files?: string;
     json?: boolean;
+    effort?: string;
+    provider?: string;
+    readOnly?: boolean;
   },
 ): Promise<number> {
   try {
     const { svc: s } = await svc();
     await s.init();
+    if (opts.effort && opts.effort !== "low" && opts.effort !== "medium" && opts.effort !== "high") {
+      console.error(`--effort must be one of low|medium|high (got "${opts.effort}").`);
+      return 2;
+    }
     const task = await s.addTask({
       title,
       description: opts.description,
@@ -50,6 +57,9 @@ async function cmdAdd(
       roadmapItemId: opts.roadmap ?? null,
       requiredSkills: opts.skills ? opts.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
       touchedFiles: opts.files ? opts.files.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      effort: (opts.effort as "low" | "medium" | "high" | undefined) ?? null,
+      providerOverride: opts.provider ?? null,
+      readOnly: opts.readOnly ?? false,
     });
     if (opts.json) {
       console.log(JSON.stringify(task, null, 2));
@@ -312,6 +322,18 @@ export function buildTasksCommand(): Command {
     .option("--roadmap <id>", "link to a roadmap item id")
     .option("--skills <list>", "comma-separated skill names")
     .option("--files <list>", "comma-separated likely-touched files")
+    .option(
+      "--effort <level>",
+      "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+    )
+    .option(
+      "--provider <id>",
+      "override the provider for runs spawned from this task (wins over --effort).",
+    )
+    .option(
+      "--read-only",
+      "investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert.",
+    )
     .option("--json", "emit JSON")
     .action(async (title: string, opts) => {
       const code = await cmdAdd(title, opts);

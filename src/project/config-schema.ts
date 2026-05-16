@@ -139,6 +139,21 @@ export const projectConfigSchema = z.object({
   }),
   execution: executionConfigSchema.default({ backend: "local-worktree" }),
   providers: providersConfigSchema,
+  // ─── Shared effort → provider mapping ────────────────────────────────
+  // Optional. When set, a task's `effort: low|medium|high` resolves to
+  // the corresponding provider id; the orchestrator then forces every
+  // agent in that run to use it (overriding agent.provider). When the
+  // map is missing or doesn't have the requested key, the run logs an
+  // honest "effort X requested but no mapping" event and falls back to
+  // the agent's configured provider.
+  effortMap: z
+    .object({
+      low: z.string().min(1).optional(),
+      medium: z.string().min(1).optional(),
+      high: z.string().min(1).optional(),
+    })
+    .partial()
+    .default({}),
   agents: agentsConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z

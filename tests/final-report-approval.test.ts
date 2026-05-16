@@ -22,6 +22,10 @@ const baseState = {
   taskId: null,
   pauseRequested: false,
   pausedAtStatus: null,
+  effort: null,
+  providerOverride: null,
+  resolvedProviderId: null,
+  readOnly: false,
 };
 
 describe("final report — approval section", () => {

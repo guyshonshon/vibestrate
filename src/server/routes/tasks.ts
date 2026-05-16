@@ -35,6 +35,10 @@ const patchBody = z.object({
   touchedFiles: z.array(z.string()).optional(),
   riskLevel: z.enum(["low", "medium", "high"]).optional(),
   validationProfile: z.string().nullable().optional(),
+  // Phase A/B: per-task effort + provider override + read-only.
+  effort: z.enum(["low", "medium", "high"]).nullable().optional(),
+  providerOverride: z.string().nullable().optional(),
+  readOnly: z.boolean().optional(),
 });
 
 export type TasksRoutesDeps = { projectRoot: string };

@@ -327,6 +327,24 @@ export const api = {
     );
     return r.comment;
   },
+  async patchTask(
+    taskId: string,
+    patch: Partial<{
+      title: string;
+      description: string;
+      priority: "low" | "medium" | "high";
+      validationProfile: string | null;
+      effort: "low" | "medium" | "high" | null;
+      providerOverride: string | null;
+      readOnly: boolean;
+    }>,
+  ): Promise<Task> {
+    const r = await jsonPatch<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}`,
+      patch,
+    );
+    return r.task;
+  },
   async queueTask(taskId: string): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/queue`,

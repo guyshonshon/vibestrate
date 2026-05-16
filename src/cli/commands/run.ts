@@ -44,6 +44,9 @@ export type RunCommandOptions = {
   ui?: boolean;
   uiPort?: number;
   taskId?: string | null;
+  effort?: "low" | "medium" | "high" | null;
+  providerOverride?: string | null;
+  readOnly?: boolean;
 };
 
 export async function runRunCommand(
@@ -166,6 +169,27 @@ export async function runRunCommand(
     }
   }
 
+  // If --task <id> was passed and the user did NOT override effort /
+  // provider / read-only on the CLI, inherit those from the roadmap task.
+  let effort: "low" | "medium" | "high" | null = options.effort ?? null;
+  let providerOverride: string | null = options.providerOverride ?? null;
+  let readOnly: boolean = options.readOnly ?? false;
+  if (roadmapTaskId) {
+    try {
+      const { RoadmapService } = await import("../../roadmap/roadmap-service.js");
+      const svc = new RoadmapService(detected.projectRoot);
+      const t = await svc.getTask(roadmapTaskId);
+      if (t) {
+        if (effort === null) effort = t.effort;
+        if (providerOverride === null) providerOverride = t.providerOverride;
+        if (!options.readOnly) readOnly = t.readOnly;
+      }
+    } catch {
+      // Best-effort. The orchestrator will still honor the explicit CLI
+      // flags; missing roadmap inheritance is non-fatal.
+    }
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -173,6 +197,9 @@ export async function runRunCommand(
     task,
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
+    effort,
+    providerOverride,
+    readOnly,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {

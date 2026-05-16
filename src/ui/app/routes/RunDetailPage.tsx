@@ -208,7 +208,7 @@ export function RunDetailPage({
               />
             </div>
           ) : tab === "suggestions" ? (
-            <SuggestionsPanel runId={runId} />
+            <SuggestionsPanel runId={runId} readOnly={run.readOnly ?? false} />
           ) : tab === "agent-work" ? (
             <AgentWorkPanel
               runId={runId}

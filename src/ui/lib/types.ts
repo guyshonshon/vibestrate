@@ -38,6 +38,10 @@ export type RunState = {
   taskId?: string | null;
   pauseRequested?: boolean;
   pausedAtStatus?: RunStatus | null;
+  effort?: "low" | "medium" | "high" | null;
+  providerOverride?: string | null;
+  resolvedProviderId?: string | null;
+  readOnly?: boolean;
 };
 
 export type Priority = "low" | "medium" | "high";
@@ -87,6 +91,9 @@ export type Task = {
   riskLevel: Priority;
   commentsCount: number;
   lastEventAt: string | null;
+  effort?: "low" | "medium" | "high" | null;
+  providerOverride?: string | null;
+  readOnly?: boolean;
 };
 
 export type TaskComment = {

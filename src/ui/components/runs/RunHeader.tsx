@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { GitBranch, Folder, Clock, Pause, Play } from "lucide-react";
+import {
+  Cpu,
+  Eye,
+  GitBranch,
+  Folder,
+  Clock,
+  Pause,
+  Play,
+  Zap,
+} from "lucide-react";
 import type { RunState } from "../../lib/types.js";
 import { api } from "../../lib/api.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
@@ -62,6 +71,33 @@ export function RunHeader({
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-amaco-fg-dim">
             <RunStatusBadge status={run.status} />
+            {run.readOnly ? (
+              <span
+                className="inline-flex items-center gap-1 rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
+                title="Investigation-only run: executor and fix loop are skipped, apply/validate/revert are refused, every agent runs with the readOnly permission profile."
+              >
+                <Eye className="h-3 w-3" strokeWidth={1.5} />
+                read-only
+              </span>
+            ) : null}
+            {run.effort ? (
+              <span
+                className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted"
+                title={`Task effort: ${run.effort}. Maps to a provider via project.yml#effortMap.`}
+              >
+                <Zap className="h-3 w-3" strokeWidth={1.5} />
+                effort {run.effort}
+              </span>
+            ) : null}
+            {run.resolvedProviderId ? (
+              <span
+                className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"
+                title={`Run-wide provider override: every agent uses "${run.resolvedProviderId}" instead of its configured provider.`}
+              >
+                <Cpu className="h-3 w-3" strokeWidth={1.5} />
+                {run.resolvedProviderId}
+              </span>
+            ) : null}
             {pausePending ? (
               <span
                 className="amaco-mono rounded border border-amaco-accent/50 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"

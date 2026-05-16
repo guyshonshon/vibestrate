@@ -68,6 +68,16 @@ export const runStateSchema = z.object({
   // existing runs that predate pause/resume.
   pauseRequested: z.boolean().default(false),
   pausedAtStatus: runStatusSchema.nullable().default(null),
+  // ─── Per-task effort + override + read-only (Phase A/B) ───────────────
+  // Locked into the run at start so the audit trail is faithful even if
+  // the originating task is later edited or deleted. resolvedProviderId
+  // records the provider that effort/providerOverride actually mapped
+  // to (so `agent.provider` in events stays the canonical id used per
+  // call, while resolvedProviderId surfaces the run-wide override).
+  effort: z.enum(["low", "medium", "high"]).nullable().default(null),
+  providerOverride: z.string().nullable().default(null),
+  resolvedProviderId: z.string().nullable().default(null),
+  readOnly: z.boolean().default(false),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -180,6 +190,10 @@ export function createInitialState(input: {
     taskId: null,
     pauseRequested: false,
     pausedAtStatus: null,
+    effort: null,
+    providerOverride: null,
+    resolvedProviderId: null,
+    readOnly: false,
   };
 }
 
