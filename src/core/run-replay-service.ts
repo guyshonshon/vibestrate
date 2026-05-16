@@ -321,6 +321,7 @@ export async function buildRunReplay(
       type: "notification.created",
       message: n.title,
       data: {
+        id: n.id,
         severity: n.severity,
         category: n.category,
         approvalId: n.approvalId,

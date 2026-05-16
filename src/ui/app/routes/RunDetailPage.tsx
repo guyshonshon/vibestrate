@@ -6,7 +6,7 @@ import type {
   RunState,
   RuntimeMetrics,
 } from "../../lib/types.js";
-import { navigate } from "../App.js";
+import { navigate, type ReplayFocus } from "../App.js";
 import { RunHeader } from "../../components/runs/RunHeader.js";
 import { RunWorktreeBlock } from "../../components/runs/RunWorktreeBlock.js";
 import { AgentWorkPanel } from "../../components/runs/AgentWorkPanel.js";
@@ -35,14 +35,31 @@ import { LazyReplayPanel } from "../../components/replay/LazyReplayPanel.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
-export function RunDetailPage({ runId }: { runId: string }) {
+export function RunDetailPage({
+  runId,
+  initialTab,
+  replayFocus,
+}: {
+  runId: string;
+  initialTab?: InspectorTabId | null;
+  replayFocus?: ReplayFocus | null;
+}) {
   const [run, setRun] = useState<RunState | null>(null);
   const [metrics, setMetrics] = useState<RuntimeMetrics | null>(null);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<InspectorTabId>("diff");
+  const [tab, setTab] = useState<InspectorTabId>(initialTab ?? "diff");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
+
+  // Cross-links can re-route to this same run page with a new ?tab=... value.
+  // Because the runId hasn't changed, the component doesn't remount — so we
+  // mirror initialTab into state on every change. We do NOT push tab changes
+  // back to the URL; that would cause every click on the InspectorPanel to
+  // mutate history.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab]);
   const freshness = useCodebaseEvents(
     `/api/runs/${encodeURIComponent(runId)}/codebase/events/stream`,
   );
@@ -212,7 +229,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
           ) : tab === "terminal" ? (
             <LazyTerminalPanel runId={runId} />
           ) : tab === "replay" ? (
-            <LazyReplayPanel runId={runId} />
+            <LazyReplayPanel runId={runId} focus={replayFocus ?? null} />
           ) : tab === "logs" ? (
             <RuntimeLogPanel runId={runId} />
           ) : tab === "notes" ? (
@@ -220,7 +237,7 @@ export function RunDetailPage({ runId }: { runId: string }) {
           ) : tab === "skills" ? (
             <SkillsPanel />
           ) : tab === "approvals" ? (
-            <ApprovalsList approvals={approvals} />
+            <ApprovalsList approvals={approvals} runId={runId} />
           ) : (
             <MetricsDashboard metrics={metrics} />
           )}

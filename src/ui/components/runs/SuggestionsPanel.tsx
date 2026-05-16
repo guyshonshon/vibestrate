@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  History,
   Lightbulb,
   Plus,
   RefreshCw,
@@ -21,6 +22,7 @@ import type {
 import { ReviewPassPanel } from "./ReviewPassPanel.js";
 import { ProfileSelect } from "./ProfileSelect.js";
 import { streamRunEvents } from "../../lib/events.js";
+import { navigate } from "../../app/App.js";
 
 type Props = {
   runId: string;
@@ -436,6 +438,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
             <Row
               key={s.id}
               s={s}
+              runId={runId}
               busy={busy === s.id}
               selectMode={selectMode}
               selected={selected.has(s.id)}
@@ -463,6 +466,7 @@ export function SuggestionsPanel({ runId, prefill }: Props) {
 
 function Row({
   s,
+  runId,
   busy,
   selectMode,
   selected,
@@ -476,6 +480,7 @@ function Row({
   onProfileChange,
 }: {
   s: ReviewSuggestion;
+  runId: string;
   busy: boolean;
   selectMode: boolean;
   selected: boolean;
@@ -646,6 +651,22 @@ function Row({
             </button>
           </>
         ) : null}
+        <button
+          type="button"
+          onClick={() =>
+            navigate({
+              kind: "run",
+              runId,
+              tab: "replay",
+              replayFocus: { kind: "match", match: { kind: "suggestion", id: s.id } },
+            })
+          }
+          className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel"
+          title="Jump to this suggestion in the read-only Replay timeline"
+        >
+          <History className="h-3 w-3" strokeWidth={1.5} />
+          Replay
+        </button>
       </div>
     </li>
   );

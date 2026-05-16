@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import type {
   ReplayEvent,
@@ -6,6 +6,7 @@ import type {
   ReplayPhaseKey,
   RunReplay,
 } from "../../lib/types.js";
+import type { ReplayFocus } from "../../app/App.js";
 
 /**
  * Read-only Replay panel.
@@ -24,17 +25,28 @@ import type {
  * Layout: left column is a scrubbable phase + event list, right column
  * is the detail for the selected row plus run-wide summaries.
  */
-export function ReplayPanel({ runId }: { runId: string }) {
+export function ReplayPanel({
+  runId,
+  focus,
+}: {
+  runId: string;
+  focus?: ReplayFocus | null;
+}) {
   const [replay, setReplay] = useState<RunReplay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [collapsed, setCollapsed] = useState<Set<ReplayPhaseKey>>(() => new Set());
+  const [focusUnresolved, setFocusUnresolved] = useState<string | null>(null);
+  // Per-event-row refs so the resolver can scroll the matched row into view.
+  // Map<eventIndex, HTMLLIElement>.
+  const rowRefs = useRef<Map<number, HTMLLIElement>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
     setReplay(null);
     setError(null);
     setSelectedIndex(null);
+    setFocusUnresolved(null);
     api
       .getRunReplay(runId)
       .then((r) => {
@@ -54,6 +66,42 @@ export function ReplayPanel({ runId }: { runId: string }) {
       cancelled = true;
     };
   }, [runId]);
+
+  // Resolve a deep-link focus once the replay projection has loaded — or
+  // whenever the focus changes while we're already on this run. We expand
+  // the phase containing the resolved event so the row is visible, and
+  // imperatively scroll it into the viewport (selection alone is not enough
+  // because the timeline can be hundreds of rows tall). A focus that
+  // doesn't match any row surfaces a small banner — silent miss would be
+  // confusing when the user just clicked "Open in Replay".
+  useEffect(() => {
+    if (!replay || !focus) return;
+    const resolved = resolveFocus(focus, replay);
+    if (resolved === null) {
+      setFocusUnresolved(describeFocus(focus));
+      return;
+    }
+    setFocusUnresolved(null);
+    setSelectedIndex(resolved);
+    const targetPhase = replay.events[resolved]?.phaseKey;
+    if (targetPhase) {
+      setCollapsed((prev) => {
+        if (!prev.has(targetPhase)) return prev;
+        const next = new Set(prev);
+        next.delete(targetPhase);
+        return next;
+      });
+    }
+    // Defer the scroll one frame so the (possibly just-uncollapsed) phase
+    // has rendered its rows and the ref is populated.
+    const handle = window.requestAnimationFrame(() => {
+      const node = rowRefs.current.get(resolved);
+      if (node) {
+        node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
+    return () => window.cancelAnimationFrame(handle);
+  }, [replay, focus]);
 
   const selectedEvent = useMemo<ReplayEvent | null>(() => {
     if (!replay || selectedIndex === null) return null;
@@ -125,6 +173,13 @@ export function ReplayPanel({ runId }: { runId: string }) {
             {replay.truncation.note}
           </div>
         ) : null}
+        {focusUnresolved ? (
+          <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[10.5px] text-amaco-warn">
+            Couldn't locate <span className="amaco-mono">{focusUnresolved}</span>{" "}
+            in this run's timeline. The row may have been truncated, or the
+            link points at a different run.
+          </div>
+        ) : null}
         {replay.missingOrMalformed.length > 0 ? (
           <details className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[10.5px]">
             <summary className="cursor-pointer text-amaco-fg-muted">
@@ -169,7 +224,13 @@ export function ReplayPanel({ runId }: { runId: string }) {
                         const ev = replay.events[idx]!;
                         const isSel = selectedIndex === idx;
                         return (
-                          <li key={idx}>
+                          <li
+                            key={idx}
+                            ref={(node) => {
+                              if (node) rowRefs.current.set(idx, node);
+                              else rowRefs.current.delete(idx);
+                            }}
+                          >
                             <button
                               type="button"
                               onClick={() => setSelectedIndex(idx)}
@@ -495,5 +556,70 @@ function formatShortTime(ts: string): string {
     return d.toLocaleTimeString();
   } catch {
     return ts;
+  }
+}
+
+/**
+ * Map a ReplayFocus onto a concrete event index in the loaded projection.
+ * Returns null when the focus has no match in this run (e.g. the deep-link
+ * was authored against a different run, or the referenced row was beyond
+ * the 10 000-event projection cap).
+ */
+function resolveFocus(focus: ReplayFocus, replay: RunReplay): number | null {
+  if (focus.kind === "event") {
+    const ev = replay.events[focus.eventIndex];
+    return ev ? ev.index : null;
+  }
+  if (focus.kind === "phase") {
+    const phase = replay.phases.find((p) => p.key === focus.phase);
+    const first = phase?.eventIndices[0];
+    return typeof first === "number" ? first : null;
+  }
+  // kind === "match": search projection events for the originating row.
+  // Suggestion events carry data.id; approval events carry data.approvalId;
+  // synthetic notification events carry data.id (added in run-replay-service).
+  const targetId = focus.match.id;
+  const want = focus.match.kind;
+  for (const ev of replay.events) {
+    const data = ev.data;
+    if (!data) continue;
+    if (
+      want === "suggestion" &&
+      (ev.type.startsWith("suggestion.") || ev.type.startsWith("bundle.")) &&
+      readString(data, "id") === targetId
+    ) {
+      return ev.index;
+    }
+    if (
+      want === "approval" &&
+      ev.type.startsWith("approval.") &&
+      readString(data, "approvalId") === targetId
+    ) {
+      return ev.index;
+    }
+    if (
+      want === "notification" &&
+      ev.type === "notification.created" &&
+      readString(data, "id") === targetId
+    ) {
+      return ev.index;
+    }
+  }
+  return null;
+}
+
+function readString(data: Record<string, unknown>, key: string): string | null {
+  const v = data[key];
+  return typeof v === "string" ? v : null;
+}
+
+function describeFocus(focus: ReplayFocus): string {
+  switch (focus.kind) {
+    case "event":
+      return `event #${focus.eventIndex}`;
+    case "phase":
+      return `phase ${focus.phase}`;
+    case "match":
+      return `${focus.match.kind} ${focus.match.id}`;
   }
 }

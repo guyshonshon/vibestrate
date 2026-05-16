@@ -1,5 +1,6 @@
-import { Check, X, Hourglass } from "lucide-react";
+import { Check, History, Hourglass, X } from "lucide-react";
 import type { ApprovalRequest } from "../../lib/types.js";
+import { navigate } from "../../app/App.js";
 
 const STATUS_ICON = {
   pending: Hourglass,
@@ -21,7 +22,13 @@ const RISK_PILL: Record<ApprovalRequest["riskLevel"], string> = {
   high: "border-amaco-warn/60 text-amaco-warn",
 };
 
-export function ApprovalsList({ approvals }: { approvals: ApprovalRequest[] }) {
+export function ApprovalsList({
+  approvals,
+  runId,
+}: {
+  approvals: ApprovalRequest[];
+  runId?: string;
+}) {
   if (approvals.length === 0) {
     return (
       <div className="text-[12px] text-amaco-fg-muted">
@@ -96,8 +103,29 @@ export function ApprovalsList({ approvals }: { approvals: ApprovalRequest[] }) {
                 {a.resolvedBy ?? "local-user"}
               </div>
             ) : null}
-            <div className="mt-1 amaco-mono text-[10.5px] text-amaco-fg-muted">
-              id: {a.id}
+            <div className="mt-1 flex items-center gap-2 amaco-mono text-[10.5px] text-amaco-fg-muted">
+              <span>id: {a.id}</span>
+              {runId ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate({
+                      kind: "run",
+                      runId,
+                      tab: "replay",
+                      replayFocus: {
+                        kind: "match",
+                        match: { kind: "approval", id: a.id },
+                      },
+                    })
+                  }
+                  className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel"
+                  title="Jump to this approval in the read-only Replay timeline"
+                >
+                  <History className="h-3 w-3" strokeWidth={1.5} />
+                  Replay
+                </button>
+              ) : null}
             </div>
           </li>
         );

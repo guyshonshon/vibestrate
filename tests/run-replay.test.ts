@@ -433,6 +433,13 @@ describe("buildRunReplay — service", () => {
     expect(r.bundles.map((b) => b.id)).toEqual(["bun-1"]);
     // Notifications must be filtered to this run only.
     expect(r.notifications.map((n) => n.id)).toEqual(["notif-this"]);
+    // Synthetic notification rows carry the notification id in their data so
+    // deep-links from the notification center can resolve back to a single
+    // event row in the timeline.
+    const notifEv = r.events.find((e) => e.type === "notification.created");
+    expect(notifEv).toBeDefined();
+    expect(notifEv!.source).toBe("synthetic");
+    expect(notifEv!.data).toMatchObject({ id: "notif-this" });
     // Policy refusal extracted from the marker in the apply_failed message.
     expect(r.policyRefusals).toHaveLength(1);
     expect(r.policyRefusals[0]!.ruleId).toBe("no-console-log");

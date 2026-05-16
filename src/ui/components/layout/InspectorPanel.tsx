@@ -1,19 +1,7 @@
 import type { ReactNode } from "react";
+import type { InspectorTabId } from "./inspector-tabs.js";
 
-export type InspectorTabId =
-  | "diff"
-  | "artifact"
-  | "validation"
-  | "logs"
-  | "notes"
-  | "skills"
-  | "approvals"
-  | "metrics"
-  | "agent-work"
-  | "git"
-  | "suggestions"
-  | "terminal"
-  | "replay";
+export type { InspectorTabId };
 
 const TABS: { id: InspectorTabId; label: string }[] = [
   { id: "diff", label: "Diff" },

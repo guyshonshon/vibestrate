@@ -13,6 +13,15 @@ import {
   ProposalDetailPage,
 } from "./routes/ProposalsPage.js";
 import type { NotificationRecord, CodeReference } from "../lib/types.js";
+import {
+  type ReplayFocus,
+  type Route,
+  parseHashRoute,
+  serializeRoute,
+} from "./route.js";
+
+export { parseHashRoute, serializeRoute };
+export type { ReplayFocus, Route };
 
 // Settings is only visited when the user explicitly opens it. Splitting it
 // (with its ProfileMaintenancePanel + GatewaySettings forms) into an async
@@ -22,102 +31,21 @@ const SettingsPage = lazy(() =>
   import("./routes/SettingsPage.js").then((m) => ({ default: m.SettingsPage })),
 );
 
-type Route =
-  | { kind: "runs" }
-  | { kind: "run"; runId: string }
-  | { kind: "board" }
-  | { kind: "task"; taskId: string }
-  | { kind: "queue" }
-  | { kind: "proposals" }
-  | { kind: "proposal"; proposalId: string }
-  | { kind: "settings" }
-  | { kind: "project" }
-  | {
-      kind: "codebase";
-      filePath: string | null;
-      line: number | null;
-      runId: string | null;
-    }
-  | { kind: "git"; runId: string | null };
-
 function parseRoute(): Route {
-  const raw = window.location.hash.replace(/^#\/?/, "");
-  const [pathPart, queryPart] = raw.split("?");
-  const parts = (pathPart ?? "").split("/").filter(Boolean);
-  const query = new URLSearchParams(queryPart ?? "");
-  if (parts[0] === "runs" && parts[1]) return { kind: "run", runId: parts[1] };
-  if (parts[0] === "board") return { kind: "board" };
-  if (parts[0] === "tasks" && parts[1]) return { kind: "task", taskId: parts[1] };
-  if (parts[0] === "queue") return { kind: "queue" };
-  if (parts[0] === "settings") return { kind: "settings" };
-  if (parts[0] === "project") return { kind: "project" };
-  if (parts[0] === "codebase") {
-    const filePath = query.get("path");
-    const lineStr = query.get("line");
-    const runId = query.get("runId");
-    return {
-      kind: "codebase",
-      filePath: filePath ?? null,
-      line: lineStr ? Number(lineStr) || null : null,
-      runId: runId ?? null,
-    };
-  }
-  if (parts[0] === "git") {
-    const runId = query.get("runId");
-    return { kind: "git", runId: runId ?? null };
-  }
-  if (parts[0] === "proposals" && parts[1])
-    return { kind: "proposal", proposalId: parts.slice(1).join("/") };
-  if (parts[0] === "proposals") return { kind: "proposals" };
-  return { kind: "runs" };
+  return parseHashRoute(window.location.hash);
 }
 
 export function navigate(route: Route): void {
-  switch (route.kind) {
-    case "runs":
-      window.location.hash = "#/";
-      break;
-    case "run":
-      window.location.hash = `#/runs/${route.runId}`;
-      break;
-    case "board":
-      window.location.hash = "#/board";
-      break;
-    case "task":
-      window.location.hash = `#/tasks/${route.taskId}`;
-      break;
-    case "queue":
-      window.location.hash = "#/queue";
-      break;
-    case "proposals":
-      window.location.hash = "#/proposals";
-      break;
-    case "proposal":
-      window.location.hash = `#/proposals/${route.proposalId}`;
-      break;
-    case "settings":
-      window.location.hash = "#/settings";
-      break;
-    case "project":
-      window.location.hash = "#/project";
-      break;
-    case "codebase": {
-      const q = new URLSearchParams();
-      if (route.filePath) q.set("path", route.filePath);
-      if (route.line !== null) q.set("line", String(route.line));
-      if (route.runId) q.set("runId", route.runId);
-      const qs = q.toString();
-      window.location.hash = `#/codebase${qs ? `?${qs}` : ""}`;
-      break;
-    }
-    case "git": {
-      const q = new URLSearchParams();
-      if (route.runId) q.set("runId", route.runId);
-      const qs = q.toString();
-      window.location.hash = `#/git${qs ? `?${qs}` : ""}`;
-      break;
-    }
+  const next = serializeRoute(route);
+  // Assigning the same string would be a no-op and miss the hashchange
+  // event, so we force a re-render by re-setting the route state. This
+  // matters for cross-links that toggle the inspector tab on the run page
+  // the user is already viewing.
+  if (window.location.hash === next) {
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    return;
   }
+  window.location.hash = next;
 }
 
 export function navigateToReference(input: {
@@ -245,7 +173,11 @@ export function App() {
       {route.kind === "runs" ? (
         <RunsPage onSelect={(runId) => navigate({ kind: "run", runId })} />
       ) : route.kind === "run" ? (
-        <RunDetailPage runId={route.runId} />
+        <RunDetailPage
+          runId={route.runId}
+          initialTab={route.tab ?? null}
+          replayFocus={route.replayFocus ?? null}
+        />
       ) : route.kind === "board" ? (
         <BoardPage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
       ) : route.kind === "task" ? (

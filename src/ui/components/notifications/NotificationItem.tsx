@@ -3,6 +3,7 @@ import {
   AlertOctagon,
   Bell,
   CheckCircle2,
+  History,
   Info,
   Eye,
   Check,
@@ -11,6 +12,7 @@ import type {
   NotificationRecord,
   NotificationSeverity,
 } from "../../lib/types.js";
+import { navigate } from "../../app/App.js";
 
 const SEVERITY_ICON: Record<NotificationSeverity, typeof Bell> = {
   info: Info,
@@ -116,6 +118,27 @@ export function NotificationItem({
               resolved
             </span>
           )}
+          {notification.runId ? (
+            <button
+              type="button"
+              onClick={() =>
+                navigate({
+                  kind: "run",
+                  runId: notification.runId!,
+                  tab: "replay",
+                  replayFocus: {
+                    kind: "match",
+                    match: { kind: "notification", id: notification.id },
+                  },
+                })
+              }
+              className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel-2"
+              title="Jump to this notification in the run's read-only Replay timeline"
+            >
+              <History className="h-3 w-3" strokeWidth={1.5} />
+              Replay
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

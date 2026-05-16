@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import type { ReplayFocus } from "../../app/App.js";
 
 /**
  * Lazy wrapper around ReplayPanel. The panel pulls in a non-trivial chunk
@@ -10,14 +11,20 @@ const ReplayPanelLazy = lazy(() =>
   import("./ReplayPanel.js").then((m) => ({ default: m.ReplayPanel })),
 );
 
-export function LazyReplayPanel({ runId }: { runId: string }) {
+export function LazyReplayPanel({
+  runId,
+  focus,
+}: {
+  runId: string;
+  focus?: ReplayFocus | null;
+}) {
   return (
     <Suspense
       fallback={
         <div className="text-amaco-fg-muted text-[11.5px]">Loading replay…</div>
       }
     >
-      <ReplayPanelLazy runId={runId} />
+      <ReplayPanelLazy runId={runId} focus={focus ?? null} />
     </Suspense>
   );
 }
