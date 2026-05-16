@@ -256,6 +256,8 @@ amaco roadmap proposal show <id>
 amaco roadmap proposal parse <id> [--json]
 amaco roadmap accept <id> [--dry-run] [--allow-unresolved-dependencies]
 amaco roadmap plan "<broad goal>" [--id <proposalId>]
+
+amaco replay <runId> [--json]
 ```
 
 ## How a run works
@@ -502,6 +504,17 @@ Phase grouping mirrors the state machine plus four cross-cutting buckets:
 Event logs are capped at the most recent 10 000 rows. When the cap fires, the projection's `truncation` field reports it honestly and the UI shows a banner; the full `events.ndjson` is still on disk untouched.
 
 Missing or malformed optional files (older runs that predate a feature, or corrupted JSON) never crash the projection — each is listed under `missingOrMalformed` with a clear reason and the rest of the projection still renders.
+
+The Replay tab is integrated with the rest of the dashboard via deep-links:
+
+- the URL carries the focus — `#/runs/<id>?tab=replay&replayEvent=<n>`, `?replayPhase=<phase>`, or `?replayMatch=<kind>:<id>` (kind ∈ `suggestion`, `approval`, `notification`),
+- a per-row "Replay" affordance on **Suggestions**, **Approvals**, and run-scoped **Notifications** jumps to the originating event in the scrubber,
+- a per-row "Replay" link in the All Runs list opens any run directly on its Replay tab,
+- the right-side event detail card has a **Permalink** button that writes a `?replayEvent=<n>` URL to the clipboard — share it with a teammate and they land on the same event,
+- a thin filter bar above the timeline narrows by phase (multi-select chips) and a substring search across `ev.type + ev.message`; selection by index keeps working under an active filter so permalinks never break,
+- keyboard scrubbing inside the tab: `↑`/`k` previous, `↓`/`j` next, `Home`/`End` jump (disabled while the search input is focused).
+
+There's also a CLI surface — `amaco replay <runId>` prints a short text summary (status, phase counts, approvals/suggestions/notifications, runtime metrics, missing files). `amaco replay <runId> --json` dumps the full projection for piping into `jq` or saving alongside the run folder. No provider or worktree writes happen on either path — it's the same read-only projection the UI uses.
 
 ## Security model for local UI
 

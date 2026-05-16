@@ -24,6 +24,7 @@ import { buildBundlesCommand } from "./commands/bundles.js";
 import { buildValidationCommand } from "./commands/validation.js";
 import { buildTerminalCommand } from "./commands/terminal.js";
 import { buildPoliciesCommand } from "./commands/policies.js";
+import { buildReplayCommand } from "./commands/replay.js";
 
 const program = new Command();
 
@@ -72,6 +73,7 @@ program.addCommand(buildBundlesCommand());
 program.addCommand(buildValidationCommand());
 program.addCommand(buildTerminalCommand());
 program.addCommand(buildPoliciesCommand());
+program.addCommand(buildReplayCommand());
 
 program
   .command("run <task...>")

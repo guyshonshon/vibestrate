@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, X } from "lucide-react";
+import { Check, Link2, Search, X } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ReplayEvent,
@@ -7,7 +7,7 @@ import type {
   ReplayPhaseKey,
   RunReplay,
 } from "../../lib/types.js";
-import type { ReplayFocus } from "../../app/App.js";
+import { serializeRoute, type ReplayFocus } from "../../app/App.js";
 import { filterReplayEvents } from "./replay-filter.js";
 
 /**
@@ -127,6 +127,59 @@ export function ReplayPanel({
     );
   }, [replay, search, phaseFilter]);
   const filterActive = search.trim().length > 0 || phaseFilter.size > 0;
+
+  // Visible indices in display order so keyboard navigation steps through
+  // exactly what the user sees on the left column.
+  const orderedVisible = useMemo<number[]>(() => {
+    if (!replay) return [];
+    const seen = new Set(visibleIndices);
+    const out: number[] = [];
+    for (const ev of replay.events) {
+      if (seen.has(ev.index)) out.push(ev.index);
+    }
+    return out;
+  }, [replay, visibleIndices]);
+
+  // Keyboard scrubbing: ↑/k previous, ↓/j next, Home/End jump, when the
+  // focus isn't already inside the search input. We attach to the document
+  // because the panel itself doesn't own focus (the tab button does).
+  useEffect(() => {
+    if (orderedVisible.length === 0) return;
+    function onKey(e: KeyboardEvent) {
+      const target = document.activeElement;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      let nextIdx: number | null = null;
+      const curPos =
+        selectedIndex !== null ? orderedVisible.indexOf(selectedIndex) : -1;
+      if (e.key === "ArrowDown" || e.key === "j") {
+        if (curPos < 0) nextIdx = orderedVisible[0]!;
+        else if (curPos < orderedVisible.length - 1)
+          nextIdx = orderedVisible[curPos + 1]!;
+      } else if (e.key === "ArrowUp" || e.key === "k") {
+        if (curPos < 0) nextIdx = orderedVisible[orderedVisible.length - 1]!;
+        else if (curPos > 0) nextIdx = orderedVisible[curPos - 1]!;
+      } else if (e.key === "Home") {
+        nextIdx = orderedVisible[0]!;
+      } else if (e.key === "End") {
+        nextIdx = orderedVisible[orderedVisible.length - 1]!;
+      }
+      if (nextIdx === null) return;
+      e.preventDefault();
+      setSelectedIndex(nextIdx);
+      // Mirror the focus-resolver behavior: scroll the newly-selected
+      // row into view so a long timeline doesn't leave the user staring
+      // at a stale viewport.
+      const final = nextIdx;
+      window.requestAnimationFrame(() => {
+        const node = rowRefs.current.get(final);
+        if (node) node.scrollIntoView({ block: "nearest" });
+      });
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [orderedVisible, selectedIndex]);
 
   const snapshotAtSelected = useMemo<{
     status: string;
@@ -313,6 +366,7 @@ export function ReplayPanel({
         {/* Right: detail + summaries */}
         <main className="space-y-2 overflow-y-auto pr-1">
           <SelectedEventCard
+            runId={runId}
             event={selectedEvent}
             snapshotAtSelected={snapshotAtSelected}
             phases={replay.phases}
@@ -325,10 +379,12 @@ export function ReplayPanel({
 }
 
 function SelectedEventCard({
+  runId,
   event,
   snapshotAtSelected,
   phases,
 }: {
+  runId: string;
   event: ReplayEvent | null;
   snapshotAtSelected:
     | { status: string; previousStatus: string | null; sinceTimestamp: string }
@@ -346,9 +402,12 @@ function SelectedEventCard({
     phases.find((p) => p.key === event.phaseKey)?.label ?? event.phaseKey;
   return (
     <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
-      <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
-        {event.timestamp} · {event.source === "synthetic" ? "synthetic" : "event"} ·{" "}
-        {phaseLabel}
+      <div className="flex items-center gap-2">
+        <div className="amaco-mono flex-1 text-[10.5px] text-amaco-fg-muted">
+          {event.timestamp} · {event.source === "synthetic" ? "synthetic" : "event"} ·{" "}
+          {phaseLabel}
+        </div>
+        <CopyPermalinkButton runId={runId} eventIndex={event.index} />
       </div>
       <div className="amaco-mono mt-1 text-[12px] text-amaco-fg">{event.type}</div>
       <p className="mt-1 text-[11.5px] text-amaco-fg-dim">{event.message}</p>
@@ -599,6 +658,58 @@ function SummaryCard({
 
 function Empty() {
   return <div className="text-amaco-fg-muted text-[10.5px]">None.</div>;
+}
+
+function CopyPermalinkButton({
+  runId,
+  eventIndex,
+}: {
+  runId: string;
+  eventIndex: number;
+}) {
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    // Serialize through the same helper the router uses, so the URL we
+    // emit always round-trips back to this exact event selection.
+    const hash = serializeRoute({
+      kind: "run",
+      runId,
+      tab: "replay",
+      replayFocus: { kind: "event", eventIndex },
+    });
+    const url = `${window.location.origin}${window.location.pathname}${hash}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Older browsers / restricted contexts (file://, missing user
+      // gesture) can refuse the Clipboard API. Fall back to opening the
+      // URL in the location bar so the user can copy it manually — no
+      // silent failure.
+      window.prompt("Copy this link:", url);
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+      title="Copy a permalink to this event"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3 w-3 text-amaco-success" strokeWidth={1.5} />
+          <span>Copied</span>
+        </>
+      ) : (
+        <>
+          <Link2 className="h-3 w-3" strokeWidth={1.5} />
+          <span>Permalink</span>
+        </>
+      )}
+    </button>
+  );
 }
 
 function FilterBar({
