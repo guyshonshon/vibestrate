@@ -209,8 +209,8 @@ amaco status [--json]
 amaco abort <runId>
 amaco pause <runId>
 amaco resume <runId>
-amaco run "<task>" [--effort low|medium|high] [--provider <id>] [--read-only]
-amaco tasks add "<title>" [--effort low|medium|high] [--provider <id>] [--read-only]
+amaco run "<task>" [--effort low|medium|high] [--provider <id>] [--read-only] [--auto-effort]
+amaco tasks add "<title>" [--effort low|medium|high] [--provider <id>] [--read-only] [--auto-effort]
 
 amaco ui [--port <port>] [--open]
 
@@ -570,6 +570,32 @@ unless the CLI flags explicitly override them.
 Dashboard: the task detail page has a small panel for editing effort,
 provider override, and the read-only flag. The run header shows the
 resolved provider id and the effort bucket as chips.
+
+### Auto-detect effort (heuristic)
+
+Both `amaco run` and `amaco tasks add` print a one-line **suggested effort** verdict for every task you submit, with up to three signal-reasons indented underneath. The classifier is pure and reproducible — no provider call, no LLM, just word count + keyword lists + file count + file-type weighting.
+
+```
+$ amaco tasks add "fix a typo in the README" --files README.md
+✓ Task added.
+  id: task-fix-a-typo-...
+  title: fix a typo in the README
+  effort: (none) — suggested low @ 1; pass --auto-effort or --effort low to apply
+  · Short task (8 words) — leans low.
+  · Low-effort keyword: typo.
+  · All targeted files are docs — leans low.
+```
+
+To apply the suggestion automatically:
+
+```bash
+amaco tasks add "..." --auto-effort
+amaco run "..." --auto-effort
+```
+
+You can always override with `--effort low|medium|high`. Dashboard: the task-detail panel surfaces the same verdict with a one-click **apply** button when the heuristic disagrees with what's saved.
+
+The HTTP surface is `POST /api/effort/classify` with `{ text, files }` returning `{ effort, confidence, reasons[] }`. Pure, free, deterministic — safe to call from anywhere.
 
 ## Read-only tasks
 

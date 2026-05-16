@@ -60,6 +60,22 @@ export async function registerTasksRoutes(
     return { tasks };
   });
 
+  // Phase C: heuristic effort suggestion. Pure, free, deterministic —
+  // safe to expose without any rate limit. The dashboard's task-add /
+  // task-detail surface a "Suggested: …" panel that calls this.
+  app.post<{
+    Body: { text?: string; files?: string[] };
+  }>("/api/effort/classify", async (req) => {
+    const text = typeof req.body?.text === "string" ? req.body.text : "";
+    const files = Array.isArray(req.body?.files)
+      ? req.body.files.filter((f): f is string => typeof f === "string")
+      : [];
+    const { classifyEffort } = await import(
+      "../../core/effort-heuristic.js"
+    );
+    return classifyEffort({ text, files });
+  });
+
   app.post<{ Body: unknown }>("/api/tasks", async (req) => {
     const parsed = addBody.safeParse(req.body);
     if (!parsed.success) {

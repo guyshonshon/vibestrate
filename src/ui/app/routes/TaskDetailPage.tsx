@@ -553,6 +553,32 @@ function TaskRunMode({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [heuristic, setHeuristic] = useState<{
+    effort: "low" | "medium" | "high";
+    confidence: number;
+    reasons: string[];
+  } | null>(null);
+
+  // Re-classify whenever the task's title/description/files change.
+  // Heuristic is free + deterministic so this is safe to run on every
+  // mount/update; the server route is one HTTP call but pure.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .classifyEffort({
+        text: `${task.title}${task.description ? " " + task.description : ""}`,
+        files: task.touchedFiles ?? [],
+      })
+      .then((r) => {
+        if (!cancelled) setHeuristic(r);
+      })
+      .catch(() => {
+        if (!cancelled) setHeuristic(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [task.title, task.description, task.touchedFiles?.join("|")]);
 
   async function setField<K extends "effort" | "providerOverride" | "readOnly">(
     field: K,
@@ -580,8 +606,58 @@ function TaskRunMode({
     }
   }
 
+  // Show the suggestion banner only when the heuristic disagrees with
+  // what's currently saved (or when nothing is saved yet). Matching
+  // verdicts get a quieter "✓ matches heuristic" hint inline.
+  const showSuggestion =
+    heuristic !== null && task.effort !== heuristic.effort;
+
   return (
     <div className="mt-3 grid grid-cols-1 gap-2 rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12px] md:grid-cols-3">
+      {showSuggestion ? (
+        <div className="md:col-span-3 flex flex-wrap items-center gap-2 rounded border border-amaco-accent/30 bg-amaco-accent-soft/15 px-2 py-1 text-[11.5px]">
+          <span className="amaco-mono text-[10.5px] uppercase tracking-[0.10em] text-amaco-accent">
+            heuristic suggests
+          </span>
+          <span className="amaco-mono font-medium text-amaco-fg">
+            {heuristic!.effort}
+          </span>
+          <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+            @ confidence {heuristic!.confidence}
+          </span>
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => void setField("effort", heuristic!.effort)}
+            className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-accent/50 bg-amaco-accent/15 px-1.5 py-0.5 text-[11px] text-amaco-accent hover:bg-amaco-accent/25 disabled:opacity-50"
+            title="Apply the heuristic verdict to this task's effort field."
+          >
+            apply
+          </button>
+          {heuristic!.reasons.length > 0 ? (
+            <details className="basis-full">
+              <summary className="cursor-pointer text-[10.5px] text-amaco-fg-muted">
+                why?
+              </summary>
+              <ul className="mt-1 space-y-0.5">
+                {heuristic!.reasons.map((r) => (
+                  <li
+                    key={r}
+                    className="text-[10.5px] text-amaco-fg-dim"
+                  >
+                    · {r}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ) : heuristic !== null && task.effort === heuristic.effort ? (
+        <div className="md:col-span-3 text-[10.5px] text-amaco-success">
+          ✓ effort matches the heuristic suggestion @ {heuristic.confidence}
+        </div>
+      ) : null}
+
       <label className="flex flex-col gap-1">
         <span
           className="amaco-mono text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted"

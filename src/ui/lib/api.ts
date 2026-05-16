@@ -327,6 +327,16 @@ export const api = {
     );
     return r.comment;
   },
+  async classifyEffort(input: {
+    text: string;
+    files?: string[];
+  }): Promise<{
+    effort: "low" | "medium" | "high";
+    confidence: number;
+    reasons: string[];
+  }> {
+    return jsonPost("/api/effort/classify", input);
+  },
   async patchTask(
     taskId: string,
     patch: Partial<{

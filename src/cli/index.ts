@@ -99,6 +99,10 @@ program
     "--read-only",
     "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every agent.",
   )
+  .option(
+    "--auto-effort",
+    "apply the heuristic effort suggestion when --effort isn't passed.",
+  )
   .action(
     async (
       taskParts: string[],
@@ -109,6 +113,7 @@ program
         effort?: string;
         provider?: string;
         readOnly?: boolean;
+        autoEffort?: boolean;
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -127,6 +132,7 @@ program
         effort,
         providerOverride: opts.provider ?? null,
         readOnly: opts.readOnly ?? false,
+        autoEffort: opts.autoEffort ?? false,
       });
       process.exit(code);
     },

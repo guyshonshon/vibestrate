@@ -47,6 +47,7 @@ export type RunCommandOptions = {
   effort?: "low" | "medium" | "high" | null;
   providerOverride?: string | null;
   readOnly?: boolean;
+  autoEffort?: boolean;
 };
 
 export async function runRunCommand(
@@ -188,6 +189,25 @@ export async function runRunCommand(
       // Best-effort. The orchestrator will still honor the explicit CLI
       // flags; missing roadmap inheritance is non-fatal.
     }
+  }
+
+  // Always classify, even when the user passed --effort, so we can print
+  // an honest "(suggested: …)" line. --auto-effort applies the suggestion
+  // when --effort wasn't passed.
+  const { classifyEffort } = await import("../../core/effort-heuristic.js");
+  const heuristic = classifyEffort({ text: task });
+  if (effort === null && options.autoEffort) {
+    effort = heuristic.effort;
+  }
+  const verdictLine =
+    effort === heuristic.effort && effort !== null
+      ? `${symbol.bullet()} effort ${color.bold(effort)} (matches suggestion @ ${heuristic.confidence})`
+      : effort
+        ? `${symbol.bullet()} effort ${color.bold(effort)} ${color.dim(`(suggested ${heuristic.effort} @ ${heuristic.confidence})`)}`
+        : `${symbol.bullet()} effort ${color.dim("(none)")} ${color.dim(`— suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
+  console.log(verdictLine);
+  for (const r of heuristic.reasons.slice(0, 3)) {
+    console.log(indent(color.dim(`· ${r}`)));
   }
 
   const orchestrator = new Orchestrator({
