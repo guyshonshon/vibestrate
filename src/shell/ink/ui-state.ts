@@ -54,6 +54,16 @@ export type ShellUiStateV2 = {
     eventFilter: string;
     eventFilterOpen: boolean;
   };
+  /**
+   * Roadmap page state: kanban cursor (column + row inside column),
+   * and whether the form modal is open (with its own form state stored
+   * by the page component since it owns the reducer).
+   */
+  roadmap: {
+    cursor: { col: number; row: number };
+    formOpen: boolean;
+    pendingDeleteTaskId: string | null;
+  };
 };
 
 export const initialUiState: ShellUiStateV2 = {
@@ -72,6 +82,11 @@ export const initialUiState: ShellUiStateV2 = {
     eventFilter: "",
     eventFilterOpen: false,
   },
+  roadmap: {
+    cursor: { col: 0, row: 0 },
+    formOpen: false,
+    pendingDeleteTaskId: null,
+  },
 };
 
 export type ShellUiAction =
@@ -89,7 +104,11 @@ export type ShellUiAction =
   | { type: "runs.inspector.cycle"; direction: 1 | -1 }
   | { type: "runs.filter.open" }
   | { type: "runs.filter.close" }
-  | { type: "runs.filter.set"; value: string };
+  | { type: "runs.filter.set"; value: string }
+  | { type: "roadmap.cursor.set"; cursor: { col: number; row: number } }
+  | { type: "roadmap.form.open" }
+  | { type: "roadmap.form.close" }
+  | { type: "roadmap.confirm.delete"; taskId: string | null };
 
 let toastId = 0;
 function nextToastId(): number {
@@ -111,6 +130,11 @@ export function reduceShellUi(
         paletteQuery: "",
         helpOpen: false,
         pendingConfirm: null,
+        roadmap: {
+          ...state.roadmap,
+          formOpen: false,
+          pendingDeleteTaskId: null,
+        },
       };
     case "selection.set":
       return {
@@ -183,6 +207,26 @@ export function reduceShellUi(
       return {
         ...state,
         runs: { ...state.runs, eventFilter: action.value },
+      };
+    case "roadmap.cursor.set":
+      return {
+        ...state,
+        roadmap: { ...state.roadmap, cursor: action.cursor },
+      };
+    case "roadmap.form.open":
+      return {
+        ...state,
+        roadmap: { ...state.roadmap, formOpen: true, pendingDeleteTaskId: null },
+      };
+    case "roadmap.form.close":
+      return {
+        ...state,
+        roadmap: { ...state.roadmap, formOpen: false },
+      };
+    case "roadmap.confirm.delete":
+      return {
+        ...state,
+        roadmap: { ...state.roadmap, pendingDeleteTaskId: action.taskId },
       };
   }
 }

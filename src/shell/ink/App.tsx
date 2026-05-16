@@ -6,7 +6,9 @@ import { CommandPalette } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
+import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
+import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
   pageIdFromHotkey,
@@ -24,7 +26,6 @@ type Props = {
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  roadmap: "Phase 3",
   queue: "Phase 4",
   agents: "Phase 5",
   skills: "Phase 5",
@@ -37,6 +38,7 @@ const FUTURE_PHASES: Partial<Record<PageId, string>> = {
 export function App({ projectRoot, refreshMs }: Props) {
   const [ui, dispatch] = useReducer(reduceShellUi, initialUiState);
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
+  const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -124,6 +126,15 @@ export function App({ projectRoot, refreshMs }: Props) {
       if (key.escape) dispatch({ type: "runs.filter.close" });
       return;
     }
+    if (
+      ui.page === "roadmap" &&
+      (ui.roadmap.formOpen || ui.roadmap.pendingDeleteTaskId)
+    ) {
+      // Roadmap form / delete-confirm own all input; bail so we don't
+      // accidentally exit on a user typing 'q' into the title field
+      // or interpret 'y' as a tab switch.
+      return;
+    }
     if (ui.pendingConfirm?.action === "abort") {
       const runId = ui.pendingConfirm.runId;
       dispatch({ type: "confirm.set", value: null });
@@ -139,7 +150,9 @@ export function App({ projectRoot, refreshMs }: Props) {
       return;
     }
 
-    if (input === "q" || input === "Q") {
+    // Quit is lowercase-q only. Uppercase-Q is freed up so pages can
+    // bind it (the Roadmap page uses it for "queue selected task").
+    if (input === "q") {
       exit();
       return;
     }
@@ -219,21 +232,53 @@ export function App({ projectRoot, refreshMs }: Props) {
           { key: "a", label: "abort" },
           ...COMMON_HINTS,
         ]
-      : ui.page === "dashboard"
+      : ui.page === "roadmap"
         ? [
-            { key: "2", label: "runs" },
+            { key: "←↑↓→", label: "navigate" },
+            { key: "n", label: "new" },
+            { key: "e", label: "edit" },
+            { key: "d", label: "delete" },
+            { key: "Q", label: "queue" },
+            { key: "c", label: "→ready" },
             { key: ":", label: "palette" },
-            { key: "?", label: "help" },
             { key: "q", label: "quit" },
           ]
-        : COMMON_HINTS;
+        : ui.page === "dashboard"
+          ? [
+              { key: "2", label: "runs" },
+              { key: ":", label: "palette" },
+              { key: "?", label: "help" },
+              { key: "q", label: "quit" },
+            ]
+          : COMMON_HINTS;
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={0}>
       <TabBar current={ui.page} />
       <Box marginTop={1} flexDirection="column" flexGrow={1}>
         {snapshot ? (
-          renderPage(ui.page, snapshot, ui, dispatch)
+          ui.page === "roadmap" ? (
+            <RoadmapPage
+              projectRoot={projectRoot}
+              tasks={tasks}
+              refresh={refreshTasks}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              ui={ui.roadmap}
+              setCursor={(c) =>
+                dispatch({ type: "roadmap.cursor.set", cursor: c })
+              }
+              openForm={() => dispatch({ type: "roadmap.form.open" })}
+              closeForm={() => dispatch({ type: "roadmap.form.close" })}
+              setPendingDelete={(id) =>
+                dispatch({ type: "roadmap.confirm.delete", taskId: id })
+              }
+              active
+            />
+          ) : (
+            renderPage(ui.page, snapshot, ui, dispatch)
+          )
         ) : (
           <Text dimColor>loading…</Text>
         )}

@@ -1,0 +1,392 @@
+import React, { useMemo, useReducer, useState } from "react";
+import { Box, Text, useInput, useApp } from "ink";
+import type { Task } from "../../../roadmap/roadmap-types.js";
+import {
+  BOARD_COLUMNS,
+  buildBoard,
+  clampCursor,
+  moveCursor,
+  selectedTask,
+} from "../roadmap/board.js";
+import {
+  initTaskForm,
+  reduceTaskForm,
+  validateTaskForm,
+  type TaskFormState,
+} from "../roadmap/form.js";
+import { TaskForm } from "../components/TaskForm.js";
+import {
+  createTask,
+  editTask,
+  deleteTask,
+  queueTask,
+  markReady,
+} from "../roadmap/task-actions.js";
+import { editInEditor } from "../roadmap/editor-handoff.js";
+
+type Props = {
+  projectRoot: string;
+  tasks: Task[];
+  refresh: () => Promise<void>;
+  onToast: (kind: "ok" | "err" | "info", message: string) => void;
+  ui: {
+    cursor: { col: number; row: number };
+    formOpen: boolean;
+    pendingDeleteTaskId: string | null;
+  };
+  setCursor: (cursor: { col: number; row: number }) => void;
+  openForm: () => void;
+  closeForm: () => void;
+  setPendingDelete: (taskId: string | null) => void;
+  /** When true, this page is the focused content — drive useInput. */
+  active: boolean;
+};
+
+export function RoadmapPage({
+  projectRoot,
+  tasks,
+  refresh,
+  onToast,
+  ui,
+  setCursor,
+  openForm,
+  closeForm,
+  setPendingDelete,
+  active,
+}: Props) {
+  const board = useMemo(() => buildBoard(tasks), [tasks]);
+  const cursor = clampCursor(board, ui.cursor);
+  const selected = selectedTask(board, cursor);
+  const [form, dispatchForm] = useReducer(
+    reduceTaskForm,
+    null as unknown as TaskFormState,
+    () => initTaskForm("create", null),
+  );
+  // Track which mode the form should re-init into next time it opens.
+  // The reducer's initial value is set on first render; subsequent
+  // openings re-seed via useEffect-like flow below.
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const { exit } = useApp();
+  void exit;
+
+  // When formOpen flips on, re-init the form for the current mode.
+  React.useEffect(() => {
+    if (!ui.formOpen) return;
+    if (formMode === "edit" && selected) {
+      dispatchForm({ type: "focus", field: "title" });
+      const seeded = initTaskForm("edit", selected.id, {
+        title: selected.title,
+        description: selected.description,
+        priority: selected.priority,
+        effort: selected.effort ?? "",
+        providerOverride: selected.providerOverride ?? "",
+        readOnly: selected.readOnly,
+      });
+      // Reset by issuing field actions for each value (the reducer
+      // doesn't have a single "init" action by design — the seed object
+      // captures the same state).
+      for (const k of Object.keys(seeded) as (keyof TaskFormState)[]) {
+        if (
+          k === "title" ||
+          k === "description" ||
+          k === "priority" ||
+          k === "effort" ||
+          k === "providerOverride" ||
+          k === "readOnly"
+        ) {
+          dispatchForm({ type: "field", field: k, value: seeded[k] as never });
+        }
+      }
+    } else {
+      const seeded = initTaskForm("create", null);
+      for (const k of ["title", "description", "providerOverride"] as const) {
+        dispatchForm({ type: "field", field: k, value: seeded[k] });
+      }
+      dispatchForm({ type: "field", field: "priority", value: "medium" });
+      dispatchForm({ type: "field", field: "effort", value: "" });
+      dispatchForm({ type: "field", field: "readOnly", value: false });
+      dispatchForm({ type: "focus", field: "title" });
+    }
+  }, [ui.formOpen, formMode, selected]);
+
+  const submit = async (): Promise<void> => {
+    const v = validateTaskForm(form);
+    if (!v.ok) {
+      dispatchForm({ type: "errors", value: v.errors });
+      return;
+    }
+    const r =
+      formMode === "edit" && form.existingId
+        ? await editTask(projectRoot, form.existingId, v.value)
+        : await createTask(projectRoot, v.value);
+    onToast(r.ok ? "ok" : "err", r.message);
+    if (r.ok) {
+      closeForm();
+      await refresh();
+    }
+  };
+
+  const handleEditDescription = async (): Promise<void> => {
+    try {
+      const next = await editInEditor(form.description);
+      dispatchForm({ type: "field", field: "description", value: next });
+    } catch (err) {
+      onToast(
+        "err",
+        `editor failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  useInput(
+    (input, key) => {
+      // Form modal owns input when open.
+      if (ui.formOpen) {
+        if (key.escape) {
+          closeForm();
+          return;
+        }
+        if (key.tab) {
+          dispatchForm({
+            type: "focus.cycle",
+            direction: key.shift ? -1 : 1,
+          });
+          return;
+        }
+        if (key.return) {
+          void submit();
+          return;
+        }
+        if (input === "D") {
+          void handleEditDescription();
+          return;
+        }
+        // ←/→ on enum pickers
+        if (key.leftArrow || key.rightArrow) {
+          const delta = key.leftArrow ? -1 : 1;
+          if (form.focused === "priority") {
+            const order = ["low", "medium", "high"];
+            const idx = order.indexOf(form.priority);
+            const next = order[(idx + delta + order.length) % order.length]!;
+            dispatchForm({ type: "field", field: "priority", value: next });
+            return;
+          }
+          if (form.focused === "effort") {
+            const order = ["", "low", "medium", "high"];
+            const idx = order.indexOf(form.effort);
+            const next = order[(idx + delta + order.length) % order.length]!;
+            dispatchForm({ type: "field", field: "effort", value: next });
+            return;
+          }
+        }
+        if (input === " " && form.focused === "readOnly") {
+          dispatchForm({
+            type: "field",
+            field: "readOnly",
+            value: !form.readOnly,
+          });
+          return;
+        }
+        // Otherwise: the focused TextInput swallows the key.
+        return;
+      }
+
+      // Delete confirmation
+      if (ui.pendingDeleteTaskId) {
+        const id = ui.pendingDeleteTaskId;
+        setPendingDelete(null);
+        if (input === "y" || input === "Y") {
+          void deleteTask(projectRoot, id).then(async (r) => {
+            onToast(r.ok ? "ok" : "err", r.message);
+            await refresh();
+          });
+        } else {
+          onToast("info", "delete cancelled.");
+        }
+        return;
+      }
+
+      if (!active) return;
+
+      if (key.leftArrow || input === "h") {
+        const next = moveCursor(board, cursor, "left");
+        setCursor(next);
+        return;
+      }
+      if (key.rightArrow || input === "l") {
+        const next = moveCursor(board, cursor, "right");
+        setCursor(next);
+        return;
+      }
+      if (key.upArrow || input === "k") {
+        const next = moveCursor(board, cursor, "up");
+        setCursor(next);
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        const next = moveCursor(board, cursor, "down");
+        setCursor(next);
+        return;
+      }
+      if (input === "n") {
+        setFormMode("create");
+        openForm();
+        return;
+      }
+      if (input === "e" && selected) {
+        setFormMode("edit");
+        openForm();
+        return;
+      }
+      if (input === "d" && selected) {
+        setPendingDelete(selected.id);
+        return;
+      }
+      if (input === "Q" && selected) {
+        // capital-Q queues the task. lowercase q is reserved for quit.
+        void queueTask(projectRoot, selected.id).then(async (r) => {
+          onToast(r.ok ? "ok" : "err", r.message);
+          await refresh();
+        });
+        return;
+      }
+      if (input === "c" && selected && selected.status === "backlog") {
+        void markReady(projectRoot, selected.id).then(async (r) => {
+          onToast(r.ok ? "ok" : "err", r.message);
+          await refresh();
+        });
+        return;
+      }
+    },
+    { isActive: active },
+  );
+
+  return (
+    <Box flexDirection="column" flexGrow={1}>
+      <Text dimColor>
+        ROADMAP · {tasks.length} task(s) · {board.columns.reduce((n, c) => n + c.tasks.length, 0)} on the board
+      </Text>
+      <Box marginTop={1} flexDirection="row">
+        {board.columns.map((col, ci) => (
+          <Box
+            key={col.id}
+            flexDirection="column"
+            marginRight={1}
+            width={Math.floor(100 / BOARD_COLUMNS.length) + "%"}
+          >
+            <Text
+              dimColor={ci !== cursor.col}
+              color={ci === cursor.col ? "cyan" : undefined}
+              bold={ci === cursor.col}
+            >
+              {col.label}{" "}
+              <Text dimColor>({col.tasks.length})</Text>
+            </Text>
+            {col.tasks.slice(0, 6).map((t, ri) => (
+              <CardRow
+                key={t.id}
+                task={t}
+                selected={ci === cursor.col && ri === cursor.row}
+              />
+            ))}
+            {col.tasks.length > 6 ? (
+              <Text dimColor>… {col.tasks.length - 6} more</Text>
+            ) : null}
+          </Box>
+        ))}
+      </Box>
+      <Box marginTop={1} flexDirection="column">
+        <Text dimColor>DETAIL</Text>
+        {selected ? <TaskDetail task={selected} /> : <Text dimColor>(no task selected)</Text>}
+      </Box>
+      {ui.pendingDeleteTaskId ? (
+        <Box marginTop={1}>
+          <Text color="yellow">
+            confirm delete of {ui.pendingDeleteTaskId}? press y to confirm,
+            any other key to cancel.
+          </Text>
+        </Box>
+      ) : null}
+      {ui.formOpen ? (
+        <Box marginTop={1}>
+          <TaskForm
+            form={form}
+            dispatch={dispatchForm}
+            onSubmit={submit}
+            onCancel={closeForm}
+            onEditDescription={handleEditDescription}
+          />
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
+function CardRow({ task, selected }: { task: Task; selected: boolean }) {
+  const titleRaw = task.title.length > 28 ? task.title.slice(0, 27) + "…" : task.title;
+  return (
+    <Box>
+      <Text color={selected ? "cyan" : undefined}>
+        {selected ? "›" : " "}
+      </Text>
+      <Text inverse={selected}>
+        <Text> {titleRaw}</Text>
+        <Text dimColor> {task.priority[0]}</Text>
+        {task.effort ? <Text dimColor>·{task.effort[0]}</Text> : null}
+        {task.readOnly ? <Text dimColor>·ro</Text> : null}
+      </Text>
+    </Box>
+  );
+}
+
+function TaskDetail({ task }: { task: Task }) {
+  return (
+    <Box flexDirection="column">
+      <Box>
+        <Text bold>{task.title}</Text>
+        <Text dimColor>  {task.id}</Text>
+      </Box>
+      <Box>
+        <Text dimColor>status: </Text>
+        <Text>{task.status}</Text>
+        <Text dimColor>   priority: </Text>
+        <Text>{task.priority}</Text>
+        {task.effort ? (
+          <>
+            <Text dimColor>   effort: </Text>
+            <Text>{task.effort}</Text>
+          </>
+        ) : null}
+        {task.providerOverride ? (
+          <>
+            <Text dimColor>   provider: </Text>
+            <Text>{task.providerOverride}</Text>
+          </>
+        ) : null}
+        {task.readOnly ? <Text color="yellow">   read-only</Text> : null}
+      </Box>
+      {task.description ? (
+        <Box marginTop={1} flexDirection="column">
+          {task.description
+            .split("\n")
+            .slice(0, 6)
+            .map((line, i) => (
+              <Text key={i}>{line}</Text>
+            ))}
+          {task.description.split("\n").length > 6 ? (
+            <Text dimColor>
+              … {task.description.split("\n").length - 6} more lines (press e and
+              D to edit in $EDITOR)
+            </Text>
+          ) : null}
+        </Box>
+      ) : null}
+      {task.runIds.length > 0 ? (
+        <Box marginTop={1}>
+          <Text dimColor>runs: </Text>
+          <Text>{task.runIds.join(", ")}</Text>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}

@@ -88,4 +88,20 @@ describe("RoadmapService", () => {
     // run id is preserved in history.
     expect(cleared.runIds).toContain("20260509-r1");
   });
+
+  it("deleteTask removes the task when not linked to an active run", async () => {
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const t = await svc.addTask({ title: "drop me" });
+    await svc.deleteTask(t.id);
+    expect(await svc.getTask(t.id)).toBeNull();
+  });
+
+  it("deleteTask refuses to remove a task currently linked to a run", async () => {
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const t = await svc.addTask({ title: "linked" });
+    await svc.setTaskRun({ taskId: t.id, runId: "run-1" });
+    await expect(svc.deleteTask(t.id)).rejects.toThrow(/active run/);
+  });
 });

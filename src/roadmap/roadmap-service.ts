@@ -249,6 +249,22 @@ export class RoadmapService {
     return next;
   }
 
+  /**
+   * Delete a task. Refuses to delete a task that is currently linked
+   * to a non-terminal run — call abort first. Used by the interactive
+   * panel; the store already exposes the lower-level passthrough.
+   */
+  async deleteTask(id: string): Promise<void> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    if (t.currentRunId) {
+      throw new RoadmapServiceError(
+        `Task "${id}" is linked to active run ${t.currentRunId}; abort the run before deleting.`,
+      );
+    }
+    await this.store.deleteTask(id);
+  }
+
   async clearTaskCurrentRun(taskId: string, finalStatus: TaskStatus): Promise<Task> {
     const t = await this.store.getTask(taskId);
     if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
