@@ -121,10 +121,7 @@ export function RunDetailPage({
         onOpenGit={() => navigate({ kind: "git", runId })}
         onOpenTask={(tid) => navigate({ kind: "task", taskId: tid })}
       />
-      <div className="flex items-center gap-2 border-b border-amaco-border bg-amaco-panel/40 px-4 py-1">
-        <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-          run worktree freshness
-        </span>
+      <div className="flex items-center justify-end gap-2 border-b border-amaco-border bg-amaco-panel/40 px-4 py-0.5">
         <FreshnessIndicator freshness={freshness} />
       </div>
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -141,10 +138,13 @@ export function RunDetailPage({
               }}
             />
           ) : null}
-          {/* Active agent first — it's what the user wants to see when
-           * they open a running task. Workflow + metrics + history
-           * follow. Run control sits at the bottom so it's available
-           * but doesn't compete with status for the top fold. */}
+          {/* Main column is "what is happening right now": who's
+           * running, what they're saying, where we are in the flow,
+           * and the event log. Metrics / validation / changed files /
+           * diff / artifacts all live in the bottom inspector drawer
+           * so the main column stays focused on the live execution
+           * story. Run control sits at the very bottom so it's
+           * available without competing with status for the fold. */}
           <ActiveAgentCard
             status={run.status}
             agents={metrics?.agents ?? []}
@@ -154,38 +154,43 @@ export function RunDetailPage({
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}
           />
-          <ValidationSummary runId={runId} />
-          <MetricsDashboard metrics={metrics} />
           <EventStream runId={runId} onSelect={handleSelectEvent} />
-          <ChangedFilesListSection
-            runId={runId}
-            selectedFile={selectedFile}
-            onSelect={handleSelectFile}
-          />
           <RunControlPanel runId={runId} status={run.status} />
         </section>
         <InspectorPanel activeTab={tab} onChangeTab={setTab}>
           {tab === "diff" ? (
-            <DiffViewer
-              runId={runId}
-              filePath={selectedFile}
-              onOpenInProject={(p) =>
-                navigate({
-                  kind: "codebase",
-                  filePath: p,
-                  line: null,
-                  runId: null,
-                })
-              }
-              onOpenInWorktree={(p) =>
-                navigate({
-                  kind: "codebase",
-                  filePath: p,
-                  line: null,
-                  runId,
-                })
-              }
-            />
+            <div className="space-y-2">
+              {/* Changed-files picker moved into the drawer alongside
+               * the viewer — clicking a row updates the selected
+               * file, which the viewer below renders. */}
+              <div className="rounded border border-amaco-border bg-amaco-panel p-2">
+                <ChangedFilesList
+                  runId={runId}
+                  selectedPath={selectedFile}
+                  onSelect={handleSelectFile}
+                />
+              </div>
+              <DiffViewer
+                runId={runId}
+                filePath={selectedFile}
+                onOpenInProject={(p) =>
+                  navigate({
+                    kind: "codebase",
+                    filePath: p,
+                    line: null,
+                    runId: null,
+                  })
+                }
+                onOpenInWorktree={(p) =>
+                  navigate({
+                    kind: "codebase",
+                    filePath: p,
+                    line: null,
+                    runId,
+                  })
+                }
+              />
+            </div>
           ) : tab === "artifact" ? (
             <div className="space-y-2">
               <ArtifactList
@@ -246,22 +251,3 @@ export function RunDetailPage({
   );
 }
 
-function ChangedFilesListSection({
-  runId,
-  selectedFile,
-  onSelect,
-}: {
-  runId: string;
-  selectedFile: string | null;
-  onSelect: (p: string) => void;
-}) {
-  return (
-    <div className="rounded border border-amaco-border bg-amaco-panel p-3">
-      <ChangedFilesList
-        runId={runId}
-        selectedPath={selectedFile}
-        onSelect={onSelect}
-      />
-    </div>
-  );
-}
