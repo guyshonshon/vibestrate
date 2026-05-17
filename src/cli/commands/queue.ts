@@ -5,6 +5,10 @@ import { RunQueue } from "../../scheduler/run-queue.js";
 import { runSchedulerLoop } from "../../scheduler/scheduler-service.js";
 import { ConflictsStore } from "../../scheduler/conflict-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
+import {
+  acquireLock,
+  releaseLock,
+} from "../../scheduler/scheduler-lock.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isAmacoError } from "../../utils/errors.js";
 import { nowIso } from "../../utils/time.js";
@@ -72,8 +76,37 @@ async function cmdAdd(
 }
 
 async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
+  let acquired = false;
+  let projectRoot: string | null = null;
   try {
     const { root } = await context();
+    projectRoot = root;
+    // Refuse to start a second scheduler in the same project. Two
+    // loops competing for the same queue would double-pick tasks.
+    const lock = await acquireLock(root);
+    if (!lock.ok) {
+      console.error(
+        `${symbol.fail()} Another scheduler is already running for this project.`,
+      );
+      console.error(
+        indent(
+          `held by pid ${color.bold(String(lock.holder.pid))} on ${color.bold(lock.holder.host)} since ${lock.holder.startedAt}.`,
+        ),
+      );
+      console.error(
+        indent(
+          `If you believe it crashed, delete ${color.bold(".amaco/scheduler/lock")} and re-run.`,
+        ),
+      );
+      return 1;
+    }
+    acquired = true;
+    if (lock.reclaimed) {
+      console.log(
+        `${symbol.warn()} Reclaimed a stale lock from a crashed scheduler.`,
+      );
+    }
+
     const loaded = await loadConfig(root);
     console.log(
       `${symbol.ok()} Scheduler started. maxConcurrentRuns=${loaded.config.scheduler.maxConcurrentRuns}, queuePolicy=${loaded.config.scheduler.queuePolicy}, conflictPolicy=${loaded.config.scheduler.conflictPolicy}.`,
@@ -105,6 +138,10 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
       `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
+  } finally {
+    if (acquired && projectRoot) {
+      await releaseLock(projectRoot).catch(() => undefined);
+    }
   }
 }
 

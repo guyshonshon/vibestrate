@@ -76,7 +76,7 @@ export async function ensureSchedulerRunning(input: {
   }
   try {
     const bin = resolveAmacoBin();
-    const logFd = await openLogForAppend(input.projectRoot);
+    const logFd = openLogForAppend(input.projectRoot);
     const child = spawn(process.execPath, [bin, "queue", "run"], {
       cwd: input.projectRoot,
       env: {

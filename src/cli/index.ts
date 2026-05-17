@@ -161,10 +161,20 @@ program
   .description("Start the local supervisor dashboard for this project.")
   .option("--port <port>", "port to bind (default 4317)", (v) => parseInt(v, 10))
   .option("--open", "open the dashboard in your browser after starting")
-  .action(async (opts: { port?: number; open?: boolean }) => {
-    const code = await runUiCommand({ port: opts.port, open: opts.open });
-    process.exit(code);
-  });
+  .option(
+    "--no-scheduler",
+    "don't start the managed scheduler subprocess (default: on; the UI owns its lifecycle).",
+  )
+  .action(
+    async (opts: { port?: number; open?: boolean; scheduler?: boolean }) => {
+      const code = await runUiCommand({
+        port: opts.port,
+        open: opts.open,
+        scheduler: opts.scheduler,
+      });
+      process.exit(code);
+    },
+  );
 
 program
   .command("status")
