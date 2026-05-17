@@ -78,6 +78,8 @@ export type OrchestratorInput = {
    * (deduped) with the agent's configured skill list. Empty / omitted
    * means "use the agent's configured skills only". */
   runtimeSkills?: string[];
+  /** Brevity directive applied to every agent prompt for this run. */
+  concise?: boolean;
 };
 
 export type OrchestratorOutput = {
@@ -165,6 +167,7 @@ export class Orchestrator {
   private readonly providerOverride: string | null;
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
+  private readonly concise: boolean;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -178,6 +181,7 @@ export class Orchestrator {
     this.providerOverride = input.providerOverride ?? null;
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
+    this.concise = input.concise ?? false;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -240,6 +244,7 @@ export class Orchestrator {
       providerOverride: this.providerOverride,
       resolvedProviderId: resolution.providerId,
       runtimeSkills: this.runtimeSkills,
+      concise: this.concise,
       readOnly: this.readOnly,
     };
     await stateStore.write(state);
@@ -1288,6 +1293,7 @@ export class Orchestrator {
       branchName: ctx.branchName,
       projectName: this.config.project.name,
       validationResults: input.validationResults,
+      concise: this.concise,
       ...(controlNotes ? { additionalNotes: controlNotes } : {}),
     });
     if (pending.length > 0) {
@@ -1313,7 +1319,17 @@ export class Orchestrator {
     await ctx.eventLog.append({
       type: "agent.started",
       message: `Agent ${agentId} starting.`,
-      data: { agentId, provider: effectiveProviderId, permissions: effectivePermissions },
+      data: {
+        agentId,
+        provider: effectiveProviderId,
+        permissions: effectivePermissions,
+        // Skills attached to this agent's prompt. The provider's
+        // underlying model decides whether to use them — we can only
+        // honestly report what we made available, not what it picked.
+        skillsAttached: skills.map((s) => s.name),
+        skillsConfigured: agent.skills.slice(),
+        skillsFromRuntime: this.runtimeSkills.slice(),
+      },
     });
     await ctx.eventLog.append({
       type: "provider.started",

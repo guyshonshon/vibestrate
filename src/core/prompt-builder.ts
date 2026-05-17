@@ -21,6 +21,8 @@ export type PromptBuildInput = {
   projectName: string;
   validationResults?: ValidationResults | null;
   additionalNotes?: string;
+  /** Per-run brevity directive. Appends a short "be concise" section. */
+  concise?: boolean;
 };
 
 const COMMON_BOUNDARIES = `You are running under Amaco.
@@ -167,6 +169,23 @@ export function buildAgentPrompt(input: PromptBuildInput): string {
     sections.push(`# Additional Notes`);
     sections.push(``);
     sections.push(input.additionalNotes.trim());
+  }
+
+  if (input.concise) {
+    sections.push(``);
+    sections.push(`# Response Style: Concise`);
+    sections.push(``);
+    sections.push(
+      [
+        "The user enabled concise mode for this run. Optimize for token efficiency:",
+        "- No preamble, no recap of the prompt, no \"I'll now …\" lines.",
+        "- Prefer unified diffs to re-stating surrounding code.",
+        "- Use bullets over paragraphs when listing.",
+        "- Skip section headings inside short responses.",
+        "- Only include rationale that materially changes the decision.",
+        "- It's better to ask a one-line clarifying question than to over-explain.",
+      ].join("\n"),
+    );
   }
 
   return `${sections.join("\n")}\n`;

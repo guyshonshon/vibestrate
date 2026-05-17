@@ -24,7 +24,13 @@ import { cliFor, type UiAction } from "../../lib/cliFor.js";
 type Props = {
   active: RunState[];
   eventsByRun: Record<string, AmacoEvent[]>;
+  /** Per-runId diff summary (insertions / deletions / file count). Optional —
+   *  cards just hide the diff chip when missing. */
+  diffByRun?: Record<string, { insertions: number; deletions: number; files: number }>;
   onOpen: (runId: string) => void;
+  /** Optional deep-link variant — when provided, the diff chip uses it
+   *  to open the run with the Diff inspector tab already active. */
+  onOpenDiff?: (runId: string) => void;
 };
 
 /**
@@ -33,7 +39,13 @@ type Props = {
  * decision/event, "what it's waiting on" line. When there are no
  * active runs, a substantive empty state explains how to start one.
  */
-export function ExecutionCanvas({ active, eventsByRun, onOpen }: Props) {
+export function ExecutionCanvas({
+  active,
+  eventsByRun,
+  diffByRun,
+  onOpen,
+  onOpenDiff,
+}: Props) {
   return (
     <section
       role="region"
@@ -55,7 +67,11 @@ export function ExecutionCanvas({ active, eventsByRun, onOpen }: Props) {
               key={r.runId}
               run={r}
               events={eventsByRun[r.runId] ?? []}
+              diff={diffByRun?.[r.runId] ?? null}
               onOpen={() => onOpen(r.runId)}
+              onOpenDiff={
+                onOpenDiff ? () => onOpenDiff(r.runId) : () => onOpen(r.runId)
+              }
             />
           ))}
         </div>
@@ -102,11 +118,15 @@ function cliItem(a: UiAction, label: string): ContextMenuItem | null {
 function RunFlowCard({
   run,
   events,
+  diff,
   onOpen,
+  onOpenDiff,
 }: {
   run: RunState;
   events: AmacoEvent[];
+  diff: { insertions: number; deletions: number; files: number } | null;
   onOpen: () => void;
+  onOpenDiff: () => void;
 }) {
   const menuItems: ContextMenuItem[] = [
     { id: "open", label: "Open run", hint: "↵", onSelect: onOpen },
@@ -219,14 +239,46 @@ function RunFlowCard({
             {live.currentAgent}
           </span>
         ) : null}
-        {run.runtimeSkills && run.runtimeSkills.length > 0 ? (
+        {live.currentSkills.length > 0 ? (
           <span
             className="inline-flex items-center gap-1 text-amaco-accent"
-            title={run.runtimeSkills.join(", ")}
+            title={`Skills attached to the current agent's prompt:\n${live.currentSkills.join("\n")}\n\n(The provider's model decides whether to actually use them — we surface what was made available.)`}
           >
             <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-            +{run.runtimeSkills.length} skill{run.runtimeSkills.length === 1 ? "" : "s"}
+            {live.currentSkills.length === 1
+              ? live.currentSkills[0]
+              : `${live.currentSkills.length} skills`}
           </span>
+        ) : run.runtimeSkills && run.runtimeSkills.length > 0 ? (
+          <span
+            className="inline-flex items-center gap-1 text-amaco-fg-muted"
+            title={`Run-wide skill attachments (will surface on the next agent):\n${run.runtimeSkills.join("\n")}`}
+          >
+            <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            +{run.runtimeSkills.length} pending
+          </span>
+        ) : null}
+        {run.concise ? (
+          <span
+            className="amaco-mono rounded border border-amaco-accent/40 bg-amaco-accent/10 px-1 text-[9.5px] text-amaco-accent"
+            title="Concise mode: agents asked to prefer diffs, bullets, no preamble."
+          >
+            concise
+          </span>
+        ) : null}
+        {diff && (diff.insertions > 0 || diff.deletions > 0) ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDiff();
+            }}
+            className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1 text-[10px] text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
+            title={`${diff.files} file(s) changed · click to open Diff inspector`}
+          >
+            <span className="text-amaco-success">+{diff.insertions}</span>
+            <span className="text-amaco-fail">−{diff.deletions}</span>
+          </button>
         ) : null}
         <span className="ml-auto">{elapsed}</span>
       </div>
@@ -335,10 +387,12 @@ function StatusPill({ status }: { status: RunStatus }) {
 function deriveLive(events: AmacoEvent[]): {
   currentAgent: string | null;
   currentProvider: string | null;
+  currentSkills: string[];
   lastEvent: AmacoEvent | null;
 } {
   let agent: string | null = null;
   let provider: string | null = null;
+  let skills: string[] = [];
   let last: AmacoEvent | null = null;
   for (const ev of events) {
     last = ev;
@@ -352,6 +406,12 @@ function deriveLive(events: AmacoEvent[]): {
         ev.data && typeof ev.data.provider === "string"
           ? (ev.data.provider as string)
           : null;
+      skills =
+        ev.data && Array.isArray(ev.data.skillsAttached)
+          ? (ev.data.skillsAttached as unknown[]).filter(
+              (s): s is string => typeof s === "string",
+            )
+          : [];
     }
     if (
       (ev.type === "agent.completed" || ev.type === "agent.failed") &&
@@ -359,9 +419,15 @@ function deriveLive(events: AmacoEvent[]): {
     ) {
       agent = null;
       provider = null;
+      skills = [];
     }
   }
-  return { currentAgent: agent, currentProvider: provider, lastEvent: last };
+  return {
+    currentAgent: agent,
+    currentProvider: provider,
+    currentSkills: skills,
+    lastEvent: last,
+  };
 }
 
 function describeWaiting(status: RunStatus, error: string | null): string | null {

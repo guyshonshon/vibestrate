@@ -58,6 +58,7 @@ const spawnRunBody = z.object({
     .array(z.string().min(1).max(128).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/))
     .max(64)
     .optional(),
+  concise: z.boolean().optional(),
 });
 
 function resolveAmacoBin(): string {
@@ -117,6 +118,7 @@ export async function registerRunsRoutes(
     if (body.skills && body.skills.length > 0) {
       argv.push("--skills", body.skills.join(","));
     }
+    if (body.concise) argv.push("--concise");
     const bin = resolveAmacoBin();
     try {
       const child = spawn(process.execPath, [bin, ...argv], {

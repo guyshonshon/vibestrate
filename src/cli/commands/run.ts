@@ -50,6 +50,8 @@ export type RunCommandOptions = {
   autoEffort?: boolean;
   /** Skill ids attached only for this run, merged into agent.skills. */
   runtimeSkills?: string[];
+  /** Brevity directive applied to every agent prompt for this run. */
+  concise?: boolean;
 };
 
 export async function runRunCommand(
@@ -223,6 +225,7 @@ export async function runRunCommand(
     providerOverride,
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
+    concise: options.concise ?? false,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {

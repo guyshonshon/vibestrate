@@ -183,6 +183,9 @@ export function App() {
           onShowRunsList={() => navigate({ kind: "runs" })}
           onShowSettings={() => navigate({ kind: "settings" })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+          onShowRunDiff={(runId) =>
+            navigate({ kind: "run", runId, tab: "diff" })
+          }
         />
       ) : route.kind === "runs" ? (
         <RunsPage

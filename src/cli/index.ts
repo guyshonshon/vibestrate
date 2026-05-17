@@ -109,6 +109,10 @@ program
     "--skills <list>",
     "comma-separated skill ids to attach to every agent for this single run (merged with each agent's configured skills).",
   )
+  .option(
+    "--concise",
+    "ask agents to produce token-efficient output (prefer diffs, bullets, no preamble).",
+  )
   .action(
     async (
       taskParts: string[],
@@ -121,6 +125,7 @@ program
         readOnly?: boolean;
         autoEffort?: boolean;
         skills?: string;
+        concise?: boolean;
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -145,6 +150,7 @@ program
         readOnly: opts.readOnly ?? false,
         autoEffort: opts.autoEffort ?? false,
         runtimeSkills,
+        concise: opts.concise ?? false,
       });
       process.exit(code);
     },

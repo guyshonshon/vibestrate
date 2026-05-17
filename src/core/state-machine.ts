@@ -84,6 +84,10 @@ export const runStateSchema = z.object({
   // "use only the agent's configured skills". Survives round-trip on
   // older records that predate this field.
   runtimeSkills: z.array(z.string()).default([]),
+  // Per-run concise-mode flag. When true, every agent's prompt
+  // includes a brevity directive: prefer diffs over re-stating
+  // surrounding code, bullets over paragraphs, no preamble.
+  concise: z.boolean().default(false),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -201,6 +205,7 @@ export function createInitialState(input: {
     resolvedProviderId: null,
     readOnly: false,
     runtimeSkills: [],
+    concise: false,
   };
 }
 
