@@ -19,8 +19,12 @@ import { useProjectConfig } from "./hooks/useProjectConfig.js";
 import { useSkills } from "./hooks/useSkills.js";
 import { useApprovals } from "./hooks/useApprovals.js";
 import { useSuggestions } from "./hooks/useSuggestions.js";
+import { useNotifications } from "./hooks/useNotifications.js";
+import { useDoctor } from "./hooks/useDoctor.js";
 import { ApprovalsPage } from "./pages/ApprovalsPage.js";
 import { SuggestionsPage } from "./pages/SuggestionsPage.js";
+import { NotificationsPage } from "./pages/NotificationsPage.js";
+import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Frame, Rule } from "./components/Frame.js";
@@ -42,10 +46,7 @@ type Props = {
   refreshMs?: number;
 };
 
-const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  notifications: "Phase 7",
-  doctor: "Phase 7",
-};
+const FUTURE_PHASES: Partial<Record<PageId, string>> = {};
 
 export function App({ projectRoot, refreshMs }: Props) {
   const [ui, dispatch] = useReducer(reduceShellUi, initialUiState);
@@ -64,6 +65,16 @@ export function App({ projectRoot, refreshMs }: Props) {
   );
   const { items: suggestionItems, refresh: refreshSuggestions } =
     useSuggestions(projectRoot, snapshot);
+  const {
+    items: notifItems,
+    gateways: notifGateways,
+  } = useNotifications(projectRoot);
+  const {
+    report: doctorReport,
+    loading: doctorLoading,
+    error: doctorError,
+    refresh: refreshDoctor,
+  } = useDoctor(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -376,6 +387,32 @@ export function App({ projectRoot, refreshMs }: Props) {
                   page: "suggestions",
                   index: i,
                 })
+              }
+              active
+            />
+          ) : ui.page === "notifications" ? (
+            <NotificationsPage
+              items={notifItems}
+              gateways={notifGateways}
+              selectedIndex={ui.selection.notifications ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({
+                  type: "selection.set",
+                  page: "notifications",
+                  index: i,
+                })
+              }
+              active
+            />
+          ) : ui.page === "doctor" ? (
+            <DoctorPage
+              projectRoot={projectRoot}
+              report={doctorReport}
+              loading={doctorLoading}
+              error={doctorError}
+              refresh={refreshDoctor}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
               }
               active
             />
