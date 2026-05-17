@@ -19,10 +19,7 @@ export function useNumberedNav(map: Record<string, string>) {
           target.isContentEditable);
       if (isTyping) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === "?") {
-        window.dispatchEvent(new CustomEvent("amaco:help-overlay"));
-        return;
-      }
+      // `?` is handled directly by HelpOverlay so we don't double-toggle.
       if (!/^[1-9]$/.test(e.key)) return;
       const id = map[e.key];
       if (!id) return;
