@@ -88,6 +88,28 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     disableRequestLogging: !opts.logger,
   });
 
+  // Fastify 5 rejects empty `application/json` bodies by default with
+  // "Body cannot be empty when content-type is set to 'application/json'".
+  // Several of our action routes (POST /api/runs/:id/pause, /resume,
+  // /api/queue/run, etc.) are body-less by design — let those work
+  // without forcing every caller to send `"{}"`.
+  app.addContentTypeParser(
+    "application/json",
+    { parseAs: "string" },
+    (_req, body, done) => {
+      const text = typeof body === "string" ? body : String(body ?? "");
+      if (text.trim().length === 0) {
+        done(null, {});
+        return;
+      }
+      try {
+        done(null, JSON.parse(text));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    },
+  );
+
   // Lock down to localhost: refuse forwarded host headers, allow only local origins.
   app.addHook("onRequest", async (req, reply) => {
     const origin = req.headers["origin"];
