@@ -47,10 +47,16 @@ export function RunControlPanel({
   }
 
   useEffect(() => {
+    // Skip polling entirely on terminal runs — nothing can change,
+    // and a stale runId would otherwise spam 404s into the console.
+    if (disabled) {
+      void refresh();
+      return;
+    }
     void refresh();
     const id = window.setInterval(refresh, 3000);
     return () => window.clearInterval(id);
-  }, [runId]);
+  }, [runId, disabled]);
 
   async function submitNote() {
     const body = note.trim();

@@ -424,6 +424,16 @@ export const api = {
     );
     return r.task;
   },
+  async terminateTask(taskId: string): Promise<{
+    task: Task;
+    aborted: boolean;
+    cancelled: boolean;
+    abortError: string | null;
+  }> {
+    return jsonPost(
+      `/api/tasks/${encodeURIComponent(taskId)}/terminate`,
+    );
+  },
 
   // ─── queue ────────────────────────────────────────────────────────────────
   async getQueue(): Promise<{

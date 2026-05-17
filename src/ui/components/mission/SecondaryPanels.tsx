@@ -48,6 +48,7 @@ export type SecondaryPanelsProps = {
   onOpenRun: (runId: string) => void;
   onQueueTask: (taskId: string) => Promise<void>;
   onCancelTask: (taskId: string) => Promise<void>;
+  onTerminateTask: (taskId: string) => Promise<void>;
   onApproveApproval: (a: ApprovalRequest & { runId: string }) => Promise<void>;
   onRejectApproval: (a: ApprovalRequest & { runId: string }) => Promise<void>;
   onMarkNotificationRead: (n: NotificationRecord) => Promise<void>;
@@ -110,14 +111,23 @@ export function SecondaryPanels(props: SecondaryPanelsProps) {
   }, [order, setOrder]);
 
   const [dragKey, setDragKey] = useState<PanelKey | null>(null);
+  // `hoverKey` drives the live drop-indicator: while dragging, the
+  // panel the cursor is currently over highlights as the insertion
+  // target so the user can see exactly where it will land.
+  const [hoverKey, setHoverKey] = useState<PanelKey | null>(null);
   const onPanelDrop = (target: PanelKey) => {
-    if (!dragKey || dragKey === target) return;
+    if (!dragKey || dragKey === target) {
+      setHoverKey(null);
+      setDragKey(null);
+      return;
+    }
     setOrder((cur) => {
       const next = cur.filter((k) => k !== dragKey);
       const idx = next.indexOf(target);
       next.splice(idx, 0, dragKey);
       return next;
     });
+    setHoverKey(null);
     setDragKey(null);
   };
 
@@ -132,9 +142,19 @@ export function SecondaryPanels(props: SecondaryPanelsProps) {
       isCollapsed,
       onToggleCollapse: () => toggleCollapsed(k),
       onDragStart: () => setDragKey(k),
-      onDragEnd: () => setDragKey(null),
+      onDragEnd: () => {
+        setDragKey(null);
+        setHoverKey(null);
+      },
+      onDragOver: () => {
+        if (dragKey && dragKey !== k) setHoverKey(k);
+      },
+      onDragLeave: () => {
+        if (hoverKey === k) setHoverKey(null);
+      },
       onDrop: () => onPanelDrop(k),
       isDragging: dragKey === k,
+      isHoverTarget: dragKey !== null && dragKey !== k && hoverKey === k,
     };
 
     switch (k) {
@@ -156,6 +176,7 @@ export function SecondaryPanels(props: SecondaryPanelsProps) {
                 onOpen={() => props.onOpenTask(t.id)}
                 onPrimary={() => void props.onQueueTask(t.id)}
                 onCancel={() => void props.onCancelTask(t.id)}
+                onTerminate={() => void props.onTerminateTask(t.id)}
                 primaryLabel="queue"
               />
             ))}
@@ -179,6 +200,7 @@ export function SecondaryPanels(props: SecondaryPanelsProps) {
                 onOpen={() => props.onOpenTask(t.id)}
                 onPrimary={() => void props.onQueueTask(t.id)}
                 onCancel={() => void props.onCancelTask(t.id)}
+                onTerminate={() => void props.onTerminateTask(t.id)}
                 primaryLabel="queue"
               />
             ))}
@@ -308,8 +330,11 @@ type PanelProps = {
   onToggleCollapse: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
+  onDragOver: () => void;
+  onDragLeave: () => void;
   onDrop: () => void;
   isDragging: boolean;
+  isHoverTarget: boolean;
 };
 
 const Panel = forwardRef<HTMLElement, PanelProps>(function Panel(
@@ -327,8 +352,11 @@ const Panel = forwardRef<HTMLElement, PanelProps>(function Panel(
     onToggleCollapse,
     onDragStart,
     onDragEnd,
+    onDragOver,
+    onDragLeave,
     onDrop,
     isDragging,
+    isHoverTarget,
   },
   ref,
 ) {
@@ -352,33 +380,37 @@ const Panel = forwardRef<HTMLElement, PanelProps>(function Panel(
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        onDragOver();
       }}
+      onDragLeave={onDragLeave}
       onDrop={onDrop}
-      className={`rounded-md border border-amaco-border bg-amaco-panel scroll-mt-4 focus:outline-none focus:ring-1 focus:ring-amaco-accent ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={`rounded-md border bg-amaco-panel scroll-mt-4 transition-all focus:outline-none focus:ring-1 focus:ring-amaco-accent ${
+        isHoverTarget
+          ? "border-amaco-accent ring-2 ring-amaco-accent/40"
+          : "border-amaco-border"
+      } ${isDragging ? "opacity-40 scale-[0.98]" : ""}`}
     >
-      <header className="flex items-center gap-2 border-b border-amaco-border-soft px-3 py-2">
-        <button
-          type="button"
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = "move";
-            // Required for Firefox to actually start the drag.
-            e.dataTransfer.setData("text/plain", panelKey);
-            onDragStart();
-          }}
-          onDragEnd={onDragEnd}
-          aria-label={`Drag to reorder ${title}`}
-          title="Drag to reorder"
-          className="cursor-grab text-amaco-fg-muted hover:text-amaco-fg active:cursor-grabbing"
+      <header
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", panelKey);
+          onDragStart();
+        }}
+        onDragEnd={onDragEnd}
+        title="Drag to reorder · click the chevron to collapse"
+        className="flex cursor-grab items-center gap-2 border-b border-amaco-border-soft px-3 py-2 active:cursor-grabbing"
+      >
+        <span
+          aria-label={`Drag handle for ${title}`}
+          className="text-amaco-fg-muted hover:text-amaco-fg"
         >
           <GripVertical
             className="h-3.5 w-3.5"
             strokeWidth={1.5}
             aria-hidden
           />
-        </button>
+        </span>
         <span
           aria-hidden
           className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[10px] text-amaco-fg-muted"
@@ -388,7 +420,11 @@ const Panel = forwardRef<HTMLElement, PanelProps>(function Panel(
         </span>
         <button
           type="button"
-          onClick={onToggleCollapse}
+          draggable={false}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse();
+          }}
           aria-expanded={!isCollapsed}
           aria-controls={`${id}-body`}
           className={`flex flex-1 items-center gap-1.5 text-left ${headerTone} hover:text-amaco-fg`}
@@ -445,18 +481,27 @@ function TaskRow({
   onOpen,
   onPrimary,
   onCancel,
+  onTerminate,
   primaryLabel,
 }: {
   task: Task;
   onOpen: () => void;
   onPrimary: () => void;
   onCancel: () => void;
+  onTerminate: () => void;
   primaryLabel: string;
 }) {
   const items: ContextMenuItem[] = [
     { id: "open", label: "Open task", hint: "↵", onSelect: onOpen },
     { id: "primary", label: "Queue task", tone: "accent", onSelect: onPrimary },
     { id: "cancel", label: "Cancel task", tone: "danger", onSelect: onCancel },
+    {
+      id: "terminate",
+      label: "Terminate (force)",
+      tone: "danger",
+      hint: "abort + cancel",
+      onSelect: onTerminate,
+    },
     { id: "div-cli", label: "divider:" },
     {
       id: "copy-id",
