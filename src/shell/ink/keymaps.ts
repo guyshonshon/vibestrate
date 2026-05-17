@@ -21,6 +21,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "p", label: "pause" },
           { key: "r", label: "resume" },
           { key: "a", label: "abort" },
+          { key: "R", label: "re-run" },
         ]},
       ];
     case "roadmap":

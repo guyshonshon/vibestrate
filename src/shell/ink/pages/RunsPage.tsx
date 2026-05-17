@@ -71,6 +71,11 @@ function RunsList({
   return (
     <Box {...CARD_PROPS} flexDirection="column">
       <Text dimColor>runs   ({runs.length})</Text>
+      <Text dimColor>
+        a <Text color="cyan">run</Text> is one execution of a task — open
+        Roadmap <Text color="cyan">[3]</Text> to start one, or press{" "}
+        <Text color="cyan">R</Text> on a finished run to retry.
+      </Text>
       <Box marginTop={1} flexDirection="column">
         {runs.length === 0 ? (
           <Text dimColor>
@@ -196,6 +201,9 @@ function TabStrip({ current }: { current: RunInspectorTab }) {
 }
 
 function OverviewSection({ row }: { row: ShellRunRow }) {
+  const isTerminal = ["merge_ready", "failed", "aborted", "blocked"].includes(
+    row.status,
+  );
   return (
     <Box flexDirection="column">
       <Box flexDirection="row" flexWrap="wrap">
@@ -213,31 +221,82 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           <Field label="paused at" value={row.pausedAtStatus} />
         ) : null}
       </Box>
-      <Box marginTop={1}>
-        {row.currentAgent ? (
+
+      {/* Terminal runs answer "why" first, then who. Active runs lead
+          with the current agent. */}
+      {isTerminal ? (
+        <Box marginTop={1} flexDirection="column">
+          {row.error ? (
+            <Text>
+              <Text color="red">why    </Text>
+              <Text>{row.error}</Text>
+            </Text>
+          ) : null}
+          {row.finalDecision ? (
+            <Text>
+              <Text dimColor>review </Text>
+              <Text>{row.finalDecision}</Text>
+            </Text>
+          ) : null}
+          {row.verification ? (
+            <Text>
+              <Text dimColor>verify </Text>
+              <Text>{row.verification}</Text>
+            </Text>
+          ) : null}
           <Text>
-            <Text dimColor>current  </Text>
-            <Text color="cyan">{row.currentAgent}</Text>
-            {row.currentProvider ? (
-              <Text dimColor>   via {row.currentProvider}</Text>
-            ) : null}
+            <Text dimColor>agent  </Text>
+            <Text color="cyan">{row.lastAgent ?? "—"}</Text>
+            {row.lastAgent ? <Text dimColor>   (last to run)</Text> : null}
           </Text>
-        ) : (
-          <Text dimColor>no active agent</Text>
-        )}
-      </Box>
-      {row.currentSkills.length > 0 ? (
-        <Text>
-          <Text dimColor>skills   </Text>
-          <Text>{row.currentSkills.join(", ")}</Text>
-        </Text>
-      ) : null}
-      {row.currentMcpServers.length > 0 ? (
-        <Text>
-          <Text dimColor>mcp      </Text>
-          <Text>{row.currentMcpServers.join(", ")}</Text>
-        </Text>
-      ) : null}
+          <Box marginTop={1}>
+            <Text dimColor>
+              press <Text color="cyan">R</Text> to re-run as a fresh{" "}
+              <Text color="cyan">amaco run</Text>{" "}
+              {row.taskId ? (
+                <Text>(linked to {row.taskId})</Text>
+              ) : (
+                <Text>(no task link — starts a new ad-hoc run)</Text>
+              )}
+            </Text>
+          </Box>
+        </Box>
+      ) : (
+        <>
+          <Box marginTop={1}>
+            {row.currentAgent ? (
+              <Text>
+                <Text dimColor>current  </Text>
+                <Text color="cyan">{row.currentAgent}</Text>
+                {row.currentProvider ? (
+                  <Text dimColor>   via {row.currentProvider}</Text>
+                ) : null}
+              </Text>
+            ) : row.lastAgent ? (
+              <Text>
+                <Text dimColor>last     </Text>
+                <Text color="cyan">{row.lastAgent}</Text>
+                <Text dimColor>   (between agents)</Text>
+              </Text>
+            ) : (
+              <Text dimColor>no active agent yet</Text>
+            )}
+          </Box>
+          {row.currentSkills.length > 0 ? (
+            <Text>
+              <Text dimColor>skills   </Text>
+              <Text>{row.currentSkills.join(", ")}</Text>
+            </Text>
+          ) : null}
+          {row.currentMcpServers.length > 0 ? (
+            <Text>
+              <Text dimColor>mcp      </Text>
+              <Text>{row.currentMcpServers.join(", ")}</Text>
+            </Text>
+          ) : null}
+        </>
+      )}
+
       <Box marginTop={1}>
         <Text dimColor>
           {row.pendingApprovals} pending approval(s) ·{" "}

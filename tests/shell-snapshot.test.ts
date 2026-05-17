@@ -87,7 +87,7 @@ describe("buildShellSnapshot", () => {
     expect(row.currentMcpServers).toEqual(["fs", "sec"]);
   });
 
-  it("clears currentAgent when an agent.completed follows", async () => {
+  it("clears currentAgent when an agent.completed follows but keeps lastAgent", async () => {
     await writeRun(root, "run-1", { status: "reviewing" });
     await appendEvent(root, "run-1", {
       type: "agent.started",
@@ -101,6 +101,33 @@ describe("buildShellSnapshot", () => {
     });
     const snap = await buildShellSnapshot(root);
     expect(snap.runs[0]!.currentAgent).toBeNull();
+    // lastAgent is sticky — terminal/between-agent runs still surface
+    // "who was here last".
+    expect(snap.runs[0]!.lastAgent).toBe("executor");
+  });
+
+  it("surfaces failure context on terminal runs (error + lastAgent + decisions)", async () => {
+    await writeRun(root, "run-1", {
+      status: "failed",
+      error: "validate step exited 1",
+      finalDecision: "BLOCKED",
+      verification: null,
+    });
+    await appendEvent(root, "run-1", {
+      type: "agent.started",
+      message: "x",
+      data: { agentId: "verifier", provider: "claude-code" },
+    });
+    await appendEvent(root, "run-1", {
+      type: "agent.failed",
+      message: "verifier returned non-zero",
+      data: { agentId: "verifier" },
+    });
+    const snap = await buildShellSnapshot(root);
+    const row = snap.runs[0]!;
+    expect(row.lastAgent).toBe("verifier");
+    expect(row.error).toBe("validate step exited 1");
+    expect(row.finalDecision).toBe("BLOCKED");
   });
 
   it("surfaces effort + readOnly + pause flags from state.json", async () => {

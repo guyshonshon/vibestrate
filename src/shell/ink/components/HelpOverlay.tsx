@@ -23,6 +23,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["p", "pause the selected run"],
       ["r", "resume the selected run"],
       ["a", "abort the selected run (asks y / N)"],
+      ["R", "re-run as a fresh `amaco run` (preserves the original on disk)"],
     ],
   },
   {

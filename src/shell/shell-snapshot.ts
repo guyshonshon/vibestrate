@@ -63,6 +63,20 @@ export type ShellRunRow = {
   /** Pending approvals / suggestions for this run (best-effort). */
   pendingApprovals: number;
   pendingSuggestions: number;
+  /**
+   * The last agent that ran, kept even after the run finished. Lets
+   * terminal runs (failed/aborted/merge_ready) still surface "the
+   * fixer was working on this" in the Overview pane.
+   */
+  lastAgent: string | null;
+  /**
+   * Human-readable failure reason for terminal/blocked runs. Drawn
+   * from state.error first, then the last failed event's message.
+   */
+  error: string | null;
+  /** From the run's state.json — handy on the Overview for finished runs. */
+  finalDecision: string | null;
+  verification: string | null;
 };
 
 export type ShellActivityEntry = {
@@ -158,6 +172,12 @@ export async function buildShellSnapshot(
       ...live,
       pendingApprovals,
       pendingSuggestions,
+      // state.error wins over the first failed event message (the
+      // orchestrator stamps state.error with the final cause), but
+      // fall back to the event when state.error is null.
+      error: s.error ?? live.errorFromEvents,
+      finalDecision: s.finalDecision ?? null,
+      verification: s.verification ?? null,
     });
     recentEvents[s.runId] = events;
   }
@@ -328,11 +348,17 @@ function deriveLive(events: ShellEvent[]): {
   currentSkills: string[];
   currentMcpServers: string[];
   lastEvent: ShellEvent | null;
+  /** Last agent that ran (kept after completion so terminal runs still show it). */
+  lastAgent: string | null;
+  /** First failure/blocked event message (most useful for "why"). */
+  errorFromEvents: string | null;
 } {
   let currentAgent: string | null = null;
   let currentProvider: string | null = null;
   let currentSkills: string[] = [];
   let currentMcpServers: string[] = [];
+  let lastAgent: string | null = null;
+  let errorFromEvents: string | null = null;
   for (const ev of events) {
     const agentId =
       ev.data && typeof ev.data.agentId === "string"
@@ -340,6 +366,7 @@ function deriveLive(events: ShellEvent[]): {
         : null;
     if (ev.type === "agent.started" && agentId) {
       currentAgent = agentId;
+      lastAgent = agentId;
       currentProvider =
         ev.data && typeof ev.data.provider === "string"
           ? (ev.data.provider as string)
@@ -370,6 +397,18 @@ function deriveLive(events: ShellEvent[]): {
     ) {
       currentSkills = [...new Set([...currentSkills, ev.data.skillName as string])];
     }
+    // Track the first failure/blocked message so the Overview can
+    // answer "why did it fail" without forcing the user to scroll
+    // through the events tail.
+    if (
+      !errorFromEvents &&
+      (ev.type === "agent.failed" ||
+        ev.type === "provider.failed" ||
+        ev.type === "run.failed" ||
+        ev.type === "run.aborted")
+    ) {
+      errorFromEvents = ev.message || ev.type;
+    }
   }
   return {
     currentAgent,
@@ -377,6 +416,8 @@ function deriveLive(events: ShellEvent[]): {
     currentSkills,
     currentMcpServers,
     lastEvent: events.length > 0 ? events[events.length - 1] ?? null : null,
+    lastAgent,
+    errorFromEvents,
   };
 }
 

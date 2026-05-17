@@ -347,6 +347,30 @@ export function App({ projectRoot, refreshMs }: Props) {
         });
         return;
       }
+      // Capital R re-runs the selected run as a fresh `amaco run`.
+      // The original run state is preserved on disk so the user can
+      // still inspect the failure; the new run gets its own runId.
+      if (input === "R" && selectedRun) {
+        const argv: string[] = ["run"];
+        if (selectedRun.taskId) {
+          argv.push("--task", selectedRun.taskId);
+        }
+        if (selectedRun.effort) argv.push("--effort", selectedRun.effort);
+        if (selectedRun.providerOverride) {
+          argv.push("--provider", selectedRun.providerOverride);
+        }
+        if (selectedRun.readOnly) argv.push("--read-only");
+        argv.push(selectedRun.task);
+        const { pid } = spawnAmacoDetached({ projectRoot, argv });
+        dispatch({
+          type: "toast.push",
+          kind: "ok",
+          message: `Re-running ${selectedRun.runId} → spawned amaco ${argv
+            .map((a) => (a.includes(" ") ? JSON.stringify(a) : a))
+            .join(" ")} (pid ${pid ?? "—"}).`,
+        });
+        return;
+      }
     }
   });
 
