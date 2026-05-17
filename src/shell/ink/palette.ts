@@ -40,7 +40,9 @@ export type PaletteCommand = {
     | { kind: "resume-run" }
     | { kind: "abort-run" }
     | { kind: "open-help" }
-    | { kind: "quit" };
+    | { kind: "quit" }
+    | { kind: "pause-scheduler" }
+    | { kind: "resume-scheduler" };
 };
 
 export const DEFAULT_PALETTE: PaletteCommand[] = [
@@ -173,6 +175,25 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
       "amaco doctor --json                 # JSON for scripting",
     ],
     action: { kind: "goto", page: "doctor" },
+  },
+  {
+    id: "scheduler.pause",
+    title: "Pause scheduler",
+    hint: "stops launching new tasks; in-flight runs continue",
+    keywords: ["queue", "halt"],
+    description:
+      "Sets `paused=true` on the scheduler state. New tasks won't launch; in-flight runs keep running. Resume to drain the queue again.",
+    cli: "amaco queue pause",
+    action: { kind: "pause-scheduler" },
+  },
+  {
+    id: "scheduler.resume",
+    title: "Resume scheduler",
+    hint: "clears paused; queue starts draining again",
+    keywords: ["queue", "start"],
+    description: "Clears the scheduler's `paused` flag so queued tasks launch again.",
+    cli: "amaco queue resume",
+    action: { kind: "resume-scheduler" },
   },
   {
     id: "run.pause",

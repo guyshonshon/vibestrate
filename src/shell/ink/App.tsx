@@ -11,6 +11,8 @@ import { HelpOverlay } from "./components/HelpOverlay.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
+import { QueuePage } from "./pages/QueuePage.js";
+import { useConflicts } from "./hooks/useConflicts.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Frame, Rule } from "./components/Frame.js";
@@ -24,6 +26,7 @@ import {
 } from "./ui-state.js";
 import { useSnapshot } from "./hooks/useSnapshot.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
+import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";
 
 type Props = {
@@ -32,7 +35,6 @@ type Props = {
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  queue: "Phase 4",
   agents: "Phase 5",
   skills: "Phase 5",
   approvals: "Phase 6",
@@ -45,6 +47,7 @@ export function App({ projectRoot, refreshMs }: Props) {
   const [ui, dispatch] = useReducer(reduceShellUi, initialUiState);
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
   const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
+  const { warnings, refresh: refreshWarnings } = useConflicts(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -113,6 +116,26 @@ export function App({ projectRoot, refreshMs }: Props) {
         );
         return;
       }
+      case "pause-scheduler":
+        void pauseScheduler(projectRoot).then(async (r) => {
+          dispatch({
+            type: "toast.push",
+            kind: r.ok ? "ok" : "err",
+            message: r.message,
+          });
+          await refresh();
+        });
+        return;
+      case "resume-scheduler":
+        void resumeScheduler(projectRoot).then(async (r) => {
+          dispatch({
+            type: "toast.push",
+            kind: r.ok ? "ok" : "err",
+            message: r.message,
+          });
+          await refresh();
+        });
+        return;
     }
   };
 
@@ -274,6 +297,22 @@ export function App({ projectRoot, refreshMs }: Props) {
               closeForm={() => dispatch({ type: "roadmap.form.close" })}
               setPendingDelete={(id) =>
                 dispatch({ type: "roadmap.confirm.delete", taskId: id })
+              }
+              active
+            />
+          ) : ui.page === "queue" ? (
+            <QueuePage
+              projectRoot={projectRoot}
+              snapshot={snapshot}
+              warnings={warnings}
+              refreshSnapshot={refresh}
+              refreshWarnings={refreshWarnings}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.queue ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "queue", index: i })
               }
               active
             />

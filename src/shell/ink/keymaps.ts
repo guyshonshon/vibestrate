@@ -38,6 +38,13 @@ export function keymapForPage(page: PageId): HintGroup[] {
         ]},
       ];
     case "queue":
+      return [
+        { name: "Move", hints: [{ key: "↑↓", label: "task" }] },
+        { name: "Actions", hints: [
+          { key: "p", label: "pause/resume scheduler" },
+          { key: "x", label: "remove selected" },
+        ]},
+      ];
     case "agents":
     case "skills":
     case "approvals":
