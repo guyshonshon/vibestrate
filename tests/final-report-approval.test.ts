@@ -26,6 +26,7 @@ const baseState = {
   providerOverride: null,
   resolvedProviderId: null,
   readOnly: false,
+  runtimeSkills: [],
 };
 
 describe("final report — approval section", () => {

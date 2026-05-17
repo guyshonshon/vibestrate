@@ -12,6 +12,7 @@ export type RerunInput = {
   effort?: "low" | "medium" | "high" | null;
   providerOverride?: string | null;
   readOnly?: boolean;
+  runtimeSkills?: string[];
 };
 
 export function deriveRerunArgs(run: RerunInput): string[] {
@@ -20,6 +21,9 @@ export function deriveRerunArgs(run: RerunInput): string[] {
   if (run.effort) argv.push("--effort", run.effort);
   if (run.providerOverride) argv.push("--provider", run.providerOverride);
   if (run.readOnly) argv.push("--read-only");
+  if (run.runtimeSkills && run.runtimeSkills.length > 0) {
+    argv.push("--skills", run.runtimeSkills.join(","));
+  }
   argv.push(run.task);
   return argv;
 }

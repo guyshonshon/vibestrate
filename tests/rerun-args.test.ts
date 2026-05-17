@@ -43,6 +43,15 @@ describe("deriveRerunArgs", () => {
     ).toEqual(["run", "x"]);
   });
 
+  it("forwards runtimeSkills via --skills <csv>", () => {
+    expect(
+      deriveRerunArgs({
+        task: "audit auth",
+        runtimeSkills: ["security-review", "logs-101"],
+      }),
+    ).toEqual(["run", "--skills", "security-review,logs-101", "audit auth"]);
+  });
+
   it("formatArgv quotes args with spaces", () => {
     expect(formatArgv(["run", "say hello", "--effort", "low"])).toBe(
       'run "say hello" --effort low',

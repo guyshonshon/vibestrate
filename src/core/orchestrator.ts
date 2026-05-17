@@ -68,6 +68,10 @@ export type OrchestratorInput = {
   /** Investigation-only run: force readOnly permissions on every agent,
    * skip the executor / fix loop entirely, refuse write-side actions. */
   readOnly?: boolean;
+  /** Skill ids to attach to every agent for this single run, merged
+   * (deduped) with the agent's configured skill list. Empty / omitted
+   * means "use the agent's configured skills only". */
+  runtimeSkills?: string[];
 };
 
 export type OrchestratorOutput = {
@@ -154,6 +158,7 @@ export class Orchestrator {
   private readonly effort: "low" | "medium" | "high" | null;
   private readonly providerOverride: string | null;
   private readonly readOnly: boolean;
+  private readonly runtimeSkills: string[];
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -166,6 +171,7 @@ export class Orchestrator {
     this.effort = input.effort ?? null;
     this.providerOverride = input.providerOverride ?? null;
     this.readOnly = input.readOnly ?? false;
+    this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -227,6 +233,7 @@ export class Orchestrator {
       effort: this.effort,
       providerOverride: this.providerOverride,
       resolvedProviderId: resolution.providerId,
+      runtimeSkills: this.runtimeSkills,
       readOnly: this.readOnly,
     };
     await stateStore.write(state);
@@ -1210,7 +1217,14 @@ export class Orchestrator {
     });
 
     const promptTemplate = await loadAgentPrompt(this.projectRoot, agent.prompt);
-    const skills = await loadSkills(this.projectRoot, agent.skills);
+    // Merge per-run runtimeSkills into the agent's configured skill ids
+    // (deduped, order-preserving). Empty runtimeSkills is a no-op so
+    // existing runs keep their exact behavior.
+    const effectiveSkillIds =
+      this.runtimeSkills.length === 0
+        ? agent.skills
+        : Array.from(new Set([...agent.skills, ...this.runtimeSkills]));
+    const skills = await loadSkills(this.projectRoot, effectiveSkillIds);
 
     // MCP: gather servers from the agent + each skill, materialize them
     // into a per-invocation `mcp/<stage>-mcp.json` under the run's

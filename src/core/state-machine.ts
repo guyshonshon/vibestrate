@@ -78,6 +78,12 @@ export const runStateSchema = z.object({
   providerOverride: z.string().nullable().default(null),
   resolvedProviderId: z.string().nullable().default(null),
   readOnly: z.boolean().default(false),
+  // Per-run skill ids. Merged into every agent's configured skill list
+  // before invocation, so the user can attach context to a single run
+  // without editing project-level agent config. Empty / missing means
+  // "use only the agent's configured skills". Survives round-trip on
+  // older records that predate this field.
+  runtimeSkills: z.array(z.string()).default([]),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -194,6 +200,7 @@ export function createInitialState(input: {
     providerOverride: null,
     resolvedProviderId: null,
     readOnly: false,
+    runtimeSkills: [],
   };
 }
 
