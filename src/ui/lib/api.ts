@@ -35,6 +35,7 @@ import type {
   ProposalSummary,
   QueueEntry,
   RoadmapItem,
+  RunControlDirective,
   RunState,
   RuntimeMetrics,
   SchedulerState,
@@ -227,6 +228,18 @@ export const api = {
       `/api/runs/${runId}/resume`,
     );
     return r.run;
+  },
+  async listRunControl(runId: string): Promise<{
+    directives: RunControlDirective[];
+    pending: RunControlDirective[];
+  }> {
+    return jsonGet(`/api/runs/${runId}/control`);
+  },
+  async sendRunControl(
+    runId: string,
+    input: { kind: "inject-note"; body: string } | { kind: "compact"; note?: string },
+  ): Promise<{ ok: true; directive: RunControlDirective }> {
+    return jsonPost(`/api/runs/${runId}/control`, input);
   },
   async retryRun(runId: string): Promise<{
     ok: boolean;

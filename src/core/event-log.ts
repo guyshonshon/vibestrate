@@ -64,7 +64,8 @@ export type AmacoEventType =
   | "bundle.smart_apply_stopped"
   | "suggestion.validation_profile_updated"
   | "bundle.validation_profile_updated"
-  | "mcp.attached";
+  | "mcp.attached"
+  | "control.applied";
 
 export type AmacoEvent = {
   timestamp: string;
