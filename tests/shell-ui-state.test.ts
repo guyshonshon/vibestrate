@@ -150,6 +150,34 @@ describe("page history / back", () => {
   });
 });
 
+describe("palette cursor", () => {
+  it("opens with cursor 0", () => {
+    const s = reduceShellUi(initialUiState, { type: "palette.open" });
+    expect(s.paletteSelectedIndex).toBe(0);
+  });
+
+  it("typing into the palette resets the cursor", () => {
+    let s = reduceShellUi(initialUiState, { type: "palette.open" });
+    s = reduceShellUi(s, {
+      type: "palette.cursor.set",
+      index: 3,
+    });
+    expect(s.paletteSelectedIndex).toBe(3);
+    s = reduceShellUi(s, { type: "palette.query", value: "run" });
+    expect(s.paletteSelectedIndex).toBe(0);
+  });
+
+  it("palette.cursor.move clamps to [0, max]", () => {
+    let s = reduceShellUi(initialUiState, { type: "palette.open" });
+    s = reduceShellUi(s, { type: "palette.cursor.move", delta: -2, max: 5 });
+    expect(s.paletteSelectedIndex).toBe(0);
+    s = reduceShellUi(s, { type: "palette.cursor.move", delta: 50, max: 5 });
+    expect(s.paletteSelectedIndex).toBe(5);
+    s = reduceShellUi(s, { type: "palette.cursor.move", delta: -1, max: 5 });
+    expect(s.paletteSelectedIndex).toBe(4);
+  });
+});
+
 describe("pageIdFromHotkey", () => {
   it("maps '1'..'9' to the first nine pages in order", () => {
     expect(pageIdFromHotkey("1")).toBe(PAGE_IDS[0]);

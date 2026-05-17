@@ -52,6 +52,8 @@ export type ShellUiStateV2 = {
   selection: Record<PageId, number>;
   paletteOpen: boolean;
   paletteQuery: string;
+  /** Cursor inside the filtered palette list — clamped by the view. */
+  paletteSelectedIndex: number;
   helpOpen: boolean;
   toasts: Toast[];
   pendingConfirm: PendingConfirm;
@@ -82,6 +84,7 @@ export const initialUiState: ShellUiStateV2 = {
   ),
   paletteOpen: false,
   paletteQuery: "",
+  paletteSelectedIndex: 0,
   helpOpen: false,
   toasts: [],
   pendingConfirm: null,
@@ -105,6 +108,8 @@ export type ShellUiAction =
   | { type: "palette.open" }
   | { type: "palette.close" }
   | { type: "palette.query"; value: string }
+  | { type: "palette.cursor.move"; delta: number; max: number }
+  | { type: "palette.cursor.set"; index: number }
   | { type: "help.toggle" }
   | { type: "toast.push"; kind: ToastKind; message: string }
   | { type: "toast.dismiss"; id: number }
@@ -183,11 +188,32 @@ export function reduceShellUi(
       };
     }
     case "palette.open":
-      return { ...state, paletteOpen: true, paletteQuery: "" };
+      return {
+        ...state,
+        paletteOpen: true,
+        paletteQuery: "",
+        paletteSelectedIndex: 0,
+      };
     case "palette.close":
-      return { ...state, paletteOpen: false, paletteQuery: "" };
+      return {
+        ...state,
+        paletteOpen: false,
+        paletteQuery: "",
+        paletteSelectedIndex: 0,
+      };
     case "palette.query":
-      return { ...state, paletteQuery: action.value };
+      // Reset cursor when the query changes so the top match is
+      // always highlighted first.
+      return { ...state, paletteQuery: action.value, paletteSelectedIndex: 0 };
+    case "palette.cursor.move": {
+      const next = Math.max(
+        0,
+        Math.min(action.max, state.paletteSelectedIndex + action.delta),
+      );
+      return { ...state, paletteSelectedIndex: next };
+    }
+    case "palette.cursor.set":
+      return { ...state, paletteSelectedIndex: Math.max(0, action.index) };
     case "help.toggle":
       return { ...state, helpOpen: !state.helpOpen };
     case "toast.push":

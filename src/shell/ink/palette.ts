@@ -15,6 +15,22 @@ export type PaletteCommand = {
   /** Keywords the fuzzy filter matches against in addition to title. */
   keywords?: string[];
   /**
+   * Longer description shown in the details pane when the command
+   * is highlighted. Teach intent + side-effects in one paragraph.
+   */
+  description?: string;
+  /**
+   * Equivalent CLI invocation (or the CLI surface the command
+   * touches). Shown in the details pane so the user learns the
+   * terminal-only path.
+   */
+  cli?: string;
+  /**
+   * Short examples illustrating useful invocations / flags. Each
+   * entry is a single line, rendered in the details pane.
+   */
+  examples?: string[];
+  /**
    * What the runtime should do when the command fires. Kept abstract
    * here so this module stays import-free.
    */
@@ -28,21 +44,186 @@ export type PaletteCommand = {
 };
 
 export const DEFAULT_PALETTE: PaletteCommand[] = [
-  { id: "goto.dashboard", title: "Go to Dashboard", keywords: ["home", "overview"], action: { kind: "goto", page: "dashboard" } },
-  { id: "goto.runs", title: "Go to Runs", action: { kind: "goto", page: "runs" } },
-  { id: "goto.roadmap", title: "Go to Roadmap", keywords: ["tasks", "board"], action: { kind: "goto", page: "roadmap" } },
-  { id: "goto.queue", title: "Go to Queue", keywords: ["scheduler"], action: { kind: "goto", page: "queue" } },
-  { id: "goto.agents", title: "Go to Agents", action: { kind: "goto", page: "agents" } },
-  { id: "goto.skills", title: "Go to Skills", keywords: ["mcp"], action: { kind: "goto", page: "skills" } },
-  { id: "goto.approvals", title: "Go to Approvals", action: { kind: "goto", page: "approvals" } },
-  { id: "goto.suggestions", title: "Go to Suggestions", keywords: ["bundles"], action: { kind: "goto", page: "suggestions" } },
-  { id: "goto.notifications", title: "Go to Notifications", action: { kind: "goto", page: "notifications" } },
-  { id: "goto.doctor", title: "Go to Doctor", keywords: ["settings", "diagnostics"], action: { kind: "goto", page: "doctor" } },
-  { id: "run.pause", title: "Pause selected run", keywords: ["stop", "halt"], action: { kind: "pause-run" } },
-  { id: "run.resume", title: "Resume selected run", action: { kind: "resume-run" } },
-  { id: "run.abort", title: "Abort selected run", keywords: ["stop", "kill"], action: { kind: "abort-run" } },
-  { id: "help.open", title: "Open help overlay", keywords: ["?", "keybindings"], action: { kind: "open-help" } },
-  { id: "shell.quit", title: "Quit amaco", keywords: ["exit"], action: { kind: "quit" } },
+  {
+    id: "goto.dashboard",
+    title: "Go to Dashboard",
+    hint: "overview of active runs, queue, approvals",
+    keywords: ["home", "overview"],
+    description:
+      "At-a-glance project view: active runs, queue depth, pending approvals + suggestions, recent activity across all runs.",
+    cli: "(panel only — no CLI equivalent yet)",
+    action: { kind: "goto", page: "dashboard" },
+  },
+  {
+    id: "goto.runs",
+    title: "Go to Runs",
+    hint: "list + inspector for every run",
+    description:
+      "Browse, inspect, and control runs. Right pane shows the selected run's events / overview / validation.",
+    cli: "amaco status",
+    examples: [
+      'amaco run "fix login bug"          # start a new run',
+      "amaco replay <runId>                # event-by-event replay",
+      "amaco pause <runId>                 # pause at next safe stage",
+    ],
+    action: { kind: "goto", page: "runs" },
+  },
+  {
+    id: "goto.roadmap",
+    title: "Go to Roadmap",
+    hint: "kanban board + task CRUD",
+    keywords: ["tasks", "board"],
+    description:
+      "Workflow board grouped by task status. Navigate states with ←/→, tasks with ↑/↓; n creates, e edits, d deletes, Q queues.",
+    cli: "amaco tasks list",
+    examples: [
+      'amaco tasks add "title" --priority high --effort medium',
+      "amaco tasks show <taskId>",
+      "amaco roadmap show                  # raw roadmap document",
+    ],
+    action: { kind: "goto", page: "roadmap" },
+  },
+  {
+    id: "goto.queue",
+    title: "Go to Queue",
+    hint: "scheduler + fairness controls",
+    keywords: ["scheduler"],
+    description:
+      "FIFO + priority + fairness queue. Each entry carries a source tag for per-source quotas.",
+    cli: "amaco queue list",
+    examples: [
+      "amaco queue add <taskId> --source cron",
+      "amaco queue run                     # drain the queue",
+      "amaco queue status                  # current scheduler state",
+    ],
+    action: { kind: "goto", page: "queue" },
+  },
+  {
+    id: "goto.agents",
+    title: "Go to Agents",
+    hint: "agents + provider + MCP servers",
+    description:
+      "Configured agents (planner, architect, executor, …) with their provider, prompt path, permissions, and attached MCP servers.",
+    cli: "(panel only — managed via .amaco/project.yml)",
+    action: { kind: "goto", page: "agents" },
+  },
+  {
+    id: "goto.skills",
+    title: "Go to Skills",
+    hint: "discovered skills + MCP attachment",
+    keywords: ["mcp"],
+    description:
+      "Discover amaco / claude / user skills, see their MCP server declarations, attach them to agents.",
+    cli: "amaco skills list",
+    examples: [
+      "amaco skills show <id>              # show frontmatter + body",
+      "amaco skills assign <id> <agent>    # attach skill to agent",
+    ],
+    action: { kind: "goto", page: "skills" },
+  },
+  {
+    id: "goto.approvals",
+    title: "Go to Approvals",
+    hint: "pending approval gates",
+    description:
+      "Approve or reject every pending approval across runs. Use this when a run pauses at a policy-required boundary.",
+    cli: "amaco approvals list",
+    examples: [
+      "amaco approvals show <id>",
+      "amaco approvals accept <id>",
+      'amaco approvals reject <id> --reason "needs migration"',
+    ],
+    action: { kind: "goto", page: "approvals" },
+  },
+  {
+    id: "goto.suggestions",
+    title: "Go to Suggestions",
+    hint: "per-run suggestions + bundles",
+    keywords: ["bundles"],
+    description:
+      "Accept / reject suggestions per run; apply bundles, validate, revert. The same surface area as amaco suggestions / bundles.",
+    cli: "amaco suggestions list",
+    examples: [
+      "amaco suggestions show <id>",
+      "amaco bundles apply <bundleId>",
+      "amaco bundles revert <bundleId>",
+    ],
+    action: { kind: "goto", page: "suggestions" },
+  },
+  {
+    id: "goto.notifications",
+    title: "Go to Notifications",
+    hint: "feed + gateway status",
+    description:
+      "Recent notifications across runs + the health of each configured gateway (CLI, in-app, webhook, Discord, Slack, Telegram).",
+    cli: "amaco notifications list",
+    examples: ["amaco notifications gateways"],
+    action: { kind: "goto", page: "notifications" },
+  },
+  {
+    id: "goto.doctor",
+    title: "Go to Doctor",
+    hint: "env + config diagnostics",
+    keywords: ["settings", "diagnostics"],
+    description:
+      "Run the same checks as `amaco doctor` inline, with a one-click --fix surface for safe recoveries.",
+    cli: "amaco doctor",
+    examples: [
+      "amaco doctor --fix                  # apply safe scaffold fixes",
+      "amaco doctor --json                 # JSON for scripting",
+    ],
+    action: { kind: "goto", page: "doctor" },
+  },
+  {
+    id: "run.pause",
+    title: "Pause selected run",
+    hint: "graceful — stops at next stage boundary",
+    keywords: ["stop", "halt"],
+    description:
+      "Requests a pause on the selected run. The orchestrator finishes the current agent and transitions to `paused`. Resume re-enters from the same boundary.",
+    cli: "amaco pause <runId>",
+    examples: ["amaco pause run-2026-…    # same effect as the panel"],
+    action: { kind: "pause-run" },
+  },
+  {
+    id: "run.resume",
+    title: "Resume selected run",
+    hint: "clears pauseRequested",
+    description:
+      "Clears the pause request on a paused run. The orchestrator picks it up on the next polling tick and transitions back to the previous stage.",
+    cli: "amaco resume <runId>",
+    action: { kind: "resume-run" },
+  },
+  {
+    id: "run.abort",
+    title: "Abort selected run",
+    hint: "force-stops the run (y/N confirm)",
+    keywords: ["stop", "kill"],
+    description:
+      "Marks the run as `aborted` and emits a `run.aborted` event. The worktree stays on disk so you can inspect or clean it up manually.",
+    cli: "amaco abort <runId>",
+    action: { kind: "abort-run" },
+  },
+  {
+    id: "help.open",
+    title: "Open help overlay",
+    hint: "every keybinding, grouped",
+    keywords: ["?", "keybindings"],
+    description:
+      "Full keymap with navigation, run actions, roadmap actions. Same as pressing `?`.",
+    cli: "(panel only)",
+    action: { kind: "open-help" },
+  },
+  {
+    id: "shell.quit",
+    title: "Quit amaco",
+    hint: "exits the panel",
+    keywords: ["exit"],
+    description:
+      "Closes the interactive panel. The on-disk state (runs, queue, tasks) is untouched and the CLI is fully available.",
+    cli: "(or press q at any time)",
+    action: { kind: "quit" },
+  },
 ];
 
 /**

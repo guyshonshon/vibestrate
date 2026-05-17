@@ -5,6 +5,23 @@ import {
   scoreCommand,
 } from "../src/shell/ink/palette.js";
 
+describe("PaletteCommand catalog", () => {
+  it("every entry carries enough teaching material (description or examples or cli)", () => {
+    for (const cmd of DEFAULT_PALETTE) {
+      expect(
+        cmd.description || cmd.cli || (cmd.examples && cmd.examples.length > 0),
+      ).toBeTruthy();
+    }
+  });
+
+  it("every entry has a short hint shown next to the title", () => {
+    for (const cmd of DEFAULT_PALETTE) {
+      expect(typeof cmd.hint).toBe("string");
+      expect((cmd.hint ?? "").length).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe("scoreCommand", () => {
   const goRoadmap = DEFAULT_PALETTE.find((c) => c.id === "goto.roadmap")!;
   const pauseRun = DEFAULT_PALETTE.find((c) => c.id === "run.pause")!;

@@ -3,7 +3,10 @@ import { Box, Text, useApp, useInput } from "ink";
 import { TabBar } from "./components/TabBar.js";
 import { Footer, PAGES_GROUP } from "./components/Footer.js";
 import { keymapForPage } from "./keymaps.js";
-import { CommandPalette } from "./components/CommandPalette.js";
+import {
+  CommandPalette,
+  paletteMatches,
+} from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
@@ -120,8 +123,20 @@ export function App({ projectRoot, refreshMs }: Props) {
       return;
     }
     if (ui.paletteOpen) {
-      if (key.escape) dispatch({ type: "palette.close" });
-      return; // TextInput handles the typing.
+      if (key.escape) {
+        dispatch({ type: "palette.close" });
+        return;
+      }
+      const max = Math.max(0, paletteMatches(ui.paletteQuery).length - 1);
+      if (key.upArrow) {
+        dispatch({ type: "palette.cursor.move", delta: -1, max });
+        return;
+      }
+      if (key.downArrow) {
+        dispatch({ type: "palette.cursor.move", delta: 1, max });
+        return;
+      }
+      return; // TextInput handles the rest (typing, Enter).
     }
     if (ui.page === "runs" && ui.runs.eventFilterOpen) {
       // While the event filter TextInput is focused, only Esc closes
@@ -282,6 +297,7 @@ export function App({ projectRoot, refreshMs }: Props) {
         <Box marginTop={1}>
           <CommandPalette
             query={ui.paletteQuery}
+            selectedIndex={ui.paletteSelectedIndex}
             onChange={(v) => dispatch({ type: "palette.query", value: v })}
             onSubmit={handlePaletteSubmit}
             onCancel={() => dispatch({ type: "palette.close" })}
