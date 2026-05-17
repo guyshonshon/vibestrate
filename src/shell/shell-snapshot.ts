@@ -397,17 +397,38 @@ function deriveLive(events: ShellEvent[]): {
     ) {
       currentSkills = [...new Set([...currentSkills, ev.data.skillName as string])];
     }
-    // Track the first failure/blocked message so the Overview can
-    // answer "why did it fail" without forcing the user to scroll
-    // through the events tail.
-    if (
-      !errorFromEvents &&
-      (ev.type === "agent.failed" ||
-        ev.type === "provider.failed" ||
-        ev.type === "run.failed" ||
-        ev.type === "run.aborted")
-    ) {
-      errorFromEvents = ev.message || ev.type;
+    // Track the most relevant "why" message so the Overview can
+    // answer "why did this run end up in its current state"
+    // without forcing the user to scroll the events tail.
+    //
+    // Priority: a hard failure (agent.failed / provider.failed /
+    // run.failed / run.aborted) wins over a softer one (policy
+    // warning, approval reject, generic state→blocked). We
+    // OVERWRITE a softer earlier reason when a hard one shows up,
+    // but never overwrite a hard reason with a softer follow-up.
+    const eventReasonRank = (t: string): number => {
+      if (
+        t === "agent.failed" ||
+        t === "provider.failed" ||
+        t === "run.failed" ||
+        t === "run.aborted"
+      ) {
+        return 3;
+      }
+      if (t === "approval.rejected") return 2;
+      if (t === "policy.warning") return 1;
+      return 0;
+    };
+    const isBlockedTransition =
+      ev.type === "state.changed" &&
+      ev.data &&
+      typeof ev.data.status === "string" &&
+      ev.data.status === "blocked";
+    const incomingRank = isBlockedTransition ? 1 : eventReasonRank(ev.type);
+    if (incomingRank > 0 && ev.message) {
+      if (!errorFromEvents || incomingRank >= 3) {
+        errorFromEvents = ev.message;
+      }
     }
   }
   return {
