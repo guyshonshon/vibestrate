@@ -32,6 +32,7 @@ export async function runCliProvider(
       cwd: input.cwd,
       env,
       stdin,
+      ...(input.onChunk ? { onChunk: input.onChunk } : {}),
     });
   } catch (err) {
     throw new ProviderError(
