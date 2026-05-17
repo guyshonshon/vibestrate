@@ -7,12 +7,10 @@ type Props = {
 };
 
 /**
- * Outer "amaco" shell. One rounded gray border wraps the entire
- * panel; the inside is plain padding + dim section labels so the
- * UI reads as a single contained surface, not a stack of boxes.
- *
- * The Frame fills the terminal width to avoid the one-word-per-line
- * wrap we hit when we tried a fixed content column.
+ * Outer "amaco" shell. Single rounded gray border wraps the whole
+ * panel. Padding is intentionally tight (paddingX 2, paddingY 0) so
+ * even a short VS-Code terminal pane keeps the header + nav + footer
+ * all visible at once.
  */
 export function Frame({ subtitle, children }: Props) {
   return (
@@ -21,7 +19,6 @@ export function Frame({ subtitle, children }: Props) {
       borderStyle="round"
       borderColor="gray"
       paddingX={2}
-      paddingY={1}
     >
       <Box>
         <Text bold color="cyan">
@@ -30,17 +27,15 @@ export function Frame({ subtitle, children }: Props) {
         <Box flexGrow={1} />
         {subtitle ? <Text dimColor>{subtitle}</Text> : null}
       </Box>
-      <Box marginTop={1} flexDirection="column">
-        {children}
-      </Box>
+      <Box flexDirection="column">{children}</Box>
     </Box>
   );
 }
 
 /**
- * Horizontal separator sized to the inner width of the Frame.
- * Reads the live terminal columns each render so it adapts when
- * the user resizes their window.
+ * Horizontal separator sized to the inner terminal width. We use it
+ * sparingly now — one rule between TabBar and content is enough; a
+ * second between content and footer just eats vertical space.
  */
 export function Rule() {
   const { stdout } = useStdout();
@@ -49,8 +44,7 @@ export function Rule() {
 }
 
 /**
- * Section heading used between Rule()s. Bold cyan title with an
- * optional dim subtitle to its right.
+ * Section heading: bold cyan title, optional dim hint after it.
  */
 export function SectionHeader({
   title,

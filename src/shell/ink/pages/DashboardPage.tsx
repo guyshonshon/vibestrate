@@ -2,13 +2,12 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { ShellSnapshot } from "../../shell-snapshot.js";
 import {
-  CARD_PROPS,
   clip,
   eventTypeColor,
   runStatusToken,
   timeAgo,
 } from "../theme.js";
-import { useTerminalWidth } from "../hooks/useTerminalWidth.js";
+import { useTerminalSize } from "../hooks/useTerminalSize.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -25,45 +24,29 @@ export function DashboardPage({ snapshot }: Props) {
     .filter((r) => ["failed", "aborted", "merge_ready"].includes(r.status))
     .slice(0, 3);
 
-  const cols = useTerminalWidth();
-  const narrowStats = cols < 100;
+  const { cols, rows } = useTerminalSize();
+  // Vertical budget: terminal rows minus chrome (frame border 2, header
+  // 1, tab + rule 2, footer + rule 3 ≈ 8). Divide what's left between
+  // the two lists. Each row in a list is one terminal row.
+  const contentRows = Math.max(6, rows - 11);
+  const perList = Math.max(2, Math.floor((contentRows - 4) / 2));
   const stackedBody = cols < 110;
+  const compact = rows < 26;
+
   return (
     <Box flexDirection="column">
-      {/* Stat strip — five cards across the top, or stacked into rows
-          when the terminal is narrow so each card stays legible. */}
-      <Box flexDirection={narrowStats ? "column" : "row"} gap={1}>
-        <Box flexDirection="row" gap={1}>
-          <StatCard label="active" value={String(agg.activeRuns)} accent />
-          <StatCard
-            label="queue"
-            value={`${agg.queueRunning}/${agg.queueWaiting}`}
-            hint="running / waiting"
-          />
-        </Box>
-        <Box flexDirection="row" gap={1}>
-          <StatCard
-            label="approvals"
-            value={String(agg.pendingApprovalsTotal)}
-            tint={agg.pendingApprovalsTotal > 0 ? "yellow" : undefined}
-          />
-          <StatCard
-            label="suggestions"
-            value={String(agg.pendingSuggestionsTotal)}
-            tint={agg.pendingSuggestionsTotal > 0 ? "yellow" : undefined}
-          />
-          <StatCard
-            label="scheduler"
-            value={sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—"}
-            tint={sched?.paused ? "yellow" : undefined}
-          />
-        </Box>
-      </Box>
+      {/* Single-line stat strip — five chips separated by middle dots.
+          Roughly 1 row, so the top nav stays visible even in short
+          terminal panes. */}
+      <StatStrip
+        agg={agg}
+        sched={sched ? { queuePolicy: sched.queuePolicy, paused: sched.paused } : null}
+      />
 
-      {/* Two-column body — stacked vertically on narrower terminals. */}
+      {/* Two side-by-side lists; stacked on narrower terminals. */}
       <Box flexDirection={stackedBody ? "column" : "row"} marginTop={1} gap={1}>
-        <Box flexBasis={0} flexGrow={1}>
-          <SectionCard title="active runs" count={activeRuns.length}>
+        <Box flexBasis={0} flexGrow={1} flexDirection="column">
+          <SectionCard title="ACTIVE RUNS" count={activeRuns.length}>
             {activeRuns.length === 0 ? (
               <Text dimColor>
                 press <Text color="cyan">2</Text> to open Runs ·{" "}
@@ -71,14 +54,14 @@ export function DashboardPage({ snapshot }: Props) {
               </Text>
             ) : (
               <Box flexDirection="column">
-                {activeRuns.slice(0, 6).map((r) => {
+                {activeRuns.slice(0, perList).map((r) => {
                   const tok = runStatusToken(r.status);
                   return (
                     <Box key={r.runId}>
                       <Text>
                         <Text color={tok.color}>{tok.glyph}</Text>
                         {"  "}
-                        <Text>{clip(r.task, 38).padEnd(38)}</Text>
+                        <Text>{clip(r.task, 36).padEnd(36)}</Text>
                         {"  "}
                         <Text dimColor>{clip(r.currentAgent ?? "—", 10)}</Text>
                         {r.pendingApprovals > 0 ? (
@@ -91,40 +74,48 @@ export function DashboardPage({ snapshot }: Props) {
                     </Box>
                   );
                 })}
+                {activeRuns.length > perList ? (
+                  <Text dimColor>+ {activeRuns.length - perList} more</Text>
+                ) : null}
               </Box>
             )}
           </SectionCard>
         </Box>
-        <Box flexBasis={0} flexGrow={1}>
+        <Box flexBasis={0} flexGrow={1} flexDirection="column">
           <SectionCard
-            title="recent activity"
+            title="RECENT ACTIVITY"
             count={snapshot.recentActivity.length}
           >
             {snapshot.recentActivity.length === 0 ? (
               <Text dimColor>no events yet</Text>
             ) : (
               <Box flexDirection="column">
-                {snapshot.recentActivity.slice(0, 8).map((a, i) => (
+                {snapshot.recentActivity.slice(0, perList).map((a, i) => (
                   <Box key={`${a.runId}-${i}`}>
                     <Text>
-                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(8)}</Text>
+                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(7)}</Text>
                       <Text color={eventTypeColor(a.event.type)}>
                         {clip(a.event.type, 18).padEnd(18)}
                       </Text>
                       <Text dimColor>{"  "}</Text>
-                      <Text>{clip(a.event.message, 36)}</Text>
+                      <Text>{clip(a.event.message, 32)}</Text>
                     </Text>
                   </Box>
                 ))}
+                {snapshot.recentActivity.length > perList ? (
+                  <Text dimColor>
+                    + {snapshot.recentActivity.length - perList} more
+                  </Text>
+                ) : null}
               </Box>
             )}
           </SectionCard>
         </Box>
       </Box>
 
-      {recentlyDone.length > 0 ? (
+      {recentlyDone.length > 0 && !compact ? (
         <Box marginTop={1}>
-          <SectionCard title="recently finished" count={recentlyDone.length}>
+          <SectionCard title="RECENTLY FINISHED" count={recentlyDone.length}>
             <Box flexDirection="column">
               {recentlyDone.map((r) => {
                 const tok = runStatusToken(r.status);
@@ -147,33 +138,64 @@ export function DashboardPage({ snapshot }: Props) {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  hint,
-  tint,
-  accent,
+/**
+ * One-row stat strip used in place of multi-line StatCards on the
+ * Dashboard. Each chip is `label N` with a leading `▌` color bar
+ * (cyan accent · yellow warn · gray neutral) so the strip is
+ * scannable without taking 4 vertical rows.
+ */
+function StatStrip({
+  agg,
+  sched,
 }: {
-  label: string;
-  value: string;
-  hint?: string;
-  tint?: "yellow" | "red" | "green";
-  accent?: boolean;
+  agg: {
+    activeRuns: number;
+    pendingApprovalsTotal: number;
+    pendingSuggestionsTotal: number;
+    queueWaiting: number;
+    queueRunning: number;
+  };
+  sched: { queuePolicy: string; paused: boolean } | null;
 }) {
-  const accentColor = tint ?? (accent ? "cyan" : "gray");
+  type ChipColor = "cyan" | "yellow" | "gray";
+  type Chip = { label: string; value: string; color: ChipColor };
+  const chips: Chip[] = [
+    { label: "active", value: String(agg.activeRuns), color: "cyan" },
+    {
+      label: "queue",
+      value: `${agg.queueRunning}/${agg.queueWaiting}`,
+      color: "gray",
+    },
+    {
+      label: "approvals",
+      value: String(agg.pendingApprovalsTotal),
+      color: agg.pendingApprovalsTotal > 0 ? "yellow" : "gray",
+    },
+    {
+      label: "suggestions",
+      value: String(agg.pendingSuggestionsTotal),
+      color: agg.pendingSuggestionsTotal > 0 ? "yellow" : "gray",
+    },
+    {
+      label: "scheduler",
+      value: sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—",
+      color: sched?.paused ? "yellow" : "gray",
+    },
+  ];
   return (
-    <Box
-      {...CARD_PROPS}
-      flexDirection="column"
-      flexBasis={0}
-      flexGrow={1}
-    >
-      <Text color={accentColor}>{"━".repeat(10)}</Text>
-      <Text dimColor>{label}</Text>
-      <Text bold color={tint ?? (accent ? "cyan" : undefined)}>
-        {value}
+    <Box flexWrap="wrap">
+      <Text>
+        {chips.map((c, i) => (
+          <React.Fragment key={c.label}>
+            {i > 0 ? <Text dimColor>   </Text> : null}
+            <Text color={c.color}>▌</Text>
+            <Text dimColor>{c.label} </Text>
+            <Text bold color={c.color}>
+              {c.value}
+            </Text>
+          </React.Fragment>
+        ))}
       </Text>
-      {hint ? <Text dimColor>{hint}</Text> : null}
     </Box>
   );
 }
@@ -188,19 +210,16 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <Box {...CARD_PROPS} flexDirection="column">
+    <Box flexDirection="column">
       <Box>
         <Text bold color="cyan">
-          {title.toUpperCase()}
+          {title}
         </Text>
         {typeof count === "number" ? (
-          <Text dimColor>     {count}</Text>
+          <Text dimColor>   ({count})</Text>
         ) : null}
       </Box>
-      <Text dimColor>{"─".repeat(Math.max(title.length, 4))}</Text>
-      <Box marginTop={1} flexDirection="column">
-        {children}
-      </Box>
+      <Box flexDirection="column">{children}</Box>
     </Box>
   );
 }

@@ -240,10 +240,8 @@ export function App({ projectRoot, refreshMs }: Props) {
   return (
     <Frame subtitle={projectName}>
       <TabBar current={ui.page} />
-      <Box marginTop={1}>
-        <Rule />
-      </Box>
-      <Box marginTop={1} flexDirection="column">
+      <Rule />
+      <Box flexDirection="column">
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
@@ -271,16 +269,15 @@ export function App({ projectRoot, refreshMs }: Props) {
           <LoadingScreen projectRoot={projectRoot} />
         )}
       </Box>
-      <Box marginTop={1}>
-        <Rule />
-      </Box>
-      <Box marginTop={1}>
-        <Footer
-          ui={ui}
-          groups={hintGroups}
-          capturedAt={snapshot?.capturedAt ?? null}
-        />
-      </Box>
+      <Rule />
+      <Footer
+        ui={ui}
+        groups={hintGroups}
+        capturedAt={snapshot?.capturedAt ?? null}
+      />
+      {/* The Rule above + Footer below get no marginTop so the footer
+          stays anchored to the bottom of the visible viewport on
+          shorter terminals (e.g. VS Code panel). */}
       {ui.paletteOpen ? (
         <Box marginTop={1}>
           <CommandPalette
