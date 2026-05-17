@@ -177,6 +177,12 @@ export function MissionControlPage({
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestionRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  // Issues stream (failures captured from anywhere — server routes,
+  // spawn errors, panel actions). Used by the header badge so the
+  // user can never miss a failure.
+  type IssueRow = Awaited<ReturnType<typeof api.listIssues>>["issues"][number];
+  const [issues, setIssues] = useState<IssueRow[]>([]);
+  const [issuesOpen, setIssuesOpen] = useState(false);
 
   // Auto-dismiss the toast after 4s.
   useEffect(() => {
@@ -267,6 +273,10 @@ export function MissionControlPage({
         setApprovals(aprAggregate);
         setSuggestions(sugAggregate);
         setNotifications(notif.notifications);
+        const issuesResp = await api
+          .listIssues()
+          .catch(() => ({ issues: [], unresolved: 0 }));
+        if (!cancelled) setIssues(issuesResp.issues);
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -478,6 +488,11 @@ export function MissionControlPage({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11.5px] text-amaco-fg-muted">refreshes every 2s</span>
+            <IssuesBadge
+              count={issues.filter((i) => !i.resolved).length}
+              open={issuesOpen}
+              onToggle={() => setIssuesOpen((v) => !v)}
+            />
             <button
               onClick={() => setComposerOpen((v) => !v)}
               className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20"
@@ -507,6 +522,26 @@ export function MissionControlPage({
           />
         </div>
       </header>
+
+      {issuesOpen ? (
+        <IssuesPanel
+          issues={issues}
+          onResolve={async (id) => {
+            try {
+              await api.resolveIssue(id);
+              setIssues((cur) =>
+                cur.map((i) => (i.id === id ? { ...i, resolved: true } : i)),
+              );
+            } catch (err) {
+              setToast({
+                kind: "err",
+                text: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }}
+          onClose={() => setIssuesOpen(false)}
+        />
+      ) : null}
 
       <div className="flex-1 grid gap-4 px-6 py-4 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
         {/* Left rail: quick-create task + queue */}
@@ -1306,3 +1341,121 @@ function InboxNotifications({
     </div>
   );
 }
+
+
+type IssueLike = {
+  id: string;
+  createdAt: string;
+  kind: string;
+  message: string;
+  detail?: string;
+  fix?: string;
+  context?: Record<string, unknown>;
+  resolved: boolean;
+};
+
+function IssuesBadge({
+  count,
+  open,
+  onToggle,
+}: {
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const tone =
+    count === 0
+      ? "border-amaco-border bg-amaco-panel-2 text-amaco-fg-muted"
+      : "border-amaco-fail/40 bg-amaco-fail/10 text-amaco-fail";
+  return (
+    <button
+      onClick={onToggle}
+      title={count === 0 ? "no captured failures" : `${count} unresolved issue(s)`}
+      className={`amaco-mono rounded border px-2 py-1 text-[11.5px] font-medium ${tone} hover:opacity-80`}
+    >
+      {open ? "✗ Issues" : count === 0 ? "✓ Issues 0" : `✗ Issues ${count}`}
+    </button>
+  );
+}
+
+function IssuesPanel({
+  issues,
+  onResolve,
+  onClose,
+}: {
+  issues: IssueLike[];
+  onResolve: (id: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const unresolved = issues.filter((i) => !i.resolved);
+  return (
+    <div className="border-b border-amaco-fail/30 bg-amaco-fail/5 px-6 py-3">
+      <div className="flex items-center justify-between">
+        <div className="text-[12.5px] font-medium text-amaco-fail">
+          Issues — captured failures · {unresolved.length} unresolved · {issues.length} total
+        </div>
+        <button
+          onClick={onClose}
+          className="text-[11.5px] text-amaco-fg-dim hover:text-amaco-fg"
+        >
+          Close
+        </button>
+      </div>
+      {issues.length === 0 ? (
+        <div className="mt-2 text-[12px] text-amaco-fg-muted">
+          no failures captured yet · the philosophy is no silent failures, so
+          anything that breaks lands here
+        </div>
+      ) : (
+        <div className="mt-2 flex flex-col gap-1.5">
+          {issues.slice(0, 12).map((issue) => (
+            <div
+              key={issue.id}
+              className={`rounded border px-3 py-2 ${issue.resolved ? "border-amaco-border bg-amaco-panel/30 opacity-60" : "border-amaco-fail/30 bg-amaco-panel"}`}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="flex items-baseline gap-2 text-[12px]">
+                  <span className={`amaco-mono text-[10.5px] ${issue.resolved ? "text-amaco-fg-muted" : "text-amaco-fail"}`}>
+                    {issue.resolved ? "✓" : "✗"} {issue.kind}
+                  </span>
+                  <span className="font-medium text-amaco-fg">{issue.message}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">{issue.createdAt.slice(11, 19)}</span>
+                  {!issue.resolved ? (
+                    <button
+                      onClick={() => void onResolve(issue.id)}
+                      className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-2 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
+                    >
+                      ✓ resolve
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {issue.fix ? (
+                <div className="mt-1 text-[11.5px] text-amaco-success">
+                  Fix: {issue.fix}
+                </div>
+              ) : null}
+              {issue.context && Object.keys(issue.context).length > 0 ? (
+                <div className="mt-1 text-[10.5px] text-amaco-fg-muted amaco-mono">
+                  {Object.entries(issue.context)
+                    .slice(0, 4)
+                    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
+                    .join(" · ")}
+                </div>
+              ) : null}
+              {issue.detail ? (
+                <pre className="mt-1 max-h-32 overflow-y-auto whitespace-pre-wrap rounded bg-amaco-panel-2/60 px-2 py-1 text-[10.5px] text-amaco-fg-dim">{issue.detail}</pre>
+              ) : null}
+            </div>
+          ))}
+          {issues.length > 12 ? (
+            <div className="text-[10.5px] text-amaco-fg-muted">+ {issues.length - 12} more</div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
