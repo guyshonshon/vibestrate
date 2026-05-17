@@ -220,6 +220,16 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       root: uiDir,
       prefix: "/",
       decorateReply: false,
+      // Hashed `/assets/*` files are immutable and safe to cache for a
+      // year; HTML must always revalidate so a redeploy doesn't leave
+      // stale chunk references behind in browser cache.
+      setHeaders: (res, filePath) => {
+        if (/\/assets\//.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (/\.html?$/.test(filePath)) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
     });
     // SPA fallback: any non-API GET that didn't match → index.html.
     // Important caveat: don't 200 with an HTML fallback for requests
@@ -243,7 +253,10 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       }
       const indexPath = path.join(uiDir, "index.html");
       const html = await fs.readFile(indexPath, "utf8");
-      return reply.type("text/html").send(html);
+      return reply
+        .type("text/html")
+        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+        .send(html);
     });
     uiAvailable = true;
   } else {

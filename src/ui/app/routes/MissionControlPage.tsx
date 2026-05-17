@@ -19,6 +19,8 @@ import {
 import { ExecutionCanvas } from "../../components/mission/ExecutionCanvas.js";
 import { SecondaryPanels } from "../../components/mission/SecondaryPanels.js";
 import { useNumberedNav } from "../../components/mission/useNumberedNav.js";
+import { SortableSection } from "../../components/mission/SortableSection.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -583,6 +585,31 @@ export function MissionControlPage({
     }
   };
 
+  const handleTerminateTask = async (taskId: string): Promise<void> => {
+    if (
+      !window.confirm(
+        `Force-terminate ${taskId}? This will abort the linked run (if any) and cancel the task.`,
+      )
+    )
+      return;
+    try {
+      const r = await api.terminateTask(taskId);
+      const parts: string[] = [];
+      if (r.aborted) parts.push("aborted run");
+      if (r.cancelled) parts.push("cancelled task");
+      if (r.abortError) parts.push(`abort error: ${r.abortError}`);
+      setToast({
+        kind: r.cancelled || r.aborted ? "ok" : "err",
+        text: `${taskId}: ${parts.join(" · ") || "no-op"}`,
+      });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
   const handleInbox = async (
     kind: "approve-approval" | "reject-approval" | "approve-suggestion" | "reject-suggestion",
     row: { runId: string; id: string },
@@ -726,11 +753,54 @@ export function MissionControlPage({
         onFocusInbox={focusInbox}
       />
 
-      <Composer
-        busy={promptBusy}
-        providers={providers}
-        skills={skills}
-        onSubmit={handlePromptSubmit}
+      {/* Reorderable top-level sections. Composer / canvas / panels /
+       * task-control can be dragged into any order; mission bar,
+       * attention bar, and keyboard footer stay pinned so the
+       * status/help surfaces always sit at the expected positions. */}
+      <SortableSections
+        composer={
+          <Composer
+            busy={promptBusy}
+            providers={providers}
+            skills={skills}
+            onSubmit={handlePromptSubmit}
+          />
+        }
+        canvas={
+          <ExecutionCanvas
+            active={active}
+            eventsByRun={eventsByRun}
+            diffByRun={diffByRun}
+            onOpen={onSelectRun}
+            onOpenDiff={onShowRunDiff ?? onSelectRun}
+          />
+        }
+        panels={
+          <div ref={inboxRef as React.RefObject<HTMLDivElement>}>
+            <SecondaryPanels
+              tasks={tasks}
+              queue={queue}
+              approvals={approvals}
+              suggestions={suggestions}
+              notifications={notifications}
+              onOpenTask={onOpenTask}
+              onOpenRun={onSelectRun}
+              onQueueTask={handleQueueTask}
+              onCancelTask={handleCancelTask}
+              onTerminateTask={handleTerminateTask}
+              onApproveApproval={onApproveApproval}
+              onRejectApproval={onRejectApproval}
+              onMarkNotificationRead={onMarkNotificationRead}
+            />
+          </div>
+        }
+        controls={
+          <TaskControlSection
+            liveness={liveness}
+            activeRunCount={active.length}
+            onStartScheduler={handleStartScheduler}
+          />
+        }
       />
 
       {/* Small toast / error strip — sits between composer and canvas so
@@ -778,34 +848,9 @@ export function MissionControlPage({
         />
       ) : null}
 
-      <ExecutionCanvas
-        active={active}
-        eventsByRun={eventsByRun}
-        diffByRun={diffByRun}
-        onOpen={onSelectRun}
-        onOpenDiff={onShowRunDiff ?? onSelectRun}
-      />
-
-      <div ref={inboxRef as React.RefObject<HTMLDivElement>}>
-        <SecondaryPanels
-          tasks={tasks}
-          queue={queue}
-          approvals={approvals}
-          suggestions={suggestions}
-          notifications={notifications}
-          onOpenTask={onOpenTask}
-          onOpenRun={onSelectRun}
-          onQueueTask={handleQueueTask}
-          onCancelTask={handleCancelTask}
-          onApproveApproval={onApproveApproval}
-          onRejectApproval={onRejectApproval}
-          onMarkNotificationRead={onMarkNotificationRead}
-        />
-      </div>
-
-      {/* Footer hint row — surfaces scheduler control + keyboard map.
-       * The numbered keyboard hint is duplicated next to each panel's
-       * [N] badge; this is the one-stop reference. */}
+      {/* Pinned keyboard-hint footer — last thing on the page so it's
+       * always findable. Scheduler control moved to the dedicated
+       * Task Control section above. */}
       <footer className="border-t border-amaco-border bg-amaco-panel-2/40 px-6 py-2 text-[11px] text-amaco-fg-muted">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span className="amaco-mono">keyboard:</span>
@@ -825,21 +870,168 @@ export function MissionControlPage({
             <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">⇧↵</kbd>{" "}
             newline
           </span>
-          {!liveness.pickingUpWork ? (
-            <button
-              onClick={() => void handleStartScheduler()}
-              className="ml-auto rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-0.5 text-amaco-accent hover:bg-amaco-accent/20"
-            >
-              ↻ Start scheduler
-            </button>
-          ) : (
-            <span className="ml-auto text-amaco-fg-muted">
-              scheduler: {liveness.status}
-            </span>
-          )}
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─── Sortable top-level sections ──────────────────────────────────────
+
+type SectionKey = "composer" | "canvas" | "panels" | "controls";
+
+const DEFAULT_SECTION_ORDER: SectionKey[] = [
+  "composer",
+  "canvas",
+  "panels",
+  "controls",
+];
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  composer: "Composer",
+  canvas: "Execution canvas",
+  panels: "Secondary panels",
+  controls: "Task control",
+};
+
+function SortableSections({
+  composer,
+  canvas,
+  panels,
+  controls,
+}: {
+  composer: React.ReactNode;
+  canvas: React.ReactNode;
+  panels: React.ReactNode;
+  controls: React.ReactNode;
+}) {
+  const [order, setOrder] = usePersistedState<SectionKey[]>(
+    "amaco.mission.sections.order",
+    DEFAULT_SECTION_ORDER,
+  );
+  // Heal a corrupt / partial order so adding a new section doesn't
+  // strand the user with a missing piece.
+  useEffect(() => {
+    const known = new Set(DEFAULT_SECTION_ORDER);
+    const filtered = order.filter((k) => known.has(k));
+    const missing = DEFAULT_SECTION_ORDER.filter(
+      (k) => !filtered.includes(k),
+    );
+    const healed = [...filtered, ...missing];
+    if (
+      healed.length !== order.length ||
+      healed.some((k, i) => k !== order[i])
+    ) {
+      setOrder(healed);
+    }
+  }, [order, setOrder]);
+
+  const [dragKey, setDragKey] = useState<SectionKey | null>(null);
+  const [hoverKey, setHoverKey] = useState<SectionKey | null>(null);
+
+  const onDrop = (target: SectionKey): void => {
+    if (!dragKey || dragKey === target) {
+      setDragKey(null);
+      setHoverKey(null);
+      return;
+    }
+    setOrder((cur) => {
+      const next = cur.filter((k) => k !== dragKey);
+      const idx = next.indexOf(target);
+      next.splice(idx, 0, dragKey);
+      return next;
+    });
+    setDragKey(null);
+    setHoverKey(null);
+  };
+
+  const slots: Record<SectionKey, React.ReactNode> = {
+    composer,
+    canvas,
+    panels,
+    controls,
+  };
+
+  return (
+    <>
+      {order.map((k) => (
+        <SortableSection
+          key={k}
+          sectionKey={k}
+          label={SECTION_LABELS[k]}
+          isDragging={dragKey === k}
+          isHoverTarget={dragKey !== null && dragKey !== k && hoverKey === k}
+          onDragStart={() => setDragKey(k)}
+          onDragEnd={() => {
+            setDragKey(null);
+            setHoverKey(null);
+          }}
+          onDragOver={() => {
+            if (dragKey && dragKey !== k) setHoverKey(k);
+          }}
+          onDragLeave={() => {
+            if (hoverKey === k) setHoverKey(null);
+          }}
+          onDrop={() => onDrop(k)}
+        >
+          {slots[k]}
+        </SortableSection>
+      ))}
+    </>
+  );
+}
+
+// ─── Task Control zone ────────────────────────────────────────────────
+
+function TaskControlSection({
+  liveness,
+  activeRunCount,
+  onStartScheduler,
+}: {
+  liveness: ReturnType<typeof deriveSchedulerLiveness>;
+  activeRunCount: number;
+  onStartScheduler: () => Promise<void>;
+}) {
+  const tone =
+    liveness.status === "live"
+      ? "text-amaco-success"
+      : liveness.status === "stale"
+        ? "text-amaco-warn"
+        : liveness.status === "paused"
+          ? "text-amaco-fg-dim"
+          : "text-amaco-fail";
+  return (
+    <section
+      aria-label="Task control"
+      className="border-y border-amaco-border bg-amaco-panel-2/40 px-6 py-3"
+    >
+      <header className="mb-2 flex items-baseline gap-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <span>task control</span>
+        <span className={`amaco-mono normal-case tracking-normal ${tone}`}>
+          · {liveness.status}
+        </span>
+        <span className="amaco-mono normal-case tracking-normal text-amaco-fg-muted">
+          · {activeRunCount} active run{activeRunCount === 1 ? "" : "s"}
+        </span>
+      </header>
+      <div className="flex flex-wrap items-center gap-2 text-[12px]">
+        {!liveness.pickingUpWork ? (
+          <button
+            type="button"
+            onClick={() => void onStartScheduler()}
+            className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2.5 py-1 font-medium text-amaco-accent hover:bg-amaco-accent/20"
+          >
+            ↻ Start scheduler
+          </button>
+        ) : null}
+        <span className="amaco-mono text-[11px] text-amaco-fg-muted">
+          {liveness.summary}
+        </span>
+        <span className="ml-auto amaco-mono text-[10.5px] text-amaco-fg-muted">
+          drag any section's grip · → reorder
+        </span>
+      </div>
+    </section>
   );
 }
 

@@ -190,7 +190,7 @@ export async function registerTasksRoutes(
       if (task.currentRunId) {
         throw new HttpError(
           409,
-          `Task is linked to active run ${task.currentRunId}; abort that run first.`,
+          `Task is linked to active run ${task.currentRunId}; abort that run first (or call /terminate to do both).`,
         );
       }
       try {
@@ -204,6 +204,85 @@ export async function registerTasksRoutes(
           err instanceof Error ? err.message : String(err),
         );
       }
+    },
+  );
+
+  // Force-terminate: abort the linked active run (if any), then
+  // cancel the task. Idempotent and best-effort — partial success
+  // returns 200 with `aborted`/`cancelled` flags so the UI can show
+  // an honest summary instead of an opaque error.
+  app.post<{ Params: { taskId: string } }>(
+    "/api/tasks/:taskId/terminate",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const task = await svc.getTask(req.params.taskId);
+      if (!task) throw new HttpError(404, "Task not found.");
+
+      let aborted = false;
+      let abortError: string | null = null;
+      if (task.currentRunId) {
+        try {
+          const { runStatePath } = await import("../../utils/paths.js");
+          const { RunStateStore, applyTransition } = await import(
+            "../../core/state-machine.js"
+          );
+          const { EventLog } = await import("../../core/event-log.js");
+          const { pathExists } = await import("../../utils/fs.js");
+          const stateFile = runStatePath(deps.projectRoot, task.currentRunId);
+          if (await pathExists(stateFile)) {
+            const store = new RunStateStore(
+              deps.projectRoot,
+              task.currentRunId,
+            );
+            const events = new EventLog(deps.projectRoot, task.currentRunId);
+            const cur = await store.read();
+            if (
+              cur &&
+              cur.status !== "merge_ready" &&
+              cur.status !== "failed" &&
+              cur.status !== "aborted"
+            ) {
+              const next = applyTransition(cur, "aborted");
+              await store.write(next);
+              await events.append({
+                type: "run.aborted",
+                message: `Run aborted via task /terminate on ${task.id}.`,
+                data: { taskId: task.id },
+              });
+              aborted = true;
+            }
+          }
+        } catch (err) {
+          abortError = err instanceof Error ? err.message : String(err);
+        }
+      }
+
+      let cancelled = false;
+      try {
+        const q = new RunQueue(deps.projectRoot);
+        await q.remove(task.id);
+        await svc.updateTaskStatus(task.id, "cancelled");
+        cancelled = true;
+      } catch (err) {
+        // If both pieces failed, surface a 400 — otherwise return
+        // the partial-success summary so the user knows what happened.
+        if (!aborted) {
+          throw new HttpError(
+            400,
+            err instanceof Error ? err.message : String(err),
+          );
+        }
+        abortError =
+          abortError ?? (err instanceof Error ? err.message : String(err));
+      }
+
+      const updated = await svc.getTask(task.id);
+      return {
+        task: updated,
+        aborted,
+        cancelled,
+        abortError,
+      };
     },
   );
 
