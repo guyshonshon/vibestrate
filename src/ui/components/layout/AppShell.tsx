@@ -9,6 +9,7 @@ type AppShellProps = {
   currentRunId: string | null;
   currentNav: NavId;
   onSelectRun: (runId: string) => void;
+  onShowHome: () => void;
   onShowRunsList: () => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
@@ -25,6 +26,7 @@ export function AppShell({
   currentRunId,
   currentNav,
   onSelectRun,
+  onShowHome,
   onShowRunsList,
   onShowBoard,
   onShowQueue,
@@ -41,6 +43,7 @@ export function AppShell({
         currentRunId={currentRunId}
         currentNav={currentNav}
         onSelectRun={onSelectRun}
+        onShowHome={onShowHome}
         onShowRunsList={onShowRunsList}
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}

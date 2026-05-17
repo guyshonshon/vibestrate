@@ -8,6 +8,7 @@ import {
 } from "../../components/ContextMenu.js";
 import { AttentionBar } from "../../components/AttentionBar.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
+import { PromptBar, type PromptSubmit } from "../../components/PromptBar.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -27,6 +28,8 @@ type Props = {
   onSelectRun: (runId: string) => void;
   onShowRoadmap: () => void;
   onShowQueue: () => void;
+  onShowRunsList: () => void;
+  onShowSettings: () => void;
   onOpenTask: (taskId: string) => void;
 };
 
@@ -156,6 +159,8 @@ export function MissionControlPage({
   onSelectRun,
   onShowRoadmap,
   onShowQueue,
+  onShowRunsList,
+  onShowSettings,
   onOpenTask,
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
@@ -167,11 +172,6 @@ export function MissionControlPage({
   );
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [composerTask, setComposerTask] = useState("");
-  const [composerEffort, setComposerEffort] = useState<"" | "low" | "medium" | "high">("");
-  const [composerReadOnly, setComposerReadOnly] = useState(false);
-  const [composerBusy, setComposerBusy] = useState(false);
   // Quick-create task form (left rail).
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<"low" | "medium" | "high">(
@@ -508,31 +508,55 @@ export function MissionControlPage({
     }
   };
 
-  const handleSpawn = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    const task = composerTask.trim();
-    if (!task) return;
-    setComposerBusy(true);
+  const [promptBusy, setPromptBusy] = useState(false);
+  const handlePromptSubmit = async (input: PromptSubmit): Promise<void> => {
+    setPromptBusy(true);
     try {
-      const r = await api.spawnRun({
-        task,
-        effort: composerEffort || undefined,
-        readOnly: composerReadOnly || undefined,
-      });
-      setToast({ kind: "ok", text: r.message });
-      setComposerTask("");
-      setComposerEffort("");
-      setComposerReadOnly(false);
-      setComposerOpen(false);
+      switch (input.kind) {
+        case "run": {
+          const r = await api.spawnRun({
+            task: input.task,
+            effort: input.effort || undefined,
+            readOnly: input.readOnly || undefined,
+          });
+          setToast({ kind: "ok", text: r.message });
+          break;
+        }
+        case "create-task": {
+          const t = await api.addTask({ title: input.title, priority: "medium" });
+          setToast({
+            kind: "ok",
+            text: `Created task "${input.title}" (${t.id})`,
+          });
+          break;
+        }
+        case "queue-task": {
+          await api.queueTask(input.taskId);
+          setToast({ kind: "ok", text: `Queued ${input.taskId}` });
+          break;
+        }
+        case "nav": {
+          if (input.target === "board") onShowRoadmap();
+          else if (input.target === "queue") onShowQueue();
+          else if (input.target === "runs") onShowRunsList();
+          else if (input.target === "settings") onShowSettings();
+          // "home" no-op — we're already there.
+          break;
+        }
+        case "help":
+          // The bar already toggles its own inline help — no-op here.
+          break;
+      }
     } catch (err) {
       setToast({
         kind: "err",
         text: err instanceof Error ? err.message : String(err),
       });
     } finally {
-      setComposerBusy(false);
+      setPromptBusy(false);
     }
   };
+
   const queuedTaskCount = tasks.filter((t) => t.status === "queued").length;
   const blockedTaskCount = tasks.filter((t) => t.status === "blocked").length;
 
@@ -553,12 +577,6 @@ export function MissionControlPage({
               open={issuesOpen}
               onToggle={() => setIssuesOpen((v) => !v)}
             />
-            <button
-              onClick={() => setComposerOpen((v) => !v)}
-              className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20"
-            >
-              {composerOpen ? "Close" : "+ Run a task"}
-            </button>
           </div>
         </div>
 
@@ -594,6 +612,8 @@ export function MissionControlPage({
         }}
         onFocusInbox={focusInbox}
       />
+
+      <PromptBar busy={promptBusy} onSubmit={handlePromptSubmit} />
 
       {issuesOpen ? (
         <IssuesPanel
@@ -655,73 +675,6 @@ export function MissionControlPage({
             {toast.kind === "ok" ? "✓ " : "✗ "}
             {toast.text}
           </div>
-        ) : null}
-
-        {composerOpen ? (
-          <form
-            onSubmit={handleSpawn}
-            className="mb-4 flex flex-col gap-2 rounded border border-amaco-accent/40 bg-amaco-panel-2/60 p-3"
-          >
-            <label className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-              new run
-            </label>
-            <input
-              autoFocus
-              type="text"
-              value={composerTask}
-              onChange={(e) => setComposerTask(e.target.value)}
-              placeholder='describe the change — e.g. "add health check endpoint"'
-              className="rounded border border-amaco-border bg-amaco-panel px-2 py-1.5 text-[12.5px] text-amaco-fg outline-none focus:border-amaco-accent"
-            />
-            <div className="flex flex-wrap items-center gap-3 text-[11.5px]">
-              <label className="flex items-center gap-1.5 text-amaco-fg-muted">
-                effort
-                <select
-                  value={composerEffort}
-                  onChange={(e) =>
-                    setComposerEffort(
-                      e.target.value as "" | "low" | "medium" | "high",
-                    )
-                  }
-                  className="rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-amaco-fg outline-none focus:border-amaco-accent"
-                >
-                  <option value="">auto</option>
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                </select>
-              </label>
-              <label className="flex items-center gap-1.5 text-amaco-fg-muted">
-                <input
-                  type="checkbox"
-                  checked={composerReadOnly}
-                  onChange={(e) => setComposerReadOnly(e.target.checked)}
-                />
-                read-only
-              </label>
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setComposerOpen(false)}
-                  className="rounded border border-amaco-border bg-amaco-panel px-2 py-1 text-amaco-fg-dim hover:text-amaco-fg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={composerBusy || composerTask.trim().length === 0}
-                  className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-3 py-1 font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
-                >
-                  {composerBusy ? "Spawning…" : "Spawn amaco run"}
-                </button>
-              </div>
-            </div>
-            <div className="text-[10.5px] text-amaco-fg-muted">
-              Runs server-side via{" "}
-              <code className="amaco-mono">amaco run</code>; detached so the
-              dashboard stays responsive. The new run appears below within ~2s.
-            </div>
-          </form>
         ) : null}
 
         <section>

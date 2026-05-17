@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   GitBranch,
   Home,
+  History,
   Folder,
   Activity,
   LayoutGrid,
@@ -16,6 +17,7 @@ import type { RunState } from "../../lib/types.js";
 import { RunStatusBadge } from "../runs/RunStatusBadge.js";
 
 export type NavId =
+  | "home"
   | "runs"
   | "board"
   | "queue"
@@ -29,6 +31,7 @@ type Props = {
   currentRunId: string | null;
   currentNav: NavId;
   onSelectRun: (runId: string) => void;
+  onShowHome: () => void;
   onShowRunsList: () => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
@@ -42,6 +45,7 @@ export function Sidebar({
   currentRunId,
   currentNav,
   onSelectRun,
+  onShowHome,
   onShowRunsList,
   onShowBoard,
   onShowQueue,
@@ -88,6 +92,17 @@ export function Sidebar({
       </header>
 
       <nav className="flex flex-col gap-1 px-2 pb-3">
+        <button
+          onClick={onShowHome}
+          className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
+            currentNav === "home"
+              ? "bg-amaco-panel-2 text-amaco-fg"
+              : "text-amaco-fg-dim"
+          }`}
+        >
+          <Home className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Home
+        </button>
         <button
           onClick={onShowProject}
           className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-[13px] hover:bg-amaco-panel-2 ${
@@ -161,8 +176,9 @@ export function Sidebar({
               ? "bg-amaco-panel-2 text-amaco-fg"
               : "text-amaco-fg-dim"
           }`}
+          title="Deep inspection: full list of every run."
         >
-          <Home className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <History className="h-3.5 w-3.5" strokeWidth={1.5} />
           All runs
         </button>
       </nav>
