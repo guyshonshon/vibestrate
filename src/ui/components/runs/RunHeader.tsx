@@ -1,8 +1,9 @@
 import { useState } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
   Cpu,
   Eye,
-  Clock,
   Pause,
   Play,
   RotateCcw,
@@ -12,6 +13,7 @@ import type { RunState } from "../../lib/types.js";
 import { api } from "../../lib/api.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
 import { RunWorktreeBlock } from "./RunWorktreeBlock.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 
 const TERMINAL = new Set(["merge_ready", "blocked", "failed", "aborted"]);
 
@@ -82,70 +84,82 @@ export function RunHeader({
     }
   }
 
+  const [wtOpen, setWtOpen] = usePersistedState<boolean>(
+    "amaco.run.worktree.open",
+    false,
+  );
   return (
-    <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-            <span className="amaco-mono">{run.runId}</span>
-          </div>
-          <h1 className="mt-1 truncate text-[16px] font-medium text-amaco-fg">
-            {run.task}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-amaco-fg-dim">
+    <header className="border-b border-amaco-border bg-amaco-panel px-6 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {/* Title row: status pill + task title + run id stay on one
+           * line. Subtle chips (read-only, effort, provider override)
+           * trail on the right of the title row so they don't push
+           * the task down. Updated-at moved into the worktree block. */}
+          <div className="flex items-center gap-2">
             <RunStatusBadge status={run.status} />
-            {run.readOnly ? (
-              <span
-                className="inline-flex items-center gap-1 rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
-                title="Investigation-only run: executor and fix loop are skipped, apply/validate/revert are refused, every agent runs with the readOnly permission profile."
-              >
-                <Eye className="h-3 w-3" strokeWidth={1.5} />
-                read-only
-              </span>
-            ) : null}
-            {run.effort ? (
-              <span
-                className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted"
-                title={`Task effort: ${run.effort}. Maps to a provider via project.yml#effortMap.`}
-              >
-                <Zap className="h-3 w-3" strokeWidth={1.5} />
-                effort {run.effort}
-              </span>
-            ) : null}
-            {run.resolvedProviderId ? (
-              <span
-                className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"
-                title={`Run-wide provider override: every agent uses "${run.resolvedProviderId}" instead of its configured provider.`}
-              >
-                <Cpu className="h-3 w-3" strokeWidth={1.5} />
-                {run.resolvedProviderId}
-              </span>
-            ) : null}
-            {pausePending ? (
-              <span
-                className="amaco-mono rounded border border-amaco-accent/50 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"
-                title={`Pause requested while at ${run.status}; will take effect at the next stage boundary.`}
-              >
-                pause queued
-              </span>
-            ) : null}
-            {run.finalDecision ? (
-              <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
-                {run.finalDecision}
-              </span>
-            ) : null}
-            {run.verification ? (
-              <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
-                {run.verification}
-              </span>
-            ) : null}
-            <span className="amaco-mono inline-flex items-center gap-1">
-              <Clock className="h-3 w-3" strokeWidth={1.5} />
-              {new Date(run.updatedAt).toLocaleString()}
+            <h1
+              className="truncate text-[14px] font-medium text-amaco-fg"
+              title={run.task}
+            >
+              {run.task}
+            </h1>
+            <span
+              className="amaco-mono shrink-0 text-[10px] uppercase tracking-[0.14em] text-amaco-fg-muted"
+              title={`Run id · updated ${new Date(run.updatedAt).toLocaleString()}`}
+            >
+              {run.runId}
             </span>
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              {run.readOnly ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
+                  title="Investigation-only run."
+                >
+                  <Eye className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                  read-only
+                </span>
+              ) : null}
+              {run.effort ? (
+                <span
+                  className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-muted"
+                  title={`Task effort: ${run.effort}.`}
+                >
+                  <Zap className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                  {run.effort}
+                </span>
+              ) : null}
+              {run.resolvedProviderId ? (
+                <span
+                  className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10px] text-amaco-accent"
+                  title={`Run-wide provider override: ${run.resolvedProviderId}.`}
+                >
+                  <Cpu className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                  {run.resolvedProviderId}
+                </span>
+              ) : null}
+              {pausePending ? (
+                <span
+                  className="amaco-mono rounded border border-amaco-warn/50 bg-amaco-warn/10 px-1.5 py-0.5 text-[10px] text-amaco-warn"
+                  title={`Pause queued; takes effect at the next stage boundary.`}
+                >
+                  pause queued
+                </span>
+              ) : null}
+              {run.finalDecision ? (
+                <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-dim">
+                  {run.finalDecision}
+                </span>
+              ) : null}
+              {run.verification ? (
+                <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-dim">
+                  {run.verification}
+                </span>
+              ) : null}
+            </div>
           </div>
           {error ? (
-            <div className="mt-2 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11px] text-amaco-fail">
+            <div className="mt-1.5 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11px] text-amaco-fail">
               {error}
             </div>
           ) : null}
@@ -195,19 +209,44 @@ export function RunHeader({
           ) : null}
         </div>
       </div>
-      {/* Consolidated worktree / git context — merged into the header
-       * so it doesn't repeat as a separate block below. */}
+      {/* Worktree / git context — collapsed by default so the title
+       * row stays tight. One-click reveal when the user actually
+       * needs the branch + path + Codebase / Git affordances. */}
       {run.worktreePath ? (
-        <div className="mt-3">
-          <RunWorktreeBlock
-            runId={run.runId}
-            worktreePath={run.worktreePath}
-            branchName={run.branchName}
-            taskId={run.taskId ?? null}
-            onOpenCodebase={onOpenCodebase ?? (() => {})}
-            onOpenGit={onOpenGit ?? (() => {})}
-            onOpenTask={onOpenTask ?? (() => {})}
-          />
+        <div className="mt-1.5">
+          <button
+            type="button"
+            onClick={() => setWtOpen((v) => !v)}
+            aria-expanded={wtOpen}
+            className="amaco-mono inline-flex items-center gap-1 text-[10.5px] text-amaco-fg-muted hover:text-amaco-fg"
+          >
+            {wtOpen ? (
+              <ChevronDown className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            ) : (
+              <ChevronRight className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            )}
+            <span>
+              worktree {run.branchName ?? "(no branch)"}
+            </span>
+            {!wtOpen ? (
+              <span className="truncate text-amaco-fg-muted/70">
+                · {run.worktreePath}
+              </span>
+            ) : null}
+          </button>
+          {wtOpen ? (
+            <div className="mt-2">
+              <RunWorktreeBlock
+                runId={run.runId}
+                worktreePath={run.worktreePath}
+                branchName={run.branchName}
+                taskId={run.taskId ?? null}
+                onOpenCodebase={onOpenCodebase ?? (() => {})}
+                onOpenGit={onOpenGit ?? (() => {})}
+                onOpenTask={onOpenTask ?? (() => {})}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </header>
