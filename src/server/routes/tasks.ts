@@ -180,10 +180,23 @@ export async function registerTasksRoutes(
       assertSafeId(req.params.taskId);
       const task = await svc.getTask(req.params.taskId);
       if (!task) throw new HttpError(404, "Task not found.");
-      const q = new RunQueue(deps.projectRoot);
-      await q.remove(task.id);
-      const updated = await svc.updateTaskStatus(task.id, "cancelled");
-      return { task: updated };
+      if (task.currentRunId) {
+        throw new HttpError(
+          409,
+          `Task is linked to active run ${task.currentRunId}; abort that run first.`,
+        );
+      }
+      try {
+        const q = new RunQueue(deps.projectRoot);
+        await q.remove(task.id);
+        const updated = await svc.updateTaskStatus(task.id, "cancelled");
+        return { task: updated };
+      } catch (err) {
+        throw new HttpError(
+          400,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
     },
   );
 

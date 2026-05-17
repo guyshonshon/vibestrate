@@ -182,9 +182,24 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       decorateReply: false,
     });
     // SPA fallback: any non-API GET that didn't match → index.html.
+    // Important caveat: don't 200 with an HTML fallback for requests
+    // that look like static assets (have a file extension like .js,
+    // .css, .map, .json, .svg, .png). Those should 404 honestly so
+    // the browser surfaces "module not found" instead of the
+    // confusing "Expected JS module but got text/html" error that
+    // shows up when an old html page tries to import a chunk that
+    // was renamed after a rebuild.
+    const ASSET_EXT_RE = /\.[a-z0-9]{1,8}$/i;
     app.setNotFoundHandler(async (req, reply) => {
       if (req.url.startsWith("/api/")) {
         return reply.code(404).send({ error: "Not found." });
+      }
+      const pathOnly = req.url.split("?")[0] ?? "";
+      if (ASSET_EXT_RE.test(pathOnly)) {
+        return reply
+          .code(404)
+          .type("text/plain")
+          .send(`asset not found: ${pathOnly}`);
       }
       const indexPath = path.join(uiDir, "index.html");
       const html = await fs.readFile(indexPath, "utf8");
