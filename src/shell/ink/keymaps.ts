@@ -30,6 +30,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "←→", label: "state" },
         ]},
         { name: "Actions", hints: [
+          { key: "↵/r", label: "run" },
           { key: "n", label: "new" },
           { key: "e", label: "edit" },
           { key: "d", label: "delete" },

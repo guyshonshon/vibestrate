@@ -28,6 +28,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
   {
     heading: "Roadmap actions",
     entries: [
+      ["↵  /  r", "run selected task in the background"],
       ["n", "new task (form)"],
       ["e", "edit selected task"],
       ["d", "delete selected task (asks y / N)"],

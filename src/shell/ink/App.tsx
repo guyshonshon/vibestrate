@@ -12,6 +12,8 @@ import { CommandRunner } from "./components/CommandRunner.js";
 import {
   parseArgs,
   runAmacoCommand,
+  spawnAmacoDetached,
+  openInBrowser,
 } from "./runner/command-runner.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
@@ -170,6 +172,28 @@ export function App({ projectRoot, refreshMs }: Props) {
         return;
       case "open-runner":
         dispatch({ type: "runner.open", seed: cmd.action.seed });
+        return;
+      case "spawn-detached": {
+        const { pid } = spawnAmacoDetached({
+          projectRoot,
+          argv: cmd.action.argv,
+        });
+        dispatch({
+          type: "toast.push",
+          kind: "ok",
+          message:
+            cmd.action.toast ??
+            `Started \`amaco ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
+        });
+        return;
+      }
+      case "open-url":
+        openInBrowser(cmd.action.url);
+        dispatch({
+          type: "toast.push",
+          kind: "info",
+          message: `Opening ${cmd.action.url} in your browser…`,
+        });
         return;
     }
   };

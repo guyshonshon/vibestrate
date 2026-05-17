@@ -43,7 +43,9 @@ export type PaletteCommand = {
     | { kind: "quit" }
     | { kind: "pause-scheduler" }
     | { kind: "resume-scheduler" }
-    | { kind: "open-runner"; seed?: string };
+    | { kind: "open-runner"; seed?: string }
+    | { kind: "spawn-detached"; argv: string[]; toast?: string }
+    | { kind: "open-url"; url: string };
 };
 
 export const DEFAULT_PALETTE: PaletteCommand[] = [
@@ -261,6 +263,44 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
       "Seeds the runner with `status --json` so you can capture / pipe / inspect the run list.",
     cli: "amaco status --json",
     action: { kind: "open-runner", seed: "status --json" },
+  },
+  {
+    id: "ui.start",
+    title: "Start the dashboard server",
+    hint: "amaco ui   (background)",
+    keywords: ["ui", "browser", "web", "supervisor"],
+    description:
+      "Spawns `amaco ui` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and exits the spawn back into the panel.",
+    cli: "amaco ui",
+    examples: [
+      "amaco ui --port 4318      # custom port",
+      "amaco ui --open           # auto-open the browser",
+    ],
+    action: {
+      kind: "spawn-detached",
+      argv: ["ui"],
+      toast: "Started amaco ui — dashboard at http://127.0.0.1:4317",
+    },
+  },
+  {
+    id: "ui.open",
+    title: "Open dashboard in browser",
+    hint: "http://127.0.0.1:4317",
+    keywords: ["ui", "browser", "web"],
+    description:
+      "Opens the dashboard URL in your default browser. Run `Start the dashboard server` first if it isn't already up.",
+    cli: "(open http://127.0.0.1:4317 in any browser)",
+    action: { kind: "open-url", url: "http://127.0.0.1:4317" },
+  },
+  {
+    id: "run.start",
+    title: "Run amaco for a free-form task",
+    hint: "opens the runner pre-seeded with `run`",
+    keywords: ["start", "task", "kick"],
+    description:
+      'Drops you into the runner with `run ""` so you can type the task in quotes. Use Roadmap [3] + Enter to launch a task from the kanban board.',
+    cli: 'amaco run "describe the change"',
+    action: { kind: "open-runner", seed: 'run ""' },
   },
   {
     id: "help.open",

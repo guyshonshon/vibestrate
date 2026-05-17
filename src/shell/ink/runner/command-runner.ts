@@ -5,7 +5,7 @@
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { spawn, exec } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -101,5 +101,44 @@ export async function runAmacoCommand(input: {
     child.on("exit", (code) => {
       resolve({ exitCode: code, output: buf });
     });
+  });
+}
+
+/**
+ * Spawn `amaco <args>` in the background — detached, unref'd, with
+ * stdio redirected to /dev/null. Used for long-running invocations
+ * like `amaco run …` and `amaco ui` where the user doesn't want
+ * the panel to block waiting for output.
+ *
+ * The child's pid is returned so the caller can show it in a toast.
+ */
+export function spawnAmacoDetached(input: {
+  projectRoot: string;
+  argv: string[];
+}): { pid: number | undefined } {
+  const bin = resolveAmacoBin();
+  const child = spawn(process.execPath, [bin, ...input.argv], {
+    cwd: input.projectRoot,
+    env: { ...process.env, AMACO_PANEL: "1", NO_COLOR: "1" },
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+  return { pid: child.pid };
+}
+
+/**
+ * Cross-platform "open this URL in the user's default browser".
+ * Best-effort: silently no-ops on platforms we don't recognize so the
+ * caller can still print the URL for the user to paste.
+ */
+export function openInBrowser(url: string): void {
+  const platform = process.platform;
+  let cmd: string | null = null;
+  if (platform === "darwin") cmd = `open ${JSON.stringify(url)}`;
+  else if (platform === "win32") cmd = `start "" ${JSON.stringify(url)}`;
+  else cmd = `xdg-open ${JSON.stringify(url)}`;
+  exec(cmd, () => {
+    // ignore: user can still copy the URL from the toast.
   });
 }

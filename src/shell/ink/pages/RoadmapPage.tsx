@@ -22,6 +22,7 @@ import {
   markReady,
 } from "../roadmap/task-actions.js";
 import { editInEditor } from "../roadmap/editor-handoff.js";
+import { spawnAmacoDetached } from "../runner/command-runner.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
 import { AccentHeader, SelectionMark, StatusPill } from "../components/visuals.js";
 
@@ -273,6 +274,29 @@ export function RoadmapPage({
           onToast(r.ok ? "ok" : "err", r.message);
           await refresh();
         });
+        return;
+      }
+      // Enter or "r" runs the selected task in the background. We
+      // spawn `amaco run --task <id> "<title>"` detached so the
+      // panel stays responsive — output streams into the per-run
+      // event log + the Runs page.
+      if ((key.return || input === "r" || input === "R") && selected) {
+        if (selected.currentRunId) {
+          onToast(
+            "info",
+            `Task already linked to run ${selected.currentRunId}. Open Runs to inspect.`,
+          );
+          return;
+        }
+        const { pid } = spawnAmacoDetached({
+          projectRoot,
+          argv: ["run", "--task", selected.id, selected.title],
+        });
+        onToast(
+          "ok",
+          `Started \`amaco run --task ${selected.id}\` (pid ${pid ?? "—"}). Switch to [2] Runs to watch.`,
+        );
+        void refresh();
         return;
       }
     },
