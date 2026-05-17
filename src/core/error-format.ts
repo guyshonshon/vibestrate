@@ -102,21 +102,27 @@ export function formatError(err: unknown): FormattedError {
   // --- HTTP / Fastify --------------------------------------------------
   const statusCode = pickNumber(raw.statusCode);
   if (statusCode !== undefined && statusCode >= 400) {
+    // Title prefers the server's own message when it sent a meaningful
+    // one (Fastify HttpError.message). 409 has many causes (worktree
+    // missing, approval state conflict, queue already held) — the
+    // original assumption "another action in flight" was misleading
+    // for most of them. Only fall back to the generic title when the
+    // server didn't bother to explain.
+    const serverSentMessage = message && message !== "Internal Server Error";
     return {
       kind: `http-${statusCode}`,
-      title:
-        statusCode >= 500
+      title: serverSentMessage
+        ? firstLine(message)
+        : statusCode >= 500
           ? `Server error ${statusCode}`
           : `Request rejected (${statusCode})`,
       detail: message,
       hint:
-        statusCode === 409
-          ? "Another action is already in flight for this resource — finish it first, then retry."
-          : statusCode === 404
-            ? "The resource no longer exists. It may have been deleted, cancelled, or never existed."
-            : statusCode >= 500
-              ? "amaco logged this into .amaco/issues.ndjson — check the Issues panel for context."
-              : undefined,
+        statusCode === 404
+          ? "The resource no longer exists. It may have been deleted, cancelled, or never existed."
+          : statusCode >= 500
+            ? "amaco logged this into .amaco/issues.ndjson — check the Issues panel for context."
+            : undefined,
     };
   }
 

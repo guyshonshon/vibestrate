@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TerminalSquare } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { ApiError } from "../../lib/api.js";
+import type { RunStatus } from "../../lib/types.js";
 
 type Line = { stream: "stdout" | "stderr"; chunk: string; at: string };
 type StreamMeta = {
@@ -8,6 +10,13 @@ type StreamMeta = {
   bytes: number;
   updatedAt: string;
 };
+
+const TERMINAL_STATUSES = new Set<RunStatus>([
+  "merge_ready",
+  "failed",
+  "aborted",
+  "blocked",
+]);
 
 /**
  * Live tail of the provider CLI's stdout/stderr for each agent
@@ -17,36 +26,61 @@ type StreamMeta = {
  *
  * Honest empty state when no stream has been recorded yet (run hasn't
  * spawned a provider, or this is an older run that predates streaming).
+ *
+ * Self-stopping behavior:
+ *   - terminal runs poll once for the final tail, then stop
+ *   - the route 404'ing 3 times in a row (e.g. the server bundle
+ *     predates streaming) stops the poll + shows an actionable hint
+ *     instead of looping forever
  */
-export function LiveOutputPanel({ runId }: { runId: string }) {
+export function LiveOutputPanel({
+  runId,
+  status,
+}: {
+  runId: string;
+  status: RunStatus;
+}) {
   const [streams, setStreams] = useState<StreamMeta[]>([]);
   const [active, setActive] = useState<string | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [autoscroll, setAutoscroll] = useState(true);
+  const [routeMissing, setRouteMissing] = useState(false);
   const scrollerRef = useRef<HTMLPreElement | null>(null);
+  const isTerminal = TERMINAL_STATUSES.has(status);
 
-  // Poll the list every 3s so newly spawned agents show up.
+  // Poll the list every 3s so newly spawned agents show up — but stop
+  // for terminal runs (no new streams), and back off entirely if the
+  // streams endpoint 404s consistently (server hasn't been rebuilt).
   useEffect(() => {
     let cancelled = false;
+    let consecutive404 = 0;
     const load = async () => {
       try {
         const r = await api.listRunStreams(runId);
         if (cancelled) return;
+        consecutive404 = 0;
         setStreams(r.streams);
-        if (active === null && r.streams[0]) {
-          setActive(r.streams[0].promptName);
+        setRouteMissing(false);
+        setActive((cur) => cur ?? r.streams[0]?.promptName ?? null);
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          consecutive404 += 1;
+          if (consecutive404 >= 3) {
+            setRouteMissing(true);
+            window.clearInterval(timer);
+          }
         }
-      } catch {
-        /* ignore — old run, network blip */
       }
     };
     void load();
-    const i = window.setInterval(load, 3000);
+    if (isTerminal) return () => undefined; // one-shot for terminal
+    const timer = window.setInterval(load, 3000);
     return () => {
       cancelled = true;
-      window.clearInterval(i);
+      window.clearInterval(timer);
     };
-  }, [runId, active]);
+  }, [runId, isTerminal]);
 
   // Open SSE for the selected stream. Falls back to a periodic poll
   // when SSE is blocked or the route 404s.
@@ -160,10 +194,22 @@ export function LiveOutputPanel({ runId }: { runId: string }) {
           autoscroll
         </label>
       </header>
-      {streams.length === 0 ? (
+      {routeMissing ? (
+        <p className="px-3 py-2 text-[11.5px] text-amaco-warn">
+          The streams endpoint returned 404 — your{" "}
+          <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
+            amaco ui
+          </code>{" "}
+          server bundle predates live streaming. Restart it after a
+          rebuild to enable. Polling stopped to keep the dev console
+          clean.
+        </p>
+      ) : streams.length === 0 ? (
         <p className="px-3 py-2 text-[11.5px] text-amaco-fg-muted">
-          No provider output recorded yet for this run. Streams are
-          captured per agent invocation under{" "}
+          {isTerminal
+            ? "This run finished without recording any provider output."
+            : "No provider output recorded yet for this run."}{" "}
+          Streams are captured per agent invocation under{" "}
           <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
             .amaco/runs/&lt;runId&gt;/streams/*.ndjson
           </code>

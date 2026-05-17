@@ -149,7 +149,7 @@ export function RunDetailPage({
             status={run.status}
             agents={metrics?.agents ?? []}
           />
-          <LiveOutputPanel runId={runId} />
+          <LiveOutputPanel runId={runId} status={run.status} />
           <WorkflowTimeline
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}

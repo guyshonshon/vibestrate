@@ -189,6 +189,23 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // Health.
   app.get("/api/health", async () => ({ ok: true, projectRoot: opts.projectRoot }));
 
+  // Inline favicon — kills the noisy `/favicon.ico 404` log line that
+  // every browser fires by default. Tiny accent-cyan terminal glyph
+  // matching the dashboard chrome. Long-cache since it's static.
+  const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#0b0e13"/><path d="M8 11l5 5-5 5" fill="none" stroke="#3dd6f5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="15" y1="22" x2="24" y2="22" stroke="#3dd6f5" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  app.get("/favicon.ico", async (_req, reply) => {
+    return reply
+      .type("image/svg+xml")
+      .header("Cache-Control", "public, max-age=86400")
+      .send(FAVICON_SVG);
+  });
+  app.get("/favicon.svg", async (_req, reply) => {
+    return reply
+      .type("image/svg+xml")
+      .header("Cache-Control", "public, max-age=86400")
+      .send(FAVICON_SVG);
+  });
+
   await registerRunsRoutes(app, { projectRoot: opts.projectRoot });
   await registerArtifactRoutes(app, { projectRoot: opts.projectRoot });
   await registerDiffRoutes(app, { projectRoot: opts.projectRoot });
