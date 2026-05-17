@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
-import type { RunState, RunStatus, Task } from "../../lib/types.js";
+import type {
+  AmacoEvent,
+  RunState,
+  RunStatus,
+  Task,
+} from "../../lib/types.js";
 
 type Props = {
   onSelectRun: (runId: string) => void;
@@ -27,6 +32,18 @@ const STATUS_TONE: Record<string, string> = {
   aborted: "bg-amaco-fail/10 text-amaco-fail border-amaco-fail/30",
 };
 
+/** Canonical workflow phases the orchestrator walks through. */
+const WORKFLOW_STEPS = [
+  { key: "plan", label: "Plan", statuses: ["planning", "planned"] },
+  { key: "arch", label: "Arch", statuses: ["architecting", "architected"] },
+  { key: "exec", label: "Exec", statuses: ["executing"] },
+  { key: "val", label: "Val", statuses: ["validating"] },
+  { key: "review", label: "Review", statuses: ["reviewing"] },
+  { key: "fix", label: "Fix", statuses: ["fixing"] },
+  { key: "verify", label: "Verify", statuses: ["verifying"] },
+  { key: "ready", label: "Ready", statuses: ["merge_ready"] },
+] as const;
+
 function isActive(s: RunStatus): boolean {
   return ![
     "merge_ready",
@@ -49,6 +66,75 @@ function relTime(iso: string, now = Date.now()): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+/**
+ * Compute a step-index for the current status. Steps the run has
+ * already passed render as "done" (green tick); the current step is
+ * pulsing cyan; later steps are dim.
+ */
+function currentStepIndex(status: RunStatus): number {
+  for (let i = 0; i < WORKFLOW_STEPS.length; i += 1) {
+    const step = WORKFLOW_STEPS[i]!;
+    if (step.statuses.some((s) => s === status)) return i;
+  }
+  // Terminal / off-path statuses (paused, approval, blocked, failed,
+  // aborted) — mark the last reached step by the run state's
+  // pausedAtStatus when available, otherwise leave as -1 ("unknown").
+  if (status === "paused" || status === "waiting_for_approval") return -1;
+  return -1;
+}
+
+/**
+ * Walk an events tail to derive what's *currently* attached: the
+ * agent the orchestrator most recently started without a matching
+ * completed / failed, plus its provider and MCP servers.
+ */
+function deriveLive(events: AmacoEvent[]): {
+  currentAgent: string | null;
+  currentProvider: string | null;
+  currentMcp: string[];
+  lastEvent: AmacoEvent | null;
+} {
+  let agent: string | null = null;
+  let provider: string | null = null;
+  let mcp: string[] = [];
+  for (const ev of events) {
+    const agentId =
+      ev.data && typeof ev.data.agentId === "string"
+        ? (ev.data.agentId as string)
+        : null;
+    if (ev.type === "agent.started" && agentId) {
+      agent = agentId;
+      provider =
+        ev.data && typeof ev.data.provider === "string"
+          ? (ev.data.provider as string)
+          : null;
+      mcp = [];
+    } else if (
+      (ev.type === "agent.completed" || ev.type === "agent.failed") &&
+      agentId === agent
+    ) {
+      agent = null;
+      provider = null;
+      mcp = [];
+    } else if (
+      ev.type === "mcp.attached" &&
+      agentId === agent &&
+      Array.isArray(ev.data?.servers)
+    ) {
+      const servers = ev.data!.servers as Array<{ name?: unknown }>;
+      mcp = servers
+        .map((s) => (typeof s.name === "string" ? s.name : null))
+        .filter((n): n is string => !!n);
+    }
+  }
+  return {
+    currentAgent: agent,
+    currentProvider: provider,
+    currentMcp: mcp,
+    lastEvent: events.length > 0 ? events[events.length - 1] ?? null : null,
+  };
+}
+
 export function MissionControlPage({
   onSelectRun,
   onShowRoadmap,
@@ -56,22 +142,47 @@ export function MissionControlPage({
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [eventsByRun, setEventsByRun] = useState<Record<string, AmacoEvent[]>>(
+    {},
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async (): Promise<void> => {
       try {
         const [r, t] = await Promise.all([api.listRuns(), api.listTasks()]);
+        if (cancelled) return;
         setRuns(r);
         setTasks(t);
         setError(null);
+        // Best-effort: read the recent events for each *active* run so
+        // the inline panel can show the current agent / MCP / phase.
+        // We do this on the same poll tick to keep complexity low.
+        const active = r.filter((x) => isActive(x.status));
+        const byRun: Record<string, AmacoEvent[]> = {};
+        await Promise.all(
+          active.map(async (a) => {
+            try {
+              const evs = await api.listEvents(a.runId);
+              byRun[a.runId] = evs.slice(-50);
+            } catch {
+              byRun[a.runId] = [];
+            }
+          }),
+        );
+        if (!cancelled) setEventsByRun(byRun);
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
       }
     };
     void load();
     const id = window.setInterval(() => void load(), 2000);
-    return () => window.clearInterval(id);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }, []);
 
   const active = runs.filter((r) => isActive(r.status));
@@ -93,7 +204,6 @@ export function MissionControlPage({
           </div>
         </div>
 
-        {/* Stat strip */}
         <div className="mt-3 flex flex-wrap items-stretch gap-2">
           <Stat label="active runs" value={String(active.length)} accent />
           <Stat label="total runs" value={String(runs.length)} />
@@ -117,7 +227,7 @@ export function MissionControlPage({
 
       <div className="flex-1 px-6 py-4">
         {error ? (
-          <div className="rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-2 text-[12.5px] text-amaco-fail">
+          <div className="mb-3 rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-2 text-[12.5px] text-amaco-fail">
             {error}
           </div>
         ) : null}
@@ -150,11 +260,12 @@ export function MissionControlPage({
               </code>
             </div>
           ) : (
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
               {active.map((r) => (
                 <RunCard
                   key={r.runId}
                   run={r}
+                  events={eventsByRun[r.runId] ?? []}
                   onClick={() => onSelectRun(r.runId)}
                 />
               ))}
@@ -166,9 +277,20 @@ export function MissionControlPage({
   );
 }
 
-function RunCard({ run, onClick }: { run: RunState; onClick: () => void }) {
+function RunCard({
+  run,
+  events,
+  onClick,
+}: {
+  run: RunState;
+  events: AmacoEvent[];
+  onClick: () => void;
+}) {
   const tone =
-    STATUS_TONE[run.status] ?? "bg-amaco-panel-2 text-amaco-fg-muted border-amaco-border";
+    STATUS_TONE[run.status] ??
+    "bg-amaco-panel-2 text-amaco-fg-muted border-amaco-border";
+  const stepIdx = currentStepIndex(run.status);
+  const live = deriveLive(events);
   return (
     <button
       onClick={onClick}
@@ -187,12 +309,71 @@ function RunCard({ run, onClick }: { run: RunState; onClick: () => void }) {
       <div className="text-[12.5px] font-medium text-amaco-fg">
         {run.task.length > 80 ? `${run.task.slice(0, 79)}…` : run.task}
       </div>
+      <Stepper stepIdx={stepIdx} />
+      <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10.5px]">
+        {live.currentAgent ? (
+          <span>
+            <span className="text-amaco-fg-muted">agent </span>
+            <span className="text-amaco-accent">{live.currentAgent}</span>
+          </span>
+        ) : (
+          <span className="text-amaco-fg-muted">no active agent</span>
+        )}
+        {live.currentProvider ? (
+          <span className="text-amaco-fg-muted">
+            via <span className="text-amaco-fg">{live.currentProvider}</span>
+          </span>
+        ) : null}
+        {live.currentMcp.length > 0 ? (
+          <span>
+            <span className="text-amaco-fg-muted">mcp </span>
+            <span className="text-amaco-fg">{live.currentMcp.join(", ")}</span>
+          </span>
+        ) : null}
+      </div>
       <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
         {run.runId}
         {run.effort ? <span> · {run.effort}</span> : null}
-        {run.readOnly ? <span className="text-amaco-warn"> · read-only</span> : null}
+        {run.readOnly ? (
+          <span className="text-amaco-warn"> · read-only</span>
+        ) : null}
       </div>
     </button>
+  );
+}
+
+function Stepper({ stepIdx }: { stepIdx: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {WORKFLOW_STEPS.map((step, i) => {
+        const done = stepIdx > i;
+        const current = stepIdx === i;
+        return (
+          <div key={step.key} className="flex flex-1 items-center gap-1">
+            <span
+              className={`h-1.5 flex-1 rounded ${
+                done
+                  ? "bg-amaco-success/60"
+                  : current
+                    ? "bg-amaco-accent"
+                    : "bg-amaco-panel-2"
+              }`}
+            />
+            <span
+              className={`amaco-mono text-[9px] uppercase tracking-wider ${
+                done
+                  ? "text-amaco-success/80"
+                  : current
+                    ? "text-amaco-accent"
+                    : "text-amaco-fg-muted"
+              }`}
+            >
+              {step.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
