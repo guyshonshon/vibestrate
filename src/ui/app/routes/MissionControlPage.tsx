@@ -6,6 +6,8 @@ import {
   ContextMenuTrigger,
   type ContextMenuItem,
 } from "../../components/ContextMenu.js";
+import { AttentionBar } from "../../components/AttentionBar.js";
+import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -187,6 +189,17 @@ export function MissionControlPage({
   type IssueRow = Awaited<ReturnType<typeof api.listIssues>>["issues"][number];
   const [issues, setIssues] = useState<IssueRow[]>([]);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  // Ref to the right-rail inbox so AttentionBar's "Open inbox →"
+  // can scroll it into view (and pop the issues panel on narrow
+  // screens where the rail is hidden).
+  const inboxRef = useRef<HTMLElement | null>(null);
+  const focusInbox = (): void => {
+    if (inboxRef.current) {
+      inboxRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      setIssuesOpen(true);
+    }
+  };
 
   // Auto-dismiss the toast after 4s.
   useEffect(() => {
@@ -303,6 +316,34 @@ export function MissionControlPage({
   useEffect(() => {
     const disconnect = streamAllEvents({
       onEvent: ({ runId, event }) => {
+        // Loud-by-default: when something needs the user's attention,
+        // fire a deduped desktop notification (no-op if the user
+        // hasn't granted permission yet — the AttentionBar nudges
+        // them to enable it).
+        if (event.type === "approval.requested") {
+          const apId =
+            (event.data as { approvalId?: string } | undefined)?.approvalId ??
+            runId;
+          pushDesktop({
+            kind: "approval-requested",
+            id: apId,
+            title: "Approval requested",
+            body: `Run ${runId} needs you to approve before it can continue.`,
+            onClick: () => onSelectRun(runId),
+          });
+        } else if (
+          event.type === "run.failed" ||
+          event.type === "run.aborted"
+        ) {
+          pushDesktop({
+            kind: "run-failed",
+            id: runId,
+            title:
+              event.type === "run.failed" ? "Run failed" : "Run aborted",
+            body: event.message ?? `Run ${runId} stopped.`,
+            onClick: () => onSelectRun(runId),
+          });
+        }
         setEventsByRun((prev) => {
           const cur = prev[runId] ?? [];
           // Cap each run's tail at 50 lines to match the polled
@@ -527,6 +568,18 @@ export function MissionControlPage({
         </div>
       </header>
 
+      <AttentionBar
+        counts={{
+          approvals: approvals.length,
+          suggestions: suggestions.length,
+          unreadNotifications: notifications.filter((n) => !n.readAt).length,
+          failedRuns: runs.filter(
+            (r) => r.status === "failed" || r.status === "aborted",
+          ).length,
+        }}
+        onFocusInbox={focusInbox}
+      />
+
       {issuesOpen ? (
         <IssuesPanel
           issues={issues}
@@ -700,7 +753,10 @@ export function MissionControlPage({
       </div>
 
       {/* Right rail: attention inbox — approvals, suggestions, notifications. */}
-      <aside className="hidden xl:flex flex-col gap-3">
+      <aside
+        ref={inboxRef}
+        className="hidden xl:flex flex-col gap-3 scroll-mt-4"
+      >
         <InboxApprovals
           items={approvals}
           onAction={handleInbox}
