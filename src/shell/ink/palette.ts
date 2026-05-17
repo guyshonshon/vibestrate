@@ -180,6 +180,21 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     action: { kind: "goto", page: "doctor" },
   },
   {
+    id: "scheduler.start",
+    title: "Start scheduler loop",
+    hint: "spawns `amaco queue run` in the background",
+    keywords: ["queue", "start", "daemon", "poll"],
+    description:
+      "Boots the scheduler loop so queued tasks actually get picked up. Without this running, queueing a task does nothing — items sit in queue.json forever.",
+    cli: "amaco queue run",
+    examples: ["amaco queue run --exit-when-drained   # script-friendly"],
+    action: {
+      kind: "spawn-detached",
+      argv: ["queue", "run"],
+      toast: "Started `amaco queue run` — queued tasks will pick up within ~1s.",
+    },
+  },
+  {
     id: "scheduler.pause",
     title: "Pause scheduler",
     hint: "stops launching new tasks; in-flight runs continue",

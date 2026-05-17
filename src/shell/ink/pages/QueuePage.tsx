@@ -9,6 +9,7 @@ import {
   removeQueueEntry,
   resumeScheduler,
 } from "../queue/queue-actions.js";
+import { spawnAmacoDetached } from "../runner/command-runner.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
 
 type Props = {
@@ -75,6 +76,21 @@ export function QueuePage({
         });
         return;
       }
+      // 's' starts the scheduler loop in the background. Spawned
+      // detached so the panel stays responsive; the user can quit
+      // it later with Ctrl+C from the other terminal or by running
+      // `amaco queue pause`.
+      if (input === "s" || input === "S") {
+        const { pid } = spawnAmacoDetached({
+          projectRoot,
+          argv: ["queue", "run"],
+        });
+        onToast(
+          "ok",
+          `Started \`amaco queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
+        );
+        return;
+      }
       void refreshWarnings;
     },
     { isActive: active },
@@ -82,7 +98,10 @@ export function QueuePage({
 
   return (
     <Box flexDirection="column">
-      <SchedulerHeader sched={sched} />
+      <SchedulerHeader
+        sched={sched}
+        liveness={snapshot.schedulerLiveness}
+      />
       <Box marginTop={1} flexDirection="column">
         <Text bold color="cyan">
           QUEUED
@@ -169,48 +188,79 @@ export function QueuePage({
 
 function SchedulerHeader({
   sched,
+  liveness,
 }: {
   sched: ShellSnapshot["scheduler"];
+  liveness: ShellSnapshot["schedulerLiveness"];
 }) {
+  // Loud-by-default: even when sched is null we still tell the
+  // user what's wrong AND how to fix it.
   if (!sched) {
     return (
-      <Text dimColor>
-        no scheduler state on disk — start it with{" "}
-        <Text color="cyan">amaco queue run</Text>
-      </Text>
+      <Box flexDirection="column">
+        <Text>
+          <Text color="red">▌</Text>
+          <Text bold color="red"> scheduler offline </Text>
+          <Text dimColor>· {liveness.summary}</Text>
+        </Text>
+        <Text dimColor>
+          press <Text color="cyan">s</Text> to spawn{" "}
+          <Text color="cyan">amaco queue run</Text> in the background
+        </Text>
+      </Box>
     );
   }
-  const pauseBar = sched.paused ? "yellow" : "cyan";
-  const pauseLabel = sched.paused ? "paused" : "running";
+  const livenessColor =
+    liveness.status === "live"
+      ? "cyan"
+      : liveness.status === "stale"
+        ? "yellow"
+        : "red";
+  const pauseColor = sched.paused ? "yellow" : livenessColor;
+  const pauseLabel = sched.paused
+    ? "paused"
+    : liveness.status === "live"
+      ? "running"
+      : liveness.status === "stale"
+        ? "running (slow)"
+        : "OFFLINE";
   return (
-    <Box flexWrap="wrap">
-      <Text>
-        <Text color={pauseBar}>▌</Text>
-        <Text dimColor>state </Text>
-        <Text bold color={pauseBar}>
-          {pauseLabel}
+    <Box flexDirection="column">
+      <Box flexWrap="wrap">
+        <Text>
+          <Text color={pauseColor}>▌</Text>
+          <Text dimColor>state </Text>
+          <Text bold color={pauseColor}>
+            {pauseLabel}
+          </Text>
+          <Text dimColor>   ·   </Text>
+          <Text dimColor>policy </Text>
+          <Text bold>{sched.queuePolicy}</Text>
+          <Text dimColor>   ·   </Text>
+          <Text dimColor>max </Text>
+          <Text bold>{sched.maxConcurrentRuns}</Text>
+          {Object.keys(sched.sourceQuotas).length > 0 ? (
+            <>
+              <Text dimColor>   ·   </Text>
+              <Text dimColor>quotas </Text>
+              <Text bold>{Object.keys(sched.sourceQuotas).length}</Text>
+            </>
+          ) : null}
+          {typeof sched.defaultSourceConcurrency === "number" ? (
+            <>
+              <Text dimColor>   ·   </Text>
+              <Text dimColor>default/src </Text>
+              <Text bold>{sched.defaultSourceConcurrency}</Text>
+            </>
+          ) : null}
         </Text>
-        <Text dimColor>   ·   </Text>
-        <Text dimColor>policy </Text>
-        <Text bold>{sched.queuePolicy}</Text>
-        <Text dimColor>   ·   </Text>
-        <Text dimColor>max </Text>
-        <Text bold>{sched.maxConcurrentRuns}</Text>
-        {Object.keys(sched.sourceQuotas).length > 0 ? (
-          <>
-            <Text dimColor>   ·   </Text>
-            <Text dimColor>quotas </Text>
-            <Text bold>{Object.keys(sched.sourceQuotas).length}</Text>
-          </>
-        ) : null}
-        {typeof sched.defaultSourceConcurrency === "number" ? (
-          <>
-            <Text dimColor>   ·   </Text>
-            <Text dimColor>default/src </Text>
-            <Text bold>{sched.defaultSourceConcurrency}</Text>
-          </>
-        ) : null}
-      </Text>
+      </Box>
+      {!liveness.pickingUpWork ? (
+        <Text dimColor>
+          ↳ {liveness.summary} · press{" "}
+          <Text color="cyan">s</Text> to start it
+        </Text>
+      ) : null}
     </Box>
   );
 }

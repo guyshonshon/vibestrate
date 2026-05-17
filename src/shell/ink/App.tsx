@@ -392,6 +392,7 @@ export function App({ projectRoot, refreshMs }: Props) {
             <RoadmapPage
               projectRoot={projectRoot}
               tasks={tasks}
+              schedulerLiveness={snapshot.schedulerLiveness}
               refresh={refreshTasks}
               onToast={(kind, message) =>
                 dispatch({ type: "toast.push", kind, message })

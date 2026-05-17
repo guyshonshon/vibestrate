@@ -29,6 +29,8 @@ import { AccentHeader, SelectionMark, StatusPill } from "../components/visuals.j
 type Props = {
   projectRoot: string;
   tasks: Task[];
+  /** Surface scheduler-offline warnings on the Q (queue) toast. */
+  schedulerLiveness: import("../../../scheduler/scheduler-liveness.js").SchedulerLiveness;
   refresh: () => Promise<void>;
   onToast: (kind: "ok" | "err" | "info", message: string) => void;
   ui: {
@@ -47,6 +49,7 @@ type Props = {
 export function RoadmapPage({
   projectRoot,
   tasks,
+  schedulerLiveness,
   refresh,
   onToast,
   ui,
@@ -264,7 +267,21 @@ export function RoadmapPage({
       if (input === "Q" && selected) {
         // capital-Q queues the task. lowercase q is reserved for quit.
         void queueTask(projectRoot, selected.id).then(async (r) => {
-          onToast(r.ok ? "ok" : "err", r.message);
+          if (!r.ok) {
+            onToast("err", r.message);
+            await refresh();
+            return;
+          }
+          // Loud-by-default: tell the user where the queued task
+          // goes next. If the scheduler isn't actually running,
+          // surface that immediately + suggest the fix.
+          const liveMsg = schedulerLiveness.pickingUpWork
+            ? `${r.message} · ${schedulerLiveness.summary}`
+            : `${r.message} · ${schedulerLiveness.summary}`;
+          onToast(
+            schedulerLiveness.pickingUpWork ? "ok" : "info",
+            liveMsg,
+          );
           await refresh();
         });
         return;

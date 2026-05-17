@@ -386,6 +386,13 @@ export const api = {
   }> {
     return jsonGet("/api/queue");
   },
+  async startScheduler(): Promise<{
+    ok: true;
+    pid: number | null;
+    message: string;
+  }> {
+    return jsonPost("/api/scheduler/start");
+  },
   async listConflicts(): Promise<ConflictWarning[]> {
     const r = await jsonGet<{ warnings: ConflictWarning[] }>(
       "/api/scheduler/conflicts",
