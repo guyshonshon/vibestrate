@@ -449,6 +449,26 @@ export const api = {
   }> {
     return jsonPost("/api/scheduler/start");
   },
+  async getSchedulerLog(bytes?: number): Promise<{
+    bytes: number;
+    truncated: boolean;
+    text: string;
+  }> {
+    const qs = bytes ? `?bytes=${bytes}` : "";
+    return jsonGet(`/api/scheduler/log${qs}`);
+  },
+  async getSchedulerSpawns(): Promise<{
+    records: {
+      at: string;
+      pid: number | null;
+      source: string;
+      exitedAt: string | null;
+      exitCode: number | null;
+      exitError: string | null;
+    }[];
+  }> {
+    return jsonGet(`/api/scheduler/spawns`);
+  },
   async listIssues(): Promise<{
     issues: Array<{
       id: string;
