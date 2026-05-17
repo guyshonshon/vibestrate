@@ -150,23 +150,23 @@ export function RunHeader({
             </div>
           ) : null}
         </div>
-        {/* Pause / Resume controls. Disabled (not hidden) on terminal runs
-         * so the surface stays predictable. Only one button is enabled at
-         * a time — pause-pending shows Resume so the user can cancel. */}
-        <div className="flex shrink-0 items-start gap-1.5">
+        {/* Run-action toolbar. Promoted from the previous dim text-only
+         * row to full-size accent / warn-toned buttons so Pause / Resume
+         * / Retry don't get lost in the corner. */}
+        <div className="flex shrink-0 items-start gap-2">
           {canResume ? (
             <button
               type="button"
               onClick={doResume}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px] text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
               title={
                 isPaused
                   ? "Resume the paused run"
                   : "Cancel the pending pause request"
               }
             >
-              <Play className="h-3 w-3" strokeWidth={1.5} />
+              <Play className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
               {busy === "resume" ? "Resuming…" : isPaused ? "Resume" : "Cancel pause"}
             </button>
           ) : canPause ? (
@@ -174,10 +174,10 @@ export function RunHeader({
               type="button"
               onClick={doPause}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px] text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-warn/50 bg-amaco-warn/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-warn hover:bg-amaco-warn/20 focus:outline-none focus:ring-1 focus:ring-amaco-warn disabled:opacity-50"
               title="Request pause at the next stage boundary"
             >
-              <Pause className="h-3 w-3" strokeWidth={1.5} />
+              <Pause className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
               {busy === "pause" ? "Pausing…" : "Pause"}
             </button>
           ) : null}
@@ -186,10 +186,10 @@ export function RunHeader({
               type="button"
               onClick={doRetry}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-1 text-[11.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
               title="Re-run this task with the same flags. The current run record stays on disk; the retry gets a fresh runId."
             >
-              <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
               {busy === "retry" ? "Retrying…" : "Retry"}
             </button>
           ) : null}

@@ -127,8 +127,8 @@ export function RunDetailPage({
         </span>
         <FreshnessIndicator freshness={freshness} />
       </div>
-      <div className="grid flex-1 grid-cols-[1fr_440px] overflow-hidden">
-        <section className="flex flex-col gap-3 overflow-y-auto p-4">
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
           {pending ? (
             <ApprovalBanner
               runId={runId}
