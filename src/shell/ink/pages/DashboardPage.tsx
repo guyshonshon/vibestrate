@@ -151,6 +151,7 @@ function StatCard({
   tint?: "yellow" | "red" | "green";
   accent?: boolean;
 }) {
+  const accentColor = tint ?? (accent ? "cyan" : "gray");
   return (
     <Box
       {...CARD_PROPS}
@@ -158,6 +159,7 @@ function StatCard({
       flexBasis={0}
       flexGrow={1}
     >
+      <Text color={accentColor}>{"━".repeat(10)}</Text>
       <Text dimColor>{label}</Text>
       <Text bold color={tint ?? (accent ? "cyan" : undefined)}>
         {value}
@@ -179,11 +181,14 @@ function SectionCard({
   return (
     <Box {...CARD_PROPS} flexDirection="column">
       <Box>
-        <Text dimColor>
-          {title}
-          {typeof count === "number" ? `   (${count})` : ""}
+        <Text bold color="cyan">
+          {title.toUpperCase()}
         </Text>
+        {typeof count === "number" ? (
+          <Text dimColor>     {count}</Text>
+        ) : null}
       </Box>
+      <Text dimColor>{"─".repeat(Math.max(title.length, 4))}</Text>
       <Box marginTop={1} flexDirection="column">
         {children}
       </Box>

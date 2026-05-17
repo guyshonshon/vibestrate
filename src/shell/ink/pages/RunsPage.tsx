@@ -9,6 +9,7 @@ import {
 } from "../ui-state.js";
 import { filterEvents } from "../event-filter.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
+import { SelectionMark, StatusPill } from "../components/visuals.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -85,14 +86,12 @@ function RunsList({
 
 function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
   const tok = runStatusToken(row.status);
-  const cursor = selected ? "▸" : " ";
   return (
     <Box>
-      <Text color={selected ? "cyan" : undefined}>{cursor}</Text>
-      <Text> </Text>
-      <Text bold={selected} color={selected ? "cyan" : undefined}>
+      <SelectionMark selected={selected} />
+      <Text>
         <Text color={tok.color}>{tok.glyph}</Text>
-        <Text>  {clip(row.task, 30).padEnd(30)}</Text>
+        <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
         <Text dimColor>  {clip(row.currentAgent ?? "—", 10).padEnd(10)}</Text>
         <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (

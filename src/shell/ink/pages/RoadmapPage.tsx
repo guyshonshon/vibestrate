@@ -23,7 +23,7 @@ import {
 } from "../roadmap/task-actions.js";
 import { editInEditor } from "../roadmap/editor-handoff.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
-import { SectionHeader } from "../components/Frame.js";
+import { AccentHeader, SelectionMark, StatusPill } from "../components/visuals.js";
 
 type Props = {
   projectRoot: string;
@@ -265,19 +265,13 @@ export function RoadmapPage({
   const activeColumn = board.columns[cursor.col] ?? null;
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Roadmap" hint={`${tasks.length} total`} />
+      <AccentHeader title="Roadmap" hint={`${tasks.length} total`} />
 
-      {/* Status rail — one line, pipe-separated, with active state in
-          inverse cyan so it reads like a real status strip. */}
+      {/* Status rail — colored status pills with the active state in
+          inverse-on-status-color so each workflow phase has its own
+          visual identity. */}
       <Box marginTop={1}>
-        <StatusRail
-          columns={board.columns.map((c) => ({
-            id: c.id,
-            label: c.label.toLowerCase(),
-            count: c.tasks.length,
-          }))}
-          activeIndex={cursor.col}
-        />
+        <StatusRail columns={board.columns} activeIndex={cursor.col} />
       </Box>
 
       {/* Tasks for the active state, then the focal detail card. */}
@@ -351,7 +345,7 @@ function StatusRail({
   columns,
   activeIndex,
 }: {
-  columns: ReadonlyArray<{ id: string; label: string; count: number }>;
+  columns: ReadonlyArray<{ id: string; label: string; tasks: Task[] }>;
   activeIndex: number;
 }) {
   return (
@@ -359,21 +353,15 @@ function StatusRail({
       <Text>
         {columns.map((c, i) => {
           const active = i === activeIndex;
+          const token = taskStatusToken(c.id);
           return (
             <React.Fragment key={c.id}>
-              {i > 0 ? <Text dimColor>{" │ "}</Text> : null}
-              {active ? (
-                <Text color="black" backgroundColor="cyan" bold>
-                  {" "}
-                  {c.label} {c.count}
-                  {" "}
-                </Text>
-              ) : (
-                <Text>
-                  <Text dimColor>{c.label} </Text>
-                  <Text>{c.count}</Text>
-                </Text>
-              )}
+              {i > 0 ? <Text dimColor>{"   "}</Text> : null}
+              <StatusPill
+                token={{ ...token, label: c.label.toLowerCase() }}
+                count={c.tasks.length}
+                active={active}
+              />
             </React.Fragment>
           );
         })}
@@ -384,22 +372,20 @@ function StatusRail({
 
 function TaskRow({ task, selected }: { task: Task; selected: boolean }) {
   const tok = taskStatusToken(task.status);
-  const cursor = selected ? "›" : " ";
   return (
     <Box>
+      <SelectionMark selected={selected} />
       <Text>
-        <Text color={selected ? "cyan" : undefined}>{cursor}</Text>
+        <Text color={tok.color}>{tok.glyph}</Text>
         <Text> </Text>
-        <Text bold={selected} color={selected ? "cyan" : undefined}>
+        <Text bold={selected}>
           {clip(task.title, 38).padEnd(38)}
         </Text>
-        <Text dimColor>  </Text>
-        <Text color={tok.color}>{tok.label.padEnd(10)}</Text>
         <Text dimColor>  prio </Text>
         <Text>{task.priority.padEnd(6)}</Text>
         <Text dimColor>  effort </Text>
         <Text>{(task.effort ?? "—").padEnd(6)}</Text>
-        {task.readOnly ? <Text color="yellow">  read-only</Text> : null}
+        {task.readOnly ? <Text color="yellow">  ◉ read-only</Text> : null}
         <Text dimColor>  {clip(task.id, 24)}</Text>
       </Text>
     </Box>
