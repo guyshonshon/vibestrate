@@ -393,6 +393,24 @@ export const api = {
   }> {
     return jsonPost("/api/scheduler/start");
   },
+  async listIssues(): Promise<{
+    issues: Array<{
+      id: string;
+      createdAt: string;
+      kind: string;
+      message: string;
+      detail?: string;
+      fix?: string;
+      context?: Record<string, unknown>;
+      resolved: boolean;
+    }>;
+    unresolved: number;
+  }> {
+    return jsonGet("/api/issues");
+  },
+  async resolveIssue(id: string): Promise<{ ok: true }> {
+    return jsonPost(`/api/issues/${encodeURIComponent(id)}/resolve`);
+  },
   async listConflicts(): Promise<ConflictWarning[]> {
     const r = await jsonGet<{ warnings: ConflictWarning[] }>(
       "/api/scheduler/conflicts",

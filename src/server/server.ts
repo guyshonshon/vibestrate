@@ -14,6 +14,7 @@ import { registerApprovalsRoutes } from "./routes/approvals.js";
 import { registerRoadmapRoutes } from "./routes/roadmap.js";
 import { registerTasksRoutes } from "./routes/tasks.js";
 import { registerQueueRoutes } from "./routes/queue.js";
+import { registerIssuesRoutes } from "./routes/issues.js";
 import { registerProposalsRoutes } from "./routes/proposals.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
 import { registerProjectRoutes } from "./routes/project.js";
@@ -31,6 +32,7 @@ import {
 } from "./routes/terminal.js";
 import { registerPoliciesRoutes } from "./routes/policies.js";
 import { HttpError } from "./security.js";
+import { recordIssue } from "../core/issues-store.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
 
@@ -129,9 +131,24 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     }
   });
 
-  // Map HttpError → typed JSON.
-  app.setErrorHandler((error: unknown, _req, reply) => {
+  // Map errors → typed JSON, AND record server-side failures into
+  // .amaco/issues.ndjson so the failure inbox surface (panel +
+  // dashboard badge) can show every problem the user might have
+  // missed. 4xx caused by client input are NOT recorded (would
+  // flood the stream); 5xx and uncaught errors always are.
+  app.setErrorHandler(async (error: unknown, req, reply) => {
     if (error instanceof HttpError) {
+      if (error.statusCode >= 500) {
+        await recordIssue(opts.projectRoot, {
+          kind: "server-route",
+          message: error.message,
+          context: {
+            route: req.url,
+            method: req.method,
+            status: error.statusCode,
+          },
+        }).catch(() => {});
+      }
       return reply.code(error.statusCode).send({ error: error.message });
     }
     const message =
@@ -139,6 +156,12 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     if (error && typeof error === "object" && "validation" in error) {
       return reply.code(400).send({ error: message });
     }
+    await recordIssue(opts.projectRoot, {
+      kind: "server-uncaught",
+      message,
+      detail: error instanceof Error ? (error.stack ?? undefined) : undefined,
+      context: { route: req.url, method: req.method },
+    }).catch(() => {});
     reply.code(500).send({ error: message });
   });
 
@@ -156,6 +179,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerRoadmapRoutes(app, { projectRoot: opts.projectRoot });
   await registerTasksRoutes(app, { projectRoot: opts.projectRoot });
   await registerQueueRoutes(app, { projectRoot: opts.projectRoot });
+  await registerIssuesRoutes(app, { projectRoot: opts.projectRoot });
   await registerProposalsRoutes(app, { projectRoot: opts.projectRoot });
   await registerNotificationRoutes(app, { projectRoot: opts.projectRoot });
   await registerProjectRoutes(app, { projectRoot: opts.projectRoot });
