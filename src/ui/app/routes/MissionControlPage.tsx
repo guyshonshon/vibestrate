@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import type {
   AmacoEvent,
+  ApprovalRequest,
+  NotificationRecord,
   QueueEntry,
+  ReviewSuggestion,
   RunState,
   RunStatus,
   SchedulerState,
   Task,
 } from "../../lib/types.js";
+
+type ApprovalRow = ApprovalRequest & { runId: string };
+type SuggestionRow = ReviewSuggestion & { runId: string };
 
 type Props = {
   onSelectRun: (runId: string) => void;
@@ -164,6 +170,11 @@ export function MissionControlPage({
     "medium",
   );
   const [newTaskBusy, setNewTaskBusy] = useState(false);
+  // Right-rail inbox: aggregated pending approvals / open suggestions /
+  // recent notifications.
+  const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionRow[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
 
   // Auto-dismiss the toast after 4s.
   useEffect(() => {
@@ -192,17 +203,68 @@ export function MissionControlPage({
         // We do this on the same poll tick to keep complexity low.
         const active = r.filter((x) => isActive(x.status));
         const byRun: Record<string, AmacoEvent[]> = {};
+        // Approvals + suggestions are sparse — walk every non-terminal
+        // run, but skip terminal ones to keep the fan-out reasonable.
+        const aprAggregate: ApprovalRow[] = [];
+        const sugAggregate: SuggestionRow[] = [];
         await Promise.all(
-          active.map(async (a) => {
-            try {
-              const evs = await api.listEvents(a.runId);
-              byRun[a.runId] = evs.slice(-50);
-            } catch {
-              byRun[a.runId] = [];
+          r.map(async (run) => {
+            const isLive = isActive(run.status);
+            const promises: Promise<unknown>[] = [];
+            if (isLive) {
+              promises.push(
+                api
+                  .listEvents(run.runId)
+                  .then((evs) => {
+                    byRun[run.runId] = evs.slice(-50);
+                  })
+                  .catch(() => {
+                    byRun[run.runId] = [];
+                  }),
+              );
             }
+            promises.push(
+              api
+                .listApprovals(run.runId)
+                .then((list) => {
+                  for (const a of list) {
+                    if (a.status === "pending") {
+                      aprAggregate.push({ ...a, runId: run.runId });
+                    }
+                  }
+                })
+                .catch(() => undefined),
+            );
+            promises.push(
+              api
+                .listSuggestions(run.runId)
+                .then((list) => {
+                  for (const s of list) {
+                    if (s.status === "open") {
+                      sugAggregate.push({ ...s, runId: run.runId });
+                    }
+                  }
+                })
+                .catch(() => undefined),
+            );
+            await Promise.all(promises);
           }),
         );
-        if (!cancelled) setEventsByRun(byRun);
+        const notif = await api.listNotifications().catch(() => ({
+          notifications: [] as NotificationRecord[],
+          unread: 0,
+        }));
+        if (cancelled) return;
+        setEventsByRun(byRun);
+        aprAggregate.sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt),
+        );
+        sugAggregate.sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt),
+        );
+        setApprovals(aprAggregate);
+        setSuggestions(sugAggregate);
+        setNotifications(notif.notifications);
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -259,6 +321,29 @@ export function MissionControlPage({
     try {
       await api.queueTask(taskId);
       setToast({ kind: "ok", text: `Queued ${taskId}` });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  const handleInbox = async (
+    kind: "approve-approval" | "reject-approval" | "approve-suggestion" | "reject-suggestion",
+    row: { runId: string; id: string },
+  ): Promise<void> => {
+    try {
+      if (kind === "approve-approval") {
+        await api.approveApproval({ runId: row.runId, approvalId: row.id });
+      } else if (kind === "reject-approval") {
+        await api.rejectApproval({ runId: row.runId, approvalId: row.id });
+      } else if (kind === "approve-suggestion") {
+        await api.approveSuggestion({ runId: row.runId, suggestionId: row.id });
+      } else {
+        await api.rejectSuggestion({ runId: row.runId, suggestionId: row.id });
+      }
+      setToast({ kind: "ok", text: `${kind.replace("-", " ")} ${row.id}` });
     } catch (err) {
       setToast({
         kind: "err",
@@ -488,12 +573,19 @@ export function MissionControlPage({
         </section>
       </div>
 
-      {/* Right rail placeholder — Phase 5 fills with approvals / suggestions. */}
-      <aside className="hidden xl:flex flex-col gap-2 rounded border border-dashed border-amaco-border bg-amaco-panel/30 p-3 text-[11.5px] text-amaco-fg-muted">
-        <div className="text-[10.5px] uppercase tracking-[0.14em]">
-          attention inbox
-        </div>
-        <div>Approvals, suggestions and notifications land here in MC Phase 5.</div>
+      {/* Right rail: attention inbox — approvals, suggestions, notifications. */}
+      <aside className="hidden xl:flex flex-col gap-3">
+        <InboxApprovals
+          items={approvals}
+          onAction={handleInbox}
+          onOpenRun={onSelectRun}
+        />
+        <InboxSuggestions
+          items={suggestions}
+          onAction={handleInbox}
+          onOpenRun={onSelectRun}
+        />
+        <InboxNotifications items={notifications} onOpenRun={onSelectRun} />
       </aside>
       </div>
     </div>
@@ -856,6 +948,253 @@ function Stat({
       {hint ? (
         <span className="text-[10.5px] text-amaco-fg-muted">{hint}</span>
       ) : null}
+    </div>
+  );
+}
+
+type InboxKind =
+  | "approve-approval"
+  | "reject-approval"
+  | "approve-suggestion"
+  | "reject-suggestion";
+
+function InboxApprovals({
+  items,
+  onAction,
+  onOpenRun,
+}: {
+  items: ApprovalRow[];
+  onAction: (
+    kind: InboxKind,
+    row: { runId: string; id: string },
+  ) => Promise<void>;
+  onOpenRun: (runId: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          approvals
+        </span>
+        <span
+          className={`amaco-mono rounded px-1.5 text-[10.5px] ${
+            items.length > 0
+              ? "bg-amaco-warn/15 text-amaco-warn"
+              : "bg-amaco-panel-2 text-amaco-fg-muted"
+          }`}
+        >
+          {items.length}
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <span className="text-[11.5px] text-amaco-fg-muted">
+          nothing waiting on you
+        </span>
+      ) : (
+        items.slice(0, 5).map((a) => (
+          <div
+            key={`${a.runId}-${a.id}`}
+            className="flex flex-col gap-1 rounded border border-amaco-warn/30 bg-amaco-warn/5 px-2 py-1.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => onOpenRun(a.runId)}
+                className="amaco-mono text-[10.5px] text-amaco-warn hover:underline"
+              >
+                {a.agentId} · {a.stageId}
+              </button>
+              <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                {a.riskLevel}
+              </span>
+            </div>
+            {a.reason ? (
+              <span className="text-[11.5px] text-amaco-fg-dim">
+                {a.reason.length > 90 ? `${a.reason.slice(0, 89)}…` : a.reason}
+              </span>
+            ) : null}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() =>
+                  void onAction("approve-approval", { runId: a.runId, id: a.id })
+                }
+                className="amaco-mono rounded border border-amaco-success/40 px-2 py-0.5 text-[10.5px] text-amaco-success hover:bg-amaco-success/10"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() =>
+                  void onAction("reject-approval", { runId: a.runId, id: a.id })
+                }
+                className="amaco-mono rounded border border-amaco-fail/30 px-2 py-0.5 text-[10.5px] text-amaco-fail hover:bg-amaco-fail/10"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+      {items.length > 5 ? (
+        <span className="text-[10.5px] text-amaco-fg-muted">
+          + {items.length - 5} more
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function InboxSuggestions({
+  items,
+  onAction,
+  onOpenRun,
+}: {
+  items: SuggestionRow[];
+  onAction: (
+    kind: InboxKind,
+    row: { runId: string; id: string },
+  ) => Promise<void>;
+  onOpenRun: (runId: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          suggestions
+        </span>
+        <span
+          className={`amaco-mono rounded px-1.5 text-[10.5px] ${
+            items.length > 0
+              ? "bg-amaco-info/15 text-amaco-info"
+              : "bg-amaco-panel-2 text-amaco-fg-muted"
+          }`}
+        >
+          {items.length}
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <span className="text-[11.5px] text-amaco-fg-muted">no open suggestions</span>
+      ) : (
+        items.slice(0, 5).map((s) => (
+          <div
+            key={`${s.runId}-${s.id}`}
+            className="flex flex-col gap-1 rounded border border-amaco-info/30 bg-amaco-info/5 px-2 py-1.5"
+          >
+            <button
+              onClick={() => onOpenRun(s.runId)}
+              className="truncate text-left text-[11.5px] font-medium text-amaco-fg hover:text-amaco-accent"
+            >
+              {s.title}
+            </button>
+            {s.file ? (
+              <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                {s.file}
+                {s.lineStart
+                  ? `:${s.lineStart}${s.lineEnd ? `-${s.lineEnd}` : ""}`
+                  : ""}
+              </span>
+            ) : null}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() =>
+                  void onAction("approve-suggestion", {
+                    runId: s.runId,
+                    id: s.id,
+                  })
+                }
+                className="amaco-mono rounded border border-amaco-success/40 px-2 py-0.5 text-[10.5px] text-amaco-success hover:bg-amaco-success/10"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() =>
+                  void onAction("reject-suggestion", {
+                    runId: s.runId,
+                    id: s.id,
+                  })
+                }
+                className="amaco-mono rounded border border-amaco-fail/30 px-2 py-0.5 text-[10.5px] text-amaco-fail hover:bg-amaco-fail/10"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+      {items.length > 5 ? (
+        <span className="text-[10.5px] text-amaco-fg-muted">
+          + {items.length - 5} more
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function InboxNotifications({
+  items,
+  onOpenRun,
+}: {
+  items: NotificationRecord[];
+  onOpenRun: (runId: string) => void;
+}) {
+  const unread = items.filter((n) => !n.readAt).length;
+  return (
+    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          notifications
+        </span>
+        <span
+          className={`amaco-mono rounded px-1.5 text-[10.5px] ${
+            unread > 0
+              ? "bg-amaco-accent/15 text-amaco-accent"
+              : "bg-amaco-panel-2 text-amaco-fg-muted"
+          }`}
+        >
+          {unread > 0 ? `${unread} new` : items.length}
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <span className="text-[11.5px] text-amaco-fg-muted">no notifications yet</span>
+      ) : (
+        items.slice(0, 6).map((n) => (
+          <button
+            key={n.id}
+            onClick={() => (n.runId ? onOpenRun(n.runId) : undefined)}
+            disabled={!n.runId}
+            className="flex flex-col gap-0.5 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] text-amaco-fg hover:bg-amaco-panel disabled:cursor-default disabled:hover:bg-amaco-panel-2"
+          >
+            <span className="flex items-center gap-1.5">
+              <span
+                className={
+                  n.severity === "critical"
+                    ? "text-amaco-fail"
+                    : n.severity === "warning" || n.severity === "attention"
+                      ? "text-amaco-warn"
+                      : n.severity === "success"
+                        ? "text-amaco-success"
+                        : "text-amaco-fg-muted"
+                }
+              >
+                {n.severity === "critical"
+                  ? "✗"
+                  : n.severity === "warning" || n.severity === "attention"
+                    ? "!"
+                    : n.severity === "success"
+                      ? "✓"
+                      : "·"}
+              </span>
+              <span className="truncate">{n.title}</span>
+              {!n.readAt ? (
+                <span className="amaco-mono ml-auto text-[10.5px] text-amaco-accent">
+                  new
+                </span>
+              ) : null}
+            </span>
+            <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+              {n.category}
+            </span>
+          </button>
+        ))
+      )}
     </div>
   );
 }
