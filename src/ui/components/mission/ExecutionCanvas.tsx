@@ -15,6 +15,11 @@ import type {
   RunStatus,
 } from "../../lib/types.js";
 import { PHASES, phaseStates, type PhaseState } from "./phaseRail.js";
+import {
+  ContextMenuTrigger,
+  type ContextMenuItem,
+} from "../ContextMenu.js";
+import { cliFor, type UiAction } from "../../lib/cliFor.js";
 
 type Props = {
   active: RunState[];
@@ -79,6 +84,21 @@ function EmptyState() {
   );
 }
 
+function copy(text: string): void {
+  void navigator.clipboard?.writeText?.(text).catch(() => undefined);
+}
+
+function cliItem(a: UiAction, label: string): ContextMenuItem | null {
+  const c = cliFor(a);
+  if (!c) return null;
+  return {
+    id: `cli-${a.kind}`,
+    label,
+    hint: c.length > 26 ? `${c.slice(0, 24)}…` : c,
+    onSelect: () => copy(c),
+  };
+}
+
 function RunFlowCard({
   run,
   events,
@@ -88,6 +108,31 @@ function RunFlowCard({
   events: AmacoEvent[];
   onOpen: () => void;
 }) {
+  const menuItems: ContextMenuItem[] = [
+    { id: "open", label: "Open run", hint: "↵", onSelect: onOpen },
+    { id: "div1", label: "divider:" },
+    {
+      id: "copy-id",
+      label: "Copy run id",
+      hint: run.runId,
+      onSelect: () => copy(run.runId),
+    },
+    cliItem({ kind: "status-run", runId: run.runId }, "Copy CLI: status"),
+    cliItem({ kind: "replay-run", runId: run.runId }, "Copy CLI: replay"),
+    cliItem({ kind: "pause-run", runId: run.runId }, "Copy CLI: pause"),
+    cliItem({ kind: "resume-run", runId: run.runId }, "Copy CLI: resume"),
+    cliItem({ kind: "abort-run", runId: run.runId }, "Copy CLI: abort"),
+    ...(run.worktreePath
+      ? [
+          { id: "div2", label: "divider:" } as ContextMenuItem,
+          {
+            id: "copy-wt",
+            label: "Copy worktree path",
+            onSelect: () => copy(run.worktreePath ?? ""),
+          } as ContextMenuItem,
+        ]
+      : []),
+  ].filter((x): x is ContextMenuItem => x !== null);
   const states = phaseStates({
     status: run.status,
     pausedAtStatus: run.approvalRequestedFromStatus ?? null,
@@ -99,9 +144,13 @@ function RunFlowCard({
   const waitingOn = describeWaiting(run.status, run.error);
 
   return (
+    <ContextMenuTrigger items={menuItems}>
+      {(h) => (
     <article
+      onContextMenu={h.onContextMenu}
       className="rounded-md border border-amaco-border bg-amaco-panel p-3 hover:border-amaco-accent/40"
       aria-label={`Run ${run.runId} status ${run.status}`}
+      title="Right-click for actions + CLI"
     >
       {/* Top row — status pill, task title, open arrow */}
       <header className="flex items-start gap-2">
@@ -182,6 +231,8 @@ function RunFlowCard({
         <span className="ml-auto">{elapsed}</span>
       </div>
     </article>
+      )}
+    </ContextMenuTrigger>
   );
 }
 

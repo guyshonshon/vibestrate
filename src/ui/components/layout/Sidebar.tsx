@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 import {
   GitBranch,
   Home,
@@ -79,8 +80,38 @@ export function Sidebar({
       ? runs.find((r) => r.runId === currentRunId) ?? null
       : null;
 
+  // Sidebar width is user-controllable via a drag handle on the right
+  // edge. Persisted per-browser; clamped to a sensible range so the
+  // page stays usable.
+  const [width, setWidth] = usePersistedState<number>(
+    "amaco.sidebar.width",
+    288, // px — matches the previous Tailwind w-72
+  );
+  const startDrag = (clientX: number) => {
+    const startWidth = width;
+    const startX = clientX;
+    const onMove = (e: MouseEvent) => {
+      const next = startWidth + (e.clientX - startX);
+      setWidth(Math.max(200, Math.min(560, next)));
+    };
+    const onUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-amaco-border bg-amaco-panel">
+    <aside
+      className="relative flex shrink-0 flex-col border-r border-amaco-border bg-amaco-panel"
+      style={{ width }}
+      aria-label="Sidebar"
+    >
       <header className="flex items-center gap-2 px-4 pb-3 pt-4">
         <Activity className="h-4 w-4 text-amaco-accent" strokeWidth={1.5} />
         <span className="text-[13px] font-medium tracking-wide text-amaco-fg">
@@ -263,6 +294,26 @@ export function Sidebar({
           </div>
         </div>
       ) : null}
+
+      {/* Drag handle on the right edge — 4px wide hit zone, visually
+       * a 1px line that highlights on hover. Double-click to reset. */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        tabIndex={0}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          startDrag(e.clientX);
+        }}
+        onDoubleClick={() => setWidth(288)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft") setWidth(Math.max(200, width - 16));
+          else if (e.key === "ArrowRight") setWidth(Math.min(560, width + 16));
+        }}
+        className="group absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-amaco-accent/40 focus:bg-amaco-accent/60 focus:outline-none"
+        title="Drag to resize · double-click to reset"
+      />
     </aside>
   );
 }
