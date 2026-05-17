@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { GripVertical } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 
 /**
  * Wrapper that turns its children into a reorderable section.
@@ -19,6 +19,8 @@ export function SortableSection({
   label,
   isDragging,
   isHoverTarget,
+  collapsed,
+  onToggleCollapse,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -30,6 +32,9 @@ export function SortableSection({
   label: string;
   isDragging: boolean;
   isHoverTarget: boolean;
+  /** Whether the section is collapsed (chrome stays; body hidden). */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: () => void;
@@ -62,23 +67,60 @@ export function SortableSection({
           : ""
       }`}
     >
-      <button
-        type="button"
-        draggable={false}
-        title={`Drag to reorder · ${label}`}
-        aria-label={`Drag handle: ${label}`}
-        className="absolute right-2 top-2 z-10 hidden cursor-grab rounded border border-amaco-border bg-amaco-panel/90 p-0.5 text-amaco-fg-muted hover:text-amaco-fg group-hover:inline-flex"
-        onMouseDown={(e) => {
-          // The whole section is draggable — this is just a visual
-          // affordance. Don't actually start a drag from the icon
-          // (the parent will). Stop the click from bubbling so it
-          // doesn't reach buttons inside the section.
-          e.stopPropagation();
-        }}
+      <div
+        className="absolute right-2 top-2 z-10 hidden items-center gap-1 group-hover:inline-flex"
       >
-        <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-      </button>
-      {children}
+        {onToggleCollapse ? (
+          <button
+            type="button"
+            draggable={false}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCollapse();
+            }}
+            title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+            aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+            aria-expanded={!collapsed}
+            className="rounded border border-amaco-border bg-amaco-panel/90 p-0.5 text-amaco-fg-muted hover:text-amaco-fg"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+            )}
+          </button>
+        ) : null}
+        <span
+          title={`Drag to reorder · ${label}`}
+          aria-label={`Drag handle: ${label}`}
+          className="cursor-grab rounded border border-amaco-border bg-amaco-panel/90 p-0.5 text-amaco-fg-muted hover:text-amaco-fg"
+          onMouseDown={(e) => {
+            // Visual affordance — drag is handled by the parent
+            // wrapper's `draggable` attr. Stop click bubbling so it
+            // doesn't reach buttons inside the section.
+            e.stopPropagation();
+          }}
+        >
+          <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+        </span>
+      </div>
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse?.();
+          }}
+          className="block w-full border border-dashed border-amaco-border bg-amaco-panel-2/40 px-6 py-2 text-left text-[11px] text-amaco-fg-muted hover:bg-amaco-panel-2"
+        >
+          <span className="amaco-mono uppercase tracking-[0.14em]">
+            {label}
+          </span>{" "}
+          · collapsed — click to expand
+        </button>
+      ) : (
+        children
+      )}
     </div>
   );
 }

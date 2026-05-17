@@ -38,13 +38,26 @@ describe("formatError", () => {
     expect(f.hint).toMatch(/--port/);
   });
 
-  it("maps Fastify-style 409 HttpError", () => {
+  it("maps Fastify 409 by preserving the server's actual message as the title", () => {
     const err = Object.assign(new Error("Task is linked to active run."), {
       statusCode: 409,
     });
     const f = formatError(err);
     expect(f.kind).toBe("http-409");
-    expect(f.hint).toMatch(/already in flight/);
+    // Server's own sentence wins — no more misleading generic "another
+    // action in flight" hint that was wrong for "worktree missing",
+    // "approval state conflict", etc.
+    expect(f.title).toMatch(/linked to active run/);
+    expect(f.hint).toBeUndefined();
+  });
+
+  it("falls back to a generic title only when the server didn't explain", () => {
+    const err = Object.assign(new Error("Internal Server Error"), {
+      statusCode: 500,
+    });
+    const f = formatError(err);
+    expect(f.title).toBe("Server error 500");
+    expect(f.hint).toMatch(/issues.ndjson/);
   });
 
   it("maps ZodError by name", () => {

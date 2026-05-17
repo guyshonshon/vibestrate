@@ -928,6 +928,11 @@ function SortableSections({
 
   const [dragKey, setDragKey] = useState<SectionKey | null>(null);
   const [hoverKey, setHoverKey] = useState<SectionKey | null>(null);
+  const [collapsed, setCollapsed] = usePersistedState<
+    Partial<Record<SectionKey, boolean>>
+  >("amaco.mission.sections.collapsed", {});
+  const toggleCollapsed = (k: SectionKey) =>
+    setCollapsed((cur) => ({ ...cur, [k]: !cur[k] }));
 
   const onDrop = (target: SectionKey): void => {
     if (!dragKey || dragKey === target) {
@@ -961,6 +966,8 @@ function SortableSections({
           label={SECTION_LABELS[k]}
           isDragging={dragKey === k}
           isHoverTarget={dragKey !== null && dragKey !== k && hoverKey === k}
+          collapsed={!!collapsed[k]}
+          onToggleCollapse={() => toggleCollapsed(k)}
           onDragStart={() => setDragKey(k)}
           onDragEnd={() => {
             setDragKey(null);
