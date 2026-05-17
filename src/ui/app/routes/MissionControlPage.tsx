@@ -146,6 +146,19 @@ export function MissionControlPage({
     {},
   );
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerTask, setComposerTask] = useState("");
+  const [composerEffort, setComposerEffort] = useState<"" | "low" | "medium" | "high">("");
+  const [composerReadOnly, setComposerReadOnly] = useState(false);
+  const [composerBusy, setComposerBusy] = useState(false);
+
+  // Auto-dismiss the toast after 4s.
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -186,6 +199,49 @@ export function MissionControlPage({
   }, []);
 
   const active = runs.filter((r) => isActive(r.status));
+
+  const handleAction = async (
+    kind: "pause" | "resume" | "abort",
+    runId: string,
+  ): Promise<void> => {
+    try {
+      if (kind === "pause") await api.pauseRun(runId);
+      else if (kind === "resume") await api.resumeRun(runId);
+      else await api.abortRun(runId);
+      setToast({ kind: "ok", text: `${kind} requested for ${runId}` });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  const handleSpawn = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    const task = composerTask.trim();
+    if (!task) return;
+    setComposerBusy(true);
+    try {
+      const r = await api.spawnRun({
+        task,
+        effort: composerEffort || undefined,
+        readOnly: composerReadOnly || undefined,
+      });
+      setToast({ kind: "ok", text: r.message });
+      setComposerTask("");
+      setComposerEffort("");
+      setComposerReadOnly(false);
+      setComposerOpen(false);
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setComposerBusy(false);
+    }
+  };
   const queuedTaskCount = tasks.filter((t) => t.status === "queued").length;
   const blockedTaskCount = tasks.filter((t) => t.status === "blocked").length;
 
@@ -199,8 +255,14 @@ export function MissionControlPage({
             </div>
             <h1 className="mt-1 text-[18px] font-medium">Live orchestrator</h1>
           </div>
-          <div className="text-[11.5px] text-amaco-fg-muted">
-            real-time view of every active run · refreshes every 2s
+          <div className="flex items-center gap-2">
+            <span className="text-[11.5px] text-amaco-fg-muted">refreshes every 2s</span>
+            <button
+              onClick={() => setComposerOpen((v) => !v)}
+              className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20"
+            >
+              {composerOpen ? "Close" : "+ Run a task"}
+            </button>
           </div>
         </div>
 
@@ -230,6 +292,86 @@ export function MissionControlPage({
           <div className="mb-3 rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-2 text-[12.5px] text-amaco-fail">
             {error}
           </div>
+        ) : null}
+
+        {toast ? (
+          <div
+            className={`mb-3 rounded border px-3 py-2 text-[12.5px] ${
+              toast.kind === "ok"
+                ? "border-amaco-success/40 bg-amaco-success/5 text-amaco-success"
+                : "border-amaco-fail/30 bg-amaco-fail/5 text-amaco-fail"
+            }`}
+          >
+            {toast.kind === "ok" ? "✓ " : "✗ "}
+            {toast.text}
+          </div>
+        ) : null}
+
+        {composerOpen ? (
+          <form
+            onSubmit={handleSpawn}
+            className="mb-4 flex flex-col gap-2 rounded border border-amaco-accent/40 bg-amaco-panel-2/60 p-3"
+          >
+            <label className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+              new run
+            </label>
+            <input
+              autoFocus
+              type="text"
+              value={composerTask}
+              onChange={(e) => setComposerTask(e.target.value)}
+              placeholder='describe the change — e.g. "add health check endpoint"'
+              className="rounded border border-amaco-border bg-amaco-panel px-2 py-1.5 text-[12.5px] text-amaco-fg outline-none focus:border-amaco-accent"
+            />
+            <div className="flex flex-wrap items-center gap-3 text-[11.5px]">
+              <label className="flex items-center gap-1.5 text-amaco-fg-muted">
+                effort
+                <select
+                  value={composerEffort}
+                  onChange={(e) =>
+                    setComposerEffort(
+                      e.target.value as "" | "low" | "medium" | "high",
+                    )
+                  }
+                  className="rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-amaco-fg outline-none focus:border-amaco-accent"
+                >
+                  <option value="">auto</option>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                </select>
+              </label>
+              <label className="flex items-center gap-1.5 text-amaco-fg-muted">
+                <input
+                  type="checkbox"
+                  checked={composerReadOnly}
+                  onChange={(e) => setComposerReadOnly(e.target.checked)}
+                />
+                read-only
+              </label>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setComposerOpen(false)}
+                  className="rounded border border-amaco-border bg-amaco-panel px-2 py-1 text-amaco-fg-dim hover:text-amaco-fg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={composerBusy || composerTask.trim().length === 0}
+                  className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-3 py-1 font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+                >
+                  {composerBusy ? "Spawning…" : "Spawn amaco run"}
+                </button>
+              </div>
+            </div>
+            <div className="text-[10.5px] text-amaco-fg-muted">
+              Runs server-side via{" "}
+              <code className="amaco-mono">amaco run</code>; detached so the
+              dashboard stays responsive. The new run appears below within ~2s.
+            </div>
+          </form>
         ) : null}
 
         <section>
@@ -266,7 +408,8 @@ export function MissionControlPage({
                   key={r.runId}
                   run={r}
                   events={eventsByRun[r.runId] ?? []}
-                  onClick={() => onSelectRun(r.runId)}
+                  onOpen={() => onSelectRun(r.runId)}
+                  onAction={handleAction}
                 />
               ))}
             </div>
@@ -280,22 +423,33 @@ export function MissionControlPage({
 function RunCard({
   run,
   events,
-  onClick,
+  onOpen,
+  onAction,
 }: {
   run: RunState;
   events: AmacoEvent[];
-  onClick: () => void;
+  onOpen: () => void;
+  onAction: (kind: "pause" | "resume" | "abort", runId: string) => Promise<void>;
 }) {
   const tone =
     STATUS_TONE[run.status] ??
     "bg-amaco-panel-2 text-amaco-fg-muted border-amaco-border";
   const stepIdx = currentStepIndex(run.status);
   const live = deriveLive(events);
+  const canPause =
+    run.status !== "paused" &&
+    run.status !== "merge_ready" &&
+    run.status !== "failed" &&
+    run.status !== "aborted" &&
+    run.status !== "blocked" &&
+    !run.pauseRequested;
+  const canResume = run.status === "paused" || run.pauseRequested;
+  const canAbort =
+    run.status !== "merge_ready" &&
+    run.status !== "failed" &&
+    run.status !== "aborted";
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3 text-left transition-colors hover:border-amaco-accent/40 hover:bg-amaco-panel-2"
-    >
+    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3 transition-colors hover:border-amaco-accent/40 hover:bg-amaco-panel-2">
       <div className="flex items-center justify-between gap-2">
         <span
           className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${tone}`}
@@ -306,9 +460,12 @@ function RunCard({
           {relTime(run.updatedAt)}
         </span>
       </div>
-      <div className="text-[12.5px] font-medium text-amaco-fg">
+      <button
+        onClick={onOpen}
+        className="text-left text-[12.5px] font-medium text-amaco-fg hover:text-amaco-accent"
+      >
         {run.task.length > 80 ? `${run.task.slice(0, 79)}…` : run.task}
-      </div>
+      </button>
       <Stepper stepIdx={stepIdx} />
       <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10.5px]">
         {live.currentAgent ? (
@@ -338,6 +495,68 @@ function RunCard({
           <span className="text-amaco-warn"> · read-only</span>
         ) : null}
       </div>
+      <div className="mt-1 flex items-center gap-1.5 border-t border-amaco-border/60 pt-2">
+        <ActionBtn
+          label="Pause"
+          tone="warn"
+          disabled={!canPause}
+          onClick={() => void onAction("pause", run.runId)}
+        />
+        <ActionBtn
+          label="Resume"
+          tone="info"
+          disabled={!canResume}
+          onClick={() => void onAction("resume", run.runId)}
+        />
+        <ActionBtn
+          label="Abort"
+          tone="fail"
+          disabled={!canAbort}
+          onClick={() => {
+            if (
+              window.confirm(`Abort run ${run.runId}?\n\nThis cannot be undone.`)
+            ) {
+              void onAction("abort", run.runId);
+            }
+          }}
+        />
+        <div className="ml-auto">
+          <button
+            onClick={onOpen}
+            className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-2 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
+          >
+            Open →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionBtn({
+  label,
+  tone,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  tone: "warn" | "info" | "fail";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const toneClasses =
+    tone === "warn"
+      ? "border-amaco-warn/30 text-amaco-warn hover:bg-amaco-warn/10"
+      : tone === "info"
+        ? "border-amaco-info/30 text-amaco-info hover:bg-amaco-info/10"
+        : "border-amaco-fail/30 text-amaco-fail hover:bg-amaco-fail/10";
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`amaco-mono rounded border bg-amaco-panel-2 px-2 py-0.5 text-[10.5px] transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${toneClasses}`}
+    >
+      {label}
     </button>
   );
 }

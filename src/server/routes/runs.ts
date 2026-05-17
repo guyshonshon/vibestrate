@@ -1,4 +1,8 @@
 import path from "node:path";
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { readDirSafe, pathExists, readText } from "../../utils/fs.js";
 import {
@@ -27,6 +31,35 @@ export type RunRoutesDeps = {
   projectRoot: string;
 };
 
+// Schema for `POST /api/runs`. Mirrors the `amaco run` CLI surface
+// at the body level, but constrained so only audited fields flow
+// through (no arbitrary argv).
+const spawnRunBody = z.object({
+  task: z.string().min(1).max(2000),
+  taskId: z
+    .string()
+    .min(1)
+    .max(128)
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
+    .optional(),
+  effort: z.enum(["low", "medium", "high"]).optional(),
+  provider: z.string().min(1).max(64).optional(),
+  readOnly: z.boolean().optional(),
+});
+
+function resolveAmacoBin(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    // bundled: dist/index.js sits a few dirs up from this route file
+    path.resolve(here, "..", "..", "..", "dist", "index.js"),
+    // source layout under src/server/routes
+    path.resolve(here, "..", "..", "..", "..", "dist", "index.js"),
+    // same dir as the bundled entry
+    path.resolve(here, "index.js"),
+  ];
+  return candidates.find((p) => existsSync(p)) ?? candidates[0]!;
+}
+
 export async function registerRunsRoutes(
   app: FastifyInstance,
   deps: RunRoutesDeps,
@@ -49,6 +82,46 @@ export async function registerRunsRoutes(
       }
     }
     return { runs };
+  });
+
+  // ─── POST /api/runs ───────────────────────────────────────────────
+  // Spawn `amaco run` for a task. argv-only (never a shell), all
+  // body fields are typed + length-bounded, cwd is pinned to the
+  // project root the server is serving. Audits a `run.spawned_by_ui`
+  // event into the project-level audit log so dashboard-initiated
+  // runs are distinguishable from CLI runs after the fact.
+  app.post<{ Body: unknown }>("/api/runs", async (req) => {
+    const parsed = spawnRunBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, parsed.error.message);
+    }
+    const body = parsed.data;
+    const argv: string[] = ["run", body.task];
+    if (body.taskId) argv.push("--task", body.taskId);
+    if (body.effort) argv.push("--effort", body.effort);
+    if (body.provider) argv.push("--provider", body.provider);
+    if (body.readOnly) argv.push("--read-only");
+    const bin = resolveAmacoBin();
+    try {
+      const child = spawn(process.execPath, [bin, ...argv], {
+        cwd: projectRoot,
+        env: { ...process.env, AMACO_SPAWNED_BY: "dashboard", NO_COLOR: "1" },
+        stdio: "ignore",
+        detached: true,
+      });
+      child.unref();
+      return {
+        ok: true,
+        pid: child.pid ?? null,
+        argv,
+        message: `spawned amaco ${argv.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")}`,
+      };
+    } catch (err) {
+      throw new HttpError(
+        500,
+        `Failed to spawn amaco run: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   });
 
   app.get<{ Params: { runId: string } }>(

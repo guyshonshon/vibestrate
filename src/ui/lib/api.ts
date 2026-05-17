@@ -116,6 +116,15 @@ export const api = {
     const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
     return r.runs;
   },
+  async spawnRun(input: {
+    task: string;
+    taskId?: string;
+    effort?: "low" | "medium" | "high";
+    provider?: string;
+    readOnly?: boolean;
+  }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
+    return jsonPost("/api/runs", input);
+  },
   async getRun(runId: string): Promise<RunState> {
     const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);
     return r.run;

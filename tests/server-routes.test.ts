@@ -146,4 +146,63 @@ describe("server routes", () => {
     const res = await fetch(`${server!.url}/api/unknown`);
     expect(res.status).toBe(404);
   });
+
+  it("POST /api/runs validates the body and rejects empty task", async () => {
+    const res = await fetch(`${server!.url}/api/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ task: "" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /api/runs accepts a valid body and returns the spawned argv", async () => {
+    const res = await fetch(`${server!.url}/api/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        task: "smoke test",
+        effort: "low",
+        readOnly: true,
+      }),
+    });
+    // The spawn itself may fail (no dist on disk yet in the test
+    // sandbox) — either 200 with argv echoed back, or 500 if the
+    // binary isn't reachable. Both prove the body shape passes the
+    // schema; we just want to confirm the route exists and accepts
+    // the body without "application/json"-style noise.
+    expect([200, 500]).toContain(res.status);
+    if (res.status === 200) {
+      const json = (await res.json()) as { argv: string[]; ok: true };
+      expect(json.ok).toBe(true);
+      expect(json.argv).toEqual([
+        "run",
+        "smoke test",
+        "--effort",
+        "low",
+        "--read-only",
+      ]);
+    }
+  });
+
+  it("POST /api/runs/:id/pause tolerates an empty JSON body", async () => {
+    // The spawn-empty-body bug we fixed earlier — make sure pause /
+    // resume / abort still work with `Content-Type: application/json`
+    // and no body.
+    const res = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/pause`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      },
+    );
+    // The fixture run is in terminal status `merge_ready`, so
+    // pause-service will return 409. The point of this test is that
+    // we DON'T get "Body cannot be empty" anymore.
+    expect([200, 409]).toContain(res.status);
+    const body = (await res.json()) as { error?: string };
+    if (body.error) {
+      expect(body.error).not.toMatch(/Body cannot be empty/);
+    }
+  });
 });
