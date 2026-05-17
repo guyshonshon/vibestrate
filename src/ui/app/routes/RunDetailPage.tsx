@@ -9,7 +9,6 @@ import type {
 import { navigate, type ReplayFocus } from "../App.js";
 import { RunHeader } from "../../components/runs/RunHeader.js";
 import { RunControlPanel } from "../../components/runs/RunControlPanel.js";
-import { RunWorktreeBlock } from "../../components/runs/RunWorktreeBlock.js";
 import { AgentWorkPanel } from "../../components/runs/AgentWorkPanel.js";
 import { WorkflowTimeline } from "../../components/workflow/WorkflowTimeline.js";
 import { ActiveAgentCard } from "../../components/workflow/ActiveAgentCard.js";
@@ -112,10 +111,18 @@ export function RunDetailPage({
 
   return (
     <div className="flex h-full flex-col">
-      <RunHeader run={run} onRunUpdated={(next) => setRun(next)} />
+      <RunHeader
+        run={run}
+        onRunUpdated={(next) => setRun(next)}
+        onOpenCodebase={() =>
+          navigate({ kind: "codebase", filePath: null, line: null, runId })
+        }
+        onOpenGit={() => navigate({ kind: "git", runId })}
+        onOpenTask={(tid) => navigate({ kind: "task", taskId: tid })}
+      />
       <div className="flex items-center gap-2 border-b border-amaco-border bg-amaco-panel/40 px-4 py-1">
         <span className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-          run worktree
+          run worktree freshness
         </span>
         <FreshnessIndicator freshness={freshness} />
       </div>
@@ -133,30 +140,17 @@ export function RunDetailPage({
               }}
             />
           ) : null}
-          <RunWorktreeBlock
-            runId={runId}
-            worktreePath={run.worktreePath}
-            branchName={run.branchName}
-            taskId={run.taskId ?? null}
-            onOpenCodebase={() =>
-              navigate({
-                kind: "codebase",
-                filePath: null,
-                line: null,
-                runId,
-              })
-            }
-            onOpenGit={() => navigate({ kind: "git", runId })}
-            onOpenTask={(tid) => navigate({ kind: "task", taskId: tid })}
+          {/* Active agent first — it's what the user wants to see when
+           * they open a running task. Workflow + metrics + history
+           * follow. Run control sits at the bottom so it's available
+           * but doesn't compete with status for the top fold. */}
+          <ActiveAgentCard
+            status={run.status}
+            agents={metrics?.agents ?? []}
           />
           <WorkflowTimeline
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}
-          />
-          <RunControlPanel runId={runId} status={run.status} />
-          <ActiveAgentCard
-            status={run.status}
-            agents={metrics?.agents ?? []}
           />
           <ValidationSummary runId={runId} />
           <MetricsDashboard metrics={metrics} />
@@ -166,6 +160,7 @@ export function RunDetailPage({
             selectedFile={selectedFile}
             onSelect={handleSelectFile}
           />
+          <RunControlPanel runId={runId} status={run.status} />
         </section>
         <InspectorPanel activeTab={tab} onChangeTab={setTab}>
           {tab === "diff" ? (

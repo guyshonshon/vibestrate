@@ -2,8 +2,6 @@ import { useState } from "react";
 import {
   Cpu,
   Eye,
-  GitBranch,
-  Folder,
   Clock,
   Pause,
   Play,
@@ -13,18 +11,26 @@ import {
 import type { RunState } from "../../lib/types.js";
 import { api } from "../../lib/api.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
+import { RunWorktreeBlock } from "./RunWorktreeBlock.js";
 
 const TERMINAL = new Set(["merge_ready", "blocked", "failed", "aborted"]);
 
 export function RunHeader({
   run,
   onRunUpdated,
+  onOpenCodebase,
+  onOpenGit,
+  onOpenTask,
 }: {
   run: RunState;
   /** Optional callback so the parent can refresh its in-memory state once
    * pause/resume completes server-side. The parent's own poll picks it up
    * anyway, but pushing the new state through avoids a flicker. */
   onRunUpdated?: (run: RunState) => void;
+  /** Navigation handlers for the consolidated worktree row. */
+  onOpenCodebase?: () => void;
+  onOpenGit?: () => void;
+  onOpenTask?: (taskId: string) => void;
 }) {
   const [busy, setBusy] = useState<"pause" | "resume" | "retry" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,18 +139,6 @@ export function RunHeader({
                 {run.verification}
               </span>
             ) : null}
-            {run.branchName ? (
-              <span className="amaco-mono inline-flex items-center gap-1">
-                <GitBranch className="h-3 w-3" strokeWidth={1.5} />
-                {run.branchName}
-              </span>
-            ) : null}
-            {run.worktreePath ? (
-              <span className="amaco-mono inline-flex items-center gap-1 truncate">
-                <Folder className="h-3 w-3" strokeWidth={1.5} />
-                {run.worktreePath}
-              </span>
-            ) : null}
             <span className="amaco-mono inline-flex items-center gap-1">
               <Clock className="h-3 w-3" strokeWidth={1.5} />
               {new Date(run.updatedAt).toLocaleString()}
@@ -201,6 +195,21 @@ export function RunHeader({
           ) : null}
         </div>
       </div>
+      {/* Consolidated worktree / git context — merged into the header
+       * so it doesn't repeat as a separate block below. */}
+      {run.worktreePath ? (
+        <div className="mt-3">
+          <RunWorktreeBlock
+            runId={run.runId}
+            worktreePath={run.worktreePath}
+            branchName={run.branchName}
+            taskId={run.taskId ?? null}
+            onOpenCodebase={onOpenCodebase ?? (() => {})}
+            onOpenGit={onOpenGit ?? (() => {})}
+            onOpenTask={onOpenTask ?? (() => {})}
+          />
+        </div>
+      ) : null}
     </header>
   );
 }

@@ -9,6 +9,7 @@ import type {
   TaskComment,
 } from "../../lib/types.js";
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
+import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
 
 export function TaskDetailPage({
   taskId,
@@ -233,6 +234,14 @@ export function TaskDetailPage({
         {microSteps.map(({ runId, steps }) => (
           <MicroStepPipeline key={runId} runId={runId} steps={steps} />
         ))}
+
+        <TaskGitActivity
+          runIds={task.runIds}
+          onOpenRun={onOpenRun}
+          onOpenGit={(rid) =>
+            navigate({ kind: "git", runId: rid })
+          }
+        />
 
         <FilesSection task={task} />
 
