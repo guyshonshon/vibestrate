@@ -212,6 +212,15 @@ export const api = {
     );
     return r.run;
   },
+  async retryRun(runId: string): Promise<{
+    ok: boolean;
+    pid: number | null;
+    argv: string[];
+    retryOf: string;
+    message: string;
+  }> {
+    return jsonPost(`/api/runs/${runId}/retry`);
+  },
   async listSkills(): Promise<{
     skills: DiscoveredSkill[];
     assignments: SkillAssignmentSummary[];

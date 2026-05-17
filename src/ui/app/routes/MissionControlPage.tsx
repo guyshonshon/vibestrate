@@ -426,6 +426,21 @@ export function MissionControlPage({
     }
   };
 
+  const handleRetry = async (runId: string): Promise<void> => {
+    try {
+      const r = await api.retryRun(runId);
+      setToast({
+        kind: "ok",
+        text: `Retrying ${runId} → ${r.message}${r.pid !== null ? ` (pid ${r.pid})` : ""}`,
+      });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
   const handleCreateTask = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     const title = newTaskTitle.trim();
@@ -745,6 +760,7 @@ export function MissionControlPage({
                   events={eventsByRun[r.runId] ?? []}
                   onOpen={() => onSelectRun(r.runId)}
                   onAction={handleAction}
+                  onRetry={handleRetry}
                 />
               ))}
             </div>
@@ -986,11 +1002,13 @@ function RunCard({
   events,
   onOpen,
   onAction,
+  onRetry,
 }: {
   run: RunState;
   events: AmacoEvent[];
   onOpen: () => void;
   onAction: (kind: "pause" | "resume" | "abort", runId: string) => Promise<void>;
+  onRetry: (runId: string) => Promise<void>;
 }) {
   const tone =
     STATUS_TONE[run.status] ??
@@ -1009,6 +1027,13 @@ function RunCard({
     run.status !== "merge_ready" &&
     run.status !== "failed" &&
     run.status !== "aborted";
+  // Retry only when the run is finished (good or bad). The original
+  // run record stays on disk untouched — retry gets a fresh runId.
+  const canRetry =
+    run.status === "failed" ||
+    run.status === "aborted" ||
+    run.status === "blocked" ||
+    run.status === "merge_ready";
 
   const copyToClipboard = (text: string): void => {
     void navigator.clipboard?.writeText?.(text).catch(() => undefined);
@@ -1039,6 +1064,14 @@ function RunCard({
           void onAction("abort", run.runId);
         }
       },
+    },
+    {
+      id: "retry",
+      label: "Retry with same args",
+      tone: "accent",
+      hint: "fresh runId",
+      disabled: !canRetry,
+      onSelect: () => onRetry(run.runId),
     },
     { id: "div2", label: "divider:2" },
     {
