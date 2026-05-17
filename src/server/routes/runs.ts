@@ -27,6 +27,7 @@ import {
   buildRunReplay,
   RunReplayError,
 } from "../../core/run-replay-service.js";
+import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 
 export type RunRoutesDeps = {
   projectRoot: string;
@@ -240,6 +241,63 @@ export async function registerRunsRoutes(
           throw new HttpError(err.statusCode, err.message);
         }
         throw err;
+      }
+    },
+  );
+
+  // ─── POST /api/runs/:runId/retry ─────────────────────────────────
+  // Re-run the same task with the same flags. The original run state
+  // stays on disk untouched — the retry gets a fresh runId so the
+  // failure trail is preserved. Only allowed for *terminal* runs
+  // (failed / aborted / completed / blocked); rejects 409 otherwise
+  // so the user can't fork an already-running run.
+  app.post<{ Params: { runId: string } }>(
+    "/api/runs/:runId/retry",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const raw = await readJson<unknown>(stateFile);
+      const parsed = runStateSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new HttpError(500, "Run state on disk is unreadable.");
+      }
+      const run = parsed.data;
+      if (!isTerminal(run.status)) {
+        throw new HttpError(
+          409,
+          `Run ${req.params.runId} is still ${run.status}. Abort it first, or wait for it to finish.`,
+        );
+      }
+      const argv = deriveRerunArgs(run);
+      const bin = resolveAmacoBin();
+      try {
+        const child = spawn(process.execPath, [bin, ...argv], {
+          cwd: projectRoot,
+          env: {
+            ...process.env,
+            AMACO_SPAWNED_BY: "dashboard-retry",
+            AMACO_RETRY_OF: req.params.runId,
+            NO_COLOR: "1",
+          },
+          stdio: "ignore",
+          detached: true,
+        });
+        child.unref();
+        return {
+          ok: true,
+          pid: child.pid ?? null,
+          argv,
+          retryOf: req.params.runId,
+          message: `spawned amaco ${formatArgv(argv)}`,
+        };
+      } catch (err) {
+        throw new HttpError(
+          500,
+          `Failed to spawn retry: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     },
   );

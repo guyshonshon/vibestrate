@@ -7,6 +7,7 @@ import {
   Clock,
   Pause,
   Play,
+  RotateCcw,
   Zap,
 } from "lucide-react";
 import type { RunState } from "../../lib/types.js";
@@ -25,7 +26,7 @@ export function RunHeader({
    * anyway, but pushing the new state through avoids a flicker. */
   onRunUpdated?: (run: RunState) => void;
 }) {
-  const [busy, setBusy] = useState<"pause" | "resume" | null>(null);
+  const [busy, setBusy] = useState<"pause" | "resume" | "retry" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const isTerminal = TERMINAL.has(run.status);
@@ -40,6 +41,22 @@ export function RunHeader({
     try {
       const next = await api.pauseRun(run.runId);
       onRunUpdated?.(next);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function doRetry() {
+    setBusy("retry");
+    setError(null);
+    try {
+      const r = await api.retryRun(run.runId);
+      // Don't reload run state — the original record stays where it
+      // is; the retry got a fresh runId. Just flash a confirmation.
+      setError(
+        `Spawned retry: ${r.message}${r.pid !== null ? ` (pid ${r.pid})` : ""}`,
+      );
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -168,6 +185,18 @@ export function RunHeader({
             >
               <Pause className="h-3 w-3" strokeWidth={1.5} />
               {busy === "pause" ? "Pausing…" : "Pause"}
+            </button>
+          ) : null}
+          {isTerminal ? (
+            <button
+              type="button"
+              onClick={doRetry}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-1 text-[11.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+              title="Re-run this task with the same flags. The current run record stays on disk; the retry gets a fresh runId."
+            >
+              <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
+              {busy === "retry" ? "Retrying…" : "Retry"}
             </button>
           ) : null}
         </div>

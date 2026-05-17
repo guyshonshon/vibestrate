@@ -15,6 +15,7 @@ import {
   spawnAmacoDetached,
   openInBrowser,
 } from "./runner/command-runner.js";
+import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
@@ -352,23 +353,12 @@ export function App({ projectRoot, refreshMs }: Props) {
       // The original run state is preserved on disk so the user can
       // still inspect the failure; the new run gets its own runId.
       if (input === "R" && selectedRun) {
-        const argv: string[] = ["run"];
-        if (selectedRun.taskId) {
-          argv.push("--task", selectedRun.taskId);
-        }
-        if (selectedRun.effort) argv.push("--effort", selectedRun.effort);
-        if (selectedRun.providerOverride) {
-          argv.push("--provider", selectedRun.providerOverride);
-        }
-        if (selectedRun.readOnly) argv.push("--read-only");
-        argv.push(selectedRun.task);
+        const argv = deriveRerunArgs(selectedRun);
         const { pid } = spawnAmacoDetached({ projectRoot, argv });
         dispatch({
           type: "toast.push",
           kind: "ok",
-          message: `Re-running ${selectedRun.runId} → spawned amaco ${argv
-            .map((a) => (a.includes(" ") ? JSON.stringify(a) : a))
-            .join(" ")} (pid ${pid ?? "—"}).`,
+          message: `Re-running ${selectedRun.runId} → spawned amaco ${formatArgv(argv)} (pid ${pid ?? "—"}).`,
         });
         return;
       }
