@@ -47,6 +47,12 @@ const spawnRunBody = z.object({
   effort: z.enum(["low", "medium", "high"]).optional(),
   provider: z.string().min(1).max(64).optional(),
   readOnly: z.boolean().optional(),
+  // Per-run skill ids — merged into every agent's configured skills
+  // for this single run. Each id is the slug `loadSkills` accepts.
+  skills: z
+    .array(z.string().min(1).max(128).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/))
+    .max(64)
+    .optional(),
 });
 
 function resolveAmacoBin(): string {
@@ -103,6 +109,9 @@ export async function registerRunsRoutes(
     if (body.effort) argv.push("--effort", body.effort);
     if (body.provider) argv.push("--provider", body.provider);
     if (body.readOnly) argv.push("--read-only");
+    if (body.skills && body.skills.length > 0) {
+      argv.push("--skills", body.skills.join(","));
+    }
     const bin = resolveAmacoBin();
     try {
       const child = spawn(process.execPath, [bin, ...argv], {

@@ -105,6 +105,10 @@ program
     "--auto-effort",
     "apply the heuristic effort suggestion when --effort isn't passed.",
   )
+  .option(
+    "--skills <list>",
+    "comma-separated skill ids to attach to every agent for this single run (merged with each agent's configured skills).",
+  )
   .action(
     async (
       taskParts: string[],
@@ -116,6 +120,7 @@ program
         provider?: string;
         readOnly?: boolean;
         autoEffort?: boolean;
+        skills?: string;
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -127,6 +132,10 @@ program
         }
         effort = opts.effort;
       }
+      const runtimeSkills = (opts.skills ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       const code = await runRunCommand(task, {
         ui: opts.ui,
         uiPort: opts.uiPort,
@@ -135,6 +144,7 @@ program
         providerOverride: opts.provider ?? null,
         readOnly: opts.readOnly ?? false,
         autoEffort: opts.autoEffort ?? false,
+        runtimeSkills,
       });
       process.exit(code);
     },

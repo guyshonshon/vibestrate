@@ -42,6 +42,8 @@ export type RunState = {
   providerOverride?: string | null;
   resolvedProviderId?: string | null;
   readOnly?: boolean;
+  /** Skill ids attached to every agent for this single run. */
+  runtimeSkills?: string[];
 };
 
 export type Priority = "low" | "medium" | "high";

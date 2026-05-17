@@ -210,6 +210,8 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     driver: opts.terminalDriver,
   });
   await registerPoliciesRoutes(app, { projectRoot: opts.projectRoot });
+  const { registerProvidersRoutes } = await import("./routes/providers.js");
+  await registerProvidersRoutes(app, { projectRoot: opts.projectRoot });
 
   const uiDir = await locateUiDir(opts.uiDir);
   let uiAvailable = false;

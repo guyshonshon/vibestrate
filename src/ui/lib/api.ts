@@ -129,8 +129,24 @@ export const api = {
     effort?: "low" | "medium" | "high";
     provider?: string;
     readOnly?: boolean;
+    skills?: string[];
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
+  },
+  async listProviders(): Promise<{
+    providers: {
+      id: string;
+      label: string;
+      command: string;
+      available: boolean;
+      version: string | null;
+      confidence: "ready" | "detected-needs-setup" | "missing";
+      recommended: boolean;
+      notes: string[];
+      configured: boolean;
+    }[];
+  }> {
+    return jsonGet("/api/providers");
   },
   async getRun(runId: string): Promise<RunState> {
     const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);

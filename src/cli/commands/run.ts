@@ -48,6 +48,8 @@ export type RunCommandOptions = {
   providerOverride?: string | null;
   readOnly?: boolean;
   autoEffort?: boolean;
+  /** Skill ids attached only for this run, merged into agent.skills. */
+  runtimeSkills?: string[];
 };
 
 export async function runRunCommand(
@@ -220,6 +222,7 @@ export async function runRunCommand(
     effort,
     providerOverride,
     readOnly,
+    runtimeSkills: options.runtimeSkills ?? [],
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {
