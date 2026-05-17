@@ -307,8 +307,14 @@ export function GatewaySettings({ initialPermission }: Props) {
                     {g.supportsTest ? (
                       <button
                         type="button"
+                        disabled={!g.valid}
                         onClick={() => void testGateway(g.id)}
-                        className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+                        title={
+                          g.valid
+                            ? "Send a probe through this gateway"
+                            : "Configure the gateway first to enable testing"
+                        }
+                        className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Send className="h-3 w-3" strokeWidth={1.5} />
                         Test

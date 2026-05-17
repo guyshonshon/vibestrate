@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import { Lock } from "lucide-react";
 import { api, ApiError } from "../../lib/api.js";
 import type {
   TerminalAvailability,
@@ -198,18 +199,51 @@ export function TerminalPanel({ runId }: { runId: string }) {
     );
 
   if (!availability.policyEnabled || !availability.driverAvailable) {
+    // Calm info tone — this is the intended-off state, not an error.
     return (
-      <div className="space-y-1 rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[11.5px]">
-        <p className="text-amaco-fg">Terminal disabled</p>
-        <p className="text-amaco-fg-muted">
-          {availability.reason ?? "Terminal feature unavailable."}
-        </p>
-        {!availability.policyEnabled ? (
-          <p className="text-amaco-fg-muted">
-            Set <code>policies.allowInteractiveTerminal: true</code> in{" "}
-            <code>.amaco/project.yml</code> to enable.
+      <div
+        role="note"
+        className="flex items-start gap-2 rounded border border-amaco-border bg-amaco-panel-2/40 p-3 text-[11.5px]"
+      >
+        <Lock
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amaco-fg-muted"
+          strokeWidth={1.5}
+          aria-hidden
+        />
+        <div className="space-y-1">
+          <p className="text-amaco-fg">
+            Interactive terminal is off for this project
           </p>
-        ) : null}
+          <p className="text-amaco-fg-muted">
+            {availability.reason ?? "Terminal feature unavailable."}
+          </p>
+          {!availability.policyEnabled ? (
+            <p className="text-amaco-fg-muted">
+              Set{" "}
+              <code className="amaco-mono rounded bg-amaco-panel px-1">
+                policies.allowInteractiveTerminal: true
+              </code>{" "}
+              in{" "}
+              <code className="amaco-mono rounded bg-amaco-panel px-1">
+                .amaco/project.yml
+              </code>{" "}
+              to enable. amaco never opens a shell unless this is explicitly on.
+            </p>
+          ) : !availability.driverAvailable ? (
+            <p className="text-amaco-fg-muted">
+              The optional{" "}
+              <code className="amaco-mono rounded bg-amaco-panel px-1">
+                node-pty
+              </code>{" "}
+              native module isn't installed in this environment, so PTYs can't
+              be spawned. Install it (or skip the terminal feature) and restart{" "}
+              <code className="amaco-mono rounded bg-amaco-panel px-1">
+                amaco ui
+              </code>
+              .
+            </p>
+          ) : null}
+        </div>
       </div>
     );
   }

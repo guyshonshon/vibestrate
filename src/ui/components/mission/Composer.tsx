@@ -13,6 +13,7 @@ import {
   type PromptEffort,
   type PromptSubmit,
 } from "../PromptBar.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 
 export type ComposerProvider = {
   id: string;
@@ -50,12 +51,31 @@ type Props = {
  * (/run, /task, /queue, /board, /runs, /settings, /help) work identically.
  */
 export function Composer({ busy, providers, skills, onSubmit }: Props) {
+  // Draft task text is intentionally NOT persisted — refreshing
+  // should leave you with a clean prompt instead of a stale draft.
+  // The *configuration* (provider, effort, skills, toggles) is
+  // sticky so your preferred setup survives reloads.
   const [text, setText] = useState("");
-  const [effort, setEffort] = useState<PromptEffort>("");
-  const [readOnly, setReadOnly] = useState(false);
-  const [concise, setConcise] = useState(false);
-  const [provider, setProvider] = useState<string>("");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [effort, setEffort] = usePersistedState<PromptEffort>(
+    "amaco.composer.effort",
+    "",
+  );
+  const [readOnly, setReadOnly] = usePersistedState<boolean>(
+    "amaco.composer.readOnly",
+    false,
+  );
+  const [concise, setConcise] = usePersistedState<boolean>(
+    "amaco.composer.concise",
+    false,
+  );
+  const [provider, setProvider] = usePersistedState<string>(
+    "amaco.composer.provider",
+    "",
+  );
+  const [selectedSkills, setSelectedSkills] = usePersistedState<string[]>(
+    "amaco.composer.skills",
+    [],
+  );
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
