@@ -304,9 +304,45 @@ export function RoadmapPage({
   );
 
   const activeColumn = board.columns[cursor.col] ?? null;
+  const boardEmpty = tasks.length === 0;
   return (
     <Box flexDirection="column">
       <AccentHeader title="Roadmap" hint={`${tasks.length} total`} />
+
+      {boardEmpty ? (
+        <Box marginTop={1} flexDirection="column">
+          <Text color="cyan" bold>Your roadmap is empty — start here</Text>
+          <Box marginTop={1} flexDirection="column">
+            <Text>
+              <Text color="cyan">1.</Text>
+              <Text>  Press </Text>
+              <Text color="cyan">n</Text>
+              <Text> to define a task </Text>
+              <Text dimColor>(a durable unit of work)</Text>
+            </Text>
+            <Text>
+              <Text color="cyan">2.</Text>
+              <Text>  Press </Text>
+              <Text color="cyan">↵</Text>
+              <Text> on it to run </Text>
+              <Text dimColor>(creates a new run under [4] Runs)</Text>
+            </Text>
+            <Text>
+              <Text color="cyan">3.</Text>
+              <Text>  Or press </Text>
+              <Text color="cyan">Q</Text>
+              <Text> to queue it for the scheduler </Text>
+              <Text dimColor>([3] Queue)</Text>
+            </Text>
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>
+              shortcut: <Text color="cyan">!</Text> opens the runner —{" "}
+              <Text>amaco tasks add "title"</Text>
+            </Text>
+          </Box>
+        </Box>
+      ) : null}
 
       {/* Status rail — colored status pills with the active state in
           inverse-on-status-color so each workflow phase has its own

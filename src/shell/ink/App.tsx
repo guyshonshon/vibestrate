@@ -35,6 +35,7 @@ import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Frame, Rule } from "./components/Frame.js";
+import { PageTitleBar } from "./components/PageTitleBar.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -383,6 +384,7 @@ export function App({ projectRoot, refreshMs }: Props) {
   return (
     <Frame subtitle={projectName}>
       <TabBar current={ui.page} />
+      <PageTitleBar pageId={ui.page} />
       <Rule />
       <Box flexDirection="column">
         {snapshot ? (
@@ -539,7 +541,7 @@ export function App({ projectRoot, refreshMs }: Props) {
       ) : null}
       {ui.helpOpen ? (
         <Box marginTop={1}>
-          <HelpOverlay />
+          <HelpOverlay currentPage={ui.page} />
         </Box>
       ) : null}
       {ui.runner.open ? (

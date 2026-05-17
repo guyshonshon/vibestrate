@@ -1,16 +1,21 @@
 // Pure UI state for the ink-based panel. Kept import-free so it can
 // be exercised under the node-only Vitest environment.
 
+// Order matters: number hotkeys 1-0 follow this list left-to-right,
+// so the order is intentionally the natural workflow:
+//   Dashboard → Roadmap (define) → Queue (schedule) → Runs (execute)
+//   → Approvals + Suggestions (gates) → Notifs
+//   → Agents + Skills (config) → Doctor (diagnostics)
 export const PAGE_IDS = [
   "dashboard",
-  "runs",
   "roadmap",
   "queue",
-  "agents",
-  "skills",
+  "runs",
   "approvals",
   "suggestions",
   "notifications",
+  "agents",
+  "skills",
   "doctor",
 ] as const;
 export type PageId = (typeof PAGE_IDS)[number];

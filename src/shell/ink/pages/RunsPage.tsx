@@ -71,18 +71,8 @@ function RunsList({
   return (
     <Box {...CARD_PROPS} flexDirection="column">
       <Text dimColor>runs   ({runs.length})</Text>
-      <Text dimColor>
-        a <Text color="cyan">run</Text> is one execution of a task — open
-        Roadmap <Text color="cyan">[3]</Text> to start one, or press{" "}
-        <Text color="cyan">R</Text> on a finished run to retry.
-      </Text>
       <Box marginTop={1} flexDirection="column">
-        {runs.length === 0 ? (
-          <Text dimColor>
-            no runs yet —{" "}
-            <Text color="cyan">amaco run "describe the change"</Text>
-          </Text>
-        ) : (
+        {runs.length === 0 ? <EmptyRunsWalkthrough /> : (
           runs.slice(0, 14).map((r, i) => (
             <RunRow key={r.runId} row={r} selected={i === selectedIndex} />
           ))
@@ -428,6 +418,49 @@ function Field({
         <Text dimColor>{label} </Text>
         <Text color={tint}>{value}</Text>
       </Text>
+    </Box>
+  );
+}
+
+/**
+ * Friendly 3-step quickstart shown when no runs exist yet. Teaches
+ * the workflow instead of just saying "no runs yet".
+ */
+function EmptyRunsWalkthrough() {
+  return (
+    <Box flexDirection="column">
+      <Text color="cyan" bold>Welcome — here's the flow</Text>
+      <Box marginTop={1} flexDirection="column">
+        <Text>
+          <Text color="cyan">1.</Text>
+          <Text>  Define a </Text>
+          <Text bold>task</Text>
+          <Text dimColor>          press </Text>
+          <Text color="cyan">2</Text>
+          <Text dimColor> for Roadmap, then </Text>
+          <Text color="cyan">n</Text>
+        </Text>
+        <Text>
+          <Text color="cyan">2.</Text>
+          <Text>  Run it </Text>
+          <Text dimColor>(creates a run)</Text>
+          <Text dimColor>      press </Text>
+          <Text color="cyan">↵</Text>
+          <Text dimColor> on the selected task</Text>
+        </Text>
+        <Text>
+          <Text color="cyan">3.</Text>
+          <Text>  Watch it execute </Text>
+          <Text dimColor>here</Text>
+          <Text dimColor>    each run = one execution; status pills tell you where it is</Text>
+        </Text>
+      </Box>
+      <Box marginTop={1}>
+        <Text dimColor>
+          shortcut: <Text color="cyan">!</Text> opens the runner —
+          {' '}<Text>amaco run "describe the change"</Text>
+        </Text>
+      </Box>
     </Box>
   );
 }
