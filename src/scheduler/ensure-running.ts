@@ -5,17 +5,26 @@
 //
 // Keeps the philosophy "queueing = work starts" — the user should
 // never have to remember to run `amaco queue run` in another
-// terminal just to make their queued tasks move.
+// terminal just to make their queued tasks move. Also: every spawn
+// is observable (`.amaco/scheduler/scheduler.log` for stdout/stderr,
+// `scheduler-spawns.ndjson` for spawn+exit events) so failures are
+// never silent.
 
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, closeSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { RunQueue } from "./run-queue.js";
 import {
   deriveSchedulerLiveness,
   type SchedulerLiveness,
 } from "./scheduler-liveness.js";
+import {
+  openLogForAppend,
+  recordExit,
+  recordSpawn,
+} from "./scheduler-log.js";
+import { recordIssue } from "../core/issues-store.js";
 
 export type EnsureRunningResult = {
   /** What we did. */
@@ -44,7 +53,13 @@ function resolveAmacoBin(): string {
  * `amaco queue run` detached. Returns what happened so the caller
  * can surface it (toast / response body) — never silent.
  *
- * Idempotent + non-blocking: detached spawn, unref'd, stdio=ignore.
+ * Visibility:
+ *   - stdout + stderr stream into `.amaco/scheduler/scheduler.log`
+ *     (appended; tailable from the dashboard)
+ *   - the spawn is recorded in `scheduler-spawns.ndjson` immediately
+ *   - if the child exits within 3s the exit code + a short tail are
+ *     recorded into the issues stream so the user sees a red
+ *     attention badge instead of a silent failure
  */
 export async function ensureSchedulerRunning(input: {
   projectRoot: string;
@@ -54,9 +69,6 @@ export async function ensureSchedulerRunning(input: {
   const liveness = deriveSchedulerLiveness(state);
 
   if (liveness.status === "paused") {
-    // The user explicitly paused — don't override that decision.
-    // Surface the fact instead so the caller can toast "queued but
-    // scheduler is paused, run `amaco queue resume`".
     return { action: "paused", liveness };
   }
   if (liveness.pickingUpWork) {
@@ -64,6 +76,7 @@ export async function ensureSchedulerRunning(input: {
   }
   try {
     const bin = resolveAmacoBin();
+    const logFd = await openLogForAppend(input.projectRoot);
     const child = spawn(process.execPath, [bin, "queue", "run"], {
       cwd: input.projectRoot,
       env: {
@@ -71,21 +84,65 @@ export async function ensureSchedulerRunning(input: {
         AMACO_SPAWNED_BY: "auto-queue",
         NO_COLOR: "1",
       },
-      stdio: "ignore",
+      // stdout + stderr land in the log file; stdin is discarded.
+      stdio: ["ignore", logFd, logFd],
       detached: true,
     });
-    child.unref();
+    // The child now owns the fd reference; close our copy so the
+    // parent doesn't hold the file open forever.
+    try {
+      closeSync(logFd);
+    } catch {
+      /* ignore — child already owns it */
+    }
+    const pid = child.pid ?? null;
+    await recordSpawn(input.projectRoot, { pid, source: "auto-queue" });
+
+    // Watch for fast exits so we can flip them into the issues stream
+    // *before* the user wonders why nothing is moving. A normal
+    // long-running scheduler will outlive this watcher; that's fine —
+    // we don't attach forever.
+    const watchUntil = setTimeout(() => {
+      child.removeAllListeners("exit");
+      child.removeAllListeners("error");
+      child.unref();
+    }, 3000);
+    child.on("error", (err) => {
+      clearTimeout(watchUntil);
+      void recordExit(input.projectRoot, pid, null, String(err));
+      void recordIssue(input.projectRoot, {
+        kind: "scheduler-spawn-error",
+        message: `Scheduler failed to start: ${err.message}`,
+        detail: String(err),
+        fix: "Open the scheduler log in Mission Control's Task Control panel.",
+      }).catch(() => undefined);
+    });
+    child.on("exit", (code) => {
+      clearTimeout(watchUntil);
+      void recordExit(input.projectRoot, pid, code, null);
+      if (code !== 0) {
+        void recordIssue(input.projectRoot, {
+          kind: "scheduler-exit-nonzero",
+          message: `Scheduler exited with code ${code} shortly after starting.`,
+          detail:
+            "Open the scheduler log in Mission Control's Task Control panel for the full traceback.",
+          fix: "Check `.amaco/scheduler/scheduler.log` (or the Task Control panel) for the stack.",
+        }).catch(() => undefined);
+      }
+    });
+
     return {
       action: "spawned",
       liveness,
-      ...(child.pid !== undefined ? { pid: child.pid } : {}),
-      message: `auto-started \`amaco queue run\` (pid ${child.pid ?? "—"})`,
+      ...(pid !== null ? { pid } : {}),
+      message: `auto-started \`amaco queue run\` (pid ${pid ?? "—"}); logs at .amaco/scheduler/scheduler.log`,
     };
   } catch (err) {
-    return {
-      action: "spawn-failed",
-      liveness,
-      message: err instanceof Error ? err.message : String(err),
-    };
+    const msg = err instanceof Error ? err.message : String(err);
+    await recordIssue(input.projectRoot, {
+      kind: "scheduler-spawn-error",
+      message: `Failed to spawn scheduler: ${msg}`,
+    }).catch(() => undefined);
+    return { action: "spawn-failed", liveness, message: msg };
   }
 }

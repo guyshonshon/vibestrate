@@ -1000,6 +1000,50 @@ function TaskControlSection({
         : liveness.status === "paused"
           ? "text-amaco-fg-dim"
           : "text-amaco-fail";
+  const [logOpen, setLogOpen] = useState(false);
+  const [log, setLog] = useState<{
+    text: string;
+    bytes: number;
+    truncated: boolean;
+  } | null>(null);
+  const [spawns, setSpawns] = useState<
+    Awaited<ReturnType<typeof api.getSchedulerSpawns>>["records"]
+  >([]);
+  const [logBusy, setLogBusy] = useState(false);
+
+  async function refreshLog() {
+    setLogBusy(true);
+    try {
+      const [l, s] = await Promise.all([
+        api.getSchedulerLog(64 * 1024),
+        api.getSchedulerSpawns(),
+      ]);
+      setLog({ text: l.text, bytes: l.bytes, truncated: l.truncated });
+      setSpawns(s.records);
+    } catch (err) {
+      setLog({
+        text: `Failed to load log: ${err instanceof Error ? err.message : String(err)}`,
+        bytes: 0,
+        truncated: false,
+      });
+    } finally {
+      setLogBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!logOpen) return;
+    void refreshLog();
+    const id = window.setInterval(refreshLog, 3000);
+    return () => window.clearInterval(id);
+  }, [logOpen]);
+
+  // Auto-open the log drawer when the scheduler clearly isn't healthy
+  // — saves the user a click in the case the user's actually reporting.
+  const recentFailures = spawns
+    .slice(-5)
+    .filter((s) => s.exitCode !== null && s.exitCode !== 0).length;
+
   return (
     <section
       aria-label="Task control"
@@ -1027,10 +1071,81 @@ function TaskControlSection({
         <span className="amaco-mono text-[11px] text-amaco-fg-muted">
           {liveness.summary}
         </span>
+        <button
+          type="button"
+          onClick={() => setLogOpen((v) => !v)}
+          className={`amaco-mono rounded border px-2 py-0.5 text-[10.5px] ${
+            recentFailures > 0
+              ? "border-amaco-fail/50 bg-amaco-fail/10 text-amaco-fail"
+              : "border-amaco-border text-amaco-fg-dim hover:bg-amaco-panel-2"
+          }`}
+          title="Show captured stdout/stderr from the scheduler subprocess"
+        >
+          {logOpen ? "hide" : recentFailures > 0 ? `errors (${recentFailures})` : "show log"}
+        </button>
         <span className="ml-auto amaco-mono text-[10.5px] text-amaco-fg-muted">
           drag any section's grip · → reorder
         </span>
       </div>
+
+      {logOpen ? (
+        <div className="mt-2 rounded border border-amaco-border bg-amaco-panel">
+          <header className="flex items-center gap-2 border-b border-amaco-border-soft px-2 py-1 text-[10.5px] text-amaco-fg-muted">
+            <span className="amaco-mono uppercase tracking-[0.12em]">
+              scheduler log
+            </span>
+            <span className="amaco-mono">
+              · .amaco/scheduler/scheduler.log
+            </span>
+            {log ? (
+              <span className="amaco-mono">
+                · {log.bytes.toLocaleString()} bytes
+                {log.truncated ? " (tail)" : ""}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void refreshLog()}
+              disabled={logBusy}
+              className="ml-auto rounded border border-amaco-border px-1.5 py-0.5 text-[10px] hover:bg-amaco-panel-2 disabled:opacity-50"
+            >
+              {logBusy ? "loading…" : "refresh"}
+            </button>
+          </header>
+          {spawns.length > 0 ? (
+            <ul className="border-b border-amaco-border-soft px-2 py-1 text-[10.5px] amaco-mono text-amaco-fg-dim space-y-0.5">
+              {spawns.slice(-5).reverse().map((s, i) => (
+                <li key={`${s.at}-${i}`} className="flex gap-2">
+                  <span>{new Date(s.at).toLocaleTimeString()}</span>
+                  <span>pid {s.pid ?? "?"}</span>
+                  <span>· {s.source}</span>
+                  {s.exitedAt !== null ? (
+                    <span
+                      className={
+                        s.exitCode === 0
+                          ? "text-amaco-success"
+                          : "text-amaco-fail"
+                      }
+                    >
+                      · exited {s.exitCode ?? "err"}
+                    </span>
+                  ) : (
+                    <span className="text-amaco-success">· still running</span>
+                  )}
+                  {s.exitError ? (
+                    <span className="text-amaco-fail truncate">
+                      · {s.exitError}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <pre className="amaco-mono max-h-72 overflow-auto whitespace-pre-wrap p-2 text-[11px] text-amaco-fg-dim">
+            {log ? log.text || "(empty — scheduler hasn't logged anything yet)" : "loading…"}
+          </pre>
+        </div>
+      ) : null}
     </section>
   );
 }
