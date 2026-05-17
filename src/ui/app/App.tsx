@@ -157,10 +157,13 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
-                      : "runs"
+                      : route.kind === "runs"
+                        ? "runs"
+                        : "home"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
-      onShowRunsList={() => navigate({ kind: "mission" })}
+      onShowHome={() => navigate({ kind: "mission" })}
+      onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
@@ -177,6 +180,8 @@ export function App() {
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
           onShowRoadmap={() => navigate({ kind: "board" })}
           onShowQueue={() => navigate({ kind: "queue" })}
+          onShowRunsList={() => navigate({ kind: "runs" })}
+          onShowSettings={() => navigate({ kind: "settings" })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
         />
       ) : route.kind === "runs" ? (
