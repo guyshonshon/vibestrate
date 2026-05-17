@@ -52,6 +52,12 @@ describe("deriveRerunArgs", () => {
     ).toEqual(["run", "--skills", "security-review,logs-101", "audit auth"]);
   });
 
+  it("forwards --concise when set", () => {
+    expect(
+      deriveRerunArgs({ task: "tidy", concise: true }),
+    ).toEqual(["run", "--concise", "tidy"]);
+  });
+
   it("formatArgv quotes args with spaces", () => {
     expect(formatArgv(["run", "say hello", "--effort", "low"])).toBe(
       'run "say hello" --effort low',

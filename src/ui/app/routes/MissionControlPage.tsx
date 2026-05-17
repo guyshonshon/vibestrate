@@ -41,6 +41,8 @@ type Props = {
   onShowRunsList: () => void;
   onShowSettings: () => void;
   onOpenTask: (taskId: string) => void;
+  /** Deep-link variant: open the run with the Diff inspector tab active. */
+  onShowRunDiff?: (runId: string) => void;
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -172,6 +174,7 @@ export function MissionControlPage({
   onShowRunsList,
   onShowSettings,
   onOpenTask,
+  onShowRunDiff,
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -180,6 +183,9 @@ export function MissionControlPage({
   const [eventsByRun, setEventsByRun] = useState<Record<string, AmacoEvent[]>>(
     {},
   );
+  const [diffByRun, setDiffByRun] = useState<
+    Record<string, { insertions: number; deletions: number; files: number }>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   // Quick-create task form (left rail).
@@ -287,6 +293,10 @@ export function MissionControlPage({
         // We do this on the same poll tick to keep complexity low.
         const active = r.filter((x) => isActive(x.status));
         const byRun: Record<string, AmacoEvent[]> = {};
+        const diffsByRun: Record<
+          string,
+          { insertions: number; deletions: number; files: number }
+        > = {};
         // Approvals + suggestions are sparse — walk every non-terminal
         // run, but skip terminal ones to keep the fan-out reasonable.
         const aprAggregate: ApprovalRow[] = [];
@@ -305,6 +315,21 @@ export function MissionControlPage({
                   .catch(() => {
                     byRun[run.runId] = [];
                   }),
+              );
+              // Live diff snapshot for the run's worktree. Best-effort —
+              // empty snapshot or fetch failure just hides the chip.
+              promises.push(
+                api
+                  .getDiff(run.runId)
+                  .then((snap) => {
+                    if (!snap) return;
+                    diffsByRun[run.runId] = {
+                      insertions: snap.totals.insertions,
+                      deletions: snap.totals.deletions,
+                      files: snap.totals.files,
+                    };
+                  })
+                  .catch(() => undefined),
               );
             }
             promises.push(
@@ -340,6 +365,7 @@ export function MissionControlPage({
         }));
         if (cancelled) return;
         setEventsByRun(byRun);
+        setDiffByRun(diffsByRun);
         aprAggregate.sort((a, b) =>
           b.createdAt.localeCompare(a.createdAt),
         );
@@ -598,6 +624,7 @@ export function MissionControlPage({
               composer.skills && composer.skills.length > 0
                 ? composer.skills
                 : undefined,
+            concise: composer.concise || undefined,
           });
           setToast({ kind: "ok", text: r.message });
           break;
@@ -754,7 +781,9 @@ export function MissionControlPage({
       <ExecutionCanvas
         active={active}
         eventsByRun={eventsByRun}
+        diffByRun={diffByRun}
         onOpen={onSelectRun}
+        onOpenDiff={onShowRunDiff ?? onSelectRun}
       />
 
       <div ref={inboxRef as React.RefObject<HTMLDivElement>}>

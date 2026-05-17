@@ -44,6 +44,8 @@ export type RunState = {
   readOnly?: boolean;
   /** Skill ids attached to every agent for this single run. */
   runtimeSkills?: string[];
+  /** Brevity directive applied to every agent prompt for this run. */
+  concise?: boolean;
 };
 
 export type RunControlDirective =

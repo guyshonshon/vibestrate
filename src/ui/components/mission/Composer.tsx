@@ -29,6 +29,8 @@ export type ComposerSubmit = PromptSubmit & {
   provider?: string;
   /** Skill ids attached just for this run. Only set on "run" submits. */
   skills?: string[];
+  /** Brevity directive for this run. */
+  concise?: boolean;
 };
 
 type Props = {
@@ -51,6 +53,7 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
   const [text, setText] = useState("");
   const [effort, setEffort] = useState<PromptEffort>("");
   const [readOnly, setReadOnly] = useState(false);
+  const [concise, setConcise] = useState(false);
   const [provider, setProvider] = useState<string>("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(false);
@@ -106,6 +109,7 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             ...parsed,
             provider: provider || undefined,
             skills: selectedSkills.length > 0 ? selectedSkills : undefined,
+            concise: concise || undefined,
           }
         : parsed;
     void onSubmit(enriched);
@@ -207,6 +211,23 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             />
             <Eye className="h-3 w-3" strokeWidth={1.5} aria-hidden />
             <span>read-only</span>
+          </label>
+
+          <label
+            className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${
+              concise
+                ? "border-amaco-accent/60 bg-amaco-accent/10 text-amaco-accent"
+                : "border-amaco-border bg-amaco-panel text-amaco-fg-dim hover:bg-amaco-panel-2"
+            }`}
+            title="Ask agents to prefer diffs, bullets, and skip preamble. Token-efficient."
+          >
+            <input
+              type="checkbox"
+              checked={concise}
+              onChange={(e) => setConcise(e.target.checked)}
+              className="h-3 w-3 accent-amaco-accent"
+            />
+            <span>concise</span>
           </label>
 
           <div className="ml-auto inline-flex items-center gap-2 amaco-mono text-[10.5px] text-amaco-fg-muted">

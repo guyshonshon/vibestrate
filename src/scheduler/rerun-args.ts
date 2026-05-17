@@ -13,6 +13,7 @@ export type RerunInput = {
   providerOverride?: string | null;
   readOnly?: boolean;
   runtimeSkills?: string[];
+  concise?: boolean;
 };
 
 export function deriveRerunArgs(run: RerunInput): string[] {
@@ -24,6 +25,7 @@ export function deriveRerunArgs(run: RerunInput): string[] {
   if (run.runtimeSkills && run.runtimeSkills.length > 0) {
     argv.push("--skills", run.runtimeSkills.join(","));
   }
+  if (run.concise) argv.push("--concise");
   argv.push(run.task);
   return argv;
 }
