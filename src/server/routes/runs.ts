@@ -28,6 +28,11 @@ import {
   RunReplayError,
 } from "../../core/run-replay-service.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
+import {
+  appendControl,
+  listControls,
+  pendingControls,
+} from "../../core/run-control.js";
 
 export type RunRoutesDeps = {
   projectRoot: string;
@@ -308,6 +313,66 @@ export async function registerRunsRoutes(
           `Failed to spawn retry: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+    },
+  );
+
+  // ─── Run control stream ──────────────────────────────────────────
+  // Lets the dashboard queue between-stage directives (notes the next
+  // agent should consider, a "compact context" hint that asks the
+  // next agent to re-state its understanding). One-shot providers
+  // can't accept live REPL commands, so these are deferred and
+  // surface in the next stage's prompt. The orchestrator marks each
+  // consumed and emits a `control.applied` event.
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/control",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const all = await listControls(projectRoot, req.params.runId);
+      return {
+        directives: all,
+        pending: pendingControls(all),
+      };
+    },
+  );
+  app.post<{ Params: { runId: string }; Body: unknown }>(
+    "/api/runs/:runId/control",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const body = req.body as
+        | { kind?: "inject-note" | "compact"; body?: string; note?: string }
+        | null;
+      if (!body || typeof body.kind !== "string") {
+        throw new HttpError(400, "kind is required (inject-note or compact).");
+      }
+      if (body.kind === "inject-note") {
+        const text =
+          typeof body.body === "string" ? body.body.trim() : "";
+        if (!text) throw new HttpError(400, "inject-note needs a body.");
+        if (text.length > 8000) throw new HttpError(400, "Note too long (max 8000 chars).");
+        const stateFile = runStatePath(projectRoot, req.params.runId);
+        if (!(await pathExists(stateFile)))
+          throw new HttpError(404, `Run ${req.params.runId} not found.`);
+        const directive = await appendControl(projectRoot, req.params.runId, {
+          kind: "inject-note",
+          body: text,
+        });
+        return { ok: true, directive };
+      }
+      if (body.kind === "compact") {
+        const stateFile = runStatePath(projectRoot, req.params.runId);
+        if (!(await pathExists(stateFile)))
+          throw new HttpError(404, `Run ${req.params.runId} not found.`);
+        const note =
+          typeof body.note === "string" && body.note.trim().length > 0
+            ? body.note.trim().slice(0, 2000)
+            : undefined;
+        const directive = await appendControl(projectRoot, req.params.runId, {
+          kind: "compact",
+          ...(note ? { note } : {}),
+        });
+        return { ok: true, directive };
+      }
+      throw new HttpError(400, "Unknown control kind.");
     },
   );
 

@@ -46,6 +46,24 @@ export type RunState = {
   runtimeSkills?: string[];
 };
 
+export type RunControlDirective =
+  | {
+      id: string;
+      createdAt: string;
+      consumedAt: string | null;
+      consumedByAgent: string | null;
+      kind: "inject-note";
+      body: string;
+    }
+  | {
+      id: string;
+      createdAt: string;
+      consumedAt: string | null;
+      consumedByAgent: string | null;
+      kind: "compact";
+      note?: string;
+    };
+
 export type Priority = "low" | "medium" | "high";
 
 export type RoadmapItem = {

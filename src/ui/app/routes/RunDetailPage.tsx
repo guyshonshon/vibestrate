@@ -8,6 +8,7 @@ import type {
 } from "../../lib/types.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import { RunHeader } from "../../components/runs/RunHeader.js";
+import { RunControlPanel } from "../../components/runs/RunControlPanel.js";
 import { RunWorktreeBlock } from "../../components/runs/RunWorktreeBlock.js";
 import { AgentWorkPanel } from "../../components/runs/AgentWorkPanel.js";
 import { WorkflowTimeline } from "../../components/workflow/WorkflowTimeline.js";
@@ -152,6 +153,7 @@ export function RunDetailPage({
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}
           />
+          <RunControlPanel runId={runId} status={run.status} />
           <ActiveAgentCard
             status={run.status}
             agents={metrics?.agents ?? []}

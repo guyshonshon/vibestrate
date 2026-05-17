@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { Sidebar, type NavId } from "./Sidebar.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
 import type { NotificationRecord } from "../../lib/types.js";
@@ -54,6 +54,7 @@ export function AppShell({
       />
       <main className="relative flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
+          <BackButton onShowHome={onShowHome} />
           <span className="ml-auto" />
           <NotificationBell onOpenNotification={onOpenNotification} />
           <button
@@ -71,5 +72,44 @@ export function AppShell({
         <div className="flex-1 overflow-hidden">{children}</div>
       </main>
     </div>
+  );
+}
+
+/**
+ * Header Back button. Uses browser history (hash-based routing means
+ * Back lands on the previous in-app route). Disabled when there's no
+ * history to go back to — falls through to Home when clicked anyway
+ * so the user always has an out. Listens for `popstate` so the
+ * disabled state stays correct as the user navigates.
+ */
+function BackButton({ onShowHome }: { onShowHome: () => void }) {
+  const [canGoBack, setCanGoBack] = useState(false);
+  useEffect(() => {
+    const update = () => setCanGoBack(window.history.length > 1);
+    update();
+    window.addEventListener("popstate", update);
+    window.addEventListener("hashchange", update);
+    return () => {
+      window.removeEventListener("popstate", update);
+      window.removeEventListener("hashchange", update);
+    };
+  }, []);
+  const onClick = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onShowHome();
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={canGoBack ? "Back (browser history)" : "Back to Home"}
+      aria-label="Back"
+      className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+    </button>
   );
 }

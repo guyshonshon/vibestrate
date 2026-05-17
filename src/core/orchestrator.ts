@@ -15,6 +15,12 @@ import {
 } from "./review-parser.js";
 import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
 import { buildAgentPrompt, type PriorArtifact } from "./prompt-builder.js";
+import {
+  listControls,
+  markPendingConsumed,
+  pendingControls,
+  renderControlNotes,
+} from "./run-control.js";
 import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig } from "../project/config-schema.js";
@@ -1262,6 +1268,13 @@ export class Orchestrator {
       });
     }
 
+    // Pull any user-queued control directives (notes, compaction
+    // requests) that have arrived since the previous stage. They are
+    // rendered into the `additionalNotes` slot of the prompt and then
+    // marked consumed so the next agent doesn't see them again.
+    const allControls = await listControls(this.projectRoot, ctx.runId);
+    const pending = pendingControls(allControls);
+    const controlNotes = renderControlNotes(pending);
     const prompt = buildAgentPrompt({
       agentId,
       task: this.task,
@@ -1275,7 +1288,24 @@ export class Orchestrator {
       branchName: ctx.branchName,
       projectName: this.config.project.name,
       validationResults: input.validationResults,
+      ...(controlNotes ? { additionalNotes: controlNotes } : {}),
     });
+    if (pending.length > 0) {
+      const consumed = await markPendingConsumed(
+        this.projectRoot,
+        ctx.runId,
+        agentId,
+      );
+      await ctx.eventLog.append({
+        type: "control.applied",
+        message: `Applied ${consumed.length} user-queued directive(s) to ${agentId}.`,
+        data: {
+          agentId,
+          kinds: consumed.map((d) => d.kind),
+          ids: consumed.map((d) => d.id),
+        },
+      });
+    }
 
     const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, agentId);
     const promptArtifactPathAbs = await ctx.artifactStore.write(promptName, prompt);
