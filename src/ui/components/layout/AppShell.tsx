@@ -1,7 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  HelpCircle,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { Sidebar, type NavId } from "./Sidebar.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
+import { HelpOverlay } from "../HelpOverlay.js";
 import type { NotificationRecord } from "../../lib/types.js";
 
 type AppShellProps = {
@@ -56,6 +61,17 @@ export function AppShell({
         <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
           <BackButton onShowHome={onShowHome} />
           <span className="ml-auto" />
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("amaco:help-overlay"))
+            }
+            title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts"
+            className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+          >
+            <HelpCircle className="h-4 w-4" strokeWidth={1.5} />
+          </button>
           <NotificationBell onOpenNotification={onOpenNotification} />
           <button
             type="button"
@@ -71,6 +87,7 @@ export function AppShell({
         </header>
         <div className="flex-1 overflow-hidden">{children}</div>
       </main>
+      <HelpOverlay />
     </div>
   );
 }
