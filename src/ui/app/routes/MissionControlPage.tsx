@@ -8,7 +8,17 @@ import {
 } from "../../components/ContextMenu.js";
 import { AttentionBar } from "../../components/AttentionBar.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
-import { PromptBar, type PromptSubmit } from "../../components/PromptBar.js";
+import { type PromptSubmit } from "../../components/PromptBar.js";
+import { MissionBar } from "../../components/mission/MissionBar.js";
+import {
+  Composer,
+  type ComposerProvider,
+  type ComposerSkill,
+  type ComposerSubmit,
+} from "../../components/mission/Composer.js";
+import { ExecutionCanvas } from "../../components/mission/ExecutionCanvas.js";
+import { SecondaryPanels } from "../../components/mission/SecondaryPanels.js";
+import { useNumberedNav } from "../../components/mission/useNumberedNav.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -189,6 +199,55 @@ export function MissionControlPage({
   type IssueRow = Awaited<ReturnType<typeof api.listIssues>>["issues"][number];
   const [issues, setIssues] = useState<IssueRow[]>([]);
   const [issuesOpen, setIssuesOpen] = useState(false);
+  // Composer feeds: providers + skills. Loaded once, refreshed at the
+  // same polling cadence as the rest of the page so a freshly-installed
+  // provider / skill shows up without a manual reload.
+  const [providers, setProviders] = useState<ComposerProvider[]>([]);
+  const [skills, setSkills] = useState<ComposerSkill[]>([]);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [p, s] = await Promise.all([
+          api.listProviders(),
+          api.listSkills(),
+        ]);
+        if (cancelled) return;
+        setProviders(
+          p.providers.map((row) => ({
+            id: row.id,
+            label: row.label,
+            available: row.available,
+            configured: row.configured,
+            confidence: row.confidence,
+          })),
+        );
+        setSkills(
+          s.skills.map((skill) => ({ id: skill.id, name: skill.name })),
+        );
+      } catch {
+        // Offline / route not yet ready — keep last good lists.
+      }
+    };
+    void load();
+    const id = window.setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  // Numbered keyboard nav: [1]–[6] focus the matching secondary panel.
+  useNumberedNav({
+    "1": "panel-backlog",
+    "2": "panel-ready",
+    "3": "panel-queue",
+    "4": "panel-approvals",
+    "5": "panel-suggestions",
+    "6": "panel-notifications",
+  });
   // Ref to the right-rail inbox so AttentionBar's "Open inbox →"
   // can scroll it into view (and pop the issues panel on narrow
   // screens where the rail is hidden).
@@ -294,6 +353,7 @@ export function MissionControlPage({
           .listIssues()
           .catch(() => ({ issues: [], unresolved: 0 }));
         if (!cancelled) setIssues(issuesResp.issues);
+        if (!cancelled) setLastRefreshedAt(new Date());
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -509,15 +569,23 @@ export function MissionControlPage({
   };
 
   const [promptBusy, setPromptBusy] = useState(false);
-  const handlePromptSubmit = async (input: PromptSubmit): Promise<void> => {
+  const handlePromptSubmit = async (
+    input: ComposerSubmit | PromptSubmit,
+  ): Promise<void> => {
     setPromptBusy(true);
     try {
       switch (input.kind) {
         case "run": {
+          const composer = input as ComposerSubmit;
           const r = await api.spawnRun({
             task: input.task,
             effort: input.effort || undefined,
             readOnly: input.readOnly || undefined,
+            provider: composer.provider || undefined,
+            skills:
+              composer.skills && composer.skills.length > 0
+                ? composer.skills
+                : undefined,
           });
           setToast({ kind: "ok", text: r.message });
           break;
@@ -560,46 +628,52 @@ export function MissionControlPage({
   const queuedTaskCount = tasks.filter((t) => t.status === "queued").length;
   const blockedTaskCount = tasks.filter((t) => t.status === "blocked").length;
 
+  const liveness = deriveSchedulerLiveness(scheduler);
+  const defaultProvider =
+    providers.find((p) => p.configured && p.available) ??
+    providers.find((p) => p.configured) ??
+    providers.find((p) => p.available) ??
+    null;
+  const activeProviderLabel = defaultProvider
+    ? `${defaultProvider.id} · ${defaultProvider.label}${defaultProvider.available ? "" : " (not installed)"}`
+    : null;
+
+  const workspaceLabel = (() => {
+    const sample = runs.find((r) => r.projectRoot)?.projectRoot ?? "";
+    if (!sample) return window.location.host || "this workspace";
+    const parts = sample.split("/");
+    return parts.slice(-2).join("/") || sample;
+  })();
+
+  // Bridge inbox actions (approve / reject) coming from SecondaryPanels.
+  const onApproveApproval = (a: ApprovalRow): Promise<void> =>
+    handleInbox("approve-approval", { runId: a.runId, id: a.id });
+  const onRejectApproval = (a: ApprovalRow): Promise<void> =>
+    handleInbox("reject-approval", { runId: a.runId, id: a.id });
+  const onMarkNotificationRead = async (n: NotificationRecord): Promise<void> => {
+    if (n.readAt) return;
+    try {
+      await api.markNotificationRead(n.id);
+      setNotifications((cur) =>
+        cur.map((x) =>
+          x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x,
+        ),
+      );
+    } catch {
+      /* best-effort */
+    }
+  };
+
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-        <div className="flex items-baseline justify-between gap-4">
-          <div>
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-              mission control
-            </div>
-            <h1 className="mt-1 text-[18px] font-medium">Live orchestrator</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11.5px] text-amaco-fg-muted">refreshes every 2s</span>
-            <IssuesBadge
-              count={issues.filter((i) => !i.resolved).length}
-              open={issuesOpen}
-              onToggle={() => setIssuesOpen((v) => !v)}
-            />
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-stretch gap-2">
-          <Stat label="active runs" value={String(active.length)} accent />
-          <Stat label="total runs" value={String(runs.length)} />
-          <Stat
-            label="tasks"
-            value={String(tasks.length)}
-            hint="open backlog + queue"
-          />
-          <Stat
-            label="queued"
-            value={String(queuedTaskCount)}
-            tint={queuedTaskCount > 0 ? "warn" : undefined}
-          />
-          <Stat
-            label="blocked"
-            value={String(blockedTaskCount)}
-            tint={blockedTaskCount > 0 ? "fail" : undefined}
-          />
-        </div>
-      </header>
+      <MissionBar
+        workspace={workspaceLabel}
+        liveness={liveness}
+        activeProvider={activeProviderLabel}
+        unresolvedIssues={issues.filter((i) => !i.resolved).length}
+        pendingApprovals={approvals.length}
+        lastRefreshedAt={lastRefreshedAt}
+      />
 
       <AttentionBar
         counts={{
@@ -613,7 +687,37 @@ export function MissionControlPage({
         onFocusInbox={focusInbox}
       />
 
-      <PromptBar busy={promptBusy} onSubmit={handlePromptSubmit} />
+      <Composer
+        busy={promptBusy}
+        providers={providers}
+        skills={skills}
+        onSubmit={handlePromptSubmit}
+      />
+
+      {/* Small toast / error strip — sits between composer and canvas so
+       * action feedback is always visible without scrolling. */}
+      {error || toast ? (
+        <div className="px-6 pt-2">
+          {error ? (
+            <div className="rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-1.5 text-[12.5px] text-amaco-fail">
+              {error}
+            </div>
+          ) : null}
+          {toast ? (
+            <div
+              role="status"
+              className={`mt-1 rounded border px-3 py-1.5 text-[12.5px] ${
+                toast.kind === "ok"
+                  ? "border-amaco-success/40 bg-amaco-success/5 text-amaco-success"
+                  : "border-amaco-fail/30 bg-amaco-fail/5 text-amaco-fail"
+              }`}
+            >
+              {toast.kind === "ok" ? "✓ " : "✗ "}
+              {toast.text}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {issuesOpen ? (
         <IssuesPanel
@@ -635,110 +739,64 @@ export function MissionControlPage({
         />
       ) : null}
 
-      <div className="flex-1 grid gap-4 px-6 py-4 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
-        {/* Left rail: quick-create task + queue */}
-        <aside className="flex flex-col gap-4">
-          <QuickCreateTask
-            title={newTaskTitle}
-            priority={newTaskPriority}
-            busy={newTaskBusy}
-            onTitleChange={setNewTaskTitle}
-            onPriorityChange={setNewTaskPriority}
-            onSubmit={handleCreateTask}
-          />
-          <QueueCard
-            onStartScheduler={handleStartScheduler}
-            scheduler={scheduler}
-            queue={queue}
-            tasks={tasks}
-            onOpenTask={onOpenTask}
-            onShowQueue={onShowQueue}
-            onQueueTask={handleQueueTask}
-          />
-        </aside>
+      <ExecutionCanvas
+        active={active}
+        eventsByRun={eventsByRun}
+        onOpen={onSelectRun}
+      />
 
-      <div className="flex flex-col">
-        {error ? (
-          <div className="mb-3 rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-2 text-[12.5px] text-amaco-fail">
-            {error}
-          </div>
-        ) : null}
+      <div ref={inboxRef as React.RefObject<HTMLDivElement>}>
+        <SecondaryPanels
+          tasks={tasks}
+          queue={queue}
+          approvals={approvals}
+          suggestions={suggestions}
+          notifications={notifications}
+          onOpenTask={onOpenTask}
+          onOpenRun={onSelectRun}
+          onQueueTask={handleQueueTask}
+          onApproveApproval={onApproveApproval}
+          onRejectApproval={onRejectApproval}
+          onMarkNotificationRead={onMarkNotificationRead}
+        />
+      </div>
 
-        {toast ? (
-          <div
-            className={`mb-3 rounded border px-3 py-2 text-[12.5px] ${
-              toast.kind === "ok"
-                ? "border-amaco-success/40 bg-amaco-success/5 text-amaco-success"
-                : "border-amaco-fail/30 bg-amaco-fail/5 text-amaco-fail"
-            }`}
-          >
-            {toast.kind === "ok" ? "✓ " : "✗ "}
-            {toast.text}
-          </div>
-        ) : null}
-
-        <section>
-          <div className="flex items-center justify-between">
-            <h2 className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-              active runs ({active.length})
-            </h2>
-            <div className="flex gap-2 text-[11.5px]">
-              <button
-                onClick={onShowRoadmap}
-                className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
-              >
-                Roadmap →
-              </button>
-              <button
-                onClick={onShowQueue}
-                className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
-              >
-                Queue →
-              </button>
-            </div>
-          </div>
-          {active.length === 0 ? (
-            <div className="mt-3 rounded border border-dashed border-amaco-border bg-amaco-panel/40 px-4 py-6 text-center text-[12.5px] text-amaco-fg-muted">
-              no active runs · start one with{" "}
-              <code className="amaco-mono rounded bg-amaco-panel-2 px-1 py-0.5">
-                amaco run "describe the change"
-              </code>
-            </div>
+      {/* Footer hint row — surfaces scheduler control + keyboard map.
+       * The numbered keyboard hint is duplicated next to each panel's
+       * [N] badge; this is the one-stop reference. */}
+      <footer className="border-t border-amaco-border bg-amaco-panel-2/40 px-6 py-2 text-[11px] text-amaco-fg-muted">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="amaco-mono">keyboard:</span>
+          <span>
+            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">1</kbd>–<kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">6</kbd>{" "}
+            jump to panel
+          </span>
+          <span>
+            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">⌘K</kbd>{" "}
+            or{" "}
+            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">/</kbd>{" "}
+            focus composer
+          </span>
+          <span>
+            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">↵</kbd>{" "}
+            submit ·{" "}
+            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">⇧↵</kbd>{" "}
+            newline
+          </span>
+          {!liveness.pickingUpWork ? (
+            <button
+              onClick={() => void handleStartScheduler()}
+              className="ml-auto rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-0.5 text-amaco-accent hover:bg-amaco-accent/20"
+            >
+              ↻ Start scheduler
+            </button>
           ) : (
-            <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-              {active.map((r) => (
-                <RunCard
-                  key={r.runId}
-                  run={r}
-                  events={eventsByRun[r.runId] ?? []}
-                  onOpen={() => onSelectRun(r.runId)}
-                  onAction={handleAction}
-                  onRetry={handleRetry}
-                />
-              ))}
-            </div>
+            <span className="ml-auto text-amaco-fg-muted">
+              scheduler: {liveness.status}
+            </span>
           )}
-        </section>
-      </div>
-
-      {/* Right rail: attention inbox — approvals, suggestions, notifications. */}
-      <aside
-        ref={inboxRef}
-        className="hidden xl:flex flex-col gap-3 scroll-mt-4"
-      >
-        <InboxApprovals
-          items={approvals}
-          onAction={handleInbox}
-          onOpenRun={onSelectRun}
-        />
-        <InboxSuggestions
-          items={suggestions}
-          onAction={handleInbox}
-          onOpenRun={onSelectRun}
-        />
-        <InboxNotifications items={notifications} onOpenRun={onSelectRun} />
-      </aside>
-      </div>
+        </div>
+      </footer>
     </div>
   );
 }
