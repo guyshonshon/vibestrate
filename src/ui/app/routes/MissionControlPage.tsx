@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import type {
   AmacoEvent,
+  QueueEntry,
   RunState,
   RunStatus,
+  SchedulerState,
   Task,
 } from "../../lib/types.js";
 
@@ -11,6 +13,7 @@ type Props = {
   onSelectRun: (runId: string) => void;
   onShowRoadmap: () => void;
   onShowQueue: () => void;
+  onOpenTask: (taskId: string) => void;
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -139,9 +142,12 @@ export function MissionControlPage({
   onSelectRun,
   onShowRoadmap,
   onShowQueue,
+  onOpenTask,
 }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [queue, setQueue] = useState<QueueEntry[]>([]);
+  const [scheduler, setScheduler] = useState<SchedulerState | null>(null);
   const [eventsByRun, setEventsByRun] = useState<Record<string, AmacoEvent[]>>(
     {},
   );
@@ -152,6 +158,12 @@ export function MissionControlPage({
   const [composerEffort, setComposerEffort] = useState<"" | "low" | "medium" | "high">("");
   const [composerReadOnly, setComposerReadOnly] = useState(false);
   const [composerBusy, setComposerBusy] = useState(false);
+  // Quick-create task form (left rail).
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<"low" | "medium" | "high">(
+    "medium",
+  );
+  const [newTaskBusy, setNewTaskBusy] = useState(false);
 
   // Auto-dismiss the toast after 4s.
   useEffect(() => {
@@ -164,10 +176,16 @@ export function MissionControlPage({
     let cancelled = false;
     const load = async (): Promise<void> => {
       try {
-        const [r, t] = await Promise.all([api.listRuns(), api.listTasks()]);
+        const [r, t, q] = await Promise.all([
+          api.listRuns(),
+          api.listTasks(),
+          api.getQueue().catch(() => ({ queue: [], state: null as SchedulerState | null })),
+        ]);
         if (cancelled) return;
         setRuns(r);
         setTasks(t);
+        setQueue(q.queue);
+        setScheduler(q.state);
         setError(null);
         // Best-effort: read the recent events for each *active* run so
         // the inline panel can show the current agent / MCP / phase.
@@ -209,6 +227,38 @@ export function MissionControlPage({
       else if (kind === "resume") await api.resumeRun(runId);
       else await api.abortRun(runId);
       setToast({ kind: "ok", text: `${kind} requested for ${runId}` });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
+  const handleCreateTask = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    const title = newTaskTitle.trim();
+    if (!title) return;
+    setNewTaskBusy(true);
+    try {
+      await api.addTask({ title, priority: newTaskPriority });
+      setNewTaskTitle("");
+      setNewTaskPriority("medium");
+      setToast({ kind: "ok", text: `Created task "${title}"` });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setNewTaskBusy(false);
+    }
+  };
+
+  const handleQueueTask = async (taskId: string): Promise<void> => {
+    try {
+      await api.queueTask(taskId);
+      setToast({ kind: "ok", text: `Queued ${taskId}` });
     } catch (err) {
       setToast({
         kind: "err",
@@ -287,7 +337,28 @@ export function MissionControlPage({
         </div>
       </header>
 
-      <div className="flex-1 px-6 py-4">
+      <div className="flex-1 grid gap-4 px-6 py-4 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px]">
+        {/* Left rail: quick-create task + queue */}
+        <aside className="flex flex-col gap-4">
+          <QuickCreateTask
+            title={newTaskTitle}
+            priority={newTaskPriority}
+            busy={newTaskBusy}
+            onTitleChange={setNewTaskTitle}
+            onPriorityChange={setNewTaskPriority}
+            onSubmit={handleCreateTask}
+          />
+          <QueueCard
+            scheduler={scheduler}
+            queue={queue}
+            tasks={tasks}
+            onOpenTask={onOpenTask}
+            onShowQueue={onShowQueue}
+            onQueueTask={handleQueueTask}
+          />
+        </aside>
+
+      <div className="flex flex-col">
         {error ? (
           <div className="mb-3 rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-2 text-[12.5px] text-amaco-fail">
             {error}
@@ -416,6 +487,167 @@ export function MissionControlPage({
           )}
         </section>
       </div>
+
+      {/* Right rail placeholder — Phase 5 fills with approvals / suggestions. */}
+      <aside className="hidden xl:flex flex-col gap-2 rounded border border-dashed border-amaco-border bg-amaco-panel/30 p-3 text-[11.5px] text-amaco-fg-muted">
+        <div className="text-[10.5px] uppercase tracking-[0.14em]">
+          attention inbox
+        </div>
+        <div>Approvals, suggestions and notifications land here in MC Phase 5.</div>
+      </aside>
+      </div>
+    </div>
+  );
+}
+
+function QuickCreateTask({
+  title,
+  priority,
+  busy,
+  onTitleChange,
+  onPriorityChange,
+  onSubmit,
+}: {
+  title: string;
+  priority: "low" | "medium" | "high";
+  busy: boolean;
+  onTitleChange: (v: string) => void;
+  onPriorityChange: (p: "low" | "medium" | "high") => void;
+  onSubmit: (e: React.FormEvent) => void;
+}) {
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3"
+    >
+      <label className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        quick task
+      </label>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => onTitleChange(e.target.value)}
+        placeholder="task title"
+        className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12.5px] text-amaco-fg outline-none focus:border-amaco-accent"
+      />
+      <div className="flex items-center justify-between text-[11.5px]">
+        <label className="flex items-center gap-1.5 text-amaco-fg-muted">
+          priority
+          <select
+            value={priority}
+            onChange={(e) =>
+              onPriorityChange(e.target.value as "low" | "medium" | "high")
+            }
+            className="rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg outline-none focus:border-amaco-accent"
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+        <button
+          type="submit"
+          disabled={busy || title.trim().length === 0}
+          className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-0.5 text-[11.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+        >
+          {busy ? "…" : "Create"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function QueueCard({
+  scheduler,
+  queue,
+  tasks,
+  onOpenTask,
+  onShowQueue,
+  onQueueTask,
+}: {
+  scheduler: SchedulerState | null;
+  queue: QueueEntry[];
+  tasks: Task[];
+  onOpenTask: (taskId: string) => void;
+  onShowQueue: () => void;
+  onQueueTask: (taskId: string) => Promise<void>;
+}) {
+  const titleFor = (id: string): string =>
+    tasks.find((t) => t.id === id)?.title ?? id;
+  const ready = tasks.filter((t) => t.status === "ready");
+  return (
+    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3">
+      <div className="flex items-center justify-between">
+        <label className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          queue
+        </label>
+        <button
+          onClick={onShowQueue}
+          className="text-[10.5px] text-amaco-fg-dim hover:text-amaco-fg"
+        >
+          full queue →
+        </button>
+      </div>
+      {scheduler ? (
+        <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+          {scheduler.paused ? (
+            <span className="text-amaco-warn">paused</span>
+          ) : (
+            <span>policy {scheduler.queuePolicy}</span>
+          )}
+          {" · "}max {scheduler.maxConcurrentRuns}
+          {" · "}running {scheduler.runningTaskIds.length}
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-1">
+        {queue.length === 0 ? (
+          <div className="text-[11.5px] text-amaco-fg-muted">
+            queue is empty
+          </div>
+        ) : (
+          queue.slice(0, 5).map((e) => (
+            <button
+              key={e.taskId}
+              onClick={() => onOpenTask(e.taskId)}
+              className="flex items-center justify-between gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] text-amaco-fg hover:bg-amaco-panel"
+            >
+              <span className="truncate">{titleFor(e.taskId)}</span>
+              <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                {e.priority[0]} · {e.source}
+              </span>
+            </button>
+          ))
+        )}
+        {queue.length > 5 ? (
+          <span className="text-[10.5px] text-amaco-fg-muted">
+            + {queue.length - 5} more
+          </span>
+        ) : null}
+      </div>
+      {ready.length > 0 ? (
+        <div className="flex flex-col gap-1 border-t border-amaco-border/60 pt-2">
+          <span className="text-[10.5px] text-amaco-fg-muted">ready ({ready.length})</span>
+          {ready.slice(0, 3).map((t) => (
+            <div
+              key={t.id}
+              className="flex items-center justify-between gap-2 text-[11.5px]"
+            >
+              <button
+                onClick={() => onOpenTask(t.id)}
+                className="truncate text-amaco-fg hover:text-amaco-accent"
+              >
+                {t.title}
+              </button>
+              <button
+                onClick={() => void onQueueTask(t.id)}
+                className="amaco-mono rounded border border-amaco-accent/40 px-1.5 text-[10.5px] text-amaco-accent hover:bg-amaco-accent/10"
+              >
+                queue
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

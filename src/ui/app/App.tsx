@@ -177,6 +177,7 @@ export function App() {
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
           onShowRoadmap={() => navigate({ kind: "board" })}
           onShowQueue={() => navigate({ kind: "queue" })}
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
         />
       ) : route.kind === "runs" ? (
         <RunsPage
