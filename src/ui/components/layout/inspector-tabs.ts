@@ -5,6 +5,7 @@
 export type InspectorTabId =
   | "diff"
   | "artifact"
+  | "events"
   | "validation"
   | "logs"
   | "notes"

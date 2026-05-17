@@ -10,6 +10,7 @@ import {
   FileText,
   GitCommit,
   Lightbulb,
+  ListOrdered,
   Maximize2,
   PlaySquare,
   ScrollText,
@@ -24,6 +25,7 @@ import { usePersistedState } from "../../lib/usePersistedState.js";
 export type { InspectorTabId };
 
 const TABS: { id: InspectorTabId; label: string; icon: LucideIcon }[] = [
+  { id: "events", label: "Events", icon: ListOrdered },
   { id: "diff", label: "Diff", icon: FileCode },
   { id: "artifact", label: "Artifact", icon: FileText },
   { id: "suggestions", label: "Suggestions", icon: Lightbulb },
