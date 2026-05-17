@@ -545,6 +545,18 @@ export function MissionControlPage({
     }
   };
 
+  const handleCancelTask = async (taskId: string): Promise<void> => {
+    try {
+      await api.cancelTask(taskId);
+      setToast({ kind: "ok", text: `Cancelled ${taskId}` });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
   const handleInbox = async (
     kind: "approve-approval" | "reject-approval" | "approve-suggestion" | "reject-suggestion",
     row: { runId: string; id: string },
@@ -755,6 +767,7 @@ export function MissionControlPage({
           onOpenTask={onOpenTask}
           onOpenRun={onSelectRun}
           onQueueTask={handleQueueTask}
+          onCancelTask={handleCancelTask}
           onApproveApproval={onApproveApproval}
           onRejectApproval={onRejectApproval}
           onMarkNotificationRead={onMarkNotificationRead}
