@@ -5,6 +5,7 @@ import { deriveMicroStepsForTask } from "../../roadmap/microstep-derivation.js";
 import { HttpError } from "../security.js";
 import { safeIdSchema } from "../../roadmap/roadmap-types.js";
 import { RunQueue } from "../../scheduler/run-queue.js";
+import { ensureSchedulerRunning } from "../../scheduler/ensure-running.js";
 import { nowIso } from "../../utils/time.js";
 
 const addBody = z.object({
@@ -170,7 +171,13 @@ export async function registerTasksRoutes(
         source: "user",
       });
       const updated = await svc.updateTaskStatus(task.id, "queued");
-      return { task: updated };
+      // Queueing = work starts. Auto-spawn the scheduler loop if
+      // nothing is currently picking up work. Honors an explicit
+      // pause (caller still sees the verdict and can resume).
+      const ensure = await ensureSchedulerRunning({
+        projectRoot: deps.projectRoot,
+      });
+      return { task: updated, scheduler: ensure };
     },
   );
 
