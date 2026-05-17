@@ -65,13 +65,20 @@ async function jsonGet<T>(path: string): Promise<T> {
 }
 
 async function readErrorMessage(res: Response): Promise<string> {
-  // Try JSON first (every server route returns
-  // `{ error: "<message>" }`). If the body is empty or not JSON
-  // (eg. a 415 from the body parser, or an HTML 404), fall back to
-  // the response text so the user always sees the real cause
-  // instead of just "400 Bad Request".
+  // Server routes now return `{ error, kind, title, hint }` (see
+  // setErrorHandler in src/server/server.ts). Prefer `title — hint`
+  // when present so the user sees a sentence they can act on instead
+  // of a raw exception message. Falls back to `error`, then to body
+  // text, then to the status line.
   try {
-    const body = (await res.clone().json()) as { error?: string };
+    const body = (await res.clone().json()) as {
+      error?: string;
+      title?: string;
+      hint?: string;
+    };
+    if (typeof body.title === "string" && body.title.length > 0) {
+      return body.hint ? `${body.title} — ${body.hint}` : body.title;
+    }
     if (typeof body.error === "string" && body.error.length > 0) {
       return body.error;
     }

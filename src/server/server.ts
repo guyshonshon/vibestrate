@@ -33,6 +33,7 @@ import {
 import { registerPoliciesRoutes } from "./routes/policies.js";
 import { HttpError } from "./security.js";
 import { recordIssue } from "../core/issues-store.js";
+import { formatError, toIssueInput } from "../core/error-format.js";
 
 export const DEFAULT_AMACO_PORT = 4317;
 
@@ -139,30 +140,43 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   app.setErrorHandler(async (error: unknown, req, reply) => {
     if (error instanceof HttpError) {
       if (error.statusCode >= 500) {
-        await recordIssue(opts.projectRoot, {
-          kind: "server-route",
-          message: error.message,
-          context: {
+        await recordIssue(
+          opts.projectRoot,
+          toIssueInput(error, {
             route: req.url,
             method: req.method,
             status: error.statusCode,
-          },
-        }).catch(() => {});
+          }),
+        ).catch(() => {});
       }
-      return reply.code(error.statusCode).send({ error: error.message });
+      const f = formatError(error);
+      return reply.code(error.statusCode).send({
+        error: error.message,
+        kind: f.kind,
+        title: f.title,
+        ...(f.hint ? { hint: f.hint } : {}),
+      });
     }
-    const message =
-      error instanceof Error ? error.message : "Internal Server Error";
     if (error && typeof error === "object" && "validation" in error) {
-      return reply.code(400).send({ error: message });
+      const f = formatError(error);
+      return reply.code(400).send({
+        error: f.detail,
+        kind: f.kind,
+        title: f.title,
+        ...(f.hint ? { hint: f.hint } : {}),
+      });
     }
-    await recordIssue(opts.projectRoot, {
-      kind: "server-uncaught",
-      message,
-      detail: error instanceof Error ? (error.stack ?? undefined) : undefined,
-      context: { route: req.url, method: req.method },
-    }).catch(() => {});
-    reply.code(500).send({ error: message });
+    const f = formatError(error);
+    await recordIssue(
+      opts.projectRoot,
+      toIssueInput(error, { route: req.url, method: req.method }),
+    ).catch(() => {});
+    reply.code(500).send({
+      error: f.detail,
+      kind: f.kind,
+      title: f.title,
+      ...(f.hint ? { hint: f.hint } : {}),
+    });
   });
 
   // Health.

@@ -192,15 +192,22 @@ if (extraArgv.length === 0) {
       const code = await runInkShell({ projectRoot: detected.projectRoot });
       process.exit(code);
     } catch (err) {
-      process.stderr.write(
-        `amaco: ${err instanceof Error ? err.message : String(err)}\n`,
-      );
+      const { formatError } = await import("../core/error-format.js");
+      const f = formatError(err);
+      process.stderr.write(`amaco: ${f.title}\n`);
+      if (f.detail && f.detail !== f.title)
+        process.stderr.write(`  detail: ${f.detail}\n`);
+      if (f.hint) process.stderr.write(`  hint:   ${f.hint}\n`);
       process.exit(1);
     }
   })();
 } else {
-  program.parseAsync(process.argv).catch((err: unknown) => {
-    console.error(err instanceof Error ? err.message : String(err));
+  program.parseAsync(process.argv).catch(async (err: unknown) => {
+    const { formatError } = await import("../core/error-format.js");
+    const f = formatError(err);
+    console.error(`amaco: ${f.title}`);
+    if (f.detail && f.detail !== f.title) console.error(`  detail: ${f.detail}`);
+    if (f.hint) console.error(`  hint:   ${f.hint}`);
     process.exit(1);
   });
 }

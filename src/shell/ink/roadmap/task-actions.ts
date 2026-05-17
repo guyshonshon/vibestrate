@@ -5,6 +5,7 @@
 import { RoadmapService } from "../../../roadmap/roadmap-service.js";
 import { RunQueue } from "../../../scheduler/run-queue.js";
 import { ensureSchedulerRunning } from "../../../scheduler/ensure-running.js";
+import { formatErrorLine } from "../../../core/error-format.js";
 import { nowIso } from "../../../utils/time.js";
 import type { TaskFormReady } from "./form.js";
 
@@ -28,7 +29,7 @@ export async function createTask(
     });
     return { ok: true, message: `Created task ${task.id}.` };
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: formatErrorLine(err) };
   }
 }
 
@@ -49,7 +50,7 @@ export async function editTask(
     });
     return { ok: true, message: `Updated task ${taskId}.` };
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: formatErrorLine(err) };
   }
 }
 
@@ -62,7 +63,7 @@ export async function deleteTask(
     await svc.deleteTask(taskId);
     return { ok: true, message: `Deleted task ${taskId}.` };
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: formatErrorLine(err) };
   }
 }
 
@@ -96,7 +97,7 @@ export async function queueTask(
             : ` · scheduler is already live`;
     return { ok: true, message: `Queued ${taskId}.${tail}` };
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: formatErrorLine(err) };
   }
 }
 
@@ -110,6 +111,6 @@ export async function markReady(
     await svc.updateTaskStatus(taskId, "ready");
     return { ok: true, message: `Marked ${taskId} ready.` };
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: formatErrorLine(err) };
   }
 }
