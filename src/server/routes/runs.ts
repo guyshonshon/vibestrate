@@ -22,6 +22,7 @@ import {
 import { writeJson, readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { streamRunEvents } from "../sse.js";
+import { streamAggregateRunEvents } from "../sse-aggregate.js";
 import {
   buildRunReplay,
   RunReplayError,
@@ -162,6 +163,18 @@ export async function registerRunsRoutes(
       return { events };
     },
   );
+
+  // Aggregate SSE that fans every run's events.ndjson into one
+  // stream. Used by Mission Control so the entire page updates
+  // from a single connection rather than polling N runs every 2s.
+  app.get("/api/events/stream", async (req, reply) => {
+    reply.hijack();
+    await streamAggregateRunEvents({
+      projectRoot,
+      reply,
+      request: req,
+    });
+  });
 
   app.get<{ Params: { runId: string } }>(
     "/api/runs/:runId/events/stream",

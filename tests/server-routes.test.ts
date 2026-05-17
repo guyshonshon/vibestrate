@@ -185,6 +185,28 @@ describe("server routes", () => {
     }
   });
 
+  it("GET /api/events/stream opens an SSE channel", async () => {
+    const res = await fetch(`${server!.url}/api/events/stream`, {
+      headers: { accept: "text/event-stream" },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/text\/event-stream/);
+    // Read a small slice off the stream so we know it's actually
+    // wired up, then close. The server sends a `ready` frame on
+    // connect; we shouldn't need to wait long for it.
+    const reader = res.body!.getReader();
+    const start = Date.now();
+    let received = "";
+    while (Date.now() - start < 1500) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      received += new TextDecoder().decode(value);
+      if (received.includes("event: ready")) break;
+    }
+    await reader.cancel();
+    expect(received).toContain("event: ready");
+  });
+
   it("POST /api/runs/:id/pause tolerates an empty JSON body", async () => {
     // The spawn-empty-body bug we fixed earlier — make sure pause /
     // resume / abort still work with `Content-Type: application/json`

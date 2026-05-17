@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
+import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -275,6 +276,78 @@ export function MissionControlPage({
     return () => {
       cancelled = true;
       window.clearInterval(id);
+    };
+  }, []);
+
+  // Aggregate SSE for live deltas. We still keep the 2s poll as a
+  // safety net so the page stays correct even if the connection
+  // drops; SSE just shaves the latency from ~2s to ~realtime for
+  // event-driven updates (new event lines, run status flips,
+  // approval / suggestion creates).
+  const refreshFlagRef = useRef(false);
+  useEffect(() => {
+    const disconnect = streamAllEvents({
+      onEvent: ({ runId, event }) => {
+        setEventsByRun((prev) => {
+          const cur = prev[runId] ?? [];
+          // Cap each run's tail at 50 lines to match the polled
+          // loader and keep render lean.
+          const next = [...cur, event].slice(-50);
+          return { ...prev, [runId]: next };
+        });
+        // Status-flip events touch the runs/queue/inbox shape — flag
+        // a forced refresh on the next animation frame so we don't
+        // hammer the API on busy event streams.
+        if (
+          event.type === "run.created" ||
+          event.type === "run.completed" ||
+          event.type === "run.aborted" ||
+          event.type === "run.failed" ||
+          event.type === "run.paused" ||
+          event.type === "run.resumed" ||
+          event.type === "approval.requested" ||
+          event.type === "approval.approved" ||
+          event.type === "approval.rejected" ||
+          event.type === "suggestion.created" ||
+          event.type === "suggestion.approved" ||
+          event.type === "suggestion.rejected"
+        ) {
+          refreshFlagRef.current = true;
+        }
+        void runId;
+      },
+    });
+    // Drain the refresh flag on a slow tick so bursts of events
+    // collapse into a single API hit.
+    const drain = window.setInterval(() => {
+      if (!refreshFlagRef.current) return;
+      refreshFlagRef.current = false;
+      // Trigger a re-load by bumping the cached toast state to null
+      // — easier: call the existing API helpers directly via a
+      // side-effect that mutates the local arrays. We simply call
+      // the listRuns/listTasks/getQueue/listApprovals/listSuggestions
+      // /listNotifications helpers and update state.
+      void (async () => {
+        try {
+          const [r, t, q] = await Promise.all([
+            api.listRuns(),
+            api.listTasks(),
+            api
+              .getQueue()
+              .catch(() => ({ queue: [], state: null as SchedulerState | null })),
+          ]);
+          setRuns(r);
+          setTasks(t);
+          setQueue(q.queue);
+          setScheduler(q.state);
+        } catch {
+          // best-effort
+        }
+      })();
+    }, 750);
+    return () => {
+      disconnect();
+      window.clearInterval(drain);
     };
   }, []);
 
