@@ -8,6 +8,11 @@ import {
   paletteMatches,
 } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
+import { CommandRunner } from "./components/CommandRunner.js";
+import {
+  parseArgs,
+  runAmacoCommand,
+} from "./runner/command-runner.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
@@ -163,6 +168,9 @@ export function App({ projectRoot, refreshMs }: Props) {
           await refresh();
         });
         return;
+      case "open-runner":
+        dispatch({ type: "runner.open", seed: cmd.action.seed });
+        return;
     }
   };
 
@@ -170,6 +178,24 @@ export function App({ projectRoot, refreshMs }: Props) {
     // Modal layers consume input before the page does.
     if (ui.helpOpen) {
       if (input === "?" || key.escape) dispatch({ type: "help.toggle" });
+      return;
+    }
+    if (ui.runner.open) {
+      // Esc closes (even while running — output stays so the user
+      // can reopen and see it). ↑/↓ walks command history. Enter
+      // is handled by ink-text-input via onSubmit.
+      if (key.escape) {
+        dispatch({ type: "runner.close" });
+        return;
+      }
+      if (key.upArrow) {
+        dispatch({ type: "runner.history.prev" });
+        return;
+      }
+      if (key.downArrow) {
+        dispatch({ type: "runner.history.next" });
+        return;
+      }
       return;
     }
     if (ui.paletteOpen) {
@@ -233,6 +259,10 @@ export function App({ projectRoot, refreshMs }: Props) {
     }
     if (input === ":") {
       dispatch({ type: "palette.open" });
+      return;
+    }
+    if (input === "!") {
+      dispatch({ type: "runner.open" });
       return;
     }
     if (input === "?") {
@@ -462,6 +492,33 @@ export function App({ projectRoot, refreshMs }: Props) {
       {ui.helpOpen ? (
         <Box marginTop={1}>
           <HelpOverlay />
+        </Box>
+      ) : null}
+      {ui.runner.open ? (
+        <Box marginTop={1}>
+          <CommandRunner
+            input={ui.runner.input}
+            output={ui.runner.output}
+            running={ui.runner.running}
+            exitCode={ui.runner.exitCode}
+            onChange={(v) => dispatch({ type: "runner.input", value: v })}
+            onSubmit={() => {
+              const argv = parseArgs(ui.runner.input);
+              if (argv.length === 0) return;
+              dispatch({ type: "runner.started" });
+              void runAmacoCommand({
+                projectRoot,
+                argv,
+                onChunk: (chunk) =>
+                  dispatch({ type: "runner.append", chunk }),
+              }).then((r) => {
+                dispatch({ type: "runner.finished", exitCode: r.exitCode });
+                // Snapshot may have changed (e.g. amaco queue add) — refresh
+                // so the rest of the panel sees the new state.
+                void refresh();
+              });
+            }}
+          />
         </Box>
       ) : null}
     </Frame>

@@ -55,6 +55,21 @@ export type ShellUiStateV2 = {
   /** Cursor inside the filtered palette list — clamped by the view. */
   paletteSelectedIndex: number;
   helpOpen: boolean;
+  /**
+   * Free-form `amaco …` command runner overlay. Opens with `!`. The
+   * runtime spawns the resolved amaco binary argv-only with the
+   * user's input parsed via `parseArgs` (no shell expansion) and
+   * streams the output back into `runner.output`.
+   */
+  runner: {
+    open: boolean;
+    input: string;
+    output: string;
+    running: boolean;
+    exitCode: number | null;
+    history: string[];
+    historyIndex: number;
+  };
   toasts: Toast[];
   pendingConfirm: PendingConfirm;
   /** Runs page state: which inspector sub-tab + event filter query. */
@@ -86,6 +101,15 @@ export const initialUiState: ShellUiStateV2 = {
   paletteQuery: "",
   paletteSelectedIndex: 0,
   helpOpen: false,
+  runner: {
+    open: false,
+    input: "",
+    output: "",
+    running: false,
+    exitCode: null,
+    history: [],
+    historyIndex: -1,
+  },
   toasts: [],
   pendingConfirm: null,
   runs: {
@@ -110,6 +134,14 @@ export type ShellUiAction =
   | { type: "palette.query"; value: string }
   | { type: "palette.cursor.move"; delta: number; max: number }
   | { type: "palette.cursor.set"; index: number }
+  | { type: "runner.open"; seed?: string }
+  | { type: "runner.close" }
+  | { type: "runner.input"; value: string }
+  | { type: "runner.started" }
+  | { type: "runner.append"; chunk: string }
+  | { type: "runner.finished"; exitCode: number | null }
+  | { type: "runner.history.prev" }
+  | { type: "runner.history.next" }
   | { type: "help.toggle" }
   | { type: "toast.push"; kind: ToastKind; message: string }
   | { type: "toast.dismiss"; id: number }
@@ -214,6 +246,91 @@ export function reduceShellUi(
     }
     case "palette.cursor.set":
       return { ...state, paletteSelectedIndex: Math.max(0, action.index) };
+    case "runner.open":
+      return {
+        ...state,
+        runner: {
+          ...state.runner,
+          open: true,
+          input: action.seed ?? state.runner.input,
+          historyIndex: -1,
+        },
+      };
+    case "runner.close":
+      return {
+        ...state,
+        runner: { ...state.runner, open: false, historyIndex: -1 },
+      };
+    case "runner.input":
+      return {
+        ...state,
+        runner: { ...state.runner, input: action.value, historyIndex: -1 },
+      };
+    case "runner.started":
+      return {
+        ...state,
+        runner: {
+          ...state.runner,
+          running: true,
+          output: "",
+          exitCode: null,
+          // Push to history (deduped against the most-recent entry,
+          // capped at 50).
+          history:
+            state.runner.input.trim().length === 0 ||
+            state.runner.history[state.runner.history.length - 1] ===
+              state.runner.input
+              ? state.runner.history
+              : [...state.runner.history, state.runner.input].slice(-50),
+        },
+      };
+    case "runner.append":
+      return {
+        ...state,
+        runner: {
+          ...state.runner,
+          output: (state.runner.output + action.chunk).slice(-64 * 1024),
+        },
+      };
+    case "runner.finished":
+      return {
+        ...state,
+        runner: { ...state.runner, running: false, exitCode: action.exitCode },
+      };
+    case "runner.history.prev": {
+      if (state.runner.history.length === 0) return state;
+      const idx =
+        state.runner.historyIndex < 0
+          ? state.runner.history.length - 1
+          : Math.max(0, state.runner.historyIndex - 1);
+      return {
+        ...state,
+        runner: {
+          ...state.runner,
+          historyIndex: idx,
+          input: state.runner.history[idx] ?? state.runner.input,
+        },
+      };
+    }
+    case "runner.history.next": {
+      if (state.runner.history.length === 0) return state;
+      if (state.runner.historyIndex < 0) return state;
+      const next = state.runner.historyIndex + 1;
+      if (next >= state.runner.history.length) {
+        return {
+          ...state,
+          runner: { ...state.runner, historyIndex: -1, input: "" },
+        };
+      }
+      return {
+        ...state,
+        runner: {
+          ...state.runner,
+          historyIndex: next,
+          input: state.runner.history[next] ?? state.runner.input,
+        },
+      };
+    }
     case "help.toggle":
       return { ...state, helpOpen: !state.helpOpen };
     case "toast.push":

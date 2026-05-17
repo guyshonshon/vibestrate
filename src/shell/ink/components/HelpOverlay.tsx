@@ -12,6 +12,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
+      ["!", "run any `amaco …` command and see the output"],
       ["/", "filter the events list"],
       ["?", "toggle this help"],
     ],

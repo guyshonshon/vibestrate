@@ -42,7 +42,8 @@ export type PaletteCommand = {
     | { kind: "open-help" }
     | { kind: "quit" }
     | { kind: "pause-scheduler" }
-    | { kind: "resume-scheduler" };
+    | { kind: "resume-scheduler" }
+    | { kind: "open-runner"; seed?: string };
 };
 
 export const DEFAULT_PALETTE: PaletteCommand[] = [
@@ -224,6 +225,42 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
       "Marks the run as `aborted` and emits a `run.aborted` event. The worktree stays on disk so you can inspect or clean it up manually.",
     cli: "amaco abort <runId>",
     action: { kind: "abort-run" },
+  },
+  {
+    id: "runner.open",
+    title: "Run any amaco command…",
+    hint: "shell-style command bar — `!` opens it directly",
+    keywords: ["shell", "cli", "bang", "run"],
+    description:
+      "Opens a free-form command bar where you can type any `amaco …` invocation and see the output inside the panel. Argv-only, no shell expansion.",
+    cli: "(this surface — use ! to open directly)",
+    examples: [
+      "status --json",
+      "tasks list",
+      "config show",
+      "doctor --fix",
+    ],
+    action: { kind: "open-runner" },
+  },
+  {
+    id: "runner.config-show",
+    title: "Show config.json",
+    hint: "amaco config show",
+    keywords: ["config", "yaml", "json"],
+    description:
+      "Runs `amaco config show` and dumps the resolved project config into the runner output pane.",
+    cli: "amaco config show",
+    action: { kind: "open-runner", seed: "config show" },
+  },
+  {
+    id: "runner.status-json",
+    title: "Status as JSON",
+    hint: "amaco status --json",
+    keywords: ["runs", "status"],
+    description:
+      "Seeds the runner with `status --json` so you can capture / pipe / inspect the run list.",
+    cli: "amaco status --json",
+    action: { kind: "open-runner", seed: "status --json" },
   },
   {
     id: "help.open",
