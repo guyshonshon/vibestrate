@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { deriveSchedulerLiveness } from "../../lib/schedulerLiveness.js";
+import {
+  ContextMenuTrigger,
+  type ContextMenuItem,
+} from "../../components/ContextMenu.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -840,18 +844,52 @@ function QueueCard({
             queue is empty
           </div>
         ) : (
-          queue.slice(0, 5).map((e) => (
-            <button
-              key={e.taskId}
-              onClick={() => onOpenTask(e.taskId)}
-              className="flex items-center justify-between gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] text-amaco-fg hover:bg-amaco-panel"
-            >
-              <span className="truncate">{titleFor(e.taskId)}</span>
-              <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
-                {e.priority[0]} · {e.source}
-              </span>
-            </button>
-          ))
+          queue.slice(0, 5).map((e) => {
+            const items: ContextMenuItem[] = [
+              { id: "open", label: "Open task", hint: "↵", onSelect: () => onOpenTask(e.taskId) },
+              { id: "d1", label: "divider:" },
+              {
+                id: "copy-id",
+                label: "Copy task ID",
+                onSelect: () => void navigator.clipboard?.writeText(e.taskId),
+              },
+              {
+                id: "copy-cli-queue",
+                label: "Copy CLI: queue add",
+                hint: "amaco queue add",
+                onSelect: () =>
+                  void navigator.clipboard?.writeText(
+                    `amaco queue add ${e.taskId}`,
+                  ),
+              },
+              {
+                id: "copy-cli-run",
+                label: "Copy CLI: tasks run",
+                hint: "amaco tasks run",
+                onSelect: () =>
+                  void navigator.clipboard?.writeText(
+                    `amaco tasks run ${e.taskId}`,
+                  ),
+              },
+            ];
+            return (
+              <ContextMenuTrigger key={e.taskId} items={items}>
+                {(h) => (
+                  <button
+                    onClick={() => onOpenTask(e.taskId)}
+                    onContextMenu={h.onContextMenu}
+                    className="flex items-center justify-between gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] text-amaco-fg hover:bg-amaco-panel"
+                    title="Right-click for actions"
+                  >
+                    <span className="truncate">{titleFor(e.taskId)}</span>
+                    <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                      {e.priority[0]} · {e.source}
+                    </span>
+                  </button>
+                )}
+              </ContextMenuTrigger>
+            );
+          })
         )}
         {queue.length > 5 ? (
           <span className="text-[10.5px] text-amaco-fg-muted">
@@ -915,8 +953,74 @@ function RunCard({
     run.status !== "merge_ready" &&
     run.status !== "failed" &&
     run.status !== "aborted";
+
+  const copyToClipboard = (text: string): void => {
+    void navigator.clipboard?.writeText?.(text).catch(() => undefined);
+  };
+
+  const menuItems: ContextMenuItem[] = [
+    { id: "open", label: "Open run", hint: "↵", onSelect: onOpen },
+    { id: "div1", label: "divider:1" },
+    {
+      id: "pause",
+      label: "Pause",
+      disabled: !canPause,
+      onSelect: () => onAction("pause", run.runId),
+    },
+    {
+      id: "resume",
+      label: "Resume",
+      disabled: !canResume,
+      onSelect: () => onAction("resume", run.runId),
+    },
+    {
+      id: "abort",
+      label: "Abort",
+      tone: "danger",
+      disabled: !canAbort,
+      onSelect: () => {
+        if (window.confirm(`Abort run ${run.runId}? This cannot be undone.`)) {
+          void onAction("abort", run.runId);
+        }
+      },
+    },
+    { id: "div2", label: "divider:2" },
+    {
+      id: "copy-id",
+      label: "Copy run id",
+      hint: run.runId.slice(0, 16) + "…",
+      onSelect: () => copyToClipboard(run.runId),
+    },
+    {
+      id: "copy-cli-status",
+      label: "Copy CLI: status",
+      hint: "amaco status …",
+      onSelect: () => copyToClipboard(`amaco status ${run.runId}`),
+    },
+    {
+      id: "copy-cli-replay",
+      label: "Copy CLI: replay",
+      hint: "amaco replay …",
+      onSelect: () => copyToClipboard(`amaco replay ${run.runId}`),
+    },
+    ...(run.worktreePath
+      ? [
+          {
+            id: "copy-wt",
+            label: "Copy worktree path",
+            onSelect: () => copyToClipboard(run.worktreePath ?? ""),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3 transition-colors hover:border-amaco-accent/40 hover:bg-amaco-panel-2">
+    <ContextMenuTrigger items={menuItems}>
+      {(handlers) => (
+    <div
+      onContextMenu={handlers.onContextMenu}
+      className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3 transition-colors hover:border-amaco-accent/40 hover:bg-amaco-panel-2"
+    >
       <div className="flex items-center justify-between gap-2">
         <span
           className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${tone}`}
@@ -987,7 +1091,13 @@ function RunCard({
             }
           }}
         />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <span
+            className="amaco-mono text-[9.5px] text-amaco-fg-muted"
+            title="right-click for more actions"
+          >
+            ⋯
+          </span>
           <button
             onClick={onOpen}
             className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-2 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
@@ -997,6 +1107,8 @@ function RunCard({
         </div>
       </div>
     </div>
+      )}
+    </ContextMenuTrigger>
   );
 }
 

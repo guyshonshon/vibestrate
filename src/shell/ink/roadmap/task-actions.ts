@@ -4,6 +4,7 @@
 
 import { RoadmapService } from "../../../roadmap/roadmap-service.js";
 import { RunQueue } from "../../../scheduler/run-queue.js";
+import { ensureSchedulerRunning } from "../../../scheduler/ensure-running.js";
 import { nowIso } from "../../../utils/time.js";
 import type { TaskFormReady } from "./form.js";
 
@@ -81,7 +82,19 @@ export async function queueTask(
       source: "user",
     });
     await svc.updateTaskStatus(taskId, "queued");
-    return { ok: true, message: `Queued ${taskId}.` };
+    // Auto-spawn the scheduler if nothing's currently picking up
+    // queued work. "Queueing = work starts" — the user shouldn't
+    // have to remember to run `amaco queue run` separately.
+    const ensure = await ensureSchedulerRunning({ projectRoot });
+    const tail =
+      ensure.action === "spawned"
+        ? ` · auto-started scheduler (pid ${ensure.pid ?? "—"})`
+        : ensure.action === "paused"
+          ? ` · scheduler is paused; run \`amaco queue resume\` when ready`
+          : ensure.action === "spawn-failed"
+            ? ` · failed to auto-start scheduler: ${ensure.message ?? "unknown error"}`
+            : ` · scheduler is already live`;
+    return { ok: true, message: `Queued ${taskId}.${tail}` };
   } catch (err) {
     return { ok: false, message: err instanceof Error ? err.message : String(err) };
   }

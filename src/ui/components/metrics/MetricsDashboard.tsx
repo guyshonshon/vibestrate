@@ -1,16 +1,16 @@
 import type { RuntimeMetrics } from "../../lib/types.js";
 
 function fmtCost(usd: number | null): string {
-  if (usd === null || usd === undefined) return "Not reported";
+  if (usd === null || usd === undefined) return "—";
   return `$${usd.toFixed(4)}`;
 }
 
 function fmtTokens(t: RuntimeMetrics["agents"][number]["tokenUsage"]): string {
-  if (!t) return "Not reported";
+  if (!t) return "—";
   const parts: string[] = [];
   if (t.input !== undefined) parts.push(`in ${t.input}`);
   if (t.output !== undefined) parts.push(`out ${t.output}`);
-  return parts.length > 0 ? parts.join(" / ") : "Not reported";
+  return parts.length > 0 ? parts.join(" / ") : "—";
 }
 
 export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }) {
@@ -22,18 +22,28 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
     );
   }
 
-  const totals: { label: string; value: string }[] = [
-    { label: "duration", value: `${metrics.totalDurationMs}ms` },
-    { label: "agent calls", value: String(metrics.totalProviderCalls) },
-    { label: "review loops", value: String(metrics.reviewLoopCount) },
-    { label: "total cost", value: fmtCost(metrics.totalCostUsd) },
-    {
+  // Only show totals the run actually produced — empty cells like
+  // "duration 0ms" or "cost —" add noise without information.
+  const totals: { label: string; value: string }[] = [];
+  if (metrics.totalDurationMs > 0)
+    totals.push({ label: "duration", value: `${metrics.totalDurationMs}ms` });
+  if (metrics.totalProviderCalls > 0)
+    totals.push({
+      label: "agent calls",
+      value: String(metrics.totalProviderCalls),
+    });
+  if (metrics.reviewLoopCount > 0)
+    totals.push({
+      label: "review loops",
+      value: String(metrics.reviewLoopCount),
+    });
+  if (metrics.totalCostUsd !== null && metrics.totalCostUsd !== undefined)
+    totals.push({ label: "total cost", value: fmtCost(metrics.totalCostUsd) });
+  if (metrics.validationSummary)
+    totals.push({
       label: "validation",
-      value: metrics.validationSummary
-        ? `${metrics.validationSummary.passed}/${metrics.validationSummary.total} passed`
-        : "—",
-    },
-  ];
+      value: `${metrics.validationSummary.passed}/${metrics.validationSummary.total} passed`,
+    });
 
   return (
     <div className="rounded border border-amaco-border bg-amaco-panel">
@@ -43,16 +53,23 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
           run {metrics.runId}
         </span>
       </header>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2 text-[12px] sm:grid-cols-5">
-        {totals.map((t) => (
-          <div key={t.label}>
-            <div className="text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
-              {t.label}
+      {totals.length === 0 ? (
+        <div className="px-3 py-2 text-[11.5px] text-amaco-fg-muted">
+          No totals reported yet — the provider hasn't returned cost or
+          token usage for this run.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2 text-[12px] sm:grid-cols-5">
+          {totals.map((t) => (
+            <div key={t.label}>
+              <div className="text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+                {t.label}
+              </div>
+              <div className="amaco-mono text-amaco-fg">{t.value}</div>
             </div>
-            <div className="amaco-mono text-amaco-fg">{t.value}</div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       <div className="overflow-x-auto border-t border-amaco-border-soft">
         <table className="w-full text-[12px]">
           <thead className="bg-amaco-panel-2 text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
@@ -130,8 +147,8 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
         </table>
       </div>
       <footer className="border-t border-amaco-border-soft px-3 py-2 text-[11px] text-amaco-fg-muted">
-        Tokens and cost are reported only when the provider exposes them. Generic
-        CLIs return "Not reported".
+        Tokens and cost are reported only when the provider exposes them.
+        Generic CLIs show "—".
       </footer>
     </div>
   );
