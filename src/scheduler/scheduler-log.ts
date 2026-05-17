@@ -8,6 +8,7 @@
 // the scheduler must keep running even if we can't write a log line.
 
 import path from "node:path";
+import { openSync, writeSync, closeSync, mkdirSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import {
   appendLine,
@@ -31,24 +32,18 @@ export function schedulerEventsPath(projectRoot: string): string {
   return path.join(schedulerDir(projectRoot), EVENTS_FILE);
 }
 
-/** Open the log file for append and return its file descriptor.
- *  Caller passes the fd to `spawn`'s stdio array; the parent should
- *  `fs.close(fd)` once spawn returns so the child holds the sole
- *  reference. */
-export async function openLogForAppend(projectRoot: string): Promise<number> {
-  await fs.mkdir(schedulerDir(projectRoot), { recursive: true });
-  const handle = await fs.open(schedulerLogPath(projectRoot), "a");
+/** Open the log file for append and return its raw file descriptor.
+ *  Uses the synchronous low-level open() so node's FileHandle GC
+ *  doesn't race with the child stdio holding the fd. Caller passes
+ *  the int to `spawn`'s stdio array and is responsible for
+ *  `closeSync(fd)` in the parent once spawn returns — the OS
+ *  kernel-dups the fd into the child, so closing in the parent
+ *  doesn't affect the child. */
+export function openLogForAppend(projectRoot: string): number {
+  mkdirSync(schedulerDir(projectRoot), { recursive: true });
+  const fd = openSync(schedulerLogPath(projectRoot), "a");
   // Annotate the boundary so successive runs are easy to scan.
-  await handle.write(`\n──── ${nowIso()} ────\n`);
-  // Return the raw fd; node's `spawn` accepts an integer.
-  // The FileHandle wraps the fd, so we extract it via .fd.
-  const fd = handle.fd;
-  // Detach the FileHandle so closing it doesn't close the fd we just
-  // handed to spawn. We rely on the child's stdio holding the fd.
-  // To avoid the FileHandle GC closing it, keep a reference until the
-  // caller is done with it — easiest path: don't close from this side.
-  // Caller passes the fd to spawn synchronously.
-  void handle; // keep alive until end of microtask
+  writeSync(fd, `\n──── ${nowIso()} ────\n`);
   return fd;
 }
 

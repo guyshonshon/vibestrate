@@ -45,6 +45,11 @@ export type StartServerOptions = {
   logger?: boolean;
   /** Optional driver injection for the terminal feature (tests). */
   terminalDriver?: TerminalRoutesDeps["driver"];
+  /** Spawn the scheduler as a managed subprocess of the UI server.
+   *  Default false (safe for tests / library users). The `amaco ui`
+   *  CLI flips it to true so the dashboard owns the scheduler's
+   *  lifecycle out of the box. */
+  withScheduler?: boolean;
 };
 
 export type StartedServer = {
@@ -53,6 +58,8 @@ export type StartedServer = {
   port: number;
   host: string;
   uiAvailable: boolean;
+  /** Pid of the managed scheduler child, when one is running. */
+  schedulerPid: number | null;
   close: () => Promise<void>;
 };
 
@@ -278,12 +285,31 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   const actualAddr = addresses[0];
   const actualPort = actualAddr ? actualAddr.port : port;
   const safeHost = host === "0.0.0.0" ? "127.0.0.1" : host;
+
+  // Default: the UI server owns the scheduler subprocess. Killing the
+  // UI sends SIGTERM to the scheduler and waits for it to finish.
+  // Pass `withScheduler: false` to opt out (CI, tests, or when the
+  // user manages the scheduler in a separate terminal).
+  let schedulerHandle: { stop: () => Promise<void>; pid: () => number | null } | null = null;
+  if (opts.withScheduler === true) {
+    const { startManagedScheduler } = await import(
+      "../scheduler/managed-scheduler.js"
+    );
+    schedulerHandle = await startManagedScheduler({
+      projectRoot: opts.projectRoot,
+    });
+  }
+
   return {
     app,
     url: `http://${safeHost}:${actualPort}`,
     port: actualPort,
     host: safeHost,
     uiAvailable,
-    close: () => app.close(),
+    schedulerPid: schedulerHandle?.pid() ?? null,
+    close: async () => {
+      if (schedulerHandle) await schedulerHandle.stop();
+      await app.close();
+    },
   };
 }

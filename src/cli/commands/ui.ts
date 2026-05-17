@@ -7,6 +7,9 @@ import { exec } from "node:child_process";
 export type UiCommandOptions = {
   port?: number;
   open?: boolean;
+  /** When false, skip spawning the managed scheduler subprocess.
+   *  Default true: the UI owns the scheduler's lifecycle. */
+  scheduler?: boolean;
 };
 
 function tryOpenBrowser(url: string): void {
@@ -41,6 +44,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       projectRoot: detected.projectRoot,
       port,
       host: "127.0.0.1",
+      withScheduler: opts.scheduler !== false,
     });
   } catch (err) {
     console.error(
@@ -54,6 +58,31 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   console.log(`${symbol.ok()} ${header("Amaco supervisor running")}`);
   console.log(indent(`${symbol.arrow()} ${color.bold(started.url)}`));
   console.log(indent(`${color.dim(`bound to ${started.host}:${started.port}`)}`));
+  if (started.schedulerPid !== null) {
+    console.log(
+      indent(
+        color.dim(
+          `managed scheduler: pid ${started.schedulerPid} (logs at .amaco/scheduler/scheduler.log)`,
+        ),
+      ),
+    );
+  } else if (opts.scheduler === false) {
+    console.log(
+      indent(
+        color.dim(
+          "managed scheduler: disabled (run `amaco queue run` externally to start one)",
+        ),
+      ),
+    );
+  } else {
+    console.log(
+      indent(
+        color.dim(
+          "managed scheduler: not started (another scheduler holds the lock — see .amaco/scheduler/scheduler.log)",
+        ),
+      ),
+    );
+  }
   if (!started.uiAvailable) {
     console.log(
       indent(
