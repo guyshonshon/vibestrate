@@ -26,6 +26,10 @@ import {
   type QueueEntry,
   type SchedulerState,
 } from "../scheduler/scheduler-types.js";
+import {
+  deriveSchedulerLiveness,
+  type SchedulerLiveness,
+} from "../scheduler/scheduler-liveness.js";
 import { nowIso } from "../utils/time.js";
 
 export type ShellEvent = {
@@ -96,6 +100,8 @@ export type ShellSnapshot = {
   capturedAt: string;
   projectRoot: string;
   scheduler: SchedulerState | null;
+  /** Derived "is the scheduler actually picking up work?" verdict. */
+  schedulerLiveness: SchedulerLiveness;
   queue: QueueEntry[];
   runs: ShellRunRow[];
   /** Tail of events keyed by runId, for the inspector pane. */
@@ -188,6 +194,7 @@ export async function buildShellSnapshot(
     capturedAt: nowIso(),
     projectRoot,
     scheduler,
+    schedulerLiveness: deriveSchedulerLiveness(scheduler),
     queue: queueEntries,
     runs: rows,
     recentEvents,

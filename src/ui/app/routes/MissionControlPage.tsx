@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
+import { deriveSchedulerLiveness } from "../../lib/schedulerLiveness.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -390,6 +391,18 @@ export function MissionControlPage({
     }
   };
 
+  const handleStartScheduler = async (): Promise<void> => {
+    try {
+      const r = await api.startScheduler();
+      setToast({ kind: "ok", text: r.message });
+    } catch (err) {
+      setToast({
+        kind: "err",
+        text: err instanceof Error ? err.message : String(err),
+      });
+    }
+  };
+
   const handleQueueTask = async (taskId: string): Promise<void> => {
     try {
       await api.queueTask(taskId);
@@ -507,6 +520,7 @@ export function MissionControlPage({
             onSubmit={handleCreateTask}
           />
           <QueueCard
+            onStartScheduler={handleStartScheduler}
             scheduler={scheduler}
             queue={queue}
             tasks={tasks}
@@ -729,6 +743,7 @@ function QueueCard({
   onOpenTask,
   onShowQueue,
   onQueueTask,
+  onStartScheduler,
 }: {
   scheduler: SchedulerState | null;
   queue: QueueEntry[];
@@ -736,10 +751,18 @@ function QueueCard({
   onOpenTask: (taskId: string) => void;
   onShowQueue: () => void;
   onQueueTask: (taskId: string) => Promise<void>;
+  onStartScheduler: () => Promise<void>;
 }) {
   const titleFor = (id: string): string =>
     tasks.find((t) => t.id === id)?.title ?? id;
   const ready = tasks.filter((t) => t.status === "ready");
+  const liveness = deriveSchedulerLiveness(scheduler);
+  const livenessTone =
+    liveness.status === "live"
+      ? "text-amaco-success"
+      : liveness.status === "stale"
+        ? "text-amaco-warn"
+        : "text-amaco-fail";
   return (
     <div className="flex flex-col gap-2 rounded border border-amaco-border bg-amaco-panel p-3">
       <div className="flex items-center justify-between">
@@ -753,13 +776,25 @@ function QueueCard({
           full queue →
         </button>
       </div>
+
+      {/* Loud-by-default scheduler liveness — never silent. */}
+      <div className="flex flex-col gap-1">
+        <div className={`amaco-mono text-[10.5px] ${livenessTone}`}>
+          ▌ {liveness.summary}
+        </div>
+        {!liveness.pickingUpWork ? (
+          <button
+            onClick={() => void onStartScheduler()}
+            className="self-start rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-0.5 text-[10.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20"
+          >
+            ↻ Start scheduler (amaco queue run)
+          </button>
+        ) : null}
+      </div>
+
       {scheduler ? (
         <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
-          {scheduler.paused ? (
-            <span className="text-amaco-warn">paused</span>
-          ) : (
-            <span>policy {scheduler.queuePolicy}</span>
-          )}
+          policy {scheduler.queuePolicy}
           {" · "}max {scheduler.maxConcurrentRuns}
           {" · "}running {scheduler.runningTaskIds.length}
         </div>
