@@ -22,7 +22,7 @@ import {
   markReady,
 } from "../roadmap/task-actions.js";
 import { editInEditor } from "../roadmap/editor-handoff.js";
-import { CARD_PROPS, clip, taskStatusToken } from "../theme.js";
+import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
 
 type Props = {
   projectRoot: string;
@@ -299,7 +299,7 @@ export function RoadmapPage({
           ))}
         </Box>
       </Box>
-      <Box marginTop={1} {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+      <Box marginTop={1} {...FOCAL_CARD_PROPS} flexDirection="column">
         <Text dimColor>detail</Text>
         <Box marginTop={1}>
           {selected ? (

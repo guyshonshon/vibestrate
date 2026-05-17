@@ -154,7 +154,6 @@ function StatCard({
   return (
     <Box
       {...CARD_PROPS}
-      borderColor={accent ? "cyan" : undefined}
       flexDirection="column"
       flexBasis={0}
       flexGrow={1}

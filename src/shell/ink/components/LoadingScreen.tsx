@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
-import { CARD_PROPS } from "../theme.js";
+import { CARD_PROPS, FOCAL_CARD_PROPS } from "../theme.js";
 
 type Props = {
   projectRoot: string;
@@ -15,7 +15,7 @@ type Props = {
 export function LoadingScreen({ projectRoot }: Props) {
   return (
     <Box flexDirection="column">
-      <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+      <Box {...FOCAL_CARD_PROPS} flexDirection="column">
         <Box>
           <Text color="cyan">
             <Spinner type="dots" />

@@ -6,7 +6,7 @@ import {
   filterPalette,
   type PaletteCommand,
 } from "../palette.js";
-import { CARD_PROPS } from "../theme.js";
+import { FOCAL_CARD_PROPS } from "../theme.js";
 
 type Props = {
   query: string;
@@ -23,11 +23,7 @@ export function CommandPalette({
 }: Props) {
   const matches = filterPalette(DEFAULT_PALETTE, query, 8);
   return (
-    <Box
-      {...CARD_PROPS}
-      borderColor="cyan"
-      flexDirection="column"
-    >
+    <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Box>
         <Text color="cyan" bold>
           ›{" "}

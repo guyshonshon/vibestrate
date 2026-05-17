@@ -7,7 +7,7 @@ import {
   type TaskFormField,
   type TaskFormState,
 } from "../roadmap/form.js";
-import { CARD_PROPS } from "../theme.js";
+import { FOCAL_CARD_PROPS } from "../theme.js";
 
 type Props = {
   form: TaskFormState;
@@ -38,7 +38,7 @@ export function TaskForm({
 }: Props) {
   const isCreate = form.mode === "create";
   return (
-    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+    <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Text bold color="cyan">
         {isCreate ? "new task" : `edit task`}
       </Text>

@@ -8,7 +8,7 @@ import {
   type ShellUiStateV2,
 } from "../ui-state.js";
 import { filterEvents } from "../event-filter.js";
-import { CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
+import { CARD_PROPS, FOCAL_CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -124,7 +124,7 @@ function InspectorCard({
   onFilterSubmit: () => void;
 }) {
   return (
-    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+    <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       {row ? (
         <>
           <InspectorHeader row={row} />

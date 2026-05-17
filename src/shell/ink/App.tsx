@@ -9,6 +9,7 @@ import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
+import { Frame, Rule } from "./components/Frame.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -253,9 +254,13 @@ export function App({ projectRoot, refreshMs }: Props) {
             ]
           : COMMON_HINTS;
 
+  const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
   return (
-    <Box flexDirection="column" paddingX={2} paddingY={1}>
+    <Frame subtitle={projectName}>
       <TabBar current={ui.page} />
+      <Box marginTop={1}>
+        <Rule />
+      </Box>
       <Box marginTop={1} flexDirection="column">
         {snapshot ? (
           ui.page === "roadmap" ? (
@@ -285,6 +290,9 @@ export function App({ projectRoot, refreshMs }: Props) {
         )}
       </Box>
       <Box marginTop={1}>
+        <Rule />
+      </Box>
+      <Box marginTop={1}>
         <Footer
           ui={ui}
           hints={hints}
@@ -306,7 +314,7 @@ export function App({ projectRoot, refreshMs }: Props) {
           <HelpOverlay />
         </Box>
       ) : null}
-    </Box>
+    </Frame>
   );
 }
 

@@ -99,10 +99,24 @@ export function clip(s: string, w: number): string {
 
 /**
  * Visual padding for card sections used as the focal area of a page.
- * Centralized so we don't drift from a consistent rhythm.
+ * The outer panel Frame draws the single rounded border around all
+ * content; inner sections use plain padding so we don't end up with
+ * a "boxes inside boxes" look. Centralized so the rhythm stays
+ * consistent across pages.
  */
 export const CARD_PROPS = {
+  paddingX: 1,
+  paddingY: 0,
+};
+
+/**
+ * Used for the focal panel inside a page (e.g. the Runs inspector,
+ * the Roadmap detail card). One thin border to draw the eye, no
+ * background fill — keeps the panel calm.
+ */
+export const FOCAL_CARD_PROPS = {
   borderStyle: "round" as const,
+  borderColor: "cyan" as const,
   paddingX: 2,
   paddingY: 1,
 };

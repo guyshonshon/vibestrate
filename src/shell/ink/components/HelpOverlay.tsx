@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { CARD_PROPS } from "../theme.js";
+import { FOCAL_CARD_PROPS } from "../theme.js";
 
 const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
   {
@@ -38,7 +38,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
 
 export function HelpOverlay() {
   return (
-    <Box {...CARD_PROPS} borderColor="cyan" flexDirection="column">
+    <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Text bold>Keybindings</Text>
       <Text dimColor>amaco panel · press ? or Esc to close</Text>
       {SECTIONS.map((section) => (
