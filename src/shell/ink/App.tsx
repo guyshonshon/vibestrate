@@ -12,7 +12,11 @@ import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { QueuePage } from "./pages/QueuePage.js";
+import { AgentsPage } from "./pages/AgentsPage.js";
+import { SkillsPage } from "./pages/SkillsPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
+import { useProjectConfig } from "./hooks/useProjectConfig.js";
+import { useSkills } from "./hooks/useSkills.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Frame, Rule } from "./components/Frame.js";
@@ -35,8 +39,6 @@ type Props = {
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  agents: "Phase 5",
-  skills: "Phase 5",
   approvals: "Phase 6",
   suggestions: "Phase 6",
   notifications: "Phase 7",
@@ -48,6 +50,12 @@ export function App({ projectRoot, refreshMs }: Props) {
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
   const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
   const { warnings, refresh: refreshWarnings } = useConflicts(projectRoot);
+  const { config, error: configError } = useProjectConfig(projectRoot);
+  const {
+    skills,
+    assignments,
+    refresh: refreshSkills,
+  } = useSkills(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -297,6 +305,31 @@ export function App({ projectRoot, refreshMs }: Props) {
               closeForm={() => dispatch({ type: "roadmap.form.close" })}
               setPendingDelete={(id) =>
                 dispatch({ type: "roadmap.confirm.delete", taskId: id })
+              }
+              active
+            />
+          ) : ui.page === "agents" ? (
+            <AgentsPage
+              config={config}
+              configError={configError}
+              selectedIndex={ui.selection.agents ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "agents", index: i })
+              }
+              active
+            />
+          ) : ui.page === "skills" ? (
+            <SkillsPage
+              projectRoot={projectRoot}
+              skills={skills}
+              assignments={assignments}
+              refresh={refreshSkills}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.skills ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "skills", index: i })
               }
               active
             />

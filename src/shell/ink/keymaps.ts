@@ -46,7 +46,19 @@ export function keymapForPage(page: PageId): HintGroup[] {
         ]},
       ];
     case "agents":
+      return [
+        { name: "Move", hints: [{ key: "↑↓", label: "agent" }] },
+      ];
     case "skills":
+      return [
+        { name: "Move", hints: [
+          { key: "↑↓", label: "skill" },
+          { key: "←→", label: "agent" },
+        ]},
+        { name: "Actions", hints: [
+          { key: "↵/space", label: "toggle assignment" },
+        ]},
+      ];
     case "approvals":
     case "suggestions":
     case "notifications":
