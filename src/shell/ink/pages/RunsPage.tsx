@@ -170,20 +170,24 @@ function TabStrip({ current }: { current: RunInspectorTab }) {
   return (
     <Box marginTop={1}>
       <Text>
-        {RUN_INSPECTOR_TABS.map((t, i) => (
-          <React.Fragment key={t}>
-            {i > 0 ? <Text dimColor>   </Text> : null}
-            {t === current ? (
-              <Text color="cyan" bold>
-                {TAB_KEYS[t]} {TAB_LABELS[t]}
-              </Text>
-            ) : (
-              <Text dimColor>
-                {TAB_KEYS[t]} {TAB_LABELS[t]}
-              </Text>
-            )}
-          </React.Fragment>
-        ))}
+        {RUN_INSPECTOR_TABS.map((t, i) => {
+          const active = t === current;
+          return (
+            <React.Fragment key={t}>
+              {i > 0 ? <Text dimColor>   </Text> : null}
+              {active ? (
+                <Text color="cyan" bold>
+                  ▸ {TAB_KEYS[t]} {TAB_LABELS[t]}
+                </Text>
+              ) : (
+                <Text dimColor>
+                  {"  "}
+                  {TAB_KEYS[t]} {TAB_LABELS[t]}
+                </Text>
+              )}
+            </React.Fragment>
+          );
+        })}
         <Text dimColor>     tab cycles</Text>
       </Text>
     </Box>
@@ -221,7 +225,18 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
               <Text color="red">why    </Text>
               <Text>{row.error}</Text>
             </Text>
-          ) : null}
+          ) : (
+            <Box flexDirection="column">
+              <Text>
+                <Text color="red">why    </Text>
+                <Text dimColor>
+                  no reason stamped on disk — open <Text color="cyan">e</Text>{" "}
+                  Events for the full timeline or run{" "}
+                  <Text color="cyan">amaco replay {row.runId}</Text>
+                </Text>
+              </Text>
+            </Box>
+          )}
           {row.finalDecision ? (
             <Text>
               <Text dimColor>review </Text>
@@ -238,6 +253,11 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
             <Text dimColor>agent  </Text>
             <Text color="cyan">{row.lastAgent ?? "—"}</Text>
             {row.lastAgent ? <Text dimColor>   (last to run)</Text> : null}
+            {!row.lastAgent ? (
+              <Text dimColor>
+                {"   "}(never started — preflight or policy stopped it)
+              </Text>
+            ) : null}
           </Text>
           <Box marginTop={1}>
             <Text dimColor>

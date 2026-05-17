@@ -106,6 +106,55 @@ describe("buildShellSnapshot", () => {
     expect(snap.runs[0]!.lastAgent).toBe("executor");
   });
 
+  it("derives `why` from policy.warning when state.error is null (blocked-by-preflight)", async () => {
+    // Real-world case: the orchestrator gets blocked by a preflight
+    // policy *before* any agent starts. state.error isn't stamped
+    // and there are no agent.failed events — but the policy.warning
+    // carries the actual reason.
+    await writeRun(root, "run-1", { status: "blocked", error: null });
+    await appendEvent(root, "run-1", {
+      type: "run.created",
+      message: "Run created.",
+    });
+    await appendEvent(root, "run-1", {
+      type: "policy.warning",
+      message: "forbidMainBranchWrites: project main is dirty",
+    });
+    await appendEvent(root, "run-1", {
+      type: "state.changed",
+      message: "Run blocked by preflight policy.",
+      data: { status: "blocked" },
+    });
+    const snap = await buildShellSnapshot(root);
+    const row = snap.runs[0]!;
+    expect(row.lastAgent).toBeNull();
+    // policy.warning has the most useful "why" — should win over
+    // the generic state-change message.
+    expect(row.error).toBe(
+      "forbidMainBranchWrites: project main is dirty",
+    );
+  });
+
+  it("a hard failure (agent.failed) overrides an earlier soft reason", async () => {
+    await writeRun(root, "run-1", { status: "failed", error: null });
+    await appendEvent(root, "run-1", {
+      type: "policy.warning",
+      message: "soft warning",
+    });
+    await appendEvent(root, "run-1", {
+      type: "agent.started",
+      message: "x",
+      data: { agentId: "executor", provider: "claude-code" },
+    });
+    await appendEvent(root, "run-1", {
+      type: "agent.failed",
+      message: "executor returned non-zero",
+      data: { agentId: "executor" },
+    });
+    const snap = await buildShellSnapshot(root);
+    expect(snap.runs[0]!.error).toBe("executor returned non-zero");
+  });
+
   it("surfaces failure context on terminal runs (error + lastAgent + decisions)", async () => {
     await writeRun(root, "run-1", {
       status: "failed",
