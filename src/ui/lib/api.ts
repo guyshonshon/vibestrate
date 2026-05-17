@@ -59,33 +59,42 @@ export class ApiError extends Error {
 async function jsonGet<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) {
-    let msg = `${res.status} ${res.statusText}`;
-    try {
-      const body = (await res.json()) as { error?: string };
-      if (body.error) msg = body.error;
-    } catch {
-      // ignore
-    }
-    throw new ApiError(res.status, msg);
+    throw new ApiError(res.status, await readErrorMessage(res));
   }
   return (await res.json()) as T;
+}
+
+async function readErrorMessage(res: Response): Promise<string> {
+  // Try JSON first (every server route returns
+  // `{ error: "<message>" }`). If the body is empty or not JSON
+  // (eg. a 415 from the body parser, or an HTML 404), fall back to
+  // the response text so the user always sees the real cause
+  // instead of just "400 Bad Request".
+  try {
+    const body = (await res.clone().json()) as { error?: string };
+    if (typeof body.error === "string" && body.error.length > 0) {
+      return body.error;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    const text = await res.text();
+    if (text.trim().length > 0) return text.trim();
+  } catch {
+    /* fall through */
+  }
+  return `${res.status} ${res.statusText}`;
 }
 
 async function jsonPost<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify(body) : "{}",
   });
   if (!res.ok) {
-    let msg = `${res.status} ${res.statusText}`;
-    try {
-      const j = (await res.json()) as { error?: string };
-      if (j.error) msg = j.error;
-    } catch {
-      // ignore
-    }
-    throw new ApiError(res.status, msg);
+    throw new ApiError(res.status, await readErrorMessage(res));
   }
   return (await res.json()) as T;
 }
@@ -97,14 +106,7 @@ async function jsonPatch<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    let msg = `${res.status} ${res.statusText}`;
-    try {
-      const j = (await res.json()) as { error?: string };
-      if (j.error) msg = j.error;
-    } catch {
-      // ignore
-    }
-    throw new ApiError(res.status, msg);
+    throw new ApiError(res.status, await readErrorMessage(res));
   }
   return (await res.json()) as T;
 }

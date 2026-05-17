@@ -266,29 +266,30 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   },
   {
     id: "ui.start",
-    title: "Start the dashboard server",
-    hint: "amaco ui   (background)",
-    keywords: ["ui", "browser", "web", "supervisor"],
+    title: "Open dashboard in browser",
+    hint: "amaco ui --open   (background)",
+    keywords: ["ui", "browser", "web", "supervisor", "open", "launch"],
     description:
-      "Spawns `amaco ui` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and exits the spawn back into the panel.",
-    cli: "amaco ui",
+      "Spawns `amaco ui --open` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and tells `amaco ui` to open your default browser at that URL.",
+    cli: "amaco ui --open",
     examples: [
-      "amaco ui --port 4318      # custom port",
-      "amaco ui --open           # auto-open the browser",
+      "amaco ui --open --port 4318    # custom port + auto-open",
+      "amaco ui                       # start without opening the browser",
     ],
     action: {
       kind: "spawn-detached",
-      argv: ["ui"],
-      toast: "Started amaco ui — dashboard at http://127.0.0.1:4317",
+      argv: ["ui", "--open"],
+      toast:
+        "Started `amaco ui --open` — http://127.0.0.1:4317 (your browser should open).",
     },
   },
   {
-    id: "ui.open",
-    title: "Open dashboard in browser",
+    id: "ui.open-only",
+    title: "Open dashboard URL only (server must already be up)",
     hint: "http://127.0.0.1:4317",
     keywords: ["ui", "browser", "web"],
     description:
-      "Opens the dashboard URL in your default browser. Run `Start the dashboard server` first if it isn't already up.",
+      "Opens http://127.0.0.1:4317 in your default browser without spawning anything. Use this when the dashboard is already running and you just want a new tab.",
     cli: "(open http://127.0.0.1:4317 in any browser)",
     action: { kind: "open-url", url: "http://127.0.0.1:4317" },
   },
