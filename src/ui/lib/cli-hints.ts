@@ -32,6 +32,18 @@ const TIPS_RUN: string[] = [
 
 export function hintForRoute(route: Route): CliHint {
   switch (route.kind) {
+    case "mission":
+      return {
+        title: "Mission Control",
+        blurb:
+          "Live view of every active run + queue depth + pending attention. The CLI has the same data behind several commands.",
+        commands: [
+          { cmd: "amaco status", note: "current runs (table)" },
+          { cmd: "amaco shell", note: "interactive TUI version of this page" },
+          { cmd: 'amaco run "describe the change"', note: "start a new run" },
+        ],
+        tips: TIPS_RUN,
+      };
     case "runs":
       return {
         title: "Runs list",

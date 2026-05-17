@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
+import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
@@ -64,7 +65,7 @@ export function navigateToReference(input: {
 function notificationRoute(n: NotificationRecord): Route {
   if (n.runId) return { kind: "run", runId: n.runId };
   if (n.taskId) return { kind: "task", taskId: n.taskId };
-  return { kind: "runs" };
+  return { kind: "mission" };
 }
 
 export function App() {
@@ -159,7 +160,7 @@ export function App() {
                       : "runs"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
-      onShowRunsList={() => navigate({ kind: "runs" })}
+      onShowRunsList={() => navigate({ kind: "mission" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
@@ -171,7 +172,13 @@ export function App() {
       onShowGit={() => navigate({ kind: "git", runId: null })}
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
-      {route.kind === "runs" ? (
+      {route.kind === "mission" ? (
+        <MissionControlPage
+          onSelectRun={(runId) => navigate({ kind: "run", runId })}
+          onShowRoadmap={() => navigate({ kind: "board" })}
+          onShowQueue={() => navigate({ kind: "queue" })}
+        />
+      ) : route.kind === "runs" ? (
         <RunsPage
           onSelect={(runId) => navigate({ kind: "run", runId })}
           onOpenReplay={(runId) =>

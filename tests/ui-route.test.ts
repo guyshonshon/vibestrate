@@ -2,10 +2,15 @@ import { describe, it, expect } from "vitest";
 import { parseHashRoute, serializeRoute, type Route } from "../src/ui/app/route.js";
 
 describe("parseHashRoute", () => {
-  it("returns the runs list for empty / unknown hashes", () => {
-    expect(parseHashRoute("").kind).toBe("runs");
-    expect(parseHashRoute("#/").kind).toBe("runs");
-    expect(parseHashRoute("#/totally-unknown").kind).toBe("runs");
+  it("defaults to mission-control for empty / unknown hashes", () => {
+    expect(parseHashRoute("").kind).toBe("mission");
+    expect(parseHashRoute("#/").kind).toBe("mission");
+    expect(parseHashRoute("#/totally-unknown").kind).toBe("mission");
+    expect(parseHashRoute("#/mission").kind).toBe("mission");
+  });
+
+  it("parses /runs (the legacy runs list) as kind=runs", () => {
+    expect(parseHashRoute("#/runs").kind).toBe("runs");
   });
 
   it("parses /runs/<id> with no tab or replay focus", () => {
@@ -95,8 +100,12 @@ describe("parseHashRoute", () => {
 });
 
 describe("serializeRoute", () => {
-  it("emits a bare runs hash for the default route", () => {
-    expect(serializeRoute({ kind: "runs" })).toBe("#/");
+  it("emits the bare # for mission control (the default landing route)", () => {
+    expect(serializeRoute({ kind: "mission" })).toBe("#/");
+  });
+
+  it("emits #/runs for the legacy runs list", () => {
+    expect(serializeRoute({ kind: "runs" })).toBe("#/runs");
   });
 
   it("omits the query string when no tab / focus is set", () => {

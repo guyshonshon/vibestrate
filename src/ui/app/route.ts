@@ -20,6 +20,7 @@ export type ReplayFocus =
     };
 
 export type Route =
+  | { kind: "mission" }
   | { kind: "runs" }
   | {
       kind: "run";
@@ -127,6 +128,7 @@ export function parseHashRoute(hash: string): Route {
   const [pathPart, queryPart] = raw.split("?");
   const parts = (pathPart ?? "").split("/").filter(Boolean);
   const query = new URLSearchParams(queryPart ?? "");
+  if (parts[0] === "mission") return { kind: "mission" };
   if (parts[0] === "runs" && parts[1]) {
     const tabRaw = query.get("tab");
     const tab =
@@ -163,14 +165,18 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
-  return { kind: "runs" };
+  if (parts[0] === "runs") return { kind: "runs" };
+  // Default landing is now Mission Control.
+  return { kind: "mission" };
 }
 
 /** Pure stringifier. Returns the next `location.hash` value. */
 export function serializeRoute(route: Route): string {
   switch (route.kind) {
-    case "runs":
+    case "mission":
       return "#/";
+    case "runs":
+      return "#/runs";
     case "run": {
       const q = new URLSearchParams();
       if (route.tab) q.set("tab", route.tab);
