@@ -32,6 +32,10 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import {
+  appendStreamLine,
+  ensureStreamsDir,
+} from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable } from "../git/git.js";
 import { GitError, AmacoError, describeError } from "../utils/errors.js";
@@ -1339,12 +1343,19 @@ export class Orchestrator {
 
     let providerResult: RichProviderRunResult;
     const stageStart = new Date();
+    // Materialize a live stream file for this agent invocation so the
+    // dashboard can tail what the provider's CLI is saying in real
+    // time — bridges the gap between "spawned" and "artifact written".
+    await ensureStreamsDir(this.projectRoot, ctx.runId).catch(() => undefined);
+    const streamName = promptName;
     try {
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
         prompt,
         cwd,
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
+        onChunk: (c) =>
+          void appendStreamLine(this.projectRoot, ctx.runId, streamName, c),
       });
     } catch (err) {
       const stageEnd = new Date();

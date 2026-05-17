@@ -449,6 +449,21 @@ export const api = {
   }> {
     return jsonPost("/api/scheduler/start");
   },
+  async listRunStreams(runId: string): Promise<{
+    streams: { promptName: string; bytes: number; updatedAt: string }[];
+  }> {
+    return jsonGet(`/api/runs/${encodeURIComponent(runId)}/streams`);
+  },
+  async readRunStream(
+    runId: string,
+    name: string,
+  ): Promise<{
+    lines: { stream: "stdout" | "stderr"; chunk: string; at: string }[];
+  }> {
+    return jsonGet(
+      `/api/runs/${encodeURIComponent(runId)}/streams/${encodeURIComponent(name)}`,
+    );
+  },
   async getSchedulerLog(bytes?: number): Promise<{
     bytes: number;
     truncated: boolean;

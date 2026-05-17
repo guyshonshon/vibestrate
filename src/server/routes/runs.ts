@@ -21,7 +21,11 @@ import {
 } from "../../core/pause-service.js";
 import { writeJson, readJson } from "../../utils/json.js";
 import { assertSafeRunId, HttpError } from "../security.js";
-import { streamRunEvents } from "../sse.js";
+import { streamRunEvents, streamProviderOutput } from "../sse.js";
+import {
+  listStreams,
+  readStream,
+} from "../../core/provider-stream-store.js";
 import { streamAggregateRunEvents } from "../sse-aggregate.js";
 import {
   buildRunReplay,
@@ -202,6 +206,52 @@ export async function registerRunsRoutes(
       await streamRunEvents({
         projectRoot,
         runId: req.params.runId,
+        reply,
+        request: req,
+      });
+    },
+  );
+
+  // ─── Per-agent provider stream (raw stdout/stderr) ──────────────
+  // Lets the dashboard tail what the provider CLI is *currently
+  // saying* — the missing link between "spawned" and "artifact
+  // written". Listed first, then per-stream full read + SSE tail.
+  const STREAM_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/streams",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const streams = await listStreams(projectRoot, req.params.runId);
+      return { streams };
+    },
+  );
+  app.get<{ Params: { runId: string; name: string } }>(
+    "/api/runs/:runId/streams/:name",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      if (!STREAM_NAME_RE.test(req.params.name)) {
+        throw new HttpError(400, "Invalid stream name.");
+      }
+      const lines = await readStream(
+        projectRoot,
+        req.params.runId,
+        req.params.name,
+      );
+      return { lines };
+    },
+  );
+  app.get<{ Params: { runId: string; name: string } }>(
+    "/api/runs/:runId/streams/:name/stream",
+    async (req, reply) => {
+      assertSafeRunId(req.params.runId);
+      if (!STREAM_NAME_RE.test(req.params.name)) {
+        throw new HttpError(400, "Invalid stream name.");
+      }
+      reply.hijack();
+      await streamProviderOutput({
+        projectRoot,
+        runId: req.params.runId,
+        promptName: req.params.name,
         reply,
         request: req,
       });
