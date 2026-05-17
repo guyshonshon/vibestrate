@@ -17,6 +17,10 @@ import { SkillsPage } from "./pages/SkillsPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
 import { useProjectConfig } from "./hooks/useProjectConfig.js";
 import { useSkills } from "./hooks/useSkills.js";
+import { useApprovals } from "./hooks/useApprovals.js";
+import { useSuggestions } from "./hooks/useSuggestions.js";
+import { ApprovalsPage } from "./pages/ApprovalsPage.js";
+import { SuggestionsPage } from "./pages/SuggestionsPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Frame, Rule } from "./components/Frame.js";
@@ -39,8 +43,6 @@ type Props = {
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {
-  approvals: "Phase 6",
-  suggestions: "Phase 6",
   notifications: "Phase 7",
   doctor: "Phase 7",
 };
@@ -56,6 +58,12 @@ export function App({ projectRoot, refreshMs }: Props) {
     assignments,
     refresh: refreshSkills,
   } = useSkills(projectRoot);
+  const { items: approvalItems, refresh: refreshApprovals } = useApprovals(
+    projectRoot,
+    snapshot,
+  );
+  const { items: suggestionItems, refresh: refreshSuggestions } =
+    useSuggestions(projectRoot, snapshot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -330,6 +338,44 @@ export function App({ projectRoot, refreshMs }: Props) {
               selectedIndex={ui.selection.skills ?? 0}
               setSelectedIndex={(i) =>
                 dispatch({ type: "selection.set", page: "skills", index: i })
+              }
+              active
+            />
+          ) : ui.page === "approvals" ? (
+            <ApprovalsPage
+              projectRoot={projectRoot}
+              items={approvalItems}
+              refresh={async () => {
+                await refreshApprovals();
+                await refresh();
+              }}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.approvals ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "approvals", index: i })
+              }
+              active
+            />
+          ) : ui.page === "suggestions" ? (
+            <SuggestionsPage
+              projectRoot={projectRoot}
+              items={suggestionItems}
+              refresh={async () => {
+                await refreshSuggestions();
+                await refresh();
+              }}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.suggestions ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({
+                  type: "selection.set",
+                  page: "suggestions",
+                  index: i,
+                })
               }
               active
             />

@@ -61,6 +61,13 @@ export function keymapForPage(page: PageId): HintGroup[] {
       ];
     case "approvals":
     case "suggestions":
+      return [
+        { name: "Move", hints: [{ key: "↑↓", label: "item" }] },
+        { name: "Actions", hints: [
+          { key: "a", label: "approve" },
+          { key: "r", label: "reject" },
+        ]},
+      ];
     case "notifications":
     case "doctor":
       return [];
