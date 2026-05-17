@@ -43,7 +43,10 @@ export function TaskForm({
         {isCreate ? "new task" : `edit task`}
       </Text>
       <Text dimColor>
-        tab cycles fields · ←/→ on enums · space toggles flags · D opens $EDITOR
+        <Text color="cyan">↑↓</Text> or <Text color="cyan">tab</Text> next field
+        · <Text color="cyan">↵</Text> next/save · <Text color="cyan">←→</Text>
+        on enums · <Text color="cyan">space</Text> toggles flags ·{" "}
+        <Text color="cyan">D</Text> opens $EDITOR
       </Text>
       <Box marginTop={1} flexDirection="column">
         {TASK_FORM_FIELDS.map((field) => (
@@ -58,7 +61,8 @@ export function TaskForm({
       </Box>
       <Box marginTop={1}>
         <Text dimColor>
-          <Text color="cyan">↵</Text> save · <Text color="cyan">Esc</Text> cancel
+          <Text color="cyan">↵</Text> on last field saves ·{" "}
+          <Text color="cyan">Esc</Text> cancel
         </Text>
       </Box>
       {Object.values(form.errors).some((v) => v) ? (

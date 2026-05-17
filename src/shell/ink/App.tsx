@@ -159,6 +159,13 @@ export function App({ projectRoot, refreshMs }: Props) {
       exit();
       return;
     }
+    // Esc with no modal open goes "back" to the previously-visited
+    // page. No-op when the user is already at their first page so we
+    // don't accidentally rewind them to a stale tab.
+    if (key.escape) {
+      dispatch({ type: "page.back" });
+      return;
+    }
     if (input === ":") {
       dispatch({ type: "palette.open" });
       return;

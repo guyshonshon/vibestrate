@@ -99,6 +99,57 @@ describe("runs inspector + filter actions", () => {
   });
 });
 
+describe("page history / back", () => {
+  it("page.set pushes the previous page onto history", () => {
+    let s = reduceShellUi(initialUiState, { type: "page.set", page: "runs" });
+    s = reduceShellUi(s, { type: "page.set", page: "roadmap" });
+    expect(s.page).toBe("roadmap");
+    expect(s.pageHistory).toEqual(["dashboard", "runs"]);
+  });
+
+  it("page.set does not push when the page is already current", () => {
+    const s = reduceShellUi(initialUiState, {
+      type: "page.set",
+      page: "dashboard",
+    });
+    expect(s.pageHistory).toEqual([]);
+  });
+
+  it("page.back pops history and navigates to the previous page", () => {
+    let s = reduceShellUi(initialUiState, { type: "page.set", page: "runs" });
+    s = reduceShellUi(s, { type: "page.set", page: "roadmap" });
+    s = reduceShellUi(s, { type: "page.back" });
+    expect(s.page).toBe("runs");
+    s = reduceShellUi(s, { type: "page.back" });
+    expect(s.page).toBe("dashboard");
+    expect(s.pageHistory).toEqual([]);
+  });
+
+  it("page.back is a no-op when history is empty", () => {
+    const s = reduceShellUi(initialUiState, { type: "page.back" });
+    expect(s.page).toBe("dashboard");
+  });
+
+  it("history is capped at 16 entries", () => {
+    let s = initialUiState;
+    const targets: Array<typeof initialUiState.page> = [
+      "runs",
+      "roadmap",
+      "queue",
+      "agents",
+      "skills",
+      "approvals",
+    ];
+    for (let i = 0; i < 50; i += 1) {
+      s = reduceShellUi(s, {
+        type: "page.set",
+        page: targets[i % targets.length]!,
+      });
+    }
+    expect(s.pageHistory.length).toBeLessThanOrEqual(16);
+  });
+});
+
 describe("pageIdFromHotkey", () => {
   it("maps '1'..'9' to the first nine pages in order", () => {
     expect(pageIdFromHotkey("1")).toBe(PAGE_IDS[0]);

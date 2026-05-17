@@ -10,6 +10,7 @@ import {
 import { filterEvents } from "../event-filter.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, eventTypeColor, runStatusToken, timeAgo } from "../theme.js";
 import { SelectionMark, StatusPill } from "../components/visuals.js";
+import { useTerminalWidth } from "../hooks/useTerminalWidth.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -38,12 +39,14 @@ export function RunsPage({
   const runs = snapshot.runs;
   const selectedIndex = ui.selection.runs ?? 0;
   const selected = runs[selectedIndex] ?? null;
+  const cols = useTerminalWidth();
+  const stacked = cols < 100;
   return (
-    <Box flexDirection="row" gap={1}>
-      <Box flexBasis={0} flexGrow={2}>
+    <Box flexDirection={stacked ? "column" : "row"} gap={1}>
+      <Box flexBasis={0} flexGrow={stacked ? 0 : 2}>
         <RunsList runs={runs} selectedIndex={selectedIndex} />
       </Box>
-      <Box flexBasis={0} flexGrow={3}>
+      <Box flexBasis={0} flexGrow={stacked ? 0 : 3}>
         <InspectorCard
           snapshot={snapshot}
           row={selected}

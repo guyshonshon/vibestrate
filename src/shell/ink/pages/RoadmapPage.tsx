@@ -154,8 +154,25 @@ export function RoadmapPage({
           });
           return;
         }
+        // ↑ / ↓ also cycle fields, since a lot of users reach for
+        // arrows before they think of Tab. This is safe even when a
+        // TextInput is focused: ink-text-input doesn't bind ↑/↓.
+        if (key.upArrow) {
+          dispatchForm({ type: "focus.cycle", direction: -1 });
+          return;
+        }
+        if (key.downArrow) {
+          dispatchForm({ type: "focus.cycle", direction: 1 });
+          return;
+        }
         if (key.return) {
-          void submit();
+          // Enter on the last field submits; otherwise advance to the
+          // next field so the form behaves like a typical wizard.
+          if (form.focused === "readOnly") {
+            void submit();
+          } else {
+            dispatchForm({ type: "focus.cycle", direction: 1 });
+          }
           return;
         }
         if (input === "D") {

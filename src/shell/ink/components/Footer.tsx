@@ -78,6 +78,7 @@ export const PAGES_GROUP: HintGroup = {
   name: "Pages",
   hints: [
     { key: "1-9/0", label: "switch" },
+    { key: "Esc", label: "back" },
     { key: ":", label: "palette" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },

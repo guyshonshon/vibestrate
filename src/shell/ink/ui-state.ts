@@ -38,6 +38,13 @@ export const RUN_INSPECTOR_TABS: RunInspectorTab[] = [
 export type ShellUiStateV2 = {
   page: PageId;
   /**
+   * Pages the user came from, newest last. Esc on a non-modal screen
+   * pops the top and navigates there, giving the panel a real "back"
+   * affordance. Capped so it can't grow unboundedly during long
+   * navigation sessions.
+   */
+  pageHistory: PageId[];
+  /**
    * Per-page selection cursor. We keep one index per page so switching
    * tabs round-trips back to where you were. Pages without a list
    * (Dashboard, Doctor) just ignore their slot.
@@ -68,6 +75,7 @@ export type ShellUiStateV2 = {
 
 export const initialUiState: ShellUiStateV2 = {
   page: "dashboard",
+  pageHistory: [],
   selection: PAGE_IDS.reduce(
     (acc, id) => ({ ...acc, [id]: 0 }),
     {} as Record<PageId, number>,
@@ -91,6 +99,7 @@ export const initialUiState: ShellUiStateV2 = {
 
 export type ShellUiAction =
   | { type: "page.set"; page: PageId }
+  | { type: "page.back" }
   | { type: "selection.set"; page: PageId; index: number }
   | { type: "selection.move"; page: PageId; delta: number; max: number }
   | { type: "palette.open" }
@@ -123,9 +132,15 @@ export function reduceShellUi(
   switch (action.type) {
     case "page.set":
       // Closing any modal layer when navigating keeps the keymap honest.
+      // Push the current page onto history (deduped) so Esc has a
+      // sensible "back" target later. Capped at 16 entries.
       return {
         ...state,
         page: action.page,
+        pageHistory:
+          action.page === state.page
+            ? state.pageHistory
+            : [...state.pageHistory, state.page].slice(-16),
         paletteOpen: false,
         paletteQuery: "",
         helpOpen: false,
@@ -136,6 +151,24 @@ export function reduceShellUi(
           pendingDeleteTaskId: null,
         },
       };
+    case "page.back": {
+      const prev = state.pageHistory[state.pageHistory.length - 1];
+      if (!prev) return state;
+      return {
+        ...state,
+        page: prev,
+        pageHistory: state.pageHistory.slice(0, -1),
+        paletteOpen: false,
+        paletteQuery: "",
+        helpOpen: false,
+        pendingConfirm: null,
+        roadmap: {
+          ...state.roadmap,
+          formOpen: false,
+          pendingDeleteTaskId: null,
+        },
+      };
+    }
     case "selection.set":
       return {
         ...state,

@@ -7,6 +7,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
     heading: "Navigation",
     entries: [
       ["1 – 0", "switch tabs (Dashboard, Runs, Roadmap, …)"],
+      ["Esc", "back to the previously visited page"],
       ["↑ ↓  /  k j", "move selection in a list"],
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],

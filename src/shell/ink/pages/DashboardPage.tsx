@@ -8,6 +8,7 @@ import {
   runStatusToken,
   timeAgo,
 } from "../theme.js";
+import { useTerminalWidth } from "../hooks/useTerminalWidth.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -24,35 +25,43 @@ export function DashboardPage({ snapshot }: Props) {
     .filter((r) => ["failed", "aborted", "merge_ready"].includes(r.status))
     .slice(0, 3);
 
+  const cols = useTerminalWidth();
+  const narrowStats = cols < 100;
+  const stackedBody = cols < 110;
   return (
     <Box flexDirection="column">
-      {/* Stat strip — five cards across the top, no clutter inside. */}
-      <Box flexDirection="row" gap={1}>
-        <StatCard label="active" value={String(agg.activeRuns)} accent />
-        <StatCard
-          label="queue"
-          value={`${agg.queueRunning}/${agg.queueWaiting}`}
-          hint="running / waiting"
-        />
-        <StatCard
-          label="approvals"
-          value={String(agg.pendingApprovalsTotal)}
-          tint={agg.pendingApprovalsTotal > 0 ? "yellow" : undefined}
-        />
-        <StatCard
-          label="suggestions"
-          value={String(agg.pendingSuggestionsTotal)}
-          tint={agg.pendingSuggestionsTotal > 0 ? "yellow" : undefined}
-        />
-        <StatCard
-          label="scheduler"
-          value={sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—"}
-          tint={sched?.paused ? "yellow" : undefined}
-        />
+      {/* Stat strip — five cards across the top, or stacked into rows
+          when the terminal is narrow so each card stays legible. */}
+      <Box flexDirection={narrowStats ? "column" : "row"} gap={1}>
+        <Box flexDirection="row" gap={1}>
+          <StatCard label="active" value={String(agg.activeRuns)} accent />
+          <StatCard
+            label="queue"
+            value={`${agg.queueRunning}/${agg.queueWaiting}`}
+            hint="running / waiting"
+          />
+        </Box>
+        <Box flexDirection="row" gap={1}>
+          <StatCard
+            label="approvals"
+            value={String(agg.pendingApprovalsTotal)}
+            tint={agg.pendingApprovalsTotal > 0 ? "yellow" : undefined}
+          />
+          <StatCard
+            label="suggestions"
+            value={String(agg.pendingSuggestionsTotal)}
+            tint={agg.pendingSuggestionsTotal > 0 ? "yellow" : undefined}
+          />
+          <StatCard
+            label="scheduler"
+            value={sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—"}
+            tint={sched?.paused ? "yellow" : undefined}
+          />
+        </Box>
       </Box>
 
-      {/* Two-column body: Active Runs and Recent Activity. */}
-      <Box flexDirection="row" marginTop={1} gap={1}>
+      {/* Two-column body — stacked vertically on narrower terminals. */}
+      <Box flexDirection={stackedBody ? "column" : "row"} marginTop={1} gap={1}>
         <Box flexBasis={0} flexGrow={1}>
           <SectionCard title="active runs" count={activeRuns.length}>
             {activeRuns.length === 0 ? (
