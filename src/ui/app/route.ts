@@ -46,6 +46,7 @@ export type Route =
 const INSPECTOR_TABS = new Set<InspectorTabId>([
   "diff",
   "artifact",
+  "events",
   "validation",
   "logs",
   "notes",

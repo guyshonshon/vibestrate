@@ -48,11 +48,18 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
         : null;
   const freshness = useCodebaseEvents(sseUrl);
 
-  // When the SSE channel reports a change, force-reload the tree + file view.
+  // When the SSE channel reports a change, force-reload the tree +
+  // file view — but debounced. The codebase watcher can fire many
+  // events in a burst (git status poll + filetree diff in the same
+  // 100ms) which used to stack into N tree fetches and freeze the
+  // page on large repos.
   useEffect(() => {
     if (!freshness.lastEvent) return;
-    void reloadTree();
-    void reloadFile();
+    const t = window.setTimeout(() => {
+      void reloadTree();
+      void reloadFile();
+    }, 400);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [freshness.lastEvent]);
 

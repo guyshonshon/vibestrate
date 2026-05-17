@@ -154,7 +154,6 @@ export function RunDetailPage({
             status={run.status}
             pausedAtStatus={run.approvalRequestedFromStatus ?? null}
           />
-          <EventStream runId={runId} onSelect={handleSelectEvent} />
           <RunControlPanel runId={runId} status={run.status} />
         </section>
         <InspectorPanel activeTab={tab} onChangeTab={setTab}>
@@ -228,6 +227,8 @@ export function RunDetailPage({
             />
           ) : tab === "git" ? (
             <RunGitInspector runId={runId} />
+          ) : tab === "events" ? (
+            <EventStream runId={runId} onSelect={handleSelectEvent} />
           ) : tab === "validation" ? (
             <ValidationSummary runId={runId} />
           ) : tab === "terminal" ? (
