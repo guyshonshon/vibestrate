@@ -7,11 +7,12 @@ type Props = {
 };
 
 /**
- * One rounded outer box wraps the whole panel — that's where the
- * "contained" feel comes from. We deliberately let the box fill the
- * terminal width so content has room to breathe; capping the width
- * was tried first but caused text to wrap one-word-per-line at
- * common 100-col terminals.
+ * Outer "amaco" shell. One rounded gray border wraps the entire
+ * panel; the inside is plain padding + dim section labels so the
+ * UI reads as a single contained surface, not a stack of boxes.
+ *
+ * The Frame fills the terminal width to avoid the one-word-per-line
+ * wrap we hit when we tried a fixed content column.
  */
 export function Frame({ subtitle, children }: Props) {
   return (
@@ -37,14 +38,33 @@ export function Frame({ subtitle, children }: Props) {
 }
 
 /**
- * Thin horizontal separator used inside the Frame to divide nav,
- * content and footer. Sized to the inner terminal width so it
- * never overflows the rounded border.
+ * Horizontal separator sized to the inner width of the Frame.
+ * Reads the live terminal columns each render so it adapts when
+ * the user resizes their window.
  */
 export function Rule() {
   const { stdout } = useStdout();
-  // Frame eats 4 cols (2 padding + 2 border). Subtract a small
-  // safety margin so the rule never bumps against the right border.
   const cols = Math.max(20, (stdout?.columns ?? 80) - 6);
   return <Text dimColor>{"─".repeat(cols)}</Text>;
+}
+
+/**
+ * Section heading used between Rule()s. Bold cyan title with an
+ * optional dim subtitle to its right.
+ */
+export function SectionHeader({
+  title,
+  hint,
+}: {
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <Box>
+      <Text bold color="cyan">
+        {title}
+      </Text>
+      {hint ? <Text dimColor>   {hint}</Text> : null}
+    </Box>
+  );
 }

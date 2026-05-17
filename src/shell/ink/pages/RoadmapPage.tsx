@@ -23,6 +23,7 @@ import {
 } from "../roadmap/task-actions.js";
 import { editInEditor } from "../roadmap/editor-handoff.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
+import { SectionHeader } from "../components/Frame.js";
 
 type Props = {
   projectRoot: string;
@@ -261,56 +262,63 @@ export function RoadmapPage({
     { isActive: active },
   );
 
+  const activeColumn = board.columns[cursor.col] ?? null;
   return (
     <Box flexDirection="column">
-      <Box {...CARD_PROPS} flexDirection="column">
-        <Text dimColor>
-          roadmap   ({tasks.length})
-        </Text>
-        <Box marginTop={1} flexDirection="row">
-          {board.columns.map((col, ci) => (
-            <Box
-              key={col.id}
-              flexDirection="column"
-              marginRight={2}
-              flexBasis={0}
-              flexGrow={1}
-            >
-              <Text
-                dimColor={ci !== cursor.col}
-                color={ci === cursor.col ? "cyan" : undefined}
-                bold={ci === cursor.col}
-              >
-                {col.label.toLowerCase()}  ({col.tasks.length})
-              </Text>
-              <Box marginTop={1} flexDirection="column">
-                {col.tasks.slice(0, 6).map((t, ri) => (
-                  <CardRow
-                    key={t.id}
-                    task={t}
-                    selected={ci === cursor.col && ri === cursor.row}
-                  />
-                ))}
-                {col.tasks.length > 6 ? (
-                  <Text dimColor>+ {col.tasks.length - 6} more</Text>
-                ) : null}
-              </Box>
-            </Box>
-          ))}
-        </Box>
+      <SectionHeader title="Roadmap" hint={`${tasks.length} total`} />
+
+      {/* Status rail — one line, pipe-separated, with active state in
+          inverse cyan so it reads like a real status strip. */}
+      <Box marginTop={1}>
+        <StatusRail
+          columns={board.columns.map((c) => ({
+            id: c.id,
+            label: c.label.toLowerCase(),
+            count: c.tasks.length,
+          }))}
+          activeIndex={cursor.col}
+        />
       </Box>
-      <Box marginTop={1} {...FOCAL_CARD_PROPS} flexDirection="column">
-        <Text dimColor>detail</Text>
-        <Box marginTop={1}>
-          {selected ? (
-            <TaskDetail task={selected} />
+
+      {/* Tasks for the active state, then the focal detail card. */}
+      <Box marginTop={1} {...CARD_PROPS} flexDirection="column">
+        <Text dimColor>
+          {activeColumn ? activeColumn.label.toLowerCase() : "—"} ·{" "}
+          {activeColumn?.tasks.length ?? 0} task
+          {(activeColumn?.tasks.length ?? 0) === 1 ? "" : "s"}
+        </Text>
+        <Box marginTop={1} flexDirection="column">
+          {activeColumn && activeColumn.tasks.length > 0 ? (
+            activeColumn.tasks.slice(0, 8).map((t, ri) => (
+              <TaskRow
+                key={t.id}
+                task={t}
+                selected={ri === cursor.row}
+              />
+            ))
           ) : (
             <Text dimColor>
-              select a task with ← ↑ ↓ → · <Text color="cyan">n</Text> creates one
+              no tasks in this state — press <Text color="cyan">n</Text> to
+              create one
             </Text>
           )}
+          {activeColumn && activeColumn.tasks.length > 8 ? (
+            <Text dimColor>+ {activeColumn.tasks.length - 8} more</Text>
+          ) : null}
         </Box>
       </Box>
+
+      <Box marginTop={1} {...FOCAL_CARD_PROPS} flexDirection="column">
+        {selected ? (
+          <TaskDetail task={selected} />
+        ) : (
+          <Text dimColor>
+            select a task with <Text color="cyan">↑↓</Text> · cycle state with{" "}
+            <Text color="cyan">←→</Text> · <Text color="cyan">n</Text> creates one
+          </Text>
+        )}
+      </Box>
+
       {ui.pendingDeleteTaskId ? (
         <Box marginTop={1}>
           <Text color="yellow">
@@ -334,45 +342,97 @@ export function RoadmapPage({
   );
 }
 
-function CardRow({ task, selected }: { task: Task; selected: boolean }) {
+/**
+ * Compact horizontal rail of workflow states, joined by `│`. The
+ * active state is inverse-cyan; the rest are dim but the count
+ * stays full-strength so the user can see distribution at a glance.
+ */
+function StatusRail({
+  columns,
+  activeIndex,
+}: {
+  columns: ReadonlyArray<{ id: string; label: string; count: number }>;
+  activeIndex: number;
+}) {
+  return (
+    <Box flexWrap="wrap">
+      <Text>
+        {columns.map((c, i) => {
+          const active = i === activeIndex;
+          return (
+            <React.Fragment key={c.id}>
+              {i > 0 ? <Text dimColor>{" │ "}</Text> : null}
+              {active ? (
+                <Text color="black" backgroundColor="cyan" bold>
+                  {" "}
+                  {c.label} {c.count}
+                  {" "}
+                </Text>
+              ) : (
+                <Text>
+                  <Text dimColor>{c.label} </Text>
+                  <Text>{c.count}</Text>
+                </Text>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </Text>
+    </Box>
+  );
+}
+
+function TaskRow({ task, selected }: { task: Task; selected: boolean }) {
   const tok = taskStatusToken(task.status);
-  const titleRaw = clip(task.title, 26);
+  const cursor = selected ? "›" : " ";
   return (
     <Box>
       <Text>
-        <Text color={selected ? "cyan" : undefined}>
-          {selected ? "▸" : " "}
-        </Text>
+        <Text color={selected ? "cyan" : undefined}>{cursor}</Text>
         <Text> </Text>
-        <Text color={tok.color}>{tok.glyph}</Text>
         <Text bold={selected} color={selected ? "cyan" : undefined}>
-          {" "}
-          {titleRaw}
+          {clip(task.title, 38).padEnd(38)}
         </Text>
-        {task.readOnly ? <Text dimColor> ◔</Text> : null}
+        <Text dimColor>  </Text>
+        <Text color={tok.color}>{tok.label.padEnd(10)}</Text>
+        <Text dimColor>  prio </Text>
+        <Text>{task.priority.padEnd(6)}</Text>
+        <Text dimColor>  effort </Text>
+        <Text>{(task.effort ?? "—").padEnd(6)}</Text>
+        {task.readOnly ? <Text color="yellow">  read-only</Text> : null}
+        <Text dimColor>  {clip(task.id, 24)}</Text>
       </Text>
     </Box>
   );
 }
 
 function TaskDetail({ task }: { task: Task }) {
-  const tok = taskStatusToken(task.status);
   return (
     <Box flexDirection="column">
-      <Text>
-        <Text color={tok.color}>{tok.glyph}</Text>
-        <Text bold>  {task.title}</Text>
-      </Text>
-      <Text dimColor>{task.id}   ·   {tok.label}   ·   priority {task.priority}</Text>
-      <Box flexDirection="row" flexWrap="wrap" marginTop={1}>
-        {task.effort ? <Field label="effort" value={task.effort} /> : null}
+      <Text bold>{task.title}</Text>
+      <Box marginTop={1} flexDirection="column">
+        <DetailRow label="ID" value={task.id} mono />
+        <DetailRow label="Status" value={task.status} />
+        <DetailRow label="Priority" value={task.priority} />
+        <DetailRow label="Effort" value={task.effort ?? "—"} />
+        <DetailRow
+          label="Mode"
+          value={task.readOnly ? "read-only" : "writable"}
+          tint={task.readOnly ? "yellow" : undefined}
+        />
         {task.providerOverride ? (
-          <Field label="override" value={task.providerOverride} />
+          <DetailRow label="Provider" value={task.providerOverride} />
         ) : null}
-        {task.readOnly ? <Field label="mode" value="read-only" tint="yellow" /> : null}
+        {task.validationProfile ? (
+          <DetailRow label="Profile" value={task.validationProfile} />
+        ) : null}
+        {task.runIds.length > 0 ? (
+          <DetailRow label="Runs" value={task.runIds.join(", ")} mono />
+        ) : null}
       </Box>
       {task.description ? (
         <Box marginTop={1} flexDirection="column">
+          <Text dimColor>Description</Text>
           {task.description
             .split("\n")
             .slice(0, 6)
@@ -381,39 +441,37 @@ function TaskDetail({ task }: { task: Task }) {
             ))}
           {task.description.split("\n").length > 6 ? (
             <Text dimColor>
-              … {task.description.split("\n").length - 6} more lines (press e and
-              D to edit in $EDITOR)
+              … {task.description.split("\n").length - 6} more lines · press{" "}
+              <Text color="cyan">e</Text> then <Text color="cyan">D</Text> to
+              edit in $EDITOR
             </Text>
           ) : null}
-        </Box>
-      ) : null}
-      {task.runIds.length > 0 ? (
-        <Box marginTop={1}>
-          <Text>
-            <Text dimColor>runs   </Text>
-            <Text>{task.runIds.join(", ")}</Text>
-          </Text>
         </Box>
       ) : null}
     </Box>
   );
 }
 
-function Field({
+const DETAIL_LABEL_WIDTH = 10;
+
+function DetailRow({
   label,
   value,
+  mono,
   tint,
 }: {
   label: string;
   value: string;
+  mono?: boolean;
   tint?: "yellow" | "red";
 }) {
   return (
-    <Box marginRight={3}>
+    <Box>
       <Text>
-        <Text dimColor>{label} </Text>
+        <Text dimColor>{label.padEnd(DETAIL_LABEL_WIDTH)}</Text>
         <Text color={tint}>{value}</Text>
       </Text>
     </Box>
   );
+  void mono;
 }

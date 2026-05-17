@@ -1,7 +1,8 @@
 import React, { useEffect, useReducer } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { TabBar } from "./components/TabBar.js";
-import { Footer, COMMON_HINTS } from "./components/Footer.js";
+import { Footer, PAGES_GROUP } from "./components/Footer.js";
+import { keymapForPage } from "./keymaps.js";
 import { CommandPalette } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
 import { RunsPage } from "./pages/RunsPage.js";
@@ -223,36 +224,10 @@ export function App({ projectRoot, refreshMs }: Props) {
     }
   });
 
-  const hints =
-    ui.page === "runs"
-      ? [
-          { key: "↑/↓", label: "select" },
-          { key: "tab", label: "section" },
-          { key: "/", label: "filter" },
-          { key: "p", label: "pause" },
-          { key: "r", label: "resume" },
-          { key: "a", label: "abort" },
-          ...COMMON_HINTS,
-        ]
-      : ui.page === "roadmap"
-        ? [
-            { key: "←↑↓→", label: "navigate" },
-            { key: "n", label: "new" },
-            { key: "e", label: "edit" },
-            { key: "d", label: "delete" },
-            { key: "Q", label: "queue" },
-            { key: "c", label: "→ready" },
-            { key: ":", label: "palette" },
-            { key: "q", label: "quit" },
-          ]
-        : ui.page === "dashboard"
-          ? [
-              { key: "2", label: "runs" },
-              { key: ":", label: "palette" },
-              { key: "?", label: "help" },
-              { key: "q", label: "quit" },
-            ]
-          : COMMON_HINTS;
+  // Per-page hint groups + the universal Pages group last, so the
+  // user always sees the page-switch keymap regardless of where they
+  // are. The page-specific list lives in `keymaps.ts`.
+  const hintGroups = [...keymapForPage(ui.page), PAGES_GROUP];
 
   const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
   return (
@@ -295,7 +270,7 @@ export function App({ projectRoot, refreshMs }: Props) {
       <Box marginTop={1}>
         <Footer
           ui={ui}
-          hints={hints}
+          groups={hintGroups}
           capturedAt={snapshot?.capturedAt ?? null}
         />
       </Box>
