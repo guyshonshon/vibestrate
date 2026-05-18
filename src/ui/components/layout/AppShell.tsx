@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  AlertTriangle,
   ArrowLeft,
   HelpCircle,
   Settings as SettingsIcon,
@@ -7,6 +8,7 @@ import {
 import { Sidebar, type NavId } from "./Sidebar.js";
 import { NotificationBell } from "../notifications/NotificationBell.js";
 import { HelpOverlay } from "../HelpOverlay.js";
+import { useServerHealth } from "../../lib/useServerHealth.js";
 import type { NotificationRecord } from "../../lib/types.js";
 
 type AppShellProps = {
@@ -58,6 +60,7 @@ export function AppShell({
         onShowGit={onShowGit}
       />
       <main className="relative flex flex-1 flex-col overflow-hidden">
+        <ServerHealthBanner />
         <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
           <BackButton onShowHome={onShowHome} />
           <span className="ml-auto" />
@@ -99,6 +102,38 @@ export function AppShell({
  * so the user always has an out. Listens for `popstate` so the
  * disabled state stays correct as the user navigates.
  */
+/**
+ * Loud-by-default banner shown whenever the local amaco server stops
+ * answering /api/health. Surfaces the "the dashboard is talking to a
+ * server that's gone" state instead of letting every page silently
+ * spin on ERR_CONNECTION_REFUSED. The Codebase tab's reconnect storm
+ * used to be misread as a freeze; now you see the cause at the top
+ * of the window the moment it happens.
+ */
+function ServerHealthBanner() {
+  const { reachable, lastCheckedAt } = useServerHealth();
+  if (reachable) return null;
+  return (
+    <div
+      role="alert"
+      className="flex items-center gap-2 border-b border-amaco-fail/40 bg-amaco-fail/10 px-4 py-1.5 text-[12px] text-amaco-fail"
+    >
+      <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
+      <span className="font-medium">amaco ui is unreachable.</span>
+      <span className="text-amaco-fail/80">
+        The server at this origin stopped answering /api/health
+        {" "}
+        — restart it with{" "}
+        <code className="amaco-mono rounded bg-amaco-fail/15 px-1">amaco ui</code>
+        {" "}from the project root and refresh.
+      </span>
+      <span className="amaco-mono ml-auto text-[10.5px] opacity-70">
+        last checked {lastCheckedAt.toLocaleTimeString()}
+      </span>
+    </div>
+  );
+}
+
 function BackButton({ onShowHome }: { onShowHome: () => void }) {
   const [canGoBack, setCanGoBack] = useState(false);
   useEffect(() => {
