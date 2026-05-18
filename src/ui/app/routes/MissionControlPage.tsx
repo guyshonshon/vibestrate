@@ -334,30 +334,41 @@ export function MissionControlPage({
                   .catch(() => undefined),
               );
             }
-            promises.push(
-              api
-                .listApprovals(run.runId)
-                .then((list) => {
-                  for (const a of list) {
-                    if (a.status === "pending") {
-                      aprAggregate.push({ ...a, runId: run.runId });
+            // Approvals + suggestions are only fetched for *active*
+            // runs. Terminal runs (merge_ready / failed / aborted /
+            // blocked) can't generate new pending approvals or open
+            // suggestions, so polling them every 2s on every cycle
+            // was the dominant source of network traffic — with 15
+            // historical runs that's 30 extra requests every tick.
+            // Pending items from terminal runs that were already
+            // captured during an earlier poll stay surfaced via the
+            // aggregate SSE.
+            if (isLive) {
+              promises.push(
+                api
+                  .listApprovals(run.runId)
+                  .then((list) => {
+                    for (const a of list) {
+                      if (a.status === "pending") {
+                        aprAggregate.push({ ...a, runId: run.runId });
+                      }
                     }
-                  }
-                })
-                .catch(() => undefined),
-            );
-            promises.push(
-              api
-                .listSuggestions(run.runId)
-                .then((list) => {
-                  for (const s of list) {
-                    if (s.status === "open") {
-                      sugAggregate.push({ ...s, runId: run.runId });
+                  })
+                  .catch(() => undefined),
+              );
+              promises.push(
+                api
+                  .listSuggestions(run.runId)
+                  .then((list) => {
+                    for (const s of list) {
+                      if (s.status === "open") {
+                        sugAggregate.push({ ...s, runId: run.runId });
+                      }
                     }
-                  }
-                })
-                .catch(() => undefined),
-            );
+                  })
+                  .catch(() => undefined),
+              );
+            }
             await Promise.all(promises);
           }),
         );
@@ -388,7 +399,13 @@ export function MissionControlPage({
       }
     };
     void load();
-    const id = window.setInterval(() => void load(), 2000);
+    // 4s base poll. The SSE aggregate stream below pushes
+    // delta-relevant events in real time (run.created, run.completed,
+    // approval.requested, suggestion.created, etc), so this interval
+    // is just a safety-net resync — twice as long means roughly half
+    // the network traffic, and the user-perceived freshness is still
+    // sub-second thanks to SSE.
+    const id = window.setInterval(() => void load(), 4000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
