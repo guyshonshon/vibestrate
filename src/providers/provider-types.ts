@@ -40,4 +40,11 @@ export type ProviderRunInput = {
    * on completion, so this is additive and never lossy.
    */
   onChunk?: (chunk: ProviderStreamChunk) => void;
+  /**
+   * Optional AbortSignal — when it fires, the provider CLI subprocess
+   * is killed (SIGTERM). Used by the orchestrator to honor "amaco abort"
+   * mid-stage instead of waiting for the current provider call to
+   * finish on its own.
+   */
+  signal?: AbortSignal;
 };

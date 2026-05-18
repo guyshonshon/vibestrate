@@ -1348,6 +1348,25 @@ export class Orchestrator {
     // time — bridges the gap between "spawned" and "artifact written".
     await ensureStreamsDir(this.projectRoot, ctx.runId).catch(() => undefined);
     const streamName = promptName;
+
+    // Honor `amaco abort` mid-stage: poll state.json every 500ms; when
+    // we see `aborted`, abort the controller to SIGTERM the provider
+    // child. Without this the run waited for the current CLI call to
+    // finish on its own, which could mean minutes per stage. Cleared
+    // in the finally block so we don't leak intervals.
+    const providerAbort = new AbortController();
+    const observer = setInterval(() => {
+      void (async () => {
+        try {
+          const cur = await ctx.stateStore.read();
+          if (cur && cur.status === "aborted" && !providerAbort.signal.aborted) {
+            providerAbort.abort();
+          }
+        } catch {
+          /* ignore — state file may be mid-write */
+        }
+      })();
+    }, 500);
     try {
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
@@ -1356,7 +1375,33 @@ export class Orchestrator {
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
         onChunk: (c) =>
           void appendStreamLine(this.projectRoot, ctx.runId, streamName, c),
+        signal: providerAbort.signal,
       });
+      // Fallback flush — some providers buffer all output until exit,
+      // or run on bundles that predate the chunk hook. Persist the
+      // final stdout/stderr as a single chunk so the dashboard's
+      // Live Output panel always has *something* to show, even on a
+      // run that never streamed mid-flight.
+      if (
+        providerResult.stdout &&
+        providerResult.stdout.length > 0
+      ) {
+        await appendStreamLine(this.projectRoot, ctx.runId, streamName, {
+          stream: "stdout",
+          chunk: providerResult.stdout,
+          at: new Date().toISOString(),
+        }).catch(() => undefined);
+      }
+      if (
+        providerResult.stderr &&
+        providerResult.stderr.length > 0
+      ) {
+        await appendStreamLine(this.projectRoot, ctx.runId, streamName, {
+          stream: "stderr",
+          chunk: providerResult.stderr,
+          at: new Date().toISOString(),
+        }).catch(() => undefined);
+      }
     } catch (err) {
       const stageEnd = new Date();
       await ctx.eventLog.append({
@@ -1402,6 +1447,8 @@ export class Orchestrator {
       };
       await input.metricsStore.appendAgentMetrics(failedMetric);
       throw err;
+    } finally {
+      clearInterval(observer);
     }
 
     const stdout = providerResult.stdout || "";
