@@ -42,11 +42,18 @@ export function MissionBar({
           ? "text-amaco-fg-dim"
           : "text-amaco-fail";
 
+  // Show the full liveness summary on its own line whenever the
+  // scheduler isn't picking up work — truncating it inside the top
+  // strip used to cut off the "· start it with `amaco queue run`"
+  // half of the sentence, which is the actionable part.
+  const showOfflineRow = !liveness.pickingUpWork;
+
   return (
+    <div className="border-b border-amaco-border bg-amaco-panel">
     <div
       role="status"
       aria-label="Workspace status"
-      className="flex items-center gap-4 border-b border-amaco-border bg-amaco-panel px-6 py-2 text-[11.5px]"
+      className="flex items-center gap-4 px-6 py-2 text-[11.5px]"
     >
       <div className="flex items-center gap-2 text-amaco-fg-muted">
         <span className="amaco-mono text-[10.5px] uppercase tracking-[0.14em]">
@@ -70,12 +77,6 @@ export function MissionBar({
         />
         <span className="amaco-mono uppercase tracking-[0.1em]">
           {liveness.status}
-        </span>
-        <span
-          className="hidden text-amaco-fg-dim md:inline truncate"
-          title={liveness.summary}
-        >
-          · {shorten(liveness.summary, 60)}
         </span>
       </div>
 
@@ -132,6 +133,15 @@ export function MissionBar({
         </div>
       </div>
     </div>
+    {showOfflineRow ? (
+      <div
+        role="alert"
+        className={`border-t border-amaco-border-soft px-6 py-1.5 text-[11.5px] ${livenessTone}`}
+      >
+        {liveness.summary}
+      </div>
+    ) : null}
+    </div>
   );
 }
 
@@ -144,6 +154,3 @@ function Divider() {
   );
 }
 
-function shorten(s: string, n: number): string {
-  return s.length <= n ? s : `${s.slice(0, n - 1).trim()}…`;
-}
