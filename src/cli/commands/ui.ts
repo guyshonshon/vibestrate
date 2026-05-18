@@ -55,45 +55,55 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     return 1;
   }
 
-  console.log(`${symbol.ok()} ${header("Amaco supervisor running")}`);
-  console.log(indent(`${symbol.arrow()} ${color.bold(started.url)}`));
-  console.log(indent(`${color.dim(`bound to ${started.host}:${started.port}`)}`));
+  // One-line-per-component readout so the user can confirm the
+  // "amaco ui = everything you need in one shot" at a glance.
+  console.log(`${symbol.ok()} ${header("Amaco — dashboard + scheduler")}`);
+  console.log(
+    indent(`${symbol.bullet()} dashboard   ${color.bold(started.url)}`),
+  );
   if (started.schedulerPid !== null) {
     console.log(
       indent(
-        color.dim(
-          `managed scheduler: pid ${started.schedulerPid} (logs at .amaco/scheduler/scheduler.log)`,
-        ),
+        `${symbol.bullet()} scheduler   ${color.green(
+          `pid ${started.schedulerPid}`,
+        )} ${color.dim("(logs: .amaco/scheduler/scheduler.log)")}`,
       ),
     );
   } else if (opts.scheduler === false) {
     console.log(
       indent(
-        color.dim(
-          "managed scheduler: disabled (run `amaco queue run` externally to start one)",
-        ),
+        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `amaco queue run` externally")}`,
       ),
     );
   } else {
     console.log(
       indent(
-        color.dim(
-          "managed scheduler: not started (another scheduler holds the lock — see .amaco/scheduler/scheduler.log)",
-        ),
+        `${symbol.bullet()} scheduler   ${color.yellow("not started")} ${color.dim(
+          "(lock held by another process — see .amaco/scheduler/scheduler.log)",
+        )}`,
       ),
     );
   }
+  console.log(
+    indent(
+      `${symbol.bullet()} browser     ${
+        opts.open
+          ? color.green("opening default browser…")
+          : color.dim("not opened (--no-open)")
+      }`,
+    ),
+  );
   if (!started.uiAvailable) {
     console.log(
       indent(
-        color.dim(
-          "UI bundle not found. Run `pnpm build:ui` from the Amaco source repo.",
+        color.yellow(
+          "  ! UI bundle not found — `pnpm build:ui` from the amaco source repo, then restart.",
         ),
       ),
     );
   }
   console.log("");
-  console.log(color.dim("Press Ctrl+C to stop."));
+  console.log(color.dim("Press Ctrl+C to stop everything."));
 
   if (opts.open) tryOpenBrowser(started.url);
 
