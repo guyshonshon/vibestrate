@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api } from "../../lib/api.js";
 import type {
   FileTreeResult,
@@ -35,9 +35,28 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   const [fileError, setFileError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // `mountedRef` gates every async setState. The previous crash on
+  // "go to codebase, then leave" was the burst of in-flight fetches
+  // resolving onto an unmounted component — combined with the SSE
+  // reconnect loop still holding queued setTimeouts. The flag plus
+  // explicit cleanup of pending timers and SSE in useCodebaseEvents
+  // makes the page safe to abandon at any moment.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Load runs once for the worktree picker.
   useEffect(() => {
-    void api.listRuns().then((r) => setRuns(r)).catch(() => {});
+    void api
+      .listRuns()
+      .then((r) => {
+        if (mountedRef.current) setRuns(r);
+      })
+      .catch(() => {});
   }, []);
 
   const sseUrl =
@@ -48,33 +67,26 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
         : null;
   const freshness = useCodebaseEvents(sseUrl);
 
-  // When the SSE channel reports a change, force-reload the tree +
-  // file view — but debounced. The codebase watcher can fire many
-  // events in a burst (git status poll + filetree diff in the same
-  // 100ms) which used to stack into N tree fetches and freeze the
-  // page on large repos.
-  useEffect(() => {
-    if (!freshness.lastEvent) return;
-    const t = window.setTimeout(() => {
-      void reloadTree();
-      void reloadFile();
-    }, 400);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [freshness.lastEvent]);
-
   const reloadTree = useCallback(async () => {
+    if (!mountedRef.current) return;
     setError(null);
     try {
       if (source === "project") {
-        setTree(await api.getProjectTree());
+        // Bounded tree fetch: a 2000-node tree (the previous default)
+        // could still spike memory + parsing time when re-fetched
+        // every few seconds on busy repos. 600 entries / depth 3 is
+        // enough for normal browsing; users expand deeper interactively.
+        const next = await api.getProjectTree({ depth: 3, maxEntries: 600 });
+        if (mountedRef.current) setTree(next);
       } else if (runId) {
-        setTree(await api.getRunTree(runId));
+        const next = await api.getRunTree(runId);
+        if (mountedRef.current) setTree(next);
       } else {
-        setTree(null);
+        if (mountedRef.current) setTree(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      if (mountedRef.current)
+        setError(err instanceof Error ? err.message : String(err));
     }
   }, [source, runId]);
 
@@ -83,6 +95,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   }, [reloadTree]);
 
   const reloadFile = useCallback(async () => {
+    if (!mountedRef.current) return;
     if (!path) {
       setView(null);
       return;
@@ -106,19 +119,35 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                 lineEnd: span.end ?? undefined,
               })
             : null;
-      setView(file);
+      if (mountedRef.current) setView(file);
     } catch (err) {
+      if (!mountedRef.current) return;
       if (err instanceof ApiError) setFileError(err.message);
       else setFileError(err instanceof Error ? err.message : String(err));
       setView(null);
     } finally {
-      setLoadingFile(false);
+      if (mountedRef.current) setLoadingFile(false);
     }
   }, [path, line, source, runId]);
 
   useEffect(() => {
     void reloadFile();
   }, [reloadFile]);
+
+  // When the SSE channel reports a change, force-reload the tree +
+  // file view — debounced 400ms so a burst of git/filetree events
+  // collapses to one fetch. Bails out if the component already
+  // unmounted while the timer was pending.
+  useEffect(() => {
+    if (!freshness.lastEvent) return;
+    const t = window.setTimeout(() => {
+      if (!mountedRef.current) return;
+      void reloadTree();
+      void reloadFile();
+    }, 400);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshness.lastEvent]);
 
   // Push URL changes back so deep-links survive a refresh.
   useEffect(() => {

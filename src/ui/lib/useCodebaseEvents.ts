@@ -10,7 +10,11 @@ export type CodebaseFreshness = {
   reconnecting: boolean;
   /** Latest event observed, useful for triggering refetches. */
   lastEvent: CodebaseEvent | null;
+  /** True after we've given up reconnecting (server appears gone). */
+  serverUnreachable: boolean;
 };
+
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 /**
  * Subscribe to a codebase SSE channel. Auto-reconnects with backoff up to ~30 s
@@ -23,6 +27,7 @@ export function useCodebaseEvents(url: string | null): CodebaseFreshness {
     connected: false,
     reconnecting: false,
     lastEvent: null,
+    serverUnreachable: false,
   });
 
   useEffect(() => {
@@ -44,6 +49,7 @@ export function useCodebaseEvents(url: string | null): CodebaseFreshness {
         return;
       }
       es.onopen = () => {
+        if (stopped) return;
         attempt = 0;
         setState((s) => ({
           ...s,
@@ -54,10 +60,12 @@ export function useCodebaseEvents(url: string | null): CodebaseFreshness {
       es.onerror = () => {
         es?.close();
         es = null;
+        if (stopped) return;
         setState((s) => ({ ...s, connected: false, reconnecting: true }));
         scheduleReconnect();
       };
       es.addEventListener("codebase", (ev) => {
+        if (stopped) return;
         try {
           const data = JSON.parse((ev as MessageEvent).data) as CodebaseEvent;
           setState((s) => ({
@@ -76,6 +84,20 @@ export function useCodebaseEvents(url: string | null): CodebaseFreshness {
     function scheduleReconnect() {
       if (stopped) return;
       attempt++;
+      if (attempt > MAX_RECONNECT_ATTEMPTS) {
+        // Stop the storm. After this many consecutive failures we're
+        // either talking to a server that's down (`amaco ui` exited)
+        // or a stale route. Park the channel until the user navigates
+        // away and back; surface the state so the page can show
+        // a banner instead of silently retrying forever.
+        setState((s) => ({
+          ...s,
+          connected: false,
+          reconnecting: false,
+          serverUnreachable: true,
+        }));
+        return;
+      }
       const delay = Math.min(1_000 * 2 ** Math.min(attempt, 5), 30_000);
       reconnectTimer = window.setTimeout(open, delay);
     }
