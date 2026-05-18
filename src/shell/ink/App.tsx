@@ -53,11 +53,24 @@ import type { PaletteCommand } from "./palette.js";
 type Props = {
   projectRoot: string;
   refreshMs?: number;
+  /** Dashboard URL when launched alongside the shell (`amaco shell --ui`).
+   *  When null we fall through to AMACO_UI_URL env, then a localhost
+   *  default — opening it just tries http://127.0.0.1:4317. */
+  uiUrl?: string | null;
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {};
 
-export function App({ projectRoot, refreshMs }: Props) {
+const DEFAULT_UI_URL = "http://127.0.0.1:4317";
+
+function resolveUiUrl(propUrl: string | null | undefined): string {
+  if (propUrl) return propUrl;
+  const env = process.env.AMACO_UI_URL;
+  if (env && env.length > 0) return env;
+  return DEFAULT_UI_URL;
+}
+
+export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   const [ui, dispatch] = useReducer(reduceShellUi, initialUiState);
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
   const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
@@ -189,14 +202,23 @@ export function App({ projectRoot, refreshMs }: Props) {
         });
         return;
       }
-      case "open-url":
-        openInBrowser(cmd.action.url);
+      case "open-url": {
+        // If the palette entry hard-codes the default localhost URL,
+        // upgrade it to the runtime-resolved one so users who picked
+        // a different port via `amaco shell --ui --ui-port` aren't
+        // routed to a dead tab.
+        const target =
+          cmd.action.url === DEFAULT_UI_URL
+            ? resolveUiUrl(uiUrl)
+            : cmd.action.url;
+        openInBrowser(target);
         dispatch({
           type: "toast.push",
           kind: "info",
-          message: `Opening ${cmd.action.url} in your browser…`,
+          message: `Opening ${target} in your browser…`,
         });
         return;
+      }
     }
   };
 
@@ -293,6 +315,20 @@ export function App({ projectRoot, refreshMs }: Props) {
     }
     if (input === "?") {
       dispatch({ type: "help.toggle" });
+      return;
+    }
+    // Open the dashboard in the default browser. Uses the URL passed
+    // by `amaco shell --ui`, AMACO_UI_URL env, or the localhost default.
+    // Lowercase `b` is unbound today; uppercase `B` matches the
+    // existing "R for re-run" convention for one-letter actions.
+    if (input === "B" || input === "b") {
+      const url = resolveUiUrl(uiUrl);
+      openInBrowser(url);
+      dispatch({
+        type: "toast.push",
+        kind: "ok",
+        message: `Opening ${url} in your browser…`,
+      });
       return;
     }
     // Number keys 0-9 → switch tab. We special-case "0" → tenth tab.

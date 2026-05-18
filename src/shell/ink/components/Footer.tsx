@@ -81,6 +81,7 @@ export const PAGES_GROUP: HintGroup = {
     { key: "Esc", label: "back" },
     { key: ":", label: "palette" },
     { key: "!", label: "run amaco" },
+    { key: "B", label: "open in browser" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },
   ],

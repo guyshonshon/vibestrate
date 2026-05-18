@@ -162,7 +162,10 @@ program
   .command("ui")
   .description("Start the local supervisor dashboard for this project.")
   .option("--port <port>", "port to bind (default 4317)", (v) => parseInt(v, 10))
-  .option("--open", "open the dashboard in your browser after starting")
+  .option(
+    "--no-open",
+    "don't open the dashboard in your default browser on startup (default: open).",
+  )
   .option(
     "--no-scheduler",
     "don't start the managed scheduler subprocess (default: on; the UI owns its lifecycle).",
@@ -171,7 +174,9 @@ program
     async (opts: { port?: number; open?: boolean; scheduler?: boolean }) => {
       const code = await runUiCommand({
         port: opts.port,
-        open: opts.open,
+        // commander's `--no-foo` form sets `opts.foo` to `false`; the
+        // absence of the flag leaves it `undefined`. Default to true.
+        open: opts.open !== false,
         scheduler: opts.scheduler,
       });
       process.exit(code);
