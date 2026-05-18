@@ -51,6 +51,14 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
   const file = runEventsPath(opts.projectRoot, opts.runId);
   const client = createSseClient(opts.reply);
 
+  // Declared up front so the cleanup closure can reference them before
+  // the heartbeat/watcher are actually started. Without this, a client
+  // that disconnects between SSE-headers-sent and setInterval/setup
+  // hit the TDZ ("Cannot access 'heartbeat' before initialization")
+  // because `const` bindings aren't hoisted.
+  let heartbeat: NodeJS.Timeout | null = null;
+  let watcher: fs.FSWatcher | null = null;
+
   const cleanup = () => {
     if (watcher) {
       try {
@@ -98,7 +106,6 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
     }
   };
 
-  let watcher: fs.FSWatcher | null = null;
   try {
     await fsp.mkdir(file.replace(/\/[^/]+$/, ""), { recursive: true });
   } catch {
@@ -116,7 +123,7 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
   }
 
   // Send heartbeats so proxies do not drop the connection.
-  const heartbeat = setInterval(() => {
+  heartbeat = setInterval(() => {
     try {
       opts.reply.raw.write(`: heartbeat\n\n`);
     } catch {
@@ -144,6 +151,13 @@ export async function streamProviderOutput(
 ): Promise<void> {
   const file = streamFilePath(opts.projectRoot, opts.runId, opts.promptName);
   const client = createSseClient(opts.reply);
+
+  // See streamRunEvents — same TDZ-avoidance pattern. A request that
+  // disconnects between SSE-headers-sent and the heartbeat setInterval
+  // would otherwise crash `cleanup` with "Cannot access 'heartbeat'
+  // before initialization".
+  let heartbeat: NodeJS.Timeout | null = null;
+  let watcher: fs.FSWatcher | null = null;
 
   const cleanup = () => {
     if (watcher) {
@@ -190,7 +204,6 @@ export async function streamProviderOutput(
     }
   };
 
-  let watcher: fs.FSWatcher | null = null;
   try {
     await fsp.mkdir(file.replace(/\/[^/]+$/, ""), { recursive: true });
   } catch {
@@ -206,7 +219,7 @@ export async function streamProviderOutput(
     opts.request.raw.on("close", () => clearInterval(interval));
   }
 
-  const heartbeat = setInterval(() => {
+  heartbeat = setInterval(() => {
     try {
       opts.reply.raw.write(`: heartbeat\n\n`);
     } catch {
