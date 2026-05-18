@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
@@ -139,6 +139,25 @@ export function App() {
     };
   }, []);
 
+  // Stable URL-sync callback for CodebasePage. The previous inline
+  // arrow created a new identity on every App render, which made
+  // CodebasePage's `useEffect([..., onUrlChange])` re-fire on every
+  // render — slamming the hash back to `#/codebase` the moment any
+  // other navigation tried to set it elsewhere. That was the
+  // "can't leave Codebase" bug. `navigate` is a module-scope export,
+  // so the empty-deps useCallback is genuinely stable.
+  const onCodebaseUrlChange = useCallback(
+    (input: { path: string | null; line: number | null; runId: string | null }) => {
+      navigate({
+        kind: "codebase",
+        filePath: input.path,
+        line: input.line,
+        runId: input.runId,
+      });
+    },
+    [],
+  );
+
   return (
     <AppShell
       currentRunId={route.kind === "run" ? route.runId : null}
@@ -232,14 +251,7 @@ export function App() {
             line: route.line,
             runId: route.runId,
           }}
-          onUrlChange={(input) =>
-            navigate({
-              kind: "codebase",
-              filePath: input.path,
-              line: input.line,
-              runId: input.runId,
-            })
-          }
+          onUrlChange={onCodebaseUrlChange}
         />
       ) : route.kind === "git" ? (
         <GitPage
