@@ -152,7 +152,13 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   // Push URL changes back so deep-links survive a refresh.
   useEffect(() => {
     onUrlChange({ path, line, runId: source === "worktree" ? runId : null });
-  }, [path, line, source, runId, onUrlChange]);
+    // `onUrlChange` is intentionally excluded — if the parent gives
+    // us a non-stable callback, the effect re-fires on every render
+    // and stomps the URL back to `#/codebase`, trapping the user on
+    // this page. The effect only needs to run when the displayed
+    // file/run state actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, line, source, runId]);
 
   const sourceLabel = useMemo(() => {
     if (source === "project") return "Project root";
