@@ -112,16 +112,49 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     resolveExit = resolve;
   });
 
+  // Track whether we're already shutting down. The first SIGINT/SIGTERM
+  // triggers the graceful path with a hard cap; a *second* SIGINT
+  // means the user is impatient — bail out immediately so they're
+  // never stuck. Without this, the previous build silently hung
+  // forever if started.close() got stuck draining the managed
+  // scheduler or long-lived SSE clients.
+  let shuttingDown = false;
+  const SHUTDOWN_TIMEOUT_MS = 6_000;
+
   const shutdown = async (code: number) => {
+    if (shuttingDown) {
+      // Second Ctrl+C — force-exit. Console message so the user
+      // knows we heard them and chose to stop waiting.
+      console.log("");
+      console.log(color.dim("Force-exiting (second Ctrl+C)."));
+      process.exit(130);
+    }
+    shuttingDown = true;
+    console.log("");
+    console.log(
+      color.dim(
+        "Shutting down (scheduler SIGTERM → SIGKILL after 3s, server close)… press Ctrl+C again to force.",
+      ),
+    );
+    // Hard cap on the graceful close. If something downstream
+    // (fastify keep-alive sockets, scheduler subprocess in a stuck
+    // syscall) blocks past this, we exit anyway so the user is
+    // never trapped.
+    const forceTimer = setTimeout(() => {
+      console.log(color.dim(`Shutdown took >${SHUTDOWN_TIMEOUT_MS}ms — force-exiting.`));
+      process.exit(code === 0 ? 130 : code);
+    }, SHUTDOWN_TIMEOUT_MS);
+    forceTimer.unref?.();
     try {
       await started.close();
     } catch {
-      // ignore
+      // ignore — we're exiting anyway
     }
+    clearTimeout(forceTimer);
     if (resolveExit) resolveExit(code);
   };
 
-  process.on("SIGINT", () => void shutdown(0));
+  process.on("SIGINT", () => void shutdown(130));
   process.on("SIGTERM", () => void shutdown(0));
 
   return exitPromise;

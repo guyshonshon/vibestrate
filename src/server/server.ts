@@ -96,6 +96,12 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   const app = Fastify({
     logger: opts.logger === true,
     disableRequestLogging: !opts.logger,
+    // Forcibly close keep-alive sockets on app.close() so SSE clients
+    // (codebase watcher, run-events tail, provider-stream tail) don't
+    // hold the shutdown open for the OS's TCP timeout. Without this,
+    // Ctrl+C could hang for minutes waiting for browser tabs to
+    // notice the connection went away.
+    forceCloseConnections: true,
   });
 
   // Fastify 5 rejects empty `application/json` bodies by default with
