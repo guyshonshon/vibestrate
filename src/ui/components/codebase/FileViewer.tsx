@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink, Hash } from "lucide-react";
 import { ApiError, api } from "../../lib/api.js";
 import type { FileView } from "../../lib/types.js";
@@ -18,20 +18,39 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
 
   // Highlight the visible window of source as a single block, then map back
   // onto the per-line array. Memoised so re-renders (hover, selection,
-  // openMsg toggles) don't re-tokenise the file. When the window only covers
-  // part of a file the highlighter starts mid-context — usually fine for
-  // typical languages, but multi-line constructs that begin before the
-  // window may render unstyled. We accept that as a documented trade-off
-  // rather than always loading the full file.
+  // openMsg toggles) don't re-tokenise the file. Skip highlighting on
+  // files over the threshold — highlight.js is synchronous and big
+  // files (eg a 4000-line .js bundle) were blocking the main thread
+  // long enough that users couldn't even click the sidebar to leave.
+  const HIGHLIGHT_LINE_CAP = 800;
   const highlighted = useMemo<string[] | null>(() => {
     if (!view || view.lines.length === 0) return null;
     if (view.isBinary || view.isSecretLike) return null;
     if (view.language === "text") return null;
+    if (view.lines.length > HIGHLIGHT_LINE_CAP) return null;
     const joined = view.lines.map((l) => l.text).join("\n");
     const result = highlightLines(joined, view.language);
     if (result.length !== view.lines.length) return null;
     return result;
   }, [view]);
+
+  // Soft-cap rendered lines. The server already caps at 4000
+  // lines per response, but 4000 line-divs each with a hover state,
+  // a copy button, and a syntax span amounted to ~120k React nodes
+  // — enough to make the browser feel locked. Render the first
+  // RENDER_LINE_CAP and let the user opt into the rest.
+  const RENDER_LINE_CAP = 1500;
+  const [showAllLines, setShowAllLines] = useState(false);
+  // Reset the "show all" override whenever the displayed file
+  // changes — otherwise opening a different giant file inherits
+  // the previous override and freezes the page again.
+  useEffect(() => {
+    setShowAllLines(false);
+  }, [view?.path]);
+  const visibleLines =
+    view && view.lines.length > RENDER_LINE_CAP && !showAllLines
+      ? view.lines.slice(0, RENDER_LINE_CAP)
+      : view?.lines ?? [];
 
   async function openInEditor(line: number | null) {
     if (!view) return;
@@ -130,8 +149,29 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
                 : "No preview available."}
           </div>
         ) : (
+          <>
+          {view.lines.length > RENDER_LINE_CAP && !showAllLines ? (
+            <div className="border-b border-amaco-warn/40 bg-amaco-warn/5 px-3 py-1.5 text-[11px] text-amaco-warn">
+              Showing first {RENDER_LINE_CAP.toLocaleString()} of{" "}
+              {view.lines.length.toLocaleString()} lines — rendering the
+              rest can make the page sluggish.{" "}
+              <button
+                type="button"
+                onClick={() => setShowAllLines(true)}
+                className="amaco-mono ml-1 rounded border border-amaco-warn/60 px-1.5 py-0.5 text-[10.5px] hover:bg-amaco-warn/10"
+              >
+                Show all {view.lines.length.toLocaleString()}
+              </button>
+            </div>
+          ) : null}
+          {view.lines.length > HIGHLIGHT_LINE_CAP ? (
+            <div className="border-b border-amaco-border-soft px-3 py-1 text-[10.5px] text-amaco-fg-muted">
+              Syntax highlighting skipped for files over{" "}
+              {HIGHLIGHT_LINE_CAP.toLocaleString()} lines.
+            </div>
+          ) : null}
           <pre className="amaco-mono m-0 text-[12px] leading-[1.45]">
-            {view.lines.map((l, idx) => (
+            {visibleLines.map((l, idx) => (
               <div
                 key={l.number}
                 className={`group flex border-b border-transparent ${
@@ -169,6 +209,7 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
               </div>
             ))}
           </pre>
+          </>
         )}
       </div>
     </div>
