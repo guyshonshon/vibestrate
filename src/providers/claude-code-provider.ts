@@ -51,6 +51,7 @@ export async function runClaudeCodeProvider(
       env,
       stdin,
       ...(input.onChunk ? { onChunk: input.onChunk } : {}),
+      ...(input.signal ? { signal: input.signal } : {}),
     });
   } catch (err) {
     throw new ProviderError(

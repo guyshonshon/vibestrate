@@ -7,6 +7,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  StopCircle,
   Zap,
 } from "lucide-react";
 import type { RunState } from "../../lib/types.js";
@@ -34,7 +35,9 @@ export function RunHeader({
   onOpenGit?: () => void;
   onOpenTask?: (taskId: string) => void;
 }) {
-  const [busy, setBusy] = useState<"pause" | "resume" | "retry" | null>(null);
+  const [busy, setBusy] = useState<
+    "pause" | "resume" | "retry" | "abort" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
 
   const isTerminal = TERMINAL.has(run.status);
@@ -48,6 +51,24 @@ export function RunHeader({
     setError(null);
     try {
       const next = await api.pauseRun(run.runId);
+      onRunUpdated?.(next);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function doAbort() {
+    if (
+      !window.confirm(
+        "Abort this run? The orchestrator will kill the provider CLI subprocess and stop at the next safe point.",
+      )
+    )
+      return;
+    setBusy("abort");
+    setError(null);
+    try {
+      const next = await api.abortRun(run.runId);
       onRunUpdated?.(next);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -193,6 +214,21 @@ export function RunHeader({
             >
               <Pause className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
               {busy === "pause" ? "Pausing…" : "Pause"}
+            </button>
+          ) : null}
+          {/* Abort is a separate action from Pause: it kills the
+           * provider CLI subprocess and transitions the run to
+           * "aborted". Always available on non-terminal runs. */}
+          {!isTerminal ? (
+            <button
+              type="button"
+              onClick={doAbort}
+              disabled={busy !== null}
+              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-fail/50 bg-amaco-fail/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-fail hover:bg-amaco-fail/20 focus:outline-none focus:ring-1 focus:ring-amaco-fail disabled:opacity-50"
+              title="Abort the run: kill the in-flight provider CLI and mark the run aborted."
+            >
+              <StopCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
+              {busy === "abort" ? "Aborting…" : "Abort"}
             </button>
           ) : null}
           {isTerminal ? (
