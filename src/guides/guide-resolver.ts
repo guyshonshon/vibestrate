@@ -1,0 +1,148 @@
+import type { ProjectConfig } from "../project/config-schema.js";
+import { nowIso } from "../utils/time.js";
+import {
+  resolvedGuideSnapshotSchema,
+  type GuideContextPolicy,
+  type GuideDefinition,
+  type GuideSource,
+  type ResolvedGuideSlot,
+  type ResolvedGuideSnapshot,
+} from "./guide-schema.js";
+
+export class GuideResolutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GuideResolutionError";
+  }
+}
+
+export type ResolveGuideInput = {
+  guide: GuideDefinition;
+  source: GuideSource;
+  config: ProjectConfig;
+  task: string;
+  brief?: string | null;
+  contextPolicy?: GuideContextPolicy;
+  slotProviders?: Record<string, string | undefined>;
+  stepProviders?: Record<string, string | undefined>;
+  skippedOptionalSteps?: string[];
+  resolvedAt?: string;
+};
+
+export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
+  const slotEntries = Object.entries(input.guide.slots);
+  const knownSlotIds = new Set(slotEntries.map(([id]) => id));
+  for (const slotId of Object.keys(input.slotProviders ?? {})) {
+    if (!knownSlotIds.has(slotId)) {
+      throw new GuideResolutionError(
+        `Provider override references unknown Guide slot "${slotId}".`,
+      );
+    }
+  }
+
+  const slots = slotEntries.map(([id, slot]) => {
+    const defaultAgent = input.config.agents[slot.defaultAgent];
+    if (!defaultAgent) {
+      throw new GuideResolutionError(
+        `Guide slot "${id}" references missing default agent "${slot.defaultAgent}".`,
+      );
+    }
+    const providerId = input.slotProviders?.[id] ?? defaultAgent.provider;
+    assertProviderConfigured(input.config, providerId, `slot "${id}"`);
+    return {
+      id,
+      label: slot.label,
+      description: slot.description ?? null,
+      defaultAgent: slot.defaultAgent,
+      providerId,
+    } satisfies ResolvedGuideSlot;
+  });
+
+  const resolvedSlots = new Map(slots.map((slot) => [slot.id, slot]));
+  const knownStepIds = new Set(input.guide.steps.map((step) => step.id));
+  const skippedOptionalSteps = new Set(input.skippedOptionalSteps ?? []);
+  for (const stepId of skippedOptionalSteps) {
+    const step = input.guide.steps.find((candidate) => candidate.id === stepId);
+    if (!step) {
+      throw new GuideResolutionError(
+        `Cannot skip unknown Guide step "${stepId}".`,
+      );
+    }
+    if (!step.optional) {
+      throw new GuideResolutionError(
+        `Cannot skip required Guide step "${stepId}".`,
+      );
+    }
+  }
+  for (const stepId of Object.keys(input.stepProviders ?? {})) {
+    if (!knownStepIds.has(stepId)) {
+      throw new GuideResolutionError(
+        `Provider override references unknown Guide step "${stepId}".`,
+      );
+    }
+  }
+
+  const steps = input.guide.steps.map((step) => {
+    const slot = step.slot ? resolvedSlots.get(step.slot) : null;
+    const agentId = step.agentId ?? slot?.defaultAgent ?? null;
+    if (agentId && !input.config.agents[agentId]) {
+      throw new GuideResolutionError(
+        `Guide step "${step.id}" references missing agent "${agentId}".`,
+      );
+    }
+
+    const providerOverride = input.stepProviders?.[step.id];
+    if (providerOverride) {
+      if (!slot) {
+        throw new GuideResolutionError(
+          `Provider override for Guide step "${step.id}" requires a participant slot.`,
+        );
+      }
+      assertProviderConfigured(
+        input.config,
+        providerOverride,
+        `step "${step.id}"`,
+      );
+    }
+
+    return {
+      id: step.id,
+      label: step.label,
+      kind: step.kind,
+      enabled: !skippedOptionalSteps.has(step.id),
+      optional: step.optional,
+      slotId: slot?.id ?? null,
+      agentId,
+      providerId: providerOverride ?? slot?.providerId ?? null,
+      inputs: step.inputs,
+      outputs: step.outputs,
+    };
+  });
+
+  return resolvedGuideSnapshotSchema.parse({
+    schemaVersion: 1,
+    guideId: input.guide.id,
+    guideVersion: input.guide.version,
+    label: input.guide.label,
+    description: input.guide.description,
+    source: input.source,
+    task: input.task,
+    brief: input.brief ?? null,
+    contextPolicy: input.contextPolicy ?? "balanced",
+    resolvedAt: input.resolvedAt ?? nowIso(),
+    slots,
+    steps,
+  });
+}
+
+function assertProviderConfigured(
+  config: ProjectConfig,
+  providerId: string,
+  owner: string,
+): void {
+  if (!config.providers[providerId]) {
+    throw new GuideResolutionError(
+      `Guide ${owner} resolves to missing provider "${providerId}".`,
+    );
+  }
+}
