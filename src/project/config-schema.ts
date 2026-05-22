@@ -128,6 +128,13 @@ export const policiesConfigSchema = z.object({
   // an already-created PTY over a WS channel; the server never executes
   // a shell command string supplied over HTTP.
   allowInteractiveTerminal: z.boolean().default(false),
+  // Optional filesystem sandbox for executor invocations. When true,
+  // those invocations are wrapped with sandbox-exec on macOS or bwrap
+  // on Linux so writes are blocked
+  // outside the worktree + /tmp. Per-run override via
+  // `amaco run --sandbox` / `--no-sandbox`. Default false so
+  // existing projects keep their behavior; users opt in here.
+  sandbox: z.boolean().default(false),
 });
 
 export const projectConfigSchema = z.object({
@@ -177,6 +184,7 @@ export const projectConfigSchema = z.object({
     preserveArtifacts: true,
     requireApprovalAtStages: [],
     allowInteractiveTerminal: false,
+    sandbox: false,
   }),
   scheduler: schedulerConfigSchema.default({
     maxConcurrentRuns: 1,

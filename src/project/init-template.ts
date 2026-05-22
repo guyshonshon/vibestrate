@@ -277,6 +277,11 @@ policies:
   # default. Requires the optional 'node-pty' native module to be
   # installable in your environment.
   allowInteractiveTerminal: false
+  # OFF by default. When true, executor provider calls run under the
+  # platform sandbox wrapper: sandbox-exec on macOS, bubblewrap on Linux.
+  # Writes outside the run worktree and the sandbox scratch /tmp are blocked.
+  # Override per run with \`amaco run --sandbox\` or \`--no-sandbox\`.
+  sandbox: false
 
 scheduler:
   # Concurrency for the local task scheduler (\`amaco queue run\`).

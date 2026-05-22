@@ -52,6 +52,7 @@ export type ShellRunRow = {
   status: RunStatus;
   effort: "low" | "medium" | "high" | null;
   readOnly: boolean;
+  sandbox: boolean;
   providerOverride: string | null;
   resolvedProviderId: string | null;
   pauseRequested: boolean;
@@ -170,6 +171,7 @@ export async function buildShellSnapshot(
       status: s.status,
       effort: s.effort,
       readOnly: s.readOnly,
+      sandbox: s.sandbox,
       providerOverride: s.providerOverride,
       resolvedProviderId: s.resolvedProviderId,
       pauseRequested: s.pauseRequested,

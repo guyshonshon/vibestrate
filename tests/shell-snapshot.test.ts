@@ -179,11 +179,12 @@ describe("buildShellSnapshot", () => {
     expect(row.finalDecision).toBe("BLOCKED");
   });
 
-  it("surfaces effort + readOnly + pause flags from state.json", async () => {
+  it("surfaces effort + readOnly + sandbox + pause flags from state.json", async () => {
     await writeRun(root, "run-1", {
       status: "paused",
       effort: "low",
       readOnly: true,
+      sandbox: true,
       pauseRequested: true,
       pausedAtStatus: "executing",
       providerOverride: "codex",
@@ -193,6 +194,7 @@ describe("buildShellSnapshot", () => {
     const row = snap.runs[0]!;
     expect(row.effort).toBe("low");
     expect(row.readOnly).toBe(true);
+    expect(row.sandbox).toBe(true);
     expect(row.pauseRequested).toBe(true);
     expect(row.pausedAtStatus).toBe("executing");
     expect(row.providerOverride).toBe("codex");

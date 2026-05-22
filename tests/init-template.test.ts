@@ -53,6 +53,7 @@ describe("init template", () => {
       providers: Record<string, { command: string; args: string[]; input: string }>;
       agents: Record<string, { provider: string }>;
       commands: { validate: string[] };
+      policies: { sandbox?: boolean };
     };
     expect(cfg.providers["claude"]?.command).toBe("claude");
     expect(cfg.providers["claude"]?.args).toEqual(["-p"]);
@@ -61,6 +62,7 @@ describe("init template", () => {
       expect(cfg.agents[agentId]?.provider).toBe("claude");
     }
     expect(cfg.commands.validate).toEqual(["pnpm typecheck", "pnpm test"]);
+    expect(cfg.policies.sandbox).toBe(false);
   });
 
   it("initializes safely when no provider is detected (placeholder claude provider, empty validation)", async () => {

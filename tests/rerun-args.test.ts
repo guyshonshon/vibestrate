@@ -52,10 +52,13 @@ describe("deriveRerunArgs", () => {
     ).toEqual(["run", "--skills", "security-review,logs-101", "audit auth"]);
   });
 
-  it("forwards --concise when set", () => {
+  it("forwards concise and the resolved sandbox flag when set", () => {
     expect(
-      deriveRerunArgs({ task: "tidy", concise: true }),
-    ).toEqual(["run", "--concise", "tidy"]);
+      deriveRerunArgs({ task: "tidy", concise: true, sandbox: true }),
+    ).toEqual(["run", "--concise", "--sandbox", "tidy"]);
+    expect(
+      deriveRerunArgs({ task: "tidy", sandbox: false }),
+    ).toEqual(["run", "--no-sandbox", "tidy"]);
   });
 
   it("formatArgv quotes args with spaces", () => {

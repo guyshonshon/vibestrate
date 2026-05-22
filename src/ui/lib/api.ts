@@ -132,6 +132,7 @@ export const api = {
     readOnly?: boolean;
     skills?: string[];
     concise?: boolean;
+    sandbox?: boolean;
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
   },

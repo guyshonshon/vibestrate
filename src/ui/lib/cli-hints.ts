@@ -28,6 +28,7 @@ const TIPS_RUN: string[] = [
   "Add `--effort low|medium|high` to bucket the work; the heuristic picks one when omitted.",
   "Add `--read-only` for an investigation-only run (refuses apply/validate/revert).",
   "Add `--provider <id>` to override the agent provider just for this run.",
+  "Add `--sandbox` or `--no-sandbox` to override the executor sandbox project default.",
 ];
 
 export function hintForRoute(route: Route): CliHint {

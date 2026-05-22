@@ -352,6 +352,9 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               ? "—"
               : meta.policies.requireApprovalAtStages.join(", ")}
           </KV>
+          <KV label="Executor sandbox default">
+            <Toggle on={meta.policies.sandbox} />
+          </KV>
         </Section>
       </div>
     </div>

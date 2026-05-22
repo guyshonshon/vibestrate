@@ -46,6 +46,8 @@ export type RunState = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Executor filesystem sandbox resolved for this run. */
+  sandbox?: boolean;
 };
 
 export type RunControlDirective =
@@ -562,6 +564,7 @@ export type ProjectMetadata = {
     forbidAutoPush: boolean;
     forbidAutoMerge: boolean;
     requireApprovalAtStages: string[];
+    sandbox: boolean;
   };
   counts: {
     runs: number;

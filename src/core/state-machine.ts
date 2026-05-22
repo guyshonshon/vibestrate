@@ -88,6 +88,12 @@ export const runStateSchema = z.object({
   // includes a brevity directive: prefer diffs over re-stating
   // surrounding code, bullets over paragraphs, no preamble.
   concise: z.boolean().default(false),
+  // Per-run filesystem sandbox flag. When true, executor invocations
+  // are wrapped with sandbox-exec on macOS or bwrap on Linux so
+  // writes outside the worktree + /tmp are blocked at the kernel
+  // boundary. See
+  // `src/execution/sandbox.ts`. Older records round-trip safely.
+  sandbox: z.boolean().default(false),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -206,6 +212,7 @@ export function createInitialState(input: {
     readOnly: false,
     runtimeSkills: [],
     concise: false,
+    sandbox: false,
   };
 }
 

@@ -14,6 +14,7 @@ export type RerunInput = {
   readOnly?: boolean;
   runtimeSkills?: string[];
   concise?: boolean;
+  sandbox?: boolean;
 };
 
 export function deriveRerunArgs(run: RerunInput): string[] {
@@ -26,6 +27,8 @@ export function deriveRerunArgs(run: RerunInput): string[] {
     argv.push("--skills", run.runtimeSkills.join(","));
   }
   if (run.concise) argv.push("--concise");
+  if (run.sandbox === true) argv.push("--sandbox");
+  if (run.sandbox === false) argv.push("--no-sandbox");
   argv.push(run.task);
   return argv;
 }

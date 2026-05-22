@@ -84,6 +84,9 @@ export type OrchestratorInput = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Wrap executor invocations with a kernel-level sandbox so writes
+   *  outside the worktree + /tmp are blocked. */
+  sandbox?: boolean;
 };
 
 export type OrchestratorOutput = {
@@ -172,6 +175,7 @@ export class Orchestrator {
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
+  private readonly sandbox: boolean;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -186,6 +190,10 @@ export class Orchestrator {
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
+    // Project-level default lives in policies.sandbox; per-run flag
+    // overrides it. The orchestrator only uses the resolved value;
+    // the resolution happens at the CLI / API boundary.
+    this.sandbox = input.sandbox ?? false;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -249,6 +257,7 @@ export class Orchestrator {
       resolvedProviderId: resolution.providerId,
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
+      sandbox: this.sandbox,
       readOnly: this.readOnly,
     };
     await stateStore.write(state);
@@ -1320,6 +1329,12 @@ export class Orchestrator {
     const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, agentId);
     const promptArtifactPathAbs = await ctx.artifactStore.write(promptName, prompt);
 
+    const wantSandbox =
+      this.sandbox &&
+      input.stageId === "executing" &&
+      profile.allowWrite === true &&
+      ctx.worktreePath !== null;
+
     await ctx.eventLog.append({
       type: "agent.started",
       message: `Agent ${agentId} starting.`,
@@ -1333,6 +1348,11 @@ export class Orchestrator {
         skillsAttached: skills.map((s) => s.name),
         skillsConfigured: agent.skills.slice(),
         skillsFromRuntime: this.runtimeSkills.slice(),
+        sandbox: wantSandbox
+          ? "applied"
+          : this.sandbox
+            ? "skipped-non-executor-stage"
+            : "off",
       },
     });
     await ctx.eventLog.append({
@@ -1368,6 +1388,9 @@ export class Orchestrator {
       })();
     }, 500);
     try {
+      // Sandbox executor calls only. Planning/review stays fast and
+      // the fixer remains outside the wrapper until its write
+      // behavior is covered by a separate product decision.
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
         prompt,
@@ -1376,6 +1399,14 @@ export class Orchestrator {
         onChunk: (c) =>
           void appendStreamLine(this.projectRoot, ctx.runId, streamName, c),
         signal: providerAbort.signal,
+        ...(wantSandbox && ctx.worktreePath
+          ? {
+              sandbox: {
+                worktreePath: ctx.worktreePath,
+                projectRoot: this.projectRoot,
+              },
+            }
+          : {}),
       });
       // Fallback flush — some providers buffer all output until exit,
       // or run on bundles that predate the chunk hook. Persist the

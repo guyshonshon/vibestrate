@@ -211,6 +211,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           <Field label="provider" value={row.resolvedProviderId} />
         ) : null}
         {row.readOnly ? <Field label="mode" value="read-only" tint="yellow" /> : null}
+        {row.sandbox ? <Field label="sandbox" value="executor" tint="cyan" /> : null}
         {row.pausedAtStatus ? (
           <Field label="paused at" value={row.pausedAtStatus} />
         ) : null}
@@ -430,7 +431,7 @@ function Field({
 }: {
   label: string;
   value: string;
-  tint?: "yellow" | "red";
+  tint?: "yellow" | "red" | "cyan";
 }) {
   return (
     <Box marginRight={3}>

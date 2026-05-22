@@ -17,7 +17,7 @@ export type UiAction =
   | { kind: "abort-run"; runId: string }
   | { kind: "approve-approval"; runId: string; approvalId: string }
   | { kind: "reject-approval"; runId: string; approvalId: string }
-  | { kind: "spawn-run"; task: string; provider?: string; effort?: string; readOnly?: boolean; skills?: string[]; concise?: boolean }
+  | { kind: "spawn-run"; task: string; provider?: string; effort?: string; readOnly?: boolean; skills?: string[]; concise?: boolean; sandbox?: boolean }
   | { kind: "start-scheduler" };
 
 export function cliFor(a: UiAction): string | null {
@@ -58,6 +58,8 @@ export function cliFor(a: UiAction): string | null {
       if (a.skills && a.skills.length > 0)
         parts.push("--skills", a.skills.join(","));
       if (a.concise) parts.push("--concise");
+      if (a.sandbox === true) parts.push("--sandbox");
+      if (a.sandbox === false) parts.push("--no-sandbox");
       // Wrap the task in quotes if it has whitespace; argv shells
       // would otherwise split it.
       const t = a.task.includes(" ") ? JSON.stringify(a.task) : a.task;

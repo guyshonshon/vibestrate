@@ -35,9 +35,10 @@ describe("cliFor", () => {
         effort: "high",
         readOnly: true,
         skills: ["sec", "logs"],
+        sandbox: false,
       }),
     ).toBe(
-      'amaco run --provider claude --effort high --read-only --skills sec,logs "add health check"',
+      'amaco run --provider claude --effort high --read-only --skills sec,logs --no-sandbox "add health check"',
     );
   });
 

@@ -1,4 +1,5 @@
 import { runArgvCommand } from "../execution/command-runner.js";
+import { prepareSandbox } from "../execution/sandbox.js";
 import { ProviderError } from "../utils/errors.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
 import {
@@ -42,11 +43,31 @@ export async function runClaudeCodeProvider(
     env.AMACO_MCP_CONFIG = input.mcpConfigPath;
   }
 
+  let finalCommand = config.command;
+  let finalArgs = args;
+  let sandboxCleanup: (() => Promise<void>) | null = null;
+  if (input.sandbox) {
+    const prepared = await prepareSandbox({
+      command: finalCommand,
+      args: finalArgs,
+      worktreePath: input.sandbox.worktreePath,
+      projectRoot: input.sandbox.projectRoot,
+    });
+    if (!prepared.ok) {
+      throw new ProviderError(
+        `Sandbox refused to start: ${prepared.reason}. ${prepared.hint}`,
+      );
+    }
+    finalCommand = prepared.command;
+    finalArgs = prepared.args;
+    sandboxCleanup = prepared.cleanup;
+  }
+
   let result;
   try {
     result = await runArgvCommand({
-      command: config.command,
-      args,
+      command: finalCommand,
+      args: finalArgs,
       cwd: input.cwd,
       env,
       stdin,
@@ -58,6 +79,8 @@ export async function runClaudeCodeProvider(
       `Failed to invoke Claude Code at "${config.command}". Is it installed and on PATH?`,
       err,
     );
+  } finally {
+    if (sandboxCleanup) await sandboxCleanup().catch(() => undefined);
   }
 
   const claudeMetrics = parseClaudeCodeOutput({

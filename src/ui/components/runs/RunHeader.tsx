@@ -7,6 +7,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  ShieldCheck,
   StopCircle,
   Zap,
 } from "lucide-react";
@@ -157,6 +158,15 @@ export function RunHeader({
                 >
                   <Cpu className="h-3 w-3" strokeWidth={1.5} aria-hidden />
                   {run.resolvedProviderId}
+                </span>
+              ) : null}
+              {run.sandbox ? (
+                <span
+                  className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-success/40 px-1.5 py-0.5 text-[10px] text-amaco-success"
+                  title="Executor calls are wrapped by the filesystem sandbox for this run."
+                >
+                  <ShieldCheck className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+                  sandbox
                 </span>
               ) : null}
               {pausePending ? (

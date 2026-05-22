@@ -47,4 +47,13 @@ export type ProviderRunInput = {
    * finish on its own.
    */
   signal?: AbortSignal;
+  /**
+   * When set, the provider command is wrapped with a platform-native
+   * sandbox so writes outside the worktree (and a fresh /tmp scratch)
+   * are blocked. Only the orchestrator sets this for executor calls.
+   */
+  sandbox?: {
+    worktreePath: string;
+    projectRoot: string;
+  };
 };

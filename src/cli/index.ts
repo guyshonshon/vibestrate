@@ -115,6 +115,14 @@ program
     "--concise",
     "ask agents to produce token-efficient output (prefer diffs, bullets, no preamble).",
   )
+  .option(
+    "--sandbox",
+    "wrap executor invocations with a kernel-level sandbox so writes outside the worktree + /tmp are blocked. Overrides policies.sandbox.",
+  )
+  .option(
+    "--no-sandbox",
+    "explicitly disable the sandbox for this run, even if policies.sandbox is true.",
+  )
   .action(
     async (
       taskParts: string[],
@@ -128,6 +136,7 @@ program
         autoEffort?: boolean;
         skills?: string;
         concise?: boolean;
+        sandbox?: boolean;
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -153,6 +162,9 @@ program
         autoEffort: opts.autoEffort ?? false,
         runtimeSkills,
         concise: opts.concise ?? false,
+        // commander: `--sandbox` → true, `--no-sandbox` → false,
+        // neither → undefined (fall back to project policy).
+        sandbox: opts.sandbox,
       });
       process.exit(code);
     },

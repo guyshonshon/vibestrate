@@ -70,6 +70,7 @@ describe("hintForRoute", () => {
     const tipsTask = hintForRoute({ kind: "task", taskId: "T-1" }).tips ?? [];
     expect(tipsRuns.some((t) => t.includes("--effort"))).toBe(true);
     expect(tipsRuns.some((t) => t.includes("--read-only"))).toBe(true);
+    expect(tipsRuns.some((t) => t.includes("--sandbox"))).toBe(true);
     expect(tipsTask.some((t) => t.includes("--provider"))).toBe(true);
   });
 });

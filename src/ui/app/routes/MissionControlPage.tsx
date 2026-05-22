@@ -669,6 +669,7 @@ export function MissionControlPage({
                 ? composer.skills
                 : undefined,
             concise: composer.concise || undefined,
+            sandbox: composer.sandbox,
           });
           setToast({ kind: "ok", text: r.message });
           break;
@@ -2043,4 +2044,3 @@ function IssuesPanel({
     </div>
   );
 }
-

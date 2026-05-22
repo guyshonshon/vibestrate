@@ -63,6 +63,7 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
+  sandbox: z.boolean().optional(),
 });
 
 function resolveAmacoBin(): string {
@@ -123,6 +124,8 @@ export async function registerRunsRoutes(
       argv.push("--skills", body.skills.join(","));
     }
     if (body.concise) argv.push("--concise");
+    if (body.sandbox === true) argv.push("--sandbox");
+    if (body.sandbox === false) argv.push("--no-sandbox");
     const bin = resolveAmacoBin();
     try {
       const child = spawn(process.execPath, [bin, ...argv], {

@@ -209,7 +209,7 @@ amaco status [--json]
 amaco abort <runId>
 amaco pause <runId>
 amaco resume <runId>
-amaco run "<task>" [--effort low|medium|high] [--provider <id>] [--read-only] [--auto-effort]
+amaco run "<task>" [--effort low|medium|high] [--provider <id>] [--read-only] [--auto-effort] [--sandbox|--no-sandbox]
 amaco tasks add "<title>" [--effort low|medium|high] [--provider <id>] [--read-only] [--auto-effort]
 
 amaco ui [--port <port>] [--open]
@@ -333,7 +333,7 @@ Final status is `merge_ready` only when the reviewer approved **and** the verifi
 - Verifier must emit a `VERIFICATION:` line. Missing/invalid → `NEEDS_HUMAN`.
 - `merge_ready` only when reviewer **APPROVED** and verifier **PASSED**.
 
-> Amaco is not a full sandbox. It runs local CLI tools on your machine. Configure only providers you trust.
+> Amaco is not a full sandbox. It runs local CLI tools on your machine. The optional executor filesystem sandbox narrows write access; configure only providers you trust.
 
 ## Local Supervisor Dashboard
 
@@ -622,6 +622,15 @@ amaco run "audit the auth flow" --read-only
 ```
 
 Use it when you want the agents to *report*, not *change*.
+
+## Executor sandbox
+
+`policies.sandbox: true` in `.amaco/project.yml` wraps executor provider calls in a native filesystem sandbox. Use `amaco run "..." --sandbox` for one run or `--no-sandbox` to override a project default.
+
+- macOS uses `sandbox-exec`; Linux uses `bwrap` when Bubblewrap is installed.
+- The executor can write inside its run worktree and a scratch `/tmp` path. Other paths stay outside its write boundary.
+- Planner, architect, reviewer, verifier, validation commands, suggestion apply/revert, and the dashboard terminal are not wrapped by this switch.
+- This is defense-in-depth for local CLI execution, not Docker, remote isolation, or a trust boundary for arbitrary providers.
 
 ## Pause and resume
 
@@ -1824,13 +1833,13 @@ There is no global *always auto-revert* setting. By design.
 
 It **can**: read the project metadata, browse the file tree (project + run worktrees) with live freshness indicators, view file contents with line numbers, ranges, and syntax highlighting, jump to `path:line` references in artifacts/reviews/comments, see git status + bounded history for project and run worktrees, summarise per-agent work, hand off to a configured local editor, capture review suggestions, apply approved patches inside the run worktree only, group suggestions into review passes, run the project's configured `commands.validate` against the run worktree on demand, opt into auto-revert when validation fails, smart-apply review passes step-by-step with optional per-step validation and per-step revert, and revert applied suggestions or whole review passes via `git apply -R`.
 
-It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, run an interactive terminal, expose `.env` contents, talk to GitHub/GitLab, or sandbox at the OS level. Suggestion + review-pass *apply* / *validate* / *revert* / *smart-apply* are the only write-side actions; every other surface remains read-only. Auto-revert is opt-in per action — there is no global *always auto-revert* setting.
+It **cannot** (this phase): edit or save arbitrary files in-browser, push or fetch from a remote, merge, expose `.env` contents, talk to GitHub/GitLab, or turn the optional executor sandbox into full host isolation. Suggestion + review-pass *apply* / *validate* / *revert* / *smart-apply* are the only write-side actions besides the opt-in worktree terminal; every other surface remains read-only. Auto-revert is opt-in per action — there is no global *always auto-revert* setting.
 
 ## Limitations of V0
 
 - No model APIs. Local CLIs only.
 - No GitHub/GitLab integration, no auto-push, no auto-merge.
-- Permissions are orchestration-level, not OS-level sandboxing.
+- Permission profiles remain orchestration-level for most stages. The opt-in executor sandbox uses `sandbox-exec` on macOS or `bwrap` on Linux to restrict executor filesystem writes only; it does not sandbox the full host, validation commands, or dashboard terminal sessions.
 - One built-in linear workflow. Custom DAGs are documented but not implemented.
 - No cloud or Docker backends.
 - The dashboard's "Logs" tab is read-only. The opt-in **Terminal** panel (off by default behind `policies.allowInteractiveTerminal`) ships a per-run interactive shell scoped to that run's worktree — it requires the optional `node-pty` native module to install in your environment, otherwise the panel renders a clear disabled state.

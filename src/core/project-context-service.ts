@@ -75,6 +75,7 @@ export type ProjectMetadata = {
     forbidAutoPush: boolean;
     forbidAutoMerge: boolean;
     requireApprovalAtStages: string[];
+    sandbox: boolean;
   };
   counts: {
     runs: number;
@@ -201,6 +202,7 @@ export async function getProjectMetadata(
       forbidAutoPush: config?.policies.forbidAutoPush ?? true,
       forbidAutoMerge: config?.policies.forbidAutoMerge ?? true,
       requireApprovalAtStages: config?.policies.requireApprovalAtStages ?? [],
+      sandbox: config?.policies.sandbox ?? false,
     },
     counts: {
       runs: recentRuns.length,

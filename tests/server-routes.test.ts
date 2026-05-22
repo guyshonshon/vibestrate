@@ -164,6 +164,7 @@ describe("server routes", () => {
         task: "smoke test",
         effort: "low",
         readOnly: true,
+        sandbox: false,
       }),
     });
     // The spawn itself may fail (no dist on disk yet in the test
@@ -181,6 +182,7 @@ describe("server routes", () => {
         "--effort",
         "low",
         "--read-only",
+        "--no-sandbox",
       ]);
     }
   });

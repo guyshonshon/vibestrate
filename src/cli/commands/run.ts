@@ -52,6 +52,9 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Wrap executor invocations in a kernel-level sandbox. Resolved
+   *  from `policies.sandbox` in project.yml when undefined. */
+  sandbox?: boolean;
 };
 
 export async function runRunCommand(
@@ -226,6 +229,10 @@ export async function runRunCommand(
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
+    // Project-level default + per-run override. `undefined` (no
+    // flag) → fall back to policies.sandbox; explicit boolean wins.
+    sandbox:
+      options.sandbox ?? loaded.config.policies?.sandbox ?? false,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {

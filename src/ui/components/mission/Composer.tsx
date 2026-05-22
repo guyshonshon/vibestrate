@@ -4,6 +4,7 @@ import {
   Eye,
   Layers,
   Play,
+  ShieldCheck,
   Slash,
   X,
   Zap,
@@ -32,7 +33,11 @@ export type ComposerSubmit = PromptSubmit & {
   skills?: string[];
   /** Brevity directive for this run. */
   concise?: boolean;
+  /** Executor sandbox override for this run. undefined = project policy. */
+  sandbox?: boolean;
 };
+
+type SandboxChoice = "project" | "on" | "off";
 
 type Props = {
   busy: boolean;
@@ -67,6 +72,10 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
   const [concise, setConcise] = usePersistedState<boolean>(
     "amaco.composer.concise",
     false,
+  );
+  const [sandbox, setSandbox] = usePersistedState<SandboxChoice>(
+    "amaco.composer.sandbox",
+    "project",
   );
   const [provider, setProvider] = usePersistedState<string>(
     "amaco.composer.provider",
@@ -130,6 +139,10 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             provider: provider || undefined,
             skills: selectedSkills.length > 0 ? selectedSkills : undefined,
             concise: concise || undefined,
+            sandbox:
+              sandbox === "project"
+                ? undefined
+                : sandbox === "on",
           }
         : parsed;
     void onSubmit(enriched);
@@ -206,6 +219,7 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             onChange={setProvider}
           />
           <EffortChips value={effort} onChange={setEffort} />
+          <SandboxChips value={sandbox} onChange={setSandbox} />
           <SkillsControl
             skills={skills}
             selected={selectedSkills}
@@ -397,6 +411,64 @@ function EffortChips({
             type="button"
             role="radio"
             aria-checked={active}
+            onClick={() => onChange(o.v)}
+            className={`amaco-mono px-2 py-1 text-[11px] ${
+              active
+                ? "bg-amaco-accent/15 text-amaco-accent"
+                : "text-amaco-fg-dim hover:bg-amaco-panel-2"
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
+function SandboxChips({
+  value,
+  onChange,
+}: {
+  value: SandboxChoice;
+  onChange: (v: SandboxChoice) => void;
+}) {
+  const options: { v: SandboxChoice; label: string; title: string }[] = [
+    {
+      v: "project",
+      label: "project",
+      title: "Use policies.sandbox from project.yml.",
+    },
+    {
+      v: "on",
+      label: "on",
+      title: "Sandbox the executor for this run.",
+    },
+    {
+      v: "off",
+      label: "off",
+      title: "Disable the executor sandbox for this run.",
+    },
+  ];
+  return (
+    <span
+      role="radiogroup"
+      aria-label="Executor sandbox"
+      className="inline-flex items-center gap-0 rounded border border-amaco-border bg-amaco-panel"
+    >
+      <span className="amaco-mono inline-flex items-center gap-1 px-1.5 text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        <ShieldCheck className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+        sandbox
+      </span>
+      {options.map((o) => {
+        const active = value === o.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            title={o.title}
             onClick={() => onChange(o.v)}
             className={`amaco-mono px-2 py-1 text-[11px] ${
               active
