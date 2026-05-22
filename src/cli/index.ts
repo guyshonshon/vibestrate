@@ -10,6 +10,7 @@ import { runUiCommand } from "./commands/ui.js";
 import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
 import { buildSkillsCommand } from "./commands/skills/index.js";
+import { buildGuidesCommand } from "./commands/guides/index.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
@@ -64,6 +65,7 @@ program
 program.addCommand(buildProviderCommand());
 program.addCommand(buildConfigCommand());
 program.addCommand(buildSkillsCommand());
+program.addCommand(buildGuidesCommand());
 program.addCommand(buildApprovalsCommand());
 program.addCommand(buildRoadmapCommand());
 program.addCommand(buildTasksCommand());
@@ -115,6 +117,16 @@ program
     "--concise",
     "ask agents to produce token-efficient output (prefer diffs, bullets, no preamble).",
   )
+  .option(
+    "--guide <id>",
+    "resolve a Guide recipe for this run. Phase 1 previews the resolved steps; execution arrives with the Guide runner.",
+  )
+  .option(
+    "--guide-slot <slot=provider>",
+    "override a Guide participant slot provider. Repeat for multiple slots.",
+    collectGuideSlot,
+    [],
+  )
   .action(
     async (
       taskParts: string[],
@@ -128,6 +140,8 @@ program
         autoEffort?: boolean;
         skills?: string;
         concise?: boolean;
+        guide?: string;
+        guideSlot?: string[];
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -143,6 +157,17 @@ program
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
+      if (!opts.guide && (opts.guideSlot?.length ?? 0) > 0) {
+        console.error("--guide-slot requires --guide <id>.");
+        process.exit(2);
+      }
+      let guideSlotProviders: Record<string, string> = {};
+      try {
+        guideSlotProviders = parseGuideSlots(opts.guideSlot ?? []);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(2);
+      }
       const code = await runRunCommand(task, {
         ui: opts.ui,
         uiPort: opts.uiPort,
@@ -153,10 +178,32 @@ program
         autoEffort: opts.autoEffort ?? false,
         runtimeSkills,
         concise: opts.concise ?? false,
+        guideId: opts.guide ?? null,
+        guideSlotProviders,
       });
       process.exit(code);
     },
   );
+
+function collectGuideSlot(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function parseGuideSlots(values: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const raw of values) {
+    const index = raw.indexOf("=");
+    const slot = raw.slice(0, index).trim();
+    const provider = raw.slice(index + 1).trim();
+    if (index <= 0 || !slot || !provider) {
+      throw new Error(
+        `--guide-slot must use <slot=provider> (got "${raw}").`,
+      );
+    }
+    out[slot] = provider;
+  }
+  return out;
+}
 
 program
   .command("ui")

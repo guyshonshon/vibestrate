@@ -5,6 +5,7 @@ export const CONFIG_FILENAME = "project.yml";
 export const RULES_FILENAME = "rules.md";
 export const AGENTS_DIRNAME = "agents";
 export const SKILLS_DIRNAME = "skills";
+export const GUIDES_DIRNAME = "guides";
 export const RUNS_DIRNAME = "runs";
 export const ROADMAP_DIRNAME = "roadmap";
 export const SCHEDULER_DIRNAME = "scheduler";
@@ -30,6 +31,10 @@ export function projectAgentsDir(projectRoot: string): string {
 
 export function projectSkillsDir(projectRoot: string): string {
   return path.join(amacoRoot(projectRoot), SKILLS_DIRNAME);
+}
+
+export function projectGuidesDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), GUIDES_DIRNAME);
 }
 
 export function projectRunsDir(projectRoot: string): string {

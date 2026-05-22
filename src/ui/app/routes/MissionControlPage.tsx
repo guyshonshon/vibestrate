@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { deriveSchedulerLiveness } from "../../lib/schedulerLiveness.js";
@@ -24,6 +24,7 @@ import { usePersistedState } from "../../lib/usePersistedState.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
+  DiscoveredGuide,
   NotificationRecord,
   QueueEntry,
   ReviewSuggestion,
@@ -207,20 +208,22 @@ export function MissionControlPage({
   type IssueRow = Awaited<ReturnType<typeof api.listIssues>>["issues"][number];
   const [issues, setIssues] = useState<IssueRow[]>([]);
   const [issuesOpen, setIssuesOpen] = useState(false);
-  // Composer feeds: providers + skills. Loaded once, refreshed at the
+  // Composer feeds: providers + skills + Guides. Loaded once, refreshed at the
   // same polling cadence as the rest of the page so a freshly-installed
   // provider / skill shows up without a manual reload.
   const [providers, setProviders] = useState<ComposerProvider[]>([]);
   const [skills, setSkills] = useState<ComposerSkill[]>([]);
+  const [guides, setGuides] = useState<DiscoveredGuide[]>([]);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date>(() => new Date());
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [p, s] = await Promise.all([
+        const [p, s, g] = await Promise.all([
           api.listProviders(),
           api.listSkills(),
+          api.listGuides(),
         ]);
         if (cancelled) return;
         setProviders(
@@ -235,6 +238,7 @@ export function MissionControlPage({
         setSkills(
           s.skills.map((skill) => ({ id: skill.id, name: skill.name })),
         );
+        setGuides(g.guides);
       } catch {
         // Offline / route not yet ready — keep last good lists.
       }
@@ -651,6 +655,24 @@ export function MissionControlPage({
   };
 
   const [promptBusy, setPromptBusy] = useState(false);
+  const resolveComposerGuide = useCallback(
+    (input: {
+      guideId: string;
+      task: string;
+      brief?: string | null;
+      contextPolicy: "balanced" | "compact" | "artifact-heavy";
+      slotProviders?: Record<string, string>;
+      skippedOptionalSteps?: string[];
+    }) =>
+      api.resolveGuide(input.guideId, {
+        task: input.task,
+        brief: input.brief,
+        contextPolicy: input.contextPolicy,
+        slotProviders: input.slotProviders,
+        skippedOptionalSteps: input.skippedOptionalSteps,
+      }),
+    [],
+  );
   const handlePromptSubmit = async (
     input: ComposerSubmit | PromptSubmit,
   ): Promise<void> => {
@@ -780,6 +802,8 @@ export function MissionControlPage({
             busy={promptBusy}
             providers={providers}
             skills={skills}
+            guides={guides}
+            onResolveGuide={resolveComposerGuide}
             onSubmit={handlePromptSubmit}
           />
         }
@@ -2043,4 +2067,3 @@ function IssuesPanel({
     </div>
   );
 }
-

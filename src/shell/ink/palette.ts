@@ -127,6 +127,33 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     action: { kind: "goto", page: "skills" },
   },
   {
+    id: "runner.guides-list",
+    title: "List Guides",
+    hint: "inspect built-in and project run recipes",
+    keywords: ["recipes", "quality", "arbitration", "workflow"],
+    description:
+      "Opens the command runner with the Guide catalog so the shell can inspect the same run recipes as the CLI and dashboard.",
+    cli: "amaco guides list",
+    examples: [
+      "amaco guides show quality-arbitration",
+      'amaco run "review this change" --guide quality-arbitration',
+    ],
+    action: { kind: "open-runner", seed: "guides list" },
+  },
+  {
+    id: "runner.guides-quality-arbitration",
+    title: "Show Quality Arbitration Guide",
+    hint: "slots + ordered review steps",
+    keywords: ["guide", "review", "challenger", "cto"],
+    description:
+      "Loads the built-in Quality Arbitration Guide definition in the runner before the sequential Guide runner phase.",
+    cli: "amaco guides show quality-arbitration",
+    action: {
+      kind: "open-runner",
+      seed: "guides show quality-arbitration",
+    },
+  },
+  {
     id: "goto.approvals",
     title: "Go to Approvals",
     hint: "pending approval gates",

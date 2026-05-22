@@ -6,6 +6,11 @@ import { color, header, indent, symbol } from "../ui/format.js";
 import { isAmacoError } from "../../utils/errors.js";
 import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
+import {
+  discoverGuides,
+  findGuideById,
+} from "../../guides/guide-discovery.js";
+import { GuideResolutionError, resolveGuide } from "../../guides/guide-resolver.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -52,6 +57,10 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Guide id to resolve before start. Phase 1 previews only. */
+  guideId?: string | null;
+  /** Provider overrides by Guide participant slot id. */
+  guideSlotProviders?: Record<string, string>;
 };
 
 export async function runRunCommand(
@@ -122,6 +131,42 @@ export async function runRunCommand(
       `  ${symbol.arrow()} Run ${color.bold("amaco provider setup")} to add the missing provider, or ${color.bold("amaco provider set <id>")} to switch.`,
     );
     return 1;
+  }
+
+  if (options.guideId) {
+    const guide = await findGuideById(detected.projectRoot, options.guideId);
+    if (!guide) {
+      const ids = (await discoverGuides(detected.projectRoot)).map((item) => item.id);
+      console.error(
+        `${symbol.fail()} No Guide named "${options.guideId}". Found: ${ids.join(", ") || "(none)"}.`,
+      );
+      return 1;
+    }
+    try {
+      const snapshot = resolveGuide({
+        guide: guide.definition,
+        source: guide.source,
+        config: loaded.config,
+        task,
+        slotProviders: options.guideSlotProviders,
+      });
+      printResolvedGuide(snapshot);
+    } catch (err) {
+      const message =
+        err instanceof GuideResolutionError || isAmacoError(err)
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      console.error(`${symbol.fail()} Guide resolution failed.`);
+      console.error(indent(message));
+      return 1;
+    }
+    console.error("");
+    console.error(
+      `${symbol.warn()} Guide execution is not enabled yet. Phase 1 resolves and previews the run recipe; the sequential Guide runner starts in Phase 2.`,
+    );
+    return 2;
   }
 
   // Optionally bring up the supervisor server alongside the run.
@@ -393,5 +438,29 @@ export async function runRunCommand(
       return 3;
     default:
       return 0;
+  }
+}
+
+function printResolvedGuide(snapshot: ReturnType<typeof resolveGuide>): void {
+  console.log(header(`${snapshot.label} preview`));
+  console.log(
+    `${symbol.bullet()} Guide ${color.bold(snapshot.guideId)} v${snapshot.guideVersion} ${color.dim(`(${snapshot.source.kind})`)}`,
+  );
+  console.log(`${symbol.bullet()} Context ${color.bold(snapshot.contextPolicy)}`);
+  console.log(`${symbol.bullet()} Participants`);
+  for (const slot of snapshot.slots) {
+    console.log(
+      indent(`${slot.id}: ${slot.defaultAgent} ${color.dim("via")} ${slot.providerId}`),
+    );
+  }
+  console.log(`${symbol.bullet()} Steps`);
+  for (const [index, step] of snapshot.steps.entries()) {
+    const provider = step.providerId ? ` via ${step.providerId}` : "";
+    const state = step.enabled ? "" : " skipped";
+    console.log(
+      indent(
+        `${index + 1}. ${step.id}: ${step.kind}${provider}${color.dim(state)}`,
+      ),
+    );
   }
 }

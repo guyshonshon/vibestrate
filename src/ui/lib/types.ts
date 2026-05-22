@@ -66,6 +66,91 @@ export type RunControlDirective =
       note?: string;
     };
 
+export type GuideContextPolicy = "balanced" | "compact" | "artifact-heavy";
+
+export type GuideSource = {
+  kind: "builtin" | "project" | "fixture";
+  ref: string;
+};
+
+export type GuideSlotDefinition = {
+  label: string;
+  description?: string;
+  defaultAgent: string;
+};
+
+export type GuideStepDefinition = {
+  id: string;
+  label: string;
+  kind:
+    | "agent-turn"
+    | "review-turn"
+    | "response-turn"
+    | "validation"
+    | "approval-gate"
+    | "summary-turn";
+  slot?: string;
+  agentId?: string;
+  inputs: string[];
+  outputs: string[];
+  optional: boolean;
+};
+
+export type GuideDefinition = {
+  id: string;
+  version: number;
+  label: string;
+  description: string;
+  slots: Record<string, GuideSlotDefinition>;
+  steps: GuideStepDefinition[];
+};
+
+export type DiscoveredGuide = {
+  id: string;
+  version: number;
+  label: string;
+  description: string;
+  source: GuideSource;
+  definitionPath: string | null;
+  definition: GuideDefinition;
+};
+
+export type ResolvedGuideSlot = {
+  id: string;
+  label: string;
+  description: string | null;
+  defaultAgent: string;
+  providerId: string;
+};
+
+export type ResolvedGuideStep = {
+  id: string;
+  label: string;
+  kind: GuideStepDefinition["kind"];
+  enabled: boolean;
+  optional: boolean;
+  slotId: string | null;
+  agentId: string | null;
+  providerId: string | null;
+  inputs: string[];
+  outputs: string[];
+};
+
+export type ResolvedGuideSnapshot = {
+  schemaVersion: 1;
+  guideId: string;
+  guideVersion: number;
+  label: string;
+  description: string;
+  source: GuideSource;
+  task: string;
+  brief: string | null;
+  contextPolicy: GuideContextPolicy;
+  resolvedAt: string;
+  slots: ResolvedGuideSlot[];
+  steps: ResolvedGuideStep[];
+};
+
 export type Priority = "low" | "medium" | "high";
 
 export type RoadmapItem = {
