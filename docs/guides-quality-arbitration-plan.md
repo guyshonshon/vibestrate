@@ -347,71 +347,73 @@ The dataset should label outcomes from evidence and human decisions. It should n
 
 ## Phased Delivery
 
+Checklist convention: mark an item complete only when code and focused tests land together. Keep exit checks open until the phase behavior is verified end to end.
+
 ### Phase 0: contracts and fixture
 
-- Lock Guide vs Skill vocabulary.
-- Add the two schemas: Guide definition and resolved Guide snapshot.
-- Add one deterministic fake Quality Arbitration fixture for tests.
-- Define output markers or JSON contracts for findings, responses, and decision summary.
+- [x] Lock Guide vs Skill vocabulary.
+- [x] Add the two schemas: Guide definition and resolved Guide snapshot.
+- [x] Add one deterministic fake Quality Arbitration fixture for tests.
+- [x] Define JSON contracts for findings, responses, and decision summary.
 
 Exit:
 
-- malformed Guide definitions fail validation,
-- the built-in Guide resolves against configured providers without running them.
+- [x] Malformed Guide definitions fail validation.
+- [x] The built-in Guide resolves against configured providers without running them.
 
 ### Phase 1: discovery and start-run UX
 
-- Add built-in and project Guide discovery.
-- Add `amaco guides list/show`.
-- Add `amaco run --guide ...` with slot provider overrides.
-- Add dashboard Guide picker and resolved-step preview.
-- Add shell command-palette entry and inspectable Guide catalog.
+- [ ] Add built-in and project Guide discovery.
+- [ ] Add `amaco guides list/show`.
+- [ ] Add `amaco run --guide ...` with slot provider overrides.
+- [ ] Add dashboard Guide picker and resolved-step preview.
+- [ ] Add shell command-palette entry and inspectable Guide catalog.
 
 Exit:
 
-- all surfaces produce the same resolved snapshot for the same inputs.
+- [ ] All surfaces produce the same resolved snapshot for the same inputs.
 
 ### Phase 2: sequential Guide runner
 
-- Implement step state, step events, prompt/output artifacts, validation step, final summary step.
-- Reuse current provider streaming, worktree, permission, Skill, MCP, approval, and metrics plumbing.
-- Expose current Guide step in Mission Control, run detail, replay, and shell runs page.
+- [ ] Implement step state, step events, prompt/output artifacts, validation step, final summary step.
+- [ ] Reuse current provider streaming, worktree, permission, Skill, MCP, approval, and metrics plumbing.
+- [ ] Expose current Guide step in Mission Control, run detail, replay, and shell runs page.
 
 Exit:
 
-- Quality Arbitration completes with stateless provider turns from persisted artifacts.
+- [ ] Quality Arbitration completes with stateless provider turns from persisted artifacts.
 
 ### Phase 3: participant/session retention
 
-- Introduce provider capability reporting and participant ledger.
-- Add provider adapters for session reuse where a local CLI has a supported resume/interactive path.
-- Keep artifact rehydration as fallback.
-- Surface reuse/rehydration in UI, TUI, metrics, and events.
+- [ ] Introduce provider capability reporting and participant ledger.
+- [ ] Add provider adapters for session reuse where a local CLI has a supported resume/interactive path.
+- [ ] Keep artifact rehydration as fallback.
+- [ ] Surface reuse/rehydration in UI, TUI, metrics, and events.
 
 Exit:
 
-- builder and challenger can maintain separate run-local context when their CLIs support it, and restart/fallback remains auditable.
+- [ ] Builder and challenger can maintain separate run-local context when their CLIs support it, and restart/fallback remains auditable.
 
 ### Phase 4: arbitration semantics
 
-- Parse structured findings, responses, and second-review resolutions.
-- Create a decision summary that references validation and disagreement records.
-- Feed accepted suggestions and review-pass tooling where appropriate.
-- Add local export for arbitration datasets.
+- [ ] Parse structured findings, responses, and second-review resolutions.
+- [ ] Create a decision summary that references validation and disagreement records.
+- [ ] Feed accepted suggestions and review-pass tooling where appropriate.
+- [ ] Add local export for arbitration datasets.
 
 Exit:
 
-- a user can compare judgment quality by evidence, not by scrolling prose.
+- [ ] A user can compare judgment quality by evidence, not by scrolling prose.
 
 ### Phase 5: migrate and generalize
 
-- Decide whether the legacy default workflow becomes a built-in Guide or stays a special runner.
-- Add bounded loops/gates once sequential step behavior is stable.
-- Consider Guide suggestions based on task type, risk, touched files, and past outcomes.
+- [ ] Decide whether the legacy default workflow becomes a built-in Guide or stays a special runner.
+- [ ] Add bounded loops/gates once sequential step behavior is stable.
+- [ ] Consider Guide suggestions based on task type, risk, touched files, and past outcomes.
 
 Exit:
 
-- Guide architecture supports more than Quality Arbitration without hiding unsafe complexity in templates.
+- [ ] Guide architecture supports more than Quality Arbitration without hiding unsafe complexity in templates.
 
 ## Testing Plan
 
@@ -449,7 +451,7 @@ Exit:
 
 1. Should a slot pick a provider id only, or a provider id plus provider-specific model profile?
 2. Should the first session-retention slice target resumable one-shot CLIs before long-lived PTY sessions?
-3. Should Guide output contracts prefer strict JSON artifacts, marker blocks in Markdown, or both?
+3. Phase 0 starts with strict JSON contracts for Guide outputs. Decide during runner work whether provider prompts also need Markdown marker extraction as a fallback.
 4. Should `decision-summary` be provider-backed, deterministic from structured records, or a deterministic skeleton with an optional provider-written narrative?
 5. Should a task store a default Guide id, or should Guide choice stay run-local until behavior stabilizes?
 
