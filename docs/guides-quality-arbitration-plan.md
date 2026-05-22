@@ -363,15 +363,19 @@ Exit:
 
 ### Phase 1: discovery and start-run UX
 
-- [ ] Add built-in and project Guide discovery.
-- [ ] Add `amaco guides list/show`.
-- [ ] Add `amaco run --guide ...` with slot provider overrides.
-- [ ] Add dashboard Guide picker and resolved-step preview.
-- [ ] Add shell command-palette entry and inspectable Guide catalog.
+- [x] Add built-in and project Guide discovery.
+- [x] Add `amaco guides list/show`.
+- [x] Add `amaco run --guide ...` with slot provider overrides.
+- [x] Add dashboard Guide picker and resolved-step preview.
+- [x] Add shell command-palette entry and inspectable Guide catalog.
 
 Exit:
 
-- [ ] All surfaces produce the same resolved snapshot for the same inputs.
+- [x] All surfaces produce the same resolved snapshot for the same inputs.
+
+Phase 1 resolves and previews Guide requests. `amaco run --guide ...`, Mission
+Control, and the shell runner all stop before guided execution until the
+sequential Guide runner lands in Phase 2.
 
 ### Phase 2: sequential Guide runner
 

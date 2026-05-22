@@ -69,6 +69,11 @@ describe("filterPalette", () => {
     expect(out[0]?.id).toBe("shell.quit");
   });
 
+  it("shows the Guide catalog through the command runner", () => {
+    const out = filterPalette(DEFAULT_PALETTE, "guides");
+    expect(out.some((cmd) => cmd.id === "runner.guides-list")).toBe(true);
+  });
+
   it("limits results to the cap", () => {
     expect(filterPalette(DEFAULT_PALETTE, "", 3).length).toBe(3);
   });

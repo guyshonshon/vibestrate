@@ -14,6 +14,11 @@ import {
   type PromptSubmit,
 } from "../PromptBar.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import type {
+  DiscoveredGuide,
+  GuideContextPolicy,
+  ResolvedGuideSnapshot,
+} from "../../lib/types.js";
 
 export type ComposerProvider = {
   id: string;
@@ -38,6 +43,15 @@ type Props = {
   busy: boolean;
   providers: ComposerProvider[];
   skills: ComposerSkill[];
+  guides: DiscoveredGuide[];
+  onResolveGuide: (input: {
+    guideId: string;
+    task: string;
+    brief?: string | null;
+    contextPolicy: GuideContextPolicy;
+    slotProviders?: Record<string, string>;
+    skippedOptionalSteps?: string[];
+  }) => Promise<ResolvedGuideSnapshot>;
   onSubmit: (input: ComposerSubmit) => void | Promise<void>;
 };
 
@@ -50,7 +64,14 @@ type Props = {
  * The text parser is shared with the legacy PromptBar so slash commands
  * (/run, /task, /queue, /board, /runs, /settings, /help) work identically.
  */
-export function Composer({ busy, providers, skills, onSubmit }: Props) {
+export function Composer({
+  busy,
+  providers,
+  skills,
+  guides,
+  onResolveGuide,
+  onSubmit,
+}: Props) {
   // Draft task text is intentionally NOT persisted — refreshing
   // should leave you with a clean prompt instead of a stale draft.
   // The *configuration* (provider, effort, skills, toggles) is
@@ -76,6 +97,21 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
     "amaco.composer.skills",
     [],
   );
+  const [guideId, setGuideId] = usePersistedState<string>(
+    "amaco.composer.guide",
+    "",
+  );
+  const [guideBrief, setGuideBrief] = useState("");
+  const [guideContextPolicy, setGuideContextPolicy] =
+    useState<GuideContextPolicy>("balanced");
+  const [guideSlotProviders, setGuideSlotProviders] = useState<
+    Record<string, string>
+  >({});
+  const [skippedOptionalSteps, setSkippedOptionalSteps] = useState<string[]>([]);
+  const [guidePreview, setGuidePreview] =
+    useState<ResolvedGuideSnapshot | null>(null);
+  const [guidePreviewBusy, setGuidePreviewBusy] = useState(false);
+  const [guidePreviewError, setGuidePreviewError] = useState<string | null>(null);
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
@@ -114,6 +150,63 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
     );
   }, [skills, skillSearch]);
 
+  const selectedGuide = useMemo(
+    () => guides.find((guide) => guide.id === guideId) ?? null,
+    [guideId, guides],
+  );
+
+  useEffect(() => {
+    if (!selectedGuide) {
+      setGuidePreview(null);
+      setGuidePreviewError(null);
+      setGuidePreviewBusy(false);
+      return;
+    }
+
+    const task = guideTaskText(text);
+    if (!task) {
+      setGuidePreview(null);
+      setGuidePreviewError(null);
+      setGuidePreviewBusy(false);
+      return;
+    }
+
+    let cancelled = false;
+    setGuidePreviewBusy(true);
+    setGuidePreviewError(null);
+    void onResolveGuide({
+      guideId: selectedGuide.id,
+      task,
+      brief: guideBrief.trim() || null,
+      contextPolicy: guideContextPolicy,
+      slotProviders: compactOverrides(guideSlotProviders),
+      skippedOptionalSteps:
+        skippedOptionalSteps.length > 0 ? skippedOptionalSteps : undefined,
+    })
+      .then((snapshot) => {
+        if (!cancelled) setGuidePreview(snapshot);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setGuidePreview(null);
+        setGuidePreviewError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setGuidePreviewBusy(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    guideBrief,
+    guideContextPolicy,
+    guideSlotProviders,
+    onResolveGuide,
+    selectedGuide,
+    skippedOptionalSteps,
+    text,
+  ]);
+
   function submit() {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
@@ -121,6 +214,12 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
     const parsed = parsePromptInput(trimmed, { effort, readOnly });
     if (parsed.kind === "error") {
       setParseError(parsed.message);
+      return;
+    }
+    if (parsed.kind === "run" && selectedGuide) {
+      setParseError(
+        "Guided execution starts in Phase 2. The resolved Guide preview is ready below; switch to default workflow to spawn now.",
+      );
       return;
     }
     const enriched: ComposerSubmit =
@@ -190,11 +289,11 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             type="button"
             onClick={submit}
             disabled={busy || text.trim().length === 0}
-            aria-label="Run"
+            aria-label={selectedGuide ? "Preview Guide" : "Run"}
             className="shrink-0 self-start inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/15 px-4 py-2.5 text-[13px] font-medium text-amaco-accent hover:bg-amaco-accent/25 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
           >
             <Play className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            {busy ? "Running…" : "Run"}
+            {selectedGuide ? "Preview" : busy ? "Running…" : "Run"}
           </button>
         </div>
 
@@ -204,6 +303,17 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             providers={providers}
             value={provider}
             onChange={setProvider}
+          />
+          <GuideSelect
+            guides={guides}
+            value={guideId}
+            onChange={(next) => {
+              setGuideId(next);
+              setGuideSlotProviders({});
+              setSkippedOptionalSteps([]);
+              setGuidePreview(null);
+              setGuidePreviewError(null);
+            }}
           />
           <EffortChips value={effort} onChange={setEffort} />
           <SkillsControl
@@ -274,9 +384,46 @@ export function Composer({ busy, providers, skills, onSubmit }: Props) {
             {parseError}
           </div>
         ) : null}
+
+        {selectedGuide ? (
+          <GuidePreview
+            guide={selectedGuide}
+            providers={providers}
+            taskReady={!!guideTaskText(text)}
+            brief={guideBrief}
+            onBrief={setGuideBrief}
+            contextPolicy={guideContextPolicy}
+            onContextPolicy={setGuideContextPolicy}
+            slotProviders={guideSlotProviders}
+            onSlotProvider={(slotId, providerId) =>
+              setGuideSlotProviders((current) => ({
+                ...current,
+                [slotId]: providerId,
+              }))
+            }
+            skippedOptionalSteps={skippedOptionalSteps}
+            onSkippedOptionalSteps={setSkippedOptionalSteps}
+            snapshot={guidePreview}
+            busy={guidePreviewBusy}
+            error={guidePreviewError}
+          />
+        ) : null}
       </div>
     </section>
   );
+}
+
+function guideTaskText(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.startsWith("/")) return null;
+  return trimmed;
+}
+
+function compactOverrides(
+  slotProviders: Record<string, string>,
+): Record<string, string> | undefined {
+  const entries = Object.entries(slotProviders).filter(([, provider]) => !!provider);
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function previewVerbFor(text: string): string | null {
@@ -339,6 +486,42 @@ function ProviderSelect({
         {items.map((p) => (
           <option key={p.id || "default"} value={p.id}>
             {labelFor(p)}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        className="h-3 w-3 text-amaco-fg-muted"
+        strokeWidth={1.5}
+        aria-hidden
+      />
+    </label>
+  );
+}
+
+function GuideSelect({
+  guides,
+  value,
+  onChange,
+}: {
+  guides: DiscoveredGuide[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-1.5 rounded border border-amaco-border bg-amaco-panel px-2 py-1 text-amaco-fg-dim">
+      <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        guide
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="amaco-mono bg-transparent text-amaco-fg focus:outline-none"
+        aria-label="Guide"
+      >
+        <option value="">default workflow</option>
+        {guides.map((guide) => (
+          <option key={guide.id} value={guide.id}>
+            {guide.label}
           </option>
         ))}
       </select>
@@ -557,6 +740,220 @@ function SkillsControl({
           </ul>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function GuidePreview({
+  guide,
+  providers,
+  taskReady,
+  brief,
+  onBrief,
+  contextPolicy,
+  onContextPolicy,
+  slotProviders,
+  onSlotProvider,
+  skippedOptionalSteps,
+  onSkippedOptionalSteps,
+  snapshot,
+  busy,
+  error,
+}: {
+  guide: DiscoveredGuide;
+  providers: ComposerProvider[];
+  taskReady: boolean;
+  brief: string;
+  onBrief: (brief: string) => void;
+  contextPolicy: GuideContextPolicy;
+  onContextPolicy: (policy: GuideContextPolicy) => void;
+  slotProviders: Record<string, string>;
+  onSlotProvider: (slotId: string, providerId: string) => void;
+  skippedOptionalSteps: string[];
+  onSkippedOptionalSteps: (steps: string[]) => void;
+  snapshot: ResolvedGuideSnapshot | null;
+  busy: boolean;
+  error: string | null;
+}) {
+  const slots = Object.entries(guide.definition.slots);
+  const optionalSteps = guide.definition.steps.filter((step) => step.optional);
+  const steps = snapshot?.steps ?? guide.definition.steps;
+
+  function toggleOptionalStep(stepId: string, enabled: boolean) {
+    onSkippedOptionalSteps(
+      enabled
+        ? skippedOptionalSteps.filter((id) => id !== stepId)
+        : [...skippedOptionalSteps, stepId],
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-amaco-border-soft pt-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-[13px] font-medium text-amaco-fg">
+              {guide.label}
+            </span>
+            <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+              {guide.id}@{guide.version}
+            </span>
+            <span className="rounded border border-amaco-border bg-amaco-panel px-1.5 py-px amaco-mono text-[10px] text-amaco-fg-dim">
+              {guide.source.kind}
+            </span>
+          </div>
+          <p className="mt-1 max-w-[72ch] text-[12px] leading-[1.45] text-amaco-fg-dim">
+            {guide.description}
+          </p>
+        </div>
+        <span className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 amaco-mono text-[10.5px] text-amaco-warn">
+          preview only
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(16rem,1fr)_minmax(22rem,1.35fr)]">
+        <div className="space-y-2">
+          <label className="block">
+            <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+              brief
+            </span>
+            <textarea
+              rows={2}
+              value={brief}
+              onChange={(e) => onBrief(e.target.value)}
+              placeholder="Review focus, risk, or handoff context"
+              className="mt-1 w-full resize-y rounded border border-amaco-border bg-amaco-panel px-2.5 py-2 text-[12px] leading-[1.45] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent focus:outline-none focus:ring-1 focus:ring-amaco-accent/40"
+            />
+          </label>
+
+          <label className="inline-flex items-center gap-1.5 rounded border border-amaco-border bg-amaco-panel px-2 py-1 text-[11.5px] text-amaco-fg-dim">
+            <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+              context
+            </span>
+            <select
+              value={contextPolicy}
+              onChange={(e) =>
+                onContextPolicy(e.target.value as GuideContextPolicy)
+              }
+              aria-label="Guide context policy"
+              className="amaco-mono bg-transparent text-amaco-fg focus:outline-none"
+            >
+              <option value="balanced">balanced</option>
+              <option value="compact">compact</option>
+              <option value="artifact-heavy">artifact-heavy</option>
+            </select>
+          </label>
+
+          <div className="space-y-1.5">
+            {slots.map(([slotId, slot]) => (
+              <label
+                key={slotId}
+                className="grid gap-1 rounded border border-amaco-border bg-amaco-panel px-2 py-1.5 text-[11.5px] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+              >
+                <span className="min-w-0">
+                  <span className="text-amaco-fg">{slot.label}</span>
+                  <span className="amaco-mono ml-1 text-amaco-fg-muted">
+                    {slotId}
+                  </span>
+                </span>
+                <select
+                  value={slotProviders[slotId] ?? ""}
+                  onChange={(e) => onSlotProvider(slotId, e.target.value)}
+                  aria-label={`${slot.label} provider`}
+                  className="amaco-mono min-w-0 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-1 text-amaco-fg focus:border-amaco-accent focus:outline-none"
+                >
+                  <option value="">agent default</option>
+                  {providers
+                    .filter((provider) => provider.configured)
+                    .map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {labelFor(provider)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ))}
+          </div>
+
+          {optionalSteps.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {optionalSteps.map((step) => {
+                const enabled = !skippedOptionalSteps.includes(step.id);
+                return (
+                  <label
+                    key={step.id}
+                    className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] ${
+                      enabled
+                        ? "border-amaco-accent/40 bg-amaco-accent/10 text-amaco-accent"
+                        : "border-amaco-border bg-amaco-panel text-amaco-fg-dim"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={(e) => toggleOptionalStep(step.id, e.target.checked)}
+                      className="h-3 w-3 accent-amaco-accent"
+                    />
+                    {step.label}
+                  </label>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 rounded border border-amaco-border bg-amaco-panel">
+          <div className="flex items-center justify-between gap-2 border-b border-amaco-border-soft px-2.5 py-1.5">
+            <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+              resolved steps
+            </span>
+            <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+              {busy ? "resolving" : snapshot ? "resolved" : "definition"}
+            </span>
+          </div>
+          {!taskReady ? (
+            <div className="px-2.5 py-2 text-[11.5px] text-amaco-fg-muted">
+              Add a task to resolve providers.
+            </div>
+          ) : error ? (
+            <div className="px-2.5 py-2 text-[11.5px] text-amaco-fail">
+              {error}
+            </div>
+          ) : null}
+          <ol className="divide-y divide-amaco-border-soft">
+            {steps.map((step, index) => {
+              const enabled = "enabled" in step ? step.enabled : true;
+              const provider = "providerId" in step ? step.providerId : null;
+              const slot = "slotId" in step ? step.slotId : step.slot ?? null;
+              return (
+                <li
+                  key={step.id}
+                  className={`grid gap-1 px-2.5 py-1.5 text-[11.5px] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center ${
+                    enabled ? "text-amaco-fg-dim" : "text-amaco-fg-muted"
+                  }`}
+                >
+                  <span className="amaco-mono text-amaco-fg-muted">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="text-amaco-fg">{step.label}</span>
+                    <span className="amaco-mono ml-1 text-amaco-fg-muted">
+                      {step.kind}
+                    </span>
+                  </span>
+                  <span className="amaco-mono truncate text-amaco-fg-muted">
+                    {!enabled
+                      ? "skipped"
+                      : provider
+                        ? `${slot ?? "stage"}:${provider}`
+                        : slot ?? "system"}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
     </div>
   );
 }

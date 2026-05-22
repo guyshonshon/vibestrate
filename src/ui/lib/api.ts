@@ -7,6 +7,7 @@ import type {
   ConflictWarning,
   DiffSnapshot,
   DiscoveredSkill,
+  DiscoveredGuide,
   EditorStatus,
   FileDiff,
   FileTreeResult,
@@ -49,6 +50,8 @@ import type {
   PolicyCheckResult,
   PolicySurface,
   RunReplay,
+  GuideContextPolicy,
+  ResolvedGuideSnapshot,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -256,6 +259,26 @@ export const api = {
     assignments: SkillAssignmentSummary[];
   }> {
     return jsonGet("/api/skills");
+  },
+  async listGuides(): Promise<{ guides: DiscoveredGuide[] }> {
+    return jsonGet("/api/guides");
+  },
+  async resolveGuide(
+    guideId: string,
+    input: {
+      task: string;
+      brief?: string | null;
+      contextPolicy?: GuideContextPolicy;
+      slotProviders?: Record<string, string>;
+      stepProviders?: Record<string, string>;
+      skippedOptionalSteps?: string[];
+    },
+  ): Promise<ResolvedGuideSnapshot> {
+    const r = await jsonPost<{ snapshot: ResolvedGuideSnapshot }>(
+      `/api/guides/${encodeURIComponent(guideId)}/resolve`,
+      input,
+    );
+    return r.snapshot;
   },
   async getMetrics(runId: string): Promise<RuntimeMetrics | null> {
     try {
