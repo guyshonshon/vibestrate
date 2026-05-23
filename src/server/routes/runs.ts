@@ -63,6 +63,30 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
+  guide: z
+    .object({
+      id: z
+        .string()
+        .min(1)
+        .max(80)
+        .regex(/^[a-z][a-z0-9-]*$/),
+      brief: z.string().max(4000).nullable().optional(),
+      contextPolicy: z
+        .enum(["balanced", "compact", "artifact-heavy"])
+        .optional(),
+      slotProviders: z
+        .record(
+          z.string().min(1).max(80).regex(/^[a-z][a-z0-9-]*$/),
+          z.string().min(1).max(128),
+        )
+        .optional(),
+      skippedOptionalSteps: z
+        .array(z.string().min(1).max(80).regex(/^[a-z][a-z0-9-]*$/))
+        .max(64)
+        .optional(),
+    })
+    .strict()
+    .optional(),
 });
 
 function resolveAmacoBin(): string {
@@ -123,6 +147,21 @@ export async function registerRunsRoutes(
       argv.push("--skills", body.skills.join(","));
     }
     if (body.concise) argv.push("--concise");
+    if (body.guide) {
+      argv.push("--guide", body.guide.id);
+      if (body.guide.brief) argv.push("--guide-brief", body.guide.brief);
+      if (body.guide.contextPolicy) {
+        argv.push("--guide-context", body.guide.contextPolicy);
+      }
+      for (const [slotId, providerId] of Object.entries(
+        body.guide.slotProviders ?? {},
+      )) {
+        argv.push("--guide-slot", `${slotId}=${providerId}`);
+      }
+      for (const stepId of body.guide.skippedOptionalSteps ?? []) {
+        argv.push("--guide-skip", stepId);
+      }
+    }
     const bin = resolveAmacoBin();
     try {
       const child = spawn(process.execPath, [bin, ...argv], {

@@ -85,7 +85,7 @@ program.addCommand(buildResumeCommand());
 program.addCommand(buildShellCommand());
 
 program
-  .command("run <task...>")
+  .command("run [task...]")
   .description("Run the default plan→architect→implement→review→verify workflow.")
   .option("--ui", "start the local supervisor dashboard alongside the run")
   .option("--ui-port <port>", "port for the supervisor dashboard (default 4317)", (v) => parseInt(v, 10))
@@ -119,7 +119,7 @@ program
   )
   .option(
     "--guide <id>",
-    "resolve a Guide recipe for this run. Phase 1 previews the resolved steps; execution arrives with the Guide runner.",
+    "resolve and run a Guide recipe for this run.",
   )
   .option(
     "--guide-slot <slot=provider>",
@@ -127,9 +127,27 @@ program
     collectGuideSlot,
     [],
   )
+  .option(
+    "--guide-brief <text>",
+    "extra brief for the Guide task packet.",
+  )
+  .option(
+    "--guide-context <policy>",
+    "Guide context policy (balanced|compact|artifact-heavy).",
+  )
+  .option(
+    "--guide-skip <step>",
+    "skip an optional Guide step for this run. Repeat for multiple steps.",
+    collectGuideStep,
+    [],
+  )
+  .option(
+    "--interactive",
+    "open terminal Guide setup for task, brief, participants, and optional steps. Requires --guide.",
+  )
   .action(
     async (
-      taskParts: string[],
+      taskParts: string[] = [],
       opts: {
         ui?: boolean;
         uiPort?: number;
@@ -142,6 +160,10 @@ program
         concise?: boolean;
         guide?: string;
         guideSlot?: string[];
+        guideBrief?: string;
+        guideContext?: string;
+        guideSkip?: string[];
+        interactive?: boolean;
       },
     ) => {
       const task = taskParts.join(" ").trim();
@@ -157,9 +179,34 @@ program
         .split(",")
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
-      if (!opts.guide && (opts.guideSlot?.length ?? 0) > 0) {
-        console.error("--guide-slot requires --guide <id>.");
+      if (
+        !opts.guide &&
+        ((opts.guideSlot?.length ?? 0) > 0 ||
+          !!opts.guideBrief ||
+          !!opts.guideContext ||
+          (opts.guideSkip?.length ?? 0) > 0 ||
+          opts.interactive === true)
+      ) {
+        console.error("--guide-* options and run --interactive require --guide <id>.");
         process.exit(2);
+      }
+      let guideContextPolicy:
+        | "balanced"
+        | "compact"
+        | "artifact-heavy"
+        | undefined;
+      if (opts.guideContext) {
+        if (
+          opts.guideContext !== "balanced" &&
+          opts.guideContext !== "compact" &&
+          opts.guideContext !== "artifact-heavy"
+        ) {
+          console.error(
+            `--guide-context must be one of balanced|compact|artifact-heavy (got "${opts.guideContext}").`,
+          );
+          process.exit(2);
+        }
+        guideContextPolicy = opts.guideContext;
       }
       let guideSlotProviders: Record<string, string> = {};
       try {
@@ -180,12 +227,20 @@ program
         concise: opts.concise ?? false,
         guideId: opts.guide ?? null,
         guideSlotProviders,
+        guideBrief: opts.guideBrief ?? null,
+        guideContextPolicy,
+        guideSkippedOptionalSteps: opts.guideSkip ?? [],
+        guideInteractive: opts.interactive ?? false,
       });
       process.exit(code);
     },
   );
 
 function collectGuideSlot(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function collectGuideStep(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 

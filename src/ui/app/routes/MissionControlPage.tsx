@@ -673,6 +673,10 @@ export function MissionControlPage({
       }),
     [],
   );
+  const suggestComposerGuides = useCallback(
+    (task: string) => api.suggestGuides({ task }),
+    [],
+  );
   const handlePromptSubmit = async (
     input: ComposerSubmit | PromptSubmit,
   ): Promise<void> => {
@@ -691,6 +695,7 @@ export function MissionControlPage({
                 ? composer.skills
                 : undefined,
             concise: composer.concise || undefined,
+            guide: composer.guide,
           });
           setToast({ kind: "ok", text: r.message });
           break;
@@ -804,6 +809,7 @@ export function MissionControlPage({
             skills={skills}
             guides={guides}
             onResolveGuide={resolveComposerGuide}
+            onSuggestGuides={suggestComposerGuides}
             onSubmit={handlePromptSubmit}
           />
         }

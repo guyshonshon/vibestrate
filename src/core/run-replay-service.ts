@@ -21,6 +21,7 @@ const MAX_EVENTS = 10_000;
  *  The projection is forgiving: unknown event types still appear in the
  *  timeline, just classified into the "other" phase. */
 export type ReplayPhaseKey =
+  | "guides"
   | "planning"
   | "architecting"
   | "executing"
@@ -36,6 +37,7 @@ export type ReplayPhaseKey =
   | "other";
 
 export const REPLAY_PHASE_KEYS: ReplayPhaseKey[] = [
+  "guides",
   "planning",
   "architecting",
   "executing",
@@ -180,6 +182,26 @@ export type ReplayMetricsSummary = {
   agentStageOrder: string[];
 };
 
+export type ReplayGuideSummary = {
+  guideId: string;
+  label: string;
+  currentStepId: string | null;
+  participants: {
+    slotId: string;
+    label: string;
+    providerId: string;
+    providerType: string;
+    lastContextMode: string | null;
+    turnCount: number;
+  }[];
+  steps: {
+    id: string;
+    label: string;
+    kind: string;
+    status: string;
+  }[];
+};
+
 export type ReplayTruncation = {
   truncated: boolean;
   totalEventCount: number;
@@ -210,6 +232,7 @@ export type RunReplay = {
   policyRefusals: ReplayPolicyRefusal[];
   notifications: ReplayNotification[];
   terminalSessions: ReplayTerminalSession[];
+  guide: ReplayGuideSummary | null;
   artifacts: { path: string }[];
   metrics: ReplayMetricsSummary | null;
   /** Files we tried to read but couldn't parse / didn't exist. The UI
@@ -299,6 +322,7 @@ export async function buildRunReplay(
     (s) => s.runId === runId,
   );
   const metrics = extractMetricsSummary(metricsRaw);
+  const guide = extractGuideSummary(state);
 
   // ─── Artifacts under .amaco/runs/<id>/artifacts/ ───────────────────────
   const artifactsDir = path.join(runDir(projectRoot, runId), "artifacts");
@@ -445,6 +469,7 @@ export async function buildRunReplay(
     policyRefusals,
     notifications,
     terminalSessions,
+    guide,
     artifacts,
     metrics,
     missingOrMalformed: missing,
@@ -487,6 +512,7 @@ function collectArtifactRefs(
 }
 
 function phaseFromEventType(t: string): ReplayPhaseKey | null {
+  if (t.startsWith("guide.")) return "guides";
   if (t.startsWith("approval.")) return "approvals";
   if (t.startsWith("suggestion.") || t.startsWith("bundle.")) return "suggestions";
   if (t.startsWith("policy.")) return "policies";
@@ -524,6 +550,8 @@ function stageKeyFromStatus(status: string): ReplayPhaseKey | null {
 
 function phaseLabel(key: ReplayPhaseKey): string {
   switch (key) {
+    case "guides":
+      return "Guides";
     case "planning":
       return "Planning";
     case "architecting":
@@ -551,6 +579,93 @@ function phaseLabel(key: ReplayPhaseKey): string {
     case "other":
       return "Other";
   }
+}
+
+function extractGuideSummary(state: Record<string, unknown>): ReplayGuideSummary | null {
+  const raw = state.guide;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const guide = raw as Record<string, unknown>;
+  const guideId = readString(guide, "guideId");
+  const label = readString(guide, "label");
+  if (!guideId || !label) return null;
+  const steps = Array.isArray(guide.steps)
+    ? guide.steps
+        .filter(
+          (step): step is Record<string, unknown> =>
+            !!step && typeof step === "object" && !Array.isArray(step),
+        )
+        .map((step) => {
+          const id = readString(step, "id");
+          const stepLabel = readString(step, "label");
+          const kind = readString(step, "kind");
+          const status = readString(step, "status");
+          return id && stepLabel && kind && status
+            ? { id, label: stepLabel, kind, status }
+            : null;
+        })
+        .filter(
+          (
+            step,
+          ): step is {
+            id: string;
+            label: string;
+            kind: string;
+            status: string;
+          } => step !== null,
+        )
+    : [];
+  const participants = Array.isArray(guide.participants)
+    ? guide.participants
+        .filter(
+          (participant): participant is Record<string, unknown> =>
+            !!participant &&
+            typeof participant === "object" &&
+            !Array.isArray(participant),
+        )
+        .map((participant) => {
+          const slotId = readString(participant, "slotId");
+          const participantLabel = readString(participant, "label");
+          const providerId = readString(participant, "providerId");
+          const providerType = readString(participant, "providerType");
+          const turnCount =
+            typeof participant.turnCount === "number"
+              ? participant.turnCount
+              : null;
+          return slotId &&
+            participantLabel &&
+            providerId &&
+            providerType &&
+            turnCount !== null
+            ? {
+                slotId,
+                label: participantLabel,
+                providerId,
+                providerType,
+                lastContextMode: readString(participant, "lastContextMode"),
+                turnCount,
+              }
+            : null;
+        })
+        .filter(
+          (
+            participant,
+          ): participant is {
+            slotId: string;
+            label: string;
+            providerId: string;
+            providerType: string;
+            lastContextMode: string | null;
+            turnCount: number;
+          } => participant !== null,
+        )
+    : [];
+  return {
+    guideId,
+    label,
+    currentStepId: readString(guide, "currentStepId"),
+    participants,
+    steps,
+  };
 }
 
 const POLICY_RULE_RE = /\(policy rule:\s*([A-Za-z][A-Za-z0-9_-]*)\)\s*$/;

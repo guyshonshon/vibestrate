@@ -24,6 +24,7 @@ describe("state machine", () => {
 
   it("allows valid transitions", () => {
     expect(canTransition("created", "planning")).toBe(true);
+    expect(canTransition("created", "reviewing")).toBe(true);
     expect(canTransition("planning", "planned")).toBe(true);
     expect(canTransition("reviewing", "verifying")).toBe(true);
     expect(canTransition("verifying", "merge_ready")).toBe(true);
@@ -31,7 +32,7 @@ describe("state machine", () => {
 
   it("rejects invalid transitions", () => {
     expect(canTransition("created", "merge_ready")).toBe(false);
-    expect(canTransition("planning", "verifying")).toBe(false);
+    expect(canTransition("planning", "architected")).toBe(false);
     expect(canTransition("merge_ready", "planning")).toBe(false);
   });
 

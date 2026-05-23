@@ -197,6 +197,41 @@ describe("buildShellSnapshot", () => {
     expect(row.pausedAtStatus).toBe("executing");
     expect(row.providerOverride).toBe("codex");
   });
+
+  it("surfaces the current Guide step from state.json", async () => {
+    await writeRun(root, "run-guide", {
+      status: "reviewing",
+      guide: {
+        guideId: "quality-arbitration",
+        guideVersion: 1,
+        label: "Quality Arbitration",
+        snapshotPath: "guide.json",
+        currentStepId: "second-review",
+        steps: [
+          {
+            id: "plan",
+            label: "Plan",
+            kind: "agent-turn",
+            status: "passed",
+          },
+          {
+            id: "second-review",
+            label: "Second Review",
+            kind: "review-turn",
+            status: "running",
+          },
+        ],
+      },
+    });
+    const snap = await buildShellSnapshot(root);
+    expect(snap.runs[0]!.guide).toMatchObject({
+      label: "Quality Arbitration",
+      currentStepLabel: "Second Review",
+      currentStepStatus: "running",
+      completedSteps: 1,
+      totalSteps: 2,
+    });
+  });
 });
 
 // Render-side coverage moved to component tests under `tests/shell-ui-state`

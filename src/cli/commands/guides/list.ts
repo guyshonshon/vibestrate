@@ -1,5 +1,5 @@
 import { detectProject } from "../../../project/project-detector.js";
-import { discoverGuides } from "../../../guides/guide-discovery.js";
+import { discoverGuides } from "../../../guides/catalog/guide-discovery.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runGuidesList(opts: { json?: boolean }): Promise<number> {

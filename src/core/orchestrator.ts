@@ -32,6 +32,7 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
   ensureStreamsDir,
@@ -41,12 +42,19 @@ import { isGitAvailable } from "../git/git.js";
 import { GitError, AmacoError, describeError } from "../utils/errors.js";
 import { formatRunIdTimestamp, nowIso, durationMs } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
-import type { ProviderRunResult } from "../providers/provider-types.js";
+import type {
+  ProviderRunResult,
+  ProviderSessionRequest,
+} from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type AgentMetrics } from "./runtime-metrics.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { ApprovalService } from "./approval-service.js";
-import { detectApprovalRequest } from "./approval-types.js";
+import {
+  detectApprovalRequest,
+  type ApprovalRisk,
+  type ApprovalSource,
+} from "./approval-types.js";
 import { NotificationService } from "../notifications/notification-service.js";
 import {
   draftApprovalRequested,
@@ -60,6 +68,53 @@ import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
 import { resolveEffort } from "./effort-resolver.js";
+import { writeJson } from "../utils/json.js";
+import { runGuideSnapshotPath } from "../utils/paths.js";
+import type {
+  ResolvedGuideSnapshot,
+  ResolvedGuideStep,
+} from "../guides/schemas/guide-schema.js";
+import {
+  buildGuideContextPacket as buildGuideContextPacketValue,
+  type GuideContextOutput,
+} from "../guides/runtime/guide-context-builder.js";
+import {
+  GuideParticipantLedgerStore,
+  createGuideParticipantLedger,
+  prepareGuideParticipantTurn,
+  recordGuideParticipantTurn,
+  summarizeGuideParticipants,
+  type GuideParticipantLedger,
+  type PreparedGuideParticipantTurn,
+} from "../guides/runtime/guide-participant-ledger.js";
+import {
+  GuideArbitrationStore,
+  createGuideArbitrationLedger,
+  formatGuideFindingSuggestionBody,
+  guideAcceptedFindingResponses,
+  guideArbitrationCanonicalFindings,
+  guideArbitrationCanonicalResolutions,
+  guideArbitrationCanonicalResponses,
+  parseGuideJsonContract,
+  recordGuideArbitrationParseIssue,
+  recordGuideDecision,
+  recordGuideFindingResolutions,
+  recordGuideFindingResponses,
+  recordGuideFindings,
+  renderGuideDecisionSummaryMarkdown,
+  renderGuideOutputContractNotes,
+  setGuideAcceptedReviewPassId,
+  setGuideDecisionSummaryPath,
+  setGuideFindingSuggestionId,
+  type GuideArbitrationLedger,
+} from "../guides/runtime/guide-arbitration.js";
+import {
+  guideDecisionSummaryOutputSchema,
+  guideFindingResolutionsOutputSchema,
+  guideFindingResponsesOutputSchema,
+  guideFindingsOutputSchema,
+} from "../guides/schemas/guide-output-contracts.js";
+import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
 export type OrchestratorInput = {
   projectRoot: string;
@@ -84,6 +139,9 @@ export type OrchestratorInput = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Immutable resolved Guide recipe. When set, the sequential Guide
+   * runner replaces the legacy fixed workflow for this run. */
+  guide?: ResolvedGuideSnapshot | null;
 };
 
 export type OrchestratorOutput = {
@@ -101,6 +159,13 @@ type AgentRunResult = {
   outputArtifactPath: string;
   promptArtifactPath: string;
   providerResult: ProviderRunResult;
+};
+
+type GuideAgentTurn = {
+  slotId: string;
+  contextMode: PreparedGuideParticipantTurn["contextMode"];
+  fallbackReason: string | null;
+  sessionRequest?: ProviderSessionRequest;
 };
 
 export function makeRunId(task: string): string {
@@ -159,6 +224,14 @@ function summarizeApprovals(
   };
 }
 
+function guideFindingSuggestionTitle(
+  finding: import("../guides/schemas/guide-output-contracts.js").GuideFinding,
+): string {
+  const prefix = `Quality Arbitration ${finding.id}: `;
+  const claim = finding.claim.replace(/\s+/g, " ").trim();
+  return `${prefix}${claim}`.slice(0, 200);
+}
+
 export class Orchestrator {
   private readonly projectRoot: string;
   private readonly config: ProjectConfig;
@@ -172,6 +245,7 @@ export class Orchestrator {
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
+  private readonly guide: ResolvedGuideSnapshot | null;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -186,6 +260,7 @@ export class Orchestrator {
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
+    this.guide = input.guide ?? null;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -250,7 +325,13 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
+      guide: this.guide
+        ? this.createGuideRunState(this.guide, "guide.json")
+        : null,
     };
+    if (this.guide) {
+      await writeJson(runGuideSnapshotPath(this.projectRoot, runId), this.guide);
+    }
     await stateStore.write(state);
     await eventLog.append({
       type: "run.created",
@@ -272,6 +353,17 @@ export class Orchestrator {
       message: resolution.note,
       data: { kind: "effort-resolution", source: resolution.source },
     });
+    if (this.guide) {
+      await eventLog.append({
+        type: "guide.snapshot.written",
+        message: `Resolved Guide ${this.guide.guideId} snapshot persisted.`,
+        data: {
+          guideId: this.guide.guideId,
+          guideVersion: this.guide.guideVersion,
+          snapshotPath: "guide.json",
+        },
+      });
+    }
     if (this.readOnly) {
       await eventLog.append({
         type: "policy.warning",
@@ -346,6 +438,25 @@ export class Orchestrator {
     // The same stage running again (e.g. reviewing inside a fixer loop) does
     // not re-trigger policy approval — V0 keeps it once-per-stage-per-run.
     const policyStagesAlreadyForced = new Set<string>();
+
+    if (this.guide) {
+      return this.runGuideSequence({
+        snapshot: this.guide,
+        runId,
+        state,
+        worktreePath,
+        branchName,
+        artifactStore,
+        stateStore,
+        eventLog,
+        metricsStore,
+        approvalService,
+        notify,
+        policyWarnings: policy.warnings,
+        policyStagesAlreadyForced,
+        ctx,
+      });
+    }
 
     try {
       // Earliest pause gate: a user who queued `amaco pause <runId>`
@@ -980,6 +1091,1121 @@ export class Orchestrator {
     return out;
   }
 
+  private createGuideRunState(
+    snapshot: ResolvedGuideSnapshot,
+    snapshotPath: string,
+  ): NonNullable<RunState["guide"]> {
+    return {
+      guideId: snapshot.guideId,
+      guideVersion: snapshot.guideVersion,
+      label: snapshot.label,
+      snapshotPath,
+      participantLedgerPath: "participants.json",
+      participants: [],
+      currentStepId: null,
+      steps: snapshot.steps.map((step) => ({
+        id: step.id,
+        label: step.label,
+        kind: step.kind,
+        status: step.enabled ? "pending" : "skipped",
+        optional: step.optional,
+        slotId: step.slotId,
+        agentId: step.agentId,
+        providerId: step.providerId,
+        promptArtifactPath: null,
+        outputArtifactPath: null,
+        contextPacketPath: null,
+        validationArtifactPath: null,
+        startedAt: null,
+        endedAt: null,
+        error: null,
+      })),
+    };
+  }
+
+  private patchGuideStep(
+    state: RunState,
+    stepId: string,
+    patch: Partial<NonNullable<RunState["guide"]>["steps"][number]>,
+    currentStepId = state.guide?.currentStepId ?? null,
+  ): RunState {
+    if (!state.guide) {
+      throw new Error("Cannot update a Guide step on a legacy run.");
+    }
+    return {
+      ...state,
+      updatedAt: nowIso(),
+      guide: {
+        ...state.guide,
+        currentStepId,
+        steps: state.guide.steps.map((step) =>
+          step.id === stepId ? { ...step, ...patch } : step,
+        ),
+      },
+    };
+  }
+
+  private patchGuideParticipants(
+    state: RunState,
+    ledger: GuideParticipantLedger,
+  ): RunState {
+    if (!state.guide) {
+      throw new Error("Cannot update Guide participants on a legacy run.");
+    }
+    return {
+      ...state,
+      updatedAt: nowIso(),
+      guide: {
+        ...state.guide,
+        participantLedgerPath: "participants.json",
+        participants: summarizeGuideParticipants(ledger),
+      },
+    };
+  }
+
+  private guideStatusForStep(step: ResolvedGuideStep): RunStatus {
+    switch (step.kind) {
+      case "review-turn":
+        return "reviewing";
+      case "response-turn":
+        return "fixing";
+      case "validation":
+        return "validating";
+      case "summary-turn":
+        return "verifying";
+      case "approval-gate":
+        return "waiting_for_approval";
+      case "agent-turn":
+      default:
+        return step.agentId === "planner" ? "planning" : "executing";
+    }
+  }
+
+  private async moveToGuideStepStatus(input: {
+    state: RunState;
+    step: ResolvedGuideStep;
+    stateStore: RunStateStore;
+  }): Promise<RunState> {
+    const target = this.guideStatusForStep(input.step);
+    if (target === "waiting_for_approval" || input.state.status === target) {
+      return input.state;
+    }
+    const next = applyTransition(input.state, target);
+    await input.stateStore.write(next);
+    return next;
+  }
+
+  private renderGuideStepNotes(input: {
+    snapshot: ResolvedGuideSnapshot;
+    step: ResolvedGuideStep;
+  }): string {
+    const brief = input.snapshot.brief
+      ? `Run brief:\n${input.snapshot.brief.trim()}\n\n`
+      : "";
+    const outputs =
+      input.step.outputs.length > 0
+        ? input.step.outputs.map((token) => `- ${token}`).join("\n")
+        : "- No named outputs declared.";
+    const contractNotes = renderGuideOutputContractNotes(input.step);
+    return [
+      `Guide: ${input.snapshot.label} (${input.snapshot.guideId} v${input.snapshot.guideVersion})`,
+      `Guide step: ${input.step.label} (${input.step.id})`,
+      `Guide step kind: ${input.step.kind}`,
+      `Context policy: ${input.snapshot.contextPolicy}`,
+      "",
+      brief.trimEnd(),
+      "",
+      "Only this step should be completed now. Use the named prior artifacts as the handoff packet.",
+      "Expected named outputs:",
+      outputs,
+      "",
+      contractNotes,
+    ]
+      .filter((line, index, all) => line !== "" || all[index - 1] !== "")
+      .join("\n");
+  }
+
+  private async buildGuideContextPacket(input: {
+    snapshot: ResolvedGuideSnapshot;
+    step: ResolvedGuideStep;
+    outputs: Map<string, GuideContextOutput>;
+    artifactStore: ArtifactStore;
+    contextMode: PreparedGuideParticipantTurn["contextMode"];
+  }): Promise<{
+    priorArtifacts: PriorArtifact[];
+    contextPacketPath: string;
+    budget: ReturnType<typeof buildGuideContextPacketValue>["packet"]["budget"];
+  }> {
+    const built = buildGuideContextPacketValue({
+      snapshot: input.snapshot,
+      step: input.step,
+      outputs: input.outputs,
+      contextMode: input.contextMode,
+      generatedAt: nowIso(),
+    });
+    const absPath = await input.artifactStore.writeJson(
+      path.posix.join("guides", input.step.id, "context-packet.json"),
+      built.packet,
+    );
+    return {
+      priorArtifacts: built.priorArtifacts,
+      contextPacketPath: input.artifactStore.relPath(absPath),
+      budget: built.packet.budget,
+    };
+  }
+
+  private async registerGuideAgentOutputs(input: {
+    step: ResolvedGuideStep;
+    result: AgentRunResult;
+    outputs: Map<string, GuideContextOutput>;
+    artifactStore: ArtifactStore;
+    worktreePath: string | null;
+  }): Promise<void> {
+    for (const token of input.step.outputs) {
+      if (token === "diff") {
+        if (!input.worktreePath) continue;
+        const snapshot = await getDiffSnapshot({
+          worktreePath: input.worktreePath,
+        });
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("guides", input.step.id, "diff-snapshot.json"),
+          snapshot,
+        );
+        input.outputs.set(token, {
+          token,
+          label: `${input.step.label}: ${token}`,
+          content: `${JSON.stringify(snapshot, null, 2)}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+        continue;
+      }
+      input.outputs.set(token, {
+        token,
+        label: `${input.step.label}: ${token}`,
+        content: input.result.output,
+        artifactPath: input.result.outputArtifactPath,
+      });
+    }
+  }
+
+  private registerGuideValidationOutputs(input: {
+    step: ResolvedGuideStep;
+    validation: ValidationResults;
+    validationArtifactPath: string;
+    outputs: Map<string, GuideContextOutput>;
+  }): void {
+    for (const token of input.step.outputs) {
+      input.outputs.set(token, {
+        token,
+        label: `${input.step.label}: ${token}`,
+        content: `${JSON.stringify(input.validation, null, 2)}\n`,
+        artifactPath: input.validationArtifactPath,
+      });
+    }
+  }
+
+  private async recordGuideArbitrationOutputs(input: {
+    step: ResolvedGuideStep;
+    result: AgentRunResult;
+    outputs: Map<string, GuideContextOutput>;
+    validation: ValidationResults | null;
+    artifactStore: ArtifactStore;
+    eventLog: EventLog;
+    ledger: GuideArbitrationLedger;
+    store: GuideArbitrationStore;
+  }): Promise<GuideArbitrationLedger> {
+    let ledger = input.ledger;
+    let findingsChanged = false;
+
+    if (input.step.outputs.includes("findings")) {
+      const parsed = parseGuideJsonContract({
+        text: input.result.output,
+        schema: guideFindingsOutputSchema,
+        expectedStepId: input.step.id,
+      });
+      if (parsed.ok) {
+        ledger = recordGuideFindings({
+          ledger,
+          output: parsed.output,
+          sourceArtifactPath: input.result.outputArtifactPath,
+        });
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("guides", "findings.json"),
+          guideArbitrationCanonicalFindings(ledger, input.step.id),
+        );
+        input.outputs.set("findings", {
+          token: "findings",
+          label: "Guide Findings",
+          content: `${JSON.stringify(
+            guideArbitrationCanonicalFindings(ledger, input.step.id),
+            null,
+            2,
+          )}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+        findingsChanged = true;
+      } else {
+        ledger = recordGuideArbitrationParseIssue({
+          ledger,
+          stepId: input.step.id,
+          outputToken: "findings",
+          sourceArtifactPath: input.result.outputArtifactPath,
+          message: parsed.message,
+        });
+      }
+    }
+
+    if (input.step.outputs.includes("finding-responses")) {
+      const parsed = parseGuideJsonContract({
+        text: input.result.output,
+        schema: guideFindingResponsesOutputSchema,
+        expectedStepId: input.step.id,
+      });
+      if (parsed.ok) {
+        ledger = recordGuideFindingResponses({
+          ledger,
+          output: parsed.output,
+          sourceArtifactPath: input.result.outputArtifactPath,
+        });
+        ledger = await this.feedGuideAcceptedFindings(ledger);
+        const canonical = guideArbitrationCanonicalResponses(
+          ledger,
+          input.step.id,
+        );
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("guides", "finding-responses.json"),
+          canonical,
+        );
+        input.outputs.set("finding-responses", {
+          token: "finding-responses",
+          label: "Guide Finding Responses",
+          content: `${JSON.stringify(canonical, null, 2)}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+        findingsChanged = true;
+      } else {
+        ledger = recordGuideArbitrationParseIssue({
+          ledger,
+          stepId: input.step.id,
+          outputToken: "finding-responses",
+          sourceArtifactPath: input.result.outputArtifactPath,
+          message: parsed.message,
+        });
+      }
+    }
+
+    if (input.step.outputs.includes("finding-resolutions")) {
+      const parsed = parseGuideJsonContract({
+        text: input.result.output,
+        schema: guideFindingResolutionsOutputSchema,
+        expectedStepId: input.step.id,
+      });
+      if (parsed.ok) {
+        ledger = recordGuideFindingResolutions({
+          ledger,
+          output: parsed.output,
+          sourceArtifactPath: input.result.outputArtifactPath,
+        });
+        const canonical = guideArbitrationCanonicalResolutions(
+          ledger,
+          input.step.id,
+        );
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("guides", "finding-resolutions.json"),
+          canonical,
+        );
+        input.outputs.set("finding-resolutions", {
+          token: "finding-resolutions",
+          label: "Guide Finding Resolutions",
+          content: `${JSON.stringify(canonical, null, 2)}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+        findingsChanged = true;
+      } else {
+        ledger = recordGuideArbitrationParseIssue({
+          ledger,
+          stepId: input.step.id,
+          outputToken: "finding-resolutions",
+          sourceArtifactPath: input.result.outputArtifactPath,
+          message: parsed.message,
+        });
+      }
+    }
+
+    if (input.step.outputs.includes("decision-summary")) {
+      const parsed = parseGuideJsonContract({
+        text: input.result.output,
+        schema: guideDecisionSummaryOutputSchema,
+        expectedStepId: input.step.id,
+      });
+      if (parsed.ok) {
+        ledger = recordGuideDecision({
+          ledger,
+          output: parsed.output,
+          sourceArtifactPath: input.result.outputArtifactPath,
+        });
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("guides", "decision-summary.json"),
+          parsed.output,
+        );
+        input.outputs.set("decision-summary", {
+          token: "decision-summary",
+          label: "Guide Decision Summary",
+          content: `${JSON.stringify(parsed.output, null, 2)}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+      } else {
+        ledger = recordGuideArbitrationParseIssue({
+          ledger,
+          stepId: input.step.id,
+          outputToken: "decision-summary",
+          sourceArtifactPath: input.result.outputArtifactPath,
+          message: parsed.message,
+        });
+      }
+      ledger = await this.writeGuideDecisionSummaryArtifact({
+        ledger,
+        stepId: input.step.id,
+        outputs: input.outputs,
+        validation: input.validation,
+        artifactStore: input.artifactStore,
+      });
+      await input.eventLog.append({
+        type: "guide.decision.completed",
+        message: `Guide decision summary persisted for ${input.step.id}.`,
+        data: {
+          stepId: input.step.id,
+          decisionSummaryPath: ledger.decisionSummaryPath,
+          structuredDecisionParsed: ledger.decision !== null,
+        },
+      });
+    }
+
+    if (findingsChanged) {
+      await input.eventLog.append({
+        type: "guide.findings.updated",
+        message: `Guide arbitration records updated at ${input.step.id}.`,
+        data: {
+          stepId: input.step.id,
+          findings: ledger.findings.length,
+          responses: ledger.responses.length,
+          resolutions: ledger.resolutions.length,
+        },
+      });
+    }
+
+    await input.store.write(ledger);
+    return ledger;
+  }
+
+  private async feedGuideAcceptedFindings(
+    ledger: GuideArbitrationLedger,
+  ): Promise<GuideArbitrationLedger> {
+    const svc = new ReviewSuggestionService(this.projectRoot, ledger.runId);
+    for (const accepted of guideAcceptedFindingResponses(ledger)) {
+      if (accepted.finding.suggestionId) continue;
+      const fileRef = accepted.finding.finding.evidence.find(
+        (evidence) => evidence.kind === "file",
+      );
+      const suggestion = await svc.addArtifactSuggestion({
+        title: guideFindingSuggestionTitle(accepted.finding.finding),
+        body: formatGuideFindingSuggestionBody({
+          finding: accepted.finding.finding,
+          response: accepted.response.response,
+        }),
+        file: fileRef?.ref ?? null,
+        sourceArtifactPath: accepted.finding.sourceArtifactPath,
+      });
+      ledger = setGuideFindingSuggestionId({
+        ledger,
+        findingId: accepted.finding.finding.id,
+        suggestionId: suggestion.id,
+      });
+    }
+
+    if (ledger.acceptedReviewPassId) return ledger;
+    const suggestionIds = guideAcceptedFindingResponses(ledger)
+      .map((accepted) => accepted.finding.suggestionId)
+      .filter((id): id is string => id !== null);
+    if (suggestionIds.length === 0) return ledger;
+    const bundle = await new SuggestionBundleService(
+      this.projectRoot,
+      ledger.runId,
+    ).create({
+      title: "Quality Arbitration accepted findings",
+      description:
+        "Findings the builder accepted or fixed during the Guide challenge response.",
+      suggestionIds,
+    });
+    return setGuideAcceptedReviewPassId(ledger, bundle.id);
+  }
+
+  private async writeGuideDecisionSummaryArtifact(input: {
+    ledger: GuideArbitrationLedger;
+    stepId: string;
+    outputs: Map<string, GuideContextOutput>;
+    validation: ValidationResults | null;
+    artifactStore: ArtifactStore;
+  }): Promise<GuideArbitrationLedger> {
+    await input.artifactStore.writeJson(
+      path.posix.join("guides", "findings.json"),
+      guideArbitrationCanonicalFindings(input.ledger, input.stepId),
+    );
+    await input.artifactStore.writeJson(
+      path.posix.join("guides", "finding-responses.json"),
+      guideArbitrationCanonicalResponses(input.ledger, input.stepId),
+    );
+    await input.artifactStore.writeJson(
+      path.posix.join("guides", "finding-resolutions.json"),
+      guideArbitrationCanonicalResolutions(input.ledger, input.stepId),
+    );
+    const absPath = await input.artifactStore.write(
+      path.posix.join("guides", "decision-summary.md"),
+      `${renderGuideDecisionSummaryMarkdown({
+        ledger: input.ledger,
+        validation: input.validation,
+        validationArtifactPath:
+          input.outputs.get("validation")?.artifactPath ?? null,
+      })}\n`,
+    );
+    return setGuideDecisionSummaryPath(
+      input.ledger,
+      input.artifactStore.relPath(absPath),
+    );
+  }
+
+  private async runGuideSequence(input: {
+    snapshot: ResolvedGuideSnapshot;
+    runId: string;
+    state: RunState;
+    worktreePath: string | null;
+    branchName: string | null;
+    artifactStore: ArtifactStore;
+    stateStore: RunStateStore;
+    eventLog: EventLog;
+    metricsStore: MetricsStore;
+    approvalService: ApprovalService;
+    notify: (draft: NotificationDraft) => void;
+    policyWarnings: PolicyWarning[];
+    policyStagesAlreadyForced: Set<string>;
+    ctx: {
+      runId: string;
+      worktreePath: string | null;
+      branchName: string | null;
+      artifactStore: ArtifactStore;
+      eventLog: EventLog;
+      stateStore: RunStateStore;
+      onProgress: (message: string) => void;
+    };
+  }): Promise<OrchestratorOutput> {
+    let state = input.state;
+    let lastValidation: ValidationResults | null = null;
+    let reviewDecision: ReviewDecision = "BLOCKED";
+    let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
+    let planArtifact: AgentRunResult | null = null;
+    let executionArtifact: AgentRunResult | null = null;
+    let reviewArtifact: AgentRunResult | null = null;
+    let verificationArtifact: AgentRunResult | null = null;
+    const outputs = new Map<string, GuideContextOutput>();
+    const participantStore = new GuideParticipantLedgerStore(
+      this.projectRoot,
+      input.runId,
+    );
+    let participantLedger =
+      (await participantStore.read()) ??
+      createGuideParticipantLedger({
+        snapshot: input.snapshot,
+        capabilities: (providerId) =>
+          providerCapabilities(this.config.providers, providerId),
+      });
+    await participantStore.write(participantLedger);
+    state = this.patchGuideParticipants(state, participantLedger);
+    await input.stateStore.write(state);
+    for (const participant of participantLedger.participants) {
+      await input.eventLog.append({
+        type: "guide.participant.capabilities",
+        message: `Guide participant ${participant.slotId} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
+        data: {
+          guideId: input.snapshot.guideId,
+          slotId: participant.slotId,
+          providerId: participant.providerId,
+          capabilities: participant.capabilities,
+        },
+      });
+    }
+    const arbitrationStore = new GuideArbitrationStore(
+      this.projectRoot,
+      input.runId,
+    );
+    let arbitrationLedger =
+      (await arbitrationStore.read()) ??
+      createGuideArbitrationLedger({
+        runId: input.runId,
+        snapshot: input.snapshot,
+      });
+    await arbitrationStore.write(arbitrationLedger);
+    const taskBriefBody = [
+      "# Guide Task Brief",
+      "",
+      `Task: ${this.task}`,
+      "",
+      input.snapshot.brief ? input.snapshot.brief : "_No extra Guide brief._",
+    ].join("\n");
+    const taskBriefAbs = await input.artifactStore.write(
+      path.posix.join("guides", "task-brief.md"),
+      `${taskBriefBody}\n`,
+    );
+    outputs.set("task-brief", {
+      token: "task-brief",
+      label: "Task Brief",
+      content: `${taskBriefBody}\n`,
+      artifactPath: input.artifactStore.relPath(taskBriefAbs),
+    });
+
+    try {
+      for (const step of input.snapshot.steps) {
+        if (!step.enabled) {
+          state = this.patchGuideStep(
+            state,
+            step.id,
+            { status: "skipped", endedAt: nowIso() },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "guide.step.skipped",
+            message: `Guide step ${step.id} skipped.`,
+            data: { guideId: input.snapshot.guideId, stepId: step.id },
+          });
+          continue;
+        }
+
+        state = await applyPauseIfRequested({
+          state,
+          store: input.stateStore,
+          events: input.eventLog,
+        });
+        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+        state = await this.moveToGuideStepStatus({
+          state,
+          step,
+          stateStore: input.stateStore,
+        });
+
+        const preparedTurn = step.slotId && step.agentId
+          ? prepareGuideParticipantTurn(participantLedger, step.slotId)
+          : null;
+        const context = await this.buildGuideContextPacket({
+          snapshot: input.snapshot,
+          step,
+          outputs,
+          artifactStore: input.artifactStore,
+          contextMode: preparedTurn?.contextMode ?? "stateless",
+        });
+        state = this.patchGuideStep(
+          state,
+          step.id,
+          {
+            status: "running",
+            startedAt: nowIso(),
+            contextPacketPath: context.contextPacketPath,
+            error: null,
+          },
+          step.id,
+        );
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "guide.context.built",
+          message: `Guide context packet built for ${step.id}.`,
+          data: {
+            guideId: input.snapshot.guideId,
+            stepId: step.id,
+            contextPolicy: input.snapshot.contextPolicy,
+            contextMode: preparedTurn?.contextMode ?? "stateless",
+            contextPacketPath: context.contextPacketPath,
+            budget: context.budget,
+          },
+        });
+        await input.eventLog.append({
+          type: "guide.step.started",
+          message: `Guide step ${step.id} starting.`,
+          data: {
+            guideId: input.snapshot.guideId,
+            stepId: step.id,
+            kind: step.kind,
+            agentId: step.agentId,
+            providerId: step.providerId,
+            contextPacketPath: context.contextPacketPath,
+          },
+        });
+        this.onProgress(`Guide ${step.id}...`);
+
+        if (step.kind === "validation") {
+          const validationOutput = await this.runGuideValidationStep({
+            step,
+            state,
+            outputs,
+            artifactStore: input.artifactStore,
+            stateStore: input.stateStore,
+            ctx: input.ctx,
+          });
+          state = validationOutput.state;
+          lastValidation = validationOutput.validation;
+          if (validationOutput.validation.summary.failed > 0) {
+            input.notify(
+              draftValidationFailed({
+                runId: input.runId,
+                taskId: this.taskId,
+                failedCount: validationOutput.validation.summary.failed,
+              }),
+            );
+          }
+          await input.eventLog.append({
+            type: "guide.step.completed",
+            message: `Guide step ${step.id} completed.`,
+            data: { guideId: input.snapshot.guideId, stepId: step.id },
+          });
+          continue;
+        }
+
+        if (step.kind === "approval-gate") {
+          if (!step.approval) {
+            throw new Error(`Guide approval gate "${step.id}" has no metadata.`);
+          }
+          const gate = await this.awaitApprovalRequest({
+            state,
+            fromStatus: state.status,
+            stageId: step.id,
+            agentId: "guide",
+            reason: step.approval.reason,
+            prompt: null,
+            sourceArtifactPath: context.contextPacketPath,
+            requestedAction: step.approval.requestedAction,
+            riskLevel: step.approval.riskLevel,
+            source: "policy",
+            userMessage: step.approval.userMessage ?? null,
+            progressMessage: `Pausing for Guide approval at ${step.id}...`,
+            requestedMessage: `Guide approval gate ${step.id} is waiting for a decision.`,
+            resumedMessage: `Run resumed after Guide approval gate ${step.id}.`,
+            approvalService: input.approvalService,
+            stateStore: input.stateStore,
+            eventLog: input.eventLog,
+          });
+          state = gate.state;
+          if (gate.rejected) {
+            state = this.patchGuideStep(
+              state,
+              step.id,
+              { status: "blocked", endedAt: nowIso() },
+              step.id,
+            );
+            await input.stateStore.write(state);
+            await input.eventLog.append({
+              type: "guide.step.failed",
+              message: `Guide approval gate ${step.id} blocked the run.`,
+              data: { guideId: input.snapshot.guideId, stepId: step.id },
+            });
+            throw new __ApprovalRejectedSignal();
+          }
+
+          state = this.patchGuideStep(
+            state,
+            step.id,
+            { status: "passed", endedAt: nowIso() },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "guide.step.completed",
+            message: `Guide approval gate ${step.id} completed.`,
+            data: { guideId: input.snapshot.guideId, stepId: step.id },
+          });
+          continue;
+        }
+
+        if (!step.agentId) {
+          throw new Error(`Guide step "${step.id}" needs an agent.`);
+        }
+
+        const result = await this.runAgent({
+          agentId: step.agentId,
+          providerId: step.providerId,
+          stageId: step.id,
+          promptIndex: 0,
+          promptName: path.posix.join("guides", step.id, "prompt.md"),
+          outputName: path.posix.join("guides", step.id, "output.md"),
+          priorArtifacts: context.priorArtifacts,
+          validationResults: lastValidation,
+          additionalNotes: this.renderGuideStepNotes({
+            snapshot: input.snapshot,
+            step,
+          }),
+          ...(preparedTurn
+            ? {
+                guideTurn: {
+                  slotId: preparedTurn.slotId,
+                  contextMode: preparedTurn.contextMode,
+                  fallbackReason: preparedTurn.fallbackReason,
+                  ...(preparedTurn.sessionRequest
+                    ? { sessionRequest: preparedTurn.sessionRequest }
+                    : {}),
+                },
+              }
+            : {}),
+          metricsStore: input.metricsStore,
+          ctx: input.ctx,
+        });
+        if (preparedTurn) {
+          participantLedger = recordGuideParticipantTurn({
+            ledger: participantLedger,
+            prepared: preparedTurn,
+            stepId: step.id,
+            agentId: step.agentId,
+            providerId: step.providerId ?? result.providerResult.providerId,
+            contextPacketPath: context.contextPacketPath,
+            promptArtifactPath: result.promptArtifactPath,
+            outputArtifactPath: result.outputArtifactPath,
+            providerSessionId: result.providerResult.session?.sessionId ?? null,
+          });
+          await participantStore.write(participantLedger);
+          state = this.patchGuideParticipants(state, participantLedger);
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type:
+              preparedTurn.contextMode === "opened"
+                ? "guide.session.opened"
+                : preparedTurn.contextMode === "reused"
+                  ? "guide.session.reused"
+                  : preparedTurn.contextMode === "rehydrated"
+                    ? "guide.session.rehydrated"
+                    : "guide.session.stateless",
+            message: `Guide participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
+            data: {
+              guideId: input.snapshot.guideId,
+              stepId: step.id,
+              slotId: preparedTurn.slotId,
+              providerId: step.providerId,
+              contextMode: preparedTurn.contextMode,
+              fallbackReason: preparedTurn.fallbackReason,
+              sessionId: result.providerResult.session?.sessionId ?? null,
+            },
+          });
+        }
+        await this.registerGuideAgentOutputs({
+          step,
+          result,
+          outputs,
+          artifactStore: input.artifactStore,
+          worktreePath: input.worktreePath,
+        });
+        arbitrationLedger = await this.recordGuideArbitrationOutputs({
+          step,
+          result,
+          outputs,
+          validation: lastValidation,
+          artifactStore: input.artifactStore,
+          eventLog: input.eventLog,
+          ledger: arbitrationLedger,
+          store: arbitrationStore,
+        });
+
+        if (step.outputs.includes("plan")) planArtifact = result;
+        if (step.outputs.includes("execution")) executionArtifact = result;
+        if (
+          step.kind === "review-turn" &&
+          (step.outputs.includes("review-decision") ||
+            step.outputs.includes("finding-resolutions"))
+        ) {
+          reviewArtifact = result;
+          reviewDecision = effectiveReviewDecision(result.output);
+          await input.eventLog.append({
+            type: "review.decision",
+            message: `Guide review decision at ${step.id}: ${reviewDecision}`,
+            data: { decision: reviewDecision, stepId: step.id },
+          });
+        }
+        if (step.kind === "summary-turn") {
+          verificationArtifact = result;
+          verificationDecision = effectiveVerificationDecision(result.output);
+          await input.eventLog.append({
+            type: "verification.decision",
+            message: `Guide summary decision at ${step.id}: ${verificationDecision}`,
+            data: { decision: verificationDecision, stepId: step.id },
+          });
+        }
+        if (step.kind === "review-turn" || step.kind === "summary-turn") {
+          await this.ingestSuggestionsFromArtifact({
+            runId: input.runId,
+            artifactRelPath: result.outputArtifactPath,
+            artifactBody: result.output,
+            source: step.kind === "summary-turn" ? "verifier" : "reviewer",
+            notify: input.notify,
+          });
+        }
+
+        const gate = await this.maybeAwaitApproval({
+          state,
+          fromStatus: state.status,
+          stageId: step.id,
+          agentId: step.agentId,
+          agentArtifact: result,
+          approvalService: input.approvalService,
+          stateStore: input.stateStore,
+          eventLog: input.eventLog,
+          policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          state = this.patchGuideStep(
+            state,
+            step.id,
+            {
+              status: "blocked",
+              promptArtifactPath: result.promptArtifactPath,
+              outputArtifactPath: result.outputArtifactPath,
+              endedAt: nowIso(),
+            },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "guide.step.failed",
+            message: `Guide step ${step.id} blocked by approval decision.`,
+            data: { guideId: input.snapshot.guideId, stepId: step.id },
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+
+        state = this.patchGuideStep(
+          state,
+          step.id,
+          {
+            status: "passed",
+            promptArtifactPath: result.promptArtifactPath,
+            outputArtifactPath: result.outputArtifactPath,
+            endedAt: nowIso(),
+          },
+          step.id,
+        );
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "guide.step.completed",
+          message: `Guide step ${step.id} completed.`,
+          data: {
+            guideId: input.snapshot.guideId,
+            stepId: step.id,
+            promptArtifactPath: result.promptArtifactPath,
+            outputArtifactPath: result.outputArtifactPath,
+          },
+        });
+      }
+
+      const validationPassed =
+        lastValidation === null || lastValidation.summary.failed === 0;
+      state = {
+        ...state,
+        finalDecision: reviewDecision,
+        verification: verificationDecision,
+      };
+      await input.stateStore.write(state);
+      state = applyTransition(
+        state,
+        reviewDecision === "APPROVED" &&
+          verificationDecision === "PASSED" &&
+          validationPassed
+          ? "merge_ready"
+          : "blocked",
+      );
+      await input.stateStore.write(state);
+      await input.eventLog.append({
+        type: "run.completed",
+        message: `Guide run ${input.runId} ${state.status}.`,
+        data: {
+          guideId: input.snapshot.guideId,
+          decision: reviewDecision,
+          verification: verificationDecision,
+          validationPassed,
+        },
+      });
+      input.notify(
+        draftRunCompleted({
+          runId: input.runId,
+          taskId: this.taskId,
+          status: state.status as "merge_ready" | "blocked",
+          decision: reviewDecision,
+          verification: verificationDecision,
+        }),
+      );
+    } catch (err) {
+      if (!(err instanceof __ApprovalRejectedSignal)) {
+        const stepId = state.guide?.currentStepId;
+        if (stepId) {
+          state = this.patchGuideStep(
+            state,
+            stepId,
+            {
+              status: "failed",
+              endedAt: nowIso(),
+              error: describeError(err),
+            },
+            stepId,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "guide.step.failed",
+            message: `Guide step ${stepId} failed: ${describeError(err)}`,
+            data: { guideId: input.snapshot.guideId, stepId },
+          });
+        }
+        const message = describeError(err);
+        try {
+          state = applyTransition(state, "failed");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: message };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "run.failed",
+          message: `Guide run failed: ${message}`,
+        });
+        input.notify(
+          draftRunCompleted({
+            runId: input.runId,
+            taskId: this.taskId,
+            status: "failed",
+          }),
+        );
+        try {
+          await input.metricsStore.update((metrics) => ({
+            ...metrics,
+            finalStatus: state.status,
+          }));
+        } catch {
+          // metrics finalize best-effort
+        }
+        await this.writeGuideFinalReport({
+          ...input,
+          state,
+          lastValidation,
+          planArtifact,
+          executionArtifact,
+          reviewArtifact,
+          verificationArtifact,
+        });
+        if (err instanceof AmacoError) throw err;
+        throw err instanceof Error ? err : new Error(message);
+      }
+    }
+
+    const approvals = await input.approvalService.readAll();
+    await input.metricsStore.update((metrics) => ({
+      ...metrics,
+      finalStatus: state.status,
+      validationSummary: lastValidation
+        ? {
+            total: lastValidation.summary.total,
+            passed: lastValidation.summary.passed,
+            failed: lastValidation.summary.failed,
+          }
+        : null,
+      approvalsSummary: summarizeApprovals(approvals),
+    }));
+    const finalReportPath = await this.writeGuideFinalReport({
+      ...input,
+      state,
+      lastValidation,
+      planArtifact,
+      executionArtifact,
+      reviewArtifact,
+      verificationArtifact,
+    });
+    return {
+      runId: input.runId,
+      state,
+      worktreePath: input.worktreePath,
+      branchName: input.branchName,
+      finalReportPath,
+      policyWarnings: input.policyWarnings,
+    };
+  }
+
+  private async runGuideValidationStep(input: {
+    step: ResolvedGuideStep;
+    state: RunState;
+    outputs: Map<string, GuideContextOutput>;
+    artifactStore: ArtifactStore;
+    stateStore: RunStateStore;
+    ctx: {
+      worktreePath: string | null;
+      artifactStore: ArtifactStore;
+      eventLog: EventLog;
+    };
+  }): Promise<{ state: RunState; validation: ValidationResults }> {
+    const artifactsName = path.posix.join(
+      "guides",
+      input.step.id,
+      "validation-results.json",
+    );
+    const validation = await this.runValidation({
+      artifactsName,
+      prefix: path.posix.join("guides", input.step.id, "validation"),
+      ctx: input.ctx,
+    });
+    const validationArtifactPath = input.artifactStore.relPath(
+      input.artifactStore.resolveArtifactPath(artifactsName),
+    );
+    this.registerGuideValidationOutputs({
+      step: input.step,
+      validation,
+      validationArtifactPath,
+      outputs: input.outputs,
+    });
+    const state = this.patchGuideStep(
+      input.state,
+      input.step.id,
+      {
+        status: "passed",
+        validationArtifactPath,
+        endedAt: nowIso(),
+      },
+      input.step.id,
+    );
+    await input.stateStore.write(state);
+    return { state, validation };
+  }
+
+  private async writeGuideFinalReport(input: {
+    artifactStore: ArtifactStore;
+    state: RunState;
+    lastValidation: ValidationResults | null;
+    policyWarnings: PolicyWarning[];
+    metricsStore: MetricsStore;
+    approvalService: ApprovalService;
+    planArtifact: AgentRunResult | null;
+    executionArtifact: AgentRunResult | null;
+    reviewArtifact: AgentRunResult | null;
+    verificationArtifact: AgentRunResult | null;
+  }): Promise<string> {
+    const metrics = (await input.metricsStore.read()) ?? null;
+    const approvals = await input.approvalService.readAll().catch(() => []);
+    return this.writeFinalReport({
+      artifactStore: input.artifactStore,
+      state: input.state,
+      validation: input.lastValidation,
+      policyWarnings: input.policyWarnings,
+      reviewLoops: 0,
+      metrics,
+      approvals,
+      artifacts: {
+        plan: input.planArtifact?.outputArtifactPath,
+        execution: input.executionArtifact?.outputArtifactPath,
+        review: input.reviewArtifact?.outputArtifactPath,
+        verification: input.verificationArtifact?.outputArtifactPath,
+      },
+    });
+  }
+
   /**
    * Capture AMACO_SUGGESTION marker blocks from a stage artifact. Best-effort:
    * never throws into the orchestrator's hot path. Notifies the dashboard via
@@ -1016,6 +2242,132 @@ export class Orchestrator {
       // Suggestion ingestion is best-effort — never fail a run because the
       // marker parser hiccupped.
     }
+  }
+
+  private async awaitApprovalRequest(input: {
+    state: RunState;
+    fromStatus: RunStatus;
+    stageId: string;
+    agentId: string;
+    reason: string | null;
+    prompt: string | null;
+    sourceArtifactPath: string | null;
+    requestedAction: string | null;
+    riskLevel: ApprovalRisk;
+    source: ApprovalSource;
+    alsoRequiredByPolicy?: boolean;
+    userMessage?: string | null;
+    progressMessage: string;
+    requestedMessage: string;
+    resumedMessage: string;
+    approvalService: ApprovalService;
+    stateStore: RunStateStore;
+    eventLog: EventLog;
+  }): Promise<{ state: RunState; rejected: boolean }> {
+    this.onProgress(input.progressMessage);
+
+    const req = await input.approvalService.create({
+      stageId: input.stageId,
+      agentId: input.agentId,
+      reason: input.reason,
+      prompt: input.prompt,
+      sourceArtifactPath: input.sourceArtifactPath,
+      requestedAction: input.requestedAction,
+      riskLevel: input.riskLevel,
+      source: input.source,
+      alsoRequiredByPolicy: input.alsoRequiredByPolicy,
+      userMessage: input.userMessage,
+    });
+
+    let pendingState: RunState = applyTransition(
+      input.state,
+      "waiting_for_approval",
+    );
+    pendingState = {
+      ...pendingState,
+      pendingApprovalId: req.id,
+      approvalRequestedFromStatus: input.fromStatus,
+    };
+    await input.stateStore.write(pendingState);
+    const _notify = (
+      this as unknown as { _notify?: (d: NotificationDraft) => void }
+    )._notify;
+    if (_notify) {
+      _notify(
+        draftApprovalRequested({
+          runId: input.state.runId,
+          approvalId: req.id,
+          agentId: input.agentId,
+          stageId: input.stageId,
+          reason: input.reason,
+        }),
+      );
+    }
+    await input.eventLog.append({
+      type: "approval.requested",
+      message: input.requestedMessage,
+      data: {
+        approvalId: req.id,
+        agentId: input.agentId,
+        stageId: input.stageId,
+        reason: input.reason,
+        requestedAction: input.requestedAction,
+        riskLevel: input.riskLevel,
+        source: input.source,
+        alsoRequiredByPolicy: input.alsoRequiredByPolicy ?? false,
+      },
+    });
+
+    const resolved = await input.approvalService.waitForResolution(req.id, {
+      pollMs: 1500,
+    });
+
+    if (resolved.status === "approved") {
+      let next: RunState = applyTransition(pendingState, input.fromStatus);
+      next = {
+        ...next,
+        pendingApprovalId: null,
+        approvalRequestedFromStatus: null,
+      };
+      await input.stateStore.write(next);
+      await input.eventLog.append({
+        type: "approval.approved",
+        message: `Approval ${req.id} approved by ${resolved.resolvedBy ?? "local-user"}.`,
+        data: {
+          approvalId: req.id,
+          decisionNote: resolved.decisionNote ?? null,
+        },
+      });
+      await input.eventLog.append({
+        type: "run.resumed",
+        message: input.resumedMessage,
+        data: { stageId: input.stageId },
+      });
+      return { state: next, rejected: false };
+    }
+
+    let blockedState: RunState = applyTransition(pendingState, "blocked");
+    blockedState = {
+      ...blockedState,
+      pendingApprovalId: null,
+      approvalRequestedFromStatus: null,
+    };
+    await input.stateStore.write(blockedState);
+    await input.eventLog.append({
+      type:
+        resolved.status === "rejected"
+          ? "approval.rejected"
+          : "approval.expired",
+      message:
+        resolved.status === "rejected"
+          ? `Approval ${req.id} rejected by ${resolved.resolvedBy ?? "local-user"}.`
+          : `Approval ${req.id} expired without a decision.`,
+      data: {
+        approvalId: req.id,
+        decisionNote: resolved.decisionNote ?? null,
+      },
+    });
+    return { state: blockedState, rejected: true };
   }
 
   /**
@@ -1070,14 +2422,9 @@ export class Orchestrator {
       input.policyStagesAlreadyForced.add(input.stageId);
     }
 
-    this.onProgress(
-      agentRequested
-        ? `Pausing for human approval (${input.agentId} requested it)...`
-        : `Pausing for human approval (project policy requires approval at ${input.stageId})...`,
-    );
-
-    // Create the (single) approval request and pause.
-    const req = await input.approvalService.create({
+    return this.awaitApprovalRequest({
+      state: input.state,
+      fromStatus: input.fromStatus,
       stageId: input.stageId,
       agentId: input.agentId,
       reason,
@@ -1087,105 +2434,30 @@ export class Orchestrator {
       riskLevel,
       source,
       alsoRequiredByPolicy,
-    });
-
-    let pendingState: RunState = applyTransition(input.state, "waiting_for_approval");
-    pendingState = {
-      ...pendingState,
-      pendingApprovalId: req.id,
-      approvalRequestedFromStatus: input.fromStatus,
-    };
-    await input.stateStore.write(pendingState);
-    // Fire a notification so the dashboard / CLI / external gateways can
-    // alert the user; never blocks the gate loop.
-    const _notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
-    if (_notify) {
-      _notify(
-        draftApprovalRequested({
-          runId: input.state.runId,
-          approvalId: req.id,
-          agentId: input.agentId,
-          stageId: input.stageId,
-          reason: reason ?? null,
-        }),
-      );
-    }
-    await input.eventLog.append({
-      type: "approval.requested",
-      message: agentRequested
+      progressMessage: agentRequested
+        ? `Pausing for human approval (${input.agentId} requested it)...`
+        : `Pausing for human approval (project policy requires approval at ${input.stageId})...`,
+      requestedMessage: agentRequested
         ? `Approval requested by ${input.agentId} at stage ${input.stageId}.`
         : `Approval required by project policy at stage ${input.stageId}.`,
-      data: {
-        approvalId: req.id,
-        agentId: input.agentId,
-        stageId: input.stageId,
-        reason: reason ?? null,
-        requestedAction,
-        riskLevel,
-        source,
-        alsoRequiredByPolicy,
-      },
+      resumedMessage: `Run resumed at stage ${input.stageId}.`,
+      approvalService: input.approvalService,
+      stateStore: input.stateStore,
+      eventLog: input.eventLog,
     });
-
-    const resolved = await input.approvalService.waitForResolution(req.id, {
-      pollMs: 1500,
-    });
-
-    if (resolved.status === "approved") {
-      // Round-trip back to the prior status so the caller's next transition works.
-      let next: RunState = applyTransition(pendingState, input.fromStatus);
-      next = {
-        ...next,
-        pendingApprovalId: null,
-        approvalRequestedFromStatus: null,
-      };
-      await input.stateStore.write(next);
-      await input.eventLog.append({
-        type: "approval.approved",
-        message: `Approval ${req.id} approved by ${resolved.resolvedBy ?? "local-user"}.`,
-        data: {
-          approvalId: req.id,
-          decisionNote: resolved.decisionNote ?? null,
-        },
-      });
-      await input.eventLog.append({
-        type: "run.resumed",
-        message: `Run resumed at stage ${input.stageId}.`,
-        data: { stageId: input.stageId },
-      });
-      return { state: next, rejected: false };
-    }
-
-    // rejected (or expired — treat as rejected for safety)
-    let blockedState: RunState = applyTransition(pendingState, "blocked");
-    blockedState = {
-      ...blockedState,
-      pendingApprovalId: null,
-      approvalRequestedFromStatus: null,
-    };
-    await input.stateStore.write(blockedState);
-    await input.eventLog.append({
-      type: resolved.status === "rejected" ? "approval.rejected" : "approval.expired",
-      message:
-        resolved.status === "rejected"
-          ? `Approval ${req.id} rejected by ${resolved.resolvedBy ?? "local-user"}.`
-          : `Approval ${req.id} expired without a decision.`,
-      data: {
-        approvalId: req.id,
-        decisionNote: resolved.decisionNote ?? null,
-      },
-    });
-    return { state: blockedState, rejected: true };
   }
 
   private async runAgent(input: {
     agentId: string;
+    providerId?: string | null;
     stageId: string;
     promptIndex: number;
     outputName: string;
     promptName?: string;
     priorArtifacts: PriorArtifact[];
     validationResults: ValidationResults | null;
+    additionalNotes?: string;
+    guideTurn?: GuideAgentTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
     verificationDecisionForStage?: string | null;
@@ -1215,7 +2487,7 @@ export class Orchestrator {
     // configured provider when no override applies or the override
     // couldn't be resolved.
     const effectiveProviderId =
-      this.runtimeProviderId() ?? agent.provider;
+      input.providerId ?? this.runtimeProviderId() ?? agent.provider;
 
     assertExecutableContext({
       agentId,
@@ -1284,6 +2556,9 @@ export class Orchestrator {
     const allControls = await listControls(this.projectRoot, ctx.runId);
     const pending = pendingControls(allControls);
     const controlNotes = renderControlNotes(pending);
+    const additionalNotes = [input.additionalNotes, controlNotes]
+      .filter((note): note is string => !!note && note.trim().length > 0)
+      .join("\n\n");
     const prompt = buildAgentPrompt({
       agentId,
       task: this.task,
@@ -1298,7 +2573,7 @@ export class Orchestrator {
       projectName: this.config.project.name,
       validationResults: input.validationResults,
       concise: this.concise,
-      ...(controlNotes ? { additionalNotes: controlNotes } : {}),
+      ...(additionalNotes ? { additionalNotes } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(
@@ -1333,6 +2608,8 @@ export class Orchestrator {
         skillsAttached: skills.map((s) => s.name),
         skillsConfigured: agent.skills.slice(),
         skillsFromRuntime: this.runtimeSkills.slice(),
+        guideSlotId: input.guideTurn?.slotId ?? null,
+        guideContextMode: input.guideTurn?.contextMode ?? null,
       },
     });
     await ctx.eventLog.append({
@@ -1376,6 +2653,9 @@ export class Orchestrator {
         onChunk: (c) =>
           void appendStreamLine(this.projectRoot, ctx.runId, streamName, c),
         signal: providerAbort.signal,
+        ...(input.guideTurn?.sessionRequest
+          ? { session: input.guideTurn.sessionRequest }
+          : {}),
       });
       // Fallback flush — some providers buffer all output until exit,
       // or run on bundles that predate the chunk hook. Persist the
@@ -1429,6 +2709,9 @@ export class Orchestrator {
         durationMs: durationMs(stageStart, stageEnd),
         exitCode: -1,
         sessionId: null,
+        guideSlotId: input.guideTurn?.slotId ?? null,
+        guideContextMode: input.guideTurn?.contextMode ?? null,
+        guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
         model: null,
         totalCostUsd: null,
         perModelCost: [],
@@ -1510,7 +2793,11 @@ export class Orchestrator {
       exitCode: providerResult.exitCode,
       promptArtifactPath: ctx.artifactStore.relPath(promptArtifactPathAbs),
       outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
-      sessionId: claudeMetrics?.sessionId ?? null,
+      sessionId:
+        claudeMetrics?.sessionId ?? providerResult.session?.sessionId ?? null,
+      guideSlotId: input.guideTurn?.slotId ?? null,
+      guideContextMode: input.guideTurn?.contextMode ?? null,
+      guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
       model: claudeMetrics?.model ?? null,
       totalCostUsd: claudeMetrics?.totalCostUsd ?? null,
       perModelCost: claudeMetrics?.perModelCost ?? [],
@@ -1548,6 +2835,7 @@ export class Orchestrator {
 
   private async runValidation(input: {
     artifactsName: string;
+    prefix?: string;
     ctx: {
       worktreePath: string | null;
       artifactStore: ArtifactStore;
@@ -1566,6 +2854,7 @@ export class Orchestrator {
       commands: this.config.commands.validate,
       cwd: ctx.worktreePath,
       store: ctx.artifactStore,
+      prefix: input.prefix,
     });
     for (const c of results.commands) {
       await ctx.eventLog.append({
@@ -1640,6 +2929,15 @@ export class Orchestrator {
     } catch {
       bundles = [];
     }
+    let arbitration: GuideArbitrationLedger | null = null;
+    try {
+      arbitration = await new GuideArbitrationStore(
+        this.projectRoot,
+        input.state.runId,
+      ).read();
+    } catch {
+      arbitration = null;
+    }
     const report = renderFinalReport({
       state: input.state,
       artifactPaths: input.artifacts,
@@ -1650,6 +2948,7 @@ export class Orchestrator {
       approvals: input.approvals,
       suggestions,
       bundles,
+      arbitration,
     });
     return input.artifactStore.write("12-final-report.md", report);
   }

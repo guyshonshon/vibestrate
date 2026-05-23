@@ -124,6 +124,65 @@ export class ReviewSuggestionService {
     return rec;
   }
 
+  async addArtifactSuggestion(input: {
+    title: string;
+    body?: string;
+    file?: string | null;
+    lineStart?: number | null;
+    lineEnd?: number | null;
+    proposedPatch?: string | null;
+    sourceArtifactPath: string;
+  }): Promise<ReviewSuggestion> {
+    const existing = (await this.store.readAll()).find(
+      (suggestion) =>
+        suggestion.source === "artifact" &&
+        suggestion.sourceArtifactPath === input.sourceArtifactPath &&
+        suggestion.title === input.title,
+    );
+    if (existing) return existing;
+
+    const ts = nowIso();
+    const rec: ReviewSuggestion = {
+      id: `s-${ts.replace(/[:.]/g, "-").replace(/Z$/, "")}-${randomUUID().slice(
+        0,
+        4,
+      )}`,
+      runId: this.runId,
+      createdAt: ts,
+      updatedAt: ts,
+      source: "artifact",
+      sourceArtifactPath: input.sourceArtifactPath,
+      file: input.file ?? null,
+      lineStart: input.lineStart ?? null,
+      lineEnd: input.lineEnd ?? null,
+      title: input.title,
+      body: input.body ?? "",
+      status: "open",
+      proposedPatch: input.proposedPatch ?? null,
+      requiresApproval: true,
+      approvalId: null,
+      decisionNote: null,
+      errorMessage: null,
+      bundleId: null,
+      appliedPatchPath: null,
+      reversePatchPath: null,
+      validationResultPath: null,
+      validationProfile: null,
+    };
+    await this.store.upsert(rec);
+    await this.events.append({
+      type: "suggestion.created",
+      message: `suggestion ${rec.id}: ${rec.title}`,
+      data: {
+        id: rec.id,
+        source: rec.source,
+        file: rec.file,
+        sourceArtifactPath: rec.sourceArtifactPath,
+      },
+    });
+    return rec;
+  }
+
   /**
    * Scan a reviewer/verifier artifact for AMACO_SUGGESTION blocks and persist
    * any new suggestions. Returns the records actually inserted (de-duped by

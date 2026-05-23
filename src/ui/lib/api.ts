@@ -51,6 +51,7 @@ import type {
   PolicySurface,
   RunReplay,
   GuideContextPolicy,
+  GuideSuggestion,
   ResolvedGuideSnapshot,
 } from "./types.js";
 
@@ -135,6 +136,13 @@ export const api = {
     readOnly?: boolean;
     skills?: string[];
     concise?: boolean;
+    guide?: {
+      id: string;
+      brief?: string | null;
+      contextPolicy?: GuideContextPolicy;
+      slotProviders?: Record<string, string>;
+      skippedOptionalSteps?: string[];
+    };
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
   },
@@ -279,6 +287,17 @@ export const api = {
       input,
     );
     return r.snapshot;
+  },
+  async suggestGuides(input: {
+    task: string;
+    files?: string[];
+    riskLevel?: "low" | "medium" | "high" | null;
+  }): Promise<GuideSuggestion[]> {
+    const r = await jsonPost<{ suggestions: GuideSuggestion[] }>(
+      "/api/guides/suggest",
+      input,
+    );
+    return r.suggestions;
   },
   async getMetrics(runId: string): Promise<RuntimeMetrics | null> {
     try {

@@ -19,6 +19,61 @@ export type RunStatus =
 export type ReviewDecision = "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED";
 export type VerificationDecision = "PASSED" | "FAILED" | "NEEDS_HUMAN";
 
+export type GuideRunStepStatus =
+  | "pending"
+  | "running"
+  | "passed"
+  | "blocked"
+  | "failed"
+  | "skipped";
+
+export type GuideRunStepState = {
+  id: string;
+  label: string;
+  kind: string;
+  status: GuideRunStepStatus;
+  optional: boolean;
+  slotId: string | null;
+  agentId: string | null;
+  providerId: string | null;
+  promptArtifactPath: string | null;
+  outputArtifactPath: string | null;
+  contextPacketPath: string | null;
+  validationArtifactPath: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  error: string | null;
+};
+
+export type GuideRunState = {
+  guideId: string;
+  guideVersion: number;
+  label: string;
+  snapshotPath: string;
+  participantLedgerPath: string | null;
+  participants: GuideRunParticipantState[];
+  currentStepId: string | null;
+  steps: GuideRunStepState[];
+};
+
+export type GuideContextRetentionMode =
+  | "opened"
+  | "reused"
+  | "rehydrated"
+  | "stateless";
+
+export type GuideRunParticipantState = {
+  slotId: string;
+  label: string;
+  providerId: string;
+  providerType: string;
+  sessionReuse: "none" | "resume";
+  sessionId: string | null;
+  turnCount: number;
+  lastContextMode: GuideContextRetentionMode | null;
+  lastFallbackReason: string | null;
+};
+
 export type RunState = {
   runId: string;
   task: string;
@@ -46,6 +101,8 @@ export type RunState = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Live sequential Guide ledger, when this run uses a Guide recipe. */
+  guide?: GuideRunState | null;
 };
 
 export type RunControlDirective =
@@ -94,6 +151,15 @@ export type GuideStepDefinition = {
   inputs: string[];
   outputs: string[];
   optional: boolean;
+  approval?: GuideApprovalGate;
+  repeat?: { times: number };
+};
+
+export type GuideApprovalGate = {
+  reason: string;
+  requestedAction: string;
+  userMessage?: string;
+  riskLevel: "low" | "medium" | "high";
 };
 
 export type GuideDefinition = {
@@ -134,6 +200,10 @@ export type ResolvedGuideStep = {
   providerId: string | null;
   inputs: string[];
   outputs: string[];
+  approval: GuideApprovalGate | null;
+  sourceStepId: string;
+  repeatIteration: number;
+  repeatCount: number;
 };
 
 export type ResolvedGuideSnapshot = {
@@ -149,6 +219,13 @@ export type ResolvedGuideSnapshot = {
   resolvedAt: string;
   slots: ResolvedGuideSlot[];
   steps: ResolvedGuideStep[];
+};
+
+export type GuideSuggestion = {
+  guideId: string;
+  label: string;
+  confidence: number;
+  reasons: string[];
 };
 
 export type Priority = "low" | "medium" | "high";
@@ -392,6 +469,9 @@ export type AgentMetrics = {
   promptArtifactPath?: string;
   outputArtifactPath?: string;
   sessionId: string | null;
+  guideSlotId: string | null;
+  guideContextMode: GuideContextRetentionMode | null;
+  guideContextFallbackReason: string | null;
   model: string | null;
   totalCostUsd: number | null;
   perModelCost: { model: string; costUsd: number }[];
@@ -1137,6 +1217,7 @@ export type PolicyCheckResult = {
 };
 
 export type ReplayPhaseKey =
+  | "guides"
   | "planning"
   | "architecting"
   | "executing"
@@ -1256,6 +1337,26 @@ export type ReplayMetricsSummary = {
   agentStageOrder: string[];
 };
 
+export type ReplayGuideSummary = {
+  guideId: string;
+  label: string;
+  currentStepId: string | null;
+  participants: {
+    slotId: string;
+    label: string;
+    providerId: string;
+    providerType: string;
+    lastContextMode: string | null;
+    turnCount: number;
+  }[];
+  steps: {
+    id: string;
+    label: string;
+    kind: string;
+    status: GuideRunStepStatus;
+  }[];
+};
+
 export type ReplayTruncation = {
   truncated: boolean;
   totalEventCount: number;
@@ -1283,6 +1384,7 @@ export type RunReplay = {
   policyRefusals: ReplayPolicyRefusal[];
   notifications: ReplayNotification[];
   terminalSessions: ReplayTerminalSession[];
+  guide: ReplayGuideSummary | null;
   artifacts: { path: string }[];
   metrics: ReplayMetricsSummary | null;
   missingOrMalformed: { file: string; reason: string }[];

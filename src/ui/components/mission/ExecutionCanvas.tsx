@@ -200,6 +200,7 @@ function RunFlowCard({
 
       {/* Phase rail */}
       <PhaseRailRow states={states} />
+      {run.guide ? <GuideStepRow run={run} /> : null}
 
       {/* What it's waiting on */}
       {waitingOn ? (
@@ -285,6 +286,53 @@ function RunFlowCard({
     </article>
       )}
     </ContextMenuTrigger>
+  );
+}
+
+function GuideStepRow({ run }: { run: RunState }) {
+  const guide = run.guide;
+  if (!guide) return null;
+  const current =
+    guide.steps.find((step) => step.id === guide.currentStepId) ?? null;
+  const done = guide.steps.filter(
+    (step) => step.status === "passed" || step.status === "skipped",
+  ).length;
+  return (
+    <div className="mt-2 flex min-w-0 items-center gap-1.5 rounded border border-amaco-accent/25 bg-amaco-accent/5 px-2 py-1 amaco-mono text-[10.5px]">
+      <span className="shrink-0 text-amaco-accent">guide</span>
+      <span className="truncate text-amaco-fg" title={guide.label}>
+        {guide.label}
+      </span>
+      <span className="shrink-0 text-amaco-fg-muted">
+        {done}/{guide.steps.length}
+      </span>
+      {current ? (
+        <span
+          className="truncate text-amaco-fg-dim"
+          title={`${current.label} (${current.status})`}
+        >
+          {current.label} · {current.status}
+        </span>
+      ) : null}
+      {guide.participants.length > 0 ? (
+        <span
+          className="shrink min-w-0 truncate text-amaco-fg-muted"
+          title={guide.participants
+            .map(
+              (participant) =>
+                `${participant.label}: ${participant.lastContextMode ?? participant.sessionReuse}`,
+            )
+            .join(", ")}
+        >
+          {guide.participants
+            .map(
+              (participant) =>
+                `${participant.slotId}:${participant.lastContextMode ?? participant.sessionReuse}`,
+            )
+            .join(" ")}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

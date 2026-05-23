@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { approvalRiskSchema } from "../../core/approval-types.js";
 
 const GUIDE_TOKEN_RE = /^[a-z][a-z0-9-]*$/;
 const GUIDE_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
@@ -28,6 +29,25 @@ export const guideStepKindSchema = z.enum([
 ]);
 export type GuideStepKind = z.infer<typeof guideStepKindSchema>;
 
+export const guideApprovalGateSchema = z
+  .object({
+    reason: z.string().min(1).max(600),
+    requestedAction: z.string().min(1).max(600),
+    userMessage: z.string().min(1).max(1200).optional(),
+    riskLevel: approvalRiskSchema.default("medium"),
+  })
+  .strict();
+export type GuideApprovalGate = z.infer<typeof guideApprovalGateSchema>;
+
+export const guideStepRepeatSchema = z
+  .object({
+    // Bounded repeats stay explicit in the resolved snapshot. Adaptive loops
+    // need a decision contract first; fixed turns keep Guide YAML honest.
+    times: z.number().int().min(2).max(8),
+  })
+  .strict();
+export type GuideStepRepeat = z.infer<typeof guideStepRepeatSchema>;
+
 export const guideContextPolicySchema = z.enum([
   "balanced",
   "compact",
@@ -54,6 +74,8 @@ export const guideStepSchema = z
     inputs: z.array(guideTokenSchema).default([]),
     outputs: z.array(guideTokenSchema).default([]),
     optional: z.boolean().default(false),
+    approval: guideApprovalGateSchema.optional(),
+    repeat: guideStepRepeatSchema.optional(),
   })
   .strict();
 export type GuideStep = z.infer<typeof guideStepSchema>;
@@ -112,6 +134,27 @@ export const guideDefinitionSchema = guideDefinitionBaseSchema.superRefine(
           message: `Guide step "${step.id}" of kind "${step.kind}" needs a slot.`,
         });
       }
+      if (step.kind === "approval-gate" && !step.approval) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "approval"],
+          message: `Guide approval gate "${step.id}" needs approval metadata.`,
+        });
+      }
+      if (step.kind !== "approval-gate" && step.approval) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "approval"],
+          message: `Guide step "${step.id}" can only declare approval metadata when kind is "approval-gate".`,
+        });
+      }
+      if (step.kind === "approval-gate" && step.repeat) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "repeat"],
+          message: `Guide approval gate "${step.id}" cannot repeat.`,
+        });
+      }
     });
   },
 );
@@ -148,6 +191,10 @@ export const resolvedGuideStepSchema = z
     providerId: z.string().min(1).nullable(),
     inputs: z.array(guideTokenSchema),
     outputs: z.array(guideTokenSchema),
+    approval: guideApprovalGateSchema.nullable(),
+    sourceStepId: guideTokenSchema,
+    repeatIteration: z.number().int().positive(),
+    repeatCount: z.number().int().positive(),
   })
   .strict();
 export type ResolvedGuideStep = z.infer<typeof resolvedGuideStepSchema>;

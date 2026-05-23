@@ -26,6 +26,11 @@ export async function runClaudeCodeProvider(
     // final positional.
     args.push("--mcp-config", input.mcpConfigPath);
   }
+  if (input.session?.action === "resume") {
+    args.push("--resume", input.session.sessionId);
+  } else if (input.session?.action === "open") {
+    args.push("--session-id", input.session.sessionId);
+  }
   let stdin: string | undefined;
 
   if (config.input === "arg") {
@@ -76,6 +81,12 @@ export async function runClaudeCodeProvider(
     durationMs: result.durationMs,
     startedAt: result.startedAt,
     endedAt: result.endedAt,
+    session: input.session
+      ? {
+          action: input.session.action === "resume" ? "reused" : "opened",
+          sessionId: claudeMetrics.sessionId ?? input.session.sessionId,
+        }
+      : null,
     claudeMetrics,
   };
 }

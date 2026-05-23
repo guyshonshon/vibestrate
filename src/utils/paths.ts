@@ -57,6 +57,18 @@ export function runEventsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "events.ndjson");
 }
 
+export function runGuideSnapshotPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "guide.json");
+}
+
+export function runGuideParticipantsPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "participants.json");
+}
+
+export function runGuideArbitrationPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "arbitration.json");
+}
+
 export function roadmapDir(projectRoot: string): string {
   return path.join(amacoRoot(projectRoot), ROADMAP_DIRNAME);
 }

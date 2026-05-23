@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { projectConfigSchema } from "../src/project/config-schema.js";
-import { qualityArbitrationGuide } from "../src/guides/builtin-guides.js";
+import { projectConfigSchema } from "../../src/project/config-schema.js";
+import { qualityArbitrationGuide } from "../../src/guides/catalog/builtin-guides.js";
 import {
   guideDefinitionSchema,
   resolvedGuideSnapshotSchema,
-} from "../src/guides/guide-schema.js";
+} from "../../src/guides/schemas/guide-schema.js";
 import {
   guideDecisionSummaryOutputSchema,
   guideFindingResponsesOutputSchema,
   guideFindingsOutputSchema,
-} from "../src/guides/guide-output-contracts.js";
+} from "../../src/guides/schemas/guide-output-contracts.js";
 import {
   GuideResolutionError,
   resolveGuide,
-} from "../src/guides/guide-resolver.js";
+} from "../../src/guides/runtime/guide-resolver.js";
 import {
   fakeGuideDecisionSummaryOutput,
   fakeGuideFindingResponsesOutput,

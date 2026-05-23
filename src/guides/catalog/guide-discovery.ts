@@ -1,15 +1,15 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import YAML from "yaml";
-import { ConfigError } from "../utils/errors.js";
-import { pathExists, readText } from "../utils/fs.js";
-import { isPathInside, projectGuidesDir } from "../utils/paths.js";
+import { ConfigError } from "../../utils/errors.js";
+import { pathExists, readText } from "../../utils/fs.js";
+import { isPathInside, projectGuidesDir } from "../../utils/paths.js";
 import { builtinGuides } from "./builtin-guides.js";
 import {
   guideDefinitionSchema,
   type GuideDefinition,
   type GuideSource,
-} from "./guide-schema.js";
+} from "../schemas/guide-schema.js";
 
 const GUIDE_DEFINITION_FILES = ["guide.yml", "guide.yaml"];
 

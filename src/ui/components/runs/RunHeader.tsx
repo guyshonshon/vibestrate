@@ -184,6 +184,7 @@ export function RunHeader({
               {error}
             </div>
           ) : null}
+          {run.guide ? <GuideRunProgress run={run} /> : null}
         </div>
         {/* Run-action toolbar. Promoted from the previous dim text-only
          * row to full-size accent / warn-toned buttons so Pause / Resume
@@ -286,5 +287,48 @@ export function RunHeader({
         </div>
       ) : null}
     </header>
+  );
+}
+
+function GuideRunProgress({ run }: { run: RunState }) {
+  const guide = run.guide;
+  if (!guide) return null;
+  const current =
+    guide.steps.find((step) => step.id === guide.currentStepId) ?? null;
+  return (
+    <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[10.5px]">
+      <span className="amaco-mono rounded border border-amaco-accent/40 bg-amaco-accent/10 px-1.5 py-0.5 text-amaco-accent">
+        guide {guide.label}
+      </span>
+      {guide.steps.map((step) => (
+        <span
+          key={step.id}
+          title={`${step.label}: ${step.status}`}
+          className={`amaco-mono max-w-40 truncate rounded border px-1.5 py-0.5 ${
+            step.id === current?.id
+              ? "border-amaco-accent/50 text-amaco-accent"
+              : step.status === "passed"
+                ? "border-amaco-success/40 text-amaco-success"
+                : step.status === "failed" || step.status === "blocked"
+                  ? "border-amaco-fail/40 text-amaco-fail"
+                  : "border-amaco-border text-amaco-fg-muted"
+          }`}
+        >
+          {step.label}
+        </span>
+      ))}
+      {guide.participants.map((participant) => (
+        <span
+          key={participant.slotId}
+          title={
+            participant.lastFallbackReason ??
+            `${participant.providerType}:${participant.providerId}`
+          }
+          className="amaco-mono max-w-48 truncate rounded border border-amaco-border px-1.5 py-0.5 text-amaco-fg-dim"
+        >
+          {participant.label} {participant.lastContextMode ?? participant.sessionReuse}
+        </span>
+      ))}
+    </div>
   );
 }

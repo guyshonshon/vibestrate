@@ -1,5 +1,5 @@
-import type { ProjectConfig } from "../project/config-schema.js";
-import { nowIso } from "../utils/time.js";
+import type { ProjectConfig } from "../../project/config-schema.js";
+import { nowIso } from "../../utils/time.js";
 import {
   resolvedGuideSnapshotSchema,
   type GuideContextPolicy,
@@ -7,7 +7,7 @@ import {
   type GuideSource,
   type ResolvedGuideSlot,
   type ResolvedGuideSnapshot,
-} from "./guide-schema.js";
+} from "../schemas/guide-schema.js";
 
 export class GuideResolutionError extends Error {
   constructor(message: string) {
@@ -82,7 +82,7 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
     }
   }
 
-  const steps = input.guide.steps.map((step) => {
+  const steps = input.guide.steps.flatMap((step) => {
     const slot = step.slot ? resolvedSlots.get(step.slot) : null;
     const agentId = step.agentId ?? slot?.defaultAgent ?? null;
     if (agentId && !input.config.agents[agentId]) {
@@ -105,19 +105,31 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
       );
     }
 
-    return {
-      id: step.id,
-      label: step.label,
-      kind: step.kind,
-      enabled: !skippedOptionalSteps.has(step.id),
-      optional: step.optional,
-      slotId: slot?.id ?? null,
-      agentId,
-      providerId: providerOverride ?? slot?.providerId ?? null,
-      inputs: step.inputs,
-      outputs: step.outputs,
-    };
+    const repeatCount = step.repeat?.times ?? 1;
+    return Array.from({ length: repeatCount }, (_, offset) => {
+      const repeatIteration = offset + 1;
+      return {
+        id:
+          repeatIteration === 1
+            ? step.id
+            : `${step.id}-repeat-${repeatIteration}`,
+        label: step.label,
+        kind: step.kind,
+        enabled: !skippedOptionalSteps.has(step.id),
+        optional: step.optional,
+        slotId: slot?.id ?? null,
+        agentId,
+        providerId: providerOverride ?? slot?.providerId ?? null,
+        inputs: step.inputs,
+        outputs: step.outputs,
+        approval: step.approval ?? null,
+        sourceStepId: step.id,
+        repeatIteration,
+        repeatCount,
+      };
+    });
   });
+  assertResolvedStepIds(steps);
 
   return resolvedGuideSnapshotSchema.parse({
     schemaVersion: 1,
@@ -133,6 +145,20 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
     slots,
     steps,
   });
+}
+
+function assertResolvedStepIds(
+  steps: ResolvedGuideSnapshot["steps"],
+): void {
+  const ids = new Set<string>();
+  for (const step of steps) {
+    if (ids.has(step.id)) {
+      throw new GuideResolutionError(
+        `Bounded repeat for Guide step "${step.sourceStepId}" creates duplicate resolved step id "${step.id}".`,
+      );
+    }
+    ids.add(step.id);
+  }
 }
 
 function assertProviderConfigured(

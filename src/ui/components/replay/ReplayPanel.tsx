@@ -240,6 +240,22 @@ export function ReplayPanel({
           <span className="amaco-mono text-[10px] text-amaco-fg-muted">
             {replay.events.length} event(s)
           </span>
+          {replay.guide ? (
+            <span className="amaco-mono text-[10px] text-amaco-accent">
+              guide {replay.guide.label}
+              {currentReplayGuideStep(replay)
+                ? ` · ${currentReplayGuideStep(replay)!.label} (${currentReplayGuideStep(replay)!.status})`
+                : ""}
+              {replay.guide.participants.length > 0
+                ? ` · ${replay.guide.participants
+                    .map(
+                      (participant) =>
+                        `${participant.slotId}:${participant.lastContextMode ?? "pending"}`,
+                    )
+                    .join(" ")}`
+                : ""}
+            </span>
+          ) : null}
         </div>
         {replay.truncation.truncated ? (
           <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[10.5px] text-amaco-warn">
@@ -375,6 +391,14 @@ export function ReplayPanel({
         </main>
       </div>
     </div>
+  );
+}
+
+function currentReplayGuideStep(replay: RunReplay) {
+  if (!replay.guide) return null;
+  return (
+    replay.guide.steps.find((step) => step.id === replay.guide?.currentStepId) ??
+    null
   );
 }
 
