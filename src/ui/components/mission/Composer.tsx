@@ -126,6 +126,7 @@ export function Composer({
   const [guideSuggestions, setGuideSuggestions] = useState<GuideSuggestion[]>([]);
   const [guideSuggestionsBusy, setGuideSuggestionsBusy] = useState(false);
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
   const ref = useRef<HTMLTextAreaElement | null>(null);
@@ -167,6 +168,10 @@ export function Composer({
     () => guides.find((guide) => guide.id === guideId) ?? null,
     [guideId, guides],
   );
+
+  useEffect(() => {
+    if (selectedGuide) setOptionsOpen(true);
+  }, [selectedGuide?.id]);
 
   useEffect(() => {
     if (!selectedGuide) {
@@ -324,7 +329,7 @@ export function Composer({
               rows={Math.min(8, Math.max(2, text.split("\n").length))}
               disabled={busy}
               aria-label="Describe the task, bug, refactor, or workflow to run"
-              placeholder="Describe the task, bug, refactor, or workflow — or type a slash command like /help"
+              placeholder="Describe the task, bug, refactor, or workflow, or type a slash command like /help"
               className="w-full resize-none rounded-md border border-amaco-border bg-amaco-panel px-3 py-2.5 text-[14px] leading-[1.5] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent focus:outline-none focus:ring-1 focus:ring-amaco-accent/40 disabled:opacity-60"
             />
             <div
@@ -365,16 +370,6 @@ export function Composer({
             }}
           />
           <EffortChips value={effort} onChange={setEffort} />
-          <SkillsControl
-            skills={skills}
-            selected={selectedSkills}
-            open={skillsPanelOpen}
-            onToggle={() => setSkillsPanelOpen((v) => !v)}
-            onChange={setSelectedSkills}
-            search={skillSearch}
-            onSearch={setSkillSearch}
-            filtered={filteredSkills}
-          />
           <label
             className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${
               readOnly
@@ -392,23 +387,6 @@ export function Composer({
             <span>read-only</span>
           </label>
 
-          <label
-            className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${
-              concise
-                ? "border-amaco-accent/60 bg-amaco-accent/10 text-amaco-accent"
-                : "border-amaco-border bg-amaco-panel text-amaco-fg-dim hover:bg-amaco-panel-2"
-            }`}
-            title="Ask agents to prefer diffs, bullets, and skip preamble. Token-efficient."
-          >
-            <input
-              type="checkbox"
-              checked={concise}
-              onChange={(e) => setConcise(e.target.checked)}
-              className="h-3 w-3 accent-amaco-accent"
-            />
-            <span>concise</span>
-          </label>
-
           <div className="ml-auto inline-flex items-center gap-2 amaco-mono text-[10.5px] text-amaco-fg-muted">
             <Kbd>⌘K</Kbd>
             <Kbd>/</Kbd>
@@ -419,9 +397,6 @@ export function Composer({
             <span aria-hidden>·</span>
             <Kbd>⇧↵</Kbd>
             <span>newline</span>
-            <span aria-hidden>·</span>
-            <Kbd>?</Kbd>
-            <span>help</span>
           </div>
         </div>
 
@@ -448,29 +423,89 @@ export function Composer({
           />
         ) : null}
 
-        {selectedGuide ? (
-          <GuidePreview
-            guide={selectedGuide}
-            providers={providers}
-            taskReady={!!guideTaskText(text)}
-            brief={guideBrief}
-            onBrief={setGuideBrief}
-            contextPolicy={guideContextPolicy}
-            onContextPolicy={setGuideContextPolicy}
-            slotProviders={guideSlotProviders}
-            onSlotProvider={(slotId, providerId) =>
-              setGuideSlotProviders((current) => ({
-                ...current,
-                [slotId]: providerId,
-              }))
-            }
-            skippedOptionalSteps={skippedOptionalSteps}
-            onSkippedOptionalSteps={setSkippedOptionalSteps}
-            snapshot={guidePreview}
-            busy={guidePreviewBusy}
-            error={guidePreviewError}
-          />
-        ) : null}
+        <details
+          open={optionsOpen}
+          onToggle={(event) => setOptionsOpen(event.currentTarget.open)}
+          className="mt-2 rounded border border-amaco-border bg-amaco-panel/35"
+        >
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-2.5 py-1.5 text-[11.5px] text-amaco-fg-dim marker:hidden">
+            <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+              options
+            </span>
+            {selectedSkills.length > 0 ? (
+              <span className="amaco-mono text-amaco-accent">
+                {selectedSkills.length} skill{selectedSkills.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            {concise ? (
+              <span className="amaco-mono text-amaco-accent">concise</span>
+            ) : null}
+            {selectedGuide ? (
+              <span className="truncate text-amaco-fg">
+                {selectedGuide.label}
+              </span>
+            ) : null}
+            <ChevronDown
+              className={`ml-auto h-3 w-3 transition-transform ${optionsOpen ? "rotate-180" : ""}`}
+              strokeWidth={1.5}
+              aria-hidden
+            />
+          </summary>
+          <div className="border-t border-amaco-border-soft px-2.5 py-2">
+            <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
+              <SkillsControl
+                skills={skills}
+                selected={selectedSkills}
+                open={skillsPanelOpen}
+                onToggle={() => setSkillsPanelOpen((v) => !v)}
+                onChange={setSelectedSkills}
+                search={skillSearch}
+                onSearch={setSkillSearch}
+                filtered={filteredSkills}
+              />
+              <label
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 ${
+                  concise
+                    ? "border-amaco-accent/60 bg-amaco-accent/10 text-amaco-accent"
+                    : "border-amaco-border bg-amaco-panel text-amaco-fg-dim hover:bg-amaco-panel-2"
+                }`}
+                title="Ask agents to prefer diffs, bullets, and skip preamble. Token-efficient."
+              >
+                <input
+                  type="checkbox"
+                  checked={concise}
+                  onChange={(e) => setConcise(e.target.checked)}
+                  className="h-3 w-3 accent-amaco-accent"
+                />
+                <span>concise</span>
+              </label>
+            </div>
+
+            {selectedGuide ? (
+              <GuidePreview
+                guide={selectedGuide}
+                providers={providers}
+                taskReady={!!guideTaskText(text)}
+                brief={guideBrief}
+                onBrief={setGuideBrief}
+                contextPolicy={guideContextPolicy}
+                onContextPolicy={setGuideContextPolicy}
+                slotProviders={guideSlotProviders}
+                onSlotProvider={(slotId, providerId) =>
+                  setGuideSlotProviders((current) => ({
+                    ...current,
+                    [slotId]: providerId,
+                  }))
+                }
+                skippedOptionalSteps={skippedOptionalSteps}
+                onSkippedOptionalSteps={setSkippedOptionalSteps}
+                snapshot={guidePreview}
+                busy={guidePreviewBusy}
+                error={guidePreviewError}
+              />
+            ) : null}
+          </div>
+        </details>
       </div>
     </section>
   );

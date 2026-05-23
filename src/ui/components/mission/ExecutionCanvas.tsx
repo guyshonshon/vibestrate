@@ -5,8 +5,8 @@ import {
   CircleDot,
   Cpu,
   Hourglass,
+  Layers,
   Pause,
-  Sparkles,
   TerminalSquare,
 } from "lucide-react";
 import type {
@@ -53,9 +53,9 @@ export function ExecutionCanvas({
       className="border-b border-amaco-border bg-amaco-canvas"
     >
       <header className="flex items-center justify-between px-6 py-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-        <span>execution · active runs ({active.length})</span>
+        <span>live CLI processes ({active.length})</span>
         <span className="amaco-mono normal-case tracking-normal">
-          ↵ open · R re-run
+          right-click for CLI actions
         </span>
       </header>
       {active.length === 0 ? (
@@ -84,11 +84,10 @@ function EmptyState() {
   return (
     <div className="mx-6 mb-4 rounded-md border border-dashed border-amaco-border bg-amaco-panel/40 p-4 text-[12.5px] text-amaco-fg-dim">
       <div className="amaco-mono text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-        nothing running
+        no active CLI process
       </div>
       <div className="mt-1 text-amaco-fg">
-        Type a task above and hit Enter — amaco will plan, execute, review,
-        verify, and report.
+        Waiting for a run from the composer or task queue.
       </div>
       <div className="mt-2 amaco-mono text-[11.5px] text-amaco-fg-muted">
         example:{" "}
@@ -245,7 +244,7 @@ function RunFlowCard({
             className="inline-flex items-center gap-1 text-amaco-accent"
             title={`Skills attached to the current agent's prompt:\n${live.currentSkills.join("\n")}\n\n(The provider's model decides whether to actually use them — we surface what was made available.)`}
           >
-            <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            <Layers className="h-3 w-3" strokeWidth={1.5} aria-hidden />
             {live.currentSkills.length === 1
               ? live.currentSkills[0]
               : `${live.currentSkills.length} skills`}
@@ -255,7 +254,7 @@ function RunFlowCard({
             className="inline-flex items-center gap-1 text-amaco-fg-muted"
             title={`Run-wide skill attachments (will surface on the next agent):\n${run.runtimeSkills.join("\n")}`}
           >
-            <Sparkles className="h-3 w-3" strokeWidth={1.5} aria-hidden />
+            <Layers className="h-3 w-3" strokeWidth={1.5} aria-hidden />
             +{run.runtimeSkills.length} pending
           </span>
         ) : null}

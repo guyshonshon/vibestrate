@@ -19,8 +19,6 @@ import {
 import { ExecutionCanvas } from "../../components/mission/ExecutionCanvas.js";
 import { SecondaryPanels } from "../../components/mission/SecondaryPanels.js";
 import { useNumberedNav } from "../../components/mission/useNumberedNav.js";
-import { SortableSection } from "../../components/mission/SortableSection.js";
-import { usePersistedState } from "../../lib/usePersistedState.js";
 import type {
   AmacoEvent,
   ApprovalRequest,
@@ -797,33 +795,65 @@ export function MissionControlPage({
         onFocusInbox={focusInbox}
       />
 
-      {/* Reorderable top-level sections. Composer / canvas / panels /
-       * task-control can be dragged into any order; mission bar,
-       * attention bar, and keyboard footer stay pinned so the
-       * status/help surfaces always sit at the expected positions. */}
-      <SortableSections
-        composer={
-          <Composer
-            busy={promptBusy}
-            providers={providers}
-            skills={skills}
-            guides={guides}
-            onResolveGuide={resolveComposerGuide}
-            onSuggestGuides={suggestComposerGuides}
-            onSubmit={handlePromptSubmit}
+      <main className="flex min-h-0 flex-1 flex-col">
+        <Composer
+          busy={promptBusy}
+          providers={providers}
+          skills={skills}
+          guides={guides}
+          onResolveGuide={resolveComposerGuide}
+          onSuggestGuides={suggestComposerGuides}
+          onSubmit={handlePromptSubmit}
+        />
+
+        {/* Small toast / error strip — sits between composer and canvas so
+         * action feedback is always visible without scrolling. */}
+        {error || toast ? (
+          <div className="border-b border-amaco-border bg-amaco-canvas px-6 py-2">
+            {error ? (
+              <div className="rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-1.5 text-[12.5px] text-amaco-fail">
+                {error}
+              </div>
+            ) : null}
+            {toast ? (
+              <div
+                role="status"
+                className={`rounded border px-3 py-1.5 text-[12.5px] ${
+                  toast.kind === "ok"
+                    ? "border-amaco-success/40 bg-amaco-success/5 text-amaco-success"
+                    : "border-amaco-fail/30 bg-amaco-fail/5 text-amaco-fail"
+                }`}
+              >
+                {toast.kind === "ok" ? "✓ " : "✗ "}
+                {toast.text}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <ExecutionCanvas
+          active={active}
+          eventsByRun={eventsByRun}
+          diffByRun={diffByRun}
+          onOpen={onSelectRun}
+          onOpenDiff={onShowRunDiff ?? onSelectRun}
+        />
+
+        <section
+          aria-label="Task and inbox control"
+          className="grid border-b border-amaco-border bg-amaco-canvas xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.45fr)]"
+        >
+          <TaskControlSection
+            liveness={liveness}
+            activeRunCount={active.length}
+            queuedTaskCount={queuedTaskCount}
+            blockedTaskCount={blockedTaskCount}
+            onStartScheduler={handleStartScheduler}
           />
-        }
-        canvas={
-          <ExecutionCanvas
-            active={active}
-            eventsByRun={eventsByRun}
-            diffByRun={diffByRun}
-            onOpen={onSelectRun}
-            onOpenDiff={onShowRunDiff ?? onSelectRun}
-          />
-        }
-        panels={
-          <div ref={inboxRef as React.RefObject<HTMLDivElement>}>
+          <div
+            ref={inboxRef as React.RefObject<HTMLDivElement>}
+            className="min-w-0 border-t border-amaco-border xl:border-l xl:border-t-0"
+          >
             <SecondaryPanels
               tasks={tasks}
               queue={queue}
@@ -840,40 +870,8 @@ export function MissionControlPage({
               onMarkNotificationRead={onMarkNotificationRead}
             />
           </div>
-        }
-        controls={
-          <TaskControlSection
-            liveness={liveness}
-            activeRunCount={active.length}
-            onStartScheduler={handleStartScheduler}
-          />
-        }
-      />
-
-      {/* Small toast / error strip — sits between composer and canvas so
-       * action feedback is always visible without scrolling. */}
-      {error || toast ? (
-        <div className="px-6 pt-2">
-          {error ? (
-            <div className="rounded border border-amaco-fail/30 bg-amaco-fail/5 px-3 py-1.5 text-[12.5px] text-amaco-fail">
-              {error}
-            </div>
-          ) : null}
-          {toast ? (
-            <div
-              role="status"
-              className={`mt-1 rounded border px-3 py-1.5 text-[12.5px] ${
-                toast.kind === "ok"
-                  ? "border-amaco-success/40 bg-amaco-success/5 text-amaco-success"
-                  : "border-amaco-fail/30 bg-amaco-fail/5 text-amaco-fail"
-              }`}
-            >
-              {toast.kind === "ok" ? "✓ " : "✗ "}
-              {toast.text}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        </section>
+      </main>
 
       {issuesOpen ? (
         <IssuesPanel
@@ -894,144 +892,7 @@ export function MissionControlPage({
           onClose={() => setIssuesOpen(false)}
         />
       ) : null}
-
-      {/* Pinned keyboard-hint footer — last thing on the page so it's
-       * always findable. Scheduler control moved to the dedicated
-       * Task Control section above. */}
-      <footer className="border-t border-amaco-border bg-amaco-panel-2/40 px-6 py-2 text-[11px] text-amaco-fg-muted">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="amaco-mono">keyboard:</span>
-          <span>
-            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">1</kbd>–<kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">6</kbd>{" "}
-            jump to panel
-          </span>
-          <span>
-            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">⌘K</kbd>{" "}
-            or{" "}
-            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">/</kbd>{" "}
-            focus composer
-          </span>
-          <span>
-            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">↵</kbd>{" "}
-            submit ·{" "}
-            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1">⇧↵</kbd>{" "}
-            newline
-          </span>
-        </div>
-      </footer>
     </div>
-  );
-}
-
-// ─── Sortable top-level sections ──────────────────────────────────────
-
-type SectionKey = "composer" | "canvas" | "panels" | "controls";
-
-const DEFAULT_SECTION_ORDER: SectionKey[] = [
-  "composer",
-  "canvas",
-  "panels",
-  "controls",
-];
-
-const SECTION_LABELS: Record<SectionKey, string> = {
-  composer: "Composer",
-  canvas: "Execution canvas",
-  panels: "Secondary panels",
-  controls: "Task control",
-};
-
-function SortableSections({
-  composer,
-  canvas,
-  panels,
-  controls,
-}: {
-  composer: React.ReactNode;
-  canvas: React.ReactNode;
-  panels: React.ReactNode;
-  controls: React.ReactNode;
-}) {
-  const [order, setOrder] = usePersistedState<SectionKey[]>(
-    "amaco.mission.sections.order",
-    DEFAULT_SECTION_ORDER,
-  );
-  // Heal a corrupt / partial order so adding a new section doesn't
-  // strand the user with a missing piece.
-  useEffect(() => {
-    const known = new Set(DEFAULT_SECTION_ORDER);
-    const filtered = order.filter((k) => known.has(k));
-    const missing = DEFAULT_SECTION_ORDER.filter(
-      (k) => !filtered.includes(k),
-    );
-    const healed = [...filtered, ...missing];
-    if (
-      healed.length !== order.length ||
-      healed.some((k, i) => k !== order[i])
-    ) {
-      setOrder(healed);
-    }
-  }, [order, setOrder]);
-
-  const [dragKey, setDragKey] = useState<SectionKey | null>(null);
-  const [hoverKey, setHoverKey] = useState<SectionKey | null>(null);
-  const [collapsed, setCollapsed] = usePersistedState<
-    Partial<Record<SectionKey, boolean>>
-  >("amaco.mission.sections.collapsed", {});
-  const toggleCollapsed = (k: SectionKey) =>
-    setCollapsed((cur) => ({ ...cur, [k]: !cur[k] }));
-
-  const onDrop = (target: SectionKey): void => {
-    if (!dragKey || dragKey === target) {
-      setDragKey(null);
-      setHoverKey(null);
-      return;
-    }
-    setOrder((cur) => {
-      const next = cur.filter((k) => k !== dragKey);
-      const idx = next.indexOf(target);
-      next.splice(idx, 0, dragKey);
-      return next;
-    });
-    setDragKey(null);
-    setHoverKey(null);
-  };
-
-  const slots: Record<SectionKey, React.ReactNode> = {
-    composer,
-    canvas,
-    panels,
-    controls,
-  };
-
-  return (
-    <>
-      {order.map((k) => (
-        <SortableSection
-          key={k}
-          sectionKey={k}
-          label={SECTION_LABELS[k]}
-          isDragging={dragKey === k}
-          isHoverTarget={dragKey !== null && dragKey !== k && hoverKey === k}
-          collapsed={!!collapsed[k]}
-          onToggleCollapse={() => toggleCollapsed(k)}
-          onDragStart={() => setDragKey(k)}
-          onDragEnd={() => {
-            setDragKey(null);
-            setHoverKey(null);
-          }}
-          onDragOver={() => {
-            if (dragKey && dragKey !== k) setHoverKey(k);
-          }}
-          onDragLeave={() => {
-            if (hoverKey === k) setHoverKey(null);
-          }}
-          onDrop={() => onDrop(k)}
-        >
-          {slots[k]}
-        </SortableSection>
-      ))}
-    </>
   );
 }
 
@@ -1040,10 +901,14 @@ function SortableSections({
 function TaskControlSection({
   liveness,
   activeRunCount,
+  queuedTaskCount,
+  blockedTaskCount,
   onStartScheduler,
 }: {
   liveness: ReturnType<typeof deriveSchedulerLiveness>;
   activeRunCount: number;
+  queuedTaskCount: number;
+  blockedTaskCount: number;
   onStartScheduler: () => Promise<void>;
 }) {
   const tone =
@@ -1092,25 +957,31 @@ function TaskControlSection({
     return () => window.clearInterval(id);
   }, [logOpen]);
 
-  // Auto-open the log drawer when the scheduler clearly isn't healthy
-  // — saves the user a click in the case the user's actually reporting.
   const recentFailures = spawns
     .slice(-5)
     .filter((s) => s.exitCode !== null && s.exitCode !== 0).length;
 
   return (
     <section
-      aria-label="Task control"
-      className="border-y border-amaco-border bg-amaco-panel-2/40 px-6 py-3"
+      aria-label="Orchestration control"
+      className="min-w-0 bg-amaco-panel-2/25 px-6 py-3"
     >
-      <header className="mb-2 flex items-baseline gap-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-        <span>task control</span>
+      <header className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <span>orchestration</span>
         <span className={`amaco-mono normal-case tracking-normal ${tone}`}>
           · {liveness.status}
         </span>
         <span className="amaco-mono normal-case tracking-normal text-amaco-fg-muted">
-          · {activeRunCount} active run{activeRunCount === 1 ? "" : "s"}
+          · {activeRunCount} active
         </span>
+        <span className="amaco-mono normal-case tracking-normal text-amaco-fg-muted">
+          · {queuedTaskCount} queued
+        </span>
+        {blockedTaskCount > 0 ? (
+          <span className="amaco-mono normal-case tracking-normal text-amaco-fail">
+            · {blockedTaskCount} blocked
+          </span>
+        ) : null}
       </header>
       <div className="flex flex-wrap items-center gap-2 text-[12px]">
         {!liveness.pickingUpWork ? (
@@ -1119,7 +990,7 @@ function TaskControlSection({
             onClick={() => void onStartScheduler()}
             className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2.5 py-1 font-medium text-amaco-accent hover:bg-amaco-accent/20"
           >
-            ↻ Start scheduler
+            Start scheduler
           </button>
         ) : null}
         <span className="amaco-mono text-[11px] text-amaco-fg-muted">
@@ -1128,18 +999,15 @@ function TaskControlSection({
         <button
           type="button"
           onClick={() => setLogOpen((v) => !v)}
-          className={`amaco-mono rounded border px-2 py-0.5 text-[10.5px] ${
+          className={`amaco-mono ml-auto rounded border px-2 py-0.5 text-[10.5px] ${
             recentFailures > 0
               ? "border-amaco-fail/50 bg-amaco-fail/10 text-amaco-fail"
               : "border-amaco-border text-amaco-fg-dim hover:bg-amaco-panel-2"
           }`}
-          title="Show captured stdout/stderr from the scheduler subprocess"
+          title="Show captured stdout and stderr from the scheduler subprocess"
         >
-          {logOpen ? "hide" : recentFailures > 0 ? `errors (${recentFailures})` : "show log"}
+          {logOpen ? "hide log" : recentFailures > 0 ? `errors (${recentFailures})` : "scheduler log"}
         </button>
-        <span className="ml-auto amaco-mono text-[10.5px] text-amaco-fg-muted">
-          drag any section's grip · → reorder
-        </span>
       </div>
 
       {logOpen ? (
@@ -1167,7 +1035,7 @@ function TaskControlSection({
             </button>
           </header>
           {spawns.length > 0 ? (
-            <ul className="border-b border-amaco-border-soft px-2 py-1 text-[10.5px] amaco-mono text-amaco-fg-dim space-y-0.5">
+            <ul className="space-y-0.5 border-b border-amaco-border-soft px-2 py-1 text-[10.5px] amaco-mono text-amaco-fg-dim">
               {spawns.slice(-5).reverse().map((s, i) => (
                 <li key={`${s.at}-${i}`} className="flex gap-2">
                   <span>{new Date(s.at).toLocaleTimeString()}</span>
@@ -1187,7 +1055,7 @@ function TaskControlSection({
                     <span className="text-amaco-success">· still running</span>
                   )}
                   {s.exitError ? (
-                    <span className="text-amaco-fail truncate">
+                    <span className="truncate text-amaco-fail">
                       · {s.exitError}
                     </span>
                   ) : null}
@@ -1196,7 +1064,7 @@ function TaskControlSection({
             </ul>
           ) : null}
           <pre className="amaco-mono max-h-72 overflow-auto whitespace-pre-wrap p-2 text-[11px] text-amaco-fg-dim">
-            {log ? log.text || "(empty — scheduler hasn't logged anything yet)" : "loading…"}
+            {log ? log.text || "(empty, scheduler has not logged anything yet)" : "loading…"}
           </pre>
         </div>
       ) : null}
