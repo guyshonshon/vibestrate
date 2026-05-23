@@ -379,45 +379,124 @@ sequential Guide runner lands in Phase 2.
 
 ### Phase 2: sequential Guide runner
 
-- [ ] Implement step state, step events, prompt/output artifacts, validation step, final summary step.
-- [ ] Reuse current provider streaming, worktree, permission, Skill, MCP, approval, and metrics plumbing.
-- [ ] Expose current Guide step in Mission Control, run detail, replay, and shell runs page.
+- [x] Implement step state, step events, prompt/output artifacts, validation step, final summary step.
+- [x] Reuse current provider streaming, worktree, permission, Skill, MCP, approval, and metrics plumbing.
+- [x] Expose current Guide step in Mission Control, run detail, replay, and shell runs page.
 
 Exit:
 
-- [ ] Quality Arbitration completes with stateless provider turns from persisted artifacts.
+- [x] Quality Arbitration completes with stateless provider turns from persisted artifacts.
 
 ### Phase 3: participant/session retention
 
-- [ ] Introduce provider capability reporting and participant ledger.
-- [ ] Add provider adapters for session reuse where a local CLI has a supported resume/interactive path.
-- [ ] Keep artifact rehydration as fallback.
-- [ ] Surface reuse/rehydration in UI, TUI, metrics, and events.
+- [x] Introduce provider capability reporting and participant ledger.
+- [x] Add provider adapters for session reuse where a local CLI has a supported resume/interactive path.
+- [x] Keep artifact rehydration as fallback.
+- [x] Surface reuse/rehydration in UI, TUI, metrics, and events.
 
 Exit:
 
-- [ ] Builder and challenger can maintain separate run-local context when their CLIs support it, and restart/fallback remains auditable.
+- [x] Builder and challenger can maintain separate run-local context when their CLIs support it, and restart/fallback remains auditable.
+
+Phase 3 keeps generic CLI providers on the persisted-artifact handoff path and
+records the fallback in `participants.json`, Guide state, metrics, and events.
+Typed `claude-code` providers open a session per Guide slot and resume that same
+run-local session for later slot turns; other provider adapters should only opt
+in after they can report a reliable session reference.
 
 ### Phase 4: arbitration semantics
 
-- [ ] Parse structured findings, responses, and second-review resolutions.
-- [ ] Create a decision summary that references validation and disagreement records.
-- [ ] Feed accepted suggestions and review-pass tooling where appropriate.
-- [ ] Add local export for arbitration datasets.
+- [x] Parse structured findings, responses, and second-review resolutions.
+- [x] Create a decision summary that references validation and disagreement records.
+- [x] Feed accepted suggestions and review-pass tooling where appropriate.
+- [x] Add local export for arbitration datasets.
 
 Exit:
 
-- [ ] A user can compare judgment quality by evidence, not by scrolling prose.
+- [x] A user can compare judgment quality by evidence, not by scrolling prose.
+
+Phase 4 accepts explicit `AMACO_GUIDE_OUTPUT` JSON blocks for findings,
+builder responses, second-review resolutions, and decision summaries. Parsed
+records land in `arbitration.json` plus canonical Guide artifacts; prose-only
+providers keep running with parse gaps recorded. Accepted or fixed findings
+become review suggestions and a draft review pass, and
+`amaco guides export-arbitration <runId>` exports the local evidence record.
 
 ### Phase 5: migrate and generalize
 
-- [ ] Decide whether the legacy default workflow becomes a built-in Guide or stays a special runner.
-- [ ] Add bounded loops/gates once sequential step behavior is stable.
-- [ ] Consider Guide suggestions based on task type, risk, touched files, and past outcomes.
+- [x] Decide whether the legacy default workflow becomes a built-in Guide or stays a special runner.
+- [x] Add bounded loops/gates once sequential step behavior is stable.
+- [x] Consider Guide suggestions based on task type, risk, touched files, and past outcomes.
 
 Exit:
 
-- [ ] Guide architecture supports more than Quality Arbitration without hiding unsafe complexity in templates.
+- [x] Guide architecture supports more than Quality Arbitration without hiding unsafe complexity in templates.
+
+Phase 5 keeps the legacy default workflow in `Orchestrator.run()` for now.
+It remains the stable special runner while Guide runs prove more templates and
+restart behavior; converting it to a built-in Guide would add migration risk
+without improving the selected-Guide product surface yet.
+
+Generalization is intentionally bounded. Guide `approval-gate` steps now need
+typed approval metadata and use the existing approval ledger. A Guide step may
+declare a fixed `repeat.times` bound, which the resolver expands into explicit
+sequential snapshot steps such as `review-repeat-2`. Phase 5 does not add
+adaptive branches or data-driven loop exits to YAML.
+
+Guide suggestions are advisory only. The shared classifier scores task wording,
+risk level, touched files, and recent local Guide outcomes; CLI/API/dashboard
+surfaces can show the suggestion, but the user still chooses the Guide before a
+run starts.
+
+
+### Phase 6: reorganize structure
+
+- [x] Split the Guide domain into catalog, schema/contract, and runtime modules.
+- [x] Move Guide phase coverage and fixtures into a dedicated test tree.
+- [x] Record Guide folder ownership so future templates do not flatten the domain again.
+- [x] Rewrite the README as a concise current product entrypoint.
+
+Exit:
+
+- [x] Guide definitions, schemas, runtime records, and tests have clear homes without a repo-wide rename churn.
+
+Phase 6 keeps the wider Amaco domain layout intact. The flatness introduced by
+the Guide work is now organized under `src/guides/{catalog,schemas,runtime}`
+and `tests/guides/`; `src/guides/README.md` pins those ownership boundaries.
+
+### Phase 7: interactive CLI Guide setup
+
+- [x] Add `amaco run --guide <id> --interactive` as a Guide-only terminal wizard.
+- [x] Collect or revise task, Guide brief, context policy, participant providers, and optional step inclusion before resolution.
+- [x] Feed the wizard result through the same Guide resolver and resolved-step preview used by scriptable CLI runs.
+- [x] Print an equivalent non-interactive command so terminal selections can be replayed and shared.
+
+Exit:
+
+- [x] A terminal user can start Quality Arbitration without hand-writing every Guide flag, while the final run remains reproducible from CLI arguments.
+
+Phase 7 closes the plain CLI initiation gap first. The Ink shell already shows
+the Guide catalog and running Guide state, but it still needs its own setup
+screen before shell initiation has the same step and slot picker as Mission
+Control and `amaco run --interactive`.
+
+### Phase 8: context packets and prompt budgeting
+
+- [x] Move Guide context selection into a reusable context builder.
+- [x] Make `contextPolicy` affect prompt materialization instead of only being recorded on the snapshot.
+- [x] Make participant context mode affect handoffs: reused sessions receive summaries and artifact refs instead of full prior artifacts.
+- [x] Record packet budgets, source hashes, prompt hashes, inclusion reasons, and estimated token savings.
+- [x] Emit `guide.context.built` events with budget data for replay/metrics follow-up.
+
+Exit:
+
+- [x] Compact and reused-session Guide turns stop replaying bulky prior artifacts into prompts while retaining exact artifact references for recovery and audit.
+
+Phase 8 is heuristic rather than model-generated compaction. It summarizes
+diff and validation JSON structurally, clips prose artifacts deterministically,
+and keeps exact full content in persisted artifacts. A later phase can add
+provider-assisted summaries, but this slice makes the token budget visible and
+testable without adding another model call.
 
 ## Testing Plan
 

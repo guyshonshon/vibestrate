@@ -20,6 +20,7 @@ async function makeRunFixture(opts: {
   withNotifications?: boolean;
   withTerminalSessions?: boolean;
   withPolicyRefusal?: boolean;
+  withGuide?: boolean;
   eventCount?: number;
   malformedJson?: boolean;
 } = {}): Promise<RunFixture> {
@@ -67,6 +68,31 @@ async function makeRunFixture(opts: {
       finalDecision: "APPROVED",
       verification: "PASSED",
       error: null,
+      ...(opts.withGuide
+        ? {
+            guide: {
+              guideId: "quality-arbitration",
+              guideVersion: 1,
+              label: "Quality Arbitration",
+              snapshotPath: "guide.json",
+              currentStepId: "second-review",
+              steps: [
+                {
+                  id: "plan",
+                  label: "Plan",
+                  kind: "agent-turn",
+                  status: "passed",
+                },
+                {
+                  id: "second-review",
+                  label: "Second Review",
+                  kind: "review-turn",
+                  status: "running",
+                },
+              ],
+            },
+          }
+        : {}),
     }),
   );
 
@@ -525,6 +551,35 @@ describe("buildRunReplay — service", () => {
     const { project, runId } = await makeRunFixture({ withEvents: true });
     const r = await buildRunReplay(project, runId);
     expect(r.artifacts.map((a) => a.path)).toContain("02-plan.md");
+  });
+
+  it("projects the Guide ledger and Guide events", async () => {
+    const { project, runId } = await makeRunFixture({
+      withEvents: false,
+      withGuide: true,
+    });
+    await fs.writeFile(
+      path.join(project, ".amaco/runs", runId, "events.ndjson"),
+      `${JSON.stringify({
+        timestamp: "2026-05-12T10:01:00.000Z",
+        type: "guide.step.started",
+        message: "Guide step second-review starting.",
+        data: { stepId: "second-review" },
+      })}\n`,
+    );
+    const r = await buildRunReplay(project, runId);
+    expect(r.guide).toMatchObject({
+      guideId: "quality-arbitration",
+      currentStepId: "second-review",
+    });
+    expect(r.guide?.steps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "plan", status: "passed" }),
+      ]),
+    );
+    expect(r.phases.find((phase) => phase.key === "guides")?.eventIndices).toEqual([
+      0,
+    ]);
   });
 });
 

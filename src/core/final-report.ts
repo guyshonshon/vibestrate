@@ -5,6 +5,8 @@ import type { RuntimeMetrics } from "./runtime-metrics.js";
 import type { ApprovalRequest } from "./approval-types.js";
 import type { ReviewSuggestion } from "../reviews/review-suggestion-types.js";
 import type { SuggestionBundle } from "../reviews/suggestion-bundle-types.js";
+import type { GuideArbitrationLedger } from "../guides/runtime/guide-arbitration.js";
+import { summarizeGuideDisagreements } from "../guides/runtime/guide-arbitration.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -24,6 +26,8 @@ export type FinalReportInput = {
   suggestions?: ReviewSuggestion[];
   /** Review passes (suggestion bundles) for this run (optional). */
   bundles?: SuggestionBundle[];
+  /** Structured Guide findings/response/decision record, when present. */
+  arbitration?: GuideArbitrationLedger | null;
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -200,11 +204,37 @@ function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string
   return [summary, "", head, rows].join("\n");
 }
 
+function renderGuideArbitrationSection(
+  arbitration: GuideArbitrationLedger | null | undefined,
+): string {
+  if (!arbitration) {
+    return "_No structured Guide arbitration record was captured._";
+  }
+  const disagreements = summarizeGuideDisagreements(arbitration);
+  return [
+    `- Findings: ${arbitration.findings.length}`,
+    `- Builder responses: ${arbitration.responses.length}`,
+    `- Second-review resolutions: ${arbitration.resolutions.length}`,
+    `- Disagreement records: ${disagreements.length}`,
+    `- Parse gaps: ${arbitration.parseIssues.length}`,
+    `- Decision record: ${arbitration.decision ? `\`${arbitration.decision.sourceArtifactPath}\`` : "_not parsed_"}`,
+    `- Deterministic summary: ${arbitration.decisionSummaryPath ? `\`${arbitration.decisionSummaryPath}\`` : "_not produced_"}`,
+    `- Accepted finding review pass: ${arbitration.acceptedReviewPassId ? `\`${arbitration.acceptedReviewPassId}\`` : "_none_"}`,
+  ].join("\n");
+}
+
 export function renderFinalReport(input: FinalReportInput): string {
-  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals, suggestions, bundles } = input;
+  const { state, artifactPaths, validation, policyWarnings, reviewLoops, metrics, approvals, suggestions, bundles, arbitration } = input;
   const summary = metrics?.approvalsSummary ?? null;
   const approvalSummaryLine = summary
     ? `**Total:** ${summary.total} · **Approved:** ${summary.approved} · **Rejected:** ${summary.rejected}${summary.expired ? ` · **Expired:** ${summary.expired}` : ""}${summary.pending ? ` · **Pending:** ${summary.pending}` : ""}${summary.totalWaitMs ? ` · **Total wait:** ${summary.totalWaitMs}ms` : ""}`
+    : "";
+  const guideArbitrationSection = state.guide
+    ? `## Guide Arbitration
+
+${renderGuideArbitrationSection(arbitration)}
+
+`
     : "";
 
   return `# Amaco Final Report
@@ -278,7 +308,7 @@ ${renderSuggestionsSection(suggestions)}
 
 ${renderBundlesSection(bundles)}
 
-## Next Steps
+${guideArbitrationSection}## Next Steps
 
 ${renderNextSteps(state)}
 `;

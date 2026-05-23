@@ -5,11 +5,11 @@ import fs from "node:fs/promises";
 import {
   discoverGuides,
   GuideDiscoveryError,
-} from "../src/guides/guide-discovery.js";
+} from "../../src/guides/catalog/guide-discovery.js";
 import {
   startServer,
   type StartedServer,
-} from "../src/server/server.js";
+} from "../../src/server/server.js";
 
 const PROJECT_CONFIG = `project:
   name: guides-phase1

@@ -4,6 +4,8 @@ import { guideTokenSchema } from "./guide-schema.js";
 export const GUIDE_FINDINGS_CONTRACT = "amaco.guide.findings.v1";
 export const GUIDE_FINDING_RESPONSES_CONTRACT =
   "amaco.guide.finding-responses.v1";
+export const GUIDE_FINDING_RESOLUTIONS_CONTRACT =
+  "amaco.guide.finding-resolutions.v1";
 export const GUIDE_DECISION_SUMMARY_CONTRACT =
   "amaco.guide.decision-summary.v1";
 
@@ -83,6 +85,39 @@ export type GuideFindingResponsesOutput = z.infer<
   typeof guideFindingResponsesOutputSchema
 >;
 
+export const guideFindingResolutionDispositionSchema = z.enum([
+  "resolved",
+  "still-open",
+  "invalid-finding",
+  "needs-human",
+]);
+export type GuideFindingResolutionDisposition = z.infer<
+  typeof guideFindingResolutionDispositionSchema
+>;
+
+export const guideFindingResolutionSchema = z
+  .object({
+    findingId: guideTokenSchema,
+    disposition: guideFindingResolutionDispositionSchema,
+    rationale: z.string().min(1).max(3000),
+    evidence: z.array(guideEvidenceRefSchema).default([]),
+  })
+  .strict();
+export type GuideFindingResolution = z.infer<
+  typeof guideFindingResolutionSchema
+>;
+
+export const guideFindingResolutionsOutputSchema = z
+  .object({
+    contract: z.literal(GUIDE_FINDING_RESOLUTIONS_CONTRACT),
+    stepId: guideTokenSchema,
+    resolutions: z.array(guideFindingResolutionSchema),
+  })
+  .strict();
+export type GuideFindingResolutionsOutput = z.infer<
+  typeof guideFindingResolutionsOutputSchema
+>;
+
 export const guideDecisionRecommendationSchema = z.enum([
   "merge-ready",
   "changes-requested",
@@ -123,5 +158,6 @@ export type GuideDecisionSummaryOutput = z.infer<
 export const guideOutputContractSchemas = {
   findings: guideFindingsOutputSchema,
   findingResponses: guideFindingResponsesOutputSchema,
+  findingResolutions: guideFindingResolutionsOutputSchema,
   decisionSummary: guideDecisionSummaryOutputSchema,
 } as const;

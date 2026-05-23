@@ -9,6 +9,11 @@ export type ProviderRunResult = {
   durationMs: number;
   startedAt: string;
   endedAt: string;
+  /**
+   * Session reuse is opt-in per provider adapter. One-shot generic CLIs
+   * leave this unset and the Guide runner falls back to artifact handoffs.
+   */
+  session?: ProviderSessionResult | null;
 };
 
 export type ProviderStreamChunk = {
@@ -17,11 +22,33 @@ export type ProviderStreamChunk = {
   at: string;
 };
 
+export type ProviderSessionReuse = "none" | "resume";
+
+export type ProviderCapabilities = {
+  providerType: string;
+  sessionReuse: ProviderSessionReuse;
+  interactiveSessions: boolean;
+  reportsSessionId: boolean;
+  reportsTokenUsage: boolean;
+};
+
+export type ProviderSessionRequest = {
+  action: "open" | "resume";
+  sessionId: string;
+};
+
+export type ProviderSessionResult = {
+  action: "opened" | "reused";
+  sessionId: string | null;
+};
+
 export type ProviderRunInput = {
   providerId: string;
   prompt: string;
   cwd: string;
   env?: Record<string, string>;
+  /** Provider-native session turn request for a Guide participant. */
+  session?: ProviderSessionRequest;
   /**
    * Absolute path to a materialized `mcp.json` (see `src/mcp/mcp-config-writer`).
    * When set, providers wire it through to the underlying CLI:

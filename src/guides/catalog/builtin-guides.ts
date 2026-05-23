@@ -1,4 +1,7 @@
-import { guideDefinitionSchema, type GuideDefinition } from "./guide-schema.js";
+import {
+  guideDefinitionSchema,
+  type GuideDefinition,
+} from "../schemas/guide-schema.js";
 
 export const qualityArbitrationGuide = guideDefinitionSchema.parse({
   id: "quality-arbitration",

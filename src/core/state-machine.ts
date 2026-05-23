@@ -6,6 +6,7 @@ import { pathExists } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
 import { TERMINAL_STATUSES } from "../workflow/workflow-types.js";
+import { guideRunParticipantStateSchema } from "../guides/runtime/guide-participant-ledger.js";
 
 export const runStatusSchema = z.enum([
   "created",
@@ -39,6 +40,51 @@ export const verificationDecisionSchema = z.enum([
   "NEEDS_HUMAN",
 ]);
 export type VerificationDecision = z.infer<typeof verificationDecisionSchema>;
+
+export const guideRunStepStatusSchema = z.enum([
+  "pending",
+  "running",
+  "passed",
+  "blocked",
+  "failed",
+  "skipped",
+]);
+export type GuideRunStepStatus = z.infer<typeof guideRunStepStatusSchema>;
+
+export const guideRunStepStateSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    kind: z.string().min(1),
+    status: guideRunStepStatusSchema,
+    optional: z.boolean().default(false),
+    slotId: z.string().nullable().default(null),
+    agentId: z.string().nullable().default(null),
+    providerId: z.string().nullable().default(null),
+    promptArtifactPath: z.string().nullable().default(null),
+    outputArtifactPath: z.string().nullable().default(null),
+    contextPacketPath: z.string().nullable().default(null),
+    validationArtifactPath: z.string().nullable().default(null),
+    startedAt: z.string().nullable().default(null),
+    endedAt: z.string().nullable().default(null),
+    error: z.string().nullable().default(null),
+  })
+  .strict();
+export type GuideRunStepState = z.infer<typeof guideRunStepStateSchema>;
+
+export const guideRunStateSchema = z
+  .object({
+    guideId: z.string().min(1),
+    guideVersion: z.number().int().positive(),
+    label: z.string().min(1),
+    snapshotPath: z.string().min(1),
+    participantLedgerPath: z.string().nullable().default(null),
+    participants: z.array(guideRunParticipantStateSchema).default([]),
+    currentStepId: z.string().nullable().default(null),
+    steps: z.array(guideRunStepStateSchema),
+  })
+  .strict();
+export type GuideRunState = z.infer<typeof guideRunStateSchema>;
 
 export const runStateSchema = z.object({
   runId: z.string().min(1),
@@ -88,19 +134,77 @@ export const runStateSchema = z.object({
   // includes a brevity directive: prefer diffs over re-stating
   // surrounding code, bullets over paragraphs, no preamble.
   concise: z.boolean().default(false),
+  // Guides persist their immutable resolved snapshot separately at
+  // `.amaco/runs/<id>/guide.json`; this live ledger stays in state.json
+  // so run lists, shell snapshots, and replay can expose progress without
+  // reading artifacts or provider output.
+  guide: guideRunStateSchema.nullable().default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
 
 const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
-  created: ["planning", "paused", "failed", "aborted", "blocked"],
-  planning: ["planned", "paused", "failed", "aborted", "blocked"],
-  planned: ["architecting", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
+  created: [
+    "planning",
+    "executing",
+    "validating",
+    "reviewing",
+    "fixing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
+  planning: [
+    "planned",
+    "executing",
+    "validating",
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
+  planned: [
+    "architecting",
+    "executing",
+    "validating",
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
   architecting: ["architected", "paused", "failed", "aborted", "blocked"],
   architected: ["executing", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
-  executing: ["validating", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
-  validating: ["reviewing", "paused", "failed", "aborted", "blocked"],
+  executing: [
+    "validating",
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
+  validating: [
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
   reviewing: [
+    "executing",
+    "validating",
     "verifying",
     "fixing",
     "waiting_for_approval",
@@ -109,12 +213,24 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "failed",
     "aborted",
   ],
-  fixing: ["validating", "waiting_for_approval", "paused", "blocked", "failed", "aborted"],
+  fixing: [
+    "validating",
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "blocked",
+    "failed",
+    "aborted",
+  ],
   verifying: ["merge_ready", "waiting_for_approval", "paused", "blocked", "failed", "aborted"],
   waiting_for_approval: [
+    "created",
+    "planning",
     "planned",
     "architected",
     "executing",
+    "validating",
     "reviewing",
     "fixing",
     "verifying",
@@ -206,6 +322,7 @@ export function createInitialState(input: {
     readOnly: false,
     runtimeSkills: [],
     concise: false,
+    guide: null,
   };
 }
 

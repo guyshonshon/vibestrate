@@ -81,6 +81,16 @@ export type ShellRunRow = {
   /** From the run's state.json — handy on the Overview for finished runs. */
   finalDecision: string | null;
   verification: string | null;
+  guide: {
+    label: string;
+    guideId: string;
+    currentStepId: string | null;
+    currentStepLabel: string | null;
+    currentStepStatus: string | null;
+    completedSteps: number;
+    totalSteps: number;
+    participantContexts: string[];
+  } | null;
 };
 
 export type ShellActivityEntry = {
@@ -184,6 +194,7 @@ export async function buildShellSnapshot(
       error: s.error ?? live.errorFromEvents,
       finalDecision: s.finalDecision ?? null,
       verification: s.verification ?? null,
+      guide: deriveGuideSummary(s),
     });
     recentEvents[s.runId] = events;
   }
@@ -206,6 +217,27 @@ export async function buildShellSnapshot(
       queueWaiting: queueEntries.length,
       queueRunning: scheduler?.runningTaskIds.length ?? 0,
     },
+  };
+}
+
+function deriveGuideSummary(state: RunState): ShellRunRow["guide"] {
+  if (!state.guide) return null;
+  const current =
+    state.guide.steps.find((step) => step.id === state.guide?.currentStepId) ??
+    null;
+  return {
+    label: state.guide.label,
+    guideId: state.guide.guideId,
+    currentStepId: state.guide.currentStepId,
+    currentStepLabel: current?.label ?? null,
+    currentStepStatus: current?.status ?? null,
+    completedSteps: state.guide.steps.filter(
+      (step) => step.status === "passed" || step.status === "skipped",
+    ).length,
+    totalSteps: state.guide.steps.length,
+    participantContexts: state.guide.participants.map((participant) =>
+      `${participant.label}:${participant.lastContextMode ?? participant.sessionReuse}`,
+    ),
   };
 }
 

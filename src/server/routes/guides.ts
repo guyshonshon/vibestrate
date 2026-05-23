@@ -4,9 +4,13 @@ import { loadConfig } from "../../project/config-loader.js";
 import {
   discoverGuides,
   findGuideById,
-} from "../../guides/guide-discovery.js";
-import { GuideResolutionError, resolveGuide } from "../../guides/guide-resolver.js";
-import { guideContextPolicySchema } from "../../guides/guide-schema.js";
+} from "../../guides/catalog/guide-discovery.js";
+import {
+  GuideResolutionError,
+  resolveGuide,
+} from "../../guides/runtime/guide-resolver.js";
+import { guideContextPolicySchema } from "../../guides/schemas/guide-schema.js";
+import { suggestGuidesForProject } from "../../guides/runtime/guide-suggestion.js";
 import { HttpError } from "../security.js";
 
 const providerOverridesSchema = z
@@ -24,6 +28,14 @@ const resolveGuideBody = z
   })
   .strict();
 
+const suggestGuidesBody = z
+  .object({
+    task: z.string().min(1).max(2000),
+    files: z.array(z.string().min(1).max(500)).max(256).optional(),
+    riskLevel: z.enum(["low", "medium", "high"]).nullable().optional(),
+  })
+  .strict();
+
 export type GuidesRoutesDeps = {
   projectRoot: string;
 };
@@ -36,6 +48,17 @@ export async function registerGuidesRoutes(
 
   app.get("/api/guides", async () => {
     return { guides: await discoverGuides(projectRoot) };
+  });
+
+  app.post<{ Body: unknown }>("/api/guides/suggest", async (req) => {
+    const parsed = suggestGuidesBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    return {
+      suggestions: await suggestGuidesForProject({
+        projectRoot,
+        ...parsed.data,
+      }),
+    };
   });
 
   app.get<{ Params: { guideId: string } }>(

@@ -77,6 +77,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
               <th className="px-3 py-1.5 text-left font-medium">Stage</th>
               <th className="px-3 py-1.5 text-left font-medium">Agent</th>
               <th className="px-3 py-1.5 text-left font-medium">Provider</th>
+              <th className="px-3 py-1.5 text-left font-medium">Context</th>
               <th className="px-3 py-1.5 text-right font-medium">Duration</th>
               <th className="px-3 py-1.5 text-right font-medium">Exit</th>
               <th className="px-3 py-1.5 text-right font-medium">Diff (+/-)</th>
@@ -90,7 +91,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
             {metrics.agents.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-3 py-2 text-[12px] text-amaco-fg-muted"
                 >
                   No agent metrics yet.
@@ -108,6 +109,16 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                   <td className="px-3 py-1.5 text-amaco-fg">{a.agentId}</td>
                   <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
                     {a.providerType}:{a.providerId}
+                  </td>
+                  <td
+                    className="amaco-mono px-3 py-1.5 text-amaco-fg-dim"
+                    title={a.guideContextFallbackReason ?? undefined}
+                  >
+                    {a.guideContextMode
+                      ? `${a.guideSlotId ?? "guide"}:${a.guideContextMode}`
+                      : a.sessionId
+                        ? "session"
+                        : "—"}
                   </td>
                   <td className="amaco-mono px-3 py-1.5 text-right text-amaco-fg">
                     {a.durationMs}ms

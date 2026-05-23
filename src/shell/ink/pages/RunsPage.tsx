@@ -90,7 +90,10 @@ function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
       <Text>
         <Text color={tok.color}>{tok.glyph}</Text>
         <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
-        <Text dimColor>  {clip(row.currentAgent ?? "—", 10).padEnd(10)}</Text>
+        <Text dimColor>
+          {"  "}
+          {clip(row.guide?.currentStepLabel ?? row.currentAgent ?? "—", 10).padEnd(10)}
+        </Text>
         <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (
           <Text color="yellow">  ⏳{row.pendingApprovals}</Text>
@@ -214,7 +217,28 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         {row.pausedAtStatus ? (
           <Field label="paused at" value={row.pausedAtStatus} />
         ) : null}
+        {row.guide ? (
+          <Field
+            label="guide"
+            value={`${row.guide.label} ${row.guide.completedSteps}/${row.guide.totalSteps}`}
+          />
+        ) : null}
       </Box>
+      {row.guide?.currentStepLabel ? (
+        <Text>
+          <Text dimColor>step   </Text>
+          <Text color="cyan">{row.guide.currentStepLabel}</Text>
+          {row.guide.currentStepStatus ? (
+            <Text dimColor>   {row.guide.currentStepStatus}</Text>
+          ) : null}
+        </Text>
+      ) : null}
+      {row.guide?.participantContexts.length ? (
+        <Text>
+          <Text dimColor>context</Text>
+          <Text> {row.guide.participantContexts.join("  ")}</Text>
+        </Text>
+      ) : null}
 
       {/* Terminal runs answer "why" first, then who. Active runs lead
           with the current agent. */}

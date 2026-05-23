@@ -2,15 +2,32 @@ import path from "node:path";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
 import { Orchestrator } from "../../core/orchestrator.js";
-import { color, header, indent, symbol } from "../ui/format.js";
+import {
+  color,
+  header,
+  indent,
+  isInteractiveTTY,
+  symbol,
+} from "../ui/format.js";
 import { isAmacoError } from "../../utils/errors.js";
 import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
   discoverGuides,
   findGuideById,
-} from "../../guides/guide-discovery.js";
-import { GuideResolutionError, resolveGuide } from "../../guides/guide-resolver.js";
+} from "../../guides/catalog/guide-discovery.js";
+import {
+  GuideResolutionError,
+  resolveGuide,
+} from "../../guides/runtime/guide-resolver.js";
+import type {
+  GuideContextPolicy,
+  ResolvedGuideSnapshot,
+} from "../../guides/schemas/guide-schema.js";
+import {
+  formatGuideRunCommand,
+  runGuideRunWizard,
+} from "../wizards/guide-run-wizard.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -57,17 +74,38 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Guide id to resolve before start. Phase 1 previews only. */
+  /** Guide id to resolve before start. */
   guideId?: string | null;
   /** Provider overrides by Guide participant slot id. */
   guideSlotProviders?: Record<string, string>;
+  /** Extra run brief included in the Guide task packet. */
+  guideBrief?: string | null;
+  /** Guide context packing policy. */
+  guideContextPolicy?: GuideContextPolicy;
+  /** Optional Guide steps explicitly disabled for this run. */
+  guideSkippedOptionalSteps?: string[];
+  /** Open the terminal Guide setup flow before resolving the run. */
+  guideInteractive?: boolean;
 };
 
 export async function runRunCommand(
   task: string,
   options: RunCommandOptions = {},
 ): Promise<number> {
-  if (!task || !task.trim()) {
+  let resolvedTask = task.trim();
+  if (options.guideInteractive && !options.guideId) {
+    console.error(
+      `${symbol.fail()} Interactive run setup currently requires ${color.bold("--guide <id>")}.`,
+    );
+    return 1;
+  }
+  if (options.guideInteractive && !isInteractiveTTY()) {
+    console.error(
+      `${symbol.fail()} ${color.bold("amaco run --guide <id> --interactive")} needs an interactive terminal.`,
+    );
+    return 1;
+  }
+  if (!resolvedTask && !options.guideInteractive) {
     console.error(
       `${symbol.fail()} A task description is required.`,
     );
@@ -133,6 +171,7 @@ export async function runRunCommand(
     return 1;
   }
 
+  let resolvedGuide: ResolvedGuideSnapshot | null = null;
   if (options.guideId) {
     const guide = await findGuideById(detected.projectRoot, options.guideId);
     if (!guide) {
@@ -142,15 +181,53 @@ export async function runRunCommand(
       );
       return 1;
     }
+    let guideBrief = options.guideBrief ?? null;
+    let guideContextPolicy = options.guideContextPolicy;
+    let guideSlotProviders = options.guideSlotProviders ?? {};
+    let guideSkippedOptionalSteps = options.guideSkippedOptionalSteps ?? [];
+    if (options.guideInteractive) {
+      const setup = await runGuideRunWizard({
+        task: resolvedTask,
+        guide,
+        config: loaded.config,
+        brief: guideBrief,
+        contextPolicy: guideContextPolicy,
+        slotProviders: guideSlotProviders,
+        skippedOptionalSteps: guideSkippedOptionalSteps,
+      });
+      resolvedTask = setup.task;
+      guideBrief = setup.brief;
+      guideContextPolicy = setup.contextPolicy;
+      guideSlotProviders = setup.slotProviders;
+      guideSkippedOptionalSteps = setup.skippedOptionalSteps;
+      console.log("");
+      console.log(header("Equivalent command"));
+      console.log(
+        indent(
+          formatGuideRunCommand({
+            guideId: guide.id,
+            task: resolvedTask,
+            brief: guideBrief,
+            contextPolicy: guideContextPolicy,
+            slotProviders: guideSlotProviders,
+            skippedOptionalSteps: guideSkippedOptionalSteps,
+          }),
+        ),
+      );
+      console.log("");
+    }
     try {
-      const snapshot = resolveGuide({
+      resolvedGuide = resolveGuide({
         guide: guide.definition,
         source: guide.source,
         config: loaded.config,
-        task,
-        slotProviders: options.guideSlotProviders,
+        task: resolvedTask,
+        brief: guideBrief,
+        contextPolicy: guideContextPolicy,
+        slotProviders: guideSlotProviders,
+        skippedOptionalSteps: guideSkippedOptionalSteps,
       });
-      printResolvedGuide(snapshot);
+      printResolvedGuide(resolvedGuide);
     } catch (err) {
       const message =
         err instanceof GuideResolutionError || isAmacoError(err)
@@ -162,11 +239,7 @@ export async function runRunCommand(
       console.error(indent(message));
       return 1;
     }
-    console.error("");
-    console.error(
-      `${symbol.warn()} Guide execution is not enabled yet. Phase 1 resolves and previews the run recipe; the sequential Guide runner starts in Phase 2.`,
-    );
-    return 2;
+    console.log("");
   }
 
   // Optionally bring up the supervisor server alongside the run.
@@ -244,7 +317,7 @@ export async function runRunCommand(
   // an honest "(suggested: …)" line. --auto-effort applies the suggestion
   // when --effort wasn't passed.
   const { classifyEffort } = await import("../../core/effort-heuristic.js");
-  const heuristic = classifyEffort({ text: task });
+  const heuristic = classifyEffort({ text: resolvedTask });
   if (effort === null && options.autoEffort) {
     effort = heuristic.effort;
   }
@@ -263,7 +336,7 @@ export async function runRunCommand(
     projectRoot: detected.projectRoot,
     config: loaded.config,
     rules: loaded.rules,
-    task,
+    task: resolvedTask,
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
     effort,
@@ -271,6 +344,7 @@ export async function runRunCommand(
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
+    guide: resolvedGuide,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {

@@ -33,6 +33,12 @@ export const agentMetricsSchema = z.object({
   stdoutArtifactPath: z.string().optional(),
   stderrArtifactPath: z.string().optional(),
   sessionId: z.string().nullable().default(null),
+  guideSlotId: z.string().nullable().default(null),
+  guideContextMode: z
+    .enum(["opened", "reused", "rehydrated", "stateless"])
+    .nullable()
+    .default(null),
+  guideContextFallbackReason: z.string().nullable().default(null),
   model: z.string().nullable().default(null),
   totalCostUsd: z.number().nullable().default(null),
   perModelCost: z.array(perModelCostSchema).default([]),

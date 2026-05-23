@@ -2,7 +2,7 @@ import { detectProject } from "../../../project/project-detector.js";
 import {
   discoverGuides,
   findGuideById,
-} from "../../../guides/guide-discovery.js";
+} from "../../../guides/catalog/guide-discovery.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runGuidesShow(
@@ -52,9 +52,13 @@ export async function runGuidesShow(
   for (const [index, step] of guide.definition.steps.entries()) {
     const slot = step.slot ? ` via ${step.slot}` : "";
     const optional = step.optional ? " optional" : "";
+    const repeat = step.repeat ? ` repeat x${step.repeat.times}` : "";
+    const gate = step.approval
+      ? ` gate ${step.approval.riskLevel}`
+      : "";
     console.log(
       indent(
-        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${slot}${optional})`)}`,
+        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${slot}${optional}${repeat}${gate})`)}`,
       ),
     );
   }

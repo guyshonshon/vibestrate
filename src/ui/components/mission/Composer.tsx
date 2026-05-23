@@ -17,6 +17,7 @@ import { usePersistedState } from "../../lib/usePersistedState.js";
 import type {
   DiscoveredGuide,
   GuideContextPolicy,
+  GuideSuggestion,
   ResolvedGuideSnapshot,
 } from "../../lib/types.js";
 
@@ -37,6 +38,14 @@ export type ComposerSubmit = PromptSubmit & {
   skills?: string[];
   /** Brevity directive for this run. */
   concise?: boolean;
+  /** Resolved-at-run-start Guide choices. */
+  guide?: {
+    id: string;
+    brief?: string | null;
+    contextPolicy: GuideContextPolicy;
+    slotProviders?: Record<string, string>;
+    skippedOptionalSteps?: string[];
+  };
 };
 
 type Props = {
@@ -52,6 +61,7 @@ type Props = {
     slotProviders?: Record<string, string>;
     skippedOptionalSteps?: string[];
   }) => Promise<ResolvedGuideSnapshot>;
+  onSuggestGuides: (task: string) => Promise<GuideSuggestion[]>;
   onSubmit: (input: ComposerSubmit) => void | Promise<void>;
 };
 
@@ -70,6 +80,7 @@ export function Composer({
   skills,
   guides,
   onResolveGuide,
+  onSuggestGuides,
   onSubmit,
 }: Props) {
   // Draft task text is intentionally NOT persisted — refreshing
@@ -112,6 +123,8 @@ export function Composer({
     useState<ResolvedGuideSnapshot | null>(null);
   const [guidePreviewBusy, setGuidePreviewBusy] = useState(false);
   const [guidePreviewError, setGuidePreviewError] = useState<string | null>(null);
+  const [guideSuggestions, setGuideSuggestions] = useState<GuideSuggestion[]>([]);
+  const [guideSuggestionsBusy, setGuideSuggestionsBusy] = useState(false);
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(false);
   const [skillSearch, setSkillSearch] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
@@ -207,6 +220,34 @@ export function Composer({
     text,
   ]);
 
+  useEffect(() => {
+    const task = guideTaskText(text);
+    if (!task || selectedGuide) {
+      setGuideSuggestions([]);
+      setGuideSuggestionsBusy(false);
+      return;
+    }
+
+    let cancelled = false;
+    setGuideSuggestionsBusy(true);
+    const timeout = window.setTimeout(() => {
+      void onSuggestGuides(task)
+        .then((suggestions) => {
+          if (!cancelled) setGuideSuggestions(suggestions);
+        })
+        .catch(() => {
+          if (!cancelled) setGuideSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setGuideSuggestionsBusy(false);
+        });
+    }, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [onSuggestGuides, selectedGuide, text]);
+
   function submit() {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
@@ -216,12 +257,6 @@ export function Composer({
       setParseError(parsed.message);
       return;
     }
-    if (parsed.kind === "run" && selectedGuide) {
-      setParseError(
-        "Guided execution starts in Phase 2. The resolved Guide preview is ready below; switch to default workflow to spawn now.",
-      );
-      return;
-    }
     const enriched: ComposerSubmit =
       parsed.kind === "run"
         ? {
@@ -229,6 +264,20 @@ export function Composer({
             provider: provider || undefined,
             skills: selectedSkills.length > 0 ? selectedSkills : undefined,
             concise: concise || undefined,
+            ...(selectedGuide
+              ? {
+                  guide: {
+                    id: selectedGuide.id,
+                    brief: guideBrief.trim() || null,
+                    contextPolicy: guideContextPolicy,
+                    slotProviders: compactOverrides(guideSlotProviders),
+                    skippedOptionalSteps:
+                      skippedOptionalSteps.length > 0
+                        ? skippedOptionalSteps
+                        : undefined,
+                  },
+                }
+              : {}),
           }
         : parsed;
     void onSubmit(enriched);
@@ -289,11 +338,11 @@ export function Composer({
             type="button"
             onClick={submit}
             disabled={busy || text.trim().length === 0}
-            aria-label={selectedGuide ? "Preview Guide" : "Run"}
+            aria-label={selectedGuide ? "Run Guide" : "Run"}
             className="shrink-0 self-start inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/15 px-4 py-2.5 text-[13px] font-medium text-amaco-accent hover:bg-amaco-accent/25 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
           >
             <Play className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-            {selectedGuide ? "Preview" : busy ? "Running…" : "Run"}
+            {busy ? "Running..." : selectedGuide ? "Run Guide" : "Run"}
           </button>
         </div>
 
@@ -383,6 +432,20 @@ export function Composer({
           >
             {parseError}
           </div>
+        ) : null}
+
+        {!selectedGuide && guideSuggestions.length > 0 ? (
+          <GuideSuggestionHint
+            suggestion={guideSuggestions[0]!}
+            busy={guideSuggestionsBusy}
+            onUse={() => {
+              setGuideId(guideSuggestions[0]!.guideId);
+              setGuideSlotProviders({});
+              setSkippedOptionalSteps([]);
+              setGuidePreview(null);
+              setGuidePreviewError(null);
+            }}
+          />
         ) : null}
 
         {selectedGuide ? (
@@ -547,6 +610,38 @@ function labelFor(p: {
       ? " (not in project.yml)"
       : "";
   return `${p.label}${tag}`;
+}
+
+function GuideSuggestionHint({
+  suggestion,
+  busy,
+  onUse,
+}: {
+  suggestion: GuideSuggestion;
+  busy: boolean;
+  onUse: () => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-amaco-border-soft pt-2 text-[11.5px] text-amaco-fg-dim">
+      <span className="amaco-mono text-[10.5px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        suggested guide
+      </span>
+      <span className="text-amaco-fg">{suggestion.label}</span>
+      <span
+        className="amaco-mono text-[10.5px] text-amaco-fg-muted"
+        title={suggestion.reasons.join(" ")}
+      >
+        {busy ? "checking..." : `confidence ${suggestion.confidence}`}
+      </span>
+      <button
+        type="button"
+        onClick={onUse}
+        className="rounded border border-amaco-accent/45 bg-amaco-accent/10 px-2 py-1 text-[11px] text-amaco-accent hover:bg-amaco-accent/20 focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+      >
+        Use Guide
+      </button>
+    </div>
+  );
 }
 
 function EffortChips({

@@ -65,7 +65,20 @@ export type AmacoEventType =
   | "suggestion.validation_profile_updated"
   | "bundle.validation_profile_updated"
   | "mcp.attached"
-  | "control.applied";
+  | "control.applied"
+  | "guide.snapshot.written"
+  | "guide.participant.capabilities"
+  | "guide.session.opened"
+  | "guide.session.reused"
+  | "guide.session.rehydrated"
+  | "guide.session.stateless"
+  | "guide.context.built"
+  | "guide.findings.updated"
+  | "guide.decision.completed"
+  | "guide.step.started"
+  | "guide.step.completed"
+  | "guide.step.failed"
+  | "guide.step.skipped";
 
 export type AmacoEvent = {
   timestamp: string;
