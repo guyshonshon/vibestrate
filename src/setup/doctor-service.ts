@@ -13,6 +13,7 @@ import { configExists, loadConfig } from "../project/config-loader.js";
 import { detectFullProject } from "../project/project-detector.js";
 import {
   detectAllProviders,
+  installHintForCommand,
   pickRecommendedProvider,
   type DetectedProvider,
 } from "../providers/provider-detection.js";
@@ -187,10 +188,12 @@ export async function runDoctor(input: {
         : `Provider "${id}" command "${cfg.command}" is not on PATH`,
       detail: available
         ? undefined
-        : `Install ${cfg.command} or run \`amaco provider setup\` to switch.`,
+        : installHintForCommand(cfg.command) ??
+          `Install ${cfg.command} or run \`amaco provider setup\` to switch.`,
       fixHint: available
         ? undefined
-        : "Install the CLI, or run `amaco provider setup` to choose a different one.",
+        : installHintForCommand(cfg.command) ??
+          "Install the CLI, or run `amaco provider setup` to choose a different one.",
       fixable: false,
     });
   }

@@ -25,6 +25,7 @@ export async function runProviderDetect(opts: { json?: boolean }): Promise<numbe
     } else {
       console.log(`${color.dim("○")} ${d.label} — not found`);
       console.log(indent(color.dim(`Command tried: ${d.command}`)));
+      for (const note of d.notes) console.log(indent(color.dim(note)));
     }
     console.log("");
   }

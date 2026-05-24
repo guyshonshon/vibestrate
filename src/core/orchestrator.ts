@@ -142,6 +142,9 @@ export type OrchestratorInput = {
   /** Immutable resolved Guide recipe. When set, the sequential Guide
    * runner replaces the legacy fixed workflow for this run. */
   guide?: ResolvedGuideSnapshot | null;
+  /** CLI/process lifecycle signal. Aborting it kills the active provider
+   * invocation and records the run as aborted instead of leaving orphan CLIs. */
+  abortSignal?: AbortSignal;
 };
 
 export type OrchestratorOutput = {
@@ -176,6 +179,13 @@ class __ApprovalRejectedSignal extends Error {
   constructor() {
     super("Run blocked after approval rejected");
     this.name = "ApprovalRejectedSignal";
+  }
+}
+
+class __RunAbortedSignal extends Error {
+  constructor() {
+    super("Run aborted by user signal");
+    this.name = "RunAbortedSignal";
   }
 }
 
@@ -246,6 +256,7 @@ export class Orchestrator {
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
   private readonly guide: ResolvedGuideSnapshot | null;
+  private readonly abortSignal: AbortSignal | null;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -261,6 +272,7 @@ export class Orchestrator {
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
     this.guide = input.guide ?? null;
+    this.abortSignal = input.abortSignal ?? null;
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -934,6 +946,52 @@ export class Orchestrator {
         );
       }
     } catch (err) {
+      if (err instanceof __RunAbortedSignal || this.abortSignal?.aborted) {
+        const message = "Run aborted by user signal.";
+        try {
+          state = applyTransition(state, "aborted");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: message };
+        await stateStore.write(state);
+        await eventLog.append({
+          type: "run.aborted",
+          message,
+        });
+        try {
+          await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
+        } catch {
+          // metrics finalize best-effort
+        }
+        const abortedMetrics = (await metricsStore.read()) ?? null;
+        const abortedApprovals = await approvalService.readAll().catch(() => []);
+        const finalReportPath = await this.writeFinalReport({
+          artifactStore,
+          state,
+          validation: lastValidation,
+          policyWarnings: policy.warnings,
+          reviewLoops: reviewLoopsCompleted,
+          metrics: abortedMetrics,
+          approvals: abortedApprovals,
+          artifacts: {
+            plan: planArtifact?.outputArtifactPath,
+            architecture: architectureArtifact?.outputArtifactPath,
+            execution: executionArtifact?.outputArtifactPath,
+            review: reviewArtifact?.outputArtifactPath,
+            verification: verificationArtifact?.outputArtifactPath,
+          },
+        });
+        return {
+          runId,
+          state,
+          worktreePath,
+          branchName,
+          finalReportPath,
+          policyWarnings: policy.warnings,
+        };
+      }
+
       // Approval-rejection short-circuit: state is already 'blocked' and the
       // approval.rejected event is already written. Do not mark the run as failed.
       if (err instanceof __ApprovalRejectedSignal) {
@@ -2632,6 +2690,15 @@ export class Orchestrator {
     // finish on its own, which could mean minutes per stage. Cleared
     // in the finally block so we don't leak intervals.
     const providerAbort = new AbortController();
+    if (this.abortSignal?.aborted) {
+      providerAbort.abort();
+    }
+    const abortFromSignal = (): void => {
+      if (!providerAbort.signal.aborted) providerAbort.abort();
+    };
+    this.abortSignal?.addEventListener("abort", abortFromSignal, {
+      once: true,
+    });
     const observer = setInterval(() => {
       void (async () => {
         try {
@@ -2657,6 +2724,9 @@ export class Orchestrator {
           ? { session: input.guideTurn.sessionRequest }
           : {}),
       });
+      if (providerAbort.signal.aborted) {
+        throw new __RunAbortedSignal();
+      }
       // Fallback flush — some providers buffer all output until exit,
       // or run on bundles that predate the chunk hook. Persist the
       // final stdout/stderr as a single chunk so the dashboard's
@@ -2729,9 +2799,13 @@ export class Orchestrator {
         notes: ["agent invocation failed before completion"],
       };
       await input.metricsStore.appendAgentMetrics(failedMetric);
+      if (providerAbort.signal.aborted) {
+        throw new __RunAbortedSignal();
+      }
       throw err;
     } finally {
       clearInterval(observer);
+      this.abortSignal?.removeEventListener("abort", abortFromSignal);
     }
 
     const stdout = providerResult.stdout || "";

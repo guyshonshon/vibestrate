@@ -63,6 +63,13 @@ function resolveAmacoBin(): string {
  */
 export async function ensureSchedulerRunning(input: {
   projectRoot: string;
+  /** Use for auto-starts caused by queueing work. The scheduler exits
+   * once the queue drains instead of becoming a permanent background daemon. */
+  exitWhenDrained?: boolean;
+  /** Optional owner process. If it exits, the scheduler exits too. */
+  parentPid?: number;
+  /** Audit label written to scheduler-spawns.ndjson. */
+  source?: string;
 }): Promise<EnsureRunningResult> {
   const queue = new RunQueue(input.projectRoot);
   const state = await queue.readState().catch(() => null);
@@ -77,11 +84,15 @@ export async function ensureSchedulerRunning(input: {
   try {
     const bin = resolveAmacoBin();
     const logFd = openLogForAppend(input.projectRoot);
-    const child = spawn(process.execPath, [bin, "queue", "run"], {
+    const args = ["queue", "run"];
+    if (input.exitWhenDrained) args.push("--exit-when-drained");
+    const source = input.source ?? "auto-queue";
+    const child = spawn(process.execPath, [bin, ...args], {
       cwd: input.projectRoot,
       env: {
         ...process.env,
-        AMACO_SPAWNED_BY: "auto-queue",
+        AMACO_SPAWNED_BY: source,
+        ...(input.parentPid ? { AMACO_PARENT_PID: String(input.parentPid) } : {}),
         NO_COLOR: "1",
       },
       // stdout + stderr land in the log file; stdin is discarded.
@@ -96,7 +107,7 @@ export async function ensureSchedulerRunning(input: {
       /* ignore — child already owns it */
     }
     const pid = child.pid ?? null;
-    await recordSpawn(input.projectRoot, { pid, source: "auto-queue" });
+    await recordSpawn(input.projectRoot, { pid, source });
 
     // Watch for fast exits so we can flip them into the issues stream
     // *before* the user wonders why nothing is moving. A normal
@@ -135,7 +146,7 @@ export async function ensureSchedulerRunning(input: {
       action: "spawned",
       liveness,
       ...(pid !== null ? { pid } : {}),
-      message: `auto-started \`amaco queue run\` (pid ${pid ?? "—"}); logs at .amaco/scheduler/scheduler.log`,
+      message: `started \`amaco ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .amaco/scheduler/scheduler.log`,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

@@ -308,6 +308,21 @@ describe("git status / history", () => {
     expect(h.truncated).toBe(true);
   });
 
+  it("getGitHistory can scope commits to HEAD not reachable from a base ref", async () => {
+    await execa("git", ["checkout", "-q", "-b", "task"], { cwd: project });
+    await fs.writeFile(path.join(project, "task.txt"), "task\n");
+    await execa("git", ["add", "."], { cwd: project });
+    await execa("git", ["commit", "-q", "-m", "task work"], { cwd: project });
+
+    const h = await getGitHistory({
+      worktreePath: project,
+      limit: 10,
+      baseRef: "main",
+    });
+    expect(h.baseRef).toBe("main");
+    expect(h.commits.map((c) => c.subject)).toEqual(["task work"]);
+  });
+
   it("getGitStatus is graceful when not a git repo", async () => {
     const dir = await tempProject();
     const s = await getGitStatus(dir);

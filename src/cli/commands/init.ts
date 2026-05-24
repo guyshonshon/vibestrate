@@ -112,9 +112,16 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
         ),
       );
     }
+    const ollama = plan.detections.find((d) => d.id === "ollama");
+    const ollamaInstall = ollama?.notes.find((n) =>
+      n.toLowerCase().includes("install ollama"),
+    );
+    if (ollamaInstall) {
+      console.log(indent(color.dim(ollamaInstall)));
+    }
     console.log(
       indent(
-        `Install Claude Code, or run ${color.bold("amaco provider setup")} to configure a custom CLI.`,
+        `Install a local CLI, or run ${color.bold("amaco provider setup")} to configure a custom command.`,
       ),
     );
   }

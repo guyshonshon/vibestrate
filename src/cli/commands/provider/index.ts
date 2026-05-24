@@ -12,7 +12,7 @@ export function buildProviderCommand(): Command {
 
   cmd
     .command("detect")
-    .description("Scan PATH for known local coding CLIs (claude/codex/opencode/aider).")
+    .description("Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).")
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
       const code = await runProviderDetect({ json: opts.json });

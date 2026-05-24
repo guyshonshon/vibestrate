@@ -5,6 +5,7 @@ import {
   addProvider,
   buildClaudeProviderFromDetection,
   buildCodexProviderFromDetection,
+  buildOllamaProviderFromDetection,
   setDefaultProvider,
 } from "../../../setup/provider-setup-service.js";
 import { detectAllProviders } from "../../../providers/provider-detection.js";
@@ -41,8 +42,9 @@ export async function runProviderSetup(): Promise<number> {
   // moves), but if it's on PATH we surface the starter preset as an
   // explicit choice so the user doesn't have to type the flags.
   const codex = detections.find((d) => d.id === "codex" && d.available);
+  const ollama = detections.find((d) => d.id === "ollama" && d.available);
 
-  type Choice = "claude" | "codex" | "custom";
+  type Choice = "claude" | "codex" | "ollama" | "custom";
   const choices: { name: string; value: Choice; description?: string }[] = [];
   if (claude) {
     choices.push({
@@ -58,12 +60,20 @@ export async function runProviderSetup(): Promise<number> {
         "Applies `codex exec -q` with stdin prompt. Run `amaco provider test codex` after to verify the flags work in your version.",
     });
   }
+  if (ollama) {
+    choices.push({
+      name: `Ollama — starter preset (detected: ${ollama.command}${ollama.version ? ` v${ollama.version}` : ""})`,
+      value: "ollama",
+      description:
+        "Applies `ollama run qwen3.5` with stdin prompt. Pull that model first, or edit the model in project.yml after setup.",
+    });
+  }
   choices.push({ name: "Custom command", value: "custom" });
 
   const choice = await select<Choice>({
     message: "Which local coding CLI should Amaco use for its agents?",
     choices,
-    default: claude ? "claude" : codex ? "codex" : "custom",
+    default: claude ? "claude" : codex ? "codex" : ollama ? "ollama" : "custom",
   });
 
   try {
@@ -94,6 +104,26 @@ export async function runProviderSetup(): Promise<number> {
         );
         console.log(
           `  ${symbol.arrow()} Verify the invocation: ${color.bold("amaco provider test codex")}`,
+        );
+      } else {
+        console.log(`${symbol.warn()} ${setRes.reason}`);
+      }
+    } else if (choice === "ollama" && ollama) {
+      await addProvider(detected.projectRoot, {
+        id: "ollama",
+        config: buildOllamaProviderFromDetection(ollama),
+        alsoAssignAllAgents: false,
+      });
+      const setRes = await setDefaultProvider(detected.projectRoot, "ollama");
+      if (setRes.ok) {
+        console.log(
+          `${symbol.ok()} Ollama is now configured for all default agents with the starter preset.`,
+        );
+        console.log(
+          `  ${symbol.arrow()} Pull the default model if needed: ${color.bold("ollama pull qwen3.5")}`,
+        );
+        console.log(
+          `  ${symbol.arrow()} Verify the invocation: ${color.bold("amaco provider test ollama")}`,
         );
       } else {
         console.log(`${symbol.warn()} ${setRes.reason}`);

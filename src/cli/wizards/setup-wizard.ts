@@ -12,7 +12,10 @@ import {
   addProvider,
   setDefaultProvider,
   buildClaudeProviderFromDetection,
+  buildCodexProviderFromDetection,
+  buildOllamaProviderFromDetection,
 } from "../../setup/provider-setup-service.js";
+import { installHintForCommand } from "../../providers/provider-detection.js";
 import {
   setConfigValue,
   setValidationCommands,
@@ -33,12 +36,18 @@ export async function runInteractiveSetupWizard(args: {
   console.log("");
 
   const claude = plan.detections.find((d) => d.id === "claude" && d.available);
+  const codex = plan.detections.find((d) => d.id === "codex" && d.available);
+  const ollama = plan.detections.find((d) => d.id === "ollama" && d.available);
   const ready = plan.detections.filter((d) => d.confidence === "ready" && d.available);
   const needsSetup = plan.detections.filter((d) => d.confidence === "detected-needs-setup");
 
-  let providerChoice: "claude" | "skip" | "custom" = "skip";
+  let providerChoice: "claude" | "codex" | "ollama" | "skip" | "custom" = "skip";
   if (ready.length === 0 && needsSetup.length === 0) {
     console.log(`${symbol.warn()} No local coding CLI was detected.`);
+    const ollamaInstall = installHintForCommand("ollama");
+    if (ollamaInstall) {
+      console.log(indent(color.dim(ollamaInstall)));
+    }
     providerChoice = await select({
       message: "How do you want to proceed?",
       choices: [
@@ -53,6 +62,37 @@ export async function runInteractiveSetupWizard(args: {
       default: true,
     });
     providerChoice = useClaude ? "claude" : "custom";
+  } else if (codex || ollama) {
+    const choices: {
+      name: string;
+      value: "codex" | "ollama" | "custom" | "skip";
+      description?: string;
+    }[] = [];
+    if (codex) {
+      choices.push({
+        name: `Codex CLI starter preset (${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
+        value: "codex",
+        description:
+          "Uses `codex exec -q`; run `amaco provider test codex` after setup.",
+      });
+    }
+    if (ollama) {
+      choices.push({
+        name: `Ollama starter preset (${ollama.command}${ollama.version ? ` v${ollama.version}` : ""})`,
+        value: "ollama",
+        description:
+          "Uses `ollama run qwen3.5`; pull that model first or edit project.yml.",
+      });
+    }
+    choices.push(
+      { name: "Configure a custom CLI now", value: "custom" },
+      { name: "Initialize anyway, set up provider later", value: "skip" },
+    );
+    providerChoice = await select({
+      message: "Detected local CLIs need confirmation. Which provider should Amaco use?",
+      choices,
+      default: codex ? "codex" : "ollama",
+    });
   } else {
     const useCustom = await confirm({
       message: "No verified preset for the detected CLIs. Configure a custom CLI now?",
@@ -122,6 +162,33 @@ export async function runInteractiveSetupWizard(args: {
     } else {
       console.log(`${symbol.warn()} ${setRes.reason}`);
     }
+  } else if (providerChoice === "codex" && codex) {
+    await addProvider(args.projectRoot, {
+      id: "codex",
+      config: buildCodexProviderFromDetection(codex),
+      alsoAssignAllAgents: false,
+    });
+    const setRes = await setDefaultProvider(args.projectRoot, "codex");
+    if (setRes.ok) {
+      console.log(`${symbol.ok()} Codex CLI configured with the starter preset.`);
+      console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test codex")}`));
+    } else {
+      console.log(`${symbol.warn()} ${setRes.reason}`);
+    }
+  } else if (providerChoice === "ollama" && ollama) {
+    await addProvider(args.projectRoot, {
+      id: "ollama",
+      config: buildOllamaProviderFromDetection(ollama),
+      alsoAssignAllAgents: false,
+    });
+    const setRes = await setDefaultProvider(args.projectRoot, "ollama");
+    if (setRes.ok) {
+      console.log(`${symbol.ok()} Ollama configured with the starter preset.`);
+      console.log(indent(`${symbol.arrow()} ${color.bold("ollama pull qwen3.5")}`));
+      console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test ollama")}`));
+    } else {
+      console.log(`${symbol.warn()} ${setRes.reason}`);
+    }
   }
 
   if (chosenValidation.length > 0) {
@@ -150,7 +217,9 @@ export async function runStandaloneSetupWizard(args: {
   const plan = await planSetup({ projectRoot: args.projectRoot });
 
   const claude = plan.detections.find((d) => d.id === "claude" && d.available);
-  let providerChoice: "claude" | "custom" | "skip" = "skip";
+  const codex = plan.detections.find((d) => d.id === "codex" && d.available);
+  const ollama = plan.detections.find((d) => d.id === "ollama" && d.available);
+  let providerChoice: "claude" | "codex" | "ollama" | "custom" | "skip" = "skip";
   if (claude) {
     const useClaude = await confirm({
       message: `Claude Code is on PATH (${claude.command}). Use it for all agents?`,
@@ -158,13 +227,43 @@ export async function runStandaloneSetupWizard(args: {
     });
     providerChoice = useClaude ? "claude" : "custom";
   } else {
+    if (!codex && !ollama) {
+      const ollamaInstall = installHintForCommand("ollama");
+      if (ollamaInstall) {
+        console.log(`${symbol.warn()} No local coding CLI was detected.`);
+        console.log(indent(color.dim(ollamaInstall)));
+        console.log("");
+      }
+    }
+    const choices: {
+      name: string;
+      value: "codex" | "ollama" | "custom" | "skip";
+      description?: string;
+    }[] = [];
+    if (codex) {
+      choices.push({
+        name: `Codex CLI starter preset (${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
+        value: "codex",
+        description:
+          "Uses `codex exec -q`; run `amaco provider test codex` after setup.",
+      });
+    }
+    if (ollama) {
+      choices.push({
+        name: `Ollama starter preset (${ollama.command}${ollama.version ? ` v${ollama.version}` : ""})`,
+        value: "ollama",
+        description:
+          "Uses `ollama run qwen3.5`; pull that model first or edit project.yml.",
+      });
+    }
+    choices.push(
+      { name: "Configure a custom CLI", value: "custom" },
+      { name: "Skip — I'll do it later", value: "skip" },
+    );
     providerChoice = await select({
       message: "No provider with a verified preset was detected. What now?",
-      choices: [
-        { name: "Configure a custom CLI", value: "custom" as const },
-        { name: "Skip — I'll do it later", value: "skip" as const },
-      ],
-      default: "custom" as const,
+      choices,
+      default: codex ? "codex" : ollama ? "ollama" : "custom",
     });
   }
 
@@ -175,6 +274,23 @@ export async function runStandaloneSetupWizard(args: {
       alsoAssignAllAgents: true,
     });
     console.log(`${symbol.ok()} Claude Code configured for all default agents.`);
+  } else if (providerChoice === "codex" && codex) {
+    await addProvider(args.projectRoot, {
+      id: "codex",
+      config: buildCodexProviderFromDetection(codex),
+      alsoAssignAllAgents: true,
+    });
+    console.log(`${symbol.ok()} Codex CLI configured with the starter preset.`);
+    console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test codex")}`));
+  } else if (providerChoice === "ollama" && ollama) {
+    await addProvider(args.projectRoot, {
+      id: "ollama",
+      config: buildOllamaProviderFromDetection(ollama),
+      alsoAssignAllAgents: true,
+    });
+    console.log(`${symbol.ok()} Ollama configured with the starter preset.`);
+    console.log(indent(`${symbol.arrow()} ${color.bold("ollama pull qwen3.5")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test ollama")}`));
   } else if (providerChoice === "custom") {
     const id = await askInput({
       message: "Provider id:",

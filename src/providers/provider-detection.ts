@@ -1,6 +1,11 @@
 import { execa } from "execa";
 
-export type KnownProviderId = "claude" | "codex" | "opencode" | "aider";
+export type KnownProviderId =
+  | "claude"
+  | "codex"
+  | "opencode"
+  | "aider"
+  | "ollama";
 
 export type DetectedProvider = {
   id: KnownProviderId;
@@ -23,6 +28,7 @@ type KnownProviderDef = {
   // 'detected-needs-setup' means we found the binary but won't guess prompt flags.
   presetReady: boolean;
   notes: string[];
+  installHint?: string;
 };
 
 export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
@@ -73,6 +79,20 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
       "Run `amaco provider setup` to confirm command, args, and input mode.",
     ],
   },
+  {
+    id: "ollama",
+    label: "Ollama",
+    command: "ollama",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Starter preset available: `ollama run qwen3.5` with stdin prompt.",
+      "Run `ollama pull qwen3.5` first, or edit providers.ollama.args to use another local model.",
+      "Run `amaco provider setup` to apply it, then `amaco provider test ollama` to verify the model responds.",
+    ],
+    installHint:
+      "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download.",
+  },
 ];
 
 const DETECTION_TIMEOUT_MS = 4_000;
@@ -116,11 +136,21 @@ export async function detectProvider(
       detectionMethod: "failed",
       confidence: "missing",
       recommended: false,
-      notes: [`${def.command} is not on PATH.`],
+      notes: [
+        `${def.command} is not on PATH.`,
+        ...(def.installHint ? [def.installHint] : []),
+      ],
     };
   }
 
   if (result.exitCode !== 0) {
+    const reason =
+      result.exitCode === -1
+        ? `${def.command} is not on PATH.`
+        : `${def.command} returned exit code ${result.exitCode} for ${def.versionArgs.join(" ")}.`;
+    const stderrNote =
+      result.stderr.trim() ||
+      (result.exitCode === -1 ? "" : "Command may be installed but not configured.");
     return {
       id: def.id,
       label: def.label,
@@ -130,8 +160,9 @@ export async function detectProvider(
       confidence: "missing",
       recommended: false,
       notes: [
-        `${def.command} returned exit code ${result.exitCode} for ${def.versionArgs.join(" ")}.`,
-        result.stderr.trim() || "Command may be installed but not configured.",
+        reason,
+        stderrNote,
+        ...(def.installHint ? [def.installHint] : []),
       ].filter(Boolean),
     };
   }
@@ -158,6 +189,12 @@ export async function detectAllProviders(
     results.push(await detectProvider(def, runner));
   }
   return results;
+}
+
+export function installHintForCommand(command: string): string | null {
+  const basename = command.split(/[\\/]/).pop() ?? command;
+  const def = KNOWN_PROVIDERS.find((p) => p.command === basename);
+  return def?.installHint ?? null;
 }
 
 export function pickRecommendedProvider(

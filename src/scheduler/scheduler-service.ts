@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
@@ -30,12 +30,17 @@ export type StartSchedulerInput = {
    * Override how a task run is launched. Default: spawn `amaco run --task <id> "<title>"`
    * as a child process. Tests inject a synchronous local runner.
    */
-  runTask?: (task: Task) => Promise<{ exitCode: number }>;
+  runTask?: (
+    task: Task,
+    context: { signal: AbortSignal },
+  ) => Promise<{ exitCode: number }>;
   /** Stop the loop after the queue is fully drained instead of polling forever. */
   exitWhenDrained?: boolean;
   /** Polling interval when the loop has nothing to do. */
   idlePollMs?: number;
 };
+
+type SchedulerRunTask = NonNullable<StartSchedulerInput["runTask"]>;
 
 export type SchedulerHandle = {
   stop: () => Promise<void>;
@@ -52,8 +57,38 @@ const DEFAULT_BIN = (() => {
   return { distInDist, distFromSource };
 })();
 
-function defaultRunTask(projectRoot: string): (task: Task) => Promise<{ exitCode: number }> {
-  return async (task) => {
+function terminateChildProcess(child: ChildProcess): void {
+  const pid = child.pid;
+  if (!pid) return;
+  try {
+    if (process.platform !== "win32") process.kill(-pid, "SIGTERM");
+    else child.kill("SIGTERM");
+  } catch {
+    try {
+      child.kill("SIGTERM");
+    } catch {
+      /* ignore */
+    }
+  }
+  const timer = setTimeout(() => {
+    try {
+      if (process.platform !== "win32") process.kill(-pid, "SIGKILL");
+      else child.kill("SIGKILL");
+    } catch {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        /* ignore */
+      }
+    }
+  }, 3000);
+  timer.unref?.();
+}
+
+function defaultRunTask(
+  projectRoot: string,
+): SchedulerRunTask {
+  return async (task, context) => {
     return new Promise((resolve) => {
       const args = [
         "run",
@@ -71,14 +106,25 @@ function defaultRunTask(projectRoot: string): (task: Task) => Promise<{ exitCode
             cwd: projectRoot,
             stdio: "inherit",
             env: { ...process.env, AMACO_SCHEDULED: "1" },
+            detached: process.platform !== "win32",
           })
         : spawn("amaco", args, {
             cwd: projectRoot,
             stdio: "inherit",
             env: { ...process.env, AMACO_SCHEDULED: "1" },
+            detached: process.platform !== "win32",
           });
-      child.on("exit", (code) => resolve({ exitCode: code ?? -1 }));
-      child.on("error", () => resolve({ exitCode: -1 }));
+      const abort = (): void => terminateChildProcess(child);
+      if (context.signal.aborted) abort();
+      else context.signal.addEventListener("abort", abort, { once: true });
+      child.on("exit", (code, signal) => {
+        context.signal.removeEventListener("abort", abort);
+        resolve({ exitCode: code ?? (signal ? 130 : -1) });
+      });
+      child.on("error", () => {
+        context.signal.removeEventListener("abort", abort);
+        resolve({ exitCode: -1 });
+      });
     });
   };
 }
@@ -118,9 +164,29 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
   const idlePollMs = input.idlePollMs ?? 1000;
 
   let stopRequested = false;
+  let lastHeartbeatAt = Date.now();
+  const runAbort = new AbortController();
   // Tracks the source for each in-flight task so the picker can apply
   // per-source quotas without re-reading the queue file.
   const inflight = new Map<string, { promise: Promise<void>; source: string }>();
+
+  async function heartbeat(force = false): Promise<void> {
+    const now = Date.now();
+    if (!force && now - lastHeartbeatAt < 1000) return;
+    const state = await queue.readState();
+    await queue.writeState(state);
+    lastHeartbeatAt = now;
+  }
+
+  async function sleepWithHeartbeat(ms: number): Promise<void> {
+    const deadline = Date.now() + ms;
+    while (!stopRequested) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      await new Promise((r) => setTimeout(r, Math.min(remaining, 1000)));
+      await heartbeat();
+    }
+  }
 
   async function tick(): Promise<{ launched: boolean; idle: boolean }> {
     const state = await queue.readState();
@@ -245,7 +311,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
 
     const promise = (async () => {
       try {
-        const result = await runTask(candidate);
+        const result = await runTask(candidate, { signal: runAbort.signal });
         const after = await roadmap.getTask(candidate.id);
         // The orchestrator already wrote the task's final status (done / blocked /
         // failed). If for some reason it didn't, mirror the exit code.
@@ -277,16 +343,17 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
   const finished = (async () => {
     while (!stopRequested) {
       const { launched, idle } = await tick();
+      await heartbeat();
       if (!launched && idle) {
         if (input.exitWhenDrained && inflight.size === 0) {
           // Re-check: someone might have added work between idle detection and now.
           const q = await queue.readQueue();
           if (q.entries.length === 0) break;
         }
-        await new Promise((r) => setTimeout(r, idlePollMs));
+        await sleepWithHeartbeat(idlePollMs);
       } else if (!launched) {
         // Loop was at capacity — wait briefly to free a slot.
-        await new Promise((r) => setTimeout(r, 200));
+        await sleepWithHeartbeat(200);
       }
     }
     // Drain in-flight before returning.
@@ -296,11 +363,13 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
     }
     const s = await queue.readState();
     await queue.writeState({ ...s, runningTaskIds: [] });
+    await heartbeat(true);
   })();
 
   return {
     stop: async () => {
       stopRequested = true;
+      runAbort.abort();
       await finished;
     },
     finished,

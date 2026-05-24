@@ -125,7 +125,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     subtitle:
       "the planner / architect / executor / etc. that do the work",
     blurb:
-      "Configured agents from .amaco/project.yml. Each agent has a provider (claude-code / codex / aider), a prompt file, a permissions profile, attached skills, and optional MCP servers. Edit via project.yml.",
+      "Configured agents from .amaco/project.yml. Each agent has a provider (claude-code / codex / ollama / aider), a prompt file, a permissions profile, attached skills, and optional MCP servers. Edit via project.yml.",
     commonKeys: [["↑↓", "select agent"]],
     commonCli: ["amaco config show", "amaco provider list"],
   },

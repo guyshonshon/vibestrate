@@ -67,6 +67,7 @@ export async function runArgvCommand(input: {
   signal?: AbortSignal;
 }): Promise<CommandResult> {
   const startedAt = new Date();
+  const detached = process.platform !== "win32";
   // Use execa's process handle so we can subscribe to stream chunks
   // while *also* collecting the full buffered output for the
   // existing CommandResult contract. execa accepts AbortSignal for
@@ -77,12 +78,50 @@ export async function runArgvCommand(input: {
     timeout: input.timeoutMs,
     input: input.stdin,
     reject: false,
+    detached,
     // execa renamed `signal` to `cancelSignal`. Pass through both
     // forms so we work against both older and newer execa shapes.
     ...(input.signal
       ? ({ cancelSignal: input.signal } as { cancelSignal: AbortSignal })
       : {}),
   });
+  let forceKillTimer: NodeJS.Timeout | null = null;
+  const terminateSubprocess = (): void => {
+    const pid = subprocess.pid;
+    if (!pid) return;
+    try {
+      if (detached) process.kill(-pid, "SIGTERM");
+      else subprocess.kill("SIGTERM");
+    } catch {
+      try {
+        subprocess.kill("SIGTERM");
+      } catch {
+        /* ignore */
+      }
+    }
+    forceKillTimer = setTimeout(() => {
+      try {
+        if (detached) process.kill(-pid, "SIGKILL");
+        else subprocess.kill("SIGKILL");
+      } catch {
+        try {
+          subprocess.kill("SIGKILL");
+        } catch {
+          /* ignore */
+        }
+      }
+    }, 3000);
+    forceKillTimer.unref?.();
+  };
+  if (input.signal) {
+    if (input.signal.aborted) {
+      terminateSubprocess();
+    } else {
+      input.signal.addEventListener("abort", terminateSubprocess, {
+        once: true,
+      });
+    }
+  }
   if (input.onChunk) {
     subprocess.stdout?.on("data", (b: Buffer | string) => {
       input.onChunk!({
@@ -99,7 +138,15 @@ export async function runArgvCommand(input: {
       });
     });
   }
-  const result = await subprocess;
+  let result;
+  try {
+    result = await subprocess;
+  } finally {
+    if (input.signal) {
+      input.signal.removeEventListener("abort", terminateSubprocess);
+    }
+    if (forceKillTimer) clearTimeout(forceKillTimer);
+  }
   const endedAt = new Date();
   // Surface the abort path so callers don't see "exitCode = 0" for a
   // signal-killed child. execa marks `isCanceled` when its signal

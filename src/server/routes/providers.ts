@@ -22,7 +22,7 @@ export type ProviderRow = {
 
 /**
  * Read-only discovery surface for the dashboard's composer. Returns the
- * known detected providers (Claude / Codex / OpenCode / Aider) plus a
+ * known detected providers (Claude / Codex / OpenCode / Aider / Ollama) plus a
  * `configured` flag derived from the project's loaded config — so the
  * UI can both let the user pick a *detected* provider and indicate
  * which ones are wired into project.yml already.

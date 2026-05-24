@@ -17,7 +17,11 @@ import {
   recordExit,
   recordSpawn,
 } from "./scheduler-log.js";
-import { isProcessAlive, readLock, releaseLock } from "./scheduler-lock.js";
+import {
+  getLockReclaimReason,
+  isProcessAlive,
+  readLock,
+} from "./scheduler-lock.js";
 import os from "node:os";
 import { recordIssue } from "../core/issues-store.js";
 
@@ -53,26 +57,25 @@ export async function startManagedScheduler(input: {
   let backoff = 1_000;
   let nextRestart: NodeJS.Timeout | null = null;
 
-  // Refuse to manage only when a LIVE process holds the lock. A stale
-  // lock from a previously-crashed scheduler used to permanently
-  // block `amaco ui` from auto-starting on that project — the user
-  // would see "scheduler OFFLINE · start it with amaco queue run"
-  // forever even though they did start it (via `amaco ui`).
+  // Refuse to manage only when a live, fresh scheduler owns the lock.
+  // If the heartbeat has gone stale, the queue runner we spawn below
+  // will reclaim the lock and stop the old owner.
   const existingLock = await readLock(input.projectRoot);
   if (existingLock) {
     const sameHost = existingLock.host === os.hostname();
     const stillAlive = sameHost && isProcessAlive(existingLock.pid);
-    if (stillAlive) {
-      // A real, live scheduler is running somewhere — most likely
-      // `amaco queue run` in another terminal. Log an info line and
-      // bow out so we don't fight it.
+    const reclaimReason = await getLockReclaimReason(
+      input.projectRoot,
+      existingLock,
+    );
+    if (!reclaimReason) {
       try {
         const logFd = openLogForAppend(input.projectRoot);
         try {
           const { writeSync } = await import("node:fs");
           writeSync(
             logFd,
-            `[managed] UI not starting a managed scheduler — lock held by live pid ${existingLock.pid} on ${existingLock.host} since ${existingLock.startedAt}.\n`,
+            `[managed] UI not starting a managed scheduler; lock held by ${stillAlive ? "live" : "remote"} pid ${existingLock.pid} on ${existingLock.host} since ${existingLock.startedAt}.\n`,
           );
         } finally {
           closeSync(logFd);
@@ -85,16 +88,13 @@ export async function startManagedScheduler(input: {
         pid: () => null,
       };
     }
-    // Stale lock — reclaim it before spawning so the child's own
-    // `acquireLock` call has a clean slate.
-    await releaseLock(input.projectRoot).catch(() => undefined);
     try {
       const logFd = openLogForAppend(input.projectRoot);
       try {
         const { writeSync } = await import("node:fs");
         writeSync(
           logFd,
-          `[managed] reclaimed stale lock (pid ${existingLock.pid} from ${existingLock.host} appears dead).\n`,
+          `[managed] spawning scheduler to reclaim stale lock (${reclaimReason}) held by pid ${existingLock.pid} on ${existingLock.host}.\n`,
         );
       } finally {
         closeSync(logFd);
@@ -113,6 +113,7 @@ export async function startManagedScheduler(input: {
       env: {
         ...process.env,
         AMACO_SPAWNED_BY: "ui-managed",
+        AMACO_PARENT_PID: String(process.pid),
         NO_COLOR: "1",
       },
       stdio: ["ignore", logFd, logFd],
