@@ -1,6 +1,12 @@
-import { type ReactNode } from "react";
-import { AlertTriangle } from "lucide-react";
-import { CommandDeck, type NavId } from "./CommandDeck.js";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  HelpCircle,
+  Settings as SettingsIcon,
+} from "lucide-react";
+import { Sidebar, type NavId } from "./Sidebar.js";
+import { NotificationBell } from "../notifications/NotificationBell.js";
 import { HelpOverlay } from "../HelpOverlay.js";
 import { useServerHealth } from "../../lib/useServerHealth.js";
 import type { NotificationRecord } from "../../lib/types.js";
@@ -38,79 +44,64 @@ export function AppShell({
   onShowGit,
   onOpenNotification,
 }: AppShellProps) {
-  const screen = currentRunId
-    ? {
-        title: "Run inspection",
-        subtitle: currentRunId,
-      }
-    : NAV_META[currentNav];
-
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-amaco-canvas text-amaco-fg">
-      <ServerHealthBanner />
-      <CommandDeck
+    <div className="flex h-screen w-screen overflow-hidden bg-amaco-canvas text-amaco-fg">
+      <Sidebar
         currentRunId={currentRunId}
         currentNav={currentNav}
-        screen={screen}
         onSelectRun={onSelectRun}
         onShowHome={onShowHome}
         onShowRunsList={onShowRunsList}
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}
         onShowProposals={onShowProposals}
-        onShowSettings={onShowSettings}
         onShowProject={onShowProject}
         onShowCodebase={onShowCodebase}
         onShowGit={onShowGit}
-        onOpenNotification={onOpenNotification}
       />
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {children}
+      <main className="relative flex flex-1 flex-col overflow-hidden">
+        <ServerHealthBanner />
+        <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
+          <BackButton onShowHome={onShowHome} />
+          <span className="ml-auto" />
+          <button
+            type="button"
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("amaco:help-overlay"))
+            }
+            title="Keyboard shortcuts (?)"
+            aria-label="Keyboard shortcuts"
+            className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+          >
+            <HelpCircle className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+          <NotificationBell onOpenNotification={onOpenNotification} />
+          <button
+            type="button"
+            onClick={onShowSettings}
+            className={`rounded p-1.5 hover:bg-amaco-panel-2 hover:text-amaco-fg ${
+              currentNav === "settings" ? "text-amaco-fg" : "text-amaco-fg-dim"
+            }`}
+            title="Settings"
+            aria-label="Settings"
+          >
+            <SettingsIcon className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        </header>
+        <div className="flex-1 overflow-hidden">{children}</div>
       </main>
       <HelpOverlay />
     </div>
   );
 }
 
-const NAV_META: Record<NavId, { title: string; subtitle: string }> = {
-  home: {
-    title: "Mission Control",
-    subtitle: "Launch runs, choose flow templates, watch active CLI work.",
-  },
-  runs: {
-    title: "Runs",
-    subtitle: "Historical execution ledger and replay entry point.",
-  },
-  board: {
-    title: "Task Board",
-    subtitle: "Roadmap items, queued work, priorities, dependencies.",
-  },
-  queue: {
-    title: "Queue",
-    subtitle: "Scheduler intake, blocked tasks, pending execution.",
-  },
-  proposals: {
-    title: "Proposals",
-    subtitle: "Planner drafts waiting to become tracked work.",
-  },
-  settings: {
-    title: "Settings",
-    subtitle: "Providers, validation profiles, notifications, policy defaults.",
-  },
-  project: {
-    title: "Project",
-    subtitle: "Repository metadata, detected commands, Amaco config.",
-  },
-  codebase: {
-    title: "Codebase",
-    subtitle: "Read-only tree, files, references, and profile maintenance.",
-  },
-  git: {
-    title: "Git",
-    subtitle: "Worktree-aware branch, status, and commit activity.",
-  },
-};
-
+/**
+ * Header Back button. Uses browser history (hash-based routing means
+ * Back lands on the previous in-app route). Disabled when there's no
+ * history to go back to — falls through to Home when clicked anyway
+ * so the user always has an out. Listens for `popstate` so the
+ * disabled state stays correct as the user navigates.
+ */
 /**
  * Loud-by-default banner shown whenever the local amaco server stops
  * answering /api/health. Surfaces the "the dashboard is talking to a
@@ -130,7 +121,9 @@ function ServerHealthBanner() {
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
       <span className="font-medium">amaco ui is unreachable.</span>
       <span className="text-amaco-fail/80">
-        The server at this origin stopped answering /api/health. Restart it with{" "}
+        The server at this origin stopped answering /api/health
+        {" "}
+        — restart it with{" "}
         <code className="amaco-mono rounded bg-amaco-fail/15 px-1">amaco ui</code>
         {" "}from the project root and refresh.
       </span>
@@ -138,5 +131,37 @@ function ServerHealthBanner() {
         last checked {lastCheckedAt.toLocaleTimeString()}
       </span>
     </div>
+  );
+}
+
+function BackButton({ onShowHome }: { onShowHome: () => void }) {
+  const [canGoBack, setCanGoBack] = useState(false);
+  useEffect(() => {
+    const update = () => setCanGoBack(window.history.length > 1);
+    update();
+    window.addEventListener("popstate", update);
+    window.addEventListener("hashchange", update);
+    return () => {
+      window.removeEventListener("popstate", update);
+      window.removeEventListener("hashchange", update);
+    };
+  }, []);
+  const onClick = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      onShowHome();
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={canGoBack ? "Back (browser history)" : "Back to Home"}
+      aria-label="Back"
+      className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+    </button>
   );
 }
