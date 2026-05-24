@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --color-amaco-canvas: #0b0e13;
-  --color-amaco-panel: #11151c;
-  --color-amaco-panel-2: #161b24;
-  --color-amaco-border: #232a36;
-  --color-amaco-border-soft: #1a212c;
-  --color-amaco-fg: #d6dde6;
-  --color-amaco-fg-dim: #8a93a3;
-  --color-amaco-fg-muted: #5b6370;
-  --color-amaco-accent: #4ea1ff;
-  --color-amaco-accent-soft: #1e2a3d;
-  --color-amaco-success: #5ec27c;
-  --color-amaco-warn: #d8a23a;
-  --color-amaco-fail: #d96666;
-  --color-amaco-diff-add: #1e3327;
-  --color-amaco-diff-add-fg: #9fdcb0;
-  --color-amaco-diff-del: #3d2326;
-  --color-amaco-diff-del-fg: #f0a5a5;
+  --color-amaco-canvas: oklch(13.5% 0.018 255);
+  --color-amaco-panel: oklch(17.5% 0.019 255);
+  --color-amaco-panel-2: oklch(22% 0.022 255);
+  --color-amaco-border: oklch(31% 0.025 255);
+  --color-amaco-border-soft: oklch(25% 0.021 255);
+  --color-amaco-fg: oklch(89% 0.018 245);
+  --color-amaco-fg-dim: oklch(66% 0.022 248);
+  --color-amaco-fg-muted: oklch(49% 0.022 248);
+  --color-amaco-accent: oklch(68% 0.155 252);
+  --color-amaco-accent-soft: oklch(24% 0.05 252);
+  --color-amaco-success: oklch(73% 0.12 154);
+  --color-amaco-warn: oklch(76% 0.13 78);
+  --color-amaco-fail: oklch(68% 0.15 25);
+  --color-amaco-diff-add: oklch(24% 0.052 154);
+  --color-amaco-diff-add-fg: oklch(82% 0.105 154);
+  --color-amaco-diff-del: oklch(25% 0.055 25);
+  --color-amaco-diff-del-fg: oklch(82% 0.095 25);
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
@@ -34,8 +34,11 @@ body,
 }
 
 body {
+  margin: 0;
   font-family: var(--font-sans);
   font-feature-settings: "tnum" 1;
+  background: var(--color-amaco-canvas);
+  color: var(--color-amaco-fg);
 }
 
 ::selection {
@@ -59,6 +62,41 @@ body {
 .amaco-mono {
   font-family: var(--font-mono);
   font-size: 12.5px;
+}
+
+button,
+select,
+textarea,
+input {
+  font: inherit;
+}
+
+select {
+  color-scheme: dark;
+}
+
+* {
+  scrollbar-color: var(--color-amaco-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-amaco-border-soft);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-amaco-border);
+  background-clip: content-box;
 }
 
 /* highlight.js theme — minimal, tuned to the amaco dark palette. We don't
