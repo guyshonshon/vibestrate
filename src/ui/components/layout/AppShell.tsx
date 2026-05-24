@@ -1,13 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Command,
-  HelpCircle,
-  Settings as SettingsIcon,
-} from "lucide-react";
-import { Sidebar, type NavId } from "./Sidebar.js";
-import { NotificationBell } from "../notifications/NotificationBell.js";
+import { type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
+import { CommandDeck, type NavId } from "./CommandDeck.js";
 import { HelpOverlay } from "../HelpOverlay.js";
 import { useServerHealth } from "../../lib/useServerHealth.js";
 import type { NotificationRecord } from "../../lib/types.js";
@@ -53,69 +46,26 @@ export function AppShell({
     : NAV_META[currentNav];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-amaco-canvas text-amaco-fg">
-      <Sidebar
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-amaco-canvas text-amaco-fg">
+      <ServerHealthBanner />
+      <CommandDeck
         currentRunId={currentRunId}
         currentNav={currentNav}
+        screen={screen}
         onSelectRun={onSelectRun}
         onShowHome={onShowHome}
         onShowRunsList={onShowRunsList}
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}
         onShowProposals={onShowProposals}
+        onShowSettings={onShowSettings}
         onShowProject={onShowProject}
         onShowCodebase={onShowCodebase}
         onShowGit={onShowGit}
+        onOpenNotification={onOpenNotification}
       />
-      <main className="relative flex flex-1 flex-col overflow-hidden">
-        <ServerHealthBanner />
-        <header className="flex min-h-12 items-center gap-3 border-b border-amaco-border bg-amaco-panel/70 px-4">
-          <BackButton onShowHome={onShowHome} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Command
-                className="h-3.5 w-3.5 text-amaco-accent"
-                strokeWidth={1.6}
-                aria-hidden
-              />
-              <span className="text-[13px] font-medium text-amaco-fg">
-                {screen.title}
-              </span>
-            </div>
-            <div
-              className="amaco-mono mt-0.5 max-w-[56vw] truncate text-[10.5px] text-amaco-fg-muted"
-              title={screen.subtitle}
-            >
-              {screen.subtitle}
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() =>
-              window.dispatchEvent(new CustomEvent("amaco:help-overlay"))
-            }
-            title="Keyboard shortcuts (?)"
-            aria-label="Keyboard shortcuts"
-            className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
-          >
-            <HelpCircle className="h-4 w-4" strokeWidth={1.5} />
-          </button>
-          <NotificationBell onOpenNotification={onOpenNotification} />
-          <button
-            type="button"
-            onClick={onShowSettings}
-            className={`rounded p-1.5 hover:bg-amaco-panel-2 hover:text-amaco-fg ${
-              currentNav === "settings" ? "text-amaco-fg" : "text-amaco-fg-dim"
-            }`}
-            title="Settings"
-            aria-label="Settings"
-          >
-            <SettingsIcon className="h-4 w-4" strokeWidth={1.5} />
-          </button>
-          </div>
-        </header>
-        <div className="flex-1 overflow-hidden">{children}</div>
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
       </main>
       <HelpOverlay />
     </div>
@@ -162,13 +112,6 @@ const NAV_META: Record<NavId, { title: string; subtitle: string }> = {
 };
 
 /**
- * Header Back button. Uses browser history (hash-based routing means
- * Back lands on the previous in-app route). Disabled when there's no
- * history to go back to — falls through to Home when clicked anyway
- * so the user always has an out. Listens for `popstate` so the
- * disabled state stays correct as the user navigates.
- */
-/**
  * Loud-by-default banner shown whenever the local amaco server stops
  * answering /api/health. Surfaces the "the dashboard is talking to a
  * server that's gone" state instead of letting every page silently
@@ -195,37 +138,5 @@ function ServerHealthBanner() {
         last checked {lastCheckedAt.toLocaleTimeString()}
       </span>
     </div>
-  );
-}
-
-function BackButton({ onShowHome }: { onShowHome: () => void }) {
-  const [canGoBack, setCanGoBack] = useState(false);
-  useEffect(() => {
-    const update = () => setCanGoBack(window.history.length > 1);
-    update();
-    window.addEventListener("popstate", update);
-    window.addEventListener("hashchange", update);
-    return () => {
-      window.removeEventListener("popstate", update);
-      window.removeEventListener("hashchange", update);
-    };
-  }, []);
-  const onClick = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      onShowHome();
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={canGoBack ? "Back (browser history)" : "Back to Home"}
-      aria-label="Back"
-      className="rounded p-1.5 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
-    >
-      <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-    </button>
   );
 }
