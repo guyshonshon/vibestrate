@@ -115,8 +115,8 @@ export function HelpOverlay() {
             ))}
           </div>
           <p className="mt-4 text-[11px] text-amaco-fg-muted">
-            Layout state (sidebar width, panel order + collapsed state,
-            section order, composer config) persists per-browser via{" "}
+            Layout state (panel order + collapsed state, section order,
+            composer config) persists per-browser via{" "}
             <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
               localStorage
             </code>
@@ -172,8 +172,6 @@ const GROUPS: HelpGroup[] = [
   {
     title: "Layout",
     items: [
-      { what: "Resize sidebar", keys: ["drag right edge"] },
-      { what: "Reset sidebar width", keys: ["dbl-click edge"] },
       { what: "Reorder panel / section", keys: ["drag header"] },
       { what: "Collapse panel", keys: ["click chevron"] },
       { what: "Right-click for actions + CLI", keys: ["right-click"] },
