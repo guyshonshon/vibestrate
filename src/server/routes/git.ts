@@ -8,6 +8,7 @@ import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { assertSafeRunId, HttpError } from "../security.js";
+import { loadConfig } from "../../project/config-loader.js";
 
 export type GitRoutesDeps = { projectRoot: string };
 
@@ -53,10 +54,12 @@ export async function registerGitRoutes(
       throw new HttpError(409, "This run has no worktree yet.");
     }
     const limit = parseLimit(req.query.limit, 20);
+    const loaded = await loadConfig(projectRoot);
     return {
       history: await getGitHistory({
         worktreePath: state.worktreePath,
         limit,
+        baseRef: loaded.config.git.mainBranch,
       }),
     };
   });

@@ -5,6 +5,7 @@ import {
   addProvider,
   buildClaudeProviderFromDetection,
   buildCodexProviderFromDetection,
+  buildOllamaProviderFromDetection,
 } from "../../../setup/provider-setup-service.js";
 import { configExists } from "../../../project/config-loader.js";
 import { detectAllProviders } from "../../../providers/provider-detection.js";
@@ -39,12 +40,17 @@ export async function runProviderSet(
     // If detected on PATH but not configured, offer to add (interactive only).
     const detections = await detectAllProviders();
     const detected1 = detections.find((d) => d.id === providerId && d.available);
-    if (detected1 && (providerId === "claude" || providerId === "codex")) {
-      // Codex gets a louder confirmation because its preset is a starter
-      // (flag matrix moves across releases). Claude's preset is verified.
-      const isStarterPreset = providerId === "codex";
+    if (
+      detected1 &&
+      (providerId === "claude" ||
+        providerId === "codex" ||
+        providerId === "ollama")
+    ) {
+      // Starter presets get a louder confirmation because flags/model
+      // availability may vary. Claude's preset is verified.
+      const isStarterPreset = providerId === "codex" || providerId === "ollama";
       const message = isStarterPreset
-        ? `Provider "${providerId}" is on PATH but not configured. Add it using Amaco's starter preset (codex exec -q, stdin)? You should follow up with \`amaco provider test codex\` before relying on it.`
+        ? `Provider "${providerId}" is on PATH but not configured. Add it using Amaco's starter preset? You should follow up with \`amaco provider test ${providerId}\` before relying on it.`
         : `Provider "${providerId}" is on PATH but not in your config yet. Add it now and assign all default agents?`;
       const proceed =
         opts.yes ||
@@ -55,7 +61,9 @@ export async function runProviderSet(
           const config =
             providerId === "codex"
               ? buildCodexProviderFromDetection(detected1)
-              : buildClaudeProviderFromDetection(detected1);
+              : providerId === "ollama"
+                ? buildOllamaProviderFromDetection(detected1)
+                : buildClaudeProviderFromDetection(detected1);
           await addProvider(detected.projectRoot, {
             id: providerId,
             config,
@@ -64,6 +72,8 @@ export async function runProviderSet(
           console.log(
             providerId === "codex"
               ? `${symbol.ok()} Added Codex provider with the starter preset. Run \`amaco provider test codex\` to verify the invocation works.`
+              : providerId === "ollama"
+                ? `${symbol.ok()} Added Ollama provider with the starter preset. Run \`ollama pull qwen3.5\`, then \`amaco provider test ollama\`.`
               : `${symbol.ok()} Added Claude Code provider and assigned all default agents to it.`,
           );
           return 0;

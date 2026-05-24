@@ -34,7 +34,11 @@ export async function registerQueueRoutes(
   // and the eventual UI-managed scheduler all share one code path —
   // and the same visibility (log file + spawn-event stream).
   app.post("/api/scheduler/start", async () => {
-    const r = await ensureSchedulerRunning({ projectRoot: deps.projectRoot });
+    const r = await ensureSchedulerRunning({
+      projectRoot: deps.projectRoot,
+      parentPid: process.pid,
+      source: "dashboard-start",
+    });
     if (r.action === "spawn-failed") {
       throw new HttpError(500, r.message ?? "Failed to spawn scheduler.");
     }

@@ -7,6 +7,7 @@ import { ConflictsStore } from "../../scheduler/conflict-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import {
   acquireLock,
+  isProcessAlive,
   releaseLock,
 } from "../../scheduler/scheduler-lock.js";
 import { color, header, indent, symbol } from "../ui/format.js";
@@ -95,7 +96,7 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
       );
       console.error(
         indent(
-          `If you believe it crashed, delete ${color.bold(".amaco/scheduler/lock")} and re-run.`,
+          "Amaco will reclaim crashed or stale schedulers automatically once their heartbeat expires.",
         ),
       );
       return 1;
@@ -103,7 +104,7 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
     acquired = true;
     if (lock.reclaimed) {
       console.log(
-        `${symbol.warn()} Reclaimed a stale lock from a crashed scheduler.`,
+        `${symbol.warn()} Reclaimed a stale scheduler lock (${lock.reclaimReason ?? "stale"}).`,
       );
     }
 
@@ -118,19 +119,52 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
       exitWhenDrained: opts.exitWhenDrained,
     });
     let stopRequested = false;
-    process.on("SIGINT", () => {
-      if (stopRequested) return;
+    let parentMonitor: NodeJS.Timeout | null = null;
+    let forceTimer: NodeJS.Timeout | null = null;
+    const requestStop = (reason: "SIGINT" | "SIGTERM" | "parent-exit") => {
+      if (stopRequested) {
+        console.log("");
+        console.log(color.dim("Force-exiting scheduler (second interrupt)."));
+        process.exit(reason === "SIGINT" ? 130 : 143);
+      }
       stopRequested = true;
-      console.log("");
-      console.log(color.dim("Stopping scheduler (current runs will finish)..."));
+      if (reason === "SIGINT") console.log("");
+      console.log(
+        color.dim(
+          reason === "parent-exit"
+            ? "Parent process exited; stopping scheduler and active task..."
+            : "Stopping scheduler and active task... press Ctrl+C again to force.",
+        ),
+      );
       void handle.stop();
-    });
-    process.on("SIGTERM", () => {
-      if (stopRequested) return;
-      stopRequested = true;
-      void handle.stop();
-    });
+      forceTimer = setTimeout(() => {
+        console.log(color.dim("Scheduler shutdown timed out; force-exiting."));
+        process.exit(reason === "SIGINT" ? 130 : 143);
+      }, 10_000);
+      forceTimer.unref?.();
+    };
+    const parentPid = Number.parseInt(process.env.AMACO_PARENT_PID ?? "", 10);
+    if (
+      Number.isInteger(parentPid) &&
+      parentPid > 0 &&
+      parentPid !== process.pid
+    ) {
+      parentMonitor = setInterval(() => {
+        if (!stopRequested && !isProcessAlive(parentPid)) {
+          requestStop("parent-exit");
+        }
+      }, 1000);
+      parentMonitor.unref?.();
+    }
+    const onSigint = () => requestStop("SIGINT");
+    const onSigterm = () => requestStop("SIGTERM");
+    process.on("SIGINT", onSigint);
+    process.on("SIGTERM", onSigterm);
     await handle.finished;
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
+    if (parentMonitor) clearInterval(parentMonitor);
+    if (forceTimer) clearTimeout(forceTimer);
     console.log(`${symbol.ok()} Scheduler exited.`);
     return 0;
   } catch (err) {

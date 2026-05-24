@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   detectAllProviders,
   detectProvider,
+  installHintForCommand,
   KNOWN_PROVIDERS,
   pickRecommendedProvider,
   summarizeDetections,
@@ -20,6 +21,12 @@ const allMissing: ProviderDetectionRunner = async () => {
 
 const codexOnly: ProviderDetectionRunner = async (cmd) => {
   if (cmd === "codex") return { exitCode: 0, stdout: "codex 0.9.0", stderr: "" };
+  return { exitCode: 127, stdout: "", stderr: "" };
+};
+
+const ollamaOnly: ProviderDetectionRunner = async (cmd) => {
+  if (cmd === "ollama")
+    return { exitCode: 0, stdout: "ollama version is 0.13.0", stderr: "" };
   return { exitCode: 127, stdout: "", stderr: "" };
 };
 
@@ -53,6 +60,16 @@ describe("provider detection", () => {
     expect(codex.recommended).toBe(false);
   });
 
+  it("flags Ollama as detected-needs-setup with a starter preset", async () => {
+    const detections = await detectAllProviders(ollamaOnly);
+    const ollama = detections.find((d) => d.id === "ollama")!;
+    expect(ollama.available).toBe(true);
+    expect(ollama.confidence).toBe("detected-needs-setup");
+    expect(ollama.recommended).toBe(false);
+    expect(ollama.version).toBe("0.13.0");
+    expect(ollama.notes.join("\n")).toMatch(/ollama run qwen3\.5/i);
+  });
+
   it("does not mark non-zero exit as available", async () => {
     const runner: ProviderDetectionRunner = async () => ({
       exitCode: 1,
@@ -62,6 +79,18 @@ describe("provider detection", () => {
     const claude = await detectProvider(KNOWN_PROVIDERS[0]!, runner);
     expect(claude.available).toBe(false);
     expect(claude.confidence).toBe("missing");
+  });
+
+  it("renders exit code -1 as a missing PATH command", async () => {
+    const runner: ProviderDetectionRunner = async () => ({
+      exitCode: -1,
+      stdout: "",
+      stderr: "",
+    });
+    const ollamaDef = KNOWN_PROVIDERS.find((p) => p.id === "ollama")!;
+    const ollama = await detectProvider(ollamaDef, runner);
+    expect(ollama.available).toBe(false);
+    expect(ollama.notes[0]).toBe("ollama is not on PATH.");
   });
 
   it("pickRecommendedProvider returns the ready one or null", async () => {
@@ -84,7 +113,11 @@ describe("provider detection", () => {
     const summary = summarizeDetections(detections);
     expect(summary.ready.map((d) => d.id)).toEqual(["claude"]);
     expect(summary.needsSetup.map((d) => d.id)).toEqual(["codex"]);
-    expect(summary.missing.map((d) => d.id).sort()).toEqual(["aider", "opencode"]);
+    expect(summary.missing.map((d) => d.id).sort()).toEqual([
+      "aider",
+      "ollama",
+      "opencode",
+    ]);
   });
 
   it("detection runner is never asked to send a real prompt", async () => {
@@ -97,5 +130,20 @@ describe("provider detection", () => {
     for (const call of calls) {
       expect(call.args).toContain("--version");
     }
+  });
+
+  it("missing Ollama includes an install command hint", async () => {
+    const detections = await detectAllProviders(allMissing);
+    const ollama = detections.find((d) => d.id === "ollama")!;
+    expect(ollama.available).toBe(false);
+    expect(ollama.notes.join("\n")).toMatch(/curl -fsSL https:\/\/ollama\.com\/install\.sh \| sh/);
+  });
+
+  it("installHintForCommand handles bare commands and absolute paths", () => {
+    expect(installHintForCommand("ollama")).toMatch(/ollama\.com\/install\.sh/);
+    expect(installHintForCommand("/opt/homebrew/bin/ollama")).toMatch(
+      /ollama\.com\/install\.sh/,
+    );
+    expect(installHintForCommand("unknown")).toBeNull();
   });
 });

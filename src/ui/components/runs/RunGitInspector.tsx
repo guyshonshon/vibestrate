@@ -88,7 +88,7 @@ export function RunGitInspector({ runId }: { runId: string }) {
         <div className="rounded border border-amaco-border bg-amaco-panel-2">
           <header className="flex items-center gap-1.5 border-b border-amaco-border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted">
             <GitCommit className="h-3 w-3" strokeWidth={1.5} />
-            Commits
+            {history.baseRef ? `Task commits since ${history.baseRef}` : "Commits"}
           </header>
           <ul className="divide-y divide-amaco-border">
             {history.commits.map((c) => (
@@ -102,6 +102,11 @@ export function RunGitInspector({ runId }: { runId: string }) {
               </li>
             ))}
           </ul>
+        </div>
+      ) : history?.baseRef ? (
+        <div className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-2 text-[11.5px] text-amaco-fg-muted">
+          No task-specific commits since {history.baseRef}. Uncommitted worktree
+          changes are listed above.
         </div>
       ) : null}
     </div>

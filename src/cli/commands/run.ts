@@ -332,6 +332,28 @@ export async function runRunCommand(
     console.log(indent(color.dim(`· ${r}`)));
   }
 
+  const cliAbort = new AbortController();
+  let signalRequested = false;
+  const requestAbort = (signalName: "SIGINT" | "SIGTERM"): void => {
+    if (signalRequested) {
+      console.log("");
+      console.log(color.dim("Force-exiting (second interrupt)."));
+      process.exit(signalName === "SIGINT" ? 130 : 143);
+    }
+    signalRequested = true;
+    console.log("");
+    console.log(
+      color.dim(
+        `Received ${signalName}; aborting active provider CLI. Press Ctrl+C again to force.`,
+      ),
+    );
+    cliAbort.abort();
+  };
+  const onSigint = (): void => requestAbort("SIGINT");
+  const onSigterm = (): void => requestAbort("SIGTERM");
+  process.on("SIGINT", onSigint);
+  process.on("SIGTERM", onSigterm);
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -345,6 +367,7 @@ export async function runRunCommand(
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
     guide: resolvedGuide,
+    abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
       if (msg.startsWith("Pausing for human approval")) {
@@ -381,6 +404,8 @@ export async function runRunCommand(
   try {
     result = await orchestrator.run();
   } catch (err) {
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
     const raw = isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err);
     const friendly = rewriteFriendly(raw);
     console.error("");
@@ -401,6 +426,8 @@ export async function runRunCommand(
     }
     return 2;
   }
+  process.off("SIGINT", onSigint);
+  process.off("SIGTERM", onSigterm);
 
   // Update the linked roadmap task with the run id, branch, worktree, and
   // final status so the board reflects the outcome immediately.

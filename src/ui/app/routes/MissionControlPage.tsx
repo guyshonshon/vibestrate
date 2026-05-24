@@ -799,6 +799,7 @@ export function MissionControlPage({
         <Composer
           busy={promptBusy}
           providers={providers}
+          defaultProviderId={defaultProvider?.id ?? null}
           skills={skills}
           guides={guides}
           onResolveGuide={resolveComposerGuide}

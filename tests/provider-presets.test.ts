@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { codexPreset } from "../src/providers/presets/codex.js";
 import { claudeCodePreset } from "../src/providers/presets/claude-code.js";
+import { ollamaPreset } from "../src/providers/presets/ollama.js";
 import {
   buildClaudePresetConfig,
   buildCodexPresetConfig,
   buildCodexProviderFromDetection,
+  buildOllamaPresetConfig,
+  buildOllamaProviderFromDetection,
 } from "../src/setup/provider-setup-service.js";
 import { KNOWN_PROVIDERS } from "../src/providers/provider-detection.js";
 
@@ -29,6 +32,15 @@ describe("starter presets", () => {
     });
   });
 
+  it("ollama preset uses a starter local model with stdin", () => {
+    expect(ollamaPreset).toEqual({
+      type: "cli",
+      command: "ollama",
+      args: ["run", "qwen3.5"],
+      input: "stdin",
+    });
+  });
+
   it("buildCodexPresetConfig matches the preset file", () => {
     expect(buildCodexPresetConfig()).toEqual(codexPreset);
   });
@@ -36,6 +48,10 @@ describe("starter presets", () => {
   it("buildClaudePresetConfig matches the claude preset file", () => {
     // Sanity guard so the two-source-of-truth pattern doesn't drift.
     expect(buildClaudePresetConfig()).toEqual(claudeCodePreset);
+  });
+
+  it("buildOllamaPresetConfig matches the ollama preset file", () => {
+    expect(buildOllamaPresetConfig()).toEqual(ollamaPreset);
   });
 
   it("buildCodexProviderFromDetection carries the detected command through", () => {
@@ -52,6 +68,24 @@ describe("starter presets", () => {
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/codex");
     expect(cfg.args).toEqual(["exec", "-q"]);
+    expect(cfg.input).toBe("stdin");
+    expect(cfg.type).toBe("cli");
+  });
+
+  it("buildOllamaProviderFromDetection carries the detected command through", () => {
+    const cfg = buildOllamaProviderFromDetection({
+      id: "ollama",
+      label: "Ollama",
+      command: "/opt/homebrew/bin/ollama",
+      available: true,
+      version: "0.13.0",
+      detectionMethod: "version",
+      confidence: "detected-needs-setup",
+      recommended: false,
+      notes: [],
+    });
+    expect(cfg.command).toBe("/opt/homebrew/bin/ollama");
+    expect(cfg.args).toEqual(["run", "qwen3.5"]);
     expect(cfg.input).toBe("stdin");
     expect(cfg.type).toBe("cli");
   });
@@ -76,14 +110,17 @@ describe("KNOWN_PROVIDERS hygiene", () => {
     expect(claude!.presetReady).toBe(true);
   });
 
-  it("opencode and aider stay detection-only (V2 — not yet shipped)", () => {
-    // Their preset files were deliberately not authored in this slice;
-    // detection still surfaces them so users see "missing/needs-setup"
-    // honestly. Adding a preset here means flipping this assertion AND
-    // shipping the actual preset + builder.
+  it("opencode, aider, and ollama stay detection-only", () => {
+    // OpenCode/Aider do not have starter presets yet. Ollama does, but
+    // remains detection-only because local model availability varies by
+    // machine; users opt in and then run a provider smoke test.
     const opencode = KNOWN_PROVIDERS.find((p) => p.id === "opencode");
     const aider = KNOWN_PROVIDERS.find((p) => p.id === "aider");
+    const ollama = KNOWN_PROVIDERS.find((p) => p.id === "ollama");
     expect(opencode?.presetReady).toBe(false);
     expect(aider?.presetReady).toBe(false);
+    expect(ollama?.presetReady).toBe(false);
+    expect(ollama?.notes.join("\n")).toMatch(/ollama run qwen3\.5/i);
+    expect(ollama?.installHint).toMatch(/install\.sh/);
   });
 });

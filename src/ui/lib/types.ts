@@ -822,6 +822,7 @@ export type GitHistory = {
   worktreePath: string;
   gitRoot: string | null;
   branch: string | null;
+  baseRef: string | null;
   commits: GitCommit[];
   truncated: boolean;
 };

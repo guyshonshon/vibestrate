@@ -176,6 +176,8 @@ export async function registerTasksRoutes(
       // pause (caller still sees the verdict and can resume).
       const ensure = await ensureSchedulerRunning({
         projectRoot: deps.projectRoot,
+        exitWhenDrained: true,
+        source: "auto-queue",
       });
       return { task: updated, scheduler: ensure };
     },

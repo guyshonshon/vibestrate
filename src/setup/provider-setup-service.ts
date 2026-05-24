@@ -1,5 +1,6 @@
 import { execa } from "execa";
 import { ConfigError } from "../utils/errors.js";
+import { ollamaPreset } from "../providers/presets/ollama.js";
 import {
   ensureProvider,
   assignAgentsToProvider,
@@ -242,5 +243,18 @@ export function buildCodexProviderFromDetection(
     command: d.command,
     args: ["exec", "-q"],
     input: "stdin",
+  };
+}
+
+export function buildOllamaPresetConfig(): CliProviderConfig {
+  return { ...ollamaPreset, args: [...ollamaPreset.args] };
+}
+
+export function buildOllamaProviderFromDetection(
+  d: DetectedProvider,
+): CliProviderConfig {
+  return {
+    ...buildOllamaPresetConfig(),
+    command: d.command,
   };
 }

@@ -33,7 +33,7 @@ plan -> architecture -> implement -> validate -> review -> fix -> verify
 
 Runs are local-first:
 
-- Providers are local CLIs such as Claude Code, Codex, or a configured command.
+- Providers are local CLIs such as Claude Code, Codex, Ollama, or a configured command.
 - Code changes happen in an isolated git worktree.
 - Validation uses commands from `.amaco/project.yml`.
 - Prompts, outputs, metrics, events, approvals, and reports stay under `.amaco/runs/`.

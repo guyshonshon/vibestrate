@@ -36,6 +36,7 @@ export type GitHistory = {
   worktreePath: string;
   gitRoot: string | null;
   branch: string | null;
+  baseRef: string | null;
   commits: GitCommit[];
   truncated: boolean;
 };
@@ -141,6 +142,8 @@ export async function getGitStatus(worktreePath: string): Promise<GitStatus> {
 export async function getGitHistory(input: {
   worktreePath: string;
   limit?: number;
+  /** When set, show commits reachable from HEAD but not from this ref. */
+  baseRef?: string | null;
 }): Promise<GitHistory> {
   const limit = Math.max(1, Math.min(input.limit ?? 20, 200));
   const empty: GitHistory = {
@@ -148,6 +151,7 @@ export async function getGitHistory(input: {
     worktreePath: input.worktreePath,
     gitRoot: null,
     branch: null,
+    baseRef: input.baseRef ?? null,
     commits: [],
     truncated: false,
   };
@@ -160,15 +164,19 @@ export async function getGitHistory(input: {
   const FIELD = "";
   const RECORD = "";
   const fmt = ["%H", "%h", "%s", "%an", "%ae", "%aI", "%D"].join(FIELD);
+  const baseRef = await resolveBaseRef(input.worktreePath, input.baseRef);
 
-  const r = await git(input.worktreePath, [
+  const args = [
     "log",
     `--max-count=${limit + 1}`,
     `--pretty=format:${fmt}${RECORD}`,
     "HEAD",
-  ]);
+  ];
+  if (baseRef) args.push("--not", baseRef);
+
+  const r = await git(input.worktreePath, args);
   if (r.exitCode !== 0) {
-    return { ...empty, available: true, gitRoot, branch };
+    return { ...empty, available: true, gitRoot, branch, baseRef };
   }
   const records = r.stdout
     .split(RECORD)
@@ -200,7 +208,23 @@ export async function getGitHistory(input: {
     worktreePath: input.worktreePath,
     gitRoot,
     branch,
+    baseRef,
     commits,
     truncated,
   };
+}
+
+async function resolveBaseRef(
+  worktreePath: string,
+  baseRef: string | null | undefined,
+): Promise<string | null> {
+  const candidate = baseRef?.trim();
+  if (!candidate) return null;
+  const verified = await git(worktreePath, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    candidate,
+  ]);
+  return verified.exitCode === 0 ? candidate : null;
 }

@@ -211,6 +211,57 @@ describe("scheduler loop", () => {
     expect(maxActive).toBe(2);
   });
 
+  it("signals in-flight tasks when the scheduler is stopped", async () => {
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const task = await svc.addTask({ title: "Long task", touchedFiles: ["a.ts"] });
+    const queue = new RunQueue(projectRoot);
+    await queue.enqueue({
+      taskId: task.id,
+      enqueuedAt: nowIso(),
+      priority: "medium",
+      source: "user",
+    });
+
+    let started = false;
+    let aborted = false;
+    const handle = await runSchedulerLoop({
+      projectRoot,
+      schedulerConfig: {
+        maxConcurrentRuns: 1,
+        maxConcurrentWriteAgents: 1,
+        conflictPolicy: "warn",
+        queuePolicy: "fifo",
+        sourceQuotas: {},
+      },
+      log: () => {},
+      idlePollMs: 20,
+      exitWhenDrained: false,
+      runTask: async (_task, context) => {
+        started = true;
+        return new Promise((resolve) => {
+          context.signal.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              resolve({ exitCode: 130 });
+            },
+            { once: true },
+          );
+        });
+      },
+    });
+
+    while (!started) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    await handle.stop();
+
+    expect(aborted).toBe(true);
+    const state = await queue.readState();
+    expect(state.runningTaskIds).toEqual([]);
+  });
+
   it("blocks the second task when conflictPolicy=block and files overlap", async () => {
     const svc = new RoadmapService(projectRoot);
     await svc.init();

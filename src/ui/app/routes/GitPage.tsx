@@ -219,14 +219,22 @@ function StatusBlock({
 }
 
 function HistoryBlock({ history }: { history: GitHistory | null }) {
-  if (!history || !history.available || history.commits.length === 0) {
+  if (!history || !history.available) {
     return null;
+  }
+  if (history.commits.length === 0) {
+    if (!history.baseRef) return null;
+    return (
+      <div className="rounded border border-amaco-border bg-amaco-panel-2 px-3 py-2 text-[12px] text-amaco-fg-muted">
+        No task-specific commits since {history.baseRef}.
+      </div>
+    );
   }
   return (
     <div className="rounded border border-amaco-border bg-amaco-panel-2">
       <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-1 text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
         <GitCommit className="h-3 w-3" strokeWidth={1.5} />
-        Recent commits
+        {history.baseRef ? `Task commits since ${history.baseRef}` : "Recent commits"}
         {history.truncated ? <span>· bounded</span> : null}
       </header>
       <ul className="divide-y divide-amaco-border">

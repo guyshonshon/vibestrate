@@ -86,7 +86,11 @@ export async function queueTask(
     // Auto-spawn the scheduler if nothing's currently picking up
     // queued work. "Queueing = work starts" — the user shouldn't
     // have to remember to run `amaco queue run` separately.
-    const ensure = await ensureSchedulerRunning({ projectRoot });
+    const ensure = await ensureSchedulerRunning({
+      projectRoot,
+      exitWhenDrained: true,
+      source: "auto-queue",
+    });
     const tail =
       ensure.action === "spawned"
         ? ` · auto-started scheduler (pid ${ensure.pid ?? "—"})`
