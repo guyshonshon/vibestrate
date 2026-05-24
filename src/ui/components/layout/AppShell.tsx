@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  Command,
   HelpCircle,
   Settings as SettingsIcon,
 } from "lucide-react";
@@ -44,6 +45,13 @@ export function AppShell({
   onShowGit,
   onOpenNotification,
 }: AppShellProps) {
+  const screen = currentRunId
+    ? {
+        title: "Run inspection",
+        subtitle: currentRunId,
+      }
+    : NAV_META[currentNav];
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-amaco-canvas text-amaco-fg">
       <Sidebar
@@ -61,9 +69,27 @@ export function AppShell({
       />
       <main className="relative flex flex-1 flex-col overflow-hidden">
         <ServerHealthBanner />
-        <header className="flex items-center gap-1 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
+        <header className="flex min-h-12 items-center gap-3 border-b border-amaco-border bg-amaco-panel/70 px-4">
           <BackButton onShowHome={onShowHome} />
-          <span className="ml-auto" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Command
+                className="h-3.5 w-3.5 text-amaco-accent"
+                strokeWidth={1.6}
+                aria-hidden
+              />
+              <span className="text-[13px] font-medium text-amaco-fg">
+                {screen.title}
+              </span>
+            </div>
+            <div
+              className="amaco-mono mt-0.5 max-w-[56vw] truncate text-[10.5px] text-amaco-fg-muted"
+              title={screen.subtitle}
+            >
+              {screen.subtitle}
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
             onClick={() =>
@@ -87,6 +113,7 @@ export function AppShell({
           >
             <SettingsIcon className="h-4 w-4" strokeWidth={1.5} />
           </button>
+          </div>
         </header>
         <div className="flex-1 overflow-hidden">{children}</div>
       </main>
@@ -94,6 +121,45 @@ export function AppShell({
     </div>
   );
 }
+
+const NAV_META: Record<NavId, { title: string; subtitle: string }> = {
+  home: {
+    title: "Mission Control",
+    subtitle: "Launch runs, choose flow templates, watch active CLI work.",
+  },
+  runs: {
+    title: "Runs",
+    subtitle: "Historical execution ledger and replay entry point.",
+  },
+  board: {
+    title: "Task Board",
+    subtitle: "Roadmap items, queued work, priorities, dependencies.",
+  },
+  queue: {
+    title: "Queue",
+    subtitle: "Scheduler intake, blocked tasks, pending execution.",
+  },
+  proposals: {
+    title: "Proposals",
+    subtitle: "Planner drafts waiting to become tracked work.",
+  },
+  settings: {
+    title: "Settings",
+    subtitle: "Providers, validation profiles, notifications, policy defaults.",
+  },
+  project: {
+    title: "Project",
+    subtitle: "Repository metadata, detected commands, Amaco config.",
+  },
+  codebase: {
+    title: "Codebase",
+    subtitle: "Read-only tree, files, references, and profile maintenance.",
+  },
+  git: {
+    title: "Git",
+    subtitle: "Worktree-aware branch, status, and commit activity.",
+  },
+};
 
 /**
  * Header Back button. Uses browser history (hash-based routing means
@@ -121,9 +187,7 @@ function ServerHealthBanner() {
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
       <span className="font-medium">amaco ui is unreachable.</span>
       <span className="text-amaco-fail/80">
-        The server at this origin stopped answering /api/health
-        {" "}
-        — restart it with{" "}
+        The server at this origin stopped answering /api/health. Restart it with{" "}
         <code className="amaco-mono rounded bg-amaco-fail/15 px-1">amaco ui</code>
         {" "}from the project root and refresh.
       </span>
