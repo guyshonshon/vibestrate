@@ -5,7 +5,6 @@ import {
   Cpu,
   RefreshCw,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import type { SchedulerLiveness } from "../../lib/schedulerLiveness.js";
 
 type Props = {
@@ -50,101 +49,108 @@ export function MissionBar({
   const showOfflineRow = !liveness.pickingUpWork;
 
   return (
-    <div className="border-b border-amaco-border bg-amaco-canvas">
-      <div
-        role="status"
-        aria-label="Workspace status"
-        className="grid gap-px bg-amaco-border-soft px-6 py-2 text-[11.5px] md:grid-cols-[minmax(0,1.4fr)_9rem_minmax(0,1.1fr)_8rem_8rem_7rem]"
-      >
-        <TelemetryCell
-          label="workspace"
-          value={workspace}
-          className="min-w-0"
+    <div className="border-b border-amaco-border bg-amaco-panel">
+    <div
+      role="status"
+      aria-label="Workspace status"
+      className="flex items-center gap-4 px-6 py-2 text-[11.5px]"
+    >
+      <div className="flex items-center gap-2 text-amaco-fg-muted">
+        <span className="amaco-mono text-[10.5px] uppercase tracking-[0.14em]">
+          workspace
+        </span>
+        <span
+          className="amaco-mono truncate text-amaco-fg"
+          title={workspace}
+        >
+          {workspace}
+        </span>
+      </div>
+
+      <Divider />
+
+      <div className={`flex items-center gap-1.5 ${livenessTone}`}>
+        <Activity
+          className={`h-3.5 w-3.5 ${liveness.status === "live" ? "animate-pulse" : ""}`}
+          strokeWidth={1.8}
+          aria-hidden
         />
-        <TelemetryCell
-          label="scheduler"
-          value={liveness.status}
-          tone={livenessTone}
-          icon={
-            <Activity
-              className={`h-3.5 w-3.5 ${liveness.status === "live" ? "animate-pulse" : ""}`}
-              strokeWidth={1.8}
+        <span className="amaco-mono uppercase tracking-[0.1em]">
+          {liveness.status}
+        </span>
+      </div>
+
+      <Divider />
+
+      <div className="flex items-center gap-1.5 text-amaco-fg-dim">
+        <Cpu className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+        <span className="amaco-mono">
+          {activeProvider ?? "no provider configured"}
+        </span>
+      </div>
+
+      <div className="ml-auto flex items-center gap-3">
+        <div
+          className={`amaco-mono inline-flex items-center gap-1 ${
+            pendingApprovals > 0 ? "text-amaco-fail" : "text-amaco-fg-muted"
+          }`}
+          title={`${pendingApprovals} approval(s) waiting`}
+        >
+          {pendingApprovals > 0 ? (
+            <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
+          ) : (
+            <CheckCircle2
+              className="h-3.5 w-3.5"
+              strokeWidth={1.5}
               aria-hidden
             />
-          }
-        />
-        <TelemetryCell
-          label="default CLI"
-          value={activeProvider ?? "none configured"}
-          icon={<Cpu className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />}
-          className="min-w-0"
-        />
-        <TelemetryCell
-          label="approvals"
-          value={String(pendingApprovals)}
-          tone={pendingApprovals > 0 ? "text-amaco-fail" : "text-amaco-fg-dim"}
-          icon={
-            pendingApprovals > 0 ? (
-              <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
-            ) : (
-              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-            )
-          }
-        />
-        <TelemetryCell
-          label="issues"
-          value={String(unresolvedIssues)}
-          tone={unresolvedIssues > 0 ? "text-amaco-fail" : "text-amaco-fg-dim"}
-          icon={
-            unresolvedIssues > 0 ? (
-              <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
-            ) : (
-              <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
-            )
-          }
-        />
-        <TelemetryCell
-          label="refreshed"
-          value={lastRefreshedAt.toLocaleTimeString()}
-          icon={<RefreshCw className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />}
-        />
-      </div>
-      {showOfflineRow ? (
-        <div
-          role="alert"
-          className={`border-t border-amaco-border-soft px-6 py-1.5 text-[11.5px] ${livenessTone}`}
-        >
-          {liveness.summary}
+          )}
+          <span>approvals {pendingApprovals}</span>
         </div>
-      ) : null}
+        <div
+          className={`amaco-mono inline-flex items-center gap-1 ${
+            unresolvedIssues > 0 ? "text-amaco-fail" : "text-amaco-fg-muted"
+          }`}
+          title={`${unresolvedIssues} unresolved issue(s)`}
+        >
+          {unresolvedIssues > 0 ? (
+            <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
+          ) : (
+            <CheckCircle2
+              className="h-3.5 w-3.5"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+          )}
+          <span>issues {unresolvedIssues}</span>
+        </div>
+        <div
+          className="amaco-mono inline-flex items-center gap-1 text-amaco-fg-muted"
+          title={`Last refreshed ${lastRefreshedAt.toLocaleTimeString()}`}
+        >
+          <RefreshCw className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
+          <span>{lastRefreshedAt.toLocaleTimeString()}</span>
+        </div>
+      </div>
+    </div>
+    {showOfflineRow ? (
+      <div
+        role="alert"
+        className={`border-t border-amaco-border-soft px-6 py-1.5 text-[11.5px] ${livenessTone}`}
+      >
+        {liveness.summary}
+      </div>
+    ) : null}
     </div>
   );
 }
 
-function TelemetryCell({
-  label,
-  value,
-  icon,
-  tone = "text-amaco-fg-dim",
-  className = "",
-}: {
-  label: string;
-  value: string;
-  icon?: ReactNode;
-  tone?: string;
-  className?: string;
-}) {
+function Divider() {
   return (
-    <div className={`min-w-0 bg-amaco-panel px-2.5 py-1.5 ${className}`}>
-      <div className="amaco-mono text-[10px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-        {label}
-      </div>
-      <div className={`mt-0.5 flex min-w-0 items-center gap-1.5 ${tone}`}>
-        {icon}
-        <span className="amaco-mono truncate" title={value}>
-          {value}
-        </span>
-      </div>
-    </div>
+    <span
+      aria-hidden
+      className="h-3 w-px bg-amaco-border"
+    />
   );
 }
+
