@@ -14,7 +14,10 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
   CircleDot,
+  ExternalLink,
   FileText,
   GitBranch,
   GitCommit as GitCommitIcon,
@@ -32,6 +35,9 @@ import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 import { relTime } from "../../components/design/format.js";
+import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
+import { DiffViewer } from "../../components/diff/DiffViewer.js";
+import { navigate } from "../App.js";
 
 type Props = {
   initialRunId?: string | null;
@@ -247,16 +253,17 @@ export function GitPage({ onSelectRun }: Props) {
             show up here while the run is in flight.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <ul className="space-y-2.5">
             {activeWorktrees.map((r) => (
-              <WorktreeCard
-                key={r.runId}
-                run={r}
-                diff={diffsByRun[r.runId] ?? null}
-                onOpen={onSelectRun}
-              />
+              <li key={r.runId}>
+                <WorktreeCard
+                  run={r}
+                  diff={diffsByRun[r.runId] ?? null}
+                  onOpenRun={onSelectRun}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
     </div>
@@ -312,44 +319,135 @@ function ChangeKindBadge({ status }: { status: string }) {
 function WorktreeCard({
   run,
   diff,
-  onOpen,
+  onOpenRun,
 }: {
   run: RunState;
   diff: DiffSnapshot | null;
-  onOpen: (runId: string) => void;
+  onOpenRun: (runId: string) => void;
 }) {
   const branch = run.branchName ?? "(no branch)";
+  const [open, setOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const hasChanges = !!diff && diff.totals.files > 0;
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(run.runId)}
-      className="text-left rounded-xl border border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] hover:border-violet-soft/30 transition p-3.5"
+    <div
+      className={cn(
+        "rounded-xl border transition overflow-hidden",
+        open
+          ? "border-violet-soft/30 bg-white/[0.03]"
+          : "border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] hover:border-violet-soft/30",
+      )}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <GitBranch className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
-        <span className="mono text-[12px] text-fog-100 truncate flex-1">
+      <button
+        type="button"
+        onClick={() => setOpen((x) => !x)}
+        aria-expanded={open}
+        className="w-full text-left p-3 flex items-center gap-3"
+      >
+        {open ? (
+          <ChevronDown
+            className="h-3.5 w-3.5 text-violet-soft shrink-0"
+            strokeWidth={1.7}
+          />
+        ) : (
+          <ChevronRight
+            className="h-3.5 w-3.5 text-fog-400 shrink-0"
+            strokeWidth={1.7}
+          />
+        )}
+        <GitBranch
+          className="h-3.5 w-3.5 text-violet-soft shrink-0"
+          strokeWidth={1.7}
+        />
+        <span className="mono text-[12px] text-fog-100 truncate shrink-0 max-w-[260px]">
           {branch}
         </span>
-        <span className="mono text-[10px] text-fog-500">{run.runId}</span>
-      </div>
-      <div className="text-[12.5px] text-fog-100 leading-snug line-clamp-2 mb-2">
-        {run.task}
-      </div>
-      <div className="flex items-center justify-between text-[10.5px] text-fog-500 mono">
-        <span className="flex items-center gap-1">
+        <span className="hidden md:inline text-[12.5px] text-fog-300 truncate min-w-0 flex-1">
+          {run.task}
+        </span>
+        <span className="mono text-[10.5px] text-fog-500 flex items-center gap-1 shrink-0">
           <History className="h-2.5 w-2.5" strokeWidth={1.7} />
           {run.status}
         </span>
         {diff ? (
-          <span>
+          <span className="mono text-[10.5px] shrink-0">
             <span className="text-emerald-300/90">+{diff.totals.insertions}</span>{" "}
             <span className="text-rose-300/90">−{diff.totals.deletions}</span>{" "}
-            · {diff.totals.files} file{diff.totals.files === 1 ? "" : "s"}
+            <span className="text-fog-500">
+              · {diff.totals.files} file{diff.totals.files === 1 ? "" : "s"}
+            </span>
           </span>
         ) : (
-          <span>no diff yet</span>
+          <span className="mono text-[10.5px] text-fog-500 shrink-0">
+            no diff yet
+          </span>
         )}
-      </div>
-    </button>
+        <span
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenRun(run.runId);
+          }}
+          className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] px-2 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 shrink-0 cursor-pointer"
+          title="Open this run"
+        >
+          Open run
+          <ExternalLink className="h-2.5 w-2.5" strokeWidth={1.7} />
+        </span>
+      </button>
+
+      {open ? (
+        <div className="border-t border-white/[0.06] grid grid-cols-12 gap-0">
+          <div className="col-span-12 md:col-span-4 border-b md:border-b-0 md:border-r border-white/[0.06] p-3">
+            <div className="eyebrow mb-2">Changed files</div>
+            {hasChanges ? (
+              <ChangedFilesList
+                runId={run.runId}
+                selectedPath={selectedFile}
+                onSelect={setSelectedFile}
+              />
+            ) : (
+              <div className="text-[12px] text-fog-500">
+                No files changed in this worktree yet.
+              </div>
+            )}
+          </div>
+          <div className="col-span-12 md:col-span-8 p-3">
+            {hasChanges ? (
+              selectedFile ? (
+                <DiffViewer
+                  runId={run.runId}
+                  filePath={selectedFile}
+                  onOpenInProject={(p) =>
+                    navigate({
+                      kind: "codebase",
+                      filePath: p,
+                      line: null,
+                      runId: null,
+                    })
+                  }
+                  onOpenInWorktree={(p) =>
+                    navigate({
+                      kind: "codebase",
+                      filePath: p,
+                      line: null,
+                      runId: run.runId,
+                    })
+                  }
+                />
+              ) : (
+                <div className="text-[12.5px] text-fog-400 px-1 py-3">
+                  Pick a file on the left to view its diff.
+                </div>
+              )
+            ) : (
+              <div className="text-[12.5px] text-fog-400 px-1 py-3">
+                Nothing to show yet.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

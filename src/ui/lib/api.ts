@@ -300,9 +300,27 @@ export const api = {
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
   },
+  async getProviderConfig(providerId: string): Promise<{
+    providerId: string;
+    configured: boolean;
+    config: {
+      type: "cli";
+      command: string;
+      args: string[];
+      input: "stdin" | "arg";
+    };
+    agentsUsing: string[];
+  }> {
+    return jsonGet(
+      `/api/providers/${encodeURIComponent(providerId)}/config`,
+    );
+  },
   async setupProvider(
     providerId: string,
-    opts: { setAsDefault?: boolean } = {},
+    opts: {
+      setAsDefault?: boolean;
+      config?: { command: string; args?: string[]; input?: "stdin" | "arg" };
+    } = {},
   ): Promise<{ ok: true; providerId: string; configured: true }> {
     return jsonPost(
       `/api/providers/${encodeURIComponent(providerId)}/setup`,
