@@ -192,5 +192,54 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "amaco validation run", note: "execute the validation profile" },
         ],
       };
+    case "flow":
+      return {
+        title: "Flow Builder",
+        blurb:
+          "Design how agents work together. Project guides live in .amaco/guides/.",
+        commands: [
+          { cmd: "amaco guides list", note: "discovered guides" },
+          {
+            cmd: "amaco guides show <guideId>",
+            note: "resolved snapshot for a guide",
+          },
+          {
+            cmd: 'amaco run "task" --guide <guideId>',
+            note: "run using a specific guide",
+          },
+        ],
+      };
+    case "metrics":
+      return {
+        title: "Metrics",
+        blurb:
+          "Rollups across every run and every model. Same data as the JSON metrics endpoint.",
+        commands: [
+          {
+            cmd: "amaco status",
+            note: "live counts (text version of the KPI strip)",
+          },
+          {
+            cmd: 'curl http://127.0.0.1:4317/api/metrics/overview?range=7d',
+            note: "raw JSON, scriptable",
+          },
+        ],
+      };
+    case "agents":
+      return {
+        title: "Agents",
+        blurb:
+          "Roster + capability detail. Edit providers in `.amaco/project.yml`.",
+        commands: [
+          {
+            cmd: "amaco doctor",
+            note: "verify every provider's CLI is on PATH",
+          },
+          {
+            cmd: 'curl http://127.0.0.1:4317/api/agents/overview',
+            note: "raw JSON, scriptable",
+          },
+        ],
+      };
   }
 }

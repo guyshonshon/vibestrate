@@ -123,6 +123,160 @@ async function jsonPatch<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function jsonDelete<T>(path: string): Promise<T> {
+  const res = await fetch(path, { method: "DELETE" });
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorMessage(res));
+  }
+  return (await res.json()) as T;
+}
+
+export type OverviewRange = "24h" | "7d" | "30d" | "90d";
+
+export type DailyOutcomeBucket = {
+  date: string;
+  label: string;
+  merged: number;
+  changes: number;
+  failed: number;
+};
+
+export type SpendByAgentEntry = {
+  providerId: string;
+  label: string;
+  dollars: number;
+  runs: number;
+};
+
+export type PhaseLatencyEntry = {
+  phase: string;
+  p50: number;
+  p95: number;
+  samples: number;
+};
+
+export type HeatmapRow = { day: string; cells: number[] };
+
+export type LeaderboardEntry = {
+  providerId: string;
+  label: string;
+  vendor: string | null;
+  runs: number;
+  successRate: number | null;
+  avgDurSeconds: number | null;
+  p95Seconds: number | null;
+  costUsd: number;
+  delta: number;
+};
+
+export type KpiSparks = {
+  runs: number[];
+  success: number[];
+  duration: number[];
+  spend: number[];
+};
+
+export type MetricsOverview = {
+  range: OverviewRange;
+  generatedAt: string;
+  daily: DailyOutcomeBucket[];
+  spendByAgent: SpendByAgentEntry[];
+  phaseLatency: PhaseLatencyEntry[];
+  heatmap: HeatmapRow[];
+  leaderboard: LeaderboardEntry[];
+  kpiSparks: KpiSparks;
+  totals: {
+    runs: number;
+    merged: number;
+    failed: number;
+    changes: number;
+    costUsd: number;
+    successRate: number | null;
+    avgDurationSeconds: number | null;
+    spendCapDailyUsd: number | null;
+  };
+};
+
+export type AgentProfile = {
+  providerId: string;
+  label: string;
+  vendor: string | null;
+  available: boolean;
+  configured: boolean;
+  runs: number;
+  costUsd: number;
+  latencyP50Ms: number | null;
+  latencyP95Ms: number | null;
+  successRate: number | null;
+  lastSeenAt: string | null;
+  throughputSpark: number[];
+  skills: string[];
+};
+
+export type AgentsOverview = {
+  generatedAt: string;
+  providers: AgentProfile[];
+  kpi: {
+    onlineCount: number;
+    totalCount: number;
+    runs24h: number;
+    spend24hUsd: number;
+    avgP95Seconds: number | null;
+  };
+};
+
+export type GuideStepKind =
+  | "agent-turn"
+  | "review-turn"
+  | "response-turn"
+  | "validation"
+  | "approval-gate"
+  | "summary-turn";
+
+export type GuideApprovalRiskLevel = "low" | "medium" | "high";
+
+export type GuideApprovalGatePatch = {
+  reason: string;
+  requestedAction: string;
+  userMessage?: string;
+  riskLevel: GuideApprovalRiskLevel;
+};
+
+/** Per-step patch — `undefined` keeps the current value, `null` clears
+ *  the optional field. */
+export type GuideStepPatch = {
+  id: string;
+  label?: string;
+  optional?: boolean;
+  kind?: GuideStepKind;
+  slot?: string | null;
+  agentId?: string | null;
+  approval?: GuideApprovalGatePatch | null;
+};
+
+export type GuidePatch = {
+  label?: string;
+  description?: string;
+  steps?: GuideStepPatch[];
+};
+
+export type ComposerPreset = {
+  name: string;
+  kind: "crew" | "template";
+  brief: string | null;
+  guide: {
+    id: string;
+    contextPolicy: "balanced" | "compact" | "artifact-heavy";
+    slotProviders: Record<string, string>;
+    skippedOptionalSteps: string[];
+  } | null;
+  provider: string | null;
+  skills: string[];
+  readOnly: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export const api = {
   async listRuns(): Promise<RunState[]> {
     const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
@@ -145,6 +299,38 @@ export const api = {
     };
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
+  },
+  async setupProvider(
+    providerId: string,
+    opts: { setAsDefault?: boolean } = {},
+  ): Promise<{ ok: true; providerId: string; configured: true }> {
+    return jsonPost(
+      `/api/providers/${encodeURIComponent(providerId)}/setup`,
+      opts,
+    );
+  },
+  async setDefaultProvider(
+    providerId: string,
+  ): Promise<{ ok: true; providerId: string; agentsUpdated: string[] }> {
+    return jsonPost(
+      `/api/providers/${encodeURIComponent(providerId)}/default`,
+    );
+  },
+  async testProvider(providerId: string): Promise<{
+    ok: boolean;
+    providerId: string;
+    command: string;
+    args: string[];
+    durationMs: number;
+    exitCode: number;
+    stdout: string;
+    stderr: string;
+    matchedMagic: boolean;
+    hint?: string;
+  }> {
+    return jsonPost(
+      `/api/providers/${encodeURIComponent(providerId)}/test`,
+    );
   },
   async listProviders(): Promise<{
     providers: {
@@ -270,6 +456,30 @@ export const api = {
   },
   async listGuides(): Promise<{ guides: DiscoveredGuide[] }> {
     return jsonGet("/api/guides");
+  },
+  async patchGuide(
+    guideId: string,
+    patch: GuidePatch,
+  ): Promise<{ ok: true; guide: DiscoveredGuide; definitionPath: string }> {
+    return jsonPatch(`/api/guides/${encodeURIComponent(guideId)}`, patch);
+  },
+  async listComposerPresets(): Promise<{ presets: ComposerPreset[] }> {
+    return jsonGet("/api/composer/presets");
+  },
+  async saveComposerPreset(input: ComposerPreset): Promise<{
+    ok: true;
+    preset: ComposerPreset;
+  }> {
+    return jsonPost("/api/composer/presets", input);
+  },
+  async deleteComposerPreset(name: string): Promise<{ ok: true }> {
+    return jsonDelete(`/api/composer/presets/${encodeURIComponent(name)}`);
+  },
+  async getMetricsOverview(range: OverviewRange): Promise<MetricsOverview> {
+    return jsonGet(`/api/metrics/overview?range=${encodeURIComponent(range)}`);
+  },
+  async getAgentsOverview(): Promise<AgentsOverview> {
+    return jsonGet("/api/agents/overview");
   },
   async resolveGuide(
     guideId: string,

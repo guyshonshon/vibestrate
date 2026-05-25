@@ -13,7 +13,9 @@ export function SettingsPage() {
           on this machine.
         </p>
       </div>
-      <GatewaySettings />
+      <div id="notifications">
+        <GatewaySettings />
+      </div>
       <div className="border-t border-amaco-border" />
       <ProfileMaintenancePanel />
       <div className="border-t border-amaco-border" />
