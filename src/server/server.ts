@@ -9,6 +9,7 @@ import { registerDiffRoutes } from "./routes/diff.js";
 import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSkillsRoutes } from "./routes/skills.js";
 import { registerGuidesRoutes } from "./routes/guides.js";
+import { registerComposerPresetsRoutes } from "./routes/composer-presets.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerSetupRoutes } from "./routes/setup.js";
 import { registerApprovalsRoutes } from "./routes/approvals.js";
@@ -219,6 +220,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerNotesRoutes(app, { projectRoot: opts.projectRoot });
   await registerSkillsRoutes(app, { projectRoot: opts.projectRoot });
   await registerGuidesRoutes(app, { projectRoot: opts.projectRoot });
+  await registerComposerPresetsRoutes(app, { projectRoot: opts.projectRoot });
   await registerMetricsRoutes(app, { projectRoot: opts.projectRoot });
   await registerSetupRoutes(app, { projectRoot: opts.projectRoot });
   await registerApprovalsRoutes(app, { projectRoot: opts.projectRoot });

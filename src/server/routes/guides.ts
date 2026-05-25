@@ -11,6 +11,10 @@ import {
 } from "../../guides/runtime/guide-resolver.js";
 import { guideContextPolicySchema } from "../../guides/schemas/guide-schema.js";
 import { suggestGuidesForProject } from "../../guides/runtime/guide-suggestion.js";
+import {
+  applyGuidePatch,
+  guidePatchInputSchema,
+} from "../../guides/runtime/guide-patch.js";
 import { HttpError } from "../security.js";
 
 const providerOverridesSchema = z
@@ -66,6 +70,28 @@ export async function registerGuidesRoutes(
     async (req) => {
       const guide = await guideOr404(projectRoot, req.params.guideId);
       return { guide };
+    },
+  );
+
+  app.patch<{ Params: { guideId: string }; Body: unknown }>(
+    "/api/guides/:guideId",
+    async (req) => {
+      const parsed = guidePatchInputSchema.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const result = await applyGuidePatch({
+        projectRoot,
+        guideId: decodeURIComponent(req.params.guideId),
+        patch: parsed.data,
+      });
+      if (!result.ok) {
+        throw new HttpError(result.status, result.reasons.join("\n"));
+      }
+      return {
+        ok: true,
+        guideId: result.guideId,
+        definitionPath: result.definitionPath,
+        guide: await guideOr404(projectRoot, result.guideId),
+      };
     },
   );
 

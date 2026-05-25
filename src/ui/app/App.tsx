@@ -10,6 +10,9 @@ import { QueuePage } from "./routes/QueuePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
+import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
+import { MetricsPage } from "./routes/MetricsPage.js";
+import { AgentsPage } from "./routes/AgentsPage.js";
 import {
   ProposalsPage,
   ProposalDetailPage,
@@ -75,6 +78,58 @@ export function App() {
     const handler = () => setRoute(parseRoute());
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
+  }, []);
+
+  // Vim-style "g <key>" jump shortcuts — matches the design's app.jsx
+  // contract. `g n` opens the notifications drawer via the event that
+  // NotificationBell subscribes to.
+  useEffect(() => {
+    let armed = false;
+    let armedTimer: number | null = null;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (typing) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "g" && !armed) {
+        armed = true;
+        if (armedTimer !== null) window.clearTimeout(armedTimer);
+        armedTimer = window.setTimeout(() => {
+          armed = false;
+        }, 900);
+        return;
+      }
+      if (!armed) return;
+      armed = false;
+      if (armedTimer !== null) window.clearTimeout(armedTimer);
+      armedTimer = null;
+      switch (e.key) {
+        case "h":
+          navigate({ kind: "mission" });
+          break;
+        case "f":
+          navigate({ kind: "flow", guideId: null });
+          break;
+        case "a":
+          navigate({ kind: "agents" });
+          break;
+        case "m":
+          navigate({ kind: "metrics" });
+          break;
+        case "n":
+          window.dispatchEvent(new CustomEvent("amaco:open-notifications"));
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (armedTimer !== null) window.clearTimeout(armedTimer);
+    };
   }, []);
 
   // Idle-time prefetch of conditional async chunks so the first user
@@ -176,12 +231,21 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
-                      : route.kind === "runs"
-                        ? "runs"
-                        : "home"
+                      : route.kind === "flow"
+                        ? "flow"
+                        : route.kind === "metrics"
+                          ? "metrics"
+                          : route.kind === "agents"
+                            ? "agents"
+                            : route.kind === "runs"
+                              ? "runs"
+                              : "home"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
+      onShowFlows={() => navigate({ kind: "flow", guideId: null })}
+      onShowMetrics={() => navigate({ kind: "metrics" })}
+      onShowAgents={() => navigate({ kind: "agents" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
@@ -258,6 +322,15 @@ export function App() {
           initialRunId={route.runId}
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
         />
+      ) : route.kind === "flow" ? (
+        <FlowBuilderPage
+          initialGuideId={route.guideId}
+          onBack={() => navigate({ kind: "mission" })}
+        />
+      ) : route.kind === "metrics" ? (
+        <MetricsPage />
+      ) : route.kind === "agents" ? (
+        <AgentsPage />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}

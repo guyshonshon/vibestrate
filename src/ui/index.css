@@ -1,45 +1,414 @@
 @import "tailwindcss";
 
 @theme {
-  --color-amaco-canvas: #0b0e13;
-  --color-amaco-panel: #11151c;
-  --color-amaco-panel-2: #161b24;
-  --color-amaco-border: #232a36;
-  --color-amaco-border-soft: #1a212c;
-  --color-amaco-fg: #d6dde6;
-  --color-amaco-fg-dim: #8a93a3;
-  --color-amaco-fg-muted: #5b6370;
-  --color-amaco-accent: #4ea1ff;
-  --color-amaco-accent-soft: #1e2a3d;
-  --color-amaco-success: #5ec27c;
-  --color-amaco-warn: #d8a23a;
-  --color-amaco-fail: #d96666;
+  /* ── Design system: ink / fog / violet (Mission Control v3) ── */
+  --color-ink-0: #06070b;
+  --color-ink-50: #0a0c12;
+  --color-ink-100: #0e1118;
+  --color-ink-200: #13171f;
+  --color-ink-300: #191e29;
+  --color-ink-400: #222837;
+  --color-ink-500: #2e3548;
+
+  --color-fog-100: #f4f5fa;
+  --color-fog-200: #c9ccd9;
+  --color-fog-300: #9aa0b3;
+  --color-fog-400: #6a7186;
+  --color-fog-500: #4a5063;
+
+  --color-violet-soft: #a78bfa;
+  --color-violet-mid: #8b7cff;
+  --color-violet-deep: #6951f0;
+  --color-sky-glow: #7cc5ff;
+
+  /* ── Legacy amaco-* tokens (kept so non-redesigned routes don't
+   * break — the new screens use the ink/fog/violet tokens above) ── */
+  --color-amaco-canvas: #06070b;
+  --color-amaco-panel: #0e1118;
+  --color-amaco-panel-2: #13171f;
+  --color-amaco-border: rgba(255, 255, 255, 0.09);
+  --color-amaco-border-soft: rgba(255, 255, 255, 0.06);
+  --color-amaco-fg: #f4f5fa;
+  --color-amaco-fg-dim: #c9ccd9;
+  --color-amaco-fg-muted: #6a7186;
+  --color-amaco-accent: #a78bfa;
+  --color-amaco-accent-soft: rgba(167, 139, 250, 0.12);
+  --color-amaco-success: #4ade80;
+  --color-amaco-info: #7cc5ff;
+  --color-amaco-warn: #fbbf24;
+  --color-amaco-fail: #fb7185;
   --color-amaco-diff-add: #1e3327;
   --color-amaco-diff-add-fg: #9fdcb0;
   --color-amaco-diff-del: #3d2326;
   --color-amaco-diff-del-fg: #f0a5a5;
 
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+    "Geist", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono:
-    "JetBrains Mono", "Fira Code", "SFMono-Regular", "Menlo", Consolas,
+    "Geist Mono", "JetBrains Mono", "SFMono-Regular", "Menlo", Consolas,
     ui-monospace, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+}
+
+:root {
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px -28px rgba(8, 6, 22, 0.7);
+}
+
+/* ── Surface helpers ─────────────────────────────────────────────────
+ *
+ * Tailwind v4 lowers `bg-ink-50/95` to `color-mix(in oklab, …)`, which
+ * doesn't render the same as the design's Tailwind v3 plain `rgba(…)`
+ * output. These helpers bypass the color-mix step so every menu /
+ * panel surface lands on the *exact* dark we ship in the prototype.
+ */
+.surface-ink-50-95   { background-color: rgba(10, 12, 18, 0.95); }
+.surface-ink-100-70  { background-color: rgba(14, 17, 24, 0.70); }
+.surface-ink-100-55  { background-color: rgba(14, 17, 24, 0.55); }
+.surface-ink-100-45  { background-color: rgba(14, 17, 24, 0.45); }
+.surface-ink-0-60    { background-color: rgba(  6,  7, 11, 0.60); }
+
+/* ── Popover/menu surface ───────────────────────────────────────────
+ *
+ * Mirrors the prototype's `.glass` rule — translucent dark base + a
+ * subtle white sheen + a strong blur. Anything more solid (>0.7 base
+ * opacity) reads as a slab and loses the "floating glass" feel the
+ * design ships with. If a browser drops backdrop-filter the panel
+ * stays legible thanks to the gradient + base color contrast.
+ */
+.menu-surface {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.025) 0%,
+      rgba(255, 255, 255, 0.012) 100%
+    ),
+    rgba(14, 17, 24, 0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px -28px rgba(8, 6, 22, 0.7);
+}
+
+/* ── Drawer surface (notifications slide-in) ────────────────────────
+ *
+ * Notifications drawer is a long-running modal panel that overlaps
+ * the active page. A fully opaque base + the same prototype gradient
+ * sheen keeps it readable even when GPU-level blur is muted.
+ */
+.drawer-surface {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.025) 0%,
+      rgba(255, 255, 255, 0.008) 100%
+    ),
+    rgba(10, 12, 18, 0.985);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
 }
 
 html,
 body,
 #root {
   height: 100%;
+  margin: 0;
 }
 
 body {
   font-family: var(--font-sans);
-  font-feature-settings: "tnum" 1;
+  background: var(--color-ink-0);
+  color: var(--color-fog-100);
+  font-feature-settings: "ss01", "ss02", "cv11", "tnum";
+  letter-spacing: -0.005em;
+  min-height: 100%;
 }
 
+/* ── Backdrop wash: subtle violet/cyan on near-black ─────────────── */
+.amaco-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 700px at 100% 0%, rgba(124, 197, 255, 0.035), transparent 60%),
+    radial-gradient(900px 800px at 0% 18%, rgba(139, 124, 255, 0.05), transparent 55%);
+}
+
+/* ── Glass surfaces ──────────────────────────────────────────────── */
+.glass {
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.025) 0%,
+      rgba(255, 255, 255, 0.012) 100%
+    ),
+    rgba(14, 17, 24, 0.55);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+.glass-flat {
+  background: rgba(14, 17, 24, 0.45);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+.hairline {
+  border: 1px solid var(--line);
+}
+.hairline-b {
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── Violet-bevelled accent surface used by Composer & Status ── */
+.bevel-violet {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(167, 139, 250, 0.08), rgba(105, 81, 240, 0.02)) padding-box,
+    linear-gradient(180deg, rgba(167, 139, 250, 0.55), rgba(105, 81, 240, 0.12)) border-box;
+  border: 1px solid transparent;
+  border-radius: 14px;
+}
+.bevel-violet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  background:
+    radial-gradient(220px 90px at 30% -10%, rgba(167, 139, 250, 0.22), transparent 60%);
+}
+
+/* ── Typography niceties ─────────────────────────────────────────── */
+.text-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "ss02", "tnum", "zero";
+}
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-fog-400);
+  white-space: nowrap;
+}
+.num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tiny interactions ───────────────────────────────────────────── */
+button,
+.btn {
+  transition: background 160ms ease, color 160ms ease,
+    border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+button:active,
+.btn:active {
+  transform: translateY(0.5px);
+}
+
+.ring-violet {
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.45),
+    0 8px 26px -8px rgba(139, 124, 255, 0.6);
+}
+.ring-violet-soft {
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25),
+    0 12px 36px -16px rgba(139, 124, 255, 0.4);
+}
+
+/* ── Status pulse dot ────────────────────────────────────────────── */
+@keyframes amaco-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50% { box-shadow: 0 0 0 6px transparent; opacity: 0.6; }
+}
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: amaco-pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* ── Marquee meter (active phase shimmer) ─────────────────────────── */
+@keyframes amaco-meter-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.meter {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 99px;
+  height: 3px;
+}
+.meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(167, 139, 250, 0.85),
+    transparent
+  );
+  animation: amaco-meter-shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Terminal blink ──────────────────────────────────────────────── */
+@keyframes amaco-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--color-violet-soft);
+  vertical-align: -2px;
+  animation: amaco-caret 1s steps(1, end) infinite;
+  margin-left: 2px;
+  border-radius: 1px;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Selection ───────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(78, 161, 255, 0.35);
+  background: rgba(167, 139, 250, 0.35);
+  color: white;
+}
+
+/* ── Slide-in helpers ────────────────────────────────────────────── */
+@keyframes amaco-fade-up {
+  from { opacity: 0.4; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.fade-up {
+  animation: amaco-fade-up 280ms ease both;
+}
+.fade-up-delay-1 { animation-delay: 60ms; }
+.fade-up-delay-2 { animation-delay: 120ms; }
+.fade-up-delay-3 { animation-delay: 180ms; }
+.fade-up-delay-4 { animation-delay: 240ms; }
+
+/* ── Soft hover halo for cards ───────────────────────────────────── */
+.card-hover {
+  transition: transform 240ms ease, box-shadow 240ms ease,
+    border-color 240ms ease, background 240ms ease;
+}
+.card-hover:hover {
+  border-color: rgba(167, 139, 250, 0.35);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 28px 64px -28px rgba(105, 81, 240, 0.45);
+}
+
+/* ── Top rim inner highlight ─────────────────────────────────────── */
+.top-rim {
+  position: relative;
+}
+.top-rim::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05),
+    transparent 30%
+  );
+}
+
+/* ── Phase rail ──────────────────────────────────────────────────── */
+.phase-segment {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.phase-segment.done {
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.7), rgba(74, 222, 128, 0.3));
+}
+.phase-segment.active {
+  background: linear-gradient(90deg, rgba(167, 139, 250, 0.85), rgba(124, 197, 255, 0.5));
+}
+.phase-segment.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  animation: amaco-meter-shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Board card "done" strike — softer than browser default ─────── */
+.line-through-soft {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+  text-decoration-thickness: 1px;
+}
+
+/* ── Board / drawer horizontal scroll — slimmer track ──────────── */
+.board-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.board-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+}
+.board-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── Focus rings — keyboard-only ─────────────────────────────────── */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid rgba(167, 139, 250, 0.6);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 @keyframes amaco-pulse {
@@ -51,7 +420,7 @@ body {
   position: relative;
   display: block;
   height: 1px;
-  background: var(--color-amaco-accent);
+  background: var(--color-violet-soft);
   transform-origin: left center;
   animation: amaco-pulse 1200ms ease-in-out infinite;
 }
@@ -61,20 +430,17 @@ body {
   font-size: 12.5px;
 }
 
-/* highlight.js theme — minimal, tuned to the amaco dark palette. We don't
-   import a stock theme because most of them are too saturated against the
-   panel background; the colors below pull from the existing tokens where
-   it makes sense and add a small set of accent hues for syntax tokens. */
+/* ── Highlight.js theme (kept as before, retuned for new palette) ── */
 .hljs-comment,
 .hljs-quote {
-  color: var(--color-amaco-fg-muted);
+  color: var(--color-fog-400);
   font-style: italic;
 }
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-meta .hljs-keyword,
 .hljs-doctag {
-  color: #c792ea;
+  color: var(--color-violet-soft);
 }
 .hljs-string,
 .hljs-regexp,
@@ -95,7 +461,7 @@ body {
 .hljs-title,
 .hljs-title.function_,
 .hljs-name {
-  color: var(--color-amaco-accent);
+  color: var(--color-sky-glow);
 }
 .hljs-attr,
 .hljs-attribute,
@@ -108,12 +474,12 @@ body {
 .hljs-tag,
 .hljs-meta,
 .hljs-meta .hljs-string {
-  color: var(--color-amaco-fg-dim);
+  color: var(--color-fog-300);
 }
 .hljs-section,
 .hljs-bullet,
 .hljs-link {
-  color: var(--color-amaco-accent);
+  color: var(--color-violet-soft);
 }
 .hljs-link {
   text-decoration: underline;
@@ -129,5 +495,5 @@ body {
 }
 .hljs-operator,
 .hljs-punctuation {
-  color: var(--color-amaco-fg-dim);
+  color: var(--color-fog-300);
 }

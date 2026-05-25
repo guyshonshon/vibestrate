@@ -4,8 +4,8 @@ import { Keyboard, X } from "lucide-react";
 /**
  * Global help overlay. Opens on:
  *   - `?` keystroke (outside an input)
- *   - the custom `amaco:help-overlay` event dispatched by
- *     `useNumberedNav` and other shortcut handlers
+ *   - the custom `amaco:help-overlay` event dispatched by the TopBar
+ *     and other shortcut handlers
  *   - the `?` button surfaces sprinkled around the chrome
  *
  * Closes on Esc, outside click, or the X button. Self-contained, no

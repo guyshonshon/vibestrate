@@ -35,6 +35,9 @@ export type Route =
   | { kind: "proposal"; proposalId: string }
   | { kind: "settings" }
   | { kind: "project" }
+  | { kind: "flow"; guideId: string | null }
+  | { kind: "metrics" }
+  | { kind: "agents" }
   | {
       kind: "codebase";
       filePath: string | null;
@@ -163,6 +166,12 @@ export function parseHashRoute(hash: string): Route {
     const runId = query.get("runId");
     return { kind: "git", runId: runId ?? null };
   }
+  if (parts[0] === "flows" || parts[0] === "flow") {
+    const guideId = parts[1] ?? query.get("guide");
+    return { kind: "flow", guideId: guideId ?? null };
+  }
+  if (parts[0] === "metrics") return { kind: "metrics" };
+  if (parts[0] === "agents") return { kind: "agents" };
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -213,5 +222,13 @@ export function serializeRoute(route: Route): string {
       const qs = q.toString();
       return `#/git${qs ? `?${qs}` : ""}`;
     }
+    case "flow":
+      return route.guideId
+        ? `#/flows/${encodeURIComponent(route.guideId)}`
+        : "#/flows";
+    case "metrics":
+      return "#/metrics";
+    case "agents":
+      return "#/agents";
   }
 }
