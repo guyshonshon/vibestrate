@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Play } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
   ConflictWarning,
@@ -7,7 +7,15 @@ import type {
   SchedulerState,
   Task,
 } from "../../lib/types.js";
+import { cn } from "../../components/design/cn.js";
+import { Chip } from "../../components/design/Chip.js";
+import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 
+/**
+ * Scheduler queue page. Lives separately from Mission's Workspace
+ * card because this is the *control* surface: scheduler state, the
+ * actual queue, conflict warnings, and the verbatim CLI hint.
+ */
 export function QueuePage({
   onOpenTask,
 }: {
@@ -38,186 +46,211 @@ export function QueuePage({
 
   useEffect(() => {
     void load();
-    const interval = setInterval(load, 2500);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(load, 2500);
+    return () => window.clearInterval(interval);
   }, []);
-
-  if (error)
-    return <div className="px-6 py-8 text-amaco-fail">{error}</div>;
 
   const titleFor = (id: string) =>
     tasks.find((t) => t.id === id)?.title ?? id;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-          scheduler
+    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      {/* Compact header */}
+      <section className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="eyebrow">Scheduler</span>
+          <span className="text-fog-500">·</span>
+          <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
+            Queue & concurrency
+          </h1>
+          {state ? (
+            <Chip tone={state.paused ? "amber" : "emerald"}>
+              {state.paused ? "paused" : (
+                <>
+                  <span className="pulse-dot" /> running
+                </>
+              )}
+            </Chip>
+          ) : null}
         </div>
-        <h1 className="mt-1 text-[16px] font-medium">Queue & concurrency</h1>
-        <div className="mt-1 text-[12.5px] text-amaco-fg-dim">
-          The scheduler runs queued tasks one at a time by default. Increase{" "}
-          <code className="amaco-mono">scheduler.maxConcurrentRuns</code> to opt
-          into parallel runs.
-        </div>
-        {state ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-amaco-fg-dim">
-            <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
-              {state.paused ? "paused" : "running"}
-            </span>
-            <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
-              max concurrent: {state.maxConcurrentRuns}
-            </span>
-            <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
-              policy: {state.queuePolicy}
-            </span>
-            {Object.keys(state.sourceQuotas).length > 0 ? (
-              <span
-                className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5"
-                title={Object.entries(state.sourceQuotas)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join("\n")}
-              >
-                quotas: {Object.keys(state.sourceQuotas).length}
-              </span>
-            ) : null}
-            {typeof state.defaultSourceConcurrency === "number" ? (
-              <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
-                default/source: {state.defaultSourceConcurrency}
-              </span>
-            ) : null}
-            <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5">
-              conflict: {state.conflictPolicy}
-            </span>
-          </div>
-        ) : null}
-        <div className="mt-2 text-[11.5px] text-amaco-fg-muted">
-          Start the loop from your terminal:{" "}
-          <code className="amaco-mono rounded bg-amaco-panel-2 px-1 py-0.5">
+        <div className="text-[11.5px] text-fog-500 mono">
+          Start the loop:{" "}
+          <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
             amaco queue run
           </code>
         </div>
-      </header>
+      </section>
 
-      <div className="flex flex-col gap-3 p-4">
-        {state && state.runningTaskIds.length > 0 ? (
-          <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-              running ({state.runningTaskIds.length})
-            </div>
-            <ul className="mt-1.5 space-y-1">
+      <p className="text-[12.5px] text-fog-400 mt-2 max-w-[760px]">
+        The scheduler runs queued tasks one at a time by default. Increase{" "}
+        <code className="mono text-fog-200">scheduler.maxConcurrentRuns</code>{" "}
+        to opt into parallel runs.
+      </p>
+
+      {state ? (
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <StateChip label="Max concurrent" value={String(state.maxConcurrentRuns)} />
+          <StateChip label="Policy" value={state.queuePolicy} />
+          <StateChip label="Conflict" value={state.conflictPolicy} />
+          <StateChip
+            label="Default/source"
+            value={
+              typeof state.defaultSourceConcurrency === "number"
+                ? String(state.defaultSourceConcurrency)
+                : "—"
+            }
+          />
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+          {error}
+        </div>
+      ) : null}
+
+      <section className="mt-6 grid grid-cols-12 gap-5">
+        {/* Running */}
+        <div className="col-span-12 xl:col-span-5 glass p-4">
+          <SectionEyebrow className="mb-3">
+            <span>
+              Running ·{" "}
+              {state ? state.runningTaskIds.length : 0}
+            </span>
+          </SectionEyebrow>
+          {!state || state.runningTaskIds.length === 0 ? (
+            <div className="text-[12px] text-fog-500">Nothing is running.</div>
+          ) : (
+            <ul className="space-y-1.5">
               {state.runningTaskIds.map((id) => (
                 <li key={id}>
                   <button
+                    type="button"
                     onClick={() => onOpenTask(id)}
-                    className="amaco-mono w-full rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-1 text-left text-[12px] text-amaco-accent hover:bg-amaco-accent/15"
+                    className="w-full rounded-lg border border-emerald-400/30 bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] px-3 py-2 text-left text-[12.5px] text-emerald-200 flex items-center gap-2"
                   >
-                    {titleFor(id)} <span className="text-amaco-fg-muted">{id}</span>
+                    <Play className="h-3 w-3" strokeWidth={1.7} />
+                    <span className="flex-1 truncate">{titleFor(id)}</span>
+                    <span className="mono text-[10.5px] text-emerald-300/80">
+                      {id.slice(0, 14)}
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
-          </section>
-        ) : null}
+          )}
+        </div>
 
-        <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-            queued ({queue.length})
-          </div>
+        {/* Queued */}
+        <div className="col-span-12 xl:col-span-7 glass p-4">
+          <SectionEyebrow className="mb-3">
+            <span>Queued · {queue.length}</span>
+          </SectionEyebrow>
           {queue.length === 0 ? (
-            <div className="mt-1 text-[12px] text-amaco-fg-muted">
+            <div className="text-[12px] text-fog-500">
               Queue is empty. Add a task from the board, then run{" "}
-              <code className="amaco-mono">amaco queue run</code>.
+              <code className="mono text-fog-300">amaco queue run</code>.
             </div>
           ) : (
-            <ol className="mt-1.5 space-y-1">
+            <ol className="space-y-1.5">
               {queue.map((e) => (
                 <li key={e.taskId}>
                   <button
+                    type="button"
                     onClick={() => onOpenTask(e.taskId)}
-                    className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[12px] text-amaco-fg hover:bg-amaco-panel"
+                    className="w-full flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.045] px-3 py-2 text-left text-[12.5px] text-fog-100"
                   >
-                    <span className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1 text-[10.5px] text-amaco-fg-muted">
-                      {e.priority}
-                    </span>
-                    <span
-                      className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1 text-[10.5px] text-amaco-fg-dim"
-                      title={`source: ${e.source}`}
-                    >
-                      {e.source}
-                    </span>
+                    <Chip tone={priorityTone(e.priority)}>{e.priority}</Chip>
+                    <Chip tone="neutral">{e.source}</Chip>
                     <span className="flex-1 truncate">{titleFor(e.taskId)}</span>
-                    <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
-                      enqueued {new Date(e.enqueuedAt).toLocaleTimeString()}
+                    <span className="mono text-[10.5px] text-fog-500 whitespace-nowrap">
+                      {new Date(e.enqueuedAt).toLocaleTimeString()}
                     </span>
                   </button>
                 </li>
               ))}
             </ol>
           )}
-        </section>
+        </div>
+      </section>
 
-        {conflicts.length > 0 ? (
-          <section className="rounded border border-amaco-warn/40 bg-amaco-warn/5 p-3">
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle
-                className="h-3.5 w-3.5 text-amaco-warn"
-                strokeWidth={1.5}
-              />
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-warn">
-                conflict warnings ({conflicts.length})
-              </div>
-            </div>
-            <ul className="mt-1.5 space-y-1.5">
-              {conflicts.slice(-10).map((w) => (
-                <li
-                  key={w.id}
-                  className="rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12px] text-amaco-fg"
-                >
-                  <div className="flex items-center gap-2">
+      {conflicts.length > 0 ? (
+        <section className="mt-5 glass border-amber-400/30 p-4">
+          <SectionEyebrow className="mb-3">
+            <span className="text-amber-300 flex items-center gap-1.5">
+              <AlertTriangle className="h-3 w-3" strokeWidth={1.7} />
+              Conflict warnings · {conflicts.length}
+            </span>
+          </SectionEyebrow>
+          <ul className="space-y-2">
+            {conflicts.slice(-10).map((w) => (
+              <li
+                key={w.id}
+                className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 text-[12px] text-fog-100"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => onOpenTask(w.taskId)}
+                    className="mono text-fog-300 hover:text-fog-100"
+                  >
+                    {w.taskId}
+                  </button>
+                  <span className="text-fog-400">overlaps with</span>
+                  {w.conflictsWith.map((id) => (
                     <button
-                      onClick={() => onOpenTask(w.taskId)}
-                      className="amaco-mono text-amaco-fg-dim hover:text-amaco-fg"
+                      key={id}
+                      type="button"
+                      onClick={() => onOpenTask(id)}
+                      className="mono text-fog-300 hover:text-fog-100"
                     >
-                      {w.taskId}
+                      {id}
                     </button>
-                    <span className="text-amaco-fg-muted">overlaps with</span>
-                    {w.conflictsWith.map((id) => (
-                      <button
-                        key={id}
-                        onClick={() => onOpenTask(id)}
-                        className="amaco-mono text-amaco-fg-dim hover:text-amaco-fg"
-                      >
-                        {id}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-1 text-[11.5px] text-amaco-fg-muted">
-                    on {w.overlappingFiles.length} file(s):{" "}
-                    {w.overlappingFiles.slice(0, 5).map((f) => (
-                      <code
-                        key={f}
-                        className="amaco-mono mr-1 rounded bg-amaco-panel px-1 py-0.5"
-                      >
-                        {f}
-                      </code>
-                    ))}
-                  </div>
-                  <div className="mt-1 amaco-mono text-[10.5px] text-amaco-fg-muted">
-                    policy: {w.policy}{" "}
-                    {w.blocked ? (
-                      <span className="text-amaco-warn">
-                        (blocked second task)
-                      </span>
-                    ) : (
-                      "(warned only)"
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+                  ))}
+                </div>
+                <div className="mt-1 text-[11.5px] text-fog-400">
+                  on {w.overlappingFiles.length} file(s):{" "}
+                  {w.overlappingFiles.slice(0, 5).map((f) => (
+                    <code
+                      key={f}
+                      className="mono mr-1 rounded bg-white/[0.04] px-1 py-0.5 text-fog-300"
+                    >
+                      {f}
+                    </code>
+                  ))}
+                </div>
+                <div className="mt-1 mono text-[10.5px] text-fog-500">
+                  policy: {w.policy}{" "}
+                  {w.blocked ? (
+                    <span className="text-amber-300">(blocked second task)</span>
+                  ) : (
+                    "(warned only)"
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function priorityTone(p: string): "violet" | "amber" | "rose" | "neutral" {
+  if (p === "high") return "amber";
+  if (p === "medium") return "violet";
+  if (p === "low") return "neutral";
+  return "neutral";
+}
+
+function StateChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={cn("rounded-md border border-white/[0.07] bg-white/[0.02] px-3 py-1.5")}>
+      <div className="mono text-[9.5px] uppercase tracking-[0.14em] text-fog-500">
+        {label}
+      </div>
+      <div className="text-[12.5px] text-fog-100 mono num-tabular truncate">
+        {value}
       </div>
     </div>
   );

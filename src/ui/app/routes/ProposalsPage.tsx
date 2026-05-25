@@ -33,61 +33,63 @@ export function ProposalsPage({
     return <div className="px-6 py-8 text-amaco-fail">{error}</div>;
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-          proposals
-        </div>
-        <h1 className="mt-1 text-[16px] font-medium">Roadmap proposals</h1>
-        <div className="mt-1 text-[12.5px] text-amaco-fg-dim">
-          Drafts produced by the planner agent. Review, dry-run, then accept to
-          create the corresponding roadmap items and tasks.
-        </div>
-        <div className="mt-2 text-[11.5px] text-amaco-fg-muted">
-          Generate one with:{" "}
-          <code className="amaco-mono rounded bg-amaco-panel-2 px-1 py-0.5">
+    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      <section className="flex items-baseline gap-3 flex-wrap">
+        <span className="eyebrow">Proposals</span>
+        <span className="text-fog-500">·</span>
+        <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
+          Roadmap proposals{" "}
+          <span className="mono text-[12px] text-fog-500 num-tabular">
+            {proposals.length}
+          </span>
+        </h1>
+        <span className="text-[11.5px] text-fog-500 mono ml-auto">
+          generate one:{" "}
+          <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
             amaco roadmap plan "&lt;goal&gt;"
           </code>
-        </div>
-      </header>
+        </span>
+      </section>
+      <p className="text-[12.5px] text-fog-400 mt-2 max-w-[760px]">
+        Drafts produced by the planner agent. Review, dry-run, then accept to
+        create the corresponding roadmap items and tasks.
+      </p>
+
       {proposals.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center text-[13px] text-amaco-fg-muted">
-          No proposals yet. Run{" "}
-          <code className="amaco-mono mx-1 rounded bg-amaco-panel-2 px-1 py-0.5">
-            amaco roadmap plan "&lt;goal&gt;"
-          </code>{" "}
-          to draft one.
+        <div className="glass mt-5 px-6 py-10 text-center text-[12.5px] text-fog-400">
+          No proposals yet.
         </div>
       ) : (
-        <ol className="flex-1 space-y-2 overflow-y-auto p-3">
+        <ol className="mt-5 space-y-2">
           {proposals.map((p) => (
             <li key={p.id}>
               <button
+                type="button"
                 onClick={() => onOpenProposal(p.id)}
-                className="flex w-full items-center gap-3 rounded border border-amaco-border bg-amaco-panel-2 p-3 text-left hover:bg-amaco-panel"
+                className="flex w-full items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] p-3 text-left transition"
               >
                 {p.accepted ? (
                   <CheckCircle2
-                    className="h-4 w-4 text-amaco-success"
-                    strokeWidth={1.5}
+                    className="h-4 w-4 text-emerald-300"
+                    strokeWidth={1.6}
                   />
                 ) : (
                   <FileText
-                    className="h-4 w-4 text-amaco-accent"
-                    strokeWidth={1.5}
+                    className="h-4 w-4 text-violet-soft"
+                    strokeWidth={1.6}
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="amaco-mono truncate text-[12.5px] text-amaco-fg">
+                  <div className="mono truncate text-[12.5px] text-fog-100">
                     {p.id}
                   </div>
-                  <div className="text-[11px] text-amaco-fg-muted">
+                  <div className="text-[11px] text-fog-500">
                     {p.accepted
                       ? `accepted ${p.acceptedAt ? new Date(p.acceptedAt).toLocaleString() : ""}`
                       : `draft · modified ${new Date(p.modifiedAt).toLocaleString()}`}
                   </div>
                 </div>
-                <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                <span className="mono text-[10.5px] text-fog-500">
                   {p.byteSize}b
                 </span>
               </button>
@@ -189,52 +191,52 @@ export function ProposalDetailPage({
     accepted !== null || errorList.length > 0 || preview === null;
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-        <button
-          onClick={onBack}
-          className="text-[11.5px] text-amaco-fg-muted hover:text-amaco-fg"
-        >
-          ← back to proposals
-        </button>
-        <div className="mt-1 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-          proposal
-        </div>
-        <h1 className="mt-0.5 amaco-mono text-[14px] text-amaco-fg">
-          {proposalId}
-        </h1>
+    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-[11.5px] text-fog-400 hover:text-fog-100"
+      >
+        ← back to proposals
+      </button>
+      <section className="mt-2 flex items-baseline gap-3 flex-wrap">
+        <span className="eyebrow">Proposal</span>
+        <span className="text-fog-500">·</span>
+        <h1 className="mono text-[14px] text-fog-100">{proposalId}</h1>
         {accepted ? (
-          <div className="mt-1 text-[12px] text-amaco-success">
-            Accepted {new Date(accepted.acceptedAt).toLocaleString()}
-          </div>
+          <span className="text-[12px] text-emerald-300">
+            ✓ Accepted {new Date(accepted.acceptedAt).toLocaleString()}
+          </span>
         ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex items-center gap-1 text-[11.5px] text-amaco-fg-dim">
-            <input
-              type="checkbox"
-              checked={allowUnresolved}
-              onChange={(e) => setAllowUnresolved(e.target.checked)}
-            />
-            allow unresolved dependencies
-          </label>
-          <button
-            onClick={refreshDry}
-            disabled={busy !== null}
-            className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-1 text-[12px] text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
-          >
-            {busy === "dryrun" ? "Refreshing…" : "Dry-run"}
-          </button>
-          <button
-            onClick={accept}
-            disabled={busy !== null || acceptDisabled}
-            className="rounded border border-amaco-success/40 bg-amaco-success/10 px-2.5 py-1 text-[12px] text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
-          >
-            {busy === "accept" ? "Accepting…" : "Accept proposal"}
-          </button>
-        </div>
-      </header>
+      </section>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className="inline-flex items-center gap-1.5 text-[11.5px] text-fog-300">
+          <input
+            type="checkbox"
+            checked={allowUnresolved}
+            onChange={(e) => setAllowUnresolved(e.target.checked)}
+          />
+          allow unresolved dependencies
+        </label>
+        <button
+          type="button"
+          onClick={refreshDry}
+          disabled={busy !== null}
+          className="h-8 px-3 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] text-[12px] text-fog-100 disabled:opacity-50"
+        >
+          {busy === "dryrun" ? "Refreshing…" : "Dry-run"}
+        </button>
+        <button
+          type="button"
+          onClick={accept}
+          disabled={busy !== null || acceptDisabled}
+          className="h-8 px-3 rounded-lg bg-gradient-to-b from-emerald-500/30 to-emerald-700/50 border border-emerald-400/40 text-emerald-100 text-[12px] hover:from-emerald-500/45 disabled:opacity-50"
+        >
+          {busy === "accept" ? "Accepting…" : "Accept proposal"}
+        </button>
+      </div>
 
-      <div className="grid flex-1 grid-cols-[1fr_1fr] gap-3 overflow-hidden p-3">
+      <div className="grid grid-cols-[1fr_1fr] gap-4 mt-5">
         <section className="flex flex-col rounded border border-amaco-border bg-amaco-panel">
           <header className="border-b border-amaco-border px-3 py-1.5 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
             raw markdown
