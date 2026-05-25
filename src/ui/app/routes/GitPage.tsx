@@ -1,144 +1,261 @@
-import { useEffect, useState } from "react";
-import { GitBranch, GitCommit } from "lucide-react";
+/**
+ * Git page — consumer-friendly view of the project's git state plus
+ * per-run worktrees. Written in plain language: "Changes since the
+ * last commit", "What each run changed", "Recent activity". Avoids
+ * git jargon (rebase / staged / etc.) and shows commits with a
+ * one-line summary, author, and time-ago.
+ *
+ * Sections:
+ *   1. Project header — branch + ahead/behind + dirty state at a glance
+ *   2. Uncommitted changes — file list with insert/delete counts
+ *   3. Recent commits — last 10 commits with short hash + subject
+ *   4. Per-run worktrees — one card per active/recent run with its
+ *      branch + diff stats; click to inspect in Codebase
+ */
+import { useEffect, useMemo, useState } from "react";
+import {
+  CircleDot,
+  FileText,
+  GitBranch,
+  GitCommit as GitCommitIcon,
+  History,
+  RefreshCw,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
+  DiffSnapshot,
   GitHistory,
   GitStatus,
   RunState,
 } from "../../lib/types.js";
-import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
-import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
+import { Chip } from "../../components/design/Chip.js";
+import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
+import { cn } from "../../components/design/cn.js";
+import { relTime } from "../../components/design/format.js";
 
 type Props = {
   initialRunId?: string | null;
   onSelectRun: (runId: string) => void;
 };
 
-export function GitPage({ initialRunId, onSelectRun }: Props) {
+export function GitPage({ onSelectRun }: Props) {
   const [projectStatus, setProjectStatus] = useState<GitStatus | null>(null);
   const [projectHistory, setProjectHistory] = useState<GitHistory | null>(null);
   const [runs, setRuns] = useState<RunState[]>([]);
-  const [runId, setRunId] = useState<string | null>(initialRunId ?? null);
-  const [runStatus, setRunStatus] = useState<GitStatus | null>(null);
-  const [runHistory, setRunHistory] = useState<GitHistory | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const projectFresh = useCodebaseEvents("/api/project/events/stream");
-  const runFresh = useCodebaseEvents(
-    runId ? `/api/runs/${encodeURIComponent(runId)}/codebase/events/stream` : null,
+  const [diffsByRun, setDiffsByRun] = useState<Record<string, DiffSnapshot | null>>(
+    {},
   );
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  function loadProject() {
-    Promise.all([
-      api.getProjectGitStatus(),
-      api.getProjectGitHistory(20),
-      api.listRuns(),
-    ])
-      .then(([s, h, r]) => {
-        setProjectStatus(s);
-        setProjectHistory(h);
-        setRuns(r);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+  async function load() {
+    setRefreshing(true);
+    try {
+      const [s, h, r] = await Promise.all([
+        api.getProjectGitStatus(),
+        api.getProjectGitHistory(10),
+        api.listRuns(),
+      ]);
+      setProjectStatus(s);
+      setProjectHistory(h);
+      setRuns(r);
+
+      // Best-effort per-run diff snapshot for active worktrees.
+      const active = r.filter(
+        (run) =>
+          run.worktreePath &&
+          ["planning", "architecting", "executing", "validating",
+           "reviewing", "fixing", "verifying", "waiting_for_approval",
+           "merge_ready", "paused"].includes(run.status),
+      );
+      const diffs: Record<string, DiffSnapshot | null> = {};
+      await Promise.all(
+        active.map(async (run) => {
+          try {
+            diffs[run.runId] = await api.getDiff(run.runId);
+          } catch {
+            diffs[run.runId] = null;
+          }
+        }),
+      );
+      setDiffsByRun(diffs);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   useEffect(() => {
-    loadProject();
+    void load();
+    const id = window.setInterval(load, 8000);
+    return () => window.clearInterval(id);
   }, []);
 
-  // Auto-refetch on incoming events.
-  useEffect(() => {
-    if (!projectFresh.lastEvent) return;
-    loadProject();
-  }, [projectFresh.lastEvent]);
-
-  function loadRun() {
-    if (!runId) {
-      setRunStatus(null);
-      setRunHistory(null);
-      return;
-    }
-    Promise.all([
-      api.getRunGitStatus(runId).catch(() => null),
-      api.getRunGitHistory(runId, 20).catch(() => null),
-    ]).then(([s, h]) => {
-      setRunStatus(s);
-      setRunHistory(h);
-    });
-  }
-
-  useEffect(loadRun, [runId]);
-
-  useEffect(() => {
-    if (!runFresh.lastEvent) return;
-    loadRun();
-  }, [runFresh.lastEvent]);
+  const activeWorktrees = useMemo(
+    () =>
+      runs.filter(
+        (r) =>
+          r.worktreePath &&
+          ["planning", "architecting", "executing", "validating",
+           "reviewing", "fixing", "verifying", "waiting_for_approval",
+           "merge_ready", "paused"].includes(r.status),
+      ),
+    [runs],
+  );
 
   return (
     <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      {/* Compact header */}
       <section className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <div className="flex items-baseline gap-3 min-w-0">
           <span className="eyebrow">Git</span>
           <span className="text-fog-500">·</span>
           <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
-            Project + per-run worktrees
+            {projectStatus?.branch ? (
+              <>
+                On branch{" "}
+                <span className="mono text-violet-soft">
+                  {projectStatus.branch}
+                </span>
+              </>
+            ) : (
+              "Project repository"
+            )}
           </h1>
-          <span className="text-[11.5px] text-fog-500">
-            local-only · no fetch / push / merge
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <FreshnessIndicator freshness={projectFresh} onRefresh={loadProject} />
-          {runId ? (
-            <FreshnessIndicator freshness={runFresh} onRefresh={loadRun} />
+          {projectStatus ? (
+            <ProjectStateChips status={projectStatus} />
           ) : null}
         </div>
+        <button
+          type="button"
+          onClick={() => void load()}
+          disabled={refreshing}
+          className="h-8 px-2.5 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-[12px] text-fog-300 flex items-center gap-1.5 disabled:opacity-50"
+        >
+          <RefreshCw
+            className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+            strokeWidth={1.6}
+          />
+          Refresh
+        </button>
       </section>
 
       {error ? (
-        <div className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
-      <section className="mb-6">
-        <SectionTitle>Project</SectionTitle>
-        <StatusBlock status={projectStatus} label="project" />
-        <HistoryBlock history={projectHistory} />
+      {/* Two-column main: changes (left) + recent commits (right) */}
+      <section className="grid grid-cols-12 gap-5">
+        <div className="col-span-12 xl:col-span-7 glass p-4">
+          <SectionEyebrow className="mb-3">
+            <span>Changes since the last commit</span>
+            {projectStatus ? (
+              <span className="mono text-[11px] text-fog-400">
+                {projectStatus.changedFiles.length} file
+                {projectStatus.changedFiles.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </SectionEyebrow>
+          {!projectStatus ? (
+            <div className="text-[12.5px] text-fog-400">Loading…</div>
+          ) : projectStatus.changedFiles.length === 0 ? (
+            <div className="text-[12.5px] text-fog-400">
+              Nothing changed. Your working tree matches the last commit.
+            </div>
+          ) : (
+            <ul className="space-y-1.5">
+              {projectStatus.changedFiles.slice(0, 50).map((f) => (
+                <li
+                  key={f.path}
+                  className="flex items-center gap-2.5 rounded-md border border-white/[0.05] bg-white/[0.018] px-2.5 py-1.5"
+                >
+                  <ChangeKindBadge status={f.status} />
+                  <FileText className="h-3 w-3 text-fog-500" strokeWidth={1.7} />
+                  <span className="flex-1 mono text-[12px] text-fog-100 truncate">
+                    {f.path}
+                  </span>
+                </li>
+              ))}
+              {projectStatus.changedFiles.length > 50 ? (
+                <li className="text-[11.5px] text-fog-500 mono pl-1">
+                  …{projectStatus.changedFiles.length - 50} more
+                </li>
+              ) : null}
+            </ul>
+          )}
+        </div>
+
+        <div className="col-span-12 xl:col-span-5 glass p-4">
+          <SectionEyebrow className="mb-3">
+            <span>Recent commits</span>
+            {projectHistory ? (
+              <span className="mono text-[11px] text-fog-400">
+                {projectHistory.commits.length}
+              </span>
+            ) : null}
+          </SectionEyebrow>
+          {!projectHistory ? (
+            <div className="text-[12.5px] text-fog-400">Loading…</div>
+          ) : projectHistory.commits.length === 0 ? (
+            <div className="text-[12.5px] text-fog-400">No commits yet.</div>
+          ) : (
+            <ol className="space-y-2">
+              {projectHistory.commits.map((c) => (
+                <li
+                  key={c.hash}
+                  className="rounded-md border border-white/[0.05] bg-white/[0.018] px-2.5 py-2"
+                >
+                  <div className="flex items-start gap-2">
+                    <GitCommitIcon
+                      className="h-3 w-3 text-violet-soft mt-0.5 shrink-0"
+                      strokeWidth={1.7}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] text-fog-100 leading-snug truncate">
+                        {c.subject}
+                      </div>
+                      <div className="text-[10.5px] text-fog-500 mono mt-0.5 truncate">
+                        {c.shortHash} · {c.author} · {relTime(c.date)}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       </section>
 
-      <section>
-        <div className="mb-2 flex items-center gap-2">
-          <SectionTitle>Run worktree</SectionTitle>
-          <select
-            value={runId ?? ""}
-            onChange={(e) => setRunId(e.target.value || null)}
-            className="ml-auto rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[11.5px] text-amaco-fg-dim"
-          >
-            <option value="">— pick a run —</option>
-            {runs.map((r) => (
-              <option key={r.runId} value={r.runId}>
-                {r.runId} · {r.task}
-              </option>
-            ))}
-          </select>
-          {runId ? (
-            <button
-              type="button"
-              onClick={() => onSelectRun(runId)}
-              className="rounded border border-amaco-border px-2 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel-2"
-            >
-              Open run →
-            </button>
-          ) : null}
+      {/* Per-run worktrees */}
+      <section className="mt-5">
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="eyebrow">
+            What each run changed · {activeWorktrees.length} active worktree
+            {activeWorktrees.length === 1 ? "" : "s"}
+          </div>
+          <span className="text-[11px] text-fog-500 mono">
+            click a worktree to open it in Codebase
+          </span>
         </div>
-        {runId ? (
-          <>
-            <StatusBlock status={runStatus} label={`run:${runId}`} />
-            <HistoryBlock history={runHistory} />
-          </>
+        {activeWorktrees.length === 0 ? (
+          <div className="glass px-6 py-10 text-center text-[12.5px] text-fog-400">
+            No active worktrees right now. Each run gets its own branch — they
+            show up here while the run is in flight.
+          </div>
         ) : (
-          <div className="rounded border border-amaco-border bg-amaco-panel-2 px-3 py-2 text-[12px] text-amaco-fg-muted">
-            Pick a run to view its worktree status and history.
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {activeWorktrees.map((r) => (
+              <WorktreeCard
+                key={r.runId}
+                run={r}
+                diff={diffsByRun[r.runId] ?? null}
+                onOpen={onSelectRun}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -146,131 +263,93 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function ProjectStateChips({ status }: { status: GitStatus }) {
   return (
-    <h2 className="text-[11.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-      {children}
-    </h2>
-  );
-}
-
-function StatusBlock({
-  status,
-  label,
-}: {
-  status: GitStatus | null;
-  label: string;
-}) {
-  if (!status) {
-    return (
-      <div className="rounded border border-amaco-border bg-amaco-panel-2 px-3 py-2 text-[12px] text-amaco-fg-muted">
-        Loading {label}…
-      </div>
-    );
-  }
-  if (!status.available) {
-    return (
-      <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-3 py-2 text-[12px] text-amaco-warn">
-        Not a git repository, or git not available.
-      </div>
-    );
-  }
-  return (
-    <div className="mb-3 rounded border border-amaco-border bg-amaco-panel-2 p-3">
-      <div className="flex flex-wrap items-center gap-2 text-[12px]">
-        <span className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
-          <GitBranch className="h-3 w-3" strokeWidth={1.5} />
-          {status.branch ?? "(detached)"}
-        </span>
-        {status.upstream ? (
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
-            ↑{status.ahead ?? 0} ↓{status.behind ?? 0} {status.upstream}
-          </span>
-        ) : null}
-        <span
-          className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${
-            status.isDirty
-              ? "border-amaco-warn/40 text-amaco-warn"
-              : "border-amaco-success/40 text-amaco-success"
-          }`}
-        >
-          {status.isDirty ? `dirty (${status.changedFiles.length})` : "clean"}
-        </span>
-        <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
-          {status.headHash} · {status.headSubject}
-        </span>
-      </div>
-      {status.changedFiles.length > 0 ? (
-        <ul className="mt-2 max-h-40 overflow-y-auto">
-          {status.changedFiles.map((f) => (
-            <li
-              key={f.path}
-              className="flex items-baseline gap-2 amaco-mono text-[11.5px]"
-            >
-              <span className="w-7 shrink-0 text-amaco-fg-muted">{f.status}</span>
-              <span className="truncate">{f.path}</span>
-            </li>
-          ))}
-        </ul>
+    <div className="flex items-center gap-2 flex-wrap text-[11.5px]">
+      {status.isDirty ? (
+        <Chip tone="amber">
+          <CircleDot className="h-2.5 w-2.5" strokeWidth={1.7} /> uncommitted
+        </Chip>
+      ) : (
+        <Chip tone="emerald">clean</Chip>
+      )}
+      {status.ahead !== null && status.ahead > 0 ? (
+        <Chip tone="violet">{status.ahead} ahead</Chip>
       ) : null}
-      <div className="mt-2 amaco-mono text-[10.5px] text-amaco-fg-muted">
-        {status.worktreePath}
-      </div>
+      {status.behind !== null && status.behind > 0 ? (
+        <Chip tone="rose">{status.behind} behind</Chip>
+      ) : null}
     </div>
   );
 }
 
-function HistoryBlock({ history }: { history: GitHistory | null }) {
-  if (!history || !history.available) {
-    return null;
-  }
-  if (history.commits.length === 0) {
-    if (!history.baseRef) return null;
-    return (
-      <div className="rounded border border-amaco-border bg-amaco-panel-2 px-3 py-2 text-[12px] text-amaco-fg-muted">
-        No task-specific commits since {history.baseRef}.
-      </div>
-    );
-  }
+function ChangeKindBadge({ status }: { status: string }) {
+  // git porcelain status codes: "A" added, "M" modified, "D" deleted,
+  // "R" renamed, "??" untracked, etc. Map first non-space char to a
+  // visual badge. Falls back to "M".
+  const code = status.trim().charAt(0).toUpperCase();
+  const map: Record<string, { label: string; cls: string }> = {
+    A: { label: "+", cls: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30" },
+    M: { label: "M", cls: "text-amber-300 bg-amber-500/10 border-amber-400/30" },
+    D: { label: "−", cls: "text-rose-300 bg-rose-500/10 border-rose-400/30" },
+    R: { label: "R", cls: "text-sky-glow bg-sky-500/10 border-sky-400/30" },
+    "?": { label: "?", cls: "text-fog-400 bg-white/[0.025] border-white/10" },
+  };
+  const m = map[code] ?? map.M!;
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel-2">
-      <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-1 text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
-        <GitCommit className="h-3 w-3" strokeWidth={1.5} />
-        {history.baseRef ? `Task commits since ${history.baseRef}` : "Recent commits"}
-        {history.truncated ? <span>· bounded</span> : null}
-      </header>
-      <ul className="divide-y divide-amaco-border">
-        {history.commits.map((c) => (
-          <li key={c.hash} className="px-3 py-1.5 text-[11.5px]">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="amaco-mono w-16 shrink-0 text-amaco-fg-muted">
-                {c.shortHash}
-              </span>
-              <span className="truncate text-amaco-fg">{c.subject}</span>
-              <span className="ml-auto amaco-mono text-[10.5px] text-amaco-fg-muted">
-                {c.author} · {formatDate(c.date)}
-              </span>
-            </div>
-            {c.refs.length > 0 ? (
-              <div className="amaco-mono mt-0.5 text-[10.5px] text-amaco-fg-muted">
-                {c.refs.join(", ")}
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <span
+      className={cn(
+        "mono text-[10px] w-5 h-5 rounded border flex items-center justify-center shrink-0",
+        m.cls,
+      )}
+      title={status}
+    >
+      {m.label}
+    </span>
   );
 }
 
-function formatDate(iso: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function WorktreeCard({
+  run,
+  diff,
+  onOpen,
+}: {
+  run: RunState;
+  diff: DiffSnapshot | null;
+  onOpen: (runId: string) => void;
+}) {
+  const branch = run.branchName ?? "(no branch)";
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(run.runId)}
+      className="text-left rounded-xl border border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] hover:border-violet-soft/30 transition p-3.5"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <GitBranch className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
+        <span className="mono text-[12px] text-fog-100 truncate flex-1">
+          {branch}
+        </span>
+        <span className="mono text-[10px] text-fog-500">{run.runId}</span>
+      </div>
+      <div className="text-[12.5px] text-fog-100 leading-snug line-clamp-2 mb-2">
+        {run.task}
+      </div>
+      <div className="flex items-center justify-between text-[10.5px] text-fog-500 mono">
+        <span className="flex items-center gap-1">
+          <History className="h-2.5 w-2.5" strokeWidth={1.7} />
+          {run.status}
+        </span>
+        {diff ? (
+          <span>
+            <span className="text-emerald-300/90">+{diff.totals.insertions}</span>{" "}
+            <span className="text-rose-300/90">−{diff.totals.deletions}</span>{" "}
+            · {diff.totals.files} file{diff.totals.files === 1 ? "" : "s"}
+          </span>
+        ) : (
+          <span>no diff yet</span>
+        )}
+      </div>
+    </button>
+  );
 }

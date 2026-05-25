@@ -35,6 +35,7 @@ export type Route =
   | { kind: "proposal"; proposalId: string }
   | { kind: "settings" }
   | { kind: "project" }
+  | { kind: "git"; runId: string | null }
   | { kind: "flow"; guideId: string | null }
   | { kind: "metrics" }
   | { kind: "agents" }
@@ -44,7 +45,7 @@ export type Route =
       line: number | null;
       runId: string | null;
     }
-  | { kind: "git"; runId: string | null };
+;
 
 const INSPECTOR_TABS = new Set<InspectorTabId>([
   "diff",
