@@ -9,10 +9,13 @@ import {
   buildClaudeProviderFromDetection,
   buildCodexProviderFromDetection,
   buildOllamaProviderFromDetection,
+  listConfiguredProviders,
   runSafeProviderTest,
   setDefaultProvider,
 } from "../../setup/provider-setup-service.js";
+import { cliProviderSchema } from "../../providers/provider-schema.js";
 import { HttpError } from "../security.js";
+import { z } from "zod";
 
 export type ProvidersRoutesDeps = { projectRoot: string };
 
@@ -91,40 +94,113 @@ export async function registerProvidersRoutes(
   });
 
   /**
-   * Setup a detected provider with its preset config. Only the known
-   * preset ids (claude / codex / ollama) can be set up via this route;
-   * for anything else the user has to hand-edit project.yml. We refuse
-   * unknown ids rather than blindly writing a config we can't reason
-   * about.
+   * Get the currently-saved YAML representation of a single provider.
+   * Returns a minimal stub (preset defaults if we have one, otherwise
+   * just `{ type: "cli", command: id }`) when the provider isn't in
+   * project.yml yet so the dashboard can show a "this is what will be
+   * written" preview.
    */
+  app.get<{ Params: { providerId: string } }>(
+    "/api/providers/:providerId/config",
+    async (req) => {
+      const id = req.params.providerId;
+      assertSafeProviderId(id);
+      const configured = await listConfiguredProviders(projectRoot);
+      const existing = configured.find((c) => c.id === id);
+      if (existing) {
+        return {
+          providerId: id,
+          configured: true,
+          config: {
+            type: "cli" as const,
+            command: existing.command,
+            args: existing.args,
+            input: existing.input,
+          },
+          agentsUsing: existing.agentsUsing,
+        };
+      }
+      // Pre-fill from preset if known.
+      const detected = await detectAllProviders();
+      const d = detected.find((row) => row.id === id);
+      let preset = null;
+      if (d) {
+        if (id === "claude") preset = buildClaudeProviderFromDetection(d);
+        else if (id === "codex") preset = buildCodexProviderFromDetection(d);
+        else if (id === "ollama") preset = buildOllamaProviderFromDetection(d);
+      }
+      return {
+        providerId: id,
+        configured: false,
+        config: preset ?? {
+          type: "cli" as const,
+          command: d?.command ?? id,
+          args: [] as string[],
+          input: "stdin" as const,
+        },
+        agentsUsing: [],
+      };
+    },
+  );
+
+  /**
+   * Setup or update a provider. Accepts either:
+   *   - empty body — uses the bundled preset (claude / codex / ollama
+   *     only)
+   *   - { config: { command, args, input } } — writes the explicit
+   *     config the user composed in the Configure overlay
+   * Either way, the optional `setAsDefault` flag assigns every agent
+   * in project.yml to this provider.
+   */
+  const setupBody = z
+    .object({
+      setAsDefault: z.boolean().optional(),
+      config: cliProviderSchema.partial({ args: true, input: true }).optional(),
+    })
+    .strict()
+    .optional();
+
   app.post<{
     Params: { providerId: string };
-    Body: { setAsDefault?: boolean } | undefined;
+    Body: unknown;
   }>("/api/providers/:providerId/setup", async (req) => {
     const id = req.params.providerId;
     assertSafeProviderId(id);
-    const detected = await detectAllProviders();
-    const d = detected.find((row) => row.id === id);
-    if (!d) {
-      throw new HttpError(
-        404,
-        `Provider "${id}" is not a known detectable CLI. Add it manually in .amaco/project.yml.`,
-      );
-    }
+    const parsed = setupBody.safeParse(req.body ?? {});
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const body = parsed.data ?? {};
+
     let cfg;
-    if (id === "claude") cfg = buildClaudeProviderFromDetection(d);
-    else if (id === "codex") cfg = buildCodexProviderFromDetection(d);
-    else if (id === "ollama") cfg = buildOllamaProviderFromDetection(d);
-    else {
-      throw new HttpError(
-        409,
-        `No preset is bundled for "${id}". Edit .amaco/project.yml to configure it.`,
-      );
+    if (body.config) {
+      cfg = {
+        type: "cli" as const,
+        command: body.config.command,
+        args: body.config.args ?? [],
+        input: body.config.input ?? "stdin",
+      };
+    } else {
+      const detected = await detectAllProviders();
+      const d = detected.find((row) => row.id === id);
+      if (!d) {
+        throw new HttpError(
+          404,
+          `Provider "${id}" is not a known detectable CLI. Pass a config in the body or hand-edit .amaco/project.yml.`,
+        );
+      }
+      if (id === "claude") cfg = buildClaudeProviderFromDetection(d);
+      else if (id === "codex") cfg = buildCodexProviderFromDetection(d);
+      else if (id === "ollama") cfg = buildOllamaProviderFromDetection(d);
+      else {
+        throw new HttpError(
+          409,
+          `No preset is bundled for "${id}". Pass a config in the body or hand-edit .amaco/project.yml.`,
+        );
+      }
     }
     await addProvider(projectRoot, {
       id,
       config: cfg,
-      alsoAssignAllAgents: req.body?.setAsDefault === true,
+      alsoAssignAllAgents: body.setAsDefault === true,
     });
     bustCache();
     return { ok: true, providerId: id, configured: true };

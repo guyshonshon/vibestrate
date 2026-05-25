@@ -304,7 +304,59 @@ export function AgentsPage() {
   );
 }
 
-// ── Configure provider modal ────────────────────────────────────────────
+// ── Configure provider modal — YAML overlay + install flow ─────────────
+
+type ProviderFormState = {
+  command: string;
+  args: string;
+  input: "stdin" | "arg";
+};
+
+const INSTALL_HINTS: Record<
+  string,
+  { title: string; commands: { label: string; cmd: string }[] }
+> = {
+  claude: {
+    title: "Claude Code CLI",
+    commands: [
+      { label: "Install (npm, recommended)", cmd: "npm install -g @anthropic-ai/claude-code" },
+      { label: "Authenticate", cmd: "claude login" },
+      { label: "Verify", cmd: "claude --version" },
+    ],
+  },
+  codex: {
+    title: "Codex CLI",
+    commands: [
+      { label: "Install (npm)", cmd: "npm install -g @openai/codex" },
+      { label: "Authenticate", cmd: "codex login" },
+      { label: "Verify", cmd: "codex --version" },
+    ],
+  },
+  ollama: {
+    title: "Ollama (local models)",
+    commands: [
+      { label: "Install on macOS / Linux", cmd: "curl -fsSL https://ollama.com/install.sh | sh" },
+      { label: "Or via Docker", cmd: "docker run -d -p 11434:11434 -v ollama:/root/.ollama --name ollama ollama/ollama" },
+      { label: "Pull a small model", cmd: "ollama pull llama3.2:3b" },
+      { label: "Verify", cmd: "ollama list" },
+    ],
+  },
+  aider: {
+    title: "Aider CLI",
+    commands: [
+      { label: "Install (pipx, recommended)", cmd: "pipx install aider-chat" },
+      { label: "Or via pip", cmd: "pip install --user aider-chat" },
+      { label: "Verify", cmd: "aider --version" },
+    ],
+  },
+  opencode: {
+    title: "OpenCode CLI",
+    commands: [
+      { label: "Install via npm", cmd: "npm install -g opencode" },
+      { label: "Verify", cmd: "opencode --version" },
+    ],
+  },
+};
 
 function ConfigureProviderModal({
   profile,
@@ -315,10 +367,18 @@ function ConfigureProviderModal({
 }: {
   profile: AgentProfile | null;
   busy: boolean;
-  onSetup: (opts: { setAsDefault?: boolean }) => void;
+  onSetup: (opts: {
+    setAsDefault?: boolean;
+    config?: { command: string; args?: string[]; input?: "stdin" | "arg" };
+  }) => void;
   onSetDefault: () => void;
   onClose: () => void;
 }) {
+  const [form, setForm] = useState<ProviderFormState | null>(null);
+  const [agentsUsing, setAgentsUsing] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -326,8 +386,65 @@ function ConfigureProviderModal({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Fetch the actual saved config (or preset stub) when the modal opens.
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    setLoading(true);
+    void api
+      .getProviderConfig(profile.providerId)
+      .then((r) => {
+        if (cancelled) return;
+        setForm({
+          command: r.config.command,
+          args: r.config.args.join(" "),
+          input: r.config.input,
+        });
+        setAgentsUsing(r.agentsUsing);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.providerId]);
+
   if (!profile) return null;
-  const hasPreset = ["claude", "codex", "ollama"].includes(profile.providerId);
+
+  const installHint = INSTALL_HINTS[profile.providerId];
+  const yamlPreview = form
+    ? renderProviderYaml(profile.providerId, {
+        command: form.command,
+        args: parseArgs(form.args),
+        input: form.input,
+      })
+    : "";
+
+  const submit = (setAsDefault: boolean) => {
+    if (!form) return;
+    onSetup({
+      setAsDefault,
+      config: {
+        command: form.command.trim(),
+        args: parseArgs(form.args),
+        input: form.input,
+      },
+    });
+  };
+
+  const copyCmd = async (cmd: string) => {
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopied(cmd);
+      window.setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* user can copy manually */
+    }
+  };
+
   return (
     <div
       role="dialog"
@@ -341,50 +458,158 @@ function ConfigureProviderModal({
         onClick={onClose}
         className="absolute inset-0 bg-black/45 backdrop-blur-[3px]"
       />
-      <div className="relative bevel-violet top-rim p-[1px] w-full max-w-[460px]">
-        <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl p-5">
-          <div className="flex items-start justify-between gap-3 mb-3">
+      <div className="relative bevel-violet top-rim p-[1px] w-full max-w-[720px] max-h-[88vh] overflow-hidden">
+        <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl flex flex-col max-h-[88vh]">
+          {/* Header */}
+          <div className="px-5 py-4 border-b border-white/[0.06] flex items-start justify-between gap-3 shrink-0">
             <div>
-              <div className="eyebrow">Configure provider</div>
+              <div className="eyebrow">
+                {profile.configured ? "Configure provider" : "Set up provider"}
+              </div>
               <h3 className="text-display text-[22px] leading-tight mt-1">
                 {profile.label}
               </h3>
-              <div className="text-[11.5px] text-fog-400 mono mt-1">
-                {profile.vendor ?? "—"} · {profile.providerId}
+              <div className="text-[11.5px] text-fog-400 mono mt-1 flex items-center gap-2 flex-wrap">
+                <span>{profile.vendor ?? "—"}</span>
+                <span className="text-fog-500">·</span>
+                <span>{profile.providerId}</span>
+                <span className="text-fog-500">·</span>
+                <span
+                  className={
+                    profile.available ? "text-emerald-300/90" : "text-amber-300"
+                  }
+                >
+                  {profile.available ? "CLI detected" : "CLI not detected"}
+                </span>
+                {profile.configured ? (
+                  <>
+                    <span className="text-fog-500">·</span>
+                    <span className="text-violet-soft">already configured</span>
+                  </>
+                ) : null}
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="w-8 h-8 rounded-lg hover:bg-white/[0.06] text-fog-300 hover:text-fog-100 flex items-center justify-center"
+              className="w-8 h-8 rounded-lg hover:bg-white/[0.06] text-fog-300 hover:text-fog-100 flex items-center justify-center shrink-0"
             >
               <X className="h-3.5 w-3.5" strokeWidth={1.7} />
             </button>
           </div>
 
-          <div className="space-y-3 text-[12.5px] text-fog-300">
-            <KvRow label="Detected" value={profile.available ? "yes" : "no"} />
-            <KvRow
-              label="Configured in project.yml"
-              value={profile.configured ? "yes" : "no"}
-            />
-            <KvRow
-              label="Last seen"
-              value={profile.lastSeenAt ? relTime(profile.lastSeenAt) : "never"}
-            />
+          {/* Body — scrollable */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+            {/* Quick install (only when not detected) */}
+            {!profile.available && installHint ? (
+              <section>
+                <div className="eyebrow mb-2">Quick install · {installHint.title}</div>
+                <p className="text-[11.5px] text-fog-400 mb-2.5">
+                  Copy each line and run it in your terminal — Amaco will detect
+                  the CLI within a few seconds of refresh.
+                </p>
+                <ul className="space-y-1.5">
+                  {installHint.commands.map((c) => (
+                    <li
+                      key={c.cmd}
+                      className="rounded-md border border-white/[0.06] bg-black/30 px-2.5 py-2 flex items-center gap-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10.5px] text-fog-500 uppercase tracking-[0.12em] mono">
+                          {c.label}
+                        </div>
+                        <code className="mono text-[12px] text-fog-100 block truncate">
+                          {c.cmd}
+                        </code>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void copyCmd(c.cmd)}
+                        className="h-7 px-2 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-[11px] text-fog-300 hover:text-fog-100 shrink-0"
+                      >
+                        {copied === c.cmd ? "Copied" : "Copy"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {/* Form */}
+            {loading || !form ? (
+              <div className="text-[12.5px] text-fog-400">Loading config…</div>
+            ) : (
+              <section>
+                <div className="eyebrow mb-2">Provider config</div>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <FormField label="command">
+                    <input
+                      value={form.command}
+                      onChange={(e) =>
+                        setForm({ ...form, command: e.target.value })
+                      }
+                      placeholder={profile.providerId}
+                      className="mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40"
+                    />
+                  </FormField>
+                  <FormField label="args">
+                    <input
+                      value={form.args}
+                      onChange={(e) =>
+                        setForm({ ...form, args: e.target.value })
+                      }
+                      placeholder='space-separated · e.g. "-p"'
+                      className="mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40"
+                    />
+                  </FormField>
+                  <FormField label="input">
+                    <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
+                      {(["stdin", "arg"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setForm({ ...form, input: mode })}
+                          className={cn(
+                            "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
+                            form.input === mode
+                              ? "bg-white/[0.08] text-fog-100"
+                              : "text-fog-400 hover:text-fog-100",
+                          )}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </FormField>
+                </div>
+              </section>
+            )}
+
+            {/* YAML preview */}
+            {form ? (
+              <section>
+                <div className="eyebrow mb-2">
+                  YAML that will be written to .amaco/project.yml
+                </div>
+                <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
+                  {yamlPreview}
+                </pre>
+                {agentsUsing.length > 0 ? (
+                  <div className="text-[11px] text-fog-500 mt-2">
+                    Currently used by agent
+                    {agentsUsing.length === 1 ? "" : "s"}:{" "}
+                    <span className="mono text-fog-300">
+                      {agentsUsing.join(", ")}
+                    </span>
+                  </div>
+                ) : null}
+              </section>
+            ) : null}
           </div>
 
-          {!hasPreset ? (
-            <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2 text-[11.5px] text-amber-200">
-              No bundled preset for this provider. Edit{" "}
-              <span className="mono">.amaco/project.yml</span> directly to
-              configure it, then run{" "}
-              <span className="mono">amaco provider test</span>.
-            </div>
-          ) : null}
-
-          <div className="mt-5 flex items-center justify-end gap-2 flex-wrap">
+          {/* Footer actions */}
+          <div className="px-5 py-3 border-t border-white/[0.06] flex items-center justify-end gap-2 flex-wrap shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -405,24 +630,27 @@ function ConfigureProviderModal({
             ) : null}
             <button
               type="button"
-              onClick={() => onSetup({ setAsDefault: false })}
-              disabled={busy || !hasPreset || !profile.available}
-              title={
-                !profile.available
-                  ? "Install the CLI before configuring."
-                  : undefined
-              }
+              onClick={() => submit(false)}
+              disabled={busy || !form || !form.command.trim()}
               className="h-8 px-3 rounded-lg border border-white/10 bg-white/[0.06] hover:bg-white/[0.1] text-[12px] text-fog-100 disabled:opacity-50"
             >
-              {busy ? "Working…" : "Add to project"}
+              {busy
+                ? "Working…"
+                : profile.configured
+                  ? "Save changes"
+                  : "Add to project"}
             </button>
             <button
               type="button"
-              onClick={() => onSetup({ setAsDefault: true })}
-              disabled={busy || !hasPreset || !profile.available}
+              onClick={() => submit(true)}
+              disabled={busy || !form || !form.command.trim()}
               className="h-8 px-3 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep ring-1 ring-violet-soft/40 text-white text-[12px] font-medium disabled:opacity-50"
             >
-              {busy ? "Working…" : "Add + set default"}
+              {busy
+                ? "Working…"
+                : profile.configured
+                  ? "Save + set default"
+                  : "Add + set default"}
             </button>
           </div>
         </div>
@@ -431,13 +659,69 @@ function ConfigureProviderModal({
   );
 }
 
-function KvRow({ label, value }: { label: string; value: string }) {
+function FormField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.04] pb-2 last:border-0">
-      <span className="text-fog-400">{label}</span>
-      <span className="mono text-fog-100 num-tabular">{value}</span>
-    </div>
+    <label className="block">
+      <div className="mono text-[10px] uppercase tracking-[0.14em] text-fog-500 mb-1">
+        {label}
+      </div>
+      {children}
+    </label>
   );
+}
+
+function parseArgs(raw: string): string[] {
+  // Simple whitespace split that respects double-quoted segments so
+  // users can pass args like `"--system" "be brief"`. Good enough for
+  // CLI provider arg lists; full POSIX parsing would be overkill.
+  const out: string[] = [];
+  let cur = "";
+  let inQuote = false;
+  for (const ch of raw.trim()) {
+    if (ch === '"') {
+      inQuote = !inQuote;
+      continue;
+    }
+    if (!inQuote && /\s/.test(ch)) {
+      if (cur) {
+        out.push(cur);
+        cur = "";
+      }
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+function renderProviderYaml(
+  id: string,
+  config: { command: string; args: string[]; input: "stdin" | "arg" },
+): string {
+  const argsLine =
+    config.args.length === 0
+      ? "    args: []"
+      : `    args: [${config.args.map((a) => yamlQuote(a)).join(", ")}]`;
+  return [
+    "providers:",
+    `  ${id}:`,
+    "    type: cli",
+    `    command: ${yamlQuote(config.command)}`,
+    argsLine,
+    `    input: ${config.input}`,
+  ].join("\n");
+}
+
+function yamlQuote(s: string): string {
+  if (/^[a-zA-Z0-9_./-]+$/.test(s)) return s;
+  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 // ── KPI strip ─────────────────────────────────────────────────────────────
