@@ -112,43 +112,41 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
   ];
 
   return (
-    <div className="h-full overflow-y-auto">
-      <header className="border-b border-amaco-border bg-amaco-panel/40 px-4 py-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-[11px] uppercase tracking-[0.14em] text-amaco-fg-muted">
-            This dashboard is supervising
-          </span>
-          <FreshnessIndicator freshness={freshness} onRefresh={load} />
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <h1 className="text-[18px] font-medium text-amaco-fg">
+    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      <section className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="eyebrow">Project</span>
+          <span className="text-fog-500">·</span>
+          <h1 className="text-[15px] font-semibold tracking-tight text-fog-100 truncate">
             {meta.projectName}
           </h1>
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
+          <span className="mono text-[11px] text-fog-500">
             {meta.projectTypeLabel}
           </span>
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
+          <span className="text-fog-500">·</span>
+          <span className="mono text-[11px] text-fog-500">
             {meta.packageManager}
           </span>
           {!meta.status.initialised ? (
-            <span className="amaco-mono rounded border border-amaco-warn/40 px-1.5 py-0.5 text-[10.5px] text-amaco-warn">
+            <span className="mono text-[10.5px] text-amber-300">
               .amaco not initialised
             </span>
           ) : null}
         </div>
-        <div className="mt-1 flex items-center gap-1.5 text-[12px] text-amaco-fg-dim">
-          <span className="amaco-mono truncate">{meta.projectRoot}</span>
-          <CopyButton text={meta.projectRoot} title="Copy project root" />
-        </div>
-      </header>
+        <FreshnessIndicator freshness={freshness} onRefresh={load} />
+      </section>
+      <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fog-400">
+        <span className="mono truncate">{meta.projectRoot}</span>
+        <CopyButton text={meta.projectRoot} title="Copy project root" />
+      </div>
 
-      <div className="grid gap-3 p-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 mt-5 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <StatusCardView key={c.label} card={c} />
         ))}
       </div>
 
-      <div className="grid gap-4 px-4 pb-6 lg:grid-cols-2">
+      <div className="grid gap-4 mt-5 lg:grid-cols-2">
         <Section title="Git">
           <KV label="Repo">
             <span

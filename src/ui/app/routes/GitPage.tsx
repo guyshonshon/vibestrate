@@ -74,26 +74,28 @@ export function GitPage({ initialRunId, onSelectRun }: Props) {
   }, [runFresh.lastEvent]);
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-4">
-      <header className="mb-4 flex items-baseline gap-2">
-        <h1 className="text-[16px] font-medium text-amaco-fg">Git</h1>
-        <span className="text-[11.5px] text-amaco-fg-muted">
-          local-only · no fetch / push / merge
-        </span>
-        <FreshnessIndicator
-          freshness={projectFresh}
-          onRefresh={loadProject}
-        />
-        {runId ? (
-          <FreshnessIndicator
-            freshness={runFresh}
-            onRefresh={loadRun}
-          />
-        ) : null}
-      </header>
+    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+      <section className="flex items-center justify-between gap-4 flex-wrap mb-4">
+        <div className="flex items-baseline gap-3 min-w-0">
+          <span className="eyebrow">Git</span>
+          <span className="text-fog-500">·</span>
+          <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
+            Project + per-run worktrees
+          </h1>
+          <span className="text-[11.5px] text-fog-500">
+            local-only · no fetch / push / merge
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FreshnessIndicator freshness={projectFresh} onRefresh={loadProject} />
+          {runId ? (
+            <FreshnessIndicator freshness={runFresh} onRefresh={loadRun} />
+          ) : null}
+        </div>
+      </section>
 
       {error ? (
-        <div className="mb-3 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-3 py-2 text-[12px] text-amaco-fail">
+        <div className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
