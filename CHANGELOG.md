@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: README hero — centered Amaco logo + ASCII wordmark as a transparent
+  image (no code-block background); dropped the redundant plain-text title and
+  the footer "made for the love of building" line. Logo added to
+  `.github/assets/` for use as the GitHub social preview.
 - Add: codebase annotations — pin notes to a file / line / range from the
   Codebase page; "visible to agents" (default on, optional) injects open notes
   into every agent prompt as a `# Human Annotations` section so the crew
