@@ -24,6 +24,8 @@ export type DetectedProvider = {
   recommended: boolean;
   /** One of the popular, out-of-the-box providers (vs an optional opt-in one). */
   popular: boolean;
+  /** One-line install command/hint for the CLI, or null if none is known. */
+  installHint: string | null;
   notes: string[];
 };
 
@@ -56,6 +58,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
       "Default args: -p with prompt on stdin.",
       "Amaco will configure Claude Code automatically.",
     ],
+    installHint: "Install Claude Code: `npm install -g @anthropic-ai/claude-code`, then run `claude` once to sign in.",
   },
   {
     id: "codex",
@@ -68,6 +71,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
       "Preset: `codex exec -q` with the prompt on stdin.",
       "Verify with `amaco provider test codex`; log in with `codex login` if prompted.",
     ],
+    installHint: "Install the Codex CLI: `npm install -g @openai/codex`, then run `codex login`.",
   },
   {
     id: "gemini",
@@ -106,6 +110,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
       "Preset: `aider --message` (one-shot, no auto-commits).",
       "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `amaco provider test aider`.",
     ],
+    installHint: "Install Aider: `python -m pip install aider-install && aider-install`, then set OPENAI_API_KEY or ANTHROPIC_API_KEY.",
   },
   {
     id: "ollama",
@@ -233,6 +238,7 @@ export async function detectProvider(
       confidence: "missing",
       recommended: false,
       popular: def.popular,
+      installHint: def.installHint ?? null,
       notes: [
         `${def.command} is not on PATH.`,
         ...(def.installHint ? [def.installHint] : []),
@@ -257,6 +263,7 @@ export async function detectProvider(
       confidence: "missing",
       recommended: false,
       popular: def.popular,
+      installHint: def.installHint ?? null,
       notes: [
         reason,
         stderrNote,
@@ -276,6 +283,7 @@ export async function detectProvider(
     confidence: def.presetReady ? "ready" : "detected-needs-setup",
     recommended: def.presetReady,
     popular: def.popular,
+    installHint: def.installHint ?? null,
     notes: def.notes.slice(),
   };
 }

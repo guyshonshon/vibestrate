@@ -30,6 +30,8 @@ export type ProviderRow = {
   recommended: boolean;
   /** A popular, out-of-the-box provider (vs an optional opt-in one). */
   popular: boolean;
+  /** One-line install command/hint for the CLI, or null if none is known. */
+  installHint: string | null;
   notes: string[];
   /** True when the project's loaded config has a matching `providers.<id>`. */
   configured: boolean;
@@ -94,6 +96,7 @@ export async function registerProvidersRoutes(
       confidence: d.confidence,
       recommended: d.recommended,
       popular: d.popular,
+      installHint: d.installHint,
       notes: d.notes,
       configured: configuredIds.has(d.id),
       loginCommand: PROVIDER_PRESETS[d.id].loginCommand,

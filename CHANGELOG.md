@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Install** flow on the Providers page for the 5 popular providers —
+  a guided wizard with the exact install + login commands (copy-able) and a
+  re-check. Nothing is spawned by the browser; install/login happen locally in
+  the user's terminal. Added install hints for Claude Code / Codex / Aider and
+  exposed `installHint` through the providers API.
 - Fix: flow editor's **Dry-run preview** was a dead button — now resolves the
   guide into the snapshot a run would create (provider per slot, enabled
   steps, approval gates) in a modal; no run starts.
