@@ -88,8 +88,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "OpenCode",
     command: "opencode",
     versionArgs: ["--version"],
-    popular: true,
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: `opencode run` with the prompt as an argument.",
       "Verify with `amaco provider test opencode`; log in with `opencode auth login`.",
