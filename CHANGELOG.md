@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: run detail **Steps** inspector (now the default Inspect tab) — one card
+  per agent step from runtime metrics: stage/agent, provider+model, pass/fail
+  (exit code), duration, tokens (in→out), cost, tool calls, files touched
+  (+/−), and review/verification + validation outcomes.
+- Change: run detail surfaces the **changed-files list beside live execution**
+  (was buried under Inspect → Artifacts and showed only totals); click a file
+  to open it in the worktree view. Section labels normalized (dropped the
+  inconsistent "3 ·"/"5 ·" numbering; live panel labelled "raw provider CLI
+  output").
 - Fix: changed-files diff showed **+0** for brand-new files — `git diff
   --numstat HEAD` omits untracked files. `getDiffSnapshot` now counts an
   untracked file's added lines (via `--no-index`), so a newly-created file
