@@ -13,6 +13,7 @@ import { GitPage } from "./routes/GitPage.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { AgentsPage } from "./routes/AgentsPage.js";
+import { ProvidersPage } from "./routes/ProvidersPage.js";
 import {
   ProposalsPage,
   ProposalDetailPage,
@@ -237,15 +238,18 @@ export function App() {
                           ? "metrics"
                           : route.kind === "agents"
                             ? "agents"
-                            : route.kind === "runs"
-                              ? "runs"
-                              : "home"
+                            : route.kind === "providers"
+                              ? "providers"
+                              : route.kind === "runs"
+                                ? "runs"
+                                : "home"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
       onShowFlows={() => navigate({ kind: "flow", guideId: null })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowAgents={() => navigate({ kind: "agents" })}
+      onShowProviders={() => navigate({ kind: "providers" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
@@ -331,6 +335,8 @@ export function App() {
         <MetricsPage />
       ) : route.kind === "agents" ? (
         <AgentsPage />
+      ) : route.kind === "providers" ? (
+        <ProvidersPage />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}

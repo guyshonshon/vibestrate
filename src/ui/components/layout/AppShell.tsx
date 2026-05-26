@@ -15,6 +15,7 @@ type AppShellProps = {
   onShowFlows: () => void;
   onShowMetrics: () => void;
   onShowAgents: () => void;
+  onShowProviders: () => void;
   onShowRunsList: () => void;
   onShowBoard: () => void;
   onShowQueue: () => void;
@@ -40,6 +41,7 @@ export function AppShell({
   onShowFlows,
   onShowMetrics,
   onShowAgents,
+  onShowProviders,
   onShowRunsList,
   onShowBoard,
   onShowQueue,
@@ -59,6 +61,7 @@ export function AppShell({
         onShowFlows={onShowFlows}
         onShowMetrics={onShowMetrics}
         onShowAgents={onShowAgents}
+        onShowProviders={onShowProviders}
         onShowRunsList={onShowRunsList}
         onShowBoard={onShowBoard}
         onShowQueue={onShowQueue}

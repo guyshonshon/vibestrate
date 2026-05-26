@@ -241,5 +241,20 @@ export function hintForRoute(route: Route): CliHint {
           },
         ],
       };
+    case "providers":
+      return {
+        title: "Providers",
+        blurb:
+          "Detect, configure, set, and test the local CLIs Amaco drives — the same actions as the `amaco provider` commands.",
+        commands: [
+          { cmd: "amaco provider detect", note: "what's installed + confidence" },
+          { cmd: "amaco provider setup", note: "apply a preset / wire flags" },
+          { cmd: "amaco provider set <id>", note: "make it the default for every agent" },
+          { cmd: "amaco provider test <id>", note: "safe smoke test; tells you to log in if needed" },
+        ],
+        tips: [
+          "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",
+        ],
+      };
   }
 }

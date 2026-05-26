@@ -6,6 +6,12 @@ version. See `CLAUDE.md` § 10.
 
 ## Unreleased
 
+- Add: Providers page in Mission Control (#4) — detect / apply-preset /
+  set-default / safe-test + "log in outside Amaco" prompts; TopBar nav entry
+  and CLI-hints. Browser never spawns commands.
+- Change: providers server route uses the generic preset registry (all 11
+  providers) and exposes each provider's `loginCommand`; the test endpoint
+  forwards `needsLogin`.
 - Add: roadmap issues — Docker backend (#1), multi-container fan-out (#2),
   Guides Hub (#3), Providers UI in Mission Control (#4).
 - Add: `CHANGELOG.md` + CLAUDE.md § 10 rule to maintain it every change.

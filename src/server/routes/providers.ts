@@ -6,13 +6,14 @@ import {
 import { loadConfig } from "../../project/config-loader.js";
 import {
   addProvider,
-  buildClaudeProviderFromDetection,
-  buildCodexProviderFromDetection,
-  buildOllamaProviderFromDetection,
   listConfiguredProviders,
   runSafeProviderTest,
   setDefaultProvider,
 } from "../../setup/provider-setup-service.js";
+import {
+  buildProviderFromDetection,
+  PROVIDER_PRESETS,
+} from "../../providers/provider-presets.js";
 import { cliProviderSchema } from "../../providers/provider-schema.js";
 import { HttpError } from "../security.js";
 import { z } from "zod";
@@ -30,6 +31,10 @@ export type ProviderRow = {
   notes: string[];
   /** True when the project's loaded config has a matching `providers.<id>`. */
   configured: boolean;
+  /** Command to run OUTSIDE Amaco to authenticate (null = API-key/local). */
+  loginCommand: string | null;
+  /** One-line human note about auth, shown when login is needed. */
+  loginNote: string;
 };
 
 /**
@@ -88,6 +93,8 @@ export async function registerProvidersRoutes(
       recommended: d.recommended,
       notes: d.notes,
       configured: configuredIds.has(d.id),
+      loginCommand: PROVIDER_PRESETS[d.id].loginCommand,
+      loginNote: PROVIDER_PRESETS[d.id].loginNote,
     }));
     cached = { at: now, rows };
     return { providers: rows, cachedFor: CACHE_TTL_MS };
@@ -120,15 +127,10 @@ export async function registerProvidersRoutes(
           agentsUsing: existing.agentsUsing,
         };
       }
-      // Pre-fill from preset if known.
+      // Pre-fill from the provider's preset (every known provider ships one).
       const detected = await detectAllProviders();
       const d = detected.find((row) => row.id === id);
-      let preset = null;
-      if (d) {
-        if (id === "claude") preset = buildClaudeProviderFromDetection(d);
-        else if (id === "codex") preset = buildCodexProviderFromDetection(d);
-        else if (id === "ollama") preset = buildOllamaProviderFromDetection(d);
-      }
+      const preset = d ? buildProviderFromDetection(d.id, d.command) : null;
       return {
         providerId: id,
         configured: false,
@@ -187,15 +189,8 @@ export async function registerProvidersRoutes(
           `Provider "${id}" is not a known detectable CLI. Pass a config in the body or hand-edit .amaco/project.yml.`,
         );
       }
-      if (id === "claude") cfg = buildClaudeProviderFromDetection(d);
-      else if (id === "codex") cfg = buildCodexProviderFromDetection(d);
-      else if (id === "ollama") cfg = buildOllamaProviderFromDetection(d);
-      else {
-        throw new HttpError(
-          409,
-          `No preset is bundled for "${id}". Pass a config in the body or hand-edit .amaco/project.yml.`,
-        );
-      }
+      // Every known provider ships a preset now.
+      cfg = buildProviderFromDetection(d.id, d.command);
     }
     await addProvider(projectRoot, {
       id,

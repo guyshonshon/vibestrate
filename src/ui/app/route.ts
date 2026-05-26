@@ -39,6 +39,7 @@ export type Route =
   | { kind: "flow"; guideId: string | null }
   | { kind: "metrics" }
   | { kind: "agents" }
+  | { kind: "providers" }
   | {
       kind: "codebase";
       filePath: string | null;
@@ -173,6 +174,7 @@ export function parseHashRoute(hash: string): Route {
   }
   if (parts[0] === "metrics") return { kind: "metrics" };
   if (parts[0] === "agents") return { kind: "agents" };
+  if (parts[0] === "providers") return { kind: "providers" };
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -231,5 +233,7 @@ export function serializeRoute(route: Route): string {
       return "#/metrics";
     case "agents":
       return "#/agents";
+    case "providers":
+      return "#/providers";
   }
 }
