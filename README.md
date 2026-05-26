@@ -169,7 +169,6 @@ Distributed under the [MIT License](./LICENSE). Use it, fork it, ship it.
 Built with care by **[Guy Shonshon](https://shonshon.com)**
 
 <a href="https://shonshon.com">
-  <img src="./.github/assets/shonshon-on-light.png#gh-light-mode-only" alt="Shonshon — Evolving Technologies" height="22" />
   <img src="./.github/assets/shonshon-on-dark.png#gh-dark-mode-only" alt="Shonshon — Evolving Technologies" height="22" />
 </a>
 
