@@ -28,7 +28,8 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit"
+    "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
+    "docs:generate": "tsx scripts/generate-docs-metadata.ts"
   },
   "dependencies": {
     "@fastify/static": "^9.1.3",

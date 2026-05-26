@@ -1,0 +1,3416 @@
+{
+  "schemaVersion": 1,
+  "binary": "amaco",
+  "description": "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
+  "version": "0.0.1",
+  "commands": [
+    {
+      "name": "init",
+      "path": [
+        "amaco",
+        "init"
+      ],
+      "description": "Initialize Amaco in the current project (.amaco/ scaffold).",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--force",
+          "description": "overwrite existing config files (runs are preserved)",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--yes",
+          "description": "non-interactive: use safe detected defaults, never wait for input",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--interactive",
+          "description": "force the guided wizard even when --yes would default to non-interactive",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "setup",
+      "path": [
+        "amaco",
+        "setup"
+      ],
+      "description": "Guided wizard for provider, validation commands, and run defaults.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "provider",
+      "path": [
+        "amaco",
+        "provider"
+      ],
+      "description": "Inspect, configure, and test local coding-CLI providers.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "detect",
+          "path": [
+            "amaco",
+            "provider",
+            "detect"
+          ],
+          "description": "Scan PATH for known local coding CLIs (claude/codex/opencode/aider/ollama).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "provider",
+            "list"
+          ],
+          "description": "Show providers configured in this project.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "test",
+          "path": [
+            "amaco",
+            "provider",
+            "test"
+          ],
+          "description": "Send a tiny no-op prompt to a configured provider and look for the magic token.",
+          "usage": "[options] [providerId]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--yes",
+              "description": "skip confirmation prompt (non-interactive)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "set",
+          "path": [
+            "amaco",
+            "provider",
+            "set"
+          ],
+          "description": "Assign every default agent to use the given provider.",
+          "usage": "[options] <providerId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--yes",
+              "description": "skip confirmation prompts when adding a detected provider",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "setup",
+          "path": [
+            "amaco",
+            "provider",
+            "setup"
+          ],
+          "description": "Guided provider setup wizard.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "config",
+      "path": [
+        "amaco",
+        "config"
+      ],
+      "description": "Show and edit .amaco/project.yml without hand-editing YAML.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "config",
+            "show"
+          ],
+          "description": "Print the current config and validate it.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit parsed JSON instead of YAML",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "get",
+          "path": [
+            "amaco",
+            "config",
+            "get"
+          ],
+          "description": "Print a single config value (dot-path, e.g. commands.validate).",
+          "usage": "[options] <path>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "set",
+          "path": [
+            "amaco",
+            "config",
+            "set"
+          ],
+          "description": "Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'amaco config set commands.validate \"[\\\"pnpm test\\\"]\"').",
+          "usage": "[options] <path> <value>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "validate",
+          "path": [
+            "amaco",
+            "config",
+            "validate"
+          ],
+          "description": "Validate the project.yml file against the Amaco schema.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "skills",
+      "path": [
+        "amaco",
+        "skills"
+      ],
+      "description": "List, inspect, and assign skills (.amaco/skills and .claude/skills).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "skills",
+            "list"
+          ],
+          "description": "Show every discovered skill and which agents use it.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "skills",
+            "show"
+          ],
+          "description": "Print a skill's full SKILL.md body.",
+          "usage": "[options] <name>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "assign",
+          "path": [
+            "amaco",
+            "skills",
+            "assign"
+          ],
+          "description": "Attach a skill to an agent (writes to .amaco/project.yml).",
+          "usage": "[options] <agent> <skill>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "unassign",
+          "path": [
+            "amaco",
+            "skills",
+            "unassign"
+          ],
+          "description": "Remove a skill from an agent.",
+          "usage": "[options] <agent> <skill>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "guides",
+      "path": [
+        "amaco",
+        "guides"
+      ],
+      "description": "List and inspect Guide run recipes from built-ins and .amaco/guides.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "guides",
+            "list"
+          ],
+          "description": "Show every discovered Guide.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "guides",
+            "show"
+          ],
+          "description": "Print a Guide's participant slots and ordered steps.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "suggest",
+          "path": [
+            "amaco",
+            "guides",
+            "suggest"
+          ],
+          "description": "Suggest a Guide from task risk signals and local Guide outcomes.",
+          "usage": "[options] <task...>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": true
+            }
+          ],
+          "options": [
+            {
+              "flags": "--file <path>",
+              "description": "known touched file path; repeat for more",
+              "defaultValue": "[]",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--risk <level>",
+              "description": "task risk level: low, medium, or high",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "export-arbitration",
+          "path": [
+            "amaco",
+            "guides",
+            "export-arbitration"
+          ],
+          "description": "Export a Quality Arbitration run as local JSON evidence for later evaluation.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--out <file>",
+              "description": "write the JSON export to a local file",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "approvals",
+      "path": [
+        "amaco",
+        "approvals"
+      ],
+      "description": "Inspect and resolve human-approval requests for a paused run.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "approvals",
+            "list"
+          ],
+          "description": "Show all approval requests for a run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "approvals",
+            "show"
+          ],
+          "description": "Show a single approval request in detail.",
+          "usage": "[options] <runId> <approvalId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "approve",
+          "path": [
+            "amaco",
+            "approvals",
+            "approve"
+          ],
+          "description": "Approve a pending approval. Resumes the run if it is waiting.",
+          "usage": "[options] <runId> <approvalId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note recorded in approvals.json",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "amaco",
+            "approvals",
+            "reject"
+          ],
+          "description": "Reject a pending approval. The run will be marked `blocked`.",
+          "usage": "[options] <runId> <approvalId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note recorded in approvals.json",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "roadmap",
+      "path": [
+        "amaco",
+        "roadmap"
+      ],
+      "description": "Manage local roadmap items (.amaco/roadmap/roadmap.json).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "init",
+          "path": [
+            "amaco",
+            "roadmap",
+            "init"
+          ],
+          "description": "Create the .amaco/roadmap/ scaffold if missing.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "add",
+          "path": [
+            "amaco",
+            "roadmap",
+            "add"
+          ],
+          "description": "Add a roadmap item.",
+          "usage": "[options] <title>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "-d, --description <text>",
+              "description": "longer description",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "-p, --priority <level>",
+              "description": "low | medium | high",
+              "defaultValue": "medium",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "roadmap",
+            "list"
+          ],
+          "description": "List roadmap items.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "roadmap",
+            "show"
+          ],
+          "description": "Show a single roadmap item.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "update",
+          "path": [
+            "amaco",
+            "roadmap",
+            "update"
+          ],
+          "description": "Update a roadmap item.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--title <text>",
+              "description": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--description <text>",
+              "description": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--status <s>",
+              "description": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--priority <p>",
+              "description": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "archive",
+          "path": [
+            "amaco",
+            "roadmap",
+            "archive"
+          ],
+          "description": "Archive a roadmap item (keeps history).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "proposals",
+          "path": [
+            "amaco",
+            "roadmap",
+            "proposals"
+          ],
+          "description": "List roadmap proposals stored in .amaco/roadmap/proposals/.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "proposal",
+          "path": [
+            "amaco",
+            "roadmap",
+            "proposal"
+          ],
+          "description": "Inspect, parse, and accept individual proposals.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "amaco",
+                "roadmap",
+                "proposal",
+                "show"
+              ],
+              "description": "Print a proposal's raw Markdown body.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "parse",
+              "path": [
+                "amaco",
+                "roadmap",
+                "proposal",
+                "parse"
+              ],
+              "description": "Parse a proposal and print the typed preview.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            }
+          ]
+        },
+        {
+          "name": "accept",
+          "path": [
+            "amaco",
+            "roadmap",
+            "accept"
+          ],
+          "description": "Accept a parsed proposal (creates roadmap items + tasks atomically).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--dry-run",
+              "description": "preview without writing",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--allow-unresolved-dependencies",
+              "description": "skip DEPENDS_ON entries that point at unknown task titles instead of failing",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "plan",
+          "path": [
+            "amaco",
+            "roadmap",
+            "plan"
+          ],
+          "description": "Run the configured local planner provider on a broad goal and save the output as a proposal draft.",
+          "usage": "[options] <goal...>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": true
+            }
+          ],
+          "options": [
+            {
+              "flags": "--id <proposalId>",
+              "description": "explicit proposal id; default is timestamp + slug",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--provider <providerId>",
+              "description": "override the provider id (default: planner agent's provider)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "tasks",
+      "path": [
+        "amaco",
+        "tasks"
+      ],
+      "description": "Manage local tasks: backlog → queued → running → done.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "add",
+          "path": [
+            "amaco",
+            "tasks",
+            "add"
+          ],
+          "description": "Create a task.",
+          "usage": "[options] <title>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "-d, --description <text>",
+              "description": "",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "-p, --priority <p>",
+              "description": "low | medium | high",
+              "defaultValue": "medium",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--roadmap <id>",
+              "description": "link to a roadmap item id",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--skills <list>",
+              "description": "comma-separated skill names",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--files <list>",
+              "description": "comma-separated likely-touched files",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--effort <level>",
+              "description": "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--provider <id>",
+              "description": "override the provider for runs spawned from this task (wins over --effort).",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--read-only",
+              "description": "investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert.",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--auto-effort",
+              "description": "apply the heuristic effort suggestion when --effort isn't passed.",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "tasks",
+            "list"
+          ],
+          "description": "List tasks.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--status <s>",
+              "description": "filter by status",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "tasks",
+            "show"
+          ],
+          "description": "Show a task with comments and run history.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "comment",
+          "path": [
+            "amaco",
+            "tasks",
+            "comment"
+          ],
+          "description": "Add a comment to a task.",
+          "usage": "[options] <id> <body>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "ready",
+          "path": [
+            "amaco",
+            "tasks",
+            "ready"
+          ],
+          "description": "Mark a task ready to run.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "cancel",
+          "path": [
+            "amaco",
+            "tasks",
+            "cancel"
+          ],
+          "description": "Cancel a task.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "queue",
+          "path": [
+            "amaco",
+            "tasks",
+            "queue"
+          ],
+          "description": "Add a task to the scheduler queue.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "run",
+          "path": [
+            "amaco",
+            "tasks",
+            "run"
+          ],
+          "description": "Run this task now (foreground; same as amaco run --task <id>).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "report",
+          "path": [
+            "amaco",
+            "tasks",
+            "report"
+          ],
+          "description": "Generate a Markdown task report at .amaco/roadmap/tasks/<id>-report.md.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "queue",
+      "path": [
+        "amaco",
+        "queue"
+      ],
+      "description": "Manage the local task scheduler queue.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "queue",
+            "list"
+          ],
+          "description": "Show the queue and running tasks.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "add",
+          "path": [
+            "amaco",
+            "queue",
+            "add"
+          ],
+          "description": "Add a task to the queue.",
+          "usage": "[options] <taskId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--source <name>",
+              "description": "origin label for fairness / per-source quotas (default: user)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "amaco",
+            "queue",
+            "remove"
+          ],
+          "description": "Remove a task from the queue.",
+          "usage": "[options] <taskId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "run",
+          "path": [
+            "amaco",
+            "queue",
+            "run"
+          ],
+          "description": "Start the local scheduler loop and process queued tasks.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--exit-when-drained",
+              "description": "exit once the queue is empty (useful in scripts)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "pause",
+          "path": [
+            "amaco",
+            "queue",
+            "pause"
+          ],
+          "description": "Pause the scheduler (new tasks will not start).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "resume",
+          "path": [
+            "amaco",
+            "queue",
+            "resume"
+          ],
+          "description": "Resume the scheduler.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "status",
+          "path": [
+            "amaco",
+            "queue",
+            "status"
+          ],
+          "description": "Print scheduler state and recent conflict warnings.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "logs",
+      "path": [
+        "amaco",
+        "logs"
+      ],
+      "description": "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "Run id (see `amaco status`)",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--follow",
+          "description": "tail the stream live (like `tail -f`); Ctrl+C to stop",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--stream <promptName>",
+          "description": "specific agent stream to read (default: newest)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "notifications",
+      "path": [
+        "amaco",
+        "notifications"
+      ],
+      "description": "Inspect and manage local Amaco notifications.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "notifications",
+            "list"
+          ],
+          "description": "Show notifications.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--unread-only",
+              "description": "only show unread",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--attention-only",
+              "description": "only show items that need action",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "read",
+          "path": [
+            "amaco",
+            "notifications",
+            "read"
+          ],
+          "description": "Mark a notification read.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "resolve",
+          "path": [
+            "amaco",
+            "notifications",
+            "resolve"
+          ],
+          "description": "Mark a notification resolved.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "read-all",
+          "path": [
+            "amaco",
+            "notifications",
+            "read-all"
+          ],
+          "description": "Mark every unread notification as read.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "settings",
+          "path": [
+            "amaco",
+            "notifications",
+            "settings"
+          ],
+          "description": "Show current notification settings and configured gateways.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "test",
+          "path": [
+            "amaco",
+            "notifications",
+            "test"
+          ],
+          "description": "Send a tiny test notification through a configured gateway.",
+          "usage": "[options] <gatewayId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "gateways",
+      "path": [
+        "amaco",
+        "gateways"
+      ],
+      "description": "Inspect and toggle notification delivery gateways.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "gateways",
+            "list"
+          ],
+          "description": "Show available gateways and their enabled/valid status.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "test",
+          "path": [
+            "amaco",
+            "gateways",
+            "test"
+          ],
+          "description": "Send a test message through a gateway (no real notification persisted).",
+          "usage": "[options] <gatewayId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "enable",
+          "path": [
+            "amaco",
+            "gateways",
+            "enable"
+          ],
+          "description": "Enable a configured gateway.",
+          "usage": "[options] <gatewayId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "disable",
+          "path": [
+            "amaco",
+            "gateways",
+            "disable"
+          ],
+          "description": "Disable a gateway. Existing config is preserved.",
+          "usage": "[options] <gatewayId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "editor",
+      "path": [
+        "amaco",
+        "editor"
+      ],
+      "description": "Configure and test the local editor handoff used by the dashboard.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "detect",
+          "path": [
+            "amaco",
+            "editor",
+            "detect"
+          ],
+          "description": "Probe known editors (code, code-insiders, cursor) for availability.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "set",
+          "path": [
+            "amaco",
+            "editor",
+            "set"
+          ],
+          "description": "Enable editor handoff and store the command (default args use --goto path:line:column).",
+          "usage": "[options] <command>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--args <args...>",
+              "description": "override the default args (use {file}/{line}/{column} placeholders)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "test",
+          "path": [
+            "amaco",
+            "editor",
+            "test"
+          ],
+          "description": "Open a file (default: README.md) using the configured editor command.",
+          "usage": "[options] [file]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--line <n>",
+              "description": "line number",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "suggestions",
+      "path": [
+        "amaco",
+        "suggestions"
+      ],
+      "description": "Inspect and act on review suggestions captured for a run.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "suggestions",
+            "list"
+          ],
+          "description": "List every suggestion attached to a run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON instead of a human-readable table",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "suggestions",
+            "show"
+          ],
+          "description": "Show one suggestion in detail (including any proposed patch).",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "approve",
+          "path": [
+            "amaco",
+            "suggestions",
+            "approve"
+          ],
+          "description": "Approve a suggestion (creates and resolves an approval record).",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note recorded with the approval",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "amaco",
+            "suggestions",
+            "reject"
+          ],
+          "description": "Reject a suggestion. Records a rejection in approvals.json.",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note recorded with the approval",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "apply",
+          "path": [
+            "amaco",
+            "suggestions",
+            "apply"
+          ],
+          "description": "Apply an approved suggestion's proposedPatch inside the run's worktree (git apply, never push/merge).",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--validate",
+              "description": "after applying, run commands.validate inside the worktree",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--auto-revert-on-fail",
+              "description": "if validation fails, revert the patch (only valid with --validate)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--profile <name>",
+              "description": "validation profile to run after apply (only meaningful with --validate)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "validate",
+          "path": [
+            "amaco",
+            "suggestions",
+            "validate"
+          ],
+          "description": "Run the project's commands.validate inside the run's worktree against an applied suggestion.",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--profile <name>",
+              "description": "named validation profile from commands.validationProfiles",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "revert",
+          "path": [
+            "amaco",
+            "suggestions",
+            "revert"
+          ],
+          "description": "Revert a previously-applied suggestion using the captured patch (git apply -R).",
+          "usage": "[options] <runId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "profile",
+          "path": [
+            "amaco",
+            "suggestions",
+            "profile"
+          ],
+          "description": "Read or edit a suggestion's validation profile metadata.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "amaco",
+                "suggestions",
+                "profile",
+                "show"
+              ],
+              "description": "Print the suggestion's current validation profile (if any).",
+              "usage": "[options] <runId> <suggestionId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "set",
+              "path": [
+                "amaco",
+                "suggestions",
+                "profile",
+                "set"
+              ],
+              "description": "Set the suggestion's validation profile. Future validation runs use this profile. Does NOT re-run validation.",
+              "usage": "[options] <runId> <suggestionId> <profileName>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "clear",
+              "path": [
+                "amaco",
+                "suggestions",
+                "profile",
+                "clear"
+              ],
+              "description": "Clear the suggestion's validation profile back to default (commands.validate).",
+              "usage": "[options] <runId> <suggestionId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bundles",
+      "path": [
+        "amaco",
+        "bundles"
+      ],
+      "description": "Group reviewed suggestions into a review pass that applies, validates, and reverts as a unit.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "bundles",
+            "list"
+          ],
+          "description": "List every bundle (review pass) attached to a run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "create",
+          "path": [
+            "amaco",
+            "bundles",
+            "create"
+          ],
+          "description": "Create a new review pass (bundle) for a run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--title <text>",
+              "description": "human-readable title",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--description <text>",
+              "description": "optional longer description",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--suggestion <ids...>",
+              "description": "initial suggestion ids to include (must belong to this run)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "add",
+          "path": [
+            "amaco",
+            "bundles",
+            "add"
+          ],
+          "description": "Add a suggestion to a draft bundle.",
+          "usage": "[options] <runId> <bundleId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "amaco",
+            "bundles",
+            "remove"
+          ],
+          "description": "Remove a suggestion from a draft bundle.",
+          "usage": "[options] <runId> <bundleId> <suggestionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "approve",
+          "path": [
+            "amaco",
+            "bundles",
+            "approve"
+          ],
+          "description": "Approve a review pass (gate before apply).",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "amaco",
+            "bundles",
+            "reject"
+          ],
+          "description": "Reject a review pass.",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--note <text>",
+              "description": "decision note",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "apply",
+          "path": [
+            "amaco",
+            "bundles",
+            "apply"
+          ],
+          "description": "Apply every suggestion in the review pass to the run worktree (all-or-nothing with rollback).",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--validate",
+              "description": "after applying, run commands.validate",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--auto-revert-on-fail",
+              "description": "if validation fails, revert the bundle (only valid with --validate)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--profile <name>",
+              "description": "validation profile to run after apply (only meaningful with --validate)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "smart-apply",
+          "path": [
+            "amaco",
+            "bundles",
+            "smart-apply"
+          ],
+          "description": "Apply suggestions one-by-one in order. Earlier successes stay applied if a later step fails.",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--stop-on-validation-fail",
+              "description": "validate after each step; stop at the first failing validation",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--auto-revert-failing",
+              "description": "when --stop-on-validation-fail is set, revert ONLY the failing step (prior steps stay applied)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--profile <name>",
+              "description": "force every step to use this named validation profile",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--use-suggestion-profiles",
+              "description": "let each step use its own VALIDATION_PROFILE (falls back to bundle/default)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "validate",
+          "path": [
+            "amaco",
+            "bundles",
+            "validate"
+          ],
+          "description": "Run commands.validate against the run worktree, attached to a bundle.",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--profile <name>",
+              "description": "named validation profile from commands.validationProfiles",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "revert",
+          "path": [
+            "amaco",
+            "bundles",
+            "revert"
+          ],
+          "description": "Revert every suggestion in the review pass via git apply -R (worktree only).",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "preflight",
+          "path": [
+            "amaco",
+            "bundles",
+            "preflight"
+          ],
+          "description": "Run a static-only preflight without modifying the worktree.",
+          "usage": "[options] <runId> <bundleId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "profile",
+          "path": [
+            "amaco",
+            "bundles",
+            "profile"
+          ],
+          "description": "Read or edit a review pass's validation profile metadata.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "amaco",
+                "bundles",
+                "profile",
+                "show"
+              ],
+              "description": "Print the bundle's current validation profile (if any).",
+              "usage": "[options] <runId> <bundleId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "set",
+              "path": [
+                "amaco",
+                "bundles",
+                "profile",
+                "set"
+              ],
+              "description": "Set the bundle's validation profile. Future validation runs use this profile. Does NOT re-run validation.",
+              "usage": "[options] <runId> <bundleId> <profileName>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "clear",
+              "path": [
+                "amaco",
+                "bundles",
+                "profile",
+                "clear"
+              ],
+              "description": "Clear the bundle's validation profile back to default (commands.validate).",
+              "usage": "[options] <runId> <bundleId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "validation",
+      "path": [
+        "amaco",
+        "validation"
+      ],
+      "description": "Inspect validation profiles configured under commands.validationProfiles.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "profiles",
+          "path": [
+            "amaco",
+            "validation",
+            "profiles"
+          ],
+          "description": "List the implicit default + every named validation profile.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "usage",
+          "path": [
+            "amaco",
+            "validation",
+            "usage"
+          ],
+          "description": "Show how often each validation profile has actually run (`commands.validate` use counts as 'default').",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "profile",
+          "path": [
+            "amaco",
+            "validation",
+            "profile"
+          ],
+          "description": "Inspect, manage, and migrate validation profile references.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "show"
+              ],
+              "description": "Show the resolved commands for a named profile (or 'default').",
+              "usage": "[options] <name>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "migrate",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "migrate"
+              ],
+              "description": "Rewrite suggestion and bundle records that reference <fromProfile> to point at <toProfile>. Use --clear to migrate to the default profile.",
+              "usage": "[options] <fromProfile> <toProfile>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--dry-run",
+                  "description": "preview affected records; write nothing",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--clear",
+                  "description": "interpret <toProfile> as a placeholder for clear-to-default",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--all",
+                  "description": "scan every run instead of the recent 50",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--run <runId>",
+                  "description": "limit to a single run",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "clear-references",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "clear-references"
+              ],
+              "description": "Clear every suggestion/bundle that references <profileName> back to the default profile.",
+              "usage": "[options] <profileName>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--dry-run",
+                  "description": "preview affected records; write nothing",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--all",
+                  "description": "scan every run instead of the recent 50",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--run <runId>",
+                  "description": "limit to a single run",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "rename",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "rename"
+              ],
+              "description": "Rename a validation profile in project.yml AND migrate every suggestion/bundle reference in one atomic operation. Preserves the profile's description and commands. Refuses if <toProfile> already exists.",
+              "usage": "[options] <fromProfile> <toProfile>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--dry-run",
+                  "description": "preview the project.yml rename + affected references; write nothing",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--all",
+                  "description": "scan every run instead of the recent 50",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--run <runId>",
+                  "description": "limit the reference scan to a single run",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "doctor",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "doctor"
+              ],
+              "description": "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `amaco doctor` (recent 50 runs); use --all to lift the cap.",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [
+                {
+                  "flags": "--all",
+                  "description": "scan every run instead of the recent 50",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--run <runId>",
+                  "description": "limit the audit to a single run",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--json",
+                  "description": "emit JSON (machine-readable; includes didYouMean per record)",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "migrations",
+              "path": [
+                "amaco",
+                "validation",
+                "profile",
+                "migrations"
+              ],
+              "description": "List previously-applied profile migrations.",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "terminal",
+      "path": [
+        "amaco",
+        "terminal"
+      ],
+      "description": "Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "terminal",
+            "list"
+          ],
+          "description": "List every terminal session ever opened in this project (live + closed).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "close",
+          "path": [
+            "amaco",
+            "terminal",
+            "close"
+          ],
+          "description": "Mark a terminal session as closed. Only affects live sessions in the running dashboard process; closed sessions are already terminal.",
+          "usage": "[options] <sessionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "policies",
+      "path": [
+        "amaco",
+        "policies"
+      ],
+      "description": "Inspect user policy rules in .amaco/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "amaco",
+            "policies",
+            "list"
+          ],
+          "description": "List every rule loaded from .amaco/policies/*.yml (after schema + regex/glob validation).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "check",
+          "path": [
+            "amaco",
+            "policies",
+            "check"
+          ],
+          "description": "Apply the loaded policy rules to a patch file (unified diff). Read-only — never applies, never executes.",
+          "usage": "[options] <patchFile>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--surface <surface>",
+              "description": "which apply surface to simulate (suggestion-apply | bundle-apply)",
+              "defaultValue": "suggestion-apply",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "doctor",
+          "path": [
+            "amaco",
+            "policies",
+            "doctor"
+          ],
+          "description": "Validate rule YAML, list malformed files, surface duplicate ids and empty-rule files.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "replay",
+      "path": [
+        "amaco",
+        "replay"
+      ],
+      "description": "Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "id of the run to replay",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit the full replay projection as JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "pause",
+      "path": [
+        "amaco",
+        "pause"
+      ],
+      "description": "Request that an active run pause at the next stage boundary.",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "id of the run to pause",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "resume",
+      "path": [
+        "amaco",
+        "resume"
+      ],
+      "description": "Clear a pending pause request or resume a paused run.",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "id of the run to resume",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "shell",
+      "path": [
+        "amaco",
+        "shell"
+      ],
+      "description": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `amaco ui` instead.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--refresh <ms>",
+          "description": "snapshot refresh interval in ms (default 1000)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--once",
+          "description": "print one snapshot as JSON and exit (useful for scripts / smoke tests)",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "run",
+      "path": [
+        "amaco",
+        "run"
+      ],
+      "description": "Run the default plan→architect→implement→review→verify workflow.",
+      "usage": "[options] [task...]",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "",
+          "required": false,
+          "variadic": true
+        }
+      ],
+      "options": [
+        {
+          "flags": "--ui",
+          "description": "start the local supervisor dashboard alongside the run",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--ui-port <port>",
+          "description": "port for the supervisor dashboard (default 4317)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--task <taskId>",
+          "description": "link this run to a roadmap task; updates task status and runIds.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--effort <level>",
+          "description": "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--provider <id>",
+          "description": "override the provider for every agent in this run (wins over --effort).",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--read-only",
+          "description": "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every agent.",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--auto-effort",
+          "description": "apply the heuristic effort suggestion when --effort isn't passed.",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--skills <list>",
+          "description": "comma-separated skill ids to attach to every agent for this single run (merged with each agent's configured skills).",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--concise",
+          "description": "ask agents to produce token-efficient output (prefer diffs, bullets, no preamble).",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--guide <id>",
+          "description": "resolve and run a Guide recipe for this run.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--guide-slot <slot=provider>",
+          "description": "override a Guide participant slot provider. Repeat for multiple slots.",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--guide-brief <text>",
+          "description": "extra brief for the Guide task packet.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--guide-context <policy>",
+          "description": "Guide context policy (balanced|compact|artifact-heavy).",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--guide-skip <step>",
+          "description": "skip an optional Guide step for this run. Repeat for multiple steps.",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--interactive",
+          "description": "open terminal Guide setup for task, brief, participants, and optional steps. Requires --guide.",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "ui",
+      "path": [
+        "amaco",
+        "ui"
+      ],
+      "description": "Start the local supervisor dashboard for this project.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--port <port>",
+          "description": "port to bind (default 4317)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--no-open",
+          "description": "don't open the dashboard in your default browser on startup (default: open).",
+          "required": false,
+          "optional": false,
+          "negated": true
+        },
+        {
+          "flags": "--no-scheduler",
+          "description": "don't start the managed scheduler subprocess (default: on; the UI owns its lifecycle).",
+          "required": false,
+          "optional": false,
+          "negated": true
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "status",
+      "path": [
+        "amaco",
+        "status"
+      ],
+      "description": "List Amaco runs in this project.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit JSON instead of a human-readable table",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "abort",
+      "path": [
+        "amaco",
+        "abort"
+      ],
+      "description": "Mark a run as aborted (does not delete the worktree).",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "doctor",
+      "path": [
+        "amaco",
+        "doctor"
+      ],
+      "description": "Check environment, config, providers, and recommend next steps.",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--fix",
+          "description": "apply safe fixes (create missing dirs/templates, add Claude provider if detected, suggest validation)",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    }
+  ]
+}

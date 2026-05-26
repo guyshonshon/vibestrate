@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "description": "The default Amaco workflow: plan → architect → execute → validate → review → fix → verify. Stages are defined in src/workflow/default-workflow.ts; the per-stage prose lives in the docs generator.",
+  "stages": [
+    {
+      "id": "planning",
+      "agentId": "planner",
+      "enteringStatus": "planning",
+      "exitingStatus": "planned",
+      "simple": "Read the task and write a plan.",
+      "what": "Planner agent reads task + project rules + skills, writes a structured plan that names the files and behaviors it intends to change."
+    },
+    {
+      "id": "architecting",
+      "agentId": "architect",
+      "enteringStatus": "architecting",
+      "exitingStatus": "architected",
+      "simple": "Sketch how the plan fits into the codebase.",
+      "what": "Architect agent expands the plan with module boundaries, data flow, and interface contracts before any code is written."
+    },
+    {
+      "id": "executing",
+      "agentId": "executor",
+      "enteringStatus": "executing",
+      "exitingStatus": "validating",
+      "simple": "Apply the changes in an isolated git worktree.",
+      "what": "Executor agent edits files inside the run's worktree. Edits are real — never touches the project root."
+    },
+    {
+      "id": "validating",
+      "agentId": null,
+      "enteringStatus": "validating",
+      "exitingStatus": "reviewing",
+      "simple": "Run the project's validation commands.",
+      "what": "Runs `commands.validate` from project.yml (typecheck, tests, build, lint). Output is recorded; failures route to fix."
+    },
+    {
+      "id": "reviewing",
+      "agentId": "reviewer",
+      "enteringStatus": "reviewing",
+      "exitingStatus": "verifying",
+      "simple": "Have a different agent critique the diff.",
+      "what": "Reviewer agent compares plan to diff, reads validation output, and emits APPROVED / CHANGES_REQUESTED / BLOCKED."
+    },
+    {
+      "id": "fixing",
+      "agentId": "fixer",
+      "enteringStatus": "fixing",
+      "exitingStatus": "validating",
+      "simple": "Address review findings and re-validate.",
+      "what": "Fixer agent ingests review findings + validation logs, patches the diff, then control returns to validating → reviewing."
+    },
+    {
+      "id": "verifying",
+      "agentId": "verifier",
+      "enteringStatus": "verifying",
+      "exitingStatus": "merge_ready",
+      "simple": "Confirm the run is ready to merge.",
+      "what": "Verifier agent does a final pass — checks for unresolved findings, missing tests, or untouched validation gates. Emits PASSED / FAILED / NEEDS_HUMAN."
+    }
+  ]
+}

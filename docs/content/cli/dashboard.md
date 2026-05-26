@@ -1,0 +1,44 @@
+---
+title: Mission Control
+description: The local dashboard for inspecting runs, approving gates, reading diffs, and steering the orchestrator.
+section: cli
+slug: cli/dashboard
+---
+
+Mission Control is Amaco's web UI. It's served by a Fastify process started on demand — fully local, never connected to a remote backend.
+
+## Start it
+
+```bash
+amaco ui
+```
+
+Default port is `4317`. Pass `--port` to change it. By default it opens your browser; `--no-open` keeps it headless.
+
+You can also start a run with the dashboard attached:
+
+```bash
+amaco run "Add audit logging" --ui
+```
+
+## The shape
+
+- **Board** — the active runs, with phase rails, current agent, and live status.
+- **Tasks** — your backlog: queued, running, completed, failed, aborted.
+- **Agents** — per-role configuration. Edit which provider, prompt, permission profile, and skills each agent uses.
+- **Guides** — the resolved list of built-in and project Guides, plus the steps each defines.
+- **Providers** — what's installed, what's configured, test each one.
+- **Approvals** — pending policy-gated decisions.
+- **Git** — inline diff viewer for the active run's worktree, with file-by-file navigation.
+- **Suggestions** — review findings grouped into bundles you can apply, validate, and revert.
+- **Notifications** — local notifications, with gateway controls.
+
+## What the dashboard does *not* do
+
+- It does not execute arbitrary shell commands you type. The optional terminal panel is enrolled per project and binds to a known run's worktree.
+- It does not push or merge. Those remain CLI-only and explicit.
+- It does not access your `.env` or any secret-shape file. The path guard refuses those paths regardless of where the request comes from.
+
+## Stopping it
+
+`Ctrl-C` in the terminal where `amaco ui` is running. The Fastify process exits cleanly; the runs continue (or pause at the next stage boundary, depending on what they're doing).

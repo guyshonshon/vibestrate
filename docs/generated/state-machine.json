@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "description": "Run statuses, terminal states, and the review/verification decision enums. Source: src/core/state-machine.ts.",
+  "statuses": [
+    {
+      "id": "created",
+      "terminal": false,
+      "description": "Run record exists; orchestrator hasn't picked it up yet."
+    },
+    {
+      "id": "planning",
+      "terminal": false,
+      "description": "Planner agent is running."
+    },
+    {
+      "id": "planned",
+      "terminal": false,
+      "description": "Plan is recorded; about to enter architecting."
+    },
+    {
+      "id": "architecting",
+      "terminal": false,
+      "description": "Architect agent is running."
+    },
+    {
+      "id": "architected",
+      "terminal": false,
+      "description": "Architecture is recorded; about to enter execution."
+    },
+    {
+      "id": "executing",
+      "terminal": false,
+      "description": "Executor agent is editing files in the worktree."
+    },
+    {
+      "id": "validating",
+      "terminal": false,
+      "description": "Validation commands are running."
+    },
+    {
+      "id": "reviewing",
+      "terminal": false,
+      "description": "Reviewer agent is reading the diff and validation output."
+    },
+    {
+      "id": "fixing",
+      "terminal": false,
+      "description": "Fixer agent is addressing review findings."
+    },
+    {
+      "id": "verifying",
+      "terminal": false,
+      "description": "Verifier agent is doing the final pass before merge."
+    },
+    {
+      "id": "waiting_for_approval",
+      "terminal": false,
+      "description": "Run is paused at a policy-gated approval. A human must approve or reject."
+    },
+    {
+      "id": "paused",
+      "terminal": false,
+      "description": "User requested a pause; the run will resume from `pausedAtStatus`."
+    },
+    {
+      "id": "merge_ready",
+      "terminal": true,
+      "description": "Verifier passed. Diff is ready for the user to merge."
+    },
+    {
+      "id": "blocked",
+      "terminal": true,
+      "description": "Reviewer or verifier flagged the run unsafe to continue."
+    },
+    {
+      "id": "failed",
+      "terminal": true,
+      "description": "An unrecoverable error was raised during a stage."
+    },
+    {
+      "id": "aborted",
+      "terminal": true,
+      "description": "User explicitly aborted the run (worktree preserved)."
+    }
+  ],
+  "terminalStatuses": [
+    "merge_ready",
+    "blocked",
+    "failed",
+    "aborted"
+  ],
+  "reviewDecisions": [
+    "APPROVED",
+    "CHANGES_REQUESTED",
+    "BLOCKED"
+  ],
+  "verificationDecisions": [
+    "PASSED",
+    "FAILED",
+    "NEEDS_HUMAN"
+  ],
+  "notes": [
+    "Transitions are enforced by `assertTransition` in src/core/state-machine.ts. Any non-terminal state can transition to `paused`, `waiting_for_approval`, `failed`, `aborted`, or `blocked`.",
+    "Re-validation loops: reviewing → fixing → validating → reviewing, bounded by `workflow.maxReviewLoops` in project.yml."
+  ]
+}
