@@ -234,6 +234,7 @@ export type ProviderRow = {
   confidence: "ready" | "detected-needs-setup" | "missing";
   recommended: boolean;
   popular: boolean;
+  installHint: string | null;
   notes: string[];
   configured: boolean;
   loginCommand: string | null;

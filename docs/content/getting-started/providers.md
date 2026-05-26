@@ -75,6 +75,15 @@ Then:
 amaco run "..." --effort high
 ```
 
+## Install from the dashboard
+
+Mission Control's **Providers** page has an **Install** flow for the five
+popular providers (Claude Code, Gemini, Codex, Ollama, Aider). It walks you
+through the exact install and login commands, then re-checks detection. Amaco
+never runs those commands for you — install and login happen in your own
+terminal, on your machine, with your credentials. Once detected, **Apply preset**
+wires it into `project.yml` and **Test** runs a safe connectivity probe.
+
 ## Provider reference
 
 See the [providers reference](/docs/reference/providers) for the current list, each provider's notes, and the install hint.

@@ -65,6 +65,7 @@ describe("starter presets", () => {
       confidence: "detected-needs-setup",
       recommended: false,
       popular: true,
+      installHint: null,
       notes: [],
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/codex");
@@ -84,6 +85,7 @@ describe("starter presets", () => {
       confidence: "detected-needs-setup",
       recommended: false,
       popular: true,
+      installHint: null,
       notes: [],
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/ollama");

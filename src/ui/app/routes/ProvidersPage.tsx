@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Play, Plug, Plus, Star, X } from "lucide-react";
+import { Check, Copy, Download, Play, Plug, Plus, Star, X } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
@@ -24,6 +24,7 @@ export function ProvidersPage() {
   const [busy, setBusy] = useState<Busy>(null);
   const [tests, setTests] = useState<Record<string, TestResult>>({});
   const [toast, setToast] = useState<Toast>(null);
+  const [installFor, setInstallFor] = useState<ProviderRow | null>(null);
 
   async function load() {
     try {
@@ -140,6 +141,16 @@ export function ProvidersPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {p.popular && !p.available ? (
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Download size={13} />}
+                onClick={() => setInstallFor(p)}
+              >
+                Install
+              </Button>
+            ) : null}
             {p.available && !p.configured ? (
               <Button
                 variant="primary"
@@ -230,6 +241,16 @@ export function ProvidersPage() {
         </>
       )}
 
+      {installFor ? (
+        <InstallWizard
+          provider={rows?.find((r) => r.id === installFor.id) ?? installFor}
+          onClose={() => setInstallFor(null)}
+          onRecheck={async () => {
+            await load();
+          }}
+        />
+      ) : null}
+
       {toast ? (
         <div
           className={cn(
@@ -293,6 +314,132 @@ function TestResultRow({
         <X size={12} /> Test failed (exit {result.exitCode}).
       </div>
       {result.hint ? <div className="mt-1 text-rose-300/90">{result.hint}</div> : null}
+    </div>
+  );
+}
+
+/** Pull the backtick-wrapped commands out of an install hint sentence. */
+function extractCommands(hint: string | null): string[] {
+  if (!hint) return [];
+  return (hint.match(/`([^`]+)`/g) ?? []).map((s) => s.slice(1, -1));
+}
+
+/**
+ * Guided install for a popular provider. Shows the exact install + login
+ * commands to run locally and a re-check — it never runs anything itself
+ * (the browser spawns no commands; everything happens in the user's own
+ * terminal, on their machine, with their credentials).
+ */
+function InstallWizard({
+  provider: p,
+  onClose,
+  onRecheck,
+}: {
+  provider: ProviderRow;
+  onClose: () => void;
+  onRecheck: () => Promise<void>;
+}) {
+  const [rechecking, setRechecking] = useState(false);
+  const installCmds = extractCommands(p.installHint);
+
+  async function recheck() {
+    setRechecking(true);
+    try {
+      await onRecheck();
+    } finally {
+      setRechecking(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="glass w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="eyebrow">Install · runs on your machine</div>
+            <h2 className="text-display text-[18px] mt-0.5">{p.label}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+          >
+            Close
+          </button>
+        </div>
+
+        {p.available ? (
+          <div className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/5 px-3 py-2 text-[12.5px] text-emerald-200">
+            ✓ {p.command} detected{p.version ? ` (v${p.version})` : ""}. Close this,
+            then <span className="text-fog-100">Apply preset</span> and{" "}
+            <span className="text-fog-100">Test</span>.
+          </div>
+        ) : null}
+
+        <ol className="mt-4 space-y-3.5">
+          <li>
+            <div className="text-[12.5px] font-medium text-fog-200">1 · Install the CLI</div>
+            {installCmds.length > 0 ? (
+              installCmds.map((c, i) => <CopyLine key={i} cmd={c} />)
+            ) : (
+              <p className="mt-1 text-[12px] text-fog-400">
+                See {p.label}'s site for install instructions.
+              </p>
+            )}
+          </li>
+          <li>
+            <div className="text-[12.5px] font-medium text-fog-200">2 · Authenticate</div>
+            {p.loginCommand ? <CopyLine cmd={p.loginCommand} /> : null}
+            <p className="mt-1 text-[11.5px] text-fog-500">{p.loginNote}</p>
+          </li>
+          <li>
+            <div className="text-[12.5px] font-medium text-fog-200">3 · Verify</div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={rechecking}
+              iconLeft={<Check size={13} />}
+              onClick={() => void recheck()}
+              className="mt-1.5"
+            >
+              {rechecking ? "Checking…" : "Re-check"}
+            </Button>
+          </li>
+        </ol>
+
+        <p className="mt-4 text-[11px] text-fog-500">
+          Install and login run entirely on your machine — Amaco never runs them
+          for you and never sees your credentials.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CopyLine({ cmd }: { cmd: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="mt-1 flex items-center gap-2 rounded-md bg-black/30 px-2 py-1.5">
+      <code className="mono flex-1 truncate text-[12px] text-fog-100">{cmd}</code>
+      <button
+        type="button"
+        title="Copy"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(cmd);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1200);
+          } catch {
+            /* ignore */
+          }
+        }}
+        className="inline-flex shrink-0 items-center gap-1 text-[10.5px] text-fog-400 hover:text-fog-100"
+      >
+        <Copy size={12} /> {copied ? "copied" : "copy"}
+      </button>
     </div>
   );
 }
