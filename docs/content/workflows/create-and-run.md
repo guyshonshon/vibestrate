@@ -94,6 +94,6 @@ amaco abort <runId>
 
 ## Related
 
-- [Inspect a run in flight](./inspect-progress).
-- [Pause, resume, abort](./pause-resume).
-- [Debug a failed run](./debug-failed).
+- [Inspect a run in flight](/docs/workflows/inspect-progress).
+- [Pause, resume, abort](/docs/workflows/pause-resume).
+- [Debug a failed run](/docs/workflows/debug-failed).

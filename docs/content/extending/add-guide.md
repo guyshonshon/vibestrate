@@ -105,5 +105,5 @@ amaco run "..." --guide spike-and-decide --guide-skip plan
 
 ## Related
 
-- [Guide (concept)](../concepts/guide).
-- [Built-in Guides reference](../reference/guides).
+- [Guide (concept)](/docs/concepts/guide).
+- [Built-in Guides reference](/docs/reference/guides).

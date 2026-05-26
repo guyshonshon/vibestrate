@@ -66,4 +66,4 @@ You can commit `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents/`, `.amac
 
 ## Next
 
-[Run your first task →](./first-run)
+[Run your first task →](/docs/getting-started/first-run)

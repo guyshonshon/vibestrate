@@ -5,7 +5,7 @@ section: lifecycle
 slug: task-lifecycle
 ---
 
-A run progresses through a sequence of statuses enforced by the state machine in `src/core/state-machine.ts`. The full enum and transition rules are exposed in the [run-state reference](./reference/state-machine).
+A run progresses through a sequence of statuses enforced by the state machine in `src/core/state-machine.ts`. The full enum and transition rules are exposed in the [run-state reference](/docs/reference/state-machine).
 
 ## The happy path
 
@@ -65,5 +65,5 @@ All under `.amaco/runs/<runId>/`. The `events.jsonl` file logs every transition,
 
 ## Related
 
-- [Run state](./concepts/state) — what each status means in detail.
-- [Workflow](./concepts/workflow) — the stage definitions.
+- [Run state](/docs/concepts/state) — what each status means in detail.
+- [Workflow](/docs/concepts/workflow) — the stage definitions.

@@ -70,5 +70,5 @@ git branch -D amaco/<runId>-<slug>
 
 ## Related
 
-- [Run state](./state) — terminal statuses determine whether you want to keep the worktree.
-- [Task lifecycle](../task-lifecycle) — when the worktree is created and torn down.
+- [Run state](/docs/concepts/state) — terminal statuses determine whether you want to keep the worktree.
+- [Task lifecycle](/docs/task-lifecycle) — when the worktree is created and torn down.

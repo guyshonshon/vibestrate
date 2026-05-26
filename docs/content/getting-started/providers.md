@@ -77,4 +77,4 @@ amaco run "..." --effort high
 
 ## Provider reference
 
-See the [providers reference](../reference/providers) for the current list, each provider's notes, and the install hint.
+See the [providers reference](/docs/reference/providers) for the current list, each provider's notes, and the install hint.

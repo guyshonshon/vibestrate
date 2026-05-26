@@ -71,8 +71,8 @@ Amaco never merges for you. The diff sits on its branch in the worktree, ready f
 - **`blocked`** — the reviewer or verifier found something that needs a human decision. Read `.amaco/runs/<runId>/review.md` and `verification.md`.
 - **`failed`** — an unrecoverable error during a stage. Check `.amaco/runs/<runId>/events.jsonl` and the provider stream log.
 
-See [Debug a failed run](../workflows/debug-failed) for the practical playbook.
+See [Debug a failed run](/docs/workflows/debug-failed) for the practical playbook.
 
 ## Next
 
-[Set up a provider →](./providers) — Amaco picks a sensible default, but knowing how providers are wired up is worth the five minutes.
+[Set up a provider →](/docs/getting-started/providers) — Amaco picks a sensible default, but knowing how providers are wired up is worth the five minutes.

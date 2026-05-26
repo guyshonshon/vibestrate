@@ -38,7 +38,7 @@ The `quality-arbitration` Guide ships with Amaco. It runs:
 7. **second-review** — challenger re-reviews.
 8. **decision-summary** — arbiter writes the final summary, including residual disagreement.
 
-The canonical, generated definition (slots, steps, inputs, outputs) is in the [Guides reference](../reference/guides).
+The canonical, generated definition (slots, steps, inputs, outputs) is in the [Guides reference](/docs/reference/guides).
 
 ## Project Guides
 
@@ -83,6 +83,6 @@ Amaco validates `guide.yml` against the schema on load — malformed Guides fail
 
 ## Related
 
-- [Workflow](./workflow) — what Guides override.
-- [Built-in Guides reference](../reference/guides).
-- [Extending: add a Guide](../extending/add-guide).
+- [Workflow](/docs/concepts/workflow) — what Guides override.
+- [Built-in Guides reference](/docs/reference/guides).
+- [Extending: add a Guide](/docs/extending/add-guide).

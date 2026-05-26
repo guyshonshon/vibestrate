@@ -73,4 +73,4 @@ Don't write a skill when:
 
 ## Reference
 
-See the [skill discovery and schema reference](../extending/add-skill) for the full filesystem layout and any optional metadata.
+See the [skill discovery and schema reference](/docs/extending/add-skill) for the full filesystem layout and any optional metadata.

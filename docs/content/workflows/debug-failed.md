@@ -58,5 +58,5 @@ If the same task fails in the same place across multiple providers and the failu
 
 ## Related
 
-- [Run state](../concepts/state) — definitions of `failed` and `blocked`.
-- [Troubleshooting](../troubleshooting) — common, reproducible issues with fixes.
+- [Run state](/docs/concepts/state) — definitions of `failed` and `blocked`.
+- [Troubleshooting](/docs/troubleshooting) — common, reproducible issues with fixes.

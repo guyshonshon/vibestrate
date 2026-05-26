@@ -89,5 +89,5 @@ The Fastify server in `src/server/` exposes read-only routes over the persisted 
 
 ## Related
 
-- [Repository map](./directory-map) — where each module lives.
-- [Run state](../concepts/state) — what the orchestrator drives transitions through.
+- [Repository map](/docs/architecture/directory-map) — where each module lives.
+- [Run state](/docs/concepts/state) — what the orchestrator drives transitions through.

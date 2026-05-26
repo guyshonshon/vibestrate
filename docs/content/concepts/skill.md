@@ -67,5 +67,5 @@ amaco run "Refund a stuck transaction" --skills payments,oncall-runbook
 
 ## Related
 
-- [Attach skills (getting started)](../getting-started/skills).
-- [Extending: add a skill](../extending/add-skill).
+- [Attach skills (getting started)](/docs/getting-started/skills).
+- [Extending: add a skill](/docs/extending/add-skill).
