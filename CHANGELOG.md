@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: codebase annotations — pin notes to a file / line / range from the
+  Codebase page; "visible to agents" (default on, optional) injects open notes
+  into every agent prompt as a `# Human Annotations` section so the crew
+  acknowledges them. Stored in `.amaco/annotations.json` (never in source);
+  path-guarded + secret-scanned. New core service, `/api/annotations` routes,
+  prompt-builder section, docs page, and a redesigned Codebase page (glass
+  sidebar + annotations panel).
 - Add: hand-off prompt for claude.ai/design to design the Guides Hub UI
   (`docs/design/guides-hub-ui-design-prompt.md`) — matches the Mission
   Control design tokens (ink/fog/violet, Bricolage display, glass).

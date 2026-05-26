@@ -11,9 +11,18 @@ type Props = {
   /** Optional run id; pulled into copied references when present. */
   runId?: string | null;
   highlightLine?: number | null;
+  /** When provided, each line shows a hover "annotate" affordance. */
+  onAnnotateLine?: (line: number) => void;
 };
 
-export function FileViewer({ view, loading, error, runId, highlightLine }: Props) {
+export function FileViewer({
+  view,
+  loading,
+  error,
+  runId,
+  highlightLine,
+  onAnnotateLine,
+}: Props) {
   const [openMsg, setOpenMsg] = useState<string | null>(null);
 
   // Highlight the visible window of source as a single block, then map back
@@ -194,6 +203,16 @@ export function FileViewer({ view, loading, error, runId, highlightLine }: Props
                   {l.number}
                   <Hash className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60" />
                 </button>
+                {onAnnotateLine && !view.isSecretLike ? (
+                  <button
+                    type="button"
+                    className="inline-flex w-5 shrink-0 select-none items-center justify-center text-[11px] text-fog-500 opacity-0 hover:text-violet-soft group-hover:opacity-100"
+                    title={`Annotate line ${l.number}`}
+                    onClick={() => onAnnotateLine(l.number)}
+                  >
+                    +
+                  </button>
+                ) : null}
                 {highlighted ? (
                   <span
                     className="hljs whitespace-pre px-2 py-0.5"

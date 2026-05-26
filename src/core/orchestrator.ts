@@ -16,6 +16,10 @@ import {
 import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
 import { buildAgentPrompt, type PriorArtifact } from "./prompt-builder.js";
 import {
+  listAnnotations,
+  renderAnnotationsForPrompt,
+} from "./annotations-service.js";
+import {
   listControls,
   markPendingConsumed,
   pendingControls,
@@ -2617,6 +2621,12 @@ export class Orchestrator {
     const additionalNotes = [input.additionalNotes, controlNotes]
       .filter((note): note is string => !!note && note.trim().length > 0)
       .join("\n\n");
+    // Pull the user's shared, open codebase annotations and inject them so
+    // every agent acknowledges them. Read per turn so notes added mid-run are
+    // picked up by the next stage; a corrupt/missing file yields "".
+    const humanAnnotations = renderAnnotationsForPrompt(
+      await listAnnotations(this.projectRoot, { status: "open" }),
+    );
     const prompt = buildAgentPrompt({
       agentId,
       task: this.task,
@@ -2632,6 +2642,7 @@ export class Orchestrator {
       validationResults: input.validationResults,
       concise: this.concise,
       ...(additionalNotes ? { additionalNotes } : {}),
+      ...(humanAnnotations ? { humanAnnotations } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(
