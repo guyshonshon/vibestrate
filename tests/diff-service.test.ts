@@ -53,6 +53,21 @@ describe("getDiffSnapshot", () => {
     expect(readme!.deletions).toBe(0);
   });
 
+  it("counts added lines for a brand-new (untracked) file", async () => {
+    // Regression: `git diff --numstat HEAD` omits untracked files, so a
+    // newly-created file used to show +0. It should report its real lines.
+    await fs.writeFile(
+      path.join(repo, "hello.txt"),
+      "line one\nline two\nline three\n",
+    );
+    const snap = await getDiffSnapshot({ worktreePath: repo });
+    const hello = snap.files.find((f) => f.path === "hello.txt");
+    expect(hello).toBeDefined();
+    expect(hello!.status).toBe("untracked");
+    expect(hello!.insertions).toBe(3);
+    expect(snap.totals.insertions).toBeGreaterThanOrEqual(3);
+  });
+
   it("flags secret-like paths and marks diffRedacted", async () => {
     await fs.writeFile(path.join(repo, ".env"), "API_KEY=topsecret123\n");
     const snap = await getDiffSnapshot({ worktreePath: repo });
