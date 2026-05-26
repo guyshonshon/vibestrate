@@ -1,8 +1,17 @@
 {
-  "name": "amaco",
+  "name": "amaco-os",
   "version": "0.1.0",
   "description": "Amaco — local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
   "license": "MIT",
+  "author": "Guy Shonshon (https://shonshon.com)",
+  "homepage": "https://amaco.shonshon.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guyshonshon/amaco.git"
+  },
+  "bugs": {
+    "url": "https://github.com/guyshonshon/amaco/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -29,7 +38,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
-    "docs:generate": "tsx scripts/generate-docs-metadata.ts"
+    "docs:generate": "tsx scripts/generate-docs-metadata.ts",
+    "prepublishOnly": "pnpm build && node scripts/prepublish-trim.mjs"
   },
   "dependencies": {
     "@fastify/static": "^9.1.3",

@@ -11,7 +11,7 @@ Each entry lists symptoms, likely cause, fix, and how to verify.
 
 ## Install failed: `amaco: command not found`
 
-**Symptoms:** `npm install -g amaco` succeeded, but `amaco --version` returns "command not found."
+**Symptoms:** `npm install -g amaco-os` succeeded, but `amaco --version` returns "command not found."
 
 **Likely cause:** Your shell's PATH doesn't include npm's global bin directory.
 

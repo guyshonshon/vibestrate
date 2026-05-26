@@ -62,7 +62,7 @@ The agents are the CLIs you already have — **Claude Code, Codex, Aider, Ollama
 ## ◆ Quick start
 
 ```bash
-npm install -g amaco        # macOS / Linux
+npm install -g amaco-os        # macOS / Linux
 cd your-project
 amaco init                  # scaffold .amaco/ (touches nothing else)
 amaco doctor                # check git, providers, validation
