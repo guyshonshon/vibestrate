@@ -8,8 +8,8 @@ import {
   notificationsFile,
 } from "../utils/paths.js";
 
-/** Hard cap on events returned. Per CLAUDE.md §3 / the phase prompt, we
- *  surface truncation honestly rather than silently dropping rows. The cap
+/** Hard cap on events returned. We surface truncation honestly rather
+ *  than silently dropping rows. The cap
  *  applies to the timeline; the cross-cutting summaries (approvals,
  *  suggestions, etc.) are not truncated since those files are bounded in
  *  size by other code paths.

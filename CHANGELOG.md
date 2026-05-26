@@ -2,10 +2,13 @@
 
 Concise, newest-first log of every change. One short line per change.
 `Unreleased` accrues until the next `pnpm release`, then it's renamed to the
-version. See `CLAUDE.md` § 10.
+version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Chore: stop tracking `CLAUDE.md` (local agent protocol) and scheduler
+  runtime state (`lock`, `state.json`, `*.ndjson`); gitignore them plus a
+  stray `logo-text.png`. CLAUDE.md references trimmed from public docs.
 - Add: Guide editor — fork a builtin/fixture guide into the project, edit
   steps + slots wholesale (`replaceSteps` / `replaceSlots`), and delete
   project guides, from the Flow Builder (server routes + patch logic + UI).
@@ -20,7 +23,7 @@ version. See `CLAUDE.md` § 10.
   forwards `needsLogin`.
 - Add: roadmap issues — Docker backend (#1), multi-container fan-out (#2),
   Guides Hub (#3), Providers UI in Mission Control (#4).
-- Add: `CHANGELOG.md` + CLAUDE.md § 10 rule to maintain it every change.
+- Add: `CHANGELOG.md` + a rule to update it on every change.
 
 ## 0.1.1
 
