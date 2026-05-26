@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+// Single source of truth for the version: package.json. The bundler
+// (tsup/esbuild) inlines this at build time, and `npm version patch`
+// updates it in one place — flowing into `amaco --version` and the
+// generated docs reference automatically.
+import pkg from "../../package.json";
 import { runInitCommand } from "./commands/init.js";
 import { runRunCommand } from "./commands/run.js";
 import { runStatusCommand } from "./commands/status.js";
@@ -65,7 +70,7 @@ export function buildAmacoProgram(): Command {
     .description(
       "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
-    .version("0.1.0");
+    .version(pkg.version);
 
   program
     .command("init")
