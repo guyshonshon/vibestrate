@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: Mission Control now visibly changes the instant you send a brief — an
+  optimistic "Starting run" card appears immediately (a dashboard run is spawned
+  detached and takes ~1s to register) and the live-runs view moved to the top
+  (was a small toast + a section far below the fold). The composer stays usable
+  while runs are live, so you can launch more in parallel.
 - Add: run detail **Steps** inspector (now the default Inspect tab) — one card
   per agent step from runtime metrics: stage/agent, provider+model, pass/fail
   (exit code), duration, tokens (in→out), cost, tool calls, files touched
