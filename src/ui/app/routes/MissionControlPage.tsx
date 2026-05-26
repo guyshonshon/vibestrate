@@ -71,6 +71,15 @@ export function MissionControlPage({ onSelectRun }: Props) {
     text: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Optimistic "starting…" cards so the UI changes the instant you send a
+  // brief — a dashboard run is spawned detached and takes ~1s to write its
+  // state.json, so without this you'd only see the toast. Cleared once the
+  // real run appears in `runs` (or after a timeout).
+  const [starting, setStarting] = useState<
+    { key: string; brief: string; at: number }[]
+  >([]);
+  // Bumping this re-runs the runs effect immediately (used right after submit).
+  const [reloadKey, setReloadKey] = useState(0);
 
   // ── Composer feeds: providers / skills / guides / presets ──
   useEffect(() => {
@@ -189,7 +198,20 @@ export function MissionControlPage({ onSelectRun }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }, [reloadKey]);
+
+  // Clear an optimistic "starting" card once its run shows up in the list, or
+  // after 25s as a safety net so a placeholder can never get stuck.
+  useEffect(() => {
+    if (starting.length === 0) return;
+    setStarting((prev) =>
+      prev.filter(
+        (s) =>
+          Date.now() - s.at < 25_000 &&
+          !runs.some((r) => isActive(r.status) && r.task === s.brief),
+      ),
+    );
+  }, [runs, starting.length]);
 
   // ── SSE: realtime events for the active runs' MiniTerminal previews ──
   useEffect(() => {
@@ -278,6 +300,13 @@ export function MissionControlPage({ onSelectRun }: Props) {
           : undefined,
       });
       setToast({ kind: "ok", text: r.message });
+      // Show a live "starting…" card immediately + pull the run list now so
+      // the real run surfaces in ~1s instead of waiting for the 4s poll.
+      setStarting((prev) => [
+        ...prev,
+        { key: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, brief: input.brief, at: Date.now() },
+      ]);
+      setReloadKey((k) => k + 1);
     } catch (err) {
       setToast({
         kind: "err",
@@ -394,6 +423,49 @@ export function MissionControlPage({ onSelectRun }: Props) {
         />
       </section>
 
+      {/* Live now — appears the instant a run is sent, so it's obvious the
+       * task started. Multiple runs stack here (the composer above stays
+       * usable, so you can launch more in parallel). */}
+      {activeRuns.length > 0 || starting.length > 0 ? (
+        <section className="mt-6">
+          {starting.length > 0 ? (
+            <div className="mb-4 space-y-2">
+              {starting.map((s) => (
+                <div
+                  key={s.key}
+                  className="glass flex items-center gap-3 px-4 py-3 fade-up"
+                >
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-soft/60" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-violet-soft" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="eyebrow">Starting run</div>
+                    <div className="truncate text-[13px] text-fog-200">
+                      {s.brief}
+                    </div>
+                  </div>
+                  <span className="mono ml-auto shrink-0 text-[11px] text-fog-500">
+                    spawning worktree…
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {activeRuns.length > 0 ? (
+            <LiveRunsSection
+              runs={activeRuns}
+              eventsByRun={eventsByRun}
+              diffByRun={diffByRun}
+              onOpen={onSelectRun}
+              onPause={(id) => void handleAction("pause", id)}
+              onResume={(id) => void handleAction("resume", id)}
+              onAbort={(id) => void handleAction("abort", id)}
+            />
+          ) : null}
+        </section>
+      ) : null}
+
       {error || toast ? (
         <div className="mt-4">
           {error ? (
@@ -420,15 +492,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
       {/* Body: live + inbox */}
       <section className="mt-10 grid grid-cols-12 gap-6">
         <div className="col-span-12 xl:col-span-8 space-y-5">
-          <LiveRunsSection
-            runs={activeRuns}
-            eventsByRun={eventsByRun}
-            diffByRun={diffByRun}
-            onOpen={onSelectRun}
-            onPause={(id) => void handleAction("pause", id)}
-            onResume={(id) => void handleAction("resume", id)}
-            onAbort={(id) => void handleAction("abort", id)}
-          />
           <RecentRunsSection
             runs={completed}
             onOpen={onSelectRun}
