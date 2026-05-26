@@ -41,7 +41,6 @@ Good PRs tend to:
 - **Respect the safety model.** Amaco is local‑first by design — no model APIs,
   no cloud backend, no telemetry, no auto‑push, no auto‑merge, no reading of
   secrets into prompts or logs. Changes that cross those lines won't merge.
-  See [`CLAUDE.md`](./CLAUDE.md) for the full posture.
 - **Come with green checks.**
 
   ```bash

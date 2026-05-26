@@ -10,3 +10,14 @@ coverage/
 !.env.example
 .vitest-cache/
 .tsbuildinfo
+
+# Local agent operating protocol — kept out of the (public) repo.
+CLAUDE.md
+
+# Scheduler runtime state — changes on every run, not source.
+.amaco/scheduler/lock
+.amaco/scheduler/state.json
+.amaco/scheduler/*.ndjson
+
+# Stray local asset.
+logo-text.png
