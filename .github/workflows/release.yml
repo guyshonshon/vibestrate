@@ -50,6 +50,11 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # Build before test: the shell-command-runner test spawns the
+      # bundled dist/index.js.
+      - name: Build
+        run: pnpm build
+
       - name: Test
         run: pnpm test
 
