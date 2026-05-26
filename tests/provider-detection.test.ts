@@ -115,8 +115,14 @@ describe("provider detection", () => {
     expect(summary.needsSetup.map((d) => d.id)).toEqual(["codex"]);
     expect(summary.missing.map((d) => d.id).sort()).toEqual([
       "aider",
+      "amp",
+      "crush",
+      "cursor",
+      "gemini",
+      "goose",
       "ollama",
       "opencode",
+      "qwen",
     ]);
   });
 

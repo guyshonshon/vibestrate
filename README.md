@@ -39,6 +39,7 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 <details>
 <summary><b>Table of contents</b></summary>
 
+- [Why it exists](#-why-it-exists)
 - [What it is](#-what-it-is)
 - [Quick start](#-quick-start)
 - [Why local-first](#-why-local-first)
@@ -50,6 +51,16 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 - [License](#-license)
 
 </details>
+
+## ◆ Why it exists
+
+Vibe-coding with a single chat is a high-wire act. It flies for a sketch — then you hit real work and quietly become the babysitter: re-pasting context the model already forgot, catching the confident-but-wrong refactor *before* it lands, squinting at a diff you never watched get made, and losing count of how many tokens (and dollars) five "quick tries" just burned. One model, one point of view, no record, no brakes.
+
+Amaco trades the high-wire for an assembly line you can see. Your task walks down a row of specialists — a **planner** sketches the change, an **architect** shapes it, an **executor** writes it in a throwaway git worktree, *your own tests* run as the referee, a **reviewer** (ideally a **different** model, so it doesn't share the executor's blind spots) tears into the diff, a **fixer** answers the findings, and a **verifier** signs off. You watch each handoff. You approve the moments that matter. Every prompt, diff, decision, and token is on the record — and nothing merges until you say so.
+
+That's the whole trick: the work that used to live in your head — the plan, the second opinion, the "did it *actually* pass?", the running cost — becomes visible, ordered, and replayable. Same models you already pay for. Your machine. Your call at every gate.
+
+<p align="right"><a href="#top">↑ back to top</a></p>
 
 ## ◆ What it is
 

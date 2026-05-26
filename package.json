@@ -15,7 +15,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "amaco": "./dist/index.js"
+    "amaco": "dist/index.js"
   },
   "files": [
     "dist",
