@@ -44,15 +44,17 @@ A public GitHub repo (`guyshonshon/amaco-guides`) is the registry. No service
 to run, no database, no auth to build — GitHub provides hosting, identity (PRs),
 and a coarse "stars" signal for free.
 
-**Layout of the index repo**
+**Layout of the index repo** — flat names, one immutable dir per version:
 
 ```
 amaco-guides/
   index.json                  # generated catalog (search source of truth)
   guides/
-    <namespace>/<name>/
-      guide.yml               # the published Guide (schema-valid)
-      meta.json               # { description, author, tags, version, license }
+    <name>/
+      meta.json               # { description, author, tags, license, latest, versions }
+      1.0.0/guide.yml         # immutable snapshot per published semver
+      1.1.0/guide.yml
+      1.2.0/guide.yml
 ```
 
 **`index.json`** (built by CI in the index repo on merge):
@@ -61,9 +63,10 @@ amaco-guides/
 {
   "schemaVersion": 1,
   "guides": [
-    { "id": "namespace/name", "version": 3, "label": "...", "description": "...",
-      "tags": ["review","python"], "author": "guyshonshon",
-      "path": "guides/namespace/name/guide.yml", "updatedAt": "..." }
+    { "name": "deep-refactor-pro", "latest": "1.2.0",
+      "versions": ["1.0.0", "1.1.0", "1.2.0"],
+      "label": "...", "description": "...", "tags": ["review", "python"],
+      "author": "guyshonshon", "updatedAt": "..." }
   ]
 }
 ```
@@ -71,14 +74,23 @@ amaco-guides/
 **CLI surface** (new `amaco guides` subcommands; the command tree already exists):
 
 - `amaco guides search <query>` — fetch `index.json`, fuzzy‑match locally, print
-  matches with author + tags.
-- `amaco guides install <namespace/name>` — fetch the `guide.yml`, **validate
-  against `guideDefinitionSchema`**, run the secret‑shape scan, then write it
-  into `.amaco/guides/<name>/` (reusing the fork write path). Refuse on invalid
-  schema or a secret‑like hit.
-- `amaco guides publish [<id>]` — package the project guide + a `meta.json` and
-  open a **PR** to the index repo (via `gh`), or print the exact files to add.
-  No write access to the index needed; review happens in the PR.
+  matches with author + tags + `latest`.
+- `amaco guides install <name>[:<version>]` — Docker‑style ref resolution:
+  - `name` → `name:latest`
+  - `name:1.2.0` → that exact version
+  - `name:1` → highest `1.x`
+  Resolve via `index.json` to a concrete `guides/<name>/<version>/guide.yml`,
+  fetch it, **validate against `guideDefinitionSchema`**, run the secret‑shape
+  scan, then write it into `.amaco/guides/<name>/` (reusing the fork write
+  path). Record the resolved `{ name, version, hash }` in a sidecar
+  (`.amaco/guides/<name>/.hub.json`) so we know what's installed. Refuse on
+  invalid schema or a secret‑like hit.
+- `amaco guides update [<name>]` — re‑resolve `latest` (or a pinned range) and
+  update; **warn on a major bump** before applying.
+- `amaco guides outdated` — list installed hub guides with a newer version.
+- `amaco guides publish [<name>]` — package the project guide + a `meta.json`
+  (with the **semver** for this release) and open a **PR** to the index repo
+  (via `gh`). Review happens in the PR.
 
 **Metrics in phase 1**
 
@@ -92,11 +104,14 @@ amaco-guides/
 - Must pass `guideDefinitionSchema`.
 - No secret‑shaped content (reuse the patch secret‑scan).
 - Size + step caps (≤ 64 steps, ≤ N KB).
-- `meta.json` declares `author`, `license`, `tags`.
-- Namespaced ids (`author/name`) to avoid collisions.
+- `meta.json` declares `author`, `license`, `tags`, and the release `version`
+  (semver).
+- Flat unique `name`; a published `<name>/<version>/` is **immutable** — CI
+  rejects re‑publishing an existing version (new content → new version).
 
-**Acceptance:** `amaco guides search` / `install` pull a community guide into
-`.amaco/guides/`, validated before it lands; `publish` produces an index PR.
+**Acceptance:** `amaco guides search` / `install name[:version]` pull a community
+guide into `.amaco/guides/`, validated before it lands; `publish` produces an
+index PR.
 
 ### Phase 2 — `amaco-hub` service (Docker‑Hub‑style)
 
@@ -161,6 +176,34 @@ the public API; install still writes locally through the existing path).
   *later, optional* step; the maintainer is fine covering ~$5/mo if it ever
   grows — so the service is a "when demand justifies it" decision, not a
   blocker.
+- **Versioned, Docker/npm-style** — see below.
+
+## Versioning
+
+Published guides are **versioned with semver**, referenced Docker/npm-style:
+
+- `name` → resolves to `name:latest`
+- `name:1.2.0` → exact, immutable
+- `name:1` → highest `1.x`
+
+Rules:
+
+- **A published version is immutable.** Re-publishing `1.2.0` with different
+  content is rejected by CI — new content means a new version. This is what
+  makes an installed guide reproducible: it can't change under you.
+- **`latest` is auto = the highest published *stable* semver** (pre-releases
+  like `1.3.0-beta` are excluded from `latest`). No manual dist-tag management
+  in v1; the publisher just bumps the semver in `meta.json`.
+- **Installs are pinned + tracked.** `install` records the resolved
+  `{ name, version, hash }` in `.amaco/guides/<name>/.hub.json`, so `update` /
+  `outdated` know what you have and `update` can warn on a major bump.
+
+Relationship to the existing `guide.yml` `version` (integer): that field stays
+as the guide's **internal structural revision** (it's a `number` in the schema
+and in run-state snapshots — `guideRunState.guideVersion`). The **hub release
+version** is the **semver in `meta.json`** — a separate, registry-level concept
+(like a package's internal `schemaVersion` vs its npm version). They're
+independent; we may unify later, but not as a breaking change now.
 
 ## Publishing & review (v1)
 
