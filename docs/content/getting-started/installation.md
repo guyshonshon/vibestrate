@@ -17,7 +17,7 @@ Amaco runs on macOS and Linux. Windows is not currently supported.
 ## Install globally
 
 ```bash
-npm install -g amaco
+npm install -g amaco-os
 ```
 
 Or with pnpm:
