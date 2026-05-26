@@ -3,9 +3,15 @@ import { execa } from "execa";
 export type KnownProviderId =
   | "claude"
   | "codex"
+  | "gemini"
   | "opencode"
   | "aider"
-  | "ollama";
+  | "ollama"
+  | "qwen"
+  | "crush"
+  | "goose"
+  | "cursor"
+  | "amp";
 
 export type DetectedProvider = {
   id: KnownProviderId;
@@ -58,6 +64,19 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     ],
   },
   {
+    id: "gemini",
+    label: "Gemini CLI",
+    command: "gemini",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Google's Gemini CLI. Detected, but Amaco does not yet ship a verified prompt-flag preset.",
+      "Run `amaco provider setup` to confirm command, args, and input mode, then `amaco provider test gemini`.",
+    ],
+    installHint:
+      "Install the Gemini CLI: `npm install -g @google/gemini-cli`, then run `gemini` once to authenticate.",
+  },
+  {
     id: "opencode",
     label: "OpenCode",
     command: "opencode",
@@ -92,6 +111,68 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     ],
     installHint:
       "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download.",
+  },
+  {
+    id: "qwen",
+    label: "Qwen Code",
+    command: "qwen",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Alibaba's Qwen Code CLI (an agentic coding CLI). Detected; no verified preset shipped.",
+      "Run `amaco provider setup` to confirm command, args, and input mode.",
+    ],
+    installHint: "Install Qwen Code: `npm install -g @qwen-code/qwen-code`.",
+  },
+  {
+    id: "crush",
+    label: "Crush",
+    command: "crush",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Charm's Crush coding agent. Detected; no verified preset shipped.",
+      "Run `amaco provider setup` to confirm command, args, and input mode.",
+    ],
+    installHint:
+      "Install Crush: `brew install charmbracelet/tap/crush` (macOS) or see https://github.com/charmbracelet/crush.",
+  },
+  {
+    id: "goose",
+    label: "Goose",
+    command: "goose",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Block's Goose agent CLI. Detected; no verified preset shipped.",
+      "Run `amaco provider setup` to confirm command, args, and input mode.",
+    ],
+    installHint: "Install Goose: see https://block.github.io/goose/.",
+  },
+  {
+    id: "cursor",
+    label: "Cursor CLI",
+    command: "cursor-agent",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Cursor's headless agent CLI (`cursor-agent`). Detected; no verified preset shipped.",
+      "Run `amaco provider setup` to confirm command, args, and input mode.",
+    ],
+    installHint:
+      "Install the Cursor CLI: `curl https://cursor.com/install -fsS | bash`.",
+  },
+  {
+    id: "amp",
+    label: "Amp",
+    command: "amp",
+    versionArgs: ["--version"],
+    presetReady: false,
+    notes: [
+      "Sourcegraph's Amp CLI. Detected; no verified preset shipped.",
+      "Run `amaco provider setup` to confirm command, args, and input mode.",
+    ],
+    installHint: "Install Amp: `npm install -g @sourcegraph/amp`.",
   },
 ];
 
