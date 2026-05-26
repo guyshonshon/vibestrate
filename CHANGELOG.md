@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: hand-off prompt for claude.ai/design to design the Guides Hub UI
+  (`docs/design/guides-hub-ui-design-prompt.md`) — matches the Mission
+  Control design tokens (ink/fog/violet, Bricolage display, glass).
 - Change: providers split into a **popular** tier (claude, gemini, codex,
   ollama, aider) that's auto-configured out of the box, and an **optional**
   tier (opencode, qwen, crush, goose, cursor, amp) that's detected but
