@@ -1,0 +1,13 @@
+# Bugs use the form above. Everything else is routed here so the issue
+# tracker stays focused on reproducible problems.
+blank_issues_enabled: false
+contact_links:
+  - name: ✨ Feature? Send a pull request
+    url: https://github.com/guyshonshon/amaco/blob/main/CONTRIBUTING.md
+    about: Features land as PRs — that's the path we encourage most. Read the contributing guide and build it.
+  - name: 🔐 Security vulnerability
+    url: https://github.com/guyshonshon/amaco/security/advisories/new
+    about: Report privately via GitHub Security Advisories. Please don't open a public issue.
+  - name: 📚 Documentation
+    url: https://amaco.shonshon.com/docs
+    about: Read the docs before filing — your question may already be answered.

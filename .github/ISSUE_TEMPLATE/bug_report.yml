@@ -1,0 +1,50 @@
+name: 🐛 Bug report
+description: Something broke or behaved unexpectedly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The more concrete the repro, the faster the fix.
+        **Never paste secrets** — no `.env` contents, tokens, or private source.
+  - type: textarea
+    id: command
+    attributes:
+      label: What did you run?
+      description: The exact `amaco …` command (or UI action).
+      placeholder: amaco run "Add audit logging" --ui
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect vs. what happened?
+    validations:
+      required: true
+  - type: input
+    id: run-id
+    attributes:
+      label: runId (if a run was involved)
+      description: Helps us find the artifacts under .amaco/runs/<runId>/.
+      placeholder: abc123
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Paste the error, or an excerpt of events.jsonl. Redact anything sensitive.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Amaco version
+      description: Output of `amaco --version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS, Node version, installed provider CLIs
+      placeholder: "macOS 15, node v20.19, claude + ollama"
+    validations:
+      required: true

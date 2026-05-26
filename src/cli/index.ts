@@ -65,7 +65,7 @@ export function buildAmacoProgram(): Command {
     .description(
       "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
-    .version("0.0.1");
+    .version("0.1.0");
 
   program
     .command("init")
