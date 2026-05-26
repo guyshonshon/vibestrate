@@ -32,6 +32,7 @@ import {
   RunReplayError,
 } from "../../core/run-replay-service.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
+import type { RunSpec } from "../../core/run-launcher.js";
 import {
   appendControl,
   listControls,
@@ -89,17 +90,53 @@ const spawnRunBody = z.object({
     .optional(),
 });
 
-function resolveAmacoBin(): string {
+function resolveRunEntry(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    // bundled: dist/index.js sits a few dirs up from this route file
-    path.resolve(here, "..", "..", "..", "dist", "index.js"),
+    // bundled: dist/run-entry.js sits a few dirs up from this route file
+    path.resolve(here, "..", "..", "..", "dist", "run-entry.js"),
     // source layout under src/server/routes
-    path.resolve(here, "..", "..", "..", "..", "dist", "index.js"),
+    path.resolve(here, "..", "..", "..", "..", "dist", "run-entry.js"),
     // same dir as the bundled entry
-    path.resolve(here, "index.js"),
+    path.resolve(here, "run-entry.js"),
   ];
   return candidates.find((p) => existsSync(p)) ?? candidates[0]!;
+}
+
+/**
+ * Start a run as a DETACHED CORE process — `node dist/run-entry.js <specFile>`,
+ * never the CLI binary. This is the decoupling: the dashboard drives runs
+ * through `src/core/run-launcher.ts`, not the `amaco` command surface. The spec
+ * is written to a transient file under `.amaco/` (keeps argv short); the entry
+ * reads it, deletes it, and runs. Detached + unref'd so the run outlives the
+ * request and the dashboard, exactly like a CLI run.
+ */
+async function startDetachedRun(input: {
+  projectRoot: string;
+  spec: RunSpec;
+  spawnedBy: string;
+  extraEnv?: Record<string, string>;
+}): Promise<number | null> {
+  const entry = resolveRunEntry();
+  const specPath = path.join(
+    input.projectRoot,
+    ".amaco",
+    `.run-spec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`,
+  );
+  await writeJson(specPath, input.spec);
+  const child = spawn(process.execPath, [entry, specPath], {
+    cwd: input.projectRoot,
+    env: {
+      ...process.env,
+      AMACO_SPAWNED_BY: input.spawnedBy,
+      NO_COLOR: "1",
+      ...input.extraEnv,
+    },
+    stdio: "ignore",
+    detached: true,
+  });
+  child.unref();
+  return child.pid ?? null;
 }
 
 export async function registerRunsRoutes(
@@ -127,11 +164,11 @@ export async function registerRunsRoutes(
   });
 
   // ─── POST /api/runs ───────────────────────────────────────────────
-  // Spawn `amaco run` for a task. argv-only (never a shell), all
-  // body fields are typed + length-bounded, cwd is pinned to the
-  // project root the server is serving. Audits a `run.spawned_by_ui`
-  // event into the project-level audit log so dashboard-initiated
-  // runs are distinguishable from CLI runs after the fact.
+  // Start a run through the shared core run launcher (NOT the `amaco`
+  // CLI binary): a detached `dist/run-entry.js` reads a typed, length-
+  // bounded spec and drives the orchestrator. cwd is pinned to the
+  // project root the server is serving. UI ⇄ CLI stay decoupled — both
+  // reach a run only via core.
   app.post<{ Body: unknown }>("/api/runs", async (req) => {
     const parsed = spawnRunBody.safeParse(req.body);
     if (!parsed.success) {
@@ -162,25 +199,33 @@ export async function registerRunsRoutes(
         argv.push("--guide-skip", stepId);
       }
     }
-    const bin = resolveAmacoBin();
+    const spec: RunSpec = {
+      projectRoot,
+      task: body.task,
+      taskId: body.taskId ?? null,
+      effort: body.effort ?? null,
+      provider: body.provider ?? null,
+      readOnly: body.readOnly ?? false,
+      runtimeSkills: body.skills ?? [],
+      concise: body.concise ?? false,
+      guide: body.guide ?? null,
+    };
     try {
-      const child = spawn(process.execPath, [bin, ...argv], {
-        cwd: projectRoot,
-        env: { ...process.env, AMACO_SPAWNED_BY: "dashboard", NO_COLOR: "1" },
-        stdio: "ignore",
-        detached: true,
+      const pid = await startDetachedRun({
+        projectRoot,
+        spec,
+        spawnedBy: "dashboard",
       });
-      child.unref();
       return {
         ok: true,
-        pid: child.pid ?? null,
+        pid,
         argv,
-        message: `spawned amaco ${argv.map((a) => (a.includes(" ") ? JSON.stringify(a) : a)).join(" ")}`,
+        message: `started run (equivalent: amaco ${formatArgv(argv)})`,
       };
     } catch (err) {
       throw new HttpError(
         500,
-        `Failed to spawn amaco run: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to start run: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   });
@@ -377,31 +422,37 @@ export async function registerRunsRoutes(
         );
       }
       const argv = deriveRerunArgs(run);
-      const bin = resolveAmacoBin();
+      const spec: RunSpec = {
+        projectRoot,
+        task: run.task,
+        taskId: run.taskId ?? null,
+        effort: run.effort ?? null,
+        provider: run.providerOverride ?? null,
+        readOnly: run.readOnly ?? false,
+        runtimeSkills: run.runtimeSkills ?? [],
+        concise: run.concise ?? false,
+        // Retry mirrors `deriveRerunArgs`, which re-runs the task without a
+        // Guide; keep that behavior rather than silently changing it.
+        guide: null,
+      };
       try {
-        const child = spawn(process.execPath, [bin, ...argv], {
-          cwd: projectRoot,
-          env: {
-            ...process.env,
-            AMACO_SPAWNED_BY: "dashboard-retry",
-            AMACO_RETRY_OF: req.params.runId,
-            NO_COLOR: "1",
-          },
-          stdio: "ignore",
-          detached: true,
+        const pid = await startDetachedRun({
+          projectRoot,
+          spec,
+          spawnedBy: "dashboard-retry",
+          extraEnv: { AMACO_RETRY_OF: req.params.runId },
         });
-        child.unref();
         return {
           ok: true,
-          pid: child.pid ?? null,
+          pid,
           argv,
           retryOf: req.params.runId,
-          message: `spawned amaco ${formatArgv(argv)}`,
+          message: `started retry (equivalent: amaco ${formatArgv(argv)})`,
         };
       } catch (err) {
         throw new HttpError(
           500,
-          `Failed to spawn retry: ${err instanceof Error ? err.message : String(err)}`,
+          `Failed to start retry: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     },

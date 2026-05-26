@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: decouple UI ⇄ CLI — the dashboard no longer spawns the `amaco`
+  binary to start/retry runs. New shared core run launcher
+  (`core/run-launcher.ts`, `runFromSpec`) + a detached core entry
+  (`core/run-entry.js`, second build output) the server spawns with a JSON
+  spec. Both CLI and dashboard now reach a run only through core; runs stay
+  detached (survive closing the dashboard). Tests + tsup multi-entry.
 - Change: README hero — centered Amaco logo + ASCII wordmark as a transparent
   image (no code-block background); dropped the redundant plain-text title and
   the footer "made for the love of building" line. Logo added to
