@@ -1,13 +1,17 @@
 <a name="top"></a>
 
 ```text
-     █████   ███    ███   █████    ██████    ██████
-    ██   ██  ████  ████  ██   ██  ██        ██    ██
-    ███████  ██ ████ ██  ███████  ██        ██    ██
-    ██   ██  ██  ██  ██  ██   ██  ██        ██    ██
-    ██   ██  ██      ██  ██   ██   ██████    ██████
+   ('-.     _   .-')      ('-.                            
+  ( OO ).-.( '.( OO )_   ( OO ).-.                        
+  / . --. / ,--.   ,--.) / . --. /   .-----.  .-'),-----. 
+  | \-.  \  |   `.'   |  | \-.  \   '  .--./ ( OO'  .-.  '
+.-'-'  |  | |         |.-'-'  |  |  |  |('-. /   |  | |  |
+ \| |_.'  | |  |'.'|  | \| |_.'  | /_) |OO  )\_) |  |\|  |
+  |  .-.  | |  |   |  |  |  .-.  | ||  |`-'|   \ |  | |  |
+  |  | |  | |  |   |  |  |  | |  |(_'  '--'\    `'  '-'  '
+  `--' `--' `--'   `--'  `--' `--'   `-----'      `-----' 
     ─────────────────────────────────────────────────
-       local-first · multi-agent · fully supervised
+      your models · your machine · your call at every gate
 ```
 
 <div align="center">
@@ -20,7 +24,7 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 <br />
 
 [![License](https://img.shields.io/badge/License-MIT-8b7cff?style=flat-square&labelColor=0e1118)](./LICENSE)
-[![Version](https://img.shields.io/badge/Version-0.1.0-8b7cff?style=flat-square&labelColor=0e1118)](./package.json)
+[![npm](https://img.shields.io/npm/v/amaco-os?style=flat-square&labelColor=0e1118&color=8b7cff)](https://www.npmjs.com/package/amaco-os)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018.17-8b7cff?style=flat-square&labelColor=0e1118)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-7cc5ff?style=flat-square&labelColor=0e1118)](https://www.typescriptlang.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-4ade80?style=flat-square&labelColor=0e1118)](#-contributing)
@@ -158,9 +162,18 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
-## ◆ Versioning
+## ◆ Versioning & releases
 
-Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) — the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) and flows into `amaco --version` and the generated docs reference.
+Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) — the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `amaco --version` and the generated docs reference.
+
+Releases are tag-driven. On a clean `main`:
+
+```bash
+npm version patch          # bumps package.json, commits, tags vX.Y.Z
+git push --follow-tags     # the tag triggers the Release workflow
+```
+
+The [Release workflow](./.github/workflows/release.yml) re-runs typecheck + tests, then publishes to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements) via OIDC trusted publishing — no long-lived token. The published tarball is the lean build (sourcemaps stripped) produced by `prepublishOnly`.
 
 ## ◆ License
 

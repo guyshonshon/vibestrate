@@ -1,0 +1,62 @@
+name: Release
+
+# Publishes amaco-os to npm when a version tag is pushed.
+#
+# Release flow (run locally on a clean main):
+#
+#   npm version patch          # bumps package.json, commits, tags vX.Y.Z
+#   git push --follow-tags     # pushes the commit + the tag
+#
+# Pushing the tag triggers this workflow, which re-runs the full gate
+# (typecheck + test) and then publishes.
+#
+# Publishing uses npm TRUSTED PUBLISHING (OIDC) + provenance — no
+# long-lived NPM_TOKEN is stored. One-time setup on npmjs.com:
+#   npm package → Settings → Trusted Publisher → GitHub Actions
+#   repo: guyshonshon/amaco · workflow: release.yml
+# (Until then, set an automation-token secret NPM_TOKEN as a fallback —
+#  it's wired below and used automatically if present.)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance + OIDC trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      # npm >= 11.5.1 is required for OIDC trusted publishing.
+      - name: Ensure recent npm
+        run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      # `npm publish` runs prepublishOnly (build + sourcemap trim).
+      # --provenance attaches a signed build attestation; --access public
+      # is explicit for an unscoped public package.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
