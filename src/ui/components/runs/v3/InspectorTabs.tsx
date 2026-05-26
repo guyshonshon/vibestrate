@@ -1,7 +1,7 @@
-import { Bolt, Check, Folder } from "lucide-react";
+import { Bolt, Check, Folder, ListTree } from "lucide-react";
 import { cn } from "../../design/cn.js";
 
-export type InspectorV3Tab = "events" | "artifacts" | "validation";
+export type InspectorV3Tab = "steps" | "events" | "artifacts" | "validation";
 
 export function InspectorTabsV3({
   current,
@@ -11,6 +11,7 @@ export function InspectorTabsV3({
   setCurrent: (t: InspectorV3Tab) => void;
 }) {
   const tabs: { id: InspectorV3Tab; label: string; icon: React.ReactNode }[] = [
+    { id: "steps", label: "Steps", icon: <ListTree className="h-3 w-3" strokeWidth={1.7} /> },
     { id: "events", label: "Events", icon: <Bolt className="h-3 w-3" strokeWidth={1.7} /> },
     { id: "artifacts", label: "Artifacts", icon: <Folder className="h-3 w-3" strokeWidth={1.7} /> },
     { id: "validation", label: "Validation", icon: <Check className="h-3 w-3" strokeWidth={1.7} /> },

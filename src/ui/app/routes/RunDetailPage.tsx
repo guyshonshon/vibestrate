@@ -16,6 +16,7 @@ import {
   type InspectorV3Tab,
 } from "../../components/runs/v3/InspectorTabs.js";
 import { LiveOutputPanel } from "../../components/runs/LiveOutputPanel.js";
+import { StepsInspector } from "../../components/runs/StepsInspector.js";
 import { EventStream } from "../../components/workflow/EventStream.js";
 import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
 import { ArtifactList } from "../../components/artifacts/ArtifactList.js";
@@ -53,7 +54,9 @@ export function RunDetailPage({
       ? "artifacts"
       : initialTab === "validation"
         ? "validation"
-        : "events",
+        : initialTab === "events"
+          ? "events"
+          : "steps",
   );
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
@@ -192,7 +195,7 @@ export function RunDetailPage({
       <section className="grid grid-cols-12 gap-5" data-screen-label="03 Live execution">
         <div className="col-span-12 xl:col-span-8 min-h-0">
           <div className="flex items-baseline justify-between mb-2.5">
-            <span className="eyebrow">3 · Live execution</span>
+            <span className="eyebrow">Live execution · raw provider CLI output</span>
           </div>
           <div className="rounded-xl border border-white/[0.08] bg-black/55 overflow-hidden">
             <LiveOutputPanel runId={runId} status={run.status} />
@@ -201,7 +204,15 @@ export function RunDetailPage({
 
         <aside className="col-span-12 xl:col-span-4 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
           <ActiveAgentPanel run={run} metrics={metrics} />
-          <DiffStatsPanel diff={diff} />
+          <div className="glass p-4">
+            <ChangedFilesList
+              runId={runId}
+              selectedPath={null}
+              onSelect={(p) =>
+                navigate({ kind: "codebase", filePath: p, line: null, runId })
+              }
+            />
+          </div>
         </aside>
       </section>
 
@@ -209,11 +220,13 @@ export function RunDetailPage({
 
       <section data-screen-label="05 Inspector">
         <div className="flex items-baseline justify-between mb-2.5">
-          <span className="eyebrow">5 · Inspect</span>
+          <span className="eyebrow">Inspect</span>
           <InspectorTabsV3 current={tab} setCurrent={setTab} />
         </div>
         <div className="glass p-3.5">
-          {tab === "events" ? (
+          {tab === "steps" ? (
+            <StepsInspector metrics={metrics} />
+          ) : tab === "events" ? (
             <EventStream runId={runId} />
           ) : tab === "artifacts" ? (
             <div className="grid grid-cols-12 gap-4">
@@ -355,37 +368,6 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="text-fog-100 mono num-tabular text-[15px]">{value}</div>
-    </div>
-  );
-}
-
-function DiffStatsPanel({
-  diff,
-}: {
-  diff: { insertions: number; deletions: number; files: number } | null;
-}) {
-  return (
-    <div className="glass p-4">
-      <SectionEyebrow className="mb-3">
-        <span>Diff{diff ? ` · ${diff.files} files` : ""}</span>
-        {diff ? (
-          <span className="mono text-[11.5px] whitespace-nowrap">
-            <span className="text-emerald-300/90">+{diff.insertions}</span>{" "}
-            <span className="text-rose-300/90">−{diff.deletions}</span>
-          </span>
-        ) : null}
-      </SectionEyebrow>
-      {diff ? (
-        <div className="text-[12px] text-fog-300">
-          Worktree updates are summarized here. Open the Artifacts tab below
-          for the full file list and diff viewer.
-        </div>
-      ) : (
-        <div className="text-[12px] text-fog-400">
-          No worktree diff yet. The diff fills in as the executor edits
-          files.
-        </div>
-      )}
     </div>
   );
 }
