@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "sections": [
+    {
+      "id": "start",
+      "label": "Start here",
+      "items": [
+        { "slug": "index", "label": "Overview" }
+      ]
+    },
+    {
+      "id": "getting-started",
+      "label": "Getting started",
+      "items": [
+        { "slug": "getting-started/installation", "label": "Installation" },
+        { "slug": "getting-started/first-run", "label": "Your first run" },
+        { "slug": "getting-started/providers", "label": "Set up a provider" },
+        { "slug": "getting-started/skills", "label": "Attach skills" }
+      ]
+    },
+    {
+      "id": "concepts",
+      "label": "Concepts",
+      "items": [
+        { "slug": "concepts/task", "label": "Task" },
+        { "slug": "concepts/agent", "label": "Agent" },
+        { "slug": "concepts/provider", "label": "Provider" },
+        { "slug": "concepts/workflow", "label": "Workflow" },
+        { "slug": "concepts/guide", "label": "Guide" },
+        { "slug": "concepts/skill", "label": "Skill" },
+        { "slug": "concepts/state", "label": "Run state" },
+        { "slug": "concepts/worktree", "label": "Worktree" }
+      ]
+    },
+    {
+      "id": "cli",
+      "label": "Using the CLI",
+      "items": [
+        { "slug": "cli/overview", "label": "CLI overview" },
+        { "slug": "cli/dashboard", "label": "Mission Control" }
+      ]
+    },
+    {
+      "id": "workflows",
+      "label": "Workflows",
+      "items": [
+        { "slug": "workflows/create-and-run", "label": "Create and run a task" },
+        { "slug": "workflows/inspect-progress", "label": "Inspect a run in flight" },
+        { "slug": "workflows/pause-resume", "label": "Pause, resume, abort" },
+        { "slug": "workflows/debug-failed", "label": "Debug a failed run" }
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "label": "Run lifecycle",
+      "items": [
+        { "slug": "task-lifecycle", "label": "Task lifecycle" }
+      ]
+    },
+    {
+      "id": "reference",
+      "label": "Reference",
+      "items": [
+        { "slug": "reference/cli", "label": "CLI commands", "generated": true, "source": "cli-commands.json" },
+        { "slug": "reference/config", "label": "project.yml schema", "generated": true, "source": "config-schema.json" },
+        { "slug": "reference/providers", "label": "Providers", "generated": true, "source": "providers.json" },
+        { "slug": "reference/guides", "label": "Built-in Guides", "generated": true, "source": "guides.json" },
+        { "slug": "reference/workflow", "label": "Workflow stages", "generated": true, "source": "workflow.json" },
+        { "slug": "reference/state-machine", "label": "Run states", "generated": true, "source": "state-machine.json" },
+        { "slug": "reference/agents", "label": "Agent roles", "generated": true, "source": "agents.json" }
+      ]
+    },
+    {
+      "id": "architecture",
+      "label": "Architecture",
+      "items": [
+        { "slug": "architecture/overview", "label": "High-level architecture" },
+        { "slug": "architecture/directory-map", "label": "Repository map" }
+      ]
+    },
+    {
+      "id": "extending",
+      "label": "Extending Amaco",
+      "items": [
+        { "slug": "extending/add-skill", "label": "Add a skill" },
+        { "slug": "extending/add-guide", "label": "Add a Guide" },
+        { "slug": "extending/add-provider", "label": "Add a provider" }
+      ]
+    },
+    {
+      "id": "ops",
+      "label": "Operations",
+      "items": [
+        { "slug": "troubleshooting", "label": "Troubleshooting" },
+        { "slug": "glossary", "label": "Glossary" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "description": "Built-in agent roles. Each is a configured row under `agents:` in project.yml — provider, prompt template, permission profile, and any skills.",
+  "agents": [
+    {
+      "id": "planner",
+      "role": "Reads the task brief and produces a plan.",
+      "reads": "Task description, project rules, .amaco/agents/planner.md prompt, attached skills.",
+      "writes": "Structured plan artifact.",
+      "promptTemplateRelPath": "src/agents/default-prompts/planner.md"
+    },
+    {
+      "id": "architect",
+      "role": "Expands the plan with implementation specifics.",
+      "reads": "Plan + project rules + attached skills.",
+      "writes": "Architecture artifact (module map, interfaces, data flow).",
+      "promptTemplateRelPath": "src/agents/default-prompts/architect.md"
+    },
+    {
+      "id": "executor",
+      "role": "Applies code changes in the run's worktree.",
+      "reads": "Plan, architecture, review findings if any.",
+      "writes": "File edits in the worktree; execution log.",
+      "promptTemplateRelPath": "src/agents/default-prompts/executor.md"
+    },
+    {
+      "id": "fixer",
+      "role": "Addresses review findings.",
+      "reads": "Review findings, validation logs, current diff.",
+      "writes": "Patches and a `finding-responses` artifact.",
+      "promptTemplateRelPath": "src/agents/default-prompts/fixer.md"
+    },
+    {
+      "id": "reviewer",
+      "role": "Critiques the diff against the plan.",
+      "reads": "Plan, current diff, validation output.",
+      "writes": "Findings + a review decision (APPROVED / CHANGES_REQUESTED / BLOCKED).",
+      "promptTemplateRelPath": "src/agents/default-prompts/reviewer.md"
+    },
+    {
+      "id": "verifier",
+      "role": "Final gate before merge.",
+      "reads": "All artifacts from the run.",
+      "writes": "Verification decision (PASSED / FAILED / NEEDS_HUMAN) + decision summary.",
+      "promptTemplateRelPath": "src/agents/default-prompts/verifier.md"
+    }
+  ]
+}

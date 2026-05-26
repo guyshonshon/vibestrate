@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "description": "Built-in providers known to Amaco's detector. `presetReady: true` means Amaco ships verified prompt-flag defaults; otherwise users run `amaco provider setup` to wire up the right flags for their installation.",
+  "providers": [
+    {
+      "id": "claude",
+      "label": "Claude Code",
+      "command": "claude",
+      "versionArgs": [
+        "--version"
+      ],
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "notes": [
+        "Default args: -p with prompt on stdin.",
+        "Amaco will configure Claude Code automatically."
+      ],
+      "installHint": null
+    },
+    {
+      "id": "codex",
+      "label": "Codex CLI",
+      "command": "codex",
+      "versionArgs": [
+        "--version"
+      ],
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
+      "notes": [
+        "Starter preset available: `codex exec -q` with stdin prompt.",
+        "Run `amaco provider setup` to apply it, then `amaco provider test codex` to verify the flags work in your installed version."
+      ],
+      "installHint": null
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "command": "opencode",
+      "versionArgs": [
+        "--version"
+      ],
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
+      "notes": [
+        "Detected, but Amaco does not ship a verified prompt-flag preset.",
+        "Run `amaco provider setup` to confirm command, args, and input mode."
+      ],
+      "installHint": null
+    },
+    {
+      "id": "aider",
+      "label": "Aider",
+      "command": "aider",
+      "versionArgs": [
+        "--version"
+      ],
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
+      "notes": [
+        "Detected, but Amaco does not ship a verified prompt-flag preset.",
+        "Run `amaco provider setup` to confirm command, args, and input mode."
+      ],
+      "installHint": null
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama",
+      "command": "ollama",
+      "versionArgs": [
+        "--version"
+      ],
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
+      "notes": [
+        "Starter preset available: `ollama run qwen3.5` with stdin prompt.",
+        "Run `ollama pull qwen3.5` first, or edit providers.ollama.args to use another local model.",
+        "Run `amaco provider setup` to apply it, then `amaco provider test ollama` to verify the model responds."
+      ],
+      "installHint": "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download."
+    }
+  ]
+}

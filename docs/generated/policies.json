@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "description": "Policy-gated approval stages. Configure under `policies.requireApprovalAtStages` in project.yml.",
+  "stages": [
+    {
+      "id": "planning",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `planning` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "architecting",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `architecting` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "executing",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `executing` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "validating",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `validating` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "reviewing",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `reviewing` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "fixing",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `fixing` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    },
+    {
+      "id": "verifying",
+      "description": "When listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into the `verifying` stage and emits a `waiting_for_approval` event. A human must approve via `amaco approvals decide` (or the dashboard) before the run continues."
+    }
+  ]
+}

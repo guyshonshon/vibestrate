@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "rootKey": "project.yml",
+  "description": "Schema for .amaco/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Amaco fills in when the key is missing.",
+  "fields": [
+    {
+      "key": "project",
+      "fullKey": "project",
+      "type": "object",
+      "required": true,
+      "itemType": null,
+      "children": [
+        {
+          "key": "name",
+          "fullKey": "project.name",
+          "type": "string",
+          "required": true,
+          "itemType": null
+        },
+        {
+          "key": "type",
+          "fullKey": "project.type",
+          "type": "string",
+          "required": false,
+          "default": "generic",
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "git",
+      "fullKey": "git",
+      "type": "object",
+      "required": false,
+      "default": {
+        "mainBranch": "main",
+        "branchPrefix": "amaco/",
+        "worktreeDir": "../.amaco-worktrees",
+        "requireCleanMain": false,
+        "allowAutoMerge": false,
+        "allowAutoPush": false
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "mainBranch",
+          "fullKey": "git.mainBranch",
+          "type": "string",
+          "required": false,
+          "default": "main",
+          "itemType": null
+        },
+        {
+          "key": "branchPrefix",
+          "fullKey": "git.branchPrefix",
+          "type": "string",
+          "required": false,
+          "default": "amaco/",
+          "itemType": null
+        },
+        {
+          "key": "worktreeDir",
+          "fullKey": "git.worktreeDir",
+          "type": "string",
+          "required": false,
+          "default": "../.amaco-worktrees",
+          "itemType": null
+        },
+        {
+          "key": "requireCleanMain",
+          "fullKey": "git.requireCleanMain",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        },
+        {
+          "key": "allowAutoMerge",
+          "fullKey": "git.allowAutoMerge",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        },
+        {
+          "key": "allowAutoPush",
+          "fullKey": "git.allowAutoPush",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "workflow",
+      "fullKey": "workflow",
+      "type": "object",
+      "required": false,
+      "default": {
+        "id": "default-plan-build-review",
+        "maxReviewLoops": 2,
+        "requireHumanMerge": true
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "id",
+          "fullKey": "workflow.id",
+          "type": "string",
+          "required": false,
+          "default": "default-plan-build-review",
+          "itemType": null
+        },
+        {
+          "key": "maxReviewLoops",
+          "fullKey": "workflow.maxReviewLoops",
+          "type": "number",
+          "required": false,
+          "default": 2,
+          "itemType": null
+        },
+        {
+          "key": "requireHumanMerge",
+          "fullKey": "workflow.requireHumanMerge",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "execution",
+      "fullKey": "execution",
+      "type": "object",
+      "required": false,
+      "default": {
+        "backend": "local-worktree"
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "backend",
+          "fullKey": "execution.backend",
+          "type": "enum",
+          "required": false,
+          "default": "local-worktree",
+          "enum": [
+            "local-worktree",
+            "docker",
+            "remote-sandbox",
+            "cloud-runner"
+          ],
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "providers",
+      "fullKey": "providers",
+      "type": "record<string, object | object>",
+      "required": true,
+      "itemType": null
+    },
+    {
+      "key": "effortMap",
+      "fullKey": "effortMap",
+      "type": "object",
+      "required": false,
+      "default": {},
+      "itemType": null,
+      "children": [
+        {
+          "key": "low",
+          "fullKey": "effortMap.low",
+          "type": "string",
+          "required": false,
+          "itemType": null
+        },
+        {
+          "key": "medium",
+          "fullKey": "effortMap.medium",
+          "type": "string",
+          "required": false,
+          "itemType": null
+        },
+        {
+          "key": "high",
+          "fullKey": "effortMap.high",
+          "type": "string",
+          "required": false,
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "agents",
+      "fullKey": "agents",
+      "type": "record<string, object>",
+      "required": true,
+      "itemType": null
+    },
+    {
+      "key": "commands",
+      "fullKey": "commands",
+      "type": "object",
+      "required": false,
+      "default": {
+        "validate": []
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "validate",
+          "fullKey": "commands.validate",
+          "type": "array<string>",
+          "required": false,
+          "default": [],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "string",
+            "required": true
+          }
+        },
+        {
+          "key": "validationProfiles",
+          "fullKey": "commands.validationProfiles",
+          "type": "record<string, object>",
+          "required": false,
+          "default": {},
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "permissions",
+      "fullKey": "permissions",
+      "type": "object",
+      "required": false,
+      "default": {
+        "profiles": {}
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "profiles",
+          "fullKey": "permissions.profiles",
+          "type": "record<string, object>",
+          "required": false,
+          "default": {},
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "policies",
+      "fullKey": "policies",
+      "type": "object",
+      "required": false,
+      "default": {
+        "forbidMainBranchWrites": true,
+        "forbidSecretsAccess": true,
+        "forbidAutoPush": true,
+        "forbidAutoMerge": true,
+        "preserveArtifacts": true,
+        "requireApprovalAtStages": [],
+        "allowInteractiveTerminal": false
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "forbidMainBranchWrites",
+          "fullKey": "policies.forbidMainBranchWrites",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "forbidSecretsAccess",
+          "fullKey": "policies.forbidSecretsAccess",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "forbidAutoPush",
+          "fullKey": "policies.forbidAutoPush",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "forbidAutoMerge",
+          "fullKey": "policies.forbidAutoMerge",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "preserveArtifacts",
+          "fullKey": "policies.preserveArtifacts",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "requireApprovalAtStages",
+          "fullKey": "policies.requireApprovalAtStages",
+          "type": "array<enum>",
+          "required": false,
+          "default": [],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "enum",
+            "required": true,
+            "enum": [
+              "planning",
+              "architecting",
+              "executing",
+              "validating",
+              "reviewing",
+              "fixing",
+              "verifying"
+            ]
+          }
+        },
+        {
+          "key": "allowInteractiveTerminal",
+          "fullKey": "policies.allowInteractiveTerminal",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "scheduler",
+      "fullKey": "scheduler",
+      "type": "object",
+      "required": false,
+      "default": {
+        "maxConcurrentRuns": 1,
+        "maxConcurrentWriteAgents": 1,
+        "conflictPolicy": "warn",
+        "queuePolicy": "fifo",
+        "sourceQuotas": {}
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "maxConcurrentRuns",
+          "fullKey": "scheduler.maxConcurrentRuns",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "itemType": null
+        },
+        {
+          "key": "maxConcurrentWriteAgents",
+          "fullKey": "scheduler.maxConcurrentWriteAgents",
+          "type": "number",
+          "required": false,
+          "default": 1,
+          "itemType": null
+        },
+        {
+          "key": "conflictPolicy",
+          "fullKey": "scheduler.conflictPolicy",
+          "type": "enum",
+          "required": false,
+          "default": "warn",
+          "enum": [
+            "warn",
+            "block"
+          ],
+          "itemType": null
+        },
+        {
+          "key": "queuePolicy",
+          "fullKey": "scheduler.queuePolicy",
+          "type": "enum",
+          "required": false,
+          "default": "fifo",
+          "enum": [
+            "fifo",
+            "priority",
+            "fair"
+          ],
+          "itemType": null
+        },
+        {
+          "key": "sourceQuotas",
+          "fullKey": "scheduler.sourceQuotas",
+          "type": "record<string, number>",
+          "required": false,
+          "default": {},
+          "itemType": null
+        },
+        {
+          "key": "defaultSourceConcurrency",
+          "fullKey": "scheduler.defaultSourceConcurrency",
+          "type": "number",
+          "required": false,
+          "itemType": null
+        }
+      ]
+    },
+    {
+      "key": "editor",
+      "fullKey": "editor",
+      "type": "object",
+      "required": false,
+      "default": {
+        "enabled": false,
+        "command": "code",
+        "args": [
+          "--goto",
+          "{file}:{line}:{column}"
+        ]
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "enabled",
+          "fullKey": "editor.enabled",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        },
+        {
+          "key": "command",
+          "fullKey": "editor.command",
+          "type": "string",
+          "required": false,
+          "default": "code",
+          "itemType": null
+        },
+        {
+          "key": "args",
+          "fullKey": "editor.args",
+          "type": "array<string>",
+          "required": false,
+          "default": [
+            "--goto",
+            "{file}:{line}:{column}"
+          ],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "string",
+            "required": true
+          }
+        }
+      ]
+    }
+  ]
+}
