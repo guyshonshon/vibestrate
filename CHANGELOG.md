@@ -6,6 +6,8 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: Guides Hub design doc (`docs/design/guides-hub.md`, #3) — phased plan
+  (git-backed index → Cloudflare `amaco-hub` service) with API, rules, metrics.
 - Chore: stop tracking `CLAUDE.md` (local agent protocol) and scheduler
   runtime state (`lock`, `state.json`, `*.ndjson`); gitignore them plus a
   stray `logo-text.png`. CLAUDE.md references trimmed from public docs.
