@@ -240,6 +240,21 @@ export type ProviderRow = {
   loginNote: string;
 };
 
+export type CodebaseAnnotation = {
+  id: string;
+  path: string;
+  /** Anchor line (1-based) or null for a whole-file note. */
+  line: number | null;
+  /** End line for a range or null. */
+  endLine: number | null;
+  body: string;
+  /** When true, injected into agent prompts during runs. */
+  shareWithAgents: boolean;
+  status: "open" | "resolved";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type GuideStepKind =
   | "agent-turn"
   | "review-turn"
@@ -941,6 +956,49 @@ export const api = {
       `/api/project/file?${q.toString()}`,
     );
     return r.file;
+  },
+  async listAnnotations(input?: {
+    path?: string;
+    status?: "open" | "resolved";
+  }): Promise<CodebaseAnnotation[]> {
+    const q = new URLSearchParams();
+    if (input?.path) q.set("path", input.path);
+    if (input?.status) q.set("status", input.status);
+    const qs = q.toString();
+    const r = await jsonGet<{ annotations: CodebaseAnnotation[] }>(
+      `/api/annotations${qs ? `?${qs}` : ""}`,
+    );
+    return r.annotations;
+  },
+  async addAnnotation(input: {
+    path: string;
+    line?: number | null;
+    endLine?: number | null;
+    body: string;
+    shareWithAgents?: boolean;
+  }): Promise<CodebaseAnnotation> {
+    const r = await jsonPost<{ annotation: CodebaseAnnotation }>(
+      "/api/annotations",
+      input,
+    );
+    return r.annotation;
+  },
+  async updateAnnotation(
+    id: string,
+    patch: {
+      body?: string;
+      shareWithAgents?: boolean;
+      status?: "open" | "resolved";
+    },
+  ): Promise<CodebaseAnnotation> {
+    const r = await jsonPatch<{ annotation: CodebaseAnnotation }>(
+      `/api/annotations/${encodeURIComponent(id)}`,
+      patch,
+    );
+    return r.annotation;
+  },
+  async deleteAnnotation(id: string): Promise<void> {
+    await jsonDelete<{ ok: true }>(`/api/annotations/${encodeURIComponent(id)}`);
   },
   async getRunTree(runId: string): Promise<FileTreeResult> {
     const r = await jsonGet<{ tree: FileTreeResult }>(

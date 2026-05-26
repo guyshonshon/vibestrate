@@ -135,6 +135,32 @@ export function scanPatchContentForSecrets(
   return matches;
 }
 
+/**
+ * Scan raw text (not a diff) for the same high-precision secret patterns. Used
+ * by the codebase-annotations service so a user can't paste a literal vendor
+ * token into a note that then gets injected into agent prompts.
+ */
+export function scanTextForSecrets(text: string): SecretContentMatch[] {
+  const matches: SecretContentMatch[] = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    for (const { name, re } of SECRET_CONTENT_PATTERNS) {
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(line))) {
+        matches.push({
+          pattern: name,
+          line: i,
+          filePath: null,
+          redactedSnippet: redactSecret(m[0]),
+        });
+      }
+    }
+  }
+  return matches;
+}
+
 function redactSecret(token: string): string {
   if (token.length <= 8) return `${token.slice(0, 2)}…(${token.length})`;
   return `${token.slice(0, 4)}…(${token.length} chars)`;

@@ -29,7 +29,8 @@
         { "slug": "concepts/guide", "label": "Guide" },
         { "slug": "concepts/skill", "label": "Skill" },
         { "slug": "concepts/state", "label": "Run state" },
-        { "slug": "concepts/worktree", "label": "Worktree" }
+        { "slug": "concepts/worktree", "label": "Worktree" },
+        { "slug": "concepts/annotation", "label": "Annotations" }
       ]
     },
     {

@@ -21,6 +21,12 @@ export type PromptBuildInput = {
   projectName: string;
   validationResults?: ValidationResults | null;
   additionalNotes?: string;
+  /**
+   * Pre-rendered "# Human Annotations" section (see annotations-service). The
+   * user's file-pinned notes that opted into agent sharing; injected verbatim
+   * so the whole crew acknowledges them. Empty/undefined → no section.
+   */
+  humanAnnotations?: string;
   /** Per-run brevity directive. Appends a short "be concise" section. */
   concise?: boolean;
 };
@@ -140,6 +146,11 @@ export function buildAgentPrompt(input: PromptBuildInput): string {
   sections.push(`# Project Rules`);
   sections.push(``);
   sections.push(input.rules.trim());
+
+  if (input.humanAnnotations && input.humanAnnotations.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.humanAnnotations.trim());
+  }
 
   const skills = renderSkills(input.skills);
   if (skills) {

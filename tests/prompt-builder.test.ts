@@ -120,6 +120,45 @@ describe("prompt builder", () => {
     expect(readOut).toContain("You are read-only");
   });
 
+  it("injects shared human annotations as their own section", () => {
+    const out = buildAgentPrompt({
+      agentId: "executor",
+      task: "x",
+      rules: "rules",
+      agentPromptTemplate: "Execute.",
+      skills: [],
+      priorArtifacts: [],
+      permission: writeProfile,
+      permissionName: "code_write",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+      humanAnnotations:
+        "# Human Annotations\n\n- **src/a.ts:12** — don't touch this fn",
+    });
+    expect(out).toContain("# Human Annotations");
+    expect(out).toContain("src/a.ts:12");
+    expect(out).toContain("don't touch this fn");
+  });
+
+  it("omits the annotations section when none are shared", () => {
+    const out = buildAgentPrompt({
+      agentId: "planner",
+      task: "x",
+      rules: "rules",
+      agentPromptTemplate: "Plan.",
+      skills: [],
+      priorArtifacts: [],
+      permission: readProfile,
+      permissionName: "read_only",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+      humanAnnotations: "",
+    });
+    expect(out).not.toContain("# Human Annotations");
+  });
+
   it("does not inline .env contents", () => {
     const out = buildAgentPrompt({
       agentId: "planner",
