@@ -37,6 +37,7 @@ import { cn } from "../../components/design/cn.js";
 import type {
   DiscoveredGuide,
   GuideStepDefinition,
+  ResolvedGuideSnapshot,
 } from "../../lib/types.js";
 
 /**
@@ -106,6 +107,11 @@ export function FlowBuilderPage({
     kind: "ok" | "err";
     text: string;
   } | null>(null);
+  // Dry-run preview: resolve the saved guide into the snapshot a real run
+  // would instantiate (provider per slot, enabled steps, gates) — no run.
+  const [dryRun, setDryRun] = useState<ResolvedGuideSnapshot | null>(null);
+  const [dryRunBusy, setDryRunBusy] = useState(false);
+  const [dryRunErr, setDryRunErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +134,20 @@ export function FlowBuilderPage({
     () => guides.find((g) => g.id === selectedId) ?? guides[0] ?? null,
     [guides, selectedId],
   );
+
+  async function runDryRun(): Promise<void> {
+    if (!selected) return;
+    setDryRunBusy(true);
+    setDryRunErr(null);
+    setDryRun(null);
+    try {
+      setDryRun(await api.resolveGuide(selected.id, { task: "Dry-run preview" }));
+    } catch (err) {
+      setDryRunErr(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDryRunBusy(false);
+    }
+  }
 
   // Reset the draft buffers any time the selected guide changes — the
   // draft mirrors the on-disk guide until the user actually edits a
@@ -340,18 +360,23 @@ export function FlowBuilderPage({
             onClick={onBack}
             className="flex items-center gap-1.5 text-[12.5px] text-fog-300 hover:text-fog-100"
           >
-            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Mission
+            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Guides
           </button>
           <span className="text-fog-500">/</span>
-          <span className="text-[12.5px] text-fog-300">Flows</span>
+          <span className="text-[12.5px] text-fog-300 truncate max-w-[200px]">
+            {selected?.label ?? "Editor"}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
+            disabled={!selected || dryRunBusy}
             iconLeft={<Eye className="h-3 w-3" strokeWidth={1.7} />}
+            onClick={() => void runDryRun()}
+            title="Resolve this guide into the run it would create — no run starts"
           >
-            Dry-run preview
+            {dryRunBusy ? "Resolving…" : "Dry-run preview"}
           </Button>
           {selected && !isProjectGuide ? (
             <Button
@@ -405,17 +430,30 @@ export function FlowBuilderPage({
         </div>
       </header>
 
-      <section className="mt-6 fade-up" data-screen-label="01 Hero">
-        <div className="eyebrow mb-1.5">Flow Builder</div>
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[760px]">
-          Design how your{" "}
-          <em className="text-display italic text-violet-soft">agents</em> work
-          together.
-        </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-          Start from a discovered guide, then customize each step: pick the
-          agent, attach skills, decide what needs your approval.
-        </p>
+      <section className="mt-5 flex flex-wrap items-center gap-3" data-screen-label="01 Guide">
+        <div className="eyebrow">Editing</div>
+        <select
+          value={selected?.id ?? ""}
+          onChange={(e) => {
+            setSelectedId(e.target.value);
+            setActiveStepIdx(0);
+          }}
+          aria-label="Select guide"
+          className="rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 max-w-[320px]"
+        >
+          {guides.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.label} · {g.source.kind === "project" ? "project" : g.source.kind}
+            </option>
+          ))}
+        </select>
+        {selected ? (
+          <span className="text-[11.5px] text-fog-500">
+            {selected.definition.steps.length} steps ·{" "}
+            {Object.keys(selected.definition.slots).length} slots · v
+            {selected.version}
+          </span>
+        ) : null}
       </section>
 
       {error ? (
@@ -437,76 +475,16 @@ export function FlowBuilderPage({
         </div>
       ) : null}
 
-      <section className="mt-8" data-screen-label="02 Templates">
-        <SectionEyebrow className="mb-3">
-          <span>Guides · {guides.length} discovered</span>
-        </SectionEyebrow>
-        {guides.length === 0 ? (
-          <div className="glass p-6 text-[13px] text-fog-400">
-            No guides discovered. Add a guide YAML to{" "}
-            <span className="mono">.amaco/guides/</span> in the project root,
-            or use one of the built-ins.
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-            {guides.map((g) => {
-              const Icon = guideIcon(g.label);
-              const selected = g.id === selectedId;
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedId(g.id);
-                    setActiveStepIdx(0);
-                  }}
-                  className={cn(
-                    "relative text-left rounded-2xl border surface-ink-100-55 backdrop-blur-xl px-4 py-4 card-hover overflow-hidden",
-                    selected
-                      ? "border-violet-soft/45 ring-1 ring-violet-soft/30"
-                      : "border-white/[0.07]",
-                  )}
-                >
-                  {selected ? (
-                    <div className="absolute -top-16 -right-10 w-40 h-40 rounded-full bg-violet-soft/[0.18] blur-3xl pointer-events-none" />
-                  ) : null}
-                  <div
-                    className={cn(
-                      "relative w-9 h-9 rounded-lg flex items-center justify-center mb-3",
-                      selected
-                        ? "bg-violet-soft/15 ring-1 ring-violet-soft/30 text-violet-soft"
-                        : "bg-white/[0.05] text-fog-300",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={1.7} />
-                  </div>
-                  <div className="relative">
-                    <div
-                      className={cn(
-                        "text-[13.5px] font-medium",
-                        selected ? "text-fog-100" : "text-fog-200",
-                      )}
-                    >
-                      {g.label}
-                    </div>
-                    <div className="text-[11.5px] text-fog-400 mt-0.5 line-clamp-2">
-                      {g.description || "—"}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
       {selected ? (
         <section className="mt-8 grid grid-cols-12 gap-5" data-screen-label="03 Builder">
           <div className="col-span-12 xl:col-span-7">
             <div className="glass p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
-                  <Scale className="h-4 w-4" strokeWidth={1.7} />
+                  {(() => {
+                    const Icon = guideIcon(selected.label);
+                    return <Icon className="h-4 w-4" strokeWidth={1.7} />;
+                  })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <input
@@ -586,6 +564,117 @@ export function FlowBuilderPage({
           </div>
         </section>
       ) : null}
+
+      {dryRun || dryRunBusy || dryRunErr ? (
+        <DryRunModal
+          snapshot={dryRun}
+          busy={dryRunBusy}
+          error={dryRunErr}
+          guideId={selected?.id ?? ""}
+          onClose={() => {
+            setDryRun(null);
+            setDryRunErr(null);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function DryRunModal({
+  snapshot,
+  busy,
+  error,
+  guideId,
+  onClose,
+}: {
+  snapshot: ResolvedGuideSnapshot | null;
+  busy: boolean;
+  error: string | null;
+  guideId: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="glass w-full max-w-[640px] p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="eyebrow">Dry-run · resolved, not started</div>
+            <h2 className="text-display text-[18px] mt-0.5">{snapshot?.label ?? "Resolving…"}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+          >
+            Close
+          </button>
+        </div>
+
+        {busy ? (
+          <div className="mt-4 text-[13px] text-fog-400">Resolving the guide…</div>
+        ) : error ? (
+          <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+            {error}
+          </div>
+        ) : snapshot ? (
+          <>
+            <div className="mt-4">
+              <div className="eyebrow mb-1.5">Slots → provider</div>
+              <div className="flex flex-wrap gap-1.5">
+                {snapshot.slots.map((s) => (
+                  <span
+                    key={s.id}
+                    className="rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
+                  >
+                    <span className="text-fog-100">{s.label}</span>{" "}
+                    <span className="mono text-violet-soft">{s.providerId}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="eyebrow mb-1.5">
+                Steps · {snapshot.steps.filter((s) => s.enabled).length} enabled
+              </div>
+              <ol className="space-y-1">
+                {snapshot.steps.map((s, i) => (
+                  <li
+                    key={`${s.id}-${i}`}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5 text-[12px]",
+                      s.enabled ? "" : "opacity-45",
+                    )}
+                  >
+                    <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{i + 1}</span>
+                    <span className="truncate text-fog-200">{s.label}</span>
+                    <span className="mono text-[10.5px] text-fog-500">{s.kind}</span>
+                    {s.providerId ? (
+                      <span className="mono text-[10.5px] text-violet-soft">{s.providerId}</span>
+                    ) : null}
+                    {!s.enabled ? (
+                      <span className="ml-auto text-[10.5px] text-fog-500">skipped</span>
+                    ) : s.approval ? (
+                      <span className="ml-auto text-[10.5px] text-amber-300/90">approval gate</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <p className="mt-3 text-[11.5px] text-fog-500">
+              No run started. This is what{" "}
+              <code className="text-fog-300">amaco run "…" --guide {guideId}</code>{" "}
+              would instantiate (reflects the saved guide).
+            </p>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

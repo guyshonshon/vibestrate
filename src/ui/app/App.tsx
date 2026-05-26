@@ -233,11 +233,9 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
-                      : route.kind === "flow"
-                        ? "flow"
-                        : route.kind === "guides"
-                          ? "guides"
-                          : route.kind === "metrics"
+                      : route.kind === "flow" || route.kind === "guides"
+                        ? "guides"
+                        : route.kind === "metrics"
                           ? "metrics"
                           : route.kind === "agents"
                             ? "agents"
@@ -333,7 +331,7 @@ export function App() {
       ) : route.kind === "flow" ? (
         <FlowBuilderPage
           initialGuideId={route.guideId}
-          onBack={() => navigate({ kind: "mission" })}
+          onBack={() => navigate({ kind: "guides" })}
         />
       ) : route.kind === "guides" ? (
         <GuidesPage
