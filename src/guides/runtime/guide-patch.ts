@@ -14,7 +14,9 @@ import {
   guideApprovalGateSchema,
   guideDefinitionSchema,
   guideStepKindSchema,
+  guideStepSchema,
   guideTokenSchema,
+  guideSlotSchema,
   type GuideDefinition,
 } from "../schemas/guide-schema.js";
 import {
@@ -51,7 +53,17 @@ export const guidePatchInputSchema = z
   .object({
     label: z.string().min(1).max(160).optional(),
     description: z.string().min(1).max(600).optional(),
+    /** Patch existing steps in place. Useful for one-off field edits. */
     steps: z.array(stepPatchSchema).max(64).optional(),
+    /**
+     * Replace the entire ordered step list. Used by the UI whenever
+     * structural operations (add / remove / reorder) happen — the
+     * dashboard composes the next array client-side and ships it whole
+     * so the merge is unambiguous.
+     */
+    replaceSteps: z.array(guideStepSchema).min(1).max(64).optional(),
+    /** Replace the slot map wholesale. */
+    replaceSlots: z.record(guideTokenSchema, guideSlotSchema).optional(),
   })
   .strict();
 
@@ -111,7 +123,11 @@ export function mergeGuidePatch(
     ...(patch.description !== undefined
       ? { description: patch.description }
       : {}),
-    steps: current.steps.map((step) => step),
+    ...(patch.replaceSlots !== undefined ? { slots: patch.replaceSlots } : {}),
+    steps:
+      patch.replaceSteps !== undefined
+        ? patch.replaceSteps.map((s) => ({ ...s }))
+        : current.steps.map((step) => ({ ...step })),
   };
 
   const reasons: string[] = [];
@@ -148,6 +164,115 @@ export function mergeGuidePatch(
     };
   }
   return { ok: true, next: parsed.data };
+}
+
+/**
+ * Copy a builtin (or fixture) guide into the project's `.amaco/guides/`
+ * directory so the user can edit it freely. If a project-local guide
+ * with the same id already exists, the fork is a no-op (returns
+ * existing). Path-guarded the same way as `applyGuidePatch`.
+ */
+export type ForkGuideResult =
+  | {
+      ok: true;
+      guideId: string;
+      definitionPath: string;
+      alreadyForked: boolean;
+    }
+  | { ok: false; status: number; reasons: string[] };
+
+export async function forkGuideToProject(input: {
+  projectRoot: string;
+  guideId: string;
+}): Promise<ForkGuideResult> {
+  const { projectRoot, guideId } = input;
+  const guide = await findGuideById(projectRoot, guideId);
+  if (!guide) {
+    return { ok: false, status: 404, reasons: [`Guide "${guideId}" not found.`] };
+  }
+  if (guide.source.kind === "project" && guide.definitionPath) {
+    // Already project-local — no-op, return existing path.
+    const rel = path.relative(projectRoot, guide.definitionPath);
+    return { ok: true, guideId, definitionPath: rel, alreadyForked: true };
+  }
+  const rootDir = projectGuidesDir(projectRoot);
+  const dirPath = path.join(rootDir, guideId);
+  const filePath = path.join(dirPath, "guide.yml");
+  if (!isPathInside(rootDir, filePath)) {
+    return {
+      ok: false,
+      status: 400,
+      reasons: [`Guide id "${guideId}" produced an unsafe target path.`],
+    };
+  }
+  await fs.mkdir(dirPath, { recursive: true });
+  const yaml = YAML.stringify(guide.definition);
+  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  await fs.writeFile(tmp, yaml, { encoding: "utf8", mode: 0o600 });
+  try {
+    await fs.rename(tmp, filePath);
+  } catch (err) {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+    throw err;
+  }
+  return {
+    ok: true,
+    guideId,
+    definitionPath: path.relative(projectRoot, filePath),
+    alreadyForked: false,
+  };
+}
+
+/**
+ * Delete a project-local guide entirely. Refuses if it's not a
+ * project guide. Removes the guide.yml and (if empty) the containing
+ * directory.
+ */
+export type DeleteGuideResult =
+  | { ok: true; guideId: string }
+  | { ok: false; status: number; reasons: string[] };
+
+export async function deleteProjectGuide(input: {
+  projectRoot: string;
+  guideId: string;
+}): Promise<DeleteGuideResult> {
+  const { projectRoot, guideId } = input;
+  const guide = await findGuideById(projectRoot, guideId);
+  if (!guide) {
+    return {
+      ok: false,
+      status: 404,
+      reasons: [`Guide "${guideId}" not found.`],
+    };
+  }
+  if (guide.source.kind !== "project" || !guide.definitionPath) {
+    return {
+      ok: false,
+      status: 409,
+      reasons: [
+        `Guide "${guideId}" is a ${guide.source.kind} guide; it can only be removed by deleting its YAML by hand.`,
+      ],
+    };
+  }
+  const rootDir = projectGuidesDir(projectRoot);
+  if (!isPathInside(rootDir, guide.definitionPath)) {
+    return {
+      ok: false,
+      status: 409,
+      reasons: [
+        `Guide "${guideId}" lives outside the project guides directory and cannot be deleted.`,
+      ],
+    };
+  }
+  await fs.rm(guide.definitionPath, { force: true });
+  const parent = path.dirname(guide.definitionPath);
+  try {
+    const remaining = await fs.readdir(parent);
+    if (remaining.length === 0) await fs.rmdir(parent);
+  } catch {
+    /* ignore */
+  }
+  return { ok: true, guideId };
 }
 
 export type ApplyGuidePatchResult =

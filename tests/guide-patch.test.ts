@@ -6,6 +6,8 @@ import YAML from "yaml";
 import {
   applyGuidePatch,
   mergeGuidePatch,
+  forkGuideToProject,
+  deleteProjectGuide,
 } from "../src/guides/runtime/guide-patch.js";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { findBuiltinGuide } from "../src/guides/catalog/builtin-guides.js";
@@ -276,5 +278,106 @@ describe("PATCH /api/guides/:guideId", () => {
       },
     );
     expect(refused.status).toBe(409);
+  });
+});
+
+describe("replaceSteps / replaceSlots (structural edits)", () => {
+  it("replaces the whole ordered step list", () => {
+    const base = findBuiltinGuide("quality-arbitration")!;
+    const slot = Object.keys(base.slots)[0]!;
+    const verdict = mergeGuidePatch(base, {
+      replaceSteps: [
+        { id: "plan", label: "Plan", kind: "agent-turn", slot, inputs: [], outputs: [], optional: false },
+        { id: "review", label: "Review", kind: "review-turn", slot, inputs: [], outputs: [], optional: false },
+      ],
+    });
+    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
+    expect(verdict.next.steps.map((s) => s.id)).toEqual(["plan", "review"]);
+  });
+
+  it("replaces the slot map wholesale alongside the steps", () => {
+    const base = findBuiltinGuide("quality-arbitration")!;
+    const verdict = mergeGuidePatch(base, {
+      replaceSlots: { solo: { label: "Solo", defaultAgent: "executor" } },
+      replaceSteps: [
+        { id: "do", label: "Do", kind: "agent-turn", slot: "solo", inputs: [], outputs: [], optional: false },
+      ],
+    });
+    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
+    expect(Object.keys(verdict.next.slots)).toEqual(["solo"]);
+    expect(verdict.next.steps[0]!.slot).toBe("solo");
+  });
+});
+
+describe("forkGuideToProject", () => {
+  it("copies a builtin into .amaco/guides and is idempotent", async () => {
+    const root = await makeProject();
+    try {
+      const first = await forkGuideToProject({
+        projectRoot: root,
+        guideId: "quality-arbitration",
+      });
+      if (!first.ok) throw new Error(first.reasons.join(", "));
+      expect(first.alreadyForked).toBe(false);
+      const filePath = path.join(
+        root,
+        ".amaco",
+        "guides",
+        "quality-arbitration",
+        "guide.yml",
+      );
+      expect(await fs.readFile(filePath, "utf8")).toMatch(/id: quality-arbitration/);
+      // Re-fork → no-op.
+      const second = await forkGuideToProject({
+        projectRoot: root,
+        guideId: "quality-arbitration",
+      });
+      if (!second.ok) throw new Error(second.reasons.join(", "));
+      expect(second.alreadyForked).toBe(true);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("404s an unknown guide", async () => {
+    const root = await makeProject();
+    try {
+      const r = await forkGuideToProject({ projectRoot: root, guideId: "no-such-guide" });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.status).toBe(404);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("deleteProjectGuide", () => {
+  it("deletes a project-local guide", async () => {
+    const root = await makeProject();
+    try {
+      const r = await deleteProjectGuide({ projectRoot: root, guideId: "project-review" });
+      if (!r.ok) throw new Error(r.reasons.join(", "));
+      const exists = await fs
+        .access(path.join(root, ".amaco", "guides", "project-review", "guide.yml"))
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(false);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to delete a builtin guide", async () => {
+    const root = await makeProject();
+    try {
+      const r = await deleteProjectGuide({
+        projectRoot: root,
+        guideId: "quality-arbitration",
+      });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.status).toBe(409);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 });

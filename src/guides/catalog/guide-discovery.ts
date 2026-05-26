@@ -108,24 +108,43 @@ async function discoverProjectGuides(projectRoot: string): Promise<DiscoveredGui
   return guides;
 }
 
-function assertDistinctIds(guides: DiscoveredGuide[]): DiscoveredGuide[] {
-  const seen = new Map<string, DiscoveredGuide>();
-  for (const guide of guides) {
-    const previous = seen.get(guide.id);
+/**
+ * Combine builtins + project guides into the effective set:
+ *
+ *   - A **project** guide *shadows* a builtin of the same id. This is how
+ *     `fork` works — copy a builtin into `.amaco/guides/<id>/` and edit it;
+ *     the project version then wins everywhere.
+ *   - Two **project** guides claiming the same id is a genuine, unresolvable
+ *     conflict (two files, no precedence rule) → error.
+ *
+ * Builtin order is preserved; a shadowed builtin keeps its slot but carries
+ * the project definition. Project-only guides are appended.
+ */
+function combineGuides(
+  builtins: DiscoveredGuide[],
+  project: DiscoveredGuide[],
+): DiscoveredGuide[] {
+  const projectById = new Map<string, DiscoveredGuide>();
+  for (const guide of project) {
+    const previous = projectById.get(guide.id);
     if (previous) {
       throw new GuideDiscoveryError(
-        `Guide id "${guide.id}" is defined more than once (${previous.source.kind} and ${guide.source.kind}).`,
+        `Guide id "${guide.id}" is defined by more than one project guide (${previous.definitionPath} and ${guide.definitionPath}).`,
       );
     }
-    seen.set(guide.id, guide);
+    projectById.set(guide.id, guide);
   }
-  return guides;
+
+  const byId = new Map<string, DiscoveredGuide>();
+  for (const guide of builtins) byId.set(guide.id, guide);
+  for (const guide of project) byId.set(guide.id, guide); // project shadows builtin
+  return [...byId.values()];
 }
 
 export async function discoverGuides(projectRoot: string): Promise<DiscoveredGuide[]> {
   const builtins = builtinGuides.map(fromBuiltin);
   const project = await discoverProjectGuides(projectRoot);
-  return assertDistinctIds([...builtins, ...project]);
+  return combineGuides(builtins, project);
 }
 
 export async function findGuideById(

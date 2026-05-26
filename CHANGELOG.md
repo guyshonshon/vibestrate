@@ -6,6 +6,12 @@ version. See `CLAUDE.md` § 10.
 
 ## Unreleased
 
+- Add: Guide editor — fork a builtin/fixture guide into the project, edit
+  steps + slots wholesale (`replaceSteps` / `replaceSlots`), and delete
+  project guides, from the Flow Builder (server routes + patch logic + UI).
+- Fix: guide discovery — a project guide now *shadows* a builtin of the same
+  id (enables fork-to-customize) instead of erroring; only project-vs-project
+  id clashes are rejected.
 - Add: Providers page in Mission Control (#4) — detect / apply-preset /
   set-default / safe-test + "log in outside Amaco" prompts; TopBar nav entry
   and CLI-hints. Browser never spawns commands.
