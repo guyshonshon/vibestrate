@@ -225,6 +225,20 @@ export type AgentsOverview = {
   };
 };
 
+export type ProviderRow = {
+  id: string;
+  label: string;
+  command: string;
+  available: boolean;
+  version: string | null;
+  confidence: "ready" | "detected-needs-setup" | "missing";
+  recommended: boolean;
+  notes: string[];
+  configured: boolean;
+  loginCommand: string | null;
+  loginNote: string;
+};
+
 export type GuideStepKind =
   | "agent-turn"
   | "review-turn"
@@ -254,10 +268,35 @@ export type GuideStepPatch = {
   approval?: GuideApprovalGatePatch | null;
 };
 
+/** Full step shape — accepted by `replaceSteps`. Mirrors the server's
+ *  `guideStepSchema`, but inputs/outputs default to []. */
+export type GuideStepFull = {
+  id: string;
+  label: string;
+  kind: GuideStepKind;
+  slot?: string;
+  agentId?: string;
+  inputs?: string[];
+  outputs?: string[];
+  optional?: boolean;
+  approval?: GuideApprovalGatePatch;
+  repeat?: { times: number };
+};
+
+export type GuideSlotFull = {
+  label: string;
+  description?: string;
+  defaultAgent: string;
+};
+
 export type GuidePatch = {
   label?: string;
   description?: string;
   steps?: GuideStepPatch[];
+  /** Replace the entire ordered step list (used for add / remove / reorder). */
+  replaceSteps?: GuideStepFull[];
+  /** Replace the slot map wholesale. */
+  replaceSlots?: Record<string, GuideSlotFull>;
 };
 
 export type ComposerPreset = {
@@ -345,23 +384,15 @@ export const api = {
     stderr: string;
     matchedMagic: boolean;
     hint?: string;
+    needsLogin: boolean;
+    loginCommand?: string | null;
   }> {
     return jsonPost(
       `/api/providers/${encodeURIComponent(providerId)}/test`,
     );
   },
   async listProviders(): Promise<{
-    providers: {
-      id: string;
-      label: string;
-      command: string;
-      available: boolean;
-      version: string | null;
-      confidence: "ready" | "detected-needs-setup" | "missing";
-      recommended: boolean;
-      notes: string[];
-      configured: boolean;
-    }[];
+    providers: ProviderRow[];
   }> {
     return jsonGet("/api/providers");
   },
@@ -480,6 +511,18 @@ export const api = {
     patch: GuidePatch,
   ): Promise<{ ok: true; guide: DiscoveredGuide; definitionPath: string }> {
     return jsonPatch(`/api/guides/${encodeURIComponent(guideId)}`, patch);
+  },
+  async forkGuideToProject(guideId: string): Promise<{
+    ok: true;
+    guideId: string;
+    definitionPath: string;
+    alreadyForked: boolean;
+    guide: DiscoveredGuide;
+  }> {
+    return jsonPost(`/api/guides/${encodeURIComponent(guideId)}/fork`);
+  },
+  async deleteGuide(guideId: string): Promise<{ ok: true; guideId: string }> {
+    return jsonDelete(`/api/guides/${encodeURIComponent(guideId)}`);
   },
   async listComposerPresets(): Promise<{ presets: ComposerPreset[] }> {
     return jsonGet("/api/composer/presets");

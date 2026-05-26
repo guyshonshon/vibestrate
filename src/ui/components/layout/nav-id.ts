@@ -16,4 +16,5 @@ export type NavId =
   | "git"
   | "flow"
   | "metrics"
-  | "agents";
+  | "agents"
+  | "providers";
