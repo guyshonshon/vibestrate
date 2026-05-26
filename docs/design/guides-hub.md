@@ -1,6 +1,10 @@
 # Design: Guides Hub
 
-Status: **planning** · Tracking issue: #3 · Owner: maintainer
+Status: **planning — core decisions settled** · Tracking issue: #3 · Owner: maintainer
+
+Settled: flat unique names · separate `amaco-guides` repo · curated PR-based v1
+(Docker "Official Images" model) · GitHub OAuth if a service is added later ·
+free git-backed v1 with a hosted service deferred. See "Settled decisions".
 
 A place to **discover, share, and install Guides** other people publish, with
 **stars** and **download** metrics — npm / Docker Hub, but for Amaco Guides.
@@ -142,20 +146,85 @@ the public API; install still writes locally through the existing path).
 | CLI command tree | `src/cli/commands/guides/` |
 | Dashboard surface | a new page like the Providers page (#4) |
 
-## Open decisions (need a product call)
+## Settled decisions
 
-1. **Phase‑1 first, or jump to the service?** Recommendation: ship phase‑1
-   git‑backed (days, not weeks; validates demand) before standing up `amaco-hub`.
-2. **Namespacing:** `author/name` (Docker/npm style) — recommended — vs flat ids.
-3. **Identity for phase 2:** GitHub OAuth (recommended) vs email/password.
-4. **Where does `amaco-hub` live:** new repo `amaco-hub` + a new Cloudflare
-   Worker, separate from `amaco-marketing`. Recommended (clean separation).
-5. **Does the marketing site host a public browse UI** at `amaco.shonshon.com/hub`,
-   or is browsing only in Mission Control + the CLI? (Marketing `/hub` is good
-   for discovery/SEO once the service exists.)
+- **Names are flat + globally unique** (first-come), not namespaced. Simpler
+  ids; we accept the land-grab/collision tradeoff and can add a reserved-prefix
+  list if it bites.
+- **Separate `amaco-guides` repo** is the registry — its own repo with its own
+  contributors who help review submissions (not in `amaco` or
+  `amaco-marketing`).
+- **v1 publishing is curated, PR-based** (Docker "Official Images" model, not
+  open self-serve push): submit → automated checks + human review → listed.
+- **Identity, if/when a service is added:** GitHub OAuth (login = identity).
+- **Cost:** v1 is free forever (git-backed, no infra). A hosted service is a
+  *later, optional* step; the maintainer is fine covering ~$5/mo if it ever
+  grows — so the service is a "when demand justifies it" decision, not a
+  blocker.
+
+## Publishing & review (v1)
+
+Modeled on Docker's **Official Images** curation, not its open push:
+
+1. `amaco guides publish` packages the project guide + `meta.json` and opens a
+   **PR** to `amaco-guides` (via `gh`; the contributor's fork is transparent).
+2. **GitHub Actions on the PR run the automated gate** and post a checklist:
+   - schema-valid (`guideDefinitionSchema`)
+   - secret-shape scan (reuse the patch scanner)
+   - **guide-safety lint** (see below)
+   - structural sanity: keeps a `validation` step, keeps a review/approval
+     gate, bounded `repeat`, known agent ids, size/step caps
+   - `meta.json` complete (`author`, `license`, `tags`, `description`)
+3. **A human reviewer** (maintainer + trusted contributors) does the final pass.
+   Green-CI + low-risk guides can auto-merge after one maintainer ✅.
+4. Merge → CI regenerates `index.json` → it's discoverable.
+
+## Safety & quality assurance
+
+Guides are declarative (no embedded code), but they are **not inert** — they can
+still be hostile by:
+
+- **Weakening supervision:** dropping the `validation`/review/approval steps so
+  an executor runs unsupervised; unbounded `repeat` loops.
+- **Social-engineering the human:** crafted approval-gate text
+  (`reason` / `requestedAction` / `userMessage`) that pressures a rubber-stamp
+  ("approve to continue…").
+- **Steering agents toward risky work** via step labels/inputs that nudge the
+  agent to fetch-and-run, exfiltrate, or disable guards.
+
+Mitigations:
+
+- **An internal QA / safety tool** (a "guide-safety linter") run in PR CI *and*
+  available to reviewers: flags missing validation/review gates, suspicious
+  free-text (`curl … | sh`, `rm -rf`, "ignore previous", base64 blobs, URLs in
+  approval text), unbounded repeats, and unknown agent ids. Produces a score +
+  reasons.
+- **Human review** by the `amaco-guides` contributor team before listing.
+- **Install-time validation** still runs locally (schema + secret scan) — a
+  compromised index can't bypass the client checks.
+
+## Disclaimers (must ship with the feature)
+
+State clearly, in **all three** places, that **using an external guide is the
+user's responsibility to validate before use** — "we do our best to review every
+guide for safety, but you must be cautious; run untrusted guides `--read-only`
+first and watch the approval gates":
+
+1. **The app** — Mission Control shows a caution banner when browsing/installing
+   a hub guide; the CLI `install` prints it.
+2. **The website docs** — a dedicated docs page (e.g. `/docs/guides-hub` +
+   a safety note).
+3. **The repo** — the `amaco-guides` README + a `SECURITY.md`.
+
+## Still open (later, with the service)
+
+- Real **download** metrics + per-account **stars** (needs the service; v1 uses
+  GitHub stars on the index repo and ships no fake download counts).
+- Self-serve instant publish (vs the curated PR flow).
+- Whether the marketing site hosts a public `/hub` browse gallery for SEO.
 
 ## Non‑goals (for now)
 
 - Hosting runs, prompts, or any private data — ever. The hub is guides only.
-- Paid tiers / accounts beyond what publishing needs.
+- Open self-serve publish in v1 (curated PR flow instead).
 - Arbitrary code execution — guides stay declarative; install never runs them.
