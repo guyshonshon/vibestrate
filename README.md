@@ -11,12 +11,12 @@
   |  | |  | |  |   |  |  |  | |  |(_'  '--'\    `'  '-'  '
   `--' `--' `--'   `--'  `--' `--'   `-----'      `-----' 
     ─────────────────────────────────────────────────
-      your models · your machine · your call at every gate
+              the missing piece of vibe-coding
 ```
 
 <div align="center">
 
-# Amaco — the missing piece of vibe-coding
+# Amaco
 
 One chat with one model is great for sketches. Real work — refactors, migrations, whole features — wants a *supervised* crew.
 Amaco runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.**
@@ -162,18 +162,9 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
-## ◆ Versioning & releases
+## ◆ Versioning
 
 Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) — the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `amaco --version` and the generated docs reference.
-
-Releases are tag-driven. On a clean `main`:
-
-```bash
-npm version patch          # bumps package.json, commits, tags vX.Y.Z
-git push --follow-tags     # the tag triggers the Release workflow
-```
-
-The [Release workflow](./.github/workflows/release.yml) re-runs typecheck + tests, then publishes to npm with [provenance](https://docs.npmjs.com/generating-provenance-statements) via OIDC trusted publishing — no long-lived token. The published tarball is the lean build (sourcemaps stripped) produced by `prepublishOnly`.
 
 ## ◆ License
 
