@@ -13,6 +13,8 @@ import { guideContextPolicySchema } from "../../guides/schemas/guide-schema.js";
 import { suggestGuidesForProject } from "../../guides/runtime/guide-suggestion.js";
 import {
   applyGuidePatch,
+  deleteProjectGuide,
+  forkGuideToProject,
   guidePatchInputSchema,
 } from "../../guides/runtime/guide-patch.js";
 import { HttpError } from "../security.js";
@@ -92,6 +94,49 @@ export async function registerGuidesRoutes(
         definitionPath: result.definitionPath,
         guide: await guideOr404(projectRoot, result.guideId),
       };
+    },
+  );
+
+  /**
+   * Copy a builtin / fixture guide into `.amaco/guides/<id>/guide.yml`
+   * so the dashboard can edit it. Idempotent — re-forking returns the
+   * existing project guide.
+   */
+  app.post<{ Params: { guideId: string } }>(
+    "/api/guides/:guideId/fork",
+    async (req) => {
+      const result = await forkGuideToProject({
+        projectRoot,
+        guideId: decodeURIComponent(req.params.guideId),
+      });
+      if (!result.ok) {
+        throw new HttpError(result.status, result.reasons.join("\n"));
+      }
+      const refreshed = await guideOr404(projectRoot, result.guideId);
+      return {
+        ok: true,
+        guideId: result.guideId,
+        definitionPath: result.definitionPath,
+        alreadyForked: result.alreadyForked,
+        guide: refreshed,
+      };
+    },
+  );
+
+  /**
+   * Delete a project-local guide. Refuses to delete builtins / fixtures.
+   */
+  app.delete<{ Params: { guideId: string } }>(
+    "/api/guides/:guideId",
+    async (req) => {
+      const result = await deleteProjectGuide({
+        projectRoot,
+        guideId: decodeURIComponent(req.params.guideId),
+      });
+      if (!result.ok) {
+        throw new HttpError(result.status, result.reasons.join("\n"));
+      }
+      return result;
     },
   );
 

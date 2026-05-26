@@ -104,7 +104,7 @@ describe("Guide Phase 1 discovery", () => {
     );
   });
 
-  it("rejects duplicate Guide ids across built-ins and projects", async () => {
+  it("lets a project guide shadow a builtin of the same id (fork to customize)", async () => {
     const projectRoot = await makeProject();
     await fs.mkdir(
       path.join(projectRoot, ".amaco", "guides", "quality-arbitration"),
@@ -121,6 +121,22 @@ describe("Guide Phase 1 discovery", () => {
       PROJECT_GUIDE.replace("project-review", "quality-arbitration"),
     );
 
+    const guides = await discoverGuides(projectRoot);
+    const winner = guides.filter((g) => g.id === "quality-arbitration");
+    // Exactly one entry, and it's the project copy (not the builtin).
+    expect(winner).toHaveLength(1);
+    expect(winner[0]!.source.kind).toBe("project");
+  });
+
+  it("rejects two project guides that claim the same id", async () => {
+    const projectRoot = await makeProject();
+    await fs.mkdir(path.join(projectRoot, ".amaco", "guides", "dup"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(projectRoot, ".amaco", "guides", "dup", "guide.yml"),
+      PROJECT_GUIDE.replace("project-review", "project-review"), // id stays project-review
+    );
     await expect(discoverGuides(projectRoot)).rejects.toThrow(
       GuideDiscoveryError,
     );
