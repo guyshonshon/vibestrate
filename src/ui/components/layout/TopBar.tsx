@@ -10,6 +10,7 @@ import {
   GitCommit,
   LayoutGrid,
   Layers,
+  Library,
   ListChecks,
   Menu,
   Plug,
@@ -29,6 +30,7 @@ type Props = {
   currentNav: NavId;
   onShowHome: () => void;
   onShowFlows: () => void;
+  onShowGuides: () => void;
   onShowMetrics: () => void;
   onShowAgents: () => void;
   onShowProviders: () => void;
@@ -73,6 +75,7 @@ export function TopBar({
   currentNav,
   onShowHome,
   onShowFlows,
+  onShowGuides,
   onShowMetrics,
   onShowAgents,
   onShowProviders,
@@ -152,6 +155,13 @@ export function TopBar({
       active: currentNav === "flow",
       icon: Layers,
       onClick: onShowFlows,
+    },
+    {
+      id: "guides",
+      label: "Guides",
+      active: currentNav === "guides",
+      icon: Library,
+      onClick: onShowGuides,
     },
     {
       id: "agents",

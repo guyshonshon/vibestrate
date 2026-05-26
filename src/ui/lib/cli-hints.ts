@@ -209,6 +209,17 @@ export function hintForRoute(route: Route): CliHint {
           },
         ],
       };
+    case "guides":
+      return {
+        title: "Guides",
+        blurb:
+          "Browse the guide recipes Amaco discovers. Fork a builtin into .amaco/guides/ to customize it, then run it.",
+        commands: [
+          { cmd: "amaco guides list", note: "discovered guides (builtin + project)" },
+          { cmd: "amaco guides show <guideId>", note: "inspect a guide's flow" },
+          { cmd: 'amaco run "task" --guide <guideId>', note: "run using a guide" },
+        ],
+      };
     case "metrics":
       return {
         title: "Metrics",

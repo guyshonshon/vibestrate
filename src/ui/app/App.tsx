@@ -11,6 +11,7 @@ import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
+import { GuidesPage } from "./routes/GuidesPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { AgentsPage } from "./routes/AgentsPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
@@ -234,7 +235,9 @@ export function App() {
                       ? "git"
                       : route.kind === "flow"
                         ? "flow"
-                        : route.kind === "metrics"
+                        : route.kind === "guides"
+                          ? "guides"
+                          : route.kind === "metrics"
                           ? "metrics"
                           : route.kind === "agents"
                             ? "agents"
@@ -247,6 +250,7 @@ export function App() {
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
       onShowFlows={() => navigate({ kind: "flow", guideId: null })}
+      onShowGuides={() => navigate({ kind: "guides" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowAgents={() => navigate({ kind: "agents" })}
       onShowProviders={() => navigate({ kind: "providers" })}
@@ -330,6 +334,10 @@ export function App() {
         <FlowBuilderPage
           initialGuideId={route.guideId}
           onBack={() => navigate({ kind: "mission" })}
+        />
+      ) : route.kind === "guides" ? (
+        <GuidesPage
+          onOpenInFlow={(guideId) => navigate({ kind: "flow", guideId })}
         />
       ) : route.kind === "metrics" ? (
         <MetricsPage />

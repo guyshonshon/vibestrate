@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: dedicated **Guides** page in Mission Control (nav entry + `#/guides`) —
+  lists built-in + project guides, expands each to show its flow (slots,
+  ordered steps, approval gates), forks a builtin into the project, deletes a
+  project guide, or opens one in the Flow Builder. Over `/api/guides` only.
+  Groundwork for the Guides Hub. Docs + route test updated.
 - Change: decouple UI ⇄ CLI — the dashboard no longer spawns the `amaco`
   binary to start/retry runs. New shared core run launcher
   (`core/run-launcher.ts`, `runFromSpec`) + a detached core entry
