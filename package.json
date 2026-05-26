@@ -1,6 +1,6 @@
 {
   "name": "amaco-os",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Amaco — local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
   "license": "MIT",
   "author": "Guy Shonshon (https://shonshon.com)",

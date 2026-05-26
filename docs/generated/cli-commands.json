@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "amaco",
   "description": "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "commands": [
     {
       "name": "init",
