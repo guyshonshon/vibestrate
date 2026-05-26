@@ -15,6 +15,7 @@ export type NavId =
   | "codebase"
   | "git"
   | "flow"
+  | "guides"
   | "metrics"
   | "agents"
   | "providers";

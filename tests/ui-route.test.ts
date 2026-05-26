@@ -197,4 +197,18 @@ describe("round-trip", () => {
       });
     }
   });
+
+  it("round-trips the simple kind-only routes (incl. guides)", () => {
+    const kinds: Route[] = [
+      { kind: "guides" },
+      { kind: "metrics" },
+      { kind: "agents" },
+      { kind: "providers" },
+    ];
+    for (const r of kinds) {
+      expect(parseHashRoute(serializeRoute(r))).toEqual(r);
+    }
+    expect(parseHashRoute("#/guides").kind).toBe("guides");
+    expect(serializeRoute({ kind: "guides" })).toBe("#/guides");
+  });
 });

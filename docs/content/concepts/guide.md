@@ -70,6 +70,16 @@ steps:
 
 Amaco validates `guide.yml` against the schema on load — malformed Guides fail loud, not silent.
 
+## Managing Guides in Mission Control
+
+The **Guides** page in the dashboard lists every discovered Guide (built-in +
+project) and shows each one's flow at a glance — slots, ordered steps, and which
+steps are human approval gates. From there you can **fork** a built-in into
+`.amaco/guides/<id>/` to customize it, **delete** a project Guide, or open one in
+the **Flow Builder** to tune slots/steps before a run. It's the read/curate
+surface; the Flow Builder is the edit/run surface. (All of it runs over the
+local `/api/guides` routes — the browser never shells out.)
+
 ## When to write a Guide
 
 - The same review choreography keeps repeating across tasks.
