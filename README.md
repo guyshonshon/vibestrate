@@ -1,22 +1,14 @@
 <a name="top"></a>
 
-```text
-   ('-.     _   .-')      ('-.                            
-  ( OO ).-.( '.( OO )_   ( OO ).-.                        
-  / . --. / ,--.   ,--.) / . --. /   .-----.  .-'),-----. 
-  | \-.  \  |   `.'   |  | \-.  \   '  .--./ ( OO'  .-.  '
-.-'-'  |  | |         |.-'-'  |  |  |  |('-. /   |  | |  |
- \| |_.'  | |  |'.'|  | \| |_.'  | /_) |OO  )\_) |  |\|  |
-  |  .-.  | |  |   |  |  |  .-.  | ||  |`-'|   \ |  | |  |
-  |  | |  | |  |   |  |  |  | |  |(_'  '--'\    `'  '-'  '
-  `--' `--' `--'   `--'  `--' `--'   `-----'      `-----' 
-    ─────────────────────────────────────────────────
-              the missing piece of vibe-coding
-```
-
 <div align="center">
 
-# Amaco
+<img src="./.github/assets/logo.png" alt="Amaco logo" width="108" />
+
+<img src="./.github/assets/hero.png" alt="Amaco" width="480" />
+
+<sub>the missing piece of vibe-coding</sub>
+
+<br />
 
 One chat with one model is great for sketches. Real work — refactors, migrations, whole features — wants a *supervised* crew.
 Amaco runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.**
@@ -180,7 +172,5 @@ Built with care by **[Guy Shonshon](https://shonshon.com)**
   <img src="./.github/assets/shonshon-on-light.png#gh-light-mode-only" alt="Shonshon — Evolving Technologies" height="22" />
   <img src="./.github/assets/shonshon-on-dark.png#gh-dark-mode-only" alt="Shonshon — Evolving Technologies" height="22" />
 </a>
-
-<sub>Shonshon — Evolving Technologies · made for the love of building</sub>
 
 </div>
