@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: changed-files diff showed **+0** for brand-new files — `git diff
+  --numstat HEAD` omits untracked files. `getDiffSnapshot` now counts an
+  untracked file's added lines (via `--no-index`), so a newly-created file
+  reports its real line count in the run's changed-files summary.
 - Add: **Install** flow on the Providers page for the 5 popular providers —
   a guided wizard with the exact install + login commands (copy-able) and a
   re-check. Nothing is spawned by the browser; install/login happen locally in
