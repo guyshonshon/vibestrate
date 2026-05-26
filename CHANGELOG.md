@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: flow editor's **Dry-run preview** was a dead button — now resolves the
+  guide into the snapshot a run would create (provider per slot, enabled
+  steps, approval gates) in a modal; no run starts.
+- Change: unify Flows + Guides into a single **Guides** nav entry. The flow
+  editor is reached from the Guides catalog (breadcrumb → Guides); its
+  redundant catalog grid is replaced by a compact guide switcher, and the
+  verbose copy is trimmed across both.
 - Add: dedicated **Guides** page in Mission Control (nav entry + `#/guides`) —
   lists built-in + project guides, expands each to show its flow (slots,
   ordered steps, approval gates), forks a builtin into the project, deletes a

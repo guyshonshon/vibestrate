@@ -98,18 +98,16 @@ export function GuidesPage({ onOpenInFlow }: Props) {
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Guides · run recipes your crew follows</div>
+        <div className="eyebrow mb-1.5">Guides</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           {guides ? guides.length : "—"} guides
           <span className="text-fog-400">
-            {guides ? ` · ${projectCount} editable in this project` : ""}
+            {guides ? ` · ${projectCount} editable` : ""}
           </span>
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-          A guide is a declarative plan — slots + ordered steps with approval
-          gates — that your agents follow on a run. Fork a builtin to customize
-          it, then open it in the Flow Builder or run it with{" "}
-          <code className="text-violet-soft">amaco run "task" --guide &lt;id&gt;</code>.
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
+          Run recipes your crew follows — slots, ordered steps, approval gates.
+          Fork a builtin to edit it.
         </p>
       </section>
 
@@ -141,9 +139,7 @@ export function GuidesPage({ onOpenInFlow }: Props) {
       </section>
 
       <p className="mt-8 text-[12px] text-fog-500">
-        Sharing and installing community guides is on the roadmap (Guides Hub).
-        For now, guides live in <code className="text-fog-300">.amaco/guides/</code>{" "}
-        and ship built-in.
+        Sharing community guides (Guides Hub) is on the roadmap.
       </p>
 
       {toast ? (
@@ -247,8 +243,9 @@ function GuideCard({
             size="sm"
             iconLeft={<PenLine size={13} />}
             onClick={onOpenInFlow}
+            title="Open the flow editor (preview, customize, dry-run)"
           >
-            Flow Builder
+            {isProject ? "Edit" : "Open"}
           </Button>
           {isProject ? (
             <Button
