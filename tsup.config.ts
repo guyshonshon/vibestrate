@@ -1,7 +1,11 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/cli/index.ts"],
+  // The CLI binary and the dashboard's headless run entry. The server spawns
+  // `dist/run-entry.js` (core) rather than the CLI, keeping UI ⇄ CLI decoupled.
+  // Object form pins output names so the bin stays `dist/index.js` (not
+  // `dist/cli/index.js`, which multi-entry would otherwise produce).
+  entry: { index: "src/cli/index.ts", "run-entry": "src/core/run-entry.ts" },
   format: ["esm"],
   target: "node18",
   outDir: "dist",
