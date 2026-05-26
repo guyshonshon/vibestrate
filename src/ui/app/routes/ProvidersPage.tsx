@@ -97,18 +97,100 @@ export function ProvidersPage() {
 
   const configuredCount = rows?.filter((r) => r.configured).length ?? 0;
   const availableCount = rows?.filter((r) => r.available).length ?? 0;
+  const popularRows = rows?.filter((r) => r.popular) ?? [];
+  const optionalRows = rows?.filter((r) => !r.popular) ?? [];
+
+  const renderRow = (p: ProviderRow) => {
+    const t = tests[p.id];
+    const statusChip = providerStatus(p);
+    const isBusy = busy?.id === p.id;
+    return (
+      <div
+        key={p.id}
+        className="rounded-xl border border-white/10 surface-ink-100-55 px-4 py-3.5"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <Plug size={15} className="text-violet-soft shrink-0" />
+              <span className="text-[15px] text-fog-100 font-medium">
+                {p.label}
+              </span>
+              <span className="mono text-[11.5px] text-fog-500">
+                {p.command}
+                {p.version ? ` · v${p.version}` : ""}
+              </span>
+              <Chip tone={statusChip.tone}>{statusChip.label}</Chip>
+              {p.recommended ? (
+                <Chip tone="violet">
+                  <Star size={10} className="inline -mt-px mr-1" />
+                  recommended
+                </Chip>
+              ) : null}
+            </div>
+            {p.notes.length > 0 ? (
+              <ul className="mt-2 space-y-0.5">
+                {p.notes.map((n, i) => (
+                  <li key={i} className="text-[12px] text-fog-400 leading-snug">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {p.available && !p.configured ? (
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Plus size={13} />}
+                disabled={isBusy}
+                onClick={() => applyPreset(p.id)}
+              >
+                Apply preset
+              </Button>
+            ) : null}
+            {p.configured ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                iconLeft={<Check size={13} />}
+                disabled={isBusy}
+                onClick={() => setDefault(p.id)}
+              >
+                Set default
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              iconLeft={<Play size={12} />}
+              disabled={isBusy || !p.configured}
+              title={p.configured ? "Run the safe connectivity test" : "Apply the preset first"}
+              onClick={() => test(p.id)}
+            >
+              {isBusy && busy?.action === "test" ? "Testing…" : "Test"}
+            </Button>
+          </div>
+        </div>
+
+        {t ? <TestResultRow result={t} loginCommand={p.loginCommand} loginNote={p.loginNote} /> : null}
+      </div>
+    );
+  };
 
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-2">
-        <div className="eyebrow mb-3">Providers · the CLIs Amaco drives</div>
-        <h1 className="text-display text-[32px] sm:text-[36px] leading-[1.12]">
+      <section className="mt-1">
+        <div className="eyebrow mb-1.5">Providers · the CLIs Amaco drives</div>
+        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           {rows ? `${availableCount} detected` : "—"}
           <span className="text-fog-400">
             {rows ? ` · ${configuredCount} configured` : ""}
           </span>
         </h1>
-        <p className="text-fog-300 text-[13.5px] mt-3 max-w-[70ch]">
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
           Detect installed coding-agent CLIs, apply their preset, set a default,
           and run a safe connectivity test — the same actions as{" "}
           <code className="text-violet-soft">amaco provider …</code>. When a
@@ -124,91 +206,29 @@ export function ProvidersPage() {
         </div>
       ) : null}
 
-      <section className="mt-8 space-y-3">
-        {!rows ? (
+      {!rows ? (
+        <section className="mt-7">
           <div className="text-fog-400 text-[13px]">Detecting providers…</div>
-        ) : (
-          rows.map((p) => {
-            const t = tests[p.id];
-            const statusChip = providerStatus(p);
-            const isBusy = busy?.id === p.id;
-            return (
-              <div
-                key={p.id}
-                className="rounded-xl border border-white/10 surface-ink-100-55 px-4 py-3.5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2.5">
-                      <Plug size={15} className="text-violet-soft shrink-0" />
-                      <span className="text-[15px] text-fog-100 font-medium">
-                        {p.label}
-                      </span>
-                      <span className="mono text-[11.5px] text-fog-500">
-                        {p.command}
-                        {p.version ? ` · v${p.version}` : ""}
-                      </span>
-                      <Chip tone={statusChip.tone}>{statusChip.label}</Chip>
-                      {p.recommended ? (
-                        <Chip tone="violet">
-                          <Star size={10} className="inline -mt-px mr-1" />
-                          recommended
-                        </Chip>
-                      ) : null}
-                    </div>
-                    {p.notes.length > 0 ? (
-                      <ul className="mt-2 space-y-0.5">
-                        {p.notes.map((n, i) => (
-                          <li key={i} className="text-[12px] text-fog-400 leading-snug">
-                            {n}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
+        </section>
+      ) : (
+        <>
+          <section className="mt-7 space-y-3">
+            <div className="eyebrow">Popular · configured out of the box</div>
+            {popularRows.map(renderRow)}
+          </section>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    {p.available && !p.configured ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        iconLeft={<Plus size={13} />}
-                        disabled={isBusy}
-                        onClick={() => applyPreset(p.id)}
-                      >
-                        Apply preset
-                      </Button>
-                    ) : null}
-                    {p.configured ? (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        iconLeft={<Check size={13} />}
-                        disabled={isBusy}
-                        onClick={() => setDefault(p.id)}
-                      >
-                        Set default
-                      </Button>
-                    ) : null}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      iconLeft={<Play size={12} />}
-                      disabled={isBusy || !p.configured}
-                      title={p.configured ? "Run the safe connectivity test" : "Apply the preset first"}
-                      onClick={() => test(p.id)}
-                    >
-                      {isBusy && busy?.action === "test" ? "Testing…" : "Test"}
-                    </Button>
-                  </div>
-                </div>
-
-                {t ? <TestResultRow result={t} loginCommand={p.loginCommand} loginNote={p.loginNote} /> : null}
-              </div>
-            );
-          })
-        )}
-      </section>
+          {optionalRows.length > 0 ? (
+            <section className="mt-7 space-y-3">
+              <div className="eyebrow">Optional · opt-in, not auto-configured</div>
+              <p className="text-fog-400 text-[12.5px] -mt-1 max-w-[70ch]">
+                Detected but never auto-bound. Apply the preset to wire one into
+                this project, then test it like any other provider.
+              </p>
+              {optionalRows.map(renderRow)}
+            </section>
+          ) : null}
+        </>
+      )}
 
       {toast ? (
         <div

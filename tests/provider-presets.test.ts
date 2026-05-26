@@ -64,6 +64,7 @@ describe("starter presets", () => {
       detectionMethod: "version",
       confidence: "detected-needs-setup",
       recommended: false,
+      popular: true,
       notes: [],
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/codex");
@@ -82,6 +83,7 @@ describe("starter presets", () => {
       detectionMethod: "version",
       confidence: "detected-needs-setup",
       recommended: false,
+      popular: true,
       notes: [],
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/ollama");
@@ -92,16 +94,45 @@ describe("starter presets", () => {
 });
 
 describe("KNOWN_PROVIDERS hygiene", () => {
-  it("every known provider is preset-ready (works out of the box)", () => {
-    // Every provider now ships a preset, so doctor --fix / setup can
-    // auto-configure whichever CLI the user has installed. Verification
-    // is delegated to `amaco provider test <id>` + the login check.
-    for (const p of KNOWN_PROVIDERS) {
+  const POPULAR = new Set([
+    "claude",
+    "codex",
+    "gemini",
+    "opencode",
+    "aider",
+    "ollama",
+  ]);
+
+  it("the popular set is the out-of-the-box, preset-ready tier", () => {
+    // Popular providers are auto-configured by doctor --fix / setup.
+    // Verification is delegated to `amaco provider test <id>` + login check.
+    const popular = KNOWN_PROVIDERS.filter((p) => p.popular);
+    expect(new Set(popular.map((p) => p.id))).toEqual(POPULAR);
+    for (const p of popular) {
       expect(p.presetReady, `${p.id} should be preset-ready`).toBe(true);
       expect(
         p.notes.join("\n"),
         `${p.id} notes should mention provider test or a login/key step`,
       ).toMatch(/provider test|log in|configure|api key|pull/i);
+    }
+  });
+
+  it("optional providers are opt-in (detected, never auto-bound)", () => {
+    // The rest ship a preset too, but stay opt-in: not popular, not
+    // auto-applied — so they detect as 'detected-needs-setup' until the
+    // user explicitly applies the preset.
+    const optional = KNOWN_PROVIDERS.filter((p) => !p.popular);
+    expect(optional.map((p) => p.id).sort()).toEqual([
+      "amp",
+      "crush",
+      "cursor",
+      "goose",
+      "qwen",
+    ]);
+    for (const p of optional) {
+      expect(p.presetReady, `${p.id} should be opt-in (not preset-ready)`).toBe(
+        false,
+      );
     }
   });
 

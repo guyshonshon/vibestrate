@@ -74,15 +74,15 @@ export function MetricsPage() {
       {/* ── Hero ─ */}
       <section className="mt-2 flex items-start justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[720px]">
-          <div className="eyebrow mb-3">
+          <div className="eyebrow mb-1.5">
             Metrics · how the crew is performing
           </div>
-          <h1 className="text-display text-[32px] sm:text-[36px] xl:text-[40px] leading-[1.12]">
+          <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
             What did your{" "}
             <em className="text-display italic text-violet-soft">agents</em>{" "}
             ship this week?
           </h1>
-          <p className="text-fog-300 text-[13.5px] mt-3 max-w-[640px]">
+          <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
             Runs, outcomes, spend, latency — rolled up across every model and
             flow.
           </p>

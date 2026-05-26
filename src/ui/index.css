@@ -49,6 +49,9 @@
     "Geist Mono", "JetBrains Mono", "SFMono-Regular", "Menlo", Consolas,
     ui-monospace, monospace;
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display:
+    "Bricolage Grotesque", "Geist", -apple-system, BlinkMacSystemFont,
+    ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -192,9 +195,9 @@ body {
 
 /* ── Typography niceties ─────────────────────────────────────────── */
 .text-display {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
-  font-weight: 400;
+  font-weight: 500;
 }
 .mono {
   font-family: var(--font-mono);

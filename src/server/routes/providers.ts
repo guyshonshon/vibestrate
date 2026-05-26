@@ -28,6 +28,8 @@ export type ProviderRow = {
   version: string | null;
   confidence: DetectedProvider["confidence"];
   recommended: boolean;
+  /** A popular, out-of-the-box provider (vs an optional opt-in one). */
+  popular: boolean;
   notes: string[];
   /** True when the project's loaded config has a matching `providers.<id>`. */
   configured: boolean;
@@ -91,6 +93,7 @@ export async function registerProvidersRoutes(
       version: d.version ?? null,
       confidence: d.confidence,
       recommended: d.recommended,
+      popular: d.popular,
       notes: d.notes,
       configured: configuredIds.has(d.id),
       loginCommand: PROVIDER_PRESETS[d.id].loginCommand,

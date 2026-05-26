@@ -405,14 +405,14 @@ export function FlowBuilderPage({
         </div>
       </header>
 
-      <section className="mt-8 fade-up" data-screen-label="01 Hero">
-        <div className="eyebrow mb-2">Flow Builder</div>
-        <h1 className="text-display text-[40px] leading-[1.05] max-w-[760px]">
+      <section className="mt-6 fade-up" data-screen-label="01 Hero">
+        <div className="eyebrow mb-1.5">Flow Builder</div>
+        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[760px]">
           Design how your{" "}
           <em className="text-display italic text-violet-soft">agents</em> work
           together.
         </h1>
-        <p className="text-fog-300 text-[14px] mt-3 max-w-[640px]">
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
           Start from a discovered guide, then customize each step: pick the
           agent, attach skills, decide what needs your approval.
         </p>
