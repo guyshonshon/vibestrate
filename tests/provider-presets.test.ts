@@ -94,14 +94,7 @@ describe("starter presets", () => {
 });
 
 describe("KNOWN_PROVIDERS hygiene", () => {
-  const POPULAR = new Set([
-    "claude",
-    "codex",
-    "gemini",
-    "opencode",
-    "aider",
-    "ollama",
-  ]);
+  const POPULAR = new Set(["claude", "codex", "gemini", "aider", "ollama"]);
 
   it("the popular set is the out-of-the-box, preset-ready tier", () => {
     // Popular providers are auto-configured by doctor --fix / setup.
@@ -127,6 +120,7 @@ describe("KNOWN_PROVIDERS hygiene", () => {
       "crush",
       "cursor",
       "goose",
+      "opencode",
       "qwen",
     ]);
     for (const p of optional) {
