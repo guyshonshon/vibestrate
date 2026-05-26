@@ -40,6 +40,8 @@
     "test:watch": "vitest",
     "lint": "tsc --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "docs:generate": "tsx scripts/generate-docs-metadata.ts",
+    "release": "bash scripts/release.sh",
+    "update-deps": "bash scripts/update-deps.sh",
     "prepublishOnly": "pnpm build && node scripts/prepublish-trim.mjs"
   },
   "dependencies": {
