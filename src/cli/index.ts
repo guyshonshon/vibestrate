@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 // Single source of truth for the version: package.json. The bundler
 // (tsup/esbuild) inlines this at build time, and `npm version patch`
 // updates it in one place — flowing into `amaco --version` and the
@@ -327,11 +329,16 @@ export function buildAmacoProgram(): Command {
 }
 
 // Only run the CLI when this module is executed as the main script (not
-// when imported by the docs generator or by tests).
+// when imported by the docs generator or by tests). We compare *realpaths*:
+// when installed globally the `amaco` bin is a symlink, so process.argv[1]
+// (the symlink, e.g. .../bin/amaco) differs from import.meta.url (the
+// resolved module, .../dist/index.js). Resolving both through the symlink
+// makes the comparison hold for direct runs, symlinked bins, and tsx dev.
 const isMain = (() => {
   try {
-    const url = new URL(import.meta.url);
-    return process.argv[1] !== undefined && url.pathname === process.argv[1];
+    const entry = process.argv[1];
+    if (!entry) return false;
+    return realpathSync(entry) === fileURLToPath(import.meta.url);
   } catch {
     return false;
   }
