@@ -52,20 +52,20 @@ describe("provider detection", () => {
     for (const d of others) expect(d.available).toBe(false);
   });
 
-  it("flags Codex as detected-needs-setup (no verified preset)", async () => {
+  it("flags Codex as ready (ships a preset)", async () => {
     const detections = await detectAllProviders(codexOnly);
     const codex = detections.find((d) => d.id === "codex")!;
     expect(codex.available).toBe(true);
-    expect(codex.confidence).toBe("detected-needs-setup");
-    expect(codex.recommended).toBe(false);
+    expect(codex.confidence).toBe("ready");
+    expect(codex.recommended).toBe(true);
   });
 
-  it("flags Ollama as detected-needs-setup with a starter preset", async () => {
+  it("flags Ollama as ready with its starter preset", async () => {
     const detections = await detectAllProviders(ollamaOnly);
     const ollama = detections.find((d) => d.id === "ollama")!;
     expect(ollama.available).toBe(true);
-    expect(ollama.confidence).toBe("detected-needs-setup");
-    expect(ollama.recommended).toBe(false);
+    expect(ollama.confidence).toBe("ready");
+    expect(ollama.recommended).toBe(true);
     expect(ollama.version).toBe("0.13.0");
     expect(ollama.notes.join("\n")).toMatch(/ollama run qwen3\.5/i);
   });
@@ -93,12 +93,14 @@ describe("provider detection", () => {
     expect(ollama.notes[0]).toBe("ollama is not on PATH.");
   });
 
-  it("pickRecommendedProvider returns the ready one or null", async () => {
+  it("pickRecommendedProvider returns the first preset-ready available one, else null", async () => {
     const ready = await detectAllProviders(claudeOk);
     expect(pickRecommendedProvider(ready)?.id).toBe("claude");
 
-    const none = await detectAllProviders(codexOnly);
-    expect(pickRecommendedProvider(none)).toBeNull();
+    // Every provider is preset-ready now, so a codex-only machine
+    // recommends codex (it used to be null when codex was detection-only).
+    const codexMachine = await detectAllProviders(codexOnly);
+    expect(pickRecommendedProvider(codexMachine)?.id).toBe("codex");
 
     const empty = await detectAllProviders(allMissing);
     expect(pickRecommendedProvider(empty)).toBeNull();
@@ -111,8 +113,9 @@ describe("provider detection", () => {
       return { exitCode: 127, stdout: "", stderr: "" };
     });
     const summary = summarizeDetections(detections);
-    expect(summary.ready.map((d) => d.id)).toEqual(["claude"]);
-    expect(summary.needsSetup.map((d) => d.id)).toEqual(["codex"]);
+    // All known providers ship presets now, so any available one is "ready".
+    expect(summary.ready.map((d) => d.id)).toEqual(["claude", "codex"]);
+    expect(summary.needsSetup.map((d) => d.id)).toEqual([]);
     expect(summary.missing.map((d) => d.id).sort()).toEqual([
       "aider",
       "amp",

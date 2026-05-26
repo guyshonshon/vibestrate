@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Built-in providers known to Amaco's detector. `presetReady: true` means Amaco ships verified prompt-flag defaults; otherwise users run `amaco provider setup` to wire up the right flags for their installation.",
+  "description": "Built-in providers Amaco detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Amaco when the provider isn't authenticated. Verify any provider with `amaco provider test <id>`.",
   "providers": [
     {
       "id": "claude",
@@ -11,6 +11,14 @@
       ],
       "presetReady": true,
       "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "-p"
+        ],
+        "input": "stdin"
+      },
+      "loginCommand": "claude",
+      "loginNote": "Run `claude` once and complete sign-in, or set ANTHROPIC_API_KEY.",
       "notes": [
         "Default args: -p with prompt on stdin.",
         "Amaco will configure Claude Code automatically."
@@ -24,11 +32,20 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "exec",
+          "-q"
+        ],
+        "input": "stdin"
+      },
+      "loginCommand": "codex login",
+      "loginNote": "Run `codex login`, or set OPENAI_API_KEY.",
       "notes": [
-        "Starter preset available: `codex exec -q` with stdin prompt.",
-        "Run `amaco provider setup` to apply it, then `amaco provider test codex` to verify the flags work in your installed version."
+        "Preset: `codex exec -q` with the prompt on stdin.",
+        "Verify with `amaco provider test codex`; log in with `codex login` if prompted."
       ],
       "installHint": null
     },
@@ -39,11 +56,17 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [],
+        "input": "stdin"
+      },
+      "loginCommand": "gemini",
+      "loginNote": "Run `gemini` once and sign in with Google, or set GEMINI_API_KEY.",
       "notes": [
-        "Google's Gemini CLI. Detected, but Amaco does not yet ship a verified prompt-flag preset.",
-        "Run `amaco provider setup` to confirm command, args, and input mode, then `amaco provider test gemini`."
+        "Preset: prompt piped to `gemini` on stdin.",
+        "Verify with `amaco provider test gemini`; sign in by running `gemini` once (or set GEMINI_API_KEY)."
       ],
       "installHint": "Install the Gemini CLI: `npm install -g @google/gemini-cli`, then run `gemini` once to authenticate."
     },
@@ -54,11 +77,19 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "run"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": "opencode auth login",
+      "loginNote": "Run `opencode auth login`.",
       "notes": [
-        "Detected, but Amaco does not ship a verified prompt-flag preset.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `opencode run` with the prompt as an argument.",
+        "Verify with `amaco provider test opencode`; log in with `opencode auth login`."
       ],
       "installHint": null
     },
@@ -69,11 +100,21 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "--no-auto-commits",
+          "--yes",
+          "--message"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": null,
+      "loginNote": "Aider authenticates via API keys — set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.",
       "notes": [
-        "Detected, but Amaco does not ship a verified prompt-flag preset.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `aider --message` (one-shot, no auto-commits).",
+        "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `amaco provider test aider`."
       ],
       "installHint": null
     },
@@ -84,12 +125,21 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "run",
+          "qwen3.5"
+        ],
+        "input": "stdin"
+      },
+      "loginCommand": null,
+      "loginNote": "No login needed (runs locally). Pull the model first: `ollama pull qwen3.5`.",
       "notes": [
-        "Starter preset available: `ollama run qwen3.5` with stdin prompt.",
-        "Run `ollama pull qwen3.5` first, or edit providers.ollama.args to use another local model.",
-        "Run `amaco provider setup` to apply it, then `amaco provider test ollama` to verify the model responds."
+        "Preset: `ollama run qwen3.5` with the prompt on stdin.",
+        "Pull the model first (`ollama pull qwen3.5`), or edit providers.ollama.args for another local model.",
+        "No login needed (runs locally). Verify with `amaco provider test ollama`."
       ],
       "installHint": "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download."
     },
@@ -100,11 +150,17 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [],
+        "input": "stdin"
+      },
+      "loginCommand": "qwen",
+      "loginNote": "Run `qwen` once and authenticate (or set the API key it prompts for).",
       "notes": [
-        "Alibaba's Qwen Code CLI (an agentic coding CLI). Detected; no verified preset shipped.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: prompt piped to `qwen` on stdin.",
+        "Verify with `amaco provider test qwen`; authenticate by running `qwen` once."
       ],
       "installHint": "Install Qwen Code: `npm install -g @qwen-code/qwen-code`."
     },
@@ -115,11 +171,19 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "run"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": null,
+      "loginNote": "Crush uses your model provider's API key — set the relevant one (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY).",
       "notes": [
-        "Charm's Crush coding agent. Detected; no verified preset shipped.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `crush run` with the prompt as an argument.",
+        "Set your model provider's API key, then verify with `amaco provider test crush`."
       ],
       "installHint": "Install Crush: `brew install charmbracelet/tap/crush` (macOS) or see https://github.com/charmbracelet/crush."
     },
@@ -130,11 +194,20 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "run",
+          "-t"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": "goose configure",
+      "loginNote": "Run `goose configure` to set your provider and API key.",
       "notes": [
-        "Block's Goose agent CLI. Detected; no verified preset shipped.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `goose run -t` with the prompt as an argument.",
+        "Run `goose configure` to set your provider + key, then verify with `amaco provider test goose`."
       ],
       "installHint": "Install Goose: see https://block.github.io/goose/."
     },
@@ -145,11 +218,19 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "-p"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": "cursor-agent login",
+      "loginNote": "Run `cursor-agent login`.",
       "notes": [
-        "Cursor's headless agent CLI (`cursor-agent`). Detected; no verified preset shipped.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `cursor-agent -p` with the prompt as an argument.",
+        "Log in with `cursor-agent login`, then verify with `amaco provider test cursor`."
       ],
       "installHint": "Install the Cursor CLI: `curl https://cursor.com/install -fsS | bash`."
     },
@@ -160,11 +241,19 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": false,
-      "confidenceWhenAvailable": "detected-needs-setup",
+      "presetReady": true,
+      "confidenceWhenAvailable": "ready",
+      "preset": {
+        "args": [
+          "-x"
+        ],
+        "input": "arg"
+      },
+      "loginCommand": "amp login",
+      "loginNote": "Run `amp login`.",
       "notes": [
-        "Sourcegraph's Amp CLI. Detected; no verified preset shipped.",
-        "Run `amaco provider setup` to confirm command, args, and input mode."
+        "Preset: `amp -x` with the prompt as an argument.",
+        "Log in with `amp login`, then verify with `amaco provider test amp`."
       ],
       "installHint": "Install Amp: `npm install -g @sourcegraph/amp`."
     }

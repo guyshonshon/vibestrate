@@ -54,13 +54,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Codex CLI",
     command: "codex",
     versionArgs: ["--version"],
-    // Starter preset exists (src/providers/presets/codex.ts) but Codex's
-    // flag matrix moves across releases — we don't claim "ready" so
-    // doctor --fix never silently auto-configures it.
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Starter preset available: `codex exec -q` with stdin prompt.",
-      "Run `amaco provider setup` to apply it, then `amaco provider test codex` to verify the flags work in your installed version.",
+      "Preset: `codex exec -q` with the prompt on stdin.",
+      "Verify with `amaco provider test codex`; log in with `codex login` if prompted.",
     ],
   },
   {
@@ -68,10 +65,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Gemini CLI",
     command: "gemini",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Google's Gemini CLI. Detected, but Amaco does not yet ship a verified prompt-flag preset.",
-      "Run `amaco provider setup` to confirm command, args, and input mode, then `amaco provider test gemini`.",
+      "Preset: prompt piped to `gemini` on stdin.",
+      "Verify with `amaco provider test gemini`; sign in by running `gemini` once (or set GEMINI_API_KEY).",
     ],
     installHint:
       "Install the Gemini CLI: `npm install -g @google/gemini-cli`, then run `gemini` once to authenticate.",
@@ -81,10 +78,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "OpenCode",
     command: "opencode",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Detected, but Amaco does not ship a verified prompt-flag preset.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `opencode run` with the prompt as an argument.",
+      "Verify with `amaco provider test opencode`; log in with `opencode auth login`.",
     ],
   },
   {
@@ -92,10 +89,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Aider",
     command: "aider",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Detected, but Amaco does not ship a verified prompt-flag preset.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `aider --message` (one-shot, no auto-commits).",
+      "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `amaco provider test aider`.",
     ],
   },
   {
@@ -103,11 +100,11 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Ollama",
     command: "ollama",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Starter preset available: `ollama run qwen3.5` with stdin prompt.",
-      "Run `ollama pull qwen3.5` first, or edit providers.ollama.args to use another local model.",
-      "Run `amaco provider setup` to apply it, then `amaco provider test ollama` to verify the model responds.",
+      "Preset: `ollama run qwen3.5` with the prompt on stdin.",
+      "Pull the model first (`ollama pull qwen3.5`), or edit providers.ollama.args for another local model.",
+      "No login needed (runs locally). Verify with `amaco provider test ollama`.",
     ],
     installHint:
       "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download.",
@@ -117,10 +114,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Qwen Code",
     command: "qwen",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Alibaba's Qwen Code CLI (an agentic coding CLI). Detected; no verified preset shipped.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: prompt piped to `qwen` on stdin.",
+      "Verify with `amaco provider test qwen`; authenticate by running `qwen` once.",
     ],
     installHint: "Install Qwen Code: `npm install -g @qwen-code/qwen-code`.",
   },
@@ -129,10 +126,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Crush",
     command: "crush",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Charm's Crush coding agent. Detected; no verified preset shipped.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `crush run` with the prompt as an argument.",
+      "Set your model provider's API key, then verify with `amaco provider test crush`.",
     ],
     installHint:
       "Install Crush: `brew install charmbracelet/tap/crush` (macOS) or see https://github.com/charmbracelet/crush.",
@@ -142,10 +139,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Goose",
     command: "goose",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Block's Goose agent CLI. Detected; no verified preset shipped.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `goose run -t` with the prompt as an argument.",
+      "Run `goose configure` to set your provider + key, then verify with `amaco provider test goose`.",
     ],
     installHint: "Install Goose: see https://block.github.io/goose/.",
   },
@@ -154,10 +151,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Cursor CLI",
     command: "cursor-agent",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Cursor's headless agent CLI (`cursor-agent`). Detected; no verified preset shipped.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `cursor-agent -p` with the prompt as an argument.",
+      "Log in with `cursor-agent login`, then verify with `amaco provider test cursor`.",
     ],
     installHint:
       "Install the Cursor CLI: `curl https://cursor.com/install -fsS | bash`.",
@@ -167,10 +164,10 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Amp",
     command: "amp",
     versionArgs: ["--version"],
-    presetReady: false,
+    presetReady: true,
     notes: [
-      "Sourcegraph's Amp CLI. Detected; no verified preset shipped.",
-      "Run `amaco provider setup` to confirm command, args, and input mode.",
+      "Preset: `amp -x` with the prompt as an argument.",
+      "Log in with `amp login`, then verify with `amaco provider test amp`.",
     ],
     installHint: "Install Amp: `npm install -g @sourcegraph/amp`.",
   },
@@ -276,6 +273,16 @@ export function installHintForCommand(command: string): string | null {
   const basename = command.split(/[\\/]/).pop() ?? command;
   const def = KNOWN_PROVIDERS.find((p) => p.command === basename);
   return def?.installHint ?? null;
+}
+
+/**
+ * Map a configured provider's command (e.g. "claude", "/usr/local/bin/codex",
+ * "cursor-agent") back to its known provider id, so we can look up its login
+ * instruction. Returns null for custom commands Amaco doesn't recognize.
+ */
+export function knownProviderIdForCommand(command: string): KnownProviderId | null {
+  const basename = command.split(/[\\/]/).pop() ?? command;
+  return KNOWN_PROVIDERS.find((p) => p.command === basename)?.id ?? null;
 }
 
 export function pickRecommendedProvider(

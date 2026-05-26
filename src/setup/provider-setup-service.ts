@@ -8,6 +8,11 @@ import {
 } from "./config-update-service.js";
 import type { CliProviderConfig } from "../providers/provider-schema.js";
 import type { DetectedProvider } from "../providers/provider-detection.js";
+import { knownProviderIdForCommand } from "../providers/provider-detection.js";
+import {
+  classifyProviderFailure,
+  providerLoginInstruction,
+} from "../providers/provider-presets.js";
 
 export const SAFE_TEST_MAGIC = "AMACO_PROVIDER_OK";
 
@@ -115,6 +120,10 @@ export type ProviderTestResult = {
   stderr: string;
   matchedMagic: boolean;
   hint?: string;
+  /** True when the failure looks like the provider isn't authenticated. */
+  needsLogin: boolean;
+  /** The command to run OUTSIDE Amaco to log in (null = API-key/local provider). */
+  loginCommand?: string | null;
 };
 
 export async function runSafeProviderTest(input: {
@@ -135,6 +144,7 @@ export async function runSafeProviderTest(input: {
       stdout: "",
       stderr: "",
       matchedMagic: false,
+      needsLogin: false,
       hint: `Provider "${input.providerId}" is not configured. Run \`amaco provider setup\` first.`,
     };
   }
@@ -168,10 +178,30 @@ export async function runSafeProviderTest(input: {
   const ok = exitCode === 0 && matched;
 
   let hint: string | undefined;
+  let needsLogin = false;
+  let loginCommand: string | null | undefined;
   if (!ok) {
-    if (exitCode !== 0) {
+    const kind = classifyProviderFailure({
+      exitCode,
+      stdout,
+      stderr,
+      matchedMagic: matched,
+    });
+    const knownId = knownProviderIdForCommand(provider.command);
+    if (kind === "auth") {
+      needsLogin = true;
+      const login = knownId ? providerLoginInstruction(knownId) : null;
+      loginCommand = login?.command ?? null;
+      if (login?.command) {
+        hint = `"${provider.command}" looks unauthenticated. Log in OUTSIDE Amaco, then re-test:\n  ${login.command}\n${login.note}`;
+      } else if (login) {
+        hint = `"${provider.command}" looks unauthenticated. ${login.note}`;
+      } else {
+        hint = `"${provider.command}" looks unauthenticated. Check its login/credentials and re-test.`;
+      }
+    } else if (kind === "exit") {
       hint = `The CLI exited with code ${exitCode}. Check that "${provider.command}" is installed and authenticated.`;
-    } else if (!matched) {
+    } else {
       hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`amaco provider setup\` to adjust args/input mode.`;
     }
   }
@@ -187,6 +217,8 @@ export async function runSafeProviderTest(input: {
     stderr,
     matchedMagic: matched,
     hint,
+    needsLogin,
+    loginCommand,
   };
 }
 

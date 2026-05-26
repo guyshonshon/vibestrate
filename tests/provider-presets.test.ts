@@ -92,34 +92,21 @@ describe("starter presets", () => {
 });
 
 describe("KNOWN_PROVIDERS hygiene", () => {
-  it("codex stays presetReady=false (starter only — flags move)", () => {
-    // Honest posture: we ship a starter, not a verified-working
-    // invocation. Flipping this to true means doctor --fix would
-    // auto-configure codex on every project that opens. Do not flip
-    // without verifying the flag matrix in a current release.
-    const codex = KNOWN_PROVIDERS.find((p) => p.id === "codex");
-    expect(codex).toBeDefined();
-    expect(codex!.presetReady).toBe(false);
-    expect(codex!.notes.join("\n")).toMatch(/starter preset/i);
-    expect(codex!.notes.join("\n")).toMatch(/amaco provider test/i);
+  it("every known provider is preset-ready (works out of the box)", () => {
+    // Every provider now ships a preset, so doctor --fix / setup can
+    // auto-configure whichever CLI the user has installed. Verification
+    // is delegated to `amaco provider test <id>` + the login check.
+    for (const p of KNOWN_PROVIDERS) {
+      expect(p.presetReady, `${p.id} should be preset-ready`).toBe(true);
+      expect(
+        p.notes.join("\n"),
+        `${p.id} notes should mention provider test or a login/key step`,
+      ).toMatch(/provider test|log in|configure|api key|pull/i);
+    }
   });
 
-  it("claude stays presetReady=true (the only verified preset)", () => {
-    const claude = KNOWN_PROVIDERS.find((p) => p.id === "claude");
-    expect(claude).toBeDefined();
-    expect(claude!.presetReady).toBe(true);
-  });
-
-  it("opencode, aider, and ollama stay detection-only", () => {
-    // OpenCode/Aider do not have starter presets yet. Ollama does, but
-    // remains detection-only because local model availability varies by
-    // machine; users opt in and then run a provider smoke test.
-    const opencode = KNOWN_PROVIDERS.find((p) => p.id === "opencode");
-    const aider = KNOWN_PROVIDERS.find((p) => p.id === "aider");
+  it("ollama note + install hint stay accurate", () => {
     const ollama = KNOWN_PROVIDERS.find((p) => p.id === "ollama");
-    expect(opencode?.presetReady).toBe(false);
-    expect(aider?.presetReady).toBe(false);
-    expect(ollama?.presetReady).toBe(false);
     expect(ollama?.notes.join("\n")).toMatch(/ollama run qwen3\.5/i);
     expect(ollama?.installHint).toMatch(/install\.sh/);
   });
