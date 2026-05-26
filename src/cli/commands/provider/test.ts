@@ -96,6 +96,21 @@ export async function runProviderTest(
     return 0;
   }
 
+  if (result.needsLogin) {
+    console.error(
+      `${symbol.warn()} ${color.bold(provider.id)} looks like it isn't logged in.`,
+    );
+    if (result.loginCommand) {
+      console.error(
+        indent(
+          `Run this ${color.bold("outside Amaco")}, then re-test:\n${indent(color.bold(result.loginCommand))}`,
+        ),
+      );
+    }
+    if (result.hint) console.error(indent(color.dim(result.hint)));
+    return 3;
+  }
+
   console.error(`${symbol.fail()} Provider test failed.`);
   console.error(indent(`Exit code: ${result.exitCode}`));
   console.error(indent(`Duration: ${result.durationMs}ms`));

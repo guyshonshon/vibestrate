@@ -29,7 +29,7 @@ import {
   assignAgentsToProvider,
   setValidationCommands,
 } from "./config-update-service.js";
-import { buildClaudeProviderFromDetection } from "./provider-setup-service.js";
+import { buildProviderFromDetection } from "../providers/provider-presets.js";
 
 export type DoctorSeverity = "ok" | "warn" | "fail";
 
@@ -736,16 +736,25 @@ export async function applyDoctorFixes(input: {
         applied.push(`Restored ${path.relative(projectRoot, promptPath)}`);
       }
 
-      // Add Claude provider if claude is detected and no providers configured for any agent.
+      // Auto-configure the recommended detected provider (preset-ready +
+      // available; Claude is preferred by registry order) when no providers
+      // are configured yet. Every known provider now ships a preset, so this
+      // works out of the box for whichever CLI the user has installed.
       const detections = await detectAllProviders();
-      const claude = detections.find((d) => d.id === "claude" && d.available);
+      const recommended = pickRecommendedProvider(detections);
       const hasAnyProvider =
         Object.keys(loaded.config.providers ?? {}).length > 0;
-      if (!hasAnyProvider && claude) {
-        await ensureProvider(projectRoot, "claude", buildClaudeProviderFromDetection(claude));
-        await assignAgentsToProvider(projectRoot, "claude");
-        applied.push("Added 'claude' provider and assigned all default agents to it");
-      } else if (!hasAnyProvider && !claude) {
+      if (!hasAnyProvider && recommended) {
+        await ensureProvider(
+          projectRoot,
+          recommended.id,
+          buildProviderFromDetection(recommended.id, recommended.command),
+        );
+        await assignAgentsToProvider(projectRoot, recommended.id);
+        applied.push(
+          `Added '${recommended.id}' provider and assigned all default agents to it`,
+        );
+      } else if (!hasAnyProvider && !recommended) {
         skipped.push(
           "No providers configured and no local CLI detected. Run `amaco provider setup`.",
         );

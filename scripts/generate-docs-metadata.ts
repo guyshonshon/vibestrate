@@ -28,6 +28,7 @@ import { z, type ZodTypeAny } from "zod";
 // ─── Schema imports ──────────────────────────────────────────────────────
 import { buildAmacoProgram } from "../src/cli/index.js";
 import { KNOWN_PROVIDERS } from "../src/providers/provider-detection.js";
+import { PROVIDER_PRESETS } from "../src/providers/provider-presets.js";
 import { defaultWorkflowStages } from "../src/workflow/default-workflow.js";
 import {
   runStatusSchema,
@@ -297,20 +298,26 @@ function generateConfigSchema() {
 // ─── Providers ───────────────────────────────────────────────────────────
 
 function generateProviders() {
-  const providers = KNOWN_PROVIDERS.map((p) => ({
-    id: p.id,
-    label: p.label,
-    command: p.command,
-    versionArgs: p.versionArgs,
-    presetReady: p.presetReady,
-    confidenceWhenAvailable: p.presetReady ? "ready" : "detected-needs-setup",
-    notes: p.notes,
-    installHint: p.installHint ?? null,
-  }));
+  const providers = KNOWN_PROVIDERS.map((p) => {
+    const { preset, loginCommand, loginNote } = PROVIDER_PRESETS[p.id];
+    return {
+      id: p.id,
+      label: p.label,
+      command: p.command,
+      versionArgs: p.versionArgs,
+      presetReady: p.presetReady,
+      confidenceWhenAvailable: p.presetReady ? "ready" : "detected-needs-setup",
+      preset: { args: preset.args, input: preset.input },
+      loginCommand,
+      loginNote,
+      notes: p.notes,
+      installHint: p.installHint ?? null,
+    };
+  });
   writeJson("providers.json", {
     schemaVersion: 1,
     description:
-      "Built-in providers known to Amaco's detector. `presetReady: true` means Amaco ships verified prompt-flag defaults; otherwise users run `amaco provider setup` to wire up the right flags for their installation.",
+      "Built-in providers Amaco detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Amaco when the provider isn't authenticated. Verify any provider with `amaco provider test <id>`.",
     providers,
   });
 }
