@@ -70,6 +70,21 @@ describe("provider detection", () => {
     expect(ollama.notes.join("\n")).toMatch(/ollama run qwen3\.5/i);
   });
 
+  it("detects an optional provider as opt-in, not auto-recommended", async () => {
+    const qwenOnly: ProviderDetectionRunner = async (cmd) => {
+      if (cmd === "qwen") return { exitCode: 0, stdout: "qwen 0.3.0", stderr: "" };
+      return { exitCode: 127, stdout: "", stderr: "" };
+    };
+    const detections = await detectAllProviders(qwenOnly);
+    const qwen = detections.find((d) => d.id === "qwen")!;
+    expect(qwen.available).toBe(true);
+    expect(qwen.popular).toBe(false);
+    expect(qwen.confidence).toBe("detected-needs-setup");
+    expect(qwen.recommended).toBe(false);
+    // Installed but opt-in → not auto-picked as the recommended provider.
+    expect(pickRecommendedProvider(detections)).toBeNull();
+  });
+
   it("does not mark non-zero exit as available", async () => {
     const runner: ProviderDetectionRunner = async () => ({
       exitCode: 1,

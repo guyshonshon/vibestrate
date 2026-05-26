@@ -22,6 +22,8 @@ export type DetectedProvider = {
   detectionMethod: "path" | "version" | "failed";
   confidence: "ready" | "detected-needs-setup" | "missing";
   recommended: boolean;
+  /** One of the popular, out-of-the-box providers (vs an optional opt-in one). */
+  popular: boolean;
   notes: string[];
 };
 
@@ -30,8 +32,13 @@ type KnownProviderDef = {
   label: string;
   command: string;
   versionArgs: string[];
-  // 'ready' means we ship a verified preset (e.g. claude -p with stdin).
-  // 'detected-needs-setup' means we found the binary but won't guess prompt flags.
+  // The popular, first-class set: auto-detected, auto-configured by
+  // `doctor --fix`, and offered out of the box. The rest are still supported
+  // (presets exist) but stay opt-in — detected, never auto-bound.
+  popular: boolean;
+  // 'ready' (presetReady) means we auto-apply a verified preset (e.g. claude
+  // -p with stdin). Optional providers ship a preset too but are not auto-
+  // applied, so they detect as 'detected-needs-setup' until the user opts in.
   presetReady: boolean;
   notes: string[];
   installHint?: string;
@@ -43,6 +50,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Claude Code",
     command: "claude",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Default args: -p with prompt on stdin.",
@@ -54,6 +62,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Codex CLI",
     command: "codex",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Preset: `codex exec -q` with the prompt on stdin.",
@@ -65,6 +74,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Gemini CLI",
     command: "gemini",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Preset: prompt piped to `gemini` on stdin.",
@@ -78,6 +88,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "OpenCode",
     command: "opencode",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Preset: `opencode run` with the prompt as an argument.",
@@ -89,6 +100,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Aider",
     command: "aider",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Preset: `aider --message` (one-shot, no auto-commits).",
@@ -100,6 +112,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Ollama",
     command: "ollama",
     versionArgs: ["--version"],
+    popular: true,
     presetReady: true,
     notes: [
       "Preset: `ollama run qwen3.5` with the prompt on stdin.",
@@ -114,7 +127,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Qwen Code",
     command: "qwen",
     versionArgs: ["--version"],
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: prompt piped to `qwen` on stdin.",
       "Verify with `amaco provider test qwen`; authenticate by running `qwen` once.",
@@ -126,7 +140,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Crush",
     command: "crush",
     versionArgs: ["--version"],
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: `crush run` with the prompt as an argument.",
       "Set your model provider's API key, then verify with `amaco provider test crush`.",
@@ -139,7 +154,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Goose",
     command: "goose",
     versionArgs: ["--version"],
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: `goose run -t` with the prompt as an argument.",
       "Run `goose configure` to set your provider + key, then verify with `amaco provider test goose`.",
@@ -151,7 +167,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Cursor CLI",
     command: "cursor-agent",
     versionArgs: ["--version"],
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: `cursor-agent -p` with the prompt as an argument.",
       "Log in with `cursor-agent login`, then verify with `amaco provider test cursor`.",
@@ -164,7 +181,8 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     label: "Amp",
     command: "amp",
     versionArgs: ["--version"],
-    presetReady: true,
+    popular: false,
+    presetReady: false,
     notes: [
       "Preset: `amp -x` with the prompt as an argument.",
       "Log in with `amp login`, then verify with `amaco provider test amp`.",
@@ -214,6 +232,7 @@ export async function detectProvider(
       detectionMethod: "failed",
       confidence: "missing",
       recommended: false,
+      popular: def.popular,
       notes: [
         `${def.command} is not on PATH.`,
         ...(def.installHint ? [def.installHint] : []),
@@ -237,6 +256,7 @@ export async function detectProvider(
       detectionMethod: "failed",
       confidence: "missing",
       recommended: false,
+      popular: def.popular,
       notes: [
         reason,
         stderrNote,
@@ -255,6 +275,7 @@ export async function detectProvider(
     detectionMethod: "version",
     confidence: def.presetReady ? "ready" : "detected-needs-setup",
     recommended: def.presetReady,
+    popular: def.popular,
     notes: def.notes.slice(),
   };
 }

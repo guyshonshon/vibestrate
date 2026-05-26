@@ -206,14 +206,14 @@ export function AgentsPage() {
 
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-2">
-        <div className="eyebrow mb-3">Agents · the crew you can pull from</div>
-        <h1 className="text-display text-[32px] sm:text-[36px] xl:text-[40px] leading-[1.12] max-w-[820px]">
+      <section className="mt-1">
+        <div className="eyebrow mb-1.5">Agents · the crew you can pull from</div>
+        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[820px]">
           {overview ? overview.providers.length : "—"}{" "}
           <em className="text-display italic text-violet-soft">models</em>, one
           orchestrator, your rules.
         </h1>
-        <p className="text-fog-300 text-[13.5px] mt-3 max-w-[640px]">
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
           Tune capabilities, see who's online, watch throughput per agent.
           Every change here flows through to the composer.
         </p>

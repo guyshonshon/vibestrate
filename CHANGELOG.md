@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: providers split into a **popular** tier (claude, gemini, codex,
+  ollama, aider, opencode) that's auto-configured out of the box, and an
+  **optional** tier (qwen, crush, goose, cursor, amp) that's detected but
+  opt-in — never auto-bound (`doctor --fix` won't apply it). Providers page
+  groups Popular vs Optional.
+- Change: dashboard typography — Bricolage Grotesque Variable for big
+  titles/headers (`.text-display`); minimized the page heros (Agents,
+  Metrics, Flow Builder, Providers) for a denser, less marketing-y feel.
+- Add: Guide versioning in the hub design — semver per release, Docker-style
+  `name` / `name:1.2.0` / `name:1` refs, `latest` = highest stable (auto),
+  immutable versions; pinned installs + `update` / `outdated`.
 - Add: Guides Hub design doc (`docs/design/guides-hub.md`, #3) — phased plan
   (git-backed index → Cloudflare `amaco-hub` service) with API, rules, metrics.
 - Chore: stop tracking `CLAUDE.md` (local agent protocol) and scheduler
