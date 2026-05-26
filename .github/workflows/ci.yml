@@ -29,8 +29,10 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Test
-        run: pnpm test
-
+      # Build before test: the shell-command-runner test spawns the
+      # bundled dist/index.js, so dist must exist first.
       - name: Build
         run: pnpm build
+
+      - name: Test
+        run: pnpm test
