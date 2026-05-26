@@ -34,10 +34,10 @@ The planner will guess what you meant. The reviewer will critique its own guess.
 - **One outcome per task.** Two unrelated changes in one run make the review noisy and the diff harder to ship.
 - **Name the surface.** A file path, a module name, a feature flag — give the planner something concrete to anchor on.
 - **State the constraint.** If "don't touch X" matters, say so in the task itself, not after the diff lands.
-- **Use skills for context that's stable.** Conventions, security rules, domain language belong in [skills](./skill), not in every task prompt.
+- **Use skills for context that's stable.** Conventions, security rules, domain language belong in [skills](/docs/concepts/skill), not in every task prompt.
 
 ## Related
 
-- [Workflow](./workflow) — the stages a task moves through.
-- [Run state](./state) — the formal statuses a task accumulates.
-- [Worktree](./worktree) — where a task's edits live before you merge.
+- [Workflow](/docs/concepts/workflow) — the stages a task moves through.
+- [Run state](/docs/concepts/state) — the formal statuses a task accumulates.
+- [Worktree](/docs/concepts/worktree) — where a task's edits live before you merge.

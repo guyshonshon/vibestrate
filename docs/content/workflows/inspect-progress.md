@@ -59,5 +59,5 @@ Replay is a read-only inspector for any persisted run. Use it for runs that fini
 
 ## Related
 
-- [Run state](../concepts/state) — what the status field means.
-- [Debug a failed run](./debug-failed).
+- [Run state](/docs/concepts/state) — what the status field means.
+- [Debug a failed run](/docs/workflows/debug-failed).

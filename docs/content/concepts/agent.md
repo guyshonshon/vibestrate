@@ -28,7 +28,7 @@ Each is a configured row under `agents:` in `project.yml`. The role names are fi
 | `reviewer` | Critiques the diff against the plan, returns APPROVED / CHANGES_REQUESTED / BLOCKED. |
 | `verifier` | Final gate before `merge_ready` — checks for unresolved findings and validation gaps. |
 
-See the [agents reference](../reference/agents) for the source of each role's prompt template.
+See the [agents reference](/docs/reference/agents) for the source of each role's prompt template.
 
 ## How an agent's prompt is assembled
 
@@ -50,6 +50,6 @@ The order matters: project rules come first so they bind the agent's behavior; s
 
 ## Related
 
-- [Provider](./provider) — what an agent talks to.
-- [Skill](./skill) — what an agent reads as domain context.
-- [Workflow](./workflow) — the sequence of agents in a run.
+- [Provider](/docs/concepts/provider) — what an agent talks to.
+- [Skill](/docs/concepts/skill) — what an agent reads as domain context.
+- [Workflow](/docs/concepts/workflow) — the sequence of agents in a run.

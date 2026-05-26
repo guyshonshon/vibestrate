@@ -25,7 +25,7 @@ This is the design choice that makes the tool *local-first*: Amaco never holds a
 | `opencode` | Detected, needs setup | No verified preset shipped. |
 | `aider` | Detected, needs setup | No verified preset shipped. |
 
-The canonical, generated list lives in the [providers reference](../reference/providers).
+The canonical, generated list lives in the [providers reference](/docs/reference/providers).
 
 ## "Preset-ready" vs "needs setup"
 
@@ -72,5 +72,5 @@ amaco run "..." --effort high   # uses claude for every agent in this run
 
 ## Related
 
-- [Provider reference](../reference/providers) — generated from `KNOWN_PROVIDERS`.
-- [Extending: add a provider](../extending/add-provider).
+- [Provider reference](/docs/reference/providers) — generated from `KNOWN_PROVIDERS`.
+- [Extending: add a provider](/docs/extending/add-provider).

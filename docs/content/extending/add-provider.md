@@ -82,5 +82,5 @@ Providers don't:
 
 ## Related
 
-- [Provider (concept)](../concepts/provider).
-- [Provider reference](../reference/providers).
+- [Provider (concept)](/docs/concepts/provider).
+- [Provider reference](/docs/reference/providers).

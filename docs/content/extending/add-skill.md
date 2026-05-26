@@ -82,5 +82,5 @@ The frontmatter is optional. Most skills don't need it.
 
 ## Related
 
-- [Skill (concept)](../concepts/skill).
-- [Attach skills (getting started)](../getting-started/skills).
+- [Skill (concept)](/docs/concepts/skill).
+- [Attach skills (getting started)](/docs/getting-started/skills).

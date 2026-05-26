@@ -15,7 +15,7 @@ The state machine is what makes runs replayable, pausable, and auditable. When a
 
 ## The statuses
 
-The canonical, generated list lives in the [run-state reference](../reference/state-machine).
+The canonical, generated list lives in the [run-state reference](/docs/reference/state-machine).
 
 | Status | Meaning |
 |---|---|
@@ -59,5 +59,5 @@ amaco replay <runId>
 
 ## Related
 
-- [Workflow](./workflow) — the stages that drive transitions.
-- [Task lifecycle](../task-lifecycle) — the same statuses, drawn as a transition diagram.
+- [Workflow](/docs/concepts/workflow) — the stages that drive transitions.
+- [Task lifecycle](/docs/task-lifecycle) — the same statuses, drawn as a transition diagram.

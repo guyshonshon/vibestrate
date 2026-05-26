@@ -13,16 +13,16 @@ Think of it as the missing supervisor for vibe-coding. You define the flow — p
 
 <div class="docs-cards">
 
-**[Get started in 5 minutes](./getting-started/installation)**
+**[Get started in 5 minutes](/docs/getting-started/installation)**
 Install, configure a provider, run your first task.
 
-**[Understand the concepts](./concepts/task)**
+**[Understand the concepts](/docs/concepts/task)**
 Tasks, agents, providers, Guides, skills, worktrees — what each one is, and why it exists.
 
-**[Inspect the reference](./reference/cli)**
+**[Inspect the reference](/docs/reference/cli)**
 Every CLI command, every config key, every built-in Guide — generated from source.
 
-**[Extend Amaco](./extending/add-skill)**
+**[Extend Amaco](/docs/extending/add-skill)**
 Add skills, providers, or your own Guide.
 
 </div>

@@ -33,7 +33,7 @@ planning → architecting → executing → validating → reviewing → verifyi
 
 The fix loop is bounded by `workflow.maxReviewLoops` (default `2`). If review keeps requesting changes past the budget, the run goes to `blocked`.
 
-The canonical, generated stage list lives in the [workflow reference](../reference/workflow).
+The canonical, generated stage list lives in the [workflow reference](/docs/reference/workflow).
 
 ## Validation is its own stage
 
@@ -43,7 +43,7 @@ If your `commands.validate` is empty, the workflow degenerates into a pure model
 
 ## Guides are alternate workflows
 
-The default workflow is one path through the orchestrator. A [Guide](./guide) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Guide uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
+The default workflow is one path through the orchestrator. A [Guide](/docs/concepts/guide) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Guide uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
 
 ## Common mistakes
 
@@ -53,6 +53,6 @@ The default workflow is one path through the orchestrator. A [Guide](./guide) is
 
 ## Related
 
-- [Run state](./state) — the statuses each stage entry and exit produces.
-- [Guide](./guide) — alternate workflows.
-- [Task lifecycle](../task-lifecycle) — the same flow with the full status diagram.
+- [Run state](/docs/concepts/state) — the statuses each stage entry and exit produces.
+- [Guide](/docs/concepts/guide) — alternate workflows.
+- [Task lifecycle](/docs/task-lifecycle) — the same flow with the full status diagram.

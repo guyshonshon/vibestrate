@@ -5,7 +5,7 @@ section: cli
 slug: cli/overview
 ---
 
-The `amaco` command is the primary surface for working with Amaco from a terminal. Run `amaco --help` to see the live list; the [CLI reference](../reference/cli) page is generated from the same command tree.
+The `amaco` command is the primary surface for working with Amaco from a terminal. Run `amaco --help` to see the live list; the [CLI reference](/docs/reference/cli) page is generated from the same command tree.
 
 ## Shape
 
@@ -93,4 +93,4 @@ amaco run "<task>" --ui                     # start a run with the dashboard alo
 
 ## Reference
 
-Every command, every option, every default — see the [CLI commands reference](../reference/cli), generated from the commander program tree.
+Every command, every option, every default — see the [CLI commands reference](/docs/reference/cli), generated from the commander program tree.
