@@ -3,7 +3,7 @@
 Amaco is a small, open‑source, local‑first project. There's no company behind
 it, no support team, and no SLA — but security reports are taken seriously and
 handled privately. Use of the software is at your own risk under the
-[MIT license](./LICENSE).
+[Apache-2.0 license](./LICENSE).
 
 ## Reporting a vulnerability
 

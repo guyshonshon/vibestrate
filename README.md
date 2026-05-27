@@ -20,7 +20,7 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 
 <br />
 
-[![License](https://img.shields.io/badge/License-MIT-8b7cff?style=flat-square&labelColor=0e1118)](./LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-8b7cff?style=flat-square&labelColor=0e1118)](./LICENSE)
 [![npm](https://img.shields.io/npm/v/amaco-os?style=flat-square&labelColor=0e1118&color=8b7cff)](https://www.npmjs.com/package/amaco-os)
 [![Node](https://img.shields.io/badge/Node-%E2%89%A5%2018.17-8b7cff?style=flat-square&labelColor=0e1118)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-7cc5ff?style=flat-square&labelColor=0e1118)](https://www.typescriptlang.org)
@@ -119,7 +119,7 @@ This is the part that matters, so it gets no asterisks:
 | 💸 **No payments, ever** | Amaco is free. You pay only for the models you choose to run, billed by the vendor, exactly as before. |
 | 📡 **No cloud, no telemetry** | Everything runs on your laptop. Nothing phones home. The only network calls are the ones your provider CLIs already make. |
 | 🔒 **Your code stays put** | Edits happen in an isolated worktree under your control. No auto-push, no auto-merge. |
-| 📖 **Genuinely open source** | MIT licensed, all of it. Read it, fork it, run it offline. |
+| 📖 **Genuinely open source** | Apache-2.0 licensed, all of it. Read it, fork it, run it offline. |
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -197,7 +197,7 @@ Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) - the surface 
 
 ## ◆ License
 
-Distributed under the [MIT License](./LICENSE). Use it, fork it, ship it.
+Distributed under the [Apache License 2.0](./LICENSE). Use it, fork it, ship it.
 
 ---
 
