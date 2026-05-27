@@ -1824,9 +1824,13 @@ export class Orchestrator {
     };
   }): Promise<OrchestratorOutput> {
     let state = input.state;
-    let lastValidation: ValidationResults | null = null;
-    let reviewDecision: ReviewDecision = "BLOCKED";
-    let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
+    // Widened initializers (`as`): these are reassigned inside the per-step
+    // `runStep` closure below, which TS control-flow analysis can't see — a
+    // plain literal initializer would pin them to the initial value and break
+    // the post-loop comparisons. The `as` keeps the full union type.
+    let lastValidation = null as ValidationResults | null;
+    let reviewDecision = "BLOCKED" as ReviewDecision;
+    let verificationDecision = "NEEDS_HUMAN" as VerificationDecision;
     let planArtifact: RoleRunResult | null = null;
     let executionArtifact: RoleRunResult | null = null;
     let reviewArtifact: RoleRunResult | null = null;
@@ -1888,146 +1892,352 @@ export class Orchestrator {
     });
 
     try {
-      for (const step of input.snapshot.steps) {
-        if (!step.enabled) {
+      const steps = input.snapshot.steps;
+      const loop = input.snapshot.loop;
+      const loopFrom = loop
+        ? steps.findIndex((s) => s.sourceStepId === loop.from)
+        : -1;
+      const loopTo = loop
+        ? steps.findIndex((s) => s.sourceStepId === loop.to)
+        : -1;
+      if (loop && (loopFrom < 0 || loopTo < 0)) {
+        throw new Error(
+          `Flow loop references unknown step(s) (from=${loop.from}, to=${loop.to}).`,
+        );
+      }
+      let loopIteration = 0;
+      let stepIndex = 0;
+      // Adaptive-loop-aware traversal. Linear flows (loop === null) advance one
+      // step at a time, exactly as before. When a flow declares a loop, the
+      // decisionStep (a review-turn at/inside from..to) gates re-entry: after it
+      // runs we exit past `to` when the review isn't CHANGES_REQUESTED or the
+      // iteration budget is spent; otherwise we finish the body and jump back to
+      // `from`. The gate can sit at the body head so an early APPROVED skips the
+      // remaining body (e.g. the default flow's fix) — mirroring run()'s loop.
+      while (stepIndex < steps.length) {
+        const step = steps[stepIndex]!;
+        if (loop && stepIndex === loopFrom) {
+          loopIteration += 1;
+          await input.eventLog.append({
+            type: "flow.loop.iteration",
+            message: `Flow loop pass ${loopIteration}/${loop.maxIterations} (body ${loop.from}..${loop.to}).`,
+            data: {
+              flowId: input.snapshot.flowId,
+              iteration: loopIteration,
+              maxIterations: loop.maxIterations,
+              from: loop.from,
+              to: loop.to,
+            },
+          });
+        }
+        const runStep = async (): Promise<void> => {
+          if (!step.enabled) {
+            state = this.patchFlowStep(
+              state,
+              step.id,
+              { status: "skipped", endedAt: nowIso() },
+              step.id,
+            );
+            await input.stateStore.write(state);
+            await input.eventLog.append({
+              type: "flow.step.skipped",
+              message: `Flow step ${step.id} skipped.`,
+              data: { flowId: input.snapshot.flowId, stepId: step.id },
+            });
+            return;
+          }
+
+          state = await applyPauseIfRequested({
+            state,
+            store: input.stateStore,
+            events: input.eventLog,
+          });
+          if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+          state = await this.moveToFlowStepStatus({
+            state,
+            step,
+            stateStore: input.stateStore,
+          });
+
+          const preparedTurn = step.slotId && step.roleId
+            ? prepareFlowParticipantTurn(participantLedger, step.slotId)
+            : null;
+          const context = await this.buildFlowContextPacket({
+            snapshot: input.snapshot,
+            step,
+            outputs,
+            artifactStore: input.artifactStore,
+            contextMode: preparedTurn?.contextMode ?? "stateless",
+          });
           state = this.patchFlowStep(
             state,
             step.id,
-            { status: "skipped", endedAt: nowIso() },
+            {
+              status: "running",
+              startedAt: nowIso(),
+              contextPacketPath: context.contextPacketPath,
+              error: null,
+            },
             step.id,
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "flow.step.skipped",
-            message: `Flow step ${step.id} skipped.`,
-            data: { flowId: input.snapshot.flowId, stepId: step.id },
+            type: "flow.context.built",
+            message: `Flow context packet built for ${step.id}.`,
+            data: {
+              flowId: input.snapshot.flowId,
+              stepId: step.id,
+              contextPolicy: input.snapshot.contextPolicy,
+              contextMode: preparedTurn?.contextMode ?? "stateless",
+              contextPacketPath: context.contextPacketPath,
+              budget: context.budget,
+            },
           });
-          continue;
-        }
+          await input.eventLog.append({
+            type: "flow.step.started",
+            message: `Flow step ${step.id} starting.`,
+            data: {
+              flowId: input.snapshot.flowId,
+              stepId: step.id,
+              kind: step.kind,
+              roleId: step.roleId,
+              providerId: step.providerId,
+              contextPacketPath: context.contextPacketPath,
+            },
+          });
+          this.onProgress(`Flow ${step.id}...`);
 
-        state = await applyPauseIfRequested({
-          state,
-          store: input.stateStore,
-          events: input.eventLog,
-        });
-        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-        state = await this.moveToFlowStepStatus({
-          state,
-          step,
-          stateStore: input.stateStore,
-        });
+          if (step.kind === "validation") {
+            const validationOutput = await this.runFlowValidationStep({
+              step,
+              state,
+              outputs,
+              artifactStore: input.artifactStore,
+              stateStore: input.stateStore,
+              ctx: input.ctx,
+            });
+            state = validationOutput.state;
+            lastValidation = validationOutput.validation;
+            if (validationOutput.validation.summary.failed > 0) {
+              input.notify(
+                draftValidationFailed({
+                  runId: input.runId,
+                  taskId: this.taskId,
+                  failedCount: validationOutput.validation.summary.failed,
+                }),
+              );
+            }
+            await input.eventLog.append({
+              type: "flow.step.completed",
+              message: `Flow step ${step.id} completed.`,
+              data: { flowId: input.snapshot.flowId, stepId: step.id },
+            });
+            return;
+          }
 
-        const preparedTurn = step.slotId && step.roleId
-          ? prepareFlowParticipantTurn(participantLedger, step.slotId)
-          : null;
-        const context = await this.buildFlowContextPacket({
-          snapshot: input.snapshot,
-          step,
-          outputs,
-          artifactStore: input.artifactStore,
-          contextMode: preparedTurn?.contextMode ?? "stateless",
-        });
-        state = this.patchFlowStep(
-          state,
-          step.id,
-          {
-            status: "running",
-            startedAt: nowIso(),
-            contextPacketPath: context.contextPacketPath,
-            error: null,
-          },
-          step.id,
-        );
-        await input.stateStore.write(state);
-        await input.eventLog.append({
-          type: "flow.context.built",
-          message: `Flow context packet built for ${step.id}.`,
-          data: {
-            flowId: input.snapshot.flowId,
-            stepId: step.id,
-            contextPolicy: input.snapshot.contextPolicy,
-            contextMode: preparedTurn?.contextMode ?? "stateless",
-            contextPacketPath: context.contextPacketPath,
-            budget: context.budget,
-          },
-        });
-        await input.eventLog.append({
-          type: "flow.step.started",
-          message: `Flow step ${step.id} starting.`,
-          data: {
-            flowId: input.snapshot.flowId,
-            stepId: step.id,
-            kind: step.kind,
+          if (step.kind === "approval-gate") {
+            if (!step.approval) {
+              throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
+            }
+            const gate = await this.awaitApprovalRequest({
+              state,
+              fromStatus: state.status,
+              stageId: step.id,
+              roleId: "flow",
+              reason: step.approval.reason,
+              prompt: null,
+              sourceArtifactPath: context.contextPacketPath,
+              requestedAction: step.approval.requestedAction,
+              riskLevel: step.approval.riskLevel,
+              source: "policy",
+              userMessage: step.approval.userMessage ?? null,
+              progressMessage: `Pausing for Flow approval at ${step.id}...`,
+              requestedMessage: `Flow approval gate ${step.id} is waiting for a decision.`,
+              resumedMessage: `Run resumed after Flow approval gate ${step.id}.`,
+              approvalService: input.approvalService,
+              stateStore: input.stateStore,
+              eventLog: input.eventLog,
+            });
+            state = gate.state;
+            if (gate.rejected) {
+              state = this.patchFlowStep(
+                state,
+                step.id,
+                { status: "blocked", endedAt: nowIso() },
+                step.id,
+              );
+              await input.stateStore.write(state);
+              await input.eventLog.append({
+                type: "flow.step.failed",
+                message: `Flow approval gate ${step.id} blocked the run.`,
+                data: { flowId: input.snapshot.flowId, stepId: step.id },
+              });
+              throw new __ApprovalRejectedSignal();
+            }
+
+            state = this.patchFlowStep(
+              state,
+              step.id,
+              { status: "passed", endedAt: nowIso() },
+              step.id,
+            );
+            await input.stateStore.write(state);
+            await input.eventLog.append({
+              type: "flow.step.completed",
+              message: `Flow approval gate ${step.id} completed.`,
+              data: { flowId: input.snapshot.flowId, stepId: step.id },
+            });
+            return;
+          }
+
+          if (!step.roleId) {
+            throw new Error(`Flow step "${step.id}" needs an agent.`);
+          }
+
+          const result = await this.runRole({
             roleId: step.roleId,
             providerId: step.providerId,
-            contextPacketPath: context.contextPacketPath,
-          },
-        });
-        this.onProgress(`Flow ${step.id}...`);
-
-        if (step.kind === "validation") {
-          const validationOutput = await this.runFlowValidationStep({
-            step,
-            state,
-            outputs,
-            artifactStore: input.artifactStore,
-            stateStore: input.stateStore,
+            stageId: step.id,
+            promptIndex: 0,
+            promptName: path.posix.join("flows", step.id, "prompt.md"),
+            outputName: path.posix.join("flows", step.id, "output.md"),
+            priorArtifacts: context.priorArtifacts,
+            validationResults: lastValidation,
+            additionalNotes: this.renderFlowStepNotes({
+              snapshot: input.snapshot,
+              step,
+            }),
+            ...(preparedTurn
+              ? {
+                  flowTurn: {
+                    slotId: preparedTurn.slotId,
+                    contextMode: preparedTurn.contextMode,
+                    fallbackReason: preparedTurn.fallbackReason,
+                    ...(preparedTurn.sessionRequest
+                      ? { sessionRequest: preparedTurn.sessionRequest }
+                      : {}),
+                  },
+                }
+              : {}),
+            metricsStore: input.metricsStore,
             ctx: input.ctx,
           });
-          state = validationOutput.state;
-          lastValidation = validationOutput.validation;
-          if (validationOutput.validation.summary.failed > 0) {
-            input.notify(
-              draftValidationFailed({
-                runId: input.runId,
-                taskId: this.taskId,
-                failedCount: validationOutput.validation.summary.failed,
-              }),
-            );
+          if (preparedTurn) {
+            participantLedger = recordFlowParticipantTurn({
+              ledger: participantLedger,
+              prepared: preparedTurn,
+              stepId: step.id,
+              roleId: step.roleId,
+              providerId: step.providerId ?? result.providerResult.providerId,
+              contextPacketPath: context.contextPacketPath,
+              promptArtifactPath: result.promptArtifactPath,
+              outputArtifactPath: result.outputArtifactPath,
+              providerSessionId: result.providerResult.session?.sessionId ?? null,
+            });
+            await participantStore.write(participantLedger);
+            state = this.patchFlowParticipants(state, participantLedger);
+            await input.stateStore.write(state);
+            await input.eventLog.append({
+              type:
+                preparedTurn.contextMode === "opened"
+                  ? "flow.session.opened"
+                  : preparedTurn.contextMode === "reused"
+                    ? "flow.session.reused"
+                    : preparedTurn.contextMode === "rehydrated"
+                      ? "flow.session.rehydrated"
+                      : "flow.session.stateless",
+              message: `Flow participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
+              data: {
+                flowId: input.snapshot.flowId,
+                stepId: step.id,
+                slotId: preparedTurn.slotId,
+                providerId: step.providerId,
+                contextMode: preparedTurn.contextMode,
+                fallbackReason: preparedTurn.fallbackReason,
+                sessionId: result.providerResult.session?.sessionId ?? null,
+              },
+            });
           }
-          await input.eventLog.append({
-            type: "flow.step.completed",
-            message: `Flow step ${step.id} completed.`,
-            data: { flowId: input.snapshot.flowId, stepId: step.id },
+          await this.registerFlowRoleOutputs({
+            step,
+            result,
+            outputs,
+            artifactStore: input.artifactStore,
+            worktreePath: input.worktreePath,
           });
-          continue;
-        }
+          arbitrationLedger = await this.recordFlowArbitrationOutputs({
+            step,
+            result,
+            outputs,
+            validation: lastValidation,
+            artifactStore: input.artifactStore,
+            eventLog: input.eventLog,
+            ledger: arbitrationLedger,
+            store: arbitrationStore,
+          });
 
-        if (step.kind === "approval-gate") {
-          if (!step.approval) {
-            throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
+          if (step.outputs.includes("plan")) planArtifact = result;
+          if (step.outputs.includes("execution")) executionArtifact = result;
+          if (
+            step.kind === "review-turn" &&
+            (step.outputs.includes("review-decision") ||
+              step.outputs.includes("finding-resolutions"))
+          ) {
+            reviewArtifact = result;
+            reviewDecision = effectiveReviewDecision(result.output);
+            await input.eventLog.append({
+              type: "review.decision",
+              message: `Flow review decision at ${step.id}: ${reviewDecision}`,
+              data: { decision: reviewDecision, stepId: step.id },
+            });
           }
-          const gate = await this.awaitApprovalRequest({
+          if (step.kind === "summary-turn") {
+            verificationArtifact = result;
+            verificationDecision = effectiveVerificationDecision(result.output);
+            await input.eventLog.append({
+              type: "verification.decision",
+              message: `Flow summary decision at ${step.id}: ${verificationDecision}`,
+              data: { decision: verificationDecision, stepId: step.id },
+            });
+          }
+          if (step.kind === "review-turn" || step.kind === "summary-turn") {
+            await this.ingestSuggestionsFromArtifact({
+              runId: input.runId,
+              artifactRelPath: result.outputArtifactPath,
+              artifactBody: result.output,
+              source: step.kind === "summary-turn" ? "verifier" : "reviewer",
+              notify: input.notify,
+            });
+          }
+
+          const gate = await this.maybeAwaitApproval({
             state,
             fromStatus: state.status,
             stageId: step.id,
-            roleId: "flow",
-            reason: step.approval.reason,
-            prompt: null,
-            sourceArtifactPath: context.contextPacketPath,
-            requestedAction: step.approval.requestedAction,
-            riskLevel: step.approval.riskLevel,
-            source: "policy",
-            userMessage: step.approval.userMessage ?? null,
-            progressMessage: `Pausing for Flow approval at ${step.id}...`,
-            requestedMessage: `Flow approval gate ${step.id} is waiting for a decision.`,
-            resumedMessage: `Run resumed after Flow approval gate ${step.id}.`,
+            roleId: step.roleId,
+            roleArtifact: result,
             approvalService: input.approvalService,
             stateStore: input.stateStore,
             eventLog: input.eventLog,
+            policyStagesAlreadyForced: input.policyStagesAlreadyForced,
           });
           state = gate.state;
           if (gate.rejected) {
             state = this.patchFlowStep(
               state,
               step.id,
-              { status: "blocked", endedAt: nowIso() },
+              {
+                status: "blocked",
+                promptArtifactPath: result.promptArtifactPath,
+                outputArtifactPath: result.outputArtifactPath,
+                endedAt: nowIso(),
+              },
               step.id,
             );
             await input.stateStore.write(state);
             await input.eventLog.append({
               type: "flow.step.failed",
-              message: `Flow approval gate ${step.id} blocked the run.`,
+              message: `Flow step ${step.id} blocked by approval decision.`,
               data: { flowId: input.snapshot.flowId, stepId: step.id },
             });
             throw new __ApprovalRejectedSignal();
@@ -2036,156 +2246,8 @@ export class Orchestrator {
           state = this.patchFlowStep(
             state,
             step.id,
-            { status: "passed", endedAt: nowIso() },
-            step.id,
-          );
-          await input.stateStore.write(state);
-          await input.eventLog.append({
-            type: "flow.step.completed",
-            message: `Flow approval gate ${step.id} completed.`,
-            data: { flowId: input.snapshot.flowId, stepId: step.id },
-          });
-          continue;
-        }
-
-        if (!step.roleId) {
-          throw new Error(`Flow step "${step.id}" needs an agent.`);
-        }
-
-        const result = await this.runRole({
-          roleId: step.roleId,
-          providerId: step.providerId,
-          stageId: step.id,
-          promptIndex: 0,
-          promptName: path.posix.join("flows", step.id, "prompt.md"),
-          outputName: path.posix.join("flows", step.id, "output.md"),
-          priorArtifacts: context.priorArtifacts,
-          validationResults: lastValidation,
-          additionalNotes: this.renderFlowStepNotes({
-            snapshot: input.snapshot,
-            step,
-          }),
-          ...(preparedTurn
-            ? {
-                flowTurn: {
-                  slotId: preparedTurn.slotId,
-                  contextMode: preparedTurn.contextMode,
-                  fallbackReason: preparedTurn.fallbackReason,
-                  ...(preparedTurn.sessionRequest
-                    ? { sessionRequest: preparedTurn.sessionRequest }
-                    : {}),
-                },
-              }
-            : {}),
-          metricsStore: input.metricsStore,
-          ctx: input.ctx,
-        });
-        if (preparedTurn) {
-          participantLedger = recordFlowParticipantTurn({
-            ledger: participantLedger,
-            prepared: preparedTurn,
-            stepId: step.id,
-            roleId: step.roleId,
-            providerId: step.providerId ?? result.providerResult.providerId,
-            contextPacketPath: context.contextPacketPath,
-            promptArtifactPath: result.promptArtifactPath,
-            outputArtifactPath: result.outputArtifactPath,
-            providerSessionId: result.providerResult.session?.sessionId ?? null,
-          });
-          await participantStore.write(participantLedger);
-          state = this.patchFlowParticipants(state, participantLedger);
-          await input.stateStore.write(state);
-          await input.eventLog.append({
-            type:
-              preparedTurn.contextMode === "opened"
-                ? "flow.session.opened"
-                : preparedTurn.contextMode === "reused"
-                  ? "flow.session.reused"
-                  : preparedTurn.contextMode === "rehydrated"
-                    ? "flow.session.rehydrated"
-                    : "flow.session.stateless",
-            message: `Flow participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
-            data: {
-              flowId: input.snapshot.flowId,
-              stepId: step.id,
-              slotId: preparedTurn.slotId,
-              providerId: step.providerId,
-              contextMode: preparedTurn.contextMode,
-              fallbackReason: preparedTurn.fallbackReason,
-              sessionId: result.providerResult.session?.sessionId ?? null,
-            },
-          });
-        }
-        await this.registerFlowRoleOutputs({
-          step,
-          result,
-          outputs,
-          artifactStore: input.artifactStore,
-          worktreePath: input.worktreePath,
-        });
-        arbitrationLedger = await this.recordFlowArbitrationOutputs({
-          step,
-          result,
-          outputs,
-          validation: lastValidation,
-          artifactStore: input.artifactStore,
-          eventLog: input.eventLog,
-          ledger: arbitrationLedger,
-          store: arbitrationStore,
-        });
-
-        if (step.outputs.includes("plan")) planArtifact = result;
-        if (step.outputs.includes("execution")) executionArtifact = result;
-        if (
-          step.kind === "review-turn" &&
-          (step.outputs.includes("review-decision") ||
-            step.outputs.includes("finding-resolutions"))
-        ) {
-          reviewArtifact = result;
-          reviewDecision = effectiveReviewDecision(result.output);
-          await input.eventLog.append({
-            type: "review.decision",
-            message: `Flow review decision at ${step.id}: ${reviewDecision}`,
-            data: { decision: reviewDecision, stepId: step.id },
-          });
-        }
-        if (step.kind === "summary-turn") {
-          verificationArtifact = result;
-          verificationDecision = effectiveVerificationDecision(result.output);
-          await input.eventLog.append({
-            type: "verification.decision",
-            message: `Flow summary decision at ${step.id}: ${verificationDecision}`,
-            data: { decision: verificationDecision, stepId: step.id },
-          });
-        }
-        if (step.kind === "review-turn" || step.kind === "summary-turn") {
-          await this.ingestSuggestionsFromArtifact({
-            runId: input.runId,
-            artifactRelPath: result.outputArtifactPath,
-            artifactBody: result.output,
-            source: step.kind === "summary-turn" ? "verifier" : "reviewer",
-            notify: input.notify,
-          });
-        }
-
-        const gate = await this.maybeAwaitApproval({
-          state,
-          fromStatus: state.status,
-          stageId: step.id,
-          roleId: step.roleId,
-          roleArtifact: result,
-          approvalService: input.approvalService,
-          stateStore: input.stateStore,
-          eventLog: input.eventLog,
-          policyStagesAlreadyForced: input.policyStagesAlreadyForced,
-        });
-        state = gate.state;
-        if (gate.rejected) {
-          state = this.patchFlowStep(
-            state,
-            step.id,
             {
-              status: "blocked",
+              status: "passed",
               promptArtifactPath: result.promptArtifactPath,
               outputArtifactPath: result.outputArtifactPath,
               endedAt: nowIso(),
@@ -2194,35 +2256,46 @@ export class Orchestrator {
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "flow.step.failed",
-            message: `Flow step ${step.id} blocked by approval decision.`,
-            data: { flowId: input.snapshot.flowId, stepId: step.id },
+            type: "flow.step.completed",
+            message: `Flow step ${step.id} completed.`,
+            data: {
+              flowId: input.snapshot.flowId,
+              stepId: step.id,
+              promptArtifactPath: result.promptArtifactPath,
+              outputArtifactPath: result.outputArtifactPath,
+            },
           });
-          throw new __ApprovalRejectedSignal();
+        };
+        await runStep();
+        // Adaptive loop control (no-op for linear flows). The decisionStep
+        // gates the loop; an early non-CHANGES_REQUESTED exit skips the rest of
+        // the body, and exhausting the budget exits with the last decision
+        // (left CHANGES_REQUESTED → the run blocks below).
+        if (loop && step.sourceStepId === loop.decisionStep) {
+          const wantsChanges = reviewDecision === "CHANGES_REQUESTED";
+          const budgetLeft = loopIteration < loop.maxIterations;
+          await input.eventLog.append({
+            type: "flow.loop.decision",
+            message: `Flow loop decision at ${step.id}: ${reviewDecision} on pass ${loopIteration}/${loop.maxIterations}.`,
+            data: {
+              flowId: input.snapshot.flowId,
+              stepId: step.id,
+              decision: reviewDecision,
+              iteration: loopIteration,
+              maxIterations: loop.maxIterations,
+              continuing: wantsChanges && budgetLeft,
+            },
+          });
+          if (!wantsChanges || !budgetLeft) {
+            stepIndex = loopTo + 1;
+            continue;
+          }
         }
-
-        state = this.patchFlowStep(
-          state,
-          step.id,
-          {
-            status: "passed",
-            promptArtifactPath: result.promptArtifactPath,
-            outputArtifactPath: result.outputArtifactPath,
-            endedAt: nowIso(),
-          },
-          step.id,
-        );
-        await input.stateStore.write(state);
-        await input.eventLog.append({
-          type: "flow.step.completed",
-          message: `Flow step ${step.id} completed.`,
-          data: {
-            flowId: input.snapshot.flowId,
-            stepId: step.id,
-            promptArtifactPath: result.promptArtifactPath,
-            outputArtifactPath: result.outputArtifactPath,
-          },
-        });
+        if (loop && stepIndex === loopTo) {
+          stepIndex = loopFrom;
+          continue;
+        }
+        stepIndex += 1;
       }
 
       const validationPassed =

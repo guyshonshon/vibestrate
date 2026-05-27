@@ -82,7 +82,9 @@ export type AmacoEventType =
   | "flow.step.started"
   | "flow.step.completed"
   | "flow.step.failed"
-  | "flow.step.skipped";
+  | "flow.step.skipped"
+  | "flow.loop.iteration"
+  | "flow.loop.decision";
 
 export type AmacoEvent = {
   timestamp: string;
