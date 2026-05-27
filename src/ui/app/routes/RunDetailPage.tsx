@@ -312,6 +312,8 @@ function ActiveAgentPanel({
   const totalCost =
     metrics?.totalCostUsd ??
     (anyCost ? agents.reduce((n, a) => n + (a.totalCostUsd ?? 0), 0) : null);
+  const costEstimated = agents.some((a) => a.costEstimated);
+  const tokensEstimated = agents.some((a) => a.tokensEstimated);
   const stepsDone = agents.filter((a) => a.endedAt).length;
   return (
     <div className="glass p-4">
@@ -342,12 +344,20 @@ function ActiveAgentPanel({
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2 text-[12px]">
         <Stat
-          label="Tokens"
-          value={totalTokens > 0 ? fmtTokens(totalTokens) : "—"}
+          label={tokensEstimated ? "Tokens (est)" : "Tokens"}
+          value={
+            totalTokens > 0
+              ? `${tokensEstimated ? "~" : ""}${fmtTokens(totalTokens)}`
+              : "—"
+          }
         />
         <Stat
-          label="Cost"
-          value={totalCost !== null ? `$${totalCost.toFixed(4)}` : "—"}
+          label={costEstimated ? "Cost (est)" : "Cost"}
+          value={
+            totalCost !== null
+              ? `${costEstimated ? "~" : ""}$${totalCost.toFixed(4)}`
+              : "—"
+          }
         />
         <Stat
           label="Tool calls"

@@ -26,16 +26,23 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   claude 2.x. Now the **default** claude preset (`type: claude-code`,
   stream-json) — the two preset builders are unified, so `init` / `doctor` /
   the dashboard all write it. Existing `type: cli` claude configs keep working.
-- **A3 — Pricing table + universal token capture.** Local static list-price
-  table (USD / 1M in·out·cache by model); cost precedence = CLI-reported else
-  `tokens × price`, labelled ESTIMATE. Ensure every provider's parser captures
-  in/out(/cache) tokens. No network calls.
+- **A3 — Pricing table + universal token capture. ✓ done.** Local static
+  list-price table (USD/1M by model, prefix-matched). Cost precedence:
+  CLI-reported → `tokens × price` (labelled estimate) → null (never
+  fabricated). Tokens are real where the provider reports them (claude) and
+  estimated from text otherwise, so every provider shows token counts; `est.`
+  labels on per-step + run-level metrics. No network calls.
 - **A4 — Metrics dashboard.** Total-tokens KPI (vs prev window), tokens-by-role
   over time, per-model table (calls/tokens/cost), median run duration. Keep the
   `/api/metrics/overview` payload backward-compatible (add fields).
-- **A5 — Daily spend cap (hard stop).** Enforce `spendCapDailyUsd`: block the
-  next phase when exceeded (clear message); warn-notify at a threshold (~80%);
-  make it configurable.
+- **A5 — Daily spend cap (configurable policy + action).** Enforce
+  `spendCapDailyUsd`, configurable from **both the UI and the CLI**, with a
+  chosen **action** when the cap is hit — not just a hard stop. Options:
+  - **stop** — block the next phase (hard stop) with a clear message;
+  - **downgrade model** — switch to a cheaper provider/model (via effortMap /
+    a configured fallback) and continue;
+  - **reduce effort** — drop the run's effort level a notch and continue.
+  Plus a warn-notify at a threshold (~80%). Needs real per-run cost (A3).
 - **A6 — (optional) Webhooks.** POST on approve / merge / cap-hit, via the
   existing `src/notifications/` system.
 
@@ -81,6 +88,6 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 
 ### Suggested order
 
-~~A1~~ → ~~A2~~ (done — real metrics unblocked) → **A3 next** → A4 → A5, then
+~~A1~~ → ~~A2~~ → ~~A3~~ (done — real metrics + cost ledger) → **A4 next** → A5, then
 B1 (rework-from-phase is high day-to-day value), C1, D1 (design), B2, A6, E1.
 Adjust as priorities shift.

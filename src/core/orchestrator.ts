@@ -37,6 +37,7 @@ import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
+import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
@@ -2820,8 +2821,10 @@ export class Orchestrator {
         guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
         model: null,
         totalCostUsd: null,
+        costEstimated: false,
         perModelCost: [],
         tokenUsage: null,
+        tokensEstimated: false,
         toolCallCount: null,
         filesChangedBefore: null,
         filesChangedAfter: null,
@@ -2893,6 +2896,26 @@ export class Orchestrator {
 
     const metrics = providerResult.normalized.metrics;
     const providerCfg = this.config.providers[effectiveProviderId];
+
+    // Token + cost ledger: prefer the provider's real numbers; otherwise
+    // estimate tokens from the prompt/response text and price them from the
+    // local list-price table. Estimates are flagged so the UI labels them.
+    let tokenUsage = metrics?.tokenUsage ?? null;
+    let tokensEstimated = false;
+    const hasRealTokens =
+      !!tokenUsage && ((tokenUsage.input ?? 0) + (tokenUsage.output ?? 0)) > 0;
+    if (!hasRealTokens) {
+      tokenUsage = {
+        input: estimateTokensFromText(prompt),
+        output: estimateTokensFromText(stdout),
+      };
+      tokensEstimated = true;
+    }
+    const { costUsd, estimated: costEstimated } = resolveCost({
+      reportedCostUsd: metrics?.totalCostUsd ?? null,
+      model: metrics?.model ?? null,
+      tokenUsage,
+    });
     const metric: AgentMetrics = {
       agentId,
       stageId: input.stageId,
@@ -2913,9 +2936,11 @@ export class Orchestrator {
       guideContextMode: input.guideTurn?.contextMode ?? null,
       guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
       model: metrics?.model ?? null,
-      totalCostUsd: metrics?.totalCostUsd ?? null,
+      totalCostUsd: costUsd,
+      costEstimated,
       perModelCost: metrics?.perModelCost ?? [],
-      tokenUsage: metrics?.tokenUsage ?? null,
+      tokenUsage,
+      tokensEstimated,
       toolCallCount: metrics?.toolCallCount ?? null,
       filesChangedBefore: null,
       filesChangedAfter,
