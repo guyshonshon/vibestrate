@@ -2,5 +2,5 @@
   "amacoVersion": "0.1.1",
   "generator": "scripts/generate-docs-metadata.ts",
   "schemaVersion": 1,
-  "sourceRev": "3ec4b0eb961955bb142bef096b529c114b189ecb"
+  "sourceRev": "953adea900a1d558264f3d12e0457b4877dc94ad"
 }

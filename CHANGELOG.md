@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: the default flow is now a real catalog entry (D2 phase B-3b) —
+  discoverable and runnable as `--flow default` through the unified flow runner,
+  which executes its review→fix loop (via B-3a). The Flows page sources the
+  Default card from the real definition (drops the hardcoded step list) and
+  marks loop-body steps with ↺. The *implicit* default (a run with no flow
+  picked) still uses `run()` until B-3c retires the runner split.
 - Add: the flow runner now executes adaptive loops (D2 phase B-3a). `runFlowSequence`
   iterates a flow's `loop`: the decisionStep (a review-turn) gates re-entry —
   after it runs, exit past `to` when the review isn't CHANGES_REQUESTED or the

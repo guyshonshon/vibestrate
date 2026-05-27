@@ -162,6 +162,13 @@ export type FlowApprovalGate = {
   riskLevel: "low" | "medium" | "high";
 };
 
+export type FlowLoop = {
+  from: string;
+  to: string;
+  decisionStep: string;
+  maxIterations: number;
+};
+
 export type FlowDefinition = {
   id: string;
   version: number;
@@ -169,6 +176,7 @@ export type FlowDefinition = {
   description: string;
   slots: Record<string, FlowSlotDefinition>;
   steps: FlowStepDefinition[];
+  loop?: FlowLoop;
 };
 
 export type DiscoveredFlow = {

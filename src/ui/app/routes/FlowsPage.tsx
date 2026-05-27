@@ -93,7 +93,10 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     }
   }
 
-  const projectCount = flows?.filter((g) => g.source.kind === "project").length ?? 0;
+  // The built-in default flow is rendered as its own "runs by default" card,
+  // sourced from the real definition; the rest list below it.
+  const defaultFlow = flows?.find((g) => g.id === "default") ?? null;
+  const otherFlows = flows?.filter((g) => g.id !== "default") ?? [];
 
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
@@ -102,7 +105,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           The Default flow
           <span className="text-fog-400">
-            {flows ? ` + ${flows.length} more` : ""}
+            {flows ? ` + ${otherFlows.length} more` : ""}
           </span>
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
@@ -119,13 +122,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       <section className="mt-7 space-y-3">
-        <DefaultFlowCard />
+        {defaultFlow ? <DefaultFlowCard flow={defaultFlow} /> : null}
         {!flows ? (
           <div className="text-fog-400 text-[13px]">Loading flows…</div>
-        ) : flows.length === 0 ? (
-          <div className="text-fog-400 text-[13px]">No custom flows yet.</div>
+        ) : otherFlows.length === 0 ? (
+          <div className="text-fog-400 text-[13px]">No other flows yet.</div>
         ) : (
-          flows.map((g) => (
+          otherFlows.map((g) => (
             <FlowCard
               key={g.id}
               flow={g}
@@ -161,44 +164,58 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   );
 }
 
-// The fixed plan→build→verify workflow, shown as the built-in Default flow.
-// Display-only: it's what runs when no flow is picked (via the orchestrator's
-// standard path), so it isn't forkable/runnable-as-a-flow here.
-const DEFAULT_FLOW_STEPS: { label: string; role: string | null }[] = [
-  { label: "Plan", role: "planner" },
-  { label: "Architect", role: "architect" },
-  { label: "Implement", role: "executor" },
-  { label: "Validate", role: null },
-  { label: "Review", role: "reviewer" },
-  { label: "Fix ↺", role: "fixer" },
-  { label: "Verify", role: "verifier" },
-];
-
-function DefaultFlowCard() {
+// The built-in Default flow, sourced from its real definition (single source of
+// truth). It runs as the implicit default via the orchestrator's standard path,
+// and is also runnable explicitly as `--flow default`. Shown as a distinct
+// "runs by default" card — not forked/deleted here. Loop-body steps (the
+// adaptive review→fix loop) are marked with ↺.
+function DefaultFlowCard({ flow }: { flow: DiscoveredFlow }) {
+  const steps = flow.definition.steps;
+  const loop = flow.definition.loop ?? null;
+  const loopBody = loop
+    ? {
+        from: steps.findIndex((s) => s.id === loop.from),
+        to: steps.findIndex((s) => s.id === loop.to),
+      }
+    : null;
   return (
     <div className="rounded-xl border border-violet-soft/25 surface-ink-100-55 px-4 py-3.5">
       <div className="flex items-center gap-2">
-        <span className="text-[14px] font-medium text-fog-100">Default</span>
+        <span className="text-[14px] font-medium text-fog-100">{flow.label}</span>
         <Chip tone="violet">built-in</Chip>
         <Chip tone="emerald">runs by default</Chip>
       </div>
       <p className="mt-1 text-[12px] text-fog-400 max-w-[68ch]">
-        The standard plan → build → verify workflow — runs when you don't pick
-        another flow. Review loops back to fix until it passes or a human
-        decides. Each step is performed by a role (configure providers in Crew).
+        {flow.description} Each step is performed by a role (configure providers
+        in Crew).
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        {DEFAULT_FLOW_STEPS.map((s, i) => (
-          <span key={s.label} className="flex items-center gap-1.5">
-            {i > 0 ? <span className="text-fog-500 text-[11px]">→</span> : null}
-            <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
-              {s.label}
-              {s.role ? (
-                <span className="mono ml-1 text-[10px] text-violet-soft">{s.role}</span>
-              ) : null}
+        {steps.map((s, i) => {
+          const inLoop =
+            loopBody !== null &&
+            loopBody.from >= 0 &&
+            i >= loopBody.from &&
+            i <= loopBody.to;
+          return (
+            <span key={s.id} className="flex items-center gap-1.5">
+              {i > 0 ? <span className="text-fog-500 text-[11px]">→</span> : null}
+              <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
+                {s.label}
+                {inLoop ? (
+                  <span
+                    className="ml-1 text-[10px] text-sky-300"
+                    title="part of the adaptive review→fix loop"
+                  >
+                    ↺
+                  </span>
+                ) : null}
+                {s.roleId ? (
+                  <span className="mono ml-1 text-[10px] text-violet-soft">{s.roleId}</span>
+                ) : null}
+              </span>
             </span>
-          </span>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

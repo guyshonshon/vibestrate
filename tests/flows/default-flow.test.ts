@@ -63,11 +63,11 @@ describe("Default flow definition (D2 phase B-2)", () => {
     expect(decision?.kind).toBe("review-turn");
   });
 
-  it("is NOT yet in the discoverable catalog (execution wiring is B-3)", () => {
-    // Listing it in `builtinFlows` would make it forkable/runnable via the
-    // flow runner, which does not iterate the loop yet — keep it out until B-3.
-    expect(builtinFlows.some((f) => f.id === "default")).toBe(false);
-    expect(findBuiltinFlow("default")).toBeNull();
+  it("is in the discoverable catalog (B-3b: runnable as --flow default)", () => {
+    // B-3a taught the flow runner to iterate the loop, so the default flow is
+    // now a real catalog entry — runnable/forkable as `--flow default`.
+    expect(builtinFlows.some((f) => f.id === "default")).toBe(true);
+    expect(findBuiltinFlow("default")).not.toBeNull();
   });
 
   it("resolves against the six default roles, carrying the loop through unchanged", () => {

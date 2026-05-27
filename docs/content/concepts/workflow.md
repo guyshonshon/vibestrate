@@ -45,6 +45,8 @@ If your `commands.validate` is empty, the workflow degenerates into a pure model
 
 The default workflow is one path through the orchestrator. A [Flow](/docs/concepts/flow) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Flow uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
 
+The default workflow is itself also expressed as the built-in `default` Flow (its review→fix→re-validate stage is an adaptive loop). You can run it explicitly with `amaco run --flow default` to drive it through the Flow runner; a plain `amaco run` still uses the orchestrator's standard path.
+
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.
