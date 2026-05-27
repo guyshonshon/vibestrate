@@ -72,7 +72,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
   await setConfigValue(
     dir,

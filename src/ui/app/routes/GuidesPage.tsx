@@ -274,7 +274,7 @@ function GuideCard({
                     title={slot.description ?? undefined}
                   >
                     <span className="text-fog-100">{slot.label}</span>{" "}
-                    <span className="text-fog-500">→ {slot.defaultAgent}</span>
+                    <span className="text-fog-500">→ {slot.defaultRole}</span>
                   </span>
                 ))}
               </div>
@@ -295,7 +295,7 @@ function GuideCard({
 
 function StepRow({ index, step }: { index: number; step: GuideStepDefinition }) {
   const kind = stepKindChip(step.kind);
-  const target = step.slot ?? step.agentId ?? null;
+  const target = step.slot ?? step.roleId ?? null;
   const hasApproval = step.kind === "approval-gate" || !!step.approval;
   return (
     <li className="flex items-center gap-2.5 rounded-md border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5">

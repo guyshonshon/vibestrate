@@ -19,7 +19,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     dependencies: [],
     createdAt: updatedAt,
     updatedAt,
-    assignedAgents: [],
+    assignedRoles: [],
     requiredSkills: [],
     validationProfile: null,
     branchName: null,

@@ -9,9 +9,9 @@ import {
 } from "lucide-react";
 import {
   api,
-  type AgentProfile,
-  type AgentRole,
-  type AgentsOverview,
+  type ProviderProfile,
+  type Role,
+  type ProvidersOverview,
 } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { Button } from "../../components/design/Button.js";
@@ -21,10 +21,10 @@ import { Sparkline, MiniBars } from "../../components/design/Sparkline.js";
 import { cn } from "../../components/design/cn.js";
 import { fmtElapsed, relTime } from "../../components/design/format.js";
 
-type AgentTone = "violet" | "sky" | "emerald" | "amber" | "rose";
+type RoleTone = "violet" | "sky" | "emerald" | "amber" | "rose";
 
 const TONE: Record<
-  AgentTone,
+  RoleTone,
   { ring: string; grad: string; text: string; bar: string }
 > = {
   violet: {
@@ -59,7 +59,7 @@ const TONE: Record<
   },
 };
 
-function toneForVendor(vendor: string | null): AgentTone {
+function toneForVendor(vendor: string | null): RoleTone {
   if (!vendor) return "violet";
   const v = vendor.toLowerCase();
   if (v.includes("anthropic")) return "violet";
@@ -70,7 +70,7 @@ function toneForVendor(vendor: string | null): AgentTone {
   return "violet";
 }
 
-function avatarLetter(profile: AgentProfile): string {
+function avatarLetter(profile: ProviderProfile): string {
   // Surface the most recognizable letter: vendor's first letter, falling
   // back to the model id's first letter.
   if (profile.vendor) return profile.vendor.charAt(0);
@@ -78,8 +78,8 @@ function avatarLetter(profile: AgentProfile): string {
 }
 
 export function AgentsPage() {
-  const [overview, setOverview] = useState<AgentsOverview | null>(null);
-  const [roles, setRoles] = useState<AgentRole[]>([]);
+  const [overview, setOverview] = useState<ProvidersOverview | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +87,7 @@ export function AgentsPage() {
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await api.getAgentsOverview();
+        const r = await api.getProvidersOverview();
         if (cancelled) return;
         setOverview(r);
         setError(null);
@@ -100,7 +100,7 @@ export function AgentsPage() {
     void load();
     // Roles are config, not telemetry — fetch once, no polling.
     void api
-      .getAgentRoles()
+      .getRoles()
       .then((r) => !cancelled && setRoles(r.roles))
       .catch(() => {});
     const id = window.setInterval(load, 8000);
@@ -153,7 +153,7 @@ export function AgentsPage() {
           : `${providerId}: configured in .amaco/project.yml.`,
       });
       // Force an immediate overview refresh.
-      const r = await api.getAgentsOverview();
+      const r = await api.getProvidersOverview();
       setOverview(r);
     } catch (err) {
       setActionToast({
@@ -175,7 +175,7 @@ export function AgentsPage() {
       const r = await api.setDefaultProvider(providerId);
       setActionToast({
         kind: "ok",
-        text: `${providerId} is now the default for ${r.agentsUpdated.length} agent(s).`,
+        text: `${providerId} is now the default for ${r.rolesUpdated.length} agent(s).`,
       });
     } catch (err) {
       setActionToast({
@@ -270,7 +270,7 @@ export function AgentsPage() {
 
         <div className="col-span-12 lg:col-span-7 xl:col-span-8">
           {selected ? (
-            <AgentDetail
+            <RoleDetail
               profile={selected}
               testResult={testResults[selected.providerId] ?? null}
               setupBusy={!!setupBusy[selected.providerId]}
@@ -383,7 +383,7 @@ function ConfigureProviderModal({
   onSetDefault,
   onClose,
 }: {
-  profile: AgentProfile | null;
+  profile: ProviderProfile | null;
   busy: boolean;
   onSetup: (opts: {
     setAsDefault?: boolean;
@@ -393,7 +393,7 @@ function ConfigureProviderModal({
   onClose: () => void;
 }) {
   const [form, setForm] = useState<ProviderFormState | null>(null);
-  const [agentsUsing, setAgentsUsing] = useState<string[]>([]);
+  const [rolesUsing, setRolesUsing] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -419,7 +419,7 @@ function ConfigureProviderModal({
           args: r.config.args.join(" "),
           input: r.config.input,
         });
-        setAgentsUsing(r.agentsUsing);
+        setRolesUsing(r.rolesUsing);
         setLoading(false);
       })
       .catch(() => {
@@ -613,12 +613,12 @@ function ConfigureProviderModal({
                 <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
                   {yamlPreview}
                 </pre>
-                {agentsUsing.length > 0 ? (
+                {rolesUsing.length > 0 ? (
                   <div className="text-[11px] text-fog-500 mt-2">
                     Currently used by agent
-                    {agentsUsing.length === 1 ? "" : "s"}:{" "}
+                    {rolesUsing.length === 1 ? "" : "s"}:{" "}
                     <span className="mono text-fog-300">
-                      {agentsUsing.join(", ")}
+                      {rolesUsing.join(", ")}
                     </span>
                   </div>
                 ) : null}
@@ -762,8 +762,8 @@ function RolesPanel({
   roles,
   overview,
 }: {
-  roles: AgentRole[];
-  overview: AgentsOverview | null;
+  roles: Role[];
+  overview: ProvidersOverview | null;
 }) {
   if (roles.length === 0) return null;
   return (
@@ -827,7 +827,7 @@ function RolesPanel({
   );
 }
 
-function KpiStrip({ overview }: { overview: AgentsOverview | null }) {
+function KpiStrip({ overview }: { overview: ProvidersOverview | null }) {
   return (
     <section className="mt-7 grid grid-cols-2 md:grid-cols-4 gap-3">
       <KpiTile
@@ -948,7 +948,7 @@ function RosterRow({
   selected,
   onSelect,
 }: {
-  profile: AgentProfile;
+  profile: ProviderProfile;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -1061,7 +1061,7 @@ function CapTick({
 }: {
   label: string;
   value: number;
-  tone: AgentTone;
+  tone: RoleTone;
 }) {
   const t = TONE[tone];
   return (
@@ -1081,7 +1081,7 @@ function CapTick({
 
 // ── Detail panel ──────────────────────────────────────────────────────────
 
-function AgentDetail({
+function RoleDetail({
   profile,
   testResult,
   setupBusy,
@@ -1090,7 +1090,7 @@ function AgentDetail({
   onTest,
   onSetDefault,
 }: {
-  profile: AgentProfile;
+  profile: ProviderProfile;
   testResult: Awaited<ReturnType<typeof api.testProvider>> | null;
   setupBusy: boolean;
   testBusy: boolean;
@@ -1414,7 +1414,7 @@ function CapabilityRadar({
   tone = "violet",
 }: {
   capability: Record<string, number>;
-  tone?: AgentTone;
+  tone?: RoleTone;
 }) {
   const labels = Object.keys(capability);
   const values = Object.values(capability);
@@ -1423,7 +1423,7 @@ function CapabilityRadar({
   const cx = size / 2;
   const cy = size / 2;
   const r = 86;
-  const colors: Record<AgentTone, string> = {
+  const colors: Record<RoleTone, string> = {
     violet: "#a78bfa",
     sky: "#7cc5ff",
     amber: "#fbbf24",

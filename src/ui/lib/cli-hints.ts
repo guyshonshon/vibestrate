@@ -247,7 +247,7 @@ export function hintForRoute(route: Route): CliHint {
             note: "verify every provider's CLI is on PATH",
           },
           {
-            cmd: 'curl http://127.0.0.1:4317/api/agents/overview',
+            cmd: 'curl http://127.0.0.1:4317/api/providers/overview',
             note: "raw JSON, scriptable",
           },
         ],

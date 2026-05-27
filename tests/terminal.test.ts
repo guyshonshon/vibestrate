@@ -89,7 +89,7 @@ async function makeProject(opts: {
       "project: { name: demo, type: generic }",
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
-      "agents:",
+      "roles:",
       "  reviewer: { provider: fake, prompt: reviewer, permissions: read }",
       "commands:",
       '  validate: []',

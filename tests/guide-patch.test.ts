@@ -18,14 +18,14 @@ providers:
   claude:
     type: cli
     command: __guide_patch_claude_must_not_run__
-agents:
+roles:
   planner:
     provider: claude
-    prompt: .amaco/agents/planner.md
+    prompt: .amaco/roles/planner.md
     permissions: readOnly
   reviewer:
     provider: claude
-    prompt: .amaco/agents/reviewer.md
+    prompt: .amaco/roles/reviewer.md
     permissions: readOnly
 `;
 
@@ -36,7 +36,7 @@ description: Project-local review recipe.
 slots:
   reviewer:
     label: Reviewer
-    defaultAgent: reviewer
+    defaultRole: reviewer
 steps:
   - id: review
     label: Review
@@ -102,7 +102,7 @@ describe("mergeGuidePatch (pure)", () => {
     expect(verdict.ok).toBe(false);
   });
 
-  it("re-routes a step to a different slot and overwrites the agentId", () => {
+  it("re-routes a step to a different slot and overwrites the roleId", () => {
     const base = findBuiltinGuide("quality-arbitration")!;
     // Pick a step that has a slot today so we know the merge had to replace it.
     const target = base.steps.find((s) => s.slot)!;
@@ -112,30 +112,30 @@ describe("mergeGuidePatch (pure)", () => {
         {
           id: target.id,
           slot: newSlot,
-          agentId: "claude-overridden",
+          roleId: "claude-overridden",
         },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
     const merged = verdict.next.steps.find((s) => s.id === target.id)!;
     expect(merged.slot).toBe(newSlot);
-    expect(merged.agentId).toBe("claude-overridden");
+    expect(merged.roleId).toBe("claude-overridden");
   });
 
-  it("clears agentId when passed as null", () => {
+  it("clears roleId when passed as null", () => {
     const base = findBuiltinGuide("quality-arbitration")!;
-    const targetWithAgent = base.steps.find((s) => s.agentId);
-    if (!targetWithAgent) {
-      // The arbitration guide may not pin agentIds; pick another guide
+    const targetWithRole = base.steps.find((s) => s.roleId);
+    if (!targetWithRole) {
+      // The arbitration guide may not pin roleIds; pick another guide
       // shape — Ship Fast — that does. Skip cleanly otherwise.
       return;
     }
     const verdict = mergeGuidePatch(base, {
-      steps: [{ id: targetWithAgent.id, agentId: null }],
+      steps: [{ id: targetWithRole.id, roleId: null }],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
     expect(
-      verdict.next.steps.find((s) => s.id === targetWithAgent.id)!.agentId,
+      verdict.next.steps.find((s) => s.id === targetWithRole.id)!.roleId,
     ).toBeUndefined();
   });
 
@@ -298,7 +298,7 @@ describe("replaceSteps / replaceSlots (structural edits)", () => {
   it("replaces the slot map wholesale alongside the steps", () => {
     const base = findBuiltinGuide("quality-arbitration")!;
     const verdict = mergeGuidePatch(base, {
-      replaceSlots: { solo: { label: "Solo", defaultAgent: "executor" } },
+      replaceSlots: { solo: { label: "Solo", defaultRole: "executor" } },
       replaceSteps: [
         { id: "do", label: "Do", kind: "agent-turn", slot: "solo", inputs: [], outputs: [], optional: false },
       ],

@@ -8,22 +8,22 @@ import {
   XCircle,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { AgentWorkReport, AgentWorkRow } from "../../lib/types.js";
+import type { RoleWorkReport, RoleWorkRow } from "../../lib/types.js";
 
 type Props = {
   runId: string;
   onOpenArtifact: (relPath: string) => void;
 };
 
-export function AgentWorkPanel({ runId, onOpenArtifact }: Props) {
-  const [report, setReport] = useState<AgentWorkReport | null>(null);
+export function RoleWorkPanel({ runId, onOpenArtifact }: Props) {
+  const [report, setReport] = useState<RoleWorkReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const r = await api.getAgentWork(runId);
+        const r = await api.getRoleWork(runId);
         if (!cancelled) setReport(r);
       } catch (err) {
         if (!cancelled)
@@ -81,7 +81,7 @@ export function AgentWorkPanel({ runId, onOpenArtifact }: Props) {
         <ul className="divide-y divide-amaco-border">
           {report.rows.map((r, idx) => (
             <Row
-              key={`${r.agentId}-${r.startedAt}-${idx}`}
+              key={`${r.roleId}-${r.startedAt}-${idx}`}
               row={r}
               onOpenArtifact={onOpenArtifact}
             />
@@ -96,7 +96,7 @@ function Row({
   row,
   onOpenArtifact,
 }: {
-  row: AgentWorkRow;
+  row: RoleWorkRow;
   onOpenArtifact: (relPath: string) => void;
 }) {
   const ok = row.exitCode === 0;
@@ -111,7 +111,7 @@ function Row({
         ) : (
           <XCircle className="h-3.5 w-3.5 text-amaco-fail" strokeWidth={1.5} />
         )}
-        <span className="font-medium text-amaco-fg">{row.agentId}</span>
+        <span className="font-medium text-amaco-fg">{row.roleId}</span>
         <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
           {row.stage}
         </span>

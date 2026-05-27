@@ -20,30 +20,30 @@ providers:
   codex:
     type: cli
     command: __guide_phase1_codex_must_not_run__
-agents:
+roles:
   planner:
     provider: claude
-    prompt: .amaco/agents/planner.md
+    prompt: .amaco/roles/planner.md
     permissions: readOnly
   architect:
     provider: claude
-    prompt: .amaco/agents/architect.md
+    prompt: .amaco/roles/architect.md
     permissions: readOnly
   executor:
     provider: claude
-    prompt: .amaco/agents/executor.md
+    prompt: .amaco/roles/executor.md
     permissions: codeWrite
   fixer:
     provider: claude
-    prompt: .amaco/agents/fixer.md
+    prompt: .amaco/roles/fixer.md
     permissions: codeWrite
   reviewer:
     provider: codex
-    prompt: .amaco/agents/reviewer.md
+    prompt: .amaco/roles/reviewer.md
     permissions: readOnly
   verifier:
     provider: codex
-    prompt: .amaco/agents/verifier.md
+    prompt: .amaco/roles/verifier.md
     permissions: readOnly
 `;
 
@@ -54,7 +54,7 @@ description: Project-local review recipe.
 slots:
   reviewer:
     label: Reviewer
-    defaultAgent: reviewer
+    defaultRole: reviewer
 steps:
   - id: review
     label: Review

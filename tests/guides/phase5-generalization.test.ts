@@ -25,9 +25,9 @@ const releaseChecklistGuide = guideDefinitionSchema.parse({
   label: "Release Checklist",
   description: "A non-arbitration Guide with an explicit handoff gate.",
   slots: {
-    builder: { label: "Builder", defaultAgent: "executor" },
-    reviewer: { label: "Reviewer", defaultAgent: "reviewer" },
-    arbiter: { label: "Arbiter", defaultAgent: "verifier" },
+    builder: { label: "Builder", defaultRole: "executor" },
+    reviewer: { label: "Reviewer", defaultRole: "reviewer" },
+    arbiter: { label: "Arbiter", defaultRole: "verifier" },
   },
   steps: [
     {
@@ -35,7 +35,7 @@ const releaseChecklistGuide = guideDefinitionSchema.parse({
       label: "Plan",
       kind: "agent-turn",
       slot: "builder",
-      agentId: "planner",
+      roleId: "planner",
       inputs: ["task-brief"],
       outputs: ["plan"],
     },
@@ -56,7 +56,7 @@ const releaseChecklistGuide = guideDefinitionSchema.parse({
       label: "Implement",
       kind: "agent-turn",
       slot: "builder",
-      agentId: "executor",
+      roleId: "executor",
       inputs: ["task-brief", "plan"],
       outputs: ["execution"],
     },
@@ -131,7 +131,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
   return dir;
 }
@@ -201,7 +201,7 @@ describe("Guide Phase 5 generalization", () => {
     expect(approvals).toMatchObject([
       {
         stageId: "human-check",
-        agentId: "guide",
+        roleId: "guide",
         source: "policy",
         status: "approved",
       },

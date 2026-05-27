@@ -34,7 +34,7 @@ export type GuideRunStepState = {
   status: GuideRunStepStatus;
   optional: boolean;
   slotId: string | null;
-  agentId: string | null;
+  roleId: string | null;
   providerId: string | null;
   promptArtifactPath: string | null;
   outputArtifactPath: string | null;
@@ -110,7 +110,7 @@ export type RunControlDirective =
       id: string;
       createdAt: string;
       consumedAt: string | null;
-      consumedByAgent: string | null;
+      consumedByRole: string | null;
       kind: "inject-note";
       body: string;
     }
@@ -118,7 +118,7 @@ export type RunControlDirective =
       id: string;
       createdAt: string;
       consumedAt: string | null;
-      consumedByAgent: string | null;
+      consumedByRole: string | null;
       kind: "compact";
       note?: string;
     };
@@ -133,7 +133,7 @@ export type GuideSource = {
 export type GuideSlotDefinition = {
   label: string;
   description?: string;
-  defaultAgent: string;
+  defaultRole: string;
 };
 
 export type GuideStepDefinition = {
@@ -147,7 +147,7 @@ export type GuideStepDefinition = {
     | "approval-gate"
     | "summary-turn";
   slot?: string;
-  agentId?: string;
+  roleId?: string;
   inputs: string[];
   outputs: string[];
   optional: boolean;
@@ -185,7 +185,7 @@ export type ResolvedGuideSlot = {
   id: string;
   label: string;
   description: string | null;
-  defaultAgent: string;
+  defaultRole: string;
   providerId: string;
 };
 
@@ -196,7 +196,7 @@ export type ResolvedGuideStep = {
   enabled: boolean;
   optional: boolean;
   slotId: string | null;
-  agentId: string | null;
+  roleId: string | null;
   providerId: string | null;
   inputs: string[];
   outputs: string[];
@@ -264,7 +264,7 @@ export type Task = {
   dependencies: string[];
   createdAt: string;
   updatedAt: string;
-  assignedAgents: string[];
+  assignedRoles: string[];
   requiredSkills: string[];
   validationProfile: string | null;
   branchName: string | null;
@@ -312,7 +312,7 @@ export type MicroStep = {
     | "fixing"
     | "verifying";
   status: "pending" | "running" | "passed" | "failed" | "blocked" | "skipped";
-  agentId: string | null;
+  roleId: string | null;
   startedAt: string | null;
   endedAt: string | null;
   artifactPaths: string[];
@@ -356,7 +356,7 @@ export type ApprovalRequest = {
   id: string;
   runId: string;
   stageId: string;
-  agentId: string;
+  roleId: string;
   createdAt: string;
   updatedAt: string;
   status: ApprovalStatus;
@@ -450,12 +450,12 @@ export type DiscoveredSkill = {
 };
 
 export type SkillAssignmentSummary = {
-  agentId: string;
+  roleId: string;
   skills: string[];
 };
 
-export type AgentMetrics = {
-  agentId: string;
+export type RoleMetrics = {
+  roleId: string;
   stageId: string;
   providerId: string;
   providerType: string;
@@ -511,7 +511,7 @@ export type RuntimeMetrics = {
   diffInsertions: number | null;
   diffDeletions: number | null;
   validationSummary: { total: number; passed: number; failed: number } | null;
-  agents: AgentMetrics[];
+  roles: RoleMetrics[];
 };
 
 // ─── proposals ────────────────────────────────────────────────────────────────
@@ -707,7 +707,7 @@ export type ProjectMetadata = {
   };
   validationCommands: string[];
   providers: { id: string; type: string; command: string | null }[];
-  agents: {
+  roles: {
     id: string;
     provider: string;
     permissions: string;
@@ -721,7 +721,7 @@ export type ProjectMetadata = {
   }[];
   scheduler: {
     maxConcurrentRuns: number;
-    maxConcurrentWriteAgents: number;
+    maxConcurrentWriteRoles: number;
     conflictPolicy: "warn" | "block";
     queuePolicy: "fifo" | "priority";
   };
@@ -831,8 +831,8 @@ export type GitHistory = {
   truncated: boolean;
 };
 
-export type AgentWorkRow = {
-  agentId: string;
+export type RoleWorkRow = {
+  roleId: string;
   stage: string;
   providerId: string;
   providerType: string;
@@ -853,13 +853,13 @@ export type AgentWorkRow = {
   bestEffort: boolean;
 };
 
-export type AgentWorkReport = {
+export type RoleWorkReport = {
   runId: string;
   available: boolean;
   bestEffort: true;
   totalDurationMs: number;
   totalCostUsd: number | null;
-  rows: AgentWorkRow[];
+  rows: RoleWorkRow[];
   notice: string;
 };
 
@@ -1265,7 +1265,7 @@ export type ReplayStateSnapshot = {
 export type ReplayApproval = {
   id: string;
   stageId: string;
-  agentId: string;
+  roleId: string;
   status: string;
   riskLevel: string;
   source: string;
@@ -1339,7 +1339,7 @@ export type ReplayMetricsSummary = {
   filesChanged: number | null;
   diffInsertions: number | null;
   diffDeletions: number | null;
-  agentStageOrder: string[];
+  roleStageOrder: string[];
 };
 
 export type ReplayGuideSummary = {

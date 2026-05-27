@@ -8,10 +8,10 @@ export type PriorArtifact = {
 };
 
 export type PromptBuildInput = {
-  agentId: string;
+  roleId: string;
   task: string;
   rules: string;
-  agentPromptTemplate: string;
+  rolePromptTemplate: string;
   skills: LoadedSkill[];
   priorArtifacts: PriorArtifact[];
   permission: PermissionProfile;
@@ -111,10 +111,10 @@ function renderValidation(results: ValidationResults | null | undefined): string
   return lines.join("\n");
 }
 
-export function buildAgentPrompt(input: PromptBuildInput): string {
+export function buildRolePrompt(input: PromptBuildInput): string {
   const sections: string[] = [];
 
-  sections.push(`# Amaco Agent: ${input.agentId}`);
+  sections.push(`# Amaco Agent: ${input.roleId}`);
   sections.push(``);
   sections.push(`Project: ${input.projectName}`);
   sections.push(`Task: ${input.task}`);
@@ -173,7 +173,7 @@ export function buildAgentPrompt(input: PromptBuildInput): string {
   sections.push(``);
   sections.push(`# Role Instructions`);
   sections.push(``);
-  sections.push(input.agentPromptTemplate.trim());
+  sections.push(input.rolePromptTemplate.trim());
 
   if (input.additionalNotes) {
     sections.push(``);

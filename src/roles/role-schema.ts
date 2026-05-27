@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { mcpServerSchema } from "../mcp/mcp-schema.js";
 
-export const agentConfigSchema = z.object({
+export const roleConfigSchema = z.object({
   provider: z.string().min(1),
   prompt: z.string().min(1),
   permissions: z.string().min(1),
@@ -11,12 +11,12 @@ export const agentConfigSchema = z.object({
   mcpServers: z.record(z.string().min(1), mcpServerSchema).default({}),
 });
 
-export type AgentConfig = z.infer<typeof agentConfigSchema>;
+export type RoleConfig = z.infer<typeof roleConfigSchema>;
 
-export const agentsConfigSchema = z.record(z.string(), agentConfigSchema);
-export type AgentsConfigMap = z.infer<typeof agentsConfigSchema>;
+export const rolesConfigSchema = z.record(z.string(), roleConfigSchema);
+export type RolesConfigMap = z.infer<typeof rolesConfigSchema>;
 
-export const builtinAgentIds = [
+export const builtinRoleIds = [
   "planner",
   "architect",
   "executor",
@@ -25,4 +25,4 @@ export const builtinAgentIds = [
   "verifier",
 ] as const;
 
-export type BuiltinAgentId = (typeof builtinAgentIds)[number];
+export type BuiltinRoleId = (typeof builtinRoleIds)[number];

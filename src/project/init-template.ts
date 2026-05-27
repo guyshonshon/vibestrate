@@ -3,16 +3,16 @@ import { ensureDir, writeText, pathExists } from "../utils/fs.js";
 import {
   amacoRoot,
   policiesDir,
-  projectAgentsDir,
+  projectRolesDir,
   projectConfigPath,
   projectRulesPath,
   projectRunsDir,
   projectSkillsDir,
 } from "../utils/paths.js";
 import {
-  getBuiltinAgentIds,
+  getBuiltinRoleIds,
   readDefaultPrompt,
-} from "../agents/default-agents.js";
+} from "../roles/default-roles.js";
 import { defaultProjectName } from "./project-detector.js";
 import type { SetupPlan } from "../setup/setup-service.js";
 
@@ -110,7 +110,7 @@ const SKILLS_README = `# Project Skills
 
 Drop reusable instruction bundles here as Markdown files. Each filename stem
 (e.g. \`security.md\` → \`security\`) is the name you reference in
-\`.amaco/project.yml\` under \`agents.<agent>.skills\`.
+\`.amaco/project.yml\` under \`roles.<role>.skills\`.
 
 Examples:
 
@@ -201,40 +201,40 @@ execution:
 
 ${input.providerSection}
 
-agents:
+roles:
   planner:
     provider: ${ref}
-    prompt: .amaco/agents/planner.md
+    prompt: .amaco/roles/planner.md
     permissions: read_only
     skills: []
 
   architect:
     provider: ${ref}
-    prompt: .amaco/agents/architect.md
+    prompt: .amaco/roles/architect.md
     permissions: read_only
     skills: []
 
   executor:
     provider: ${ref}
-    prompt: .amaco/agents/executor.md
+    prompt: .amaco/roles/executor.md
     permissions: code_write
     skills: []
 
   fixer:
     provider: ${ref}
-    prompt: .amaco/agents/fixer.md
+    prompt: .amaco/roles/fixer.md
     permissions: code_write
     skills: []
 
   reviewer:
     provider: ${ref}
-    prompt: .amaco/agents/reviewer.md
+    prompt: .amaco/roles/reviewer.md
     permissions: read_only
     skills: []
 
   verifier:
     provider: ${ref}
-    prompt: .amaco/agents/verifier.md
+    prompt: .amaco/roles/verifier.md
     permissions: read_only
     skills: []
 
@@ -283,7 +283,7 @@ scheduler:
   # Default 1 = one task run at a time. Increase to opt in to parallel runs;
   # each task still gets its own branch and worktree.
   maxConcurrentRuns: 1
-  maxConcurrentWriteAgents: 1
+  maxConcurrentWriteRoles: 1
   # warn  → start the second task and surface a warning if files overlap
   # block → keep the second task queued until the first finishes
   conflictPolicy: warn
@@ -333,7 +333,7 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
   };
 
   await ensureDir(amacoRoot(projectRoot));
-  await ensureDir(projectAgentsDir(projectRoot));
+  await ensureDir(projectRolesDir(projectRoot));
   await ensureDir(projectSkillsDir(projectRoot));
   await ensureDir(projectRunsDir(projectRoot));
   await ensureDir(policiesDir(projectRoot));
@@ -374,9 +374,9 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
     force,
   );
 
-  for (const agentId of getBuiltinAgentIds()) {
-    const target = path.join(projectAgentsDir(projectRoot), `${agentId}.md`);
-    const contents = await readDefaultPrompt(agentId);
+  for (const roleId of getBuiltinRoleIds()) {
+    const target = path.join(projectRolesDir(projectRoot), `${roleId}.md`);
+    const contents = await readDefaultPrompt(roleId);
     await writeIfMissing(target, contents, result, force);
   }
 

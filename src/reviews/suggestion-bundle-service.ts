@@ -253,7 +253,7 @@ export class SuggestionBundleService {
     }
     const approval = await this.approvals.create({
       stageId: "bundle",
-      agentId: "supervisor",
+      roleId: "supervisor",
       reason: `Apply review pass: ${bundle.title}`,
       prompt: bundle.description || null,
       sourceArtifactPath: null,
@@ -302,7 +302,7 @@ export class SuggestionBundleService {
     if (!approvalId) {
       const approval = await this.approvals.create({
         stageId: "bundle",
-        agentId: "supervisor",
+        roleId: "supervisor",
         reason: `Reject review pass: ${bundle.title}`,
         prompt: bundle.description || null,
         sourceArtifactPath: null,

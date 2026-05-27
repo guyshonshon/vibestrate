@@ -174,11 +174,11 @@ export function RunDetailPage({
       {rerunOpen ? (
         <RerunDialog
           run={run}
-          hasPlan={(metrics?.agents ?? []).some(
-            (a) => a.stageId === "planning" || a.agentId === "planner",
+          hasPlan={(metrics?.roles ?? []).some(
+            (a) => a.stageId === "planning" || a.roleId === "planner",
           )}
-          hasArchitecture={(metrics?.agents ?? []).some(
-            (a) => a.stageId === "architecting" || a.agentId === "architect",
+          hasArchitecture={(metrics?.roles ?? []).some(
+            (a) => a.stageId === "architecting" || a.roleId === "architect",
           )}
           onClose={() => setRerunOpen(false)}
           onSubmitted={() => {
@@ -234,7 +234,7 @@ export function RunDetailPage({
         </div>
 
         <aside className="col-span-12 xl:col-span-4 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
-          <ActiveAgentPanel run={run} metrics={metrics} />
+          <ActiveRolePanel run={run} metrics={metrics} />
           <div className="glass p-4">
             <ChangedFilesList
               runId={runId}
@@ -322,14 +322,14 @@ export function RunDetailPage({
   );
 }
 
-function ActiveAgentPanel({
+function ActiveRolePanel({
   run,
   metrics,
 }: {
   run: RunState;
   metrics: RuntimeMetrics | null;
 }) {
-  const agents = metrics?.agents ?? [];
+  const agents = metrics?.roles ?? [];
   const agent =
     agents.find((a) => !a.endedAt) ?? agents.slice(-1)[0] ?? null;
   // Live totals accumulate as each step finishes — unlike the running agent's

@@ -45,8 +45,8 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
     console.log(
       indent(
         `Used by: ${
-          p.agentsUsing.length > 0
-            ? p.agentsUsing.join(", ")
+          p.rolesUsing.length > 0
+            ? p.rolesUsing.join(", ")
             : color.dim("(no agents — assign with `amaco provider set " + p.id + "`)")
         }`,
       ),

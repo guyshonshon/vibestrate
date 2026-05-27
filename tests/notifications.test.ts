@@ -415,7 +415,7 @@ describe("NotificationService end-to-end (smoke A: in-app + smoke B: approval)",
     const draft = draftApprovalRequested({
       runId: "r1",
       approvalId: "ap1",
-      agentId: "implementer",
+      roleId: "implementer",
       stageId: "executing",
     });
     const result = await svc.notify(draft);

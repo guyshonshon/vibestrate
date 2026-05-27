@@ -16,13 +16,13 @@ const createSchema = z.object({
   line: z.number().int().positive().nullable().optional(),
   endLine: z.number().int().positive().nullable().optional(),
   body: z.string().min(1),
-  shareWithAgents: z.boolean().optional(),
+  shareWithRoles: z.boolean().optional(),
 });
 
 const updateSchema = z
   .object({
     body: z.string().min(1).optional(),
-    shareWithAgents: z.boolean().optional(),
+    shareWithRoles: z.boolean().optional(),
     status: z.enum(["open", "resolved"]).optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {

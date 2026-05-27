@@ -13,7 +13,7 @@ const config = projectConfigSchema.parse({
     claude: { type: "claude-code", command: "claude", input: "stdin" },
     codex: { type: "cli", command: "codex", input: "stdin" },
   },
-  agents: {
+  roles: {
     planner: { provider: "claude", permissions: "readOnly", prompt: "planner.md" },
     architect: { provider: "claude", permissions: "readOnly", prompt: "architect.md" },
     executor: { provider: "claude", permissions: "codeWrite", prompt: "executor.md" },

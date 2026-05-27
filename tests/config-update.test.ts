@@ -126,8 +126,8 @@ describe("config get/set/validate", () => {
       path.join(projectRoot, ".amaco", "project.yml"),
       "utf8",
     );
-    const reparsed = YAML.parse(text) as { agents: Record<string, unknown> };
-    expect(Object.keys(reparsed.agents)).toEqual(
+    const reparsed = YAML.parse(text) as { roles: Record<string, unknown> };
+    expect(Object.keys(reparsed.roles)).toEqual(
       expect.arrayContaining(["planner", "architect", "executor", "fixer", "reviewer", "verifier"]),
     );
   });

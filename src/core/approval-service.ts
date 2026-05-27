@@ -68,7 +68,7 @@ export class ApprovalService {
 
   async create(input: {
     stageId: string;
-    agentId: string;
+    roleId: string;
     reason: string | null;
     prompt: string | null;
     sourceArtifactPath: string | null;
@@ -83,7 +83,7 @@ export class ApprovalService {
       id: randomUUID(),
       runId: this.runId,
       stageId: input.stageId,
-      agentId: input.agentId,
+      roleId: input.roleId,
       createdAt: ts,
       updatedAt: ts,
       status: "pending",

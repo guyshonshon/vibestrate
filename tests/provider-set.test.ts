@@ -33,7 +33,7 @@ describe("provider set / list", () => {
     const list = await listConfiguredProviders(projectRoot);
     expect(list).toHaveLength(1);
     expect(list[0]!.id).toBe("claude");
-    expect(list[0]!.agentsUsing).toEqual(
+    expect(list[0]!.rolesUsing).toEqual(
       expect.arrayContaining([
         "planner",
         "architect",
@@ -49,12 +49,12 @@ describe("provider set / list", () => {
     await addProvider(projectRoot, {
       id: "myagent",
       config: { type: "cli", command: "myagent", args: ["--prompt"], input: "arg" },
-      alsoAssignAllAgents: true,
+      alsoAssignAllRoles: true,
     });
     const list = await listConfiguredProviders(projectRoot);
     const myagent = list.find((p) => p.id === "myagent")!;
     expect(myagent.command).toBe("myagent");
-    expect(myagent.agentsUsing.length).toBeGreaterThan(0);
+    expect(myagent.rolesUsing.length).toBeGreaterThan(0);
   });
 
   it("setDefaultProvider fails clearly when provider is not configured", async () => {
@@ -71,7 +71,7 @@ describe("provider set / list", () => {
       addProvider(projectRoot, {
         id: "1bad",
         config: { type: "cli", command: "x", args: [], input: "stdin" },
-        alsoAssignAllAgents: false,
+        alsoAssignAllRoles: false,
       }),
     ).rejects.toThrow();
   });

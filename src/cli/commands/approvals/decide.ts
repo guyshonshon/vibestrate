@@ -47,7 +47,7 @@ export async function runApprovalsDecide(
     const verb = kind === "approve" ? "Approved" : "Rejected";
     console.log(`${symbol.ok()} ${verb} approval ${color.bold(approvalId)}.`);
     console.log(
-      indent(`stage: ${updated.stageId} · agent: ${updated.agentId}`),
+      indent(`stage: ${updated.stageId} · agent: ${updated.roleId}`),
     );
     if (updated.decisionNote)
       console.log(indent(color.dim(`note: ${updated.decisionNote}`)));

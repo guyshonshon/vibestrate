@@ -57,7 +57,7 @@ describe("final report — approval section", () => {
         id: "abc-123",
         runId: "r1",
         stageId: "architecting",
-        agentId: "architect",
+        roleId: "architect",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:30.000Z",
         status: "approved",

@@ -158,7 +158,7 @@ export function ComposerV3({
         id,
         label: def.label,
         description: def.description ?? null,
-        defaultAgent: def.defaultAgent,
+        defaultRole: def.defaultRole,
         role: classifyRole(def.label || id),
       }),
     );
@@ -175,7 +175,7 @@ export function ComposerV3({
         id: `__placeholder_${list.length}`,
         label: "—",
         description: null,
-        defaultAgent: "",
+        defaultRole: "",
         role: "Executor" as Role,
         active: false,
       });
@@ -388,7 +388,7 @@ export function ComposerV3({
                   slotId={s.id}
                   role={s.role}
                   label={s.label}
-                  providerId={slotProviders[s.id] ?? s.defaultAgent}
+                  providerId={slotProviders[s.id] ?? s.defaultRole}
                   providers={providers}
                   open={openPickerSlot === s.id}
                   setOpen={setOpenPickerSlot}

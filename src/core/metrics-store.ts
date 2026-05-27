@@ -2,7 +2,7 @@ import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
 import { runDir } from "../utils/paths.js";
 import {
-  type AgentMetrics,
+  type RoleMetrics,
   type RuntimeMetrics,
   recomputeRunTotals,
   runtimeMetricsSchema,
@@ -22,7 +22,7 @@ export class MetricsStore {
     return path.join(runDir(this.projectRoot, this.runId), METRICS_FILE);
   }
 
-  get agentDir(): string {
+  get roleDir(): string {
     return path.join(runDir(this.projectRoot, this.runId), AGENT_METRICS_DIR);
   }
 
@@ -51,7 +51,7 @@ export class MetricsStore {
     await writeText(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
   }
 
-  async appendAgentMetrics(agent: AgentMetrics): Promise<RuntimeMetrics> {
+  async appendRoleMetrics(agent: RoleMetrics): Promise<RuntimeMetrics> {
     const current = (await this.read()) ?? null;
     if (!current) {
       throw new Error(
@@ -59,25 +59,25 @@ export class MetricsStore {
       );
     }
     // Replace if already present (e.g. fixer loop reruns), otherwise append.
-    const existingIdx = current.agents.findIndex(
-      (a) => a.agentId === agent.agentId && a.stageId === agent.stageId && a.startedAt === agent.startedAt,
+    const existingIdx = current.roles.findIndex(
+      (a) => a.roleId === agent.roleId && a.stageId === agent.stageId && a.startedAt === agent.startedAt,
     );
-    const nextAgents = [...current.agents];
-    if (existingIdx >= 0) nextAgents[existingIdx] = agent;
-    else nextAgents.push(agent);
+    const nextRoles = [...current.roles];
+    if (existingIdx >= 0) nextRoles[existingIdx] = agent;
+    else nextRoles.push(agent);
 
     const recomputed = recomputeRunTotals({
       ...current,
-      agents: nextAgents,
+      roles: nextRoles,
     });
     await this.write(recomputed);
 
     // Per-agent JSON for future UI deep-dives.
-    await ensureDir(this.agentDir);
-    const safeAgentId = agent.agentId.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const filename = `${safeAgentId}-${agent.startedAt.replace(/[:.]/g, "-")}.json`;
+    await ensureDir(this.roleDir);
+    const safeRoleId = agent.roleId.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const filename = `${safeRoleId}-${agent.startedAt.replace(/[:.]/g, "-")}.json`;
     await writeText(
-      path.join(this.agentDir, filename),
+      path.join(this.roleDir, filename),
       `${JSON.stringify(agent, null, 2)}\n`,
     );
 

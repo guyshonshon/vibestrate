@@ -243,7 +243,7 @@ export class ReviewSuggestionService {
     }
     const approval = await this.approvals.create({
       stageId: "suggestion",
-      agentId: "supervisor",
+      roleId: "supervisor",
       reason: `Apply suggestion: ${current.title}`,
       prompt: current.body || null,
       sourceArtifactPath: current.sourceArtifactPath ?? null,
@@ -287,7 +287,7 @@ export class ReviewSuggestionService {
     if (!approvalId) {
       const approval = await this.approvals.create({
         stageId: "suggestion",
-        agentId: "supervisor",
+        roleId: "supervisor",
         reason: `Reject suggestion: ${current.title}`,
         prompt: current.body || null,
         sourceArtifactPath: current.sourceArtifactPath ?? null,

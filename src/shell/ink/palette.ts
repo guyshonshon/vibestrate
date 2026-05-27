@@ -104,7 +104,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     action: { kind: "goto", page: "queue" },
   },
   {
-    id: "goto.agents",
+    id: "goto.roles",
     title: "Go to Agents",
     hint: "agents + provider + MCP servers",
     description:

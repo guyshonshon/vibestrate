@@ -96,7 +96,7 @@ async function chooseSlotProviders(
   for (const [slotId, slot] of Object.entries(input.guide.definition.slots)) {
     const defaultProvider =
       input.slotProviders?.[slotId] ??
-      input.config.agents[slot.defaultAgent]?.provider ??
+      input.config.roles[slot.defaultRole]?.provider ??
       providerIds[0];
     const providerId = await select<string>({
       message: `${slot.label} (${slotId}) provider:`,

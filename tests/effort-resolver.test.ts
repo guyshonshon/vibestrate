@@ -16,10 +16,10 @@ function cfg(overrides: Partial<ProjectConfig> = {}): ProjectConfig {
 }
 
 describe("resolveEffort", () => {
-  it("returns agentDefault when neither effort nor override is set", () => {
+  it("returns roleDefault when neither effort nor override is set", () => {
     const r = resolveEffort({ effort: null, providerOverride: null, config: cfg() });
     expect(r.providerId).toBeNull();
-    expect(r.source).toBe("agentDefault");
+    expect(r.source).toBe("roleDefault");
   });
 
   it("explicit providerOverride wins over effort", () => {
@@ -41,7 +41,7 @@ describe("resolveEffort", () => {
       config: cfg(),
     });
     expect(r.providerId).toBeNull();
-    expect(r.source).toBe("agentDefault");
+    expect(r.source).toBe("roleDefault");
     expect(r.note).toMatch(/"nope".*isn't configured/);
   });
 
@@ -57,18 +57,18 @@ describe("resolveEffort", () => {
     expect(r.source).toBe("effortMap");
   });
 
-  it("falls back to agentDefault when the effortMap key is missing", () => {
+  it("falls back to roleDefault when the effortMap key is missing", () => {
     const r = resolveEffort({
       effort: "low",
       providerOverride: null,
       config: cfg({ effortMap: {} } as Partial<ProjectConfig>),
     });
     expect(r.providerId).toBeNull();
-    expect(r.source).toBe("agentDefault");
+    expect(r.source).toBe("roleDefault");
     expect(r.note).toMatch(/no providers\.effortMap\[low\]/);
   });
 
-  it("falls back to agentDefault when effortMap points at an unknown provider id", () => {
+  it("falls back to roleDefault when effortMap points at an unknown provider id", () => {
     const r = resolveEffort({
       effort: "medium",
       providerOverride: null,
@@ -77,7 +77,7 @@ describe("resolveEffort", () => {
       } as Partial<ProjectConfig>),
     });
     expect(r.providerId).toBeNull();
-    expect(r.source).toBe("agentDefault");
+    expect(r.source).toBe("roleDefault");
     expect(r.note).toMatch(/"ghost".*isn't in project\.yml/);
   });
 

@@ -5,7 +5,7 @@ function fmtCost(usd: number | null): string {
   return `$${usd.toFixed(4)}`;
 }
 
-function fmtTokens(t: RuntimeMetrics["agents"][number]["tokenUsage"]): string {
+function fmtTokens(t: RuntimeMetrics["roles"][number]["tokenUsage"]): string {
   if (!t) return "—";
   const parts: string[] = [];
   if (t.input !== undefined) parts.push(`in ${t.input}`);
@@ -88,7 +88,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
             </tr>
           </thead>
           <tbody>
-            {metrics.agents.length === 0 ? (
+            {metrics.roles.length === 0 ? (
               <tr>
                 <td
                   colSpan={11}
@@ -98,15 +98,15 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                 </td>
               </tr>
             ) : (
-              metrics.agents.map((a, i) => (
+              metrics.roles.map((a, i) => (
                 <tr
-                  key={`${a.agentId}-${i}`}
+                  key={`${a.roleId}-${i}`}
                   className="border-t border-amaco-border-soft"
                 >
                   <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
                     {a.stageId}
                   </td>
-                  <td className="px-3 py-1.5 text-amaco-fg">{a.agentId}</td>
+                  <td className="px-3 py-1.5 text-amaco-fg">{a.roleId}</td>
                   <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
                     {a.providerType}:{a.providerId}
                   </td>

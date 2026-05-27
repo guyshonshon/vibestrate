@@ -27,7 +27,7 @@ export async function runApprovalsShow(
   console.log(header(`Approval ${a.id}`));
   console.log(indent(`status: ${color.bold(a.status)}`));
   console.log(indent(`stage: ${a.stageId}`));
-  console.log(indent(`agent: ${a.agentId}`));
+  console.log(indent(`agent: ${a.roleId}`));
   console.log(indent(`risk: ${a.riskLevel}`));
   if (a.reason) console.log(indent(`reason: ${a.reason}`));
   if (a.requestedAction)

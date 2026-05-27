@@ -1,5 +1,5 @@
 import type {
-  AgentWorkReport,
+  RoleWorkReport,
   AmacoEvent,
   ApprovalRequest,
   ArtifactEntry,
@@ -141,7 +141,7 @@ export type DailyOutcomeBucket = {
   failed: number;
 };
 
-export type SpendByAgentEntry = {
+export type SpendByRoleEntry = {
   providerId: string;
   label: string;
   dollars: number;
@@ -187,7 +187,7 @@ export type MetricsOverview = {
   range: OverviewRange;
   generatedAt: string;
   daily: DailyOutcomeBucket[];
-  spendByAgent: SpendByAgentEntry[];
+  spendByRole: SpendByRoleEntry[];
   phaseLatency: PhaseLatencyEntry[];
   heatmap: HeatmapRow[];
   leaderboard: LeaderboardEntry[];
@@ -209,7 +209,7 @@ export type MetricsOverview = {
   };
 };
 
-export type AgentProfile = {
+export type ProviderProfile = {
   providerId: string;
   label: string;
   vendor: string | null;
@@ -227,7 +227,7 @@ export type AgentProfile = {
 
 /** An agent *role* (planner, architect, …) and its bindings. The role is the
  *  seat in the workflow; `provider` is the CLI engine it runs on. */
-export type AgentRole = {
+export type Role = {
   id: string;
   provider: string;
   providerConfigured: boolean;
@@ -235,9 +235,9 @@ export type AgentRole = {
   skills: string[];
 };
 
-export type AgentsOverview = {
+export type ProvidersOverview = {
   generatedAt: string;
-  providers: AgentProfile[];
+  providers: ProviderProfile[];
   kpi: {
     onlineCount: number;
     totalCount: number;
@@ -272,7 +272,7 @@ export type CodebaseAnnotation = {
   endLine: number | null;
   body: string;
   /** When true, injected into agent prompts during runs. */
-  shareWithAgents: boolean;
+  shareWithRoles: boolean;
   status: "open" | "resolved";
   createdAt: string;
   updatedAt: string;
@@ -303,7 +303,7 @@ export type GuideStepPatch = {
   optional?: boolean;
   kind?: GuideStepKind;
   slot?: string | null;
-  agentId?: string | null;
+  roleId?: string | null;
   approval?: GuideApprovalGatePatch | null;
 };
 
@@ -314,7 +314,7 @@ export type GuideStepFull = {
   label: string;
   kind: GuideStepKind;
   slot?: string;
-  agentId?: string;
+  roleId?: string;
   inputs?: string[];
   outputs?: string[];
   optional?: boolean;
@@ -325,7 +325,7 @@ export type GuideStepFull = {
 export type GuideSlotFull = {
   label: string;
   description?: string;
-  defaultAgent: string;
+  defaultRole: string;
 };
 
 export type GuidePatch = {
@@ -391,7 +391,7 @@ export const api = {
       args: string[];
       input: "stdin" | "arg";
     };
-    agentsUsing: string[];
+    rolesUsing: string[];
   }> {
     return jsonGet(
       `/api/providers/${encodeURIComponent(providerId)}/config`,
@@ -411,7 +411,7 @@ export const api = {
   },
   async setDefaultProvider(
     providerId: string,
-  ): Promise<{ ok: true; providerId: string; agentsUpdated: string[] }> {
+  ): Promise<{ ok: true; providerId: string; rolesUpdated: string[] }> {
     return jsonPost(
       `/api/providers/${encodeURIComponent(providerId)}/default`,
     );
@@ -590,11 +590,11 @@ export const api = {
   ): Promise<{ ok: true; budget: BudgetSettings }> {
     return jsonPatch("/api/budget", patch);
   },
-  async getAgentsOverview(): Promise<AgentsOverview> {
-    return jsonGet("/api/agents/overview");
+  async getProvidersOverview(): Promise<ProvidersOverview> {
+    return jsonGet("/api/providers/overview");
   },
-  async getAgentRoles(): Promise<{ roles: AgentRole[] }> {
-    return jsonGet("/api/agents/roles");
+  async getRoles(): Promise<{ roles: Role[] }> {
+    return jsonGet("/api/roles");
   },
   async resolveGuide(
     guideId: string,
@@ -665,21 +665,21 @@ export const api = {
   },
   async assignSkill(input: {
     skillId: string;
-    agentId: string;
+    roleId: string;
   }): Promise<{ assignments: SkillAssignmentSummary[] }> {
     const r = await jsonPost<{ assignments: SkillAssignmentSummary[] }>(
       `/api/skills/${encodeURIComponent(input.skillId)}/assign`,
-      { agentId: input.agentId },
+      { roleId: input.roleId },
     );
     return r;
   },
   async unassignSkill(input: {
     skillId: string;
-    agentId: string;
+    roleId: string;
   }): Promise<{ assignments: SkillAssignmentSummary[] }> {
     const r = await jsonPost<{ assignments: SkillAssignmentSummary[] }>(
       `/api/skills/${encodeURIComponent(input.skillId)}/unassign`,
-      { agentId: input.agentId },
+      { roleId: input.roleId },
     );
     return r;
   },
@@ -1013,7 +1013,7 @@ export const api = {
     line?: number | null;
     endLine?: number | null;
     body: string;
-    shareWithAgents?: boolean;
+    shareWithRoles?: boolean;
   }): Promise<CodebaseAnnotation> {
     const r = await jsonPost<{ annotation: CodebaseAnnotation }>(
       "/api/annotations",
@@ -1025,7 +1025,7 @@ export const api = {
     id: string,
     patch: {
       body?: string;
-      shareWithAgents?: boolean;
+      shareWithRoles?: boolean;
       status?: "open" | "resolved";
     },
   ): Promise<CodebaseAnnotation> {
@@ -1082,8 +1082,8 @@ export const api = {
     );
     return r.history;
   },
-  async getAgentWork(runId: string): Promise<AgentWorkReport> {
-    const r = await jsonGet<{ report: AgentWorkReport }>(
+  async getRoleWork(runId: string): Promise<RoleWorkReport> {
+    const r = await jsonGet<{ report: RoleWorkReport }>(
       `/api/runs/${encodeURIComponent(runId)}/agent-work`,
     );
     return r.report;

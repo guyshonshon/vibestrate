@@ -30,7 +30,7 @@ describe("annotations service", () => {
     });
     expect(a.line).toBeNull();
     expect(a.endLine).toBeNull();
-    expect(a.shareWithAgents).toBe(true);
+    expect(a.shareWithRoles).toBe(true);
     expect(a.status).toBe("open");
 
     const list = await listAnnotations(root, { path: "src/index.ts" });
@@ -108,7 +108,7 @@ describe("annotations service", () => {
     const priv = await addAnnotation(root, {
       path: "c.ts",
       body: "private note",
-      shareWithAgents: false,
+      shareWithRoles: false,
     });
     const done = await addAnnotation(root, { path: "d.ts", body: "resolved note" });
     await updateAnnotation(root, done.id, { status: "resolved" });
@@ -120,11 +120,11 @@ describe("annotations service", () => {
     expect(section).toContain("shared range note");
     expect(section).not.toContain("private note");
     expect(section).not.toContain("resolved note");
-    expect(priv.shareWithAgents).toBe(false);
+    expect(priv.shareWithRoles).toBe(false);
   });
 
   it("renders empty string when nothing is shared", async () => {
-    await addAnnotation(root, { path: "a.ts", body: "x", shareWithAgents: false });
+    await addAnnotation(root, { path: "a.ts", body: "x", shareWithRoles: false });
     expect(renderAnnotationsForPrompt(await listAnnotations(root))).toBe("");
   });
 });

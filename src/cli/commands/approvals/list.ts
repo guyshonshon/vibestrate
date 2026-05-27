@@ -37,7 +37,7 @@ export async function runApprovalsList(
           ? symbol.ok()
           : symbol.fail();
     console.log(`${sym} ${color.bold(a.id)}  ${color.dim(a.status)}`);
-    console.log(indent(`stage: ${a.stageId} · agent: ${a.agentId}`));
+    console.log(indent(`stage: ${a.stageId} · agent: ${a.roleId}`));
     if (a.reason) console.log(indent(`reason: ${a.reason}`));
     if (a.requestedAction)
       console.log(indent(color.dim(`requested: ${a.requestedAction}`)));

@@ -8,7 +8,7 @@ import { loadConfig } from "../../project/config-loader.js";
 import { MetricsStore } from "../../core/metrics-store.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import {
-  buildAgentsOverview,
+  buildProvidersOverview,
   buildMetricsOverview,
   type OverviewRange,
   type ProviderLookup,
@@ -154,7 +154,7 @@ export async function registerMetricsRoutes(
    * activity so the roster + KPI strip + detail panels can render
    * straight from one payload.
    */
-  app.get("/api/agents/overview", async () => {
+  app.get("/api/providers/overview", async () => {
     const [{ runs, metricsByRun }, { detected, configuredIds }] =
       await Promise.all([
         loadAllRuns(projectRoot),
@@ -167,6 +167,6 @@ export async function registerMetricsRoutes(
       available: d.available,
       configured: configuredIds.has(d.id),
     }));
-    return buildAgentsOverview({ runs, metricsByRun, providers });
+    return buildProvidersOverview({ runs, metricsByRun, providers });
   });
 }

@@ -81,7 +81,7 @@ export async function runProviderSetup(): Promise<number> {
       await addProvider(detected.projectRoot, {
         id: "claude",
         config: buildClaudeProviderFromDetection(claude),
-        alsoAssignAllAgents: false,
+        alsoAssignAllRoles: false,
       });
       const setRes = await setDefaultProvider(detected.projectRoot, "claude");
       if (setRes.ok) {
@@ -95,7 +95,7 @@ export async function runProviderSetup(): Promise<number> {
       await addProvider(detected.projectRoot, {
         id: "codex",
         config: buildCodexProviderFromDetection(codex),
-        alsoAssignAllAgents: false,
+        alsoAssignAllRoles: false,
       });
       const setRes = await setDefaultProvider(detected.projectRoot, "codex");
       if (setRes.ok) {
@@ -112,7 +112,7 @@ export async function runProviderSetup(): Promise<number> {
       await addProvider(detected.projectRoot, {
         id: "ollama",
         config: buildOllamaProviderFromDetection(ollama),
-        alsoAssignAllAgents: false,
+        alsoAssignAllRoles: false,
       });
       const setRes = await setDefaultProvider(detected.projectRoot, "ollama");
       if (setRes.ok) {
@@ -169,7 +169,7 @@ export async function runProviderSetup(): Promise<number> {
       await addProvider(detected.projectRoot, {
         id: id.trim(),
         config: { type: "cli", command: command.trim(), args: argList, input: inputMode },
-        alsoAssignAllAgents: true,
+        alsoAssignAllRoles: true,
       });
       console.log(`${symbol.ok()} Saved provider ${color.bold(id.trim())} and assigned all default agents to it.`);
 

@@ -136,7 +136,7 @@ process.stdin.on("end", () => {
   ]) {
     await setConfigValue(
       projectRoot,
-      `agents.${agent}.provider`,
+      `roles.${agent}.provider`,
       "fake-arbitration",
     );
   }

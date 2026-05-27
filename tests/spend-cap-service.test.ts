@@ -58,7 +58,7 @@ describe("computeDailySpendUsd", () => {
         diffInsertions: null,
         diffDeletions: null,
         validationSummary: null,
-        agents: [],
+        roles: [],
       }),
     );
   }

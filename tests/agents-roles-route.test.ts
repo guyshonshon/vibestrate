@@ -29,9 +29,9 @@ async function makeProject(): Promise<string> {
     "providers.fake",
     JSON.stringify({ type: "cli", command: "true", args: [], input: "stdin" }),
   );
-  await setConfigValue(project, "agents.reviewer.provider", "fake");
+  await setConfigValue(project, "roles.reviewer.provider", "fake");
   // Bind planner to a provider that isn't configured, to assert the flag.
-  await setConfigValue(project, "agents.planner.provider", "ghost");
+  await setConfigValue(project, "roles.planner.provider", "ghost");
   return project;
 }
 
@@ -41,12 +41,12 @@ afterEach(async () => {
   server = null;
 });
 
-describe("GET /api/agents/roles", () => {
+describe("GET /api/roles", () => {
   it("returns the role→engine bindings without leaking prompt contents", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    const res = await fetch(`${server.url}/api/agents/roles`);
+    const res = await fetch(`${server.url}/api/roles`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       roles: {

@@ -16,8 +16,8 @@ export const perModelCostSchema = z.object({
 });
 export type PerModelCost = z.infer<typeof perModelCostSchema>;
 
-export const agentMetricsSchema = z.object({
-  agentId: z.string(),
+export const roleMetricsSchema = z.object({
+  roleId: z.string(),
   stageId: z.string(),
   providerId: z.string(),
   providerType: z.string(),
@@ -67,7 +67,7 @@ export const agentMetricsSchema = z.object({
   skillsRequested: z.array(z.string()).default([]),
   notes: z.array(z.string()).default([]),
 });
-export type AgentMetrics = z.infer<typeof agentMetricsSchema>;
+export type RoleMetrics = z.infer<typeof roleMetricsSchema>;
 
 export const approvalsSummarySchema = z.object({
   total: z.number().default(0),
@@ -109,7 +109,7 @@ export const runtimeMetricsSchema = z.object({
     totalWaitMs: 0,
   }),
   notesProvided: z.array(z.string()).default([]),
-  agents: z.array(agentMetricsSchema).default([]),
+  roles: z.array(roleMetricsSchema).default([]),
 });
 export type RuntimeMetrics = z.infer<typeof runtimeMetricsSchema>;
 
@@ -141,14 +141,14 @@ export function makeEmptyMetrics(input: {
       totalWaitMs: 0,
     },
     notesProvided: [],
-    agents: [],
+    roles: [],
   };
 }
 
 export function recomputeRunTotals(metrics: RuntimeMetrics): RuntimeMetrics {
   let totalDuration = 0;
   let totalCost: number | null = null;
-  for (const a of metrics.agents) {
+  for (const a of metrics.roles) {
     totalDuration += a.durationMs;
     if (a.totalCostUsd !== null && a.totalCostUsd !== undefined) {
       totalCost = (totalCost ?? 0) + a.totalCostUsd;
@@ -156,7 +156,7 @@ export function recomputeRunTotals(metrics: RuntimeMetrics): RuntimeMetrics {
   }
   return {
     ...metrics,
-    totalProviderCalls: metrics.agents.length,
+    totalProviderCalls: metrics.roles.length,
     totalDurationMs: totalDuration,
     totalCostUsd: totalCost,
   };

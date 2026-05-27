@@ -4,13 +4,13 @@ import { runDir } from "../utils/paths.js";
 import { pathExists, readText } from "../utils/fs.js";
 import { runStateSchema, type RunState } from "./state-machine.js";
 import type {
-  AgentMetrics,
+  RoleMetrics,
   RuntimeMetrics,
 } from "./runtime-metrics.js";
 import { runStatePath } from "../utils/paths.js";
 
-export type AgentWorkRow = {
-  agentId: string;
+export type RoleWorkRow = {
+  roleId: string;
   stage: string;
   providerId: string;
   providerType: string;
@@ -41,20 +41,20 @@ export type AgentWorkRow = {
   bestEffort: boolean;
 };
 
-export type AgentWorkReport = {
+export type RoleWorkReport = {
   runId: string;
   available: boolean;
   bestEffort: true;
   totalDurationMs: number;
   totalCostUsd: number | null;
-  rows: AgentWorkRow[];
+  rows: RoleWorkRow[];
   notice: string;
 };
 
-export async function getAgentWork(input: {
+export async function getRoleWork(input: {
   projectRoot: string;
   runId: string;
-}): Promise<AgentWorkReport> {
+}): Promise<RoleWorkReport> {
   const metrics = await new MetricsStore(input.projectRoot, input.runId).read();
   const stateFile = runStatePath(input.projectRoot, input.runId);
   const runStatusInfo: { state: RunState | null } = { state: null };
@@ -81,8 +81,8 @@ export async function getAgentWork(input: {
     };
   }
 
-  const rows = metrics.agents.map((a) =>
-    rowFromAgent(a, runDir(input.projectRoot, input.runId)),
+  const rows = metrics.roles.map((a) =>
+    rowFromRole(a, runDir(input.projectRoot, input.runId)),
   );
 
   return {
@@ -96,7 +96,7 @@ export async function getAgentWork(input: {
   };
 }
 
-function rowFromAgent(a: AgentMetrics, runRootAbs: string): AgentWorkRow {
+function rowFromRole(a: RoleMetrics, runRootAbs: string): RoleWorkRow {
   const artifacts: { kind: string; path: string }[] = [];
   if (a.promptArtifactPath) {
     artifacts.push({ kind: "prompt", path: relToRun(runRootAbs, a.promptArtifactPath) });
@@ -111,7 +111,7 @@ function rowFromAgent(a: AgentMetrics, runRootAbs: string): AgentWorkRow {
     artifacts.push({ kind: "stderr", path: relToRun(runRootAbs, a.stderrArtifactPath) });
   }
   return {
-    agentId: a.agentId,
+    roleId: a.roleId,
     stage: a.stageId,
     providerId: a.providerId,
     providerType: a.providerType,
@@ -142,7 +142,7 @@ function relToRun(runRoot: string, abs: string): string {
 }
 
 function buildNotice(metrics: RuntimeMetrics, _state: RunState | null): string {
-  if (metrics.agents.length === 0) {
+  if (metrics.roles.length === 0) {
     return "No agents have completed yet.";
   }
   return "Per-agent file attribution is best-effort: counts come from worktree diffs after each stage, not per-file authorship.";

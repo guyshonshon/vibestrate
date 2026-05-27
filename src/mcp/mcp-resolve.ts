@@ -15,7 +15,7 @@ export type ResolvedMcpServer = {
 };
 
 export type McpResolveInput = {
-  agentServers: McpServersMap | undefined;
+  roleServers: McpServersMap | undefined;
   skills: ReadonlyArray<{ name: string; servers: McpServersMap }>;
 };
 
@@ -52,7 +52,7 @@ export function resolveMcpServers(input: McpResolveInput): McpResolveResult {
     servers.push({ name, source, config });
   };
 
-  for (const [name, cfg] of Object.entries(input.agentServers ?? {})) {
+  for (const [name, cfg] of Object.entries(input.roleServers ?? {})) {
     add(name, "agent", cfg);
   }
   for (const skill of input.skills) {

@@ -72,7 +72,7 @@ export function ProvidersPage() {
     setBusy({ id, action: "default" });
     try {
       const r = await api.setDefaultProvider(id);
-      flash({ kind: "ok", text: `Set ${id} as default for ${r.agentsUpdated.length} agents.` });
+      flash({ kind: "ok", text: `Set ${id} as default for ${r.rolesUpdated.length} agents.` });
       await load();
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });

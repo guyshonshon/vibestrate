@@ -42,7 +42,7 @@ describe("resolveMcpServers", () => {
 
   it("merges agent + skill servers and tags their source", () => {
     const r = resolveMcpServers({
-      agentServers: { fs: { command: "a", args: [], env: {} } },
+      roleServers: { fs: { command: "a", args: [], env: {} } },
       skills: [{ name: "sec", servers: { sec: { command: "b", args: [], env: {} } } }],
     });
     expect(r.servers.map((s) => s.name).sort()).toEqual(["fs", "sec"]);
@@ -53,7 +53,7 @@ describe("resolveMcpServers", () => {
 
   it("gives the agent precedence over a skill on a name collision", () => {
     const r = resolveMcpServers({
-      agentServers: { fs: { command: "a", args: [], env: {} } },
+      roleServers: { fs: { command: "a", args: [], env: {} } },
       skills: [{ name: "sec", servers: { fs: { command: "b", args: [], env: {} } } }],
     });
     expect(r.servers).toHaveLength(1);
@@ -66,7 +66,7 @@ describe("resolveMcpServers", () => {
 
   it("earlier-listed skill wins over later skill on the same name", () => {
     const r = resolveMcpServers({
-      agentServers: undefined,
+      roleServers: undefined,
       skills: [
         { name: "first", servers: { fs: { command: "a", args: [], env: {} } } },
         { name: "second", servers: { fs: { command: "b", args: [], env: {} } } },
@@ -81,7 +81,7 @@ describe("resolveMcpServers", () => {
 
   it("buildMcpConfigFile produces the `.mcp.json` shape", () => {
     const r = resolveMcpServers({
-      agentServers: { fs: { command: "a", args: ["x"], env: {} } },
+      roleServers: { fs: { command: "a", args: ["x"], env: {} } },
       skills: [],
     });
     const file = buildMcpConfigFile(r.servers);

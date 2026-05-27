@@ -14,7 +14,7 @@ import {
   effectiveVerificationDecision,
 } from "./review-parser.js";
 import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
-import { buildAgentPrompt, type PriorArtifact } from "./prompt-builder.js";
+import { buildRolePrompt, type PriorArtifact } from "./prompt-builder.js";
 import {
   listAnnotations,
   renderAnnotationsForPrompt,
@@ -28,8 +28,8 @@ import {
 import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig } from "../project/config-schema.js";
-import { loadAgentPrompt } from "../project/config-loader.js";
-import { getAgentConfig } from "../agents/agent-registry.js";
+import { loadRolePrompt } from "../project/config-loader.js";
+import { getRoleConfig } from "../roles/role-registry.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
 import { assertExecutableContext, resolveCwd } from "../permissions/access-policy.js";
 import { loadSkills } from "../skills/skill-loader.js";
@@ -57,7 +57,7 @@ import type {
   ProviderSessionRequest,
 } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
-import { makeEmptyMetrics, type AgentMetrics } from "./runtime-metrics.js";
+import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { ApprovalService } from "./approval-service.js";
 import {
@@ -187,15 +187,15 @@ export type OrchestratorOutput = {
   policyWarnings: PolicyWarning[];
 };
 
-type AgentRunResult = {
-  agentId: string;
+type RoleRunResult = {
+  roleId: string;
   output: string;
   outputArtifactPath: string;
   promptArtifactPath: string;
   providerResult: ProviderRunResult;
 };
 
-type GuideAgentTurn = {
+type GuideRoleTurn = {
   slotId: string;
   contextMode: PreparedGuideParticipantTurn["contextMode"];
   fallbackReason: string | null;
@@ -483,11 +483,11 @@ export class Orchestrator {
       throw err;
     }
 
-    let planArtifact: AgentRunResult | null = null;
-    let architectureArtifact: AgentRunResult | null = null;
-    let executionArtifact: AgentRunResult | null = null;
-    let reviewArtifact: AgentRunResult | null = null;
-    let verificationArtifact: AgentRunResult | null = null;
+    let planArtifact: RoleRunResult | null = null;
+    let architectureArtifact: RoleRunResult | null = null;
+    let executionArtifact: RoleRunResult | null = null;
+    let reviewArtifact: RoleRunResult | null = null;
+    let verificationArtifact: RoleRunResult | null = null;
     let lastValidation: ValidationResults | null = null;
     let reviewDecision: ReviewDecision = "BLOCKED";
     let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
@@ -503,11 +503,11 @@ export class Orchestrator {
       : 0;
     if (this.resumeFrom) {
       await artifactStore.write("02-plan.md", this.resumeFrom.seededPlan);
-      planArtifact = this.seededAgentResult("planner", this.resumeFrom.seededPlan);
+      planArtifact = this.seededRoleResult("planner", this.resumeFrom.seededPlan);
       if (this.resumeFrom.fromStage === "executing") {
         const arch = this.resumeFrom.seededArchitecture ?? "";
         await artifactStore.write("04-architecture.md", arch);
-        architectureArtifact = this.seededAgentResult("architect", arch);
+        architectureArtifact = this.seededRoleResult("architect", arch);
       }
       await eventLog.append({
         type: "run.rewound",
@@ -569,8 +569,8 @@ export class Orchestrator {
         this.onProgress("Planning...");
         state = applyTransition(state, "planning");
         await stateStore.write(state);
-        planArtifact = await this.runAgent({
-          agentId: "planner",
+        planArtifact = await this.runRole({
+          roleId: "planner",
           stageId: "planning",
           promptIndex: 1,
           outputName: "02-plan.md",
@@ -585,8 +585,8 @@ export class Orchestrator {
           state,
           fromStatus: "planned",
           stageId: "planning",
-          agentId: "planner",
-          agentArtifact: planArtifact,
+          roleId: "planner",
+          roleArtifact: planArtifact,
           approvalService,
           stateStore,
           eventLog,
@@ -620,8 +620,8 @@ export class Orchestrator {
         this.onProgress("Architecting...");
         state = applyTransition(state, "architecting");
         await stateStore.write(state);
-        architectureArtifact = await this.runAgent({
-          agentId: "architect",
+        architectureArtifact = await this.runRole({
+          roleId: "architect",
           stageId: "architecting",
           promptIndex: 3,
           outputName: "04-architecture.md",
@@ -636,8 +636,8 @@ export class Orchestrator {
           state,
           fromStatus: "architected",
           stageId: "architecting",
-          agentId: "architect",
-          agentArtifact: architectureArtifact,
+          roleId: "architect",
+          roleArtifact: architectureArtifact,
           approvalService,
           stateStore,
           eventLog,
@@ -676,8 +676,8 @@ export class Orchestrator {
         this.onProgress("Executing...");
         state = applyTransition(state, "executing");
         await stateStore.write(state);
-        executionArtifact = await this.runAgent({
-          agentId: "executor",
+        executionArtifact = await this.runRole({
+          roleId: "executor",
           stageId: "executing",
           promptIndex: 5,
           outputName: "06-execution-output.md",
@@ -694,8 +694,8 @@ export class Orchestrator {
             state,
             fromStatus: "executing",
             stageId: "executing",
-            agentId: "executor",
-            agentArtifact: executionArtifact,
+            roleId: "executor",
+            roleArtifact: executionArtifact,
             approvalService,
             stateStore,
             eventLog,
@@ -741,8 +741,8 @@ export class Orchestrator {
       state = applyTransition(state, "reviewing");
       await stateStore.write(state);
       this.onProgress("Reviewing...");
-      reviewArtifact = await this.runAgent({
-        agentId: "reviewer",
+      reviewArtifact = await this.runRole({
+        roleId: "reviewer",
         stageId: "reviewing",
         promptIndex: 8,
         outputName: "09-review.md",
@@ -768,8 +768,8 @@ export class Orchestrator {
           state,
           fromStatus: "reviewing",
           stageId: "reviewing",
-          agentId: "reviewer",
-          agentArtifact: reviewArtifact,
+          roleId: "reviewer",
+          roleArtifact: reviewArtifact,
           approvalService,
           stateStore,
           eventLog,
@@ -814,8 +814,8 @@ export class Orchestrator {
         const loopRel = path.posix.join("loops", `loop-${reviewLoopsCompleted}`);
         const fixerOutputName = path.posix.join(loopRel, "fix-output.md");
 
-        const fixArtifact = await this.runAgent({
-          agentId: "fixer",
+        const fixArtifact = await this.runRole({
+          roleId: "fixer",
           stageId: "fixing",
           promptIndex: 0,
           outputName: fixerOutputName,
@@ -837,8 +837,8 @@ export class Orchestrator {
             state,
             fromStatus: "fixing",
             stageId: "fixing",
-            agentId: "fixer",
-            agentArtifact: fixArtifact,
+            roleId: "fixer",
+            roleArtifact: fixArtifact,
             approvalService,
             stateStore,
             eventLog,
@@ -867,8 +867,8 @@ export class Orchestrator {
         state = applyTransition(state, "reviewing");
         await stateStore.write(state);
         this.onProgress(`Reviewing (loop ${reviewLoopsCompleted})...`);
-        reviewArtifact = await this.runAgent({
-          agentId: "reviewer",
+        reviewArtifact = await this.runRole({
+          roleId: "reviewer",
           stageId: "reviewing",
           promptIndex: 0,
           outputName: path.posix.join(loopRel, "review.md"),
@@ -898,8 +898,8 @@ export class Orchestrator {
             state,
             fromStatus: "reviewing",
             stageId: "reviewing",
-            agentId: "reviewer",
-            agentArtifact: reviewArtifact,
+            roleId: "reviewer",
+            roleArtifact: reviewArtifact,
             approvalService,
             stateStore,
             eventLog,
@@ -964,8 +964,8 @@ export class Orchestrator {
         state = applyTransition(state, "verifying");
         await stateStore.write(state);
         this.onProgress("Verifying...");
-        verificationArtifact = await this.runAgent({
-          agentId: "verifier",
+        verificationArtifact = await this.runRole({
+          roleId: "verifier",
           stageId: "verifying",
           promptIndex: 10,
           outputName: "11-verification.md",
@@ -996,8 +996,8 @@ export class Orchestrator {
             state,
             fromStatus: "verifying",
             stageId: "verifying",
-            agentId: "verifier",
-            agentArtifact: verificationArtifact,
+            roleId: "verifier",
+            roleArtifact: verificationArtifact,
             approvalService,
             stateStore,
             eventLog,
@@ -1274,17 +1274,17 @@ export class Orchestrator {
     };
   }
 
-  /** Synthetic AgentRunResult for an artifact seeded from a prior run during a
+  /** Synthetic RoleRunResult for an artifact seeded from a prior run during a
    *  rewind. Only `.output` is read downstream (collectPriors + inline
    *  priorArtifacts); the provider stub records that no agent turn was spent
    *  regenerating it — no metrics entry, no cost. */
-  private seededAgentResult(agentId: string, output: string): AgentRunResult {
+  private seededRoleResult(roleId: string, output: string): RoleRunResult {
     const ts = nowIso();
     return {
-      agentId,
+      roleId,
       output,
       outputArtifactPath:
-        agentId === "planner" ? "02-plan.md" : "04-architecture.md",
+        roleId === "planner" ? "02-plan.md" : "04-architecture.md",
       promptArtifactPath: "",
       providerResult: {
         providerId: "(seeded)",
@@ -1303,9 +1303,9 @@ export class Orchestrator {
   }
 
   private collectPriors(input: {
-    plan: AgentRunResult | null;
-    architecture: AgentRunResult | null;
-    execution: AgentRunResult | null;
+    plan: RoleRunResult | null;
+    architecture: RoleRunResult | null;
+    execution: RoleRunResult | null;
   }): PriorArtifact[] {
     const out: PriorArtifact[] = [];
     if (input.plan) out.push({ label: "Plan", content: input.plan.output });
@@ -1335,7 +1335,7 @@ export class Orchestrator {
         status: step.enabled ? "pending" : "skipped",
         optional: step.optional,
         slotId: step.slotId,
-        agentId: step.agentId,
+        roleId: step.roleId,
         providerId: step.providerId,
         promptArtifactPath: null,
         outputArtifactPath: null,
@@ -1402,7 +1402,7 @@ export class Orchestrator {
         return "waiting_for_approval";
       case "agent-turn":
       default:
-        return step.agentId === "planner" ? "planning" : "executing";
+        return step.roleId === "planner" ? "planning" : "executing";
     }
   }
 
@@ -1479,9 +1479,9 @@ export class Orchestrator {
     };
   }
 
-  private async registerGuideAgentOutputs(input: {
+  private async registerGuideRoleOutputs(input: {
     step: ResolvedGuideStep;
-    result: AgentRunResult;
+    result: RoleRunResult;
     outputs: Map<string, GuideContextOutput>;
     artifactStore: ArtifactStore;
     worktreePath: string | null;
@@ -1531,7 +1531,7 @@ export class Orchestrator {
 
   private async recordGuideArbitrationOutputs(input: {
     step: ResolvedGuideStep;
-    result: AgentRunResult;
+    result: RoleRunResult;
     outputs: Map<string, GuideContextOutput>;
     validation: ValidationResults | null;
     artifactStore: ArtifactStore;
@@ -1827,10 +1827,10 @@ export class Orchestrator {
     let lastValidation: ValidationResults | null = null;
     let reviewDecision: ReviewDecision = "BLOCKED";
     let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
-    let planArtifact: AgentRunResult | null = null;
-    let executionArtifact: AgentRunResult | null = null;
-    let reviewArtifact: AgentRunResult | null = null;
-    let verificationArtifact: AgentRunResult | null = null;
+    let planArtifact: RoleRunResult | null = null;
+    let executionArtifact: RoleRunResult | null = null;
+    let reviewArtifact: RoleRunResult | null = null;
+    let verificationArtifact: RoleRunResult | null = null;
     const outputs = new Map<string, GuideContextOutput>();
     const participantStore = new GuideParticipantLedgerStore(
       this.projectRoot,
@@ -1917,7 +1917,7 @@ export class Orchestrator {
           stateStore: input.stateStore,
         });
 
-        const preparedTurn = step.slotId && step.agentId
+        const preparedTurn = step.slotId && step.roleId
           ? prepareGuideParticipantTurn(participantLedger, step.slotId)
           : null;
         const context = await this.buildGuideContextPacket({
@@ -1958,7 +1958,7 @@ export class Orchestrator {
             guideId: input.snapshot.guideId,
             stepId: step.id,
             kind: step.kind,
-            agentId: step.agentId,
+            roleId: step.roleId,
             providerId: step.providerId,
             contextPacketPath: context.contextPacketPath,
           },
@@ -2001,7 +2001,7 @@ export class Orchestrator {
             state,
             fromStatus: state.status,
             stageId: step.id,
-            agentId: "guide",
+            roleId: "guide",
             reason: step.approval.reason,
             prompt: null,
             sourceArtifactPath: context.contextPacketPath,
@@ -2048,12 +2048,12 @@ export class Orchestrator {
           continue;
         }
 
-        if (!step.agentId) {
+        if (!step.roleId) {
           throw new Error(`Guide step "${step.id}" needs an agent.`);
         }
 
-        const result = await this.runAgent({
-          agentId: step.agentId,
+        const result = await this.runRole({
+          roleId: step.roleId,
           providerId: step.providerId,
           stageId: step.id,
           promptIndex: 0,
@@ -2085,7 +2085,7 @@ export class Orchestrator {
             ledger: participantLedger,
             prepared: preparedTurn,
             stepId: step.id,
-            agentId: step.agentId,
+            roleId: step.roleId,
             providerId: step.providerId ?? result.providerResult.providerId,
             contextPacketPath: context.contextPacketPath,
             promptArtifactPath: result.promptArtifactPath,
@@ -2116,7 +2116,7 @@ export class Orchestrator {
             },
           });
         }
-        await this.registerGuideAgentOutputs({
+        await this.registerGuideRoleOutputs({
           step,
           result,
           outputs,
@@ -2172,8 +2172,8 @@ export class Orchestrator {
           state,
           fromStatus: state.status,
           stageId: step.id,
-          agentId: step.agentId,
-          agentArtifact: result,
+          roleId: step.roleId,
+          roleArtifact: result,
           approvalService: input.approvalService,
           stateStore: input.stateStore,
           eventLog: input.eventLog,
@@ -2407,10 +2407,10 @@ export class Orchestrator {
     policyWarnings: PolicyWarning[];
     metricsStore: MetricsStore;
     approvalService: ApprovalService;
-    planArtifact: AgentRunResult | null;
-    executionArtifact: AgentRunResult | null;
-    reviewArtifact: AgentRunResult | null;
-    verificationArtifact: AgentRunResult | null;
+    planArtifact: RoleRunResult | null;
+    executionArtifact: RoleRunResult | null;
+    reviewArtifact: RoleRunResult | null;
+    verificationArtifact: RoleRunResult | null;
   }): Promise<string> {
     const metrics = (await input.metricsStore.read()) ?? null;
     const approvals = await input.approvalService.readAll().catch(() => []);
@@ -2473,7 +2473,7 @@ export class Orchestrator {
     state: RunState;
     fromStatus: RunStatus;
     stageId: string;
-    agentId: string;
+    roleId: string;
     reason: string | null;
     prompt: string | null;
     sourceArtifactPath: string | null;
@@ -2493,7 +2493,7 @@ export class Orchestrator {
 
     const req = await input.approvalService.create({
       stageId: input.stageId,
-      agentId: input.agentId,
+      roleId: input.roleId,
       reason: input.reason,
       prompt: input.prompt,
       sourceArtifactPath: input.sourceArtifactPath,
@@ -2522,7 +2522,7 @@ export class Orchestrator {
         draftApprovalRequested({
           runId: input.state.runId,
           approvalId: req.id,
-          agentId: input.agentId,
+          roleId: input.roleId,
           stageId: input.stageId,
           reason: input.reason,
         }),
@@ -2533,7 +2533,7 @@ export class Orchestrator {
       message: input.requestedMessage,
       data: {
         approvalId: req.id,
-        agentId: input.agentId,
+        roleId: input.roleId,
         stageId: input.stageId,
         reason: input.reason,
         requestedAction: input.requestedAction,
@@ -2596,7 +2596,7 @@ export class Orchestrator {
   }
 
   /**
-   * If `agentArtifact.output` contains `HUMAN_APPROVAL: REQUIRED`, transition
+   * If `roleArtifact.output` contains `HUMAN_APPROVAL: REQUIRED`, transition
    * the run to `waiting_for_approval`, persist a pending approval request, and
    * poll until the user resolves it via CLI/API. Returns the new state and
    * whether the run was rejected (caller must transition to `blocked`).
@@ -2607,24 +2607,24 @@ export class Orchestrator {
     state: RunState;
     fromStatus: RunStatus;
     stageId: string;
-    agentId: string;
-    agentArtifact: AgentRunResult | null;
+    roleId: string;
+    roleArtifact: RoleRunResult | null;
     approvalService: ApprovalService;
     stateStore: RunStateStore;
     eventLog: EventLog;
     /** Tracks which policy stages have already triggered approval this run (mutated). */
     policyStagesAlreadyForced: Set<string>;
   }): Promise<{ state: RunState; rejected: boolean }> {
-    const detection = input.agentArtifact
-      ? detectApprovalRequest(input.agentArtifact.output)
+    const detection = input.roleArtifact
+      ? detectApprovalRequest(input.roleArtifact.output)
       : null;
     const policyStages = this.config.policies.requireApprovalAtStages;
     const policyForcedThisStage =
       policyStages.includes(input.stageId as (typeof policyStages)[number]) &&
       !input.policyStagesAlreadyForced.has(input.stageId);
 
-    const agentRequested = !!detection?.required;
-    if (!agentRequested && !policyForcedThisStage) {
+    const roleRequested = !!detection?.required;
+    if (!roleRequested && !policyForcedThisStage) {
       return { state: input.state, rejected: false };
     }
 
@@ -2640,8 +2640,8 @@ export class Orchestrator {
         ? fallbackRequestedAction
         : `Continue past the ${input.stageId} stage.`);
     const riskLevel = detection?.riskLevel ?? "medium";
-    const source: "agent" | "policy" = agentRequested ? "agent" : "policy";
-    const alsoRequiredByPolicy = agentRequested && policyForcedThisStage;
+    const source: "agent" | "policy" = roleRequested ? "agent" : "policy";
+    const alsoRequiredByPolicy = roleRequested && policyForcedThisStage;
 
     if (policyForcedThisStage) {
       input.policyStagesAlreadyForced.add(input.stageId);
@@ -2651,19 +2651,19 @@ export class Orchestrator {
       state: input.state,
       fromStatus: input.fromStatus,
       stageId: input.stageId,
-      agentId: input.agentId,
+      roleId: input.roleId,
       reason,
-      prompt: input.agentArtifact?.promptArtifactPath ?? null,
-      sourceArtifactPath: input.agentArtifact?.outputArtifactPath ?? null,
+      prompt: input.roleArtifact?.promptArtifactPath ?? null,
+      sourceArtifactPath: input.roleArtifact?.outputArtifactPath ?? null,
       requestedAction,
       riskLevel,
       source,
       alsoRequiredByPolicy,
-      progressMessage: agentRequested
-        ? `Pausing for human approval (${input.agentId} requested it)...`
+      progressMessage: roleRequested
+        ? `Pausing for human approval (${input.roleId} requested it)...`
         : `Pausing for human approval (project policy requires approval at ${input.stageId})...`,
-      requestedMessage: agentRequested
-        ? `Approval requested by ${input.agentId} at stage ${input.stageId}.`
+      requestedMessage: roleRequested
+        ? `Approval requested by ${input.roleId} at stage ${input.stageId}.`
         : `Approval required by project policy at stage ${input.stageId}.`,
       resumedMessage: `Run resumed at stage ${input.stageId}.`,
       approvalService: input.approvalService,
@@ -2672,8 +2672,8 @@ export class Orchestrator {
     });
   }
 
-  private async runAgent(input: {
-    agentId: string;
+  private async runRole(input: {
+    roleId: string;
     providerId?: string | null;
     stageId: string;
     promptIndex: number;
@@ -2682,7 +2682,7 @@ export class Orchestrator {
     priorArtifacts: PriorArtifact[];
     validationResults: ValidationResults | null;
     additionalNotes?: string;
-    guideTurn?: GuideAgentTurn;
+    guideTurn?: GuideRoleTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
     verificationDecisionForStage?: string | null;
@@ -2695,14 +2695,14 @@ export class Orchestrator {
       stateStore: RunStateStore;
       onProgress: (message: string) => void;
     };
-  }): Promise<AgentRunResult> {
-    const { agentId, ctx } = input;
+  }): Promise<RoleRunResult> {
+    const { roleId, ctx } = input;
     // Budget gate: before spending on this turn, check today's spend against
     // the daily cap and apply the configured action (warn / reduce-effort /
     // downgrade-model / stop). Runs before provider resolution so a downgrade
     // applies to this turn too.
     await this.enforceSpendCap(ctx);
-    const agent = getAgentConfig(this.config.agents, agentId);
+    const agent = getRoleConfig(this.config.roles, roleId);
     // Read-only runs override every agent's permission profile to
     // "readOnly", regardless of how the agent is configured. resolveProfile
     // will throw if the project doesn't define `readOnly`; we surface that
@@ -2720,20 +2720,20 @@ export class Orchestrator {
       input.providerId ?? this.runtimeProviderId() ?? agent.provider;
 
     assertExecutableContext({
-      agentId,
+      roleId,
       profile,
       projectRoot: this.projectRoot,
       worktreePath: ctx.worktreePath,
     });
 
     const cwd = resolveCwd({
-      agentId,
+      roleId,
       profile,
       projectRoot: this.projectRoot,
       worktreePath: ctx.worktreePath,
     });
 
-    const promptTemplate = await loadAgentPrompt(this.projectRoot, agent.prompt);
+    const promptTemplate = await loadRolePrompt(this.projectRoot, agent.prompt);
     // Merge per-run runtimeSkills into the agent's configured skill ids
     // (deduped, order-preserving). Empty runtimeSkills is a no-op so
     // existing runs keep their exact behavior.
@@ -2748,13 +2748,13 @@ export class Orchestrator {
     // artifacts directory, and surface the attachment as an event so
     // the run replay / dashboard can show what was wired in.
     const mcpResolved = resolveMcpServers({
-      agentServers: agent.mcpServers,
+      roleServers: agent.mcpServers,
       skills: skills.map((s) => ({ name: s.name, servers: s.mcpServers })),
     });
     const mcpConfigRelDir = path.join("mcp");
     const mcpConfigRelPath = path.join(
       mcpConfigRelDir,
-      `${input.stageId}-${agentId}.json`,
+      `${input.stageId}-${roleId}.json`,
     );
     let mcpConfigAbsPath: string | null = null;
     if (mcpResolved.servers.length > 0) {
@@ -2764,9 +2764,9 @@ export class Orchestrator {
       });
       await ctx.eventLog.append({
         type: "mcp.attached",
-        message: `Attached ${mcpResolved.servers.length} MCP server(s) for ${agentId}.`,
+        message: `Attached ${mcpResolved.servers.length} MCP server(s) for ${roleId}.`,
         data: {
-          agentId,
+          roleId,
           stageId: input.stageId,
           configPath: ctx.artifactStore.relPath(mcpConfigAbsPath ?? ""),
           servers: mcpResolved.servers.map((s) => ({
@@ -2795,11 +2795,11 @@ export class Orchestrator {
     const humanAnnotations = renderAnnotationsForPrompt(
       await listAnnotations(this.projectRoot, { status: "open" }),
     );
-    const prompt = buildAgentPrompt({
-      agentId,
+    const prompt = buildRolePrompt({
+      roleId,
       task: this.task,
       rules: this.rules,
-      agentPromptTemplate: promptTemplate,
+      rolePromptTemplate: promptTemplate,
       skills,
       priorArtifacts: input.priorArtifacts,
       permission: profile,
@@ -2816,27 +2816,27 @@ export class Orchestrator {
       const consumed = await markPendingConsumed(
         this.projectRoot,
         ctx.runId,
-        agentId,
+        roleId,
       );
       await ctx.eventLog.append({
         type: "control.applied",
-        message: `Applied ${consumed.length} user-queued directive(s) to ${agentId}.`,
+        message: `Applied ${consumed.length} user-queued directive(s) to ${roleId}.`,
         data: {
-          agentId,
+          roleId,
           kinds: consumed.map((d) => d.kind),
           ids: consumed.map((d) => d.id),
         },
       });
     }
 
-    const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, agentId);
+    const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, roleId);
     const promptArtifactPathAbs = await ctx.artifactStore.write(promptName, prompt);
 
     await ctx.eventLog.append({
-      type: "agent.started",
-      message: `Agent ${agentId} starting.`,
+      type: "role.started",
+      message: `Agent ${roleId} starting.`,
       data: {
-        agentId,
+        roleId,
         provider: effectiveProviderId,
         permissions: effectivePermissions,
         // Skills attached to this agent's prompt. The provider's
@@ -2851,8 +2851,8 @@ export class Orchestrator {
     });
     await ctx.eventLog.append({
       type: "provider.started",
-      message: `Provider ${effectiveProviderId} invoked for ${agentId}.`,
-      data: { agentId, provider: effectiveProviderId, cwd },
+      message: `Provider ${effectiveProviderId} invoked for ${roleId}.`,
+      data: { roleId, provider: effectiveProviderId, cwd },
     });
 
     let providerResult: RichProviderRunResult;
@@ -2959,18 +2959,18 @@ export class Orchestrator {
       const stageEnd = new Date();
       await ctx.eventLog.append({
         type: "provider.failed",
-        message: `Provider ${effectiveProviderId} failed for ${agentId}: ${describeError(err)}`,
-        data: { agentId, provider: effectiveProviderId },
+        message: `Provider ${effectiveProviderId} failed for ${roleId}: ${describeError(err)}`,
+        data: { roleId, provider: effectiveProviderId },
       });
       await ctx.eventLog.append({
-        type: "agent.failed",
-        message: `Agent ${agentId} failed.`,
-        data: { agentId },
+        type: "role.failed",
+        message: `Agent ${roleId} failed.`,
+        data: { roleId },
       });
       // Record a partial metric so the dashboard reflects the failure.
       const providerCfg = this.config.providers[effectiveProviderId];
-      const failedMetric: AgentMetrics = {
-        agentId,
+      const failedMetric: RoleMetrics = {
+        roleId,
         stageId: input.stageId,
         providerId: effectiveProviderId,
         providerType: providerCfg?.type ?? "cli",
@@ -3003,7 +3003,7 @@ export class Orchestrator {
         skillsRequested: agent.skills.slice(),
         notes: ["agent invocation failed before completion"],
       };
-      await input.metricsStore.appendAgentMetrics(failedMetric);
+      await input.metricsStore.appendRoleMetrics(failedMetric);
       if (providerAbort.signal.aborted) {
         throw new __RunAbortedSignal();
       }
@@ -3031,18 +3031,18 @@ export class Orchestrator {
 
     await ctx.eventLog.append({
       type: "provider.completed",
-      message: `Provider ${effectiveProviderId} completed for ${agentId}.`,
+      message: `Provider ${effectiveProviderId} completed for ${roleId}.`,
       data: {
-        agentId,
+        roleId,
         provider: effectiveProviderId,
         exitCode: providerResult.exitCode,
         durationMs: providerResult.durationMs,
       },
     });
     await ctx.eventLog.append({
-      type: "agent.completed",
-      message: `Agent ${agentId} completed.`,
-      data: { agentId, exitCode: providerResult.exitCode },
+      type: "role.completed",
+      message: `Agent ${roleId} completed.`,
+      data: { roleId, exitCode: providerResult.exitCode },
     });
 
     // Compute diff snapshot after this stage when worktree exists.
@@ -3082,8 +3082,8 @@ export class Orchestrator {
       model: metrics?.model ?? null,
       tokenUsage,
     });
-    const metric: AgentMetrics = {
-      agentId,
+    const metric: RoleMetrics = {
+      roleId,
       stageId: input.stageId,
       providerId: effectiveProviderId,
       providerType: providerCfg?.type ?? "cli",
@@ -3129,10 +3129,10 @@ export class Orchestrator {
           ? ["claude-code metrics not reported by provider"]
           : [],
     };
-    await input.metricsStore.appendAgentMetrics(metric);
+    await input.metricsStore.appendRoleMetrics(metric);
 
     return {
-      agentId,
+      roleId,
       output: stdout,
       outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
       promptArtifactPath: ctx.artifactStore.relPath(promptArtifactPathAbs),
@@ -3179,16 +3179,16 @@ export class Orchestrator {
     return results;
   }
 
-  private defaultPromptName(index: number, agentId: string): string {
+  private defaultPromptName(index: number, roleId: string): string {
     const padded = index.toString().padStart(2, "0");
-    return `${padded}-${agentId}-prompt.md`;
+    return `${padded}-${roleId}-prompt.md`;
   }
 
   /**
    * The provider id that should override agent.provider for this run, OR
    * null when no override is in effect. Cached at run start
    * (state.resolvedProviderId) but re-derived here so the orchestrator
-   * never has to thread state through to every runAgent call.
+   * never has to thread state through to every runRole call.
    */
   private runtimeProviderId(): string | null {
     const resolution = resolveEffort({

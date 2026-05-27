@@ -9,7 +9,7 @@ import { isSecretLikePath, scanTextForSecrets } from "./diff-service.js";
 /**
  * Codebase annotations — external, human-authored notes pinned to a file (and
  * optionally a line or line range). They live in `.amaco/annotations.json`,
- * never inside the source files themselves. When `shareWithAgents` is true and
+ * never inside the source files themselves. When `shareWithRoles` is true and
  * the note is open, the orchestrator injects it into every agent's prompt for a
  * run, so the crew acknowledges the user's guidance ("don't touch this", "this
  * function is the bug"). They are entirely optional.
@@ -34,7 +34,7 @@ export const annotationSchema = z.object({
   endLine: z.number().int().positive().nullable(),
   body: z.string(),
   /** When true, the note is injected into agent prompts during runs. */
-  shareWithAgents: z.boolean(),
+  shareWithRoles: z.boolean(),
   status: z.enum(["open", "resolved"]),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -107,7 +107,7 @@ export type AddAnnotationInput = {
   line?: number | null;
   endLine?: number | null;
   body: string;
-  shareWithAgents?: boolean;
+  shareWithRoles?: boolean;
 };
 
 export async function addAnnotation(
@@ -142,7 +142,7 @@ export async function addAnnotation(
     line,
     endLine,
     body,
-    shareWithAgents: input.shareWithAgents ?? true,
+    shareWithRoles: input.shareWithRoles ?? true,
     status: "open",
     createdAt: now,
     updatedAt: now,
@@ -179,7 +179,7 @@ function normaliseAnchor(
 
 export type UpdateAnnotationInput = {
   body?: string;
-  shareWithAgents?: boolean;
+  shareWithRoles?: boolean;
   status?: "open" | "resolved";
 };
 
@@ -206,7 +206,7 @@ export async function updateAnnotation(
   const updated: CodebaseAnnotation = {
     ...current,
     body,
-    shareWithAgents: patch.shareWithAgents ?? current.shareWithAgents,
+    shareWithRoles: patch.shareWithRoles ?? current.shareWithRoles,
     status: patch.status ?? current.status,
     updatedAt: new Date().toISOString(),
   };
@@ -242,7 +242,7 @@ export function formatAnchor(a: CodebaseAnnotation): string {
 export function renderAnnotationsForPrompt(
   annotations: readonly CodebaseAnnotation[],
 ): string {
-  const shared = annotations.filter((a) => a.shareWithAgents && a.status === "open");
+  const shared = annotations.filter((a) => a.shareWithRoles && a.status === "open");
   if (shared.length === 0) return "";
   const lines = [
     "# Human Annotations",

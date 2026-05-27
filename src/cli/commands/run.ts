@@ -163,9 +163,9 @@ export async function runRunCommand(
   }
 
   const missingProviderRefs: string[] = [];
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     if (!loaded.config.providers[agent.provider]) {
-      missingProviderRefs.push(`${agentId} → ${agent.provider}`);
+      missingProviderRefs.push(`${roleId} → ${agent.provider}`);
     }
   }
   if (missingProviderRefs.length > 0) {
@@ -587,7 +587,7 @@ function printResolvedGuide(snapshot: ReturnType<typeof resolveGuide>): void {
   console.log(`${symbol.bullet()} Participants`);
   for (const slot of snapshot.slots) {
     console.log(
-      indent(`${slot.id}: ${slot.defaultAgent} ${color.dim("via")} ${slot.providerId}`),
+      indent(`${slot.id}: ${slot.defaultRole} ${color.dim("via")} ${slot.providerId}`),
     );
   }
   console.log(`${symbol.bullet()} Steps`);

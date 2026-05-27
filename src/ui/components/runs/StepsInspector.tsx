@@ -1,5 +1,5 @@
 import { Check, Coins, Cpu, FileDiff, Hash, Timer, X } from "lucide-react";
-import type { AgentMetrics, RuntimeMetrics } from "../../lib/types.js";
+import type { RoleMetrics, RuntimeMetrics } from "../../lib/types.js";
 
 /**
  * Per-step inspector — one card per agent invocation from the run's runtime
@@ -9,7 +9,7 @@ import type { AgentMetrics, RuntimeMetrics } from "../../lib/types.js";
  * the metrics endpoint the page already loads.
  */
 export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) {
-  const agents = metrics?.agents ?? [];
+  const agents = metrics?.roles ?? [];
   if (agents.length === 0) {
     return (
       <div className="text-[12.5px] text-fog-400">
@@ -21,13 +21,13 @@ export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) 
   return (
     <ol className="space-y-2">
       {agents.map((a, i) => (
-        <StepCard key={`${a.stageId}-${a.agentId}-${i}`} index={i + 1} a={a} />
+        <StepCard key={`${a.stageId}-${a.roleId}-${i}`} index={i + 1} a={a} />
       ))}
     </ol>
   );
 }
 
-function StepCard({ index, a }: { index: number; a: AgentMetrics }) {
+function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
   const ok = a.exitCode === 0;
   const running = !a.endedAt;
   const decision = a.verificationDecision ?? a.reviewDecision ?? null;
@@ -38,7 +38,7 @@ function StepCard({ index, a }: { index: number; a: AgentMetrics }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{index}</span>
         <Cpu className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.7} />
-        <span className="text-[13.5px] font-medium text-fog-100">{a.agentId}</span>
+        <span className="text-[13.5px] font-medium text-fog-100">{a.roleId}</span>
         <span className="mono text-[11px] text-fog-500">{a.stageId}</span>
         <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10.5px] text-fog-300">
           {a.providerId}

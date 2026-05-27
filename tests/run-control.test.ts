@@ -13,7 +13,7 @@ function mk(
     id,
     createdAt: "2026-05-17T12:00:00Z",
     consumedAt: null,
-    consumedByAgent: null,
+    consumedByRole: null,
     kind: "inject-note",
     body: "ignore caching for this stage",
     ...partial,
@@ -24,7 +24,7 @@ describe("pendingControls", () => {
   it("filters out consumed directives", () => {
     const all: RunControlDirective[] = [
       mk("a"),
-      mk("b", { consumedAt: "2026-05-17T12:01:00Z", consumedByAgent: "planner" }),
+      mk("b", { consumedAt: "2026-05-17T12:01:00Z", consumedByRole: "planner" }),
       mk("c", { kind: "compact" } as Partial<RunControlDirective>),
     ];
     expect(pendingControls(all).map((d) => d.id)).toEqual(["a", "c"]);

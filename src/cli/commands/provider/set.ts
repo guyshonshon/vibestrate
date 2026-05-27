@@ -67,7 +67,7 @@ export async function runProviderSet(
           await addProvider(detected.projectRoot, {
             id: providerId,
             config,
-            alsoAssignAllAgents: true,
+            alsoAssignAllRoles: true,
           });
           console.log(
             providerId === "codex"
@@ -107,6 +107,6 @@ export async function runProviderSet(
   console.log(
     `${symbol.ok()} All default agents now use ${color.bold(providerId)}.`,
   );
-  console.log(`  Updated: ${result.agentsUpdated.join(", ")}`);
+  console.log(`  Updated: ${result.rolesUpdated.join(", ")}`);
   return 0;
 }

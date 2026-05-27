@@ -3,7 +3,7 @@ import { filterEvents } from "../src/shell/ink/event-filter.js";
 import type { ShellEvent } from "../src/shell/shell-snapshot.js";
 
 const events: ShellEvent[] = [
-  { timestamp: "t0", type: "agent.started", message: "executor starting" },
+  { timestamp: "t0", type: "role.started", message: "executor starting" },
   { timestamp: "t1", type: "provider.completed", message: "claude exited 0" },
   { timestamp: "t2", type: "mcp.attached", message: "Attached 2 MCP servers" },
   { timestamp: "t3", type: "approval.requested", message: "approve plan?" },

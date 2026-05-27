@@ -132,9 +132,9 @@ export async function runFromSpec(
   const loaded = await loadConfig(detected.projectRoot);
 
   const missing: string[] = [];
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     if (!loaded.config.providers[agent.provider]) {
-      missing.push(`${agentId} → ${agent.provider}`);
+      missing.push(`${roleId} → ${agent.provider}`);
     }
   }
   if (missing.length > 0) {

@@ -66,12 +66,12 @@ export function taskStatusToken(status: string): StatusToken {
 /** Tokens for `AmacoEvent.type`. Only the prefix needs to colorize. */
 export function eventTypeColor(type: string): Color {
   if (type.endsWith(".failed") || type === "run.aborted") return "red";
-  if (type === "run.completed" || type === "agent.completed") return "green";
+  if (type === "run.completed" || type === "role.completed") return "green";
   if (type.startsWith("approval.")) return "yellow";
   if (type.startsWith("run.pause") || type.startsWith("run.resume"))
     return "yellow";
   if (type === "mcp.attached") return "magenta";
-  if (type === "agent.started" || type === "provider.started") return "cyan";
+  if (type === "role.started" || type === "provider.started") return "cyan";
   return "gray";
 }
 

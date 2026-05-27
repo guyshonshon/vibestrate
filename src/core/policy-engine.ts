@@ -40,11 +40,11 @@ export async function runPreflightChecks(input: {
     );
   }
 
-  for (const [agentId, agent] of Object.entries(config.agents)) {
+  for (const [roleId, agent] of Object.entries(config.roles)) {
     const profile = resolveProfile(config.permissions.profiles, agent.permissions);
     if (profile.allowWrite && profile.cwd !== "worktree") {
       throw new PolicyError(
-        `Agent "${agentId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`amaco config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`amaco config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
       );
     }
   }

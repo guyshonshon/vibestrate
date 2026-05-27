@@ -100,7 +100,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(projectRoot, `agents.${agent}.provider`, "fake-claude");
+    await setConfigValue(projectRoot, `roles.${agent}.provider`, "fake-claude");
   }
   await setConfigValue(
     projectRoot,

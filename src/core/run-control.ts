@@ -19,7 +19,7 @@ export const runControlDirectiveSchema = z.discriminatedUnion("kind", [
     id: z.string().min(1),
     createdAt: z.string(),
     consumedAt: z.string().nullable().default(null),
-    consumedByAgent: z.string().nullable().default(null),
+    consumedByRole: z.string().nullable().default(null),
     kind: z.literal("inject-note"),
     body: z.string().min(1).max(8000),
   }),
@@ -27,7 +27,7 @@ export const runControlDirectiveSchema = z.discriminatedUnion("kind", [
     id: z.string().min(1),
     createdAt: z.string(),
     consumedAt: z.string().nullable().default(null),
-    consumedByAgent: z.string().nullable().default(null),
+    consumedByRole: z.string().nullable().default(null),
     kind: z.literal("compact"),
     /** Optional rationale for the compact request. */
     note: z.string().max(2000).optional(),
@@ -55,7 +55,7 @@ export async function appendControl(
     id: makeId(),
     createdAt: nowIso(),
     consumedAt: null,
-    consumedByAgent: null,
+    consumedByRole: null,
   };
   const directive: RunControlDirective =
     input.kind === "inject-note"
@@ -87,14 +87,14 @@ export async function listControls(
   return out;
 }
 
-/** Mark every pending directive as consumed by `agentId`. Rewrites the
+/** Mark every pending directive as consumed by `roleId`. Rewrites the
  *  whole file once — append-only would leave us re-reading "pending"
  *  rows forever. Safe because writes are serialized per-run by the
  *  orchestrator. */
 export async function markPendingConsumed(
   projectRoot: string,
   runId: string,
-  agentId: string,
+  roleId: string,
 ): Promise<RunControlDirective[]> {
   const all = await listControls(projectRoot, runId);
   const now = nowIso();
@@ -102,7 +102,7 @@ export async function markPendingConsumed(
   const updated = all.map((d) => {
     if (d.consumedAt) return d;
     consumed.push(d);
-    return { ...d, consumedAt: now, consumedByAgent: agentId };
+    return { ...d, consumedAt: now, consumedByRole: roleId };
   });
   if (consumed.length === 0) return [];
   const file = controlPath(projectRoot, runId);
@@ -117,7 +117,7 @@ export function pendingControls(
 }
 
 /** Pure: render the deferred controls as a markdown block that can be
- *  passed to `buildAgentPrompt` via `additionalNotes`. Returns "" when
+ *  passed to `buildRolePrompt` via `additionalNotes`. Returns "" when
  *  no notes apply. */
 export function renderControlNotes(
   pending: RunControlDirective[],

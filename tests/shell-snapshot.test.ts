@@ -68,48 +68,48 @@ describe("buildShellSnapshot", () => {
     expect(activeRunRows(snap).map((r) => r.runId)).toEqual(["run-b"]);
   });
 
-  it("derives currentAgent/provider from the events tail", async () => {
+  it("derives currentRole/provider from the events tail", async () => {
     await writeRun(root, "run-1", { status: "executing" });
     await appendEvent(root, "run-1", {
-      type: "agent.started",
+      type: "role.started",
       message: "x",
-      data: { agentId: "executor", provider: "claude-code" },
+      data: { roleId: "executor", provider: "claude-code" },
     });
     await appendEvent(root, "run-1", {
       type: "mcp.attached",
       message: "y",
-      data: { agentId: "executor", servers: [{ name: "fs" }, { name: "sec" }] },
+      data: { roleId: "executor", servers: [{ name: "fs" }, { name: "sec" }] },
     });
     const snap = await buildShellSnapshot(root);
     const row = snap.runs[0]!;
-    expect(row.currentAgent).toBe("executor");
+    expect(row.currentRole).toBe("executor");
     expect(row.currentProvider).toBe("claude-code");
     expect(row.currentMcpServers).toEqual(["fs", "sec"]);
   });
 
-  it("clears currentAgent when an agent.completed follows but keeps lastAgent", async () => {
+  it("clears currentRole when an role.completed follows but keeps lastRole", async () => {
     await writeRun(root, "run-1", { status: "reviewing" });
     await appendEvent(root, "run-1", {
-      type: "agent.started",
+      type: "role.started",
       message: "x",
-      data: { agentId: "executor", provider: "claude-code" },
+      data: { roleId: "executor", provider: "claude-code" },
     });
     await appendEvent(root, "run-1", {
-      type: "agent.completed",
+      type: "role.completed",
       message: "done",
-      data: { agentId: "executor" },
+      data: { roleId: "executor" },
     });
     const snap = await buildShellSnapshot(root);
-    expect(snap.runs[0]!.currentAgent).toBeNull();
-    // lastAgent is sticky — terminal/between-agent runs still surface
+    expect(snap.runs[0]!.currentRole).toBeNull();
+    // lastRole is sticky — terminal/between-agent runs still surface
     // "who was here last".
-    expect(snap.runs[0]!.lastAgent).toBe("executor");
+    expect(snap.runs[0]!.lastRole).toBe("executor");
   });
 
   it("derives `why` from policy.warning when state.error is null (blocked-by-preflight)", async () => {
     // Real-world case: the orchestrator gets blocked by a preflight
     // policy *before* any agent starts. state.error isn't stamped
-    // and there are no agent.failed events — but the policy.warning
+    // and there are no role.failed events — but the policy.warning
     // carries the actual reason.
     await writeRun(root, "run-1", { status: "blocked", error: null });
     await appendEvent(root, "run-1", {
@@ -127,7 +127,7 @@ describe("buildShellSnapshot", () => {
     });
     const snap = await buildShellSnapshot(root);
     const row = snap.runs[0]!;
-    expect(row.lastAgent).toBeNull();
+    expect(row.lastRole).toBeNull();
     // policy.warning has the most useful "why" — should win over
     // the generic state-change message.
     expect(row.error).toBe(
@@ -135,27 +135,27 @@ describe("buildShellSnapshot", () => {
     );
   });
 
-  it("a hard failure (agent.failed) overrides an earlier soft reason", async () => {
+  it("a hard failure (role.failed) overrides an earlier soft reason", async () => {
     await writeRun(root, "run-1", { status: "failed", error: null });
     await appendEvent(root, "run-1", {
       type: "policy.warning",
       message: "soft warning",
     });
     await appendEvent(root, "run-1", {
-      type: "agent.started",
+      type: "role.started",
       message: "x",
-      data: { agentId: "executor", provider: "claude-code" },
+      data: { roleId: "executor", provider: "claude-code" },
     });
     await appendEvent(root, "run-1", {
-      type: "agent.failed",
+      type: "role.failed",
       message: "executor returned non-zero",
-      data: { agentId: "executor" },
+      data: { roleId: "executor" },
     });
     const snap = await buildShellSnapshot(root);
     expect(snap.runs[0]!.error).toBe("executor returned non-zero");
   });
 
-  it("surfaces failure context on terminal runs (error + lastAgent + decisions)", async () => {
+  it("surfaces failure context on terminal runs (error + lastRole + decisions)", async () => {
     await writeRun(root, "run-1", {
       status: "failed",
       error: "validate step exited 1",
@@ -163,18 +163,18 @@ describe("buildShellSnapshot", () => {
       verification: null,
     });
     await appendEvent(root, "run-1", {
-      type: "agent.started",
+      type: "role.started",
       message: "x",
-      data: { agentId: "verifier", provider: "claude-code" },
+      data: { roleId: "verifier", provider: "claude-code" },
     });
     await appendEvent(root, "run-1", {
-      type: "agent.failed",
+      type: "role.failed",
       message: "verifier returned non-zero",
-      data: { agentId: "verifier" },
+      data: { roleId: "verifier" },
     });
     const snap = await buildShellSnapshot(root);
     const row = snap.runs[0]!;
-    expect(row.lastAgent).toBe("verifier");
+    expect(row.lastRole).toBe("verifier");
     expect(row.error).toBe("validate step exited 1");
     expect(row.finalDecision).toBe("BLOCKED");
   });
@@ -275,7 +275,7 @@ describe("aggregates and recentActivity", () => {
       path.join(root, ".amaco", "runs", "run-a", "events.ndjson"),
       JSON.stringify({
         timestamp: "2026-05-16T10:00:00Z",
-        type: "agent.started",
+        type: "role.started",
         message: "x",
       }) + "\n",
     );
@@ -283,7 +283,7 @@ describe("aggregates and recentActivity", () => {
       path.join(root, ".amaco", "runs", "run-b", "events.ndjson"),
       JSON.stringify({
         timestamp: "2026-05-16T11:00:00Z",
-        type: "agent.started",
+        type: "role.started",
         message: "y",
       }) + "\n",
     );

@@ -44,7 +44,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "architecting",
-      agentId: "architect",
+      roleId: "architect",
       reason: "needs human eyes",
       prompt: null,
       sourceArtifactPath: "artifacts/04-architecture.md",
@@ -61,7 +61,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "reviewing",
-      agentId: "reviewer",
+      roleId: "reviewer",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -81,7 +81,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "reviewing",
-      agentId: "reviewer",
+      roleId: "reviewer",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -96,7 +96,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -110,7 +110,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -123,7 +123,7 @@ describe("ApprovalService", () => {
   it("persists to approvals.json so a fresh service instance sees the record", async () => {
     const a = await new ApprovalService(projectRoot, "r1").create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -143,7 +143,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -158,7 +158,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,
@@ -176,7 +176,7 @@ describe("ApprovalService", () => {
     const svc = new ApprovalService(projectRoot, "r1");
     const a = await svc.create({
       stageId: "x",
-      agentId: "y",
+      roleId: "y",
       reason: null,
       prompt: null,
       sourceArtifactPath: null,

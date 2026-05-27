@@ -4,7 +4,7 @@
 
 import type { RunState } from "./state-machine.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
-import type { AgentMetrics, RuntimeMetrics } from "./runtime-metrics.js";
+import type { RoleMetrics, RuntimeMetrics } from "./runtime-metrics.js";
 
 export type OverviewRange = "24h" | "7d" | "30d" | "90d";
 
@@ -18,7 +18,7 @@ export type DailyOutcomeBucket = {
   failed: number;
 };
 
-export type SpendByAgentEntry = {
+export type SpendByRoleEntry = {
   providerId: string;
   label: string;
   dollars: number;
@@ -78,7 +78,7 @@ export type MetricsOverview = {
   range: OverviewRange;
   generatedAt: string;
   daily: DailyOutcomeBucket[];
-  spendByAgent: SpendByAgentEntry[];
+  spendByRole: SpendByRoleEntry[];
   phaseLatency: PhaseLatencyEntry[];
   heatmap: HeatmapRow[];
   leaderboard: LeaderboardEntry[];
@@ -234,16 +234,16 @@ export function bucketDaily(
 
 // ── Spend by agent ────────────────────────────────────────────────────────
 
-export function spendByAgent(
+export function spendByRole(
   runs: RunState[],
   metricsByRun: Map<string, RuntimeMetrics | null>,
   providers: ProviderLookup,
-): SpendByAgentEntry[] {
+): SpendByRoleEntry[] {
   const totals = new Map<string, { dollars: number; runs: number }>();
   for (const run of runs) {
     const m = metricsByRun.get(run.runId);
     if (!m) continue;
-    for (const agent of m.agents) {
+    for (const agent of m.roles) {
       const id = agent.providerId;
       const entry = totals.get(id) ?? { dollars: 0, runs: 0 };
       entry.dollars += agent.totalCostUsd ?? 0;
@@ -273,7 +273,7 @@ export function phaseLatency(
   const buckets = new Map<string, number[]>();
   for (const m of metricsByRun.values()) {
     if (!m) continue;
-    for (const agent of m.agents) {
+    for (const agent of m.roles) {
       const phase = fmtPhase(agent.stageId);
       const secs = agent.durationMs / 1000;
       const arr = buckets.get(phase) ?? [];
@@ -347,7 +347,7 @@ export function leaderboard({
     if (!id) continue;
     const m = metricsByRun.get(run.runId);
     if (m) {
-      const c = m.agents.reduce((a, x) => a + (x.totalCostUsd ?? 0), 0);
+      const c = m.roles.reduce((a, x) => a + (x.totalCostUsd ?? 0), 0);
       costByProvider.set(id, (costByProvider.get(id) ?? 0) + c);
     }
     const d = durationSeconds(run);
@@ -418,7 +418,7 @@ export function kpiSparks(
     );
     const dayMetrics = metricsByDay.get(bucket.date) ?? [];
     const dollars = dayMetrics.reduce(
-      (a, m) => a + m.agents.reduce((b, x) => b + (x.totalCostUsd ?? 0), 0),
+      (a, m) => a + m.roles.reduce((b, x) => b + (x.totalCostUsd ?? 0), 0),
       0,
     );
     spend.push(round2(dollars));
@@ -428,7 +428,7 @@ export function kpiSparks(
 
 // ── Main: build the overview ──────────────────────────────────────────────
 
-function agentTokens(a: AgentMetrics): number {
+function roleTokens(a: RoleMetrics): number {
   const t = a.tokenUsage;
   if (!t) return 0;
   return (t.input ?? 0) + (t.output ?? 0);
@@ -441,7 +441,7 @@ function sumTokens(
   let n = 0;
   for (const r of runs) {
     const m = metricsByRun.get(r.runId);
-    if (m) for (const a of m.agents) n += agentTokens(a);
+    if (m) for (const a of m.roles) n += roleTokens(a);
   }
   return n;
 }
@@ -454,9 +454,9 @@ function tokensByRole(
   for (const r of runs) {
     const m = metricsByRun.get(r.runId);
     if (!m) continue;
-    for (const a of m.agents) {
-      const role = a.guideSlotId ?? a.agentId;
-      map.set(role, (map.get(role) ?? 0) + agentTokens(a));
+    for (const a of m.roles) {
+      const role = a.guideSlotId ?? a.roleId;
+      map.set(role, (map.get(role) ?? 0) + roleTokens(a));
     }
   }
   return [...map.entries()]
@@ -473,11 +473,11 @@ function perModelBreakdown(
   for (const r of runs) {
     const m = metricsByRun.get(r.runId);
     if (!m) continue;
-    for (const a of m.agents) {
+    for (const a of m.roles) {
       const model = a.model ?? a.providerId;
       const e = map.get(model) ?? { calls: 0, tokens: 0, costUsd: 0 };
       e.calls += 1;
-      e.tokens += agentTokens(a);
+      e.tokens += roleTokens(a);
       e.costUsd += a.totalCostUsd ?? 0;
       map.set(model, e);
     }
@@ -536,7 +536,7 @@ export function buildMetricsOverview(
   }
 
   const sparks = kpiSparks(daily, metricsByDay, runsByDay);
-  const spend = spendByAgent(windowRuns, inputs.metricsByRun, inputs.providers);
+  const spend = spendByRole(windowRuns, inputs.metricsByRun, inputs.providers);
   const latency = phaseLatency(
     new Map(
       [...inputs.metricsByRun.entries()].filter(([runId]) =>
@@ -575,7 +575,7 @@ export function buildMetricsOverview(
     range,
     generatedAt: new Date(now).toISOString(),
     daily,
-    spendByAgent: spend,
+    spendByRole: spend,
     phaseLatency: latency,
     heatmap: heat,
     leaderboard: board,
@@ -603,7 +603,7 @@ export function buildMetricsOverview(
 
 // ── Agents overview ───────────────────────────────────────────────────────
 
-export type AgentProfile = {
+export type ProviderProfile = {
   providerId: string;
   label: string;
   vendor: string | null;
@@ -627,9 +627,9 @@ export type AgentProfile = {
   skills: string[];
 };
 
-export type AgentsOverview = {
+export type ProvidersOverview = {
   generatedAt: string;
-  providers: AgentProfile[];
+  providers: ProviderProfile[];
   kpi: {
     onlineCount: number;
     totalCount: number;
@@ -639,7 +639,7 @@ export type AgentsOverview = {
   };
 };
 
-export function buildAgentsOverview(input: {
+export function buildProvidersOverview(input: {
   runs: RunState[];
   metricsByRun: Map<string, RuntimeMetrics | null>;
   providers: Array<{
@@ -650,7 +650,7 @@ export function buildAgentsOverview(input: {
     configured: boolean;
   }>;
   now?: number;
-}): AgentsOverview {
+}): ProvidersOverview {
   const now = input.now ?? Date.now();
   const cutoff7d = now - 7 * 24 * 60 * 60 * 1000;
   const cutoff24h = now - 24 * 60 * 60 * 1000;
@@ -659,7 +659,7 @@ export function buildAgentsOverview(input: {
     string,
     {
       runs: RunState[];
-      agents: AgentMetrics[];
+      roles: RoleMetrics[];
       cost: number;
       lastSeenMs: number;
       skills: Set<string>;
@@ -672,7 +672,7 @@ export function buildAgentsOverview(input: {
     if (!id) continue;
     const entry = byProvider.get(id) ?? {
       runs: [],
-      agents: [] as AgentMetrics[],
+      roles: [] as RoleMetrics[],
       cost: 0,
       lastSeenMs: 0,
       skills: new Set<string>(),
@@ -682,9 +682,9 @@ export function buildAgentsOverview(input: {
     if (Number.isFinite(t)) entry.lastSeenMs = Math.max(entry.lastSeenMs, t);
     const m = input.metricsByRun.get(run.runId);
     if (m) {
-      for (const a of m.agents) {
+      for (const a of m.roles) {
         if (a.providerId !== id) continue;
-        entry.agents.push(a);
+        entry.roles.push(a);
         entry.cost += a.totalCostUsd ?? 0;
         for (const sk of a.skillsAttached) entry.skills.add(sk);
       }
@@ -705,7 +705,7 @@ export function buildAgentsOverview(input: {
     return buckets;
   }
 
-  const profiles: AgentProfile[] = input.providers.map((p) => {
+  const profiles: ProviderProfile[] = input.providers.map((p) => {
     const entry = byProvider.get(p.id);
     if (!entry) {
       return {
@@ -724,7 +724,7 @@ export function buildAgentsOverview(input: {
         skills: [],
       };
     }
-    const durs = entry.agents.map((a) => a.durationMs);
+    const durs = entry.roles.map((a) => a.durationMs);
     const completed = entry.runs.filter((r) =>
       ["merge_ready", "failed", "aborted"].includes(r.status),
     );
@@ -755,7 +755,7 @@ export function buildAgentsOverview(input: {
   for (const r of runs24h) {
     const m = input.metricsByRun.get(r.runId);
     if (!m) continue;
-    spend24h += m.agents.reduce((a, x) => a + (x.totalCostUsd ?? 0), 0);
+    spend24h += m.roles.reduce((a, x) => a + (x.totalCostUsd ?? 0), 0);
   }
   const p95Samples = profiles
     .map((p) => p.latencyP95Ms)

@@ -39,7 +39,7 @@ describe("workflow schema", () => {
       providers: {
         claude: { type: "cli", command: "claude" },
       },
-      agents: {
+      roles: {
         planner: { provider: "claude", prompt: "p", permissions: "read_only" },
         architect: { provider: "claude", prompt: "p", permissions: "read_only" },
         executor: { provider: "claude", prompt: "p", permissions: "code_write" },

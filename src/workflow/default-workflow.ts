@@ -3,19 +3,19 @@ import type { WorkflowStage } from "./workflow-types.js";
 export const defaultWorkflowStages: WorkflowStage[] = [
   {
     id: "planning",
-    agentId: "planner",
+    roleId: "planner",
     enteringStatus: "planning",
     exitingStatus: "planned",
   },
   {
     id: "architecting",
-    agentId: "architect",
+    roleId: "architect",
     enteringStatus: "architecting",
     exitingStatus: "architected",
   },
   {
     id: "executing",
-    agentId: "executor",
+    roleId: "executor",
     enteringStatus: "executing",
     exitingStatus: "validating",
   },
@@ -26,19 +26,19 @@ export const defaultWorkflowStages: WorkflowStage[] = [
   },
   {
     id: "reviewing",
-    agentId: "reviewer",
+    roleId: "reviewer",
     enteringStatus: "reviewing",
     exitingStatus: "verifying",
   },
   {
     id: "fixing",
-    agentId: "fixer",
+    roleId: "fixer",
     enteringStatus: "fixing",
     exitingStatus: "validating",
   },
   {
     id: "verifying",
-    agentId: "verifier",
+    roleId: "verifier",
     enteringStatus: "verifying",
     exitingStatus: "merge_ready",
   },

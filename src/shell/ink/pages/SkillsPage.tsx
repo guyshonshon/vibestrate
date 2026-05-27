@@ -3,10 +3,10 @@ import { Box, Text, useInput } from "ink";
 import type { DiscoveredSkill } from "../../../skills/skill-discovery.js";
 import type { SkillAssignmentSummary } from "../../../skills/skill-assignment-service.js";
 import {
-  assignSkillToAgent,
-  unassignSkillFromAgent,
+  assignSkillToRole,
+  unassignSkillFromRole,
 } from "../../../skills/skill-assignment-service.js";
-import { builtinAgentIds } from "../../../agents/agent-schema.js";
+import { builtinRoleIds } from "../../../roles/role-schema.js";
 import { clip } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 
@@ -21,7 +21,7 @@ type Props = {
   active: boolean;
 };
 
-const AGENTS: readonly string[] = builtinAgentIds;
+const AGENTS: readonly string[] = builtinRoleIds;
 
 export function SkillsPage({
   projectRoot,
@@ -33,27 +33,27 @@ export function SkillsPage({
   setSelectedIndex,
   active,
 }: Props) {
-  const [agentCursor, setAgentCursor] = React.useState(0);
+  const [roleCursor, setRoleCursor] = React.useState(0);
   const idx = Math.max(0, Math.min(skills.length - 1, selectedIndex));
   const selected = skills[idx] ?? null;
-  const agentIdx = Math.max(0, Math.min(AGENTS.length - 1, agentCursor));
-  const focusedAgent = AGENTS[agentIdx]!;
+  const roleIdx = Math.max(0, Math.min(AGENTS.length - 1, roleCursor));
+  const focusedRole = AGENTS[roleIdx]!;
 
-  const isAssigned = (agentId: string, name: string): boolean => {
-    const row = assignments.find((a) => a.agentId === agentId);
+  const isAssigned = (roleId: string, name: string): boolean => {
+    const row = assignments.find((a) => a.roleId === roleId);
     return row ? row.skills.includes(name) : false;
   };
 
   const toggle = async (): Promise<void> => {
     if (!selected) return;
-    const on = isAssigned(focusedAgent, selected.name);
+    const on = isAssigned(focusedRole, selected.name);
     try {
       if (on) {
-        await unassignSkillFromAgent(projectRoot, focusedAgent, selected.name);
-        onToast("ok", `Unassigned ${selected.name} from ${focusedAgent}.`);
+        await unassignSkillFromRole(projectRoot, focusedRole, selected.name);
+        onToast("ok", `Unassigned ${selected.name} from ${focusedRole}.`);
       } else {
-        await assignSkillToAgent(projectRoot, focusedAgent, selected.name);
-        onToast("ok", `Assigned ${selected.name} to ${focusedAgent}.`);
+        await assignSkillToRole(projectRoot, focusedRole, selected.name);
+        onToast("ok", `Assigned ${selected.name} to ${focusedRole}.`);
       }
       await refresh();
     } catch (err) {
@@ -76,11 +76,11 @@ export function SkillsPage({
         return;
       }
       if (key.leftArrow || input === "h") {
-        setAgentCursor(Math.max(0, agentIdx - 1));
+        setRoleCursor(Math.max(0, roleIdx - 1));
         return;
       }
       if (key.rightArrow || input === "l") {
-        setAgentCursor(Math.min(AGENTS.length - 1, agentIdx + 1));
+        setRoleCursor(Math.min(AGENTS.length - 1, roleIdx + 1));
         return;
       }
       if (key.return || input === " ") {
@@ -163,7 +163,7 @@ export function SkillsPage({
                 <Text>
                   {AGENTS.map((id, i) => {
                     const on = isAssigned(id, selected.name);
-                    const focused = i === agentIdx;
+                    const focused = i === roleIdx;
                     return (
                       <React.Fragment key={id}>
                         {i > 0 ? <Text dimColor>   </Text> : null}

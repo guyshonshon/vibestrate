@@ -28,35 +28,35 @@ function guideTestConfig() {
       claude: { type: "cli", command: "__guide_test_claude_must_not_run__" },
       codex: { type: "cli", command: "__guide_test_codex_must_not_run__" },
     },
-    agents: {
+    roles: {
       planner: {
         provider: "claude",
-        prompt: ".amaco/agents/planner.md",
+        prompt: ".amaco/roles/planner.md",
         permissions: "readOnly",
       },
       architect: {
         provider: "claude",
-        prompt: ".amaco/agents/architect.md",
+        prompt: ".amaco/roles/architect.md",
         permissions: "readOnly",
       },
       executor: {
         provider: "claude",
-        prompt: ".amaco/agents/executor.md",
+        prompt: ".amaco/roles/executor.md",
         permissions: "codeWrite",
       },
       fixer: {
         provider: "claude",
-        prompt: ".amaco/agents/fixer.md",
+        prompt: ".amaco/roles/fixer.md",
         permissions: "codeWrite",
       },
       reviewer: {
         provider: "codex",
-        prompt: ".amaco/agents/reviewer.md",
+        prompt: ".amaco/roles/reviewer.md",
         permissions: "readOnly",
       },
       verifier: {
         provider: "codex",
-        prompt: ".amaco/agents/verifier.md",
+        prompt: ".amaco/roles/verifier.md",
         permissions: "readOnly",
       },
     },
@@ -107,7 +107,7 @@ describe("Guide Phase 0 contracts", () => {
     );
     expect(snapshot.steps.find((step) => step.id === "plan")).toEqual(
       expect.objectContaining({
-        agentId: "planner",
+        roleId: "planner",
         providerId: "claude",
         enabled: true,
       }),
@@ -116,7 +116,7 @@ describe("Guide Phase 0 contracts", () => {
       expect.objectContaining({ enabled: false }),
     );
     expect(snapshot.steps.find((step) => step.id === "validation")).toEqual(
-      expect.objectContaining({ agentId: null, providerId: null }),
+      expect.objectContaining({ roleId: null, providerId: null }),
     );
   });
 

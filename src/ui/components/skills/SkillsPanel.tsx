@@ -36,28 +36,28 @@ export function SkillsPanel() {
     void load();
   }, []);
 
-  function isAssigned(skillName: string, agentId: string): boolean {
+  function isAssigned(skillName: string, roleId: string): boolean {
     return (
-      assignments.find((a) => a.agentId === agentId)?.skills.includes(skillName) ??
+      assignments.find((a) => a.roleId === roleId)?.skills.includes(skillName) ??
       false
     );
   }
 
-  async function toggle(skill: DiscoveredSkill, agentId: string) {
-    const key = `${skill.id}:${agentId}`;
+  async function toggle(skill: DiscoveredSkill, roleId: string) {
+    const key = `${skill.id}:${roleId}`;
     setBusy(key);
     setError(null);
     try {
-      if (isAssigned(skill.name, agentId)) {
+      if (isAssigned(skill.name, roleId)) {
         const r = await api.unassignSkill({
           skillId: skill.id,
-          agentId,
+          roleId,
         });
         setAssignments(r.assignments);
       } else {
         const r = await api.assignSkill({
           skillId: skill.id,
-          agentId,
+          roleId,
         });
         setAssignments(r.assignments);
       }
@@ -108,9 +108,9 @@ export function SkillsPanel() {
       </p>
       <ol className="space-y-2">
         {skills.map((s) => {
-          const assignedAgents = assignments
+          const assignedRoles = assignments
             .filter((a) => a.skills.includes(s.name))
-            .map((a) => a.agentId);
+            .map((a) => a.roleId);
           return (
             <li
               key={s.id}
@@ -133,8 +133,8 @@ export function SkillsPanel() {
                 ) : null}
                 <div className="mt-1 flex flex-wrap gap-1.5 text-[10.5px] text-amaco-fg-muted">
                   <span className="amaco-mono truncate">{s.filePath}</span>
-                  {assignedAgents.length > 0 ? (
-                    <span>· assigned to {assignedAgents.join(", ")}</span>
+                  {assignedRoles.length > 0 ? (
+                    <span>· assigned to {assignedRoles.join(", ")}</span>
                   ) : (
                     <span>· not assigned to any agent</span>
                   )}
@@ -158,13 +158,13 @@ export function SkillsPanel() {
               </button>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {DEFAULT_AGENTS.map((agentId) => {
-                  const on = isAssigned(s.name, agentId);
-                  const key = `${s.id}:${agentId}`;
+                {DEFAULT_AGENTS.map((roleId) => {
+                  const on = isAssigned(s.name, roleId);
+                  const key = `${s.id}:${roleId}`;
                   return (
                     <button
-                      key={agentId}
-                      onClick={() => toggle(s, agentId)}
+                      key={roleId}
+                      onClick={() => toggle(s, roleId)}
                       disabled={busy !== null}
                       className={`amaco-mono rounded border px-1.5 py-0.5 text-[11px] transition-colors ${
                         on
@@ -173,7 +173,7 @@ export function SkillsPanel() {
                       } ${busy === key ? "opacity-60" : ""}`}
                     >
                       {on ? "✓ " : ""}
-                      {agentId}
+                      {roleId}
                     </button>
                   );
                 })}
