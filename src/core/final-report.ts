@@ -256,7 +256,12 @@ ${state.finalDecision ?? "_(no review decision)_"}
 
 ## Verification
 
-${state.verification ?? "_(no verification)_"}
+${
+  state.verification ??
+  (state.readOnly
+    ? "_Skipped — read-only run (nothing was changed to verify)._"
+    : "_(no verification)_")
+}
 
 ## Summary
 

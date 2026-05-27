@@ -7,6 +7,8 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { Orchestrator, type ResumeStage } from "../src/core/orchestrator.js";
 import { resolveResumeFrom, RunLaunchError } from "../src/core/run-launcher.js";
+import { findFlowById } from "../src/flows/catalog/flow-discovery.js";
+import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
 import { ArtifactStore } from "../src/core/artifact-store.js";
 import { MetricsStore } from "../src/core/metrics-store.js";
 import { loadConfig } from "../src/project/config-loader.js";
@@ -147,6 +149,35 @@ describe("orchestrator rewind (resume the default flow from a stage)", () => {
     const roleIds = (metrics?.roles ?? []).map((a) => a.roleId);
     expect(roleIds).toContain("planner");
     expect(roleIds).toContain("architect");
+  }, 60_000);
+
+  it("resuming a flow that has no step at the requested stage fails clearly", async () => {
+    const dir = await makeRepo();
+    const source = await runFlow(dir, "rewind source unmapped");
+    expect(source.state.status).toBe("merge_ready");
+
+    // quality-arbitration declares no `stage` metadata, so no step maps to
+    // "architecting" — resume must fail with a clear message, not silently.
+    const loaded = await loadConfig(dir);
+    const qa = await findFlowById(dir, "quality-arbitration");
+    const snapshot = resolveFlow({
+      flow: qa!.definition,
+      source: qa!.source,
+      config: loaded.config,
+      task: "rewind unmapped",
+    });
+    await expect(
+      new Orchestrator({
+        projectRoot: dir,
+        config: loaded.config,
+        rules: loaded.rules,
+        task: "rewind unmapped",
+        isGitRepo: true,
+        onProgress: () => {},
+        flow: snapshot,
+        resumeFrom: { sourceRunId: source.runId, fromStage: "architecting" },
+      }).run(),
+    ).rejects.toThrow(/no step at that stage/i);
   }, 60_000);
 
   it("resolveResumeFrom validates the source run exists", async () => {
