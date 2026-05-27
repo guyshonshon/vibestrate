@@ -10,7 +10,8 @@
 
 <br />
 
-One chat with one model is great for sketches. Real work — refactors, migrations, whole features — wants a *supervised* crew.
+One chat with one model is great for sketches.
+Real work - refactors, migrations, whole features - wants a *supervised* crew.
 Amaco runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.**
 
 <br />
@@ -50,19 +51,19 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 
 ## ◆ Why it exists
 
-Vibe-coding with a single chat is a high-wire act. It flies for a sketch — then you hit real work and quietly become the babysitter: re-pasting context the model already forgot, catching the confident-but-wrong refactor *before* it lands, squinting at a diff you never watched get made, and losing count of how many tokens (and dollars) five "quick tries" just burned. One model, one point of view, no record, no brakes.
+Vibe-coding with a single chat is a high-wire act. It flies for a sketch - then you hit real work and quietly become the babysitter: re-pasting context the model already forgot, catching the confident-but-wrong refactor *before* it lands, squinting at a diff you never watched get made, and losing count of how many tokens (and dollars) five "quick tries" just burned. One model, one point of view, no record, no brakes.
 
-Amaco trades the high-wire for an assembly line you can see. Your task walks down a row of specialists — a **planner** sketches the change, an **architect** shapes it, an **executor** writes it in a throwaway git worktree, *your own tests* run as the referee, a **reviewer** (ideally a **different** model, so it doesn't share the executor's blind spots) tears into the diff, a **fixer** answers the findings, and a **verifier** signs off. You watch each handoff. You approve the moments that matter. Every prompt, diff, decision, and token is on the record — and nothing merges until you say so.
+Amaco trades the high-wire for an assembly line you can see. Your task walks down a row of specialists - a **planner** sketches the change, an **architect** shapes it, an **executor** writes it in a throwaway git worktree, *your own tests* run as the referee, a **reviewer** (ideally a **different** model, so it doesn't share the executor's blind spots) tears into the diff, a **fixer** answers the findings, and a **verifier** signs off. You watch each handoff. You approve the moments that matter. Every prompt, diff, decision, and token is on the record - and nothing merges until you say so.
 
-That's the whole trick: the work that used to live in your head — the plan, the second opinion, the "did it *actually* pass?", the running cost — becomes visible, ordered, and replayable. Same models you already pay for. Your machine. Your call at every gate.
+That's the whole trick: the work that used to live in your head - the plan, the second opinion, the "did it *actually* pass?", the running cost - becomes visible, ordered, and replayable. Same models you already pay for. Your machine. Your call at every gate.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
 ## ◆ What it is
 
-Amaco is a local-first orchestrator. You give it a task in plain language; it spins up a git worktree, walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges — you stay in the chair.
+Amaco is a local-first orchestrator. You give it a task in plain language; it spins up a git worktree, walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges - you stay in the chair.
 
-The agents are the CLIs you already have — **Claude Code, Codex, Aider, Ollama, OpenCode** — mix and match per role. Plan with one model, implement with another, review with a third.
+The agents are the CLIs you already have - **Claude Code, Codex, Aider, Ollama, OpenCode** - mix and match per role. Plan with one model, implement with another, review with a third.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -92,7 +93,7 @@ This is the part that matters, so it gets no asterisks:
 
 | | |
 |---|---|
-| 🔑 **No APIs of ours** | Amaco never holds an API key. It spawns the vendor CLIs you already logged into and reads their output — your prompts and code go straight to those vendors. Amaco is not in the middle. |
+| 🔑 **No APIs of ours** | Amaco never holds an API key. It spawns the vendor CLIs you already logged into and reads their output - your prompts and code go straight to those vendors. Amaco is not in the middle. |
 | 💸 **No payments, ever** | Amaco is free. You pay only for the models you choose to run, billed by the vendor, exactly as before. |
 | 📡 **No cloud, no telemetry** | Everything runs on your laptop. Nothing phones home. The only network calls are the ones your provider CLIs already make. |
 | 🔒 **Your code stays put** | Edits happen in an isolated worktree under your control. No auto-push, no auto-merge. |
@@ -108,9 +109,9 @@ plan → architecture → implement → validate → review → fix → verify
                                       └──── (loops) ─────┘
 ```
 
-Each phase is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own phase — it runs the commands in `.amaco/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." Approval gates can pause a run for a human at any phase.
+Each phase is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own phase - it runs the commands in `.amaco/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." Approval gates can pause a run for a human at any phase.
 
-Higher-stakes work can run a **Guide** instead — a recipe where multiple models arbitrate each other:
+Higher-stakes work can run a **Guide** instead - a recipe where multiple models arbitrate each other:
 
 ```bash
 amaco run "Refactor provider permissions" --guide quality-arbitration \
@@ -123,7 +124,7 @@ amaco run "Refactor provider permissions" --guide quality-arbitration \
 
 ## ◆ Documentation
 
-Everything lives at **[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs)** — getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Guide (generated straight from the code, so it never drifts).
+Everything lives at **[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs)** - getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Guide (generated straight from the code, so it never drifts).
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -140,11 +141,11 @@ Everything lives at **[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs)
 
 ## ◆ Contributing
 
-Contributions are genuinely welcome — this is a learning project, and a better one with you in it.
+Contributions are genuinely welcome - this is a learning project, and a better one with you in it.
 
-- 🐛 **Found a bug?** [Open an issue](https://github.com/guyshonshon/amaco/issues/new/choose) — what you ran, what happened, and the `runId` if you have one.
-- 🔐 **Security concern?** Please **don't** open a public issue — see [SECURITY.md](./SECURITY.md) for private disclosure.
-- ✨ **Want to build something?** Features come in as **pull requests** — that's the path we encourage most. A quick issue first to sketch the idea is welcome but optional. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+- 🐛 **Found a bug?** [Open an issue](https://github.com/guyshonshon/amaco/issues/new/choose) - what you ran, what happened, and the `runId` if you have one.
+- 🔐 **Security concern?** Please **don't** open a public issue - see [SECURITY.md](./SECURITY.md) for private disclosure.
+- ✨ **Want to build something?** Features come in as **pull requests** - that's the path we encourage most. A quick issue first to sketch the idea is welcome but optional. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Run the checks before you push:
 
@@ -156,7 +157,7 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 ## ◆ Versioning
 
-Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) — the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `amaco --version` and the generated docs reference.
+Amaco follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) - the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `amaco --version` and the generated docs reference.
 
 ## ◆ License
 
@@ -169,7 +170,7 @@ Distributed under the [MIT License](./LICENSE). Use it, fork it, ship it.
 Built with care by **[Guy Shonshon](https://shonshon.com)**
 
 <a href="https://shonshon.com">
-  <img src="./.github/assets/shonshon-on-dark.png#gh-dark-mode-only" alt="Shonshon — Evolving Technologies" height="22" />
+  <img src="./.github/assets/shonshon-on-dark.png#gh-dark-mode-only" alt="Shonshon - Evolving Technologies" height="22" />
 </a>
 
 </div>
