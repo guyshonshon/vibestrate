@@ -31,6 +31,31 @@ function phaseIndex(status: RunStatus): number {
   return 0;
 }
 
+/**
+ * For a Guide run, the legacy plan→verify rail is meaningless (and contradicts
+ * the crew strip — e.g. a "challenger" step while the rail says "Review"). Use
+ * the Guide's actual ordered steps so the rail matches what's running.
+ */
+function railFor(run: RunState): { steps: string[]; active: number } {
+  const guide = run.guide;
+  if (!guide || guide.steps.length === 0) {
+    return { steps: PHASES.map((p) => p.label), active: phaseIndex(run.status) };
+  }
+  const steps = guide.steps.map((s) => s.label);
+  let active = guide.steps.findIndex((s) => s.id === guide.currentStepId);
+  if (active < 0) active = guide.steps.findIndex((s) => s.status === "running");
+  if (active < 0) {
+    // No active step (between turns / done): point at the last finished one.
+    for (let i = guide.steps.length - 1; i >= 0; i -= 1) {
+      if (guide.steps[i]!.status !== "pending") {
+        active = i;
+        break;
+      }
+    }
+  }
+  return { steps, active: active < 0 ? 0 : active };
+}
+
 export function RunStatusSection({
   run,
   diff,
@@ -75,13 +100,29 @@ export function RunStatusSection({
     return () => window.clearInterval(id);
   }, [paused, isApproval, run.startedAt]);
 
-  const idx = phaseIndex(run.status);
+  const rail = railFor(run);
+  const running = ![
+    "merge_ready",
+    "failed",
+    "aborted",
+    "waiting_for_approval",
+  ].includes(run.status);
+  const currentStep =
+    run.guide?.steps.find((s) => s.id === run.guide?.currentStepId) ?? null;
+  const nowLabel = currentStep?.label ?? rail.steps[rail.active] ?? null;
+  const nowAgent =
+    currentStep?.providerId ??
+    run.resolvedProviderId ??
+    run.providerOverride ??
+    null;
   return (
     <section className="bevel-violet p-[1px] fade-up" data-screen-label="01 Status">
       <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl">
         {/* Eyebrow + controls */}
         <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-4 flex-wrap">
-          <span className="eyebrow">1 · Status · {run.status}</span>
+          <span className="eyebrow">
+            {run.guide ? `${run.guide.label} · ${run.status}` : `Status · ${run.status}`}
+          </span>
           <div className="flex items-center gap-2">
             {isApproval ? (
               <>
@@ -130,10 +171,20 @@ export function RunStatusSection({
           <h1 className="text-[22px] font-medium tracking-tight text-fog-100 leading-snug">
             {run.task}
           </h1>
+          {running && nowLabel ? (
+            <div className="mt-2 flex items-center gap-2 text-[12.5px]">
+              <span className="pulse-dot" />
+              <span className="text-fog-400">Now</span>
+              <span className="text-fog-100 font-medium">{nowLabel}</span>
+              {nowAgent ? (
+                <span className="mono text-[11.5px] text-violet-soft">{nowAgent}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="px-5 pb-3">
-          <PhaseRail steps={PHASES.map((p) => p.label)} active={idx} />
+          <PhaseRail steps={rail.steps} active={rail.active} />
         </div>
 
         <div className="px-5 py-3 border-t border-white/[0.06] flex items-center flex-wrap gap-x-4 gap-y-2 text-[12px] text-fog-300">
