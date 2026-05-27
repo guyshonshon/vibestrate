@@ -219,18 +219,19 @@ export function AgentsPage() {
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Agents · roles &amp; the engines they run on</div>
+        <div className="eyebrow mb-1.5">Agents · roles &amp; the providers they run on</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[820px]">
           {roles.length || "—"}{" "}
           <em className="text-display italic text-violet-soft">roles</em>, on{" "}
-          {overview ? overview.providers.length : "—"} engines, one orchestrator.
+          {overview ? overview.providers.length : "—"} providers, one
+          orchestrator.
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[660px]">
           An <strong className="text-fog-100">agent</strong> is a role in the
           workflow (planner, reviewer…). A{" "}
-          <strong className="text-fog-100">provider</strong> is the CLI engine a
-          role runs on — one engine can power many roles, and you can give each
-          role a different one. Below: who plays each role, then the engines.
+          <strong className="text-fog-100">provider</strong> is the CLI it runs
+          on — one provider can power many roles, and you can give each role a
+          different one. Below: who plays each role, then the providers.
         </p>
       </section>
 
@@ -248,8 +249,7 @@ export function AgentsPage() {
         <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-2.5">
           <SectionEyebrow className="mb-1 px-1">
             <span>
-              Engines · {overview?.providers.length ?? 0}{" "}
-              <span className="text-fog-500">(providers)</span>
+              Providers · {overview?.providers.length ?? 0}
             </span>
             <span className="text-fog-400">↑ select to inspect</span>
           </SectionEyebrow>
@@ -754,9 +754,9 @@ const ROLE_BLURB: Record<string, string> = {
 };
 
 /**
- * The agent *roles* and the engine each runs on — the missing piece that makes
- * "agents vs providers" legible: an agent is a role; a provider is the CLI it
- * runs on; one provider can power many roles.
+ * The agent *roles* and the provider each runs on — the missing piece that
+ * makes "agents vs providers" legible: an agent is a role; a provider is the
+ * CLI it runs on; one provider can power many roles.
  */
 function RolesPanel({
   roles,
@@ -775,15 +775,15 @@ function RolesPanel({
           onClick={() => navigate({ kind: "providers" })}
           className="text-fog-400 hover:text-fog-200"
         >
-          manage engines →
+          manage providers →
         </button>
       </SectionEyebrow>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {roles.map((r) => {
-          const engine = overview?.providers.find(
+          const prov = overview?.providers.find(
             (p) => p.providerId === r.provider,
           );
-          const online = engine ? engine.available : r.providerConfigured;
+          const online = prov ? prov.available : r.providerConfigured;
           return (
             <div
               key={r.id}

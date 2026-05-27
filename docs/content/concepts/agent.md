@@ -9,7 +9,7 @@ slug: concepts/agent
 
 **Simple explanation.** An agent is a worker with a job and a set of rules. You assign each role to a provider — Claude Code, Codex, Ollama — and the agent stays in its lane.
 
-> **Agent vs [provider](/docs/concepts/provider):** an *agent* is a **role** (planner, reviewer…); a *provider* is the **CLI engine** it runs on. One provider can power many roles, and you can give each role a different one. In the dashboard, the **Agents** page shows the roles and the engine each runs on; the **Providers** page is where you attach and test the engines.
+> **Agent vs [provider](/docs/concepts/provider):** an *agent* is a **role** (planner, reviewer…); a *provider* is the **CLI** it runs on. One provider can power many roles, and you can give each role a different one. In the dashboard, the **Agents** page shows the roles and the provider each runs on; the **Providers** page is where you attach and test those providers.
 
 ## Why it matters
 

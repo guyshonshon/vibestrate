@@ -9,7 +9,7 @@ slug: concepts/provider
 
 **Simple explanation.** A provider is the actual model you're using, wrapped so Amaco can talk to it. Claude Code, Codex, Ollama — Amaco doesn't care which, as long as it's installed locally.
 
-> **Provider vs [agent](/docs/concepts/agent):** a *provider* is the **engine** (a CLI); an *agent* is a **role** that runs on one. The same provider can back several roles, so attaching one engine can light up the whole crew.
+> **Provider vs [agent](/docs/concepts/agent):** a *provider* is a **CLI** (the thing that supplies the model); an *agent* is a **role** that runs on one. The same provider can back several roles, so attaching one provider can light up the whole crew.
 
 ## Why it matters
 
