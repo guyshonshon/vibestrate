@@ -59,10 +59,19 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 
 ## ◆ Quick start
 
-Install from npm (the bin is `amaco`), then point it at any git repo:
+Install the `amaco` CLI — one-liner or npm (both need Node ≥ 18.17):
 
 ```bash
-npm install -g amaco-os        # macOS / Linux · requires Node ≥ 18.17
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/amaco/main/install.sh | sh
+
+# …or with npm directly
+npm install -g amaco-os
+```
+
+Then point it at any git repo:
+
+```bash
 cd your-project
 amaco init                     # scaffold .amaco/ - touches nothing else
 amaco doctor --fix             # detect providers + project, wire it up

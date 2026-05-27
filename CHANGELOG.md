@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **`curl | sh` installer** (`install.sh`, served from raw GitHub) — wraps
+  the global npm/pnpm install of `amaco-os` with a Node-version check and an
+  `AMACO_VERSION` pin. Surfaced as the first install option in the README Quick
+  start and the install docs.
+- Fix: install docs showed `pnpm add -g amaco` (wrong package) — corrected to
+  `amaco-os`.
 - Docs: README now leads with a **Quick start** (install + run) right after the
   table of contents, so installation is above the fold; "Ready in one command"
   keeps the deeper `doctor` walkthrough (install block de-duplicated).
