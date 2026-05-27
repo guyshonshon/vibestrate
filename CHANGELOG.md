@@ -18,6 +18,10 @@ version. Update it in the same commit as the change it describes.
   ship — force the built-in `read_only`. Added the run-phase transitions the
   unified flow runner needs (`reviewing → merge_ready`, `* → architecting`,
   `architecting → executing`).
+- Fix: read-only runs no longer report a misleading `NEEDS_HUMAN` verification —
+  verification is `null` (the report shows "Skipped — read-only run"). The CLI
+  rejects `--resume-stage reviewing|verifying` with a clear "not supported yet"
+  message.
 - Docs: `docs/design/runner-unification.md` rewritten to the shipped one-runner
   design; `concepts/workflow.md` + `concepts/flow.md` reframed (no "two runners").
 - Docs: add `docs/design/runner-unification.md` — full context, current flow,

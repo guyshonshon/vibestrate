@@ -1704,6 +1704,10 @@ export class Orchestrator {
       }
       const validationPassed =
         lastValidation === null || lastValidation.summary.failed === 0;
+      // Read-only runs skip verification entirely, so there's no decision to
+      // report — null keeps the report/events honest ("skipped") rather than
+      // leaking the NEEDS_HUMAN default as if a verifier had run.
+      const finalVerification = this.readOnly ? null : verificationDecision;
       const mergeReady = this.readOnly
         ? reviewDecision === "APPROVED"
         : reviewDecision === "APPROVED" &&
@@ -1712,7 +1716,7 @@ export class Orchestrator {
       state = {
         ...state,
         finalDecision: reviewDecision,
-        verification: verificationDecision,
+        verification: finalVerification,
       };
       await input.stateStore.write(state);
       state = applyTransition(state, mergeReady ? "merge_ready" : "blocked");
@@ -1723,7 +1727,7 @@ export class Orchestrator {
         data: {
           flowId: input.snapshot.flowId,
           decision: reviewDecision,
-          verification: verificationDecision,
+          verification: finalVerification,
           validationPassed,
         },
       });
@@ -1733,7 +1737,7 @@ export class Orchestrator {
           taskId: this.taskId,
           status: state.status as "merge_ready" | "blocked",
           decision: reviewDecision,
-          verification: verificationDecision,
+          verification: finalVerification,
         }),
       );
     } catch (err) {

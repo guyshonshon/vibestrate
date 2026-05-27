@@ -19,9 +19,11 @@ Flow → Steps → Role (seat) → Provider
 - `amaco run --flow default` runs the same flow explicitly.
 - `amaco run --flow <custom>` runs any other flow through the same runner.
 
-The old hardcoded `Orchestrator.run()` plan→build→verify sequence is **deleted**.
-`run()` is now a thin entry point: preflight + worktree + state setup, then it
-resolves the flow (explicit or `default`) and calls `runFlowSequence`.
+The hardcoded `Orchestrator.run()` **runner body** (the plan→build→verify
+sequence) was deleted; `run()` remains only as the public entry point that
+delegates to the unified flow runner — preflight + worktree + state setup, then
+it resolves the flow (explicit or `default`) and calls `runFlowSequence`. There
+is no second execution engine.
 
 ## How it works
 
@@ -118,6 +120,21 @@ flow-adaptive-loop,default-flow}.test.ts` cover: plain run resolves `default`;
 validation-failure verdicts; read-only (approved, changes, no infinite loop);
 policy + pause gates; spend cap; resume from planning/architecting/executing;
 report loop count; skipped-on-resume steps in the ledger.
+
+## Compatibility
+
+Pre-production: there is **no back-compat for pre-unification runs**. The runner
+reads flow-shaped artifacts (`flows/<step>/output.md`); the old `02-plan.md` /
+`04-architecture.md` scheme is not read anywhere, and `resolveResumeFrom` only
+validates that a source run exists. Old runs are treated as never having existed.
+
+## Resume support (current limits)
+
+Resume targets the stages with a clean seed boundary: **`planning`,
+`architecting`, `executing`**. `reviewing` / `verifying` are intentionally **not**
+resumable — they need the executor's code present, and Amaco doesn't snapshot the
+per-step worktree yet. The CLI and `--resume-stage` schema reject other values
+with a clear message.
 
 ## Follow-ups (out of scope, not blocking)
 

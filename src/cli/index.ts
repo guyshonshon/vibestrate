@@ -222,7 +222,10 @@ export function buildAmacoProgram(): Command {
             opts.resumeStage !== "executing"
           ) {
             console.error(
-              `--resume-stage must be one of planning|architecting|executing (got "${opts.resumeStage}").`,
+              `--resume-stage must be one of planning|architecting|executing (got "${opts.resumeStage}").` +
+                (opts.resumeStage === "reviewing" || opts.resumeStage === "verifying"
+                  ? " Resuming at reviewing/verifying isn't supported yet — it needs the executor's code, which Amaco doesn't snapshot per step."
+                  : ""),
             );
             process.exit(2);
           }

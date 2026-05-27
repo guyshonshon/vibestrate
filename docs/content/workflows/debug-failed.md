@@ -62,11 +62,14 @@ amaco run "<same task>" --resume-from <oldRunId> --resume-stage executing
 
 # Reuse just the plan, redo from architecture onward:
 amaco run "<same task>" --resume-from <oldRunId> --resume-stage architecting
+
+# Re-run everything from scratch (seeds nothing):
+amaco run "<same task>" --resume-from <oldRunId> --resume-stage planning
 ```
 
-`--resume-stage` defaults to `executing`. The forked run gets its own runId and a fresh worktree off your main branch — correct, because both stages regenerate the downstream code — and the original run is left untouched (its `state.json` records the lineage under `resumedFrom`). In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices; options are greyed out when the source run didn't capture the artifact they'd reuse.
+`--resume-stage` defaults to `executing`, and accepts `planning`, `architecting`, or `executing`. The flow runner finds the first step at that stage, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch — correct, because these stages regenerate the downstream code — and the original run is untouched (its `state.json` records the lineage under `resumedFrom`). Works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
-Resuming at *review* or *verify* (which need the executor's code already present) isn't supported yet — rewind covers the stages that rebuild the code.
+Resuming at *reviewing* or *verifying* isn't supported: those stages need the executor's code already present, and Amaco doesn't snapshot the per-step worktree yet. The CLI rejects those stages with a clear message.
 
 ## When to file a bug
 
