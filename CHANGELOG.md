@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: design doc for **provider structured output** (`docs/design/provider-
+  structured-output.md`) — a per-provider output-adapter architecture for live
+  streaming + real token/cost metrics that keeps supervision uniform (control
+  always reads a normalized response text; lossless + fail-loud, no silent
+  fallbacks; approvals stay between-turn).
 - Fix: guide runs showed a contradictory phase (rail said "Review" while the
   crew showed a running "challenger"). The status rail now follows the guide's
   actual steps, "challenger"/"critic" slots classify as Reviewer (not
