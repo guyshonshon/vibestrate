@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **Crew page reframed as the default flow.** The generic "Roles" grid
+  is now a compact **Default flow** panel — the roles are listed as the flow's
+  ordered, role-bearing steps (numbered Plan → Architect → Implement → Review →
+  Fix → Verify, sourced from the real flow definition), each a one-line row with
+  an inline provider selector, status, permission, and skill count. The verbose
+  hero is trimmed.
+
 - Fix: a single invalid project flow (e.g. a stale fork with a schema error) no
   longer hides the entire Flows catalog. Discovery now loads all valid flows —
   builtins are always present — and reports the broken ones separately:
