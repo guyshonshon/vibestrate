@@ -77,7 +77,7 @@ function avatarLetter(profile: ProviderProfile): string {
   return profile.label.charAt(0).toUpperCase();
 }
 
-export function AgentsPage() {
+export function CrewPage() {
   const [overview, setOverview] = useState<ProvidersOverview | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);

@@ -202,7 +202,7 @@ describe("round-trip", () => {
     const kinds: Route[] = [
       { kind: "guides" },
       { kind: "metrics" },
-      { kind: "agents" },
+      { kind: "crew" },
       { kind: "providers" },
     ];
     for (const r of kinds) {

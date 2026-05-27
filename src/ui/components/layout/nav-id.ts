@@ -17,5 +17,4 @@ export type NavId =
   | "flow"
   | "guides"
   | "metrics"
-  | "agents"
-  | "providers";
+  | "crew";

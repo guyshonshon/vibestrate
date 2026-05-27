@@ -12,7 +12,6 @@ import {
   Library,
   ListChecks,
   Menu,
-  Plug,
   Search,
   Settings as SettingsIcon,
 } from "lucide-react";
@@ -31,8 +30,7 @@ type Props = {
   onShowFlows: () => void;
   onShowGuides: () => void;
   onShowMetrics: () => void;
-  onShowAgents: () => void;
-  onShowProviders: () => void;
+  onShowCrew: () => void;
   onShowBoard: () => void;
   onShowRunsList: () => void;
   onShowQueue: () => void;
@@ -76,8 +74,7 @@ export function TopBar({
   onShowFlows,
   onShowGuides,
   onShowMetrics,
-  onShowAgents,
-  onShowProviders,
+  onShowCrew,
   onShowBoard,
   onShowRunsList,
   onShowQueue,
@@ -156,18 +153,11 @@ export function TopBar({
       onClick: onShowGuides,
     },
     {
-      id: "agents",
-      label: "Agents",
-      active: currentNav === "agents",
+      id: "crew",
+      label: "Crew",
+      active: currentNav === "crew",
       icon: Cpu,
-      onClick: onShowAgents,
-    },
-    {
-      id: "providers",
-      label: "Providers",
-      active: currentNav === "providers",
-      icon: Plug,
-      onClick: onShowProviders,
+      onClick: onShowCrew,
     },
     {
       id: "metrics",
