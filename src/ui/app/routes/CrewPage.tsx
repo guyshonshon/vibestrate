@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowDown,
-  ArrowUp,
   ChevronDown,
   ChevronRight,
   Cpu,
+  GripVertical,
   Play,
   Plus,
   Settings as SettingsIcon,
@@ -181,25 +180,20 @@ export function CrewPage() {
     return out;
   }, [roles, flowOrder, selectedFlowId]);
 
-  // Reorder a role's step in the flow: swap it with the adjacent role-bearing
-  // step in the full step list, then persist via the flow patch (auto-forks a
-  // builtin). Non-role steps keep their place; the server re-validates.
-  async function reorderRole(stepId: string, dir: -1 | 1): Promise<void> {
-    if (!selectedFlow) return;
-    const steps = selectedFlow.definition.steps;
-    const roleStepIdxs = steps
-      .map((s, i) => (s.roleId ? i : -1))
-      .filter((i) => i >= 0);
-    const pos = roleStepIdxs.findIndex((i) => steps[i]!.id === stepId);
-    const swapPos = pos + dir;
-    if (pos < 0 || swapPos < 0 || swapPos >= roleStepIdxs.length) return;
-    const a = roleStepIdxs[pos]!;
-    const b = roleStepIdxs[swapPos]!;
-    const next = steps.map((s) => ({ ...s }));
-    [next[a], next[b]] = [next[b]!, next[a]!];
+  // Drag-to-reorder: move the dragged step to the dropped-on step's position in
+  // the full step list, then persist via the flow patch (auto-forks a builtin).
+  // The server re-validates (e.g. a loop's refs must stay intact).
+  async function moveStep(fromStepId: string, toStepId: string): Promise<void> {
+    if (!selectedFlow || fromStepId === toStepId) return;
+    const steps = selectedFlow.definition.steps.map((s) => ({ ...s }));
+    const fromIdx = steps.findIndex((s) => s.id === fromStepId);
+    const toIdx = steps.findIndex((s) => s.id === toStepId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = steps.splice(fromIdx, 1);
+    steps.splice(toIdx, 0, moved!);
     try {
       await api.patchFlow(selectedFlowId, {
-        replaceSteps: next as Parameters<typeof api.patchFlow>[1]["replaceSteps"],
+        replaceSteps: steps as Parameters<typeof api.patchFlow>[1]["replaceSteps"],
       });
       const r = await api.listFlows();
       setFlows(r.flows);
@@ -372,7 +366,7 @@ export function CrewPage() {
             overview={overview}
             availableSkills={availableSkills}
             onToggleSkill={toggleSkill}
-            onReorder={reorderRole}
+            onMove={moveStep}
             onSetProvider={async (roleId, providerId) => {
               try {
                 await api.setRoleProvider(roleId, providerId);
@@ -404,24 +398,22 @@ export function CrewPage() {
                   onSelect={() => setSelectedId(p.providerId)}
                 />
               ))}
-            {overview && overview.providers.filter((p) => p.configured).length === 0 ? (
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
-                No providers configured yet —{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate({ kind: "providers" })}
-                  className="text-violet-soft hover:underline"
-                >
-                  set one up in Providers
-                </button>
-                .
-              </div>
-            ) : null}
-            {!overview ? (
+            {/* Always offer "add another" right beneath the roster — a dashed
+                card that drops down the not-yet-configured CLIs to set up. */}
+            {overview ? (
+              <AddProviderCard
+                unconfigured={overview.providers.filter((p) => !p.configured)}
+                onConfigure={(id) => {
+                  setSelectedId(id);
+                  setConfigureFor(id);
+                }}
+                onManage={() => navigate({ kind: "providers" })}
+              />
+            ) : (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
                 Loading providers…
               </div>
-            ) : null}
+            )}
           </div>
         </div>
 
@@ -918,6 +910,15 @@ const ROLE_BLURB: Record<string, string> = {
 const ROLE_SELECT_CLS =
   "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
 
+type RowDrag = {
+  draggingId: string | null;
+  overId: string | null;
+  onStart: (stepId: string) => void;
+  onOver: (stepId: string) => void;
+  onDrop: (stepId: string) => void;
+  onEnd: () => void;
+};
+
 function RolesPanel({
   flows,
   selectedFlowId,
@@ -926,7 +927,7 @@ function RolesPanel({
   overview,
   availableSkills,
   onToggleSkill,
-  onReorder,
+  onMove,
   onSetProvider,
 }: {
   flows: DiscoveredFlow[];
@@ -940,18 +941,28 @@ function RolesPanel({
     skill: DiscoveredSkill,
     attached: boolean,
   ) => void | Promise<void>;
-  onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
+  onMove: (fromStepId: string, toStepId: string) => void | Promise<void>;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const endDrag = () => {
+    setDragId(null);
+    setOverId(null);
+  };
+  const drag: RowDrag = {
+    draggingId: dragId,
+    overId,
+    onStart: setDragId,
+    onOver: setOverId,
+    onDrop: (stepId) => {
+      if (dragId && dragId !== stepId) void onMove(dragId, stepId);
+      endDrag();
+    },
+    onEnd: endDrag,
+  };
   if (orderedRoles.length === 0) return null;
   const configured = (overview?.providers ?? []).filter((p) => p.configured);
-  // Reorder bounds: only steps backed by a flow step can move, and only within
-  // that set (config-only roles appended for the default flow can't reorder).
-  const reorderableIdx = orderedRoles
-    .map((e, i) => (e.stepId ? i : -1))
-    .filter((i) => i >= 0);
-  const firstReorderable = reorderableIdx[0] ?? -1;
-  const lastReorderable = reorderableIdx[reorderableIdx.length - 1] ?? -1;
   return (
     <section data-screen-label="Roles">
       <div className="overflow-hidden rounded-xl border border-violet-soft/25 surface-ink-100-55">
@@ -986,8 +997,9 @@ function RolesPanel({
             </button>
           </div>
           <p className="mt-1 text-[11px] text-fog-500">
-            Reorder with ↑ ↓ · set each role's provider · edit its context. Changes
-            save to this flow (a built-in becomes your project copy).
+            Drag <GripVertical size={11} className="inline -mt-0.5 text-fog-400" /> to
+            reorder · set each role's provider · edit its context. Changes save to
+            this flow (a built-in becomes your project copy).
           </p>
         </div>
 
@@ -999,11 +1011,9 @@ function RolesPanel({
               entry={entry}
               configured={configured}
               overview={overview}
-              canUp={entry.stepId !== null && i > firstReorderable}
-              canDown={entry.stepId !== null && i < lastReorderable}
+              drag={drag}
               availableSkills={availableSkills}
               onToggleSkill={onToggleSkill}
-              onReorder={onReorder}
               onSetProvider={onSetProvider}
             />
           ))}
@@ -1018,29 +1028,29 @@ function RoleRow({
   entry,
   configured,
   overview,
-  canUp,
-  canDown,
+  drag,
   availableSkills,
   onToggleSkill,
-  onReorder,
   onSetProvider,
 }: {
   index: number;
   entry: { role: Role; stepLabel: string | null; stepId: string | null };
   configured: ProviderProfile[];
   overview: ProvidersOverview | null;
-  canUp: boolean;
-  canDown: boolean;
+  drag: RowDrag;
   availableSkills: DiscoveredSkill[];
   onToggleSkill: (
     roleId: string,
     skill: DiscoveredSkill,
     attached: boolean,
   ) => void | Promise<void>;
-  onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
   const r = entry.role;
+  const stepId = entry.stepId;
+  const draggable = stepId !== null;
+  const isDragging = draggable && drag.draggingId === stepId;
+  const isOver = draggable && drag.overId === stepId && drag.draggingId !== stepId;
   const prov = overview?.providers.find((p) => p.providerId === r.provider);
   const online = prov ? prov.available : r.providerConfigured;
   const isWrite = r.permissions.includes("write");
@@ -1078,8 +1088,45 @@ function RoleRow({
   }
 
   return (
-    <li className="px-3.5 py-2.5">
-      <div className="flex items-center gap-2.5">
+    <li
+      onDragOver={
+        draggable
+          ? (e) => {
+              if (drag.draggingId && drag.draggingId !== stepId) {
+                e.preventDefault();
+                drag.onOver(stepId);
+              }
+            }
+          : undefined
+      }
+      onDrop={
+        draggable
+          ? (e) => {
+              e.preventDefault();
+              drag.onDrop(stepId);
+            }
+          : undefined
+      }
+      className={cn(
+        "px-3.5 py-2.5 transition",
+        isOver && "bg-violet-soft/[0.08] ring-1 ring-inset ring-violet-soft/35",
+        isDragging && "opacity-40",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {draggable ? (
+          <span
+            draggable
+            onDragStart={() => drag.onStart(stepId)}
+            onDragEnd={drag.onEnd}
+            title="Drag to reorder"
+            className="-ml-1 shrink-0 cursor-grab text-fog-500 transition hover:text-fog-200 active:cursor-grabbing"
+          >
+            <GripVertical size={15} strokeWidth={1.6} />
+          </span>
+        ) : (
+          <span className="-ml-1 w-[15px] shrink-0" />
+        )}
         <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full border border-violet-soft/30 bg-violet-soft/10 text-[10px] text-violet-soft">
           {index + 1}
         </span>
@@ -1102,24 +1149,6 @@ function RoleRow({
           <span className="mono text-[10px] text-violet-soft/80">{r.id}</span>
         </button>
         <div className="ml-auto flex items-center gap-1">
-          {entry.stepId ? (
-            <>
-              <IconBtn
-                disabled={!canUp}
-                title="Move earlier"
-                onClick={() => entry.stepId && void onReorder(entry.stepId, -1)}
-              >
-                <ArrowUp size={12} strokeWidth={1.8} />
-              </IconBtn>
-              <IconBtn
-                disabled={!canDown}
-                title="Move later"
-                onClick={() => entry.stepId && void onReorder(entry.stepId, 1)}
-              >
-                <ArrowDown size={12} strokeWidth={1.8} />
-              </IconBtn>
-            </>
-          ) : null}
           <Chip tone={isWrite ? "amber" : "neutral"}>{r.permissions}</Chip>
         </div>
       </div>
@@ -1221,35 +1250,6 @@ function RoleRow({
         </div>
       ) : null}
     </li>
-  );
-}
-
-function IconBtn({
-  children,
-  disabled,
-  title,
-  onClick,
-}: {
-  children: React.ReactNode;
-  disabled?: boolean;
-  title: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={title}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "grid h-6 w-6 place-items-center rounded-md border border-white/10 text-fog-300 transition",
-        disabled
-          ? "opacity-30 cursor-not-allowed"
-          : "hover:border-violet-soft/40 hover:text-fog-100",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -1368,6 +1368,89 @@ function KpiTile({
 }
 
 // ── Roster ────────────────────────────────────────────────────────────────
+
+// The dashed "add another" card beneath the configured roster. Clicking it
+// drops down the CLIs that aren't set up yet; picking one opens the configure
+// modal right here. If everything's configured it just routes to Providers.
+function AddProviderCard({
+  unconfigured,
+  onConfigure,
+  onManage,
+}: {
+  unconfigured: ProviderProfile[];
+  onConfigure: (providerId: string) => void;
+  onManage: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const has = unconfigured.length > 0;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => (has ? setOpen((v) => !v) : onManage())}
+        className="group flex w-full items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.012] px-4 py-3.5 text-left transition hover:border-violet-soft/45 hover:bg-violet-soft/[0.04]"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-dashed border-white/20 text-fog-400 transition group-hover:border-violet-soft/50 group-hover:text-violet-soft">
+          <Plus size={18} strokeWidth={1.8} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[13.5px] font-medium text-fog-200 group-hover:text-fog-100">
+            Add provider
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-fog-500">
+            {has
+              ? `${unconfigured.length} CLI${unconfigured.length === 1 ? "" : "s"} ready to set up`
+              : "Manage all providers"}
+          </div>
+        </div>
+        {has ? (
+          <ChevronDown
+            size={15}
+            className={cn(
+              "shrink-0 text-fog-500 transition-transform",
+              open ? "" : "-rotate-90",
+            )}
+          />
+        ) : (
+          <ChevronRight size={15} className="shrink-0 text-fog-500" />
+        )}
+      </button>
+      {open && has ? (
+        <div className="mt-1.5 space-y-1 rounded-xl border border-white/[0.07] bg-ink-200/40 p-1.5">
+          {unconfigured.map((p) => (
+            <button
+              key={p.providerId}
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onConfigure(p.providerId);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/[0.04]"
+            >
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.04] text-[12px] text-fog-200">
+                {avatarLetter(p)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12.5px] text-fog-100">{p.label}</div>
+                <div className="text-[10.5px] text-fog-500">
+                  {p.available ? "CLI detected" : "CLI not detected"}
+                </div>
+              </div>
+              <span className="shrink-0 text-[11px] text-violet-soft/90">set up →</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={onManage}
+            className="w-full rounded-lg px-2.5 py-1.5 text-left text-[11px] text-fog-400 hover:text-fog-200"
+          >
+            browse all in Providers →
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function RosterRow({
   profile,

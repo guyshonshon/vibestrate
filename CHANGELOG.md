@@ -6,15 +6,22 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **"Add provider" card** on Crew — a dashed card beneath the configured
+  roster that drops down the not-yet-configured CLIs; picking one opens the
+  setup modal inline (no detour to the Providers page).
+- Change: **Crew roles reorder by drag-and-drop** (grip handle) instead of ↑/↓
+  buttons — drop a role onto another to move it; persists to the flow.
+
 - Add: edit a role's **skills** from the Crew context panel — click skill chips to
   attach/detach (reuses the existing assign/unassign API). Completes per-role
   editing on Crew: provider + context (prompt) + skills.
 
-- Change: **Crew is a live flow editor.** Reorder roles with ↑/↓ (persists to the
-  flow — a built-in auto-forks to your project copy), set each role's provider,
-  and edit each role's **context (its prompt/brain)** inline via an expander.
-  Pick the flow to edit from the selector. No read-only gate; everything is
-  editable. (The dedicated builder remains for advanced structural edits.)
+- Change: **Crew is a live flow editor.** Reorder roles by dragging (persists to
+  the flow — a built-in auto-forks to your project copy), set each role's
+  provider, and edit each role's **context (its prompt/brain)** inline via an
+  expander. Pick the flow to edit from the selector. No read-only gate;
+  everything is editable. (The dedicated builder remains for advanced structural
+  edits.)
 
 - Change: **flows are always editable** — editing a built-in flow transparently
   writes a project copy (`.amaco/flows/<id>`) that shadows it, instead of
