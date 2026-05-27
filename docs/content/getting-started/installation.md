@@ -16,14 +16,18 @@ Amaco runs on macOS and Linux. Windows is not currently supported.
 
 ## Install globally
 
+One-liner (macOS / Linux) — installs the `amaco` CLI via npm under the hood:
+
 ```bash
-npm install -g amaco-os
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/amaco/main/install.sh | sh
 ```
 
-Or with pnpm:
+Pin a version with `AMACO_VERSION=0.1.1 sh` after the pipe. Or install with npm / pnpm directly:
 
 ```bash
-pnpm add -g amaco
+npm install -g amaco-os
+# or
+pnpm add -g amaco-os
 ```
 
 Verify:
