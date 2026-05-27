@@ -4,6 +4,7 @@ import { nowIso } from "../utils/time.js";
 
 export type AmacoEventType =
   | "run.created"
+  | "run.rewound"
   | "state.changed"
   | "git.worktree.created"
   | "agent.started"

@@ -365,6 +365,10 @@ export const api = {
       slotProviders?: Record<string, string>;
       skippedOptionalSteps?: string[];
     };
+    resumeFrom?: {
+      sourceRunId: string;
+      fromStage: "architecting" | "executing";
+    };
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
   },

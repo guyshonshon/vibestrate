@@ -3389,6 +3389,20 @@
           "required": false,
           "optional": false,
           "negated": false
+        },
+        {
+          "flags": "--resume-from <runId>",
+          "description": "rewind: fork from a prior run, reusing its plan (+ architecture) instead of regenerating them.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--resume-stage <stage>",
+          "description": "stage to resume at with --resume-from: architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
+          "required": true,
+          "optional": false,
+          "negated": false
         }
       ],
       "subcommands": []

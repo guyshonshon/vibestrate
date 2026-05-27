@@ -170,6 +170,12 @@ export function RunDetailPage({
       {rerunOpen ? (
         <RerunDialog
           run={run}
+          hasPlan={(metrics?.agents ?? []).some(
+            (a) => a.stageId === "planning" || a.agentId === "planner",
+          )}
+          hasArchitecture={(metrics?.agents ?? []).some(
+            (a) => a.stageId === "architecting" || a.agentId === "architect",
+          )}
           onClose={() => setRerunOpen(false)}
           onSubmitted={() => {
             setRerunOpen(false);
@@ -397,12 +403,18 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+type StartFrom = "scratch" | "architecting" | "executing";
+
 function RerunDialog({
   run,
+  hasPlan,
+  hasArchitecture,
   onClose,
   onSubmitted,
 }: {
   run: RunState;
+  hasPlan: boolean;
+  hasArchitecture: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }) {
@@ -412,6 +424,12 @@ function RerunDialog({
     run.effort ?? "",
   );
   const [provider, setProvider] = useState(run.providerOverride ?? "");
+  // Rewind is only possible for plain (non-guide) runs that captured the
+  // upstream artifacts. A fresh worktree is correct for both stages because
+  // they regenerate the downstream code.
+  const canArchitecting = !run.guide && hasPlan;
+  const canExecuting = !run.guide && hasPlan && hasArchitecture;
+  const [startFrom, setStartFrom] = useState<StartFrom>("scratch");
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -432,7 +450,14 @@ function RerunDialog({
         readOnly: readOnly || undefined,
         effort: effort || undefined,
         provider: provider || undefined,
-        guide: run.guide ? { id: run.guide.guideId } : undefined,
+        guide:
+          startFrom === "scratch" && run.guide
+            ? { id: run.guide.guideId }
+            : undefined,
+        resumeFrom:
+          startFrom === "scratch"
+            ? undefined
+            : { sourceRunId: run.runId, fromStage: startFrom },
       });
       onSubmitted();
     } catch (e) {
@@ -453,7 +478,11 @@ function RerunDialog({
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="eyebrow">Re-run with changes</div>
-            <h2 className="text-display text-[18px] mt-0.5">New run from this task</h2>
+            <h2 className="text-display text-[18px] mt-0.5">
+              {startFrom === "scratch"
+                ? "New run from this task"
+                : "Rewind & continue"}
+            </h2>
           </div>
           <button
             type="button"
@@ -464,18 +493,48 @@ function RerunDialog({
           </button>
         </div>
         <p className="mt-2 text-[11.5px] text-fog-500">
-          Starts a fresh run (new worktree) with the task below and your adjusted
-          settings — e.g. uncheck read-only so the executor can write. The
-          original run is untouched.
+          {startFrom === "scratch"
+            ? "Starts a fresh run (new worktree) with the task below and your adjusted settings — e.g. uncheck read-only so the executor can write. The original run is untouched."
+            : startFrom === "architecting"
+              ? "Forks a fresh run that reuses this run's plan and re-runs from architecture onward — no re-planning. The original run is untouched."
+              : "Forks a fresh run that reuses this run's plan + architecture and re-runs from implementation onward — no re-planning or re-architecting. The original run is untouched."}
         </p>
+        <div className="mt-3">
+          <div className="eyebrow mb-1">Start from</div>
+          <select
+            value={startFrom}
+            onChange={(e) => setStartFrom(e.target.value as StartFrom)}
+            className={`${selectCls} w-full`}
+          >
+            <option value="scratch">Beginning — re-plan from scratch</option>
+            <option value="architecting" disabled={!canArchitecting}>
+              Architecture — reuse the plan{canArchitecting ? "" : " (unavailable)"}
+            </option>
+            <option value="executing" disabled={!canExecuting}>
+              Implementation — reuse plan + architecture
+              {canExecuting ? "" : " (unavailable)"}
+            </option>
+          </select>
+          {run.guide ? (
+            <p className="mt-1 text-[11px] text-fog-500">
+              Rewind isn't available for Guide runs — they re-run from the start.
+            </p>
+          ) : null}
+        </div>
         <div className="mt-3">
           <div className="eyebrow mb-1">Task</div>
           <textarea
             value={task}
             onChange={(e) => setTask(e.target.value)}
             rows={3}
-            className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+            disabled={startFrom !== "scratch"}
+            className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-50"
           />
+          {startFrom !== "scratch" ? (
+            <p className="mt-1 text-[11px] text-fog-500">
+              Locked — the reused plan was written for this task.
+            </p>
+          ) : null}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
@@ -526,11 +585,19 @@ function RerunDialog({
             disabled={busy || !task.trim()}
             onClick={() => void submit()}
           >
-            {busy ? "Starting…" : "Start re-run"}
+            {busy
+              ? "Starting…"
+              : startFrom === "scratch"
+                ? "Start re-run"
+                : "Start rewind"}
           </Button>
           <span className="text-[11px] text-fog-500">
             {readOnly ? "read-only" : "writes enabled"}
-            {run.guide ? ` · guide: ${run.guide.guideId}` : ""}
+            {startFrom === "scratch"
+              ? run.guide
+                ? ` · guide: ${run.guide.guideId}`
+                : ""
+              : ` · resumes at ${startFrom}`}
           </span>
         </div>
       </div>

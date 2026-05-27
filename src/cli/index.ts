@@ -182,6 +182,14 @@ export function buildAmacoProgram(): Command {
       "--interactive",
       "open terminal Guide setup for task, brief, participants, and optional steps. Requires --guide.",
     )
+    .option(
+      "--resume-from <runId>",
+      "rewind: fork from a prior run, reusing its plan (+ architecture) instead of regenerating them.",
+    )
+    .option(
+      "--resume-stage <stage>",
+      "stage to resume at with --resume-from: architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
+    )
     .action(
       async (
         taskParts: string[] = [],
@@ -201,9 +209,28 @@ export function buildAmacoProgram(): Command {
           guideContext?: string;
           guideSkip?: string[];
           interactive?: boolean;
+          resumeFrom?: string;
+          resumeStage?: string;
         },
       ) => {
         const task = taskParts.join(" ").trim();
+        let resumeStage: "architecting" | "executing" | undefined;
+        if (opts.resumeStage) {
+          if (
+            opts.resumeStage !== "architecting" &&
+            opts.resumeStage !== "executing"
+          ) {
+            console.error(
+              `--resume-stage must be one of architecting|executing (got "${opts.resumeStage}").`,
+            );
+            process.exit(2);
+          }
+          resumeStage = opts.resumeStage;
+        }
+        if (opts.resumeStage && !opts.resumeFrom) {
+          console.error("--resume-stage requires --resume-from <runId>.");
+          process.exit(2);
+        }
         let effort: "low" | "medium" | "high" | null = null;
         if (opts.effort) {
           if (opts.effort !== "low" && opts.effort !== "medium" && opts.effort !== "high") {
@@ -268,6 +295,8 @@ export function buildAmacoProgram(): Command {
           guideContextPolicy,
           guideSkippedOptionalSteps: opts.guideSkip ?? [],
           guideInteractive: opts.interactive ?? false,
+          resumeFromRunId: opts.resumeFrom ?? null,
+          resumeStage,
         });
         process.exit(code);
       },

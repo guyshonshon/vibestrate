@@ -139,6 +139,17 @@ export const runStateSchema = z.object({
   // so run lists, shell snapshots, and replay can expose progress without
   // reading artifacts or provider output.
   guide: guideRunStateSchema.nullable().default(null),
+  // Set when this run was forked from a prior run via "rewind to a stage":
+  // the upstream artifacts (plan, and architecture when resuming at
+  // executing) were copied from `sourceRunId` instead of regenerated, and
+  // the run started at `fromStage`. null for normal from-scratch runs.
+  resumedFrom: z
+    .object({
+      sourceRunId: z.string(),
+      fromStage: z.enum(["architecting", "executing"]),
+    })
+    .nullable()
+    .default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -323,6 +334,7 @@ export function createInitialState(input: {
     runtimeSkills: [],
     concise: false,
     guide: null,
+    resumedFrom: null,
   };
 }
 

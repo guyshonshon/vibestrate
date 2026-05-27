@@ -88,6 +88,20 @@ const spawnRunBody = z.object({
     })
     .strict()
     .optional(),
+  // Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
+  // reusing its upstream artifacts. The launcher loads + validates the seeded
+  // artifacts. Mutually exclusive with `guide`.
+  resumeFrom: z
+    .object({
+      sourceRunId: z
+        .string()
+        .min(1)
+        .max(200)
+        .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+      fromStage: z.enum(["architecting", "executing"]),
+    })
+    .strict()
+    .optional(),
 });
 
 function resolveRunEntry(): string {
@@ -199,6 +213,7 @@ export async function registerRunsRoutes(
         argv.push("--guide-skip", stepId);
       }
     }
+    if (body.resumeFrom) argv.push("# rewind from", body.resumeFrom.sourceRunId);
     const spec: RunSpec = {
       projectRoot,
       task: body.task,
@@ -209,6 +224,7 @@ export async function registerRunsRoutes(
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,
       guide: body.guide ?? null,
+      resumeFrom: body.resumeFrom ?? null,
     };
     try {
       const pid = await startDetachedRun({
