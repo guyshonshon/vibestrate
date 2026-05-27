@@ -25,9 +25,9 @@ amaco run "Add audit logging" --ui
 
 - **Board** — the active runs, with phase rails, current agent, and live status.
 - **Tasks** — your backlog: queued, running, completed, failed, aborted.
-- **Agents** — per-role configuration. Edit which provider, prompt, permission profile, and skills each agent uses.
+- **Agents** — the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier) and the **engine** each runs on, plus its permission profile and skills. (An agent is a role; a provider is the CLI engine it runs on — one engine can power many roles.)
 - **Guides** — the resolved list of built-in and project Guides, plus the steps each defines.
-- **Providers** — what's installed, what's configured, test each one.
+- **Providers** — the **engines**: what's installed, what's configured, test each one.
 - **Approvals** — pending policy-gated decisions.
 - **Git** — inline diff viewer for the active run's worktree, with file-by-file navigation.
 - **Suggestions** — review findings grouped into bundles you can apply, validate, and revert.

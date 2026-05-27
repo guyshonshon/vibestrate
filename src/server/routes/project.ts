@@ -11,6 +11,7 @@ import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
+import { configExists, loadConfig } from "../../project/config-loader.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 
 export type ProjectRoutesDeps = { projectRoot: string };
@@ -23,6 +24,23 @@ export async function registerProjectRoutes(
 
   app.get("/api/project/metadata", async () => {
     return { metadata: await getProjectMetadata(projectRoot) };
+  });
+
+  // The agent *roles* (planner, architect, …) and their bindings: which
+  // provider (engine) each runs on, its permission profile, and skills.
+  // Config references only — never the prompt contents (no secret leakage).
+  // This is what makes the agent↔provider relationship legible in the UI.
+  app.get("/api/agents/roles", async () => {
+    if (!(await configExists(projectRoot))) return { roles: [] };
+    const { config } = await loadConfig(projectRoot);
+    const roles = Object.entries(config.agents).map(([id, a]) => ({
+      id,
+      provider: a.provider,
+      providerConfigured: Boolean(config.providers[a.provider]),
+      permissions: a.permissions,
+      skills: a.skills,
+    }));
+    return { roles };
   });
 
   app.get<{

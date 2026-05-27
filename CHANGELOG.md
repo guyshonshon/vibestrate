@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Agents/Providers clarity** (Epic D / D1, legibility pass) — the
+  dashboard now makes the agent↔provider relationship explicit instead of
+  conflating them. The **Agents** page leads with a **Roles** panel (planner,
+  architect, executor, fixer, reviewer, verifier) showing the engine each role
+  runs on (with online/offline/not-configured state), its permission profile,
+  and skill count; the provider list is reframed as **Engines**, with a
+  one-line explainer ("an agent is a role; a provider is the CLI engine it runs
+  on; one engine can power many roles"). New read-only `GET /api/agents/roles`
+  (config refs only — never prompt contents). Concept docs cross-link the two.
+  The deeper rename/merge (Provider→Engine, Agent→Role, merged page) stays
+  design-first.
 - Add: **Run navigation + clearer blocked UX** (Epic B / B2) — a global **run
   quick-switcher** (Cmd/Ctrl-K, or `g r`) lists recent runs and filters by
   task / runId / status so you can jump straight to any run without going
