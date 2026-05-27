@@ -298,18 +298,28 @@ function ActiveAgentPanel({
   run: RunState;
   metrics: RuntimeMetrics | null;
 }) {
+  const agents = metrics?.agents ?? [];
   const agent =
-    metrics?.agents.find((a) => !a.endedAt) ?? metrics?.agents.slice(-1)[0] ?? null;
-  const turn = agent?.toolCallCount ?? null;
+    agents.find((a) => !a.endedAt) ?? agents.slice(-1)[0] ?? null;
+  // Live totals accumulate as each step finishes — unlike the running agent's
+  // own metrics, which only resolve when it exits (CLIs in -p mode buffer).
+  const totalTokens = agents.reduce(
+    (n, a) => n + (a.tokenUsage?.input ?? 0) + (a.tokenUsage?.output ?? 0),
+    0,
+  );
+  const totalToolCalls = agents.reduce((n, a) => n + (a.toolCallCount ?? 0), 0);
+  const anyCost = agents.some((a) => a.totalCostUsd !== null);
+  const totalCost =
+    metrics?.totalCostUsd ??
+    (anyCost ? agents.reduce((n, a) => n + (a.totalCostUsd ?? 0), 0) : null);
+  const stepsDone = agents.filter((a) => a.endedAt).length;
   return (
     <div className="glass p-4">
       <SectionEyebrow className="mb-3">
-        <span>Current agent</span>
-        {turn !== null ? (
-          <span className="mono text-[11px] text-fog-400 whitespace-nowrap">
-            {turn} tool calls
-          </span>
-        ) : null}
+        <span>Live metrics</span>
+        <span className="mono text-[11px] text-fog-400 whitespace-nowrap">
+          {stepsDone} step{stepsDone === 1 ? "" : "s"} done
+        </span>
       </SectionEyebrow>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white shadow-[0_8px_22px_-8px_rgba(139,124,255,0.5)]">
@@ -331,30 +341,21 @@ function ActiveAgentPanel({
         </Chip>
       </div>
       <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-2 text-[12px]">
-        <Stat label="Tool calls" value={String(agent?.toolCallCount ?? "—")} />
         <Stat
           label="Tokens"
-          value={
-            agent?.tokenUsage
-              ? `${Math.round(
-                  ((agent.tokenUsage.input ?? 0) +
-                    (agent.tokenUsage.output ?? 0)) /
-                    1000,
-                )}k`
-              : "—"
-          }
+          value={totalTokens > 0 ? fmtTokens(totalTokens) : "—"}
         />
         <Stat
           label="Cost"
-          value={
-            metrics?.totalCostUsd !== null && metrics?.totalCostUsd !== undefined
-              ? `$${metrics.totalCostUsd.toFixed(2)}`
-              : "—"
-          }
+          value={totalCost !== null ? `$${totalCost.toFixed(4)}` : "—"}
         />
         <Stat
-          label="Skills"
-          value={String(run.runtimeSkills?.length ?? agent?.skillsAttached.length ?? 0)}
+          label="Tool calls"
+          value={totalToolCalls > 0 ? String(totalToolCalls) : "—"}
+        />
+        <Stat
+          label="Provider calls"
+          value={String(metrics?.totalProviderCalls ?? 0)}
         />
       </div>
     </div>
@@ -370,6 +371,12 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-fog-100 mono num-tabular text-[15px]">{value}</div>
     </div>
   );
+}
+
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 // Unused — kept so we can quickly add an inline "needs review" indicator

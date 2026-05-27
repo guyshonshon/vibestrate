@@ -49,7 +49,7 @@ export function CrewStrip({ guide }: { guide: GuideRunState | null | undefined }
   return (
     <section>
       <div className="flex items-baseline justify-between mb-2.5">
-        <span className="eyebrow">2 · Crew · current agent highlighted</span>
+        <span className="eyebrow">Crew · current agent highlighted</span>
         <span className="text-[11.5px] text-fog-400 whitespace-nowrap">
           {done}/{total} steps complete
         </span>

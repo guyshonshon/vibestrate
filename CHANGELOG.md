@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: guide runs showed a contradictory phase (rail said "Review" while the
+  crew showed a running "challenger"). The status rail now follows the guide's
+  actual steps, "challenger"/"critic" slots classify as Reviewer (not
+  Executor), and the run page's stray section numbering (1·/2·/…) is gone.
+- Change: run detail right rail shows **live run-level metrics** that
+  accumulate as steps finish (tokens, cost, tool calls, provider calls) instead
+  of the running agent's not-yet-resolved "—". The status hero gained a live
+  "Now <step> · <agent>" line so it's clear what's happening.
 - Change: Mission Control now visibly changes the instant you send a brief — an
   optimistic "Starting run" card appears immediately (a dashboard run is spawned
   detached and takes ~1s to register) and the live-runs view moved to the top

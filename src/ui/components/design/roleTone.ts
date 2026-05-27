@@ -71,7 +71,8 @@ export function classifyRole(label: string | null | undefined): Role {
   const l = (label ?? "").toLowerCase();
   if (l.includes("plan")) return "Planner";
   if (l.includes("arbiter") || l.includes("arbitrate")) return "Arbiter";
-  if (l.includes("review")) return "Reviewer";
+  if (l.includes("review") || l.includes("challeng") || l.includes("critic"))
+    return "Reviewer";
   if (l.includes("verif") || l.includes("validat")) return "Verifier";
   return "Executor";
 }
