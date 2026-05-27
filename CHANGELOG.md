@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs/Test: make the npm scanner false-positive response explicit in the
+  distributed package: include `SECURITY.md` in the npm tarball, add a README
+  note for the Telegram gateway false positive, and test that Telegram delivery
+  sends notification text only, never environment contents.
+
 - Add: author the fixed plan→build→verify workflow as a real `default` flow
   definition (`defaultFlow`) using the adaptive loop for the review→fix→re-validate
   cycle (D2 phase B-2). Single source of truth for the workflow's shape; not yet

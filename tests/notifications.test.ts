@@ -328,6 +328,15 @@ describe("formatters", () => {
 });
 
 describe("telegram-gateway validation", () => {
+  const realFetch = global.fetch;
+  const envBackup = { ...process.env };
+
+  afterEach(() => {
+    global.fetch = realFetch;
+    process.env = { ...envBackup };
+    vi.restoreAllMocks();
+  });
+
   it("validateConfig requires both token and target", () => {
     const r = telegramGateway.validateConfig({
       enabled: true,
@@ -338,6 +347,50 @@ describe("telegram-gateway validation", () => {
       categories: [],
     });
     expect(r.ok).toBe(false);
+  });
+
+  it("delivers only notification text, never process.env contents", async () => {
+    process.env.AMACO_TELEGRAM_TOKEN = "1234:secret";
+    process.env.AMACO_TELEGRAM_CHAT = "chat-1";
+    process.env.AMACO_SHOULD_NOT_LEAK = "do-not-send";
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("ok", { status: 200 }),
+    );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const notification = fakeNotification({
+      title: "Build finished",
+      message: "Validation passed",
+    });
+
+    const receipt = await telegramGateway.deliver({
+      notification,
+      config: {
+        enabled: true,
+        url: null,
+        token: "env:AMACO_TELEGRAM_TOKEN",
+        target: "env:AMACO_TELEGRAM_CHAT",
+        minSeverity: "info",
+        categories: [],
+      },
+      settings: notificationsConfigSchema.parse({}),
+    });
+
+    expect(receipt.status).toBe("delivered");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as [
+      string,
+      { body: string; method: string },
+    ];
+    expect(url).toBe("https://api.telegram.org/bot1234:secret/sendMessage");
+    expect(init.method).toBe("POST");
+
+    const bodyText = init.body;
+    expect(bodyText).toContain("Build finished");
+    expect(bodyText).toContain("Validation passed");
+    expect(bodyText).not.toContain("do-not-send");
+    expect(bodyText).not.toContain("AMACO_SHOULD_NOT_LEAK");
   });
 });
 
