@@ -152,19 +152,27 @@ This is the part that matters, so it gets no asterisks:
 
 ## ◆ How a run works
 
+Every run executes a **flow** - an ordered recipe of steps, each performed by a role on a provider. A plain `amaco run` runs the built-in **`default` flow**:
+
 ```text
 plan → architecture → implement → validate → review → fix → verify
                                       ↑                  │
                                       └──── (loops) ─────┘
 ```
 
-Each phase is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own phase - it runs the commands in `.amaco/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." Approval gates can pause a run for a human at any phase.
+Each step is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own step - it runs the commands in `.amaco/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." The review→fix loop repeats until the review passes or hits its bound. Approval gates can pause a run for a human at any step.
 
-Higher-stakes work can run a **Flow** instead - a recipe where multiple models arbitrate each other:
+Higher-stakes work runs a **different flow** through the same engine - for example one where multiple models arbitrate each other:
 
 ```bash
 amaco run "Refactor provider permissions" --flow quality-arbitration \
   --flow-slot builder=claude --flow-slot challenger=codex
+```
+
+Stuck mid-run? **Rewind** instead of restarting - fork a fresh run that reuses the earlier steps and picks up from a chosen stage:
+
+```bash
+amaco run "<same task>" --resume-from <runId> --resume-stage executing
 ```
 
 > [Concepts](https://amaco.shonshon.com/docs/concepts/task) · [Task lifecycle](https://amaco.shonshon.com/docs/task-lifecycle) · [CLI reference](https://amaco.shonshon.com/docs/reference/cli)

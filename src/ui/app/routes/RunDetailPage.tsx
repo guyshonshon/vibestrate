@@ -500,11 +500,15 @@ function RerunDialog({
     run.effort ?? "",
   );
   const [provider, setProvider] = useState(run.providerOverride ?? "");
-  // Rewind is only possible for plain (non-flow) runs that captured the
-  // upstream artifacts. A fresh worktree is correct for both stages because
-  // they regenerate the downstream code.
-  const canArchitecting = !run.flow && hasPlan;
-  const canExecuting = !run.flow && hasPlan && hasArchitecture;
+  // Rewind seeds the upstream steps and restarts at a stage. It's available
+  // when the run's flow declares a step at that stage and the run captured the
+  // upstream artifacts (every run is a flow run; the default flow has these
+  // stages, custom flows may not). A fresh worktree is correct because these
+  // stages regenerate the downstream code.
+  const flowHasStage = (stage: string): boolean =>
+    (run.flow?.steps ?? []).some((s) => s.stage === stage);
+  const canArchitecting = flowHasStage("architecting") && hasPlan;
+  const canExecuting = flowHasStage("executing") && hasPlan && hasArchitecture;
   const [startFrom, setStartFrom] = useState<StartFrom>("scratch");
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -526,8 +530,11 @@ function RerunDialog({
         readOnly: readOnly || undefined,
         effort: effort || undefined,
         provider: provider || undefined,
+        // Re-run the same flow (resume seeds the upstream steps of that flow).
+        // Omitting it for the built-in default is also fine, but passing the id
+        // keeps a resumed custom flow on its own definition.
         flow:
-          startFrom === "scratch" && run.flow
+          run.flow && run.flow.flowId !== "default"
             ? { id: run.flow.flowId }
             : undefined,
         resumeFrom:
@@ -591,9 +598,10 @@ function RerunDialog({
               {canExecuting ? "" : " (unavailable)"}
             </option>
           </select>
-          {run.flow ? (
+          {!canArchitecting && !canExecuting ? (
             <p className="mt-1 text-[11px] text-fog-500">
-              Rewind isn't available for Flow runs — they re-run from the start.
+              This flow has no resumable stage (or the upstream artifacts
+              weren't captured) — re-runs start from the beginning.
             </p>
           ) : null}
         </div>

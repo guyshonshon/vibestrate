@@ -58,6 +58,12 @@ export const flowRunStepStateSchema = z
     kind: z.string().min(1),
     status: flowRunStepStatusSchema,
     optional: z.boolean().default(false),
+    // Coarse phase (mirrors the flow step's `stage`); used to tell which stages
+    // a run can be resumed at. null when the step declares no stage.
+    stage: z
+      .enum(["planning", "architecting", "executing", "reviewing", "verifying"])
+      .nullable()
+      .default(null),
     slotId: z.string().nullable().default(null),
     roleId: z.string().nullable().default(null),
     providerId: z.string().nullable().default(null),
