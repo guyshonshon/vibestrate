@@ -345,9 +345,11 @@ function generateFlows() {
       inputs: s.inputs,
       outputs: s.outputs,
       optional: s.optional,
+      skipWhenReadOnly: s.skipWhenReadOnly,
       approval: s.approval ?? null,
       repeat: s.repeat ?? null,
     })),
+    loop: g.loop ?? null,
   }));
   writeJson("flows.json", {
     schemaVersion: 1,

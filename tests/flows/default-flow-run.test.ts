@@ -50,7 +50,13 @@ process.stdin.on("end", () => {
 });
 `;
 
-async function makeRepo(): Promise<string> {
+// Reviewer always approves on its first turn (read-only paths use this).
+const APPROVE_PROVIDER = PROVIDER.replace(
+  'n === 1 ? "CHANGES_REQUESTED" : "APPROVED"',
+  '"APPROVED"',
+);
+
+async function makeRepo(providerScript: string = PROVIDER): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-default-flow-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
@@ -61,7 +67,7 @@ async function makeRepo(): Promise<string> {
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
 
   const providerPath = path.join(dir, "fake-provider.js");
-  await fs.writeFile(providerPath, PROVIDER, { mode: 0o755 });
+  await fs.writeFile(providerPath, providerScript, { mode: 0o755 });
   await fs.chmod(providerPath, 0o755);
   await setConfigValue(
     dir,
@@ -72,6 +78,62 @@ async function makeRepo(): Promise<string> {
     await setConfigValue(dir, `roles.${role}.provider`, "fake");
   }
   return dir;
+}
+
+type RunEvent = { type: string; data?: Record<string, unknown> };
+
+async function runDefaultFlow(
+  projectRoot: string,
+  readOnly: boolean,
+): Promise<{ result: Awaited<ReturnType<Orchestrator["run"]>>; events: RunEvent[] }> {
+  const discovered = await findFlowById(projectRoot, "default");
+  const loaded = await loadConfig(projectRoot);
+  const snapshot = resolveFlow({
+    flow: discovered!.definition,
+    source: discovered!.source,
+    config: loaded.config,
+    // Unique per run so the timestamped worktree path can't collide.
+    task: `Exercise the default flow ${Math.random().toString(36).slice(2, 8)}.`,
+  });
+  const orchestrator = new Orchestrator({
+    projectRoot,
+    config: loaded.config,
+    rules: loaded.rules,
+    task: snapshot.task,
+    flow: snapshot,
+    isGitRepo: true,
+    readOnly,
+    onProgress: () => {},
+  });
+  let approvedOnce = false;
+  const interval = setInterval(async () => {
+    if (approvedOnce) return;
+    const runs = await fs
+      .readdir(path.join(projectRoot, ".amaco", "runs"))
+      .catch(() => []);
+    const runId = runs[0];
+    if (!runId) return;
+    const approvals = new ApprovalService(projectRoot, runId);
+    const pending = await approvals.firstPending();
+    if (!pending) return;
+    approvedOnce = true;
+    await approvals.approve({ approvalId: pending.id });
+  }, 50);
+  let result: Awaited<ReturnType<Orchestrator["run"]>>;
+  try {
+    result = await orchestrator.run();
+  } finally {
+    clearInterval(interval);
+  }
+  const eventsRaw = await fs.readFile(
+    path.join(projectRoot, ".amaco", "runs", result.runId, "events.ndjson"),
+    "utf8",
+  );
+  const events = eventsRaw
+    .split("\n")
+    .filter((l) => l.trim())
+    .map((l) => JSON.parse(l) as RunEvent);
+  return { result, events };
 }
 
 describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
@@ -143,5 +205,38 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     expect(
       events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === "verify").length,
     ).toBe(1);
+  });
+
+  it("read-only run skips write/validation/verify steps and never loops", async () => {
+    // Reviewer asks for changes; read-only can't fix → blocked, and the loop
+    // must not re-enter (no fix body to run).
+    const projectRoot = await makeRepo();
+    const { result, events } = await runDefaultFlow(projectRoot, true);
+
+    expect(result.state.status).toBe("blocked");
+
+    const skipped = events
+      .filter((e) => e.type === "flow.step.skipped" && e.data?.readOnly === true)
+      .map((e) => e.data?.stepId);
+    expect(new Set(skipped)).toEqual(
+      new Set(["implement", "validation", "fix", "revalidation", "verify"]),
+    );
+
+    // plan, architecture, review actually ran; the loop ran review exactly once.
+    const started = (id: string) =>
+      events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === id).length;
+    expect(started("plan")).toBe(1);
+    expect(started("architecture")).toBe(1);
+    expect(started("review")).toBe(1);
+    expect(started("fix")).toBe(0);
+    expect(events.filter((e) => e.type === "flow.loop.iteration").length).toBe(1);
+    expect(events.find((e) => e.type === "flow.loop.decision")?.data?.continuing).toBe(false);
+  });
+
+  it("read-only run reaches merge_ready on an APPROVED review (no verify needed)", async () => {
+    const projectRoot = await makeRepo(APPROVE_PROVIDER);
+    const { result } = await runDefaultFlow(projectRoot, true);
+    expect(result.state.status).toBe("merge_ready");
+    expect(result.state.flow?.flowId).toBe("default");
   });
 });

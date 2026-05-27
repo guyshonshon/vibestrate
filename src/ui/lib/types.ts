@@ -151,6 +151,7 @@ export type FlowStepDefinition = {
   inputs: string[];
   outputs: string[];
   optional: boolean;
+  skipWhenReadOnly?: boolean;
   approval?: FlowApprovalGate;
   repeat?: { times: number };
 };

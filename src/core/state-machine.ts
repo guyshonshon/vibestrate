@@ -220,6 +220,9 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "fixing",
     "waiting_for_approval",
     "paused",
+    // Read-only runs skip verification, so an APPROVED review goes straight to
+    // merge_ready (both run() and the flow runner).
+    "merge_ready",
     "blocked",
     "failed",
     "aborted",

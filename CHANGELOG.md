@@ -6,6 +6,18 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: read-only parity in the flow runner (D2 phase B-3c, part 1). Flow steps
+  gain `skipWhenReadOnly`; the default flow marks implement/validation/fix/
+  revalidation/verify. A read-only run skips those, traverses the review loop
+  once without re-entering, and an APPROVED review reaches `merge_ready`
+  (CHANGES_REQUESTED → `blocked`) — matching `run()`.
+- Fix: read-only runs forced a `readOnly` permission profile that the default
+  templates never ship (they ship `read_only`); force the built-in `read_only`
+  so read-only runs resolve on any project (fixes `run()`'s read-only path too —
+  it had no end-to-end test).
+- Fix: allow the `reviewing → merge_ready` state transition — read-only runs
+  skip verification, so an APPROVED review goes straight to merge_ready
+  (`run()`'s read-only path relied on this too).
 - Add: the default flow is now a real catalog entry (D2 phase B-3b) —
   discoverable and runnable as `--flow default` through the unified flow runner,
   which executes its review→fix loop (via B-3a). The Flows page sources the
