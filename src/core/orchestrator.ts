@@ -38,6 +38,10 @@ import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
+import {
+  computeDailySpendUsd,
+  evaluateSpendCap,
+} from "./spend-cap-service.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
@@ -195,6 +199,15 @@ class __RunAbortedSignal extends Error {
   }
 }
 
+/** Thrown when the daily spend cap is hit and the action is (or falls back to)
+ *  "stop" — the run() loop catches it and blocks the run with this message. */
+class __SpendCapStopSignal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SpendCapStopSignal";
+  }
+}
+
 function summarizeApprovals(
   approvals: import("./approval-types.js").ApprovalRequest[],
 ): {
@@ -256,8 +269,12 @@ export class Orchestrator {
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
-  private readonly effort: "low" | "medium" | "high" | null;
-  private readonly providerOverride: string | null;
+  // Mutable: the spend-cap "reduce-effort" / "downgrade-model" actions adjust
+  // these mid-run so subsequent turns resolve a cheaper provider.
+  private effort: "low" | "medium" | "high" | null;
+  private providerOverride: string | null;
+  /** One-time guard so the spend warning fires once per run, not every turn. */
+  private spendWarned = false;
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
@@ -980,6 +997,49 @@ export class Orchestrator {
           reviewLoops: reviewLoopsCompleted,
           metrics: abortedMetrics,
           approvals: abortedApprovals,
+          artifacts: {
+            plan: planArtifact?.outputArtifactPath,
+            architecture: architectureArtifact?.outputArtifactPath,
+            execution: executionArtifact?.outputArtifactPath,
+            review: reviewArtifact?.outputArtifactPath,
+            verification: verificationArtifact?.outputArtifactPath,
+          },
+        });
+        return {
+          runId,
+          state,
+          worktreePath,
+          branchName,
+          finalReportPath,
+          policyWarnings: policy.warnings,
+        };
+      }
+
+      // Daily spend cap hit with capAction=stop: block the run (not "failed")
+      // with the cap message. The spend.capped event was already logged.
+      if (err instanceof __SpendCapStopSignal) {
+        try {
+          state = applyTransition(state, "blocked");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: err.message };
+        await stateStore.write(state);
+        try {
+          await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
+        } catch {
+          // best-effort
+        }
+        const cappedMetrics = (await metricsStore.read()) ?? null;
+        const cappedApprovals = await approvalService.readAll().catch(() => []);
+        const finalReportPath = await this.writeFinalReport({
+          artifactStore,
+          state,
+          validation: lastValidation,
+          policyWarnings: policy.warnings,
+          reviewLoops: reviewLoopsCompleted,
+          metrics: cappedMetrics,
+          approvals: cappedApprovals,
           artifacts: {
             plan: planArtifact?.outputArtifactPath,
             architecture: architectureArtifact?.outputArtifactPath,
@@ -2536,6 +2596,11 @@ export class Orchestrator {
     };
   }): Promise<AgentRunResult> {
     const { agentId, ctx } = input;
+    // Budget gate: before spending on this turn, check today's spend against
+    // the daily cap and apply the configured action (warn / reduce-effort /
+    // downgrade-model / stop). Runs before provider resolution so a downgrade
+    // applies to this turn too.
+    await this.enforceSpendCap(ctx);
     const agent = getAgentConfig(this.config.agents, agentId);
     // Read-only runs override every agent's permission profile to
     // "readOnly", regardless of how the agent is configured. resolveProfile
@@ -3031,6 +3096,90 @@ export class Orchestrator {
       config: this.config,
     });
     return resolution.providerId;
+  }
+
+  /** Drop effort one notch (high→medium→low; none→low). False if already lowest. */
+  private lowerEffort(): boolean {
+    if (this.effort === "high") {
+      this.effort = "medium";
+      return true;
+    }
+    if (this.effort === "medium" || this.effort === null) {
+      this.effort = "low";
+      return true;
+    }
+    return false;
+  }
+
+  /** Switch to the configured cheaper provider (budget.fallbackProvider, else
+   *  effortMap.low). False if none, already on it, or not configured. */
+  private downgradeProvider(): boolean {
+    const target =
+      this.config.budget?.fallbackProvider ?? this.config.effortMap?.low ?? null;
+    if (!target || target === this.providerOverride) return false;
+    if (!this.config.providers[target]) return false;
+    this.providerOverride = target;
+    return true;
+  }
+
+  /**
+   * Enforce the daily spend cap before an agent turn. Warns once at the
+   * threshold; at the cap applies `capAction` (reduce-effort / downgrade-model
+   * fall back to stop when no cheaper option remains). "stop" throws a signal
+   * the run loop turns into a blocked run. No cap configured ⇒ no-op.
+   */
+  private async enforceSpendCap(ctx: { eventLog: EventLog }): Promise<void> {
+    const budget = this.config.budget;
+    const cap = budget?.spendCapDailyUsd;
+    if (!budget || cap === null || cap === undefined || cap <= 0) return;
+
+    const dailySpendUsd = await computeDailySpendUsd(this.projectRoot).catch(
+      () => 0,
+    );
+    const evaluation = evaluateSpendCap(budget, dailySpendUsd);
+
+    if (evaluation.state === "warn" && !this.spendWarned) {
+      this.spendWarned = true;
+      await ctx.eventLog.append({
+        type: "spend.warning",
+        message: `Daily spend ~$${dailySpendUsd.toFixed(2)} crossed ${Math.round(
+          (budget.warnThresholdPct ?? 0.8) * 100,
+        )}% of the $${cap}/day cap.`,
+        data: { dailySpendUsd, cap },
+      });
+    }
+    if (evaluation.state !== "exceeded") return;
+
+    const at = `Daily spend ~$${dailySpendUsd.toFixed(2)} reached the $${cap}/day cap`;
+    if (budget.capAction === "reduce-effort" && this.lowerEffort()) {
+      await ctx.eventLog.append({
+        type: "spend.action",
+        message: `${at}; reduced effort to "${this.effort}" and continued.`,
+        data: { action: "reduce-effort", effort: this.effort, dailySpendUsd },
+      });
+      return;
+    }
+    if (budget.capAction === "downgrade-model" && this.downgradeProvider()) {
+      await ctx.eventLog.append({
+        type: "spend.action",
+        message: `${at}; downgraded provider to "${this.providerOverride}" and continued.`,
+        data: {
+          action: "downgrade-model",
+          provider: this.providerOverride,
+          dailySpendUsd,
+        },
+      });
+      return;
+    }
+    // "stop", or reduce/downgrade with no cheaper option left.
+    await ctx.eventLog.append({
+      type: "spend.capped",
+      message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
+      data: { action: "stop", dailySpendUsd, cap },
+    });
+    throw new __SpendCapStopSignal(
+      `${at}. Run stopped by the daily spend cap (capAction=${budget.capAction}).`,
+    );
   }
 
   private async writeFinalReport(input: {

@@ -3094,6 +3094,87 @@
       ]
     },
     {
+      "name": "budget",
+      "path": [
+        "amaco",
+        "budget"
+      ],
+      "description": "View or configure the daily spend cap (and what happens when it's hit).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "show",
+          "path": [
+            "amaco",
+            "budget",
+            "show"
+          ],
+          "description": "Show the configured cap, action, and today's spend so far.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "set",
+          "path": [
+            "amaco",
+            "budget",
+            "set"
+          ],
+          "description": "Set the daily spend cap and/or the action taken when it's reached.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--cap <usd>",
+              "description": "daily cap in USD (e.g. 5)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--action <action>",
+              "description": "what to do at the cap: stop | downgrade-model | reduce-effort",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--warn <pct>",
+              "description": "warn threshold as a fraction 0..1 (default 0.8)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--fallback <providerId>",
+              "description": "cheaper provider to switch to on downgrade-model",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "off",
+          "path": [
+            "amaco",
+            "budget",
+            "off"
+          ],
+          "description": "Remove the daily spend cap.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
       "name": "replay",
       "path": [
         "amaco",

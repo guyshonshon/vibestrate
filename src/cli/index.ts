@@ -33,6 +33,7 @@ import { buildBundlesCommand } from "./commands/bundles.js";
 import { buildValidationCommand } from "./commands/validation.js";
 import { buildTerminalCommand } from "./commands/terminal.js";
 import { buildPoliciesCommand } from "./commands/policies.js";
+import { buildBudgetCommand } from "./commands/budget.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
@@ -114,6 +115,7 @@ export function buildAmacoProgram(): Command {
   program.addCommand(buildValidationCommand());
   program.addCommand(buildTerminalCommand());
   program.addCommand(buildPoliciesCommand());
+  program.addCommand(buildBudgetCommand());
   program.addCommand(buildReplayCommand());
   program.addCommand(buildPauseCommand());
   program.addCommand(buildResumeCommand());

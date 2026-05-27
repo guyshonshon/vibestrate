@@ -37,14 +37,14 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   (model/calls/tokens/cost), tokens-by-role bar. `/api/metrics/overview` kept
   backward-compatible (fields added: `perModel`, `tokensByRole`,
   `totals.{tokens,tokensDelta,medianDurationSeconds}`).
-- **A5 — Daily spend cap (configurable policy + action).** Enforce
-  `spendCapDailyUsd`, configurable from **both the UI and the CLI**, with a
-  chosen **action** when the cap is hit — not just a hard stop. Options:
-  - **stop** — block the next phase (hard stop) with a clear message;
-  - **downgrade model** — switch to a cheaper provider/model (via effortMap /
-    a configured fallback) and continue;
-  - **reduce effort** — drop the run's effort level a notch and continue.
-  Plus a warn-notify at a threshold (~80%). Needs real per-run cost (A3).
+- **A5 — Daily spend cap (configurable policy + action). ✓ done.** A `budget`
+  config block (`spendCapDailyUsd`, `capAction`, `warnThresholdPct`,
+  `fallbackProvider`) enforced in the orchestrator before each agent turn:
+  warn event at the threshold, then at the cap apply `capAction` —
+  **stop** (block the run), **downgrade-model** (switch to the cheaper
+  fallback/effortMap.low and continue), or **reduce-effort** (drop a notch).
+  Configurable via the **CLI** (`amaco budget set/show/off`) and the **UI**
+  (Metrics page control + `/api/budget`). Uses the A3 cost ledger. Tested.
 - **A6 — (optional) Webhooks.** POST on approve / merge / cap-hit, via the
   existing `src/notifications/` system.
 - **A7 — Real metrics for Codex / Gemini / Ollama** (structured adapters, like
@@ -93,6 +93,7 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 
 ### Suggested order
 
-~~A1~~ → ~~A2~~ → ~~A3~~ → ~~A4~~ (done — real metrics + dashboard) → **A5 next** (spend cap + action), then
+~~A1~~ → ~~A2~~ → ~~A3~~ → ~~A4~~ → ~~A5~~ (**Epic A complete** — structured
+output, real metrics/cost, dashboard, spend cap) → then
 B1 (rework-from-phase is high day-to-day value), C1, D1 (design), B2, A6, E1.
 Adjust as priorities shift.

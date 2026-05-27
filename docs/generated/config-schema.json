@@ -195,6 +195,56 @@
       ]
     },
     {
+      "key": "budget",
+      "fullKey": "budget",
+      "type": "object",
+      "required": false,
+      "default": {
+        "spendCapDailyUsd": null,
+        "capAction": "stop",
+        "warnThresholdPct": 0.8
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "spendCapDailyUsd",
+          "fullKey": "budget.spendCapDailyUsd",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null
+        },
+        {
+          "key": "capAction",
+          "fullKey": "budget.capAction",
+          "type": "enum",
+          "required": false,
+          "default": "stop",
+          "enum": [
+            "stop",
+            "downgrade-model",
+            "reduce-effort"
+          ],
+          "itemType": null
+        },
+        {
+          "key": "warnThresholdPct",
+          "fullKey": "budget.warnThresholdPct",
+          "type": "number",
+          "required": false,
+          "default": 0.8,
+          "itemType": null
+        },
+        {
+          "key": "fallbackProvider",
+          "fullKey": "budget.fallbackProvider",
+          "type": "string",
+          "required": false,
+          "itemType": null
+        }
+      ]
+    },
+    {
       "key": "agents",
       "fullKey": "agents",
       "type": "record<string, object>",
