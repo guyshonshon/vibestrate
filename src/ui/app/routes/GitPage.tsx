@@ -32,7 +32,6 @@ import type {
   RunState,
 } from "../../lib/types.js";
 import { Chip } from "../../components/design/Chip.js";
-import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 import { relTime } from "../../components/design/format.js";
 import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
@@ -157,15 +156,15 @@ export function GitPage({ onSelectRun }: Props) {
       {/* Two-column main: changes (left) + recent commits (right) */}
       <section className="grid grid-cols-12 gap-5">
         <div className="col-span-12 xl:col-span-7 glass p-4">
-          <SectionEyebrow className="mb-3">
-            <span>Changes since the last commit</span>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="eyebrow">Changes since the last commit</span>
             {projectStatus ? (
               <span className="mono text-[11px] text-fog-400">
                 {projectStatus.changedFiles.length} file
                 {projectStatus.changedFiles.length === 1 ? "" : "s"}
               </span>
             ) : null}
-          </SectionEyebrow>
+          </div>
           {!projectStatus ? (
             <div className="text-[12.5px] text-fog-400">Loading…</div>
           ) : projectStatus.changedFiles.length === 0 ? (
@@ -196,14 +195,14 @@ export function GitPage({ onSelectRun }: Props) {
         </div>
 
         <div className="col-span-12 xl:col-span-5 glass p-4">
-          <SectionEyebrow className="mb-3">
-            <span>Recent commits</span>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="eyebrow">Recent commits</span>
             {projectHistory ? (
               <span className="mono text-[11px] text-fog-400">
                 {projectHistory.commits.length}
               </span>
             ) : null}
-          </SectionEyebrow>
+          </div>
           {!projectHistory ? (
             <div className="text-[12.5px] text-fog-400">Loading…</div>
           ) : projectHistory.commits.length === 0 ? (

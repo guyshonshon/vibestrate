@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: Crew page — the flow/roles panel moves into the left column beside the
+  provider detail panel (was a full-width block that crowded the page) and gains
+  a **flow selector**: pick any flow and its role-steps list in order, each with
+  an inline provider picker. Compact two-line rows.
+- Fix: Git page header counts no longer glue to the label ("…last commit5 files")
+  — the eyebrow label and count are now laid out with `justify-between`. Same fix
+  for the Crew "Configured providers" header. (`SectionEyebrow` renders all
+  children in one span, so passing label + count as siblings ran them together.)
+
 - Change: **Crew page reframed as the default flow.** The generic "Roles" grid
   is now a compact **Default flow** panel — the roles are listed as the flow's
   ordered, role-bearing steps (numbered Plan → Architect → Implement → Review →
