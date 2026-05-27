@@ -146,7 +146,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "slots + ordered review steps",
     keywords: ["flow", "review", "challenger", "cto"],
     description:
-      "Loads the built-in Quality Arbitration Flow definition in the runner before the sequential Flow runner phase.",
+      "Loads the built-in Quality Arbitration flow definition in the runner.",
     cli: "amaco flows show quality-arbitration",
     action: {
       kind: "open-runner",

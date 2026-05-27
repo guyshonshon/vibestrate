@@ -152,6 +152,7 @@ export type FlowStepDefinition = {
   outputs: string[];
   optional: boolean;
   skipWhenReadOnly?: boolean;
+  stage?: "planning" | "architecting" | "executing" | "reviewing" | "verifying";
   approval?: FlowApprovalGate;
   repeat?: { times: number };
 };

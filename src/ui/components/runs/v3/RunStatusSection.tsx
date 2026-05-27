@@ -33,9 +33,10 @@ function phaseIndex(status: RunStatus): number {
 }
 
 /**
- * For a Flow run, the legacy plan→verify rail is meaningless (and contradicts
- * the crew strip — e.g. a "challenger" step while the rail says "Review"). Use
- * the Flow's actual ordered steps so the rail matches what's running.
+ * Every run is a flow run, so the rail follows the flow's actual ordered steps
+ * (the fixed phase rail would contradict the crew strip — e.g. a "challenger"
+ * step while the rail says "Review"). The phase fallback only applies to a run
+ * whose flow state hasn't been written yet.
  */
 function railFor(run: RunState): { steps: string[]; active: number } {
   const flow = run.flow;

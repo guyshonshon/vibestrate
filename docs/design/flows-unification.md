@@ -56,10 +56,12 @@ UI shows *one* list of flows (default + quality-arbitration + …). Crew shows
 default flow's role→provider bindings. This **resolves the duplication
 conceptually and in the UI** without merging runners.
 
-**Phase B — runner unification (later).** Express the default workflow as an
-actual flow definition executed by a single runner (steps + `repeat` loop +
-approval gates + validation). Retire the `run()` / `runFlowSequence()` split.
-Big; correctness-sensitive; do it on its own once Phase A lands.
+**Phase B — runner unification (SHIPPED).** The default workflow is now the
+built-in `default` flow, executed by the single flow runner. `run()`'s hardcoded
+sequence is deleted; a plain `amaco run` resolves `default` and runs it through
+`runFlowSequence` — the same runner as every other flow. The review→fix loop is
+an adaptive `loop`, read-only skipping is `skipWhenReadOnly`, and resume uses
+step `stage` metadata. See [`runner-unification.md`](./runner-unification.md).
 
 ## Migration
 

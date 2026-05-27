@@ -6,6 +6,20 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **one runner** (D2 phase B-3c). Plain `amaco run` now resolves the
+  built-in `default` flow and executes it through the same flow runner as every
+  other flow; the hardcoded `Orchestrator.run()` plan→build→verify sequence is
+  deleted. `run()` is now a thin entry that sets up the run and calls
+  `runFlowSequence`. Flow steps gain a `stage` tag; `--resume-from`/`--resume-stage`
+  (planning|architecting|executing) is now native to the flow runner (seeds the
+  upstream steps' outputs from the source run, marks them skipped) and works with
+  `--flow`. The final report's review-loop count is real (was hardcoded 0).
+- Fix: read-only runs forced a `readOnly` permission profile the templates never
+  ship — force the built-in `read_only`. Added the run-phase transitions the
+  unified flow runner needs (`reviewing → merge_ready`, `* → architecting`,
+  `architecting → executing`).
+- Docs: `docs/design/runner-unification.md` rewritten to the shipped one-runner
+  design; `concepts/workflow.md` + `concepts/flow.md` reframed (no "two runners").
 - Docs: add `docs/design/runner-unification.md` — full context, current flow,
   decisions, the new constructs (adaptive `loop`, `skipWhenReadOnly`), parity
   matrix, and the remaining B-3 plan for merging the two orchestrator runners.

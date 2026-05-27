@@ -93,7 +93,7 @@ export type RunCommandOptions = {
   /** Rewind: fork from a prior run, reusing its upstream artifacts and
    *  resuming at `resumeStage`. Mutually exclusive with a Flow. */
   resumeFromRunId?: string | null;
-  resumeStage?: "architecting" | "executing";
+  resumeStage?: "planning" | "architecting" | "executing";
 };
 
 export async function runRunCommand(
@@ -362,15 +362,10 @@ export async function runRunCommand(
   process.on("SIGINT", onSigint);
   process.on("SIGTERM", onSigterm);
 
-  // Rewind: fork from a prior run, reusing its upstream artifacts.
+  // Rewind: fork from a prior run, reusing its upstream step outputs. The flow
+  // runner seeds them — works with the default flow and an explicit --flow.
   let resumeFrom: ResumeFromInput | null = null;
   if (options.resumeFromRunId) {
-    if (resolvedFlow) {
-      console.error(
-        `${symbol.fail()} ${color.bold("--resume-from")} cannot be combined with ${color.bold("--flow")}.`,
-      );
-      return 1;
-    }
     try {
       resumeFrom = await resolveResumeFrom(detected.projectRoot, {
         sourceRunId: options.resumeFromRunId,
@@ -383,9 +378,7 @@ export async function runRunCommand(
       return 1;
     }
     console.log(
-      `${symbol.bullet()} Rewinding from ${color.bold(resumeFrom.sourceRunId)} at ${color.bold(resumeFrom.fromStage)} — reusing plan${
-        resumeFrom.fromStage === "executing" ? " + architecture" : ""
-      }.`,
+      `${symbol.bullet()} Rewinding from ${color.bold(resumeFrom.sourceRunId)} at stage ${color.bold(resumeFrom.fromStage)} — seeding the upstream steps from that run.`,
     );
   }
 

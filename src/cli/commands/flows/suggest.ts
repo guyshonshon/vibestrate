@@ -34,7 +34,7 @@ export async function runFlowsSuggest(
 
   if (suggestions.length === 0) {
     console.log(
-      `${symbol.bullet()} No Flow suggestion is strong enough. Use ${color.bold("default workflow")} or choose from ${color.bold("amaco flows list")}.`,
+      `${symbol.bullet()} No flow suggestion is strong enough. Run plain ${color.bold("amaco run")} for the default flow, or choose from ${color.bold("amaco flows list")}.`,
     );
     return 0;
   }

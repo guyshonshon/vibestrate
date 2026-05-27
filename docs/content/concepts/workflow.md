@@ -15,6 +15,10 @@ The workflow is the spine of Amaco. Without it, a "multi-agent" run would just b
 
 ## The default workflow
 
+This is the built-in **`default` flow** — the workflow that runs when you don't
+pick another flow. It's a real flow definition executed by the one flow runner
+(see [Flow](/docs/concepts/flow)), not a separate code path.
+
 ```text
 planning → architecting → executing → validating → reviewing → verifying
                                           ↑           ↓
@@ -41,11 +45,26 @@ Notice that **validating** has no agent. It runs your project's `commands.valida
 
 If your `commands.validate` is empty, the workflow degenerates into a pure model-judgement loop. We strongly recommend filling it in — even a single `pnpm typecheck` catches a huge class of regressions for free.
 
-## Flows are alternate workflows
+## One runner; flows are the recipes
 
-The default workflow is one path through the orchestrator. A [Flow](/docs/concepts/flow) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Flow uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
+There is a single execution model: every run executes a **flow** through the one
+runner. The default workflow above is the built-in `default` flow; a
+[Flow](/docs/concepts/flow) is just a different recipe — different slots, step
+order, optional approval gates, repeated/looping steps. The built-in
+`quality-arbitration` flow uses a builder + challenger + arbiter crew for
+higher-risk feature work.
 
-The default workflow is itself also expressed as the built-in `default` Flow (its review→fix→re-validate stage is an adaptive loop). You can run it explicitly with `amaco run --flow default` to drive it through the Flow runner; a plain `amaco run` still uses the orchestrator's standard path.
+These all share the same runner:
+
+```bash
+amaco run "..."                  # the built-in default flow
+amaco run "..." --flow default   # the same flow, explicit
+amaco run "..." --flow quality-arbitration
+```
+
+`amaco run --resume-from <runId> --resume-stage <stage>` rewinds any flow that
+declares the matching stage: the runner seeds the upstream steps' outputs from
+the source run and starts there.
 
 ## Common mistakes
 

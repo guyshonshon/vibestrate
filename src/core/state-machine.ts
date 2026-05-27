@@ -146,7 +146,7 @@ export const runStateSchema = z.object({
   resumedFrom: z
     .object({
       sourceRunId: z.string(),
-      fromStage: z.enum(["architecting", "executing"]),
+      fromStage: z.enum(["planning", "architecting", "executing"]),
     })
     .nullable()
     .default(null),
@@ -157,6 +157,7 @@ export type RunState = z.infer<typeof runStateSchema>;
 const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
   created: [
     "planning",
+    "architecting",
     "executing",
     "validating",
     "reviewing",
@@ -170,6 +171,7 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
   ],
   planning: [
     "planned",
+    "architecting",
     "executing",
     "validating",
     "reviewing",
@@ -192,7 +194,18 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "aborted",
     "blocked",
   ],
-  architecting: ["architected", "paused", "failed", "aborted", "blocked"],
+  architecting: [
+    "architected",
+    "executing",
+    "validating",
+    "reviewing",
+    "verifying",
+    "waiting_for_approval",
+    "paused",
+    "failed",
+    "aborted",
+    "blocked",
+  ],
   architected: ["executing", "waiting_for_approval", "paused", "failed", "aborted", "blocked"],
   executing: [
     "validating",
@@ -242,6 +255,7 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "created",
     "planning",
     "planned",
+    "architecting",
     "architected",
     "executing",
     "validating",

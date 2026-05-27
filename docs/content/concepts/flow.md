@@ -1,11 +1,11 @@
 ---
 title: Flow
-description: A selectable run recipe. Defines participant slots, the step sequence, gates, and artifacts — separately from the default workflow.
+description: A run recipe — participant slots, the step sequence, gates, loop, and artifacts. The built-in default flow is one; custom flows are others.
 section: concepts
 slug: concepts/flow
 ---
 
-**Professional explanation.** A Flow is a structured run recipe that overrides the default workflow with a richer choreography — participant slots, step kinds (agent-turn, review-turn, response-turn, validation, approval-gate, summary-turn), optional gates, and bounded repeats. Flow definitions are validated against `flowDefinitionSchema` (Zod), live as either built-ins under `src/flows/catalog/` or project Flows under `.amaco/flows/<id>/flow.yml`, and are resolved into an immutable snapshot at run start.
+**Professional explanation.** A Flow is a structured run recipe — participant slots, step kinds (agent-turn, review-turn, response-turn, validation, approval-gate, summary-turn), optional gates, bounded repeats, and an adaptive review→fix loop. Every run executes a flow through one runner; the built-in `default` flow runs when you don't pick another, and custom flows give a richer choreography for higher-rigor work. Flow definitions are validated against `flowDefinitionSchema` (Zod), live as built-ins under `src/flows/catalog/` or project flows under `.amaco/flows/<id>/flow.yml`, and are resolved into an immutable snapshot at run start.
 
 **Simple explanation.** A Flow is a saved playbook for "how to do this kind of work." You name the roles, name the steps, and Amaco runs them.
 
