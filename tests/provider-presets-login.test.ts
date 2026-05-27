@@ -14,7 +14,10 @@ describe("PROVIDER_PRESETS registry", () => {
   it("has an entry for every known provider", () => {
     for (const p of KNOWN_PROVIDERS) {
       expect(PROVIDER_PRESETS[p.id], `missing preset for ${p.id}`).toBeDefined();
-      expect(PROVIDER_PRESETS[p.id].preset.type).toBe("cli");
+      // claude ships as the structured `claude-code` provider; the rest are
+      // generic `cli`.
+      const expectedType = p.id === "claude" ? "claude-code" : "cli";
+      expect(PROVIDER_PRESETS[p.id].preset.type).toBe(expectedType);
       expect(typeof PROVIDER_PRESETS[p.id].loginNote).toBe("string");
     }
   });

@@ -14,12 +14,19 @@ import { KNOWN_PROVIDERS } from "../src/providers/provider-detection.js";
 describe("starter presets", () => {
   it("claude-code preset stays at the verified shape (regression guard)", () => {
     // If this ever drifts, doctor --fix auto-applies the new shape on
-    // every project that opens. Treat any change as deliberate.
+    // every project that opens. Treat any change as deliberate. Claude ships as
+    // a first-class claude-code provider in stream-json mode (live output +
+    // real token/cost); effective args add `--output-format stream-json
+    // --verbose --include-partial-messages`.
     expect(claudeCodePreset).toEqual({
-      type: "cli",
+      type: "claude-code",
       command: "claude",
       args: ["-p"],
       input: "stdin",
+      settings: {
+        outputFormat: "stream-json",
+        includePartialMessages: true,
+      },
     });
   });
 

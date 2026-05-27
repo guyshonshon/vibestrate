@@ -1,12 +1,17 @@
 import { execa } from "execa";
 import { ConfigError } from "../utils/errors.js";
 import { ollamaPreset } from "../providers/presets/ollama.js";
+import { claudeCodePreset } from "../providers/presets/claude-code.js";
 import {
   ensureProvider,
   assignAgentsToProvider,
   readDocument,
 } from "./config-update-service.js";
-import type { CliProviderConfig } from "../providers/provider-schema.js";
+import type {
+  CliProviderConfig,
+  ClaudeCodeProviderSchemaConfig,
+  ProviderConfig,
+} from "../providers/provider-schema.js";
 import type { DetectedProvider } from "../providers/provider-detection.js";
 import { knownProviderIdForCommand } from "../providers/provider-detection.js";
 import {
@@ -90,7 +95,7 @@ export async function setDefaultProvider(
 
 export type AddProviderInput = {
   id: string;
-  config: CliProviderConfig;
+  config: ProviderConfig;
   alsoAssignAllAgents?: boolean;
 };
 
@@ -222,22 +227,22 @@ export async function runSafeProviderTest(input: {
   };
 }
 
-export function buildClaudePresetConfig(): CliProviderConfig {
+/** Clone the canonical claude preset (claude-code + stream-json) so the setup
+ *  wizard / CLI write the same config as `doctor` / the dashboard. */
+export function buildClaudePresetConfig(): ClaudeCodeProviderSchemaConfig {
   return {
-    type: "cli",
-    command: "claude",
-    args: ["-p"],
-    input: "stdin",
+    ...claudeCodePreset,
+    args: [...claudeCodePreset.args],
+    ...(claudeCodePreset.settings
+      ? { settings: { ...claudeCodePreset.settings } }
+      : {}),
   };
 }
 
-export function buildClaudeProviderFromDetection(d: DetectedProvider): CliProviderConfig {
-  return {
-    type: "cli",
-    command: d.command,
-    args: ["-p"],
-    input: "stdin",
-  };
+export function buildClaudeProviderFromDetection(
+  d: DetectedProvider,
+): ClaudeCodeProviderSchemaConfig {
+  return { ...buildClaudePresetConfig(), command: d.command };
 }
 
 /**
