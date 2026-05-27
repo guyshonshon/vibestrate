@@ -198,9 +198,9 @@ describe("round-trip", () => {
     }
   });
 
-  it("round-trips the simple kind-only routes (incl. guides)", () => {
+  it("round-trips the simple kind-only routes (incl. flows)", () => {
     const kinds: Route[] = [
-      { kind: "guides" },
+      { kind: "flows" },
       { kind: "metrics" },
       { kind: "crew" },
       { kind: "providers" },
@@ -208,7 +208,7 @@ describe("round-trip", () => {
     for (const r of kinds) {
       expect(parseHashRoute(serializeRoute(r))).toEqual(r);
     }
-    expect(parseHashRoute("#/guides").kind).toBe("guides");
-    expect(serializeRoute({ kind: "guides" })).toBe("#/guides");
+    expect(parseHashRoute("#/flows").kind).toBe("flows");
+    expect(serializeRoute({ kind: "flows" })).toBe("#/flows");
   });
 });

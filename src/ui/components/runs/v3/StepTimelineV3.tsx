@@ -1,11 +1,11 @@
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
 import type {
-  GuideRunState,
-  GuideRunStepStatus,
+  FlowRunState,
+  FlowRunStepStatus,
 } from "../../../lib/types.js";
 
-function statusTone(s: GuideRunStepStatus) {
+function statusTone(s: FlowRunStepStatus) {
   if (s === "passed") return "emerald" as const;
   if (s === "running") return "violet" as const;
   if (s === "failed" || s === "blocked") return "rose" as const;
@@ -14,25 +14,25 @@ function statusTone(s: GuideRunStepStatus) {
 }
 
 export function StepTimelineV3({
-  guide,
+  flow,
 }: {
-  guide: GuideRunState | null | undefined;
+  flow: FlowRunState | null | undefined;
 }) {
-  if (!guide || guide.steps.length === 0) return null;
+  if (!flow || flow.steps.length === 0) return null;
   return (
     <section>
       <div className="flex items-baseline justify-between mb-2.5">
         <span className="eyebrow">
-          4 · Step timeline · {guide.steps.length} steps
+          4 · Step timeline · {flow.steps.length} steps
         </span>
         <span className="text-[11.5px] text-fog-400 mono whitespace-nowrap">
-          {guide.label}
+          {flow.label}
         </span>
       </div>
       <div className="glass p-4">
         <ol className="relative pl-5">
           <span className="absolute left-[7px] top-1.5 bottom-1.5 w-px bg-white/[0.08]" />
-          {guide.steps.map((step) => {
+          {flow.steps.map((step) => {
             const tone = statusTone(step.status);
             return (
               <li key={step.id} className="relative pb-3.5 last:pb-0">
@@ -92,7 +92,7 @@ export function StepTimelineV3({
 function StepDuration({
   step,
 }: {
-  step: GuideRunState["steps"][number];
+  step: FlowRunState["steps"][number];
 }) {
   if (!step.startedAt) return <span className="mono text-[11.5px] text-fog-500">—</span>;
   const end = step.endedAt ? new Date(step.endedAt).getTime() : Date.now();

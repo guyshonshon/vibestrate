@@ -69,7 +69,7 @@ export type PerModelEntry = {
 };
 
 export type TokensByRoleEntry = {
-  /** Guide slot id when present, else the agent id (planner/executor/…). */
+  /** Flow slot id when present, else the agent id (planner/executor/…). */
   role: string;
   tokens: number;
 };
@@ -455,7 +455,7 @@ function tokensByRole(
     const m = metricsByRun.get(r.runId);
     if (!m) continue;
     for (const a of m.roles) {
-      const role = a.guideSlotId ?? a.roleId;
+      const role = a.flowSlotId ?? a.roleId;
       map.set(role, (map.get(role) ?? 0) + roleTokens(a));
     }
   }

@@ -41,7 +41,7 @@ function run(over: Partial<RunState>): RunState {
     readOnly: false,
     runtimeSkills: [],
     concise: false,
-    guide: null,
+    flow: null,
     ...over,
   } as RunState;
 }
@@ -93,9 +93,9 @@ function metrics(
       durationMs: a.durationMs ?? 1000,
       exitCode: 0,
       sessionId: null,
-      guideSlotId: null,
-      guideContextMode: null,
-      guideContextFallbackReason: null,
+      flowSlotId: null,
+      flowContextMode: null,
+      flowContextFallbackReason: null,
       model: a.model ?? null,
       totalCostUsd: a.totalCostUsd ?? 0,
       perModelCost: [],
@@ -292,7 +292,7 @@ describe("buildMetricsOverview", () => {
     expect(out.perModel[0]!.model).toBe("claude-opus-4-7");
     expect(out.perModel[0]!.tokens).toBe(1500);
     expect(out.perModel.find((m) => m.model === "claude-haiku-4-5")?.calls).toBe(1);
-    // Tokens by role (roleId, since no guide slot).
+    // Tokens by role (roleId, since no flow slot).
     expect(out.tokensByRole.reduce((n, r) => n + r.tokens, 0)).toBe(1800);
   });
 });

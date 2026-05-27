@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "../../design/cn.js";
 import { classifyRole, iconForRole, toneForRole } from "../../design/roleTone.js";
-import type { GuideRunState } from "../../../lib/types.js";
+import type { FlowRunState } from "../../../lib/types.js";
 
 type Slot = {
   id: string;
@@ -11,11 +11,11 @@ type Slot = {
   state: "active" | "done" | "queued" | "skipped" | "failed";
 };
 
-function deriveSlots(guide: GuideRunState | null | undefined): Slot[] {
-  if (!guide) return [];
+function deriveSlots(flow: FlowRunState | null | undefined): Slot[] {
+  if (!flow) return [];
   // Stitch participants (one per slot id) with their most-recent step status.
   const byId = new Map<string, Slot>();
-  for (const p of guide.participants) {
+  for (const p of flow.participants) {
     byId.set(p.slotId, {
       id: p.slotId,
       role: classifyRole(p.label || p.slotId),
@@ -24,7 +24,7 @@ function deriveSlots(guide: GuideRunState | null | undefined): Slot[] {
       state: "queued",
     });
   }
-  for (const step of guide.steps) {
+  for (const step of flow.steps) {
     if (!step.slotId) continue;
     const cur = byId.get(step.slotId);
     if (!cur) continue;
@@ -38,8 +38,8 @@ function deriveSlots(guide: GuideRunState | null | undefined): Slot[] {
   return [...byId.values()];
 }
 
-export function CrewStrip({ guide }: { guide: GuideRunState | null | undefined }) {
-  const slots = deriveSlots(guide);
+export function CrewStrip({ flow }: { flow: FlowRunState | null | undefined }) {
+  const slots = deriveSlots(flow);
   if (slots.length === 0) return null;
   // Always render 4 columns so the rhythm matches the design.
   const padded: (Slot | null)[] = [...slots];
@@ -127,7 +127,7 @@ function Placeholder() {
       <div className="text-[10px] uppercase tracking-[0.16em] text-fog-500 mb-1">
         Slot
       </div>
-      <div className="text-[12px] text-fog-500">Not used by this guide</div>
+      <div className="text-[12px] text-fog-500">Not used by this flow</div>
     </div>
   );
 }

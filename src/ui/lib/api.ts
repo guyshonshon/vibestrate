@@ -7,7 +7,7 @@ import type {
   ConflictWarning,
   DiffSnapshot,
   DiscoveredSkill,
-  DiscoveredGuide,
+  DiscoveredFlow,
   EditorStatus,
   FileDiff,
   FileTreeResult,
@@ -50,9 +50,9 @@ import type {
   PolicyCheckResult,
   PolicySurface,
   RunReplay,
-  GuideContextPolicy,
-  GuideSuggestion,
-  ResolvedGuideSnapshot,
+  FlowContextPolicy,
+  FlowSuggestion,
+  ResolvedFlowSnapshot,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -278,7 +278,7 @@ export type CodebaseAnnotation = {
   updatedAt: string;
 };
 
-export type GuideStepKind =
+export type FlowStepKind =
   | "agent-turn"
   | "review-turn"
   | "response-turn"
@@ -286,63 +286,63 @@ export type GuideStepKind =
   | "approval-gate"
   | "summary-turn";
 
-export type GuideApprovalRiskLevel = "low" | "medium" | "high";
+export type FlowApprovalRiskLevel = "low" | "medium" | "high";
 
-export type GuideApprovalGatePatch = {
+export type FlowApprovalGatePatch = {
   reason: string;
   requestedAction: string;
   userMessage?: string;
-  riskLevel: GuideApprovalRiskLevel;
+  riskLevel: FlowApprovalRiskLevel;
 };
 
 /** Per-step patch — `undefined` keeps the current value, `null` clears
  *  the optional field. */
-export type GuideStepPatch = {
+export type FlowStepPatch = {
   id: string;
   label?: string;
   optional?: boolean;
-  kind?: GuideStepKind;
+  kind?: FlowStepKind;
   slot?: string | null;
   roleId?: string | null;
-  approval?: GuideApprovalGatePatch | null;
+  approval?: FlowApprovalGatePatch | null;
 };
 
 /** Full step shape — accepted by `replaceSteps`. Mirrors the server's
- *  `guideStepSchema`, but inputs/outputs default to []. */
-export type GuideStepFull = {
+ *  `flowStepSchema`, but inputs/outputs default to []. */
+export type FlowStepFull = {
   id: string;
   label: string;
-  kind: GuideStepKind;
+  kind: FlowStepKind;
   slot?: string;
   roleId?: string;
   inputs?: string[];
   outputs?: string[];
   optional?: boolean;
-  approval?: GuideApprovalGatePatch;
+  approval?: FlowApprovalGatePatch;
   repeat?: { times: number };
 };
 
-export type GuideSlotFull = {
+export type FlowSlotFull = {
   label: string;
   description?: string;
   defaultRole: string;
 };
 
-export type GuidePatch = {
+export type FlowPatch = {
   label?: string;
   description?: string;
-  steps?: GuideStepPatch[];
+  steps?: FlowStepPatch[];
   /** Replace the entire ordered step list (used for add / remove / reorder). */
-  replaceSteps?: GuideStepFull[];
+  replaceSteps?: FlowStepFull[];
   /** Replace the slot map wholesale. */
-  replaceSlots?: Record<string, GuideSlotFull>;
+  replaceSlots?: Record<string, FlowSlotFull>;
 };
 
 export type ComposerPreset = {
   name: string;
   kind: "crew" | "template";
   brief: string | null;
-  guide: {
+  flow: {
     id: string;
     contextPolicy: "balanced" | "compact" | "artifact-heavy";
     slotProviders: Record<string, string>;
@@ -368,10 +368,10 @@ export const api = {
     readOnly?: boolean;
     skills?: string[];
     concise?: boolean;
-    guide?: {
+    flow?: {
       id: string;
       brief?: string | null;
-      contextPolicy?: GuideContextPolicy;
+      contextPolicy?: FlowContextPolicy;
       slotProviders?: Record<string, string>;
       skippedOptionalSteps?: string[];
     };
@@ -546,26 +546,26 @@ export const api = {
   }> {
     return jsonGet("/api/skills");
   },
-  async listGuides(): Promise<{ guides: DiscoveredGuide[] }> {
-    return jsonGet("/api/guides");
+  async listFlows(): Promise<{ flows: DiscoveredFlow[] }> {
+    return jsonGet("/api/flows");
   },
-  async patchGuide(
-    guideId: string,
-    patch: GuidePatch,
-  ): Promise<{ ok: true; guide: DiscoveredGuide; definitionPath: string }> {
-    return jsonPatch(`/api/guides/${encodeURIComponent(guideId)}`, patch);
+  async patchFlow(
+    flowId: string,
+    patch: FlowPatch,
+  ): Promise<{ ok: true; flow: DiscoveredFlow; definitionPath: string }> {
+    return jsonPatch(`/api/flows/${encodeURIComponent(flowId)}`, patch);
   },
-  async forkGuideToProject(guideId: string): Promise<{
+  async forkFlowToProject(flowId: string): Promise<{
     ok: true;
-    guideId: string;
+    flowId: string;
     definitionPath: string;
     alreadyForked: boolean;
-    guide: DiscoveredGuide;
+    flow: DiscoveredFlow;
   }> {
-    return jsonPost(`/api/guides/${encodeURIComponent(guideId)}/fork`);
+    return jsonPost(`/api/flows/${encodeURIComponent(flowId)}/fork`);
   },
-  async deleteGuide(guideId: string): Promise<{ ok: true; guideId: string }> {
-    return jsonDelete(`/api/guides/${encodeURIComponent(guideId)}`);
+  async deleteFlow(flowId: string): Promise<{ ok: true; flowId: string }> {
+    return jsonDelete(`/api/flows/${encodeURIComponent(flowId)}`);
   },
   async listComposerPresets(): Promise<{ presets: ComposerPreset[] }> {
     return jsonGet("/api/composer/presets");
@@ -602,30 +602,30 @@ export const api = {
   ): Promise<{ ok: true; roleId: string; provider: string }> {
     return jsonPatch(`/api/roles/${encodeURIComponent(roleId)}`, { provider });
   },
-  async resolveGuide(
-    guideId: string,
+  async resolveFlow(
+    flowId: string,
     input: {
       task: string;
       brief?: string | null;
-      contextPolicy?: GuideContextPolicy;
+      contextPolicy?: FlowContextPolicy;
       slotProviders?: Record<string, string>;
       stepProviders?: Record<string, string>;
       skippedOptionalSteps?: string[];
     },
-  ): Promise<ResolvedGuideSnapshot> {
-    const r = await jsonPost<{ snapshot: ResolvedGuideSnapshot }>(
-      `/api/guides/${encodeURIComponent(guideId)}/resolve`,
+  ): Promise<ResolvedFlowSnapshot> {
+    const r = await jsonPost<{ snapshot: ResolvedFlowSnapshot }>(
+      `/api/flows/${encodeURIComponent(flowId)}/resolve`,
       input,
     );
     return r.snapshot;
   },
-  async suggestGuides(input: {
+  async suggestFlows(input: {
     task: string;
     files?: string[];
     riskLevel?: "low" | "medium" | "high" | null;
-  }): Promise<GuideSuggestion[]> {
-    const r = await jsonPost<{ suggestions: GuideSuggestion[] }>(
-      "/api/guides/suggest",
+  }): Promise<FlowSuggestion[]> {
+    const r = await jsonPost<{ suggestions: FlowSuggestion[] }>(
+      "/api/flows/suggest",
       input,
     );
     return r.suggestions;

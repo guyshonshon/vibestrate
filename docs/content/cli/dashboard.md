@@ -26,7 +26,7 @@ amaco run "Add audit logging" --ui
 - **Board** — the active runs, with phase rails, current agent, and live status.
 - **Tasks** — your backlog: queued, running, completed, failed, aborted.
 - **Crew** — the workflow **roles** (planner, architect, executor, fixer, reviewer, verifier); set the **provider** each role runs on inline (configured providers only). A role is a seat in the workflow; a provider is the CLI it runs on — one provider can power many roles. Adding/configuring providers happens on the **Providers** page.
-- **Guides** — the resolved list of built-in and project Guides, plus the steps each defines.
+- **Flows** — the resolved list of built-in and project Flows, plus the steps each defines.
 - **Providers** — the CLIs your roles run on: what's installed, what's configured, test each one.
 - **Approvals** — pending policy-gated decisions.
 - **Git** — inline diff viewer for the active run's worktree, with file-by-file navigation.
@@ -42,7 +42,7 @@ Press **Cmd/Ctrl-K** (or `g r`) anywhere to open the **run switcher** — a sear
 Open a run to supervise it live:
 
 - **Status hero** — the task, a phase rail that follows the *actual* steps (the
-  Guide's own steps for a Guide run, not a fixed workflow), and a live
+  Flow's own steps for a Flow run, not a fixed workflow), and a live
   "Now ⟨step⟩ · ⟨agent⟩" line.
 - **Live execution** — the raw provider CLI output in a real terminal. Note:
   agents run **headless** (`claude -p`, etc.), and CLIs in print mode buffer

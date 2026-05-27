@@ -196,28 +196,28 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Flow Builder",
         blurb:
-          "Design how agents work together. Project guides live in .amaco/guides/.",
+          "Design how agents work together. Project flows live in .amaco/flows/.",
         commands: [
-          { cmd: "amaco guides list", note: "discovered guides" },
+          { cmd: "amaco flows list", note: "discovered flows" },
           {
-            cmd: "amaco guides show <guideId>",
-            note: "resolved snapshot for a guide",
+            cmd: "amaco flows show <flowId>",
+            note: "resolved snapshot for a flow",
           },
           {
-            cmd: 'amaco run "task" --guide <guideId>',
-            note: "run using a specific guide",
+            cmd: 'amaco run "task" --flow <flowId>',
+            note: "run using a specific flow",
           },
         ],
       };
-    case "guides":
+    case "flows":
       return {
-        title: "Guides",
+        title: "Flows",
         blurb:
-          "Browse the guide recipes Amaco discovers. Fork a builtin into .amaco/guides/ to customize it, then run it.",
+          "Browse the flow recipes Amaco discovers. Fork a builtin into .amaco/flows/ to customize it, then run it.",
         commands: [
-          { cmd: "amaco guides list", note: "discovered guides (builtin + project)" },
-          { cmd: "amaco guides show <guideId>", note: "inspect a guide's flow" },
-          { cmd: 'amaco run "task" --guide <guideId>', note: "run using a guide" },
+          { cmd: "amaco flows list", note: "discovered flows (builtin + project)" },
+          { cmd: "amaco flows show <flowId>", note: "inspect a flow's flow" },
+          { cmd: 'amaco run "task" --flow <flowId>', note: "run using a flow" },
         ],
       };
     case "metrics":

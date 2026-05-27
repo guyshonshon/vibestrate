@@ -21,7 +21,7 @@ const MAX_EVENTS = 10_000;
  *  The projection is forgiving: unknown event types still appear in the
  *  timeline, just classified into the "other" phase. */
 export type ReplayPhaseKey =
-  | "guides"
+  | "flows"
   | "planning"
   | "architecting"
   | "executing"
@@ -37,7 +37,7 @@ export type ReplayPhaseKey =
   | "other";
 
 export const REPLAY_PHASE_KEYS: ReplayPhaseKey[] = [
-  "guides",
+  "flows",
   "planning",
   "architecting",
   "executing",
@@ -182,8 +182,8 @@ export type ReplayMetricsSummary = {
   roleStageOrder: string[];
 };
 
-export type ReplayGuideSummary = {
-  guideId: string;
+export type ReplayFlowSummary = {
+  flowId: string;
   label: string;
   currentStepId: string | null;
   participants: {
@@ -232,7 +232,7 @@ export type RunReplay = {
   policyRefusals: ReplayPolicyRefusal[];
   notifications: ReplayNotification[];
   terminalSessions: ReplayTerminalSession[];
-  guide: ReplayGuideSummary | null;
+  flow: ReplayFlowSummary | null;
   artifacts: { path: string }[];
   metrics: ReplayMetricsSummary | null;
   /** Files we tried to read but couldn't parse / didn't exist. The UI
@@ -322,7 +322,7 @@ export async function buildRunReplay(
     (s) => s.runId === runId,
   );
   const metrics = extractMetricsSummary(metricsRaw);
-  const guide = extractGuideSummary(state);
+  const flow = extractFlowSummary(state);
 
   // ─── Artifacts under .amaco/runs/<id>/artifacts/ ───────────────────────
   const artifactsDir = path.join(runDir(projectRoot, runId), "artifacts");
@@ -469,7 +469,7 @@ export async function buildRunReplay(
     policyRefusals,
     notifications,
     terminalSessions,
-    guide,
+    flow,
     artifacts,
     metrics,
     missingOrMalformed: missing,
@@ -512,7 +512,7 @@ function collectArtifactRefs(
 }
 
 function phaseFromEventType(t: string): ReplayPhaseKey | null {
-  if (t.startsWith("guide.")) return "guides";
+  if (t.startsWith("flow.")) return "flows";
   if (t.startsWith("approval.")) return "approvals";
   if (t.startsWith("suggestion.") || t.startsWith("bundle.")) return "suggestions";
   if (t.startsWith("policy.")) return "policies";
@@ -550,8 +550,8 @@ function stageKeyFromStatus(status: string): ReplayPhaseKey | null {
 
 function phaseLabel(key: ReplayPhaseKey): string {
   switch (key) {
-    case "guides":
-      return "Guides";
+    case "flows":
+      return "Flows";
     case "planning":
       return "Planning";
     case "architecting":
@@ -581,15 +581,15 @@ function phaseLabel(key: ReplayPhaseKey): string {
   }
 }
 
-function extractGuideSummary(state: Record<string, unknown>): ReplayGuideSummary | null {
-  const raw = state.guide;
+function extractFlowSummary(state: Record<string, unknown>): ReplayFlowSummary | null {
+  const raw = state.flow;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const guide = raw as Record<string, unknown>;
-  const guideId = readString(guide, "guideId");
-  const label = readString(guide, "label");
-  if (!guideId || !label) return null;
-  const steps = Array.isArray(guide.steps)
-    ? guide.steps
+  const flow = raw as Record<string, unknown>;
+  const flowId = readString(flow, "flowId");
+  const label = readString(flow, "label");
+  if (!flowId || !label) return null;
+  const steps = Array.isArray(flow.steps)
+    ? flow.steps
         .filter(
           (step): step is Record<string, unknown> =>
             !!step && typeof step === "object" && !Array.isArray(step),
@@ -614,8 +614,8 @@ function extractGuideSummary(state: Record<string, unknown>): ReplayGuideSummary
           } => step !== null,
         )
     : [];
-  const participants = Array.isArray(guide.participants)
-    ? guide.participants
+  const participants = Array.isArray(flow.participants)
+    ? flow.participants
         .filter(
           (participant): participant is Record<string, unknown> =>
             !!participant &&
@@ -660,9 +660,9 @@ function extractGuideSummary(state: Record<string, unknown>): ReplayGuideSummary
         )
     : [];
   return {
-    guideId,
+    flowId,
     label,
-    currentStepId: readString(guide, "currentStepId"),
+    currentStepId: readString(flow, "currentStepId"),
     participants,
     steps,
   };

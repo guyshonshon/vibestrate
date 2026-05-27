@@ -79,51 +79,51 @@ import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
 import { resolveEffort } from "./effort-resolver.js";
 import { writeJson } from "../utils/json.js";
-import { runGuideSnapshotPath } from "../utils/paths.js";
+import { runFlowSnapshotPath } from "../utils/paths.js";
 import type {
-  ResolvedGuideSnapshot,
-  ResolvedGuideStep,
-} from "../guides/schemas/guide-schema.js";
+  ResolvedFlowSnapshot,
+  ResolvedFlowStep,
+} from "../flows/schemas/flow-schema.js";
 import {
-  buildGuideContextPacket as buildGuideContextPacketValue,
-  type GuideContextOutput,
-} from "../guides/runtime/guide-context-builder.js";
+  buildFlowContextPacket as buildFlowContextPacketValue,
+  type FlowContextOutput,
+} from "../flows/runtime/flow-context-builder.js";
 import {
-  GuideParticipantLedgerStore,
-  createGuideParticipantLedger,
-  prepareGuideParticipantTurn,
-  recordGuideParticipantTurn,
-  summarizeGuideParticipants,
-  type GuideParticipantLedger,
-  type PreparedGuideParticipantTurn,
-} from "../guides/runtime/guide-participant-ledger.js";
+  FlowParticipantLedgerStore,
+  createFlowParticipantLedger,
+  prepareFlowParticipantTurn,
+  recordFlowParticipantTurn,
+  summarizeFlowParticipants,
+  type FlowParticipantLedger,
+  type PreparedFlowParticipantTurn,
+} from "../flows/runtime/flow-participant-ledger.js";
 import {
-  GuideArbitrationStore,
-  createGuideArbitrationLedger,
-  formatGuideFindingSuggestionBody,
-  guideAcceptedFindingResponses,
-  guideArbitrationCanonicalFindings,
-  guideArbitrationCanonicalResolutions,
-  guideArbitrationCanonicalResponses,
-  parseGuideJsonContract,
-  recordGuideArbitrationParseIssue,
-  recordGuideDecision,
-  recordGuideFindingResolutions,
-  recordGuideFindingResponses,
-  recordGuideFindings,
-  renderGuideDecisionSummaryMarkdown,
-  renderGuideOutputContractNotes,
-  setGuideAcceptedReviewPassId,
-  setGuideDecisionSummaryPath,
-  setGuideFindingSuggestionId,
-  type GuideArbitrationLedger,
-} from "../guides/runtime/guide-arbitration.js";
+  FlowArbitrationStore,
+  createFlowArbitrationLedger,
+  formatFlowFindingSuggestionBody,
+  flowAcceptedFindingResponses,
+  flowArbitrationCanonicalFindings,
+  flowArbitrationCanonicalResolutions,
+  flowArbitrationCanonicalResponses,
+  parseFlowJsonContract,
+  recordFlowArbitrationParseIssue,
+  recordFlowDecision,
+  recordFlowFindingResolutions,
+  recordFlowFindingResponses,
+  recordFlowFindings,
+  renderFlowDecisionSummaryMarkdown,
+  renderFlowOutputContractNotes,
+  setFlowAcceptedReviewPassId,
+  setFlowDecisionSummaryPath,
+  setFlowFindingSuggestionId,
+  type FlowArbitrationLedger,
+} from "../flows/runtime/flow-arbitration.js";
 import {
-  guideDecisionSummaryOutputSchema,
-  guideFindingResolutionsOutputSchema,
-  guideFindingResponsesOutputSchema,
-  guideFindingsOutputSchema,
-} from "../guides/schemas/guide-output-contracts.js";
+  flowDecisionSummaryOutputSchema,
+  flowFindingResolutionsOutputSchema,
+  flowFindingResponsesOutputSchema,
+  flowFindingsOutputSchema,
+} from "../flows/schemas/flow-output-contracts.js";
 import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
 /** Stages a run can be rewound to. Earlier stages (planning) just mean a
@@ -166,12 +166,12 @@ export type OrchestratorInput = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Immutable resolved Guide recipe. When set, the sequential Guide
+  /** Immutable resolved Flow recipe. When set, the sequential Flow
    * runner replaces the legacy fixed workflow for this run. */
-  guide?: ResolvedGuideSnapshot | null;
+  flow?: ResolvedFlowSnapshot | null;
   /** Rewind: fork a fresh run that resumes at a chosen stage, reusing the
    *  upstream artifacts from a prior run instead of regenerating them.
-   *  Mutually exclusive with `guide`. */
+   *  Mutually exclusive with `flow`. */
   resumeFrom?: ResumeFromInput | null;
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
@@ -195,9 +195,9 @@ type RoleRunResult = {
   providerResult: ProviderRunResult;
 };
 
-type GuideRoleTurn = {
+type FlowRoleTurn = {
   slotId: string;
-  contextMode: PreparedGuideParticipantTurn["contextMode"];
+  contextMode: PreparedFlowParticipantTurn["contextMode"];
   fallbackReason: string | null;
   sessionRequest?: ProviderSessionRequest;
 };
@@ -274,8 +274,8 @@ function summarizeApprovals(
   };
 }
 
-function guideFindingSuggestionTitle(
-  finding: import("../guides/schemas/guide-output-contracts.js").GuideFinding,
+function flowFindingSuggestionTitle(
+  finding: import("../flows/schemas/flow-output-contracts.js").FlowFinding,
 ): string {
   const prefix = `Quality Arbitration ${finding.id}: `;
   const claim = finding.claim.replace(/\s+/g, " ").trim();
@@ -299,7 +299,7 @@ export class Orchestrator {
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
-  private readonly guide: ResolvedGuideSnapshot | null;
+  private readonly flow: ResolvedFlowSnapshot | null;
   private readonly resumeFrom: ResumeFromInput | null;
   private readonly abortSignal: AbortSignal | null;
 
@@ -316,11 +316,11 @@ export class Orchestrator {
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
-    this.guide = input.guide ?? null;
+    this.flow = input.flow ?? null;
     this.resumeFrom = input.resumeFrom ?? null;
-    if (this.guide && this.resumeFrom) {
+    if (this.flow && this.resumeFrom) {
       throw new Error(
-        "A run cannot both run a Guide and rewind from a prior run.",
+        "A run cannot both run a Flow and rewind from a prior run.",
       );
     }
     this.abortSignal = input.abortSignal ?? null;
@@ -388,8 +388,8 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
-      guide: this.guide
-        ? this.createGuideRunState(this.guide, "guide.json")
+      flow: this.flow
+        ? this.createFlowRunState(this.flow, "flow.json")
         : null,
       resumedFrom: this.resumeFrom
         ? {
@@ -398,8 +398,8 @@ export class Orchestrator {
           }
         : null,
     };
-    if (this.guide) {
-      await writeJson(runGuideSnapshotPath(this.projectRoot, runId), this.guide);
+    if (this.flow) {
+      await writeJson(runFlowSnapshotPath(this.projectRoot, runId), this.flow);
     }
     await stateStore.write(state);
     await eventLog.append({
@@ -422,14 +422,14 @@ export class Orchestrator {
       message: resolution.note,
       data: { kind: "effort-resolution", source: resolution.source },
     });
-    if (this.guide) {
+    if (this.flow) {
       await eventLog.append({
-        type: "guide.snapshot.written",
-        message: `Resolved Guide ${this.guide.guideId} snapshot persisted.`,
+        type: "flow.snapshot.written",
+        message: `Resolved Flow ${this.flow.flowId} snapshot persisted.`,
         data: {
-          guideId: this.guide.guideId,
-          guideVersion: this.guide.guideVersion,
-          snapshotPath: "guide.json",
+          flowId: this.flow.flowId,
+          flowVersion: this.flow.flowVersion,
+          snapshotPath: "flow.json",
         },
       });
     }
@@ -536,9 +536,9 @@ export class Orchestrator {
     // not re-trigger policy approval — V0 keeps it once-per-stage-per-run.
     const policyStagesAlreadyForced = new Set<string>();
 
-    if (this.guide) {
-      return this.runGuideSequence({
-        snapshot: this.guide,
+    if (this.flow) {
+      return this.runFlowSequence({
+        snapshot: this.flow,
         runId,
         state,
         worktreePath,
@@ -1316,13 +1316,13 @@ export class Orchestrator {
     return out;
   }
 
-  private createGuideRunState(
-    snapshot: ResolvedGuideSnapshot,
+  private createFlowRunState(
+    snapshot: ResolvedFlowSnapshot,
     snapshotPath: string,
-  ): NonNullable<RunState["guide"]> {
+  ): NonNullable<RunState["flow"]> {
     return {
-      guideId: snapshot.guideId,
-      guideVersion: snapshot.guideVersion,
+      flowId: snapshot.flowId,
+      flowVersion: snapshot.flowVersion,
       label: snapshot.label,
       snapshotPath,
       participantLedgerPath: "participants.json",
@@ -1348,47 +1348,47 @@ export class Orchestrator {
     };
   }
 
-  private patchGuideStep(
+  private patchFlowStep(
     state: RunState,
     stepId: string,
-    patch: Partial<NonNullable<RunState["guide"]>["steps"][number]>,
-    currentStepId = state.guide?.currentStepId ?? null,
+    patch: Partial<NonNullable<RunState["flow"]>["steps"][number]>,
+    currentStepId = state.flow?.currentStepId ?? null,
   ): RunState {
-    if (!state.guide) {
-      throw new Error("Cannot update a Guide step on a legacy run.");
+    if (!state.flow) {
+      throw new Error("Cannot update a Flow step on a legacy run.");
     }
     return {
       ...state,
       updatedAt: nowIso(),
-      guide: {
-        ...state.guide,
+      flow: {
+        ...state.flow,
         currentStepId,
-        steps: state.guide.steps.map((step) =>
+        steps: state.flow.steps.map((step) =>
           step.id === stepId ? { ...step, ...patch } : step,
         ),
       },
     };
   }
 
-  private patchGuideParticipants(
+  private patchFlowParticipants(
     state: RunState,
-    ledger: GuideParticipantLedger,
+    ledger: FlowParticipantLedger,
   ): RunState {
-    if (!state.guide) {
-      throw new Error("Cannot update Guide participants on a legacy run.");
+    if (!state.flow) {
+      throw new Error("Cannot update Flow participants on a legacy run.");
     }
     return {
       ...state,
       updatedAt: nowIso(),
-      guide: {
-        ...state.guide,
+      flow: {
+        ...state.flow,
         participantLedgerPath: "participants.json",
-        participants: summarizeGuideParticipants(ledger),
+        participants: summarizeFlowParticipants(ledger),
       },
     };
   }
 
-  private guideStatusForStep(step: ResolvedGuideStep): RunStatus {
+  private flowStatusForStep(step: ResolvedFlowStep): RunStatus {
     switch (step.kind) {
       case "review-turn":
         return "reviewing";
@@ -1406,12 +1406,12 @@ export class Orchestrator {
     }
   }
 
-  private async moveToGuideStepStatus(input: {
+  private async moveToFlowStepStatus(input: {
     state: RunState;
-    step: ResolvedGuideStep;
+    step: ResolvedFlowStep;
     stateStore: RunStateStore;
   }): Promise<RunState> {
-    const target = this.guideStatusForStep(input.step);
+    const target = this.flowStatusForStep(input.step);
     if (target === "waiting_for_approval" || input.state.status === target) {
       return input.state;
     }
@@ -1420,9 +1420,9 @@ export class Orchestrator {
     return next;
   }
 
-  private renderGuideStepNotes(input: {
-    snapshot: ResolvedGuideSnapshot;
-    step: ResolvedGuideStep;
+  private renderFlowStepNotes(input: {
+    snapshot: ResolvedFlowSnapshot;
+    step: ResolvedFlowStep;
   }): string {
     const brief = input.snapshot.brief
       ? `Run brief:\n${input.snapshot.brief.trim()}\n\n`
@@ -1431,11 +1431,11 @@ export class Orchestrator {
       input.step.outputs.length > 0
         ? input.step.outputs.map((token) => `- ${token}`).join("\n")
         : "- No named outputs declared.";
-    const contractNotes = renderGuideOutputContractNotes(input.step);
+    const contractNotes = renderFlowOutputContractNotes(input.step);
     return [
-      `Guide: ${input.snapshot.label} (${input.snapshot.guideId} v${input.snapshot.guideVersion})`,
-      `Guide step: ${input.step.label} (${input.step.id})`,
-      `Guide step kind: ${input.step.kind}`,
+      `Flow: ${input.snapshot.label} (${input.snapshot.flowId} v${input.snapshot.flowVersion})`,
+      `Flow step: ${input.step.label} (${input.step.id})`,
+      `Flow step kind: ${input.step.kind}`,
       `Context policy: ${input.snapshot.contextPolicy}`,
       "",
       brief.trimEnd(),
@@ -1450,18 +1450,18 @@ export class Orchestrator {
       .join("\n");
   }
 
-  private async buildGuideContextPacket(input: {
-    snapshot: ResolvedGuideSnapshot;
-    step: ResolvedGuideStep;
-    outputs: Map<string, GuideContextOutput>;
+  private async buildFlowContextPacket(input: {
+    snapshot: ResolvedFlowSnapshot;
+    step: ResolvedFlowStep;
+    outputs: Map<string, FlowContextOutput>;
     artifactStore: ArtifactStore;
-    contextMode: PreparedGuideParticipantTurn["contextMode"];
+    contextMode: PreparedFlowParticipantTurn["contextMode"];
   }): Promise<{
     priorArtifacts: PriorArtifact[];
     contextPacketPath: string;
-    budget: ReturnType<typeof buildGuideContextPacketValue>["packet"]["budget"];
+    budget: ReturnType<typeof buildFlowContextPacketValue>["packet"]["budget"];
   }> {
-    const built = buildGuideContextPacketValue({
+    const built = buildFlowContextPacketValue({
       snapshot: input.snapshot,
       step: input.step,
       outputs: input.outputs,
@@ -1469,7 +1469,7 @@ export class Orchestrator {
       generatedAt: nowIso(),
     });
     const absPath = await input.artifactStore.writeJson(
-      path.posix.join("guides", input.step.id, "context-packet.json"),
+      path.posix.join("flows", input.step.id, "context-packet.json"),
       built.packet,
     );
     return {
@@ -1479,10 +1479,10 @@ export class Orchestrator {
     };
   }
 
-  private async registerGuideRoleOutputs(input: {
-    step: ResolvedGuideStep;
+  private async registerFlowRoleOutputs(input: {
+    step: ResolvedFlowStep;
     result: RoleRunResult;
-    outputs: Map<string, GuideContextOutput>;
+    outputs: Map<string, FlowContextOutput>;
     artifactStore: ArtifactStore;
     worktreePath: string | null;
   }): Promise<void> {
@@ -1493,7 +1493,7 @@ export class Orchestrator {
           worktreePath: input.worktreePath,
         });
         const absPath = await input.artifactStore.writeJson(
-          path.posix.join("guides", input.step.id, "diff-snapshot.json"),
+          path.posix.join("flows", input.step.id, "diff-snapshot.json"),
           snapshot,
         );
         input.outputs.set(token, {
@@ -1513,11 +1513,11 @@ export class Orchestrator {
     }
   }
 
-  private registerGuideValidationOutputs(input: {
-    step: ResolvedGuideStep;
+  private registerFlowValidationOutputs(input: {
+    step: ResolvedFlowStep;
     validation: ValidationResults;
     validationArtifactPath: string;
-    outputs: Map<string, GuideContextOutput>;
+    outputs: Map<string, FlowContextOutput>;
   }): void {
     for (const token of input.step.outputs) {
       input.outputs.set(token, {
@@ -1529,40 +1529,40 @@ export class Orchestrator {
     }
   }
 
-  private async recordGuideArbitrationOutputs(input: {
-    step: ResolvedGuideStep;
+  private async recordFlowArbitrationOutputs(input: {
+    step: ResolvedFlowStep;
     result: RoleRunResult;
-    outputs: Map<string, GuideContextOutput>;
+    outputs: Map<string, FlowContextOutput>;
     validation: ValidationResults | null;
     artifactStore: ArtifactStore;
     eventLog: EventLog;
-    ledger: GuideArbitrationLedger;
-    store: GuideArbitrationStore;
-  }): Promise<GuideArbitrationLedger> {
+    ledger: FlowArbitrationLedger;
+    store: FlowArbitrationStore;
+  }): Promise<FlowArbitrationLedger> {
     let ledger = input.ledger;
     let findingsChanged = false;
 
     if (input.step.outputs.includes("findings")) {
-      const parsed = parseGuideJsonContract({
+      const parsed = parseFlowJsonContract({
         text: input.result.output,
-        schema: guideFindingsOutputSchema,
+        schema: flowFindingsOutputSchema,
         expectedStepId: input.step.id,
       });
       if (parsed.ok) {
-        ledger = recordGuideFindings({
+        ledger = recordFlowFindings({
           ledger,
           output: parsed.output,
           sourceArtifactPath: input.result.outputArtifactPath,
         });
         const absPath = await input.artifactStore.writeJson(
-          path.posix.join("guides", "findings.json"),
-          guideArbitrationCanonicalFindings(ledger, input.step.id),
+          path.posix.join("flows", "findings.json"),
+          flowArbitrationCanonicalFindings(ledger, input.step.id),
         );
         input.outputs.set("findings", {
           token: "findings",
-          label: "Guide Findings",
+          label: "Flow Findings",
           content: `${JSON.stringify(
-            guideArbitrationCanonicalFindings(ledger, input.step.id),
+            flowArbitrationCanonicalFindings(ledger, input.step.id),
             null,
             2,
           )}\n`,
@@ -1570,7 +1570,7 @@ export class Orchestrator {
         });
         findingsChanged = true;
       } else {
-        ledger = recordGuideArbitrationParseIssue({
+        ledger = recordFlowArbitrationParseIssue({
           ledger,
           stepId: input.step.id,
           outputToken: "findings",
@@ -1581,35 +1581,35 @@ export class Orchestrator {
     }
 
     if (input.step.outputs.includes("finding-responses")) {
-      const parsed = parseGuideJsonContract({
+      const parsed = parseFlowJsonContract({
         text: input.result.output,
-        schema: guideFindingResponsesOutputSchema,
+        schema: flowFindingResponsesOutputSchema,
         expectedStepId: input.step.id,
       });
       if (parsed.ok) {
-        ledger = recordGuideFindingResponses({
+        ledger = recordFlowFindingResponses({
           ledger,
           output: parsed.output,
           sourceArtifactPath: input.result.outputArtifactPath,
         });
-        ledger = await this.feedGuideAcceptedFindings(ledger);
-        const canonical = guideArbitrationCanonicalResponses(
+        ledger = await this.feedFlowAcceptedFindings(ledger);
+        const canonical = flowArbitrationCanonicalResponses(
           ledger,
           input.step.id,
         );
         const absPath = await input.artifactStore.writeJson(
-          path.posix.join("guides", "finding-responses.json"),
+          path.posix.join("flows", "finding-responses.json"),
           canonical,
         );
         input.outputs.set("finding-responses", {
           token: "finding-responses",
-          label: "Guide Finding Responses",
+          label: "Flow Finding Responses",
           content: `${JSON.stringify(canonical, null, 2)}\n`,
           artifactPath: input.artifactStore.relPath(absPath),
         });
         findingsChanged = true;
       } else {
-        ledger = recordGuideArbitrationParseIssue({
+        ledger = recordFlowArbitrationParseIssue({
           ledger,
           stepId: input.step.id,
           outputToken: "finding-responses",
@@ -1620,34 +1620,34 @@ export class Orchestrator {
     }
 
     if (input.step.outputs.includes("finding-resolutions")) {
-      const parsed = parseGuideJsonContract({
+      const parsed = parseFlowJsonContract({
         text: input.result.output,
-        schema: guideFindingResolutionsOutputSchema,
+        schema: flowFindingResolutionsOutputSchema,
         expectedStepId: input.step.id,
       });
       if (parsed.ok) {
-        ledger = recordGuideFindingResolutions({
+        ledger = recordFlowFindingResolutions({
           ledger,
           output: parsed.output,
           sourceArtifactPath: input.result.outputArtifactPath,
         });
-        const canonical = guideArbitrationCanonicalResolutions(
+        const canonical = flowArbitrationCanonicalResolutions(
           ledger,
           input.step.id,
         );
         const absPath = await input.artifactStore.writeJson(
-          path.posix.join("guides", "finding-resolutions.json"),
+          path.posix.join("flows", "finding-resolutions.json"),
           canonical,
         );
         input.outputs.set("finding-resolutions", {
           token: "finding-resolutions",
-          label: "Guide Finding Resolutions",
+          label: "Flow Finding Resolutions",
           content: `${JSON.stringify(canonical, null, 2)}\n`,
           artifactPath: input.artifactStore.relPath(absPath),
         });
         findingsChanged = true;
       } else {
-        ledger = recordGuideArbitrationParseIssue({
+        ledger = recordFlowArbitrationParseIssue({
           ledger,
           stepId: input.step.id,
           outputToken: "finding-resolutions",
@@ -1658,29 +1658,29 @@ export class Orchestrator {
     }
 
     if (input.step.outputs.includes("decision-summary")) {
-      const parsed = parseGuideJsonContract({
+      const parsed = parseFlowJsonContract({
         text: input.result.output,
-        schema: guideDecisionSummaryOutputSchema,
+        schema: flowDecisionSummaryOutputSchema,
         expectedStepId: input.step.id,
       });
       if (parsed.ok) {
-        ledger = recordGuideDecision({
+        ledger = recordFlowDecision({
           ledger,
           output: parsed.output,
           sourceArtifactPath: input.result.outputArtifactPath,
         });
         const absPath = await input.artifactStore.writeJson(
-          path.posix.join("guides", "decision-summary.json"),
+          path.posix.join("flows", "decision-summary.json"),
           parsed.output,
         );
         input.outputs.set("decision-summary", {
           token: "decision-summary",
-          label: "Guide Decision Summary",
+          label: "Flow Decision Summary",
           content: `${JSON.stringify(parsed.output, null, 2)}\n`,
           artifactPath: input.artifactStore.relPath(absPath),
         });
       } else {
-        ledger = recordGuideArbitrationParseIssue({
+        ledger = recordFlowArbitrationParseIssue({
           ledger,
           stepId: input.step.id,
           outputToken: "decision-summary",
@@ -1688,7 +1688,7 @@ export class Orchestrator {
           message: parsed.message,
         });
       }
-      ledger = await this.writeGuideDecisionSummaryArtifact({
+      ledger = await this.writeFlowDecisionSummaryArtifact({
         ledger,
         stepId: input.step.id,
         outputs: input.outputs,
@@ -1696,8 +1696,8 @@ export class Orchestrator {
         artifactStore: input.artifactStore,
       });
       await input.eventLog.append({
-        type: "guide.decision.completed",
-        message: `Guide decision summary persisted for ${input.step.id}.`,
+        type: "flow.decision.completed",
+        message: `Flow decision summary persisted for ${input.step.id}.`,
         data: {
           stepId: input.step.id,
           decisionSummaryPath: ledger.decisionSummaryPath,
@@ -1708,8 +1708,8 @@ export class Orchestrator {
 
     if (findingsChanged) {
       await input.eventLog.append({
-        type: "guide.findings.updated",
-        message: `Guide arbitration records updated at ${input.step.id}.`,
+        type: "flow.findings.updated",
+        message: `Flow arbitration records updated at ${input.step.id}.`,
         data: {
           stepId: input.step.id,
           findings: ledger.findings.length,
@@ -1723,25 +1723,25 @@ export class Orchestrator {
     return ledger;
   }
 
-  private async feedGuideAcceptedFindings(
-    ledger: GuideArbitrationLedger,
-  ): Promise<GuideArbitrationLedger> {
+  private async feedFlowAcceptedFindings(
+    ledger: FlowArbitrationLedger,
+  ): Promise<FlowArbitrationLedger> {
     const svc = new ReviewSuggestionService(this.projectRoot, ledger.runId);
-    for (const accepted of guideAcceptedFindingResponses(ledger)) {
+    for (const accepted of flowAcceptedFindingResponses(ledger)) {
       if (accepted.finding.suggestionId) continue;
       const fileRef = accepted.finding.finding.evidence.find(
         (evidence) => evidence.kind === "file",
       );
       const suggestion = await svc.addArtifactSuggestion({
-        title: guideFindingSuggestionTitle(accepted.finding.finding),
-        body: formatGuideFindingSuggestionBody({
+        title: flowFindingSuggestionTitle(accepted.finding.finding),
+        body: formatFlowFindingSuggestionBody({
           finding: accepted.finding.finding,
           response: accepted.response.response,
         }),
         file: fileRef?.ref ?? null,
         sourceArtifactPath: accepted.finding.sourceArtifactPath,
       });
-      ledger = setGuideFindingSuggestionId({
+      ledger = setFlowFindingSuggestionId({
         ledger,
         findingId: accepted.finding.finding.id,
         suggestionId: suggestion.id,
@@ -1749,7 +1749,7 @@ export class Orchestrator {
     }
 
     if (ledger.acceptedReviewPassId) return ledger;
-    const suggestionIds = guideAcceptedFindingResponses(ledger)
+    const suggestionIds = flowAcceptedFindingResponses(ledger)
       .map((accepted) => accepted.finding.suggestionId)
       .filter((id): id is string => id !== null);
     if (suggestionIds.length === 0) return ledger;
@@ -1759,48 +1759,48 @@ export class Orchestrator {
     ).create({
       title: "Quality Arbitration accepted findings",
       description:
-        "Findings the builder accepted or fixed during the Guide challenge response.",
+        "Findings the builder accepted or fixed during the Flow challenge response.",
       suggestionIds,
     });
-    return setGuideAcceptedReviewPassId(ledger, bundle.id);
+    return setFlowAcceptedReviewPassId(ledger, bundle.id);
   }
 
-  private async writeGuideDecisionSummaryArtifact(input: {
-    ledger: GuideArbitrationLedger;
+  private async writeFlowDecisionSummaryArtifact(input: {
+    ledger: FlowArbitrationLedger;
     stepId: string;
-    outputs: Map<string, GuideContextOutput>;
+    outputs: Map<string, FlowContextOutput>;
     validation: ValidationResults | null;
     artifactStore: ArtifactStore;
-  }): Promise<GuideArbitrationLedger> {
+  }): Promise<FlowArbitrationLedger> {
     await input.artifactStore.writeJson(
-      path.posix.join("guides", "findings.json"),
-      guideArbitrationCanonicalFindings(input.ledger, input.stepId),
+      path.posix.join("flows", "findings.json"),
+      flowArbitrationCanonicalFindings(input.ledger, input.stepId),
     );
     await input.artifactStore.writeJson(
-      path.posix.join("guides", "finding-responses.json"),
-      guideArbitrationCanonicalResponses(input.ledger, input.stepId),
+      path.posix.join("flows", "finding-responses.json"),
+      flowArbitrationCanonicalResponses(input.ledger, input.stepId),
     );
     await input.artifactStore.writeJson(
-      path.posix.join("guides", "finding-resolutions.json"),
-      guideArbitrationCanonicalResolutions(input.ledger, input.stepId),
+      path.posix.join("flows", "finding-resolutions.json"),
+      flowArbitrationCanonicalResolutions(input.ledger, input.stepId),
     );
     const absPath = await input.artifactStore.write(
-      path.posix.join("guides", "decision-summary.md"),
-      `${renderGuideDecisionSummaryMarkdown({
+      path.posix.join("flows", "decision-summary.md"),
+      `${renderFlowDecisionSummaryMarkdown({
         ledger: input.ledger,
         validation: input.validation,
         validationArtifactPath:
           input.outputs.get("validation")?.artifactPath ?? null,
       })}\n`,
     );
-    return setGuideDecisionSummaryPath(
+    return setFlowDecisionSummaryPath(
       input.ledger,
       input.artifactStore.relPath(absPath),
     );
   }
 
-  private async runGuideSequence(input: {
-    snapshot: ResolvedGuideSnapshot;
+  private async runFlowSequence(input: {
+    snapshot: ResolvedFlowSnapshot;
     runId: string;
     state: RunState;
     worktreePath: string | null;
@@ -1831,53 +1831,53 @@ export class Orchestrator {
     let executionArtifact: RoleRunResult | null = null;
     let reviewArtifact: RoleRunResult | null = null;
     let verificationArtifact: RoleRunResult | null = null;
-    const outputs = new Map<string, GuideContextOutput>();
-    const participantStore = new GuideParticipantLedgerStore(
+    const outputs = new Map<string, FlowContextOutput>();
+    const participantStore = new FlowParticipantLedgerStore(
       this.projectRoot,
       input.runId,
     );
     let participantLedger =
       (await participantStore.read()) ??
-      createGuideParticipantLedger({
+      createFlowParticipantLedger({
         snapshot: input.snapshot,
         capabilities: (providerId) =>
           providerCapabilities(this.config.providers, providerId),
       });
     await participantStore.write(participantLedger);
-    state = this.patchGuideParticipants(state, participantLedger);
+    state = this.patchFlowParticipants(state, participantLedger);
     await input.stateStore.write(state);
     for (const participant of participantLedger.participants) {
       await input.eventLog.append({
-        type: "guide.participant.capabilities",
-        message: `Guide participant ${participant.slotId} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
+        type: "flow.participant.capabilities",
+        message: `Flow participant ${participant.slotId} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
         data: {
-          guideId: input.snapshot.guideId,
+          flowId: input.snapshot.flowId,
           slotId: participant.slotId,
           providerId: participant.providerId,
           capabilities: participant.capabilities,
         },
       });
     }
-    const arbitrationStore = new GuideArbitrationStore(
+    const arbitrationStore = new FlowArbitrationStore(
       this.projectRoot,
       input.runId,
     );
     let arbitrationLedger =
       (await arbitrationStore.read()) ??
-      createGuideArbitrationLedger({
+      createFlowArbitrationLedger({
         runId: input.runId,
         snapshot: input.snapshot,
       });
     await arbitrationStore.write(arbitrationLedger);
     const taskBriefBody = [
-      "# Guide Task Brief",
+      "# Flow Task Brief",
       "",
       `Task: ${this.task}`,
       "",
-      input.snapshot.brief ? input.snapshot.brief : "_No extra Guide brief._",
+      input.snapshot.brief ? input.snapshot.brief : "_No extra Flow brief._",
     ].join("\n");
     const taskBriefAbs = await input.artifactStore.write(
-      path.posix.join("guides", "task-brief.md"),
+      path.posix.join("flows", "task-brief.md"),
       `${taskBriefBody}\n`,
     );
     outputs.set("task-brief", {
@@ -1890,7 +1890,7 @@ export class Orchestrator {
     try {
       for (const step of input.snapshot.steps) {
         if (!step.enabled) {
-          state = this.patchGuideStep(
+          state = this.patchFlowStep(
             state,
             step.id,
             { status: "skipped", endedAt: nowIso() },
@@ -1898,9 +1898,9 @@ export class Orchestrator {
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "guide.step.skipped",
-            message: `Guide step ${step.id} skipped.`,
-            data: { guideId: input.snapshot.guideId, stepId: step.id },
+            type: "flow.step.skipped",
+            message: `Flow step ${step.id} skipped.`,
+            data: { flowId: input.snapshot.flowId, stepId: step.id },
           });
           continue;
         }
@@ -1911,23 +1911,23 @@ export class Orchestrator {
           events: input.eventLog,
         });
         if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-        state = await this.moveToGuideStepStatus({
+        state = await this.moveToFlowStepStatus({
           state,
           step,
           stateStore: input.stateStore,
         });
 
         const preparedTurn = step.slotId && step.roleId
-          ? prepareGuideParticipantTurn(participantLedger, step.slotId)
+          ? prepareFlowParticipantTurn(participantLedger, step.slotId)
           : null;
-        const context = await this.buildGuideContextPacket({
+        const context = await this.buildFlowContextPacket({
           snapshot: input.snapshot,
           step,
           outputs,
           artifactStore: input.artifactStore,
           contextMode: preparedTurn?.contextMode ?? "stateless",
         });
-        state = this.patchGuideStep(
+        state = this.patchFlowStep(
           state,
           step.id,
           {
@@ -1940,10 +1940,10 @@ export class Orchestrator {
         );
         await input.stateStore.write(state);
         await input.eventLog.append({
-          type: "guide.context.built",
-          message: `Guide context packet built for ${step.id}.`,
+          type: "flow.context.built",
+          message: `Flow context packet built for ${step.id}.`,
           data: {
-            guideId: input.snapshot.guideId,
+            flowId: input.snapshot.flowId,
             stepId: step.id,
             contextPolicy: input.snapshot.contextPolicy,
             contextMode: preparedTurn?.contextMode ?? "stateless",
@@ -1952,10 +1952,10 @@ export class Orchestrator {
           },
         });
         await input.eventLog.append({
-          type: "guide.step.started",
-          message: `Guide step ${step.id} starting.`,
+          type: "flow.step.started",
+          message: `Flow step ${step.id} starting.`,
           data: {
-            guideId: input.snapshot.guideId,
+            flowId: input.snapshot.flowId,
             stepId: step.id,
             kind: step.kind,
             roleId: step.roleId,
@@ -1963,10 +1963,10 @@ export class Orchestrator {
             contextPacketPath: context.contextPacketPath,
           },
         });
-        this.onProgress(`Guide ${step.id}...`);
+        this.onProgress(`Flow ${step.id}...`);
 
         if (step.kind === "validation") {
-          const validationOutput = await this.runGuideValidationStep({
+          const validationOutput = await this.runFlowValidationStep({
             step,
             state,
             outputs,
@@ -1986,22 +1986,22 @@ export class Orchestrator {
             );
           }
           await input.eventLog.append({
-            type: "guide.step.completed",
-            message: `Guide step ${step.id} completed.`,
-            data: { guideId: input.snapshot.guideId, stepId: step.id },
+            type: "flow.step.completed",
+            message: `Flow step ${step.id} completed.`,
+            data: { flowId: input.snapshot.flowId, stepId: step.id },
           });
           continue;
         }
 
         if (step.kind === "approval-gate") {
           if (!step.approval) {
-            throw new Error(`Guide approval gate "${step.id}" has no metadata.`);
+            throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
           }
           const gate = await this.awaitApprovalRequest({
             state,
             fromStatus: state.status,
             stageId: step.id,
-            roleId: "guide",
+            roleId: "flow",
             reason: step.approval.reason,
             prompt: null,
             sourceArtifactPath: context.contextPacketPath,
@@ -2009,16 +2009,16 @@ export class Orchestrator {
             riskLevel: step.approval.riskLevel,
             source: "policy",
             userMessage: step.approval.userMessage ?? null,
-            progressMessage: `Pausing for Guide approval at ${step.id}...`,
-            requestedMessage: `Guide approval gate ${step.id} is waiting for a decision.`,
-            resumedMessage: `Run resumed after Guide approval gate ${step.id}.`,
+            progressMessage: `Pausing for Flow approval at ${step.id}...`,
+            requestedMessage: `Flow approval gate ${step.id} is waiting for a decision.`,
+            resumedMessage: `Run resumed after Flow approval gate ${step.id}.`,
             approvalService: input.approvalService,
             stateStore: input.stateStore,
             eventLog: input.eventLog,
           });
           state = gate.state;
           if (gate.rejected) {
-            state = this.patchGuideStep(
+            state = this.patchFlowStep(
               state,
               step.id,
               { status: "blocked", endedAt: nowIso() },
@@ -2026,14 +2026,14 @@ export class Orchestrator {
             );
             await input.stateStore.write(state);
             await input.eventLog.append({
-              type: "guide.step.failed",
-              message: `Guide approval gate ${step.id} blocked the run.`,
-              data: { guideId: input.snapshot.guideId, stepId: step.id },
+              type: "flow.step.failed",
+              message: `Flow approval gate ${step.id} blocked the run.`,
+              data: { flowId: input.snapshot.flowId, stepId: step.id },
             });
             throw new __ApprovalRejectedSignal();
           }
 
-          state = this.patchGuideStep(
+          state = this.patchFlowStep(
             state,
             step.id,
             { status: "passed", endedAt: nowIso() },
@@ -2041,15 +2041,15 @@ export class Orchestrator {
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "guide.step.completed",
-            message: `Guide approval gate ${step.id} completed.`,
-            data: { guideId: input.snapshot.guideId, stepId: step.id },
+            type: "flow.step.completed",
+            message: `Flow approval gate ${step.id} completed.`,
+            data: { flowId: input.snapshot.flowId, stepId: step.id },
           });
           continue;
         }
 
         if (!step.roleId) {
-          throw new Error(`Guide step "${step.id}" needs an agent.`);
+          throw new Error(`Flow step "${step.id}" needs an agent.`);
         }
 
         const result = await this.runRole({
@@ -2057,17 +2057,17 @@ export class Orchestrator {
           providerId: step.providerId,
           stageId: step.id,
           promptIndex: 0,
-          promptName: path.posix.join("guides", step.id, "prompt.md"),
-          outputName: path.posix.join("guides", step.id, "output.md"),
+          promptName: path.posix.join("flows", step.id, "prompt.md"),
+          outputName: path.posix.join("flows", step.id, "output.md"),
           priorArtifacts: context.priorArtifacts,
           validationResults: lastValidation,
-          additionalNotes: this.renderGuideStepNotes({
+          additionalNotes: this.renderFlowStepNotes({
             snapshot: input.snapshot,
             step,
           }),
           ...(preparedTurn
             ? {
-                guideTurn: {
+                flowTurn: {
                   slotId: preparedTurn.slotId,
                   contextMode: preparedTurn.contextMode,
                   fallbackReason: preparedTurn.fallbackReason,
@@ -2081,7 +2081,7 @@ export class Orchestrator {
           ctx: input.ctx,
         });
         if (preparedTurn) {
-          participantLedger = recordGuideParticipantTurn({
+          participantLedger = recordFlowParticipantTurn({
             ledger: participantLedger,
             prepared: preparedTurn,
             stepId: step.id,
@@ -2093,20 +2093,20 @@ export class Orchestrator {
             providerSessionId: result.providerResult.session?.sessionId ?? null,
           });
           await participantStore.write(participantLedger);
-          state = this.patchGuideParticipants(state, participantLedger);
+          state = this.patchFlowParticipants(state, participantLedger);
           await input.stateStore.write(state);
           await input.eventLog.append({
             type:
               preparedTurn.contextMode === "opened"
-                ? "guide.session.opened"
+                ? "flow.session.opened"
                 : preparedTurn.contextMode === "reused"
-                  ? "guide.session.reused"
+                  ? "flow.session.reused"
                   : preparedTurn.contextMode === "rehydrated"
-                    ? "guide.session.rehydrated"
-                    : "guide.session.stateless",
-            message: `Guide participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
+                    ? "flow.session.rehydrated"
+                    : "flow.session.stateless",
+            message: `Flow participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
             data: {
-              guideId: input.snapshot.guideId,
+              flowId: input.snapshot.flowId,
               stepId: step.id,
               slotId: preparedTurn.slotId,
               providerId: step.providerId,
@@ -2116,14 +2116,14 @@ export class Orchestrator {
             },
           });
         }
-        await this.registerGuideRoleOutputs({
+        await this.registerFlowRoleOutputs({
           step,
           result,
           outputs,
           artifactStore: input.artifactStore,
           worktreePath: input.worktreePath,
         });
-        arbitrationLedger = await this.recordGuideArbitrationOutputs({
+        arbitrationLedger = await this.recordFlowArbitrationOutputs({
           step,
           result,
           outputs,
@@ -2145,7 +2145,7 @@ export class Orchestrator {
           reviewDecision = effectiveReviewDecision(result.output);
           await input.eventLog.append({
             type: "review.decision",
-            message: `Guide review decision at ${step.id}: ${reviewDecision}`,
+            message: `Flow review decision at ${step.id}: ${reviewDecision}`,
             data: { decision: reviewDecision, stepId: step.id },
           });
         }
@@ -2154,7 +2154,7 @@ export class Orchestrator {
           verificationDecision = effectiveVerificationDecision(result.output);
           await input.eventLog.append({
             type: "verification.decision",
-            message: `Guide summary decision at ${step.id}: ${verificationDecision}`,
+            message: `Flow summary decision at ${step.id}: ${verificationDecision}`,
             data: { decision: verificationDecision, stepId: step.id },
           });
         }
@@ -2181,7 +2181,7 @@ export class Orchestrator {
         });
         state = gate.state;
         if (gate.rejected) {
-          state = this.patchGuideStep(
+          state = this.patchFlowStep(
             state,
             step.id,
             {
@@ -2194,14 +2194,14 @@ export class Orchestrator {
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "guide.step.failed",
-            message: `Guide step ${step.id} blocked by approval decision.`,
-            data: { guideId: input.snapshot.guideId, stepId: step.id },
+            type: "flow.step.failed",
+            message: `Flow step ${step.id} blocked by approval decision.`,
+            data: { flowId: input.snapshot.flowId, stepId: step.id },
           });
           throw new __ApprovalRejectedSignal();
         }
 
-        state = this.patchGuideStep(
+        state = this.patchFlowStep(
           state,
           step.id,
           {
@@ -2214,10 +2214,10 @@ export class Orchestrator {
         );
         await input.stateStore.write(state);
         await input.eventLog.append({
-          type: "guide.step.completed",
-          message: `Guide step ${step.id} completed.`,
+          type: "flow.step.completed",
+          message: `Flow step ${step.id} completed.`,
           data: {
-            guideId: input.snapshot.guideId,
+            flowId: input.snapshot.flowId,
             stepId: step.id,
             promptArtifactPath: result.promptArtifactPath,
             outputArtifactPath: result.outputArtifactPath,
@@ -2244,9 +2244,9 @@ export class Orchestrator {
       await input.stateStore.write(state);
       await input.eventLog.append({
         type: "run.completed",
-        message: `Guide run ${input.runId} ${state.status}.`,
+        message: `Flow run ${input.runId} ${state.status}.`,
         data: {
-          guideId: input.snapshot.guideId,
+          flowId: input.snapshot.flowId,
           decision: reviewDecision,
           verification: verificationDecision,
           validationPassed,
@@ -2263,9 +2263,9 @@ export class Orchestrator {
       );
     } catch (err) {
       if (!(err instanceof __ApprovalRejectedSignal)) {
-        const stepId = state.guide?.currentStepId;
+        const stepId = state.flow?.currentStepId;
         if (stepId) {
-          state = this.patchGuideStep(
+          state = this.patchFlowStep(
             state,
             stepId,
             {
@@ -2277,9 +2277,9 @@ export class Orchestrator {
           );
           await input.stateStore.write(state);
           await input.eventLog.append({
-            type: "guide.step.failed",
-            message: `Guide step ${stepId} failed: ${describeError(err)}`,
-            data: { guideId: input.snapshot.guideId, stepId },
+            type: "flow.step.failed",
+            message: `Flow step ${stepId} failed: ${describeError(err)}`,
+            data: { flowId: input.snapshot.flowId, stepId },
           });
         }
         const message = describeError(err);
@@ -2292,7 +2292,7 @@ export class Orchestrator {
         await input.stateStore.write(state);
         await input.eventLog.append({
           type: "run.failed",
-          message: `Guide run failed: ${message}`,
+          message: `Flow run failed: ${message}`,
         });
         input.notify(
           draftRunCompleted({
@@ -2309,7 +2309,7 @@ export class Orchestrator {
         } catch {
           // metrics finalize best-effort
         }
-        await this.writeGuideFinalReport({
+        await this.writeFlowFinalReport({
           ...input,
           state,
           lastValidation,
@@ -2336,7 +2336,7 @@ export class Orchestrator {
         : null,
       approvalsSummary: summarizeApprovals(approvals),
     }));
-    const finalReportPath = await this.writeGuideFinalReport({
+    const finalReportPath = await this.writeFlowFinalReport({
       ...input,
       state,
       lastValidation,
@@ -2355,10 +2355,10 @@ export class Orchestrator {
     };
   }
 
-  private async runGuideValidationStep(input: {
-    step: ResolvedGuideStep;
+  private async runFlowValidationStep(input: {
+    step: ResolvedFlowStep;
     state: RunState;
-    outputs: Map<string, GuideContextOutput>;
+    outputs: Map<string, FlowContextOutput>;
     artifactStore: ArtifactStore;
     stateStore: RunStateStore;
     ctx: {
@@ -2368,25 +2368,25 @@ export class Orchestrator {
     };
   }): Promise<{ state: RunState; validation: ValidationResults }> {
     const artifactsName = path.posix.join(
-      "guides",
+      "flows",
       input.step.id,
       "validation-results.json",
     );
     const validation = await this.runValidation({
       artifactsName,
-      prefix: path.posix.join("guides", input.step.id, "validation"),
+      prefix: path.posix.join("flows", input.step.id, "validation"),
       ctx: input.ctx,
     });
     const validationArtifactPath = input.artifactStore.relPath(
       input.artifactStore.resolveArtifactPath(artifactsName),
     );
-    this.registerGuideValidationOutputs({
+    this.registerFlowValidationOutputs({
       step: input.step,
       validation,
       validationArtifactPath,
       outputs: input.outputs,
     });
-    const state = this.patchGuideStep(
+    const state = this.patchFlowStep(
       input.state,
       input.step.id,
       {
@@ -2400,7 +2400,7 @@ export class Orchestrator {
     return { state, validation };
   }
 
-  private async writeGuideFinalReport(input: {
+  private async writeFlowFinalReport(input: {
     artifactStore: ArtifactStore;
     state: RunState;
     lastValidation: ValidationResults | null;
@@ -2682,7 +2682,7 @@ export class Orchestrator {
     priorArtifacts: PriorArtifact[];
     validationResults: ValidationResults | null;
     additionalNotes?: string;
-    guideTurn?: GuideRoleTurn;
+    flowTurn?: FlowRoleTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
     verificationDecisionForStage?: string | null;
@@ -2845,8 +2845,8 @@ export class Orchestrator {
         skillsAttached: skills.map((s) => s.name),
         skillsConfigured: agent.skills.slice(),
         skillsFromRuntime: this.runtimeSkills.slice(),
-        guideSlotId: input.guideTurn?.slotId ?? null,
-        guideContextMode: input.guideTurn?.contextMode ?? null,
+        flowSlotId: input.flowTurn?.slotId ?? null,
+        flowContextMode: input.flowTurn?.contextMode ?? null,
       },
     });
     await ctx.eventLog.append({
@@ -2922,8 +2922,8 @@ export class Orchestrator {
           void appendStreamLine(this.projectRoot, ctx.runId, streamName, c);
         },
         signal: providerAbort.signal,
-        ...(input.guideTurn?.sessionRequest
-          ? { session: input.guideTurn.sessionRequest }
+        ...(input.flowTurn?.sessionRequest
+          ? { session: input.flowTurn.sessionRequest }
           : {}),
       });
       if (providerAbort.signal.aborted) {
@@ -2982,9 +2982,9 @@ export class Orchestrator {
         durationMs: durationMs(stageStart, stageEnd),
         exitCode: -1,
         sessionId: null,
-        guideSlotId: input.guideTurn?.slotId ?? null,
-        guideContextMode: input.guideTurn?.contextMode ?? null,
-        guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
+        flowSlotId: input.flowTurn?.slotId ?? null,
+        flowContextMode: input.flowTurn?.contextMode ?? null,
+        flowContextFallbackReason: input.flowTurn?.fallbackReason ?? null,
         model: null,
         totalCostUsd: null,
         costEstimated: false,
@@ -3098,9 +3098,9 @@ export class Orchestrator {
       outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
       sessionId:
         metrics?.sessionId ?? providerResult.session?.sessionId ?? null,
-      guideSlotId: input.guideTurn?.slotId ?? null,
-      guideContextMode: input.guideTurn?.contextMode ?? null,
-      guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
+      flowSlotId: input.flowTurn?.slotId ?? null,
+      flowContextMode: input.flowTurn?.contextMode ?? null,
+      flowContextFallbackReason: input.flowTurn?.fallbackReason ?? null,
       model: metrics?.model ?? null,
       totalCostUsd: costUsd,
       costEstimated,
@@ -3320,9 +3320,9 @@ export class Orchestrator {
     } catch {
       bundles = [];
     }
-    let arbitration: GuideArbitrationLedger | null = null;
+    let arbitration: FlowArbitrationLedger | null = null;
     try {
-      arbitration = await new GuideArbitrationStore(
+      arbitration = await new FlowArbitrationStore(
         this.projectRoot,
         input.state.runId,
       ).read();

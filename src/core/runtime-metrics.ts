@@ -33,12 +33,12 @@ export const roleMetricsSchema = z.object({
   stdoutArtifactPath: z.string().optional(),
   stderrArtifactPath: z.string().optional(),
   sessionId: z.string().nullable().default(null),
-  guideSlotId: z.string().nullable().default(null),
-  guideContextMode: z
+  flowSlotId: z.string().nullable().default(null),
+  flowContextMode: z
     .enum(["opened", "reused", "rehydrated", "stateless"])
     .nullable()
     .default(null),
-  guideContextFallbackReason: z.string().nullable().default(null),
+  flowContextFallbackReason: z.string().nullable().default(null),
   model: z.string().nullable().default(null),
   totalCostUsd: z.number().nullable().default(null),
   /** True when totalCostUsd was computed locally (tokens × list price) rather

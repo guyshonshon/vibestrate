@@ -17,7 +17,7 @@ amaco <area> <verb>   → run a subcommand under an area (provider list, config 
 
 Top-level commands are things you do directly to a run or project: `init`, `run`, `status`, `abort`, `pause`, `resume`, `doctor`, `ui`, `replay`, `shell`.
 
-Area groups are for related sub-actions: `provider`, `config`, `skills`, `guides`, `approvals`, `tasks`, `queue`, `notifications`, `gateways`, `editor`, `suggestions`, `bundles`, `validation`, `terminal`, `policies`, `roadmap`, `logs`.
+Area groups are for related sub-actions: `provider`, `config`, `skills`, `flows`, `approvals`, `tasks`, `queue`, `notifications`, `gateways`, `editor`, `suggestions`, `bundles`, `validation`, `terminal`, `policies`, `roadmap`, `logs`.
 
 ## Conventions
 
@@ -72,13 +72,13 @@ amaco skills show <id>                      # the rendered skill
 amaco skills assign <agent> <skill>         # attach a skill to an agent
 ```
 
-## Working with Guides
+## Working with Flows
 
 ```bash
-amaco guides list                           # built-in + project Guides
-amaco guides show <id>                      # the resolved definition
-amaco guides suggest "<task>" --risk high   # advisory suggestion only
-amaco run "<task>" --guide <id>             # run with a Guide
+amaco flows list                           # built-in + project Flows
+amaco flows show <id>                      # the resolved definition
+amaco flows suggest "<task>" --risk high   # advisory suggestion only
+amaco run "<task>" --flow <id>             # run with a Flow
 ```
 
 ## Working with approvals

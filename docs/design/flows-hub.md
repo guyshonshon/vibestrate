@@ -1,0 +1,273 @@
+# Design: Flows Hub
+
+Status: **planning — core decisions settled** · Tracking issue: #3 · Owner: maintainer
+
+Settled: flat unique names · separate `amaco-flows` repo · curated PR-based v1
+(Docker "Official Images" model) · GitHub OAuth if a service is added later ·
+free git-backed v1 with a hosted service deferred. See "Settled decisions".
+
+A place to **discover, share, and install Flows** other people publish, with
+**stars** and **download** metrics — npm / Docker Hub, but for Amaco Flows.
+
+---
+
+## Why Flows are the right thing to share
+
+A Flow is the cleanest unit in Amaco to make portable:
+
+- **It's declarative data, not code.** `flowDefinitionSchema`
+  (`src/flows/schemas/flow-schema.ts`) validates a `flow.yml` of slots +
+  steps. Installing one writes a file under `.amaco/flows/<id>/`; **nothing
+  executes** until the user runs it. So a registry is low‑risk by construction.
+- **We already fork/discover/shadow them.** `forkFlowToProject`,
+  `deleteProjectFlow`, and project‑shadows‑builtin discovery
+  (`src/flows/catalog/flow-discovery.ts`) already exist. "Install from hub"
+  is a sibling of "fork a builtin."
+- **They're small and reviewable.** A flow is a few KB of YAML. Easy to scan,
+  diff, and moderate.
+
+## Local‑first stance (the non‑negotiable)
+
+Amaco's invariant: *no cloud backend / no relay for your runs.* The hub does
+**not** violate it. It's an **opt‑in catalog** you explicitly publish to and
+pull from — like `npm install`. Your code, prompts, and runs never touch it.
+The core tool stays fully functional offline; the hub is a separate, optional
+surface. This must remain true through every phase.
+
+---
+
+## Phasing
+
+### Phase 1 — git‑backed index (zero infra) ← build this first
+
+A public GitHub repo (`guyshonshon/amaco-flows`) is the registry. No service
+to run, no database, no auth to build — GitHub provides hosting, identity (PRs),
+and a coarse "stars" signal for free.
+
+**Layout of the index repo** — flat names, one immutable dir per version:
+
+```
+amaco-flows/
+  index.json                  # generated catalog (search source of truth)
+  flows/
+    <name>/
+      meta.json               # { description, author, tags, license, latest, versions }
+      1.0.0/flow.yml         # immutable snapshot per published semver
+      1.1.0/flow.yml
+      1.2.0/flow.yml
+```
+
+**`index.json`** (built by CI in the index repo on merge):
+
+```json
+{
+  "schemaVersion": 1,
+  "flows": [
+    { "name": "deep-refactor-pro", "latest": "1.2.0",
+      "versions": ["1.0.0", "1.1.0", "1.2.0"],
+      "label": "...", "description": "...", "tags": ["review", "python"],
+      "author": "guyshonshon", "updatedAt": "..." }
+  ]
+}
+```
+
+**CLI surface** (new `amaco flows` subcommands; the command tree already exists):
+
+- `amaco flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
+  matches with author + tags + `latest`.
+- `amaco flows install <name>[:<version>]` — Docker‑style ref resolution:
+  - `name` → `name:latest`
+  - `name:1.2.0` → that exact version
+  - `name:1` → highest `1.x`
+  Resolve via `index.json` to a concrete `flows/<name>/<version>/flow.yml`,
+  fetch it, **validate against `flowDefinitionSchema`**, run the secret‑shape
+  scan, then write it into `.amaco/flows/<name>/` (reusing the fork write
+  path). Record the resolved `{ name, version, hash }` in a sidecar
+  (`.amaco/flows/<name>/.hub.json`) so we know what's installed. Refuse on
+  invalid schema or a secret‑like hit.
+- `amaco flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
+  update; **warn on a major bump** before applying.
+- `amaco flows outdated` — list installed hub flows with a newer version.
+- `amaco flows publish [<name>]` — package the project flow + a `meta.json`
+  (with the **semver** for this release) and open a **PR** to the index repo
+  (via `gh`). Review happens in the PR.
+
+**Metrics in phase 1**
+
+- **Stars** = ⭐ on the index repo to begin (coarse, but free and real). Later,
+  per‑flow reactions or a `stars.json` updated by a GitHub Action.
+- **Downloads** = not truly measurable from a static git read. Phase 1 ships
+  *without* real download counts (don't fake them); phase 2 adds them.
+
+**Emit / ingest rules** (enforced at install AND in index‑repo CI):
+
+- Must pass `flowDefinitionSchema`.
+- No secret‑shaped content (reuse the patch secret‑scan).
+- Size + step caps (≤ 64 steps, ≤ N KB).
+- `meta.json` declares `author`, `license`, `tags`, and the release `version`
+  (semver).
+- Flat unique `name`; a published `<name>/<version>/` is **immutable** — CI
+  rejects re‑publishing an existing version (new content → new version).
+
+**Acceptance:** `amaco flows search` / `install name[:version]` pull a community
+flow into `.amaco/flows/`, validated before it lands; `publish` produces an
+index PR.
+
+### Phase 2 — `amaco-hub` service (Docker‑Hub‑style)
+
+Graduate to a real registry when phase 1's limits bite (no real download
+counts, PR‑gated publishing, no per‑flow stars).
+
+**Stack — Cloudflare‑native** (we already deploy the marketing site there):
+
+- **Worker** — the API (search, get, publish, star, metrics).
+- **D1** (SQLite) — catalog rows, stars, download counters, ownership.
+- **R2** — the `flow.yml` payloads (and future larger bundles).
+- Optional **KV** — hot `index.json` cache.
+
+**API sketch**
+
+```
+GET  /v1/flows?q=&tag=&sort=stars|downloads|recent
+GET  /v1/flows/:namespace/:name           # metadata + versions
+GET  /v1/flows/:namespace/:name/:version  # the flow.yml (increments download)
+POST /v1/flows                            # publish (auth)
+POST /v1/flows/:namespace/:name/star      # star (auth)
+```
+
+**Identity:** GitHub OAuth → the publisher's GitHub login is the namespace.
+Publish tokens (npm‑style automation tokens) for CI. No passwords stored.
+
+**Metrics:** real download counts (incremented on payload GET, deduped per
+token/day) + stars (one per account).
+
+**Moderation:** report flow + takedown; same schema/secret rules enforced
+server‑side; ownership required to publish under a namespace.
+
+**CLI/UI:** the same `amaco flows search/install/publish/star` point at the
+service; a **Hub** tab in Mission Control browses + installs (read‑only HTTP to
+the public API; install still writes locally through the existing path).
+
+---
+
+## Integration points (already in place)
+
+| Need | Reuse |
+|---|---|
+| Validate an incoming flow | `flowDefinitionSchema` |
+| Write a flow into the project | the `forkFlowToProject` write path |
+| Discovery / shadowing | `discoverFlows` (project shadows builtin) |
+| Secret refusal | the patch secret‑scan |
+| CLI command tree | `src/cli/commands/flows/` |
+| Dashboard surface | a new page like the Providers page (#4) |
+
+## Settled decisions
+
+- **Names are flat + globally unique** (first-come), not namespaced. Simpler
+  ids; we accept the land-grab/collision tradeoff and can add a reserved-prefix
+  list if it bites.
+- **Separate `amaco-flows` repo** is the registry — its own repo with its own
+  contributors who help review submissions (not in `amaco` or
+  `amaco-marketing`).
+- **v1 publishing is curated, PR-based** (Docker "Official Images" model, not
+  open self-serve push): submit → automated checks + human review → listed.
+- **Identity, if/when a service is added:** GitHub OAuth (login = identity).
+- **Cost:** v1 is free forever (git-backed, no infra). A hosted service is a
+  *later, optional* step; the maintainer is fine covering ~$5/mo if it ever
+  grows — so the service is a "when demand justifies it" decision, not a
+  blocker.
+- **Versioned, Docker/npm-style** — see below.
+
+## Versioning
+
+Published flows are **versioned with semver**, referenced Docker/npm-style:
+
+- `name` → resolves to `name:latest`
+- `name:1.2.0` → exact, immutable
+- `name:1` → highest `1.x`
+
+Rules:
+
+- **A published version is immutable.** Re-publishing `1.2.0` with different
+  content is rejected by CI — new content means a new version. This is what
+  makes an installed flow reproducible: it can't change under you.
+- **`latest` is auto = the highest published *stable* semver** (pre-releases
+  like `1.3.0-beta` are excluded from `latest`). No manual dist-tag management
+  in v1; the publisher just bumps the semver in `meta.json`.
+- **Installs are pinned + tracked.** `install` records the resolved
+  `{ name, version, hash }` in `.amaco/flows/<name>/.hub.json`, so `update` /
+  `outdated` know what you have and `update` can warn on a major bump.
+
+Relationship to the existing `flow.yml` `version` (integer): that field stays
+as the flow's **internal structural revision** (it's a `number` in the schema
+and in run-state snapshots — `flowRunState.flowVersion`). The **hub release
+version** is the **semver in `meta.json`** — a separate, registry-level concept
+(like a package's internal `schemaVersion` vs its npm version). They're
+independent; we may unify later, but not as a breaking change now.
+
+## Publishing & review (v1)
+
+Modeled on Docker's **Official Images** curation, not its open push:
+
+1. `amaco flows publish` packages the project flow + `meta.json` and opens a
+   **PR** to `amaco-flows` (via `gh`; the contributor's fork is transparent).
+2. **GitHub Actions on the PR run the automated gate** and post a checklist:
+   - schema-valid (`flowDefinitionSchema`)
+   - secret-shape scan (reuse the patch scanner)
+   - **flow-safety lint** (see below)
+   - structural sanity: keeps a `validation` step, keeps a review/approval
+     gate, bounded `repeat`, known agent ids, size/step caps
+   - `meta.json` complete (`author`, `license`, `tags`, `description`)
+3. **A human reviewer** (maintainer + trusted contributors) does the final pass.
+   Green-CI + low-risk flows can auto-merge after one maintainer ✅.
+4. Merge → CI regenerates `index.json` → it's discoverable.
+
+## Safety & quality assurance
+
+Flows are declarative (no embedded code), but they are **not inert** — they can
+still be hostile by:
+
+- **Weakening supervision:** dropping the `validation`/review/approval steps so
+  an executor runs unsupervised; unbounded `repeat` loops.
+- **Social-engineering the human:** crafted approval-gate text
+  (`reason` / `requestedAction` / `userMessage`) that pressures a rubber-stamp
+  ("approve to continue…").
+- **Steering agents toward risky work** via step labels/inputs that nudge the
+  agent to fetch-and-run, exfiltrate, or disable guards.
+
+Mitigations:
+
+- **An internal QA / safety tool** (a "flow-safety linter") run in PR CI *and*
+  available to reviewers: flags missing validation/review gates, suspicious
+  free-text (`curl … | sh`, `rm -rf`, "ignore previous", base64 blobs, URLs in
+  approval text), unbounded repeats, and unknown agent ids. Produces a score +
+  reasons.
+- **Human review** by the `amaco-flows` contributor team before listing.
+- **Install-time validation** still runs locally (schema + secret scan) — a
+  compromised index can't bypass the client checks.
+
+## Disclaimers (must ship with the feature)
+
+State clearly, in **all three** places, that **using an external flow is the
+user's responsibility to validate before use** — "we do our best to review every
+flow for safety, but you must be cautious; run untrusted flows `--read-only`
+first and watch the approval gates":
+
+1. **The app** — Mission Control shows a caution banner when browsing/installing
+   a hub flow; the CLI `install` prints it.
+2. **The website docs** — a dedicated docs page (e.g. `/docs/flows-hub` +
+   a safety note).
+3. **The repo** — the `amaco-flows` README + a `SECURITY.md`.
+
+## Still open (later, with the service)
+
+- Real **download** metrics + per-account **stars** (needs the service; v1 uses
+  GitHub stars on the index repo and ships no fake download counts).
+- Self-serve instant publish (vs the curated PR flow).
+- Whether the marketing site hosts a public `/hub` browse gallery for SEO.
+
+## Non‑goals (for now)
+
+- Hosting runs, prompts, or any private data — ever. The hub is flows only.
+- Open self-serve publish in v1 (curated PR flow instead).
+- Arbitrary code execution — flows stay declarative; install never runs them.

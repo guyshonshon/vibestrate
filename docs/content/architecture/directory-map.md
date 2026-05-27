@@ -5,7 +5,7 @@ section: architecture
 slug: architecture/directory-map
 ---
 
-A guided tour of `src/`. The list isn't exhaustive — small helpers and utilities are omitted — but every stable extension point appears here.
+A flowd tour of `src/`. The list isn't exhaustive — small helpers and utilities are omitted — but every stable extension point appears here.
 
 ## `src/cli/`
 
@@ -71,16 +71,16 @@ Skill discovery and assignment.
 
 Read first: `src/skills/skill-discovery.ts`.
 
-## `src/guides/`
+## `src/flows/`
 
-The Guide system.
+The Flow system.
 
-- `schemas/guide-schema.ts` — the Zod schema for `GuideDefinition`.
-- `catalog/builtin-guides.ts` — the `quality-arbitration` built-in.
-- `catalog/guide-discovery.ts` — project Guide discovery.
+- `schemas/flow-schema.ts` — the Zod schema for `FlowDefinition`.
+- `catalog/builtin-flows.ts` — the `quality-arbitration` built-in.
+- `catalog/flow-discovery.ts` — project Flow discovery.
 - `runtime/` — the participant ledger, arbitration, context builder.
 
-Read first: `src/guides/catalog/builtin-guides.ts`.
+Read first: `src/flows/catalog/builtin-flows.ts`.
 
 ## `src/project/`
 

@@ -112,10 +112,10 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                   </td>
                   <td
                     className="amaco-mono px-3 py-1.5 text-amaco-fg-dim"
-                    title={a.guideContextFallbackReason ?? undefined}
+                    title={a.flowContextFallbackReason ?? undefined}
                   >
-                    {a.guideContextMode
-                      ? `${a.guideSlotId ?? "guide"}:${a.guideContextMode}`
+                    {a.flowContextMode
+                      ? `${a.flowSlotId ?? "flow"}:${a.flowContextMode}`
                       : a.sessionId
                         ? "session"
                         : "—"}

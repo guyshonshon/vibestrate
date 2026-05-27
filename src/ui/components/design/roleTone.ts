@@ -63,7 +63,7 @@ export function toneForRole(role: string): RoleTone {
 }
 
 /**
- * Many guide slot labels carry useful semantics — "planner" inside a
+ * Many flow slot labels carry useful semantics — "planner" inside a
  * label means we should treat it as the Planner role visually. Falls
  * back to "Executor" when nothing matches.
  */

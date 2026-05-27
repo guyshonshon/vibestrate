@@ -36,8 +36,8 @@ export type Route =
   | { kind: "settings" }
   | { kind: "project" }
   | { kind: "git"; runId: string | null }
-  | { kind: "flow"; guideId: string | null }
-  | { kind: "guides" }
+  | { kind: "flow"; flowId: string | null }
+  | { kind: "flows" }
   | { kind: "metrics" }
   | { kind: "crew" }
   | { kind: "providers" }
@@ -169,11 +169,12 @@ export function parseHashRoute(hash: string): Route {
     const runId = query.get("runId");
     return { kind: "git", runId: runId ?? null };
   }
-  if (parts[0] === "flows" || parts[0] === "flow") {
-    const guideId = parts[1] ?? query.get("guide");
-    return { kind: "flow", guideId: guideId ?? null };
+  // Builder is singular (#/flow[/id]); the catalog is plural (#/flows).
+  if (parts[0] === "flow") {
+    const flowId = parts[1] ?? query.get("flow");
+    return { kind: "flow", flowId: flowId ?? null };
   }
-  if (parts[0] === "guides") return { kind: "guides" };
+  if (parts[0] === "flows") return { kind: "flows" };
   if (parts[0] === "metrics") return { kind: "metrics" };
   if (parts[0] === "crew" || parts[0] === "agents") return { kind: "crew" };
   if (parts[0] === "providers") return { kind: "providers" };
@@ -228,11 +229,11 @@ export function serializeRoute(route: Route): string {
       return `#/git${qs ? `?${qs}` : ""}`;
     }
     case "flow":
-      return route.guideId
-        ? `#/flows/${encodeURIComponent(route.guideId)}`
-        : "#/flows";
-    case "guides":
-      return "#/guides";
+      return route.flowId
+        ? `#/flow/${encodeURIComponent(route.flowId)}`
+        : "#/flow";
+    case "flows":
+      return "#/flows";
     case "metrics":
       return "#/metrics";
     case "crew":

@@ -1,4 +1,4 @@
-// Composer presets: saved (brief? + guideId + slotProviders + skills +
+// Composer presets: saved (brief? + flowId + slotProviders + skills +
 // readOnly) combos surfaced by the Mission Control composer's "Save crew
 // as preset" and "Save as template" affordances.
 //
@@ -15,7 +15,7 @@ import { pathExists } from "../utils/fs.js";
 
 const PRESETS_FILENAME = "composer-presets.json";
 
-const guideRefSchema = z
+const flowRefSchema = z
   .object({
     id: z.string().min(1).max(80),
     contextPolicy: z
@@ -33,7 +33,7 @@ export const composerPresetSchema = z
     name: z.string().min(1).max(120),
     kind: z.enum(["crew", "template"]).default("crew"),
     brief: z.string().max(4000).nullable().default(null),
-    guide: guideRefSchema.nullable().default(null),
+    flow: flowRefSchema.nullable().default(null),
     provider: z.string().min(1).max(128).nullable().default(null),
     skills: z.array(z.string().min(1).max(80)).max(64).default([]),
     readOnly: z.boolean().default(false),

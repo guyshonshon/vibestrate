@@ -17,7 +17,7 @@ import { runUiCommand } from "./commands/ui.js";
 import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
 import { buildSkillsCommand } from "./commands/skills/index.js";
-import { buildGuidesCommand } from "./commands/guides/index.js";
+import { buildFlowsCommand } from "./commands/flows/index.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
@@ -38,15 +38,15 @@ import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
 
-function collectGuideSlot(value: string, previous: string[]): string[] {
+function collectFlowSlot(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
-function collectGuideStep(value: string, previous: string[]): string[] {
+function collectFlowStep(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
-function parseGuideSlots(values: string[]): Record<string, string> {
+function parseFlowSlots(values: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of values) {
     const index = raw.indexOf("=");
@@ -54,7 +54,7 @@ function parseGuideSlots(values: string[]): Record<string, string> {
     const provider = raw.slice(index + 1).trim();
     if (index <= 0 || !slot || !provider) {
       throw new Error(
-        `--guide-slot must use <slot=provider> (got "${raw}").`,
+        `--flow-slot must use <slot=provider> (got "${raw}").`,
       );
     }
     out[slot] = provider;
@@ -80,7 +80,7 @@ export function buildAmacoProgram(): Command {
     .description("Initialize Amaco in the current project (.amaco/ scaffold).")
     .option("--force", "overwrite existing config files (runs are preserved)")
     .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
-    .option("--interactive", "force the guided wizard even when --yes would default to non-interactive")
+    .option("--interactive", "force the flowd wizard even when --yes would default to non-interactive")
     .action(async (opts: { force?: boolean; yes?: boolean; interactive?: boolean }) => {
       const code = await runInitCommand({
         force: opts.force,
@@ -92,7 +92,7 @@ export function buildAmacoProgram(): Command {
 
   program
     .command("setup")
-    .description("Guided wizard for provider, validation commands, and run defaults.")
+    .description("Flowd wizard for provider, validation commands, and run defaults.")
     .action(async () => {
       const code = await runSetupCommand();
       process.exit(code);
@@ -101,7 +101,7 @@ export function buildAmacoProgram(): Command {
   program.addCommand(buildProviderCommand());
   program.addCommand(buildConfigCommand());
   program.addCommand(buildSkillsCommand());
-  program.addCommand(buildGuidesCommand());
+  program.addCommand(buildFlowsCommand());
   program.addCommand(buildApprovalsCommand());
   program.addCommand(buildRoadmapCommand());
   program.addCommand(buildTasksCommand());
@@ -155,32 +155,32 @@ export function buildAmacoProgram(): Command {
       "ask agents to produce token-efficient output (prefer diffs, bullets, no preamble).",
     )
     .option(
-      "--guide <id>",
-      "resolve and run a Guide recipe for this run.",
+      "--flow <id>",
+      "resolve and run a Flow recipe for this run.",
     )
     .option(
-      "--guide-slot <slot=provider>",
-      "override a Guide participant slot provider. Repeat for multiple slots.",
-      collectGuideSlot,
+      "--flow-slot <slot=provider>",
+      "override a Flow participant slot provider. Repeat for multiple slots.",
+      collectFlowSlot,
       [],
     )
     .option(
-      "--guide-brief <text>",
-      "extra brief for the Guide task packet.",
+      "--flow-brief <text>",
+      "extra brief for the Flow task packet.",
     )
     .option(
-      "--guide-context <policy>",
-      "Guide context policy (balanced|compact|artifact-heavy).",
+      "--flow-context <policy>",
+      "Flow context policy (balanced|compact|artifact-heavy).",
     )
     .option(
-      "--guide-skip <step>",
-      "skip an optional Guide step for this run. Repeat for multiple steps.",
-      collectGuideStep,
+      "--flow-skip <step>",
+      "skip an optional Flow step for this run. Repeat for multiple steps.",
+      collectFlowStep,
       [],
     )
     .option(
       "--interactive",
-      "open terminal Guide setup for task, brief, participants, and optional steps. Requires --guide.",
+      "open terminal Flow setup for task, brief, participants, and optional steps. Requires --flow.",
     )
     .option(
       "--resume-from <runId>",
@@ -203,11 +203,11 @@ export function buildAmacoProgram(): Command {
           autoEffort?: boolean;
           skills?: string;
           concise?: boolean;
-          guide?: string;
-          guideSlot?: string[];
-          guideBrief?: string;
-          guideContext?: string;
-          guideSkip?: string[];
+          flow?: string;
+          flowSlot?: string[];
+          flowBrief?: string;
+          flowContext?: string;
+          flowSkip?: string[];
           interactive?: boolean;
           resumeFrom?: string;
           resumeStage?: string;
@@ -244,37 +244,37 @@ export function buildAmacoProgram(): Command {
           .map((s) => s.trim())
           .filter((s) => s.length > 0);
         if (
-          !opts.guide &&
-          ((opts.guideSlot?.length ?? 0) > 0 ||
-            !!opts.guideBrief ||
-            !!opts.guideContext ||
-            (opts.guideSkip?.length ?? 0) > 0 ||
+          !opts.flow &&
+          ((opts.flowSlot?.length ?? 0) > 0 ||
+            !!opts.flowBrief ||
+            !!opts.flowContext ||
+            (opts.flowSkip?.length ?? 0) > 0 ||
             opts.interactive === true)
         ) {
-          console.error("--guide-* options and run --interactive require --guide <id>.");
+          console.error("--flow-* options and run --interactive require --flow <id>.");
           process.exit(2);
         }
-        let guideContextPolicy:
+        let flowContextPolicy:
           | "balanced"
           | "compact"
           | "artifact-heavy"
           | undefined;
-        if (opts.guideContext) {
+        if (opts.flowContext) {
           if (
-            opts.guideContext !== "balanced" &&
-            opts.guideContext !== "compact" &&
-            opts.guideContext !== "artifact-heavy"
+            opts.flowContext !== "balanced" &&
+            opts.flowContext !== "compact" &&
+            opts.flowContext !== "artifact-heavy"
           ) {
             console.error(
-              `--guide-context must be one of balanced|compact|artifact-heavy (got "${opts.guideContext}").`,
+              `--flow-context must be one of balanced|compact|artifact-heavy (got "${opts.flowContext}").`,
             );
             process.exit(2);
           }
-          guideContextPolicy = opts.guideContext;
+          flowContextPolicy = opts.flowContext;
         }
-        let guideSlotProviders: Record<string, string> = {};
+        let flowSlotProviders: Record<string, string> = {};
         try {
-          guideSlotProviders = parseGuideSlots(opts.guideSlot ?? []);
+          flowSlotProviders = parseFlowSlots(opts.flowSlot ?? []);
         } catch (err) {
           console.error(err instanceof Error ? err.message : String(err));
           process.exit(2);
@@ -289,12 +289,12 @@ export function buildAmacoProgram(): Command {
           autoEffort: opts.autoEffort ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,
-          guideId: opts.guide ?? null,
-          guideSlotProviders,
-          guideBrief: opts.guideBrief ?? null,
-          guideContextPolicy,
-          guideSkippedOptionalSteps: opts.guideSkip ?? [],
-          guideInteractive: opts.interactive ?? false,
+          flowId: opts.flow ?? null,
+          flowSlotProviders,
+          flowBrief: opts.flowBrief ?? null,
+          flowContextPolicy,
+          flowSkippedOptionalSteps: opts.flowSkip ?? [],
+          flowInteractive: opts.interactive ?? false,
           resumeFromRunId: opts.resumeFrom ?? null,
           resumeStage,
         });

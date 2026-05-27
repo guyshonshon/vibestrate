@@ -184,7 +184,7 @@ export function RunHeader({
               {error}
             </div>
           ) : null}
-          {run.guide ? <GuideRunProgress run={run} /> : null}
+          {run.flow ? <FlowRunProgress run={run} /> : null}
         </div>
         {/* Run-action toolbar. Promoted from the previous dim text-only
          * row to full-size accent / warn-toned buttons so Pause / Resume
@@ -290,17 +290,17 @@ export function RunHeader({
   );
 }
 
-function GuideRunProgress({ run }: { run: RunState }) {
-  const guide = run.guide;
-  if (!guide) return null;
+function FlowRunProgress({ run }: { run: RunState }) {
+  const flow = run.flow;
+  if (!flow) return null;
   const current =
-    guide.steps.find((step) => step.id === guide.currentStepId) ?? null;
+    flow.steps.find((step) => step.id === flow.currentStepId) ?? null;
   return (
     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[10.5px]">
       <span className="amaco-mono rounded border border-amaco-accent/40 bg-amaco-accent/10 px-1.5 py-0.5 text-amaco-accent">
-        guide {guide.label}
+        flow {flow.label}
       </span>
-      {guide.steps.map((step) => (
+      {flow.steps.map((step) => (
         <span
           key={step.id}
           title={`${step.label}: ${step.status}`}
@@ -317,7 +317,7 @@ function GuideRunProgress({ run }: { run: RunState }) {
           {step.label}
         </span>
       ))}
-      {guide.participants.map((participant) => (
+      {flow.participants.map((participant) => (
         <span
           key={participant.slotId}
           title={

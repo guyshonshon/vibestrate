@@ -17,21 +17,21 @@ import { isAmacoError } from "../../utils/errors.js";
 import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
-  discoverGuides,
-  findGuideById,
-} from "../../guides/catalog/guide-discovery.js";
+  discoverFlows,
+  findFlowById,
+} from "../../flows/catalog/flow-discovery.js";
 import {
-  GuideResolutionError,
-  resolveGuide,
-} from "../../guides/runtime/guide-resolver.js";
+  FlowResolutionError,
+  resolveFlow,
+} from "../../flows/runtime/flow-resolver.js";
 import type {
-  GuideContextPolicy,
-  ResolvedGuideSnapshot,
-} from "../../guides/schemas/guide-schema.js";
+  FlowContextPolicy,
+  ResolvedFlowSnapshot,
+} from "../../flows/schemas/flow-schema.js";
 import {
-  formatGuideRunCommand,
-  runGuideRunWizard,
-} from "../wizards/guide-run-wizard.js";
+  formatFlowRunCommand,
+  runFlowRunWizard,
+} from "../wizards/flow-run-wizard.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -78,20 +78,20 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Guide id to resolve before start. */
-  guideId?: string | null;
-  /** Provider overrides by Guide participant slot id. */
-  guideSlotProviders?: Record<string, string>;
-  /** Extra run brief included in the Guide task packet. */
-  guideBrief?: string | null;
-  /** Guide context packing policy. */
-  guideContextPolicy?: GuideContextPolicy;
-  /** Optional Guide steps explicitly disabled for this run. */
-  guideSkippedOptionalSteps?: string[];
-  /** Open the terminal Guide setup flow before resolving the run. */
-  guideInteractive?: boolean;
+  /** Flow id to resolve before start. */
+  flowId?: string | null;
+  /** Provider overrides by Flow participant slot id. */
+  flowSlotProviders?: Record<string, string>;
+  /** Extra run brief included in the Flow task packet. */
+  flowBrief?: string | null;
+  /** Flow context packing policy. */
+  flowContextPolicy?: FlowContextPolicy;
+  /** Optional Flow steps explicitly disabled for this run. */
+  flowSkippedOptionalSteps?: string[];
+  /** Open the terminal Flow setup flow before resolving the run. */
+  flowInteractive?: boolean;
   /** Rewind: fork from a prior run, reusing its upstream artifacts and
-   *  resuming at `resumeStage`. Mutually exclusive with a Guide. */
+   *  resuming at `resumeStage`. Mutually exclusive with a Flow. */
   resumeFromRunId?: string | null;
   resumeStage?: "architecting" | "executing";
 };
@@ -101,19 +101,19 @@ export async function runRunCommand(
   options: RunCommandOptions = {},
 ): Promise<number> {
   let resolvedTask = task.trim();
-  if (options.guideInteractive && !options.guideId) {
+  if (options.flowInteractive && !options.flowId) {
     console.error(
-      `${symbol.fail()} Interactive run setup currently requires ${color.bold("--guide <id>")}.`,
+      `${symbol.fail()} Interactive run setup currently requires ${color.bold("--flow <id>")}.`,
     );
     return 1;
   }
-  if (options.guideInteractive && !isInteractiveTTY()) {
+  if (options.flowInteractive && !isInteractiveTTY()) {
     console.error(
-      `${symbol.fail()} ${color.bold("amaco run --guide <id> --interactive")} needs an interactive terminal.`,
+      `${symbol.fail()} ${color.bold("amaco run --flow <id> --interactive")} needs an interactive terminal.`,
     );
     return 1;
   }
-  if (!resolvedTask && !options.guideInteractive) {
+  if (!resolvedTask && !options.flowInteractive) {
     console.error(
       `${symbol.fail()} A task description is required.`,
     );
@@ -179,71 +179,71 @@ export async function runRunCommand(
     return 1;
   }
 
-  let resolvedGuide: ResolvedGuideSnapshot | null = null;
-  if (options.guideId) {
-    const guide = await findGuideById(detected.projectRoot, options.guideId);
-    if (!guide) {
-      const ids = (await discoverGuides(detected.projectRoot)).map((item) => item.id);
+  let resolvedFlow: ResolvedFlowSnapshot | null = null;
+  if (options.flowId) {
+    const flow = await findFlowById(detected.projectRoot, options.flowId);
+    if (!flow) {
+      const ids = (await discoverFlows(detected.projectRoot)).map((item) => item.id);
       console.error(
-        `${symbol.fail()} No Guide named "${options.guideId}". Found: ${ids.join(", ") || "(none)"}.`,
+        `${symbol.fail()} No Flow named "${options.flowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
       return 1;
     }
-    let guideBrief = options.guideBrief ?? null;
-    let guideContextPolicy = options.guideContextPolicy;
-    let guideSlotProviders = options.guideSlotProviders ?? {};
-    let guideSkippedOptionalSteps = options.guideSkippedOptionalSteps ?? [];
-    if (options.guideInteractive) {
-      const setup = await runGuideRunWizard({
+    let flowBrief = options.flowBrief ?? null;
+    let flowContextPolicy = options.flowContextPolicy;
+    let flowSlotProviders = options.flowSlotProviders ?? {};
+    let flowSkippedOptionalSteps = options.flowSkippedOptionalSteps ?? [];
+    if (options.flowInteractive) {
+      const setup = await runFlowRunWizard({
         task: resolvedTask,
-        guide,
+        flow,
         config: loaded.config,
-        brief: guideBrief,
-        contextPolicy: guideContextPolicy,
-        slotProviders: guideSlotProviders,
-        skippedOptionalSteps: guideSkippedOptionalSteps,
+        brief: flowBrief,
+        contextPolicy: flowContextPolicy,
+        slotProviders: flowSlotProviders,
+        skippedOptionalSteps: flowSkippedOptionalSteps,
       });
       resolvedTask = setup.task;
-      guideBrief = setup.brief;
-      guideContextPolicy = setup.contextPolicy;
-      guideSlotProviders = setup.slotProviders;
-      guideSkippedOptionalSteps = setup.skippedOptionalSteps;
+      flowBrief = setup.brief;
+      flowContextPolicy = setup.contextPolicy;
+      flowSlotProviders = setup.slotProviders;
+      flowSkippedOptionalSteps = setup.skippedOptionalSteps;
       console.log("");
       console.log(header("Equivalent command"));
       console.log(
         indent(
-          formatGuideRunCommand({
-            guideId: guide.id,
+          formatFlowRunCommand({
+            flowId: flow.id,
             task: resolvedTask,
-            brief: guideBrief,
-            contextPolicy: guideContextPolicy,
-            slotProviders: guideSlotProviders,
-            skippedOptionalSteps: guideSkippedOptionalSteps,
+            brief: flowBrief,
+            contextPolicy: flowContextPolicy,
+            slotProviders: flowSlotProviders,
+            skippedOptionalSteps: flowSkippedOptionalSteps,
           }),
         ),
       );
       console.log("");
     }
     try {
-      resolvedGuide = resolveGuide({
-        guide: guide.definition,
-        source: guide.source,
+      resolvedFlow = resolveFlow({
+        flow: flow.definition,
+        source: flow.source,
         config: loaded.config,
         task: resolvedTask,
-        brief: guideBrief,
-        contextPolicy: guideContextPolicy,
-        slotProviders: guideSlotProviders,
-        skippedOptionalSteps: guideSkippedOptionalSteps,
+        brief: flowBrief,
+        contextPolicy: flowContextPolicy,
+        slotProviders: flowSlotProviders,
+        skippedOptionalSteps: flowSkippedOptionalSteps,
       });
-      printResolvedGuide(resolvedGuide);
+      printResolvedFlow(resolvedFlow);
     } catch (err) {
       const message =
-        err instanceof GuideResolutionError || isAmacoError(err)
+        err instanceof FlowResolutionError || isAmacoError(err)
           ? err.message
           : err instanceof Error
             ? err.message
             : String(err);
-      console.error(`${symbol.fail()} Guide resolution failed.`);
+      console.error(`${symbol.fail()} Flow resolution failed.`);
       console.error(indent(message));
       return 1;
     }
@@ -365,9 +365,9 @@ export async function runRunCommand(
   // Rewind: fork from a prior run, reusing its upstream artifacts.
   let resumeFrom: ResumeFromInput | null = null;
   if (options.resumeFromRunId) {
-    if (resolvedGuide) {
+    if (resolvedFlow) {
       console.error(
-        `${symbol.fail()} ${color.bold("--resume-from")} cannot be combined with ${color.bold("--guide")}.`,
+        `${symbol.fail()} ${color.bold("--resume-from")} cannot be combined with ${color.bold("--flow")}.`,
       );
       return 1;
     }
@@ -401,7 +401,7 @@ export async function runRunCommand(
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
-    guide: resolvedGuide,
+    flow: resolvedFlow,
     resumeFrom,
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
@@ -578,10 +578,10 @@ export async function runRunCommand(
   }
 }
 
-function printResolvedGuide(snapshot: ReturnType<typeof resolveGuide>): void {
+function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {
   console.log(header(`${snapshot.label} preview`));
   console.log(
-    `${symbol.bullet()} Guide ${color.bold(snapshot.guideId)} v${snapshot.guideVersion} ${color.dim(`(${snapshot.source.kind})`)}`,
+    `${symbol.bullet()} Flow ${color.bold(snapshot.flowId)} v${snapshot.flowVersion} ${color.dim(`(${snapshot.source.kind})`)}`,
   );
   console.log(`${symbol.bullet()} Context ${color.bold(snapshot.contextPolicy)}`);
   console.log(`${symbol.bullet()} Participants`);

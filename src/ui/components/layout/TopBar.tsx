@@ -28,7 +28,6 @@ type Props = {
   currentNav: NavId;
   onShowHome: () => void;
   onShowFlows: () => void;
-  onShowGuides: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
   onShowBoard: () => void;
@@ -72,7 +71,6 @@ export function TopBar({
   currentNav,
   onShowHome,
   onShowFlows,
-  onShowGuides,
   onShowMetrics,
   onShowCrew,
   onShowBoard,
@@ -146,11 +144,11 @@ export function TopBar({
       onClick: onShowHome,
     },
     {
-      id: "guides",
-      label: "Guides",
-      active: currentNav === "guides" || currentNav === "flow",
+      id: "flows",
+      label: "Flows",
+      active: currentNav === "flows" || currentNav === "flow",
       icon: Library,
-      onClick: onShowGuides,
+      onClick: onShowFlows,
     },
     {
       id: "crew",

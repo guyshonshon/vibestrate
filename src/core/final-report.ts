@@ -5,8 +5,8 @@ import type { RuntimeMetrics } from "./runtime-metrics.js";
 import type { ApprovalRequest } from "./approval-types.js";
 import type { ReviewSuggestion } from "../reviews/review-suggestion-types.js";
 import type { SuggestionBundle } from "../reviews/suggestion-bundle-types.js";
-import type { GuideArbitrationLedger } from "../guides/runtime/guide-arbitration.js";
-import { summarizeGuideDisagreements } from "../guides/runtime/guide-arbitration.js";
+import type { FlowArbitrationLedger } from "../flows/runtime/flow-arbitration.js";
+import { summarizeFlowDisagreements } from "../flows/runtime/flow-arbitration.js";
 
 export type FinalReportInput = {
   state: RunState;
@@ -26,8 +26,8 @@ export type FinalReportInput = {
   suggestions?: ReviewSuggestion[];
   /** Review passes (suggestion bundles) for this run (optional). */
   bundles?: SuggestionBundle[];
-  /** Structured Guide findings/response/decision record, when present. */
-  arbitration?: GuideArbitrationLedger | null;
+  /** Structured Flow findings/response/decision record, when present. */
+  arbitration?: FlowArbitrationLedger | null;
 };
 
 function renderValidation(v: ValidationResults | null): string {
@@ -204,13 +204,13 @@ function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string
   return [summary, "", head, rows].join("\n");
 }
 
-function renderGuideArbitrationSection(
-  arbitration: GuideArbitrationLedger | null | undefined,
+function renderFlowArbitrationSection(
+  arbitration: FlowArbitrationLedger | null | undefined,
 ): string {
   if (!arbitration) {
-    return "_No structured Guide arbitration record was captured._";
+    return "_No structured Flow arbitration record was captured._";
   }
-  const disagreements = summarizeGuideDisagreements(arbitration);
+  const disagreements = summarizeFlowDisagreements(arbitration);
   return [
     `- Findings: ${arbitration.findings.length}`,
     `- Builder responses: ${arbitration.responses.length}`,
@@ -229,10 +229,10 @@ export function renderFinalReport(input: FinalReportInput): string {
   const approvalSummaryLine = summary
     ? `**Total:** ${summary.total} · **Approved:** ${summary.approved} · **Rejected:** ${summary.rejected}${summary.expired ? ` · **Expired:** ${summary.expired}` : ""}${summary.pending ? ` · **Pending:** ${summary.pending}` : ""}${summary.totalWaitMs ? ` · **Total wait:** ${summary.totalWaitMs}ms` : ""}`
     : "";
-  const guideArbitrationSection = state.guide
-    ? `## Guide Arbitration
+  const flowArbitrationSection = state.flow
+    ? `## Flow Arbitration
 
-${renderGuideArbitrationSection(arbitration)}
+${renderFlowArbitrationSection(arbitration)}
 
 `
     : "";
@@ -308,7 +308,7 @@ ${renderSuggestionsSection(suggestions)}
 
 ${renderBundlesSection(bundles)}
 
-${guideArbitrationSection}## Next Steps
+${flowArbitrationSection}## Next Steps
 
 ${renderNextSteps(state)}
 `;

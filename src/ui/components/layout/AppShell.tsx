@@ -13,7 +13,6 @@ type AppShellProps = {
   onSelectRun: (runId: string) => void;
   onShowHome: () => void;
   onShowFlows: () => void;
-  onShowGuides: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
   onShowRunsList: () => void;
@@ -39,7 +38,6 @@ export function AppShell({
   currentNav,
   onShowHome,
   onShowFlows,
-  onShowGuides,
   onShowMetrics,
   onShowCrew,
   onShowRunsList,
@@ -59,7 +57,6 @@ export function AppShell({
         currentNav={currentNav}
         onShowHome={onShowHome}
         onShowFlows={onShowFlows}
-        onShowGuides={onShowGuides}
         onShowMetrics={onShowMetrics}
         onShowCrew={onShowCrew}
         onShowRunsList={onShowRunsList}

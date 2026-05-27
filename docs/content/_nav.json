@@ -26,7 +26,7 @@
         { "slug": "concepts/role", "label": "Role" },
         { "slug": "concepts/provider", "label": "Provider" },
         { "slug": "concepts/workflow", "label": "Workflow" },
-        { "slug": "concepts/guide", "label": "Guide" },
+        { "slug": "concepts/flow", "label": "Flow" },
         { "slug": "concepts/skill", "label": "Skill" },
         { "slug": "concepts/state", "label": "Run state" },
         { "slug": "concepts/worktree", "label": "Worktree" },
@@ -65,7 +65,7 @@
         { "slug": "reference/cli", "label": "CLI commands", "generated": true, "source": "cli-commands.json" },
         { "slug": "reference/config", "label": "project.yml schema", "generated": true, "source": "config-schema.json" },
         { "slug": "reference/providers", "label": "Providers", "generated": true, "source": "providers.json" },
-        { "slug": "reference/guides", "label": "Built-in Guides", "generated": true, "source": "guides.json" },
+        { "slug": "reference/flows", "label": "Built-in Flows", "generated": true, "source": "flows.json" },
         { "slug": "reference/workflow", "label": "Workflow stages", "generated": true, "source": "workflow.json" },
         { "slug": "reference/state-machine", "label": "Run states", "generated": true, "source": "state-machine.json" },
         { "slug": "reference/agents", "label": "Agent roles", "generated": true, "source": "agents.json" }
@@ -84,7 +84,7 @@
       "label": "Extending Amaco",
       "items": [
         { "slug": "extending/add-skill", "label": "Add a skill" },
-        { "slug": "extending/add-guide", "label": "Add a Guide" },
+        { "slug": "extending/add-flow", "label": "Add a Flow" },
         { "slug": "extending/add-provider", "label": "Add a provider" }
       ]
     },

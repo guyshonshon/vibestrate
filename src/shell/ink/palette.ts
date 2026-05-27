@@ -127,30 +127,30 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     action: { kind: "goto", page: "skills" },
   },
   {
-    id: "runner.guides-list",
-    title: "List Guides",
+    id: "runner.flows-list",
+    title: "List Flows",
     hint: "inspect built-in and project run recipes",
     keywords: ["recipes", "quality", "arbitration", "workflow"],
     description:
-      "Opens the command runner with the Guide catalog so the shell can inspect the same run recipes as the CLI and dashboard.",
-    cli: "amaco guides list",
+      "Opens the command runner with the Flow catalog so the shell can inspect the same run recipes as the CLI and dashboard.",
+    cli: "amaco flows list",
     examples: [
-      "amaco guides show quality-arbitration",
-      'amaco run "review this change" --guide quality-arbitration',
+      "amaco flows show quality-arbitration",
+      'amaco run "review this change" --flow quality-arbitration',
     ],
-    action: { kind: "open-runner", seed: "guides list" },
+    action: { kind: "open-runner", seed: "flows list" },
   },
   {
-    id: "runner.guides-quality-arbitration",
-    title: "Show Quality Arbitration Guide",
+    id: "runner.flows-quality-arbitration",
+    title: "Show Quality Arbitration Flow",
     hint: "slots + ordered review steps",
-    keywords: ["guide", "review", "challenger", "cto"],
+    keywords: ["flow", "review", "challenger", "cto"],
     description:
-      "Loads the built-in Quality Arbitration Guide definition in the runner before the sequential Guide runner phase.",
-    cli: "amaco guides show quality-arbitration",
+      "Loads the built-in Quality Arbitration Flow definition in the runner before the sequential Flow runner phase.",
+    cli: "amaco flows show quality-arbitration",
     action: {
       kind: "open-runner",
-      seed: "guides show quality-arbitration",
+      seed: "flows show quality-arbitration",
     },
   },
   {

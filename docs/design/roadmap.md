@@ -56,7 +56,7 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
 - **B1 — Re-run with changes + rewind.**
   - ✓ **Re-run with changes** (done): a terminal run has a "Re-run with changes"
     action → re-submit the task with adjusted settings (uncheck read-only so the
-    executor can write, change effort/provider; preserves the guide). Directly
+    executor can write, change effort/provider; preserves the flow). Directly
     fixes the read-only→write case. Re-runs from scratch (new worktree).
   - ~~**Rewind to a stage** (phase 1, done)~~: fork a fresh run that resumes at
     **architecting** (reuse plan) or **executing** (reuse plan + architecture)
@@ -78,11 +78,11 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   approval / review BLOCKED / verification / raw error) with the right next
   actions; `blocked`/`aborted` runs stop showing a live pulse + timer.
 
-## Epic C — Guides intelligence
+## Epic C — Flows intelligence
 
-- **C1 — Task complexity vs guide complexity.** Estimate a task's complexity
-  (mirror the existing effort heuristic), give guides a target complexity, and
-  warn when a heavy multi-phase guide is overkill for a trivial task
+- **C1 — Task complexity vs flow complexity.** Estimate a task's complexity
+  (mirror the existing effort heuristic), give flows a target complexity, and
+  warn when a heavy multi-phase flow is overkill for a trivial task
   ("this flow might be too much — try a simpler one").
 
 ## Epic D — Naming & model unification (design first)
@@ -102,17 +102,22 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     mislabeled provider-fleet data corrected to Provider. Dashboard Agents +
     Providers merged into one **Crew** page (`#/crew`). Canonical terms in
     `docs/design/vocabulary.md`.~~ Remaining: the **TUI shell** still uses the
-    `agents` page id (web-only rename for now); Crew / Flow-vs-Guide / Task-vs-
+    `agents` page id (web-only rename for now); Crew / Flow-vs-Flow / Task-vs-
     Run / Orchestrator-vs-Supervisor wording is documented but not enforced.
-- **D2 — Default flow (unify roles + guides).** No separate "default roles":
-  the fixed plan→build→verify workflow becomes the built-in **default flow**,
-  roles are seats inside a flow, and **Guide → Flow**. Resolves the
-  role/slot duplication. Design + phasing in
-  [`flows-unification.md`](./flows-unification.md): **Phase A** = vocab + UI
-  (one Flows list incl. the default; Crew shows the default flow's roles; still
-  runs via `run()` under the hood); **Phase B** = unify the two orchestrator
-  runners (`run()` + `runGuideSequence()`) so the default workflow executes as
-  an actual flow. Design-first.
+- **D2 — Default flow (unify roles + flows).** No separate "default roles": the
+  fixed plan→build→verify workflow becomes the built-in **default flow**, roles
+  are seats inside a flow, and "Guide" is renamed to **Flow**. Resolves the
+  role/slot duplication. Design in
+  [`flows-unification.md`](./flows-unification.md).
+  - ~~**Phase A-1** (done): Guide → Flow rename across code / config-paths /
+    API / UI / CLI / docs. Catalog is now **Flows** (`#/flows`), builder
+    `#/flow`. No back-compat (pre-release).~~
+  - ☐ **Phase A-2**: surface the default workflow as the built-in *default
+    flow* in the catalog; Crew framed as "the default flow's roles". Still runs
+    via `run()` under the hood.
+  - ☐ **Phase B**: unify the two orchestrator runners (`run()` +
+    `runFlowSequence()`) so the default workflow executes as an actual flow.
+    Highest-risk core change; checkpoint before starting.
 
 ## Epic E — Platform
 

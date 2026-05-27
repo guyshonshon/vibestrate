@@ -153,11 +153,11 @@ plan → architecture → implement → validate → review → fix → verify
 
 Each phase is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own phase - it runs the commands in `.amaco/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." Approval gates can pause a run for a human at any phase.
 
-Higher-stakes work can run a **Guide** instead - a recipe where multiple models arbitrate each other:
+Higher-stakes work can run a **Flow** instead - a recipe where multiple models arbitrate each other:
 
 ```bash
-amaco run "Refactor provider permissions" --guide quality-arbitration \
-  --guide-slot builder=claude --guide-slot challenger=codex
+amaco run "Refactor provider permissions" --flow quality-arbitration \
+  --flow-slot builder=claude --flow-slot challenger=codex
 ```
 
 > [Concepts](https://amaco.shonshon.com/docs/concepts/task) · [Task lifecycle](https://amaco.shonshon.com/docs/task-lifecycle) · [CLI reference](https://amaco.shonshon.com/docs/reference/cli)
@@ -180,7 +180,7 @@ That's the category in one line: Amaco is a **supervisor**, not an autopilot.
 
 ## ◆ Documentation
 
-Everything lives at **[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs)** - getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Guide (generated straight from the code, so it never drifts).
+Everything lives at **[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs)** - getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Flow (generated straight from the code, so it never drifts).
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 

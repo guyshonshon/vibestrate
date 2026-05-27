@@ -20,7 +20,7 @@ async function makeRunFixture(opts: {
   withNotifications?: boolean;
   withTerminalSessions?: boolean;
   withPolicyRefusal?: boolean;
-  withGuide?: boolean;
+  withFlow?: boolean;
   eventCount?: number;
   malformedJson?: boolean;
 } = {}): Promise<RunFixture> {
@@ -68,13 +68,13 @@ async function makeRunFixture(opts: {
       finalDecision: "APPROVED",
       verification: "PASSED",
       error: null,
-      ...(opts.withGuide
+      ...(opts.withFlow
         ? {
-            guide: {
-              guideId: "quality-arbitration",
-              guideVersion: 1,
+            flow: {
+              flowId: "quality-arbitration",
+              flowVersion: 1,
               label: "Quality Arbitration",
-              snapshotPath: "guide.json",
+              snapshotPath: "flow.json",
               currentStepId: "second-review",
               steps: [
                 {
@@ -553,31 +553,31 @@ describe("buildRunReplay — service", () => {
     expect(r.artifacts.map((a) => a.path)).toContain("02-plan.md");
   });
 
-  it("projects the Guide ledger and Guide events", async () => {
+  it("projects the Flow ledger and Flow events", async () => {
     const { project, runId } = await makeRunFixture({
       withEvents: false,
-      withGuide: true,
+      withFlow: true,
     });
     await fs.writeFile(
       path.join(project, ".amaco/runs", runId, "events.ndjson"),
       `${JSON.stringify({
         timestamp: "2026-05-12T10:01:00.000Z",
-        type: "guide.step.started",
-        message: "Guide step second-review starting.",
+        type: "flow.step.started",
+        message: "Flow step second-review starting.",
         data: { stepId: "second-review" },
       })}\n`,
     );
     const r = await buildRunReplay(project, runId);
-    expect(r.guide).toMatchObject({
-      guideId: "quality-arbitration",
+    expect(r.flow).toMatchObject({
+      flowId: "quality-arbitration",
       currentStepId: "second-review",
     });
-    expect(r.guide?.steps).toEqual(
+    expect(r.flow?.steps).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "plan", status: "passed" }),
       ]),
     );
-    expect(r.phases.find((phase) => phase.key === "guides")?.eventIndices).toEqual([
+    expect(r.phases.find((phase) => phase.key === "flows")?.eventIndices).toEqual([
       0,
     ]);
   });

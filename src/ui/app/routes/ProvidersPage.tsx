@@ -325,7 +325,7 @@ function extractCommands(hint: string | null): string[] {
 }
 
 /**
- * Guided install for a popular provider. Shows the exact install + login
+ * Flowd install for a popular provider. Shows the exact install + login
  * commands to run locally and a re-check — it never runs anything itself
  * (the browser spawns no commands; everything happens in the user's own
  * terminal, on their machine, with their credentials).

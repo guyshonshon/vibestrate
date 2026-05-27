@@ -11,7 +11,7 @@ export type ProviderRunResult = {
   endedAt: string;
   /**
    * Session reuse is opt-in per provider adapter. One-shot generic CLIs
-   * leave this unset and the Guide runner falls back to artifact handoffs.
+   * leave this unset and the Flow runner falls back to artifact handoffs.
    */
   session?: ProviderSessionResult | null;
 };
@@ -47,7 +47,7 @@ export type ProviderRunInput = {
   prompt: string;
   cwd: string;
   env?: Record<string, string>;
-  /** Provider-native session turn request for a Guide participant. */
+  /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**
    * Absolute path to a materialized `mcp.json` (see `src/mcp/mcp-config-writer`).

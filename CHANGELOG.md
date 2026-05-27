@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **rename Guide → Flow** across code, config-paths, API, UI, CLI, and
+  docs (Epic D / D2, phase A-1). Clean rename, no back-compat (pre-release):
+  `src/guides`→`src/flows`, `.amaco/guides/`→`.amaco/flows/` (flow files are
+  `flow.yml`), `/api/guides`→`/api/flows`, `--guide*` CLI flags→`--flow*`, the
+  dashboard's Guides catalog → **Flows** (`#/flows`; the Flow Builder is
+  `#/flow`). The default plan→build→verify workflow is being reframed as the
+  built-in *default flow* (next: surface it in the catalog, then unify the two
+  orchestrator runners). No false-positive collisions ("workflow"/"overflow"
+  untouched).
+
 - Change: **Crew page is role-first and editable.** Set each role's provider
   inline via a dropdown (new `PATCH /api/roles/:roleId`, configured providers
   only). The hero drops the "N roles, M providers" count summary and the "an

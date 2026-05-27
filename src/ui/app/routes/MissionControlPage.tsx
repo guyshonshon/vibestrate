@@ -15,7 +15,7 @@ import {
 import type {
   AmacoEvent,
   ApprovalRequest,
-  DiscoveredGuide,
+  DiscoveredFlow,
   NotificationRecord,
   RunState,
   RunStatus,
@@ -56,7 +56,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [providers, setProviders] = useState<ComposerProvider[]>([]);
   const [skills, setSkills] = useState<ComposerSkill[]>([]);
-  const [guides, setGuides] = useState<DiscoveredGuide[]>([]);
+  const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
   const [presets, setPresets] = useState<ComposerPreset[]>([]);
   const [eventsByRun, setEventsByRun] = useState<Record<string, AmacoEvent[]>>({});
   const [diffByRun, setDiffByRun] = useState<
@@ -81,7 +81,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
   // Bumping this re-runs the runs effect immediately (used right after submit).
   const [reloadKey, setReloadKey] = useState(0);
 
-  // ── Composer feeds: providers / skills / guides / presets ──
+  // ── Composer feeds: providers / skills / flows / presets ──
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -89,7 +89,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
         const [p, s, g, pr] = await Promise.all([
           api.listProviders(),
           api.listSkills(),
-          api.listGuides(),
+          api.listFlows(),
           api
             .listComposerPresets()
             .catch(() => ({ presets: [] as ComposerPreset[] })),
@@ -105,7 +105,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
           })),
         );
         setSkills(s.skills.map((sk) => ({ id: sk.id, name: sk.name })));
-        setGuides(g.guides);
+        setFlows(g.flows);
         setPresets(pr.presets);
       } catch {
         /* swallow — server not ready yet */
@@ -270,7 +270,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
 
   const handleComposerSubmit = async (input: {
     brief: string;
-    guideId: string | null;
+    flowId: string | null;
     contextPolicy: "balanced" | "compact" | "artifact-heavy";
     slotProviders: Record<string, string>;
     providerOverride: string | null;
@@ -288,9 +288,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
         readOnly: input.readOnly || undefined,
         provider: input.providerOverride ?? undefined,
         skills: input.skills.length > 0 ? input.skills : undefined,
-        guide: input.guideId
+        flow: input.flowId
           ? {
-              id: input.guideId,
+              id: input.flowId,
               contextPolicy: input.contextPolicy,
               slotProviders:
                 Object.keys(compactProviders).length > 0
@@ -382,7 +382,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
           providers={providers}
           defaultProviderId={defaultProvider?.id ?? null}
           skills={skills}
-          guides={guides}
+          flows={flows}
           presets={presets}
           onSubmit={handleComposerSubmit}
           onSavePreset={async (preset) => {
@@ -418,7 +418,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
             }
           }}
           onCustomizeFlow={() =>
-            navigate({ kind: "flow", guideId: null })
+            navigate({ kind: "flow", flowId: null })
           }
         />
       </section>

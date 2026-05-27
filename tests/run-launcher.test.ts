@@ -78,10 +78,10 @@ describe("run launcher (shared core run pipeline)", () => {
     ).rejects.toMatchObject({ name: "RunLaunchError", code: "not_initialized" });
   });
 
-  it("rejects an unknown guide", async () => {
+  it("rejects an unknown flow", async () => {
     const dir = await makeProject();
     await expect(
-      runFromSpec({ projectRoot: dir, task: "x", guide: { id: "does-not-exist" } }),
+      runFromSpec({ projectRoot: dir, task: "x", flow: { id: "does-not-exist" } }),
     ).rejects.toBeInstanceOf(RunLaunchError);
   });
 
