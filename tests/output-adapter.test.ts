@@ -21,8 +21,8 @@ describe("text output adapter (default)", () => {
     expect(detectApprovalRequest(raw).required).toBe(true);
   });
 
-  it("liveText is a passthrough", () => {
-    expect(textOutputAdapter.liveText?.("chunk")).toBe("chunk");
+  it("has no live filter (caller streams chunks verbatim)", () => {
+    expect(textOutputAdapter.createLiveFilter).toBeUndefined();
   });
 });
 

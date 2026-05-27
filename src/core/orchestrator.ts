@@ -36,6 +36,7 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
 import {
   appendStreamLine,
@@ -2695,6 +2696,17 @@ export class Orchestrator {
     await ensureStreamsDir(this.projectRoot, ctx.runId).catch(() => undefined);
     const streamName = promptName;
 
+    // Structured providers (e.g. claude stream-json) emit JSON events, not
+    // readable text. The adapter's live filter turns those into the assistant's
+    // text for the live panel (display only). Plain providers have no filter →
+    // chunks stream verbatim. `liveEmitted` lets us skip the end-of-turn flush
+    // when the stream already showed the text incrementally.
+    const outputAdapter = selectOutputAdapter(
+      this.config.providers[effectiveProviderId]!,
+    );
+    const liveFilter = outputAdapter.createLiveFilter?.();
+    let liveEmitted = false;
+
     // Honor `amaco abort` mid-stage: poll state.json every 500ms; when
     // we see `aborted`, abort the controller to SIGTERM the provider
     // child. Without this the run waited for the current CLI call to
@@ -2728,8 +2740,20 @@ export class Orchestrator {
         prompt,
         cwd,
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
-        onChunk: (c) =>
-          void appendStreamLine(this.projectRoot, ctx.runId, streamName, c),
+        onChunk: (c) => {
+          if (liveFilter && c.stream === "stdout") {
+            const text = liveFilter(c.chunk);
+            if (text) {
+              liveEmitted = true;
+              void appendStreamLine(this.projectRoot, ctx.runId, streamName, {
+                ...c,
+                chunk: text,
+              });
+            }
+            return;
+          }
+          void appendStreamLine(this.projectRoot, ctx.runId, streamName, c);
+        },
         signal: providerAbort.signal,
         ...(input.guideTurn?.sessionRequest
           ? { session: input.guideTurn.sessionRequest }
@@ -2738,18 +2762,19 @@ export class Orchestrator {
       if (providerAbort.signal.aborted) {
         throw new __RunAbortedSignal();
       }
-      // Fallback flush — some providers buffer all output until exit,
-      // or run on bundles that predate the chunk hook. Persist the
-      // final stdout/stderr as a single chunk so the dashboard's
-      // Live Output panel always has *something* to show, even on a
-      // run that never streamed mid-flight.
+      // Fallback flush — most providers buffer all output until exit, so the
+      // live panel would be empty mid-flight. Persist the *normalized* response
+      // text (the clean answer, not raw JSON for structured providers) as one
+      // chunk. Skip it when a structured stream already showed text live, so we
+      // don't duplicate.
       if (
-        providerResult.stdout &&
-        providerResult.stdout.length > 0
+        !liveEmitted &&
+        providerResult.normalized.responseText &&
+        providerResult.normalized.responseText.length > 0
       ) {
         await appendStreamLine(this.projectRoot, ctx.runId, streamName, {
           stream: "stdout",
-          chunk: providerResult.stdout,
+          chunk: providerResult.normalized.responseText,
           at: new Date().toISOString(),
         }).catch(() => undefined);
       }

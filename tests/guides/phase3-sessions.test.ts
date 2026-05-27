@@ -54,21 +54,25 @@ const sessionId = flagValue("--resume") || flagValue("--session-id") || "no-sess
 let prompt = "";
 process.stdin.on("data", (chunk) => prompt += chunk);
 process.stdin.on("end", () => {
+  let response = "";
   if (prompt.includes("Amaco Agent: reviewer")) {
-    console.log("# Review\\n\\nDECISION: APPROVED\\n\\nNo blocking findings.");
+    response = "# Review\\n\\nDECISION: APPROVED\\n\\nNo blocking findings.";
   } else if (prompt.includes("Amaco Agent: verifier")) {
-    console.log("# Decision Summary\\n\\nVERIFICATION: PASSED\\n\\nEvidence checked.");
+    response = "# Decision Summary\\n\\nVERIFICATION: PASSED\\n\\nEvidence checked.";
   } else if (prompt.includes("Amaco Agent: planner")) {
-    console.log("# Plan\\n\\nReuse the builder context.");
+    response = "# Plan\\n\\nReuse the builder context.";
   } else if (prompt.includes("Amaco Agent: executor")) {
-    console.log("# Implementation Summary\\n\\nBuilder kept its session.");
+    response = "# Implementation Summary\\n\\nBuilder kept its session.";
   } else if (prompt.includes("Amaco Agent: fixer")) {
-    console.log("# Challenge Response\\n\\nBuilder answered findings.");
+    response = "# Challenge Response\\n\\nBuilder answered findings.";
   }
+  // Real claude stream-json puts the answer in the result event's \`result\`.
   console.log(JSON.stringify({
     type: "result",
+    result: response,
     session_id: sessionId,
     model: "fake-claude",
+    total_cost_usd: 0.001,
     usage: { input_tokens: 4, output_tokens: 2 }
   }));
 });

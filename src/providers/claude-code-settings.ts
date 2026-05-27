@@ -40,6 +40,11 @@ export function buildClaudeCodeArgs(
 
   if (settings.outputFormat) {
     out.push("--output-format", settings.outputFormat);
+    // `claude -p --output-format stream-json` REQUIRES --verbose (the CLI errors
+    // without it). Add it for stream-json so the preset is valid out of the box.
+    if (settings.outputFormat === "stream-json" && !out.includes("--verbose")) {
+      out.push("--verbose");
+    }
   }
   if (settings.maxTurns !== undefined) {
     out.push("--max-turns", String(settings.maxTurns));

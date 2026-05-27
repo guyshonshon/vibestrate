@@ -43,18 +43,22 @@ export interface ProviderOutputAdapter {
   /** Raw stdout → normalized turn. Throws on an unparseable structured stream
    *  so the caller fails the turn loudly (never proceeds on garbage). */
   finalize(rawStdout: string): NormalizedTurn;
-  /** Optional: a raw stdout chunk → human-readable text for the live panel
-   *  (display only, never the control path). Returns "" for non-text events. */
-  liveText?(rawChunk: string): string;
+  /**
+   * Optional: build a stateful filter that turns raw stdout chunks into
+   * human-readable text for the live panel (display only, never the control
+   * path). Stateful because chunks aren't line-aligned — a structured adapter
+   * buffers partial lines. Absent ⇒ the caller streams chunks verbatim.
+   */
+  createLiveFilter?(): (rawChunk: string) => string;
 }
 
 /**
  * The default, provider-agnostic adapter: stdout *is* the response text, no
- * native metrics. This is exactly amaco's behavior before adapters existed, so
- * every provider that hasn't opted into a richer format keeps working unchanged.
+ * native metrics, chunks stream verbatim. This is exactly amaco's behavior
+ * before adapters existed, so every provider that hasn't opted into a richer
+ * format keeps working unchanged.
  */
 export const textOutputAdapter: ProviderOutputAdapter = {
   id: "text",
   finalize: (rawStdout) => ({ responseText: rawStdout, metrics: null }),
-  liveText: (chunk) => chunk,
 };

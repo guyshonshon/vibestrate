@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Claude `stream-json` output adapter** (structured-output phase 2) —
+  when a claude provider is configured `type: claude-code` with
+  `settings.outputFormat: stream-json`, amaco streams live token-by-token text
+  to the run panel and reads real token/cost/model metrics from the event
+  stream. The response text is extracted losslessly from the terminal `result`
+  event (control parsers unaffected); a malformed stream **fails the turn loud**
+  (no silent fallback). `buildClaudeCodeArgs` adds the required `--verbose`.
+  Validated against real claude 2.x output. Opt-in for now — making it the
+  claude default needs unifying the two preset builders (follow-up).
 - Docs: document the run view (live execution + the headless-buffering caveat,
   Steps inspector, changed files, live metrics) in `cli/dashboard`; regenerated
   the source-aware reference (`docs/generated/providers.json`).
