@@ -309,6 +309,60 @@ describe("replaceSteps / replaceSlots (structural edits)", () => {
   });
 });
 
+describe("mergeFlowPatch — loop, stage, read-only authoring", () => {
+  it("adds an adaptive loop to a flow that had none", () => {
+    const base = findBuiltinFlow("quality-arbitration")!;
+    expect(base.loop).toBeUndefined();
+    const verdict = mergeFlowPatch(base, {
+      loop: {
+        from: "implementation-review",
+        to: "second-review",
+        decisionStep: "implementation-review",
+        maxIterations: 2,
+      },
+    });
+    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
+    expect(verdict.next.loop).toEqual({
+      from: "implementation-review",
+      to: "second-review",
+      decisionStep: "implementation-review",
+      maxIterations: 2,
+    });
+  });
+
+  it("clears a loop with loop: null", () => {
+    const base = findBuiltinFlow("default")!;
+    expect(base.loop).toBeDefined();
+    const verdict = mergeFlowPatch(base, { loop: null });
+    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
+    expect(verdict.next.loop).toBeUndefined();
+  });
+
+  it("rejects a loop whose decisionStep isn't a review-turn", () => {
+    const base = findBuiltinFlow("quality-arbitration")!;
+    const verdict = mergeFlowPatch(base, {
+      loop: {
+        from: "implement",
+        to: "second-review",
+        decisionStep: "implement", // agent-turn, not a review-turn
+        maxIterations: 2,
+      },
+    });
+    expect(verdict.ok).toBe(false);
+  });
+
+  it("edits a step's stage and skipWhenReadOnly in place", () => {
+    const base = findBuiltinFlow("quality-arbitration")!;
+    const verdict = mergeFlowPatch(base, {
+      steps: [{ id: "implement", stage: "executing", skipWhenReadOnly: true }],
+    });
+    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
+    const step = verdict.next.steps.find((s) => s.id === "implement")!;
+    expect(step.stage).toBe("executing");
+    expect(step.skipWhenReadOnly).toBe(true);
+  });
+});
+
 describe("forkFlowToProject", () => {
   it("copies a builtin into .amaco/flows and is idempotent", async () => {
     const root = await makeProject();

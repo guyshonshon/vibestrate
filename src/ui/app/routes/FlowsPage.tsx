@@ -79,6 +79,21 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     }
   }
 
+  // Fork a builtin (e.g. the default flow) into the project and jump straight
+  // into the Flow Builder to edit it. The project copy then shadows the builtin
+  // everywhere — including plain `amaco run` for the default flow.
+  async function forkAndEdit(flowId: string) {
+    setBusy({ id: flowId, action: "fork" });
+    try {
+      await api.forkFlowToProject(flowId);
+      onOpenInFlow(flowId);
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function remove(flowId: string) {
     if (!window.confirm(`Delete the project flow "${flowId}"? This removes .amaco/flows/${flowId}/.`)) {
       return;
@@ -141,7 +156,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       <section className="mt-7 space-y-3">
-        {defaultFlow ? <DefaultFlowCard flow={defaultFlow} /> : null}
+        {defaultFlow ? (
+          <DefaultFlowCard
+            flow={defaultFlow}
+            busy={busy?.id === "default"}
+            onForkEdit={() => void forkAndEdit("default")}
+          />
+        ) : null}
         {!flows ? (
           <div className="text-fog-400 text-[13px]">Loading flows…</div>
         ) : otherFlows.length === 0 ? (
@@ -188,7 +209,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 // and is also runnable explicitly as `--flow default`. Shown as a distinct
 // "runs by default" card — not forked/deleted here. Loop-body steps (the
 // adaptive review→fix loop) are marked with ↺.
-function DefaultFlowCard({ flow }: { flow: DiscoveredFlow }) {
+function DefaultFlowCard({
+  flow,
+  busy,
+  onForkEdit,
+}: {
+  flow: DiscoveredFlow;
+  busy: boolean;
+  onForkEdit: () => void;
+}) {
   const steps = flow.definition.steps;
   const loop = flow.definition.loop ?? null;
   const loopBody = loop
@@ -197,12 +226,25 @@ function DefaultFlowCard({ flow }: { flow: DiscoveredFlow }) {
         to: steps.findIndex((s) => s.id === loop.to),
       }
     : null;
+  const isProject = flow.source.kind === "project";
   return (
     <div className="rounded-xl border border-violet-soft/25 surface-ink-100-55 px-4 py-3.5">
       <div className="flex items-center gap-2">
         <span className="text-[14px] font-medium text-fog-100">{flow.label}</span>
-        <Chip tone="violet">built-in</Chip>
+        <Chip tone={isProject ? "violet" : "neutral"}>
+          {isProject ? "edited (project)" : "built-in"}
+        </Chip>
         <Chip tone="emerald">runs by default</Chip>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          iconLeft={isProject ? <PenLine size={13} /> : <GitFork size={13} />}
+          disabled={busy}
+          onClick={onForkEdit}
+        >
+          {isProject ? "Edit" : busy ? "Forking…" : "Fork & edit"}
+        </Button>
       </div>
       <p className="mt-1 text-[12px] text-fog-400 max-w-[68ch]">
         {flow.description} Each step is performed by a role (configure providers

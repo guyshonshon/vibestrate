@@ -85,6 +85,7 @@ import type {
   ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
+import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
   buildFlowContextPacket as buildFlowContextPacketValue,
@@ -322,14 +323,17 @@ export class Orchestrator {
     this.abortSignal = input.abortSignal ?? null;
   }
 
-  /** Resolve the built-in `default` flow against this run's config. Used when a
-   *  run doesn't pick an explicit flow — a plain `amaco run` executes the
-   *  default flow through the same runner as every other flow. Throws a
-   *  FlowResolutionError if the configured roles/providers can't satisfy it. */
-  private resolveDefaultFlow(): ResolvedFlowSnapshot {
+  /** Resolve the `default` flow against this run's config. Used when a run
+   *  doesn't pick an explicit flow — a plain `amaco run` executes the default
+   *  flow through the same runner as every other flow. A project may fork + edit
+   *  the default (`.amaco/flows/default`); that shadows the builtin here too, so
+   *  editing the default actually takes effect for plain runs. Falls back to the
+   *  builtin. Throws if the configured roles/providers can't satisfy it. */
+  private async resolveDefaultFlow(): Promise<ResolvedFlowSnapshot> {
+    const discovered = await findFlowById(this.projectRoot, defaultFlow.id);
     return resolveFlow({
-      flow: defaultFlow,
-      source: { kind: "builtin", ref: defaultFlow.id },
+      flow: discovered?.definition ?? defaultFlow,
+      source: discovered?.source ?? { kind: "builtin", ref: defaultFlow.id },
       config: this.config,
       task: this.task,
     });
@@ -347,8 +351,8 @@ export class Orchestrator {
     });
 
     // Every run executes a flow. An explicit `--flow` snapshot wins; otherwise
-    // the built-in `default` flow is resolved here. There is one runner.
-    const flow = this.flow ?? this.resolveDefaultFlow();
+    // the `default` flow is resolved here. There is one runner.
+    const flow = this.flow ?? (await this.resolveDefaultFlow());
 
     const runId = makeRunId(this.task);
 
@@ -1705,15 +1709,19 @@ export class Orchestrator {
       }
       const validationPassed =
         lastValidation === null || lastValidation.summary.failed === 0;
+      // A flow only requires a passing verification if it actually has a verify
+      // (summary-turn) step that ran. Minimal flows (e.g. coder + reviewer with
+      // no verify) reach merge_ready on an APPROVED review + passing validation.
+      const verified = verificationArtifact !== null;
       // Read-only runs skip verification entirely, so there's no decision to
       // report — null keeps the report/events honest ("skipped") rather than
       // leaking the NEEDS_HUMAN default as if a verifier had run.
-      const finalVerification = this.readOnly ? null : verificationDecision;
+      const finalVerification = this.readOnly || !verified ? null : verificationDecision;
       const mergeReady = this.readOnly
         ? reviewDecision === "APPROVED"
         : reviewDecision === "APPROVED" &&
-          verificationDecision === "PASSED" &&
-          validationPassed;
+          validationPassed &&
+          (!verified || verificationDecision === "PASSED");
       state = {
         ...state,
         finalDecision: reviewDecision,

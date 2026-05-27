@@ -266,8 +266,64 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
   ],
 });
 
+// Minimal looped flow — the "just a coder + a reviewer" shape. The loop body is
+// the whole flow (implement → review); the review (decisionStep at the tail)
+// loops back to the coder while it asks for changes, up to the bound. No
+// planner/architect/verifier: an APPROVED review + passing validation is
+// merge-ready (the runner only requires verification when a verify step exists).
+export const coderReviewerFlow = flowDefinitionSchema.parse({
+  id: "coder-reviewer",
+  version: 1,
+  label: "Coder + Reviewer (looped)",
+  description:
+    "A minimal loop: the coder implements, the reviewer checks, and it loops back to the coder until the review passes or the bound is hit. No separate planner or verifier.",
+  slots: {
+    coder: {
+      label: "Coder",
+      description: "Implements and revises the change.",
+      defaultRole: "executor",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description: "Reviews the diff and decides whether to loop back.",
+      defaultRole: "reviewer",
+    },
+  },
+  steps: [
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      slot: "coder",
+      roleId: "executor",
+      stage: "executing",
+      // On a loop-back the review's findings are in scope so the coder revises.
+      inputs: ["task-brief", "findings"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      slot: "reviewer",
+      roleId: "reviewer",
+      stage: "reviewing",
+      inputs: ["execution", "diff"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  loop: {
+    from: "implement",
+    to: "review",
+    decisionStep: "review",
+    maxIterations: 3,
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
+  coderReviewerFlow,
   qualityArbitrationFlow,
 ];
 
