@@ -80,6 +80,13 @@ amaco run "Add audit logging to the settings flow"
 
 Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in one command](#-ready-in-one-command) explains what `amaco doctor` detects and wires up for you.
 
+> **Security scanner note:** Some automated scanners have flagged the optional
+> Telegram notification gateway as "exfiltration" because the bundled CLI
+> contains `fetch`, `api.telegram.org`, and `process.env` references. That is a
+> false positive: Amaco has no hardcoded Telegram bot token, reads only the
+> single `env:NAME` value you configured, and sends only your notification text
+> to your own chat. See [SECURITY.md](./SECURITY.md#known-false-positives).
+
 <p align="right"><a href="#top">↑ back to top</a></p>
 
 ## ◆ Why it exists
