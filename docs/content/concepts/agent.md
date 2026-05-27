@@ -9,6 +9,8 @@ slug: concepts/agent
 
 **Simple explanation.** An agent is a worker with a job and a set of rules. You assign each role to a provider — Claude Code, Codex, Ollama — and the agent stays in its lane.
 
+> **Agent vs [provider](/docs/concepts/provider):** an *agent* is a **role** (planner, reviewer…); a *provider* is the **CLI engine** it runs on. One provider can power many roles, and you can give each role a different one. In the dashboard, the **Agents** page shows the roles and the engine each runs on; the **Providers** page is where you attach and test the engines.
+
 ## Why it matters
 
 Splitting a task into named agent roles is what makes Amaco's loop inspectable. The planner only plans. The reviewer only reviews. When something goes wrong, you can read each role's output independently and see where the chain broke.

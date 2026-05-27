@@ -225,6 +225,16 @@ export type AgentProfile = {
   skills: string[];
 };
 
+/** An agent *role* (planner, architect, …) and its bindings. The role is the
+ *  seat in the workflow; `provider` is the CLI engine it runs on. */
+export type AgentRole = {
+  id: string;
+  provider: string;
+  providerConfigured: boolean;
+  permissions: string;
+  skills: string[];
+};
+
 export type AgentsOverview = {
   generatedAt: string;
   providers: AgentProfile[];
@@ -582,6 +592,9 @@ export const api = {
   },
   async getAgentsOverview(): Promise<AgentsOverview> {
     return jsonGet("/api/agents/overview");
+  },
+  async getAgentRoles(): Promise<{ roles: AgentRole[] }> {
+    return jsonGet("/api/agents/roles");
   },
   async resolveGuide(
     guideId: string,

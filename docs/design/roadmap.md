@@ -87,11 +87,17 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
 
 ## Epic D — Naming & model unification (design first)
 
-- **D1 — Settle the vocabulary.** Decide whether **Agents** and **Providers**
-  are one concept; pin down Crew / Flow (vs Guide) / Task vs Run /
-  Orchestrator vs Supervisor. Goal: as few, as clear concepts as possible.
-  This is a design decision before any rename — renames ripple through UI,
-  docs, and config.
+- **D1 — Agents vs Providers.**
+  - ~~**Legibility pass** (done): they are *not* one concept — an agent is a
+    role, a provider is the CLI engine it runs on (many roles → one engine).
+    The Agents page now leads with a **Roles** panel (role → engine +
+    permissions + skills) and reframes the provider list as **Engines**, with
+    an explainer; new read-only `GET /api/agents/roles`. This removes the
+    "aren't these the same?" confusion without a rename.~~
+  - ☐ **Vocabulary rename** (still design-first): decide whether to rename
+    Provider→Engine / Agent→Role and merge the two pages, and pin down Crew /
+    Flow (vs Guide) / Task vs Run / Orchestrator vs Supervisor. Renames ripple
+    through UI, docs, and config, so design before doing.
 
 ## Epic E — Platform
 

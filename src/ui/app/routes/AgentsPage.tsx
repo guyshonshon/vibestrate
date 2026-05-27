@@ -7,7 +7,13 @@ import {
   Settings as SettingsIcon,
   X,
 } from "lucide-react";
-import { api, type AgentProfile, type AgentsOverview } from "../../lib/api.js";
+import {
+  api,
+  type AgentProfile,
+  type AgentRole,
+  type AgentsOverview,
+} from "../../lib/api.js";
+import { navigate } from "../App.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
@@ -73,6 +79,7 @@ function avatarLetter(profile: AgentProfile): string {
 
 export function AgentsPage() {
   const [overview, setOverview] = useState<AgentsOverview | null>(null);
+  const [roles, setRoles] = useState<AgentRole[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,6 +98,11 @@ export function AgentsPage() {
       }
     };
     void load();
+    // Roles are config, not telemetry — fetch once, no polling.
+    void api
+      .getAgentRoles()
+      .then((r) => !cancelled && setRoles(r.roles))
+      .catch(() => {});
     const id = window.setInterval(load, 8000);
     return () => {
       cancelled = true;
@@ -207,15 +219,18 @@ export function AgentsPage() {
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Agents · the crew you can pull from</div>
+        <div className="eyebrow mb-1.5">Agents · roles &amp; the engines they run on</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[820px]">
-          {overview ? overview.providers.length : "—"}{" "}
-          <em className="text-display italic text-violet-soft">models</em>, one
-          orchestrator, your rules.
+          {roles.length || "—"}{" "}
+          <em className="text-display italic text-violet-soft">roles</em>, on{" "}
+          {overview ? overview.providers.length : "—"} engines, one orchestrator.
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-          Tune capabilities, see who's online, watch throughput per agent.
-          Every change here flows through to the composer.
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[660px]">
+          An <strong className="text-fog-100">agent</strong> is a role in the
+          workflow (planner, reviewer…). A{" "}
+          <strong className="text-fog-100">provider</strong> is the CLI engine a
+          role runs on — one engine can power many roles, and you can give each
+          role a different one. Below: who plays each role, then the engines.
         </p>
       </section>
 
@@ -225,13 +240,16 @@ export function AgentsPage() {
         </div>
       ) : null}
 
+      <RolesPanel roles={roles} overview={overview} />
+
       <KpiStrip overview={overview} />
 
       <section className="mt-8 grid grid-cols-12 gap-5">
         <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-2.5">
           <SectionEyebrow className="mb-1 px-1">
             <span>
-              Providers · {overview?.providers.length ?? 0}
+              Engines · {overview?.providers.length ?? 0}{" "}
+              <span className="text-fog-500">(providers)</span>
             </span>
             <span className="text-fog-400">↑ select to inspect</span>
           </SectionEyebrow>
@@ -725,6 +743,89 @@ function yamlQuote(s: string): string {
 }
 
 // ── KPI strip ─────────────────────────────────────────────────────────────
+
+const ROLE_BLURB: Record<string, string> = {
+  planner: "drafts the change",
+  architect: "shapes the approach",
+  executor: "writes the code",
+  fixer: "answers review findings",
+  reviewer: "critiques the diff",
+  verifier: "signs off before merge",
+};
+
+/**
+ * The agent *roles* and the engine each runs on — the missing piece that makes
+ * "agents vs providers" legible: an agent is a role; a provider is the CLI it
+ * runs on; one provider can power many roles.
+ */
+function RolesPanel({
+  roles,
+  overview,
+}: {
+  roles: AgentRole[];
+  overview: AgentsOverview | null;
+}) {
+  if (roles.length === 0) return null;
+  return (
+    <section className="mt-7" data-screen-label="Roles">
+      <SectionEyebrow className="mb-2 px-1">
+        <span>Roles · the workflow crew</span>
+        <button
+          type="button"
+          onClick={() => navigate({ kind: "providers" })}
+          className="text-fog-400 hover:text-fog-200"
+        >
+          manage engines →
+        </button>
+      </SectionEyebrow>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {roles.map((r) => {
+          const engine = overview?.providers.find(
+            (p) => p.providerId === r.provider,
+          );
+          const online = engine ? engine.available : r.providerConfigured;
+          return (
+            <div
+              key={r.id}
+              className="rounded-xl border border-white/[0.08] surface-ink-100-55 px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[14px] font-medium capitalize text-fog-100">
+                  {r.id}
+                </span>
+                <Chip tone={r.permissions.includes("write") ? "amber" : "neutral"}>
+                  {r.permissions}
+                </Chip>
+              </div>
+              {ROLE_BLURB[r.id] ? (
+                <p className="mt-0.5 text-[11.5px] text-fog-500">
+                  {ROLE_BLURB[r.id]}
+                </p>
+              ) : null}
+              <div className="mt-2.5 flex items-center gap-2 text-[12px]">
+                <ToneDot tone={online ? "emerald" : "rose"} />
+                <span className="text-fog-400">runs on</span>
+                <span className="mono text-[11.5px] text-violet-soft">
+                  {r.provider}
+                </span>
+                {!online ? (
+                  <span className="text-[10.5px] text-rose-300/80">
+                    {r.providerConfigured ? "(offline)" : "(not configured)"}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1.5 text-[11px] text-fog-500">
+                {r.skills.length > 0
+                  ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}`
+                  : "no skills"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 function KpiStrip({ overview }: { overview: AgentsOverview | null }) {
   return (
