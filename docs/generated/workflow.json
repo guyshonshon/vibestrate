@@ -4,7 +4,7 @@
   "stages": [
     {
       "id": "planning",
-      "agentId": "planner",
+      "roleId": "planner",
       "enteringStatus": "planning",
       "exitingStatus": "planned",
       "simple": "Read the task and write a plan.",
@@ -12,7 +12,7 @@
     },
     {
       "id": "architecting",
-      "agentId": "architect",
+      "roleId": "architect",
       "enteringStatus": "architecting",
       "exitingStatus": "architected",
       "simple": "Sketch how the plan fits into the codebase.",
@@ -20,7 +20,7 @@
     },
     {
       "id": "executing",
-      "agentId": "executor",
+      "roleId": "executor",
       "enteringStatus": "executing",
       "exitingStatus": "validating",
       "simple": "Apply the changes in an isolated git worktree.",
@@ -28,7 +28,7 @@
     },
     {
       "id": "validating",
-      "agentId": null,
+      "roleId": null,
       "enteringStatus": "validating",
       "exitingStatus": "reviewing",
       "simple": "Run the project's validation commands.",
@@ -36,7 +36,7 @@
     },
     {
       "id": "reviewing",
-      "agentId": "reviewer",
+      "roleId": "reviewer",
       "enteringStatus": "reviewing",
       "exitingStatus": "verifying",
       "simple": "Have a different agent critique the diff.",
@@ -44,7 +44,7 @@
     },
     {
       "id": "fixing",
-      "agentId": "fixer",
+      "roleId": "fixer",
       "enteringStatus": "fixing",
       "exitingStatus": "validating",
       "simple": "Address review findings and re-validate.",
@@ -52,7 +52,7 @@
     },
     {
       "id": "verifying",
-      "agentId": "verifier",
+      "roleId": "verifier",
       "enteringStatus": "verifying",
       "exitingStatus": "merge_ready",
       "simple": "Confirm the run is ready to merge.",

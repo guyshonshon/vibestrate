@@ -245,8 +245,8 @@
       ]
     },
     {
-      "key": "agents",
-      "fullKey": "agents",
+      "key": "roles",
+      "fullKey": "roles",
       "type": "record<string, object>",
       "required": true,
       "itemType": null
@@ -399,7 +399,7 @@
       "required": false,
       "default": {
         "maxConcurrentRuns": 1,
-        "maxConcurrentWriteAgents": 1,
+        "maxConcurrentWriteRoles": 1,
         "conflictPolicy": "warn",
         "queuePolicy": "fifo",
         "sourceQuotas": {}
@@ -415,8 +415,8 @@
           "itemType": null
         },
         {
-          "key": "maxConcurrentWriteAgents",
-          "fullKey": "scheduler.maxConcurrentWriteAgents",
+          "key": "maxConcurrentWriteRoles",
+          "fullKey": "scheduler.maxConcurrentWriteRoles",
           "type": "number",
           "required": false,
           "default": 1,

@@ -6,6 +6,18 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **rename Agent → Role** across config, API, code, and UI, and **merge
+  the Agents + Providers dashboard pages into one Crew page** (Epic D / D1·2).
+  Clean rename, no back-compat (pre-release): config key `agents:` → `roles:`,
+  on-disk prompt dir `.amaco/agents/` → `.amaco/roles/`, metrics `agentId` →
+  `roleId`, events `agent.*` → `role.*`. The provider-fleet data that was
+  mislabeled "agent" is corrected to Provider (`/api/agents/overview` →
+  `/api/providers/overview`; roles list at `/api/roles`). The dashboard's
+  separate Agents + Providers nav entries collapse into **Crew** (`#/crew`;
+  `#/agents` still parses as a legacy alias); the Providers detail/install view
+  is reached from Crew. The external "coding-agent" provider prose is left
+  unchanged. Canonical terms pinned in `docs/design/vocabulary.md`.
+
 - Add: **`curl | sh` installer** (`install.sh`, served from raw GitHub) — wraps
   the global npm/pnpm install of `amaco-os` with a Node-version check and an
   `AMACO_VERSION` pin. Surfaced as the first install option in the README Quick
