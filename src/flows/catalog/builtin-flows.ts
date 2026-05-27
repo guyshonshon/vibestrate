@@ -90,6 +90,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       roleId: "executor",
       inputs: ["task-brief", "plan", "architecture"],
       outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
     },
     {
       id: "validation",
@@ -97,6 +98,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "validation",
       inputs: ["diff"],
       outputs: ["validation"],
+      skipWhenReadOnly: true,
     },
     {
       id: "review",
@@ -122,6 +124,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
         "validation",
       ],
       outputs: ["finding-responses", "diff"],
+      skipWhenReadOnly: true,
     },
     {
       id: "revalidation",
@@ -129,6 +132,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "validation",
       inputs: ["diff"],
       outputs: ["validation"],
+      skipWhenReadOnly: true,
     },
     {
       id: "verify",
@@ -145,6 +149,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
         "validation",
       ],
       outputs: ["verification"],
+      skipWhenReadOnly: true,
     },
   ],
   loop: {

@@ -117,6 +117,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         kind: step.kind,
         enabled: !skippedOptionalSteps.has(step.id),
         optional: step.optional,
+        skipWhenReadOnly: step.skipWhenReadOnly,
         slotId: slot?.id ?? null,
         roleId,
         providerId: providerOverride ?? slot?.providerId ?? null,

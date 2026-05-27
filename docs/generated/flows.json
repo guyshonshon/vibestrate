@@ -59,6 +59,7 @@
             "plan"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -76,6 +77,7 @@
             "architecture"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -95,6 +97,7 @@
             "diff"
           ],
           "optional": false,
+          "skipWhenReadOnly": true,
           "approval": null,
           "repeat": null
         },
@@ -111,6 +114,7 @@
             "validation"
           ],
           "optional": false,
+          "skipWhenReadOnly": true,
           "approval": null,
           "repeat": null
         },
@@ -132,6 +136,7 @@
             "review-decision"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -154,6 +159,7 @@
             "diff"
           ],
           "optional": false,
+          "skipWhenReadOnly": true,
           "approval": null,
           "repeat": null
         },
@@ -170,6 +176,7 @@
             "validation"
           ],
           "optional": false,
+          "skipWhenReadOnly": true,
           "approval": null,
           "repeat": null
         },
@@ -191,10 +198,17 @@
             "verification"
           ],
           "optional": false,
+          "skipWhenReadOnly": true,
           "approval": null,
           "repeat": null
         }
-      ]
+      ],
+      "loop": {
+        "from": "review",
+        "to": "revalidation",
+        "decisionStep": "review",
+        "maxIterations": 3
+      }
     },
     {
       "id": "quality-arbitration",
@@ -235,6 +249,7 @@
             "plan"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -252,6 +267,7 @@
             "findings"
           ],
           "optional": true,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -271,6 +287,7 @@
             "diff"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -287,6 +304,7 @@
             "validation"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -306,6 +324,7 @@
             "review-decision"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -325,6 +344,7 @@
             "diff"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -345,6 +365,7 @@
             "review-decision"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         },
@@ -366,10 +387,12 @@
             "decision-summary"
           ],
           "optional": false,
+          "skipWhenReadOnly": false,
           "approval": null,
           "repeat": null
         }
-      ]
+      ],
+      "loop": null
     }
   ]
 }

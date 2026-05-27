@@ -287,8 +287,8 @@ describe("replaceSteps / replaceSlots (structural edits)", () => {
     const slot = Object.keys(base.slots)[0]!;
     const verdict = mergeFlowPatch(base, {
       replaceSteps: [
-        { id: "plan", label: "Plan", kind: "agent-turn", slot, inputs: [], outputs: [], optional: false },
-        { id: "review", label: "Review", kind: "review-turn", slot, inputs: [], outputs: [], optional: false },
+        { id: "plan", label: "Plan", kind: "agent-turn", slot, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
+        { id: "review", label: "Review", kind: "review-turn", slot, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
@@ -300,7 +300,7 @@ describe("replaceSteps / replaceSlots (structural edits)", () => {
     const verdict = mergeFlowPatch(base, {
       replaceSlots: { solo: { label: "Solo", defaultRole: "executor" } },
       replaceSteps: [
-        { id: "do", label: "Do", kind: "agent-turn", slot: "solo", inputs: [], outputs: [], optional: false },
+        { id: "do", label: "Do", kind: "agent-turn", slot: "solo", inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));

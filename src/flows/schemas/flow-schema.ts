@@ -74,6 +74,11 @@ export const flowStepSchema = z
     inputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
     optional: z.boolean().default(false),
+    // Skipped on a read-only (investigation-only) run. Marks steps that write
+    // code or only make sense once code changed — executor/fixer turns,
+    // validation, verification. A read-only run does plan/architect/review-style
+    // steps only, so the runner skips these and (see runner) disables looping.
+    skipWhenReadOnly: z.boolean().default(false),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
   })
@@ -249,6 +254,7 @@ export const resolvedFlowStepSchema = z
     kind: flowStepKindSchema,
     enabled: z.boolean(),
     optional: z.boolean(),
+    skipWhenReadOnly: z.boolean(),
     slotId: flowTokenSchema.nullable(),
     roleId: flowRoleIdSchema.nullable(),
     providerId: z.string().min(1).nullable(),

@@ -1931,7 +1931,11 @@ export class Orchestrator {
           });
         }
         const runStep = async (): Promise<void> => {
-          if (!step.enabled) {
+          // Read-only runs skip write/validation/verify steps the same way
+          // run() does — investigation only. Disabled (skipped-optional) steps
+          // skip too.
+          const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
+          if (!step.enabled || readOnlySkip) {
             state = this.patchFlowStep(
               state,
               step.id,
@@ -1941,8 +1945,14 @@ export class Orchestrator {
             await input.stateStore.write(state);
             await input.eventLog.append({
               type: "flow.step.skipped",
-              message: `Flow step ${step.id} skipped.`,
-              data: { flowId: input.snapshot.flowId, stepId: step.id },
+              message: readOnlySkip
+                ? `Flow step ${step.id} skipped (read-only run).`
+                : `Flow step ${step.id} skipped.`,
+              data: {
+                flowId: input.snapshot.flowId,
+                stepId: step.id,
+                readOnly: readOnlySkip,
+              },
             });
             return;
           }
@@ -2274,6 +2284,10 @@ export class Orchestrator {
         if (loop && step.sourceStepId === loop.decisionStep) {
           const wantsChanges = reviewDecision === "CHANGES_REQUESTED";
           const budgetLeft = loopIteration < loop.maxIterations;
+          // Read-only runs never loop — the fix body is skipped, so re-running
+          // would just repeat the same review. They traverse the body once
+          // (the write steps mark themselves skipped) and don't jump back.
+          const continuing = !this.readOnly && wantsChanges && budgetLeft;
           await input.eventLog.append({
             type: "flow.loop.decision",
             message: `Flow loop decision at ${step.id}: ${reviewDecision} on pass ${loopIteration}/${loop.maxIterations}.`,
@@ -2283,37 +2297,44 @@ export class Orchestrator {
               decision: reviewDecision,
               iteration: loopIteration,
               maxIterations: loop.maxIterations,
-              continuing: wantsChanges && budgetLeft,
+              continuing,
             },
           });
-          if (!wantsChanges || !budgetLeft) {
+          // Non-read-only early exit: an APPROVED/BLOCKED review or a spent
+          // budget skips the rest of the body and continues past `to`.
+          if (!this.readOnly && !continuing) {
             stepIndex = loopTo + 1;
             continue;
           }
         }
-        if (loop && stepIndex === loopTo) {
+        if (loop && stepIndex === loopTo && !this.readOnly) {
           stepIndex = loopFrom;
           continue;
         }
         stepIndex += 1;
       }
 
+      // Read-only runs skip the executor, validation, and verify steps, so no
+      // verification decision is produced — an APPROVED review is the bar for
+      // merge_ready, mirroring run(). A read-only CHANGES_REQUESTED can't be
+      // fixed, so record it as BLOCKED for an honest verdict.
+      if (this.readOnly && reviewDecision === "CHANGES_REQUESTED") {
+        reviewDecision = "BLOCKED";
+      }
       const validationPassed =
         lastValidation === null || lastValidation.summary.failed === 0;
+      const mergeReady = this.readOnly
+        ? reviewDecision === "APPROVED"
+        : reviewDecision === "APPROVED" &&
+          verificationDecision === "PASSED" &&
+          validationPassed;
       state = {
         ...state,
         finalDecision: reviewDecision,
         verification: verificationDecision,
       };
       await input.stateStore.write(state);
-      state = applyTransition(
-        state,
-        reviewDecision === "APPROVED" &&
-          verificationDecision === "PASSED" &&
-          validationPassed
-          ? "merge_ready"
-          : "blocked",
-      );
+      state = applyTransition(state, mergeReady ? "merge_ready" : "blocked");
       await input.stateStore.write(state);
       await input.eventLog.append({
         type: "run.completed",
@@ -2776,11 +2797,12 @@ export class Orchestrator {
     // applies to this turn too.
     await this.enforceSpendCap(ctx);
     const agent = getRoleConfig(this.config.roles, roleId);
-    // Read-only runs override every agent's permission profile to
-    // "readOnly", regardless of how the agent is configured. resolveProfile
-    // will throw if the project doesn't define `readOnly`; we surface that
-    // as a config error rather than silently letting writes through.
-    const effectivePermissions = this.readOnly ? "readOnly" : agent.permissions;
+    // Read-only runs override every agent's permission profile to the built-in
+    // `read_only` (allowWrite/allowShell false), regardless of how the agent is
+    // configured. Using the builtin name guarantees resolution via
+    // resolveProfile's builtin fallback even on a project that hasn't defined a
+    // read-only profile of its own.
+    const effectivePermissions = this.readOnly ? "read_only" : agent.permissions;
     const profile = resolveProfile(
       this.config.permissions.profiles,
       effectivePermissions,
