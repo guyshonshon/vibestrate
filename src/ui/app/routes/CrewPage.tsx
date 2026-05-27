@@ -80,6 +80,9 @@ function avatarLetter(profile: ProviderProfile): string {
 export function CrewPage() {
   const [overview, setOverview] = useState<ProvidersOverview | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  // The default flow's role-bearing steps, in order — the Crew is "the roles of
+  // the default flow", so we order + label the roles by the flow itself.
+  const [flowOrder, setFlowOrder] = useState<{ stepLabel: string; roleId: string }[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,6 +94,45 @@ export function CrewPage() {
       /* roles are config; a transient failure just leaves the last view */
     }
   };
+
+  useEffect(() => {
+    void api
+      .listFlows()
+      .then((r) => {
+        const def = r.flows.find((f) => f.id === "default");
+        if (!def) return;
+        const seen = new Set<string>();
+        const order: { stepLabel: string; roleId: string }[] = [];
+        for (const s of def.definition.steps) {
+          if (s.roleId && !seen.has(s.roleId)) {
+            seen.add(s.roleId);
+            order.push({ stepLabel: s.label, roleId: s.roleId });
+          }
+        }
+        setFlowOrder(order);
+      })
+      .catch(() => {
+        /* fall back to config order if the flow can't be read */
+      });
+  }, []);
+
+  // Roles ordered + step-labeled by the default flow; any config role not in
+  // the flow is appended (so nothing is hidden).
+  const orderedRoles = useMemo<{ role: Role; stepLabel: string | null }[]>(() => {
+    if (flowOrder.length === 0) return roles.map((role) => ({ role, stepLabel: null }));
+    const byId = new Map(roles.map((r) => [r.id, r]));
+    const out: { role: Role; stepLabel: string | null }[] = [];
+    const used = new Set<string>();
+    for (const step of flowOrder) {
+      const role = byId.get(step.roleId);
+      if (role) {
+        out.push({ role, stepLabel: step.stepLabel });
+        used.add(role.id);
+      }
+    }
+    for (const role of roles) if (!used.has(role.id)) out.push({ role, stepLabel: null });
+    return out;
+  }, [roles, flowOrder]);
 
   useEffect(() => {
     let cancelled = false;
@@ -232,31 +274,10 @@ export function CrewPage() {
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
         <div className="eyebrow mb-1.5">Crew</div>
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[820px]">
-          The <em className="text-display italic text-violet-soft">roles</em>{" "}
-          that work your tasks.
+        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
+          Who plays each part of the{" "}
+          <em className="text-display italic text-violet-soft">flow</em>.
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[660px]">
-          These are the roles of the{" "}
-          <button
-            type="button"
-            onClick={() => navigate({ kind: "flows" })}
-            className="text-violet-soft hover:underline"
-          >
-            Default flow
-          </button>
-          . Each runs on a provider — the CLI that supplies the model. Set who
-          plays each role below; the providers themselves are installed and
-          configured under{" "}
-          <button
-            type="button"
-            onClick={() => navigate({ kind: "providers" })}
-            className="text-violet-soft hover:underline"
-          >
-            Providers
-          </button>
-          .
-        </p>
       </section>
 
       {error ? (
@@ -266,7 +287,7 @@ export function CrewPage() {
       ) : null}
 
       <RolesPanel
-        roles={roles}
+        orderedRoles={orderedRoles}
         overview={overview}
         onSetProvider={async (roleId, providerId) => {
           try {
@@ -813,82 +834,98 @@ const ROLE_BLURB: Record<string, string> = {
  * Providers page; here you just assign who plays each role.)
  */
 function RolesPanel({
-  roles,
+  orderedRoles,
   overview,
   onSetProvider,
 }: {
-  roles: Role[];
+  orderedRoles: { role: Role; stepLabel: string | null }[];
   overview: ProvidersOverview | null;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
-  if (roles.length === 0) return null;
+  if (orderedRoles.length === 0) return null;
   const configured = (overview?.providers ?? []).filter((p) => p.configured);
   const selectCls =
     "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
   return (
-    <section className="mt-7" data-screen-label="Roles">
-      <SectionEyebrow className="mb-2 px-1">
-        <span>Roles · who plays each part of the workflow</span>
-      </SectionEyebrow>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {roles.map((r) => {
-          const prov = overview?.providers.find(
-            (p) => p.providerId === r.provider,
-          );
-          const online = prov ? prov.available : r.providerConfigured;
-          return (
-            <div
-              key={r.id}
-              className="rounded-xl border border-white/[0.08] surface-ink-100-55 px-4 py-3"
+    <section className="mt-6" data-screen-label="Roles">
+      <div className="overflow-hidden rounded-xl border border-violet-soft/25 surface-ink-100-55">
+        {/* The crew IS the default flow's seats — frame it as the flow, in order. */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-white/[0.07] px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[13.5px] font-medium text-fog-100">Default flow</span>
+            <Chip tone="violet">runs by default</Chip>
+          </div>
+          <div className="flex items-center gap-3 text-[11.5px] text-fog-500">
+            <span>{orderedRoles.length} roles, in order — pick a provider for each</span>
+            <button
+              type="button"
+              onClick={() => navigate({ kind: "flows" })}
+              className="text-violet-soft/90 hover:text-violet-soft"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[14px] font-medium capitalize text-fog-100">
-                  {r.id}
+              view flow →
+            </button>
+          </div>
+        </div>
+
+        <ol className="divide-y divide-white/[0.05]">
+          {orderedRoles.map(({ role: r, stepLabel }, i) => {
+            const prov = overview?.providers.find((p) => p.providerId === r.provider);
+            const online = prov ? prov.available : r.providerConfigured;
+            const isWrite = r.permissions.includes("write");
+            return (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5"
+              >
+                {/* step node + who plays it */}
+                <div className="flex min-w-[176px] items-center gap-2.5">
+                  <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full border border-violet-soft/30 bg-violet-soft/10 text-[10px] text-violet-soft">
+                    {i + 1}
+                  </span>
+                  <div className="leading-tight" title={ROLE_BLURB[r.id] ?? undefined}>
+                    <div className="text-[13px] text-fog-100">
+                      {stepLabel ?? <span className="capitalize">{r.id}</span>}
+                    </div>
+                    <div className="mono text-[10px] text-violet-soft/80">{r.id}</div>
+                  </div>
+                </div>
+
+                {/* provider seat + status, pushed right */}
+                <label className="ml-auto flex items-center gap-1.5 text-[12px]">
+                  <ToneDot tone={online ? "emerald" : "rose"} />
+                  <span className="text-fog-500">runs on</span>
+                  <select
+                    value={r.provider}
+                    onChange={(e) => void onSetProvider(r.id, e.target.value)}
+                    className={selectCls}
+                  >
+                    {/* Keep an unconfigured current provider visible (flagged below). */}
+                    {!configured.some((p) => p.providerId === r.provider) ? (
+                      <option value={r.provider}>{r.provider}</option>
+                    ) : null}
+                    {configured.map((p) => (
+                      <option key={p.providerId} value={p.providerId}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Chip tone={isWrite ? "amber" : "neutral"}>{r.permissions}</Chip>
+                <span className="w-[52px] text-right text-[11px] text-fog-500">
+                  {r.skills.length > 0 ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : "—"}
                 </span>
-                <Chip tone={r.permissions.includes("write") ? "amber" : "neutral"}>
-                  {r.permissions}
-                </Chip>
-              </div>
-              {ROLE_BLURB[r.id] ? (
-                <p className="mt-0.5 text-[11.5px] text-fog-500">
-                  {ROLE_BLURB[r.id]}
-                </p>
-              ) : null}
-              <label className="mt-2.5 flex items-center gap-2 text-[12px]">
-                <ToneDot tone={online ? "emerald" : "rose"} />
-                <span className="text-fog-400">runs on</span>
-                <select
-                  value={r.provider}
-                  onChange={(e) => void onSetProvider(r.id, e.target.value)}
-                  className={`${selectCls} flex-1`}
-                >
-                  {/* If the current provider isn't configured, still show it so
-                      the select reflects reality (flagged below). */}
-                  {!configured.some((p) => p.providerId === r.provider) ? (
-                    <option value={r.provider}>{r.provider}</option>
-                  ) : null}
-                  {configured.map((p) => (
-                    <option key={p.providerId} value={p.providerId}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {!online ? (
-                <p className="mt-1 text-[10.5px] text-rose-300/80">
-                  {r.providerConfigured
-                    ? "provider CLI offline"
-                    : "provider not configured — pick another or set it up in Providers"}
-                </p>
-              ) : null}
-              <div className="mt-1.5 text-[11px] text-fog-500">
-                {r.skills.length > 0
-                  ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}`
-                  : "no skills"}
-              </div>
-            </div>
-          );
-        })}
+
+                {!online ? (
+                  <p className="basis-full pl-[34px] text-[10.5px] text-rose-300/80">
+                    {r.providerConfigured
+                      ? "provider CLI offline"
+                      : "provider not configured — pick another or set it up in Providers"}
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
       </div>
     </section>
   );
