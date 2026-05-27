@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: author the fixed plan→build→verify workflow as a real `default` flow
+  definition (`defaultFlow`) using the adaptive loop for the review→fix→re-validate
+  cycle (D2 phase B-2). Single source of truth for the workflow's shape; not yet
+  in the discoverable catalog — `run()` still executes it imperatively until B-3
+  retires the run()/runFlowSequence() split.
 - Add: the default plan→build→verify workflow now shows as the built-in
   **Default flow** on the Flows page (a display card — it still runs via the
   standard orchestrator path, not the flow runner), and the **Crew** page
