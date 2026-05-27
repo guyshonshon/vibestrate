@@ -23,7 +23,7 @@
         "Default args: -p with prompt on stdin.",
         "Amaco will configure Claude Code automatically."
       ],
-      "installHint": null
+      "installHint": "Install Claude Code: `npm install -g @anthropic-ai/claude-code`, then run `claude` once to sign in."
     },
     {
       "id": "codex",
@@ -47,7 +47,7 @@
         "Preset: `codex exec -q` with the prompt on stdin.",
         "Verify with `amaco provider test codex`; log in with `codex login` if prompted."
       ],
-      "installHint": null
+      "installHint": "Install the Codex CLI: `npm install -g @openai/codex`, then run `codex login`."
     },
     {
       "id": "gemini",
@@ -77,8 +77,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [
           "run"
@@ -116,7 +116,7 @@
         "Preset: `aider --message` (one-shot, no auto-commits).",
         "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `amaco provider test aider`."
       ],
-      "installHint": null
+      "installHint": "Install Aider: `python -m pip install aider-install && aider-install`, then set OPENAI_API_KEY or ANTHROPIC_API_KEY."
     },
     {
       "id": "ollama",
@@ -150,8 +150,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [],
         "input": "stdin"
@@ -171,8 +171,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [
           "run"
@@ -194,8 +194,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [
           "run",
@@ -218,8 +218,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [
           "-p"
@@ -241,8 +241,8 @@
       "versionArgs": [
         "--version"
       ],
-      "presetReady": true,
-      "confidenceWhenAvailable": "ready",
+      "presetReady": false,
+      "confidenceWhenAvailable": "detected-needs-setup",
       "preset": {
         "args": [
           "-x"

@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: document the run view (live execution + the headless-buffering caveat,
+  Steps inspector, changed files, live metrics) in `cli/dashboard`; regenerated
+  the source-aware reference (`docs/generated/providers.json`).
 - Add: provider **output-adapter layer** (structured-output epic, phase 1) —
   `NormalizedTurn { responseText, metrics }` + `ProviderOutputAdapter` +
   `textOutputAdapter`. The orchestrator now reads the adapter-normalized
