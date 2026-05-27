@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **Crew is a live flow editor.** Reorder roles with ↑/↓ (persists to the
+  flow — a built-in auto-forks to your project copy), set each role's provider,
+  and edit each role's **context (its prompt/brain)** inline via an expander.
+  Pick the flow to edit from the selector. No read-only gate; everything is
+  editable. (The dedicated builder remains for advanced structural edits.)
+
 - Change: **flows are always editable** — editing a built-in flow transparently
   writes a project copy (`.amaco/flows/<id>`) that shadows it, instead of
   refusing with "fork it first". No read-only gate.
