@@ -80,6 +80,21 @@ export const flowStepSchema = z
   .strict();
 export type FlowStep = z.infer<typeof flowStepSchema>;
 
+// Adaptive loop: re-run a contiguous body of steps while a review-turn's
+// decision keeps requesting changes, up to a bound. This is the "decision
+// contract" the fixed `repeat` couldn't express (e.g. the default workflow's
+// review→fix loop). `from`..`to` is the loop body; `decisionStep` (a
+// review-turn inside the body) gates it — exit when it isn't CHANGES_REQUESTED.
+export const flowLoopSchema = z
+  .object({
+    from: flowTokenSchema,
+    to: flowTokenSchema,
+    decisionStep: flowTokenSchema,
+    maxIterations: z.number().int().min(1).max(8),
+  })
+  .strict();
+export type FlowLoop = z.infer<typeof flowLoopSchema>;
+
 const flowDefinitionBaseSchema = z
   .object({
     id: flowTokenSchema,
@@ -88,6 +103,7 @@ const flowDefinitionBaseSchema = z
     description: z.string().min(1).max(600),
     slots: z.record(flowTokenSchema, flowSlotSchema),
     steps: z.array(flowStepSchema).min(1),
+    loop: flowLoopSchema.optional(),
   })
   .strict();
 
@@ -156,6 +172,53 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
         });
       }
     });
+
+    if (flow.loop) {
+      const idx = (id: string) => flow.steps.findIndex((s) => s.id === id);
+      const fromI = idx(flow.loop.from);
+      const toI = idx(flow.loop.to);
+      const decI = idx(flow.loop.decisionStep);
+      if (fromI < 0 || toI < 0 || decI < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["loop"],
+          message: "Flow loop from/to/decisionStep must reference existing step ids.",
+        });
+      } else {
+        if (fromI > toI) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["loop"],
+            message: "Flow loop `from` must come at or before `to`.",
+          });
+        }
+        if (decI < fromI || decI > toI) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["loop"],
+            message: "Flow loop `decisionStep` must be inside the from..to body.",
+          });
+        }
+        if (flow.steps[decI] && flow.steps[decI]!.kind !== "review-turn") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["loop"],
+            message: "Flow loop `decisionStep` must be a review-turn (it gates the loop).",
+          });
+        }
+        // Steps inside an adaptive loop can't also carry a fixed repeat — the
+        // loop owns their iteration.
+        for (let i = fromI; i <= toI; i += 1) {
+          if (flow.steps[i]!.repeat) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", i, "repeat"],
+              message: `Flow step "${flow.steps[i]!.id}" is inside an adaptive loop and can't also use fixed repeat.`,
+            });
+          }
+        }
+      }
+    }
   },
 );
 export type FlowDefinition = z.infer<typeof flowDefinitionSchema>;
