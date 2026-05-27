@@ -84,6 +84,8 @@ import type {
   ResolvedFlowSnapshot,
   ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
+import { defaultFlow } from "../flows/catalog/builtin-flows.js";
+import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
   buildFlowContextPacket as buildFlowContextPacketValue,
   type FlowContextOutput,
@@ -126,21 +128,19 @@ import {
 } from "../flows/schemas/flow-output-contracts.js";
 import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
-/** Stages a run can be rewound to. Earlier stages (planning) just mean a
- *  normal from-scratch run; review/verify aren't resumable here because they
- *  need the executor's code present (a per-phase worktree snapshot we don't
- *  capture yet). Both supported stages regenerate the downstream code, so a
- *  fresh worktree off main is correct. */
-export type ResumeStage = "architecting" | "executing";
+/** Stages a run can be rewound to. The flow runner seeds the outputs of every
+ *  step before the first step at this stage from the source run, then starts
+ *  there. `planning` is the flow's first stage, so resuming there is just a
+ *  normal from-scratch run. review/verify aren't resumable: they need the
+ *  executor's code present (a per-step worktree snapshot we don't capture yet),
+ *  and the executing stages regenerate the downstream code from a fresh
+ *  worktree off main. */
+export type ResumeStage = "planning" | "architecting" | "executing";
 
 export type ResumeFromInput = {
-  /** The run whose upstream artifacts are reused. */
+  /** The run whose upstream step outputs are reused (seeded) by the runner. */
   sourceRunId: string;
   fromStage: ResumeStage;
-  /** Plan text copied from the source run — reused for both stages. */
-  seededPlan: string;
-  /** Architecture text — required when fromStage === "executing". */
-  seededArchitecture?: string | null;
 };
 
 export type OrchestratorInput = {
@@ -166,8 +166,9 @@ export type OrchestratorInput = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Immutable resolved Flow recipe. When set, the sequential Flow
-   * runner replaces the legacy fixed workflow for this run. */
+  /** Immutable resolved flow recipe to run. When omitted, the orchestrator
+   * resolves the built-in `default` flow — every run executes a flow through
+   * the one runner. */
   flow?: ResolvedFlowSnapshot | null;
   /** Rewind: fork a fresh run that resumes at a chosen stage, reusing the
    *  upstream artifacts from a prior run instead of regenerating them.
@@ -318,12 +319,20 @@ export class Orchestrator {
     this.concise = input.concise ?? false;
     this.flow = input.flow ?? null;
     this.resumeFrom = input.resumeFrom ?? null;
-    if (this.flow && this.resumeFrom) {
-      throw new Error(
-        "A run cannot both run a Flow and rewind from a prior run.",
-      );
-    }
     this.abortSignal = input.abortSignal ?? null;
+  }
+
+  /** Resolve the built-in `default` flow against this run's config. Used when a
+   *  run doesn't pick an explicit flow — a plain `amaco run` executes the
+   *  default flow through the same runner as every other flow. Throws a
+   *  FlowResolutionError if the configured roles/providers can't satisfy it. */
+  private resolveDefaultFlow(): ResolvedFlowSnapshot {
+    return resolveFlow({
+      flow: defaultFlow,
+      source: { kind: "builtin", ref: defaultFlow.id },
+      config: this.config,
+      task: this.task,
+    });
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -336,6 +345,10 @@ export class Orchestrator {
       config: this.config,
       isGitRepo: this.isGitRepo,
     });
+
+    // Every run executes a flow. An explicit `--flow` snapshot wins; otherwise
+    // the built-in `default` flow is resolved here. There is one runner.
+    const flow = this.flow ?? this.resolveDefaultFlow();
 
     const runId = makeRunId(this.task);
 
@@ -388,9 +401,7 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
-      flow: this.flow
-        ? this.createFlowRunState(this.flow, "flow.json")
-        : null,
+      flow: this.createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
         ? {
             sourceRunId: this.resumeFrom.sourceRunId,
@@ -398,9 +409,7 @@ export class Orchestrator {
           }
         : null,
     };
-    if (this.flow) {
-      await writeJson(runFlowSnapshotPath(this.projectRoot, runId), this.flow);
-    }
+    await writeJson(runFlowSnapshotPath(this.projectRoot, runId), flow);
     await stateStore.write(state);
     await eventLog.append({
       type: "run.created",
@@ -422,22 +431,20 @@ export class Orchestrator {
       message: resolution.note,
       data: { kind: "effort-resolution", source: resolution.source },
     });
-    if (this.flow) {
-      await eventLog.append({
-        type: "flow.snapshot.written",
-        message: `Resolved Flow ${this.flow.flowId} snapshot persisted.`,
-        data: {
-          flowId: this.flow.flowId,
-          flowVersion: this.flow.flowVersion,
-          snapshotPath: "flow.json",
-        },
-      });
-    }
+    await eventLog.append({
+      type: "flow.snapshot.written",
+      message: `Resolved flow ${flow.flowId} snapshot persisted.`,
+      data: {
+        flowId: flow.flowId,
+        flowVersion: flow.flowVersion,
+        snapshotPath: "flow.json",
+      },
+    });
     if (this.readOnly) {
       await eventLog.append({
         type: "policy.warning",
         message:
-          "Read-only run: executor and fix loop will be skipped. Every agent is forced to the readOnly permission profile. Apply/validate/revert routes are refused.",
+          "Read-only run: write, validation, and verify steps are skipped. Every role is forced to the read-only permission profile. Apply/validate/revert routes are refused.",
         data: { kind: "read-only-run" },
       });
     }
@@ -483,44 +490,6 @@ export class Orchestrator {
       throw err;
     }
 
-    let planArtifact: RoleRunResult | null = null;
-    let architectureArtifact: RoleRunResult | null = null;
-    let executionArtifact: RoleRunResult | null = null;
-    let reviewArtifact: RoleRunResult | null = null;
-    let verificationArtifact: RoleRunResult | null = null;
-    let lastValidation: ValidationResults | null = null;
-    let reviewDecision: ReviewDecision = "BLOCKED";
-    let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
-    let reviewLoopsCompleted = 0;
-
-    // Rewind: when resuming, the stages before `fromStage` are skipped and
-    // their artifacts are seeded from the source run. STAGE_ORD lets each
-    // stage block guard itself; a fresh worktree off main is correct because
-    // architecting/executing regenerate the downstream code.
-    const STAGE_ORD = { planning: 0, architecting: 1, executing: 2 } as const;
-    const startOrd = this.resumeFrom
-      ? STAGE_ORD[this.resumeFrom.fromStage]
-      : 0;
-    if (this.resumeFrom) {
-      await artifactStore.write("02-plan.md", this.resumeFrom.seededPlan);
-      planArtifact = this.seededRoleResult("planner", this.resumeFrom.seededPlan);
-      if (this.resumeFrom.fromStage === "executing") {
-        const arch = this.resumeFrom.seededArchitecture ?? "";
-        await artifactStore.write("04-architecture.md", arch);
-        architectureArtifact = this.seededRoleResult("architect", arch);
-      }
-      await eventLog.append({
-        type: "run.rewound",
-        message: `Rewound from run ${this.resumeFrom.sourceRunId} to ${this.resumeFrom.fromStage}; reused plan${
-          this.resumeFrom.fromStage === "executing" ? " + architecture" : ""
-        } instead of regenerating it.`,
-        data: {
-          sourceRunId: this.resumeFrom.sourceRunId,
-          fromStage: this.resumeFrom.fromStage,
-        },
-      });
-    }
-
     const ctx = {
       runId,
       worktreePath,
@@ -531,789 +500,27 @@ export class Orchestrator {
       onProgress: this.onProgress,
     };
 
-    // Tracks which policy-required stages have already paused this run.
-    // The same stage running again (e.g. reviewing inside a fixer loop) does
-    // not re-trigger policy approval — V0 keeps it once-per-stage-per-run.
+    // One runner for every run. Stages that already triggered a policy approval
+    // this run are tracked so the same stage re-running (e.g. review inside the
+    // fix loop) doesn't re-prompt.
     const policyStagesAlreadyForced = new Set<string>();
 
-    if (this.flow) {
-      return this.runFlowSequence({
-        snapshot: this.flow,
-        runId,
-        state,
-        worktreePath,
-        branchName,
-        artifactStore,
-        stateStore,
-        eventLog,
-        metricsStore,
-        approvalService,
-        notify,
-        policyWarnings: policy.warnings,
-        policyStagesAlreadyForced,
-        ctx,
-      });
-    }
-
-    try {
-      // Earliest pause gate: a user who queued `amaco pause <runId>`
-      // before the run started gets paused before any agent runs.
-      state = await applyPauseIfRequested({
-        state,
-        store: stateStore,
-        events: eventLog,
-      });
-      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: planning — skipped when rewinding (plan seeded from source).
-      if (startOrd === STAGE_ORD.planning) {
-        this.onProgress("Planning...");
-        state = applyTransition(state, "planning");
-        await stateStore.write(state);
-        planArtifact = await this.runRole({
-          roleId: "planner",
-          stageId: "planning",
-          promptIndex: 1,
-          outputName: "02-plan.md",
-          priorArtifacts: [],
-          validationResults: null,
-          metricsStore,
-          ctx,
-        });
-        state = applyTransition(state, "planned");
-        await stateStore.write(state);
-        const gate = await this.maybeAwaitApproval({
-          state,
-          fromStatus: "planned",
-          stageId: "planning",
-          roleId: "planner",
-          roleArtifact: planArtifact,
-          approvalService,
-          stateStore,
-          eventLog,
-          policyStagesAlreadyForced,
-        });
-        state = gate.state;
-        if (gate.rejected) {
-          await eventLog.append({
-            type: "run.completed",
-            message: `Run ${runId} blocked after rejected approval.`,
-          });
-          throw new __ApprovalRejectedSignal();
-        }
-      }
-      if (!planArtifact) {
-        throw new Error(
-          "Internal: plan artifact is required before architecting.",
-        );
-      }
-
-      // Pause gate: between planning and architecting.
-      state = await applyPauseIfRequested({
-        state,
-        store: stateStore,
-        events: eventLog,
-      });
-      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: architecting — skipped when rewinding to executing (architecture
-      // seeded from source); runs normally otherwise (incl. rewind-to-architecting).
-      if (startOrd <= STAGE_ORD.architecting) {
-        this.onProgress("Architecting...");
-        state = applyTransition(state, "architecting");
-        await stateStore.write(state);
-        architectureArtifact = await this.runRole({
-          roleId: "architect",
-          stageId: "architecting",
-          promptIndex: 3,
-          outputName: "04-architecture.md",
-          priorArtifacts: [{ label: "Plan", content: planArtifact.output }],
-          validationResults: null,
-          metricsStore,
-          ctx,
-        });
-        state = applyTransition(state, "architected");
-        await stateStore.write(state);
-        const gate = await this.maybeAwaitApproval({
-          state,
-          fromStatus: "architected",
-          stageId: "architecting",
-          roleId: "architect",
-          roleArtifact: architectureArtifact,
-          approvalService,
-          stateStore,
-          eventLog,
-          policyStagesAlreadyForced,
-        });
-        state = gate.state;
-        if (gate.rejected) {
-          await eventLog.append({
-            type: "run.completed",
-            message: `Run ${runId} blocked after rejected approval.`,
-          });
-          throw new __ApprovalRejectedSignal();
-        }
-      }
-      if (!architectureArtifact) {
-        throw new Error(
-          "Internal: architecture artifact is required before executing.",
-        );
-      }
-
-      // Pause gate: between architecting and executing.
-      state = await applyPauseIfRequested({
-        state,
-        store: stateStore,
-        events: eventLog,
-      });
-      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: executing — SKIPPED for read-only runs. Read-only runs
-      // are investigation-only; the reviewer reviews plan + architecture
-      // and we transition straight to merge_ready (or blocked). The
-      // validation runner is also skipped (nothing to validate). The fix
-      // loop is gated below (line further down) so it can't fire.
-      let approved = false;
-      let blocked = false;
-      if (!this.readOnly) {
-        this.onProgress("Executing...");
-        state = applyTransition(state, "executing");
-        await stateStore.write(state);
-        executionArtifact = await this.runRole({
-          roleId: "executor",
-          stageId: "executing",
-          promptIndex: 5,
-          outputName: "06-execution-output.md",
-          priorArtifacts: [
-            { label: "Plan", content: planArtifact.output },
-            { label: "Architecture", content: architectureArtifact.output },
-          ],
-          validationResults: null,
-          metricsStore,
-          ctx,
-        });
-        {
-          const gate = await this.maybeAwaitApproval({
-            state,
-            fromStatus: "executing",
-            stageId: "executing",
-            roleId: "executor",
-            roleArtifact: executionArtifact,
-            approvalService,
-            stateStore,
-            eventLog,
-            policyStagesAlreadyForced,
-          });
-          state = gate.state;
-          if (gate.rejected) {
-            await eventLog.append({
-              type: "run.completed",
-              message: `Run ${runId} blocked after rejected approval.`,
-            });
-            throw new __ApprovalRejectedSignal();
-          }
-        }
-
-        // Pause gate: between executing and the validate→review loop.
-        state = await applyPauseIfRequested({
-          state,
-          store: stateStore,
-          events: eventLog,
-        });
-        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-        // First validation
-        state = applyTransition(state, "validating");
-        await stateStore.write(state);
-        this.onProgress("Validating...");
-        lastValidation = await this.runValidation({
-          artifactsName: "07-validation-results.json",
-          ctx,
-        });
-        if (lastValidation.summary.failed > 0) {
-          notify(
-            draftValidationFailed({
-              runId,
-              taskId: this.taskId,
-              failedCount: lastValidation.summary.failed,
-            }),
-          );
-        }
-      }
-
-      // Reviewing loop
-      state = applyTransition(state, "reviewing");
-      await stateStore.write(state);
-      this.onProgress("Reviewing...");
-      reviewArtifact = await this.runRole({
-        roleId: "reviewer",
-        stageId: "reviewing",
-        promptIndex: 8,
-        outputName: "09-review.md",
-        priorArtifacts: this.collectPriors({
-          plan: planArtifact,
-          architecture: architectureArtifact,
-          execution: executionArtifact,
-        }),
-        validationResults: lastValidation,
-        metricsStore,
-        ctx,
-      });
-      reviewDecision = effectiveReviewDecision(reviewArtifact.output);
-      await this.ingestSuggestionsFromArtifact({
-        runId,
-        artifactRelPath: reviewArtifact.outputArtifactPath,
-        artifactBody: reviewArtifact.output,
-        source: "reviewer",
-        notify,
-      });
-      {
-        const gate = await this.maybeAwaitApproval({
-          state,
-          fromStatus: "reviewing",
-          stageId: "reviewing",
-          roleId: "reviewer",
-          roleArtifact: reviewArtifact,
-          approvalService,
-          stateStore,
-          eventLog,
-          policyStagesAlreadyForced,
-        });
-        state = gate.state;
-        if (gate.rejected) {
-          await eventLog.append({
-            type: "run.completed",
-            message: `Run ${runId} blocked after rejected approval.`,
-          });
-          throw new __ApprovalRejectedSignal();
-        }
-      }
-      await eventLog.append({
-        type: "review.decision",
-        message: `Reviewer decision: ${reviewDecision}`,
-        data: { decision: reviewDecision, loop: 0 },
-      });
-
-      // Fix loop is unreachable for read-only runs: there's nothing to
-      // fix (no executor output). On a read-only CHANGES_REQUESTED, treat
-      // it as BLOCKED so the run ends with an honest verdict rather than
-      // sitting in a half-completed state.
-      if (this.readOnly && reviewDecision === "CHANGES_REQUESTED") {
-        reviewDecision = "BLOCKED";
-      }
-
-      while (
-        !this.readOnly &&
-        reviewDecision === "CHANGES_REQUESTED" &&
-        reviewLoopsCompleted < state.maxReviewLoops
-      ) {
-        reviewLoopsCompleted += 1;
-        state = applyTransition(state, "fixing");
-        state = { ...state, reviewLoopCount: reviewLoopsCompleted };
-        await stateStore.write(state);
-        this.onProgress(
-          `Fixing (loop ${reviewLoopsCompleted}/${state.maxReviewLoops})...`,
-        );
-
-        const loopRel = path.posix.join("loops", `loop-${reviewLoopsCompleted}`);
-        const fixerOutputName = path.posix.join(loopRel, "fix-output.md");
-
-        const fixArtifact = await this.runRole({
-          roleId: "fixer",
-          stageId: "fixing",
-          promptIndex: 0,
-          outputName: fixerOutputName,
-          promptName: path.posix.join(loopRel, "fixer-prompt.md"),
-          priorArtifacts: [
-            ...this.collectPriors({
-              plan: planArtifact,
-              architecture: architectureArtifact,
-              execution: executionArtifact,
-            }),
-            { label: "Latest Review", content: reviewArtifact.output },
-          ],
-          validationResults: lastValidation,
-          metricsStore,
-          ctx,
-        });
-        {
-          const gate = await this.maybeAwaitApproval({
-            state,
-            fromStatus: "fixing",
-            stageId: "fixing",
-            roleId: "fixer",
-            roleArtifact: fixArtifact,
-            approvalService,
-            stateStore,
-            eventLog,
-            policyStagesAlreadyForced,
-          });
-          state = gate.state;
-          if (gate.rejected) {
-            await eventLog.append({
-              type: "run.completed",
-              message: `Run ${runId} blocked after rejected approval.`,
-            });
-            throw new __ApprovalRejectedSignal();
-          }
-        }
-
-        // Re-validate
-        state = applyTransition(state, "validating");
-        await stateStore.write(state);
-        this.onProgress(`Validating (loop ${reviewLoopsCompleted})...`);
-        lastValidation = await this.runValidation({
-          artifactsName: path.posix.join(loopRel, "validation-results.json"),
-          ctx,
-        });
-
-        // Re-review
-        state = applyTransition(state, "reviewing");
-        await stateStore.write(state);
-        this.onProgress(`Reviewing (loop ${reviewLoopsCompleted})...`);
-        reviewArtifact = await this.runRole({
-          roleId: "reviewer",
-          stageId: "reviewing",
-          promptIndex: 0,
-          outputName: path.posix.join(loopRel, "review.md"),
-          promptName: path.posix.join(loopRel, "reviewer-prompt.md"),
-          priorArtifacts: [
-            ...this.collectPriors({
-              plan: planArtifact,
-              architecture: architectureArtifact,
-              execution: executionArtifact,
-            }),
-            { label: "Latest Fix", content: fixArtifact.output },
-          ],
-          validationResults: lastValidation,
-          metricsStore,
-          ctx,
-        });
-        reviewDecision = effectiveReviewDecision(reviewArtifact.output);
-        await this.ingestSuggestionsFromArtifact({
-          runId,
-          artifactRelPath: reviewArtifact.outputArtifactPath,
-          artifactBody: reviewArtifact.output,
-          source: "reviewer",
-          notify,
-        });
-        {
-          const gate = await this.maybeAwaitApproval({
-            state,
-            fromStatus: "reviewing",
-            stageId: "reviewing",
-            roleId: "reviewer",
-            roleArtifact: reviewArtifact,
-            approvalService,
-            stateStore,
-            eventLog,
-            policyStagesAlreadyForced,
-          });
-          state = gate.state;
-          if (gate.rejected) {
-            await eventLog.append({
-              type: "run.completed",
-              message: `Run ${runId} blocked after rejected approval.`,
-            });
-            throw new __ApprovalRejectedSignal();
-          }
-        }
-        await eventLog.append({
-          type: "review.decision",
-          message: `Reviewer decision: ${reviewDecision}`,
-          data: { decision: reviewDecision, loop: reviewLoopsCompleted },
-        });
-      }
-
-      if (reviewDecision === "APPROVED") {
-        approved = true;
-      } else if (reviewDecision === "BLOCKED") {
-        blocked = true;
-      } else {
-        // CHANGES_REQUESTED but max loops reached
-        blocked = true;
-      }
-
-      state = { ...state, finalDecision: reviewDecision };
-      await stateStore.write(state);
-
-      if (blocked) {
-        state = applyTransition(state, "blocked");
-        await stateStore.write(state);
-        await eventLog.append({
-          type: "run.completed",
-          message: `Run ${runId} blocked.`,
-          data: { decision: reviewDecision },
-        });
-      } else if (approved && this.readOnly) {
-        // Read-only approved: skip verifying (nothing was changed, nothing
-        // to verify), transition straight to merge_ready. The final
-        // report's "Verification" section honestly shows "skipped — read-only run".
-        state = applyTransition(state, "merge_ready");
-        await stateStore.write(state);
-        await eventLog.append({
-          type: "run.completed",
-          message: `Run ${runId} completed (read-only — investigation approved).`,
-          data: { decision: reviewDecision, readOnly: true },
-        });
-      } else if (approved) {
-        // Pause gate: between approved-review and verifying.
-        state = await applyPauseIfRequested({
-          state,
-          store: stateStore,
-          events: eventLog,
-        });
-        if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-        // Stage: verifying
-        state = applyTransition(state, "verifying");
-        await stateStore.write(state);
-        this.onProgress("Verifying...");
-        verificationArtifact = await this.runRole({
-          roleId: "verifier",
-          stageId: "verifying",
-          promptIndex: 10,
-          outputName: "11-verification.md",
-          priorArtifacts: [
-            ...this.collectPriors({
-              plan: planArtifact,
-              architecture: architectureArtifact,
-              execution: executionArtifact,
-            }),
-            { label: "Latest Review", content: reviewArtifact.output },
-          ],
-          validationResults: lastValidation,
-          metricsStore,
-          ctx,
-        });
-        verificationDecision = effectiveVerificationDecision(
-          verificationArtifact.output,
-        );
-        await this.ingestSuggestionsFromArtifact({
-          runId,
-          artifactRelPath: verificationArtifact.outputArtifactPath,
-          artifactBody: verificationArtifact.output,
-          source: "verifier",
-          notify,
-        });
-        {
-          const gate = await this.maybeAwaitApproval({
-            state,
-            fromStatus: "verifying",
-            stageId: "verifying",
-            roleId: "verifier",
-            roleArtifact: verificationArtifact,
-            approvalService,
-            stateStore,
-            eventLog,
-            policyStagesAlreadyForced,
-          });
-          state = gate.state;
-          if (gate.rejected) {
-            await eventLog.append({
-              type: "run.completed",
-              message: `Run ${runId} blocked after rejected approval.`,
-            });
-            throw new __ApprovalRejectedSignal();
-          }
-        }
-        await eventLog.append({
-          type: "verification.decision",
-          message: `Verifier decision: ${verificationDecision}`,
-          data: { decision: verificationDecision },
-        });
-        state = { ...state, verification: verificationDecision };
-        await stateStore.write(state);
-
-        if (verificationDecision === "PASSED") {
-          state = applyTransition(state, "merge_ready");
-        } else {
-          state = applyTransition(state, "blocked");
-        }
-        await stateStore.write(state);
-        await eventLog.append({
-          type: "run.completed",
-          message: `Run ${runId} ${state.status}.`,
-          data: { decision: reviewDecision, verification: verificationDecision },
-        });
-        notify(
-          draftRunCompleted({
-            runId,
-            taskId: this.taskId,
-            status: state.status as "merge_ready" | "blocked" | "failed",
-            decision: reviewDecision,
-            verification: verificationDecision,
-          }),
-        );
-      }
-    } catch (err) {
-      if (err instanceof __RunAbortedSignal || this.abortSignal?.aborted) {
-        const message = "Run aborted by user signal.";
-        try {
-          state = applyTransition(state, "aborted");
-        } catch {
-          // already terminal
-        }
-        state = { ...state, error: message };
-        await stateStore.write(state);
-        await eventLog.append({
-          type: "run.aborted",
-          message,
-        });
-        try {
-          await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
-        } catch {
-          // metrics finalize best-effort
-        }
-        const abortedMetrics = (await metricsStore.read()) ?? null;
-        const abortedApprovals = await approvalService.readAll().catch(() => []);
-        const finalReportPath = await this.writeFinalReport({
-          artifactStore,
-          state,
-          validation: lastValidation,
-          policyWarnings: policy.warnings,
-          reviewLoops: reviewLoopsCompleted,
-          metrics: abortedMetrics,
-          approvals: abortedApprovals,
-          artifacts: {
-            plan: planArtifact?.outputArtifactPath,
-            architecture: architectureArtifact?.outputArtifactPath,
-            execution: executionArtifact?.outputArtifactPath,
-            review: reviewArtifact?.outputArtifactPath,
-            verification: verificationArtifact?.outputArtifactPath,
-          },
-        });
-        return {
-          runId,
-          state,
-          worktreePath,
-          branchName,
-          finalReportPath,
-          policyWarnings: policy.warnings,
-        };
-      }
-
-      // Daily spend cap hit with capAction=stop: block the run (not "failed")
-      // with the cap message. The spend.capped event was already logged.
-      if (err instanceof __SpendCapStopSignal) {
-        try {
-          state = applyTransition(state, "blocked");
-        } catch {
-          // already terminal
-        }
-        state = { ...state, error: err.message };
-        await stateStore.write(state);
-        try {
-          await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
-        } catch {
-          // best-effort
-        }
-        const cappedMetrics = (await metricsStore.read()) ?? null;
-        const cappedApprovals = await approvalService.readAll().catch(() => []);
-        const finalReportPath = await this.writeFinalReport({
-          artifactStore,
-          state,
-          validation: lastValidation,
-          policyWarnings: policy.warnings,
-          reviewLoops: reviewLoopsCompleted,
-          metrics: cappedMetrics,
-          approvals: cappedApprovals,
-          artifacts: {
-            plan: planArtifact?.outputArtifactPath,
-            architecture: architectureArtifact?.outputArtifactPath,
-            execution: executionArtifact?.outputArtifactPath,
-            review: reviewArtifact?.outputArtifactPath,
-            verification: verificationArtifact?.outputArtifactPath,
-          },
-        });
-        return {
-          runId,
-          state,
-          worktreePath,
-          branchName,
-          finalReportPath,
-          policyWarnings: policy.warnings,
-        };
-      }
-
-      // Approval-rejection short-circuit: state is already 'blocked' and the
-      // approval.rejected event is already written. Do not mark the run as failed.
-      if (err instanceof __ApprovalRejectedSignal) {
-        try {
-          const allApprovals = await approvalService.readAll();
-          const summary = summarizeApprovals(allApprovals);
-          await metricsStore.update((m) => ({
-            ...m,
-            finalStatus: state.status,
-            approvalsSummary: summary,
-          }));
-        } catch {
-          // best-effort
-        }
-        const blockedMetrics = (await metricsStore.read()) ?? null;
-        const blockedApprovals = await approvalService.readAll().catch(() => []);
-        const finalReportPath = await this.writeFinalReport({
-          artifactStore,
-          state,
-          validation: lastValidation,
-          policyWarnings: policy.warnings,
-          reviewLoops: reviewLoopsCompleted,
-          metrics: blockedMetrics,
-          approvals: blockedApprovals,
-          artifacts: {
-            plan: planArtifact?.outputArtifactPath,
-            architecture: architectureArtifact?.outputArtifactPath,
-            execution: executionArtifact?.outputArtifactPath,
-            review: reviewArtifact?.outputArtifactPath,
-            verification: verificationArtifact?.outputArtifactPath,
-          },
-        });
-        notify(
-          draftRunCompleted({
-            runId,
-            taskId: this.taskId,
-            status: "blocked",
-            decision: state.finalDecision,
-          }),
-        );
-        return {
-          runId,
-          state,
-          worktreePath,
-          branchName,
-          finalReportPath,
-          policyWarnings: policy.warnings,
-        };
-      }
-
-      const message = describeError(err);
-      try {
-        state = applyTransition(state, "failed");
-      } catch {
-        // already terminal
-      }
-      state = { ...state, error: message };
-      await stateStore.write(state);
-      await eventLog.append({
-        type: "run.failed",
-        message: `Run failed: ${message}`,
-      });
-      notify(
-        draftRunCompleted({
-          runId,
-          taskId: this.taskId,
-          status: "failed",
-        }),
-      );
-      try {
-        await metricsStore.update((m) => ({ ...m, finalStatus: state.status }));
-      } catch {
-        // metrics finalize best-effort
-      }
-      const failureMetrics = (await metricsStore.read()) ?? null;
-      const failureApprovals = await approvalService.readAll().catch(() => []);
-      await this.writeFinalReport({
-        artifactStore,
-        state,
-        validation: lastValidation,
-        policyWarnings: policy.warnings,
-        reviewLoops: reviewLoopsCompleted,
-        metrics: failureMetrics,
-        approvals: failureApprovals,
-        artifacts: {
-          plan: planArtifact?.outputArtifactPath,
-          architecture: architectureArtifact?.outputArtifactPath,
-          execution: executionArtifact?.outputArtifactPath,
-          review: reviewArtifact?.outputArtifactPath,
-          verification: verificationArtifact?.outputArtifactPath,
-        },
-      });
-      if (err instanceof AmacoError) throw err;
-      throw err instanceof Error ? err : new Error(message);
-    }
-
-    // Finalize metrics (record final status + review loops + approvals summary).
-    const allApprovals = await approvalService.readAll();
-    const approvalsSummary = summarizeApprovals(allApprovals);
-    await metricsStore.update((m) => ({
-      ...m,
-      finalStatus: state.status,
-      reviewLoopCount: reviewLoopsCompleted,
-      validationSummary: lastValidation
-        ? {
-            total: lastValidation.summary.total,
-            passed: lastValidation.summary.passed,
-            failed: lastValidation.summary.failed,
-          }
-        : null,
-      approvalsSummary,
-    }));
-
-    const finalMetrics = (await metricsStore.read()) ?? null;
-    const finalApprovals = allApprovals;
-
-    const finalReportPath = await this.writeFinalReport({
-      artifactStore,
-      state,
-      validation: lastValidation,
-      policyWarnings: policy.warnings,
-      reviewLoops: reviewLoopsCompleted,
-      metrics: finalMetrics,
-      approvals: finalApprovals,
-      artifacts: {
-        plan: planArtifact?.outputArtifactPath,
-        architecture: architectureArtifact?.outputArtifactPath,
-        execution: executionArtifact?.outputArtifactPath,
-        review: reviewArtifact?.outputArtifactPath,
-        verification: verificationArtifact?.outputArtifactPath,
-      },
-    });
-
-    return {
+    return this.runFlowSequence({
+      snapshot: flow,
       runId,
       state,
       worktreePath,
       branchName,
-      finalReportPath,
+      artifactStore,
+      stateStore,
+      eventLog,
+      metricsStore,
+      approvalService,
+      notify,
       policyWarnings: policy.warnings,
-    };
-  }
-
-  /** Synthetic RoleRunResult for an artifact seeded from a prior run during a
-   *  rewind. Only `.output` is read downstream (collectPriors + inline
-   *  priorArtifacts); the provider stub records that no agent turn was spent
-   *  regenerating it — no metrics entry, no cost. */
-  private seededRoleResult(roleId: string, output: string): RoleRunResult {
-    const ts = nowIso();
-    return {
-      roleId,
-      output,
-      outputArtifactPath:
-        roleId === "planner" ? "02-plan.md" : "04-architecture.md",
-      promptArtifactPath: "",
-      providerResult: {
-        providerId: "(seeded)",
-        command: "(seeded)",
-        args: [],
-        cwd: this.projectRoot,
-        exitCode: 0,
-        stdout: output,
-        stderr: "",
-        durationMs: 0,
-        startedAt: ts,
-        endedAt: ts,
-        session: null,
-      },
-    };
-  }
-
-  private collectPriors(input: {
-    plan: RoleRunResult | null;
-    architecture: RoleRunResult | null;
-    execution: RoleRunResult | null;
-  }): PriorArtifact[] {
-    const out: PriorArtifact[] = [];
-    if (input.plan) out.push({ label: "Plan", content: input.plan.output });
-    if (input.architecture)
-      out.push({ label: "Architecture", content: input.architecture.output });
-    if (input.execution)
-      out.push({ label: "Implementation Summary", content: input.execution.output });
-    return out;
+      policyStagesAlreadyForced,
+      ctx,
+    });
   }
 
   private createFlowRunState(
@@ -1355,7 +562,7 @@ export class Orchestrator {
     currentStepId = state.flow?.currentStepId ?? null,
   ): RunState {
     if (!state.flow) {
-      throw new Error("Cannot update a Flow step on a legacy run.");
+      throw new Error("Cannot update a flow step before flow state is initialized.");
     }
     return {
       ...state,
@@ -1375,7 +582,7 @@ export class Orchestrator {
     ledger: FlowParticipantLedger,
   ): RunState {
     if (!state.flow) {
-      throw new Error("Cannot update Flow participants on a legacy run.");
+      throw new Error("Cannot update flow participants before flow state is initialized.");
     }
     return {
       ...state,
@@ -1402,6 +609,16 @@ export class Orchestrator {
         return "waiting_for_approval";
       case "agent-turn":
       default:
+        // Prefer the declared stage (planning/architecting/executing) so the
+        // run status and policy-approval matching are accurate (e.g. architect
+        // → "architecting"). Falls back to the planner/other heuristic.
+        if (
+          step.stage === "planning" ||
+          step.stage === "architecting" ||
+          step.stage === "executing"
+        ) {
+          return step.stage;
+        }
         return step.roleId === "planner" ? "planning" : "executing";
     }
   }
@@ -1799,6 +1016,144 @@ export class Orchestrator {
     );
   }
 
+  /** Seed the outputs of every step before the resume stage from the source
+   *  run and mark them skipped. Returns the index to start the walk at, the
+   *  updated state, and seeded plan/execution artifacts (for the report). */
+  private async seedResumedSteps(input: {
+    snapshot: ResolvedFlowSnapshot;
+    resumeFrom: ResumeFromInput;
+    state: RunState;
+    outputs: Map<string, FlowContextOutput>;
+    targetStore: ArtifactStore;
+    stateStore: RunStateStore;
+    eventLog: EventLog;
+  }): Promise<{
+    state: RunState;
+    resumeStartIndex: number;
+    planArtifact: RoleRunResult | null;
+    executionArtifact: RoleRunResult | null;
+  }> {
+    const { snapshot, resumeFrom } = input;
+    const resumeStartIndex = snapshot.steps.findIndex(
+      (s) => s.stage === resumeFrom.fromStage,
+    );
+    if (resumeStartIndex < 0) {
+      throw new Error(
+        `Cannot resume from stage "${resumeFrom.fromStage}": flow "${snapshot.flowId}" has no step at that stage.`,
+      );
+    }
+    let state = input.state;
+    let planArtifact: RoleRunResult | null = null;
+    let executionArtifact: RoleRunResult | null = null;
+    const sourceStore = new ArtifactStore(
+      this.projectRoot,
+      resumeFrom.sourceRunId,
+    );
+
+    for (let i = 0; i < resumeStartIndex; i += 1) {
+      const upstream = snapshot.steps[i]!;
+      for (const token of upstream.outputs) {
+        const seeded = await this.seedResumedOutput({
+          token,
+          step: upstream,
+          sourceStore,
+          targetStore: input.targetStore,
+        });
+        input.outputs.set(token, seeded);
+        if (token === "plan") planArtifact = this.seededFlowResult(upstream, seeded);
+        if (token === "execution")
+          executionArtifact = this.seededFlowResult(upstream, seeded);
+      }
+      state = this.patchFlowStep(
+        state,
+        upstream.id,
+        { status: "skipped", endedAt: nowIso() },
+        upstream.id,
+      );
+      await input.stateStore.write(state);
+      await input.eventLog.append({
+        type: "flow.step.skipped",
+        message: `Flow step ${upstream.id} skipped (resumed from ${resumeFrom.fromStage}).`,
+        data: {
+          flowId: snapshot.flowId,
+          stepId: upstream.id,
+          resumedFrom: resumeFrom.fromStage,
+        },
+      });
+    }
+
+    await input.eventLog.append({
+      type: "run.rewound",
+      message: `Resumed from run ${resumeFrom.sourceRunId} at stage ${resumeFrom.fromStage}; seeded ${resumeStartIndex} upstream step(s).`,
+      data: {
+        sourceRunId: resumeFrom.sourceRunId,
+        fromStage: resumeFrom.fromStage,
+        seededSteps: resumeStartIndex,
+      },
+    });
+
+    return { state, resumeStartIndex, planArtifact, executionArtifact };
+  }
+
+  /** Read a single upstream output from the source run and copy it into this
+   *  run's artifacts. `diff` outputs come from the step's diff snapshot; every
+   *  other token comes from the step's role output. Throws clearly if missing. */
+  private async seedResumedOutput(input: {
+    token: string;
+    step: ResolvedFlowStep;
+    sourceStore: ArtifactStore;
+    targetStore: ArtifactStore;
+  }): Promise<FlowContextOutput> {
+    const isDiff = input.token === "diff";
+    const rel = path.posix.join(
+      "flows",
+      input.step.id,
+      isDiff ? "diff-snapshot.json" : "output.md",
+    );
+    if (!(await input.sourceStore.exists(rel))) {
+      throw new Error(
+        `Cannot resume: source run is missing "${rel}" (output "${input.token}" of step "${input.step.id}").`,
+      );
+    }
+    const content = await input.sourceStore.read(rel);
+    const abs = await input.targetStore.write(rel, content);
+    return {
+      token: input.token,
+      label: `${input.step.label}: ${input.token} (seeded)`,
+      content,
+      artifactPath: input.targetStore.relPath(abs),
+    };
+  }
+
+  /** Synthetic RoleRunResult for an output seeded from a prior run during a
+   *  resume. Only `.output`/`.outputArtifactPath` are read downstream; the
+   *  provider stub records that no agent turn was spent regenerating it. */
+  private seededFlowResult(
+    step: ResolvedFlowStep,
+    output: FlowContextOutput,
+  ): RoleRunResult {
+    const ts = nowIso();
+    return {
+      roleId: step.roleId ?? "(seeded)",
+      output: output.content,
+      outputArtifactPath: output.artifactPath,
+      promptArtifactPath: "",
+      providerResult: {
+        providerId: "(seeded)",
+        command: "(seeded)",
+        args: [],
+        cwd: this.projectRoot,
+        exitCode: 0,
+        stdout: output.content,
+        stderr: "",
+        durationMs: 0,
+        startedAt: ts,
+        endedAt: ts,
+        session: null,
+      },
+    };
+  }
+
   private async runFlowSequence(input: {
     snapshot: ResolvedFlowSnapshot;
     runId: string;
@@ -1835,6 +1190,9 @@ export class Orchestrator {
     let executionArtifact: RoleRunResult | null = null;
     let reviewArtifact: RoleRunResult | null = null;
     let verificationArtifact: RoleRunResult | null = null;
+    // Number of times the adaptive loop body ran (review passes). Hoisted so the
+    // final report can derive the fix-cycle count even on the error path.
+    let loopIteration = 0;
     const outputs = new Map<string, FlowContextOutput>();
     const participantStore = new FlowParticipantLedgerStore(
       this.projectRoot,
@@ -1905,8 +1263,28 @@ export class Orchestrator {
           `Flow loop references unknown step(s) (from=${loop.from}, to=${loop.to}).`,
         );
       }
-      let loopIteration = 0;
+
+      // Resume: rewind to a stage by seeding the outputs of every step before
+      // the first step at that stage from the source run, marking them skipped,
+      // and starting the walk there. Native to the flow runner — driven by the
+      // step `stage` metadata, no run() delegation.
       let stepIndex = 0;
+      if (this.resumeFrom) {
+        const seeded = await this.seedResumedSteps({
+          snapshot: input.snapshot,
+          resumeFrom: this.resumeFrom,
+          state,
+          outputs,
+          targetStore: input.artifactStore,
+          stateStore: input.stateStore,
+          eventLog: input.eventLog,
+        });
+        state = seeded.state;
+        stepIndex = seeded.resumeStartIndex;
+        if (seeded.planArtifact) planArtifact = seeded.planArtifact;
+        if (seeded.executionArtifact) executionArtifact = seeded.executionArtifact;
+      }
+
       // Adaptive-loop-aware traversal. Linear flows (loop === null) advance one
       // step at a time, exactly as before. When a flow declares a loop, the
       // decisionStep (a review-turn at/inside from..to) gates re-entry: after it
@@ -2223,7 +1601,10 @@ export class Orchestrator {
           const gate = await this.maybeAwaitApproval({
             state,
             fromStatus: state.status,
-            stageId: step.id,
+            // Policy approvals are configured per run phase
+            // (planning/architecting/executing/validating/reviewing/fixing/
+            // verifying); match on the step's phase, not its id.
+            stageId: this.flowStatusForStep(step),
             roleId: step.roleId,
             roleArtifact: result,
             approvalService: input.approvalService,
@@ -2356,7 +1737,31 @@ export class Orchestrator {
         }),
       );
     } catch (err) {
-      if (!(err instanceof __ApprovalRejectedSignal)) {
+      // Aborted by user signal → terminal "aborted", not "failed". Falls through
+      // to the finalize block below (metrics + report).
+      if (err instanceof __RunAbortedSignal || this.abortSignal?.aborted) {
+        try {
+          state = applyTransition(state, "aborted");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: "Run aborted by user signal." };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "run.aborted",
+          message: "Run aborted by user signal.",
+        });
+      } else if (err instanceof __SpendCapStopSignal) {
+        // Daily spend cap with capAction=stop → "blocked" (not "failed"); the
+        // spend.capped event was already logged. Falls through to finalize.
+        try {
+          state = applyTransition(state, "blocked");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: err.message };
+        await input.stateStore.write(state);
+      } else if (!(err instanceof __ApprovalRejectedSignal)) {
         const stepId = state.flow?.currentStepId;
         if (stepId) {
           state = this.patchFlowStep(
@@ -2407,6 +1812,7 @@ export class Orchestrator {
           ...input,
           state,
           lastValidation,
+          reviewLoops: Math.max(0, loopIteration - 1),
           planArtifact,
           executionArtifact,
           reviewArtifact,
@@ -2421,6 +1827,7 @@ export class Orchestrator {
     await input.metricsStore.update((metrics) => ({
       ...metrics,
       finalStatus: state.status,
+      reviewLoopCount: Math.max(0, loopIteration - 1),
       validationSummary: lastValidation
         ? {
             total: lastValidation.summary.total,
@@ -2434,6 +1841,7 @@ export class Orchestrator {
       ...input,
       state,
       lastValidation,
+      reviewLoops: Math.max(0, loopIteration - 1),
       planArtifact,
       executionArtifact,
       reviewArtifact,
@@ -2499,6 +1907,7 @@ export class Orchestrator {
     state: RunState;
     lastValidation: ValidationResults | null;
     policyWarnings: PolicyWarning[];
+    reviewLoops: number;
     metricsStore: MetricsStore;
     approvalService: ApprovalService;
     planArtifact: RoleRunResult | null;
@@ -2513,7 +1922,7 @@ export class Orchestrator {
       state: input.state,
       validation: input.lastValidation,
       policyWarnings: input.policyWarnings,
-      reviewLoops: 0,
+      reviewLoops: input.reviewLoops,
       metrics,
       approvals,
       artifacts: {

@@ -188,7 +188,7 @@ export function buildAmacoProgram(): Command {
     )
     .option(
       "--resume-stage <stage>",
-      "stage to resume at with --resume-from: architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
+      "stage to resume at with --resume-from: planning | architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
     )
     .action(
       async (
@@ -214,14 +214,15 @@ export function buildAmacoProgram(): Command {
         },
       ) => {
         const task = taskParts.join(" ").trim();
-        let resumeStage: "architecting" | "executing" | undefined;
+        let resumeStage: "planning" | "architecting" | "executing" | undefined;
         if (opts.resumeStage) {
           if (
+            opts.resumeStage !== "planning" &&
             opts.resumeStage !== "architecting" &&
             opts.resumeStage !== "executing"
           ) {
             console.error(
-              `--resume-stage must be one of architecting|executing (got "${opts.resumeStage}").`,
+              `--resume-stage must be one of planning|architecting|executing (got "${opts.resumeStage}").`,
             );
             process.exit(2);
           }

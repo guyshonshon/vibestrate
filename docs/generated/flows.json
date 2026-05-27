@@ -60,6 +60,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": "planning",
           "approval": null,
           "repeat": null
         },
@@ -78,6 +79,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": "architecting",
           "approval": null,
           "repeat": null
         },
@@ -98,6 +100,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "stage": "executing",
           "approval": null,
           "repeat": null
         },
@@ -115,6 +118,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "stage": "executing",
           "approval": null,
           "repeat": null
         },
@@ -137,6 +141,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": "reviewing",
           "approval": null,
           "repeat": null
         },
@@ -160,6 +165,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "stage": "executing",
           "approval": null,
           "repeat": null
         },
@@ -177,6 +183,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "stage": "executing",
           "approval": null,
           "repeat": null
         },
@@ -199,6 +206,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "stage": "verifying",
           "approval": null,
           "repeat": null
         }
@@ -250,6 +258,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -268,6 +277,7 @@
           ],
           "optional": true,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -288,6 +298,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -305,6 +316,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -325,6 +337,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -345,6 +358,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -366,6 +380,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         },
@@ -388,6 +403,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "stage": null,
           "approval": null,
           "repeat": null
         }

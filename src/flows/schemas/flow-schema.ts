@@ -29,6 +29,20 @@ export const flowStepKindSchema = z.enum([
 ]);
 export type FlowStepKind = z.infer<typeof flowStepKindSchema>;
 
+// Coarse phase a step belongs to. Drives stage-based resume: `--resume-from
+// <stage>` seeds the outputs of every step before the first step at that stage
+// and starts the run there. The values mirror the run lifecycle so resume
+// targets are stable across flows. Optional — a flow only needs it on steps
+// that are valid resume boundaries (planning/architecting/executing).
+export const flowStageSchema = z.enum([
+  "planning",
+  "architecting",
+  "executing",
+  "reviewing",
+  "verifying",
+]);
+export type FlowStage = z.infer<typeof flowStageSchema>;
+
 export const flowApprovalGateSchema = z
   .object({
     reason: z.string().min(1).max(600),
@@ -79,6 +93,8 @@ export const flowStepSchema = z
     // validation, verification. A read-only run does plan/architect/review-style
     // steps only, so the runner skips these and (see runner) disables looping.
     skipWhenReadOnly: z.boolean().default(false),
+    // Coarse phase, used as a resume boundary (see flowStageSchema).
+    stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
   })
@@ -255,6 +271,7 @@ export const resolvedFlowStepSchema = z
     enabled: z.boolean(),
     optional: z.boolean(),
     skipWhenReadOnly: z.boolean(),
+    stage: flowStageSchema.nullable(),
     slotId: flowTokenSchema.nullable(),
     roleId: flowRoleIdSchema.nullable(),
     providerId: z.string().min(1).nullable(),

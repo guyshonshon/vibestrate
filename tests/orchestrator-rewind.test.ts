@@ -5,8 +5,8 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
-import { Orchestrator } from "../src/core/orchestrator.js";
-import { resolveResumeFrom } from "../src/core/run-launcher.js";
+import { Orchestrator, type ResumeStage } from "../src/core/orchestrator.js";
+import { resolveResumeFrom, RunLaunchError } from "../src/core/run-launcher.js";
 import { ArtifactStore } from "../src/core/artifact-store.js";
 import { MetricsStore } from "../src/core/metrics-store.js";
 import { loadConfig } from "../src/project/config-loader.js";
@@ -18,8 +18,8 @@ const noProvider: ProviderDetectionRunner = async () => ({
   stderr: "",
 });
 
-// Fake claude-code provider that emits distinct per-agent outputs and always
-// approves/passes, so a full run reaches merge_ready.
+// Fake claude-code provider that emits distinct per-role outputs and always
+// approves/passes, so a full default-flow run reaches merge_ready.
 async function makeRepo(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-rewind-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
@@ -64,42 +64,33 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   return dir;
 }
 
-describe("orchestrator rewind (resume from a stage)", () => {
+async function runFlow(dir: string, task: string, resume?: { sourceRunId: string; fromStage: ResumeStage }) {
+  const loaded = await loadConfig(dir);
+  return new Orchestrator({
+    projectRoot: dir,
+    config: loaded.config,
+    rules: loaded.rules,
+    task,
+    isGitRepo: true,
+    onProgress: () => {},
+    ...(resume ? { resumeFrom: await resolveResumeFrom(dir, resume) } : {}),
+  }).run();
+}
+
+describe("orchestrator rewind (resume the default flow from a stage)", () => {
   it("rewind to executing reuses plan + architecture and skips planner/architect", async () => {
     const dir = await makeRepo();
-    const loaded = await loadConfig(dir);
 
-    // Source run → merge_ready, producing plan + architecture artifacts.
-    const source = await new Orchestrator({
-      projectRoot: dir,
-      config: loaded.config,
-      rules: loaded.rules,
-      task: "rewind source",
-      isGitRepo: true,
-      onProgress: () => {},
-    }).run();
+    const source = await runFlow(dir, "rewind source executing");
     expect(source.state.status).toBe("merge_ready");
 
-    // Rewind to executing — load the seeded artifacts the same way the
-    // launcher and CLI do.
-    const resumeFrom = await resolveResumeFrom(dir, {
+    const rewound = await runFlow(dir, "rewind redo executing", {
       sourceRunId: source.runId,
       fromStage: "executing",
     });
-    const rewound = await new Orchestrator({
-      projectRoot: dir,
-      config: loaded.config,
-      rules: loaded.rules,
-      // Distinct task → distinct runId/worktree. (In real use the rewind
-      // happens after the source finished, so the timestamp differs anyway.)
-      task: "rewind source redo",
-      isGitRepo: true,
-      onProgress: () => {},
-      resumeFrom,
-    }).run();
 
-    // A fresh forked run with lineage recorded; original is untouched.
     expect(rewound.runId).not.toBe(source.runId);
+    expect(rewound.state.status).toBe("merge_ready");
     expect(rewound.state.resumedFrom).toEqual({
       sourceRunId: source.runId,
       fromStage: "executing",
@@ -112,34 +103,66 @@ describe("orchestrator rewind (resume from a stage)", () => {
     expect(roleIds).not.toContain("architect");
     expect(roleIds).toContain("executor");
 
-    // Seeded artifacts copied into the new run.
+    // The seeded upstream outputs were copied into the new run's flow artifacts.
     const store = new ArtifactStore(dir, rewound.runId);
-    expect(await store.read("02-plan.md")).toContain("Plan body.");
-    expect(await store.read("04-architecture.md")).toContain("Arch body.");
+    expect(await store.read("flows/plan/output.md")).toContain("Plan body.");
+    expect(await store.read("flows/architecture/output.md")).toContain("Arch body.");
+
+    // Both upstream steps are marked skipped (resume), not invisible.
+    const skipped = (rewound.state.flow?.steps ?? [])
+      .filter((s) => s.status === "skipped")
+      .map((s) => s.id);
+    expect(skipped).toEqual(expect.arrayContaining(["plan", "architecture"]));
   }, 60_000);
 
-  it("resolveResumeFrom validates the source run has the needed artifacts", async () => {
+  it("rewind to architecting reuses the plan but re-runs the architect", async () => {
+    const dir = await makeRepo();
+    const source = await runFlow(dir, "rewind source arch");
+    expect(source.state.status).toBe("merge_ready");
+
+    const rewound = await runFlow(dir, "rewind redo arch", {
+      sourceRunId: source.runId,
+      fromStage: "architecting",
+    });
+    expect(rewound.state.status).toBe("merge_ready");
+
+    const metrics = await new MetricsStore(dir, rewound.runId).read();
+    const roleIds = (metrics?.roles ?? []).map((a) => a.roleId);
+    expect(roleIds).not.toContain("planner");
+    expect(roleIds).toContain("architect");
+    expect(roleIds).toContain("executor");
+  }, 60_000);
+
+  it("rewind to planning seeds nothing and re-runs every step", async () => {
+    const dir = await makeRepo();
+    const source = await runFlow(dir, "rewind source planning");
+    expect(source.state.status).toBe("merge_ready");
+
+    const rewound = await runFlow(dir, "rewind redo planning", {
+      sourceRunId: source.runId,
+      fromStage: "planning",
+    });
+    expect(rewound.state.status).toBe("merge_ready");
+    const metrics = await new MetricsStore(dir, rewound.runId).read();
+    const roleIds = (metrics?.roles ?? []).map((a) => a.roleId);
+    expect(roleIds).toContain("planner");
+    expect(roleIds).toContain("architect");
+  }, 60_000);
+
+  it("resolveResumeFrom validates the source run exists", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-rewind-unit-"));
     const store = new ArtifactStore(dir, "src-run");
     await store.init();
-    await store.write("02-plan.md", "# Plan\nseeded");
+    await store.write("00-idea.md", "# Task\n\nseeded");
 
-    // architecting needs only the plan → ok.
-    const arch = await resolveResumeFrom(dir, {
+    const ok = await resolveResumeFrom(dir, {
       sourceRunId: "src-run",
       fromStage: "architecting",
     });
-    expect(arch.seededPlan).toContain("seeded");
-    expect(arch.seededArchitecture).toBeNull();
+    expect(ok).toEqual({ sourceRunId: "src-run", fromStage: "architecting" });
 
-    // executing needs architecture too → throws.
-    await expect(
-      resolveResumeFrom(dir, { sourceRunId: "src-run", fromStage: "executing" }),
-    ).rejects.toThrow(/architecture/i);
-
-    // missing plan entirely → throws.
     await expect(
       resolveResumeFrom(dir, { sourceRunId: "nope", fromStage: "architecting" }),
-    ).rejects.toThrow(/plan/i);
+    ).rejects.toThrow(RunLaunchError);
   });
 });

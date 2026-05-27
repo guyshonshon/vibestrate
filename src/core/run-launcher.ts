@@ -5,6 +5,7 @@ import {
   Orchestrator,
   type OrchestratorOutput,
   type ResumeFromInput,
+  type ResumeStage,
 } from "./orchestrator.js";
 import { ArtifactStore } from "./artifact-store.js";
 import {
@@ -48,13 +49,13 @@ export const runSpecSchema = z.object({
     })
     .nullable()
     .optional(),
-  /** Rewind: fork a fresh run from a prior run, resuming at a chosen stage
-   *  and reusing that run's upstream artifacts. Mutually exclusive with
-   *  `flow`. The launcher loads the seeded artifacts from the source run. */
+  /** Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
+   *  reusing that run's upstream step outputs. May be combined with `flow` —
+   *  the flow runner seeds the upstream steps from the source run. */
   resumeFrom: z
     .object({
       sourceRunId: z.string().min(1).max(200),
-      fromStage: z.enum(["architecting", "executing"]),
+      fromStage: z.enum(["planning", "architecting", "executing"]),
     })
     .nullable()
     .optional(),
@@ -83,32 +84,19 @@ export type RunLaunchOptions = {
  *  the same behavior. Throws RunLaunchError with an actionable message. */
 export async function resolveResumeFrom(
   projectRoot: string,
-  input: { sourceRunId: string; fromStage: "architecting" | "executing" },
+  input: { sourceRunId: string; fromStage: ResumeStage },
 ): Promise<ResumeFromInput> {
+  // Validate the source run exists; the flow runner seeds the upstream step
+  // outputs itself (and fails clearly if a needed step output is missing).
+  // Every run writes `00-idea.md` at start, so it's a stable existence probe.
   const src = new ArtifactStore(projectRoot, input.sourceRunId);
-  if (!(await src.exists("02-plan.md"))) {
+  if (!(await src.exists("00-idea.md"))) {
     throw new RunLaunchError(
-      "resume_missing_plan",
-      `Source run "${input.sourceRunId}" has no plan artifact to reuse.`,
+      "resume_source_missing",
+      `Source run "${input.sourceRunId}" not found (no artifacts to reuse).`,
     );
   }
-  const seededPlan = await src.read("02-plan.md");
-  let seededArchitecture: string | null = null;
-  if (input.fromStage === "executing") {
-    if (!(await src.exists("04-architecture.md"))) {
-      throw new RunLaunchError(
-        "resume_missing_architecture",
-        `Source run "${input.sourceRunId}" has no architecture artifact; rewind to architecting instead.`,
-      );
-    }
-    seededArchitecture = await src.read("04-architecture.md");
-  }
-  return {
-    sourceRunId: input.sourceRunId,
-    fromStage: input.fromStage,
-    seededPlan,
-    seededArchitecture,
-  };
+  return { sourceRunId: input.sourceRunId, fromStage: input.fromStage };
 }
 
 export async function runFromSpec(
@@ -164,16 +152,10 @@ export async function runFromSpec(
     if (!spec.readOnly) readOnly = task.readOnly;
   }
 
-  // Rewind: load the upstream artifacts from the source run so the new run
-  // resumes at the chosen stage instead of regenerating them.
+  // Rewind: the flow runner seeds the upstream step outputs from the source run
+  // so the new run resumes at the chosen stage. Works with an explicit flow too.
   let resumeFrom: ResumeFromInput | null = null;
   if (spec.resumeFrom) {
-    if (spec.flow) {
-      throw new RunLaunchError(
-        "resume_with_flow",
-        "A run cannot both rewind from a prior run and run a Flow.",
-      );
-    }
     resumeFrom = await resolveResumeFrom(detected.projectRoot, spec.resumeFrom);
   }
 

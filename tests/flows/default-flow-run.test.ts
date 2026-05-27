@@ -4,6 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import { ApprovalService } from "../../src/core/approval-service.js";
+import { MetricsStore } from "../../src/core/metrics-store.js";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { findFlowById } from "../../src/flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../../src/flows/runtime/flow-resolver.js";
@@ -238,5 +239,84 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const { result } = await runDefaultFlow(projectRoot, true);
     expect(result.state.status).toBe("merge_ready");
     expect(result.state.flow?.flowId).toBe("default");
+  });
+
+  it("a plain run (no --flow) executes the built-in default flow", async () => {
+    // No flow passed to the orchestrator — it must resolve and run `default`
+    // through the same runner, and the report's loop count must be real (this
+    // provider asks for changes once → one fix cycle).
+    const projectRoot = await makeRepo();
+    const loaded = await loadConfig(projectRoot);
+    const orchestrator = new Orchestrator({
+      projectRoot,
+      config: loaded.config,
+      rules: loaded.rules,
+      task: "plain run resolves the default flow",
+      isGitRepo: true,
+      onProgress: () => {},
+    });
+    let approvedOnce = false;
+    const interval = setInterval(async () => {
+      if (approvedOnce) return;
+      const runs = await fs
+        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .catch(() => []);
+      const runId = runs[0];
+      if (!runId) return;
+      const pending = await new ApprovalService(projectRoot, runId).firstPending();
+      if (!pending) return;
+      approvedOnce = true;
+      await new ApprovalService(projectRoot, runId).approve({ approvalId: pending.id });
+    }, 50);
+    let result: Awaited<ReturnType<Orchestrator["run"]>>;
+    try {
+      result = await orchestrator.run();
+    } finally {
+      clearInterval(interval);
+    }
+
+    expect(result.state.status).toBe("merge_ready");
+    expect(result.state.flow?.flowId).toBe("default");
+    // One CHANGES_REQUESTED → fix → APPROVED cycle = one review loop.
+    const metrics = await new MetricsStore(projectRoot, result.runId).read();
+    expect(metrics?.reviewLoopCount).toBe(1);
+  });
+
+  it("a failing validation blocks the run even when the review approves", async () => {
+    const projectRoot = await makeRepo(APPROVE_PROVIDER);
+    await setConfigValue(
+      projectRoot,
+      "commands.validate",
+      JSON.stringify(['node -e "process.exit(1)"']),
+    );
+    const loaded = await loadConfig(projectRoot);
+    const orchestrator = new Orchestrator({
+      projectRoot,
+      config: loaded.config,
+      rules: loaded.rules,
+      task: "validation failure blocks",
+      isGitRepo: true,
+      onProgress: () => {},
+    });
+    let approvedOnce = false;
+    const interval = setInterval(async () => {
+      if (approvedOnce) return;
+      const runs = await fs
+        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .catch(() => []);
+      const runId = runs[0];
+      if (!runId) return;
+      const pending = await new ApprovalService(projectRoot, runId).firstPending();
+      if (!pending) return;
+      approvedOnce = true;
+      await new ApprovalService(projectRoot, runId).approve({ approvalId: pending.id });
+    }, 50);
+    let result: Awaited<ReturnType<Orchestrator["run"]>>;
+    try {
+      result = await orchestrator.run();
+    } finally {
+      clearInterval(interval);
+    }
+    expect(result.state.status).toBe("blocked");
   });
 });

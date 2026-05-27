@@ -139,11 +139,16 @@ export async function deriveMicroStepsForRun(input: {
     if (a.status === "pending") step.status = "blocked";
   }
 
-  // Validation result file (if any) lives under artifacts/validation-results.json
+  // The flow runner writes validation results under the validation step's
+  // artifact dir; point the validating microstep at the first validate step.
   const validationStep = stepByStage.get("validating");
   if (validationStep) {
-    const candidate = path.posix.join("artifacts", "07-validation-results.json");
-    validationStep.validationResultPath = candidate;
+    validationStep.validationResultPath = path.posix.join(
+      "artifacts",
+      "flows",
+      "validation",
+      "validation-results.json",
+    );
   }
 
   return STAGE_ORDER.map((s) => stepByStage.get(s)!);

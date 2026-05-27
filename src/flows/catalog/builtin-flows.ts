@@ -3,28 +3,21 @@ import {
   type FlowDefinition,
 } from "../schemas/flow-schema.js";
 
-// The built-in **Default flow**: the fixed plan → architect → implement →
-// validate → review → (fix → re-validate → review)* → verify workflow,
-// expressed as a real flow definition (D2 phase B). This is the single source
-// of truth for the workflow's shape; `orchestrator.run()` still encodes the
-// same sequence imperatively until phase B-3 retires the run()/runFlowSequence()
-// split and executes this definition directly.
+// The built-in **default flow**: the fixed plan → architect → implement →
+// validate → review → (fix → re-validate → review)* → verify workflow, expressed
+// as a real flow definition. This is the single source of truth for the default
+// workflow's shape — a plain `amaco run` resolves it and executes it through the
+// one flow runner (see runner-unification.md). There is no separate code path.
 //
 // The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
 // body is [review, fix, revalidation] and `decisionStep` is the head `review`.
-// Contract for the loop runner (B-3): each pass runs `review` first; if its
-// decision is not CHANGES_REQUESTED the loop exits *before* `fix` (straight to
-// `verify`); otherwise it runs `fix` + `revalidation` and loops back to
-// `review`. This mirrors `run()`'s review-first loop, where the first review
-// can approve and skip every fix. `maxIterations: 3` = the initial review plus
-// the default `workflow.maxReviewLoops` (2) fix cycles; B-3 may source the
-// bound from config instead of the static value.
+// Each pass runs `review` first; if its decision is not CHANGES_REQUESTED the
+// loop exits *before* `fix` (straight to `verify`); otherwise it runs `fix` +
+// `revalidation` and loops back to `review`. `maxIterations: 3` = the initial
+// review plus the default `workflow.maxReviewLoops` (2) fix cycles.
 //
-// As of B-3a the flow runner iterates adaptive loops, so this is now in
-// `builtinFlows` below — discoverable and runnable as `--flow default`, which
-// executes the review→fix loop correctly. The *implicit* default (a run with no
-// flow picked) still goes through `orchestrator.run()`; flipping that and
-// retiring the run()/runFlowSequence() split is B-3c.
+// `skipWhenReadOnly` marks the steps a read-only run skips; `stage` marks each
+// step's phase so `--resume-from <stage>` can seed the upstream steps.
 export const defaultFlow = flowDefinitionSchema.parse({
   id: "default",
   version: 1,
@@ -70,6 +63,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "agent-turn",
       slot: "planner",
       roleId: "planner",
+      stage: "planning",
       inputs: ["task-brief"],
       outputs: ["plan"],
     },
@@ -79,6 +73,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "agent-turn",
       slot: "architect",
       roleId: "architect",
+      stage: "architecting",
       inputs: ["task-brief", "plan"],
       outputs: ["architecture"],
     },
@@ -88,6 +83,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "agent-turn",
       slot: "executor",
       roleId: "executor",
+      stage: "executing",
       inputs: ["task-brief", "plan", "architecture"],
       outputs: ["execution", "diff"],
       skipWhenReadOnly: true,
@@ -96,6 +92,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       id: "validation",
       label: "Validate",
       kind: "validation",
+      stage: "executing",
       inputs: ["diff"],
       outputs: ["validation"],
       skipWhenReadOnly: true,
@@ -106,6 +103,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "review-turn",
       slot: "reviewer",
       roleId: "reviewer",
+      stage: "reviewing",
       inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
       outputs: ["findings", "review-decision"],
     },
@@ -115,6 +113,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "response-turn",
       slot: "fixer",
       roleId: "fixer",
+      stage: "executing",
       inputs: [
         "task-brief",
         "plan",
@@ -130,6 +129,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       id: "revalidation",
       label: "Re-validate",
       kind: "validation",
+      stage: "executing",
       inputs: ["diff"],
       outputs: ["validation"],
       skipWhenReadOnly: true,
@@ -140,6 +140,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
       kind: "summary-turn",
       slot: "verifier",
       roleId: "verifier",
+      stage: "verifying",
       inputs: [
         "task-brief",
         "plan",

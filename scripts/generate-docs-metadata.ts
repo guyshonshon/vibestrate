@@ -346,6 +346,7 @@ function generateFlows() {
       outputs: s.outputs,
       optional: s.optional,
       skipWhenReadOnly: s.skipWhenReadOnly,
+      stage: s.stage ?? null,
       approval: s.approval ?? null,
       repeat: s.repeat ?? null,
     })),
