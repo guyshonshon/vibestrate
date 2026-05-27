@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: the flow runner now executes adaptive loops (D2 phase B-3a). `runFlowSequence`
+  iterates a flow's `loop`: the decisionStep (a review-turn) gates re-entry —
+  after it runs, exit past `to` when the review isn't CHANGES_REQUESTED or the
+  iteration budget is spent, else finish the body and jump back to `from`. A
+  head-positioned gate lets an early APPROVED skip the rest of the body (e.g. the
+  default flow's fix). New `flow.loop.iteration` / `flow.loop.decision` events.
+  Linear flows are unchanged. (Wiring the default flow onto this runner is B-3b.)
 - Docs/Test: make the npm scanner false-positive response explicit in the
   distributed package: include `SECURITY.md` in the npm tarball, add a README
   note for the Telegram gateway false positive, and test that Telegram delivery
