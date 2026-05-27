@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: prioritized `docs/design/roadmap.md` consolidating the scratch TODOs
+  (token/cost ledger folded into the structured-output epic; rework-from-phase,
+  guide complexity, naming unification, run nav, Windows as later epics).
+- Chore: stop tracking notification runtime state (`.amaco/notifications/
+  notifications.json`, `receipts.json`) — it churns on every run.
 - Add: design doc for **provider structured output** (`docs/design/provider-
   structured-output.md`) — a per-provider output-adapter architecture for live
   streaming + real token/cost metrics that keeps supervision uniform (control
