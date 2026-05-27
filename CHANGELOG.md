@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Re-run with changes** (Epic B / B1) — a terminal run now has a
+  "Re-run with changes" action in the run header that re-submits the task with
+  adjusted settings (toggle read-only so the executor can write, change
+  effort/provider; preserves the guide). Directly addresses "the run was
+  read-only — give the executor write and run it again." Re-runs from scratch;
+  true rewind-to-a-phase (reuse artifacts) is a separate, larger change.
 - Add: **daily spend cap** (A5) — a `budget` config block (`spendCapDailyUsd`,
   `capAction`, `warnThresholdPct`, `fallbackProvider`) enforced before each
   agent turn: warn at the threshold, then at the cap apply the action —

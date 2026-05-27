@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../../lib/api.js";
+import { api, type ProviderRow } from "../../lib/api.js";
+import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
   AmacoEvent,
@@ -49,6 +50,7 @@ export function RunDetailPage({
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
+  const [rerunOpen, setRerunOpen] = useState(false);
   const [tab, setTab] = useState<InspectorV3Tab>(() =>
     initialTab === "artifact"
       ? "artifacts"
@@ -162,7 +164,19 @@ export function RunDetailPage({
         onBack={() => navigate({ kind: "mission" })}
         onOpenDiff={() => setTab("artifacts")}
         onOpenGit={() => navigate({ kind: "git", runId })}
+        onRerun={() => setRerunOpen(true)}
       />
+
+      {rerunOpen ? (
+        <RerunDialog
+          run={run}
+          onClose={() => setRerunOpen(false)}
+          onSubmitted={() => {
+            setRerunOpen(false);
+            navigate({ kind: "mission" });
+          }}
+        />
+      ) : null}
 
       <RunStatusSection
         run={run}
@@ -379,6 +393,147 @@ function Stat({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="text-fog-100 mono num-tabular text-[15px]">{value}</div>
+    </div>
+  );
+}
+
+function RerunDialog({
+  run,
+  onClose,
+  onSubmitted,
+}: {
+  run: RunState;
+  onClose: () => void;
+  onSubmitted: () => void;
+}) {
+  const [task, setTask] = useState(run.task);
+  const [readOnly, setReadOnly] = useState(run.readOnly);
+  const [effort, setEffort] = useState<"" | "low" | "medium" | "high">(
+    run.effort ?? "",
+  );
+  const [provider, setProvider] = useState(run.providerOverride ?? "");
+  const [providers, setProviders] = useState<ProviderRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    void api
+      .listProviders()
+      .then((r) => setProviders(r.providers.filter((p) => p.configured)))
+      .catch(() => {});
+  }, []);
+
+  async function submit() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.spawnRun({
+        task,
+        readOnly: readOnly || undefined,
+        effort: effort || undefined,
+        provider: provider || undefined,
+        guide: run.guide ? { id: run.guide.guideId } : undefined,
+      });
+      onSubmitted();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  }
+
+  const selectCls =
+    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40";
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="glass w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="eyebrow">Re-run with changes</div>
+            <h2 className="text-display text-[18px] mt-0.5">New run from this task</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+          >
+            Close
+          </button>
+        </div>
+        <p className="mt-2 text-[11.5px] text-fog-500">
+          Starts a fresh run (new worktree) with the task below and your adjusted
+          settings — e.g. uncheck read-only so the executor can write. The
+          original run is untouched.
+        </p>
+        <div className="mt-3">
+          <div className="eyebrow mb-1">Task</div>
+          <textarea
+            value={task}
+            onChange={(e) => setTask(e.target.value)}
+            rows={3}
+            className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+            <input
+              type="checkbox"
+              checked={readOnly}
+              onChange={(e) => setReadOnly(e.target.checked)}
+              className="accent-violet-500"
+            />
+            Read-only (no writes)
+          </label>
+          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+            effort
+            <select
+              value={effort}
+              onChange={(e) => setEffort(e.target.value as typeof effort)}
+              className={selectCls}
+            >
+              <option value="">default</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+            provider
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+              className={selectCls}
+            >
+              <option value="">auto</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {err ? (
+          <div className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-300">
+            {err}
+          </div>
+        ) : null}
+        <div className="mt-4 flex items-center gap-3">
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={busy || !task.trim()}
+            onClick={() => void submit()}
+          >
+            {busy ? "Starting…" : "Start re-run"}
+          </Button>
+          <span className="text-[11px] text-fog-500">
+            {readOnly ? "read-only" : "writes enabled"}
+            {run.guide ? ` · guide: ${run.guide.guideId}` : ""}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
