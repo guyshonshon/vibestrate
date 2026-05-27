@@ -15,6 +15,7 @@ import { GuidesPage } from "./routes/GuidesPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { AgentsPage } from "./routes/AgentsPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
+import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
   ProposalsPage,
   ProposalDetailPage,
@@ -75,6 +76,7 @@ function notificationRoute(n: NotificationRecord): Route {
 
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseRoute());
+  const [switcherOpen, setSwitcherOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setRoute(parseRoute());
@@ -89,6 +91,13 @@ export function App() {
     let armed = false;
     let armedTimer: number | null = null;
     const onKey = (e: KeyboardEvent) => {
+      // Cmd/Ctrl-K opens the run quick-switcher from anywhere (even while
+      // typing in a field), like a command palette.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSwitcherOpen(true);
+        return;
+      }
       const target = e.target as HTMLElement | null;
       const typing =
         target &&
@@ -121,6 +130,9 @@ export function App() {
           break;
         case "m":
           navigate({ kind: "metrics" });
+          break;
+        case "r":
+          setSwitcherOpen(true);
           break;
         case "n":
           window.dispatchEvent(new CustomEvent("amaco:open-notifications"));
@@ -355,6 +367,15 @@ export function App() {
         />
       )}
       <CliHintOverlay route={route} />
+      {switcherOpen ? (
+        <RunSwitcher
+          onClose={() => setSwitcherOpen(false)}
+          onSelect={(runId) => {
+            setSwitcherOpen(false);
+            navigate({ kind: "run", runId });
+          }}
+        />
+      ) : null}
     </AppShell>
   );
 }

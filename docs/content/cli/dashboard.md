@@ -33,6 +33,10 @@ amaco run "Add audit logging" --ui
 - **Suggestions** — review findings grouped into bundles you can apply, validate, and revert.
 - **Notifications** — local notifications, with gateway controls.
 
+## Jumping between runs
+
+Press **Cmd/Ctrl-K** (or `g r`) anywhere to open the **run switcher** — a search box over your recent runs. Filter by task, runId, or status and hit Enter to jump straight to a run; you don't have to go through the "all runs" page. Every run is also directly linkable at `#/runs/<runId>`.
+
 ## Watching a run
 
 Open a run to supervise it live:
@@ -52,6 +56,10 @@ Open a run to supervise it live:
 - **Steps inspector** — one card per agent step: provider+model, pass/fail,
   duration, tokens, cost, files touched, and review/verification outcome.
 - **Inspect tabs** — Events, Artifacts (with the diff viewer), Validation.
+- **Outcome banner** — when a run ends `blocked`, `failed`, or `aborted`, a
+  banner explains *what* stopped it (the spend cap, a rejected approval, a
+  review `BLOCKED` verdict, verification, or the raw error) and offers the
+  right next action — re-run with changes, see the review, or view events.
 
 ## What the dashboard does *not* do
 

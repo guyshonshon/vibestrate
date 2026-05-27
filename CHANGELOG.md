@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Run navigation + clearer blocked UX** (Epic B / B2) — a global **run
+  quick-switcher** (Cmd/Ctrl-K, or `g r`) lists recent runs and filters by
+  task / runId / status so you can jump straight to any run without going
+  through the full "all runs" page. Terminal non-success runs now show a
+  **What happened / what to do** banner that names the cause (spend cap,
+  rejected approval, review BLOCKED, verification, or the raw error) and
+  offers the right next actions (re-run with changes, see review, view
+  events). Also fixed: a `blocked`/`aborted` run no longer shows a live pulse
+  + ticking timer (it's terminal). Pure `describeRunOutcome`/`filterRuns`
+  helpers, unit-tested.
 - Add: **Rewind to a stage** (Epic B / B1, phase 1) — fork a fresh run that
   resumes at **architecting** (reuse the plan) or **executing** (reuse plan +
   architecture) instead of re-running from scratch, so upstream context isn't
