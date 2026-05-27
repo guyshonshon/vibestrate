@@ -1,5 +1,9 @@
 # Default flow — unify roles + flows (D2, design-first)
 
+> This is the original A/B decision. For the current state, the new constructs
+> (adaptive loop, `skipWhenReadOnly`), the parity matrix, and the remaining
+> B-3 plan, see [`runner-unification.md`](./runner-unification.md).
+
 ## Decision
 
 There is **no separate "default roles" concept.** The fixed plan→build→verify
