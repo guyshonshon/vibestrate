@@ -50,7 +50,7 @@ export function buildProviderCommand(): Command {
 
   cmd
     .command("setup")
-    .description("Guided provider setup wizard.")
+    .description("Flowd provider setup wizard.")
     .action(async () => {
       const code = await runProviderSetup();
       process.exit(code);

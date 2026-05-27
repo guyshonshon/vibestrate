@@ -6,7 +6,7 @@ import { pathExists } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
 import { TERMINAL_STATUSES } from "../workflow/workflow-types.js";
-import { guideRunParticipantStateSchema } from "../guides/runtime/guide-participant-ledger.js";
+import { flowRunParticipantStateSchema } from "../flows/runtime/flow-participant-ledger.js";
 
 export const runStatusSchema = z.enum([
   "created",
@@ -41,7 +41,7 @@ export const verificationDecisionSchema = z.enum([
 ]);
 export type VerificationDecision = z.infer<typeof verificationDecisionSchema>;
 
-export const guideRunStepStatusSchema = z.enum([
+export const flowRunStepStatusSchema = z.enum([
   "pending",
   "running",
   "passed",
@@ -49,14 +49,14 @@ export const guideRunStepStatusSchema = z.enum([
   "failed",
   "skipped",
 ]);
-export type GuideRunStepStatus = z.infer<typeof guideRunStepStatusSchema>;
+export type FlowRunStepStatus = z.infer<typeof flowRunStepStatusSchema>;
 
-export const guideRunStepStateSchema = z
+export const flowRunStepStateSchema = z
   .object({
     id: z.string().min(1),
     label: z.string().min(1),
     kind: z.string().min(1),
-    status: guideRunStepStatusSchema,
+    status: flowRunStepStatusSchema,
     optional: z.boolean().default(false),
     slotId: z.string().nullable().default(null),
     roleId: z.string().nullable().default(null),
@@ -70,21 +70,21 @@ export const guideRunStepStateSchema = z
     error: z.string().nullable().default(null),
   })
   .strict();
-export type GuideRunStepState = z.infer<typeof guideRunStepStateSchema>;
+export type FlowRunStepState = z.infer<typeof flowRunStepStateSchema>;
 
-export const guideRunStateSchema = z
+export const flowRunStateSchema = z
   .object({
-    guideId: z.string().min(1),
-    guideVersion: z.number().int().positive(),
+    flowId: z.string().min(1),
+    flowVersion: z.number().int().positive(),
     label: z.string().min(1),
     snapshotPath: z.string().min(1),
     participantLedgerPath: z.string().nullable().default(null),
-    participants: z.array(guideRunParticipantStateSchema).default([]),
+    participants: z.array(flowRunParticipantStateSchema).default([]),
     currentStepId: z.string().nullable().default(null),
-    steps: z.array(guideRunStepStateSchema),
+    steps: z.array(flowRunStepStateSchema),
   })
   .strict();
-export type GuideRunState = z.infer<typeof guideRunStateSchema>;
+export type FlowRunState = z.infer<typeof flowRunStateSchema>;
 
 export const runStateSchema = z.object({
   runId: z.string().min(1),
@@ -134,11 +134,11 @@ export const runStateSchema = z.object({
   // includes a brevity directive: prefer diffs over re-stating
   // surrounding code, bullets over paragraphs, no preamble.
   concise: z.boolean().default(false),
-  // Guides persist their immutable resolved snapshot separately at
-  // `.amaco/runs/<id>/guide.json`; this live ledger stays in state.json
+  // Flows persist their immutable resolved snapshot separately at
+  // `.amaco/runs/<id>/flow.json`; this live ledger stays in state.json
   // so run lists, shell snapshots, and replay can expose progress without
   // reading artifacts or provider output.
-  guide: guideRunStateSchema.nullable().default(null),
+  flow: flowRunStateSchema.nullable().default(null),
   // Set when this run was forked from a prior run via "rewind to a stage":
   // the upstream artifacts (plan, and architecture when resuming at
   // executing) were copied from `sourceRunId` instead of regenerated, and
@@ -333,7 +333,7 @@ export function createInitialState(input: {
     readOnly: false,
     runtimeSkills: [],
     concise: false,
-    guide: null,
+    flow: null,
     resumedFrom: null,
   };
 }

@@ -30,8 +30,8 @@ import {
   type Role,
 } from "../../design/roleTone.js";
 import type {
-  DiscoveredGuide,
-  GuideContextPolicy,
+  DiscoveredFlow,
+  FlowContextPolicy,
 } from "../../../lib/types.js";
 import type { ComposerPreset } from "../../../lib/api.js";
 
@@ -47,8 +47,8 @@ export type ComposerSkill = { id: string; name: string };
 
 export type ComposerSubmitInput = {
   brief: string;
-  guideId: string | null;
-  contextPolicy: GuideContextPolicy;
+  flowId: string | null;
+  contextPolicy: FlowContextPolicy;
   slotProviders: Record<string, string>;
   providerOverride: string | null;
   skills: string[];
@@ -60,7 +60,7 @@ type Props = {
   providers: ComposerProvider[];
   defaultProviderId: string | null;
   skills: ComposerSkill[];
-  guides: DiscoveredGuide[];
+  flows: DiscoveredFlow[];
   presets: ComposerPreset[];
   onSubmit: (input: ComposerSubmitInput) => void | Promise<void>;
   onSavePreset: (input: ComposerPreset) => void | Promise<void>;
@@ -80,7 +80,7 @@ const SUGGESTIONS = [
  *
  *   1 · The brief    — narrow auto-growing textarea
  *   2 · Flow         — full-shape chips (4 across) with step pips
- *   3 · Crew         — slot cards built from the chosen guide
+ *   3 · Crew         — slot cards built from the chosen flow
  *   4 · Run          — meta chips + Send-to-crew button
  */
 export function ComposerV3({
@@ -88,7 +88,7 @@ export function ComposerV3({
   providers,
   defaultProviderId,
   skills,
-  guides,
+  flows,
   presets,
   onSubmit,
   onSavePreset,
@@ -96,7 +96,7 @@ export function ComposerV3({
   onCustomizeFlow,
 }: Props) {
   const [brief, setBrief] = useState("");
-  const [guideId, setGuideId] = useState<string>(() => guides[0]?.id ?? "");
+  const [flowId, setFlowId] = useState<string>(() => flows[0]?.id ?? "");
   const [slotProviders, setSlotProviders] = useState<Record<string, string>>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
@@ -106,16 +106,16 @@ export function ComposerV3({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const presetsRef = useRef<HTMLDivElement | null>(null);
 
-  // When the guides list arrives, default to a Quality-Arbitration-shaped
+  // When the flows list arrives, default to a Quality-Arbitration-shaped
   // recipe if present (it carries the strongest design intent — four
-  // visible crew slots). Falls back to the first available guide.
+  // visible crew slots). Falls back to the first available flow.
   useEffect(() => {
-    if (guideId) return;
-    if (guides.length === 0) return;
+    if (flowId) return;
+    if (flows.length === 0) return;
     const pick =
-      guides.find((g) => /arbitr|quality/i.test(g.label)) ?? guides[0]!;
-    setGuideId(pick.id);
-  }, [guides, guideId]);
+      flows.find((g) => /arbitr|quality/i.test(g.label)) ?? flows[0]!;
+    setFlowId(pick.id);
+  }, [flows, flowId]);
 
   // `/` focuses the brief (from outside any input).
   useEffect(() => {
@@ -146,14 +146,14 @@ export function ComposerV3({
     el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
   }, [brief]);
 
-  const selectedGuide = useMemo(
-    () => guides.find((g) => g.id === guideId) ?? null,
-    [guideId, guides],
+  const selectedFlow = useMemo(
+    () => flows.find((g) => g.id === flowId) ?? null,
+    [flowId, flows],
   );
 
   const slotEntries = useMemo(() => {
-    if (!selectedGuide) return [];
-    return Object.entries(selectedGuide.definition.slots).map(
+    if (!selectedFlow) return [];
+    return Object.entries(selectedFlow.definition.slots).map(
       ([id, def]) => ({
         id,
         label: def.label,
@@ -162,7 +162,7 @@ export function ComposerV3({
         role: classifyRole(def.label || id),
       }),
     );
-  }, [selectedGuide]);
+  }, [selectedFlow]);
 
   // Always render 4 slot columns so the rhythm matches the design.
   const slots = useMemo(() => {
@@ -198,7 +198,7 @@ export function ComposerV3({
     if (!trimmed || busy) return;
     void onSubmit({
       brief: trimmed,
-      guideId: guideId || null,
+      flowId: flowId || null,
       contextPolicy: "balanced",
       slotProviders,
       providerOverride: null,
@@ -212,9 +212,9 @@ export function ComposerV3({
       name,
       kind,
       brief: kind === "template" ? brief.trim() || null : null,
-      guide: guideId
+      flow: flowId
         ? {
-            id: guideId,
+            id: flowId,
             contextPolicy: "balanced",
             slotProviders,
             skippedOptionalSteps: [],
@@ -227,9 +227,9 @@ export function ComposerV3({
   }
 
   function applyPreset(p: ComposerPreset) {
-    if (p.guide) {
-      setGuideId(p.guide.id);
-      setSlotProviders(p.guide.slotProviders ?? {});
+    if (p.flow) {
+      setFlowId(p.flow.id);
+      setSlotProviders(p.flow.slotProviders ?? {});
     }
     if (p.brief !== null) setBrief(p.brief);
     setSelectedSkills(p.skills);
@@ -251,7 +251,7 @@ export function ComposerV3({
   function promptAndSave(kind: "crew" | "template") {
     const suggested =
       kind === "crew"
-        ? `${selected(guideId, guides) ?? "Crew"} preset`
+        ? `${selected(flowId, flows) ?? "Crew"} preset`
         : (brief.split("\n")[0] || "Template").slice(0, 60);
     const name = window.prompt(
       kind === "crew" ? "Name this crew preset" : "Name this template",
@@ -313,14 +313,14 @@ export function ComposerV3({
         <div className="px-5 pt-3 pb-4 border-t border-white/[0.06]">
           <div className="flex items-baseline justify-between mb-2.5">
             <span className="eyebrow">
-              2 · Flow{selectedGuide ? ` · ${selectedGuide.label}` : ""}
+              2 · Flow{selectedFlow ? ` · ${selectedFlow.label}` : ""}
             </span>
             <span className="text-[11px] text-fog-400 flex items-center gap-2 whitespace-nowrap">
-              {selectedGuide ? (
+              {selectedFlow ? (
                 <>
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" strokeWidth={1.7} />
-                    {selectedGuide.definition.steps.length} steps
+                    {selectedFlow.definition.steps.length} steps
                   </span>
                   <span>·</span>
                 </>
@@ -334,20 +334,20 @@ export function ComposerV3({
               </button>
             </span>
           </div>
-          {guides.length === 0 ? (
+          {flows.length === 0 ? (
             <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-4 text-[12.5px] text-fog-400">
-              No guides discovered yet. Project-local guides live in{" "}
-              <span className="mono">.amaco/guides/</span>.
+              No flows discovered yet. Project-local flows live in{" "}
+              <span className="mono">.amaco/flows/</span>.
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {guides.slice(0, 8).map((g) => (
+              {flows.slice(0, 8).map((g) => (
                 <FlowChip
                   key={g.id}
-                  guide={g}
-                  selected={g.id === guideId}
+                  flow={g}
+                  selected={g.id === flowId}
                   onSelect={() => {
-                    setGuideId(g.id);
+                    setFlowId(g.id);
                     setSlotProviders({});
                   }}
                 />
@@ -407,7 +407,7 @@ export function ComposerV3({
                     Slot
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-fog-400">
-                    <Plus className="h-3 w-3" strokeWidth={1.7} /> Optional for this guide
+                    <Plus className="h-3 w-3" strokeWidth={1.7} /> Optional for this flow
                   </div>
                 </button>
               ),
@@ -483,7 +483,7 @@ export function ComposerV3({
                             {p.name}
                           </div>
                           <div className="text-[10.5px] text-fog-400 truncate">
-                            {p.kind} · {p.guide?.id ?? "no guide"} ·{" "}
+                            {p.kind} · {p.flow?.id ?? "no flow"} ·{" "}
                             {p.skills.length} skills
                           </div>
                         </button>
@@ -534,10 +534,10 @@ function providerLabel(
 }
 
 function selected(
-  guideId: string,
-  guides: DiscoveredGuide[],
+  flowId: string,
+  flows: DiscoveredFlow[],
 ): string | null {
-  return guides.find((g) => g.id === guideId)?.label ?? null;
+  return flows.find((g) => g.id === flowId)?.label ?? null;
 }
 
 /**
@@ -559,16 +559,16 @@ function vendorForProvider(providerId: string): string | null {
 }
 
 function FlowChip({
-  guide,
+  flow,
   selected,
   onSelect,
 }: {
-  guide: DiscoveredGuide;
+  flow: DiscoveredFlow;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const stepCount = guide.definition.steps.length;
-  const isRecommended = /quality|arbitr/i.test(guide.label);
+  const stepCount = flow.definition.steps.length;
+  const isRecommended = /quality|arbitr/i.test(flow.label);
   return (
     <button
       type="button"
@@ -587,7 +587,7 @@ function FlowChip({
             selected ? "text-fog-100" : "text-fog-200",
           )}
         >
-          {guide.label}
+          {flow.label}
         </span>
         {isRecommended ? (
           <span className="ml-auto shrink-0 text-[9.5px] uppercase tracking-[0.12em] text-violet-soft px-1.5 py-[1px] rounded-full bg-violet-soft/10 border border-violet-soft/25">
@@ -596,7 +596,7 @@ function FlowChip({
         ) : null}
       </div>
       <div className="text-[11.5px] text-fog-400 line-clamp-2">
-        {guide.description || "—"}
+        {flow.description || "—"}
       </div>
       <div className="mt-2 flex items-center gap-1">
         {Array.from({ length: stepCount }).map((_, i) => (

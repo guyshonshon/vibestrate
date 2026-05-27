@@ -28,7 +28,7 @@ const baseState = {
   readOnly: false,
   runtimeSkills: [],
   concise: false,
-  guide: null,
+  flow: null,
   resumedFrom: null,
 };
 

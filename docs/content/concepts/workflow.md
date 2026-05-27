@@ -41,18 +41,18 @@ Notice that **validating** has no agent. It runs your project's `commands.valida
 
 If your `commands.validate` is empty, the workflow degenerates into a pure model-judgement loop. We strongly recommend filling it in — even a single `pnpm typecheck` catches a huge class of regressions for free.
 
-## Guides are alternate workflows
+## Flows are alternate workflows
 
-The default workflow is one path through the orchestrator. A [Guide](/docs/concepts/guide) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Guide uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
+The default workflow is one path through the orchestrator. A [Flow](/docs/concepts/flow) is a richer recipe — different agent slots, different step order, optional approval gates, optional repeated steps. The built-in `quality-arbitration` Flow uses a builder + challenger + arbiter crew, designed for higher-risk feature work.
 
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.
 - **Setting `maxReviewLoops` too high.** Three to five rounds is usually enough; past that, the run is probably stuck and should `block` to call you over.
-- **Adding stages by editing the workflow array.** For now, prefer a custom Guide — they're the supported extension point.
+- **Adding stages by editing the workflow array.** For now, prefer a custom Flow — they're the supported extension point.
 
 ## Related
 
 - [Run state](/docs/concepts/state) — the statuses each stage entry and exit produces.
-- [Guide](/docs/concepts/guide) — alternate workflows.
+- [Flow](/docs/concepts/flow) — alternate workflows.
 - [Task lifecycle](/docs/task-lifecycle) — the same flow with the full status diagram.

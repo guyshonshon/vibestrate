@@ -92,7 +92,7 @@ function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
         <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
         <Text dimColor>
           {"  "}
-          {clip(row.guide?.currentStepLabel ?? row.currentRole ?? "—", 10).padEnd(10)}
+          {clip(row.flow?.currentStepLabel ?? row.currentRole ?? "—", 10).padEnd(10)}
         </Text>
         <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (
@@ -217,26 +217,26 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         {row.pausedAtStatus ? (
           <Field label="paused at" value={row.pausedAtStatus} />
         ) : null}
-        {row.guide ? (
+        {row.flow ? (
           <Field
-            label="guide"
-            value={`${row.guide.label} ${row.guide.completedSteps}/${row.guide.totalSteps}`}
+            label="flow"
+            value={`${row.flow.label} ${row.flow.completedSteps}/${row.flow.totalSteps}`}
           />
         ) : null}
       </Box>
-      {row.guide?.currentStepLabel ? (
+      {row.flow?.currentStepLabel ? (
         <Text>
           <Text dimColor>step   </Text>
-          <Text color="cyan">{row.guide.currentStepLabel}</Text>
-          {row.guide.currentStepStatus ? (
-            <Text dimColor>   {row.guide.currentStepStatus}</Text>
+          <Text color="cyan">{row.flow.currentStepLabel}</Text>
+          {row.flow.currentStepStatus ? (
+            <Text dimColor>   {row.flow.currentStepStatus}</Text>
           ) : null}
         </Text>
       ) : null}
-      {row.guide?.participantContexts.length ? (
+      {row.flow?.participantContexts.length ? (
         <Text>
           <Text dimColor>context</Text>
-          <Text> {row.guide.participantContexts.join("  ")}</Text>
+          <Text> {row.flow.participantContexts.join("  ")}</Text>
         </Text>
       ) : null}
 

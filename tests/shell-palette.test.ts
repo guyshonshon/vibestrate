@@ -69,9 +69,9 @@ describe("filterPalette", () => {
     expect(out[0]?.id).toBe("shell.quit");
   });
 
-  it("shows the Guide catalog through the command runner", () => {
-    const out = filterPalette(DEFAULT_PALETTE, "guides");
-    expect(out.some((cmd) => cmd.id === "runner.guides-list")).toBe(true);
+  it("shows the Flow catalog through the command runner", () => {
+    const out = filterPalette(DEFAULT_PALETTE, "flows");
+    expect(out.some((cmd) => cmd.id === "runner.flows-list")).toBe(true);
   });
 
   it("limits results to the cap", () => {

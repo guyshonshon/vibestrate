@@ -62,11 +62,11 @@ Doctor walks through everything that needs to be ready before your first run —
   rules.md         project instructions agents read on every turn
   agents/          per-role prompt templates you can edit
   skills/          markdown attachments to add domain context
-  guides/          your project's run Guides (empty until you add one)
+  flows/          your project's run Flows (empty until you add one)
   runs/            run state, artifacts, metrics, events
 ```
 
-You can commit `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents/`, `.amaco/skills/`, and `.amaco/guides/`. The `runs/` directory holds per-run artifacts and is best left untracked — Amaco adds it to your `.gitignore` automatically.
+You can commit `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents/`, `.amaco/skills/`, and `.amaco/flows/`. The `runs/` directory holds per-run artifacts and is best left untracked — Amaco adds it to your `.gitignore` automatically.
 
 ## Next
 

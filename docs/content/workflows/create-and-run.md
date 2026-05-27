@@ -31,10 +31,10 @@ Add `--ui` if you want the dashboard alongside:
 amaco run "..." --ui
 ```
 
-Pick a Guide if the work warrants the extra rigor:
+Pick a Flow if the work warrants the extra rigor:
 
 ```bash
-amaco run "..." --guide quality-arbitration
+amaco run "..." --flow quality-arbitration
 ```
 
 Override the provider for this run:

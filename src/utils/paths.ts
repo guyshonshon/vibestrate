@@ -5,7 +5,7 @@ export const CONFIG_FILENAME = "project.yml";
 export const RULES_FILENAME = "rules.md";
 export const ROLES_DIRNAME = "roles";
 export const SKILLS_DIRNAME = "skills";
-export const GUIDES_DIRNAME = "guides";
+export const FLOWS_DIRNAME = "flows";
 export const RUNS_DIRNAME = "runs";
 export const ROADMAP_DIRNAME = "roadmap";
 export const SCHEDULER_DIRNAME = "scheduler";
@@ -33,8 +33,8 @@ export function projectSkillsDir(projectRoot: string): string {
   return path.join(amacoRoot(projectRoot), SKILLS_DIRNAME);
 }
 
-export function projectGuidesDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), GUIDES_DIRNAME);
+export function projectFlowsDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), FLOWS_DIRNAME);
 }
 
 export function projectRunsDir(projectRoot: string): string {
@@ -57,15 +57,15 @@ export function runEventsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "events.ndjson");
 }
 
-export function runGuideSnapshotPath(projectRoot: string, runId: string): string {
-  return path.join(runDir(projectRoot, runId), "guide.json");
+export function runFlowSnapshotPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "flow.json");
 }
 
-export function runGuideParticipantsPath(projectRoot: string, runId: string): string {
+export function runFlowParticipantsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "participants.json");
 }
 
-export function runGuideArbitrationPath(projectRoot: string, runId: string): string {
+export function runFlowArbitrationPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "arbitration.json");
 }
 

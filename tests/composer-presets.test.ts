@@ -56,7 +56,7 @@ describe("upsertComposerPreset", () => {
         name: "Ship Fast Crew",
         kind: "crew",
         brief: null,
-        guide: {
+        flow: {
           id: "ship-fast",
           contextPolicy: "balanced",
           slotProviders: { executor: "claude" },
@@ -76,7 +76,7 @@ describe("upsertComposerPreset", () => {
         name: "ship fast crew",
         kind: "crew",
         brief: null,
-        guide: {
+        flow: {
           id: "ship-fast",
           contextPolicy: "compact",
           slotProviders: { executor: "claude" },
@@ -91,7 +91,7 @@ describe("upsertComposerPreset", () => {
     expect(second.preset.createdAt).toBe(first.preset.createdAt);
     expect(second.preset.skills).toEqual(["typescript", "react"]);
     expect(second.preset.readOnly).toBe(true);
-    expect(second.preset.guide?.contextPolicy).toBe("compact");
+    expect(second.preset.flow?.contextPolicy).toBe("compact");
 
     const list = await readComposerPresets(root);
     expect(list).toHaveLength(1);
@@ -108,7 +108,7 @@ describe("upsertComposerPreset", () => {
         name: "Test",
         kind: "template",
         brief: "a brief",
-        guide: null,
+        flow: null,
         provider: null,
         skills: [],
         readOnly: false,
@@ -136,7 +136,7 @@ describe("composer presets HTTP routes", () => {
       body: JSON.stringify({
         name: "Quality Crew",
         kind: "crew",
-        guide: {
+        flow: {
           id: "quality-arbitration",
           contextPolicy: "balanced",
           slotProviders: {},

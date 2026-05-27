@@ -240,14 +240,14 @@ export function ReplayPanel({
           <span className="amaco-mono text-[10px] text-amaco-fg-muted">
             {replay.events.length} event(s)
           </span>
-          {replay.guide ? (
+          {replay.flow ? (
             <span className="amaco-mono text-[10px] text-amaco-accent">
-              guide {replay.guide.label}
-              {currentReplayGuideStep(replay)
-                ? ` · ${currentReplayGuideStep(replay)!.label} (${currentReplayGuideStep(replay)!.status})`
+              flow {replay.flow.label}
+              {currentReplayFlowStep(replay)
+                ? ` · ${currentReplayFlowStep(replay)!.label} (${currentReplayFlowStep(replay)!.status})`
                 : ""}
-              {replay.guide.participants.length > 0
-                ? ` · ${replay.guide.participants
+              {replay.flow.participants.length > 0
+                ? ` · ${replay.flow.participants
                     .map(
                       (participant) =>
                         `${participant.slotId}:${participant.lastContextMode ?? "pending"}`,
@@ -394,10 +394,10 @@ export function ReplayPanel({
   );
 }
 
-function currentReplayGuideStep(replay: RunReplay) {
-  if (!replay.guide) return null;
+function currentReplayFlowStep(replay: RunReplay) {
+  if (!replay.flow) return null;
   return (
-    replay.guide.steps.find((step) => step.id === replay.guide?.currentStepId) ??
+    replay.flow.steps.find((step) => step.id === replay.flow?.currentStepId) ??
     null
   );
 }

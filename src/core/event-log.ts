@@ -70,19 +70,19 @@ export type AmacoEventType =
   | "bundle.validation_profile_updated"
   | "mcp.attached"
   | "control.applied"
-  | "guide.snapshot.written"
-  | "guide.participant.capabilities"
-  | "guide.session.opened"
-  | "guide.session.reused"
-  | "guide.session.rehydrated"
-  | "guide.session.stateless"
-  | "guide.context.built"
-  | "guide.findings.updated"
-  | "guide.decision.completed"
-  | "guide.step.started"
-  | "guide.step.completed"
-  | "guide.step.failed"
-  | "guide.step.skipped";
+  | "flow.snapshot.written"
+  | "flow.participant.capabilities"
+  | "flow.session.opened"
+  | "flow.session.reused"
+  | "flow.session.rehydrated"
+  | "flow.session.stateless"
+  | "flow.context.built"
+  | "flow.findings.updated"
+  | "flow.decision.completed"
+  | "flow.step.started"
+  | "flow.step.completed"
+  | "flow.step.failed"
+  | "flow.step.skipped";
 
 export type AmacoEvent = {
   timestamp: string;

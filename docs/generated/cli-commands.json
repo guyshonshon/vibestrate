@@ -30,7 +30,7 @@
         },
         {
           "flags": "--interactive",
-          "description": "force the guided wizard even when --yes would default to non-interactive",
+          "description": "force the flowd wizard even when --yes would default to non-interactive",
           "required": false,
           "optional": false,
           "negated": false
@@ -44,7 +44,7 @@
         "amaco",
         "setup"
       ],
-      "description": "Guided wizard for provider, validation commands, and run defaults.",
+      "description": "Flowd wizard for provider, validation commands, and run defaults.",
       "usage": "[options]",
       "arguments": [],
       "options": [],
@@ -166,7 +166,7 @@
             "provider",
             "setup"
           ],
-          "description": "Guided provider setup wizard.",
+          "description": "Flowd provider setup wizard.",
           "usage": "[options]",
           "arguments": [],
           "options": [],
@@ -390,12 +390,12 @@
       ]
     },
     {
-      "name": "guides",
+      "name": "flows",
       "path": [
         "amaco",
-        "guides"
+        "flows"
       ],
-      "description": "List and inspect Guide run recipes from built-ins and .amaco/guides.",
+      "description": "List and inspect Flow run recipes from built-ins and .amaco/flows.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -404,10 +404,10 @@
           "name": "list",
           "path": [
             "amaco",
-            "guides",
+            "flows",
             "list"
           ],
-          "description": "Show every discovered Guide.",
+          "description": "Show every discovered Flow.",
           "usage": "[options]",
           "arguments": [],
           "options": [
@@ -425,10 +425,10 @@
           "name": "show",
           "path": [
             "amaco",
-            "guides",
+            "flows",
             "show"
           ],
-          "description": "Print a Guide's participant slots and ordered steps.",
+          "description": "Print a Flow's participant slots and ordered steps.",
           "usage": "[options] <id>",
           "arguments": [
             {
@@ -453,10 +453,10 @@
           "name": "suggest",
           "path": [
             "amaco",
-            "guides",
+            "flows",
             "suggest"
           ],
-          "description": "Suggest a Guide from task risk signals and local Guide outcomes.",
+          "description": "Suggest a Flow from task risk signals and local Flow outcomes.",
           "usage": "[options] <task...>",
           "arguments": [
             {
@@ -496,7 +496,7 @@
           "name": "export-arbitration",
           "path": [
             "amaco",
-            "guides",
+            "flows",
             "export-arbitration"
           ],
           "description": "Export a Quality Arbitration run as local JSON evidence for later evaluation.",
@@ -3347,37 +3347,37 @@
           "negated": false
         },
         {
-          "flags": "--guide <id>",
-          "description": "resolve and run a Guide recipe for this run.",
+          "flags": "--flow <id>",
+          "description": "resolve and run a Flow recipe for this run.",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
-          "flags": "--guide-slot <slot=provider>",
-          "description": "override a Guide participant slot provider. Repeat for multiple slots.",
+          "flags": "--flow-slot <slot=provider>",
+          "description": "override a Flow participant slot provider. Repeat for multiple slots.",
           "defaultValue": "[]",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
-          "flags": "--guide-brief <text>",
-          "description": "extra brief for the Guide task packet.",
+          "flags": "--flow-brief <text>",
+          "description": "extra brief for the Flow task packet.",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
-          "flags": "--guide-context <policy>",
-          "description": "Guide context policy (balanced|compact|artifact-heavy).",
+          "flags": "--flow-context <policy>",
+          "description": "Flow context policy (balanced|compact|artifact-heavy).",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
-          "flags": "--guide-skip <step>",
-          "description": "skip an optional Guide step for this run. Repeat for multiple steps.",
+          "flags": "--flow-skip <step>",
+          "description": "skip an optional Flow step for this run. Repeat for multiple steps.",
           "defaultValue": "[]",
           "required": true,
           "optional": false,
@@ -3385,7 +3385,7 @@
         },
         {
           "flags": "--interactive",
-          "description": "open terminal Guide setup for task, brief, participants, and optional steps. Requires --guide.",
+          "description": "open terminal Flow setup for task, brief, participants, and optional steps. Requires --flow.",
           "required": false,
           "optional": false,
           "negated": false

@@ -11,7 +11,7 @@ import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
-import { GuidesPage } from "./routes/GuidesPage.js";
+import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
@@ -123,7 +123,7 @@ export function App() {
           navigate({ kind: "mission" });
           break;
         case "f":
-          navigate({ kind: "flow", guideId: null });
+          navigate({ kind: "flow", flowId: null });
           break;
         case "a":
           navigate({ kind: "crew" });
@@ -245,8 +245,8 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
-                      : route.kind === "flow" || route.kind === "guides"
-                        ? "guides"
+                      : route.kind === "flow" || route.kind === "flows"
+                        ? "flows"
                         : route.kind === "metrics"
                           ? "metrics"
                           : route.kind === "crew" || route.kind === "providers"
@@ -257,8 +257,7 @@ export function App() {
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
-      onShowFlows={() => navigate({ kind: "flow", guideId: null })}
-      onShowGuides={() => navigate({ kind: "guides" })}
+      onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
@@ -339,12 +338,12 @@ export function App() {
         />
       ) : route.kind === "flow" ? (
         <FlowBuilderPage
-          initialGuideId={route.guideId}
-          onBack={() => navigate({ kind: "guides" })}
+          initialFlowId={route.flowId}
+          onBack={() => navigate({ kind: "flows" })}
         />
-      ) : route.kind === "guides" ? (
-        <GuidesPage
-          onOpenInFlow={(guideId) => navigate({ kind: "flow", guideId })}
+      ) : route.kind === "flows" ? (
+        <FlowsPage
+          onOpenInFlow={(flowId: string) => navigate({ kind: "flow", flowId })}
         />
       ) : route.kind === "metrics" ? (
         <MetricsPage />

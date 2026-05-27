@@ -8,17 +8,17 @@ import {
 } from "./orchestrator.js";
 import { ArtifactStore } from "./artifact-store.js";
 import {
-  discoverGuides,
-  findGuideById,
-} from "../guides/catalog/guide-discovery.js";
-import { resolveGuide } from "../guides/runtime/guide-resolver.js";
-import type { ResolvedGuideSnapshot } from "../guides/schemas/guide-schema.js";
+  discoverFlows,
+  findFlowById,
+} from "../flows/catalog/flow-discovery.js";
+import { resolveFlow } from "../flows/runtime/flow-resolver.js";
+import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 
 /**
  * The shared, non-interactive run pipeline. Both the CLI (`amaco run`) and the
  * dashboard reach a run through the core `Orchestrator`; this launcher is the
  * piece the **dashboard** uses so the server never has to shell out to the CLI
- * binary. It takes a fully-structured spec, loads config, resolves the Guide,
+ * binary. It takes a fully-structured spec, loads config, resolves the Flow,
  * and drives the orchestrator — no terminal output, no prompts.
  *
  * The CLI command keeps its own presentation layer (effort heuristic, wizard,
@@ -36,7 +36,7 @@ export const runSpecSchema = z.object({
   readOnly: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
-  guide: z
+  flow: z
     .object({
       id: z.string().min(1).max(80),
       brief: z.string().max(4000).nullable().optional(),
@@ -50,7 +50,7 @@ export const runSpecSchema = z.object({
     .optional(),
   /** Rewind: fork a fresh run from a prior run, resuming at a chosen stage
    *  and reusing that run's upstream artifacts. Mutually exclusive with
-   *  `guide`. The launcher loads the seeded artifacts from the source run. */
+   *  `flow`. The launcher loads the seeded artifacts from the source run. */
   resumeFrom: z
     .object({
       sourceRunId: z.string().min(1).max(200),
@@ -168,34 +168,34 @@ export async function runFromSpec(
   // resumes at the chosen stage instead of regenerating them.
   let resumeFrom: ResumeFromInput | null = null;
   if (spec.resumeFrom) {
-    if (spec.guide) {
+    if (spec.flow) {
       throw new RunLaunchError(
-        "resume_with_guide",
-        "A run cannot both rewind from a prior run and run a Guide.",
+        "resume_with_flow",
+        "A run cannot both rewind from a prior run and run a Flow.",
       );
     }
     resumeFrom = await resolveResumeFrom(detected.projectRoot, spec.resumeFrom);
   }
 
-  let resolvedGuide: ResolvedGuideSnapshot | null = null;
-  if (spec.guide) {
-    const guide = await findGuideById(detected.projectRoot, spec.guide.id);
-    if (!guide) {
-      const ids = (await discoverGuides(detected.projectRoot)).map((g) => g.id);
+  let resolvedFlow: ResolvedFlowSnapshot | null = null;
+  if (spec.flow) {
+    const flow = await findFlowById(detected.projectRoot, spec.flow.id);
+    if (!flow) {
+      const ids = (await discoverFlows(detected.projectRoot)).map((g) => g.id);
       throw new RunLaunchError(
-        "guide_not_found",
-        `No Guide named "${spec.guide.id}". Found: ${ids.join(", ") || "(none)"}.`,
+        "flow_not_found",
+        `No Flow named "${spec.flow.id}". Found: ${ids.join(", ") || "(none)"}.`,
       );
     }
-    resolvedGuide = resolveGuide({
-      guide: guide.definition,
-      source: guide.source,
+    resolvedFlow = resolveFlow({
+      flow: flow.definition,
+      source: flow.source,
       config: loaded.config,
       task: spec.task,
-      brief: spec.guide.brief ?? null,
-      contextPolicy: spec.guide.contextPolicy,
-      slotProviders: spec.guide.slotProviders ?? {},
-      skippedOptionalSteps: spec.guide.skippedOptionalSteps ?? [],
+      brief: spec.flow.brief ?? null,
+      contextPolicy: spec.flow.contextPolicy,
+      slotProviders: spec.flow.slotProviders ?? {},
+      skippedOptionalSteps: spec.flow.skippedOptionalSteps ?? [],
     });
   }
 
@@ -211,7 +211,7 @@ export async function runFromSpec(
     readOnly,
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,
-    guide: resolvedGuide,
+    flow: resolvedFlow,
     resumeFrom,
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,

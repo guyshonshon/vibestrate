@@ -221,7 +221,7 @@ export function RunDetailPage({
         />
       ) : null}
 
-      <CrewStrip guide={run.guide ?? null} />
+      <CrewStrip flow={run.flow ?? null} />
 
       <section className="grid grid-cols-12 gap-5" data-screen-label="03 Live execution">
         <div className="col-span-12 xl:col-span-8 min-h-0">
@@ -247,7 +247,7 @@ export function RunDetailPage({
         </aside>
       </section>
 
-      <StepTimelineV3 guide={run.guide ?? null} />
+      <StepTimelineV3 flow={run.flow ?? null} />
 
       <section data-screen-label="05 Inspector">
         <div className="flex items-baseline justify-between mb-2.5">
@@ -366,7 +366,7 @@ function ActiveRolePanel({
               "auto"}
           </div>
           <div className="text-[11.5px] text-fog-400 truncate">
-            {agent?.guideSlotId ?? agent?.stageId ?? "—"}
+            {agent?.flowSlotId ?? agent?.stageId ?? "—"}
           </div>
         </div>
         <Chip tone={run.status === "executing" ? "violet" : "neutral"}>
@@ -500,11 +500,11 @@ function RerunDialog({
     run.effort ?? "",
   );
   const [provider, setProvider] = useState(run.providerOverride ?? "");
-  // Rewind is only possible for plain (non-guide) runs that captured the
+  // Rewind is only possible for plain (non-flow) runs that captured the
   // upstream artifacts. A fresh worktree is correct for both stages because
   // they regenerate the downstream code.
-  const canArchitecting = !run.guide && hasPlan;
-  const canExecuting = !run.guide && hasPlan && hasArchitecture;
+  const canArchitecting = !run.flow && hasPlan;
+  const canExecuting = !run.flow && hasPlan && hasArchitecture;
   const [startFrom, setStartFrom] = useState<StartFrom>("scratch");
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -526,9 +526,9 @@ function RerunDialog({
         readOnly: readOnly || undefined,
         effort: effort || undefined,
         provider: provider || undefined,
-        guide:
-          startFrom === "scratch" && run.guide
-            ? { id: run.guide.guideId }
+        flow:
+          startFrom === "scratch" && run.flow
+            ? { id: run.flow.flowId }
             : undefined,
         resumeFrom:
           startFrom === "scratch"
@@ -591,9 +591,9 @@ function RerunDialog({
               {canExecuting ? "" : " (unavailable)"}
             </option>
           </select>
-          {run.guide ? (
+          {run.flow ? (
             <p className="mt-1 text-[11px] text-fog-500">
-              Rewind isn't available for Guide runs — they re-run from the start.
+              Rewind isn't available for Flow runs — they re-run from the start.
             </p>
           ) : null}
         </div>
@@ -670,8 +670,8 @@ function RerunDialog({
           <span className="text-[11px] text-fog-500">
             {readOnly ? "read-only" : "writes enabled"}
             {startFrom === "scratch"
-              ? run.guide
-                ? ` · guide: ${run.guide.guideId}`
+              ? run.flow
+                ? ` · flow: ${run.flow.flowId}`
                 : ""
               : ` · resumes at ${startFrom}`}
           </span>

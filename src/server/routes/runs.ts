@@ -64,7 +64,7 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
-  guide: z
+  flow: z
     .object({
       id: z
         .string()
@@ -90,7 +90,7 @@ const spawnRunBody = z.object({
     .optional(),
   // Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
   // reusing its upstream artifacts. The launcher loads + validates the seeded
-  // artifacts. Mutually exclusive with `guide`.
+  // artifacts. Mutually exclusive with `flow`.
   resumeFrom: z
     .object({
       sourceRunId: z
@@ -198,19 +198,19 @@ export async function registerRunsRoutes(
       argv.push("--skills", body.skills.join(","));
     }
     if (body.concise) argv.push("--concise");
-    if (body.guide) {
-      argv.push("--guide", body.guide.id);
-      if (body.guide.brief) argv.push("--guide-brief", body.guide.brief);
-      if (body.guide.contextPolicy) {
-        argv.push("--guide-context", body.guide.contextPolicy);
+    if (body.flow) {
+      argv.push("--flow", body.flow.id);
+      if (body.flow.brief) argv.push("--flow-brief", body.flow.brief);
+      if (body.flow.contextPolicy) {
+        argv.push("--flow-context", body.flow.contextPolicy);
       }
       for (const [slotId, providerId] of Object.entries(
-        body.guide.slotProviders ?? {},
+        body.flow.slotProviders ?? {},
       )) {
-        argv.push("--guide-slot", `${slotId}=${providerId}`);
+        argv.push("--flow-slot", `${slotId}=${providerId}`);
       }
-      for (const stepId of body.guide.skippedOptionalSteps ?? []) {
-        argv.push("--guide-skip", stepId);
+      for (const stepId of body.flow.skippedOptionalSteps ?? []) {
+        argv.push("--flow-skip", stepId);
       }
     }
     if (body.resumeFrom) argv.push("# rewind from", body.resumeFrom.sourceRunId);
@@ -223,7 +223,7 @@ export async function registerRunsRoutes(
       readOnly: body.readOnly ?? false,
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,
-      guide: body.guide ?? null,
+      flow: body.flow ?? null,
       resumeFrom: body.resumeFrom ?? null,
     };
     try {
@@ -448,8 +448,8 @@ export async function registerRunsRoutes(
         runtimeSkills: run.runtimeSkills ?? [],
         concise: run.concise ?? false,
         // Retry mirrors `deriveRerunArgs`, which re-runs the task without a
-        // Guide; keep that behavior rather than silently changing it.
-        guide: null,
+        // Flow; keep that behavior rather than silently changing it.
+        flow: null,
       };
       try {
         const pid = await startDetachedRun({

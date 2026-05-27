@@ -19,7 +19,7 @@ export type RunStatus =
 export type ReviewDecision = "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED";
 export type VerificationDecision = "PASSED" | "FAILED" | "NEEDS_HUMAN";
 
-export type GuideRunStepStatus =
+export type FlowRunStepStatus =
   | "pending"
   | "running"
   | "passed"
@@ -27,11 +27,11 @@ export type GuideRunStepStatus =
   | "failed"
   | "skipped";
 
-export type GuideRunStepState = {
+export type FlowRunStepState = {
   id: string;
   label: string;
   kind: string;
-  status: GuideRunStepStatus;
+  status: FlowRunStepStatus;
   optional: boolean;
   slotId: string | null;
   roleId: string | null;
@@ -45,24 +45,24 @@ export type GuideRunStepState = {
   error: string | null;
 };
 
-export type GuideRunState = {
-  guideId: string;
-  guideVersion: number;
+export type FlowRunState = {
+  flowId: string;
+  flowVersion: number;
   label: string;
   snapshotPath: string;
   participantLedgerPath: string | null;
-  participants: GuideRunParticipantState[];
+  participants: FlowRunParticipantState[];
   currentStepId: string | null;
-  steps: GuideRunStepState[];
+  steps: FlowRunStepState[];
 };
 
-export type GuideContextRetentionMode =
+export type FlowContextRetentionMode =
   | "opened"
   | "reused"
   | "rehydrated"
   | "stateless";
 
-export type GuideRunParticipantState = {
+export type FlowRunParticipantState = {
   slotId: string;
   label: string;
   providerId: string;
@@ -70,7 +70,7 @@ export type GuideRunParticipantState = {
   sessionReuse: "none" | "resume";
   sessionId: string | null;
   turnCount: number;
-  lastContextMode: GuideContextRetentionMode | null;
+  lastContextMode: FlowContextRetentionMode | null;
   lastFallbackReason: string | null;
 };
 
@@ -101,8 +101,8 @@ export type RunState = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
-  /** Live sequential Guide ledger, when this run uses a Guide recipe. */
-  guide?: GuideRunState | null;
+  /** Live sequential Flow ledger, when this run uses a Flow recipe. */
+  flow?: FlowRunState | null;
 };
 
 export type RunControlDirective =
@@ -123,20 +123,20 @@ export type RunControlDirective =
       note?: string;
     };
 
-export type GuideContextPolicy = "balanced" | "compact" | "artifact-heavy";
+export type FlowContextPolicy = "balanced" | "compact" | "artifact-heavy";
 
-export type GuideSource = {
+export type FlowSource = {
   kind: "builtin" | "project" | "fixture";
   ref: string;
 };
 
-export type GuideSlotDefinition = {
+export type FlowSlotDefinition = {
   label: string;
   description?: string;
   defaultRole: string;
 };
 
-export type GuideStepDefinition = {
+export type FlowStepDefinition = {
   id: string;
   label: string;
   kind:
@@ -151,37 +151,37 @@ export type GuideStepDefinition = {
   inputs: string[];
   outputs: string[];
   optional: boolean;
-  approval?: GuideApprovalGate;
+  approval?: FlowApprovalGate;
   repeat?: { times: number };
 };
 
-export type GuideApprovalGate = {
+export type FlowApprovalGate = {
   reason: string;
   requestedAction: string;
   userMessage?: string;
   riskLevel: "low" | "medium" | "high";
 };
 
-export type GuideDefinition = {
+export type FlowDefinition = {
   id: string;
   version: number;
   label: string;
   description: string;
-  slots: Record<string, GuideSlotDefinition>;
-  steps: GuideStepDefinition[];
+  slots: Record<string, FlowSlotDefinition>;
+  steps: FlowStepDefinition[];
 };
 
-export type DiscoveredGuide = {
+export type DiscoveredFlow = {
   id: string;
   version: number;
   label: string;
   description: string;
-  source: GuideSource;
+  source: FlowSource;
   definitionPath: string | null;
-  definition: GuideDefinition;
+  definition: FlowDefinition;
 };
 
-export type ResolvedGuideSlot = {
+export type ResolvedFlowSlot = {
   id: string;
   label: string;
   description: string | null;
@@ -189,10 +189,10 @@ export type ResolvedGuideSlot = {
   providerId: string;
 };
 
-export type ResolvedGuideStep = {
+export type ResolvedFlowStep = {
   id: string;
   label: string;
-  kind: GuideStepDefinition["kind"];
+  kind: FlowStepDefinition["kind"];
   enabled: boolean;
   optional: boolean;
   slotId: string | null;
@@ -200,29 +200,29 @@ export type ResolvedGuideStep = {
   providerId: string | null;
   inputs: string[];
   outputs: string[];
-  approval: GuideApprovalGate | null;
+  approval: FlowApprovalGate | null;
   sourceStepId: string;
   repeatIteration: number;
   repeatCount: number;
 };
 
-export type ResolvedGuideSnapshot = {
+export type ResolvedFlowSnapshot = {
   schemaVersion: 1;
-  guideId: string;
-  guideVersion: number;
+  flowId: string;
+  flowVersion: number;
   label: string;
   description: string;
-  source: GuideSource;
+  source: FlowSource;
   task: string;
   brief: string | null;
-  contextPolicy: GuideContextPolicy;
+  contextPolicy: FlowContextPolicy;
   resolvedAt: string;
-  slots: ResolvedGuideSlot[];
-  steps: ResolvedGuideStep[];
+  slots: ResolvedFlowSlot[];
+  steps: ResolvedFlowStep[];
 };
 
-export type GuideSuggestion = {
-  guideId: string;
+export type FlowSuggestion = {
+  flowId: string;
   label: string;
   confidence: number;
   reasons: string[];
@@ -469,9 +469,9 @@ export type RoleMetrics = {
   promptArtifactPath?: string;
   outputArtifactPath?: string;
   sessionId: string | null;
-  guideSlotId: string | null;
-  guideContextMode: GuideContextRetentionMode | null;
-  guideContextFallbackReason: string | null;
+  flowSlotId: string | null;
+  flowContextMode: FlowContextRetentionMode | null;
+  flowContextFallbackReason: string | null;
   model: string | null;
   totalCostUsd: number | null;
   /** True when cost was computed locally (tokens × list price), not CLI-reported. */
@@ -1222,7 +1222,7 @@ export type PolicyCheckResult = {
 };
 
 export type ReplayPhaseKey =
-  | "guides"
+  | "flows"
   | "planning"
   | "architecting"
   | "executing"
@@ -1342,8 +1342,8 @@ export type ReplayMetricsSummary = {
   roleStageOrder: string[];
 };
 
-export type ReplayGuideSummary = {
-  guideId: string;
+export type ReplayFlowSummary = {
+  flowId: string;
   label: string;
   currentStepId: string | null;
   participants: {
@@ -1358,7 +1358,7 @@ export type ReplayGuideSummary = {
     id: string;
     label: string;
     kind: string;
-    status: GuideRunStepStatus;
+    status: FlowRunStepStatus;
   }[];
 };
 
@@ -1389,7 +1389,7 @@ export type RunReplay = {
   policyRefusals: ReplayPolicyRefusal[];
   notifications: ReplayNotification[];
   terminalSessions: ReplayTerminalSession[];
-  guide: ReplayGuideSummary | null;
+  flow: ReplayFlowSummary | null;
   artifacts: { path: string }[];
   metrics: ReplayMetricsSummary | null;
   missingOrMalformed: { file: string; reason: string }[];

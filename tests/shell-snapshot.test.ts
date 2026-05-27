@@ -198,14 +198,14 @@ describe("buildShellSnapshot", () => {
     expect(row.providerOverride).toBe("codex");
   });
 
-  it("surfaces the current Guide step from state.json", async () => {
-    await writeRun(root, "run-guide", {
+  it("surfaces the current Flow step from state.json", async () => {
+    await writeRun(root, "run-flow", {
       status: "reviewing",
-      guide: {
-        guideId: "quality-arbitration",
-        guideVersion: 1,
+      flow: {
+        flowId: "quality-arbitration",
+        flowVersion: 1,
         label: "Quality Arbitration",
-        snapshotPath: "guide.json",
+        snapshotPath: "flow.json",
         currentStepId: "second-review",
         steps: [
           {
@@ -224,7 +224,7 @@ describe("buildShellSnapshot", () => {
       },
     });
     const snap = await buildShellSnapshot(root);
-    expect(snap.runs[0]!.guide).toMatchObject({
+    expect(snap.runs[0]!.flow).toMatchObject({
       label: "Quality Arbitration",
       currentStepLabel: "Second Review",
       currentStepStatus: "running",

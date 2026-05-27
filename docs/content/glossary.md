@@ -9,7 +9,7 @@ Short definitions for the vocabulary Amaco's docs assume.
 
 **Agent.** A worker with one role in a workflow — planner, executor, reviewer. Bound to a provider, a prompt template, a permission profile, and any attached skills. See [Agent](/docs/concepts/role).
 
-**Approval gate.** A point in a workflow or Guide where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Guide.
+**Approval gate.** A point in a workflow or Flow where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Flow.
 
 **Artifact.** Any file produced or recorded by a run — plan, architecture, diff, validation output, review findings, verification summary. Lives under `.amaco/runs/<runId>/`.
 
@@ -17,7 +17,7 @@ Short definitions for the vocabulary Amaco's docs assume.
 
 **Effort.** A coarse bucket — `low | medium | high` — that maps to a provider via `effortMap` in `project.yml`. Used as a shorthand for "run this on the cheap model" vs "run this on the expensive model."
 
-**Guide.** A saved run recipe. Like the default workflow, but with named slots, custom step ordering, optional gates, and bounded repeats. See [Guide](/docs/concepts/guide).
+**Flow.** A saved run recipe. Like the default workflow, but with named slots, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
 
 **Mission Control.** The local web dashboard, served by `amaco ui`. Inspect runs, approve gates, read diffs, edit config.
 
@@ -41,7 +41,7 @@ Short definitions for the vocabulary Amaco's docs assume.
 
 **Skill.** A markdown attachment that loads alongside an agent's prompt. Lives under `.amaco/skills/` or `.claude/skills/`. See [Skill](/docs/concepts/skill).
 
-**Slot.** A named participant in a Guide — `builder`, `challenger`, `arbiter`. Each slot has a default agent and can be bound to a specific provider per run.
+**Slot.** A named participant in a Flow — `builder`, `challenger`, `arbiter`. Each slot has a default agent and can be bound to a specific provider per run.
 
 **Stage.** One step in the workflow — `planning`, `executing`, etc. Each stage has an entering status and an exiting status.
 

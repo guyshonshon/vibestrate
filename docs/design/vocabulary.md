@@ -8,7 +8,7 @@ config, UI, and docs. The goal is as few, as clear concepts as possible.
 | **Role** | A seat in the workflow — planner, architect, executor, fixer, reviewer, verifier. Has a prompt, a permission profile, skills, and a bound provider. | ~~Agent~~ (renamed; see below) |
 | **Provider** | A local coding-agent CLI that supplies the model (Claude Code, Codex, Aider, Ollama, OpenCode). One provider can back many roles. | ~~Engine~~ (rejected) |
 | **Crew** | The set of roles working a run; also the dashboard page that shows roles and the providers they run on. | — |
-| **Guide** | A reusable, versioned recipe that replaces the fixed workflow for a run (slots, ordered steps, approval gates). | ~~Flow~~ — "Flow" is only the *builder* surface for editing a Guide |
+| **Flow** | A reusable, versioned recipe of ordered steps + roles + approval gates. The fixed plan→build→verify workflow is the built-in **default flow**. Edited in the **Flow Builder**. | ~~Guide~~ (renamed to Flow) |
 | **Task** | The plain-language request the user submits. | — |
 | **Run** | One execution of a task (its own runId, worktree, artifacts, state). | — |
 | **Supervisor** | The product role Amaco plays for the user — the review/verification layer over coding agents. | — |

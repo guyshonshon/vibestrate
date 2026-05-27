@@ -14,7 +14,7 @@ TAGS: onboarding, setup
 AMACO_TASK:
 TITLE: Create setup wizard
 ROADMAP: Build onboarding
-DESCRIPTION: Add guided setup flow.
+DESCRIPTION: Add flowd setup flow.
 RISK: medium
 SKILLS: typescript-node-cli, ux-design
 LIKELY_FILES: src/cli/commands/setup.ts, src/setup/setup-service.ts

@@ -8,7 +8,7 @@ import { registerArtifactRoutes } from "./routes/artifacts.js";
 import { registerDiffRoutes } from "./routes/diff.js";
 import { registerNotesRoutes } from "./routes/notes.js";
 import { registerSkillsRoutes } from "./routes/skills.js";
-import { registerGuidesRoutes } from "./routes/guides.js";
+import { registerFlowsRoutes } from "./routes/flows.js";
 import { registerComposerPresetsRoutes } from "./routes/composer-presets.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerSetupRoutes } from "./routes/setup.js";
@@ -221,7 +221,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerDiffRoutes(app, { projectRoot: opts.projectRoot });
   await registerNotesRoutes(app, { projectRoot: opts.projectRoot });
   await registerSkillsRoutes(app, { projectRoot: opts.projectRoot });
-  await registerGuidesRoutes(app, { projectRoot: opts.projectRoot });
+  await registerFlowsRoutes(app, { projectRoot: opts.projectRoot });
   await registerComposerPresetsRoutes(app, { projectRoot: opts.projectRoot });
   await registerMetricsRoutes(app, { projectRoot: opts.projectRoot });
   await registerSetupRoutes(app, { projectRoot: opts.projectRoot });

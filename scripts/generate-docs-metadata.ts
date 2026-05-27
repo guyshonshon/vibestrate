@@ -3,7 +3,7 @@
  * Source-aware docs metadata generator.
  *
  * Walks Amaco's structured registries (commander program, Zod schemas,
- * provider registry, workflow stages, guide definitions, run-state
+ * provider registry, workflow stages, flow definitions, run-state
  * schema) and emits committed deterministic JSON under
  * `docs/generated/`. The marketing site (and any other consumer) renders
  * these into the reference pages.
@@ -35,7 +35,7 @@ import {
   reviewDecisionSchema,
   verificationDecisionSchema,
 } from "../src/core/state-machine.js";
-import { builtinGuides } from "../src/guides/catalog/builtin-guides.js";
+import { builtinFlows } from "../src/flows/catalog/builtin-flows.js";
 import {
   projectConfigSchema,
   policyApprovalStageSchema,
@@ -322,10 +322,10 @@ function generateProviders() {
   });
 }
 
-// ─── Guides ──────────────────────────────────────────────────────────────
+// ─── Flows ──────────────────────────────────────────────────────────────
 
-function generateGuides() {
-  const guides = builtinGuides.map((g) => ({
+function generateFlows() {
+  const flows = builtinFlows.map((g) => ({
     id: g.id,
     version: g.version,
     label: g.label,
@@ -349,11 +349,11 @@ function generateGuides() {
       repeat: s.repeat ?? null,
     })),
   }));
-  writeJson("guides.json", {
+  writeJson("flows.json", {
     schemaVersion: 1,
     description:
-      "Built-in run Guides. Project Guides live in `.amaco/guides/<id>/guide.yml` and follow the same schema (src/guides/schemas/guide-schema.ts).",
-    guides,
+      "Built-in run Flows. Project Flows live in `.amaco/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
+    flows,
   });
 }
 
@@ -561,7 +561,7 @@ async function main() {
   generateCliMetadata();
   generateConfigSchema();
   generateProviders();
-  generateGuides();
+  generateFlows();
   generateWorkflow();
   generateStateMachine();
   generateAgents();

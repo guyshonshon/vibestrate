@@ -23,21 +23,21 @@ import {
 import type { LucideIcon } from "lucide-react";
 import {
   api,
-  type GuideApprovalGatePatch,
-  type GuideApprovalRiskLevel,
-  type GuidePatch,
-  type GuideStepFull,
-  type GuideStepKind,
-  type GuideStepPatch,
+  type FlowApprovalGatePatch,
+  type FlowApprovalRiskLevel,
+  type FlowPatch,
+  type FlowStepFull,
+  type FlowStepKind,
+  type FlowStepPatch,
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 import type {
-  DiscoveredGuide,
-  GuideStepDefinition,
-  ResolvedGuideSnapshot,
+  DiscoveredFlow,
+  FlowStepDefinition,
+  ResolvedFlowSnapshot,
 } from "../../lib/types.js";
 
 /**
@@ -49,14 +49,14 @@ import type {
 type StepDraft = {
   label?: string;
   optional?: boolean;
-  kind?: GuideStepKind;
+  kind?: FlowStepKind;
   // null = clear; undefined = no change; string = set
   slot?: string | null;
   roleId?: string | null;
-  approval?: GuideApprovalGatePatch | null;
+  approval?: FlowApprovalGatePatch | null;
 };
 
-const STEP_KINDS: GuideStepKind[] = [
+const STEP_KINDS: FlowStepKind[] = [
   "agent-turn",
   "review-turn",
   "response-turn",
@@ -65,7 +65,7 @@ const STEP_KINDS: GuideStepKind[] = [
   "summary-turn",
 ];
 
-const RISK_LEVELS: GuideApprovalRiskLevel[] = ["low", "medium", "high"];
+const RISK_LEVELS: FlowApprovalRiskLevel[] = ["low", "medium", "high"];
 
 const ICON_FOR_NAME: { match: RegExp; icon: LucideIcon }[] = [
   { match: /quality|arbitr/i, icon: Scale },
@@ -76,28 +76,28 @@ const ICON_FOR_NAME: { match: RegExp; icon: LucideIcon }[] = [
   { match: /migr|move|shuffle/i, icon: Shuffle },
 ];
 
-function guideIcon(label: string): LucideIcon {
+function flowIcon(label: string): LucideIcon {
   for (const row of ICON_FOR_NAME) if (row.match.test(label)) return row.icon;
   return Layers;
 }
 
 export function FlowBuilderPage({
-  initialGuideId,
+  initialFlowId,
   onBack,
 }: {
-  initialGuideId: string | null;
+  initialFlowId: string | null;
   onBack: () => void;
 }) {
-  const [guides, setGuides] = useState<DiscoveredGuide[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(initialGuideId);
+  const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(initialFlowId);
   const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [draftLabel, setDraftLabel] = useState<string>("");
   const [draftSteps, setDraftSteps] = useState<Record<string, StepDraft>>({});
   // When the user adds / removes / reorders steps we abandon the
   // per-step `draftSteps` patch model and capture the full list here.
-  // Saving the guide swaps to the `replaceSteps` patch operation.
-  const [draftStepList, setDraftStepList] = useState<GuideStepFull[] | null>(
+  // Saving the flow swaps to the `replaceSteps` patch operation.
+  const [draftStepList, setDraftStepList] = useState<FlowStepFull[] | null>(
     null,
   );
   const [saving, setSaving] = useState(false);
@@ -107,20 +107,20 @@ export function FlowBuilderPage({
     kind: "ok" | "err";
     text: string;
   } | null>(null);
-  // Dry-run preview: resolve the saved guide into the snapshot a real run
+  // Dry-run preview: resolve the saved flow into the snapshot a real run
   // would instantiate (provider per slot, enabled steps, gates) — no run.
-  const [dryRun, setDryRun] = useState<ResolvedGuideSnapshot | null>(null);
+  const [dryRun, setDryRun] = useState<ResolvedFlowSnapshot | null>(null);
   const [dryRunBusy, setDryRunBusy] = useState(false);
   const [dryRunErr, setDryRunErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void api
-      .listGuides()
+      .listFlows()
       .then((r) => {
         if (cancelled) return;
-        setGuides(r.guides);
-        setSelectedId((cur) => cur ?? r.guides[0]?.id ?? null);
+        setFlows(r.flows);
+        setSelectedId((cur) => cur ?? r.flows[0]?.id ?? null);
       })
       .catch((err) =>
         setError(err instanceof Error ? err.message : String(err)),
@@ -131,8 +131,8 @@ export function FlowBuilderPage({
   }, []);
 
   const selected = useMemo(
-    () => guides.find((g) => g.id === selectedId) ?? guides[0] ?? null,
-    [guides, selectedId],
+    () => flows.find((g) => g.id === selectedId) ?? flows[0] ?? null,
+    [flows, selectedId],
   );
 
   async function runDryRun(): Promise<void> {
@@ -141,7 +141,7 @@ export function FlowBuilderPage({
     setDryRunErr(null);
     setDryRun(null);
     try {
-      setDryRun(await api.resolveGuide(selected.id, { task: "Dry-run preview" }));
+      setDryRun(await api.resolveFlow(selected.id, { task: "Dry-run preview" }));
     } catch (err) {
       setDryRunErr(err instanceof Error ? err.message : String(err));
     } finally {
@@ -149,8 +149,8 @@ export function FlowBuilderPage({
     }
   }
 
-  // Reset the draft buffers any time the selected guide changes — the
-  // draft mirrors the on-disk guide until the user actually edits a
+  // Reset the draft buffers any time the selected flow changes — the
+  // draft mirrors the on-disk flow until the user actually edits a
   // field. We diff against `selected` on save to figure out which fields
   // changed.
   useEffect(() => {
@@ -169,24 +169,24 @@ export function FlowBuilderPage({
 
   // The list we render: either the editable structural draft, or the
   // saved list with per-step patches folded in for display.
-  const displayedSteps: GuideStepDefinition[] = useMemo(() => {
+  const displayedSteps: FlowStepDefinition[] = useMemo(() => {
     if (!selected) return [];
     if (draftStepList) {
-      return draftStepList.map(toGuideStepDefinition);
+      return draftStepList.map(toFlowStepDefinition);
     }
     return selected.definition.steps;
   }, [selected, draftStepList]);
   const activeStep =
     displayedSteps[Math.min(activeStepIdx, displayedSteps.length - 1)] ?? null;
 
-  const isProjectGuide = selected?.source.kind === "project";
+  const isProjectFlow = selected?.source.kind === "project";
 
   // Patch we'd send for the *current* draft — also drives the dirty
   // indicator on the Save button. Pure derivation; recomputed on every
   // render (cheap, never touches state).
-  const pendingPatch: GuidePatch | null = useMemo(() => {
+  const pendingPatch: FlowPatch | null = useMemo(() => {
     if (!selected) return null;
-    const patch: GuidePatch = {};
+    const patch: FlowPatch = {};
     if (draftLabel !== selected.label) patch.label = draftLabel;
     if (draftStepList) {
       // Structural changes were made — ship the entire list (folding
@@ -197,7 +197,7 @@ export function FlowBuilderPage({
         return applyDraftToFullStep(s, draft);
       });
     } else {
-      const steps: GuideStepPatch[] = [];
+      const steps: FlowStepPatch[] = [];
       for (const [id, draft] of Object.entries(draftSteps)) {
         const cur = selected.definition.steps.find((s) => s.id === id);
         if (!cur) continue;
@@ -218,19 +218,19 @@ export function FlowBuilderPage({
   const dirty = pendingPatch !== null;
 
   async function handleSave(): Promise<void> {
-    if (!selected || !pendingPatch || !isProjectGuide) return;
+    if (!selected || !pendingPatch || !isProjectFlow) return;
     setSaving(true);
     try {
-      const result = await api.patchGuide(selected.id, pendingPatch);
-      setGuides((cur) =>
-        cur.map((g) => (g.id === result.guide.id ? result.guide : g)),
+      const result = await api.patchFlow(selected.id, pendingPatch);
+      setFlows((cur) =>
+        cur.map((g) => (g.id === result.flow.id ? result.flow : g)),
       );
-      setDraftLabel(result.guide.label);
+      setDraftLabel(result.flow.label);
       setDraftSteps({});
       setDraftStepList(null);
       setToast({
         kind: "ok",
-        text: `Saved ${result.guide.label} (${result.definitionPath})`,
+        text: `Saved ${result.flow.label} (${result.definitionPath})`,
       });
     } catch (err) {
       setToast({
@@ -246,14 +246,14 @@ export function FlowBuilderPage({
     if (!selected) return;
     setForking(true);
     try {
-      const result = await api.forkGuideToProject(selected.id);
-      setGuides((cur) =>
-        cur.map((g) => (g.id === result.guide.id ? result.guide : g)),
+      const result = await api.forkFlowToProject(selected.id);
+      setFlows((cur) =>
+        cur.map((g) => (g.id === result.flow.id ? result.flow : g)),
       );
       setToast({
         kind: "ok",
         text: result.alreadyForked
-          ? `${result.guideId} already lives in .amaco/guides/`
+          ? `${result.flowId} already lives in .amaco/flows/`
           : `Forked to ${result.definitionPath} — now editable`,
       });
     } catch (err) {
@@ -267,12 +267,12 @@ export function FlowBuilderPage({
   }
 
   async function handleDelete(): Promise<void> {
-    if (!selected || !isProjectGuide) return;
-    if (!window.confirm(`Delete project guide "${selected.label}"?`)) return;
+    if (!selected || !isProjectFlow) return;
+    if (!window.confirm(`Delete project flow "${selected.label}"?`)) return;
     setDeleting(true);
     try {
-      await api.deleteGuide(selected.id);
-      setGuides((cur) => cur.filter((g) => g.id !== selected.id));
+      await api.deleteFlow(selected.id);
+      setFlows((cur) => cur.filter((g) => g.id !== selected.id));
       setSelectedId(null);
       setToast({ kind: "ok", text: `Deleted ${selected.id}` });
     } catch (err) {
@@ -292,20 +292,20 @@ export function FlowBuilderPage({
     }));
   }
 
-  function ensureStepList(): GuideStepFull[] {
+  function ensureStepList(): FlowStepFull[] {
     if (draftStepList) return draftStepList;
     if (!selected) return [];
     const list = selected.definition.steps.map((s) =>
-      toGuideStepFull(s, draftSteps[s.id]),
+      toFlowStepFull(s, draftSteps[s.id]),
     );
     return list;
   }
 
   function addStep(): void {
-    if (!selected || !isProjectGuide) return;
+    if (!selected || !isProjectFlow) return;
     const list = ensureStepList();
     const id = freshStepId(list, "step");
-    const next: GuideStepFull = {
+    const next: FlowStepFull = {
       id,
       label: "New step",
       kind: "agent-turn",
@@ -319,12 +319,12 @@ export function FlowBuilderPage({
   }
 
   function removeStep(stepId: string): void {
-    if (!selected || !isProjectGuide) return;
+    if (!selected || !isProjectFlow) return;
     const list = ensureStepList();
     if (list.length <= 1) {
       setToast({
         kind: "err",
-        text: "A guide must have at least one step.",
+        text: "A flow must have at least one step.",
       });
       return;
     }
@@ -335,7 +335,7 @@ export function FlowBuilderPage({
   }
 
   function moveStep(stepId: string, delta: -1 | 1): void {
-    if (!selected || !isProjectGuide) return;
+    if (!selected || !isProjectFlow) return;
     const list = ensureStepList();
     const idx = list.findIndex((s) => s.id === stepId);
     if (idx < 0) return;
@@ -360,7 +360,7 @@ export function FlowBuilderPage({
             onClick={onBack}
             className="flex items-center gap-1.5 text-[12.5px] text-fog-300 hover:text-fog-100"
           >
-            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Guides
+            <ChevronLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> Flows
           </button>
           <span className="text-fog-500">/</span>
           <span className="text-[12.5px] text-fog-300 truncate max-w-[200px]">
@@ -374,30 +374,30 @@ export function FlowBuilderPage({
             disabled={!selected || dryRunBusy}
             iconLeft={<Eye className="h-3 w-3" strokeWidth={1.7} />}
             onClick={() => void runDryRun()}
-            title="Resolve this guide into the run it would create — no run starts"
+            title="Resolve this flow into the run it would create — no run starts"
           >
             {dryRunBusy ? "Resolving…" : "Dry-run preview"}
           </Button>
-          {selected && !isProjectGuide ? (
+          {selected && !isProjectFlow ? (
             <Button
               variant="secondary"
               size="sm"
               disabled={forking}
               iconLeft={<Copy className="h-3 w-3" strokeWidth={1.7} />}
               onClick={() => void handleFork()}
-              title="Copy this guide into .amaco/guides/<id>/guide.yml so you can edit it"
+              title="Copy this flow into .amaco/flows/<id>/flow.yml so you can edit it"
             >
               {forking ? "Forking…" : "Fork to project"}
             </Button>
           ) : null}
-          {selected && isProjectGuide ? (
+          {selected && isProjectFlow ? (
             <Button
               variant="ghost"
               size="sm"
               disabled={deleting}
               iconLeft={<Trash2 className="h-3 w-3" strokeWidth={1.7} />}
               onClick={() => void handleDelete()}
-              title="Delete this project guide"
+              title="Delete this project flow"
               className="!text-rose-300/90 hover:!text-rose-200"
             >
               {deleting ? "Deleting…" : "Delete"}
@@ -406,13 +406,13 @@ export function FlowBuilderPage({
           <Button
             variant="secondary"
             size="sm"
-            disabled={!dirty || saving || !isProjectGuide}
+            disabled={!dirty || saving || !isProjectFlow}
             title={
-              !isProjectGuide
-                ? "Builtin guides are read-only — Fork to project first."
+              !isProjectFlow
+                ? "Builtin flows are read-only — Fork to project first."
                 : !dirty
                   ? "No changes to save"
-                  : "Save changes to .amaco/guides/"
+                  : "Save changes to .amaco/flows/"
             }
             iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
             onClick={() => void handleSave()}
@@ -430,7 +430,7 @@ export function FlowBuilderPage({
         </div>
       </header>
 
-      <section className="mt-5 flex flex-wrap items-center gap-3" data-screen-label="01 Guide">
+      <section className="mt-5 flex flex-wrap items-center gap-3" data-screen-label="01 Flow">
         <div className="eyebrow">Editing</div>
         <select
           value={selected?.id ?? ""}
@@ -438,10 +438,10 @@ export function FlowBuilderPage({
             setSelectedId(e.target.value);
             setActiveStepIdx(0);
           }}
-          aria-label="Select guide"
+          aria-label="Select flow"
           className="rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 max-w-[320px]"
         >
-          {guides.map((g) => (
+          {flows.map((g) => (
             <option key={g.id} value={g.id}>
               {g.label} · {g.source.kind === "project" ? "project" : g.source.kind}
             </option>
@@ -482,7 +482,7 @@ export function FlowBuilderPage({
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
                   {(() => {
-                    const Icon = guideIcon(selected.label);
+                    const Icon = flowIcon(selected.label);
                     return <Icon className="h-4 w-4" strokeWidth={1.7} />;
                   })()}
                 </div>
@@ -490,10 +490,10 @@ export function FlowBuilderPage({
                   <input
                     value={draftLabel}
                     onChange={(e) => setDraftLabel(e.target.value)}
-                    disabled={!isProjectGuide}
+                    disabled={!isProjectFlow}
                     className={
                       "bg-transparent border-b border-transparent transition outline-none text-[20px] font-semibold tracking-tight w-full " +
-                      (isProjectGuide
+                      (isProjectFlow
                         ? "hover:border-white/10 focus:border-violet-soft/40"
                         : "opacity-70 cursor-not-allowed")
                     }
@@ -501,15 +501,15 @@ export function FlowBuilderPage({
                   <div className="text-[11.5px] text-fog-400 mt-1">
                     {displayedSteps.length} steps · source{" "}
                     <span className="text-fog-200">{selected.source.kind}</span>
-                    {!isProjectGuide ? (
+                    {!isProjectFlow ? (
                       <span className="ml-2 text-amber-300">
                         read-only — fork into the project to edit
                       </span>
                     ) : null}
                   </div>
                 </div>
-                <Chip tone={isProjectGuide ? "violet" : "neutral"}>
-                  {isProjectGuide ? "Editable" : "Read-only"}
+                <Chip tone={isProjectFlow ? "violet" : "neutral"}>
+                  {isProjectFlow ? "Editable" : "Read-only"}
                 </Chip>
               </div>
 
@@ -522,7 +522,7 @@ export function FlowBuilderPage({
                     idx={i}
                     active={i === activeStepIdx}
                     onClick={() => setActiveStepIdx(i)}
-                    editable={isProjectGuide}
+                    editable={isProjectFlow}
                     canMoveUp={i > 0}
                     canMoveDown={i < displayedSteps.length - 1}
                     canRemove={displayedSteps.length > 1}
@@ -531,7 +531,7 @@ export function FlowBuilderPage({
                     onRemove={() => removeStep(step.id)}
                   />
                 ))}
-                {isProjectGuide ? (
+                {isProjectFlow ? (
                   <li className="relative pl-1">
                     <span className="absolute -left-[27px] top-[12px] w-3.5 h-3.5 rounded-full border border-dashed border-white/15" />
                     <button
@@ -550,8 +550,8 @@ export function FlowBuilderPage({
           <div className="col-span-12 xl:col-span-5 space-y-4">
             <StepInspector
               step={activeStep}
-              guide={selected}
-              editable={isProjectGuide}
+              flow={selected}
+              editable={isProjectFlow}
               draft={
                 activeStep ? draftSteps[activeStep.id] ?? {} : {}
               }
@@ -570,7 +570,7 @@ export function FlowBuilderPage({
           snapshot={dryRun}
           busy={dryRunBusy}
           error={dryRunErr}
-          guideId={selected?.id ?? ""}
+          flowId={selected?.id ?? ""}
           onClose={() => {
             setDryRun(null);
             setDryRunErr(null);
@@ -585,13 +585,13 @@ function DryRunModal({
   snapshot,
   busy,
   error,
-  guideId,
+  flowId,
   onClose,
 }: {
-  snapshot: ResolvedGuideSnapshot | null;
+  snapshot: ResolvedFlowSnapshot | null;
   busy: boolean;
   error: string | null;
-  guideId: string;
+  flowId: string;
   onClose: () => void;
 }) {
   return (
@@ -618,7 +618,7 @@ function DryRunModal({
         </div>
 
         {busy ? (
-          <div className="mt-4 text-[13px] text-fog-400">Resolving the guide…</div>
+          <div className="mt-4 text-[13px] text-fog-400">Resolving the flow…</div>
         ) : error ? (
           <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
             {error}
@@ -669,8 +669,8 @@ function DryRunModal({
             </div>
             <p className="mt-3 text-[11.5px] text-fog-500">
               No run started. This is what{" "}
-              <code className="text-fog-300">amaco run "…" --guide {guideId}</code>{" "}
-              would instantiate (reflects the saved guide).
+              <code className="text-fog-300">amaco run "…" --flow {flowId}</code>{" "}
+              would instantiate (reflects the saved flow).
             </p>
           </>
         ) : null}
@@ -692,7 +692,7 @@ function StepRow({
   onMoveDown,
   onRemove,
 }: {
-  step: GuideStepDefinition;
+  step: FlowStepDefinition;
   idx: number;
   active: boolean;
   onClick: () => void;
@@ -785,7 +785,7 @@ function StepRow({
             <ArrowDown className="h-3 w-3" strokeWidth={1.7} />
           </IconBtn>
           <IconBtn
-            title={canRemove ? "Remove step" : "A guide must have at least one step"}
+            title={canRemove ? "Remove step" : "A flow must have at least one step"}
             disabled={!canRemove}
             onClick={onRemove}
             danger
@@ -834,13 +834,13 @@ function IconBtn({
 
 function StepInspector({
   step,
-  guide,
+  flow,
   editable,
   draft,
   onPatchDraft,
 }: {
-  step: GuideStepDefinition | null;
-  guide: DiscoveredGuide;
+  step: FlowStepDefinition | null;
+  flow: DiscoveredFlow;
   editable: boolean;
   draft: StepDraft;
   onPatchDraft: (patch: StepDraft) => void;
@@ -856,7 +856,7 @@ function StepInspector({
   const roleId = resolveNullable(draft.roleId, step.roleId ?? null);
   const approval = resolveNullable(draft.approval, step.approval ?? null);
 
-  const slotOptions = Object.entries(guide.definition.slots);
+  const slotOptions = Object.entries(flow.definition.slots);
   const requiresSlot = TURN_KINDS.has(kind);
   const requiresApproval = kind === "approval-gate";
 
@@ -938,7 +938,7 @@ function StepInspector({
           value={roleId ?? ""}
           placeholder={
             slotId
-              ? `default: ${guide.definition.slots[slotId]?.defaultRole ?? "—"}`
+              ? `default: ${flow.definition.slots[slotId]?.defaultRole ?? "—"}`
               : "leave blank to use the slot default"
           }
           disabled={!editable}
@@ -1004,7 +1004,7 @@ function StepInspector({
   );
 }
 
-const TURN_KINDS = new Set<GuideStepKind>([
+const TURN_KINDS = new Set<FlowStepKind>([
   "agent-turn",
   "review-turn",
   "response-turn",
@@ -1019,13 +1019,13 @@ function ApprovalEditor({
 }: {
   editable: boolean;
   requiresApproval: boolean;
-  value: GuideApprovalGatePatch | null;
-  onChange: (next: GuideApprovalGatePatch | null) => void;
+  value: FlowApprovalGatePatch | null;
+  onChange: (next: FlowApprovalGatePatch | null) => void;
 }) {
   // When the kind requires approval but the draft cleared it, show an
   // empty editor pre-seeded with sensible defaults so a single save can
   // produce a valid patch.
-  const effective: GuideApprovalGatePatch | null =
+  const effective: FlowApprovalGatePatch | null =
     value ??
     (requiresApproval
       ? {
@@ -1154,10 +1154,10 @@ function ApprovalEditor({
  * server-side audit).
  */
 function diffStep(
-  cur: GuideStepDefinition,
+  cur: FlowStepDefinition,
   draft: StepDraft,
-): Omit<GuideStepPatch, "id"> | null {
-  const out: Omit<GuideStepPatch, "id"> = {};
+): Omit<FlowStepPatch, "id"> | null {
+  const out: Omit<FlowStepPatch, "id"> = {};
   if (draft.label !== undefined && draft.label !== cur.label)
     out.label = draft.label;
   if (draft.optional !== undefined && draft.optional !== cur.optional)
@@ -1182,15 +1182,15 @@ function diffStep(
 }
 
 /**
- * Lift the saved step shape into the API's `GuideStepFull` payload so
+ * Lift the saved step shape into the API's `FlowStepFull` payload so
  * we can carry it through a `replaceSteps` patch. Folds in any field
  * draft so structural ops don't drop simultaneous field edits.
  */
-function toGuideStepFull(
-  step: GuideStepDefinition,
+function toFlowStepFull(
+  step: FlowStepDefinition,
   draft?: StepDraft,
-): GuideStepFull {
-  const base: GuideStepFull = {
+): FlowStepFull {
+  const base: FlowStepFull = {
     id: step.id,
     label: step.label,
     kind: step.kind,
@@ -1205,9 +1205,9 @@ function toGuideStepFull(
   return applyDraftToFullStep(base, draft);
 }
 
-/** Project a `GuideStepFull` back into the display shape used by row UI. */
-function toGuideStepDefinition(step: GuideStepFull): GuideStepDefinition {
-  const out: GuideStepDefinition = {
+/** Project a `FlowStepFull` back into the display shape used by row UI. */
+function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
+  const out: FlowStepDefinition = {
     id: step.id,
     label: step.label,
     kind: step.kind,
@@ -1224,11 +1224,11 @@ function toGuideStepDefinition(step: GuideStepFull): GuideStepDefinition {
 
 /** Apply a per-step draft (tri-state for nullables) over a full step. */
 function applyDraftToFullStep(
-  step: GuideStepFull,
+  step: FlowStepFull,
   draft?: StepDraft,
-): GuideStepFull {
+): FlowStepFull {
   if (!draft) return step;
-  const next: GuideStepFull = { ...step };
+  const next: FlowStepFull = { ...step };
   if (draft.label !== undefined) next.label = draft.label;
   if (draft.kind !== undefined) next.kind = draft.kind;
   if (draft.optional !== undefined) next.optional = draft.optional;
@@ -1248,7 +1248,7 @@ function applyDraftToFullStep(
 }
 
 /** Generate a step id that doesn't collide with the current list. */
-function freshStepId(list: GuideStepFull[], prefix: string): string {
+function freshStepId(list: FlowStepFull[], prefix: string): string {
   const seen = new Set(list.map((s) => s.id));
   for (let i = 1; i < 1000; i++) {
     const candidate = `${prefix}-${i}`;
@@ -1258,8 +1258,8 @@ function freshStepId(list: GuideStepFull[], prefix: string): string {
 }
 
 function approvalEqual(
-  a: GuideApprovalGatePatch | null,
-  b: GuideApprovalGatePatch | null,
+  a: FlowApprovalGatePatch | null,
+  b: FlowApprovalGatePatch | null,
 ): boolean {
   if (a === null && b === null) return true;
   if (a === null || b === null) return false;
@@ -1355,7 +1355,7 @@ function PolicyCard() {
   );
 }
 
-function PreviewCard({ steps }: { steps: GuideStepDefinition[] }) {
+function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
   return (
     <div className="glass p-4 fade-up fade-up-delay-3">
       <SectionEyebrow className="mb-3">
