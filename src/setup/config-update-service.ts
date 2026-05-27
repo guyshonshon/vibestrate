@@ -8,7 +8,7 @@ import {
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "../project/config-schema.js";
 import { builtinAgentIds } from "../agents/agent-schema.js";
-import type { CliProviderConfig } from "../providers/provider-schema.js";
+import type { ProviderConfig } from "../providers/provider-schema.js";
 
 export type ParsedValue = string | number | boolean | unknown[] | Record<string, unknown>;
 
@@ -187,7 +187,7 @@ export async function validateConfigFile(projectRoot: string): Promise<ValidateR
 export async function ensureProvider(
   projectRoot: string,
   providerId: string,
-  config: CliProviderConfig,
+  config: ProviderConfig,
 ): Promise<void> {
   const { doc } = await readDocument(projectRoot);
   doc.setIn(["providers", providerId], { ...config });

@@ -1,5 +1,11 @@
-import type { CliProviderConfig } from "./provider-schema.js";
+import type {
+  CliProviderConfig,
+  ClaudeCodeProviderSchemaConfig,
+} from "./provider-schema.js";
 import type { KnownProviderId } from "./provider-detection.js";
+
+/** A preset is either a generic CLI config or a Claude Code (structured) one. */
+export type PresetConfig = CliProviderConfig | ClaudeCodeProviderSchemaConfig;
 import { claudeCodePreset } from "./presets/claude-code.js";
 import { codexPreset } from "./presets/codex.js";
 import { ollamaPreset } from "./presets/ollama.js";
@@ -21,7 +27,7 @@ import { ollamaPreset } from "./presets/ollama.js";
  * test into a precise "log in here" instruction instead of a vague error.
  */
 export type ProviderPreset = {
-  preset: CliProviderConfig;
+  preset: PresetConfig;
   loginCommand: string | null;
   loginNote: string;
 };
@@ -99,8 +105,9 @@ export const PROVIDER_PRESETS: Record<KnownProviderId, ProviderPreset> = {
 export function buildProviderFromDetection(
   id: KnownProviderId,
   detectedCommand: string,
-): CliProviderConfig {
+): PresetConfig {
   const { preset } = PROVIDER_PRESETS[id];
+  // `...preset` carries claude-code's `settings` (stream-json) through verbatim.
   return {
     ...preset,
     command: detectedCommand || preset.command,

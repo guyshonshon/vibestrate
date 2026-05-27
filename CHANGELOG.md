@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **Claude streams by default.** The claude preset is now the
+  first-class `claude-code` provider in stream-json mode (live output + real
+  token/cost), unifying the two preset builders so `init` / `doctor --fix` /
+  the dashboard all write the same config. Existing `type: cli` claude configs
+  keep working unchanged. Roadmap A1+A2 marked done.
 - Add: **Claude `stream-json` output adapter** (structured-output phase 2) —
   when a claude provider is configured `type: claude-code` with
   `settings.outputFormat: stream-json`, amaco streams live token-by-token text

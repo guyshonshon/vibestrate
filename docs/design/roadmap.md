@@ -16,13 +16,16 @@ supervision uniform. Full design + guarantees:
 **absorbs** the "make the cost/token ledger real" note — structured output is
 what makes the ledger real; the pricing/cap/dashboard work sits on top.
 
-- **A1 — Output adapter layer.** `NormalizedTurn { responseText, metrics }` +
-  `ProviderOutputAdapter`; route every provider through it on the `text` adapter
-  (zero behavior change). Control/live/metrics consume only the normalized
-  shape. Parity + fail-loud tests. *(Safe foundation; do first.)*
-- **A2 — Claude `stream-json` adapter.** First real adapter — live token-by-token
-  output + native usage. Behind `output: stream-json` config; gated by the
-  lossless-parity test (incl. a `HUMAN_APPROVAL` round-trip).
+- **A1 — Output adapter layer. ✓ done.** `NormalizedTurn { responseText,
+  metrics }` + `ProviderOutputAdapter`; every provider routes through it on the
+  `text` adapter (zero behavior change). Control/live/metrics consume only the
+  normalized shape. Parity + fail-loud tests.
+- **A2 — Claude `stream-json` adapter. ✓ done.** Live token-by-token output +
+  native token/cost/model metrics; lossless response-text extraction (control
+  parsers unaffected), fail-loud on a malformed stream. Validated against real
+  claude 2.x. Now the **default** claude preset (`type: claude-code`,
+  stream-json) — the two preset builders are unified, so `init` / `doctor` /
+  the dashboard all write it. Existing `type: cli` claude configs keep working.
 - **A3 — Pricing table + universal token capture.** Local static list-price
   table (USD / 1M in·out·cache by model); cost precedence = CLI-reported else
   `tokens × price`, labelled ESTIMATE. Ensure every provider's parser captures
@@ -78,5 +81,6 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 
 ### Suggested order
 
-A1 → A2 (unblocks real metrics) → A3 → A4 → A5, then B1 (rework-from-phase is
-high day-to-day value), C1, D1 (design), B2, A6, E1. Adjust as priorities shift.
+~~A1~~ → ~~A2~~ (done — real metrics unblocked) → **A3 next** → A4 → A5, then
+B1 (rework-from-phase is high day-to-day value), C1, D1 (design), B2, A6, E1.
+Adjust as priorities shift.

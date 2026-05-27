@@ -1,13 +1,17 @@
-import type { CliProviderConfig } from "../provider-schema.js";
+import type { ClaudeCodeProviderSchemaConfig } from "../provider-schema.js";
 
-// Default claude preset. The richer `claude-code` + stream-json mode (live
-// output + native token/cost) is supported and opt-in via project.yml
-// (`type: claude-code`, `settings.outputFormat: stream-json`); making it the
-// default requires unifying the two preset builders first — see
-// docs/design/provider-structured-output.md.
-export const claudeCodePreset: CliProviderConfig = {
-  type: "cli",
+// Canonical claude preset: the first-class `claude-code` provider in stream-json
+// mode, so amaco gets live token-by-token output + real token/cost metrics out
+// of the box. Effective args: `claude -p --output-format stream-json --verbose
+// --include-partial-messages`, prompt on stdin. The stream-json adapter extracts
+// the response text + usage; see docs/design/provider-structured-output.md.
+export const claudeCodePreset: ClaudeCodeProviderSchemaConfig = {
+  type: "claude-code",
   command: "claude",
   args: ["-p"],
   input: "stdin",
+  settings: {
+    outputFormat: "stream-json",
+    includePartialMessages: true,
+  },
 };
