@@ -16,7 +16,7 @@ import {
   type Role,
   type ProvidersOverview,
 } from "../../lib/api.js";
-import type { DiscoveredFlow } from "../../lib/types.js";
+import type { DiscoveredFlow, DiscoveredSkill } from "../../lib/types.js";
 import { navigate } from "../App.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
@@ -100,6 +100,8 @@ export function CrewPage() {
     }
   };
 
+  const [availableSkills, setAvailableSkills] = useState<DiscoveredSkill[]>([]);
+
   useEffect(() => {
     void api
       .listFlows()
@@ -107,7 +109,29 @@ export function CrewPage() {
       .catch(() => {
         /* fall back to config order if flows can't be read */
       });
+    void api
+      .listSkills()
+      .then((r) => setAvailableSkills(r.skills))
+      .catch(() => {
+        /* skills are optional — leave the picker empty if discovery fails */
+      });
   }, []);
+
+  // Attach/detach a skill on a role. role.skills stores skill *names*; the API
+  // route takes the skill *id* (and resolves it to the name).
+  async function toggleSkill(
+    roleId: string,
+    skill: DiscoveredSkill,
+    attached: boolean,
+  ): Promise<void> {
+    try {
+      if (attached) await api.unassignSkill({ skillId: skill.id, roleId });
+      else await api.assignSkill({ skillId: skill.id, roleId });
+      await reloadRoles();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   const selectedFlow = useMemo(
     () =>
@@ -346,6 +370,8 @@ export function CrewPage() {
             onSelectFlow={setSelectedFlowId}
             orderedRoles={orderedRoles}
             overview={overview}
+            availableSkills={availableSkills}
+            onToggleSkill={toggleSkill}
             onReorder={reorderRole}
             onSetProvider={async (roleId, providerId) => {
               try {
@@ -898,6 +924,8 @@ function RolesPanel({
   onSelectFlow,
   orderedRoles,
   overview,
+  availableSkills,
+  onToggleSkill,
   onReorder,
   onSetProvider,
 }: {
@@ -906,6 +934,12 @@ function RolesPanel({
   onSelectFlow: (id: string) => void;
   orderedRoles: { role: Role; stepLabel: string | null; stepId: string | null }[];
   overview: ProvidersOverview | null;
+  availableSkills: DiscoveredSkill[];
+  onToggleSkill: (
+    roleId: string,
+    skill: DiscoveredSkill,
+    attached: boolean,
+  ) => void | Promise<void>;
   onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
@@ -967,6 +1001,8 @@ function RolesPanel({
               overview={overview}
               canUp={entry.stepId !== null && i > firstReorderable}
               canDown={entry.stepId !== null && i < lastReorderable}
+              availableSkills={availableSkills}
+              onToggleSkill={onToggleSkill}
               onReorder={onReorder}
               onSetProvider={onSetProvider}
             />
@@ -984,6 +1020,8 @@ function RoleRow({
   overview,
   canUp,
   canDown,
+  availableSkills,
+  onToggleSkill,
   onReorder,
   onSetProvider,
 }: {
@@ -993,6 +1031,12 @@ function RoleRow({
   overview: ProvidersOverview | null;
   canUp: boolean;
   canDown: boolean;
+  availableSkills: DiscoveredSkill[];
+  onToggleSkill: (
+    roleId: string,
+    skill: DiscoveredSkill,
+    attached: boolean,
+  ) => void | Promise<void>;
   onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
@@ -1143,6 +1187,37 @@ function RoleRow({
               close
             </button>
           </div>
+
+          {availableSkills.length > 0 ? (
+            <div className="mt-3">
+              <div className="mb-1 text-[10.5px] uppercase tracking-wide text-fog-500">
+                Skills · click to attach / detach
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {availableSkills.map((sk) => {
+                  // role.skills stores skill *names*; toggle by id (API resolves).
+                  const attached = r.skills.includes(sk.name);
+                  return (
+                    <button
+                      key={sk.id}
+                      type="button"
+                      title={sk.description ?? sk.name}
+                      onClick={() => void onToggleSkill(r.id, sk, attached)}
+                      className={cn(
+                        "rounded-md border px-2 py-0.5 text-[11px] transition",
+                        attached
+                          ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
+                          : "border-white/10 text-fog-400 hover:text-fog-200",
+                      )}
+                    >
+                      {attached ? "✓ " : ""}
+                      {sk.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </li>

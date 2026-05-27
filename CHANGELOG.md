@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: edit a role's **skills** from the Crew context panel — click skill chips to
+  attach/detach (reuses the existing assign/unassign API). Completes per-role
+  editing on Crew: provider + context (prompt) + skills.
+
 - Change: **Crew is a live flow editor.** Reorder roles with ↑/↓ (persists to the
   flow — a built-in auto-forks to your project copy), set each role's provider,
   and edit each role's **context (its prompt/brain)** inline via an expander.
