@@ -3,6 +3,200 @@
   "description": "Built-in run Flows. Project Flows live in `.amaco/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
   "flows": [
     {
+      "id": "default",
+      "version": 1,
+      "label": "Default",
+      "description": "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness. Runs when no other flow is picked.",
+      "slots": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Turns the task into a plan.",
+          "defaultRole": "planner"
+        },
+        {
+          "id": "architect",
+          "label": "Architect",
+          "description": "Designs the approach from the plan.",
+          "defaultRole": "architect"
+        },
+        {
+          "id": "executor",
+          "label": "Executor",
+          "description": "Implements the plan and architecture.",
+          "defaultRole": "executor"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff and decides whether changes are needed.",
+          "defaultRole": "reviewer"
+        },
+        {
+          "id": "fixer",
+          "label": "Fixer",
+          "description": "Addresses review findings.",
+          "defaultRole": "fixer"
+        },
+        {
+          "id": "verifier",
+          "label": "Verifier",
+          "description": "Independently verifies the approved result.",
+          "defaultRole": "verifier"
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "slot": "planner",
+          "roleId": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "architecture",
+          "label": "Architecture",
+          "kind": "agent-turn",
+          "slot": "architect",
+          "roleId": "architect",
+          "inputs": [
+            "task-brief",
+            "plan"
+          ],
+          "outputs": [
+            "architecture"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "slot": "executor",
+          "roleId": "executor",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "slot": null,
+          "roleId": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "kind": "review-turn",
+          "slot": "reviewer",
+          "roleId": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "fix",
+          "label": "Fix",
+          "kind": "response-turn",
+          "slot": "fixer",
+          "roleId": "fixer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "findings",
+            "validation"
+          ],
+          "outputs": [
+            "finding-responses",
+            "diff"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "revalidation",
+          "label": "Re-validate",
+          "kind": "validation",
+          "slot": null,
+          "roleId": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "verify",
+          "label": "Verify",
+          "kind": "summary-turn",
+          "slot": "verifier",
+          "roleId": "verifier",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "findings",
+            "validation"
+          ],
+          "outputs": [
+            "verification"
+          ],
+          "optional": false,
+          "approval": null,
+          "repeat": null
+        }
+      ]
+    },
+    {
       "id": "quality-arbitration",
       "version": 1,
       "label": "Quality Arbitration",

@@ -20,10 +20,11 @@ import {
 // the default `workflow.maxReviewLoops` (2) fix cycles; B-3 may source the
 // bound from config instead of the static value.
 //
-// NOTE: intentionally NOT in `builtinFlows` below. Listing it there would make
-// it discoverable → forkable → runnable via `runFlowSequence`, which does not
-// yet iterate the loop — so running it as a flow today would silently collapse
-// the review→fix loop to a single linear pass. Wiring execution is B-3.
+// As of B-3a the flow runner iterates adaptive loops, so this is now in
+// `builtinFlows` below — discoverable and runnable as `--flow default`, which
+// executes the review→fix loop correctly. The *implicit* default (a run with no
+// flow picked) still goes through `orchestrator.run()`; flipping that and
+// retiring the run()/runFlowSequence() split is B-3c.
 export const defaultFlow = flowDefinitionSchema.parse({
   id: "default",
   version: 1,
@@ -260,6 +261,7 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
 });
 
 export const builtinFlows: readonly FlowDefinition[] = [
+  defaultFlow,
   qualityArbitrationFlow,
 ];
 
