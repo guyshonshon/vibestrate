@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: the dashboard "Re-run with changes → Rewind" selector was disabled for
+  every run (it gated on non-flow runs, but every run is now a flow run). It now
+  offers a stage when the run's flow declares it (the default flow's
+  architecting/executing) and the upstream artifacts were captured. Flow run
+  steps persist their `stage` so the UI can tell. Resumed runs re-run their own
+  flow.
+- Docs: README "How a run works" reframed around the one-runner model — a plain
+  run executes the built-in `default` flow; other flows run through the same
+  engine; added the `--resume-from`/`--resume-stage` rewind example.
+
 - Change: **one runner** (D2 phase B-3c). Plain `amaco run` now resolves the
   built-in `default` flow and executes it through the same flow runner as every
   other flow; the hardcoded `Orchestrator.run()` plan→build→verify sequence is

@@ -541,6 +541,7 @@ export class Orchestrator {
         kind: step.kind,
         status: step.enabled ? "pending" : "skipped",
         optional: step.optional,
+        stage: step.stage,
         slotId: step.slotId,
         roleId: step.roleId,
         providerId: step.providerId,

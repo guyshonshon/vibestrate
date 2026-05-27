@@ -33,6 +33,13 @@ export type FlowRunStepState = {
   kind: string;
   status: FlowRunStepStatus;
   optional: boolean;
+  stage:
+    | "planning"
+    | "architecting"
+    | "executing"
+    | "reviewing"
+    | "verifying"
+    | null;
   slotId: string | null;
   roleId: string | null;
   providerId: string | null;
