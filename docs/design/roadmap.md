@@ -112,9 +112,9 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   - ~~**Phase A-1** (done): Guide → Flow rename across code / config-paths /
     API / UI / CLI / docs. Catalog is now **Flows** (`#/flows`), builder
     `#/flow`. No back-compat (pre-release).~~
-  - ☐ **Phase A-2**: surface the default workflow as the built-in *default
-    flow* in the catalog; Crew framed as "the default flow's roles". Still runs
-    via `run()` under the hood.
+  - ~~**Phase A-2** (done): the default workflow shows as the built-in
+    **Default flow** on the Flows page (display card); Crew framed as "the
+    roles of the Default flow". Still runs via `run()` under the hood.~~
   - ☐ **Phase B**: unify the two orchestrator runners (`run()` +
     `runFlowSequence()`) so the default workflow executes as an actual flow.
     Highest-risk core change; checkpoint before starting.

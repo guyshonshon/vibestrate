@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: the default plan→build→verify workflow now shows as the built-in
+  **Default flow** on the Flows page (a display card — it still runs via the
+  standard orchestrator path, not the flow runner), and the **Crew** page
+  frames the roles as "the roles of the Default flow" (D2 phase A-2). Resolves
+  the roles-vs-flows duplication in the UI. Executing the default *as* a real
+  flow needs the deferred adaptive-loop primitive (phase B).
+
 - Change: **rename Guide → Flow** across code, config-paths, API, UI, CLI, and
   docs (Epic D / D2, phase A-1). Clean rename, no back-compat (pre-release):
   `src/guides`→`src/flows`, `.amaco/guides/`→`.amaco/flows/` (flow files are

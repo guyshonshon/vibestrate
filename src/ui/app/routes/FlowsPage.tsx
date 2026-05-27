@@ -100,14 +100,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       <section className="mt-1">
         <div className="eyebrow mb-1.5">Flows</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          {flows ? flows.length : "—"} flows
+          The Default flow
           <span className="text-fog-400">
-            {flows ? ` · ${projectCount} editable` : ""}
+            {flows ? ` + ${flows.length} more` : ""}
           </span>
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
-          Run recipes your crew follows — slots, ordered steps, approval gates.
-          Fork a builtin to edit it.
+          A flow is the recipe your crew follows — ordered steps, the roles that
+          run them, approval gates. The <strong className="text-fog-100">Default
+          flow</strong> runs unless you pick another. Fork a builtin to edit it.
         </p>
       </section>
 
@@ -118,10 +119,11 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       <section className="mt-7 space-y-3">
+        <DefaultFlowCard />
         {!flows ? (
           <div className="text-fog-400 text-[13px]">Loading flows…</div>
         ) : flows.length === 0 ? (
-          <div className="text-fog-400 text-[13px]">No flows discovered.</div>
+          <div className="text-fog-400 text-[13px]">No custom flows yet.</div>
         ) : (
           flows.map((g) => (
             <FlowCard
@@ -155,6 +157,49 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           {toast.text}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// The fixed plan→build→verify workflow, shown as the built-in Default flow.
+// Display-only: it's what runs when no flow is picked (via the orchestrator's
+// standard path), so it isn't forkable/runnable-as-a-flow here.
+const DEFAULT_FLOW_STEPS: { label: string; role: string | null }[] = [
+  { label: "Plan", role: "planner" },
+  { label: "Architect", role: "architect" },
+  { label: "Implement", role: "executor" },
+  { label: "Validate", role: null },
+  { label: "Review", role: "reviewer" },
+  { label: "Fix ↺", role: "fixer" },
+  { label: "Verify", role: "verifier" },
+];
+
+function DefaultFlowCard() {
+  return (
+    <div className="rounded-xl border border-violet-soft/25 surface-ink-100-55 px-4 py-3.5">
+      <div className="flex items-center gap-2">
+        <span className="text-[14px] font-medium text-fog-100">Default</span>
+        <Chip tone="violet">built-in</Chip>
+        <Chip tone="emerald">runs by default</Chip>
+      </div>
+      <p className="mt-1 text-[12px] text-fog-400 max-w-[68ch]">
+        The standard plan → build → verify workflow — runs when you don't pick
+        another flow. Review loops back to fix until it passes or a human
+        decides. Each step is performed by a role (configure providers in Crew).
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {DEFAULT_FLOW_STEPS.map((s, i) => (
+          <span key={s.label} className="flex items-center gap-1.5">
+            {i > 0 ? <span className="text-fog-500 text-[11px]">→</span> : null}
+            <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
+              {s.label}
+              {s.role ? (
+                <span className="mono ml-1 text-[10px] text-violet-soft">{s.role}</span>
+              ) : null}
+            </span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

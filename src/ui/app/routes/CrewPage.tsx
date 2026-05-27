@@ -236,10 +236,18 @@ export function CrewPage() {
           The <em className="text-display italic text-violet-soft">roles</em>{" "}
           that work your tasks.
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-          Each role in the workflow runs on a provider — the CLI that supplies
-          the model. Set who plays each role below; the providers themselves are
-          installed and configured under{" "}
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[660px]">
+          These are the roles of the{" "}
+          <button
+            type="button"
+            onClick={() => navigate({ kind: "flows" })}
+            className="text-violet-soft hover:underline"
+          >
+            Default flow
+          </button>
+          . Each runs on a provider — the CLI that supplies the model. Set who
+          plays each role below; the providers themselves are installed and
+          configured under{" "}
           <button
             type="button"
             onClick={() => navigate({ kind: "providers" })}
