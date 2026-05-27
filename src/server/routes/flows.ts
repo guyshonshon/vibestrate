@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { loadConfig } from "../../project/config-loader.js";
 import {
-  discoverFlows,
+  discoverFlowCatalog,
   findFlowById,
 } from "../../flows/catalog/flow-discovery.js";
 import {
@@ -53,7 +53,10 @@ export async function registerFlowsRoutes(
   const { projectRoot } = deps;
 
   app.get("/api/flows", async () => {
-    return { flows: await discoverFlows(projectRoot) };
+    // Resilient: builtins + valid project flows always load; a malformed
+    // project flow is reported in `invalid` instead of failing the whole list.
+    const catalog = await discoverFlowCatalog(projectRoot);
+    return { flows: catalog.flows, invalid: catalog.invalid };
   });
 
   app.post<{ Body: unknown }>("/api/flows/suggest", async (req) => {

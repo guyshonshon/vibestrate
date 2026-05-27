@@ -4,7 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import {
   discoverFlows,
-  FlowDiscoveryError,
+  discoverFlowCatalog,
 } from "../../src/flows/catalog/flow-discovery.js";
 import {
   startServer,
@@ -128,18 +128,37 @@ describe("Flow Phase 1 discovery", () => {
     expect(winner[0]!.source.kind).toBe("project");
   });
 
-  it("rejects two project flows that claim the same id", async () => {
+  it("keeps one of two project flows with the same id and reports the duplicate", async () => {
     const projectRoot = await makeProject();
     await fs.mkdir(path.join(projectRoot, ".amaco", "flows", "dup"), {
       recursive: true,
     });
     await fs.writeFile(
       path.join(projectRoot, ".amaco", "flows", "dup", "flow.yml"),
-      PROJECT_FLOW.replace("project-review", "project-review"), // id stays project-review
+      PROJECT_FLOW, // id stays project-review → collides with the first
     );
-    await expect(discoverFlows(projectRoot)).rejects.toThrow(
-      FlowDiscoveryError,
+    // Resilient: the conflict is reported, not thrown — one wins, the rest are
+    // flagged invalid so the catalog (and other flows) still load.
+    const { flows, invalid } = await discoverFlowCatalog(projectRoot);
+    expect(flows.filter((g) => g.id === "project-review")).toHaveLength(1);
+    expect(invalid.some((i) => /duplicate flow id "project-review"/i.test(i.message))).toBe(true);
+  });
+
+  it("skips a malformed project flow but still returns the valid ones", async () => {
+    const projectRoot = await makeProject();
+    await fs.mkdir(path.join(projectRoot, ".amaco", "flows", "broken"), {
+      recursive: true,
+    });
+    await fs.writeFile(
+      path.join(projectRoot, ".amaco", "flows", "broken", "flow.yml"),
+      "id: broken\nversion: 1\nlabel: Broken\n# missing description/slots/steps\n",
     );
+    const { flows, invalid } = await discoverFlowCatalog(projectRoot);
+    // Builtins + the valid project flow still load; the broken one is reported.
+    expect(flows.some((g) => g.id === "quality-arbitration")).toBe(true);
+    expect(flows.some((g) => g.id === "project-review")).toBe(true);
+    expect(flows.some((g) => g.id === "broken")).toBe(false);
+    expect(invalid.some((i) => i.path.includes("broken"))).toBe(true);
   });
 });
 

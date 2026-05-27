@@ -34,6 +34,7 @@ type Busy = { id: string; action: "fork" | "delete" } | null;
  */
 export function FlowsPage({ onOpenInFlow }: Props) {
   const [flows, setFlows] = useState<DiscoveredFlow[] | null>(null);
+  const [invalid, setInvalid] = useState<{ path: string; message: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
@@ -43,6 +44,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     try {
       const r = await api.listFlows();
       setFlows(r.flows);
+      setInvalid(r.invalid ?? []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -118,6 +120,23 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       {error ? (
         <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
+        </div>
+      ) : null}
+
+      {invalid.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2.5 text-[12.5px] text-amber-200">
+          <div className="font-medium">
+            {invalid.length} project flow{invalid.length === 1 ? "" : "s"} couldn't
+            be loaded and {invalid.length === 1 ? "was" : "were"} skipped:
+          </div>
+          <ul className="mt-1.5 space-y-1">
+            {invalid.map((bad) => (
+              <li key={bad.path} className="text-[11.5px]">
+                <span className="mono text-amber-300/90">{bad.path}</span>
+                <span className="text-amber-200/80"> — {bad.message}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 

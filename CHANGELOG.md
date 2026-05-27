@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: a single invalid project flow (e.g. a stale fork with a schema error) no
+  longer hides the entire Flows catalog. Discovery now loads all valid flows —
+  builtins are always present — and reports the broken ones separately:
+  `GET /api/flows` returns `{ flows, invalid }`, the Flows page shows a
+  non-blocking warning, and `amaco flows list` lists them and exits non-zero.
+  Duplicate project flow ids are reported the same way instead of throwing.
+- Fix: removed a stale `.amaco/flows/quality-arbitration` fork that predated the
+  Agent→Role rename (used `defaultAgent`/`agentId`); the built-in is used.
+
 - Fix: the dashboard "Re-run with changes → Rewind" selector was disabled for
   every run (it gated on non-flow runs, but every run is now a flow run). It now
   offers a stage when the run's flow declares it (the default flow's
