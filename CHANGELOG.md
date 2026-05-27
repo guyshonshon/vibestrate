@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **loop authoring in the Flow Builder** — a Loop panel to add/remove the
+  adaptive review→fix loop (from/to range, decision review, max iterations) with
+  inline validity hints; shipped via the `loop` patch. Flow steps' `stage` and
+  `skipWhenReadOnly` now round-trip through structural edits (reorder/add/remove)
+  instead of being dropped.
+
 - Add: **Coder + Reviewer (looped)** built-in flow — a minimal `implement → review`
   loop (the review loops back to the coder until it passes), no planner/verifier.
   A flow now only requires a passing verification when it actually has a verify
