@@ -12,11 +12,11 @@ version. Update it in the same commit as the change it describes.
   `skipWhenReadOnly` now round-trip through structural edits (reorder/add/remove)
   instead of being dropped.
 
-- Add: **Coder + Reviewer (looped)** built-in flow — a minimal `implement → review`
-  loop (the review loops back to the coder until it passes), no planner/verifier.
-  A flow now only requires a passing verification when it actually has a verify
-  step, so minimal flows reach `merge_ready` on an APPROVED review alone (D2 / flow
-  authoring P1).
+- Change: a flow only requires a passing verification when it actually has a
+  verify (summary) step — so a minimal flow (e.g. coder + reviewer, no verifier)
+  reaches `merge_ready` on an APPROVED review + passing validation. The system
+  tolerates arbitrary user-built flow shapes; no extra built-in flows are shipped
+  for them.
 - Add: the **default flow is editable** — "Fork & edit" on the Flows page forks it
   into the project and opens the Flow Builder; a forked/edited `default` now
   shadows the builtin for plain `amaco run` too (the orchestrator resolves the

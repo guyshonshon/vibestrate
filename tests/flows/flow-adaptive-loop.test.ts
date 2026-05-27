@@ -7,7 +7,6 @@ import { ApprovalService } from "../../src/core/approval-service.js";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { flowDefinitionSchema } from "../../src/flows/schemas/flow-schema.js";
 import { resolveFlow } from "../../src/flows/runtime/flow-resolver.js";
-import { findFlowById } from "../../src/flows/catalog/flow-discovery.js";
 import { loadConfig } from "../../src/project/config-loader.js";
 import { setConfigValue } from "../../src/setup/config-update-service.js";
 import { applySetup } from "../../src/setup/setup-service.js";
@@ -71,6 +70,41 @@ const loopingFlow = flowDefinitionSchema.parse({
     },
   ],
   loop: { from: "review", to: "fix", decisionStep: "review", maxIterations: 3 },
+});
+
+// A minimal flow with NO verify step: implement → review, looped. Exercises the
+// runner rule that a flow only needs a passing verification when it has a verify
+// step — so an APPROVED review alone reaches merge_ready.
+const noVerifyLoopFlow = flowDefinitionSchema.parse({
+  id: "no-verify-loop",
+  version: 1,
+  label: "No-verify loop",
+  description: "Coder + reviewer loop with no verify step.",
+  slots: {
+    coder: { label: "Coder", defaultRole: "executor" },
+    reviewer: { label: "Reviewer", defaultRole: "reviewer" },
+  },
+  steps: [
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      slot: "coder",
+      roleId: "executor",
+      inputs: ["task-brief", "findings"],
+      outputs: ["execution", "diff"],
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      slot: "reviewer",
+      roleId: "reviewer",
+      inputs: ["execution", "diff"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  loop: { from: "implement", to: "review", decisionStep: "review", maxIterations: 3 },
 });
 
 // Fake provider: the reviewer asks for changes on its first turn and approves
@@ -266,17 +300,15 @@ describe("Flow adaptive loop execution (D2 phase B-3a)", () => {
     expect(decisions.at(-1)?.data?.decision).toBe("CHANGES_REQUESTED");
   });
 
-  it("runs the built-in coder-reviewer flow: loops the coder, reaches merge_ready with NO verify step", async () => {
+  it("a flow with no verify step reaches merge_ready on an APPROVED review (loops the coder)", async () => {
     // The whole flow is the loop body [implement, review]; reviewer asks for
     // changes once → the coder (implement) runs again → approves. There is no
     // verify step, so merge_ready must come from the APPROVED review alone.
     const projectRoot = await makeLoopRepo(REVIEWER_SCRIPT);
     const loaded = await loadConfig(projectRoot);
-    const flow = await findFlowById(projectRoot, "coder-reviewer");
-    expect(flow).not.toBeNull();
     const snapshot = resolveFlow({
-      flow: flow!.definition,
-      source: flow!.source,
+      flow: noVerifyLoopFlow,
+      source: { kind: "fixture", ref: noVerifyLoopFlow.id },
       config: loaded.config,
       task: "Minimal coder + reviewer loop.",
     });
