@@ -185,14 +185,19 @@ export type MetricsOverview = {
   heatmap: HeatmapRow[];
   leaderboard: LeaderboardEntry[];
   kpiSparks: KpiSparks;
+  perModel: { model: string; calls: number; tokens: number; costUsd: number }[];
+  tokensByRole: { role: string; tokens: number }[];
   totals: {
     runs: number;
     merged: number;
     failed: number;
     changes: number;
     costUsd: number;
+    tokens: number;
+    tokensDelta: number;
     successRate: number | null;
     avgDurationSeconds: number | null;
+    medianDurationSeconds: number | null;
     spendCapDailyUsd: number | null;
   };
 };
