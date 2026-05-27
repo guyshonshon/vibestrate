@@ -42,6 +42,7 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 <details>
 <summary><b>Table of contents</b></summary>
 
+- [Quick start](#-quick-start)
 - [Why it exists](#-why-it-exists)
 - [What it is](#-what-it-is)
 - [Ready in one command](#-ready-in-one-command)
@@ -55,6 +56,22 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 - [License](#-license)
 
 </details>
+
+## ◆ Quick start
+
+Install from npm (the bin is `amaco`), then point it at any git repo:
+
+```bash
+npm install -g amaco-os        # macOS / Linux · requires Node ≥ 18.17
+cd your-project
+amaco init                     # scaffold .amaco/ - touches nothing else
+amaco doctor --fix             # detect providers + project, wire it up
+amaco run "Add audit logging to the settings flow"
+```
+
+Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in one command](#-ready-in-one-command) explains what `amaco doctor` detects and wires up for you.
+
+<p align="right"><a href="#top">↑ back to top</a></p>
 
 ## ◆ Why it exists
 
@@ -81,14 +98,6 @@ No keys to paste, no YAML to hand-author. Point Amaco at a repo and it figures o
 - **Finds your agents.** Detects the coding-agent CLIs already on your machine - **Claude Code, Codex, Aider, Ollama, OpenCode** - wires up the best one, and assigns the whole crew to it.
 - **Reads your project.** Detects the language, package manager, and project type, then suggests the real validation commands (typecheck · test · build) it should run as ground truth.
 - **Uses logins you already have.** No API key ever lives in Amaco; it rides the CLIs you've already authenticated, so prompts and code go straight to those vendors.
-
-```bash
-npm install -g amaco-os        # macOS / Linux
-cd your-project
-amaco init                     # scaffold .amaco/ - touches nothing else
-amaco doctor --fix             # detect, verify, and wire everything up
-amaco run "Add audit logging to the settings flow"
-```
 
 **`amaco doctor` is the superpower** - the one command that tells you, in plain language, exactly where you stand, and `--fix` closes the gaps for you:
 

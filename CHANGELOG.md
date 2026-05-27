@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: README now leads with a **Quick start** (install + run) right after the
+  table of contents, so installation is above the fold; "Ready in one command"
+  keeps the deeper `doctor` walkthrough (install block de-duplicated).
 - Docs: add **npm downloads** and **GitHub stars** badges to the README badge row.
 - Change: **relicense from MIT to Apache-2.0.** Full Apache 2.0 text in
   `LICENSE`, added a `NOTICE` file, `package.json` `license` → `Apache-2.0`,
