@@ -546,7 +546,10 @@ export const api = {
   }> {
     return jsonGet("/api/skills");
   },
-  async listFlows(): Promise<{ flows: DiscoveredFlow[] }> {
+  async listFlows(): Promise<{
+    flows: DiscoveredFlow[];
+    invalid: { path: string; message: string }[];
+  }> {
     return jsonGet("/api/flows");
   },
   async patchFlow(

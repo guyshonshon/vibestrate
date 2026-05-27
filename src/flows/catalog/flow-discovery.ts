@@ -79,18 +79,31 @@ async function projectDefinitionPath(dirPath: string): Promise<string | null> {
   return null;
 }
 
-async function discoverProjectFlows(projectRoot: string): Promise<DiscoveredFlow[]> {
+/** A project flow file that couldn't be used (bad YAML, schema error, or a
+ *  duplicate id). Surfaced to the caller so the dashboard can warn about it
+ *  without one broken file hiding every other flow. */
+export type InvalidFlow = { path: string; message: string };
+
+export type FlowCatalog = {
+  flows: DiscoveredFlow[];
+  invalid: InvalidFlow[];
+};
+
+async function discoverProjectFlows(
+  projectRoot: string,
+): Promise<{ valid: DiscoveredFlow[]; invalid: InvalidFlow[] }> {
   const rootDir = projectFlowsDir(projectRoot);
-  if (!(await pathExists(rootDir))) return [];
+  if (!(await pathExists(rootDir))) return { valid: [], invalid: [] };
 
   let entries: string[];
   try {
     entries = await fs.readdir(rootDir);
   } catch {
-    return [];
+    return { valid: [], invalid: [] };
   }
 
-  const flows: DiscoveredFlow[] = [];
+  const valid: DiscoveredFlow[] = [];
+  const invalid: InvalidFlow[] = [];
   for (const entry of entries.sort()) {
     const dirPath = path.join(rootDir, entry);
     let stat;
@@ -103,19 +116,28 @@ async function discoverProjectFlows(projectRoot: string): Promise<DiscoveredFlow
 
     const filePath = await projectDefinitionPath(dirPath);
     if (!filePath || !isPathInside(rootDir, filePath)) continue;
-    flows.push(await parseProjectFlow(filePath));
+    // One malformed flow must not hide the rest — collect it and continue.
+    try {
+      valid.push(await parseProjectFlow(filePath));
+    } catch (err) {
+      invalid.push({
+        path: filePath,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
-  return flows;
+  return { valid, invalid };
 }
 
 /**
- * Combine builtins + project flows into the effective set:
+ * Combine builtins + project flows into the effective catalog:
  *
  *   - A **project** flow *shadows* a builtin of the same id. This is how
  *     `fork` works — copy a builtin into `.amaco/flows/<id>/` and edit it;
  *     the project version then wins everywhere.
- *   - Two **project** flows claiming the same id is a genuine, unresolvable
- *     conflict (two files, no precedence rule) → error.
+ *   - Two **project** flows claiming the same id is an unresolvable conflict
+ *     (two files, no precedence rule) → the first wins, the rest are reported
+ *     as invalid (not thrown — a conflict shouldn't hide every other flow).
  *
  * Builtin order is preserved; a shadowed builtin keeps its slot but carries
  * the project definition. Project-only flows are appended.
@@ -123,28 +145,41 @@ async function discoverProjectFlows(projectRoot: string): Promise<DiscoveredFlow
 function combineFlows(
   builtins: DiscoveredFlow[],
   project: DiscoveredFlow[],
-): DiscoveredFlow[] {
+): FlowCatalog {
   const projectById = new Map<string, DiscoveredFlow>();
+  const invalid: InvalidFlow[] = [];
   for (const flow of project) {
     const previous = projectById.get(flow.id);
     if (previous) {
-      throw new FlowDiscoveryError(
-        `Flow id "${flow.id}" is defined by more than one project flow (${previous.definitionPath} and ${flow.definitionPath}).`,
-      );
+      invalid.push({
+        path: flow.definitionPath ?? flow.id,
+        message: `Duplicate flow id "${flow.id}" (already defined by ${previous.definitionPath}). Ignoring this one.`,
+      });
+      continue;
     }
     projectById.set(flow.id, flow);
   }
 
   const byId = new Map<string, DiscoveredFlow>();
   for (const flow of builtins) byId.set(flow.id, flow);
-  for (const flow of project) byId.set(flow.id, flow); // project shadows builtin
-  return [...byId.values()];
+  for (const flow of projectById.values()) byId.set(flow.id, flow); // project shadows builtin
+  return { flows: [...byId.values()], invalid };
+}
+
+/** Full catalog: every usable flow plus diagnostics for the ones that couldn't
+ *  load. Builtins are always present (they can't be broken by a project file). */
+export async function discoverFlowCatalog(projectRoot: string): Promise<FlowCatalog> {
+  const builtins = builtinFlows.map(fromBuiltin);
+  const project = await discoverProjectFlows(projectRoot);
+  const combined = combineFlows(builtins, project.valid);
+  return {
+    flows: combined.flows,
+    invalid: [...project.invalid, ...combined.invalid],
+  };
 }
 
 export async function discoverFlows(projectRoot: string): Promise<DiscoveredFlow[]> {
-  const builtins = builtinFlows.map(fromBuiltin);
-  const project = await discoverProjectFlows(projectRoot);
-  return combineFlows(builtins, project);
+  return (await discoverFlowCatalog(projectRoot)).flows;
 }
 
 export async function findFlowById(
