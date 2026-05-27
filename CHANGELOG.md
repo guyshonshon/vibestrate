@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: README repositioned around the **local-first coding-agent supervisor**
+  category (per the marketing direction) — added a "Ready in one command"
+  section that sells the out-of-the-box story (detect agents + project,
+  `doctor --fix` auto-wires everything, no keys/config) with a `doctor`
+  checks/fixes table, and a "Full coverage, full control" section (live
+  output, artifact record, token/cost ledger + spend cap, validation referee,
+  gates). Headline now pairs the vibe-coding hook with the supervisor category.
 - Add: **Re-run with changes** (Epic B / B1) — a terminal run now has a
   "Re-run with changes" action in the run header that re-submits the task with
   adjusted settings (toggle read-only so the executor can write, change

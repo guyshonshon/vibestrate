@@ -10,9 +10,13 @@
 
 <br />
 
+<sub><b>a local-first supervisor for the coding agents already on your machine</b></sub>
+
+<br />
+
 One chat with one model is great for sketches.
 Real work - refactors, migrations, whole features - wants a *supervised* crew.
-Amaco runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.**
+Amaco runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.** It finds those CLIs for you, wires them up in one command, and never asks for a key.
 
 <br />
 
@@ -38,9 +42,10 @@ Amaco runs the coding-agent CLIs you already have through a visible **plan → b
 
 - [Why it exists](#-why-it-exists)
 - [What it is](#-what-it-is)
-- [Quick start](#-quick-start)
+- [Ready in one command](#-ready-in-one-command)
 - [Why local-first](#-why-local-first)
 - [How a run works](#-how-a-run-works)
+- [Full coverage, full control](#-full-coverage-full-control)
 - [Documentation](#-documentation)
 - [Built with](#-built-with)
 - [Contributing](#-contributing)
@@ -61,23 +66,40 @@ That's the whole trick: the work that used to live in your head - the plan, the 
 
 ## ◆ What it is
 
-Amaco is a local-first orchestrator. You give it a task in plain language; it spins up a git worktree, walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges - you stay in the chair.
+Amaco is a **local-first supervisor for coding agents** - the review-and-verification layer for the AI CLIs already on your machine. You give it a task in plain language; it spins up a git worktree, walks a **planner → architect → executor → reviewer → verifier** crew through the change, runs *your* validation commands, records every step, and stops at `merge_ready`, `blocked`, or `failed`. It never pushes and never merges - you stay in the chair.
 
 The agents are the CLIs you already have - **Claude Code, Codex, Aider, Ollama, OpenCode** - mix and match per role. Plan with one model, implement with another, review with a third.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
-## ◆ Quick start
+## ◆ Ready in one command
+
+No keys to paste, no YAML to hand-author. Point Amaco at a repo and it figures out the rest:
+
+- **Finds your agents.** Detects the coding-agent CLIs already on your machine - **Claude Code, Codex, Aider, Ollama, OpenCode** - wires up the best one, and assigns the whole crew to it.
+- **Reads your project.** Detects the language, package manager, and project type, then suggests the real validation commands (typecheck · test · build) it should run as ground truth.
+- **Uses logins you already have.** No API key ever lives in Amaco; it rides the CLIs you've already authenticated, so prompts and code go straight to those vendors.
 
 ```bash
 npm install -g amaco-os        # macOS / Linux
 cd your-project
-amaco init                  # scaffold .amaco/ (touches nothing else)
-amaco doctor                # check git, providers, validation
+amaco init                     # scaffold .amaco/ - touches nothing else
+amaco doctor --fix             # detect, verify, and wire everything up
 amaco run "Add audit logging to the settings flow"
 ```
 
-Want the dashboard? Add `--ui`:
+**`amaco doctor` is the superpower** - the one command that tells you, in plain language, exactly where you stand, and `--fix` closes the gaps for you:
+
+| `amaco doctor` checks | `amaco doctor --fix` does |
+|---|---|
+| git present · you're inside a repo | configures the detected provider |
+| `.amaco/` initialized · config valid | assigns the crew to it |
+| project detected (name · type · package manager) | fills validation commands from your project |
+| which provider CLIs are installed - and which aren't | restores any missing scaffolding |
+| every agent points at a real provider, with safe permissions | |
+| validation commands are set | |
+
+Green across the board means you're ready to run. Want the dashboard? Add `--ui` to any run:
 
 ```bash
 amaco run "Tighten retry handling" --ui    # opens Mission Control
@@ -119,6 +141,20 @@ amaco run "Refactor provider permissions" --guide quality-arbitration \
 ```
 
 > [Concepts](https://amaco.shonshon.com/docs/concepts/task) · [Task lifecycle](https://amaco.shonshon.com/docs/task-lifecycle) · [CLI reference](https://amaco.shonshon.com/docs/reference/cli)
+
+<p align="right"><a href="#top">↑ back to top</a></p>
+
+## ◆ Full coverage, full control
+
+Easy to start is only half of it. The trade Amaco makes is unusual: maximum convenience *and* maximum visibility. Every run is a glass cockpit, not a chat log.
+
+- **Watch it happen.** Live, token-by-token output from each agent - the same stream you'd see in the terminal, surfaced in the dashboard.
+- **Everything on the record.** Plan, architecture, diff, review findings, fix, verification - each phase writes a named artifact you can read, inspect, and replay.
+- **Real cost, real tokens.** A per-step and per-run ledger of tokens and dollars, plus a daily **spend cap** that can warn, downgrade the model, or stop the run when you hit it.
+- **Validation as referee.** Your own typecheck / tests / build run between "I wrote it" and "looks good," so review stands on ground truth - not vibes.
+- **Your call at every gate.** Approval gates pause for a human; nothing pushes, nothing merges. A run ends at `merge_ready`, `blocked`, or `failed` - you decide what lands.
+
+That's the category in one line: Amaco is a **supervisor**, not an autopilot.
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
