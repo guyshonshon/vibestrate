@@ -13,6 +13,7 @@ import {
   type Role,
   type ProvidersOverview,
 } from "../../lib/api.js";
+import type { DiscoveredFlow } from "../../lib/types.js";
 import { navigate } from "../App.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
@@ -80,9 +81,10 @@ function avatarLetter(profile: ProviderProfile): string {
 export function CrewPage() {
   const [overview, setOverview] = useState<ProvidersOverview | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
-  // The default flow's role-bearing steps, in order — the Crew is "the roles of
-  // the default flow", so we order + label the roles by the flow itself.
-  const [flowOrder, setFlowOrder] = useState<{ stepLabel: string; roleId: string }[]>([]);
+  // The crew is "the roles of a flow", so the panel is scoped to a chosen flow
+  // (default selected). Switching it re-orders/labels the roles by that flow.
+  const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
+  const [selectedFlowId, setSelectedFlowId] = useState("default");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,26 +100,32 @@ export function CrewPage() {
   useEffect(() => {
     void api
       .listFlows()
-      .then((r) => {
-        const def = r.flows.find((f) => f.id === "default");
-        if (!def) return;
-        const seen = new Set<string>();
-        const order: { stepLabel: string; roleId: string }[] = [];
-        for (const s of def.definition.steps) {
-          if (s.roleId && !seen.has(s.roleId)) {
-            seen.add(s.roleId);
-            order.push({ stepLabel: s.label, roleId: s.roleId });
-          }
-        }
-        setFlowOrder(order);
-      })
+      .then((r) => setFlows(r.flows))
       .catch(() => {
-        /* fall back to config order if the flow can't be read */
+        /* fall back to config order if flows can't be read */
       });
   }, []);
 
-  // Roles ordered + step-labeled by the default flow; any config role not in
-  // the flow is appended (so nothing is hidden).
+  // The selected flow's role-bearing steps, in order (deduped by role).
+  const flowOrder = useMemo<{ stepLabel: string; roleId: string }[]>(() => {
+    const def =
+      flows.find((f) => f.id === selectedFlowId) ??
+      flows.find((f) => f.id === "default");
+    if (!def) return [];
+    const seen = new Set<string>();
+    const order: { stepLabel: string; roleId: string }[] = [];
+    for (const s of def.definition.steps) {
+      if (s.roleId && !seen.has(s.roleId)) {
+        seen.add(s.roleId);
+        order.push({ stepLabel: s.label, roleId: s.roleId });
+      }
+    }
+    return order;
+  }, [flows, selectedFlowId]);
+
+  // Roles ordered + step-labeled by the selected flow. For the default flow any
+  // config role not in the flow is appended (so nothing is hidden); for other
+  // flows we show exactly that flow's roles.
   const orderedRoles = useMemo<{ role: Role; stepLabel: string | null }[]>(() => {
     if (flowOrder.length === 0) return roles.map((role) => ({ role, stepLabel: null }));
     const byId = new Map(roles.map((r) => [r.id, r]));
@@ -130,9 +138,11 @@ export function CrewPage() {
         used.add(role.id);
       }
     }
-    for (const role of roles) if (!used.has(role.id)) out.push({ role, stepLabel: null });
+    if (selectedFlowId === "default") {
+      for (const role of roles) if (!used.has(role.id)) out.push({ role, stepLabel: null });
+    }
     return out;
-  }, [roles, flowOrder]);
+  }, [roles, flowOrder, selectedFlowId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -286,64 +296,69 @@ export function CrewPage() {
         </div>
       ) : null}
 
-      <RolesPanel
-        orderedRoles={orderedRoles}
-        overview={overview}
-        onSetProvider={async (roleId, providerId) => {
-          try {
-            await api.setRoleProvider(roleId, providerId);
-            await reloadRoles();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-          }
-        }}
-      />
-
       <KpiStrip overview={overview} />
 
-      <section className="mt-8 grid grid-cols-12 gap-5">
-        <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-2.5">
-          <SectionEyebrow className="mb-1 px-1">
-            <span>Configured providers</span>
-            <button
-              type="button"
-              onClick={() => navigate({ kind: "providers" })}
-              className="text-fog-400 hover:text-fog-200"
-            >
-              add / manage →
-            </button>
-          </SectionEyebrow>
-          {(overview?.providers ?? [])
-            .filter((p) => p.configured)
-            .map((p) => (
-              <RosterRow
-                key={p.providerId}
-                profile={p}
-                selected={p.providerId === selected?.providerId}
-                onSelect={() => setSelectedId(p.providerId)}
-              />
-            ))}
-          {overview && overview.providers.filter((p) => p.configured).length === 0 ? (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
-              No providers configured yet —{" "}
+      <section className="mt-6 grid grid-cols-12 gap-5">
+        <div className="col-span-12 lg:col-span-5 space-y-5">
+          <RolesPanel
+            flows={flows}
+            selectedFlowId={selectedFlowId}
+            onSelectFlow={setSelectedFlowId}
+            orderedRoles={orderedRoles}
+            overview={overview}
+            onSetProvider={async (roleId, providerId) => {
+              try {
+                await api.setRoleProvider(roleId, providerId);
+                await reloadRoles();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            }}
+          />
+
+          <div className="space-y-2.5">
+            <div className="mb-1 flex items-baseline justify-between gap-3 px-1">
+              <span className="eyebrow">Configured providers</span>
               <button
                 type="button"
                 onClick={() => navigate({ kind: "providers" })}
-                className="text-violet-soft hover:underline"
+                className="text-[11px] text-fog-400 hover:text-fog-200"
               >
-                set one up in Providers
+                add / manage →
               </button>
-              .
             </div>
-          ) : null}
-          {!overview ? (
-            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
-              Loading providers…
-            </div>
-          ) : null}
+            {(overview?.providers ?? [])
+              .filter((p) => p.configured)
+              .map((p) => (
+                <RosterRow
+                  key={p.providerId}
+                  profile={p}
+                  selected={p.providerId === selected?.providerId}
+                  onSelect={() => setSelectedId(p.providerId)}
+                />
+              ))}
+            {overview && overview.providers.filter((p) => p.configured).length === 0 ? (
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
+                No providers configured yet —{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate({ kind: "providers" })}
+                  className="text-violet-soft hover:underline"
+                >
+                  set one up in Providers
+                </button>
+                .
+              </div>
+            ) : null}
+            {!overview ? (
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
+                Loading providers…
+              </div>
+            ) : null}
+          </div>
         </div>
 
-        <div className="col-span-12 lg:col-span-7 xl:col-span-8">
+        <div className="col-span-12 lg:col-span-7">
           {selected ? (
             <RoleDetail
               profile={selected}
@@ -834,10 +849,16 @@ const ROLE_BLURB: Record<string, string> = {
  * Providers page; here you just assign who plays each role.)
  */
 function RolesPanel({
+  flows,
+  selectedFlowId,
+  onSelectFlow,
   orderedRoles,
   overview,
   onSetProvider,
 }: {
+  flows: DiscoveredFlow[];
+  selectedFlowId: string;
+  onSelectFlow: (id: string) => void;
   orderedRoles: { role: Role; stepLabel: string | null }[];
   overview: ProvidersOverview | null;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
@@ -847,24 +868,41 @@ function RolesPanel({
   const selectCls =
     "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
   return (
-    <section className="mt-6" data-screen-label="Roles">
+    <section data-screen-label="Roles">
       <div className="overflow-hidden rounded-xl border border-violet-soft/25 surface-ink-100-55">
-        {/* The crew IS the default flow's seats — frame it as the flow, in order. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-white/[0.07] px-4 py-2.5">
+        {/* The crew IS a flow's seats. Pick the flow; its role-steps list below. */}
+        <div className="border-b border-white/[0.07] px-3.5 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-[13.5px] font-medium text-fog-100">Default flow</span>
-            <Chip tone="violet">runs by default</Chip>
-          </div>
-          <div className="flex items-center gap-3 text-[11.5px] text-fog-500">
-            <span>{orderedRoles.length} roles, in order — pick a provider for each</span>
+            <span className="text-[11px] uppercase tracking-wide text-fog-500">Flow</span>
+            {flows.length > 0 ? (
+              <select
+                value={selectedFlowId}
+                onChange={(e) => onSelectFlow(e.target.value)}
+                className={`${selectCls} font-medium`}
+              >
+                {flows.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-[13.5px] font-medium text-fog-100">Default</span>
+            )}
+            {selectedFlowId === "default" ? (
+              <Chip tone="violet">runs by default</Chip>
+            ) : null}
             <button
               type="button"
               onClick={() => navigate({ kind: "flows" })}
-              className="text-violet-soft/90 hover:text-violet-soft"
+              className="ml-auto text-[11.5px] text-violet-soft/90 hover:text-violet-soft"
             >
               view flow →
             </button>
           </div>
+          <p className="mt-1 text-[11px] text-fog-500">
+            {orderedRoles.length} roles, in order — pick the provider for each.
+          </p>
         </div>
 
         <ol className="divide-y divide-white/[0.05]">
@@ -873,31 +911,30 @@ function RolesPanel({
             const online = prov ? prov.available : r.providerConfigured;
             const isWrite = r.permissions.includes("write");
             return (
-              <li
-                key={r.id}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5"
-              >
-                {/* step node + who plays it */}
-                <div className="flex min-w-[176px] items-center gap-2.5">
+              <li key={r.id} className="px-3.5 py-2.5">
+                {/* line 1: step node + who plays it + permission */}
+                <div className="flex items-center gap-2.5">
                   <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full border border-violet-soft/30 bg-violet-soft/10 text-[10px] text-violet-soft">
                     {i + 1}
                   </span>
-                  <div className="leading-tight" title={ROLE_BLURB[r.id] ?? undefined}>
-                    <div className="text-[13px] text-fog-100">
-                      {stepLabel ?? <span className="capitalize">{r.id}</span>}
-                    </div>
-                    <div className="mono text-[10px] text-violet-soft/80">{r.id}</div>
-                  </div>
+                  <span
+                    className="text-[13px] text-fog-100"
+                    title={ROLE_BLURB[r.id] ?? undefined}
+                  >
+                    {stepLabel ?? <span className="capitalize">{r.id}</span>}
+                  </span>
+                  <span className="mono text-[10px] text-violet-soft/80">{r.id}</span>
+                  <Chip tone={isWrite ? "amber" : "neutral"} className="ml-auto">
+                    {r.permissions}
+                  </Chip>
                 </div>
-
-                {/* provider seat + status, pushed right */}
-                <label className="ml-auto flex items-center gap-1.5 text-[12px]">
+                {/* line 2: the provider seat + status */}
+                <label className="mt-1.5 flex items-center gap-1.5 pl-[30px] text-[12px]">
                   <ToneDot tone={online ? "emerald" : "rose"} />
-                  <span className="text-fog-500">runs on</span>
                   <select
                     value={r.provider}
                     onChange={(e) => void onSetProvider(r.id, e.target.value)}
-                    className={selectCls}
+                    className={`${selectCls} min-w-0 flex-1`}
                   >
                     {/* Keep an unconfigured current provider visible (flagged below). */}
                     {!configured.some((p) => p.providerId === r.provider) ? (
@@ -909,17 +946,15 @@ function RolesPanel({
                       </option>
                     ))}
                   </select>
+                  <span className="shrink-0 text-[10.5px] text-fog-500">
+                    {r.skills.length > 0 ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : "—"}
+                  </span>
                 </label>
-                <Chip tone={isWrite ? "amber" : "neutral"}>{r.permissions}</Chip>
-                <span className="w-[52px] text-right text-[11px] text-fog-500">
-                  {r.skills.length > 0 ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : "—"}
-                </span>
-
                 {!online ? (
-                  <p className="basis-full pl-[34px] text-[10.5px] text-rose-300/80">
+                  <p className="mt-1 pl-[30px] text-[10.5px] text-rose-300/80">
                     {r.providerConfigured
                       ? "provider CLI offline"
-                      : "provider not configured — pick another or set it up in Providers"}
+                      : "provider not configured — set one in Providers"}
                   </p>
                 ) : null}
               </li>
