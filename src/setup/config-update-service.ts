@@ -207,6 +207,24 @@ export async function assignRolesToProvider(
   await writeDocument(projectRoot, doc);
 }
 
+/** Point a single role at a provider (the per-role version of
+ *  assignRolesToProvider). Throws if the role or provider isn't in config. */
+export async function setRoleProvider(
+  projectRoot: string,
+  roleId: string,
+  providerId: string,
+): Promise<void> {
+  const { doc } = await readDocument(projectRoot);
+  if (!doc.hasIn(["roles", roleId])) {
+    throw new Error(`Role "${roleId}" is not configured.`);
+  }
+  if (!doc.hasIn(["providers", providerId])) {
+    throw new Error(`Provider "${providerId}" is not configured.`);
+  }
+  doc.setIn(["roles", roleId, "provider"], providerId);
+  await writeDocument(projectRoot, doc);
+}
+
 export async function setValidationCommands(
   projectRoot: string,
   commands: readonly string[],

@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **Crew page is role-first and editable.** Set each role's provider
+  inline via a dropdown (new `PATCH /api/roles/:roleId`, configured providers
+  only). The hero drops the "N roles, M providers" count summary and the "an
+  agent is a role" framing — it just talks about roles. Only **configured**
+  providers appear on Crew; non-configured/installable ones live on the
+  Providers page (with an "add / manage" link).
+
 - Docs: SECURITY.md documents a **known false positive** — scanners flag the
   Telegram notification gateway (`fetch` + `api.telegram.org` + `process.env`)
   as exfiltration; clarified the token is user-supplied (no hardcoded token),

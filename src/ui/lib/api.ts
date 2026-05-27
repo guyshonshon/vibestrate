@@ -596,6 +596,12 @@ export const api = {
   async getRoles(): Promise<{ roles: Role[] }> {
     return jsonGet("/api/roles");
   },
+  async setRoleProvider(
+    roleId: string,
+    provider: string,
+  ): Promise<{ ok: true; roleId: string; provider: string }> {
+    return jsonPatch(`/api/roles/${encodeURIComponent(roleId)}`, { provider });
+  },
   async resolveGuide(
     guideId: string,
     input: {
