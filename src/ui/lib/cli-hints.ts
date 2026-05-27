@@ -236,11 +236,11 @@ export function hintForRoute(route: Route): CliHint {
           },
         ],
       };
-    case "agents":
+    case "crew":
       return {
-        title: "Agents",
+        title: "Crew",
         blurb:
-          "Roster + capability detail. Edit providers in `.amaco/project.yml`.",
+          "Roles and the providers they run on. Edit roles/providers in `.amaco/project.yml`.",
         commands: [
           {
             cmd: "amaco doctor",

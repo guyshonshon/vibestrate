@@ -13,7 +13,7 @@ import { GitPage } from "./routes/GitPage.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { GuidesPage } from "./routes/GuidesPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
-import { AgentsPage } from "./routes/AgentsPage.js";
+import { CrewPage } from "./routes/CrewPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
@@ -126,7 +126,7 @@ export function App() {
           navigate({ kind: "flow", guideId: null });
           break;
         case "a":
-          navigate({ kind: "agents" });
+          navigate({ kind: "crew" });
           break;
         case "m":
           navigate({ kind: "metrics" });
@@ -249,11 +249,9 @@ export function App() {
                         ? "guides"
                         : route.kind === "metrics"
                           ? "metrics"
-                          : route.kind === "agents"
-                            ? "agents"
-                            : route.kind === "providers"
-                              ? "providers"
-                              : route.kind === "runs"
+                          : route.kind === "crew" || route.kind === "providers"
+                            ? "crew"
+                            : route.kind === "runs"
                                 ? "runs"
                                 : "home"
       }
@@ -262,8 +260,7 @@ export function App() {
       onShowFlows={() => navigate({ kind: "flow", guideId: null })}
       onShowGuides={() => navigate({ kind: "guides" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
-      onShowAgents={() => navigate({ kind: "agents" })}
-      onShowProviders={() => navigate({ kind: "providers" })}
+      onShowCrew={() => navigate({ kind: "crew" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
@@ -351,8 +348,8 @@ export function App() {
         />
       ) : route.kind === "metrics" ? (
         <MetricsPage />
-      ) : route.kind === "agents" ? (
-        <AgentsPage />
+      ) : route.kind === "crew" ? (
+        <CrewPage />
       ) : route.kind === "providers" ? (
         <ProvidersPage />
       ) : route.kind === "proposals" ? (

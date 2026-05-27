@@ -1,406 +1,227 @@
 Amaco rename candidates
 Checked: 2026-05-27
 
-Context
-Amaco is a local-first supervisor for coding-agent CLIs. It runs the tools a
-developer already has, such as Claude Code, Codex, Aider, Ollama, and OpenCode,
-through a visible plan -> architect -> implement -> validate -> review -> fix
--> verify loop in an isolated git worktree. The promise is not "another agent
-framework." The promise is: real software work, supervised, auditable, local,
-reviewed, tested, and never merged without the developer.
+Constraint
+- Maximum 7 characters.
+- No git/worktree-first names. Worktrees are implementation, not the brand.
+- Name should point at agent runs, supervision, orchestration, provider control,
+  or the run cockpit.
 
-Availability standard used for this list
-Each name below passed exact checks for:
-- npm: compact slug and kebab slug were not registered.
-- GitHub: compact account slug was not registered.
-- GitHub repositories: compact slug and kebab slug had no exact repository-name hit.
-- Homebrew: compact slug and kebab slug were absent from formula and cask tokens.
+Availability standard
+All names below passed exact checks for the lowercase compact slug:
+- npm package: not registered.
+- GitHub account/org: not registered.
+- GitHub repositories: no exact repository-name hit.
+- Homebrew: absent from formula and cask tokens.
 
-This is not trademark, domain, social-handle, or legal clearance. Before launch,
-reserve the GitHub org, npm package, Homebrew formula/cask path, domain, and
-social handles, then run a trademark search.
+This is not trademark, domain, or social-handle clearance. Before launch, reserve
+the GitHub org, npm package, Homebrew formula path, domain, and socials.
 
-Sources used
-- LangGraph overview: https://docs.langchain.com/oss/python/langgraph/overview
-- CrewAI introduction: https://docs.crewai.com/en/introduction
-- npm registry checks: https://registry.npmjs.org/
-- GitHub REST/search checks: https://api.github.com/
-- Homebrew formula/cask APIs: https://formulae.brew.sh/api/formula.json and https://formulae.brew.sh/api/cask.json
+Recommendation
+Best overall: AgntOps
+Best technical CLI name: OrchCtl
+Best multi-provider name: ProvMux
+Best dashboard/cockpit name: AgBoard
+Best supervisor name: SupDeck
 
-Short recommendation
-Best overall: CrewConductor
-Best most accurate technical name: WorktreeConductor
-Best if you want a plain product/tool name: CrewSupervisor
-Best if Guides become the hero: CrewRunbook
-Best local-first name: WorktreeCrew
+Top checked names
 
-Names I wanted but ruled out
-- CodeCrew: taken on npm and GitHub.
-- AgentCrew: taken on npm and GitHub.
-- CodeConductor: taken on npm and GitHub.
-- AgentConductor: taken on npm.
-- AgentSupervisor: taken on npm and GitHub.
-- RepoCrew: exact GitHub repo name exists.
-- FlowCrew: exact GitHub repo names exist.
-- AgentWorkbench: exact GitHub account slug exists.
+1. AgntOps
+Slug: agntops
+Meaning: Agent operations.
+Why it fits: The product is the operations layer for coding agents: run control,
+review, validation, provider choice, approvals, and history.
 
-Naming direction
-The name should say that this is a tool for running and supervising coding
-agents. Not just "merge status", not abstract trust language, and not random
-brand vocabulary.
+2. OrchCtl
+Slug: orchctl
+Meaning: Orchestration control.
+Why it fits: Very tool-like. It says "control the orchestrator" without naming
+git, worktrees, or one provider.
 
-The useful naming territories are:
-- Conductor: coordinates a crew through a sequence without doing the work itself.
-- Supervisor: says the control model directly.
-- Workbench: a hands-on developer surface for agent work.
-- Runbook: a guided operating procedure, close to Guides/Flows.
-- Crew: the clearest bridge to CrewAI while staying honest to the product.
-- Worktree: the local-first execution boundary that makes this different.
+3. ProvMux
+Slug: provmux
+Meaning: Provider multiplexer.
+Why it fits: Strong if the multi-provider story becomes the hero. It says the
+tool routes and controls different coding-agent providers.
 
-The 50 checked names
+4. ProvCtl
+Slug: provctl
+Meaning: Provider control.
+Why it fits: Clear, short, and CLI-native. Less catchy than ProvMux, but more
+obvious.
 
-1. CrewConductor
-Slug: crewconductor / crew-conductor
-Text: "Conduct a crew of coding agents."
-Why it fits: This is the best current option. It says multi-agent, orchestration,
-and human direction without sounding like a generic AI framework.
+5. AgGuide
+Slug: agguide
+Meaning: Agent guide.
+Why it fits: Softer than control names, but relevant to guided runs and
+human-approved agent work.
 
-2. WorktreeConductor
-Slug: worktreeconductor / worktree-conductor
-Text: "Conduct agent work inside a git worktree."
-Why it fits: The most accurate technical name. It immediately points to the
-local-first execution model.
+6. AgScope
+Slug: agscope
+Meaning: Agent scope / agent observability.
+Why it fits: Good if the run inspector, trace, diff, and validation view become
+the main product surface.
 
-3. PatchConductor
-Slug: patchconductor / patch-conductor
-Text: "Conduct a patch from plan to review."
-Why it fits: Strong developer meaning. The unit of work is a patch, and the tool
-guides it through phases.
+7. AgBoard
+Slug: agboard
+Meaning: Agent board.
+Why it fits: Good for the dashboard/cockpit direction. It sounds like a place
+where agent work is tracked and controlled.
 
-4. DiffConductor
-Slug: diffconductor / diff-conductor
-Text: "Conduct the work behind every diff."
-Why it fits: Centers the final artifact developers actually inspect.
+8. AgntRun
+Slug: agntrun
+Meaning: Agent run.
+Why it fits: Directly names the main unit of the product: a supervised coding
+agent run.
 
-5. ReviewConductor
-Slug: reviewconductor / review-conductor
-Text: "Conduct review, fixes, and verification."
-Why it fits: Best if the product should own the review loop more than the build
-step.
+9. AgntMux
+Slug: agntmux
+Meaning: Agent multiplexer.
+Why it fits: Says the tool can route work across agents/providers. Technical,
+but real.
 
-6. RunConductor
-Slug: runconductor / run-conductor
-Text: "Conduct every agent run."
-Why it fits: Maps directly to Amaco's run lifecycle.
+10. OrchRun
+Slug: orchrun
+Meaning: Orchestrated run.
+Why it fits: Good if the run lifecycle is the brand: plan, implement, validate,
+review, fix, verify.
 
-7. CrewSupervisor
-Slug: crewsupervisor / crew-supervisor
-Text: "A supervisor for coding-agent crews."
-Why it fits: Plain, obvious, and honest. Less catchy than CrewConductor, but
-very clear.
+11. OrchCmd
+Slug: orchcmd
+Meaning: Orchestrator command.
+Why it fits: CLI-native and control-oriented. Better for a command-line product
+than a polished app brand.
 
-8. WorktreeSupervisor
-Slug: worktreesupervisor / worktree-supervisor
-Text: "Supervise agent worktrees."
-Why it fits: Accurate and differentiated for developers who understand git.
+12. OrchNav
+Slug: orchnav
+Meaning: Orchestration navigator.
+Why it fits: Suggests guiding flows and choosing paths through multi-agent work.
 
-9. PatchSupervisor
-Slug: patchsupervisor / patch-supervisor
-Text: "Supervise patches before they land."
-Why it fits: Directly says the tool watches and controls patch work.
+13. ProvRun
+Slug: provrun
+Meaning: Provider run.
+Why it fits: Good for provider-neutral runs. It is plain, but accurate.
 
-10. DiffSupervisor
-Slug: diffsupervisor / diff-supervisor
-Text: "Supervise AI-made diffs."
-Why it fits: Short, developer-native, and tied to review.
+14. ProvCmd
+Slug: provcmd
+Meaning: Provider command.
+Why it fits: Command/control for multiple AI coding providers.
 
-11. ReviewSupervisor
-Slug: reviewsupervisor / review-supervisor
-Text: "Supervise the review loop."
-Why it fits: Clear for review/fix/verify positioning.
+15. ProvNav
+Slug: provnav
+Meaning: Provider navigator.
+Why it fits: Good for provider selection/routing. Less forceful than ProvCtl.
 
-12. RunSupervisor
-Slug: runsupervisor / run-supervisor
-Text: "Supervise agent runs from start to signoff."
-Why it fits: Good product-language name if "run" remains the main object.
+16. AgServo
+Slug: agservo
+Meaning: Agent servo loop.
+Why it fits: A servo is a control loop. This matches supervised agent work, but
+the word is more technical than the others.
 
-13. CrewWorkbench
-Slug: crewworkbench / crew-workbench
-Text: "A workbench for coding-agent crews."
-Why it fits: Sounds like a developer tool and matches the dashboard/work surface.
+17. SupDeck
+Slug: supdeck
+Meaning: Supervisor deck.
+Why it fits: Good if the product feels like a control deck for supervised runs.
 
-14. RepoWorkbench
-Slug: repoworkbench / repo-workbench
-Text: "A workbench for agent work in your repo."
-Why it fits: Repo-first and easy to understand.
+18. SupGate
+Slug: supgate
+Meaning: Supervised gate.
+Why it fits: Strong for approval gates and no-auto-merge positioning.
 
-15. WorktreeWorkbench
-Slug: worktreeworkbench / worktree-workbench
-Text: "A workbench for isolated agent work."
-Why it fits: The safest technical name in the Workbench family.
+19. SupLLM
+Slug: supllm
+Meaning: Supervise LLMs.
+Why it fits: Very direct. A little narrower than the real product because Amaco
+supervises CLIs and workflows, not just raw LLM calls.
 
-16. PatchWorkbench
-Slug: patchworkbench / patch-workbench
-Text: "A workbench for building and reviewing patches."
-Why it fits: Practical and tool-like.
+20. CodCtl
+Slug: codctl
+Meaning: Code control.
+Why it fits: Short and CLI-native, but the "cod" spelling is a compromise.
 
-17. DiffWorkbench
-Slug: diffworkbench / diff-workbench
-Text: "A workbench for inspected diffs."
-Why it fits: Good if the diff inspector becomes the hero surface.
+21. RunLead
+Slug: runlead
+Meaning: Lead the run.
+Why it fits: Human-in-the-loop, run-control positioning. More approachable than
+ctl/mux names.
 
-18. RunWorkbench
-Slug: runworkbench / run-workbench
-Text: "A workbench for agent runs."
-Why it fits: Simple and aligned with the run lifecycle.
+22. LLMLead
+Slug: llmlead
+Meaning: Lead LLM work.
+Why it fits: Directly says humans lead the model, not the other way around.
 
-19. CrewRunbook
-Slug: crewrunbook / crew-runbook
-Text: "Runbooks for coding-agent crews."
-Why it fits: Good if Guides/Flows become the defining feature.
+23. RunRte
+Slug: runrte
+Meaning: Run router.
+Why it fits: Good for routing and flow control, but probably too abbreviated for
+the main brand.
 
-20. RepoRunbook
-Slug: reporunbook / repo-runbook
-Text: "Runbooks for work inside your repo."
-Why it fits: Practical, local, and process-oriented.
+24. CtlRun
+Slug: ctlrun
+Meaning: Control runs.
+Why it fits: Accurate for a CLI, but the word order is less natural.
 
-21. WorktreeRunbook
-Slug: worktreerunbook / worktree-runbook
-Text: "Runbooks for isolated agent worktrees."
-Why it fits: Very accurate if the product leans into worktree safety.
+25. CtlCode
+Slug: ctlcode
+Meaning: Control code changes.
+Why it fits: Clear for a coding tool, but not agent-specific enough.
 
-22. PatchRunbook
-Slug: patchrunbook / patch-runbook
-Text: "A runbook for every patch."
-Why it fits: Explains the plan/build/review/verify sequence well.
+Names I would avoid even though they passed
+- LLMVise: sounds like a clamp, not a product.
+- OvrCtl: too cryptic.
+- SupVise: clever, but looks awkward.
+- CtlCrew: too close to CrewAI/AgentCrew territory.
+- ProvGat, PrvGuid, ProvDsk: too visibly abbreviated.
+- ModStir, RunStir, LLMStir: "stir" is the wrong verb.
 
-23. DiffRunbook
-Slug: diffrunbook / diff-runbook
-Text: "The runbook behind the diff."
-Why it fits: Good for auditability and replay.
-
-24. ReviewRunbook
-Slug: reviewrunbook / review-runbook
-Text: "A runbook for review and rework."
-Why it fits: Clear for reviewer/fixer/verifier loops.
-
-25. CodeRunbook
-Slug: coderunbook / code-runbook
-Text: "Runbooks for AI coding work."
-Why it fits: Broad and easy to explain.
-
-26. WorktreeCrew
-Slug: worktreecrew / worktree-crew
-Text: "A coding crew inside a worktree."
-Why it fits: Very close to the actual product architecture.
-
-27. BranchCrew
-Slug: branchcrew / branch-crew
-Text: "A coding crew for branch work."
-Why it fits: Git-native and understandable.
-
-28. DiffCrew
-Slug: diffcrew / diff-crew
-Text: "A crew that works toward a reviewed diff."
-Why it fits: Short and clear, with a concrete artifact.
-
-29. WorktreeAgents
-Slug: worktreeagents / worktree-agents
-Text: "Coding agents contained in a worktree."
-Why it fits: Literal, local-first, and easy to understand.
-
-30. ModelCrew
-Slug: modelcrew / model-crew
-Text: "A crew made from the models you already use."
-Why it fits: Good if provider/model neutrality becomes the headline.
-
-31. ProviderCrew
-Slug: providercrew / provider-crew
-Text: "A crew built from your provider CLIs."
-Why it fits: Accurate to Amaco's adapter model, though slightly internal.
-
-32. AgentOpsFlow
-Slug: agentopsflow / agent-ops-flow
-Text: "Ops flow for coding agents."
-Why it fits: Descriptive and close to the operational nature of the product.
-
-33. WorktreeOps
-Slug: worktreeops / worktree-ops
-Text: "Operations for agent worktrees."
-Why it fits: Practical, CLI-friendly, and local-first.
-
-34. CrewCaptain
-Slug: crewcaptain / crew-captain
-Text: "Captain the coding crew."
-Why it fits: Human control is obvious. More casual than Conductor, but catchy.
-
-35. WorktreeCaptain
-Slug: worktreecaptain / worktree-captain
-Text: "Captain the worktree while agents work."
-Why it fits: Strong local-control metaphor.
-
-36. PatchForeman
-Slug: patchforeman / patch-foreman
-Text: "A foreman for patch work."
-Why it fits: Very tool-like. It says supervision, sequencing, and inspection.
-
-37. CrewForeman
-Slug: crewforeman / crew-foreman
-Text: "A foreman for coding-agent crews."
-Why it fits: Direct and concrete, if a bit rugged.
-
-38. RepoForeman
-Slug: repoforeman / repo-foreman
-Text: "A foreman for AI work in your repo."
-Why it fits: Repo-oriented and clear.
-
-39. WorktreeForeman
-Slug: worktreeforeman / worktree-foreman
-Text: "A foreman for agent worktrees."
-Why it fits: Specific and accurate.
-
-40. DevForeman
-Slug: devforeman / dev-foreman
-Text: "Supervision for developer-agent work."
-Why it fits: Broad and plain.
-
-41. RunForeman
-Slug: runforeman / run-foreman
-Text: "A foreman for every run."
-Why it fits: Good if "run" is the core product noun.
-
-42. CrewMission
-Slug: crewmission / crew-mission
-Text: "Mission control for a coding-agent crew."
-Why it fits: Fits the dashboard's mission-control product feel.
-
-43. RepoMission
-Slug: repomission / repo-mission
-Text: "Mission control for AI work in your repo."
-Why it fits: Good for the dashboard and local repo framing.
-
-44. ReviewMission
-Slug: reviewmission / review-mission
-Text: "Mission control for review and verification."
-Why it fits: Best Mission name for the review-led story.
-
-45. PatchMission
-Slug: patchmission / patch-mission
-Text: "Mission control for patches."
-Why it fits: Clear, compact, and developer-oriented.
-
-46. WorktreeMission
-Slug: worktreemission / worktree-mission
-Text: "Mission control for worktree runs."
-Why it fits: Strong local-first/dashboard name.
-
-47. SupervisorFlow
-Slug: supervisorflow / supervisor-flow
-Text: "A supervised flow for coding agents."
-Why it fits: Directly explains the product. Less catchy, but very clear.
-
-48. SupervisorLoop
-Slug: supervisorloop / supervisor-loop
-Text: "A supervised loop for agent work."
-Why it fits: Names the plan/build/review/verify cycle.
-
-49. OrchestratorFlow
-Slug: orchestratorflow / orchestrator-flow
-Text: "An orchestration flow for coding agents."
-Why it fits: Accurate, especially for users comparing against LangGraph.
-
-50. OrchestratorLoop
-Slug: orchestratorloop / orchestrator-loop
-Text: "An orchestration loop for agent-built code."
-Why it fits: Clear and framework-adjacent, though less warm than CrewConductor.
-
-My top 10, ranked
-1. CrewConductor
-2. WorktreeConductor
-3. CrewSupervisor
-4. WorktreeCrew
-5. CrewWorkbench
-6. CrewRunbook
-7. PatchConductor
-8. RunConductor
-9. WorktreeSupervisor
-10. PatchRunbook
+Names cut because exact GitHub repo names existed
+- RunCue
+- AgDeck
+- LLMDeck
+- ModCtl
+- FlowDir
+- RunMux
+- LLMPipe
+- RunGate
+- FlowNav
+- CodMux
+- CrewOps
 
 Final naming call
-If I had to rename the project today, I would pick CrewConductor.
+If the name must be 7 characters or less, I would pick AgntOps.
 
 Reason:
-- It says what the tool does: conducts a crew.
-- It is connected to CrewAI-style language without copying CrewAI.
-- It implies supervision and sequencing, not just autonomous agents.
-- It fits the product's flow: plan -> architect -> implement -> validate ->
-review -> fix -> verify.
-- It leaves room for Guides, provider routing, worktree execution, dashboards,
-and human gates.
+- It is short, but still readable as "agent ops."
+- It describes the product category: operations/control for coding agents.
+- It does not over-index on worktrees.
+- It leaves room for provider routing, approval gates, validation, review, and
+  run history.
 
-LangGraph comparison
-Short answer: LangGraph can overlap with the underlying orchestration pattern,
-but it does not already replace this product.
+If you want the more open-source CLI style, pick OrchCtl instead.
 
-LangGraph's official positioning is that it is a low-level orchestration
-framework and runtime for long-running, stateful agents. Its core strengths
-include durable execution, streaming, human-in-the-loop workflows, memory,
-persistence, and deployment/observability through the LangChain/LangSmith
-ecosystem.
+Competitive positioning
+LangGraph can model similar workflows, but it is infrastructure for building
+stateful agent graphs. Amaco should not compete as another graph framework.
+Amaco's category should be: local-first supervised coding-agent runs.
 
-That means a team could build an Amaco-like workflow on LangGraph. They could
-model plan, build, review, fix, and verify as graph nodes. They could add human
-interrupts. They could persist state. They could stream events.
+AgentCrew is broader: a multi-agent chat/workbench with roles, tools, MCP, web,
+automation, and app surfaces. Amaco is narrower and sharper: it supervises real
+software changes through plan -> implement -> validate -> review -> fix -> verify,
+using the coding-agent CLIs a developer already has.
 
-But Amaco's product is different:
-- Amaco is an end-user developer tool, not a low-level framework.
-- Amaco runs existing coding-agent CLIs instead of asking users to rebuild
-agents in a Python/JS framework.
-- Amaco's default workflow is software-engineering-specific: plan, architect,
-implement, validate, review, fix, verify.
-- Amaco uses isolated git worktrees as the mutation boundary.
-- Amaco treats tests, typechecks, build commands, diffs, approvals, budgets, and
-run history as first-class product surfaces.
-- Amaco never hosts the user's keys, code, telemetry, or merge decision.
-- Amaco is open-source, local-first, and non-profit by design.
+How to compete:
+- Own the software-change workflow, not generic multi-agent chat.
+- Make validation, diffs, review findings, approvals, budgets, and run history
+  first-class.
+- Stay provider-neutral across Claude Code, Codex, Aider, Ollama, OpenCode, and
+  future tools.
+- Keep the non-profit/local-first trust story: no hosted keys, no hidden
+  telemetry, no auto-push, no auto-merge.
+- Build the best run inspector: timeline, logs, diffs, validation results,
+  decisions, rework, and final report.
 
-So the competitive answer is:
-LangGraph is infrastructure for building agent systems.
-CrewAI is a framework/platform for building agent teams and flows.
-Amaco should be the local-first supervisor for coding agents already sitting on
-a developer's machine.
-
-How to compete
-1. Own a narrower category.
-Do not compete as a general multi-agent framework. The stronger category is:
-"local-first coding-agent supervisor" or "the review and verification layer for
-AI coding agents."
-
-2. Make the default workflow impossible to miss.
-The product should scream: plan -> build -> review -> verify. LangGraph can be
-configured to do that, but Amaco should make it the default experience.
-
-3. Make git and validation the moat.
-Worktree isolation, validation commands, diff inspection, review findings, phase
-rewind, and merge-ready reports are more valuable to developers than generic
-agent graph primitives.
-
-4. Stay provider-neutral.
-Claude Code, Codex, Aider, Ollama, OpenCode, and future CLIs should be treated
-as interchangeable workers. That is a stronger open-source story than locking
-users into one model framework.
-
-5. Be the trust layer.
-No hosted keys. No telemetry. No payments. No auto-push. No auto-merge. Human
-approval gates. Clear cost/token ledger. This is how a non-profit open-source
-project can compete against better-funded platforms.
-
-6. Build the best run inspector.
-The dashboard should feel closer to a trace viewer and code-review cockpit than
-an AI chat UI. The winning surface is the timeline, diff, validation log,
-decision ledger, and rework controls.
-
-7. Treat LangGraph and CrewAI as adjacent, not enemies.
-It may be useful later to export Amaco run events or provide a LangGraph/CrewAI
-integration, but the core brand should remain independent: Amaco's replacement
-name should signal supervised code changes, not generic agent orchestration.
+License note
+MIT is fine for maximum simplicity. Apache-2.0 is stronger for this project if
+you want explicit patent protection and better company contribution comfort.
+If the project has few outside contributors today, switching from MIT to
+Apache-2.0 or dual MIT OR Apache-2.0 is still relatively easy.
