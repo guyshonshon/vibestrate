@@ -64,13 +64,29 @@ function StepCard({ index, a }: { index: number; a: AgentMetrics }) {
           {fmtDuration(a.durationMs)}
         </Stat>
         {tokensIn !== null || tokensOut !== null ? (
-          <Stat icon={<Hash className="h-3 w-3" />} title="Tokens (input → output)">
+          <Stat
+            icon={<Hash className="h-3 w-3" />}
+            title={
+              a.tokensEstimated
+                ? "Tokens (input → output) — estimated from text"
+                : "Tokens (input → output)"
+            }
+          >
+            {a.tokensEstimated ? "~" : ""}
             {fmtNum(tokensIn)} → {fmtNum(tokensOut)} tok
           </Stat>
         ) : null}
         {a.totalCostUsd !== null ? (
-          <Stat icon={<Coins className="h-3 w-3" />} title="Reported cost">
-            ${a.totalCostUsd.toFixed(4)}
+          <Stat
+            icon={<Coins className="h-3 w-3" />}
+            title={
+              a.costEstimated
+                ? "Estimated cost (tokens × local list price)"
+                : "Cost reported by the CLI"
+            }
+          >
+            {a.costEstimated ? "~" : ""}${a.totalCostUsd.toFixed(4)}
+            {a.costEstimated ? " est" : ""}
           </Stat>
         ) : null}
         {a.toolCallCount !== null ? (

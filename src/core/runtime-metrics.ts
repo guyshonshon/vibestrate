@@ -41,8 +41,13 @@ export const agentMetricsSchema = z.object({
   guideContextFallbackReason: z.string().nullable().default(null),
   model: z.string().nullable().default(null),
   totalCostUsd: z.number().nullable().default(null),
+  /** True when totalCostUsd was computed locally (tokens × list price) rather
+   *  than reported by the CLI — surfaced as an "est." label. */
+  costEstimated: z.boolean().optional(),
   perModelCost: z.array(perModelCostSchema).default([]),
   tokenUsage: tokenUsageSchema.nullable().default(null),
+  /** True when tokenUsage was estimated from text (provider reported none). */
+  tokensEstimated: z.boolean().optional(),
   toolCallCount: z.number().nullable().default(null),
   filesChangedBefore: z.number().nullable().default(null),
   filesChangedAfter: z.number().nullable().default(null),

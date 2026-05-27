@@ -474,6 +474,8 @@ export type AgentMetrics = {
   guideContextFallbackReason: string | null;
   model: string | null;
   totalCostUsd: number | null;
+  /** True when cost was computed locally (tokens × list price), not CLI-reported. */
+  costEstimated?: boolean;
   perModelCost: { model: string; costUsd: number }[];
   tokenUsage: {
     input?: number;
@@ -481,6 +483,8 @@ export type AgentMetrics = {
     cacheRead?: number;
     cacheCreation?: number;
   } | null;
+  /** True when tokenUsage was estimated from text (provider reported none). */
+  tokensEstimated?: boolean;
   toolCallCount: number | null;
   filesChangedAfter: number | null;
   diffInsertionsAfter: number | null;

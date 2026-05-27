@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **token/cost ledger** (structured-output A3) — a local static pricing
+  table (USD/1M by model, prefix-matched, no network). Cost precedence:
+  CLI-reported → `tokens × list price` (labelled estimate) → null (never
+  fabricated). Tokens are real where the provider reports them, estimated from
+  text otherwise, so every provider shows token counts; per-step + run-level
+  metrics carry `est.` labels. Added `costEstimated`/`tokensEstimated` flags.
 - Change: **Claude streams by default.** The claude preset is now the
   first-class `claude-code` provider in stream-json mode (live output + real
   token/cost), unifying the two preset builders so `init` / `doctor --fix` /
