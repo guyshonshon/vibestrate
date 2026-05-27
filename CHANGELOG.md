@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **flows are always editable** — editing a built-in flow transparently
+  writes a project copy (`.amaco/flows/<id>`) that shadows it, instead of
+  refusing with "fork it first". No read-only gate.
+- Add: **role context API** — `GET/PUT /api/roles/:roleId/context` reads and
+  writes a role's prompt (its "brain"), path-guarded; the bulk roles list still
+  never exposes prompt contents.
+
 - Add: **loop authoring in the Flow Builder** — a Loop panel to add/remove the
   adaptive review→fix loop (from/to range, decision review, max iterations) with
   inline validity hints; shipped via the `loop` patch. Flow steps' `stage` and

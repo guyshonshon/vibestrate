@@ -11,6 +11,7 @@ import {
 } from "../src/flows/runtime/flow-patch.js";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { findBuiltinFlow } from "../src/flows/catalog/builtin-flows.js";
+import { findFlowById } from "../src/flows/catalog/flow-discovery.js";
 
 const PROJECT_CONFIG = `project:
   name: flow-patch
@@ -225,17 +226,24 @@ describe("applyFlowPatch", () => {
     expect(reparsed.steps.find((s) => s.id === "review")?.optional).toBe(true);
   });
 
-  it("refuses to edit builtin flows", async () => {
+  it("auto-forks a builtin flow on edit (always editable)", async () => {
     const root = await makeProject();
     const result = await applyFlowPatch({
       projectRoot: root,
       flowId: "quality-arbitration",
-      patch: { label: "Hijacked" },
+      patch: { label: "My Quality Arbitration" },
     });
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.status).toBe(409);
-    expect(result.reasons.join("\n")).toMatch(/builtin/);
+    if (!result.ok) throw new Error(result.reasons.join("\n"));
+    // A project copy was written, shadowing the builtin.
+    const written = await fs.readFile(
+      path.join(root, ".amaco", "flows", "quality-arbitration", "flow.yml"),
+      "utf8",
+    );
+    expect((YAML.parse(written) as { label: string }).label).toBe(
+      "My Quality Arbitration",
+    );
+    const found = await findFlowById(root, "quality-arbitration");
+    expect(found?.source.kind).toBe("project");
   });
 
   it("404s when the flow does not exist", async () => {
@@ -252,7 +260,7 @@ describe("applyFlowPatch", () => {
 });
 
 describe("PATCH /api/flows/:flowId", () => {
-  it("persists project-flow edits over HTTP and refuses builtin edits", async () => {
+  it("persists project-flow edits over HTTP and auto-forks builtin edits", async () => {
     const root = await makeProject();
     server = await startServer({ projectRoot: root, port: 0, host: "127.0.0.1" });
 
@@ -269,15 +277,22 @@ describe("PATCH /api/flows/:flowId", () => {
     expect(okBody.ok).toBe(true);
     expect(okBody.flow.label).toBe("Project Review · API");
 
-    const refused = await fetch(
+    // Editing a builtin over HTTP auto-forks it into the project (no 409).
+    const forked = await fetch(
       `${server.url}/api/flows/quality-arbitration`,
       {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ label: "Hijacked" }),
+        body: JSON.stringify({ label: "My QA" }),
       },
     );
-    expect(refused.status).toBe(409);
+    expect(forked.status).toBe(200);
+    const forkedBody = (await forked.json()) as {
+      ok: boolean;
+      flow: { label: string; source: { kind: string } };
+    };
+    expect(forkedBody.flow.label).toBe("My QA");
+    expect(forkedBody.flow.source.kind).toBe("project");
   });
 });
 

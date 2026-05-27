@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import {
   buildProjectRoots,
@@ -65,6 +67,87 @@ export async function registerProjectRoutes(
         );
       }
       return { ok: true, roleId, provider: body.provider.trim() };
+    },
+  );
+
+  // Read a single role's context (its prompt — the "brain") for inline editing.
+  // Unlike the bulk /api/roles list (references only), this returns the prompt
+  // contents: a deliberate per-role read of the user's own instruction file,
+  // path-guarded to the project. Missing file → empty (a not-yet-written brain).
+  app.get<{ Params: { roleId: string } }>(
+    "/api/roles/:roleId/context",
+    async (req) => {
+      const roleId = req.params.roleId;
+      if (!/^[a-z][a-z0-9-]*$/.test(roleId)) {
+        throw new HttpError(400, "Invalid role id.");
+      }
+      if (!(await configExists(projectRoot))) {
+        throw new HttpError(404, "Amaco is not initialized here.");
+      }
+      const { config } = await loadConfig(projectRoot);
+      const role = config.roles[roleId];
+      if (!role) throw new HttpError(404, `No role "${roleId}".`);
+      const roots = buildProjectRoots({ projectRoot });
+      let resolved;
+      try {
+        resolved = await resolveSafePath(role.prompt, roots);
+      } catch (err) {
+        if (err instanceof PathGuardError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+      let content = "";
+      try {
+        content = await fs.readFile(resolved.absolutePath, "utf8");
+      } catch {
+        // No prompt file yet — treat as an empty context to author.
+      }
+      return {
+        roleId,
+        provider: role.provider,
+        permissions: role.permissions,
+        skills: role.skills,
+        promptPath: role.prompt,
+        content,
+      };
+    },
+  );
+
+  // Write a role's context (prompt). Path-guarded; creates the file if missing.
+  app.put<{ Params: { roleId: string }; Body: unknown }>(
+    "/api/roles/:roleId/context",
+    async (req) => {
+      const roleId = req.params.roleId;
+      if (!/^[a-z][a-z0-9-]*$/.test(roleId)) {
+        throw new HttpError(400, "Invalid role id.");
+      }
+      const body = (req.body ?? {}) as { content?: unknown };
+      if (typeof body.content !== "string") {
+        throw new HttpError(400, "Body must include a string `content`.");
+      }
+      if (body.content.length > 100_000) {
+        throw new HttpError(400, "Prompt is too large (100k character max).");
+      }
+      if (!(await configExists(projectRoot))) {
+        throw new HttpError(404, "Amaco is not initialized here.");
+      }
+      const { config } = await loadConfig(projectRoot);
+      const role = config.roles[roleId];
+      if (!role) throw new HttpError(404, `No role "${roleId}".`);
+      const roots = buildProjectRoots({ projectRoot });
+      let resolved;
+      try {
+        resolved = await resolveSafePath(role.prompt, roots);
+      } catch (err) {
+        if (err instanceof PathGuardError) {
+          throw new HttpError(err.statusCode, err.message);
+        }
+        throw err;
+      }
+      await fs.mkdir(path.dirname(resolved.absolutePath), { recursive: true });
+      await fs.writeFile(resolved.absolutePath, body.content, "utf8");
+      return { ok: true, roleId, promptPath: role.prompt };
     },
   );
 
