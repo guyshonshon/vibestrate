@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: `docs/design/crew-flow-authoring.md` — design/decision doc for per-role
+  model+effort, fully editable flows (loop authoring, default-flow fork-&-edit),
+  per-flow provider bindings, and model escalation on repeated review failure.
+
 - Change: Crew page — the flow/roles panel moves into the left column beside the
   provider detail panel (was a full-width block that crowded the page) and gains
   a **flow selector**: pick any flow and its role-steps list in order, each with
