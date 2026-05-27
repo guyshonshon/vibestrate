@@ -276,6 +276,9 @@ export const resolvedFlowSnapshotSchema = z
     resolvedAt: z.string(),
     slots: z.array(resolvedFlowSlotSchema).min(1),
     steps: z.array(resolvedFlowStepSchema).min(1),
+    // Carried through unchanged when the flow declares an adaptive loop; the
+    // runner (not the resolver) iterates it. null for linear flows.
+    loop: flowLoopSchema.nullable().default(null),
   })
   .strict();
 export type ResolvedFlowSnapshot = z.infer<typeof resolvedFlowSnapshotSchema>;
