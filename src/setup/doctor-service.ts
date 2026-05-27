@@ -3,7 +3,7 @@ import { execa } from "execa";
 import { pathExists, ensureDir, writeText } from "../utils/fs.js";
 import {
   amacoRoot,
-  projectAgentsDir,
+  projectRolesDir,
   projectRunsDir,
   projectSkillsDir,
   projectConfigPath,
@@ -18,15 +18,15 @@ import {
   type DetectedProvider,
 } from "../providers/provider-detection.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
-import { readDefaultPrompt } from "../agents/default-agents.js";
+import { readDefaultPrompt } from "../roles/default-roles.js";
 import {
-  builtinAgentIds,
-  type BuiltinAgentId,
-} from "../agents/agent-schema.js";
+  builtinRoleIds,
+  type BuiltinRoleId,
+} from "../roles/role-schema.js";
 import { discoverSkills } from "../skills/skill-discovery.js";
 import {
   ensureProvider,
-  assignAgentsToProvider,
+  assignRolesToProvider,
   setValidationCommands,
 } from "./config-update-service.js";
 import { buildProviderFromDetection } from "../providers/provider-presets.js";
@@ -200,9 +200,9 @@ export async function runDoctor(input: {
 
   // All agents reference valid providers.
   const missingProviderRefs: string[] = [];
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     if (!loaded.config.providers[agent.provider]) {
-      missingProviderRefs.push(agentId);
+      missingProviderRefs.push(roleId);
     }
   }
   if (missingProviderRefs.length > 0) {
@@ -226,17 +226,17 @@ export async function runDoctor(input: {
 
   // Check prompt files exist.
   const missingPrompts: string[] = [];
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     const promptPath = path.isAbsolute(agent.prompt)
       ? agent.prompt
       : path.join(projectRoot, agent.prompt);
     if (!(await pathExists(promptPath))) {
-      missingPrompts.push(agentId);
+      missingPrompts.push(roleId);
     }
   }
   if (missingPrompts.length > 0) {
     const restorable = missingPrompts.filter((id) =>
-      (builtinAgentIds as readonly string[]).includes(id),
+      (builtinRoleIds as readonly string[]).includes(id),
     );
     findings.push({
       id: "prompt-files",
@@ -260,14 +260,14 @@ export async function runDoctor(input: {
   // Check skills referenced exist (discovery covers .amaco/skills/<name>.md, .amaco/skills/<dir>/SKILL.md, .claude/skills/<dir>/SKILL.md).
   const discovered = await discoverSkills(projectRoot);
   const knownNames = new Set(discovered.map((s) => s.name));
-  const missingSkills: { agentId: string; skill: string }[] = [];
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  const missingSkills: { roleId: string; skill: string }[] = [];
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     for (const skill of agent.skills) {
       // Legacy: check flat .amaco/skills/<name>.md too.
       const flat = path.join(projectSkillsDir(projectRoot), `${skill}.md`);
       const flatExists = await pathExists(flat);
       if (!flatExists && !knownNames.has(skill)) {
-        missingSkills.push({ agentId, skill });
+        missingSkills.push({ roleId, skill });
       }
     }
   }
@@ -277,13 +277,13 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Skills referenced by agents are missing",
       detail: missingSkills
-        .map((m) => `${m.agentId} → ${m.skill}`)
+        .map((m) => `${m.roleId} → ${m.skill}`)
         .join("; "),
       fixHint:
         "Create the missing skill in `.amaco/skills/<name>/SKILL.md`, drop a flat `.amaco/skills/<name>.md`, or unassign with `amaco skills unassign <agent> <skill>`.",
       fixable: false,
     });
-  } else if (Object.values(loaded.config.agents).some((a) => a.skills.length > 0)) {
+  } else if (Object.values(loaded.config.roles).some((a) => a.skills.length > 0)) {
     findings.push({
       id: "skills-present",
       severity: "ok",
@@ -293,15 +293,15 @@ export async function runDoctor(input: {
   }
 
   // Check write-enabled agents are configured for the worktree.
-  for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
+  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     let profile;
     try {
       profile = resolveProfile(loaded.config.permissions.profiles, agent.permissions);
     } catch (err) {
       findings.push({
-        id: `permission-${agentId}`,
+        id: `permission-${roleId}`,
         severity: "fail",
-        title: `Agent "${agentId}" uses unknown permission profile "${agent.permissions}"`,
+        title: `Agent "${roleId}" uses unknown permission profile "${agent.permissions}"`,
         detail: err instanceof Error ? err.message : String(err),
         fixHint:
           "Use one of the built-in profiles (read_only, code_write, review_only, verify_only) or define one under permissions.profiles.",
@@ -311,9 +311,9 @@ export async function runDoctor(input: {
     }
     if (profile.allowWrite && profile.cwd !== "worktree") {
       findings.push({
-        id: `permission-${agentId}`,
+        id: `permission-${roleId}`,
         severity: "fail",
-        title: `Agent "${agentId}" can write but is configured to run in ${profile.cwd}`,
+        title: `Agent "${roleId}" can write but is configured to run in ${profile.cwd}`,
         detail: "Write-enabled agents must run inside the worktree to keep changes isolated.",
         fixHint: `Run \`amaco config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
         fixable: false,
@@ -325,7 +325,7 @@ export async function runDoctor(input: {
   for (const [name, p] of [
     ["runs", projectRunsDir(projectRoot)],
     ["skills", projectSkillsDir(projectRoot)],
-    ["agents", projectAgentsDir(projectRoot)],
+    ["roles", projectRolesDir(projectRoot)],
   ] as const) {
     if (!(await pathExists(p))) {
       findings.push({
@@ -698,7 +698,7 @@ export async function applyDoctorFixes(input: {
   for (const [name, p] of [
     ["runs", projectRunsDir(projectRoot)],
     ["skills", projectSkillsDir(projectRoot)],
-    ["agents", projectAgentsDir(projectRoot)],
+    ["roles", projectRolesDir(projectRoot)],
   ] as const) {
     if (!(await pathExists(p))) {
       await ensureDir(p);
@@ -725,13 +725,13 @@ export async function applyDoctorFixes(input: {
       loaded = null;
     }
     if (loaded) {
-      for (const [agentId, agent] of Object.entries(loaded.config.agents)) {
-        if (!(builtinAgentIds as readonly string[]).includes(agentId)) continue;
+      for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
+        if (!(builtinRoleIds as readonly string[]).includes(roleId)) continue;
         const promptPath = path.isAbsolute(agent.prompt)
           ? agent.prompt
           : path.join(projectRoot, agent.prompt);
         if (await pathExists(promptPath)) continue;
-        const contents = await readDefaultPrompt(agentId as BuiltinAgentId);
+        const contents = await readDefaultPrompt(roleId as BuiltinRoleId);
         await writeText(promptPath, contents);
         applied.push(`Restored ${path.relative(projectRoot, promptPath)}`);
       }
@@ -750,7 +750,7 @@ export async function applyDoctorFixes(input: {
           recommended.id,
           buildProviderFromDetection(recommended.id, recommended.command),
         );
-        await assignAgentsToProvider(projectRoot, recommended.id);
+        await assignRolesToProvider(projectRoot, recommended.id);
         applied.push(
           `Added '${recommended.id}' provider and assigned all default agents to it`,
         );

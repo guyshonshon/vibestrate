@@ -4,7 +4,7 @@ import { ollamaPreset } from "../providers/presets/ollama.js";
 import { claudeCodePreset } from "../providers/presets/claude-code.js";
 import {
   ensureProvider,
-  assignAgentsToProvider,
+  assignRolesToProvider,
   readDocument,
 } from "./config-update-service.js";
 import type {
@@ -32,7 +32,7 @@ export type ProviderSummary = {
   command: string;
   args: string[];
   input: "stdin" | "arg";
-  agentsUsing: string[];
+  rolesUsing: string[];
 };
 
 export async function listConfiguredProviders(
@@ -41,22 +41,22 @@ export async function listConfiguredProviders(
   const { doc } = await readDocument(projectRoot);
   const js = doc.toJS() as {
     providers?: Record<string, { command?: string; args?: string[]; input?: "stdin" | "arg" }>;
-    agents?: Record<string, { provider?: string }>;
+    roles?: Record<string, { provider?: string }>;
   };
   const providers = js.providers ?? {};
-  const agents = js.agents ?? {};
+  const agents = js.roles ?? {};
   const out: ProviderSummary[] = [];
   for (const [id, prov] of Object.entries(providers)) {
     const usedBy: string[] = [];
-    for (const [agentId, agent] of Object.entries(agents)) {
-      if (agent.provider === id) usedBy.push(agentId);
+    for (const [roleId, agent] of Object.entries(agents)) {
+      if (agent.provider === id) usedBy.push(roleId);
     }
     out.push({
       id,
       command: prov.command ?? "",
       args: prov.args ?? [],
       input: prov.input ?? "stdin",
-      agentsUsing: usedBy.sort(),
+      rolesUsing: usedBy.sort(),
     });
   }
   return out;
@@ -65,7 +65,7 @@ export async function listConfiguredProviders(
 export type SetProviderResult = {
   ok: true;
   providerId: string;
-  agentsUpdated: string[];
+  rolesUpdated: string[];
 };
 
 export type SetProviderError = {
@@ -87,16 +87,16 @@ export async function setDefaultProvider(
       hint: "Run `amaco provider setup` to add a provider before assigning it.",
     };
   }
-  await assignAgentsToProvider(projectRoot, providerId);
+  await assignRolesToProvider(projectRoot, providerId);
   const after = await listConfiguredProviders(projectRoot);
-  const updated = after.find((s) => s.id === providerId)?.agentsUsing ?? [];
-  return { ok: true, providerId, agentsUpdated: updated };
+  const updated = after.find((s) => s.id === providerId)?.rolesUsing ?? [];
+  return { ok: true, providerId, rolesUpdated: updated };
 }
 
 export type AddProviderInput = {
   id: string;
   config: ProviderConfig;
-  alsoAssignAllAgents?: boolean;
+  alsoAssignAllRoles?: boolean;
 };
 
 export async function addProvider(
@@ -109,8 +109,8 @@ export async function addProvider(
     );
   }
   await ensureProvider(projectRoot, input.id, input.config);
-  if (input.alsoAssignAllAgents) {
-    await assignAgentsToProvider(projectRoot, input.id);
+  if (input.alsoAssignAllRoles) {
+    await assignRolesToProvider(projectRoot, input.id);
   }
 }
 

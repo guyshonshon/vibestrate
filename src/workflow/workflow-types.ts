@@ -48,7 +48,7 @@ export const PAUSABLE_STATUSES: RunStatus[] = [
 
 export type WorkflowStage = {
   id: WorkflowStageId;
-  agentId?: string;
+  roleId?: string;
   enteringStatus: RunStatus;
   exitingStatus: RunStatus;
 };

@@ -211,7 +211,7 @@ export class ProposalService {
       dependencies: t.dependencies,
       createdAt: nowIso(),
       updatedAt: nowIso(),
-      assignedAgents: [],
+      assignedRoles: [],
       requiredSkills: t.requiredSkills,
       validationProfile: null,
       branchName: null,

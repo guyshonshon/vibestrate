@@ -107,7 +107,7 @@ export function RunStatusSection({
   const currentStep =
     run.guide?.steps.find((s) => s.id === run.guide?.currentStepId) ?? null;
   const nowLabel = currentStep?.label ?? rail.steps[rail.active] ?? null;
-  const nowAgent =
+  const nowRole =
     currentStep?.providerId ??
     run.resolvedProviderId ??
     run.providerOverride ??
@@ -173,8 +173,8 @@ export function RunStatusSection({
               <span className="pulse-dot" />
               <span className="text-fog-400">Now</span>
               <span className="text-fog-100 font-medium">{nowLabel}</span>
-              {nowAgent ? (
-                <span className="mono text-[11.5px] text-violet-soft">{nowAgent}</span>
+              {nowRole ? (
+                <span className="mono text-[11.5px] text-violet-soft">{nowRole}</span>
               ) : null}
             </div>
           ) : null}

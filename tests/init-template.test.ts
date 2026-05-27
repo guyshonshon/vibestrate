@@ -51,14 +51,14 @@ describe("init template", () => {
 
     const cfg = (await readGeneratedConfig(projectRoot)) as {
       providers: Record<string, { command: string; args: string[]; input: string }>;
-      agents: Record<string, { provider: string }>;
+      roles: Record<string, { provider: string }>;
       commands: { validate: string[] };
     };
     expect(cfg.providers["claude"]?.command).toBe("claude");
     expect(cfg.providers["claude"]?.args).toEqual(["-p"]);
     expect(cfg.providers["claude"]?.input).toBe("stdin");
-    for (const agentId of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-      expect(cfg.agents[agentId]?.provider).toBe("claude");
+    for (const roleId of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
+      expect(cfg.roles[roleId]?.provider).toBe("claude");
     }
     expect(cfg.commands.validate).toEqual(["pnpm typecheck", "pnpm test"]);
   });

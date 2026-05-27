@@ -10,7 +10,7 @@ export const guideTokenSchema = z
   .max(80)
   .regex(GUIDE_TOKEN_RE, "Guide tokens must use lowercase letters, digits, and dashes.");
 
-export const guideAgentIdSchema = z
+export const guideRoleIdSchema = z
   .string()
   .min(1)
   .max(128)
@@ -59,7 +59,7 @@ export const guideSlotSchema = z
   .object({
     label: z.string().min(1).max(120),
     description: z.string().min(1).max(400).optional(),
-    defaultAgent: guideAgentIdSchema,
+    defaultRole: guideRoleIdSchema,
   })
   .strict();
 export type GuideSlot = z.infer<typeof guideSlotSchema>;
@@ -70,7 +70,7 @@ export const guideStepSchema = z
     label: z.string().min(1).max(160),
     kind: guideStepKindSchema,
     slot: guideTokenSchema.optional(),
-    agentId: guideAgentIdSchema.optional(),
+    roleId: guideRoleIdSchema.optional(),
     inputs: z.array(guideTokenSchema).default([]),
     outputs: z.array(guideTokenSchema).default([]),
     optional: z.boolean().default(false),
@@ -173,7 +173,7 @@ export const resolvedGuideSlotSchema = z
     id: guideTokenSchema,
     label: z.string().min(1).max(120),
     description: z.string().nullable().default(null),
-    defaultAgent: guideAgentIdSchema,
+    defaultRole: guideRoleIdSchema,
     providerId: z.string().min(1),
   })
   .strict();
@@ -187,7 +187,7 @@ export const resolvedGuideStepSchema = z
     enabled: z.boolean(),
     optional: z.boolean(),
     slotId: guideTokenSchema.nullable(),
-    agentId: guideAgentIdSchema.nullable(),
+    roleId: guideRoleIdSchema.nullable(),
     providerId: z.string().min(1).nullable(),
     inputs: z.array(guideTokenSchema),
     outputs: z.array(guideTokenSchema),

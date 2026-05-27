@@ -4,10 +4,10 @@ import { readText, writeText, pathExists } from "../utils/fs.js";
 import { ConfigError } from "../utils/errors.js";
 import {
   projectConfigPath,
-  projectAgentsDir,
+  projectRolesDir,
 } from "../utils/paths.js";
 import { projectConfigSchema, type ProjectConfig } from "../project/config-schema.js";
-import { builtinAgentIds } from "../agents/agent-schema.js";
+import { builtinRoleIds } from "../roles/role-schema.js";
 import type { ProviderConfig } from "../providers/provider-schema.js";
 
 export type ParsedValue = string | number | boolean | unknown[] | Record<string, unknown>;
@@ -194,14 +194,14 @@ export async function ensureProvider(
   await writeDocument(projectRoot, doc);
 }
 
-export async function assignAgentsToProvider(
+export async function assignRolesToProvider(
   projectRoot: string,
   providerId: string,
 ): Promise<void> {
   const { doc } = await readDocument(projectRoot);
-  for (const agentId of builtinAgentIds) {
-    if (doc.hasIn(["agents", agentId])) {
-      doc.setIn(["agents", agentId, "provider"], providerId);
+  for (const roleId of builtinRoleIds) {
+    if (doc.hasIn(["roles", roleId])) {
+      doc.setIn(["roles", roleId, "provider"], providerId);
     }
   }
   await writeDocument(projectRoot, doc);
@@ -216,6 +216,6 @@ export async function setValidationCommands(
   await writeDocument(projectRoot, doc);
 }
 
-export function relativeAgentsDir(projectRoot: string): string {
-  return path.relative(projectRoot, projectAgentsDir(projectRoot));
+export function relativeRolesDir(projectRoot: string): string {
+  return path.relative(projectRoot, projectRolesDir(projectRoot));
 }

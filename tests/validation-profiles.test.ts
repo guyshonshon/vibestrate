@@ -26,7 +26,7 @@ import { writeJson } from "../src/utils/json.js";
 const BASE_CONFIG = {
   project: { name: "demo", type: "generic" },
   providers: { fake: { type: "cli", command: "/bin/true", inputMode: "stdin" } },
-  agents: { reviewer: { provider: "fake", prompt: "reviewer", permissions: "read" } },
+  roles: { reviewer: { provider: "fake", prompt: "reviewer", permissions: "read" } },
 };
 
 function configFromYaml(input: {
@@ -253,7 +253,7 @@ async function tempProjectWithWorktree(opts: {
       "project: { name: demo, type: generic }",
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
-      "agents:",
+      "roles:",
       "  reviewer: { provider: fake, prompt: reviewer, permissions: read }",
       "commands:",
       `  validate: ${JSON.stringify(validate)}`,

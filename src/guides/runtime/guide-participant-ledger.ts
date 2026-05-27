@@ -36,7 +36,7 @@ export type GuideParticipantCapabilities = z.infer<
 export const guideParticipantTurnSchema = z
   .object({
     stepId: z.string().min(1),
-    agentId: z.string().min(1),
+    roleId: z.string().min(1),
     providerId: z.string().min(1),
     contextMode: guideContextRetentionModeSchema,
     contextPacketPath: z.string().min(1),
@@ -171,7 +171,7 @@ export function recordGuideParticipantTurn(input: {
   ledger: GuideParticipantLedger;
   prepared: PreparedGuideParticipantTurn;
   stepId: string;
-  agentId: string;
+  roleId: string;
   providerId: string;
   contextPacketPath: string;
   promptArtifactPath: string;
@@ -193,7 +193,7 @@ export function recordGuideParticipantTurn(input: {
         ...participant.turns,
         {
           stepId: input.stepId,
-          agentId: input.agentId,
+          roleId: input.roleId,
           providerId: input.providerId,
           contextMode: input.prepared.contextMode,
           contextPacketPath: input.contextPacketPath,

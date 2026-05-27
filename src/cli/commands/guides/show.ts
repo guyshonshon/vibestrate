@@ -44,7 +44,7 @@ export async function runGuidesShow(
   console.log(color.bold("Slots"));
   for (const [slotId, slot] of Object.entries(guide.definition.slots)) {
     console.log(
-      indent(`${slotId}: ${slot.label} ${color.dim(`(default agent ${slot.defaultAgent})`)}`),
+      indent(`${slotId}: ${slot.label} ${color.dim(`(default agent ${slot.defaultRole})`)}`),
     );
   }
   console.log("");

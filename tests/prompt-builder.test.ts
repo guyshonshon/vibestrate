@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildAgentPrompt } from "../src/core/prompt-builder.js";
+import { buildRolePrompt } from "../src/core/prompt-builder.js";
 import type { PermissionProfile } from "../src/permissions/permission-schema.js";
 
 const writeProfile: PermissionProfile = {
@@ -17,11 +17,11 @@ const readProfile: PermissionProfile = {
 
 describe("prompt builder", () => {
   it("includes task, project rules, and role instructions", () => {
-    const out = buildAgentPrompt({
-      agentId: "planner",
+    const out = buildRolePrompt({
+      roleId: "planner",
       task: "Add policy reacceptance",
       rules: "## Rules\n- be careful",
-      agentPromptTemplate: "Plan the work.",
+      rolePromptTemplate: "Plan the work.",
       skills: [],
       priorArtifacts: [],
       permission: readProfile,
@@ -38,11 +38,11 @@ describe("prompt builder", () => {
   });
 
   it("includes attached skills with names + content", () => {
-    const out = buildAgentPrompt({
-      agentId: "reviewer",
+    const out = buildRolePrompt({
+      roleId: "reviewer",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Review.",
+      rolePromptTemplate: "Review.",
       skills: [
         { name: "security", filePath: "/sec.md", content: "be safe", mcpServers: {} },
         { name: "testing", filePath: "/t.md", content: "test it", mcpServers: {} },
@@ -62,11 +62,11 @@ describe("prompt builder", () => {
   });
 
   it("includes prior artifacts when given", () => {
-    const out = buildAgentPrompt({
-      agentId: "executor",
+    const out = buildRolePrompt({
+      roleId: "executor",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Execute.",
+      rolePromptTemplate: "Execute.",
       skills: [],
       priorArtifacts: [
         { label: "Plan", content: "Plan content" },
@@ -85,11 +85,11 @@ describe("prompt builder", () => {
   });
 
   it("includes permission boundaries", () => {
-    const writeOut = buildAgentPrompt({
-      agentId: "executor",
+    const writeOut = buildRolePrompt({
+      roleId: "executor",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Execute.",
+      rolePromptTemplate: "Execute.",
       skills: [],
       priorArtifacts: [],
       permission: writeProfile,
@@ -104,11 +104,11 @@ describe("prompt builder", () => {
     expect(writeOut).toContain("Forbidden operations");
     expect(writeOut).toContain("push");
 
-    const readOut = buildAgentPrompt({
-      agentId: "reviewer",
+    const readOut = buildRolePrompt({
+      roleId: "reviewer",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Review.",
+      rolePromptTemplate: "Review.",
       skills: [],
       priorArtifacts: [],
       permission: readProfile,
@@ -121,11 +121,11 @@ describe("prompt builder", () => {
   });
 
   it("injects shared human annotations as their own section", () => {
-    const out = buildAgentPrompt({
-      agentId: "executor",
+    const out = buildRolePrompt({
+      roleId: "executor",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Execute.",
+      rolePromptTemplate: "Execute.",
       skills: [],
       priorArtifacts: [],
       permission: writeProfile,
@@ -142,11 +142,11 @@ describe("prompt builder", () => {
   });
 
   it("omits the annotations section when none are shared", () => {
-    const out = buildAgentPrompt({
-      agentId: "planner",
+    const out = buildRolePrompt({
+      roleId: "planner",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Plan.",
+      rolePromptTemplate: "Plan.",
       skills: [],
       priorArtifacts: [],
       permission: readProfile,
@@ -160,11 +160,11 @@ describe("prompt builder", () => {
   });
 
   it("does not inline .env contents", () => {
-    const out = buildAgentPrompt({
-      agentId: "planner",
+    const out = buildRolePrompt({
+      roleId: "planner",
       task: "x",
       rules: "rules",
-      agentPromptTemplate: "Plan.",
+      rolePromptTemplate: "Plan.",
       skills: [],
       priorArtifacts: [],
       permission: readProfile,

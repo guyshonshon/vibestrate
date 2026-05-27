@@ -39,7 +39,7 @@ async function makeRunFixture(opts: {
       "project: { name: replay-test, type: generic }",
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
-      "agents:",
+      "roles:",
       "  reviewer: { provider: fake, prompt: reviewer, permissions: read }",
       "commands: { validate: [] }",
       "",
@@ -119,12 +119,12 @@ async function makeRunFixture(opts: {
       from: "created",
       to: "planning",
     });
-    push("2026-05-12T10:00:10.000Z", "agent.started", "planner started", {
-      agentId: "planner",
+    push("2026-05-12T10:00:10.000Z", "role.started", "planner started", {
+      roleId: "planner",
       stageId: "planning",
     });
-    push("2026-05-12T10:00:30.000Z", "agent.completed", "planner done", {
-      agentId: "planner",
+    push("2026-05-12T10:00:30.000Z", "role.completed", "planner done", {
+      roleId: "planner",
       stageId: "planning",
       outputArtifactPath: "02-plan.md",
     });
@@ -196,7 +196,7 @@ async function makeRunFixture(opts: {
           id: "appr-1",
           runId,
           stageId: "reviewing",
-          agentId: "reviewer",
+          roleId: "reviewer",
           createdAt: "2026-05-12T10:05:31.000Z",
           updatedAt: "2026-05-12T10:06:00.000Z",
           status: "approved",
@@ -287,7 +287,7 @@ async function makeRunFixture(opts: {
         filesChanged: 3,
         diffInsertions: 12,
         diffDeletions: 4,
-        agents: [
+        roles: [
           { stageId: "planning" },
           { stageId: "executing" },
           { stageId: "reviewing" },
@@ -411,7 +411,7 @@ describe("buildRunReplay — service", () => {
     expect(r.snapshots[0]!.status).toBe("planning");
     // Metrics summarised.
     expect(r.metrics?.totalProviderCalls).toBe(4);
-    expect(r.metrics?.agentStageOrder).toEqual([
+    expect(r.metrics?.roleStageOrder).toEqual([
       "planning",
       "executing",
       "reviewing",
@@ -427,8 +427,8 @@ describe("buildRunReplay — service", () => {
     const r = await buildRunReplay(project, runId);
     const phaseOf = (key: typeof r.phases[number]["key"]) =>
       r.phases.find((p) => p.key === key)!;
-    // Planning phase should include the agent.started for planner.
-    const plannerIdx = r.events.findIndex((e) => e.type === "agent.started");
+    // Planning phase should include the role.started for planner.
+    const plannerIdx = r.events.findIndex((e) => e.type === "role.started");
     expect(plannerIdx).toBeGreaterThanOrEqual(0);
     expect(phaseOf("planning").eventIndices).toContain(plannerIdx);
     // validation.command.completed lands under "validating".
@@ -502,7 +502,7 @@ describe("buildRunReplay — service", () => {
       lines.push(
         JSON.stringify({
           timestamp: new Date(baseTime + i).toISOString(),
-          type: i === 0 ? "run.created" : "agent.started",
+          type: i === 0 ? "run.created" : "role.started",
           message: `event ${i}`,
         }),
       );

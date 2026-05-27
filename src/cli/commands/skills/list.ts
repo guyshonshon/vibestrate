@@ -1,14 +1,14 @@
 import { detectProject } from "../../../project/project-detector.js";
 import { discoverSkills } from "../../../skills/skill-discovery.js";
-import { listAgentSkillAssignments } from "../../../skills/skill-assignment-service.js";
+import { listRoleSkillAssignments } from "../../../skills/skill-assignment-service.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
   const detected = await detectProject(process.cwd());
   const skills = await discoverSkills(detected.projectRoot);
-  let assignments: { agentId: string; skills: string[] }[] = [];
+  let assignments: { roleId: string; skills: string[] }[] = [];
   try {
-    assignments = await listAgentSkillAssignments(detected.projectRoot);
+    assignments = await listRoleSkillAssignments(detected.projectRoot);
   } catch {
     // ignore — config may not exist yet
   }
@@ -39,7 +39,7 @@ export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
   for (const s of skills) {
     const using = assignments
       .filter((a) => a.skills.includes(s.name))
-      .map((a) => a.agentId);
+      .map((a) => a.roleId);
     console.log(`${color.bold(s.name)} ${color.dim(`(${s.source})`)}`);
     if (s.description) console.log(indent(color.dim(s.description)));
     console.log(indent(color.dim(s.filePath)));

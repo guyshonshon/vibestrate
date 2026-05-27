@@ -486,7 +486,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
             {replay.approvals.map((a) => (
               <li key={a.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
                 <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">
-                  {a.stageId} · {a.agentId} · risk {a.riskLevel} · source {a.source}
+                  {a.stageId} · {a.roleId} · risk {a.riskLevel} · source {a.source}
                 </div>
                 <div className="text-[11px]">
                   {a.status} {a.resolvedAt ? `· ${formatShortTime(a.resolvedAt)}` : ""}
@@ -633,7 +633,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
               </li>
             ) : null}
             <li>
-              agent stage order: {replay.metrics.agentStageOrder.join(" → ") || "—"}
+              agent stage order: {replay.metrics.roleStageOrder.join(" → ") || "—"}
             </li>
           </ul>
         </SummaryCard>

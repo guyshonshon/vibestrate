@@ -374,7 +374,7 @@ function AnnotationsPanel(props: {
         line: props.draftLine,
         endLine: props.draftEndLine,
         body,
-        shareWithAgents: share,
+        shareWithRoles: share,
       });
       if (!mounted.current) return;
       setAnns((cur) => [created, ...cur]);
@@ -390,7 +390,7 @@ function AnnotationsPanel(props: {
 
   async function patch(
     id: string,
-    p: { status?: "open" | "resolved"; shareWithAgents?: boolean },
+    p: { status?: "open" | "resolved"; shareWithRoles?: boolean },
   ) {
     setBusyId(id);
     try {
@@ -547,7 +547,7 @@ function AnnotationsPanel(props: {
                   onToggleResolve={() =>
                     void patch(a.id, { status: a.status === "open" ? "resolved" : "open" })
                   }
-                  onToggleShare={() => void patch(a.id, { shareWithAgents: !a.shareWithAgents })}
+                  onToggleShare={() => void patch(a.id, { shareWithRoles: !a.shareWithRoles })}
                   onDelete={() => void remove(a.id)}
                 />
               ))
@@ -587,15 +587,15 @@ function AnnotationCard({
           type="button"
           onClick={onToggleShare}
           disabled={busy}
-          title={a.shareWithAgents ? "Shared with agents — click to make private" : "Private — click to share with agents"}
+          title={a.shareWithRoles ? "Shared with agents — click to make private" : "Private — click to share with agents"}
           className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
-            a.shareWithAgents
+            a.shareWithRoles
               ? "border-violet-soft/40 bg-violet-soft/10 text-violet-soft"
               : "border-white/10 text-fog-500"
           }`}
         >
           <Bot className="h-3 w-3" />
-          {a.shareWithAgents ? "agents" : "private"}
+          {a.shareWithRoles ? "roles" : "private"}
         </button>
         <div className="ml-auto flex items-center gap-1">
           <IconBtn title={resolved ? "Reopen" : "Resolve"} onClick={onToggleResolve} disabled={busy}>

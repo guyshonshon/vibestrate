@@ -63,7 +63,7 @@ export function DashboardPage({ snapshot }: Props) {
                         {"  "}
                         <Text>{clip(r.task, 36).padEnd(36)}</Text>
                         {"  "}
-                        <Text dimColor>{clip(r.currentAgent ?? "—", 10)}</Text>
+                        <Text dimColor>{clip(r.currentRole ?? "—", 10)}</Text>
                         {r.pendingApprovals > 0 ? (
                           <Text color="yellow">  ⏳{r.pendingApprovals}</Text>
                         ) : null}

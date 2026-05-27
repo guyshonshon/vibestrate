@@ -92,7 +92,7 @@ async function runReplay(
     for (const a of replay.approvals) {
       console.log(
         indent(
-          `${a.status.padEnd(9)} ${a.stageId} · ${a.agentId} · risk ${a.riskLevel} · ${a.source}`,
+          `${a.status.padEnd(9)} ${a.stageId} · ${a.roleId} · risk ${a.riskLevel} · ${a.source}`,
         ),
       );
     }

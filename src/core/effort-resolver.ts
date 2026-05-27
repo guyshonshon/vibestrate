@@ -20,7 +20,7 @@ export type EffortResolution = {
    */
   providerId: string | null;
   /** Where the resolution came from (drives the run-log message). */
-  source: "providerOverride" | "effortMap" | "agentDefault";
+  source: "providerOverride" | "effortMap" | "roleDefault";
   /**
    * Honest description for the event log. Always present even on
    * fallback so the user can see what was attempted.
@@ -42,7 +42,7 @@ export function resolveEffort(input: EffortResolutionInput): EffortResolution {
     if (!config.providers[providerOverride]) {
       return {
         providerId: null,
-        source: "agentDefault",
+        source: "roleDefault",
         note: `Task asked for provider "${providerOverride}" but it isn't configured in project.yml#providers. Falling back to each agent's default provider.`,
       };
     }
@@ -58,14 +58,14 @@ export function resolveEffort(input: EffortResolutionInput): EffortResolution {
     if (!mapped) {
       return {
         providerId: null,
-        source: "agentDefault",
+        source: "roleDefault",
         note: `Task requested effort=${effort} but no providers.effortMap[${effort}] is configured. Falling back to each agent's default provider.`,
       };
     }
     if (!config.providers[mapped]) {
       return {
         providerId: null,
-        source: "agentDefault",
+        source: "roleDefault",
         note: `Task requested effort=${effort} → "${mapped}" but that provider isn't in project.yml#providers. Falling back to each agent's default provider.`,
       };
     }
@@ -78,7 +78,7 @@ export function resolveEffort(input: EffortResolutionInput): EffortResolution {
 
   return {
     providerId: null,
-    source: "agentDefault",
+    source: "roleDefault",
     note: "No effort or providerOverride set; each agent will use its configured provider.",
   };
 }

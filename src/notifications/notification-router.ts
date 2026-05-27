@@ -82,17 +82,17 @@ export function draftRunCompleted(input: {
 export function draftApprovalRequested(input: {
   runId: string;
   approvalId: string;
-  agentId: string;
+  roleId: string;
   stageId: string;
   reason?: string | null;
 }): NotificationDraft {
   return {
     severity: "attention",
     category: "approval",
-    title: `Approval requested by ${input.agentId}`,
+    title: `Approval requested by ${input.roleId}`,
     message:
       input.reason ??
-      `${input.agentId} paused the run at "${input.stageId}" and is asking for your decision.`,
+      `${input.roleId} paused the run at "${input.stageId}" and is asking for your decision.`,
     runId: input.runId,
     approvalId: input.approvalId,
     sourceEventType: "approval.requested",

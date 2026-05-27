@@ -92,13 +92,13 @@ export async function exportGuideArbitrationDataset(input: {
     disagreementRecords: summarizeGuideDisagreements(ledger),
     participants: participants?.participants ?? [],
     providerTurns:
-      metrics?.agents
+      metrics?.roles
         .filter((agent) =>
           state.guide?.steps.some((step) => step.id === agent.stageId),
         )
         .map((agent) => ({
           stepId: agent.stageId,
-          agentId: agent.agentId,
+          roleId: agent.roleId,
           providerId: agent.providerId,
           providerType: agent.providerType,
           model: agent.model,

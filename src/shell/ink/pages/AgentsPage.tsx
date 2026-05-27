@@ -20,7 +20,7 @@ export function AgentsPage({
   active,
 }: Props) {
   const agents = config
-    ? Object.entries(config.agents).map(([id, a]) => ({ id, ...a }))
+    ? Object.entries(config.roles).map(([id, a]) => ({ id, ...a }))
     : [];
   const idx = Math.max(0, Math.min(agents.length - 1, selectedIndex));
   const selected = agents[idx] ?? null;

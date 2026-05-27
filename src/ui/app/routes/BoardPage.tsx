@@ -84,7 +84,7 @@ function roadmapToneFor(id: string): ChipTone {
 }
 
 const AGENT_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
-function agentTone(id: string): ChipTone {
+function roleTone(id: string): ChipTone {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return AGENT_TONES[h % AGENT_TONES.length]!;
@@ -969,14 +969,14 @@ function TaskCard({
         </div>
       ) : null}
 
-      {(task.assignedAgents.length > 0 ||
+      {(task.assignedRoles.length > 0 ||
         task.commentsCount > 0 ||
         task.touchedFiles.length > 0 ||
         blockedBy > 0 ||
         unlocks > 0) ? (
         <div className="mt-2 pt-1.5 border-t border-white/[0.04] flex items-center justify-between gap-2">
-          {task.assignedAgents.length > 0 ? (
-            <AgentStack agentIds={task.assignedAgents} />
+          {task.assignedRoles.length > 0 ? (
+            <RoleStack roleIds={task.assignedRoles} />
           ) : (
             <span className="mono text-[9.5px] text-fog-500">unassigned</span>
           )}
@@ -1018,10 +1018,10 @@ function TaskCard({
   );
 }
 
-function AgentStack({ agentIds }: { agentIds: string[] }) {
+function RoleStack({ roleIds }: { roleIds: string[] }) {
   const max = 3;
-  const shown = agentIds.slice(0, max);
-  const extra = agentIds.length - max;
+  const shown = roleIds.slice(0, max);
+  const extra = roleIds.length - max;
   const gradient: Record<ChipTone, string> = {
     neutral: "linear-gradient(135deg,#9aa0b3,#6a7186)",
     violet: "linear-gradient(135deg,#a78bfa,#6951f0)",
@@ -1033,7 +1033,7 @@ function AgentStack({ agentIds }: { agentIds: string[] }) {
   return (
     <div className="flex items-center -space-x-1">
       {shown.map((id) => {
-        const tone = agentTone(id);
+        const tone = roleTone(id);
         const initial =
           id.replace(/[^a-zA-Z]/g, "").charAt(0).toUpperCase() || "?";
         return (

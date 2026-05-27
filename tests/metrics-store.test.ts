@@ -26,10 +26,10 @@ describe("MetricsStore", () => {
     );
     const round = await store.read();
     expect(round?.runId).toBe("r1");
-    expect(round?.agents).toEqual([]);
+    expect(round?.roles).toEqual([]);
   });
 
-  it("appendAgentMetrics adds an agent and recomputes totals", async () => {
+  it("appendRoleMetrics adds an agent and recomputes totals", async () => {
     const store = new MetricsStore(projectRoot, "r1");
     await store.write(
       makeEmptyMetrics({
@@ -38,8 +38,8 @@ describe("MetricsStore", () => {
         startedAt: new Date().toISOString(),
       }),
     );
-    await store.appendAgentMetrics({
-      agentId: "planner",
+    await store.appendRoleMetrics({
+      roleId: "planner",
       stageId: "planning",
       providerId: "claude",
       providerType: "cli",

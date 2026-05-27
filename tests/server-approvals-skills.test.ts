@@ -64,7 +64,7 @@ describe("server: skill assign/unassign", () => {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ agentId: "executor" }),
+        body: JSON.stringify({ roleId: "executor" }),
       },
     );
     expect(res.status).toBe(200);
@@ -74,8 +74,8 @@ describe("server: skill assign/unassign", () => {
     // Re-fetch and confirm.
     const after = (await fetch(`${server!.url}/api/skills`).then((r) =>
       r.json(),
-    )) as { assignments: { agentId: string; skills: string[] }[] };
-    const exec = after.assignments.find((a) => a.agentId === "executor")!;
+    )) as { assignments: { roleId: string; skills: string[] }[] };
+    const exec = after.assignments.find((a) => a.roleId === "executor")!;
     expect(exec.skills).toContain("test-skill");
   });
 
@@ -87,14 +87,14 @@ describe("server: skill assign/unassign", () => {
     await fetch(`${server!.url}/api/skills/${encodeURIComponent(skillId)}/assign`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ agentId: "executor" }),
+      body: JSON.stringify({ roleId: "executor" }),
     });
     const res = await fetch(
       `${server!.url}/api/skills/${encodeURIComponent(skillId)}/unassign`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ agentId: "executor" }),
+        body: JSON.stringify({ roleId: "executor" }),
       },
     );
     expect(res.status).toBe(200);
@@ -108,7 +108,7 @@ describe("server: skill assign/unassign", () => {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ agentId: "executor" }),
+        body: JSON.stringify({ roleId: "executor" }),
       },
     );
     expect(res.status).toBe(404);
@@ -124,7 +124,7 @@ describe("server: skill assign/unassign", () => {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ agentId: "ghost" }),
+        body: JSON.stringify({ roleId: "ghost" }),
       },
     );
     expect(res.status).toBe(400);
@@ -141,7 +141,7 @@ describe("server: approvals API", () => {
     const svc = new ApprovalService(project, "r1");
     await svc.create({
       stageId: "reviewing",
-      agentId: "reviewer",
+      roleId: "reviewer",
       reason: "needs eyes",
       prompt: null,
       sourceArtifactPath: "artifacts/09-review.md",

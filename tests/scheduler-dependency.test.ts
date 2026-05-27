@@ -36,7 +36,7 @@ describe("scheduler dependency handling", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 1,
-        maxConcurrentWriteAgents: 1,
+        maxConcurrentWriteRoles: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
         sourceQuotas: {},

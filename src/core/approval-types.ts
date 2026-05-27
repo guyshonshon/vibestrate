@@ -18,7 +18,7 @@ export const approvalRequestSchema = z.object({
   id: z.string().min(1),
   runId: z.string().min(1),
   stageId: z.string().min(1),
-  agentId: z.string().min(1),
+  roleId: z.string().min(1),
   createdAt: z.string(),
   updatedAt: z.string(),
   status: approvalStatusSchema,

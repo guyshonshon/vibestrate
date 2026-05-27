@@ -58,7 +58,7 @@ export type ShellRunRow = {
   pausedAtStatus: RunStatus | null;
   updatedAt: string;
   /** The agent the orchestrator most recently started and hasn't yet finished. */
-  currentAgent: string | null;
+  currentRole: string | null;
   currentProvider: string | null;
   currentSkills: string[];
   currentMcpServers: string[];
@@ -72,7 +72,7 @@ export type ShellRunRow = {
    * terminal runs (failed/aborted/merge_ready) still surface "the
    * fixer was working on this" in the Overview pane.
    */
-  lastAgent: string | null;
+  lastRole: string | null;
   /**
    * Human-readable failure reason for terminal/blocked runs. Drawn
    * from state.error first, then the last failed event's message.
@@ -377,35 +377,35 @@ async function readEventsTail(
 
 /**
  * Derive "what's happening right now" from the events tail. The
- * orchestrator emits structured events for agent.started / completed /
+ * orchestrator emits structured events for role.started / completed /
  * failed and mcp.attached; we walk forward and keep the most recent
- * agent.started that hasn't been followed by a matching completed/failed.
+ * role.started that hasn't been followed by a matching completed/failed.
  */
 function deriveLive(events: ShellEvent[]): {
-  currentAgent: string | null;
+  currentRole: string | null;
   currentProvider: string | null;
   currentSkills: string[];
   currentMcpServers: string[];
   lastEvent: ShellEvent | null;
   /** Last agent that ran (kept after completion so terminal runs still show it). */
-  lastAgent: string | null;
+  lastRole: string | null;
   /** First failure/blocked event message (most useful for "why"). */
   errorFromEvents: string | null;
 } {
-  let currentAgent: string | null = null;
+  let currentRole: string | null = null;
   let currentProvider: string | null = null;
   let currentSkills: string[] = [];
   let currentMcpServers: string[] = [];
-  let lastAgent: string | null = null;
+  let lastRole: string | null = null;
   let errorFromEvents: string | null = null;
   for (const ev of events) {
-    const agentId =
-      ev.data && typeof ev.data.agentId === "string"
-        ? (ev.data.agentId as string)
+    const roleId =
+      ev.data && typeof ev.data.roleId === "string"
+        ? (ev.data.roleId as string)
         : null;
-    if (ev.type === "agent.started" && agentId) {
-      currentAgent = agentId;
-      lastAgent = agentId;
+    if (ev.type === "role.started" && roleId) {
+      currentRole = roleId;
+      lastRole = roleId;
       currentProvider =
         ev.data && typeof ev.data.provider === "string"
           ? (ev.data.provider as string)
@@ -413,16 +413,16 @@ function deriveLive(events: ShellEvent[]): {
       currentSkills = [];
       currentMcpServers = [];
     } else if (
-      (ev.type === "agent.completed" || ev.type === "agent.failed") &&
-      agentId === currentAgent
+      (ev.type === "role.completed" || ev.type === "role.failed") &&
+      roleId === currentRole
     ) {
-      currentAgent = null;
+      currentRole = null;
       currentProvider = null;
       currentSkills = [];
       currentMcpServers = [];
     } else if (
       ev.type === "mcp.attached" &&
-      agentId === currentAgent &&
+      roleId === currentRole &&
       Array.isArray(ev.data?.servers)
     ) {
       const servers = ev.data?.servers as Array<{ name?: unknown }>;
@@ -431,7 +431,7 @@ function deriveLive(events: ShellEvent[]): {
         .filter((n): n is string => !!n);
     } else if (
       ev.type === "skill.assigned" &&
-      agentId === currentAgent &&
+      roleId === currentRole &&
       typeof ev.data?.skillName === "string"
     ) {
       currentSkills = [...new Set([...currentSkills, ev.data.skillName as string])];
@@ -440,14 +440,14 @@ function deriveLive(events: ShellEvent[]): {
     // answer "why did this run end up in its current state"
     // without forcing the user to scroll the events tail.
     //
-    // Priority: a hard failure (agent.failed / provider.failed /
+    // Priority: a hard failure (role.failed / provider.failed /
     // run.failed / run.aborted) wins over a softer one (policy
     // warning, approval reject, generic state→blocked). We
     // OVERWRITE a softer earlier reason when a hard one shows up,
     // but never overwrite a hard reason with a softer follow-up.
     const eventReasonRank = (t: string): number => {
       if (
-        t === "agent.failed" ||
+        t === "role.failed" ||
         t === "provider.failed" ||
         t === "run.failed" ||
         t === "run.aborted"
@@ -471,12 +471,12 @@ function deriveLive(events: ShellEvent[]): {
     }
   }
   return {
-    currentAgent,
+    currentRole,
     currentProvider,
     currentSkills,
     currentMcpServers,
     lastEvent: events.length > 0 ? events[events.length - 1] ?? null : null,
-    lastAgent,
+    lastRole,
     errorFromEvents,
   };
 }

@@ -4,7 +4,7 @@ import {
   type DiscoveredSkill,
 } from "../../../skills/skill-discovery.js";
 import {
-  listAgentSkillAssignments,
+  listRoleSkillAssignments,
   type SkillAssignmentSummary,
 } from "../../../skills/skill-assignment-service.js";
 
@@ -18,7 +18,7 @@ export function useSkills(projectRoot: string, refreshMs = 3000) {
     try {
       const [s, a] = await Promise.all([
         discoverSkills(projectRoot),
-        listAgentSkillAssignments(projectRoot).catch(() => []),
+        listRoleSkillAssignments(projectRoot).catch(() => []),
       ]);
       if (!mounted.current) return;
       setSkills(s);

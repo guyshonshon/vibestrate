@@ -108,18 +108,18 @@ function renderApprovalsSection(approvals: ApprovalRequest[]): string {
         : a.alsoRequiredByPolicy
           ? "agent + policy"
           : "agent";
-    return `| \`${a.id}\` | ${a.stageId} | ${a.agentId} | ${sourceLabel} | ${a.riskLevel} | ${a.status} | ${escape(a.requestedAction)} | ${escape(a.reason)} | ${escape(a.decisionNote)} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
+    return `| \`${a.id}\` | ${a.stageId} | ${a.roleId} | ${sourceLabel} | ${a.riskLevel} | ${a.status} | ${escape(a.requestedAction)} | ${escape(a.reason)} | ${escape(a.decisionNote)} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
   });
   return [head, sep, ...rows].join("\n");
 }
 
 function renderMetricsSection(metrics: RuntimeMetrics | null): string {
-  if (!metrics || metrics.agents.length === 0) {
+  if (!metrics || metrics.roles.length === 0) {
     return "_No runtime metrics recorded._";
   }
   const head = `| Stage | Agent | Provider | Duration | Exit | Skills | Diff (+/-) | Cost | Tokens | Decision |`;
   const sep = `| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- | --- |`;
-  const rows = metrics.agents.map((a) => {
+  const rows = metrics.roles.map((a) => {
     const skills = a.skillsAttached.length > 0 ? a.skillsAttached.join(", ") : "—";
     const diff =
       a.diffInsertionsAfter !== null && a.diffDeletionsAfter !== null
@@ -131,7 +131,7 @@ function renderMetricsSection(metrics: RuntimeMetrics | null): string {
         ? `${a.tokenUsage.input ?? 0}→${a.tokenUsage.output ?? 0}`
         : "—";
     const decision = a.reviewDecision ?? a.verificationDecision ?? "—";
-    return `| ${a.stageId} | ${a.agentId} | ${a.providerId} | ${a.durationMs}ms | ${a.exitCode} | ${skills} | ${diff} | ${cost} | ${tokens} | ${decision} |`;
+    return `| ${a.stageId} | ${a.roleId} | ${a.providerId} | ${a.durationMs}ms | ${a.exitCode} | ${skills} | ${diff} | ${cost} | ${tokens} | ${decision} |`;
   });
   const totals = [
     `**Total provider calls:** ${metrics.totalProviderCalls}`,

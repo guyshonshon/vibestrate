@@ -59,7 +59,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     }),
   );
   for (const agent of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
   return dir;
 }
@@ -107,10 +107,10 @@ describe("orchestrator rewind (resume from a stage)", () => {
 
     // Planner + architect were NOT invoked (no metrics entries); executor was.
     const metrics = await new MetricsStore(dir, rewound.runId).read();
-    const agentIds = (metrics?.agents ?? []).map((a) => a.agentId);
-    expect(agentIds).not.toContain("planner");
-    expect(agentIds).not.toContain("architect");
-    expect(agentIds).toContain("executor");
+    const roleIds = (metrics?.roles ?? []).map((a) => a.roleId);
+    expect(roleIds).not.toContain("planner");
+    expect(roleIds).not.toContain("architect");
+    expect(roleIds).toContain("executor");
 
     // Seeded artifacts copied into the new run.
     const store = new ArtifactStore(dir, rewound.runId);

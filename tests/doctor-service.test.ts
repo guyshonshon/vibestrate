@@ -58,7 +58,7 @@ describe("doctor service", () => {
 
   it("flags missing prompt files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".amaco", "agents", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".amaco", "roles", "planner.md"));
     const r = await runDoctor({ cwd: projectRoot });
     const find = r.findings.find((f) => f.id === "prompt-files");
     expect(find?.severity).toBe("fail");
@@ -67,14 +67,14 @@ describe("doctor service", () => {
 
   it("flags agent referencing missing provider", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await setConfigValue(projectRoot, "agents.planner.provider", "nonexistent");
+    await setConfigValue(projectRoot, "roles.planner.provider", "nonexistent");
     const r = await runDoctor({ cwd: projectRoot });
     expect(severityFor(r.findings, "agent-provider-refs")).toBe("fail");
   });
 
   it("doctor --fix restores missing prompts and skills README", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".amaco", "agents", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".amaco", "roles", "planner.md"));
     await fs.unlink(path.join(projectRoot, ".amaco", "skills", "README.md"));
 
     const outcome = await applyDoctorFixes({ projectRoot });
@@ -82,13 +82,13 @@ describe("doctor service", () => {
     expect(outcome.applied.join("\n")).toContain("skills/README.md");
 
     expect(
-      await fs.readFile(path.join(projectRoot, ".amaco", "agents", "planner.md"), "utf8"),
+      await fs.readFile(path.join(projectRoot, ".amaco", "roles", "planner.md"), "utf8"),
     ).toContain("# Planner Agent");
   });
 
   it("doctor --fix never deletes existing files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    const customPlanner = path.join(projectRoot, ".amaco", "agents", "planner.md");
+    const customPlanner = path.join(projectRoot, ".amaco", "roles", "planner.md");
     await fs.writeFile(customPlanner, "# CUSTOM\nDo not overwrite.");
     await applyDoctorFixes({ projectRoot });
     const after = await fs.readFile(customPlanner, "utf8");

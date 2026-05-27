@@ -3,7 +3,7 @@ import path from "node:path";
 export const AMACO_DIR = ".amaco";
 export const CONFIG_FILENAME = "project.yml";
 export const RULES_FILENAME = "rules.md";
-export const AGENTS_DIRNAME = "agents";
+export const ROLES_DIRNAME = "roles";
 export const SKILLS_DIRNAME = "skills";
 export const GUIDES_DIRNAME = "guides";
 export const RUNS_DIRNAME = "runs";
@@ -25,8 +25,8 @@ export function projectRulesPath(projectRoot: string): string {
   return path.join(amacoRoot(projectRoot), RULES_FILENAME);
 }
 
-export function projectAgentsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), AGENTS_DIRNAME);
+export function projectRolesDir(projectRoot: string): string {
+  return path.join(amacoRoot(projectRoot), ROLES_DIRNAME);
 }
 
 export function projectSkillsDir(projectRoot: string): string {

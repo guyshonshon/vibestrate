@@ -29,7 +29,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     dependencies: deps,
     createdAt: ts,
     updatedAt: ts,
-    assignedAgents: [],
+    assignedRoles: [],
     requiredSkills: [],
     validationProfile: null,
     branchName: null,

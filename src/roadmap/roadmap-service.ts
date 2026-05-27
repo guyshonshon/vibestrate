@@ -149,7 +149,7 @@ export class RoadmapService {
       dependencies: input.dependencies ?? [],
       createdAt: ts,
       updatedAt: ts,
-      assignedAgents: [],
+      assignedRoles: [],
       requiredSkills: input.requiredSkills ?? [],
       validationProfile: input.validationProfile ?? null,
       branchName: null,

@@ -92,7 +92,7 @@ function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
         <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
         <Text dimColor>
           {"  "}
-          {clip(row.guide?.currentStepLabel ?? row.currentAgent ?? "—", 10).padEnd(10)}
+          {clip(row.guide?.currentStepLabel ?? row.currentRole ?? "—", 10).padEnd(10)}
         </Text>
         <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (
@@ -275,9 +275,9 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           ) : null}
           <Text>
             <Text dimColor>agent  </Text>
-            <Text color="cyan">{row.lastAgent ?? "—"}</Text>
-            {row.lastAgent ? <Text dimColor>   (last to run)</Text> : null}
-            {!row.lastAgent ? (
+            <Text color="cyan">{row.lastRole ?? "—"}</Text>
+            {row.lastRole ? <Text dimColor>   (last to run)</Text> : null}
+            {!row.lastRole ? (
               <Text dimColor>
                 {"   "}(never started — preflight or policy stopped it)
               </Text>
@@ -298,18 +298,18 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
       ) : (
         <>
           <Box marginTop={1}>
-            {row.currentAgent ? (
+            {row.currentRole ? (
               <Text>
                 <Text dimColor>current  </Text>
-                <Text color="cyan">{row.currentAgent}</Text>
+                <Text color="cyan">{row.currentRole}</Text>
                 {row.currentProvider ? (
                   <Text dimColor>   via {row.currentProvider}</Text>
                 ) : null}
               </Text>
-            ) : row.lastAgent ? (
+            ) : row.lastRole ? (
               <Text>
                 <Text dimColor>last     </Text>
-                <Text color="cyan">{row.lastAgent}</Text>
+                <Text color="cyan">{row.lastRole}</Text>
                 <Text dimColor>   (between agents)</Text>
               </Text>
             ) : (

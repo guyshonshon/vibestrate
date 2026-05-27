@@ -50,7 +50,7 @@ export function MetricsPage() {
         `daily,${d.date},merged=${d.merged} changes=${d.changes} failed=${d.failed}`,
       );
     }
-    for (const s of overview.spendByAgent) {
+    for (const s of overview.spendByRole) {
       lines.push(`spend,${s.providerId},${s.dollars}`);
     }
     for (const p of overview.phaseLatency) {
@@ -142,7 +142,7 @@ export function MetricsPage() {
       {/* ── Spend + Latency ─ */}
       <section className="mt-5 grid grid-cols-12 gap-5">
         <div className="col-span-12 lg:col-span-7 glass p-5">
-          <SpendByAgentPanel overview={overview} />
+          <SpendByRolePanel overview={overview} />
         </div>
         <div className="col-span-12 lg:col-span-5 glass p-5">
           <LatencyByPhasePanel overview={overview} />
@@ -773,8 +773,8 @@ function OutcomesDonut({ overview }: { overview: MetricsOverview | null }) {
 
 // ── Spend by agent ────────────────────────────────────────────────────────
 
-function SpendByAgentPanel({ overview }: { overview: MetricsOverview | null }) {
-  const data = overview?.spendByAgent ?? [];
+function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
+  const data = overview?.spendByRole ?? [];
   const max = Math.max(...data.map((d) => d.dollars), 0.001);
   const total = data.reduce((a, d) => a + d.dollars, 0);
   const cap = overview?.totals.spendCapDailyUsd ?? null;

@@ -67,7 +67,7 @@ export async function deriveMicroStepsForRun(input: {
       taskId,
       stage,
       status: "pending",
-      agentId: null,
+      roleId: null,
       startedAt: null,
       endedAt: null,
       artifactPaths: [],
@@ -80,11 +80,11 @@ export async function deriveMicroStepsForRun(input: {
 
   // Walk metrics: each agent metric maps to a stage.
   if (metrics) {
-    for (const a of metrics.agents) {
+    for (const a of metrics.roles) {
       const stage = a.stageId as MicroStepStage;
       const step = stepByStage.get(stage);
       if (!step) continue;
-      step.agentId = a.agentId;
+      step.roleId = a.roleId;
       step.startedAt = a.startedAt;
       step.endedAt = a.endedAt;
       if (a.promptArtifactPath) step.artifactPaths.push(a.promptArtifactPath);
@@ -98,15 +98,15 @@ export async function deriveMicroStepsForRun(input: {
   for (const ev of events) {
     const data = (ev.data ?? {}) as Record<string, unknown>;
     const stageData = data.stageId as string | undefined;
-    if (ev.type === "agent.started" && stageData) {
+    if (ev.type === "role.started" && stageData) {
       const step = stepByStage.get(stageData as MicroStepStage);
       if (step) {
         if (step.status === "pending") step.status = "running";
-        if (typeof data.agentId === "string") step.agentId = data.agentId;
+        if (typeof data.roleId === "string") step.roleId = data.roleId;
         if (!step.startedAt) step.startedAt = ev.timestamp;
       }
     }
-    if (ev.type === "agent.failed" && stageData) {
+    if (ev.type === "role.failed" && stageData) {
       const step = stepByStage.get(stageData as MicroStepStage);
       if (step) step.status = "failed";
     }

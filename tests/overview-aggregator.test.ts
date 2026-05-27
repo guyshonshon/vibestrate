@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildAgentsOverview,
+  buildProvidersOverview,
   buildMetricsOverview,
   bucketDaily,
-  spendByAgent,
+  spendByRole,
   activityHeatmap,
   leaderboard,
 } from "../src/core/overview-aggregator.js";
@@ -80,8 +80,8 @@ function metrics(
       expired: 0,
       totalWaitMs: 0,
     },
-    agents: agents.map((a, i) => ({
-      agentId: `${runId}-a${i}`,
+    roles: agents.map((a, i) => ({
+      roleId: `${runId}-a${i}`,
       stageId: a.stageId,
       providerId: a.providerId,
       providerType: "cli",
@@ -143,7 +143,7 @@ describe("bucketDaily", () => {
   });
 });
 
-describe("spendByAgent", () => {
+describe("spendByRole", () => {
   it("sums cost across agents grouped by providerId, sorted desc", () => {
     const runs = [run({ runId: "a" }), run({ runId: "b" })];
     const map = new Map<string, RuntimeMetrics | null>([
@@ -161,7 +161,7 @@ describe("spendByAgent", () => {
         ]),
       ],
     ]);
-    const out = spendByAgent(runs, map, {
+    const out = spendByRole(runs, map, {
       "claude-sonnet": { label: "Claude Sonnet 4.5", vendor: "Anthropic" },
       "codex-gpt5": { label: "Codex GPT-5", vendor: "OpenAI" },
     });
@@ -249,7 +249,7 @@ describe("buildMetricsOverview", () => {
     expect(out.totals.merged).toBe(1);
     expect(out.totals.failed).toBe(1);
     expect(out.totals.successRate).toBeCloseTo(0.5, 5);
-    expect(out.spendByAgent[0]!.providerId).toBe("claude-sonnet");
+    expect(out.spendByRole[0]!.providerId).toBe("claude-sonnet");
     expect(out.phaseLatency.find((p) => p.phase === "Execute")?.p50).toBe(2);
     expect(out.kpiSparks.runs.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(2);
   });
@@ -292,15 +292,15 @@ describe("buildMetricsOverview", () => {
     expect(out.perModel[0]!.model).toBe("claude-opus-4-7");
     expect(out.perModel[0]!.tokens).toBe(1500);
     expect(out.perModel.find((m) => m.model === "claude-haiku-4-5")?.calls).toBe(1);
-    // Tokens by role (agentId, since no guide slot).
+    // Tokens by role (roleId, since no guide slot).
     expect(out.tokensByRole.reduce((n, r) => n + r.tokens, 0)).toBe(1800);
   });
 });
 
-describe("buildAgentsOverview", () => {
+describe("buildProvidersOverview", () => {
   it("rolls up providers from runs + metrics with throughput sparkline", () => {
     const yesterday = new Date(FIXED_NOW - 23 * 3600_000).toISOString();
-    const out = buildAgentsOverview({
+    const out = buildProvidersOverview({
       now: FIXED_NOW,
       runs: [
         run({

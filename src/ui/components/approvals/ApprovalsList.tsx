@@ -55,7 +55,7 @@ export function ApprovalsList({
               </span>
               <span className="amaco-mono text-amaco-fg-dim">{a.stageId}</span>
               <span className="amaco-mono text-amaco-fg-dim">·</span>
-              <span className="amaco-mono text-amaco-fg-dim">{a.agentId}</span>
+              <span className="amaco-mono text-amaco-fg-dim">{a.roleId}</span>
               <span
                 className={`amaco-mono rounded border px-1 text-[10.5px] ${RISK_PILL[a.riskLevel]}`}
               >

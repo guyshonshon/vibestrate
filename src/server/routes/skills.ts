@@ -5,13 +5,13 @@ import {
   findSkillById,
 } from "../../skills/skill-discovery.js";
 import {
-  assignSkillToAgent,
-  listAgentSkillAssignments,
-  unassignSkillFromAgent,
+  assignSkillToRole,
+  listRoleSkillAssignments,
+  unassignSkillFromRole,
 } from "../../skills/skill-assignment-service.js";
 import { HttpError } from "../security.js";
 
-const assignBody = z.object({ agentId: z.string().min(1) });
+const assignBody = z.object({ roleId: z.string().min(1) });
 
 export type SkillsRoutesDeps = {
   projectRoot: string;
@@ -26,7 +26,7 @@ export async function registerSkillsRoutes(
   app.get("/api/skills", async () => {
     const [skills, assignments] = await Promise.all([
       discoverSkills(projectRoot),
-      listAgentSkillAssignments(projectRoot).catch(() => []),
+      listRoleSkillAssignments(projectRoot).catch(() => []),
     ]);
     return { skills, assignments };
   });
@@ -37,13 +37,13 @@ export async function registerSkillsRoutes(
       const decoded = decodeURIComponent(req.params.skillId);
       const skill = await findSkillById(projectRoot, decoded);
       if (!skill) throw new HttpError(404, "Skill not found.");
-      const assignments = await listAgentSkillAssignments(projectRoot).catch(
+      const assignments = await listRoleSkillAssignments(projectRoot).catch(
         () => [],
       );
-      const assignedAgents = assignments
+      const assignedRoles = assignments
         .filter((a) => a.skills.includes(skill.name))
-        .map((a) => a.agentId);
-      return { skill, assignedAgents };
+        .map((a) => a.roleId);
+      return { skill, assignedRoles };
     },
   );
 
@@ -64,17 +64,17 @@ export async function registerSkillsRoutes(
     async (req) => {
       const parsed = assignBody.safeParse(req.body);
       if (!parsed.success) {
-        throw new HttpError(400, "Body must be { agentId: string }.");
+        throw new HttpError(400, "Body must be { roleId: string }.");
       }
       const skillName = await ensureSkillExists(req.params.skillId);
       try {
-        const result = await assignSkillToAgent(
+        const result = await assignSkillToRole(
           projectRoot,
-          parsed.data.agentId,
+          parsed.data.roleId,
           skillName,
         );
-        const assignments = await listAgentSkillAssignments(projectRoot);
-        return { agentId: parsed.data.agentId, skills: result.skills, assignments };
+        const assignments = await listRoleSkillAssignments(projectRoot);
+        return { roleId: parsed.data.roleId, skills: result.skills, assignments };
       } catch (err) {
         throw new HttpError(
           400,
@@ -89,17 +89,17 @@ export async function registerSkillsRoutes(
     async (req) => {
       const parsed = assignBody.safeParse(req.body);
       if (!parsed.success) {
-        throw new HttpError(400, "Body must be { agentId: string }.");
+        throw new HttpError(400, "Body must be { roleId: string }.");
       }
       const skillName = await ensureSkillExists(req.params.skillId);
       try {
-        const result = await unassignSkillFromAgent(
+        const result = await unassignSkillFromRole(
           projectRoot,
-          parsed.data.agentId,
+          parsed.data.roleId,
           skillName,
         );
-        const assignments = await listAgentSkillAssignments(projectRoot);
-        return { agentId: parsed.data.agentId, skills: result.skills, assignments };
+        const assignments = await listRoleSkillAssignments(projectRoot);
+        return { roleId: parsed.data.roleId, skills: result.skills, assignments };
       } catch (err) {
         throw new HttpError(
           400,

@@ -21,7 +21,7 @@ import {
   getGitHistory,
   getGitStatus,
 } from "../src/core/git-history-service.js";
-import { getAgentWork } from "../src/core/agent-work-attribution-service.js";
+import { getRoleWork } from "../src/core/agent-work-attribution-service.js";
 import { MetricsStore } from "../src/core/metrics-store.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { writeJson } from "../src/utils/json.js";
@@ -376,9 +376,9 @@ describe("agent-work attribution", () => {
         totalWaitMs: 0,
       },
       notesProvided: [],
-      agents: [
+      roles: [
         {
-          agentId: "executor",
+          roleId: "executor",
           stageId: "executing",
           providerId: "claude",
           providerType: "claude-code",
@@ -413,10 +413,10 @@ describe("agent-work attribution", () => {
         },
       ],
     });
-    const r = await getAgentWork({ projectRoot: project, runId });
+    const r = await getRoleWork({ projectRoot: project, runId });
     expect(r.available).toBe(true);
     expect(r.rows).toHaveLength(1);
-    expect(r.rows[0]!.agentId).toBe("executor");
+    expect(r.rows[0]!.roleId).toBe("executor");
     expect(r.rows[0]!.filesChangedAfter).toBe(2);
     expect(r.rows[0]!.bestEffort).toBe(true);
     expect(r.rows[0]!.artifacts.length).toBe(2);

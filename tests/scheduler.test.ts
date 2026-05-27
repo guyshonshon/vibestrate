@@ -145,7 +145,7 @@ describe("scheduler loop", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 1,
-        maxConcurrentWriteAgents: 1,
+        maxConcurrentWriteRoles: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
         sourceQuotas: {},
@@ -191,7 +191,7 @@ describe("scheduler loop", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 2,
-        maxConcurrentWriteAgents: 2,
+        maxConcurrentWriteRoles: 2,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
         sourceQuotas: {},
@@ -229,7 +229,7 @@ describe("scheduler loop", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 1,
-        maxConcurrentWriteAgents: 1,
+        maxConcurrentWriteRoles: 1,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
         sourceQuotas: {},
@@ -276,7 +276,7 @@ describe("scheduler loop", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 2,
-        maxConcurrentWriteAgents: 2,
+        maxConcurrentWriteRoles: 2,
         conflictPolicy: "block",
         queuePolicy: "fifo",
         sourceQuotas: {},
@@ -313,7 +313,7 @@ describe("scheduler loop", () => {
       projectRoot,
       schedulerConfig: {
         maxConcurrentRuns: 2,
-        maxConcurrentWriteAgents: 2,
+        maxConcurrentWriteRoles: 2,
         conflictPolicy: "warn",
         queuePolicy: "fifo",
         sourceQuotas: {},

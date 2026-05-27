@@ -56,7 +56,7 @@ export type ProjectMetadata = {
   git: ProjectGitContext;
   validationCommands: string[];
   providers: { id: string; type: string; command: string | null }[];
-  agents: {
+  roles: {
     id: string;
     provider: string;
     permissions: string;
@@ -174,8 +174,8 @@ export async function getProjectMetadata(
           command: "command" in p ? (p.command ?? null) : null,
         }))
       : [],
-    agents: config
-      ? Object.entries(config.agents).map(([id, a]) => ({
+    roles: config
+      ? Object.entries(config.roles).map(([id, a]) => ({
           id,
           provider: a.provider,
           permissions: a.permissions,
@@ -190,7 +190,7 @@ export async function getProjectMetadata(
     })),
     scheduler: config?.scheduler ?? {
       maxConcurrentRuns: 1,
-      maxConcurrentWriteAgents: 1,
+      maxConcurrentWriteRoles: 1,
       conflictPolicy: "warn",
       queuePolicy: "fifo",
       sourceQuotas: {},

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { agentsConfigSchema } from "../agents/agent-schema.js";
+import { rolesConfigSchema } from "../roles/role-schema.js";
 import { permissionProfilesSchema } from "../permissions/permission-schema.js";
 import { providersConfigSchema } from "../providers/provider-schema.js";
 import { workflowConfigSchema } from "../workflow/workflow-schema.js";
@@ -71,7 +71,7 @@ export type ValidationProfileEntry = z.infer<typeof validationProfileEntrySchema
 
 export const schedulerConfigSchema = z.object({
   maxConcurrentRuns: z.number().int().min(1).max(16).default(1),
-  maxConcurrentWriteAgents: z.number().int().min(1).max(32).default(1),
+  maxConcurrentWriteRoles: z.number().int().min(1).max(32).default(1),
   conflictPolicy: z.enum(["warn", "block"]).default("warn"),
   // `fair` rotates origins (the `source` tag on each queue entry) so
   // one source can't monopolize the in-flight slots while another has
@@ -181,7 +181,7 @@ export const projectConfigSchema = z.object({
     .partial()
     .default({}),
   budget: budgetConfigSchema,
-  agents: agentsConfigSchema,
+  roles: rolesConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z
     .object({
@@ -199,7 +199,7 @@ export const projectConfigSchema = z.object({
   }),
   scheduler: schedulerConfigSchema.default({
     maxConcurrentRuns: 1,
-    maxConcurrentWriteAgents: 1,
+    maxConcurrentWriteRoles: 1,
     conflictPolicy: "warn",
     queuePolicy: "fifo",
     sourceQuotas: {},

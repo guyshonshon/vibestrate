@@ -69,7 +69,7 @@ export function relativeConfigPath(projectRoot: string): string {
   return path.relative(projectRoot, projectConfigPath(projectRoot));
 }
 
-export async function loadAgentPrompt(
+export async function loadRolePrompt(
   projectRoot: string,
   promptRelOrAbs: string,
 ): Promise<string> {

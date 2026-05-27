@@ -49,7 +49,7 @@ describe("safe provider test", () => {
     await addProvider(projectRoot, {
       id: "fake",
       config: { type: "cli", command: "node", args: [script], input: "stdin" },
-      alsoAssignAllAgents: true,
+      alsoAssignAllRoles: true,
     });
     const r = await runSafeProviderTest({ projectRoot, providerId: "fake" });
     expect(r.ok).toBe(true);
@@ -65,7 +65,7 @@ describe("safe provider test", () => {
     await addProvider(projectRoot, {
       id: "badexit",
       config: { type: "cli", command: "node", args: [script], input: "stdin" },
-      alsoAssignAllAgents: false,
+      alsoAssignAllRoles: false,
     });
     const r = await runSafeProviderTest({ projectRoot, providerId: "badexit" });
     expect(r.ok).toBe(false);
@@ -82,7 +82,7 @@ describe("safe provider test", () => {
     await addProvider(projectRoot, {
       id: "nomagic",
       config: { type: "cli", command: "node", args: [script], input: "stdin" },
-      alsoAssignAllAgents: false,
+      alsoAssignAllRoles: false,
     });
     const r = await runSafeProviderTest({ projectRoot, providerId: "nomagic" });
     expect(r.ok).toBe(false);

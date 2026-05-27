@@ -229,12 +229,12 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           )}
         </Section>
 
-        <Section title={`Agents (${meta.agents.length})`}>
-          {meta.agents.length === 0 ? (
+        <Section title={`Agents (${meta.roles.length})`}>
+          {meta.roles.length === 0 ? (
             <Empty>No agents configured.</Empty>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {meta.agents.map((a) => (
+              {meta.roles.map((a) => (
                 <li
                   key={a.id}
                   className="flex flex-wrap items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
@@ -287,7 +287,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             {meta.scheduler.maxConcurrentRuns}
           </KV>
           <KV label="Max write agents">
-            {meta.scheduler.maxConcurrentWriteAgents}
+            {meta.scheduler.maxConcurrentWriteRoles}
           </KV>
           <KV label="Conflict policy">
             <span className="amaco-mono">{meta.scheduler.conflictPolicy}</span>

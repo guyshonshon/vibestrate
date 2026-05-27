@@ -88,7 +88,7 @@ export function ApprovalsPage({
                 <Text color={tintForRisk(a.riskLevel)}>⏳</Text>
                 <Text bold={i === idx}>
                   {"  "}
-                  {clip(a.agentId, 10).padEnd(10)}
+                  {clip(a.roleId, 10).padEnd(10)}
                 </Text>
                 <Text dimColor>  {clip(a.runId, 24).padEnd(24)}</Text>
                 <Text dimColor>  {timeAgo(a.createdAt).padStart(6)}</Text>
@@ -102,7 +102,7 @@ export function ApprovalsPage({
         {selected ? (
           <Box flexDirection="column" flexGrow={1}>
             <Text bold color="cyan">
-              {selected.agentId}
+              {selected.roleId}
               <Text dimColor>   {selected.stageId}</Text>
             </Text>
             <Box marginTop={1} flexDirection="column">

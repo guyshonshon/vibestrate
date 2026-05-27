@@ -1,6 +1,6 @@
-import type { AgentMetrics, RunStatus } from "../../lib/types.js";
+import type { RoleMetrics, RunStatus } from "../../lib/types.js";
 
-const STAGE_TO_AGENT: Partial<Record<RunStatus, string>> = {
+const STAGE_TO_ROLE: Partial<Record<RunStatus, string>> = {
   planning: "planner",
   architecting: "architect",
   executing: "executor",
@@ -9,19 +9,19 @@ const STAGE_TO_AGENT: Partial<Record<RunStatus, string>> = {
   verifying: "verifier",
 };
 
-export function ActiveAgentCard({
+export function ActiveRoleCard({
   status,
-  agents,
+  roles,
 }: {
   status: RunStatus;
-  agents: AgentMetrics[];
+  roles: RoleMetrics[];
 }) {
-  const expectedAgent = STAGE_TO_AGENT[status];
-  const lastForAgent = expectedAgent
-    ? agents.filter((a) => a.agentId === expectedAgent).slice(-1)[0]
-    : agents.slice(-1)[0];
+  const expectedRole = STAGE_TO_ROLE[status];
+  const lastForRole = expectedRole
+    ? roles.filter((a) => a.roleId === expectedRole).slice(-1)[0]
+    : roles.slice(-1)[0];
   const inFlight =
-    expectedAgent !== undefined &&
+    expectedRole !== undefined &&
     (status === "planning" ||
       status === "architecting" ||
       status === "executing" ||
@@ -43,15 +43,15 @@ export function ActiveAgentCard({
       </div>
       <div className="mt-2 flex flex-wrap items-baseline gap-3">
         <span className="text-[15px] font-medium text-amaco-fg">
-          {expectedAgent ?? lastForAgent?.agentId ?? "—"}
+          {expectedRole ?? lastForRole?.roleId ?? "—"}
         </span>
-        {lastForAgent ? (
+        {lastForRole ? (
           <>
             <span className="amaco-mono text-[12px] text-amaco-fg-dim">
-              {lastForAgent.providerType}:{lastForAgent.providerId}
+              {lastForRole.providerType}:{lastForRole.providerId}
             </span>
             <span className="amaco-mono text-[12px] text-amaco-fg-muted">
-              {lastForAgent.durationMs}ms · exit {lastForAgent.exitCode}
+              {lastForRole.durationMs}ms · exit {lastForRole.exitCode}
             </span>
           </>
         ) : (
@@ -60,9 +60,9 @@ export function ActiveAgentCard({
           </span>
         )}
       </div>
-      {lastForAgent && lastForAgent.skillsAttached.length > 0 ? (
+      {lastForRole && lastForRole.skillsAttached.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
-          {lastForAgent.skillsAttached.map((s) => (
+          {lastForRole.skillsAttached.map((s) => (
             <span
               key={s}
               className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim"

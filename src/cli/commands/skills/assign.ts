@@ -1,32 +1,32 @@
 import { detectProject } from "../../../project/project-detector.js";
 import { configExists } from "../../../project/config-loader.js";
 import {
-  assignSkillToAgent,
-  unassignSkillFromAgent,
+  assignSkillToRole,
+  unassignSkillFromRole,
 } from "../../../skills/skill-assignment-service.js";
 import { color, indent, symbol } from "../../ui/format.js";
 import { isAmacoError } from "../../../utils/errors.js";
 
 export async function runSkillsAssign(
-  agentId: string,
+  roleId: string,
   skillName: string,
 ): Promise<number> {
-  return change(agentId, skillName, "assign");
+  return change(roleId, skillName, "assign");
 }
 
 export async function runSkillsUnassign(
-  agentId: string,
+  roleId: string,
   skillName: string,
 ): Promise<number> {
-  return change(agentId, skillName, "unassign");
+  return change(roleId, skillName, "unassign");
 }
 
 async function change(
-  agentId: string,
+  roleId: string,
   skillName: string,
   action: "assign" | "unassign",
 ): Promise<number> {
-  if (!agentId || !skillName) {
+  if (!roleId || !skillName) {
     console.error(
       `${symbol.fail()} Both agent and skill are required. Example: ${color.bold(
         `amaco skills ${action} reviewer security`,
@@ -43,14 +43,14 @@ async function change(
   }
   try {
     const result = action === "assign"
-      ? await assignSkillToAgent(detected.projectRoot, agentId, skillName)
-      : await unassignSkillFromAgent(detected.projectRoot, agentId, skillName);
+      ? await assignSkillToRole(detected.projectRoot, roleId, skillName)
+      : await unassignSkillFromRole(detected.projectRoot, roleId, skillName);
     console.log(
       `${symbol.ok()} ${
         action === "assign" ? "Attached" : "Removed"
       } ${color.bold(skillName)} ${
         action === "assign" ? "to" : "from"
-      } ${color.bold(agentId)}.`,
+      } ${color.bold(roleId)}.`,
     );
     console.log(
       indent(

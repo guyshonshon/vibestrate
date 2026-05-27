@@ -229,7 +229,7 @@ function DirectiveRow({ d }: { d: RunControlDirective }) {
       className={`rounded border px-2 py-1 text-[11.5px] ${tone}`}
       title={`Created ${new Date(d.createdAt).toLocaleString()}${
         d.consumedAt
-          ? ` · applied to ${d.consumedByAgent ?? "?"} at ${new Date(d.consumedAt).toLocaleString()}`
+          ? ` · applied to ${d.consumedByRole ?? "?"} at ${new Date(d.consumedAt).toLocaleString()}`
           : ""
       }`}
     >
@@ -243,7 +243,7 @@ function DirectiveRow({ d }: { d: RunControlDirective }) {
       )}
       {d.consumedAt ? (
         <span className="amaco-mono ml-2 text-[10px] opacity-70">
-          ↳ {d.consumedByAgent}
+          ↳ {d.consumedByRole}
         </span>
       ) : null}
     </li>

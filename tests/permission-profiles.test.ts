@@ -34,7 +34,7 @@ describe("permission profiles", () => {
   it("rejects write-enabled profile in project-root cwd", () => {
     expect(() =>
       assertExecutableContext({
-        agentId: "executor",
+        roleId: "executor",
         profile: { allowWrite: true, allowShell: true, cwd: "project-root" },
         projectRoot: "/tmp/p",
         worktreePath: "/tmp/wt",
@@ -45,7 +45,7 @@ describe("permission profiles", () => {
   it("rejects worktree cwd without prepared worktree", () => {
     expect(() =>
       assertExecutableContext({
-        agentId: "executor",
+        roleId: "executor",
         profile: { allowWrite: true, allowShell: true, cwd: "worktree" },
         projectRoot: "/tmp/p",
         worktreePath: null,

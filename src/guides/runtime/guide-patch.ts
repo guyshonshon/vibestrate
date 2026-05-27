@@ -10,7 +10,7 @@ import YAML from "yaml";
 import { z } from "zod";
 import { isPathInside, projectGuidesDir } from "../../utils/paths.js";
 import {
-  guideAgentIdSchema,
+  guideRoleIdSchema,
   guideApprovalGateSchema,
   guideDefinitionSchema,
   guideStepKindSchema,
@@ -44,7 +44,7 @@ const stepPatchSchema = z
     optional: z.boolean().optional(),
     kind: guideStepKindSchema.optional(),
     slot: guideTokenSchema.nullable().optional(),
-    agentId: guideAgentIdSchema.nullable().optional(),
+    roleId: guideRoleIdSchema.nullable().optional(),
     approval: guideApprovalGateSchema.nullable().optional(),
   })
   .strict();
@@ -97,9 +97,9 @@ function mergeStep<S extends GuideDefinition["steps"][number]>(
     if (edit.slot === null) delete next.slot;
     else if (edit.slot !== undefined) next.slot = edit.slot;
   }
-  if ("agentId" in edit) {
-    if (edit.agentId === null) delete next.agentId;
-    else if (edit.agentId !== undefined) next.agentId = edit.agentId;
+  if ("roleId" in edit) {
+    if (edit.roleId === null) delete next.roleId;
+    else if (edit.roleId !== undefined) next.roleId = edit.roleId;
   }
   if ("approval" in edit) {
     if (edit.approval === null) delete next.approval;

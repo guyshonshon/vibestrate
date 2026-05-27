@@ -17,7 +17,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeRepoWithFakeProvider(input: {
-  agentEmitsApproval: "off" | "architect-structured" | "architect-plain";
+  roleEmitsApproval: "off" | "architect-structured" | "architect-plain";
 }): Promise<{
   projectRoot: string;
   runIt: (
@@ -36,9 +36,9 @@ async function makeRepoWithFakeProvider(input: {
 
   const fakeJs = path.join(dir, "fake.js");
   let architectBody: string;
-  if (input.agentEmitsApproval === "off") {
+  if (input.roleEmitsApproval === "off") {
     architectBody = `# Architecture\\nNothing risky.`;
-  } else if (input.agentEmitsApproval === "architect-structured") {
+  } else if (input.roleEmitsApproval === "architect-structured") {
     architectBody = [
       "# Architecture",
       "",
@@ -97,7 +97,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
 
   return {
@@ -145,7 +145,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
 describe("orchestrator: per-stage policy approvals", () => {
   it("creates a policy approval at architecting when configured, even if agent did not request", async () => {
     const harness = await makeRepoWithFakeProvider({
-      agentEmitsApproval: "off",
+      roleEmitsApproval: "off",
     });
     await setConfigValue(
       harness.projectRoot,
@@ -167,7 +167,7 @@ describe("orchestrator: per-stage policy approvals", () => {
 
   it("preserves agent metadata (risk + request) when agent emits structured request", async () => {
     const harness = await makeRepoWithFakeProvider({
-      agentEmitsApproval: "architect-structured",
+      roleEmitsApproval: "architect-structured",
     });
     const out = await harness.runIt(async (svc) => {
       const pending = await svc.firstPending();
@@ -184,7 +184,7 @@ describe("orchestrator: per-stage policy approvals", () => {
 
   it("dedupes: when agent + policy both apply, only one approval is created and source=agent + alsoRequiredByPolicy=true", async () => {
     const harness = await makeRepoWithFakeProvider({
-      agentEmitsApproval: "architect-structured",
+      roleEmitsApproval: "architect-structured",
     });
     await setConfigValue(
       harness.projectRoot,
@@ -207,7 +207,7 @@ describe("orchestrator: per-stage policy approvals", () => {
 
   it("rejecting a structured agent approval blocks the run; final report keeps risk/request", async () => {
     const harness = await makeRepoWithFakeProvider({
-      agentEmitsApproval: "architect-structured",
+      roleEmitsApproval: "architect-structured",
     });
     const out = await harness.runIt(async (svc) => {
       const pending = await svc.firstPending();

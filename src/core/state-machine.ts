@@ -59,7 +59,7 @@ export const guideRunStepStateSchema = z
     status: guideRunStepStatusSchema,
     optional: z.boolean().default(false),
     slotId: z.string().nullable().default(null),
-    agentId: z.string().nullable().default(null),
+    roleId: z.string().nullable().default(null),
     providerId: z.string().nullable().default(null),
     promptArtifactPath: z.string().nullable().default(null),
     outputArtifactPath: z.string().nullable().default(null),

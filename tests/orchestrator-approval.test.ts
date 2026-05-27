@@ -18,7 +18,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeRepoWithFakeProvider(
-  whichAgentRequestsApproval: "architect" | "reviewer",
+  whichRoleRequestsApproval: "architect" | "reviewer",
 ): Promise<{ projectRoot: string; runIt: (decide: (svc: ApprovalService, runId: string) => Promise<void>) => Promise<{ status: string; runId: string }> }> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-orch-appr-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
@@ -39,7 +39,7 @@ async function makeRepoWithFakeProvider(
     `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   if (i.includes('Amaco Agent: reviewer')) {
-    ${whichAgentRequestsApproval === "reviewer"
+    ${whichRoleRequestsApproval === "reviewer"
       ? `console.log('# Review\\n\\nDECISION: APPROVED\\n\\n${requestLine}');`
       : `console.log('# Review\\n\\nDECISION: APPROVED');`}
   } else if (i.includes('Amaco Agent: verifier')) {
@@ -47,7 +47,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   } else if (i.includes('Amaco Agent: planner')) {
     console.log('# Plan');
   } else if (i.includes('Amaco Agent: architect')) {
-    ${whichAgentRequestsApproval === "architect"
+    ${whichRoleRequestsApproval === "architect"
       ? `console.log('# Architecture\\n\\n${requestLine}');`
       : `console.log('# Architecture\\nNothing risky.');`}
   } else if (i.includes('Amaco Agent: executor')) {
@@ -79,7 +79,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
 
   return {

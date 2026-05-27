@@ -23,7 +23,7 @@ import { registerProjectRoutes } from "./routes/project.js";
 import { registerAnnotationsRoutes } from "./routes/annotations.js";
 import { registerBudgetRoutes } from "./routes/budget.js";
 import { registerGitRoutes } from "./routes/git.js";
-import { registerAgentWorkRoutes } from "./routes/agent-work.js";
+import { registerRoleWorkRoutes } from "./routes/agent-work.js";
 import { registerCodeReferenceRoutes } from "./routes/code-references.js";
 import { registerCodebaseEventRoutes } from "./routes/codebase-events.js";
 import { registerEditorRoutes } from "./routes/editor.js";
@@ -236,7 +236,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerAnnotationsRoutes(app, { projectRoot: opts.projectRoot });
   await registerBudgetRoutes(app, { projectRoot: opts.projectRoot });
   await registerGitRoutes(app, { projectRoot: opts.projectRoot });
-  await registerAgentWorkRoutes(app, { projectRoot: opts.projectRoot });
+  await registerRoleWorkRoutes(app, { projectRoot: opts.projectRoot });
   await registerCodeReferenceRoutes(app, { projectRoot: opts.projectRoot });
   await registerCodebaseEventRoutes(app, { projectRoot: opts.projectRoot });
   await registerEditorRoutes(app, { projectRoot: opts.projectRoot });

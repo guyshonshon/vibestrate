@@ -52,7 +52,7 @@ type StepDraft = {
   kind?: GuideStepKind;
   // null = clear; undefined = no change; string = set
   slot?: string | null;
-  agentId?: string | null;
+  roleId?: string | null;
   approval?: GuideApprovalGatePatch | null;
 };
 
@@ -752,7 +752,7 @@ function StepRow({
         <div className="text-[11.5px] text-fog-400 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.7} />{" "}
-            {step.agentId ?? step.slot ?? "auto"}
+            {step.roleId ?? step.slot ?? "auto"}
           </span>
           {step.inputs.length > 0 ? (
             <>
@@ -853,7 +853,7 @@ function StepInspector({
   const optional = draft.optional ?? step.optional;
   const kind = draft.kind ?? step.kind;
   const slotId = resolveNullable(draft.slot, step.slot ?? null);
-  const agentId = resolveNullable(draft.agentId, step.agentId ?? null);
+  const roleId = resolveNullable(draft.roleId, step.roleId ?? null);
   const approval = resolveNullable(draft.approval, step.approval ?? null);
 
   const slotOptions = Object.entries(guide.definition.slots);
@@ -935,16 +935,16 @@ function StepInspector({
 
       <Field label="Agent override (optional)">
         <input
-          value={agentId ?? ""}
+          value={roleId ?? ""}
           placeholder={
             slotId
-              ? `default: ${guide.definition.slots[slotId]?.defaultAgent ?? "—"}`
+              ? `default: ${guide.definition.slots[slotId]?.defaultRole ?? "—"}`
               : "leave blank to use the slot default"
           }
           disabled={!editable}
           onChange={(e) => {
             const v = e.target.value.trim();
-            onPatchDraft({ agentId: v === "" ? null : v });
+            onPatchDraft({ roleId: v === "" ? null : v });
           }}
           className={cn(
             "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-3 text-[13px] text-fog-100 outline-none font-mono",
@@ -1169,9 +1169,9 @@ function diffStep(
     const currentSlot = cur.slot ?? null;
     if (draft.slot !== currentSlot) out.slot = draft.slot;
   }
-  if (draft.agentId !== undefined) {
-    const currentAgent = cur.agentId ?? null;
-    if (draft.agentId !== currentAgent) out.agentId = draft.agentId;
+  if (draft.roleId !== undefined) {
+    const currentRole = cur.roleId ?? null;
+    if (draft.roleId !== currentRole) out.roleId = draft.roleId;
   }
   if (draft.approval !== undefined) {
     const currentApproval = cur.approval ?? null;
@@ -1199,7 +1199,7 @@ function toGuideStepFull(
     optional: step.optional,
   };
   if (step.slot !== undefined) base.slot = step.slot;
-  if (step.agentId !== undefined) base.agentId = step.agentId;
+  if (step.roleId !== undefined) base.roleId = step.roleId;
   if (step.approval !== undefined) base.approval = step.approval;
   if (step.repeat !== undefined) base.repeat = step.repeat;
   return applyDraftToFullStep(base, draft);
@@ -1216,7 +1216,7 @@ function toGuideStepDefinition(step: GuideStepFull): GuideStepDefinition {
     optional: step.optional ?? false,
   };
   if (step.slot !== undefined) out.slot = step.slot;
-  if (step.agentId !== undefined) out.agentId = step.agentId;
+  if (step.roleId !== undefined) out.roleId = step.roleId;
   if (step.approval !== undefined) out.approval = step.approval;
   if (step.repeat !== undefined) out.repeat = step.repeat;
   return out;
@@ -1236,9 +1236,9 @@ function applyDraftToFullStep(
     if (draft.slot === null) delete next.slot;
     else next.slot = draft.slot;
   }
-  if (draft.agentId !== undefined) {
-    if (draft.agentId === null) delete next.agentId;
-    else next.agentId = draft.agentId;
+  if (draft.roleId !== undefined) {
+    if (draft.roleId === null) delete next.roleId;
+    else next.roleId = draft.roleId;
   }
   if (draft.approval !== undefined) {
     if (draft.approval === null) delete next.approval;

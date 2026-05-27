@@ -21,10 +21,10 @@ providers:
   claude:
     type: cli
     command: __must_not_run__
-agents:
+roles:
   planner:
     provider: claude
-    prompt: .amaco/agents/planner.md
+    prompt: .amaco/roles/planner.md
     permissions: readOnly
 `,
   );

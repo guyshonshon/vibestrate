@@ -100,7 +100,7 @@ export type ReplayStateSnapshot = {
 export type ReplayApproval = {
   id: string;
   stageId: string;
-  agentId: string;
+  roleId: string;
   status: string;
   riskLevel: string;
   source: string;
@@ -179,7 +179,7 @@ export type ReplayMetricsSummary = {
   filesChanged: number | null;
   diffInsertions: number | null;
   diffDeletions: number | null;
-  agentStageOrder: string[];
+  roleStageOrder: string[];
 };
 
 export type ReplayGuideSummary = {
@@ -704,7 +704,7 @@ function extractApprovals(raw: unknown): ReplayApproval[] {
     out.push({
       id,
       stageId: readString(rec, "stageId") ?? "",
-      agentId: readString(rec, "agentId") ?? "",
+      roleId: readString(rec, "roleId") ?? "",
       status: readString(rec, "status") ?? "pending",
       riskLevel: readString(rec, "riskLevel") ?? "medium",
       source: readString(rec, "source") ?? "agent",
@@ -825,7 +825,7 @@ function extractTerminalSessions(raw: unknown): ReplayTerminalSession[] {
 function extractMetricsSummary(raw: unknown): ReplayMetricsSummary | null {
   if (!raw || typeof raw !== "object") return null;
   const rec = raw as Record<string, unknown>;
-  const agents = Array.isArray(rec.agents) ? (rec.agents as unknown[]) : [];
+  const agents = Array.isArray(rec.roles) ? (rec.roles as unknown[]) : [];
   const stageOrder = agents
     .filter((a): a is Record<string, unknown> => !!a && typeof a === "object")
     .map((a) => readString(a, "stageId") ?? "")
@@ -838,7 +838,7 @@ function extractMetricsSummary(raw: unknown): ReplayMetricsSummary | null {
     filesChanged: readNumber(rec, "filesChanged"),
     diffInsertions: readNumber(rec, "diffInsertions"),
     diffDeletions: readNumber(rec, "diffDeletions"),
-    agentStageOrder: stageOrder,
+    roleStageOrder: stageOrder,
   };
 }
 

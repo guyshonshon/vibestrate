@@ -17,21 +17,21 @@ const validConfig = {
   providers: {
     claude: { type: "cli", command: "claude", args: ["-p"], input: "stdin" },
   },
-  agents: {
-    planner: { provider: "claude", prompt: ".amaco/agents/planner.md", permissions: "read_only" },
+  roles: {
+    planner: { provider: "claude", prompt: ".amaco/roles/planner.md", permissions: "read_only" },
     architect: {
       provider: "claude",
-      prompt: ".amaco/agents/architect.md",
+      prompt: ".amaco/roles/architect.md",
       permissions: "read_only",
     },
     executor: {
       provider: "claude",
-      prompt: ".amaco/agents/executor.md",
+      prompt: ".amaco/roles/executor.md",
       permissions: "code_write",
     },
-    fixer: { provider: "claude", prompt: ".amaco/agents/fixer.md", permissions: "code_write" },
-    reviewer: { provider: "claude", prompt: ".amaco/agents/reviewer.md", permissions: "read_only" },
-    verifier: { provider: "claude", prompt: ".amaco/agents/verifier.md", permissions: "read_only" },
+    fixer: { provider: "claude", prompt: ".amaco/roles/fixer.md", permissions: "code_write" },
+    reviewer: { provider: "claude", prompt: ".amaco/roles/reviewer.md", permissions: "read_only" },
+    verifier: { provider: "claude", prompt: ".amaco/roles/verifier.md", permissions: "read_only" },
   },
 };
 

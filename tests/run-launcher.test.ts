@@ -51,7 +51,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     JSON.stringify({ type: "cli", command: "node", args: [fakeJs], input: "stdin" }),
   );
   for (const agent of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-    await setConfigValue(dir, `agents.${agent}.provider`, "fake");
+    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
   }
   return dir;
 }

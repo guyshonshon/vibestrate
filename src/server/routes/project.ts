@@ -30,10 +30,10 @@ export async function registerProjectRoutes(
   // provider (engine) each runs on, its permission profile, and skills.
   // Config references only — never the prompt contents (no secret leakage).
   // This is what makes the agent↔provider relationship legible in the UI.
-  app.get("/api/agents/roles", async () => {
+  app.get("/api/roles", async () => {
     if (!(await configExists(projectRoot))) return { roles: [] };
     const { config } = await loadConfig(projectRoot);
-    const roles = Object.entries(config.agents).map(([id, a]) => ({
+    const roles = Object.entries(config.roles).map(([id, a]) => ({
       id,
       provider: a.provider,
       providerConfigured: Boolean(config.providers[a.provider]),

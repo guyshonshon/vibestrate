@@ -41,19 +41,19 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
   }
 
   const slots = slotEntries.map(([id, slot]) => {
-    const defaultAgent = input.config.agents[slot.defaultAgent];
-    if (!defaultAgent) {
+    const defaultRole = input.config.roles[slot.defaultRole];
+    if (!defaultRole) {
       throw new GuideResolutionError(
-        `Guide slot "${id}" references missing default agent "${slot.defaultAgent}".`,
+        `Guide slot "${id}" references missing default agent "${slot.defaultRole}".`,
       );
     }
-    const providerId = input.slotProviders?.[id] ?? defaultAgent.provider;
+    const providerId = input.slotProviders?.[id] ?? defaultRole.provider;
     assertProviderConfigured(input.config, providerId, `slot "${id}"`);
     return {
       id,
       label: slot.label,
       description: slot.description ?? null,
-      defaultAgent: slot.defaultAgent,
+      defaultRole: slot.defaultRole,
       providerId,
     } satisfies ResolvedGuideSlot;
   });
@@ -84,10 +84,10 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
 
   const steps = input.guide.steps.flatMap((step) => {
     const slot = step.slot ? resolvedSlots.get(step.slot) : null;
-    const agentId = step.agentId ?? slot?.defaultAgent ?? null;
-    if (agentId && !input.config.agents[agentId]) {
+    const roleId = step.roleId ?? slot?.defaultRole ?? null;
+    if (roleId && !input.config.roles[roleId]) {
       throw new GuideResolutionError(
-        `Guide step "${step.id}" references missing agent "${agentId}".`,
+        `Guide step "${step.id}" references missing agent "${roleId}".`,
       );
     }
 
@@ -118,7 +118,7 @@ export function resolveGuide(input: ResolveGuideInput): ResolvedGuideSnapshot {
         enabled: !skippedOptionalSteps.has(step.id),
         optional: step.optional,
         slotId: slot?.id ?? null,
-        agentId,
+        roleId,
         providerId: providerOverride ?? slot?.providerId ?? null,
         inputs: step.inputs,
         outputs: step.outputs,

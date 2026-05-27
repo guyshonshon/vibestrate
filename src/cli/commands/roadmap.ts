@@ -497,7 +497,7 @@ async function cmdRoadmapPlan(
   const detected = await detectProject(process.cwd());
   // Lazily import to avoid pulling provider-runner into the CLI module graph
   // when the user only uses non-plan commands.
-  const [{ loadConfig, loadAgentPrompt }, { runProvider }, { fileURLToPath }, fs] =
+  const [{ loadConfig, loadRolePrompt }, { runProvider }, { fileURLToPath }, fs] =
     await Promise.all([
       import("../../project/config-loader.js"),
       import("../../providers/provider-runner.js"),
@@ -518,14 +518,14 @@ async function cmdRoadmapPlan(
     return 1;
   }
 
-  const plannerAgent = loaded.config.agents["planner"];
-  if (!plannerAgent) {
+  const plannerRole = loaded.config.roles["planner"];
+  if (!plannerRole) {
     console.error(
       `${symbol.fail()} No planner agent configured. Run ${color.bold("amaco init --force")} or ${color.bold("amaco provider setup")}.`,
     );
     return 1;
   }
-  const providerId = opts.provider ?? plannerAgent.provider;
+  const providerId = opts.provider ?? plannerRole.provider;
   if (!loaded.config.providers[providerId]) {
     console.error(
       `${symbol.fail()} Provider "${providerId}" is not configured.`,

@@ -65,10 +65,10 @@ export function StepTimelineV3({
                         ) : null}
                         {step.status}
                       </Chip>
-                      {step.agentId ? (
+                      {step.roleId ? (
                         <span className="text-[11.5px] text-fog-400 whitespace-nowrap">
                           by{" "}
-                          <span className="text-fog-200">{step.agentId}</span>
+                          <span className="text-fog-200">{step.roleId}</span>
                         </span>
                       ) : null}
                     </div>
