@@ -338,23 +338,20 @@ export async function applyFlowPatch(input: {
       reasons: [`Flow "${flowId}" not found.`],
     };
   }
-  if (flow.source.kind !== "project" || !flow.definitionPath) {
-    return {
-      ok: false,
-      status: 409,
-      reasons: [
-        `Flow "${flowId}" is a ${flow.source.kind} flow and can only be edited by forking it into the project.`,
-      ],
-    };
-  }
-
+  // Flows are always editable. A project flow is patched in place; a builtin /
+  // fixture is transparently forked — the patched result is written to a project
+  // copy (`.amaco/flows/<id>/flow.yml`) that shadows the builtin everywhere.
   const rootDir = projectFlowsDir(projectRoot);
-  if (!isPathInside(rootDir, flow.definitionPath)) {
+  const targetPath =
+    flow.source.kind === "project" && flow.definitionPath
+      ? flow.definitionPath
+      : path.join(rootDir, flowId, "flow.yml");
+  if (!isPathInside(rootDir, targetPath)) {
     return {
       ok: false,
       status: 409,
       reasons: [
-        `Flow "${flowId}" lives outside the project flows directory and cannot be patched.`,
+        `Flow "${flowId}" resolves outside the project flows directory and cannot be patched.`,
       ],
     };
   }
@@ -365,10 +362,11 @@ export async function applyFlowPatch(input: {
   }
 
   const yaml = YAML.stringify(verdict.next);
-  const tmpPath = `${flow.definitionPath}.tmp-${process.pid}-${Date.now()}`;
+  await fs.mkdir(path.dirname(targetPath), { recursive: true });
+  const tmpPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
   await fs.writeFile(tmpPath, yaml, { encoding: "utf8", mode: 0o600 });
   try {
-    await fs.rename(tmpPath, flow.definitionPath);
+    await fs.rename(tmpPath, targetPath);
   } catch (err) {
     await fs.rm(tmpPath, { force: true }).catch(() => undefined);
     throw err;
@@ -377,7 +375,7 @@ export async function applyFlowPatch(input: {
   return {
     ok: true,
     flowId,
-    definitionPath: path.relative(projectRoot, flow.definitionPath),
+    definitionPath: path.relative(projectRoot, targetPath),
     next: verdict.next,
   };
 }
