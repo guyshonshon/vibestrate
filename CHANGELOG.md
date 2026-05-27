@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: add `docs/design/runner-unification.md` — full context, current flow,
+  decisions, the new constructs (adaptive `loop`, `skipWhenReadOnly`), parity
+  matrix, and the remaining B-3 plan for merging the two orchestrator runners.
 - Add: read-only parity in the flow runner (D2 phase B-3c, part 1). Flow steps
   gain `skipWhenReadOnly`; the default flow marks implement/validation/fix/
   revalidation/verify. A read-only run skips those, traverses the review loop
