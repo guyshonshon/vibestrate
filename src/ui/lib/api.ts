@@ -124,6 +124,18 @@ async function jsonPatch<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function jsonPut<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, await readErrorMessage(res));
+  }
+  return (await res.json()) as T;
+}
+
 async function jsonDelete<T>(path: string): Promise<T> {
   const res = await fetch(path, { method: "DELETE" });
   if (!res.ok) {
@@ -609,6 +621,24 @@ export const api = {
     provider: string,
   ): Promise<{ ok: true; roleId: string; provider: string }> {
     return jsonPatch(`/api/roles/${encodeURIComponent(roleId)}`, { provider });
+  },
+  async getRoleContext(roleId: string): Promise<{
+    roleId: string;
+    provider: string;
+    permissions: string;
+    skills: string[];
+    promptPath: string;
+    content: string;
+  }> {
+    return jsonGet(`/api/roles/${encodeURIComponent(roleId)}/context`);
+  },
+  async setRoleContext(
+    roleId: string,
+    content: string,
+  ): Promise<{ ok: true; roleId: string; promptPath: string }> {
+    return jsonPut(`/api/roles/${encodeURIComponent(roleId)}/context`, {
+      content,
+    });
   },
   async resolveFlow(
     flowId: string,

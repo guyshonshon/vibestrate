@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
   ChevronRight,
   Cpu,
   Play,
@@ -106,43 +109,80 @@ export function CrewPage() {
       });
   }, []);
 
-  // The selected flow's role-bearing steps, in order (deduped by role).
-  const flowOrder = useMemo<{ stepLabel: string; roleId: string }[]>(() => {
-    const def =
+  const selectedFlow = useMemo(
+    () =>
       flows.find((f) => f.id === selectedFlowId) ??
-      flows.find((f) => f.id === "default");
-    if (!def) return [];
+      flows.find((f) => f.id === "default") ??
+      null,
+    [flows, selectedFlowId],
+  );
+
+  // The selected flow's role-bearing steps, in order (deduped by role) — each
+  // carries the step id so the Crew editor can reorder the underlying steps.
+  const flowOrder = useMemo<{ stepId: string; stepLabel: string; roleId: string }[]>(() => {
+    if (!selectedFlow) return [];
     const seen = new Set<string>();
-    const order: { stepLabel: string; roleId: string }[] = [];
-    for (const s of def.definition.steps) {
+    const order: { stepId: string; stepLabel: string; roleId: string }[] = [];
+    for (const s of selectedFlow.definition.steps) {
       if (s.roleId && !seen.has(s.roleId)) {
         seen.add(s.roleId);
-        order.push({ stepLabel: s.label, roleId: s.roleId });
+        order.push({ stepId: s.id, stepLabel: s.label, roleId: s.roleId });
       }
     }
     return order;
-  }, [flows, selectedFlowId]);
+  }, [selectedFlow]);
 
   // Roles ordered + step-labeled by the selected flow. For the default flow any
   // config role not in the flow is appended (so nothing is hidden); for other
   // flows we show exactly that flow's roles.
-  const orderedRoles = useMemo<{ role: Role; stepLabel: string | null }[]>(() => {
-    if (flowOrder.length === 0) return roles.map((role) => ({ role, stepLabel: null }));
+  const orderedRoles = useMemo<
+    { role: Role; stepLabel: string | null; stepId: string | null }[]
+  >(() => {
+    if (flowOrder.length === 0)
+      return roles.map((role) => ({ role, stepLabel: null, stepId: null }));
     const byId = new Map(roles.map((r) => [r.id, r]));
-    const out: { role: Role; stepLabel: string | null }[] = [];
+    const out: { role: Role; stepLabel: string | null; stepId: string | null }[] = [];
     const used = new Set<string>();
     for (const step of flowOrder) {
       const role = byId.get(step.roleId);
       if (role) {
-        out.push({ role, stepLabel: step.stepLabel });
+        out.push({ role, stepLabel: step.stepLabel, stepId: step.stepId });
         used.add(role.id);
       }
     }
     if (selectedFlowId === "default") {
-      for (const role of roles) if (!used.has(role.id)) out.push({ role, stepLabel: null });
+      for (const role of roles)
+        if (!used.has(role.id)) out.push({ role, stepLabel: null, stepId: null });
     }
     return out;
   }, [roles, flowOrder, selectedFlowId]);
+
+  // Reorder a role's step in the flow: swap it with the adjacent role-bearing
+  // step in the full step list, then persist via the flow patch (auto-forks a
+  // builtin). Non-role steps keep their place; the server re-validates.
+  async function reorderRole(stepId: string, dir: -1 | 1): Promise<void> {
+    if (!selectedFlow) return;
+    const steps = selectedFlow.definition.steps;
+    const roleStepIdxs = steps
+      .map((s, i) => (s.roleId ? i : -1))
+      .filter((i) => i >= 0);
+    const pos = roleStepIdxs.findIndex((i) => steps[i]!.id === stepId);
+    const swapPos = pos + dir;
+    if (pos < 0 || swapPos < 0 || swapPos >= roleStepIdxs.length) return;
+    const a = roleStepIdxs[pos]!;
+    const b = roleStepIdxs[swapPos]!;
+    const next = steps.map((s) => ({ ...s }));
+    [next[a], next[b]] = [next[b]!, next[a]!];
+    try {
+      await api.patchFlow(selectedFlowId, {
+        replaceSteps: next as Parameters<typeof api.patchFlow>[1]["replaceSteps"],
+      });
+      const r = await api.listFlows();
+      setFlows(r.flows);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -306,6 +346,7 @@ export function CrewPage() {
             onSelectFlow={setSelectedFlowId}
             orderedRoles={orderedRoles}
             overview={overview}
+            onReorder={reorderRole}
             onSetProvider={async (roleId, providerId) => {
               try {
                 await api.setRoleProvider(roleId, providerId);
@@ -848,29 +889,39 @@ const ROLE_BLURB: Record<string, string> = {
  * configured provider per role. (Providers are added/configured on the
  * Providers page; here you just assign who plays each role.)
  */
+const ROLE_SELECT_CLS =
+  "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
+
 function RolesPanel({
   flows,
   selectedFlowId,
   onSelectFlow,
   orderedRoles,
   overview,
+  onReorder,
   onSetProvider,
 }: {
   flows: DiscoveredFlow[];
   selectedFlowId: string;
   onSelectFlow: (id: string) => void;
-  orderedRoles: { role: Role; stepLabel: string | null }[];
+  orderedRoles: { role: Role; stepLabel: string | null; stepId: string | null }[];
   overview: ProvidersOverview | null;
+  onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
   onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
   if (orderedRoles.length === 0) return null;
   const configured = (overview?.providers ?? []).filter((p) => p.configured);
-  const selectCls =
-    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
+  // Reorder bounds: only steps backed by a flow step can move, and only within
+  // that set (config-only roles appended for the default flow can't reorder).
+  const reorderableIdx = orderedRoles
+    .map((e, i) => (e.stepId ? i : -1))
+    .filter((i) => i >= 0);
+  const firstReorderable = reorderableIdx[0] ?? -1;
+  const lastReorderable = reorderableIdx[reorderableIdx.length - 1] ?? -1;
   return (
     <section data-screen-label="Roles">
       <div className="overflow-hidden rounded-xl border border-violet-soft/25 surface-ink-100-55">
-        {/* The crew IS a flow's seats. Pick the flow; its role-steps list below. */}
+        {/* The crew IS the flow's seats — pick the flow and edit it in place. */}
         <div className="border-b border-white/[0.07] px-3.5 py-2.5">
           <div className="flex items-center gap-2">
             <span className="text-[11px] uppercase tracking-wide text-fog-500">Flow</span>
@@ -878,7 +929,7 @@ function RolesPanel({
               <select
                 value={selectedFlowId}
                 onChange={(e) => onSelectFlow(e.target.value)}
-                className={`${selectCls} font-medium`}
+                className={`${ROLE_SELECT_CLS} font-medium`}
               >
                 {flows.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -897,72 +948,233 @@ function RolesPanel({
               onClick={() => navigate({ kind: "flows" })}
               className="ml-auto text-[11.5px] text-violet-soft/90 hover:text-violet-soft"
             >
-              view flow →
+              full editor →
             </button>
           </div>
           <p className="mt-1 text-[11px] text-fog-500">
-            {orderedRoles.length} roles, in order — pick the provider for each.
+            Reorder with ↑ ↓ · set each role's provider · edit its context. Changes
+            save to this flow (a built-in becomes your project copy).
           </p>
         </div>
 
         <ol className="divide-y divide-white/[0.05]">
-          {orderedRoles.map(({ role: r, stepLabel }, i) => {
-            const prov = overview?.providers.find((p) => p.providerId === r.provider);
-            const online = prov ? prov.available : r.providerConfigured;
-            const isWrite = r.permissions.includes("write");
-            return (
-              <li key={r.id} className="px-3.5 py-2.5">
-                {/* line 1: step node + who plays it + permission */}
-                <div className="flex items-center gap-2.5">
-                  <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full border border-violet-soft/30 bg-violet-soft/10 text-[10px] text-violet-soft">
-                    {i + 1}
-                  </span>
-                  <span
-                    className="text-[13px] text-fog-100"
-                    title={ROLE_BLURB[r.id] ?? undefined}
-                  >
-                    {stepLabel ?? <span className="capitalize">{r.id}</span>}
-                  </span>
-                  <span className="mono text-[10px] text-violet-soft/80">{r.id}</span>
-                  <Chip tone={isWrite ? "amber" : "neutral"} className="ml-auto">
-                    {r.permissions}
-                  </Chip>
-                </div>
-                {/* line 2: the provider seat + status */}
-                <label className="mt-1.5 flex items-center gap-1.5 pl-[30px] text-[12px]">
-                  <ToneDot tone={online ? "emerald" : "rose"} />
-                  <select
-                    value={r.provider}
-                    onChange={(e) => void onSetProvider(r.id, e.target.value)}
-                    className={`${selectCls} min-w-0 flex-1`}
-                  >
-                    {/* Keep an unconfigured current provider visible (flagged below). */}
-                    {!configured.some((p) => p.providerId === r.provider) ? (
-                      <option value={r.provider}>{r.provider}</option>
-                    ) : null}
-                    {configured.map((p) => (
-                      <option key={p.providerId} value={p.providerId}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="shrink-0 text-[10.5px] text-fog-500">
-                    {r.skills.length > 0 ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : "—"}
-                  </span>
-                </label>
-                {!online ? (
-                  <p className="mt-1 pl-[30px] text-[10.5px] text-rose-300/80">
-                    {r.providerConfigured
-                      ? "provider CLI offline"
-                      : "provider not configured — set one in Providers"}
-                  </p>
-                ) : null}
-              </li>
-            );
-          })}
+          {orderedRoles.map((entry, i) => (
+            <RoleRow
+              key={entry.role.id}
+              index={i}
+              entry={entry}
+              configured={configured}
+              overview={overview}
+              canUp={entry.stepId !== null && i > firstReorderable}
+              canDown={entry.stepId !== null && i < lastReorderable}
+              onReorder={onReorder}
+              onSetProvider={onSetProvider}
+            />
+          ))}
         </ol>
       </div>
     </section>
+  );
+}
+
+function RoleRow({
+  index,
+  entry,
+  configured,
+  overview,
+  canUp,
+  canDown,
+  onReorder,
+  onSetProvider,
+}: {
+  index: number;
+  entry: { role: Role; stepLabel: string | null; stepId: string | null };
+  configured: ProviderProfile[];
+  overview: ProvidersOverview | null;
+  canUp: boolean;
+  canDown: boolean;
+  onReorder: (stepId: string, dir: -1 | 1) => void | Promise<void>;
+  onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
+}) {
+  const r = entry.role;
+  const prov = overview?.providers.find((p) => p.providerId === r.provider);
+  const online = prov ? prov.available : r.providerConfigured;
+  const isWrite = r.permissions.includes("write");
+
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && content === null) {
+      setLoading(true);
+      try {
+        const ctx = await api.getRoleContext(r.id);
+        setContent(ctx.content);
+      } catch {
+        setContent("");
+      } finally {
+        setLoading(false);
+      }
+    }
+  }
+  async function save() {
+    if (content === null) return;
+    setSaving(true);
+    try {
+      await api.setRoleContext(r.id, content);
+      setSavedAt(Date.now());
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <li className="px-3.5 py-2.5">
+      <div className="flex items-center gap-2.5">
+        <span className="mono grid h-5 w-5 shrink-0 place-items-center rounded-full border border-violet-soft/30 bg-violet-soft/10 text-[10px] text-violet-soft">
+          {index + 1}
+        </span>
+        <button
+          type="button"
+          onClick={() => void toggle()}
+          className="flex min-w-0 items-center gap-1.5 text-left"
+          title="Edit this role's context (its brain)"
+        >
+          <ChevronDown
+            size={13}
+            className={cn(
+              "shrink-0 text-fog-500 transition-transform",
+              open ? "" : "-rotate-90",
+            )}
+          />
+          <span className="text-[13px] text-fog-100">
+            {entry.stepLabel ?? <span className="capitalize">{r.id}</span>}
+          </span>
+          <span className="mono text-[10px] text-violet-soft/80">{r.id}</span>
+        </button>
+        <div className="ml-auto flex items-center gap-1">
+          {entry.stepId ? (
+            <>
+              <IconBtn
+                disabled={!canUp}
+                title="Move earlier"
+                onClick={() => entry.stepId && void onReorder(entry.stepId, -1)}
+              >
+                <ArrowUp size={12} strokeWidth={1.8} />
+              </IconBtn>
+              <IconBtn
+                disabled={!canDown}
+                title="Move later"
+                onClick={() => entry.stepId && void onReorder(entry.stepId, 1)}
+              >
+                <ArrowDown size={12} strokeWidth={1.8} />
+              </IconBtn>
+            </>
+          ) : null}
+          <Chip tone={isWrite ? "amber" : "neutral"}>{r.permissions}</Chip>
+        </div>
+      </div>
+
+      <label className="mt-1.5 flex items-center gap-1.5 pl-[30px] text-[12px]">
+        <ToneDot tone={online ? "emerald" : "rose"} />
+        <select
+          value={r.provider}
+          onChange={(e) => void onSetProvider(r.id, e.target.value)}
+          className={`${ROLE_SELECT_CLS} min-w-0 flex-1`}
+        >
+          {!configured.some((p) => p.providerId === r.provider) ? (
+            <option value={r.provider}>{r.provider}</option>
+          ) : null}
+          {configured.map((p) => (
+            <option key={p.providerId} value={p.providerId}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <span className="shrink-0 text-[10.5px] text-fog-500">
+          {r.skills.length > 0
+            ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}`
+            : "—"}
+        </span>
+      </label>
+      {!online ? (
+        <p className="mt-1 pl-[30px] text-[10.5px] text-rose-300/80">
+          {r.providerConfigured
+            ? "provider CLI offline"
+            : "provider not configured — set one in Providers"}
+        </p>
+      ) : null}
+
+      {open ? (
+        <div className="mt-2 pl-[30px]">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[10.5px] uppercase tracking-wide text-fog-500">
+              Context · the role's brain
+            </span>
+            {savedAt ? (
+              <span className="text-[10.5px] text-emerald-300/90">saved ✓</span>
+            ) : null}
+          </div>
+          <textarea
+            value={content ?? ""}
+            disabled={loading || content === null}
+            onChange={(e) => {
+              setContent(e.target.value);
+              setSavedAt(null);
+            }}
+            rows={8}
+            placeholder={loading ? "Loading…" : "This role's instructions…"}
+            className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[12px] leading-snug text-fog-100 outline-none focus:border-violet-soft/40"
+          />
+          <div className="mt-1.5 flex items-center gap-2">
+            <Button size="sm" variant="primary" disabled={saving || loading} onClick={() => void save()}>
+              {saving ? "Saving…" : "Save context"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-[11.5px] text-fog-400 hover:text-fog-200"
+            >
+              close
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+function IconBtn({
+  children,
+  disabled,
+  title,
+  onClick,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  title: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "grid h-6 w-6 place-items-center rounded-md border border-white/10 text-fog-300 transition",
+        disabled
+          ? "opacity-30 cursor-not-allowed"
+          : "hover:border-violet-soft/40 hover:text-fog-100",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
