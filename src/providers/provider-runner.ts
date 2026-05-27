@@ -12,6 +12,7 @@ import {
   type NormalizedMetrics,
   type NormalizedTurn,
 } from "./output-adapter.js";
+import { claudeStreamJsonAdapter } from "./adapters/claude-stream-json.js";
 
 export type RichProviderRunResult = ProviderRunResult & {
   claudeMetrics?: ClaudeCodeRunMetrics;
@@ -60,6 +61,12 @@ export async function runProvider(
       provider,
       input,
     );
+    // stream-json: the adapter extracts the response text + usage from the
+    // event stream (fails loud if it can't). text/json: stdout is the answer,
+    // metrics from the existing claude parser.
+    if (provider.settings?.outputFormat === "stream-json") {
+      return { ...result, normalized: claudeStreamJsonAdapter.finalize(result.stdout) };
+    }
     return {
       ...result,
       normalized: {
