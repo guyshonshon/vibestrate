@@ -1,4 +1,4 @@
-import { ChevronLeft, Diff, GitBranch } from "lucide-react";
+import { ChevronLeft, Diff, GitBranch, RotateCcw } from "lucide-react";
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
@@ -42,16 +42,25 @@ function pretty(s: RunStatus): string {
   );
 }
 
+const TERMINAL = new Set<RunStatus>([
+  "merge_ready",
+  "failed",
+  "aborted",
+  "blocked",
+]);
+
 export function RunHeaderV3({
   run,
   onBack,
   onOpenDiff,
   onOpenGit,
+  onRerun,
 }: {
   run: RunState;
   onBack: () => void;
   onOpenDiff: () => void;
   onOpenGit: () => void;
+  onRerun?: () => void;
 }) {
   return (
     <header
@@ -96,6 +105,17 @@ export function RunHeaderV3({
         >
           <Diff className="h-3 w-3 text-fog-400" strokeWidth={1.7} /> View diff
         </button>
+        {onRerun && TERMINAL.has(run.status) ? (
+          <button
+            type="button"
+            onClick={onRerun}
+            title="Re-run this task with adjusted settings (write access, effort, provider)"
+            className="h-8 px-2.5 rounded-lg border border-violet-soft/40 bg-violet-soft/10 hover:bg-violet-soft/20 flex items-center gap-2 text-[12px] text-fog-100 whitespace-nowrap"
+          >
+            <RotateCcw className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
+            Re-run with changes
+          </button>
+        ) : null}
       </div>
     </header>
   );

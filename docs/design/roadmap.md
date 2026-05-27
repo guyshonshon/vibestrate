@@ -53,11 +53,15 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
 
 ## Epic B — Run control & rework
 
-- **B1 — Rewind to a phase + rework from there.** Today you can replay but not
-  re-run *from* a phase with changes. Real case: a run failed because every
-  agent was read-only; the fix (give the executor write + re-run from exec) has
-  no UI path. Add: re-run from a chosen step + a per-run agent permission
-  override.
+- **B1 — Re-run with changes + rewind.**
+  - ✓ **Re-run with changes** (done): a terminal run has a "Re-run with changes"
+    action → re-submit the task with adjusted settings (uncheck read-only so the
+    executor can write, change effort/provider; preserves the guide). Directly
+    fixes the read-only→write case. Re-runs from scratch (new worktree).
+  - ☐ **Rewind to a phase** (true resume — reuse prior artifacts, start at a
+    chosen step instead of from scratch) + per-agent permission override. Bigger
+    orchestration change (resumable mid-workflow); design question the user
+    raised ("do we want this behavior?") — deferred.
 - **B2 — Run navigation + "blocked" UX.** Reaching a run shouldn't require going
   through "all runs"; the `blocked` state needs a clearer, more actionable
   surface (what blocked it, what to do).
