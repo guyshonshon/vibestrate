@@ -76,5 +76,6 @@ The output is deterministic; commit it. The marketing site renders these.
 ## Visibility note
 
 The repo is currently **private**, which is why GitHub Actions is billing-
-blocked. Making it public unblocks Actions for free and matches the MIT /
-open-source posture — a deliberate choice to make when you're ready.
+blocked. Making it public unblocks Actions for free and matches the
+Apache-2.0 / open-source posture — a deliberate choice to make when you're
+ready.

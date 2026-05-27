@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Change: **relicense from MIT to Apache-2.0.** Full Apache 2.0 text in
+  `LICENSE`, added a `NOTICE` file, `package.json` `license` → `Apache-2.0`,
+  and updated every reference (README badge + License section + the
+  open-source row, SECURITY.md, MAINTAINING.md). The bundled third-party skill
+  keeps its own upstream license.
 - Add: **Agents/Providers clarity** (Epic D / D1, legibility pass) — the
   dashboard now makes the agent↔provider relationship explicit instead of
   conflating them. The **Agents** page leads with a **Roles** panel (planner,
