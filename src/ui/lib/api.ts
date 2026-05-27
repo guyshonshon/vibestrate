@@ -52,6 +52,7 @@ import type {
   RunReplay,
   FlowContextPolicy,
   FlowSuggestion,
+  FlowLoop,
   ResolvedFlowSnapshot,
 } from "./types.js";
 
@@ -315,6 +316,8 @@ export type FlowStepFull = {
   kind: FlowStepKind;
   slot?: string;
   roleId?: string;
+  stage?: "planning" | "architecting" | "executing" | "reviewing" | "verifying";
+  skipWhenReadOnly?: boolean;
   inputs?: string[];
   outputs?: string[];
   optional?: boolean;
@@ -336,6 +339,8 @@ export type FlowPatch = {
   replaceSteps?: FlowStepFull[];
   /** Replace the slot map wholesale. */
   replaceSlots?: Record<string, FlowSlotFull>;
+  /** Set the adaptive loop, or null to clear it. */
+  loop?: FlowLoop | null;
 };
 
 export type ComposerPreset = {

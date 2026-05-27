@@ -37,6 +37,7 @@ import { cn } from "../../components/design/cn.js";
 import type {
   DiscoveredFlow,
   FlowStepDefinition,
+  FlowLoop,
   ResolvedFlowSnapshot,
 } from "../../lib/types.js";
 
@@ -100,6 +101,8 @@ export function FlowBuilderPage({
   const [draftStepList, setDraftStepList] = useState<FlowStepFull[] | null>(
     null,
   );
+  // The adaptive loop draft (null = no loop). Reset on flow switch + save.
+  const [draftLoop, setDraftLoop] = useState<FlowLoop | null>(null);
   const [saving, setSaving] = useState(false);
   const [forking, setForking] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -158,6 +161,7 @@ export function FlowBuilderPage({
     setDraftLabel(selected.label);
     setDraftSteps({});
     setDraftStepList(null);
+    setDraftLoop(selected.definition.loop ?? null);
     setActiveStepIdx(0);
   }, [selected?.id]);
 
@@ -206,14 +210,19 @@ export function FlowBuilderPage({
       }
       if (steps.length > 0) patch.steps = steps;
     }
+    const currentLoop = selected.definition.loop ?? null;
+    if (JSON.stringify(draftLoop) !== JSON.stringify(currentLoop)) {
+      patch.loop = draftLoop;
+    }
     if (
       patch.label === undefined &&
       patch.steps === undefined &&
-      patch.replaceSteps === undefined
+      patch.replaceSteps === undefined &&
+      patch.loop === undefined
     )
       return null;
     return patch;
-  }, [selected, draftLabel, draftSteps, draftStepList]);
+  }, [selected, draftLabel, draftSteps, draftStepList, draftLoop]);
 
   const dirty = pendingPatch !== null;
 
@@ -228,6 +237,7 @@ export function FlowBuilderPage({
       setDraftLabel(result.flow.label);
       setDraftSteps({});
       setDraftStepList(null);
+      setDraftLoop(result.flow.definition.loop ?? null);
       setToast({
         kind: "ok",
         text: `Saved ${result.flow.label} (${result.definitionPath})`,
@@ -558,6 +568,12 @@ export function FlowBuilderPage({
               onPatchDraft={(patch) =>
                 activeStep && patchStepDraft(activeStep.id, patch)
               }
+            />
+            <LoopCard
+              steps={displayedSteps}
+              loop={draftLoop}
+              editable={isProjectFlow}
+              onChange={setDraftLoop}
             />
             <PolicyCard />
             <PreviewCard steps={displayedSteps} />
@@ -1200,6 +1216,9 @@ function toFlowStepFull(
   };
   if (step.slot !== undefined) base.slot = step.slot;
   if (step.roleId !== undefined) base.roleId = step.roleId;
+  if (step.stage !== undefined) base.stage = step.stage;
+  if (step.skipWhenReadOnly !== undefined)
+    base.skipWhenReadOnly = step.skipWhenReadOnly;
   if (step.approval !== undefined) base.approval = step.approval;
   if (step.repeat !== undefined) base.repeat = step.repeat;
   return applyDraftToFullStep(base, draft);
@@ -1217,6 +1236,9 @@ function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
   };
   if (step.slot !== undefined) out.slot = step.slot;
   if (step.roleId !== undefined) out.roleId = step.roleId;
+  if (step.stage !== undefined) out.stage = step.stage;
+  if (step.skipWhenReadOnly !== undefined)
+    out.skipWhenReadOnly = step.skipWhenReadOnly;
   if (step.approval !== undefined) out.approval = step.approval;
   if (step.repeat !== undefined) out.repeat = step.repeat;
   return out;
@@ -1380,6 +1402,158 @@ function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
           </Fragment>
         ))}
       </div>
+    </div>
+  );
+}
+
+function LoopCard({
+  steps,
+  loop,
+  editable,
+  onChange,
+}: {
+  steps: FlowStepDefinition[];
+  loop: FlowLoop | null;
+  editable: boolean;
+  onChange: (loop: FlowLoop | null) => void;
+}) {
+  const selectCls = cn(
+    "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-2.5 text-[12.5px] text-fog-100 outline-none",
+    editable ? "focus:border-violet-soft/40" : "opacity-70 cursor-not-allowed",
+  );
+  const idx = (id: string): number => steps.findIndex((s) => s.id === id);
+  const fromI = loop ? idx(loop.from) : -1;
+  const toI = loop ? idx(loop.to) : -1;
+  const reviewsInRange = steps.filter(
+    (s, i) =>
+      s.kind === "review-turn" && fromI >= 0 && toI >= 0 && i >= fromI && i <= toI,
+  );
+  const rangeOk = !!loop && fromI >= 0 && toI >= 0 && fromI <= toI;
+  const decisionOk =
+    !!loop && reviewsInRange.some((s) => s.id === loop.decisionStep);
+
+  function enable(): void {
+    const from = steps[0];
+    const lastReview = [...steps].reverse().find((s) => s.kind === "review-turn");
+    const to = lastReview ?? steps[steps.length - 1];
+    if (!from || !to) return;
+    onChange({
+      from: from.id,
+      to: to.id,
+      decisionStep: (lastReview ?? to).id,
+      maxIterations: 3,
+    });
+  }
+  function update(patch: Partial<FlowLoop>): void {
+    if (loop) onChange({ ...loop, ...patch });
+  }
+
+  return (
+    <div className="glass p-4 fade-up fade-up-delay-2">
+      <SectionEyebrow
+        className="mb-3"
+        right={
+          editable ? (
+            <button
+              type="button"
+              onClick={() => (loop ? onChange(null) : enable())}
+              className="text-[11px] text-violet-soft/90 hover:text-violet-soft"
+            >
+              {loop ? "remove loop" : "+ add loop"}
+            </button>
+          ) : loop ? (
+            <span className="text-[11px] text-fog-500">on</span>
+          ) : null
+        }
+      >
+        Loop
+      </SectionEyebrow>
+      {!loop ? (
+        <p className="text-[12px] text-fog-500">
+          No loop. A loop repeats a contiguous range of steps while a review keeps
+          asking for changes — e.g. coder → reviewer → coder.
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Field label="From step">
+              <select
+                className={selectCls}
+                disabled={!editable}
+                value={loop.from}
+                onChange={(e) => update({ from: e.target.value })}
+              >
+                {steps.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="To step">
+              <select
+                className={selectCls}
+                disabled={!editable}
+                value={loop.to}
+                onChange={(e) => update({ to: e.target.value })}
+              >
+                {steps.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          <Field label="Decision step — a review in the range">
+            <select
+              className={selectCls}
+              disabled={!editable}
+              value={loop.decisionStep}
+              onChange={(e) => update({ decisionStep: e.target.value })}
+            >
+              {!decisionOk ? (
+                <option value={loop.decisionStep}>
+                  {loop.decisionStep} (not a review in range)
+                </option>
+              ) : null}
+              {reviewsInRange.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Max iterations">
+            <input
+              type="number"
+              min={1}
+              max={8}
+              className={selectCls}
+              disabled={!editable}
+              value={loop.maxIterations}
+              onChange={(e) =>
+                update({
+                  maxIterations: Math.max(1, Math.min(8, Number(e.target.value) || 1)),
+                })
+              }
+            />
+          </Field>
+          {!rangeOk || !decisionOk ? (
+            <p className="text-[11px] text-amber-300/90">
+              {!rangeOk ? "“From” must come at or before “To”. " : ""}
+              {!decisionOk
+                ? "Pick a review-turn inside the range as the decision step."
+                : ""}
+            </p>
+          ) : (
+            <p className="text-[11px] text-fog-500">
+              Repeats {loop.from} → {loop.to} until {loop.decisionStep} isn’t
+              “changes requested”, up to {loop.maxIterations}×.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
