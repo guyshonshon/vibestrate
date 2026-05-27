@@ -15,6 +15,8 @@ import {
   flowDefinitionSchema,
   flowStepKindSchema,
   flowStepSchema,
+  flowStageSchema,
+  flowLoopSchema,
   flowTokenSchema,
   flowSlotSchema,
   type FlowDefinition,
@@ -45,6 +47,8 @@ const stepPatchSchema = z
     kind: flowStepKindSchema.optional(),
     slot: flowTokenSchema.nullable().optional(),
     roleId: flowRoleIdSchema.nullable().optional(),
+    stage: flowStageSchema.nullable().optional(),
+    skipWhenReadOnly: z.boolean().optional(),
     approval: flowApprovalGateSchema.nullable().optional(),
   })
   .strict();
@@ -64,6 +68,12 @@ export const flowPatchInputSchema = z
     replaceSteps: z.array(flowStepSchema).min(1).max(64).optional(),
     /** Replace the slot map wholesale. */
     replaceSlots: z.record(flowTokenSchema, flowSlotSchema).optional(),
+    /**
+     * Set the adaptive review→fix loop, or `null` to remove it. Validated
+     * against the resulting steps by the full schema (decisionStep must be a
+     * review-turn inside from..to, etc.). Absent = leave the loop unchanged.
+     */
+    loop: flowLoopSchema.nullable().optional(),
   })
   .strict();
 
@@ -101,6 +111,13 @@ function mergeStep<S extends FlowDefinition["steps"][number]>(
     if (edit.roleId === null) delete next.roleId;
     else if (edit.roleId !== undefined) next.roleId = edit.roleId;
   }
+  if ("stage" in edit) {
+    if (edit.stage === null) delete next.stage;
+    else if (edit.stage !== undefined) next.stage = edit.stage;
+  }
+  if (edit.skipWhenReadOnly !== undefined) {
+    next.skipWhenReadOnly = edit.skipWhenReadOnly;
+  }
   if ("approval" in edit) {
     if (edit.approval === null) delete next.approval;
     else if (edit.approval !== undefined) next.approval = edit.approval;
@@ -129,6 +146,14 @@ export function mergeFlowPatch(
         ? patch.replaceSteps.map((s) => ({ ...s }))
         : current.steps.map((step) => ({ ...step })),
   };
+
+  // Loop: value sets it, null clears it, absent leaves it. The full-schema
+  // re-validation below checks the loop's refs against the (possibly replaced)
+  // steps, so a reorder that breaks the loop is rejected with a clear reason.
+  if (patch.loop !== undefined) {
+    if (patch.loop === null) delete next.loop;
+    else next.loop = patch.loop;
+  }
 
   const reasons: string[] = [];
   if (patch.steps) {

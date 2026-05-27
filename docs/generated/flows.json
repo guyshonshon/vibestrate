@@ -219,6 +219,74 @@
       }
     },
     {
+      "id": "coder-reviewer",
+      "version": 1,
+      "label": "Coder + Reviewer (looped)",
+      "description": "A minimal loop: the coder implements, the reviewer checks, and it loops back to the coder until the review passes or the bound is hit. No separate planner or verifier.",
+      "slots": [
+        {
+          "id": "coder",
+          "label": "Coder",
+          "description": "Implements and revises the change.",
+          "defaultRole": "executor"
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff and decides whether to loop back.",
+          "defaultRole": "reviewer"
+        }
+      ],
+      "steps": [
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "slot": "coder",
+          "roleId": "executor",
+          "inputs": [
+            "task-brief",
+            "findings"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "kind": "review-turn",
+          "slot": "reviewer",
+          "roleId": "reviewer",
+          "inputs": [
+            "execution",
+            "diff"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": {
+        "from": "implement",
+        "to": "review",
+        "decisionStep": "review",
+        "maxIterations": 3
+      }
+    },
+    {
       "id": "quality-arbitration",
       "version": 1,
       "label": "Quality Arbitration",

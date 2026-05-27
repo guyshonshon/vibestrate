@@ -7,6 +7,7 @@ import { ApprovalService } from "../../src/core/approval-service.js";
 import { Orchestrator } from "../../src/core/orchestrator.js";
 import { flowDefinitionSchema } from "../../src/flows/schemas/flow-schema.js";
 import { resolveFlow } from "../../src/flows/runtime/flow-resolver.js";
+import { findFlowById } from "../../src/flows/catalog/flow-discovery.js";
 import { loadConfig } from "../../src/project/config-loader.js";
 import { setConfigValue } from "../../src/setup/config-update-service.js";
 import { applySetup } from "../../src/setup/setup-service.js";
@@ -263,5 +264,62 @@ describe("Flow adaptive loop execution (D2 phase B-3a)", () => {
     // Last decision exits because the budget is spent, not because it approved.
     expect(decisions.at(-1)?.data?.continuing).toBe(false);
     expect(decisions.at(-1)?.data?.decision).toBe("CHANGES_REQUESTED");
+  });
+
+  it("runs the built-in coder-reviewer flow: loops the coder, reaches merge_ready with NO verify step", async () => {
+    // The whole flow is the loop body [implement, review]; reviewer asks for
+    // changes once → the coder (implement) runs again → approves. There is no
+    // verify step, so merge_ready must come from the APPROVED review alone.
+    const projectRoot = await makeLoopRepo(REVIEWER_SCRIPT);
+    const loaded = await loadConfig(projectRoot);
+    const flow = await findFlowById(projectRoot, "coder-reviewer");
+    expect(flow).not.toBeNull();
+    const snapshot = resolveFlow({
+      flow: flow!.definition,
+      source: flow!.source,
+      config: loaded.config,
+      task: "Minimal coder + reviewer loop.",
+    });
+
+    const orchestrator = new Orchestrator({
+      projectRoot,
+      config: loaded.config,
+      rules: loaded.rules,
+      task: snapshot.task,
+      flow: snapshot,
+      isGitRepo: true,
+      onProgress: () => {},
+    });
+    let approvedOnce = false;
+    const interval = setInterval(async () => {
+      if (approvedOnce) return;
+      const runs = await fs
+        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .catch(() => []);
+      const runId = runs[0];
+      if (!runId) return;
+      const approvals = new ApprovalService(projectRoot, runId);
+      const pending = await approvals.firstPending();
+      if (!pending) return;
+      approvedOnce = true;
+      await approvals.approve({ approvalId: pending.id });
+    }, 50);
+    let result: Awaited<ReturnType<Orchestrator["run"]>>;
+    try {
+      result = await orchestrator.run();
+    } finally {
+      clearInterval(interval);
+    }
+
+    expect(result.state.status).toBe("merge_ready");
+    // No verify step ran, so verification is not reported.
+    expect(result.state.verification).toBeNull();
+
+    const events = await readEvents(projectRoot, result.runId);
+    // Two passes: implement→review(CR) → implement→review(APPROVED).
+    expect(events.filter((e) => e.type === "flow.loop.iteration").length).toBe(2);
+    expect(
+      events.filter((e) => e.type === "flow.step.started" && e.data?.stepId === "implement").length,
+    ).toBe(2);
   });
 });
