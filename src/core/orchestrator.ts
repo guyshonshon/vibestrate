@@ -2819,7 +2819,11 @@ export class Orchestrator {
       this.abortSignal?.removeEventListener("abort", abortFromSignal);
     }
 
-    const stdout = providerResult.stdout || "";
+    // Control + artifact read the adapter-normalized response text, not raw
+    // stdout. For the text adapter these are identical; for a structured
+    // adapter this is the losslessly-extracted assistant text (the markers the
+    // approval/review parsers depend on live here).
+    const stdout = providerResult.normalized.responseText || "";
     const stderr = providerResult.stderr || "";
 
     const outputBody = stderr
@@ -2862,7 +2866,7 @@ export class Orchestrator {
       }
     }
 
-    const claudeMetrics = providerResult.claudeMetrics;
+    const metrics = providerResult.normalized.metrics;
     const providerCfg = this.config.providers[effectiveProviderId];
     const metric: AgentMetrics = {
       agentId,
@@ -2879,15 +2883,15 @@ export class Orchestrator {
       promptArtifactPath: ctx.artifactStore.relPath(promptArtifactPathAbs),
       outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
       sessionId:
-        claudeMetrics?.sessionId ?? providerResult.session?.sessionId ?? null,
+        metrics?.sessionId ?? providerResult.session?.sessionId ?? null,
       guideSlotId: input.guideTurn?.slotId ?? null,
       guideContextMode: input.guideTurn?.contextMode ?? null,
       guideContextFallbackReason: input.guideTurn?.fallbackReason ?? null,
-      model: claudeMetrics?.model ?? null,
-      totalCostUsd: claudeMetrics?.totalCostUsd ?? null,
-      perModelCost: claudeMetrics?.perModelCost ?? [],
-      tokenUsage: claudeMetrics?.tokenUsage ?? null,
-      toolCallCount: claudeMetrics?.toolCallCount ?? null,
+      model: metrics?.model ?? null,
+      totalCostUsd: metrics?.totalCostUsd ?? null,
+      perModelCost: metrics?.perModelCost ?? [],
+      tokenUsage: metrics?.tokenUsage ?? null,
+      toolCallCount: metrics?.toolCallCount ?? null,
       filesChangedBefore: null,
       filesChangedAfter,
       diffInsertionsAfter,
@@ -2903,9 +2907,11 @@ export class Orchestrator {
       verificationDecision: input.verificationDecisionForStage ?? null,
       skillsAttached: skills.map((s) => s.name),
       skillsRequested: agent.skills.slice(),
-      notes: claudeMetrics && !claudeMetrics.parseAvailable
-        ? ["claude-code metrics not reported by provider"]
-        : [],
+      notes:
+        providerResult.claudeMetrics &&
+        !providerResult.claudeMetrics.parseAvailable
+          ? ["claude-code metrics not reported by provider"]
+          : [],
     };
     await input.metricsStore.appendAgentMetrics(metric);
 
