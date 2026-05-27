@@ -104,6 +104,15 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     `docs/design/vocabulary.md`.~~ Remaining: the **TUI shell** still uses the
     `agents` page id (web-only rename for now); Crew / Flow-vs-Guide / Task-vs-
     Run / Orchestrator-vs-Supervisor wording is documented but not enforced.
+- **D2 — Default flow (unify roles + guides).** No separate "default roles":
+  the fixed plan→build→verify workflow becomes the built-in **default flow**,
+  roles are seats inside a flow, and **Guide → Flow**. Resolves the
+  role/slot duplication. Design + phasing in
+  [`flows-unification.md`](./flows-unification.md): **Phase A** = vocab + UI
+  (one Flows list incl. the default; Crew shows the default flow's roles; still
+  runs via `run()` under the hood); **Phase B** = unify the two orchestrator
+  runners (`run()` + `runGuideSequence()`) so the default workflow executes as
+  an actual flow. Design-first.
 
 ## Epic E — Platform
 
