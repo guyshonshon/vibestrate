@@ -348,11 +348,15 @@ function ActiveRolePanel({
   const stepsDone = agents.filter((a) => a.endedAt).length;
   return (
     <div className="glass p-4">
-      <SectionEyebrow className="mb-3">
-        <span>Live metrics</span>
-        <span className="mono text-[11px] text-fog-400 whitespace-nowrap">
-          {stepsDone} step{stepsDone === 1 ? "" : "s"} done
-        </span>
+      <SectionEyebrow
+        className="mb-3"
+        right={
+          <span className="mono text-[11px] text-fog-400 whitespace-nowrap">
+            {stepsDone} step{stepsDone === 1 ? "" : "s"} done
+          </span>
+        }
+      >
+        Live metrics
       </SectionEyebrow>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white shadow-[0_8px_22px_-8px_rgba(139,124,255,0.5)]">

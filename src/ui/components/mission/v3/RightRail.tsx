@@ -126,18 +126,22 @@ export function WorkspaceCard({
   const providerHist = providerUsage(runs);
   return (
     <div className="glass p-4 fade-up fade-up-delay-3">
-      <SectionEyebrow className="mb-3">
-        <span>Workspace</span>
-        {scheduler ? (
-          <span
-            className="flex items-center gap-1.5 text-emerald-300/90"
-            title="Scheduler is running"
-          >
-            <span className="pulse-dot" />
-          </span>
-        ) : (
-          <span className="mono text-fog-400">scheduler off</span>
-        )}
+      <SectionEyebrow
+        className="mb-3"
+        right={
+          scheduler ? (
+            <span
+              className="flex items-center gap-1.5 text-emerald-300/90"
+              title="Scheduler is running"
+            >
+              <span className="pulse-dot" />
+            </span>
+          ) : (
+            <span className="mono text-[11px] text-fog-400">scheduler off</span>
+          )
+        }
+      >
+        Workspace
       </SectionEyebrow>
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Active" value={String(active)} />
