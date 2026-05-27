@@ -1,8 +1,8 @@
 ---
-title: Agent
-description: A scoped execution unit — one role in the workflow, bound to a provider, a prompt template, a permission profile, and any attached skills.
+title: Role
+description: A scoped execution unit (role) — one role in the workflow, bound to a provider, a prompt template, a permission profile, and any attached skills.
 section: concepts
-slug: concepts/agent
+slug: concepts/role
 ---
 
 **Professional explanation.** An agent is a scoped execution unit that receives task context, a role-specific instruction template, a permission profile, and access to a configured provider. It performs one named role inside a workflow — for example *planner* or *reviewer* — and produces a structured artifact the orchestrator routes to the next stage.

@@ -116,7 +116,7 @@ No keys to paste, no YAML to hand-author. Point Amaco at a repo and it figures o
 | `.amaco/` initialized · config valid | assigns the crew to it |
 | project detected (name · type · package manager) | fills validation commands from your project |
 | which provider CLIs are installed - and which aren't | restores any missing scaffolding |
-| every agent points at a real provider, with safe permissions | |
+| every role points at a real provider, with safe permissions | |
 | validation commands are set | |
 
 Green across the board means you're ready to run. Want the dashboard? Add `--ui` to any run:

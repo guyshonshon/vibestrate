@@ -23,7 +23,7 @@
       "label": "Concepts",
       "items": [
         { "slug": "concepts/task", "label": "Task" },
-        { "slug": "concepts/agent", "label": "Agent" },
+        { "slug": "concepts/role", "label": "Role" },
         { "slug": "concepts/provider", "label": "Provider" },
         { "slug": "concepts/workflow", "label": "Workflow" },
         { "slug": "concepts/guide", "label": "Guide" },

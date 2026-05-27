@@ -12,19 +12,19 @@
           "id": "builder",
           "label": "Builder",
           "description": "Plans, implements, and answers review findings.",
-          "defaultAgent": "executor"
+          "defaultRole": "executor"
         },
         {
           "id": "challenger",
           "label": "Challenger",
           "description": "Challenges plans and code before the final decision.",
-          "defaultAgent": "reviewer"
+          "defaultRole": "reviewer"
         },
         {
           "id": "arbiter",
           "label": "Arbiter",
           "description": "Summarizes evidence, disagreement, and residual risk.",
-          "defaultAgent": "verifier"
+          "defaultRole": "verifier"
         }
       ],
       "steps": [
@@ -33,7 +33,7 @@
           "label": "Plan",
           "kind": "agent-turn",
           "slot": "builder",
-          "agentId": "planner",
+          "roleId": "planner",
           "inputs": [
             "task-brief"
           ],
@@ -49,7 +49,7 @@
           "label": "Plan Review",
           "kind": "review-turn",
           "slot": "challenger",
-          "agentId": "reviewer",
+          "roleId": "reviewer",
           "inputs": [
             "task-brief",
             "plan"
@@ -66,7 +66,7 @@
           "label": "Implement",
           "kind": "agent-turn",
           "slot": "builder",
-          "agentId": "executor",
+          "roleId": "executor",
           "inputs": [
             "task-brief",
             "plan",
@@ -85,7 +85,7 @@
           "label": "Validate",
           "kind": "validation",
           "slot": null,
-          "agentId": null,
+          "roleId": null,
           "inputs": [
             "diff"
           ],
@@ -101,7 +101,7 @@
           "label": "Implementation Review",
           "kind": "review-turn",
           "slot": "challenger",
-          "agentId": "reviewer",
+          "roleId": "reviewer",
           "inputs": [
             "plan",
             "diff",
@@ -120,7 +120,7 @@
           "label": "Challenge Response",
           "kind": "response-turn",
           "slot": "builder",
-          "agentId": "fixer",
+          "roleId": "fixer",
           "inputs": [
             "findings",
             "diff",
@@ -139,7 +139,7 @@
           "label": "Second Review",
           "kind": "review-turn",
           "slot": "challenger",
-          "agentId": "reviewer",
+          "roleId": "reviewer",
           "inputs": [
             "findings",
             "finding-responses",
@@ -159,7 +159,7 @@
           "label": "Decision Summary",
           "kind": "summary-turn",
           "slot": "arbiter",
-          "agentId": "verifier",
+          "roleId": "verifier",
           "inputs": [
             "plan",
             "findings",

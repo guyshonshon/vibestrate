@@ -7,7 +7,7 @@ slug: glossary
 
 Short definitions for the vocabulary Amaco's docs assume.
 
-**Agent.** A worker with one role in a workflow — planner, executor, reviewer. Bound to a provider, a prompt template, a permission profile, and any attached skills. See [Agent](/docs/concepts/agent).
+**Agent.** A worker with one role in a workflow — planner, executor, reviewer. Bound to a provider, a prompt template, a permission profile, and any attached skills. See [Agent](/docs/concepts/role).
 
 **Approval gate.** A point in a workflow or Guide where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Guide.
 

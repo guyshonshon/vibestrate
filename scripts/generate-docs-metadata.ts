@@ -40,7 +40,7 @@ import {
   projectConfigSchema,
   policyApprovalStageSchema,
 } from "../src/project/config-schema.js";
-import { builtinAgentIds } from "../src/agents/agent-schema.js";
+import { builtinRoleIds } from "../src/roles/role-schema.js";
 import { TERMINAL_STATUSES } from "../src/workflow/workflow-types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -334,14 +334,14 @@ function generateGuides() {
       id: slotId,
       label: slot.label,
       description: slot.description ?? null,
-      defaultAgent: slot.defaultAgent,
+      defaultRole: slot.defaultRole,
     })),
     steps: g.steps.map((s) => ({
       id: s.id,
       label: s.label,
       kind: s.kind,
       slot: s.slot ?? null,
-      agentId: s.agentId ?? null,
+      roleId: s.roleId ?? null,
       inputs: s.inputs,
       outputs: s.outputs,
       optional: s.optional,
@@ -393,7 +393,7 @@ const STAGE_DESCRIPTIONS: Record<string, { simple: string; what: string }> = {
 function generateWorkflow() {
   const stages = defaultWorkflowStages.map((s) => ({
     id: s.id,
-    agentId: s.agentId ?? null,
+    roleId: s.roleId ?? null,
     enteringStatus: s.enteringStatus,
     exitingStatus: s.exitingStatus,
     ...STAGE_DESCRIPTIONS[s.id],
@@ -453,7 +453,7 @@ function generateStateMachine() {
 const AGENT_DESCRIPTIONS: Record<string, { role: string; reads: string; writes: string }> = {
   planner: {
     role: "Reads the task brief and produces a plan.",
-    reads: "Task description, project rules, .amaco/agents/planner.md prompt, attached skills.",
+    reads: "Task description, project rules, .amaco/roles/planner.md prompt, attached skills.",
     writes: "Structured plan artifact.",
   },
   architect: {
@@ -484,7 +484,7 @@ const AGENT_DESCRIPTIONS: Record<string, { role: string; reads: string; writes: 
 };
 
 function generateAgents() {
-  const agents = builtinAgentIds.map((id) => ({
+  const agents = builtinRoleIds.map((id) => ({
     id,
     ...(AGENT_DESCRIPTIONS[id] ?? { role: "", reads: "", writes: "" }),
     promptTemplateRelPath: `src/agents/default-prompts/${id}.md`,

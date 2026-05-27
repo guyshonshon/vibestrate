@@ -96,11 +96,14 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     confusion without a rename.~~
   - **Vocabulary decision:** keep **Provider** (rejected "Engine"); **Role** is
     an acceptable user-facing label for an agent.
-  - ☐ **Optional Agent→Role rename** (design-first): adopt "Role" in the
-    config/code (`agents:` → `roles:`, `/api/agents/*`) and decide whether to
-    merge the Agents + Providers pages; pin down Crew / Flow (vs Guide) / Task
-    vs Run / Orchestrator vs Supervisor. Renames ripple through UI, docs, and
-    config — weakly wanted ("acceptable I suppose"), so not urgent.
+  - ~~**Agent→Role rename + page merge** (done): clean rename (no back-compat,
+    pre-release) of `agents:`→`roles:`, `.amaco/agents/`→`.amaco/roles/`,
+    `agentId`→`roleId`, `agent.*` events→`role.*`, and ~60 code identifiers;
+    mislabeled provider-fleet data corrected to Provider. Dashboard Agents +
+    Providers merged into one **Crew** page (`#/crew`). Canonical terms in
+    `docs/design/vocabulary.md`.~~ Remaining: the **TUI shell** still uses the
+    `agents` page id (web-only rename for now); Crew / Flow-vs-Guide / Task-vs-
+    Run / Orchestrator-vs-Supervisor wording is documented but not enforced.
 
 ## Epic E — Platform
 
