@@ -40,6 +40,27 @@ especially valuable:
   (Mission Control), or the browser spawning commands directly.
 - Anything that causes an auto‑push or auto‑merge without explicit human action.
 
+## Known false positives
+
+Automated supply‑chain scanners (e.g. Amazon Inspector) sometimes flag the
+published `dist/index.js` as a **Telegram exfiltration / C2** channel because
+the bundle contains `fetch` → POST → `api.telegram.org` alongside `process.env`
+access. **This is a false positive.** That code is the opt‑in **Telegram
+notification gateway** (`src/notifications/gateways/telegram-gateway.ts`) — one
+of several gateways (CLI, in‑app, webhook, Discord, Slack, Telegram) you wire up
+with `amaco gateways add`. Specifically:
+
+- There is **no hardcoded bot token** — the URL is `api.telegram.org/bot${token}/…`
+  where `${token}` comes from *your* gateway config (a literal or `env:NAME`).
+- `process.env` is read **only** as `process.env[NAME]` for the single var *you*
+  named via `env:NAME` (regex `^env:([A-Z][A-Z0-9_]*)$`). The bundle never
+  enumerates or serializes `process.env`.
+- The POST body is *your* notification text sent to *your* chat — never host
+  data or environment variables. Tokens are actively `redact()`‑ed from logs.
+
+If you want to verify, diff a clean local build (`pnpm build`) against the
+published tarball (`npm pack amaco-os`), or read the gateway source above.
+
 ## Response
 
 This is a hobby project, so responses are best‑effort, not contractual. Expect

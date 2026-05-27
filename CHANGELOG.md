@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: SECURITY.md documents a **known false positive** — scanners flag the
+  Telegram notification gateway (`fetch` + `api.telegram.org` + `process.env`)
+  as exfiltration; clarified the token is user-supplied (no hardcoded token),
+  `process.env` is only a single user-named lookup, and the POST body is the
+  user's own notification text.
+
 - Change: **rename Agent → Role** across config, API, code, and UI, and **merge
   the Agents + Providers dashboard pages into one Crew page** (Epic D / D1·2).
   Clean rename, no back-compat (pre-release): config key `agents:` → `roles:`,
