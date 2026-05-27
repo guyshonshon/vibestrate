@@ -106,6 +106,11 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
 
 - **E1 — Windows support.** Audit what breaks on Windows (path handling,
   detached spawns, signals, worktrees) and decide supported scope.
+- **E2 — Homebrew install.** Stand up a `guyshonshon/homebrew-amaco` tap with a
+  `Formula/amaco.rb` (depends_on node; installs the published npm tarball,
+  pinned version + sha256) so `brew install guyshonshon/amaco/amaco` works.
+  npm + the `curl | sh` installer cover macOS/Linux today; brew is a
+  nice-to-have. (Deferred — user opted to skip for now.)
 
 ## Cross-cutting — Docs discipline
 
