@@ -144,6 +144,9 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     resolvedAt: input.resolvedAt ?? nowIso(),
     slots,
     steps,
+    // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
+    // resolved ids equal their source ids — the loop refs carry over as-is.
+    loop: input.flow.loop ?? null,
   });
 }
 
