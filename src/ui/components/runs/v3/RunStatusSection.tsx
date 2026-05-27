@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { PhaseRail } from "../../design/PhaseRail.js";
 import { fmtElapsed } from "../../design/format.js";
+import { isTerminalStatus } from "../../../lib/run-outcome.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
 
 const PHASES = [
@@ -83,8 +84,9 @@ export function RunStatusSection({
       Math.floor((Date.now() - new Date(run.startedAt).getTime()) / 1000),
     ),
   );
+  const terminal = isTerminalStatus(run.status);
   useEffect(() => {
-    if (paused || isApproval) return;
+    if (paused || isApproval || terminal) return;
     const id = window.setInterval(
       () =>
         setElapsed(
@@ -98,15 +100,10 @@ export function RunStatusSection({
       1000,
     );
     return () => window.clearInterval(id);
-  }, [paused, isApproval, run.startedAt]);
+  }, [paused, isApproval, terminal, run.startedAt]);
 
   const rail = railFor(run);
-  const running = ![
-    "merge_ready",
-    "failed",
-    "aborted",
-    "waiting_for_approval",
-  ].includes(run.status);
+  const running = !terminal && run.status !== "waiting_for_approval";
   const currentStep =
     run.guide?.steps.find((s) => s.id === run.guide?.currentStepId) ?? null;
   const nowLabel = currentStep?.label ?? rail.steps[rail.active] ?? null;

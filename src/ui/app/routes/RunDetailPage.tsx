@@ -25,7 +25,11 @@ import { ArtifactViewer } from "../../components/artifacts/ArtifactViewer.js";
 import { ValidationSummary } from "../../components/validation/ValidationSummary.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
-import { Bolt, Cpu, Scale } from "lucide-react";
+import { AlertTriangle, Bolt, Cpu, Scale } from "lucide-react";
+import {
+  describeRunOutcome,
+  type RunOutcomeAction,
+} from "../../lib/run-outcome.js";
 import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import type { InspectorTabId } from "../../components/layout/inspector-tabs.js";
@@ -194,6 +198,13 @@ export function RunDetailPage({
         isApproval={!!isApproval && !!pending}
         onApprove={() => void handleApprove()}
         onReject={() => void handleReject()}
+      />
+
+      {/* Terminal non-success runs: explain what stopped it + what to do. */}
+      <RunOutcomeBanner
+        run={run}
+        onRerun={() => setRerunOpen(true)}
+        onOpenTab={(t) => setTab(t)}
       />
 
       {/* When the orchestrator is waiting on the user, surface the
@@ -400,6 +411,71 @@ function Stat({ label, value }: { label: string; value: string }) {
       </div>
       <div className="text-fog-100 mono num-tabular text-[15px]">{value}</div>
     </div>
+  );
+}
+
+function RunOutcomeBanner({
+  run,
+  onRerun,
+  onOpenTab,
+}: {
+  run: RunState;
+  onRerun: () => void;
+  onOpenTab: (t: InspectorV3Tab) => void;
+}) {
+  const outcome = describeRunOutcome(run);
+  if (!outcome) return null;
+  const rose = outcome.kind !== "aborted";
+  const accent = rose
+    ? "border-rose-400/30 bg-rose-500/[0.06]"
+    : "border-white/10 bg-white/[0.03]";
+  const label: Record<RunOutcomeAction, string> = {
+    rerun: "Re-run with changes",
+    review: "See review",
+    events: "View events",
+    diff: "View diff",
+  };
+  const run_ = (a: RunOutcomeAction) => {
+    if (a === "rerun") onRerun();
+    else if (a === "events") onOpenTab("events");
+    else onOpenTab("artifacts"); // review + diff both live under Artifacts
+  };
+  return (
+    <section
+      className={`rounded-xl border ${accent} px-5 py-4`}
+      data-screen-label="01b Outcome"
+    >
+      <div className="flex items-start gap-3">
+        <AlertTriangle
+          className={`mt-0.5 h-4 w-4 shrink-0 ${rose ? "text-rose-300" : "text-fog-400"}`}
+          strokeWidth={1.7}
+        />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-display text-[15px] text-fog-100">
+            {outcome.title}
+          </h2>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-fog-300">
+            {outcome.reason}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {outcome.actions.map((a, i) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => run_(a)}
+                className={
+                  i === 0
+                    ? "h-8 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep px-3 text-[12px] text-white ring-1 ring-violet-soft/35"
+                    : "h-8 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[12px] text-fog-200 hover:bg-white/[0.06]"
+                }
+              >
+                {label[a]}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

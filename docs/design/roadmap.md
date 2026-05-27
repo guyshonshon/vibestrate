@@ -71,9 +71,12 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     (commit/tag each phase) so the worktree can be restored to a mid-run state;
     the current capture only keeps the final worktree. This is the remaining
     half of "true rewind reusing captured context".
-- **B2 — Run navigation + "blocked" UX.** Reaching a run shouldn't require going
-  through "all runs"; the `blocked` state needs a clearer, more actionable
-  surface (what blocked it, what to do).
+- **B2 — Run navigation + "blocked" UX. ✓ done.** A global run quick-switcher
+  (Cmd/Ctrl-K or `g r`) filters recent runs by task/runId/status and jumps
+  straight to one — no "all runs" detour. Terminal non-success runs show a
+  "what happened / what to do" banner naming the cause (spend cap / rejected
+  approval / review BLOCKED / verification / raw error) with the right next
+  actions; `blocked`/`aborted` runs stop showing a live pulse + timer.
 
 ## Epic C — Guides intelligence
 
@@ -107,6 +110,8 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 ### Suggested order
 
 ~~A1~~ → ~~A2~~ → ~~A3~~ → ~~A4~~ → ~~A5~~ (**Epic A complete** — structured
-output, real metrics/cost, dashboard, spend cap) → then
-B1 (rework-from-phase is high day-to-day value), C1, D1 (design), B2, A6, E1.
+output, real metrics/cost, dashboard, spend cap) → ~~B1 (rewind phase 1)~~ →
+~~B2 (run nav + blocked UX)~~ → then **D1** (Agents vs Providers — design the
+vocabulary; the dashboard's split Agents/Providers pages confuse users),
+C1, rewind phase 2 (per-phase worktree snapshots), A6, E1.
 Adjust as priorities shift.
