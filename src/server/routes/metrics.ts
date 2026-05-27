@@ -135,14 +135,16 @@ export async function registerMetricsRoutes(
       const parsed = rangeSchema.safeParse(req.query.range ?? "7d");
       if (!parsed.success) throw new HttpError(400, parsed.error.message);
       const range = parsed.data as OverviewRange;
-      const [{ runs, metricsByRun }, { lookup }] = await Promise.all([
+      const [{ runs, metricsByRun }, { lookup }, loaded] = await Promise.all([
         loadAllRuns(projectRoot),
         loadProviderLookup(projectRoot),
+        loadConfig(projectRoot).catch(() => null),
       ]);
       return buildMetricsOverview(range, {
         runs,
         metricsByRun,
         providers: lookup,
+        spendCapDailyUsd: loaded?.config.budget?.spendCapDailyUsd ?? null,
       });
     },
   );

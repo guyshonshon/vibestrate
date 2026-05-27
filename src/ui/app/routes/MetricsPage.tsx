@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Download, Save } from "lucide-react";
 import {
   api,
+  type BudgetSettings,
   type LeaderboardEntry,
   type MetricsOverview,
   type OverviewRange,
@@ -124,6 +125,9 @@ export function MetricsPage() {
 
       {/* ── KPI strip ─ */}
       <KpiStrip overview={overview} />
+
+      {/* ── Daily spend cap ─ */}
+      <BudgetControl />
 
       {/* ── Runs + Outcomes ─ */}
       <section className="mt-7 grid grid-cols-12 gap-5">
@@ -478,6 +482,108 @@ function EmptyState({ text }: { text: string }) {
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
       {text}
     </div>
+  );
+}
+
+// ── Daily spend cap control ───────────────────────────────────────────────
+
+const CAP_ACTIONS: BudgetSettings["capAction"][] = [
+  "stop",
+  "downgrade-model",
+  "reduce-effort",
+];
+
+function BudgetControl() {
+  const [budget, setBudget] = useState<BudgetSettings | null>(null);
+  const [today, setToday] = useState(0);
+  const [capInput, setCapInput] = useState("");
+  const [action, setAction] = useState<BudgetSettings["capAction"]>("stop");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    void api
+      .getBudget()
+      .then((r) => {
+        setBudget(r.budget);
+        setToday(r.todaySpendUsd);
+        setCapInput(r.budget.spendCapDailyUsd != null ? String(r.budget.spendCapDailyUsd) : "");
+        setAction(r.budget.capAction);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function save(patch: Partial<BudgetSettings>) {
+    setSaving(true);
+    setMsg(null);
+    try {
+      const r = await api.updateBudget(patch);
+      setBudget(r.budget);
+      setMsg("Saved");
+      setTimeout(() => setMsg(null), 1500);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const cap = budget?.spendCapDailyUsd ?? null;
+  const pct = cap && cap > 0 ? Math.min(100, Math.round((today / cap) * 100)) : 0;
+
+  return (
+    <section className="mt-3 glass p-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <div className="eyebrow">Daily spend cap</div>
+        <div className="flex items-center gap-1.5 text-[12.5px]">
+          <span className="text-fog-400">$</span>
+          <input
+            type="number"
+            min={0}
+            step="0.5"
+            value={capInput}
+            onChange={(e) => setCapInput(e.target.value)}
+            placeholder="off"
+            className="w-20 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+          />
+          <span className="text-fog-500">/day</span>
+        </div>
+        <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+          at cap:
+          <select
+            value={action}
+            onChange={(e) => setAction(e.target.value as BudgetSettings["capAction"])}
+            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+          >
+            {CAP_ACTIONS.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </label>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={saving}
+          onClick={() =>
+            void save({
+              spendCapDailyUsd: capInput.trim() === "" ? null : Number(capInput),
+              capAction: action,
+            })
+          }
+        >
+          {saving ? "Saving…" : "Save"}
+        </Button>
+        {msg ? <span className="text-[11.5px] text-fog-400">{msg}</span> : null}
+        <span className="mono ml-auto text-[11.5px] text-fog-400">
+          today: ${today.toFixed(2)}
+          {cap ? ` · ${pct}% of cap` : ""}
+        </span>
+      </div>
+      <p className="mt-2 text-[11px] text-fog-500">
+        Checked before each agent turn. <b>stop</b> blocks the run; <b>downgrade-model</b> switches
+        to the cheaper fallback/effortMap.low; <b>reduce-effort</b> drops the effort a notch.
+      </p>
+    </section>
   );
 }
 

@@ -130,6 +130,24 @@ export const policiesConfigSchema = z.object({
   allowInteractiveTerminal: z.boolean().default(false),
 });
 
+// Daily spend governance. When `spendCapDailyUsd` is set, the orchestrator
+// checks today's estimated spend (across all runs) before each agent turn and,
+// at the cap, applies `capAction`. `warnThresholdPct` fires a one-time warning
+// notification on the way up.
+export const budgetConfigSchema = z
+  .object({
+    spendCapDailyUsd: z.number().nonnegative().nullable().default(null),
+    capAction: z
+      .enum(["stop", "downgrade-model", "reduce-effort"])
+      .default("stop"),
+    warnThresholdPct: z.number().min(0).max(1).default(0.8),
+    /** Cheaper provider id to switch to on `downgrade-model` (else effortMap.low). */
+    fallbackProvider: z.string().min(1).optional(),
+  })
+  .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
+
+export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
+
 export const projectConfigSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
@@ -162,6 +180,7 @@ export const projectConfigSchema = z.object({
     })
     .partial()
     .default({}),
+  budget: budgetConfigSchema,
   agents: agentsConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z

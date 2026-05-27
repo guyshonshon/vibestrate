@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **daily spend cap** (A5) — a `budget` config block (`spendCapDailyUsd`,
+  `capAction`, `warnThresholdPct`, `fallbackProvider`) enforced before each
+  agent turn: warn at the threshold, then at the cap apply the action —
+  **stop** (block the run), **downgrade-model** (switch to the cheaper
+  fallback / effortMap.low), or **reduce-effort** (drop a notch). Configure via
+  CLI (`amaco budget set/show/off`) or the Metrics page (`/api/budget`). Builds
+  on the A3 cost ledger. Tested (service + a stop-action e2e).
 - Add: **metrics dashboard** (A4) — total-tokens KPI (+Δ vs prior window),
   median run duration beside the average, a per-model table
   (model/calls/tokens/cost), and a tokens-by-role bar. `/api/metrics/overview`

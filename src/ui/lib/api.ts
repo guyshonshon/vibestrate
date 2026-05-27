@@ -176,6 +176,13 @@ export type KpiSparks = {
   spend: number[];
 };
 
+export type BudgetSettings = {
+  spendCapDailyUsd: number | null;
+  capAction: "stop" | "downgrade-model" | "reduce-effort";
+  warnThresholdPct: number;
+  fallbackProvider?: string;
+};
+
 export type MetricsOverview = {
   range: OverviewRange;
   generatedAt: string;
@@ -560,6 +567,14 @@ export const api = {
   },
   async getMetricsOverview(range: OverviewRange): Promise<MetricsOverview> {
     return jsonGet(`/api/metrics/overview?range=${encodeURIComponent(range)}`);
+  },
+  async getBudget(): Promise<{ budget: BudgetSettings; todaySpendUsd: number }> {
+    return jsonGet("/api/budget");
+  },
+  async updateBudget(
+    patch: Partial<BudgetSettings>,
+  ): Promise<{ ok: true; budget: BudgetSettings }> {
+    return jsonPatch("/api/budget", patch);
   },
   async getAgentsOverview(): Promise<AgentsOverview> {
     return jsonGet("/api/agents/overview");
