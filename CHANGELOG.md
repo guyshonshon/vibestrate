@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: provider **output-adapter layer** (structured-output epic, phase 1) —
+  `NormalizedTurn { responseText, metrics }` + `ProviderOutputAdapter` +
+  `textOutputAdapter`. The orchestrator now reads the adapter-normalized
+  response text (control parsers) and metrics instead of hardcoding
+  claude-specific fields. All providers use the `text` adapter for now → zero
+  behavior change; sets the seam for the Claude stream-json adapter. Parity +
+  fail-loud tests included.
 - Add: prioritized `docs/design/roadmap.md` consolidating the scratch TODOs
   (token/cost ledger folded into the structured-output epic; rework-from-phase,
   guide complexity, naming unification, run nav, Windows as later epics).
