@@ -862,9 +862,11 @@ function LatencyByPhasePanel({
   const barW = bw * 0.36;
   return (
     <div>
-      <SectionEyebrow className="mb-3">
-        <span>Latency by phase</span>
-        <span className="text-fog-400">seconds</span>
+      <SectionEyebrow
+        className="mb-3"
+        right={<span className="text-[11px] text-fog-400">seconds</span>}
+      >
+        Latency by phase
       </SectionEyebrow>
       {data.length === 0 ? (
         <EmptyState text="Phase latency lands here after a few runs complete." />
