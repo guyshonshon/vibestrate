@@ -33,6 +33,26 @@ amaco run "Add audit logging" --ui
 - **Suggestions** — review findings grouped into bundles you can apply, validate, and revert.
 - **Notifications** — local notifications, with gateway controls.
 
+## Watching a run
+
+Open a run to supervise it live:
+
+- **Status hero** — the task, a phase rail that follows the *actual* steps (the
+  Guide's own steps for a Guide run, not a fixed workflow), and a live
+  "Now ⟨step⟩ · ⟨agent⟩" line.
+- **Live execution** — the raw provider CLI output in a real terminal. Note:
+  agents run **headless** (`claude -p`, etc.), and CLIs in print mode buffer
+  their answer until they exit — so this fills in when each step completes
+  rather than token-by-token. (Live streaming is on the roadmap via structured
+  output; see `docs/design/provider-structured-output.md`.)
+- **Changed files** — what the run touched, beside live execution; click one to
+  open it in the worktree view. New (untracked) files count their real lines.
+- **Live metrics** — run-level tokens, cost, tool calls, and provider calls that
+  accumulate as steps finish.
+- **Steps inspector** — one card per agent step: provider+model, pass/fail,
+  duration, tokens, cost, files touched, and review/verification outcome.
+- **Inspect tabs** — Events, Artifacts (with the diff viewer), Validation.
+
 ## What the dashboard does *not* do
 
 - It does not execute arbitrary shell commands you type. The optional terminal panel is enrolled per project and binds to a known run's worktree.
