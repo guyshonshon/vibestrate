@@ -60,6 +60,20 @@ export type KpiSparks = {
   spend: number[];
 };
 
+export type PerModelEntry = {
+  /** Model id when known, else the provider id. */
+  model: string;
+  calls: number;
+  tokens: number;
+  costUsd: number;
+};
+
+export type TokensByRoleEntry = {
+  /** Guide slot id when present, else the agent id (planner/executor/…). */
+  role: string;
+  tokens: number;
+};
+
 export type MetricsOverview = {
   range: OverviewRange;
   generatedAt: string;
@@ -69,14 +83,24 @@ export type MetricsOverview = {
   heatmap: HeatmapRow[];
   leaderboard: LeaderboardEntry[];
   kpiSparks: KpiSparks;
+  /** Per-model usage breakdown over the window. */
+  perModel: PerModelEntry[];
+  /** Total tokens by agent role over the window. */
+  tokensByRole: TokensByRoleEntry[];
   totals: {
     runs: number;
     merged: number;
     failed: number;
     changes: number;
     costUsd: number;
+    /** Total tokens (input + output) over the window. */
+    tokens: number;
+    /** Δ tokens vs the prior window of equal length. */
+    tokensDelta: number;
     successRate: number | null;
     avgDurationSeconds: number | null;
+    /** Median run duration (complements the average). */
+    medianDurationSeconds: number | null;
     spendCapDailyUsd: number | null;
   };
 };
@@ -404,6 +428,77 @@ export function kpiSparks(
 
 // ── Main: build the overview ──────────────────────────────────────────────
 
+function agentTokens(a: AgentMetrics): number {
+  const t = a.tokenUsage;
+  if (!t) return 0;
+  return (t.input ?? 0) + (t.output ?? 0);
+}
+
+function sumTokens(
+  runs: RunState[],
+  metricsByRun: Map<string, RuntimeMetrics | null>,
+): number {
+  let n = 0;
+  for (const r of runs) {
+    const m = metricsByRun.get(r.runId);
+    if (m) for (const a of m.agents) n += agentTokens(a);
+  }
+  return n;
+}
+
+function tokensByRole(
+  runs: RunState[],
+  metricsByRun: Map<string, RuntimeMetrics | null>,
+): TokensByRoleEntry[] {
+  const map = new Map<string, number>();
+  for (const r of runs) {
+    const m = metricsByRun.get(r.runId);
+    if (!m) continue;
+    for (const a of m.agents) {
+      const role = a.guideSlotId ?? a.agentId;
+      map.set(role, (map.get(role) ?? 0) + agentTokens(a));
+    }
+  }
+  return [...map.entries()]
+    .map(([role, tokens]) => ({ role, tokens }))
+    .filter((e) => e.tokens > 0)
+    .sort((x, y) => y.tokens - x.tokens);
+}
+
+function perModelBreakdown(
+  runs: RunState[],
+  metricsByRun: Map<string, RuntimeMetrics | null>,
+): PerModelEntry[] {
+  const map = new Map<string, { calls: number; tokens: number; costUsd: number }>();
+  for (const r of runs) {
+    const m = metricsByRun.get(r.runId);
+    if (!m) continue;
+    for (const a of m.agents) {
+      const model = a.model ?? a.providerId;
+      const e = map.get(model) ?? { calls: 0, tokens: 0, costUsd: 0 };
+      e.calls += 1;
+      e.tokens += agentTokens(a);
+      e.costUsd += a.totalCostUsd ?? 0;
+      map.set(model, e);
+    }
+  }
+  return [...map.entries()]
+    .map(([model, e]) => ({ model, calls: e.calls, tokens: e.tokens, costUsd: round2(e.costUsd) }))
+    .sort((x, y) => y.tokens - x.tokens);
+}
+
+function medianDurationSeconds(runs: RunState[]): number | null {
+  const ds = runs
+    .map(durationSeconds)
+    .filter((v): v is number => v !== null && v > 0)
+    .sort((a, b) => a - b);
+  if (ds.length === 0) return null;
+  const mid = Math.floor(ds.length / 2);
+  return ds.length % 2 === 1
+    ? Math.round(ds[mid]!)
+    : Math.round((ds[mid - 1]! + ds[mid]!) / 2);
+}
+
 export function buildMetricsOverview(
   range: OverviewRange,
   inputs: Inputs,
@@ -470,6 +565,12 @@ export function buildMetricsOverview(
   const completed = totals.merged + totals.failed;
   const costUsd = spend.reduce((a, e) => a + e.dollars, 0);
   const avgDurAll = sparks.duration.filter((v) => v > 0);
+
+  // Token/cost ledger over the window (+ Δ vs the prior window).
+  const windowTokens = sumTokens(windowRuns, inputs.metricsByRun);
+  const priorRuns = allRuns.filter((r) => !windowRuns.includes(r));
+  const tokensDelta = windowTokens - sumTokens(priorRuns, inputs.metricsByRun);
+
   return {
     range,
     generatedAt: new Date(now).toISOString(),
@@ -479,17 +580,22 @@ export function buildMetricsOverview(
     heatmap: heat,
     leaderboard: board,
     kpiSparks: sparks,
+    perModel: perModelBreakdown(windowRuns, inputs.metricsByRun),
+    tokensByRole: tokensByRole(windowRuns, inputs.metricsByRun),
     totals: {
       runs: totalRuns,
       merged: totals.merged,
       failed: totals.failed,
       changes: totals.changes,
       costUsd: round2(costUsd),
+      tokens: windowTokens,
+      tokensDelta,
       successRate: completed > 0 ? totals.merged / completed : null,
       avgDurationSeconds:
         avgDurAll.length > 0
           ? Math.round(avgDurAll.reduce((a, b) => a + b, 0) / avgDurAll.length)
           : null,
+      medianDurationSeconds: medianDurationSeconds(windowRuns),
       spendCapDailyUsd: inputs.spendCapDailyUsd ?? null,
     },
   };

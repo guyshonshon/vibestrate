@@ -54,6 +54,8 @@ function metrics(
     durationMs?: number;
     totalCostUsd?: number;
     skills?: string[];
+    tokens?: { input?: number; output?: number };
+    model?: string;
   }>,
 ): RuntimeMetrics {
   return ({
@@ -94,10 +96,10 @@ function metrics(
       guideSlotId: null,
       guideContextMode: null,
       guideContextFallbackReason: null,
-      model: null,
+      model: a.model ?? null,
       totalCostUsd: a.totalCostUsd ?? 0,
       perModelCost: [],
-      tokenUsage: null,
+      tokenUsage: a.tokens ?? null,
       toolCallCount: null,
       filesChangedBefore: null,
       filesChangedAfter: null,
@@ -250,6 +252,48 @@ describe("buildMetricsOverview", () => {
     expect(out.spendByAgent[0]!.providerId).toBe("claude-sonnet");
     expect(out.phaseLatency.find((p) => p.phase === "Execute")?.p50).toBe(2);
     expect(out.kpiSparks.runs.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("aggregates tokens, per-model, tokens-by-role, and median duration", () => {
+    const today = new Date(FIXED_NOW - 3600_000).toISOString();
+    const startedAt = new Date(FIXED_NOW - 3700_000).toISOString();
+    const out = buildMetricsOverview("7d", {
+      now: FIXED_NOW,
+      runs: [run({ runId: "a", startedAt, updatedAt: today, status: "merge_ready" })],
+      metricsByRun: new Map([
+        [
+          "a",
+          metrics("a", [
+            {
+              stageId: "exec",
+              providerId: "claude",
+              model: "claude-opus-4-7",
+              durationMs: 4000,
+              totalCostUsd: 0.5,
+              tokens: { input: 1000, output: 500 },
+            },
+            {
+              stageId: "review",
+              providerId: "claude",
+              model: "claude-haiku-4-5",
+              durationMs: 2000,
+              totalCostUsd: 0.01,
+              tokens: { input: 200, output: 100 },
+            },
+          ]),
+        ],
+      ]),
+      providers: { claude: { label: "Claude", vendor: "Anthropic" } },
+    });
+    expect(out.totals.tokens).toBe(1800); // 1500 + 300
+    expect(out.totals.tokensDelta).toBe(1800); // no prior window
+    expect(out.totals.medianDurationSeconds).not.toBeNull();
+    // Per-model: keyed by model id, sorted by tokens desc.
+    expect(out.perModel[0]!.model).toBe("claude-opus-4-7");
+    expect(out.perModel[0]!.tokens).toBe(1500);
+    expect(out.perModel.find((m) => m.model === "claude-haiku-4-5")?.calls).toBe(1);
+    // Tokens by role (agentId, since no guide slot).
+    expect(out.tokensByRole.reduce((n, r) => n + r.tokens, 0)).toBe(1800);
   });
 });
 

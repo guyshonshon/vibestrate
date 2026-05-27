@@ -152,6 +152,16 @@ export function MetricsPage() {
         </div>
       </section>
 
+      {/* ── Token ledger: per-model + tokens-by-role ─ */}
+      <section className="mt-5 grid grid-cols-12 gap-5">
+        <div className="col-span-12 lg:col-span-7 glass p-5">
+          <PerModelPanel overview={overview} />
+        </div>
+        <div className="col-span-12 lg:col-span-5 glass p-5">
+          <TokensByRolePanel overview={overview} />
+        </div>
+      </section>
+
       {/* ── Leaderboard ─ */}
       <section className="mt-5">
         <div className="flex items-end justify-between mb-3">
@@ -181,7 +191,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
   const totals = overview?.totals;
   const sparks = overview?.kpiSparks;
   return (
-    <section className="mt-7 grid grid-cols-2 md:grid-cols-4 gap-3">
+    <section className="mt-7 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
       <BigKpi
         label="Runs"
         value={(totals?.runs ?? 0).toLocaleString()}
@@ -201,17 +211,30 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
         spark={sparks?.success ?? []}
       />
       <BigKpi
-        label="Avg duration"
+        label="Duration"
         value={
-          totals?.avgDurationSeconds
-            ? `${totals.avgDurationSeconds}s`
-            : "—"
+          totals?.avgDurationSeconds ? `${totals.avgDurationSeconds}s` : "—"
         }
-        sub="per run · all flows"
+        sub={
+          totals?.medianDurationSeconds
+            ? `avg · median ${totals.medianDurationSeconds}s`
+            : "avg per run"
+        }
         tone="sky"
         spark={(sparks?.duration ?? []).map((v) =>
           v === 0 ? 0 : Math.max(0, 500 - v),
         )}
+      />
+      <BigKpi
+        label="Tokens"
+        value={fmtTokensShort(totals?.tokens ?? 0)}
+        sub={
+          totals
+            ? `${totals.tokensDelta >= 0 ? "+" : ""}${fmtTokensShort(totals.tokensDelta)} vs prev`
+            : "input + output"
+        }
+        tone="violet"
+        spark={[]}
       />
       <BigKpi
         label="Spend"
@@ -226,6 +249,13 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
       />
     </section>
   );
+}
+
+function fmtTokensShort(n: number): string {
+  const a = Math.abs(n);
+  if (a >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (a >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 function BigKpi({
@@ -448,6 +478,73 @@ function EmptyState({ text }: { text: string }) {
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
       {text}
     </div>
+  );
+}
+
+// ── Token ledger panels ───────────────────────────────────────────────────
+
+function PerModelPanel({ overview }: { overview: MetricsOverview | null }) {
+  const rows = overview?.perModel ?? [];
+  return (
+    <>
+      <div className="eyebrow mb-3">Per model · calls · tokens · cost</div>
+      {rows.length === 0 ? (
+        <EmptyState text="No model usage in this window yet." />
+      ) : (
+        <table className="w-full text-[12.5px]">
+          <thead>
+            <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">
+              <th className="pb-2 font-normal">Model</th>
+              <th className="pb-2 font-normal text-right">Calls</th>
+              <th className="pb-2 font-normal text-right">Tokens</th>
+              <th className="pb-2 font-normal text-right">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.model} className="border-t border-white/[0.06]">
+                <td className="mono max-w-[220px] truncate py-1.5 text-fog-200">{r.model}</td>
+                <td className="num-tabular py-1.5 text-right text-fog-300">{r.calls}</td>
+                <td className="num-tabular py-1.5 text-right text-fog-300">{fmtTokensShort(r.tokens)}</td>
+                <td className="num-tabular py-1.5 text-right text-fog-300">
+                  {r.costUsd > 0 ? `$${r.costUsd.toFixed(2)}` : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+}
+
+function TokensByRolePanel({ overview }: { overview: MetricsOverview | null }) {
+  const rows = overview?.tokensByRole ?? [];
+  const max = Math.max(1, ...rows.map((r) => r.tokens));
+  return (
+    <>
+      <div className="eyebrow mb-3">Tokens by role</div>
+      {rows.length === 0 ? (
+        <EmptyState text="No tokens recorded yet." />
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((r) => (
+            <div key={r.role}>
+              <div className="mb-0.5 flex items-center justify-between text-[11.5px]">
+                <span className="text-fog-300">{r.role}</span>
+                <span className="mono text-fog-400">{fmtTokensShort(r.tokens)}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded bg-white/[0.05]">
+                <div
+                  className="h-full rounded bg-violet-soft/60"
+                  style={{ width: `${(r.tokens / max) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 

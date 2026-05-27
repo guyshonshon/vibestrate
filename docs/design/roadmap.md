@@ -32,9 +32,11 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   fabricated). Tokens are real where the provider reports them (claude) and
   estimated from text otherwise, so every provider shows token counts; `est.`
   labels on per-step + run-level metrics. No network calls.
-- **A4 — Metrics dashboard.** Total-tokens KPI (vs prev window), tokens-by-role
-  over time, per-model table (calls/tokens/cost), median run duration. Keep the
-  `/api/metrics/overview` payload backward-compatible (add fields).
+- **A4 — Metrics dashboard. ✓ done.** Total-tokens KPI (+Δ vs prior window),
+  median run duration alongside the average, per-model table
+  (model/calls/tokens/cost), tokens-by-role bar. `/api/metrics/overview` kept
+  backward-compatible (fields added: `perModel`, `tokensByRole`,
+  `totals.{tokens,tokensDelta,medianDurationSeconds}`).
 - **A5 — Daily spend cap (configurable policy + action).** Enforce
   `spendCapDailyUsd`, configurable from **both the UI and the CLI**, with a
   chosen **action** when the cap is hit — not just a hard stop. Options:
@@ -45,6 +47,9 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   Plus a warn-notify at a threshold (~80%). Needs real per-run cost (A3).
 - **A6 — (optional) Webhooks.** POST on approve / merge / cap-hit, via the
   existing `src/notifications/` system.
+- **A7 — Real metrics for Codex / Gemini / Ollama** (structured adapters, like
+  Claude). Tracked in **GitHub issue #5** — until then these show estimated
+  tokens (labelled `est.`) and no cost.
 
 ## Epic B — Run control & rework
 
@@ -88,6 +93,6 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 
 ### Suggested order
 
-~~A1~~ → ~~A2~~ → ~~A3~~ (done — real metrics + cost ledger) → **A4 next** → A5, then
+~~A1~~ → ~~A2~~ → ~~A3~~ → ~~A4~~ (done — real metrics + dashboard) → **A5 next** (spend cap + action), then
 B1 (rework-from-phase is high day-to-day value), C1, D1 (design), B2, A6, E1.
 Adjust as priorities shift.

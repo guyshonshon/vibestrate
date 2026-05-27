@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **metrics dashboard** (A4) — total-tokens KPI (+Δ vs prior window),
+  median run duration beside the average, a per-model table
+  (model/calls/tokens/cost), and a tokens-by-role bar. `/api/metrics/overview`
+  gains `perModel`, `tokensByRole`, and `totals.{tokens,tokensDelta,
+  medianDurationSeconds}` (additive, backward-compatible).
 - Add: **token/cost ledger** (structured-output A3) — a local static pricing
   table (USD/1M by model, prefix-matched, no network). Cost precedence:
   CLI-reported → `tokens × list price` (labelled estimate) → null (never
