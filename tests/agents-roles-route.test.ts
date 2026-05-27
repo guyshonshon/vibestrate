@@ -78,3 +78,33 @@ describe("GET /api/roles", () => {
     }
   });
 });
+
+describe("PATCH /api/roles/:roleId", () => {
+  it("points a role at a configured provider; rejects an unconfigured one", async () => {
+    const project = await makeProject();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    // planner was bound to the unconfigured "ghost" — repoint it at "fake".
+    const ok = await fetch(`${server.url}/api/roles/planner`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "fake" }),
+    });
+    expect(ok.status).toBe(200);
+
+    const after = (await (await fetch(`${server.url}/api/roles`)).json()) as {
+      roles: { id: string; provider: string; providerConfigured: boolean }[];
+    };
+    const planner = after.roles.find((r) => r.id === "planner")!;
+    expect(planner.provider).toBe("fake");
+    expect(planner.providerConfigured).toBe(true);
+
+    // An unconfigured provider is refused (no silent write).
+    const bad = await fetch(`${server.url}/api/roles/reviewer`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider: "ghost" }),
+    });
+    expect(bad.status).toBe(400);
+  });
+});

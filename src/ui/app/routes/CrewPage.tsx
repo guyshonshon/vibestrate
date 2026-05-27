@@ -83,6 +83,15 @@ export function CrewPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const reloadRoles = async () => {
+    try {
+      const r = await api.getRoles();
+      setRoles(r.roles);
+    } catch {
+      /* roles are config; a transient failure just leaves the last view */
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -91,18 +100,21 @@ export function CrewPage() {
         if (cancelled) return;
         setOverview(r);
         setError(null);
-        setSelectedId((cur) => cur ?? r.providers[0]?.providerId ?? null);
+        setSelectedId(
+          (cur) =>
+            cur ??
+            r.providers.find((p) => p.configured)?.providerId ??
+            r.providers[0]?.providerId ??
+            null,
+        );
       } catch (err) {
         if (!cancelled)
           setError(err instanceof Error ? err.message : String(err));
       }
     };
     void load();
-    // Roles are config, not telemetry — fetch once, no polling.
-    void api
-      .getRoles()
-      .then((r) => !cancelled && setRoles(r.roles))
-      .catch(() => {});
+    // Roles are config, not telemetry — fetch once + after edits, no polling.
+    void reloadRoles();
     const id = window.setInterval(load, 8000);
     return () => {
       cancelled = true;
@@ -219,19 +231,23 @@ export function CrewPage() {
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Agents · roles &amp; the providers they run on</div>
+        <div className="eyebrow mb-1.5">Crew</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2] max-w-[820px]">
-          {roles.length || "—"}{" "}
-          <em className="text-display italic text-violet-soft">roles</em>, on{" "}
-          {overview ? overview.providers.length : "—"} providers, one
-          orchestrator.
+          The <em className="text-display italic text-violet-soft">roles</em>{" "}
+          that work your tasks.
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[660px]">
-          An <strong className="text-fog-100">agent</strong> is a role in the
-          workflow (planner, reviewer…). A{" "}
-          <strong className="text-fog-100">provider</strong> is the CLI it runs
-          on — one provider can power many roles, and you can give each role a
-          different one. Below: who plays each role, then the providers.
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
+          Each role in the workflow runs on a provider — the CLI that supplies
+          the model. Set who plays each role below; the providers themselves are
+          installed and configured under{" "}
+          <button
+            type="button"
+            onClick={() => navigate({ kind: "providers" })}
+            className="text-violet-soft hover:underline"
+          >
+            Providers
+          </button>
+          .
         </p>
       </section>
 
@@ -241,26 +257,56 @@ export function CrewPage() {
         </div>
       ) : null}
 
-      <RolesPanel roles={roles} overview={overview} />
+      <RolesPanel
+        roles={roles}
+        overview={overview}
+        onSetProvider={async (roleId, providerId) => {
+          try {
+            await api.setRoleProvider(roleId, providerId);
+            await reloadRoles();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          }
+        }}
+      />
 
       <KpiStrip overview={overview} />
 
       <section className="mt-8 grid grid-cols-12 gap-5">
         <div className="col-span-12 lg:col-span-5 xl:col-span-4 space-y-2.5">
           <SectionEyebrow className="mb-1 px-1">
-            <span>
-              Providers · {overview?.providers.length ?? 0}
-            </span>
-            <span className="text-fog-400">↑ select to inspect</span>
+            <span>Configured providers</span>
+            <button
+              type="button"
+              onClick={() => navigate({ kind: "providers" })}
+              className="text-fog-400 hover:text-fog-200"
+            >
+              add / manage →
+            </button>
           </SectionEyebrow>
-          {(overview?.providers ?? []).map((p) => (
-            <RosterRow
-              key={p.providerId}
-              profile={p}
-              selected={p.providerId === selected?.providerId}
-              onSelect={() => setSelectedId(p.providerId)}
-            />
-          ))}
+          {(overview?.providers ?? [])
+            .filter((p) => p.configured)
+            .map((p) => (
+              <RosterRow
+                key={p.providerId}
+                profile={p}
+                selected={p.providerId === selected?.providerId}
+                onSelect={() => setSelectedId(p.providerId)}
+              />
+            ))}
+          {overview && overview.providers.filter((p) => p.configured).length === 0 ? (
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
+              No providers configured yet —{" "}
+              <button
+                type="button"
+                onClick={() => navigate({ kind: "providers" })}
+                className="text-violet-soft hover:underline"
+              >
+                set one up in Providers
+              </button>
+              .
+            </div>
+          ) : null}
           {!overview ? (
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] px-4 py-3 text-[12.5px] text-fog-400">
               Loading providers…
@@ -754,29 +800,27 @@ const ROLE_BLURB: Record<string, string> = {
 };
 
 /**
- * The agent *roles* and the provider each runs on — the missing piece that
- * makes "agents vs providers" legible: an agent is a role; a provider is the
- * CLI it runs on; one provider can power many roles.
+ * The workflow roles + the provider each runs on, editable in place: pick a
+ * configured provider per role. (Providers are added/configured on the
+ * Providers page; here you just assign who plays each role.)
  */
 function RolesPanel({
   roles,
   overview,
+  onSetProvider,
 }: {
   roles: Role[];
   overview: ProvidersOverview | null;
+  onSetProvider: (roleId: string, providerId: string) => void | Promise<void>;
 }) {
   if (roles.length === 0) return null;
+  const configured = (overview?.providers ?? []).filter((p) => p.configured);
+  const selectCls =
+    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
   return (
     <section className="mt-7" data-screen-label="Roles">
       <SectionEyebrow className="mb-2 px-1">
-        <span>Roles · the workflow crew</span>
-        <button
-          type="button"
-          onClick={() => navigate({ kind: "providers" })}
-          className="text-fog-400 hover:text-fog-200"
-        >
-          manage providers →
-        </button>
+        <span>Roles · who plays each part of the workflow</span>
       </SectionEyebrow>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {roles.map((r) => {
@@ -802,18 +846,33 @@ function RolesPanel({
                   {ROLE_BLURB[r.id]}
                 </p>
               ) : null}
-              <div className="mt-2.5 flex items-center gap-2 text-[12px]">
+              <label className="mt-2.5 flex items-center gap-2 text-[12px]">
                 <ToneDot tone={online ? "emerald" : "rose"} />
                 <span className="text-fog-400">runs on</span>
-                <span className="mono text-[11.5px] text-violet-soft">
-                  {r.provider}
-                </span>
-                {!online ? (
-                  <span className="text-[10.5px] text-rose-300/80">
-                    {r.providerConfigured ? "(offline)" : "(not configured)"}
-                  </span>
-                ) : null}
-              </div>
+                <select
+                  value={r.provider}
+                  onChange={(e) => void onSetProvider(r.id, e.target.value)}
+                  className={`${selectCls} flex-1`}
+                >
+                  {/* If the current provider isn't configured, still show it so
+                      the select reflects reality (flagged below). */}
+                  {!configured.some((p) => p.providerId === r.provider) ? (
+                    <option value={r.provider}>{r.provider}</option>
+                  ) : null}
+                  {configured.map((p) => (
+                    <option key={p.providerId} value={p.providerId}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!online ? (
+                <p className="mt-1 text-[10.5px] text-rose-300/80">
+                  {r.providerConfigured
+                    ? "provider CLI offline"
+                    : "provider not configured — pick another or set it up in Providers"}
+                </p>
+              ) : null}
               <div className="mt-1.5 text-[11px] text-fog-500">
                 {r.skills.length > 0
                   ? `${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}`

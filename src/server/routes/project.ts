@@ -12,6 +12,7 @@ import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
+import { setRoleProvider } from "../../setup/config-update-service.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 
 export type ProjectRoutesDeps = { projectRoot: string };
@@ -26,10 +27,9 @@ export async function registerProjectRoutes(
     return { metadata: await getProjectMetadata(projectRoot) };
   });
 
-  // The agent *roles* (planner, architect, …) and their bindings: which
-  // provider (engine) each runs on, its permission profile, and skills.
-  // Config references only — never the prompt contents (no secret leakage).
-  // This is what makes the agent↔provider relationship legible in the UI.
+  // The workflow *roles* (planner, architect, …) and their bindings: which
+  // provider each runs on, its permission profile, and skills. Config
+  // references only — never the prompt contents (no secret leakage).
   app.get("/api/roles", async () => {
     if (!(await configExists(projectRoot))) return { roles: [] };
     const { config } = await loadConfig(projectRoot);
@@ -42,6 +42,31 @@ export async function registerProjectRoutes(
     }));
     return { roles };
   });
+
+  // Configure a role: point it at a (configured) provider. Narrow + audited —
+  // the only role field the dashboard may write.
+  app.patch<{ Params: { roleId: string }; Body: unknown }>(
+    "/api/roles/:roleId",
+    async (req) => {
+      const roleId = req.params.roleId;
+      if (!/^[a-z][a-z0-9-]*$/.test(roleId)) {
+        throw new HttpError(400, "Invalid role id.");
+      }
+      const body = (req.body ?? {}) as { provider?: unknown };
+      if (typeof body.provider !== "string" || !body.provider.trim()) {
+        throw new HttpError(400, "Body must include a non-empty `provider`.");
+      }
+      try {
+        await setRoleProvider(projectRoot, roleId, body.provider.trim());
+      } catch (err) {
+        throw new HttpError(
+          400,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+      return { ok: true, roleId, provider: body.provider.trim() };
+    },
+  );
 
   app.get<{
     Querystring: {
