@@ -6,6 +6,19 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Rewind to a stage** (Epic B / B1, phase 1) — fork a fresh run that
+  resumes at **architecting** (reuse the plan) or **executing** (reuse plan +
+  architecture) instead of re-running from scratch, so upstream context isn't
+  re-paid for. The orchestrator seeds the upstream artifacts from the source
+  run, skips the earlier stages, and runs a fresh worktree off main (correct
+  because both stages regenerate the downstream code). The original run is
+  untouched (new runId, `state.resumedFrom` lineage, `run.rewound` event).
+  Surfaced in the run "Re-run with changes" dialog as a **Start from** selector
+  (gated by which artifacts the source captured) and on the CLI via
+  `amaco run --resume-from <runId> [--resume-stage architecting|executing]`.
+  Resuming at review/verify (needs the executor's code present) is deferred to
+  phase 2 (per-phase worktree snapshots). Tested (e2e resume + artifact
+  validation).
 - Docs: README repositioned around the **local-first coding-agent supervisor**
   category (per the marketing direction) — added a "Ready in one command"
   section that sells the out-of-the-box story (detect agents + project,

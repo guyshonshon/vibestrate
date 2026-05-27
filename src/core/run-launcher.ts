@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { detectProject } from "../project/project-detector.js";
 import { configExists, loadConfig } from "../project/config-loader.js";
-import { Orchestrator, type OrchestratorOutput } from "./orchestrator.js";
+import {
+  Orchestrator,
+  type OrchestratorOutput,
+  type ResumeFromInput,
+} from "./orchestrator.js";
+import { ArtifactStore } from "./artifact-store.js";
 import {
   discoverGuides,
   findGuideById,
@@ -43,6 +48,16 @@ export const runSpecSchema = z.object({
     })
     .nullable()
     .optional(),
+  /** Rewind: fork a fresh run from a prior run, resuming at a chosen stage
+   *  and reusing that run's upstream artifacts. Mutually exclusive with
+   *  `guide`. The launcher loads the seeded artifacts from the source run. */
+  resumeFrom: z
+    .object({
+      sourceRunId: z.string().min(1).max(200),
+      fromStage: z.enum(["architecting", "executing"]),
+    })
+    .nullable()
+    .optional(),
 });
 
 export type RunSpec = z.infer<typeof runSpecSchema>;
@@ -61,6 +76,40 @@ export type RunLaunchOptions = {
   abortSignal?: AbortSignal;
   onProgress?: (message: string) => void;
 };
+
+/** Load the upstream artifacts a rewind reuses from the source run, validating
+ *  they exist (plan for both stages; architecture for executing). Shared by the
+ *  dashboard launcher and the `amaco run --resume-from` CLI path so both reach
+ *  the same behavior. Throws RunLaunchError with an actionable message. */
+export async function resolveResumeFrom(
+  projectRoot: string,
+  input: { sourceRunId: string; fromStage: "architecting" | "executing" },
+): Promise<ResumeFromInput> {
+  const src = new ArtifactStore(projectRoot, input.sourceRunId);
+  if (!(await src.exists("02-plan.md"))) {
+    throw new RunLaunchError(
+      "resume_missing_plan",
+      `Source run "${input.sourceRunId}" has no plan artifact to reuse.`,
+    );
+  }
+  const seededPlan = await src.read("02-plan.md");
+  let seededArchitecture: string | null = null;
+  if (input.fromStage === "executing") {
+    if (!(await src.exists("04-architecture.md"))) {
+      throw new RunLaunchError(
+        "resume_missing_architecture",
+        `Source run "${input.sourceRunId}" has no architecture artifact; rewind to architecting instead.`,
+      );
+    }
+    seededArchitecture = await src.read("04-architecture.md");
+  }
+  return {
+    sourceRunId: input.sourceRunId,
+    fromStage: input.fromStage,
+    seededPlan,
+    seededArchitecture,
+  };
+}
 
 export async function runFromSpec(
   spec: RunSpec,
@@ -115,6 +164,19 @@ export async function runFromSpec(
     if (!spec.readOnly) readOnly = task.readOnly;
   }
 
+  // Rewind: load the upstream artifacts from the source run so the new run
+  // resumes at the chosen stage instead of regenerating them.
+  let resumeFrom: ResumeFromInput | null = null;
+  if (spec.resumeFrom) {
+    if (spec.guide) {
+      throw new RunLaunchError(
+        "resume_with_guide",
+        "A run cannot both rewind from a prior run and run a Guide.",
+      );
+    }
+    resumeFrom = await resolveResumeFrom(detected.projectRoot, spec.resumeFrom);
+  }
+
   let resolvedGuide: ResolvedGuideSnapshot | null = null;
   if (spec.guide) {
     const guide = await findGuideById(detected.projectRoot, spec.guide.id);
@@ -150,6 +212,7 @@ export async function runFromSpec(
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,
     guide: resolvedGuide,
+    resumeFrom,
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

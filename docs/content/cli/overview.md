@@ -36,6 +36,13 @@ amaco status                                # see active and recent runs
 amaco replay <runId>                        # inspect any past run
 ```
 
+Rewind a prior run instead of restarting — reuse its plan (and architecture) and resume from a later stage:
+
+```bash
+amaco run "<same task>" --resume-from <runId>                        # reuse plan + architecture, redo implementation
+amaco run "<same task>" --resume-from <runId> --resume-stage architecting  # reuse plan, redo from architecture
+```
+
 ## Working with providers
 
 ```bash

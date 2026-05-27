@@ -126,6 +126,23 @@ import {
 } from "../guides/schemas/guide-output-contracts.js";
 import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
+/** Stages a run can be rewound to. Earlier stages (planning) just mean a
+ *  normal from-scratch run; review/verify aren't resumable here because they
+ *  need the executor's code present (a per-phase worktree snapshot we don't
+ *  capture yet). Both supported stages regenerate the downstream code, so a
+ *  fresh worktree off main is correct. */
+export type ResumeStage = "architecting" | "executing";
+
+export type ResumeFromInput = {
+  /** The run whose upstream artifacts are reused. */
+  sourceRunId: string;
+  fromStage: ResumeStage;
+  /** Plan text copied from the source run — reused for both stages. */
+  seededPlan: string;
+  /** Architecture text — required when fromStage === "executing". */
+  seededArchitecture?: string | null;
+};
+
 export type OrchestratorInput = {
   projectRoot: string;
   config: ProjectConfig;
@@ -152,6 +169,10 @@ export type OrchestratorInput = {
   /** Immutable resolved Guide recipe. When set, the sequential Guide
    * runner replaces the legacy fixed workflow for this run. */
   guide?: ResolvedGuideSnapshot | null;
+  /** Rewind: fork a fresh run that resumes at a chosen stage, reusing the
+   *  upstream artifacts from a prior run instead of regenerating them.
+   *  Mutually exclusive with `guide`. */
+  resumeFrom?: ResumeFromInput | null;
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -279,6 +300,7 @@ export class Orchestrator {
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
   private readonly guide: ResolvedGuideSnapshot | null;
+  private readonly resumeFrom: ResumeFromInput | null;
   private readonly abortSignal: AbortSignal | null;
 
   constructor(input: OrchestratorInput) {
@@ -295,6 +317,12 @@ export class Orchestrator {
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
     this.guide = input.guide ?? null;
+    this.resumeFrom = input.resumeFrom ?? null;
+    if (this.guide && this.resumeFrom) {
+      throw new Error(
+        "A run cannot both run a Guide and rewind from a prior run.",
+      );
+    }
     this.abortSignal = input.abortSignal ?? null;
   }
 
@@ -362,6 +390,12 @@ export class Orchestrator {
       readOnly: this.readOnly,
       guide: this.guide
         ? this.createGuideRunState(this.guide, "guide.json")
+        : null,
+      resumedFrom: this.resumeFrom
+        ? {
+            sourceRunId: this.resumeFrom.sourceRunId,
+            fromStage: this.resumeFrom.fromStage,
+          }
         : null,
     };
     if (this.guide) {
@@ -459,6 +493,34 @@ export class Orchestrator {
     let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
     let reviewLoopsCompleted = 0;
 
+    // Rewind: when resuming, the stages before `fromStage` are skipped and
+    // their artifacts are seeded from the source run. STAGE_ORD lets each
+    // stage block guard itself; a fresh worktree off main is correct because
+    // architecting/executing regenerate the downstream code.
+    const STAGE_ORD = { planning: 0, architecting: 1, executing: 2 } as const;
+    const startOrd = this.resumeFrom
+      ? STAGE_ORD[this.resumeFrom.fromStage]
+      : 0;
+    if (this.resumeFrom) {
+      await artifactStore.write("02-plan.md", this.resumeFrom.seededPlan);
+      planArtifact = this.seededAgentResult("planner", this.resumeFrom.seededPlan);
+      if (this.resumeFrom.fromStage === "executing") {
+        const arch = this.resumeFrom.seededArchitecture ?? "";
+        await artifactStore.write("04-architecture.md", arch);
+        architectureArtifact = this.seededAgentResult("architect", arch);
+      }
+      await eventLog.append({
+        type: "run.rewound",
+        message: `Rewound from run ${this.resumeFrom.sourceRunId} to ${this.resumeFrom.fromStage}; reused plan${
+          this.resumeFrom.fromStage === "executing" ? " + architecture" : ""
+        } instead of regenerating it.`,
+        data: {
+          sourceRunId: this.resumeFrom.sourceRunId,
+          fromStage: this.resumeFrom.fromStage,
+        },
+      });
+    }
+
     const ctx = {
       runId,
       worktreePath,
@@ -502,23 +564,23 @@ export class Orchestrator {
         events: eventLog,
       });
       if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: planning
-      this.onProgress("Planning...");
-      state = applyTransition(state, "planning");
-      await stateStore.write(state);
-      planArtifact = await this.runAgent({
-        agentId: "planner",
-        stageId: "planning",
-        promptIndex: 1,
-        outputName: "02-plan.md",
-        priorArtifacts: [],
-        validationResults: null,
-        metricsStore,
-        ctx,
-      });
-      state = applyTransition(state, "planned");
-      await stateStore.write(state);
-      {
+      // Stage: planning — skipped when rewinding (plan seeded from source).
+      if (startOrd === STAGE_ORD.planning) {
+        this.onProgress("Planning...");
+        state = applyTransition(state, "planning");
+        await stateStore.write(state);
+        planArtifact = await this.runAgent({
+          agentId: "planner",
+          stageId: "planning",
+          promptIndex: 1,
+          outputName: "02-plan.md",
+          priorArtifacts: [],
+          validationResults: null,
+          metricsStore,
+          ctx,
+        });
+        state = applyTransition(state, "planned");
+        await stateStore.write(state);
         const gate = await this.maybeAwaitApproval({
           state,
           fromStatus: "planned",
@@ -539,6 +601,11 @@ export class Orchestrator {
           throw new __ApprovalRejectedSignal();
         }
       }
+      if (!planArtifact) {
+        throw new Error(
+          "Internal: plan artifact is required before architecting.",
+        );
+      }
 
       // Pause gate: between planning and architecting.
       state = await applyPauseIfRequested({
@@ -547,23 +614,24 @@ export class Orchestrator {
         events: eventLog,
       });
       if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
-      // Stage: architecting
-      this.onProgress("Architecting...");
-      state = applyTransition(state, "architecting");
-      await stateStore.write(state);
-      architectureArtifact = await this.runAgent({
-        agentId: "architect",
-        stageId: "architecting",
-        promptIndex: 3,
-        outputName: "04-architecture.md",
-        priorArtifacts: [{ label: "Plan", content: planArtifact.output }],
-        validationResults: null,
-        metricsStore,
-        ctx,
-      });
-      state = applyTransition(state, "architected");
-      await stateStore.write(state);
-      {
+      // Stage: architecting — skipped when rewinding to executing (architecture
+      // seeded from source); runs normally otherwise (incl. rewind-to-architecting).
+      if (startOrd <= STAGE_ORD.architecting) {
+        this.onProgress("Architecting...");
+        state = applyTransition(state, "architecting");
+        await stateStore.write(state);
+        architectureArtifact = await this.runAgent({
+          agentId: "architect",
+          stageId: "architecting",
+          promptIndex: 3,
+          outputName: "04-architecture.md",
+          priorArtifacts: [{ label: "Plan", content: planArtifact.output }],
+          validationResults: null,
+          metricsStore,
+          ctx,
+        });
+        state = applyTransition(state, "architected");
+        await stateStore.write(state);
         const gate = await this.maybeAwaitApproval({
           state,
           fromStatus: "architected",
@@ -583,6 +651,11 @@ export class Orchestrator {
           });
           throw new __ApprovalRejectedSignal();
         }
+      }
+      if (!architectureArtifact) {
+        throw new Error(
+          "Internal: architecture artifact is required before executing.",
+        );
       }
 
       // Pause gate: between architecting and executing.
@@ -1198,6 +1271,34 @@ export class Orchestrator {
       branchName,
       finalReportPath,
       policyWarnings: policy.warnings,
+    };
+  }
+
+  /** Synthetic AgentRunResult for an artifact seeded from a prior run during a
+   *  rewind. Only `.output` is read downstream (collectPriors + inline
+   *  priorArtifacts); the provider stub records that no agent turn was spent
+   *  regenerating it — no metrics entry, no cost. */
+  private seededAgentResult(agentId: string, output: string): AgentRunResult {
+    const ts = nowIso();
+    return {
+      agentId,
+      output,
+      outputArtifactPath:
+        agentId === "planner" ? "02-plan.md" : "04-architecture.md",
+      promptArtifactPath: "",
+      providerResult: {
+        providerId: "(seeded)",
+        command: "(seeded)",
+        args: [],
+        cwd: this.projectRoot,
+        exitCode: 0,
+        stdout: output,
+        stderr: "",
+        durationMs: 0,
+        startedAt: ts,
+        endedAt: ts,
+        session: null,
+      },
     };
   }
 

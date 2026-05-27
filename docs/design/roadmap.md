@@ -58,10 +58,19 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     action → re-submit the task with adjusted settings (uncheck read-only so the
     executor can write, change effort/provider; preserves the guide). Directly
     fixes the read-only→write case. Re-runs from scratch (new worktree).
-  - ☐ **Rewind to a phase** (true resume — reuse prior artifacts, start at a
-    chosen step instead of from scratch) + per-agent permission override. Bigger
-    orchestration change (resumable mid-workflow); design question the user
-    raised ("do we want this behavior?") — deferred.
+  - ~~**Rewind to a stage** (phase 1, done)~~: fork a fresh run that resumes at
+    **architecting** (reuse plan) or **executing** (reuse plan + architecture)
+    instead of from scratch. The orchestrator seeds upstream artifacts from the
+    source run, skips earlier stages, and uses a fresh worktree off main (valid
+    because both stages regenerate the downstream code). New runId +
+    `state.resumedFrom` lineage; original untouched. UI "Start from" selector +
+    `amaco run --resume-from <runId> [--resume-stage …]`. Permission/effort/
+    provider overrides ride the existing re-run controls.
+  - ☐ **Rewind phase 2** — resume at **review / verify / fix** (which need the
+    executor's code present). Requires per-phase **worktree snapshots**
+    (commit/tag each phase) so the worktree can be restored to a mid-run state;
+    the current capture only keeps the final worktree. This is the remaining
+    half of "true rewind reusing captured context".
 - **B2 — Run navigation + "blocked" UX.** Reaching a run shouldn't require going
   through "all runs"; the `blocked` state needs a clearer, more actionable
   surface (what blocked it, what to do).

@@ -1,7 +1,11 @@
 import path from "node:path";
 import { detectProject } from "../../project/project-detector.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
-import { Orchestrator } from "../../core/orchestrator.js";
+import {
+  Orchestrator,
+  type ResumeFromInput,
+} from "../../core/orchestrator.js";
+import { resolveResumeFrom, RunLaunchError } from "../../core/run-launcher.js";
 import {
   color,
   header,
@@ -86,6 +90,10 @@ export type RunCommandOptions = {
   guideSkippedOptionalSteps?: string[];
   /** Open the terminal Guide setup flow before resolving the run. */
   guideInteractive?: boolean;
+  /** Rewind: fork from a prior run, reusing its upstream artifacts and
+   *  resuming at `resumeStage`. Mutually exclusive with a Guide. */
+  resumeFromRunId?: string | null;
+  resumeStage?: "architecting" | "executing";
 };
 
 export async function runRunCommand(
@@ -354,6 +362,33 @@ export async function runRunCommand(
   process.on("SIGINT", onSigint);
   process.on("SIGTERM", onSigterm);
 
+  // Rewind: fork from a prior run, reusing its upstream artifacts.
+  let resumeFrom: ResumeFromInput | null = null;
+  if (options.resumeFromRunId) {
+    if (resolvedGuide) {
+      console.error(
+        `${symbol.fail()} ${color.bold("--resume-from")} cannot be combined with ${color.bold("--guide")}.`,
+      );
+      return 1;
+    }
+    try {
+      resumeFrom = await resolveResumeFrom(detected.projectRoot, {
+        sourceRunId: options.resumeFromRunId,
+        fromStage: options.resumeStage ?? "executing",
+      });
+    } catch (err) {
+      const message =
+        err instanceof RunLaunchError ? err.message : String(err);
+      console.error(`${symbol.fail()} ${message}`);
+      return 1;
+    }
+    console.log(
+      `${symbol.bullet()} Rewinding from ${color.bold(resumeFrom.sourceRunId)} at ${color.bold(resumeFrom.fromStage)} — reusing plan${
+        resumeFrom.fromStage === "executing" ? " + architecture" : ""
+      }.`,
+    );
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
@@ -367,6 +402,7 @@ export async function runRunCommand(
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
     guide: resolvedGuide,
+    resumeFrom,
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);

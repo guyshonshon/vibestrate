@@ -52,6 +52,22 @@ Each `amaco run` is a fresh run with a fresh runId. Past runs are preserved at `
 diff .amaco/runs/<oldRunId>/plan.md .amaco/runs/<newRunId>/plan.md
 ```
 
+## Rewind instead of restarting
+
+When the plan and architecture were fine and only the implementation needs another pass (for example, the run was read-only and you now want the executor to write), you don't have to re-pay for planning and architecture. **Rewind** forks a fresh run that reuses the earlier artifacts and resumes from a chosen stage:
+
+```bash
+# Reuse the plan + architecture, redo the implementation onward:
+amaco run "<same task>" --resume-from <oldRunId> --resume-stage executing
+
+# Reuse just the plan, redo from architecture onward:
+amaco run "<same task>" --resume-from <oldRunId> --resume-stage architecting
+```
+
+`--resume-stage` defaults to `executing`. The forked run gets its own runId and a fresh worktree off your main branch — correct, because both stages regenerate the downstream code — and the original run is left untouched (its `state.json` records the lineage under `resumedFrom`). In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices; options are greyed out when the source run didn't capture the artifact they'd reuse.
+
+Resuming at *review* or *verify* (which need the executor's code already present) isn't supported yet — rewind covers the stages that rebuild the code.
+
 ## When to file a bug
 
 If the same task fails in the same place across multiple providers and the failure isn't traceable to your config or the task description, that's worth a bug report. Include the `runId`, the `events.jsonl` excerpt around the failure, and the provider stream log.

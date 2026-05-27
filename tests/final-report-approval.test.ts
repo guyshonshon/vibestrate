@@ -29,6 +29,7 @@ const baseState = {
   runtimeSkills: [],
   concise: false,
   guide: null,
+  resumedFrom: null,
 };
 
 describe("final report — approval section", () => {
