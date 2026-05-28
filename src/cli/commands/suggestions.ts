@@ -311,7 +311,7 @@ function renderApplyResult(s: import("../../reviews/review-suggestion-types.js")
     case "validation_failed":
       console.error(
         color.red(
-          `${symbol.fail()} validation failed (${s.id}). Patch is still applied; run "vibestrate suggestions revert" to roll it back.`,
+          `${symbol.fail()} validation failed (${s.id}). Patch is still applied; run "vibe suggestions revert" to roll it back.`,
         ),
       );
       return;
@@ -361,7 +361,7 @@ async function runValidationCli(
   } else {
     console.log(
       color.yellow(
-        '! No commands.validate configured. Try: vibestrate config set commands.validate \'["pnpm test"]\'',
+        '! No commands.validate configured. Try: vibe config set commands.validate \'["pnpm test"]\'',
       ),
     );
   }

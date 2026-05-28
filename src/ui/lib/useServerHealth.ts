@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /** Lightweight liveness check for the local vibestrate server. Polls
  *  /api/health every 4s. Returns true while reachable, false once we
  *  miss two consecutive checks. Surfaces this so other consumers (the
- *  AppShell banner, polling loops) can stop thrashing when `vibestrate ui`
+ *  AppShell banner, polling loops) can stop thrashing when `vibe ui`
  *  has exited.
  */
 export function useServerHealth(): { reachable: boolean; lastCheckedAt: Date } {

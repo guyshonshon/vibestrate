@@ -10,7 +10,7 @@ Mission Control is Vibestrate's web UI. It's served by a Fastify process started
 ## Start it
 
 ```bash
-vibestrate ui
+vibe ui
 ```
 
 Default port is `4317`. Pass `--port` to change it. By default it opens your browser; `--no-open` keeps it headless.
@@ -18,7 +18,7 @@ Default port is `4317`. Pass `--port` to change it. By default it opens your bro
 You can also start a run with the dashboard attached:
 
 ```bash
-vibestrate run "Add audit logging" --ui
+vibe run "Add audit logging" --ui
 ```
 
 ## The shape
@@ -69,4 +69,4 @@ Open a run to supervise it live:
 
 ## Stopping it
 
-`Ctrl-C` in the terminal where `vibestrate ui` is running. The Fastify process exits cleanly; the runs continue (or pause at the next stage boundary, depending on what they're doing).
+`Ctrl-C` in the terminal where `vibe ui` is running. The Fastify process exits cleanly; the runs continue (or pause at the next stage boundary, depending on what they're doing).

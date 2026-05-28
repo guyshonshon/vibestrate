@@ -148,7 +148,7 @@ providers:
     output: text               # until a codex-json adapter ships
 ```
 
-`vibestrate doctor` / the Providers page can offer "enable rich output" for
+`vibe doctor` / the Providers page can offer "enable rich output" for
 providers whose adapter exists, and explain the tradeoff (richer + live, vs the
 plain-text baseline). The setup never silently changes a working provider.
 

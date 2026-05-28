@@ -387,9 +387,9 @@ Vibestrate takeaway:
 Vibestrate commands:
 
 ```bash
-vibestrate policies test .vibestrate/policies
-vibestrate policies check --surface agent.turn.diff --patch ./candidate.patch
-vibestrate policies explain --surface provider.spawn --command "bash -lc 'git add . && rm -rf /'"
+vibe policies test .vibestrate/policies
+vibe policies check --surface agent.turn.diff --patch ./candidate.patch
+vibe policies explain --surface provider.spawn --command "bash -lc 'git add . && rm -rf /'"
 ```
 
 ### Kyverno
@@ -787,11 +787,11 @@ rules:
 The CLI should write the same policy files that the UI writes.
 
 ```bash
-vibestrate policies list
-vibestrate policies doctor
-vibestrate policies check ./candidate.patch --surface suggestion.apply
+vibe policies list
+vibe policies doctor
+vibe policies check ./candidate.patch --surface suggestion.apply
 
-vibestrate policies add no-secret-file-edits \
+vibe policies add no-secret-file-edits \
   --surface agent.turn.diff \
   --surface suggestion.apply \
   --effect deny \
@@ -799,15 +799,15 @@ vibestrate policies add no-secret-file-edits \
   --path "**/*.pem" \
   --message "Secret files cannot be modified by Vibestrate."
 
-vibestrate policies edit no-secret-file-edits
-vibestrate policies remove no-secret-file-edits
+vibe policies edit no-secret-file-edits
+vibe policies remove no-secret-file-edits
 ```
 
 For users who prefer files:
 
 ```bash
 $EDITOR .vibestrate/policies/no-secret-file-edits.yml
-vibestrate policies doctor
+vibe policies doctor
 ```
 
 ## UI Interaction
@@ -1068,7 +1068,7 @@ If every surface asks the broker first, later safety work becomes plugins/backen
 
 - Add `assurance.json`.
 - Show it in final report, CLI, TUI, and Run Detail UI.
-- Add `vibestrate runs assurance <runId> --json`.
+- Add `vibe runs assurance <runId> --json`.
 - Add "why not verified?" explanations.
 
 ### Phase 6: OS Sandbox

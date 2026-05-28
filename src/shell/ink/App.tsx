@@ -53,7 +53,7 @@ import type { PaletteCommand } from "./palette.js";
 type Props = {
   projectRoot: string;
   refreshMs?: number;
-  /** Dashboard URL when launched alongside the shell (`vibestrate shell --ui`).
+  /** Dashboard URL when launched alongside the shell (`vibe shell --ui`).
    *  When null we fall through to VIBESTRATE_UI_URL env, then a localhost
    *  default — opening it just tries http://127.0.0.1:4317. */
   uiUrl?: string | null;
@@ -198,14 +198,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           kind: "ok",
           message:
             cmd.action.toast ??
-            `Started \`vibestrate ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
+            `Started \`vibe ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
         });
         return;
       }
       case "open-url": {
         // If the palette entry hard-codes the default localhost URL,
         // upgrade it to the runtime-resolved one so users who picked
-        // a different port via `vibestrate shell --ui --ui-port` aren't
+        // a different port via `vibe shell --ui --ui-port` aren't
         // routed to a dead tab.
         const target =
           cmd.action.url === DEFAULT_UI_URL
@@ -318,7 +318,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
-    // by `vibestrate shell --ui`, VIBESTRATE_UI_URL env, or the localhost default.
+    // by `vibe shell --ui`, VIBESTRATE_UI_URL env, or the localhost default.
     // Lowercase `b` is unbound today; uppercase `B` matches the
     // existing "R for re-run" convention for one-letter actions.
     if (input === "B" || input === "b") {
@@ -385,7 +385,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         });
         return;
       }
-      // Capital R re-runs the selected run as a fresh `vibestrate run`.
+      // Capital R re-runs the selected run as a fresh `vibe run`.
       // The original run state is preserved on disk so the user can
       // still inspect the failure; the new run gets its own runId.
       if (input === "R" && selectedRun) {
@@ -590,7 +590,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
                   dispatch({ type: "runner.append", chunk }),
               }).then((r) => {
                 dispatch({ type: "runner.finished", exitCode: r.exitCode });
-                // Snapshot may have changed (e.g. vibestrate queue add) — refresh
+                // Snapshot may have changed (e.g. vibe queue add) — refresh
                 // so the rest of the panel sees the new state.
                 void refresh();
               });

@@ -256,7 +256,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
                 <Text dimColor>
                   no reason stamped on disk — open <Text color="cyan">e</Text>{" "}
                   Events for the full timeline or run{" "}
-                  <Text color="cyan">vibestrate replay {row.runId}</Text>
+                  <Text color="cyan">vibe replay {row.runId}</Text>
                 </Text>
               </Text>
             </Box>
@@ -286,7 +286,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           <Box marginTop={1}>
             <Text dimColor>
               press <Text color="cyan">R</Text> to re-run as a fresh{" "}
-              <Text color="cyan">vibestrate run</Text>{" "}
+              <Text color="cyan">vibe run</Text>{" "}
               {row.taskId ? (
                 <Text>(linked to {row.taskId})</Text>
               ) : (
@@ -423,7 +423,7 @@ function ValidationSection({
     return (
       <Text dimColor>
         no validation events yet — they appear after{" "}
-        <Text color="cyan">vibestrate validation run</Text> or a post-apply
+        <Text color="cyan">vibe validation run</Text> or a post-apply
         validate.
       </Text>
     );
@@ -502,7 +502,7 @@ function EmptyRunsWalkthrough() {
       <Box marginTop={1}>
         <Text dimColor>
           shortcut: <Text color="cyan">!</Text> opens the runner —
-          {' '}<Text>vibestrate run "describe the change"</Text>
+          {' '}<Text>vibe run "describe the change"</Text>
         </Text>
       </Box>
     </Box>

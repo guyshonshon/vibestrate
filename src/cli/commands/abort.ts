@@ -12,7 +12,7 @@ import { isVibestrateError } from "../../utils/errors.js";
 
 export async function runAbortCommand(runId: string): Promise<number> {
   if (!runId) {
-    console.error("vibestrate abort: missing run id.");
+    console.error("vibe abort: missing run id.");
     return 1;
   }
 
@@ -20,14 +20,14 @@ export async function runAbortCommand(runId: string): Promise<number> {
   const stateFile = runStatePath(detected.projectRoot, runId);
 
   if (!(await pathExists(stateFile))) {
-    console.error(`vibestrate abort: run ${runId} not found.`);
+    console.error(`vibe abort: run ${runId} not found.`);
     return 1;
   }
 
   const raw = await readJson<unknown>(stateFile);
   const parsed = runStateSchema.safeParse(raw);
   if (!parsed.success) {
-    console.error(`vibestrate abort: state.json for ${runId} is invalid.`);
+    console.error(`vibe abort: state.json for ${runId} is invalid.`);
     return 1;
   }
   const state = parsed.data;
@@ -47,7 +47,7 @@ export async function runAbortCommand(runId: string): Promise<number> {
     });
   } catch (err) {
     console.error(
-      `vibestrate abort: failed to abort: ${isVibestrateError(err) ? err.message : String(err)}`,
+      `vibe abort: failed to abort: ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }

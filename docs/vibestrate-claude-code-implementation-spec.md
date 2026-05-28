@@ -43,10 +43,10 @@ Build the first serious open-source version of a reusable local-first autonomous
 The tool should let a developer run:
 
 ```bash
-vibestrate init
-vibestrate run "Add policy re-acceptance when Terms or Privacy changes"
-vibestrate status
-vibestrate abort <run-id>
+vibe init
+vibe run "Add policy re-acceptance when Terms or Privacy changes"
+vibe status
+vibe abort <run-id>
 ```
 
 Then the orchestrator should autonomously run a controlled workflow:
@@ -470,7 +470,7 @@ Support explicit skills only.
 Inside any target project, the user runs:
 
 ```bash
-vibestrate init
+vibe init
 ```
 
 This creates:
@@ -491,7 +491,7 @@ This creates:
   runs/
 ```
 
-Use `.vibestrate`, not `.aid`, because the product command is `vibestrate`.
+Use `.vibestrate`, not `.aid`, because the product is Vibestrate and the command is `vibe`.
 
 Make it easy to rename later by centralizing paths.
 
@@ -659,7 +659,7 @@ Add anything planner, architect, executor, reviewer, and verifier agents should 
 
 # 11. Default Agent Prompt Files
 
-`vibestrate init` should create editable default agent prompt files:
+`vibe init` should create editable default agent prompt files:
 
 ```txt
 .vibestrate/agents/planner.md
@@ -1367,7 +1367,7 @@ Reviewer/verifier run in worktree read-only.
 
 Implement policy checks:
 
-- `.vibestrate/project.yml` exists before `vibestrate run`.
+- `.vibestrate/project.yml` exists before `vibe run`.
 - current directory is inside git repository.
 - auto-push disabled.
 - auto-merge disabled.
@@ -1541,28 +1541,28 @@ Do not edit files.
 Implement:
 
 ```bash
-vibestrate init
-vibestrate run "<task idea>"
-vibestrate status
-vibestrate abort <run-id>
-vibestrate doctor
+vibe init
+vibe run "<task idea>"
+vibe status
+vibe abort <run-id>
+vibe doctor
 ```
 
-## 28.1 `vibestrate init`
+## 28.1 `vibe init`
 
 Creates `.vibestrate`.
 
 Options:
 
 ```bash
-vibestrate init --force
+vibe init --force
 ```
 
 Do not overwrite existing config without `--force`.
 
 Do not delete existing runs.
 
-## 28.2 `vibestrate run`
+## 28.2 `vibe run`
 
 Required:
 
@@ -1596,7 +1596,7 @@ Artifacts: .vibestrate/runs/20260509-143012-add-policy-reacceptance
 
 Do not print full prompts to terminal.
 
-## 28.3 `vibestrate status`
+## 28.3 `vibe status`
 
 Shows recent runs.
 
@@ -1615,10 +1615,10 @@ Fields:
 Support:
 
 ```bash
-vibestrate status --json
+vibe status --json
 ```
 
-## 28.4 `vibestrate abort <run-id>`
+## 28.4 `vibe abort <run-id>`
 
 Marks run aborted.
 
@@ -1628,7 +1628,7 @@ Do not delete worktree.
 
 Explain manual cleanup.
 
-## 28.5 `vibestrate doctor`
+## 28.5 `vibe doctor`
 
 Useful for open-source usability.
 
@@ -1986,6 +1986,7 @@ Expose binary:
 ```json
 {
   "bin": {
+    "vibe": "./dist/index.js",
     "vibestrate": "./dist/index.js"
   }
 }
@@ -2042,7 +2043,7 @@ git commit -m "init"
 Run:
 
 ```bash
-vibestrate init
+vibe init
 ```
 
 For smoke testing without Claude, use a local fake provider script.
@@ -2076,10 +2077,10 @@ Implementation is acceptable only if:
 2. `pnpm typecheck` passes.
 3. `pnpm test` passes.
 4. `pnpm build` passes.
-5. `vibestrate init` creates `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents`, `.vibestrate/skills`, `.vibestrate/runs`.
-6. `vibestrate doctor` works.
-7. `vibestrate run "test task"` creates a run folder.
-8. `vibestrate run` creates git worktree.
+5. `vibe init` creates `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents`, `.vibestrate/skills`, `.vibestrate/runs`.
+6. `vibe doctor` works.
+7. `vibe run "test task"` creates a run folder.
+8. `vibe run` creates git worktree.
 9. Planner runs.
 10. Architect runs.
 11. Executor runs in worktree.
@@ -2092,8 +2093,8 @@ Implementation is acceptable only if:
 18. Final status becomes `blocked` when reviewer blocks.
 19. Final status becomes `blocked` when verifier fails/needs human.
 20. Final status becomes `blocked` after max review loops.
-21. `vibestrate status` lists runs.
-22. `vibestrate abort` marks run aborted.
+21. `vibe status` lists runs.
+22. `vibe abort` marks run aborted.
 23. No model API code exists.
 24. No GitHub API code exists.
 25. No auto-push exists.

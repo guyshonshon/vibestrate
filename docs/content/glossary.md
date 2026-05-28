@@ -13,13 +13,13 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Artifact.** Any file produced or recorded by a run — plan, architecture, diff, validation output, review findings, verification summary. Lives under `.vibestrate/runs/<runId>/`.
 
-**CLI.** The `vibestrate` command-line tool. The primary surface, alongside Mission Control.
+**CLI.** The `vibe` command-line tool. The primary surface, alongside Mission Control.
 
 **Effort.** A coarse bucket — `low | medium | high` — that maps to a provider via `effortMap` in `project.yml`. Used as a shorthand for "run this on the cheap model" vs "run this on the expensive model."
 
 **Flow.** A saved run recipe. Like the default workflow, but with named slots, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
 
-**Mission Control.** The local web dashboard, served by `vibestrate ui`. Inspect runs, approve gates, read diffs, edit config.
+**Mission Control.** The local web dashboard, served by `vibe ui`. Inspect runs, approve gates, read diffs, edit config.
 
 **Orchestrator.** The component that drives a run through its stages. Lives in `src/core/orchestrator.ts`. Transitions the state machine, persists artifacts, hands off between agents.
 
@@ -29,11 +29,11 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Plan.** The planner agent's structured output. The first stage of the default workflow produces it.
 
-**Project root.** The git repository where `vibestrate init` was run. Where `.vibestrate/` lives.
+**Project root.** The git repository where `vibe init` was run. Where `.vibestrate/` lives.
 
 **Provider.** A local CLI Vibestrate can drive to talk to a model. Claude Code, Codex, Aider, Ollama, OpenCode are the built-in ones. See [Provider](/docs/concepts/provider).
 
-**Replay.** The read-only inspector for a persisted run. `vibestrate replay <runId>`.
+**Replay.** The read-only inspector for a persisted run. `vibe replay <runId>`.
 
 **Roadmap task.** An entry in `.vibestrate/roadmap/roadmap.json` that you can link a run to via `--task <taskId>`. Separate from the run itself.
 

@@ -685,7 +685,7 @@ function DryRunModal({
             </div>
             <p className="mt-3 text-[11.5px] text-fog-500">
               No run started. This is what{" "}
-              <code className="text-fog-300">vibestrate run "…" --flow {flowId}</code>{" "}
+              <code className="text-fog-300">vibe run "…" --flow {flowId}</code>{" "}
               would instantiate (reflects the saved flow).
             </p>
           </>

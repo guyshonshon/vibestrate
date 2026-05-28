@@ -108,7 +108,7 @@ export function listValidationProfiles(
     commands: [...config.commands.validate],
     description:
       config.commands.validate.length === 0
-        ? "No commands.validate configured. Set one with `vibestrate config set commands.validate '[\"<cmd>\"]'`."
+        ? "No commands.validate configured. Set one with `vibe config set commands.validate '[\"<cmd>\"]'`."
         : "Implicit default — uses commands.validate.",
     hasCommands: config.commands.validate.length > 0,
   });

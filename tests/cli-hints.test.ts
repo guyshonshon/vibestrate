@@ -24,9 +24,9 @@ describe("hintForRoute", () => {
       expect(h.blurb.length).toBeGreaterThan(0);
       expect(h.commands.length).toBeGreaterThan(0);
       for (const c of h.commands) {
-        // Every CLI hint command should start with `vibestrate ` or `$EDITOR `
+        // Every CLI hint command should start with `vibe ` or `$EDITOR `
         // so the user always sees the actual command they'd type.
-        expect(/^(vibestrate |\$EDITOR )/.test(c.cmd)).toBe(true);
+        expect(/^(vibe |\$EDITOR )/.test(c.cmd)).toBe(true);
       }
     }
   });
@@ -34,16 +34,16 @@ describe("hintForRoute", () => {
   it("interpolates the current runId into run-detail hints", () => {
     const h = hintForRoute({ kind: "run", runId: "run-xyz" });
     const joined = h.commands.map((c) => c.cmd).join("\n");
-    expect(joined).toContain("vibestrate status run-xyz");
-    expect(joined).toContain("vibestrate replay run-xyz");
-    expect(joined).toContain("vibestrate pause run-xyz");
+    expect(joined).toContain("vibe status run-xyz");
+    expect(joined).toContain("vibe replay run-xyz");
+    expect(joined).toContain("vibe pause run-xyz");
   });
 
   it("interpolates the current taskId into task-detail hints", () => {
     const h = hintForRoute({ kind: "task", taskId: "T-42" });
     const joined = h.commands.map((c) => c.cmd).join("\n");
-    expect(joined).toContain("vibestrate tasks show T-42");
-    expect(joined).toContain("vibestrate run --task T-42");
+    expect(joined).toContain("vibe tasks show T-42");
+    expect(joined).toContain("vibe run --task T-42");
   });
 
   it("adds an $EDITOR command when a codebase path is active", () => {

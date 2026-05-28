@@ -34,7 +34,7 @@ export async function runFlowsSuggest(
 
   if (suggestions.length === 0) {
     console.log(
-      `${symbol.bullet()} No flow suggestion is strong enough. Run plain ${color.bold("vibestrate run")} for the default flow, or choose from ${color.bold("vibestrate flows list")}.`,
+      `${symbol.bullet()} No flow suggestion is strong enough. Run plain ${color.bold("vibe run")} for the default flow, or choose from ${color.bold("vibe flows list")}.`,
     );
     return 0;
   }
@@ -52,7 +52,7 @@ export async function runFlowsSuggest(
   }
   console.log(
     color.dim(
-      "Suggestions never start a Flow automatically. Pass `vibestrate run \"task\" --flow <id>` to use one.",
+      "Suggestions never start a Flow automatically. Pass `vibe run \"task\" --flow <id>` to use one.",
     ),
   );
   return 0;

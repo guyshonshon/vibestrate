@@ -40,7 +40,7 @@ This is not a Skill. A Skill changes what an agent knows inside one invocation. 
 - Provider execution is one CLI invocation per agent turn. The generic `cli` provider and `claude-code` provider receive a prompt and return buffered output plus optional stream chunks.
 - Claude output parsing may record a `sessionId`, but the provider contract does not own session lifecycle, resume, a persistent PTY, or a normalized conversation handle.
 - Skills are reusable prompt attachments. They are discovered from `.vibestrate/skills` and `.claude/skills`, assigned to agents, optionally attached per run, and may add MCP servers.
-- The dashboard can spawn a constrained `vibestrate run` process. The shell can surface runs, skills, approvals, queues, and a command runner. Neither surface has a Guide picker or per-step provider editor.
+- The dashboard can spawn a constrained `vibe run` process. The shell can surface runs, skills, approvals, queues, and a command runner. Neither surface has a Guide picker or per-step provider editor.
 
 ## Fit Assessment
 

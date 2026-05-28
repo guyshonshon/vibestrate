@@ -98,9 +98,9 @@ V0 limits:
   truncated to 4096 chars.
 
 CLI:
-- \`vibestrate policies list [--json]\`
-- \`vibestrate policies check <patchFile> [--surface suggestion-apply|bundle-apply]\`
-- \`vibestrate policies doctor [--json]\`
+- \`vibe policies list [--json]\`
+- \`vibe policies check <patchFile> [--surface suggestion-apply|bundle-apply]\`
+- \`vibe policies doctor [--json]\`
 
 Malformed files (parse / schema / regex / glob errors) are skipped with a
 clear reason. Sibling well-formed files still apply.
@@ -163,7 +163,7 @@ function renderProvidersYaml(input: SetupPlan | null): {
   }
 
   // Otherwise, leave a placeholder claude provider so the schema validates;
-  // doctor will warn if the command is not on PATH and `vibestrate provider setup`
+  // doctor will warn if the command is not on PATH and `vibe provider setup`
   // can swap it.
   return {
     section: `providers:
@@ -279,7 +279,7 @@ policies:
   allowInteractiveTerminal: false
 
 scheduler:
-  # Concurrency for the local task scheduler (\`vibestrate queue run\`).
+  # Concurrency for the local task scheduler (\`vibe queue run\`).
   # Default 1 = one task run at a time. Increase to opt in to parallel runs;
   # each task still gets its own branch and worktree.
   maxConcurrentRuns: 1

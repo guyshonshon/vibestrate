@@ -32,7 +32,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       `${symbol.fail()} ${process.cwd()} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")}, then ${color.bold("vibestrate init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")}, then ${color.bold("vibe init")}.`,
     );
     return 1;
   }
@@ -56,7 +56,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   }
 
   // One-line-per-component readout so the user can confirm the
-  // "vibestrate ui = everything you need in one shot" at a glance.
+  // "vibe ui = everything you need in one shot" at a glance.
   console.log(`${symbol.ok()} ${header("Vibestrate — dashboard + scheduler")}`);
   console.log(
     indent(`${symbol.bullet()} dashboard   ${color.bold(started.url)}`),
@@ -72,7 +72,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   } else if (opts.scheduler === false) {
     console.log(
       indent(
-        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `vibestrate queue run` externally")}`,
+        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `vibe queue run` externally")}`,
       ),
     );
   } else {

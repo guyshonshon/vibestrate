@@ -23,7 +23,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
       `${symbol.fail()} ${cwd} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} in your project, then re-run ${color.bold("vibestrate init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")} in your project, then re-run ${color.bold("vibe init")}.`,
     );
     return 1;
   }
@@ -65,7 +65,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     );
     console.log("");
     console.log(
-      `Try: ${color.bold("vibestrate doctor")} or ${color.bold('vibestrate run "your task"')}`,
+      `Try: ${color.bold("vibe doctor")} or ${color.bold('vibe run "your task"')}`,
     );
     return 0;
   }
@@ -121,7 +121,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     }
     console.log(
       indent(
-        `Install a local CLI, or run ${color.bold("vibestrate provider setup")} to configure a custom command.`,
+        `Install a local CLI, or run ${color.bold("vibe provider setup")} to configure a custom command.`,
       ),
     );
   }
@@ -135,7 +135,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     console.log(
       indent(
         color.dim(
-          "Detected from your package.json scripts. Adjust later with `vibestrate config set commands.validate \"[...]\"`.",
+          "Detected from your package.json scripts. Adjust later with `vibe config set commands.validate \"[...]\"`.",
         ),
       ),
     );
@@ -148,7 +148,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     console.log(
       indent(
         color.dim(
-          'Add later with `vibestrate config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"` or run `vibestrate doctor --fix`.',
+          'Add later with `vibe config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"` or run `vibe doctor --fix`.',
         ),
       ),
     );
@@ -172,17 +172,17 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
 
   console.log(header("Next:"));
   if (plan.recommendedProvider) {
-    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibe doctor")}`));
     console.log(
-      indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`),
+      indent(`${symbol.arrow()} ${color.bold('vibe run "your task"')}`),
     );
   } else {
     console.log(
-      indent(`${symbol.arrow()} ${color.bold("vibestrate provider setup")}`),
+      indent(`${symbol.arrow()} ${color.bold("vibe provider setup")}`),
     );
-    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibe doctor")}`));
     console.log(
-      indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`),
+      indent(`${symbol.arrow()} ${color.bold('vibe run "your task"')}`),
     );
   }
   return 0;

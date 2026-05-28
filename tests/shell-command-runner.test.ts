@@ -42,7 +42,7 @@ describe("parseArgs", () => {
 });
 
 describe("runVibestrateCommand", () => {
-  it("invokes the vibestrate binary and captures output", async () => {
+  it("invokes the vibe binary and captures output", async () => {
     const chunks: string[] = [];
     const r = await runVibestrateCommand({
       projectRoot: process.cwd(),

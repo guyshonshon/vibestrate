@@ -9,9 +9,9 @@ Each entry lists symptoms, likely cause, fix, and how to verify.
 
 ---
 
-## Install failed: `vibestrate: command not found`
+## Install failed: `vibe: command not found`
 
-**Symptoms:** `npm install -g vibestrate` succeeded, but `vibestrate --version` returns "command not found."
+**Symptoms:** `npm install -g vibestrate` succeeded, but `vibe --version` returns "command not found."
 
 **Likely cause:** Your shell's PATH doesn't include npm's global bin directory.
 
@@ -22,11 +22,11 @@ npm config get prefix
 # Add <prefix>/bin to your PATH in ~/.zshrc or ~/.bashrc
 ```
 
-**Verify:** `which vibestrate` returns a real path.
+**Verify:** `which vibe` returns a real path.
 
 ---
 
-## `vibestrate init` fails: not a git repository
+## `vibe init` fails: not a git repository
 
 **Symptoms:** Init refuses to run with a "not a git repository" error.
 
@@ -37,14 +37,14 @@ npm config get prefix
 ```bash
 git init
 git add -A && git commit -m "Initial commit"
-vibestrate init
+vibe init
 ```
 
 **Verify:** `git rev-parse --is-inside-work-tree` returns `true`.
 
 ---
 
-## `vibestrate doctor` reports "no providers ready"
+## `vibe doctor` reports "no providers ready"
 
 **Symptoms:** Doctor lists all providers as `missing` or `detected-needs-setup`.
 
@@ -62,12 +62,12 @@ vibestrate init
 Then:
 
 ```bash
-vibestrate provider detect
-vibestrate provider setup
-vibestrate provider test <id>
+vibe provider detect
+vibe provider setup
+vibe provider test <id>
 ```
 
-**Verify:** `vibestrate provider detect` shows at least one provider with confidence `ready` or a working `detected-needs-setup` after `provider setup`.
+**Verify:** `vibe provider detect` shows at least one provider with confidence `ready` or a working `detected-needs-setup` after `provider setup`.
 
 ---
 
@@ -80,12 +80,12 @@ vibestrate provider test <id>
 **Fix:**
 
 ```bash
-vibestrate config set commands.validate '["pnpm typecheck"]'
+vibe config set commands.validate '["pnpm typecheck"]'
 # or
-vibestrate config set commands.validate '["pnpm typecheck", "pnpm test"]'
+vibe config set commands.validate '["pnpm typecheck", "pnpm test"]'
 ```
 
-**Verify:** `vibestrate config get commands.validate` shows your array.
+**Verify:** `vibe config get commands.validate` shows your array.
 
 ---
 
@@ -98,8 +98,8 @@ vibestrate config set commands.validate '["pnpm typecheck", "pnpm test"]'
 **Fix:**
 
 ```bash
-vibestrate approvals list <runId>
-vibestrate approvals decide <runId> <approvalId> --approve   # or --reject
+vibe approvals list <runId>
+vibe approvals decide <runId> <approvalId> --approve   # or --reject
 ```
 
 **Verify:** Status transitions back to the stage it was about to enter.
@@ -108,23 +108,23 @@ vibestrate approvals decide <runId> <approvalId> --approve   # or --reject
 
 ## Run stuck in `paused`
 
-**Symptoms:** Status is `paused` and `vibestrate resume` doesn't seem to do anything.
+**Symptoms:** Status is `paused` and `vibe resume` doesn't seem to do anything.
 
 **Likely cause:** Either the orchestrator isn't running (the process that owns the run ended), or the resume hasn't reached the next polling tick yet.
 
 **Fix:**
 
-If Vibestrate's process is alive: `vibestrate resume <runId>` and wait a few seconds for the next stage-boundary check.
+If Vibestrate's process is alive: `vibe resume <runId>` and wait a few seconds for the next stage-boundary check.
 
-If the process ended: start it again (`vibestrate run` or `vibestrate ui`) and the durable state will be picked up automatically.
+If the process ended: start it again (`vibe run` or `vibe ui`) and the durable state will be picked up automatically.
 
-**Verify:** `vibestrate status` shows the run transitioning out of `paused`.
+**Verify:** `vibe status` shows the run transitioning out of `paused`.
 
 ---
 
 ## Provider test fails: "command not found"
 
-**Symptoms:** `vibestrate provider test claude` returns "claude: command not found."
+**Symptoms:** `vibe provider test claude` returns "claude: command not found."
 
 **Likely cause:** The provider's CLI isn't on the PATH of the shell Vibestrate was started from.
 
@@ -136,14 +136,14 @@ If the process ended: start it again (`vibestrate run` or `vibestrate ui`) and t
 
 ## Provider test passes but runs fail with "unexpected output"
 
-**Symptoms:** `vibestrate provider test` returns success, but real runs end with "could not parse provider output."
+**Symptoms:** `vibe provider test` returns success, but real runs end with "could not parse provider output."
 
 **Likely cause:** The provider's prompt-flag preset is producing output Vibestrate can't parse — usually because the provider changed its output format between releases.
 
 **Fix:**
 
 ```bash
-vibestrate provider setup    # walk the wizard again to confirm flags
+vibe provider setup    # walk the wizard again to confirm flags
 ```
 
 If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output (under `.vibestrate/runs/<runId>/outputs/`).
@@ -159,14 +159,14 @@ If the flags are right but the output format changed, file an issue with the pro
 **Fix:** Commit or stash, then re-run:
 
 ```bash
-git stash push -m "before vibestrate run"
-vibestrate run "..."
+git stash push -m "before vibe run"
+vibe run "..."
 ```
 
 Or flip the policy if you don't want it:
 
 ```bash
-vibestrate config set git.requireCleanMain false
+vibe config set git.requireCleanMain false
 ```
 
 **Verify:** Worktree appears under `../.vibestrate-worktrees/`.
@@ -182,31 +182,31 @@ vibestrate config set git.requireCleanMain false
 **Fix:**
 
 ```bash
-vibestrate gateways list
-vibestrate notifications list
+vibe gateways list
+vibe notifications list
 ```
 
 Confirm the gateway is enabled and the webhook URL is reachable. Send a test:
 
 ```bash
-vibestrate notifications test <gatewayId>
+vibe notifications test <gatewayId>
 ```
 
 ---
 
 ## Dashboard tab is blank
 
-**Symptoms:** `vibestrate ui` opens, but a tab shows no data even though there are runs.
+**Symptoms:** `vibe ui` opens, but a tab shows no data even though there are runs.
 
-**Likely cause:** The browser cached an older asset bundle, or the runs are in a different project root than the one `vibestrate ui` was started from.
+**Likely cause:** The browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from.
 
-**Fix:** Hard-reload (Cmd-Shift-R / Ctrl-Shift-R). Confirm `vibestrate ui` is running from the project root you expect: the dashboard reads `.vibestrate/runs/` from `cwd`.
+**Fix:** Hard-reload (Cmd-Shift-R / Ctrl-Shift-R). Confirm `vibe ui` is running from the project root you expect: the dashboard reads `.vibestrate/runs/` from `cwd`.
 
 ---
 
 ## Worktree didn't get cleaned up after abort
 
-**Symptoms:** `vibestrate abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>-<slug>` is still on disk.
+**Symptoms:** `vibe abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>-<slug>` is still on disk.
 
 **Likely cause:** This is by design. Worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work.
 

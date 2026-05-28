@@ -53,7 +53,7 @@ async function cmdList(opts: { json?: boolean }): Promise<number> {
   if (items.length === 0) {
     console.log("No roadmap items yet.");
     console.log(
-      `  ${symbol.arrow()} Add one: ${color.bold("vibestrate roadmap add \"Build onboarding\"")}`,
+      `  ${symbol.arrow()} Add one: ${color.bold("vibe roadmap add \"Build onboarding\"")}`,
     );
     return 0;
   }
@@ -294,7 +294,7 @@ async function cmdProposalsList(opts: { json?: boolean }): Promise<number> {
   if (list.length === 0) {
     console.log("No proposals yet.");
     console.log(
-      `  ${symbol.arrow()} Create one: ${color.bold('vibestrate roadmap plan "<broad goal>"')}`,
+      `  ${symbol.arrow()} Create one: ${color.bold('vibe roadmap plan "<broad goal>"')}`,
     );
     return 0;
   }
@@ -472,8 +472,8 @@ async function cmdProposalAccept(
       for (const w of result.warnings) console.log(`${symbol.warn()} ${w.message}`);
     }
     console.log("");
-    console.log(`${symbol.arrow()} ${color.bold("vibestrate tasks list")}`);
-    console.log(`${symbol.arrow()} ${color.bold("vibestrate ui")} → board`);
+    console.log(`${symbol.arrow()} ${color.bold("vibe tasks list")}`);
+    console.log(`${symbol.arrow()} ${color.bold("vibe ui")} → board`);
     return 0;
   } catch (err) {
     console.error(
@@ -490,7 +490,7 @@ async function cmdRoadmapPlan(
   if (!goal) {
     console.error(`${symbol.fail()} A goal is required.`);
     console.error(
-      `  ${symbol.arrow()} ${color.bold('vibestrate roadmap plan "Build first public beta experience"')}`,
+      `  ${symbol.arrow()} ${color.bold('vibe roadmap plan "Build first public beta experience"')}`,
     );
     return 1;
   }
@@ -513,7 +513,7 @@ async function cmdRoadmapPlan(
       `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibestrate init")} first.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }
@@ -521,7 +521,7 @@ async function cmdRoadmapPlan(
   const plannerRole = loaded.config.roles["planner"];
   if (!plannerRole) {
     console.error(
-      `${symbol.fail()} No planner agent configured. Run ${color.bold("vibestrate init --force")} or ${color.bold("vibestrate provider setup")}.`,
+      `${symbol.fail()} No planner agent configured. Run ${color.bold("vibe init --force")} or ${color.bold("vibe provider setup")}.`,
     );
     return 1;
   }
@@ -579,7 +579,7 @@ async function cmdRoadmapPlan(
       }`,
     );
     console.error(
-      `  ${symbol.arrow()} Make sure ${color.bold(loaded.config.providers[providerId]!.command)} is installed (\`vibestrate provider detect\`).`,
+      `  ${symbol.arrow()} Make sure ${color.bold(loaded.config.providers[providerId]!.command)} is installed (\`vibe provider detect\`).`,
     );
     return 1;
   }
@@ -608,9 +608,9 @@ async function cmdRoadmapPlan(
     console.log(`${symbol.ok()} Saved proposal ${color.bold(id)}.`);
     console.log(indent(`path: ${path.relative(process.cwd(), target)}`));
     console.log("");
-    console.log(`${symbol.arrow()} Review: ${color.bold(`vibestrate roadmap proposal show ${id}`)}`);
-    console.log(`${symbol.arrow()} Preview: ${color.bold(`vibestrate roadmap accept ${id} --dry-run`)}`);
-    console.log(`${symbol.arrow()} Accept:  ${color.bold(`vibestrate roadmap accept ${id}`)}`);
+    console.log(`${symbol.arrow()} Review: ${color.bold(`vibe roadmap proposal show ${id}`)}`);
+    console.log(`${symbol.arrow()} Preview: ${color.bold(`vibe roadmap accept ${id} --dry-run`)}`);
+    console.log(`${symbol.arrow()} Accept:  ${color.bold(`vibe roadmap accept ${id}`)}`);
     return 0;
   } catch (err) {
     console.error(

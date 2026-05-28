@@ -34,7 +34,7 @@ export function RunList({
       <div className="px-6 py-8 text-vibestrate-fg-dim">
         <div className="text-vibestrate-fail">{error}</div>
         <div className="mt-2 text-[12px]">
-          Make sure <code className="vibestrate-mono">vibestrate ui</code> is running and a
+          Make sure <code className="vibestrate-mono">vibe ui</code> is running and a
           project is initialized in the current directory.
         </div>
       </div>
@@ -48,7 +48,7 @@ export function RunList({
         <div className="mt-2 text-[12.5px]">
           Run{" "}
           <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1.5 py-0.5">
-            vibestrate run "your task"
+            vibe run "your task"
           </code>{" "}
           from this project.
         </div>

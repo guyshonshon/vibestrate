@@ -58,14 +58,14 @@ A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's
 3. Verify:
 
    ```bash
-   vibestrate flows list
-   vibestrate flows show spike-and-decide
+   vibe flows list
+   vibe flows show spike-and-decide
    ```
 
 4. Run with it:
 
    ```bash
-   vibestrate run "Prototype the new search ranking" --flow spike-and-decide
+   vibe run "Prototype the new search ranking" --flow spike-and-decide
    ```
 
 ## Step kinds
@@ -84,7 +84,7 @@ A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's
 A *slot* is a named participant — `builder`, `challenger`, `arbiter`, `prototyper`. The slot has a `defaultAgent` (a role name like `executor` or `reviewer`), and at run start the user can override which provider each slot uses.
 
 ```bash
-vibestrate run "..." --flow spike-and-decide --flow-slot prototyper=claude
+vibe run "..." --flow spike-and-decide --flow-slot prototyper=claude
 ```
 
 That binds the `prototyper` slot to the `claude` provider for that run.
@@ -94,7 +94,7 @@ That binds the `prototyper` slot to the `claude` provider for that run.
 Set `optional: true` on a step to let users skip it per run:
 
 ```bash
-vibestrate run "..." --flow spike-and-decide --flow-skip plan
+vibe run "..." --flow spike-and-decide --flow-skip plan
 ```
 
 ## Common mistakes

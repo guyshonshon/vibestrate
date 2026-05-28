@@ -67,7 +67,7 @@ content area). Each screen needs: empty, loading, populated, and error states.
 
 2. **Flow detail**
    - Header: name, author, `latest` chip, stars/downloads, **Install** action.
-   - The **install command** shown copyable: `vibestrate flows install <name>` (and
+   - The **install command** shown copyable: `vibe flows install <name>` (and
      the pinned `name:1.2.0` form).
    - A **version selector / history** (list of semver versions, dates, "latest").
    - Readable summary of the flow's **flow**: the ordered steps and which

@@ -23,7 +23,7 @@ describe("deriveSchedulerLiveness", () => {
     const r = deriveSchedulerLiveness(null);
     expect(r.status).toBe("never-started");
     expect(r.pickingUpWork).toBe(false);
-    expect(r.summary).toMatch(/vibestrate queue run/);
+    expect(r.summary).toMatch(/vibe queue run/);
   });
 
   it("reports paused when scheduler is running but paused", () => {
@@ -68,6 +68,6 @@ describe("deriveSchedulerLiveness", () => {
     expect(r.status).toBe("offline");
     expect(r.pickingUpWork).toBe(false);
     expect(r.summary).toMatch(/OFFLINE/);
-    expect(r.summary).toMatch(/vibestrate queue run/);
+    expect(r.summary).toMatch(/vibe queue run/);
   });
 });

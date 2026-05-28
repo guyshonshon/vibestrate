@@ -39,7 +39,7 @@ function rewriteFriendly(message: string): string {
     return [
       "Vibestrate could not create the isolated worktree for this run.",
       "The branch or folder may already exist from a previous run.",
-      `${symbol.arrow()} Inspect: ${color.bold("vibestrate status")}`,
+      `${symbol.arrow()} Inspect: ${color.bold("vibe status")}`,
       `${symbol.arrow()} Remove an old worktree manually: ${color.bold("git worktree remove <path>")}`,
     ].join("\n");
   }
@@ -53,14 +53,14 @@ function rewriteFriendly(message: string): string {
   if (message.includes("not configured")) {
     return [
       message,
-      `${symbol.arrow()} Run ${color.bold("vibestrate provider setup")} to add a provider.`,
+      `${symbol.arrow()} Run ${color.bold("vibe provider setup")} to add a provider.`,
     ].join("\n");
   }
   if (message.includes("Failed to invoke provider command")) {
     return [
       message,
-      `${symbol.arrow()} Verify the CLI is installed and on PATH: ${color.bold("vibestrate provider detect")}`,
-      `${symbol.arrow()} Confirm prompt-flag setup: ${color.bold("vibestrate provider setup")}`,
+      `${symbol.arrow()} Verify the CLI is installed and on PATH: ${color.bold("vibe provider detect")}`,
+      `${symbol.arrow()} Confirm prompt-flag setup: ${color.bold("vibe provider setup")}`,
     ].join("\n");
   }
   return message;
@@ -109,7 +109,7 @@ export async function runRunCommand(
   }
   if (options.flowInteractive && !isInteractiveTTY()) {
     console.error(
-      `${symbol.fail()} ${color.bold("vibestrate run --flow <id> --interactive")} needs an interactive terminal.`,
+      `${symbol.fail()} ${color.bold("vibe run --flow <id> --interactive")} needs an interactive terminal.`,
     );
     return 1;
   }
@@ -118,7 +118,7 @@ export async function runRunCommand(
       `${symbol.fail()} A task description is required.`,
     );
     console.error(
-      `  ${symbol.arrow()} Try: ${color.bold('vibestrate run "Add dark mode to settings"')}`,
+      `  ${symbol.arrow()} Try: ${color.bold('vibe run "Add dark mode to settings"')}`,
     );
     return 1;
   }
@@ -134,7 +134,7 @@ export async function runRunCommand(
       `${symbol.fail()} ${cwd} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("vibestrate init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("vibe init")}.`,
     );
     return 1;
   }
@@ -144,7 +144,7 @@ export async function runRunCommand(
       `${symbol.fail()} Vibestrate is not initialized in this project.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibestrate init")} to create ${color.bold(".vibestrate/project.yml")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibe init")} to create ${color.bold(".vibestrate/project.yml")}.`,
     );
     return 1;
   }
@@ -157,7 +157,7 @@ export async function runRunCommand(
       `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibestrate config validate")} to see the exact issues.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibe config validate")} to see the exact issues.`,
     );
     return 1;
   }
@@ -174,7 +174,7 @@ export async function runRunCommand(
     );
     for (const m of missingProviderRefs) console.error(`  - ${m}`);
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibestrate provider setup")} to add the missing provider, or ${color.bold("vibestrate provider set <id>")} to switch.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibe provider setup")} to add the missing provider, or ${color.bold("vibe provider set <id>")} to switch.`,
     );
     return 1;
   }
@@ -410,7 +410,7 @@ export async function runRunCommand(
         } else {
           console.log(
             indent(
-              `${symbol.arrow()} Run ${color.bold("vibestrate approvals list <runId>")} (or ${color.bold("vibestrate ui")}) to decide.`,
+              `${symbol.arrow()} Run ${color.bold("vibe approvals list <runId>")} (or ${color.bold("vibe ui")}) to decide.`,
             ),
           );
         }

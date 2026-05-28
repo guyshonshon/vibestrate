@@ -4,7 +4,7 @@
 // never-started.
 //
 // Keeps the philosophy "queueing = work starts" — the user should
-// never have to remember to run `vibestrate queue run` in another
+// never have to remember to run `vibe queue run` in another
 // terminal just to make their queued tasks move. Also: every spawn
 // is observable (`.vibestrate/scheduler/scheduler.log` for stdout/stderr,
 // `scheduler-spawns.ndjson` for spawn+exit events) so failures are
@@ -50,7 +50,7 @@ function resolveVibestrateBin(): string {
 
 /**
  * If the scheduler isn't actively picking up work, spawn
- * `vibestrate queue run` detached. Returns what happened so the caller
+ * `vibe queue run` detached. Returns what happened so the caller
  * can surface it (toast / response body) — never silent.
  *
  * Visibility:
@@ -146,7 +146,7 @@ export async function ensureSchedulerRunning(input: {
       action: "spawned",
       liveness,
       ...(pid !== null ? { pid } : {}),
-      message: `started \`vibestrate ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .vibestrate/scheduler/scheduler.log`,
+      message: `started \`vibe ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .vibestrate/scheduler/scheduler.log`,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

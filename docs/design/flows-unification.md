@@ -58,7 +58,7 @@ conceptually and in the UI** without merging runners.
 
 **Phase B — runner unification (SHIPPED).** The default workflow is now the
 built-in `default` flow, executed by the single flow runner. `run()`'s hardcoded
-sequence is deleted; a plain `vibestrate run` resolves `default` and runs it through
+sequence is deleted; a plain `vibe run` resolves `default` and runs it through
 `runFlowSequence` — the same runner as every other flow. The review→fix loop is
 an adaptive `loop`, read-only skipping is `skipWhenReadOnly`, and resume uses
 step `stage` metadata. See [`runner-unification.md`](./runner-unification.md).

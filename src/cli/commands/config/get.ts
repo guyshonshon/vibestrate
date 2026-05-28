@@ -10,14 +10,14 @@ export async function runConfigGet(
 ): Promise<number> {
   if (!pathArg) {
     console.error(
-      `${symbol.fail()} A config path is required. Example: ${color.bold("vibestrate config get commands.validate")}`,
+      `${symbol.fail()} A config path is required. Example: ${color.bold("vibe config get commands.validate")}`,
     );
     return 1;
   }
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }

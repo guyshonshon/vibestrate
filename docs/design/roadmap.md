@@ -43,7 +43,7 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   warn event at the threshold, then at the cap apply `capAction` —
   **stop** (block the run), **downgrade-model** (switch to the cheaper
   fallback/effortMap.low and continue), or **reduce-effort** (drop a notch).
-  Configurable via the **CLI** (`vibestrate budget set/show/off`) and the **UI**
+  Configurable via the **CLI** (`vibe budget set/show/off`) and the **UI**
   (Metrics page control + `/api/budget`). Uses the A3 cost ledger. Tested.
 - **A6 — (optional) Webhooks.** POST on approve / merge / cap-hit, via the
   existing `src/notifications/` system.
@@ -97,7 +97,7 @@ Tracked in **GitHub issue #7**.
     source run, skips earlier stages, and uses a fresh worktree off main (valid
     because both stages regenerate the downstream code). New runId +
     `state.resumedFrom` lineage; original untouched. UI "Start from" selector +
-    `vibestrate run --resume-from <runId> [--resume-stage …]`. Permission/effort/
+    `vibe run --resume-from <runId> [--resume-stage …]`. Permission/effort/
     provider overrides ride the existing re-run controls.
   - ☐ **Rewind phase 2** — resume at **review / verify / fix** (which need the
     executor's code present). Requires per-phase **worktree snapshots**

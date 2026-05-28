@@ -3,7 +3,7 @@ import { runFromSpec, runSpecSchema } from "./run-launcher.js";
 
 /**
  * Headless run entry. The dashboard server spawns THIS (a core module) — not
- * the `vibestrate` CLI binary — with a path to a JSON run-spec file, so the web UI
+ * the `vibe` CLI binary — with a path to a JSON run-spec file, so the web UI
  * never depends on the CLI command surface. Reads + validates the spec, deletes
  * the spec file, then drives the shared core run pipeline. Detached: it owns
  * its own process and outlives the request (and the dashboard) like a CLI run.

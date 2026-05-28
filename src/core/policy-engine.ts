@@ -31,12 +31,12 @@ export async function runPreflightChecks(input: {
 
   if (config.policies.forbidAutoPush && config.git.allowAutoPush) {
     throw new PolicyError(
-      "Auto-push is enabled in git config but policies forbid it. Run `vibestrate config set git.allowAutoPush false`. Vibestrate never pushes for you.",
+      "Auto-push is enabled in git config but policies forbid it. Run `vibe config set git.allowAutoPush false`. Vibestrate never pushes for you.",
     );
   }
   if (config.policies.forbidAutoMerge && config.git.allowAutoMerge) {
     throw new PolicyError(
-      "Auto-merge is enabled in git config but policies forbid it. Run `vibestrate config set git.allowAutoMerge false`. Vibestrate never merges for you.",
+      "Auto-merge is enabled in git config but policies forbid it. Run `vibe config set git.allowAutoMerge false`. Vibestrate never merges for you.",
     );
   }
 
@@ -44,7 +44,7 @@ export async function runPreflightChecks(input: {
     const profile = resolveProfile(config.permissions.profiles, agent.permissions);
     if (profile.allowWrite && profile.cwd !== "worktree") {
       throw new PolicyError(
-        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`vibestrate config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`vibe config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
       );
     }
   }
@@ -63,7 +63,7 @@ export async function runPreflightChecks(input: {
     warnings.push({
       code: "NO_VALIDATION_COMMANDS",
       message:
-        "No validation commands configured. Reviews are stronger when Vibestrate can run your real checks. Add some with `vibestrate doctor --fix` or `vibestrate config set commands.validate \"[...]\"`.",
+        "No validation commands configured. Reviews are stronger when Vibestrate can run your real checks. Add some with `vibe doctor --fix` or `vibe config set commands.validate \"[...]\"`.",
     });
   }
 

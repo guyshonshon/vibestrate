@@ -1,5 +1,5 @@
 #!/bin/sh
-# Vibestrate installer — installs the `vibestrate` CLI (npm package `vibestrate`) globally.
+# Vibestrate installer — installs the `vibe` CLI (npm package `vibestrate`) globally.
 #
 #   curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 #
@@ -42,8 +42,8 @@ else
 fi
 
 cyan ""
-cyan "✓ vibestrate installed. Next steps:"
+cyan "✓ Vibestrate installed. Next steps:"
 cyan "    cd your-project"
-cyan "    vibestrate init"
-cyan "    vibestrate doctor --fix"
-cyan "    vibestrate run \"your task\""
+cyan "    vibe init"
+cyan "    vibe doctor --fix"
+cyan "    vibe run \"your task\""

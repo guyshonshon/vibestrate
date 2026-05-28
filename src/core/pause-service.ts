@@ -50,7 +50,7 @@ export function canRequestResume(state: RunState): boolean {
 }
 
 /**
- * Write-side: set pauseRequested=true. Used by `vibestrate pause` and the
+ * Write-side: set pauseRequested=true. Used by `vibe pause` and the
  * dashboard's Pause button. Does NOT itself transition status — the
  * orchestrator will do that at the next stage boundary via
  * `applyPauseIfRequested`.
@@ -145,7 +145,7 @@ export async function applyPauseIfRequested(input: {
    * unstuck without writing a real terminal status. */
   shouldStop?: () => boolean;
 }): Promise<RunState> {
-  // Read fresh from disk so an external `vibestrate pause` is observed even
+  // Read fresh from disk so an external `vibe pause` is observed even
   // though the orchestrator's in-memory state hasn't been re-loaded.
   let onDisk: RunState;
   try {

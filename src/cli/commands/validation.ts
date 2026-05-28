@@ -42,7 +42,7 @@ export function buildValidationCommand(): Command {
     .action(async (opts: { json?: boolean }) => {
       const cfg = await loadConfig(process.cwd()).catch(() => null);
       if (!cfg) {
-        console.error(color.red("Project not initialised. Run `vibestrate init`."));
+        console.error(color.red("Project not initialised. Run `vibe init`."));
         process.exit(2);
       }
       const profiles = listValidationProfiles(cfg.config);
@@ -107,7 +107,7 @@ export function buildValidationCommand(): Command {
     .action(async (name: string, opts: { json?: boolean }) => {
       const cfg = await loadConfig(process.cwd()).catch(() => null);
       if (!cfg) {
-        console.error(color.red("Project not initialised. Run `vibestrate init`."));
+        console.error(color.red("Project not initialised. Run `vibe init`."));
         process.exit(2);
       }
       try {
@@ -218,7 +218,7 @@ export function buildValidationCommand(): Command {
   profileSub
     .command("doctor")
     .description(
-      "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibestrate doctor` (recent 50 runs); use --all to lift the cap.",
+      "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibe doctor` (recent 50 runs); use --all to lift the cap.",
     )
     .option("--all", "scan every run instead of the recent 50")
     .option("--run <runId>", "limit the audit to a single run")
@@ -281,7 +281,7 @@ async function runMigration(input: {
 }): Promise<void> {
   const cfg = await loadConfig(process.cwd()).catch(() => null);
   if (!cfg) {
-    console.error(color.red("Project not initialised. Run `vibestrate init`."));
+    console.error(color.red("Project not initialised. Run `vibe init`."));
     process.exit(2);
   }
   try {
@@ -357,7 +357,7 @@ async function runRename(input: {
 }): Promise<void> {
   const cfg = await loadConfig(process.cwd()).catch(() => null);
   if (!cfg) {
-    console.error(color.red("Project not initialised. Run `vibestrate init`."));
+    console.error(color.red("Project not initialised. Run `vibe init`."));
     process.exit(2);
   }
   try {
@@ -431,13 +431,13 @@ async function runProfileDoctor(input: {
     if (input.json) {
       console.log(
         JSON.stringify(
-          { error: "Project not initialised. Run `vibestrate init`." },
+          { error: "Project not initialised. Run `vibe init`." },
           null,
           2,
         ),
       );
     } else {
-      console.error(color.red("Project not initialised. Run `vibestrate init`."));
+      console.error(color.red("Project not initialised. Run `vibe init`."));
     }
     process.exit(2);
   }
@@ -517,7 +517,7 @@ async function runProfileDoctor(input: {
       const guess = suggestProfileName(r.profileName, liveNamed);
       const suffix = guess
         ? color.dim(
-            `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+            `  did you mean "${guess}"?  (vibe validation profile migrate ${r.profileName} ${guess} --dry-run)`,
           )
         : "";
       console.log(
@@ -536,7 +536,7 @@ async function runProfileDoctor(input: {
       const guess = suggestProfileName(r.profileName, liveNamed);
       const suffix = guess
         ? color.dim(
-            `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+            `  did you mean "${guess}"?  (vibe validation profile migrate ${r.profileName} ${guess} --dry-run)`,
           )
         : "";
       console.log(

@@ -9,11 +9,11 @@ There are three surfaces for watching a live run.
 
 ## The terminal
 
-The default `vibestrate run` command prints a header per stage with the current status, the agent name, and any captured output. When validation runs, the validation command's stdout streams directly.
+The default `vibe run` command prints a header per stage with the current status, the agent name, and any captured output. When validation runs, the validation command's stdout streams directly.
 
 ## The dashboard
 
-`vibestrate run "..." --ui` starts Mission Control alongside the run. The **Board** view shows:
+`vibe run "..." --ui` starts Mission Control alongside the run. The **Board** view shows:
 
 - Phase rail — which stage is current.
 - Agent name and provider for that stage.
@@ -52,7 +52,7 @@ cat .vibestrate/runs/abc123/events.jsonl | jq -c 'select(.type == "status-change
 ## Read past runs
 
 ```bash
-vibestrate replay <runId>
+vibe replay <runId>
 ```
 
 Replay is a read-only inspector for any persisted run. Use it for runs that finished long ago, runs from another machine that synced over, or any run you didn't watch live.

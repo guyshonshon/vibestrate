@@ -10,7 +10,7 @@ type Busy = { id: string; action: "apply" | "default" | "test" } | null;
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
- * Providers page — the dashboard mirror of `vibestrate provider …`.
+ * Providers page — the dashboard mirror of `vibe provider …`.
  *
  * Detect / list / set-default / apply-preset / test, all over the narrow,
  * audited server routes in `src/server/routes/providers.ts`. The browser
@@ -204,7 +204,7 @@ export function ProvidersPage() {
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
           Detect installed coding-agent CLIs, apply their preset, set a default,
           and run a safe connectivity test — the same actions as{" "}
-          <code className="text-violet-soft">vibestrate provider …</code>. When a
+          <code className="text-violet-soft">vibe provider …</code>. When a
           provider isn't authenticated, Vibestrate shows the login command to run{" "}
           <span className="text-fog-100">in your own terminal</span> — it never
           logs you in for you.

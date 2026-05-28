@@ -57,12 +57,12 @@ higher-risk feature work.
 These all share the same runner:
 
 ```bash
-vibestrate run "..."                  # the built-in default flow
-vibestrate run "..." --flow default   # the same flow, explicit
-vibestrate run "..." --flow quality-arbitration
+vibe run "..."                  # the built-in default flow
+vibe run "..." --flow default   # the same flow, explicit
+vibe run "..." --flow quality-arbitration
 ```
 
-`vibestrate run --resume-from <runId> --resume-stage <stage>` rewinds any flow that
+`vibe run --resume-from <runId> --resume-stage <stage>` rewinds any flow that
 declares the matching stage: the runner seeds the upstream steps' outputs from
 the source run and starts there.
 

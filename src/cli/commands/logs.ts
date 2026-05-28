@@ -125,7 +125,7 @@ export function buildLogsCommand(): Command {
     .description(
       "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
     )
-    .argument("<runId>", "Run id (see `vibestrate status`)")
+    .argument("<runId>", "Run id (see `vibe status`)")
     .option(
       "--follow",
       "tail the stream live (like `tail -f`); Ctrl+C to stop",

@@ -43,6 +43,6 @@ Add skills, providers, or your own Flow.
 
 ## A typical run, in one sentence
 
-You write `vibestrate run "Add audit logging to the settings flow"`, Vibestrate creates a worktree, the planner agent writes a plan, the executor edits files, the validator runs your tests, the reviewer reads the diff, the verifier confirms the result, and you decide whether to merge.
+You write `vibe run "Add audit logging to the settings flow"`, Vibestrate creates a worktree, the planner agent writes a plan, the executor edits files, the validator runs your tests, the reviewer reads the diff, the verifier confirms the result, and you decide whether to merge.
 
 That's the loop. Everything in these docs is detail on top of it.

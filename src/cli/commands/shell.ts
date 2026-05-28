@@ -6,7 +6,7 @@ import { isVibestrateError } from "../../utils/errors.js";
 
 export function buildShellCommand(): Command {
   const cmd = new Command("shell").description(
-    "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibestrate ui` instead.",
+    "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibe ui` instead.",
   );
 
   cmd
@@ -30,13 +30,13 @@ export function buildShellCommand(): Command {
             projectRoot: detected.projectRoot,
             refreshMs: opts.refresh,
             // The shell honors VIBESTRATE_UI_URL env so `B` can still pop
-            // open a separately-running `vibestrate ui` tab.
+            // open a separately-running `vibe ui` tab.
             uiUrl: process.env.VIBESTRATE_UI_URL ?? null,
           });
           process.exit(code);
         } catch (err) {
           process.stderr.write(
-            `vibestrate shell: ${
+            `vibe shell: ${
               isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)
             }\n`,
           );

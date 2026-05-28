@@ -5,7 +5,7 @@ import { color, header, indent } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 /**
- * `vibestrate replay <runId>` — read-only inspector for a persisted run. Calls
+ * `vibe replay <runId>` — read-only inspector for a persisted run. Calls
  * the same projection the dashboard's Replay tab uses (no shared mutation,
  * no provider calls, no worktree writes). Default output is a short text
  * summary; `--json` dumps the full projection for piping into jq or saving

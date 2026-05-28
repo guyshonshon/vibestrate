@@ -25,7 +25,7 @@ export function buildEditorCommand(): Command {
       const ready = candidates.filter((c) => c.available).map((c) => c.command);
       if (ready.length > 0) {
         console.log(
-          `\n${color.dim(`Enable one with: vibestrate editor set ${ready[0]}`)}`,
+          `\n${color.dim(`Enable one with: vibe editor set ${ready[0]}`)}`,
         );
       }
     });
@@ -71,7 +71,7 @@ export function buildEditorCommand(): Command {
       const loaded = await loadConfig(cwd).catch(() => null);
       if (!loaded) {
         console.error(
-          color.red('Project not initialised. Run "vibestrate init" first.'),
+          color.red('Project not initialised. Run "vibe init" first.'),
         );
         process.exit(2);
       }

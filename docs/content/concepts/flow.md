@@ -18,7 +18,7 @@ The default workflow is one shape — good for most edits, fine for refactors. B
 Where the default workflow has fixed agent roles (`planner`, `executor`, `reviewer`), a Flow has named **slots** — `builder`, `challenger`, `arbiter` — and each step says which slot owns it. You assign providers to slots when starting the run:
 
 ```bash
-vibestrate run "Refactor provider permissions" --flow quality-arbitration \
+vibe run "Refactor provider permissions" --flow quality-arbitration \
   --flow-slot builder=claude \
   --flow-slot challenger=codex
 ```

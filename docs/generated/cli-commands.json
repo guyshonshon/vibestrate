@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "binary": "vibestrate",
+  "binary": "vibe",
   "description": "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
   "version": "0.1.1",
   "commands": [
     {
       "name": "init",
       "path": [
-        "vibestrate",
+        "vibe",
         "init"
       ],
       "description": "Initialize Vibestrate in the current project (.vibestrate/ scaffold).",
@@ -41,7 +41,7 @@
     {
       "name": "setup",
       "path": [
-        "vibestrate",
+        "vibe",
         "setup"
       ],
       "description": "Flowd wizard for provider, validation commands, and run defaults.",
@@ -53,7 +53,7 @@
     {
       "name": "provider",
       "path": [
-        "vibestrate",
+        "vibe",
         "provider"
       ],
       "description": "Inspect, configure, and test local coding-CLI providers.",
@@ -64,7 +64,7 @@
         {
           "name": "detect",
           "path": [
-            "vibestrate",
+            "vibe",
             "provider",
             "detect"
           ],
@@ -85,7 +85,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "provider",
             "list"
           ],
@@ -106,7 +106,7 @@
         {
           "name": "test",
           "path": [
-            "vibestrate",
+            "vibe",
             "provider",
             "test"
           ],
@@ -134,7 +134,7 @@
         {
           "name": "set",
           "path": [
-            "vibestrate",
+            "vibe",
             "provider",
             "set"
           ],
@@ -162,7 +162,7 @@
         {
           "name": "setup",
           "path": [
-            "vibestrate",
+            "vibe",
             "provider",
             "setup"
           ],
@@ -177,7 +177,7 @@
     {
       "name": "config",
       "path": [
-        "vibestrate",
+        "vibe",
         "config"
       ],
       "description": "Show and edit .vibestrate/project.yml without hand-editing YAML.",
@@ -188,7 +188,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "config",
             "show"
           ],
@@ -209,7 +209,7 @@
         {
           "name": "get",
           "path": [
-            "vibestrate",
+            "vibe",
             "config",
             "get"
           ],
@@ -237,11 +237,11 @@
         {
           "name": "set",
           "path": [
-            "vibestrate",
+            "vibe",
             "config",
             "set"
           ],
-          "description": "Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'vibestrate config set commands.validate \"[\\\"pnpm test\\\"]\"').",
+          "description": "Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'vibe config set commands.validate \"[\\\"pnpm test\\\"]\"').",
           "usage": "[options] <path> <value>",
           "arguments": [
             {
@@ -263,7 +263,7 @@
         {
           "name": "validate",
           "path": [
-            "vibestrate",
+            "vibe",
             "config",
             "validate"
           ],
@@ -286,7 +286,7 @@
     {
       "name": "skills",
       "path": [
-        "vibestrate",
+        "vibe",
         "skills"
       ],
       "description": "List, inspect, and assign skills (.vibestrate/skills and .claude/skills).",
@@ -297,7 +297,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "skills",
             "list"
           ],
@@ -318,7 +318,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "skills",
             "show"
           ],
@@ -338,7 +338,7 @@
         {
           "name": "assign",
           "path": [
-            "vibestrate",
+            "vibe",
             "skills",
             "assign"
           ],
@@ -364,7 +364,7 @@
         {
           "name": "unassign",
           "path": [
-            "vibestrate",
+            "vibe",
             "skills",
             "unassign"
           ],
@@ -392,7 +392,7 @@
     {
       "name": "flows",
       "path": [
-        "vibestrate",
+        "vibe",
         "flows"
       ],
       "description": "List and inspect Flow run recipes from built-ins and .vibestrate/flows.",
@@ -403,7 +403,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "flows",
             "list"
           ],
@@ -424,7 +424,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "flows",
             "show"
           ],
@@ -452,7 +452,7 @@
         {
           "name": "suggest",
           "path": [
-            "vibestrate",
+            "vibe",
             "flows",
             "suggest"
           ],
@@ -495,7 +495,7 @@
         {
           "name": "export-arbitration",
           "path": [
-            "vibestrate",
+            "vibe",
             "flows",
             "export-arbitration"
           ],
@@ -525,7 +525,7 @@
     {
       "name": "approvals",
       "path": [
-        "vibestrate",
+        "vibe",
         "approvals"
       ],
       "description": "Inspect and resolve human-approval requests for a paused run.",
@@ -536,7 +536,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "approvals",
             "list"
           ],
@@ -564,7 +564,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "approvals",
             "show"
           ],
@@ -598,7 +598,7 @@
         {
           "name": "approve",
           "path": [
-            "vibestrate",
+            "vibe",
             "approvals",
             "approve"
           ],
@@ -632,7 +632,7 @@
         {
           "name": "reject",
           "path": [
-            "vibestrate",
+            "vibe",
             "approvals",
             "reject"
           ],
@@ -668,7 +668,7 @@
     {
       "name": "roadmap",
       "path": [
-        "vibestrate",
+        "vibe",
         "roadmap"
       ],
       "description": "Manage local roadmap items (.vibestrate/roadmap/roadmap.json).",
@@ -679,7 +679,7 @@
         {
           "name": "init",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "init"
           ],
@@ -692,7 +692,7 @@
         {
           "name": "add",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "add"
           ],
@@ -735,7 +735,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "list"
           ],
@@ -756,7 +756,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "show"
           ],
@@ -784,7 +784,7 @@
         {
           "name": "update",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "update"
           ],
@@ -833,7 +833,7 @@
         {
           "name": "archive",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "archive"
           ],
@@ -853,7 +853,7 @@
         {
           "name": "proposals",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "proposals"
           ],
@@ -874,7 +874,7 @@
         {
           "name": "proposal",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "proposal"
           ],
@@ -886,7 +886,7 @@
             {
               "name": "show",
               "path": [
-                "vibestrate",
+                "vibe",
                 "roadmap",
                 "proposal",
                 "show"
@@ -907,7 +907,7 @@
             {
               "name": "parse",
               "path": [
-                "vibestrate",
+                "vibe",
                 "roadmap",
                 "proposal",
                 "parse"
@@ -938,7 +938,7 @@
         {
           "name": "accept",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "accept"
           ],
@@ -980,7 +980,7 @@
         {
           "name": "plan",
           "path": [
-            "vibestrate",
+            "vibe",
             "roadmap",
             "plan"
           ],
@@ -1017,7 +1017,7 @@
     {
       "name": "tasks",
       "path": [
-        "vibestrate",
+        "vibe",
         "tasks"
       ],
       "description": "Manage local tasks: backlog → queued → running → done.",
@@ -1028,7 +1028,7 @@
         {
           "name": "add",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "add"
           ],
@@ -1120,7 +1120,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "list"
           ],
@@ -1148,7 +1148,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "show"
           ],
@@ -1176,7 +1176,7 @@
         {
           "name": "comment",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "comment"
           ],
@@ -1202,7 +1202,7 @@
         {
           "name": "ready",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "ready"
           ],
@@ -1222,7 +1222,7 @@
         {
           "name": "cancel",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "cancel"
           ],
@@ -1242,7 +1242,7 @@
         {
           "name": "queue",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "queue"
           ],
@@ -1262,11 +1262,11 @@
         {
           "name": "run",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "run"
           ],
-          "description": "Run this task now (foreground; same as vibestrate run --task <id>).",
+          "description": "Run this task now (foreground; same as vibe run --task <id>).",
           "usage": "[options] <id>",
           "arguments": [
             {
@@ -1282,7 +1282,7 @@
         {
           "name": "report",
           "path": [
-            "vibestrate",
+            "vibe",
             "tasks",
             "report"
           ],
@@ -1304,7 +1304,7 @@
     {
       "name": "queue",
       "path": [
-        "vibestrate",
+        "vibe",
         "queue"
       ],
       "description": "Manage the local task scheduler queue.",
@@ -1315,7 +1315,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "list"
           ],
@@ -1336,7 +1336,7 @@
         {
           "name": "add",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "add"
           ],
@@ -1364,7 +1364,7 @@
         {
           "name": "remove",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "remove"
           ],
@@ -1384,7 +1384,7 @@
         {
           "name": "run",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "run"
           ],
@@ -1405,7 +1405,7 @@
         {
           "name": "pause",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "pause"
           ],
@@ -1418,7 +1418,7 @@
         {
           "name": "resume",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "resume"
           ],
@@ -1431,7 +1431,7 @@
         {
           "name": "status",
           "path": [
-            "vibestrate",
+            "vibe",
             "queue",
             "status"
           ],
@@ -1454,7 +1454,7 @@
     {
       "name": "logs",
       "path": [
-        "vibestrate",
+        "vibe",
         "logs"
       ],
       "description": "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
@@ -1462,7 +1462,7 @@
       "arguments": [
         {
           "name": "name() {\n    return this._name;\n  }",
-          "description": "Run id (see `vibestrate status`)",
+          "description": "Run id (see `vibe status`)",
           "required": true,
           "variadic": false
         }
@@ -1488,7 +1488,7 @@
     {
       "name": "notifications",
       "path": [
-        "vibestrate",
+        "vibe",
         "notifications"
       ],
       "description": "Inspect and manage local Vibestrate notifications.",
@@ -1499,7 +1499,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "list"
           ],
@@ -1534,7 +1534,7 @@
         {
           "name": "read",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "read"
           ],
@@ -1554,7 +1554,7 @@
         {
           "name": "resolve",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "resolve"
           ],
@@ -1574,7 +1574,7 @@
         {
           "name": "read-all",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "read-all"
           ],
@@ -1587,7 +1587,7 @@
         {
           "name": "settings",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "settings"
           ],
@@ -1600,7 +1600,7 @@
         {
           "name": "test",
           "path": [
-            "vibestrate",
+            "vibe",
             "notifications",
             "test"
           ],
@@ -1622,7 +1622,7 @@
     {
       "name": "gateways",
       "path": [
-        "vibestrate",
+        "vibe",
         "gateways"
       ],
       "description": "Inspect and toggle notification delivery gateways.",
@@ -1633,7 +1633,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "gateways",
             "list"
           ],
@@ -1654,7 +1654,7 @@
         {
           "name": "test",
           "path": [
-            "vibestrate",
+            "vibe",
             "gateways",
             "test"
           ],
@@ -1674,7 +1674,7 @@
         {
           "name": "enable",
           "path": [
-            "vibestrate",
+            "vibe",
             "gateways",
             "enable"
           ],
@@ -1694,7 +1694,7 @@
         {
           "name": "disable",
           "path": [
-            "vibestrate",
+            "vibe",
             "gateways",
             "disable"
           ],
@@ -1716,7 +1716,7 @@
     {
       "name": "editor",
       "path": [
-        "vibestrate",
+        "vibe",
         "editor"
       ],
       "description": "Configure and test the local editor handoff used by the dashboard.",
@@ -1727,7 +1727,7 @@
         {
           "name": "detect",
           "path": [
-            "vibestrate",
+            "vibe",
             "editor",
             "detect"
           ],
@@ -1740,7 +1740,7 @@
         {
           "name": "set",
           "path": [
-            "vibestrate",
+            "vibe",
             "editor",
             "set"
           ],
@@ -1768,7 +1768,7 @@
         {
           "name": "test",
           "path": [
-            "vibestrate",
+            "vibe",
             "editor",
             "test"
           ],
@@ -1798,7 +1798,7 @@
     {
       "name": "suggestions",
       "path": [
-        "vibestrate",
+        "vibe",
         "suggestions"
       ],
       "description": "Inspect and act on review suggestions captured for a run.",
@@ -1809,7 +1809,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "list"
           ],
@@ -1837,7 +1837,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "show"
           ],
@@ -1863,7 +1863,7 @@
         {
           "name": "approve",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "approve"
           ],
@@ -1897,7 +1897,7 @@
         {
           "name": "reject",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "reject"
           ],
@@ -1931,7 +1931,7 @@
         {
           "name": "apply",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "apply"
           ],
@@ -1979,7 +1979,7 @@
         {
           "name": "validate",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "validate"
           ],
@@ -2013,7 +2013,7 @@
         {
           "name": "revert",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "revert"
           ],
@@ -2039,7 +2039,7 @@
         {
           "name": "profile",
           "path": [
-            "vibestrate",
+            "vibe",
             "suggestions",
             "profile"
           ],
@@ -2051,7 +2051,7 @@
             {
               "name": "show",
               "path": [
-                "vibestrate",
+                "vibe",
                 "suggestions",
                 "profile",
                 "show"
@@ -2078,7 +2078,7 @@
             {
               "name": "set",
               "path": [
-                "vibestrate",
+                "vibe",
                 "suggestions",
                 "profile",
                 "set"
@@ -2111,7 +2111,7 @@
             {
               "name": "clear",
               "path": [
-                "vibestrate",
+                "vibe",
                 "suggestions",
                 "profile",
                 "clear"
@@ -2142,7 +2142,7 @@
     {
       "name": "bundles",
       "path": [
-        "vibestrate",
+        "vibe",
         "bundles"
       ],
       "description": "Group reviewed suggestions into a review pass that applies, validates, and reverts as a unit.",
@@ -2153,7 +2153,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "list"
           ],
@@ -2181,7 +2181,7 @@
         {
           "name": "create",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "create"
           ],
@@ -2223,7 +2223,7 @@
         {
           "name": "add",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "add"
           ],
@@ -2255,7 +2255,7 @@
         {
           "name": "remove",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "remove"
           ],
@@ -2287,7 +2287,7 @@
         {
           "name": "approve",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "approve"
           ],
@@ -2321,7 +2321,7 @@
         {
           "name": "reject",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "reject"
           ],
@@ -2355,7 +2355,7 @@
         {
           "name": "apply",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "apply"
           ],
@@ -2403,7 +2403,7 @@
         {
           "name": "smart-apply",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "smart-apply"
           ],
@@ -2458,7 +2458,7 @@
         {
           "name": "validate",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "validate"
           ],
@@ -2492,7 +2492,7 @@
         {
           "name": "revert",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "revert"
           ],
@@ -2518,7 +2518,7 @@
         {
           "name": "preflight",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "preflight"
           ],
@@ -2544,7 +2544,7 @@
         {
           "name": "profile",
           "path": [
-            "vibestrate",
+            "vibe",
             "bundles",
             "profile"
           ],
@@ -2556,7 +2556,7 @@
             {
               "name": "show",
               "path": [
-                "vibestrate",
+                "vibe",
                 "bundles",
                 "profile",
                 "show"
@@ -2583,7 +2583,7 @@
             {
               "name": "set",
               "path": [
-                "vibestrate",
+                "vibe",
                 "bundles",
                 "profile",
                 "set"
@@ -2616,7 +2616,7 @@
             {
               "name": "clear",
               "path": [
-                "vibestrate",
+                "vibe",
                 "bundles",
                 "profile",
                 "clear"
@@ -2647,7 +2647,7 @@
     {
       "name": "validation",
       "path": [
-        "vibestrate",
+        "vibe",
         "validation"
       ],
       "description": "Inspect validation profiles configured under commands.validationProfiles.",
@@ -2658,7 +2658,7 @@
         {
           "name": "profiles",
           "path": [
-            "vibestrate",
+            "vibe",
             "validation",
             "profiles"
           ],
@@ -2679,7 +2679,7 @@
         {
           "name": "usage",
           "path": [
-            "vibestrate",
+            "vibe",
             "validation",
             "usage"
           ],
@@ -2700,7 +2700,7 @@
         {
           "name": "profile",
           "path": [
-            "vibestrate",
+            "vibe",
             "validation",
             "profile"
           ],
@@ -2712,7 +2712,7 @@
             {
               "name": "show",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "show"
@@ -2741,7 +2741,7 @@
             {
               "name": "migrate",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "migrate"
@@ -2797,7 +2797,7 @@
             {
               "name": "clear-references",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "clear-references"
@@ -2840,7 +2840,7 @@
             {
               "name": "rename",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "rename"
@@ -2889,12 +2889,12 @@
             {
               "name": "doctor",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "doctor"
               ],
-              "description": "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibestrate doctor` (recent 50 runs); use --all to lift the cap.",
+              "description": "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibe doctor` (recent 50 runs); use --all to lift the cap.",
               "usage": "[options]",
               "arguments": [],
               "options": [
@@ -2925,7 +2925,7 @@
             {
               "name": "migrations",
               "path": [
-                "vibestrate",
+                "vibe",
                 "validation",
                 "profile",
                 "migrations"
@@ -2951,7 +2951,7 @@
     {
       "name": "terminal",
       "path": [
-        "vibestrate",
+        "vibe",
         "terminal"
       ],
       "description": "Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.",
@@ -2962,7 +2962,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "terminal",
             "list"
           ],
@@ -2983,7 +2983,7 @@
         {
           "name": "close",
           "path": [
-            "vibestrate",
+            "vibe",
             "terminal",
             "close"
           ],
@@ -3005,7 +3005,7 @@
     {
       "name": "policies",
       "path": [
-        "vibestrate",
+        "vibe",
         "policies"
       ],
       "description": "Inspect user policy rules in .vibestrate/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
@@ -3016,7 +3016,7 @@
         {
           "name": "list",
           "path": [
-            "vibestrate",
+            "vibe",
             "policies",
             "list"
           ],
@@ -3037,7 +3037,7 @@
         {
           "name": "check",
           "path": [
-            "vibestrate",
+            "vibe",
             "policies",
             "check"
           ],
@@ -3073,7 +3073,7 @@
         {
           "name": "doctor",
           "path": [
-            "vibestrate",
+            "vibe",
             "policies",
             "doctor"
           ],
@@ -3096,7 +3096,7 @@
     {
       "name": "budget",
       "path": [
-        "vibestrate",
+        "vibe",
         "budget"
       ],
       "description": "View or configure the daily spend cap (and what happens when it's hit).",
@@ -3107,7 +3107,7 @@
         {
           "name": "show",
           "path": [
-            "vibestrate",
+            "vibe",
             "budget",
             "show"
           ],
@@ -3120,7 +3120,7 @@
         {
           "name": "set",
           "path": [
-            "vibestrate",
+            "vibe",
             "budget",
             "set"
           ],
@@ -3162,7 +3162,7 @@
         {
           "name": "off",
           "path": [
-            "vibestrate",
+            "vibe",
             "budget",
             "off"
           ],
@@ -3177,7 +3177,7 @@
     {
       "name": "replay",
       "path": [
-        "vibestrate",
+        "vibe",
         "replay"
       ],
       "description": "Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).",
@@ -3204,7 +3204,7 @@
     {
       "name": "pause",
       "path": [
-        "vibestrate",
+        "vibe",
         "pause"
       ],
       "description": "Request that an active run pause at the next stage boundary.",
@@ -3223,7 +3223,7 @@
     {
       "name": "resume",
       "path": [
-        "vibestrate",
+        "vibe",
         "resume"
       ],
       "description": "Clear a pending pause request or resume a paused run.",
@@ -3242,10 +3242,10 @@
     {
       "name": "shell",
       "path": [
-        "vibestrate",
+        "vibe",
         "shell"
       ],
-      "description": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibestrate ui` instead.",
+      "description": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibe ui` instead.",
       "usage": "[options]",
       "arguments": [],
       "options": [
@@ -3269,7 +3269,7 @@
     {
       "name": "run",
       "path": [
-        "vibestrate",
+        "vibe",
         "run"
       ],
       "description": "Run the default plan→architect→implement→review→verify workflow.",
@@ -3410,7 +3410,7 @@
     {
       "name": "ui",
       "path": [
-        "vibestrate",
+        "vibe",
         "ui"
       ],
       "description": "Start the local supervisor dashboard for this project.",
@@ -3444,7 +3444,7 @@
     {
       "name": "status",
       "path": [
-        "vibestrate",
+        "vibe",
         "status"
       ],
       "description": "List Vibestrate runs in this project.",
@@ -3464,7 +3464,7 @@
     {
       "name": "abort",
       "path": [
-        "vibestrate",
+        "vibe",
         "abort"
       ],
       "description": "Mark a run as aborted (does not delete the worktree).",
@@ -3483,7 +3483,7 @@
     {
       "name": "doctor",
       "path": [
-        "vibestrate",
+        "vibe",
         "doctor"
       ],
       "description": "Check environment, config, providers, and recommend next steps.",

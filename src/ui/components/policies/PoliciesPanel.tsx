@@ -13,7 +13,7 @@ import type {
  *     touched-file glob, added-content regex summary, and message.
  *   - Surfaces malformed rule files (parse / schema / regex / glob errors).
  *   - Surfaces duplicate rule ids.
- *   - Mirrors `vibestrate policies doctor` so the user has the same signal
+ *   - Mirrors `vibe policies doctor` so the user has the same signal
  *     they would on the CLI.
  *   - Provides a "Check patch" panel that calls the same engine the CLI
  *     and the apply flow call — paste a patch, see violations. Does NOT

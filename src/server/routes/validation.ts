@@ -179,7 +179,7 @@ export async function registerValidationRoutes(
 async function requireConfig(projectRoot: string) {
   const cfg = await loadConfig(projectRoot).catch(() => null);
   if (!cfg) {
-    throw new HttpError(409, "Project is not initialised. Run `vibestrate init`.");
+    throw new HttpError(409, "Project is not initialised. Run `vibe init`.");
   }
   return cfg.config;
 }

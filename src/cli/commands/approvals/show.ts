@@ -48,10 +48,10 @@ export async function runApprovalsShow(
   if (a.status === "pending") {
     console.log("");
     console.log(
-      `${symbol.arrow()} Approve: ${color.bold(`vibestrate approvals approve ${runId} ${a.id} --note "..."`)}`,
+      `${symbol.arrow()} Approve: ${color.bold(`vibe approvals approve ${runId} ${a.id} --note "..."`)}`,
     );
     console.log(
-      `${symbol.arrow()} Reject:  ${color.bold(`vibestrate approvals reject ${runId} ${a.id} --note "..."`)}`,
+      `${symbol.arrow()} Reject:  ${color.bold(`vibe approvals reject ${runId} ${a.id} --note "..."`)}`,
     );
   }
   return 0;

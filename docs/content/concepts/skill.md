@@ -52,7 +52,7 @@ agents:
 Or per run, merged into every agent for that run:
 
 ```bash
-vibestrate run "Refund a stuck transaction" --skills payments,oncall-runbook
+vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
 ```
 
 ## Skills vs project rules

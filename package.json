@@ -15,6 +15,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
+    "vibe": "dist/index.js",
     "vibestrate": "dist/index.js"
   },
   "files": [

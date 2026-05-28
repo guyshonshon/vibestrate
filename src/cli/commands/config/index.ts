@@ -30,7 +30,7 @@ export function buildConfigCommand(): Command {
   cmd
     .command("set <path> <value>")
     .description(
-      'Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. \'vibestrate config set commands.validate "[\\"pnpm test\\"]"\').',
+      'Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. \'vibe config set commands.validate "[\\"pnpm test\\"]"\').',
     )
     .action(async (path: string, value: string) => {
       const code = await runConfigSet(path, value);

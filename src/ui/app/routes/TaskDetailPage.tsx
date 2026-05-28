@@ -185,7 +185,7 @@ export function TaskDetailPage({
           <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
             Run from CLI:{" "}
             <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1 py-0.5">
-              vibestrate tasks run {task.id}
+              vibe tasks run {task.id}
             </code>
           </span>
         </div>

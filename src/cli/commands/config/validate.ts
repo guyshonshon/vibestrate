@@ -8,7 +8,7 @@ export async function runConfigValidate(opts: { json?: boolean }): Promise<numbe
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }

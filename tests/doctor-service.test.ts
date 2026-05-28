@@ -43,7 +43,7 @@ describe("doctor service", () => {
     const r = await runDoctor({ cwd: projectRoot });
     expect(r.inGitRepo).toBe(true);
     expect(severityFor(r.findings, "config-present")).toBe("fail");
-    expect(r.recommendedNextSteps.join(" ")).toContain("vibestrate init");
+    expect(r.recommendedNextSteps.join(" ")).toContain("vibe init");
   });
 
   it("reports config-valid=ok after init", async () => {

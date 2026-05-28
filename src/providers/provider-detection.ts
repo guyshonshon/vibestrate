@@ -69,7 +69,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: true,
     notes: [
       "Preset: `codex exec` with the prompt on stdin.",
-      "Verify with `vibestrate provider test codex`; log in with `codex login` if prompted.",
+      "Verify with `vibe provider test codex`; log in with `codex login` if prompted.",
     ],
     installHint: "Install the Codex CLI: `npm install -g @openai/codex`, then run `codex login`.",
   },
@@ -82,7 +82,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: true,
     notes: [
       "Preset: prompt piped to `gemini` on stdin.",
-      "Verify with `vibestrate provider test gemini`; sign in by running `gemini` once (or set GEMINI_API_KEY).",
+      "Verify with `vibe provider test gemini`; sign in by running `gemini` once (or set GEMINI_API_KEY).",
     ],
     installHint:
       "Install the Gemini CLI: `npm install -g @google/gemini-cli`, then run `gemini` once to authenticate.",
@@ -96,7 +96,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: `opencode run` with the prompt as an argument.",
-      "Verify with `vibestrate provider test opencode`; log in with `opencode auth login`.",
+      "Verify with `vibe provider test opencode`; log in with `opencode auth login`.",
     ],
   },
   {
@@ -108,7 +108,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: true,
     notes: [
       "Preset: `aider --message` (one-shot, no auto-commits).",
-      "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `vibestrate provider test aider`.",
+      "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `vibe provider test aider`.",
     ],
     installHint: "Install Aider: `python -m pip install aider-install && aider-install`, then set OPENAI_API_KEY or ANTHROPIC_API_KEY.",
   },
@@ -122,7 +122,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     notes: [
       "Preset: `ollama run qwen3.5` with the prompt on stdin.",
       "Pull the model first (`ollama pull qwen3.5`), or edit providers.ollama.args for another local model.",
-      "No login needed (runs locally). Verify with `vibestrate provider test ollama`.",
+      "No login needed (runs locally). Verify with `vibe provider test ollama`.",
     ],
     installHint:
       "Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh` (Linux/macOS) or download it from https://ollama.com/download.",
@@ -136,7 +136,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: prompt piped to `qwen` on stdin.",
-      "Verify with `vibestrate provider test qwen`; authenticate by running `qwen` once.",
+      "Verify with `vibe provider test qwen`; authenticate by running `qwen` once.",
     ],
     installHint: "Install Qwen Code: `npm install -g @qwen-code/qwen-code`.",
   },
@@ -149,7 +149,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: `crush run` with the prompt as an argument.",
-      "Set your model provider's API key, then verify with `vibestrate provider test crush`.",
+      "Set your model provider's API key, then verify with `vibe provider test crush`.",
     ],
     installHint:
       "Install Crush: `brew install charmbracelet/tap/crush` (macOS) or see https://github.com/charmbracelet/crush.",
@@ -163,7 +163,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: `goose run -t` with the prompt as an argument.",
-      "Run `goose configure` to set your provider + key, then verify with `vibestrate provider test goose`.",
+      "Run `goose configure` to set your provider + key, then verify with `vibe provider test goose`.",
     ],
     installHint: "Install Goose: see https://block.github.io/goose/.",
   },
@@ -176,7 +176,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: `cursor-agent -p` with the prompt as an argument.",
-      "Log in with `cursor-agent login`, then verify with `vibestrate provider test cursor`.",
+      "Log in with `cursor-agent login`, then verify with `vibe provider test cursor`.",
     ],
     installHint:
       "Install the Cursor CLI: `curl https://cursor.com/install -fsS | bash`.",
@@ -190,7 +190,7 @@ export const KNOWN_PROVIDERS: readonly KnownProviderDef[] = [
     presetReady: false,
     notes: [
       "Preset: `amp -x` with the prompt as an argument.",
-      "Log in with `amp login`, then verify with `vibestrate provider test amp`.",
+      "Log in with `amp login`, then verify with `vibe provider test amp`.",
     ],
     installHint: "Install Amp: `npm install -g @sourcegraph/amp`.",
   },

@@ -9,8 +9,8 @@ import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 
 /**
- * `vibestrate bundles ...` — internal name. UI copy says "review pass" but the CLI
- * uses the shorter convention to keep `vibestrate suggestion-bundles ...` from
+ * `vibe bundles ...` — internal name. UI copy says "review pass" but the CLI
+ * uses the shorter convention to keep `vibe suggestion-bundles ...` from
  * sprawling. (Documented in the README.)
  */
 export function buildBundlesCommand(): Command {
@@ -559,7 +559,7 @@ async function runBundleValidate(
   } else {
     console.log(
       color.yellow(
-        '! No commands.validate configured. Try: vibestrate config set commands.validate \'["pnpm test"]\'',
+        '! No commands.validate configured. Try: vibe config set commands.validate \'["pnpm test"]\'',
       ),
     );
   }

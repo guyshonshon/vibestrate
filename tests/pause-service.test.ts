@@ -187,7 +187,7 @@ describe("applyPauseIfRequested", () => {
     await store.write(s);
     await requestPause(store, events);
 
-    // While paused, another writer (e.g., `vibestrate abort`) transitions to
+    // While paused, another writer (e.g., `vibe abort`) transitions to
     // aborted. applyPauseIfRequested must observe that and return the
     // terminal state so the orchestrator exits cleanly.
     setTimeout(async () => {

@@ -294,7 +294,7 @@ export function RoadmapPage({
         return;
       }
       // Enter or "r" runs the selected task in the background. We
-      // spawn `vibestrate run --task <id> "<title>"` detached so the
+      // spawn `vibe run --task <id> "<title>"` detached so the
       // panel stays responsive — output streams into the per-run
       // event log + the Runs page.
       if ((key.return || input === "r" || input === "R") && selected) {
@@ -311,7 +311,7 @@ export function RoadmapPage({
         });
         onToast(
           "ok",
-          `Started \`vibestrate run --task ${selected.id}\` (pid ${pid ?? "—"}). Switch to [2] Runs to watch.`,
+          `Started \`vibe run --task ${selected.id}\` (pid ${pid ?? "—"}). Switch to [2] Runs to watch.`,
         );
         void refresh();
         return;
@@ -355,7 +355,7 @@ export function RoadmapPage({
           <Box marginTop={1}>
             <Text dimColor>
               shortcut: <Text color="cyan">!</Text> opens the runner —{" "}
-              <Text>vibestrate tasks add "title"</Text>
+              <Text>vibe tasks add "title"</Text>
             </Text>
           </Box>
         </Box>

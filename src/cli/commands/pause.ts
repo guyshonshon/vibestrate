@@ -11,7 +11,7 @@ import { color } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 /**
- * `vibestrate pause <runId>` and `vibestrate resume <runId>` — write-side toggle on
+ * `vibe pause <runId>` and `vibe resume <runId>` — write-side toggle on
  * a run's pauseRequested flag. The actively-running orchestrator (if any)
  * picks up the flag at the next stage boundary; if the run is currently
  * idle on disk, the flag is just persisted for the next time the

@@ -1,5 +1,5 @@
 // Lifecycle-managed scheduler subprocess: spawned as a real child of
-// `vibestrate ui` (not detached), pipes stdout/stderr to the same
+// `vibe ui` (not detached), pipes stdout/stderr to the same
 // scheduler.log other entry points use, and gets a polite SIGTERM
 // followed by a hard SIGKILL when the UI shuts down.
 //

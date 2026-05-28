@@ -81,7 +81,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 
   // Fork a builtin (e.g. the default flow) into the project and jump straight
   // into the Flow Builder to edit it. The project copy then shadows the builtin
-  // everywhere — including plain `vibestrate run` for the default flow.
+  // everywhere — including plain `vibe run` for the default flow.
   async function forkAndEdit(flowId: string) {
     setBusy({ id: flowId, action: "fork" });
     try {

@@ -17,7 +17,7 @@ export async function runProviderTest(
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }
@@ -34,7 +34,7 @@ export async function runProviderTest(
 
   if (providers.length === 0) {
     console.error(
-      `${symbol.warn()} No providers configured. Run ${color.bold("vibestrate provider setup")}.`,
+      `${symbol.warn()} No providers configured. Run ${color.bold("vibe provider setup")}.`,
     );
     return 1;
   }
@@ -45,7 +45,7 @@ export async function runProviderTest(
   if (!providerId) {
     console.error(
       `${symbol.fail()} Multiple providers configured. Specify one: ${providers
-        .map((p) => `\`vibestrate provider test ${p.id}\``)
+        .map((p) => `\`vibe provider test ${p.id}\``)
         .join(" or ")}.`,
     );
     return 1;

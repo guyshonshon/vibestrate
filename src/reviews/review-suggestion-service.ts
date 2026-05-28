@@ -690,7 +690,7 @@ export class ReviewSuggestionService {
       ),
       errorMessage:
         result.status === "no_commands_configured"
-          ? "No validation commands configured. Run `vibestrate config set commands.validate '[\"<cmd>\"]'`."
+          ? "No validation commands configured. Run `vibe config set commands.validate '[\"<cmd>\"]'`."
           : null,
       updatedAt: nowIso(),
     };

@@ -1,5 +1,5 @@
 // Pure mapping from the active dashboard Route to a "teach the CLI"
-// hint card: a short title, one or more equivalent `vibestrate …` commands,
+// hint card: a short title, one or more equivalent `vibe …` commands,
 // and a one-line explanation. The point is to make the CLI surface
 // discoverable from the UI — every dashboard action should be doable
 // from the terminal, and this surface tells the user how.
@@ -38,9 +38,9 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Live view of every active run + queue depth + pending attention. The CLI has the same data behind several commands.",
         commands: [
-          { cmd: "vibestrate status", note: "current runs (table)" },
-          { cmd: "vibestrate shell", note: "interactive TUI version of this page" },
-          { cmd: 'vibestrate run "describe the change"', note: "start a new run" },
+          { cmd: "vibe status", note: "current runs (table)" },
+          { cmd: "vibe shell", note: "interactive TUI version of this page" },
+          { cmd: 'vibe run "describe the change"', note: "start a new run" },
         ],
         tips: TIPS_RUN,
       };
@@ -50,10 +50,10 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Browse, start, and inspect runs. Everything you see here is also exposed on the CLI.",
         commands: [
-          { cmd: "vibestrate shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
-          { cmd: "vibestrate status", note: "one-shot run table" },
-          { cmd: 'vibestrate run "describe the change"', note: "start a new run" },
-          { cmd: "vibestrate replay <runId>", note: "open the run timeline in the terminal" },
+          { cmd: "vibe shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
+          { cmd: "vibe status", note: "one-shot run table" },
+          { cmd: 'vibe run "describe the change"', note: "start a new run" },
+          { cmd: "vibe replay <runId>", note: "open the run timeline in the terminal" },
         ],
         tips: TIPS_RUN,
       };
@@ -63,11 +63,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Live state of a single run. The CLI surfaces the same projection plus pause/resume.",
         commands: [
-          { cmd: `vibestrate status ${route.runId}`, note: "current phase + summary" },
-          { cmd: `vibestrate replay ${route.runId}`, note: "scroll the timeline event-by-event" },
-          { cmd: `vibestrate pause ${route.runId}`, note: "request a pause at the next safe boundary" },
-          { cmd: `vibestrate resume ${route.runId}`, note: "resume from the paused boundary" },
-          { cmd: `vibestrate abort ${route.runId}`, note: "stop the run immediately" },
+          { cmd: `vibe status ${route.runId}`, note: "current phase + summary" },
+          { cmd: `vibe replay ${route.runId}`, note: "scroll the timeline event-by-event" },
+          { cmd: `vibe pause ${route.runId}`, note: "request a pause at the next safe boundary" },
+          { cmd: `vibe resume ${route.runId}`, note: "resume from the paused boundary" },
+          { cmd: `vibe abort ${route.runId}`, note: "stop the run immediately" },
         ],
         tips: [
           "The inspector tab in the URL (`?tab=replay`, `?tab=diff`, …) deep-links into a panel.",
@@ -77,17 +77,17 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Roadmap board",
         blurb:
-          "Tasks across status columns. The same backlog drives `vibestrate tasks` and `vibestrate queue`.",
+          "Tasks across status columns. The same backlog drives `vibe tasks` and `vibe queue`.",
         commands: [
-          { cmd: "vibestrate tasks list", note: "table of tasks with status + linked runs" },
+          { cmd: "vibe tasks list", note: "table of tasks with status + linked runs" },
           {
-            cmd: 'vibestrate tasks add "title" --effort medium',
+            cmd: 'vibe tasks add "title" --effort medium',
             note: "create a new task with an effort bucket",
           },
-          { cmd: "vibestrate roadmap show", note: "raw roadmap document" },
+          { cmd: "vibe roadmap show", note: "raw roadmap document" },
         ],
         tips: [
-          "Append `--read-only` on `vibestrate tasks add` to mark the task as investigation-only.",
+          "Append `--read-only` on `vibe tasks add` to mark the task as investigation-only.",
         ],
       };
     case "task":
@@ -96,11 +96,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "One task with its runs, comments, and report. The CLI mirrors every view here.",
         commands: [
-          { cmd: `vibestrate tasks show ${route.taskId}`, note: "full task record" },
-          { cmd: `vibestrate tasks report ${route.taskId}`, note: "rendered implementation report" },
-          { cmd: `vibestrate tasks comments ${route.taskId}`, note: "thread of comments" },
-          { cmd: `vibestrate tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
-          { cmd: `vibestrate run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
+          { cmd: `vibe tasks show ${route.taskId}`, note: "full task record" },
+          { cmd: `vibe tasks report ${route.taskId}`, note: "rendered implementation report" },
+          { cmd: `vibe tasks comments ${route.taskId}`, note: "thread of comments" },
+          { cmd: `vibe tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
+          { cmd: `vibe run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
         ],
         tips: TIPS_RUN,
       };
@@ -108,13 +108,13 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Queue",
         blurb:
-          "FIFO + priority + dependency queue. `vibestrate queue` is the canonical surface.",
+          "FIFO + priority + dependency queue. `vibe queue` is the canonical surface.",
         commands: [
-          { cmd: "vibestrate queue list", note: "what's enqueued, in order" },
-          { cmd: "vibestrate queue status", note: "runner state + active item" },
-          { cmd: "vibestrate queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
-          { cmd: "vibestrate queue run", note: "drain the queue (one task at a time)" },
-          { cmd: "vibestrate queue conflicts", note: "show predicted worktree conflicts" },
+          { cmd: "vibe queue list", note: "what's enqueued, in order" },
+          { cmd: "vibe queue status", note: "runner state + active item" },
+          { cmd: "vibe queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
+          { cmd: "vibe queue run", note: "drain the queue (one task at a time)" },
+          { cmd: "vibe queue conflicts", note: "show predicted worktree conflicts" },
         ],
         tips: [
           "Set `scheduler.queuePolicy: fair` + `sourceQuotas: { cron: 1, user: 3 }` in project.yml to stop one origin from starving others.",
@@ -126,8 +126,8 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Agent-generated change proposals waiting for human approval.",
         commands: [
-          { cmd: "vibestrate approvals list", note: "all pending approvals" },
-          { cmd: "vibestrate suggestions list", note: "all suggestions waiting for review" },
+          { cmd: "vibe approvals list", note: "all pending approvals" },
+          { cmd: "vibe suggestions list", note: "all suggestions waiting for review" },
         ],
       };
     case "proposal":
@@ -135,9 +135,9 @@ export function hintForRoute(route: Route): CliHint {
         title: "Proposal detail",
         blurb: "Inspect or accept a single proposal from the CLI.",
         commands: [
-          { cmd: `vibestrate approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
-          { cmd: `vibestrate approvals accept ${route.proposalId}`, note: "accept the proposed change" },
-          { cmd: `vibestrate approvals reject ${route.proposalId}`, note: "reject with a reason" },
+          { cmd: `vibe approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
+          { cmd: `vibe approvals accept ${route.proposalId}`, note: "accept the proposed change" },
+          { cmd: `vibe approvals reject ${route.proposalId}`, note: "reject with a reason" },
         ],
       };
     case "settings":
@@ -146,11 +146,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Project + provider + notification settings. The CLI exposes the same knobs without a server.",
         commands: [
-          { cmd: "vibestrate config show", note: "dump the resolved project config" },
-          { cmd: "vibestrate provider list", note: "available providers + which CLI is detected" },
-          { cmd: "vibestrate provider test <id>", note: "smoke-test that a provider works" },
-          { cmd: "vibestrate doctor", note: "diagnose environment + config issues" },
-          { cmd: "vibestrate notifications gateways", note: "configure notification gateways" },
+          { cmd: "vibe config show", note: "dump the resolved project config" },
+          { cmd: "vibe provider list", note: "available providers + which CLI is detected" },
+          { cmd: "vibe provider test <id>", note: "smoke-test that a provider works" },
+          { cmd: "vibe doctor", note: "diagnose environment + config issues" },
+          { cmd: "vibe notifications gateways", note: "configure notification gateways" },
         ],
       };
     case "project":
@@ -158,14 +158,14 @@ export function hintForRoute(route: Route): CliHint {
         title: "Project overview",
         blurb: "High-level project state. CLI equivalents below.",
         commands: [
-          { cmd: "vibestrate status", note: "recent runs at a glance" },
-          { cmd: "vibestrate roadmap show", note: "current roadmap document" },
-          { cmd: "vibestrate doctor", note: "environment + config check" },
+          { cmd: "vibe status", note: "recent runs at a glance" },
+          { cmd: "vibe roadmap show", note: "current roadmap document" },
+          { cmd: "vibe doctor", note: "environment + config check" },
         ],
       };
     case "codebase": {
       const cmds: CliCommand[] = [
-        { cmd: "vibestrate skills list", note: "skills the orchestrator can pull in" },
+        { cmd: "vibe skills list", note: "skills the orchestrator can pull in" },
       ];
       if (route.filePath) {
         cmds.unshift({
@@ -186,10 +186,10 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Per-run worktree + diff state. Bundles and validation live on the CLI.",
         commands: [
-          { cmd: "vibestrate bundles list", note: "validation bundles per run" },
-          { cmd: "vibestrate bundles apply <bundleId>", note: "apply a bundle to the project root" },
-          { cmd: "vibestrate bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "vibestrate validation run", note: "execute the validation profile" },
+          { cmd: "vibe bundles list", note: "validation bundles per run" },
+          { cmd: "vibe bundles apply <bundleId>", note: "apply a bundle to the project root" },
+          { cmd: "vibe bundles revert <bundleId>", note: "revert a previously applied bundle" },
+          { cmd: "vibe validation run", note: "execute the validation profile" },
         ],
       };
     case "flow":
@@ -198,13 +198,13 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Design how agents work together. Project flows live in .vibestrate/flows/.",
         commands: [
-          { cmd: "vibestrate flows list", note: "discovered flows" },
+          { cmd: "vibe flows list", note: "discovered flows" },
           {
-            cmd: "vibestrate flows show <flowId>",
+            cmd: "vibe flows show <flowId>",
             note: "resolved snapshot for a flow",
           },
           {
-            cmd: 'vibestrate run "task" --flow <flowId>',
+            cmd: 'vibe run "task" --flow <flowId>',
             note: "run using a specific flow",
           },
         ],
@@ -215,9 +215,9 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Browse the flow recipes Vibestrate discovers. Fork a builtin into .vibestrate/flows/ to customize it, then run it.",
         commands: [
-          { cmd: "vibestrate flows list", note: "discovered flows (builtin + project)" },
-          { cmd: "vibestrate flows show <flowId>", note: "inspect a flow's flow" },
-          { cmd: 'vibestrate run "task" --flow <flowId>', note: "run using a flow" },
+          { cmd: "vibe flows list", note: "discovered flows (builtin + project)" },
+          { cmd: "vibe flows show <flowId>", note: "inspect a flow's flow" },
+          { cmd: 'vibe run "task" --flow <flowId>', note: "run using a flow" },
         ],
       };
     case "metrics":
@@ -227,7 +227,7 @@ export function hintForRoute(route: Route): CliHint {
           "Rollups across every run and every model. Same data as the JSON metrics endpoint.",
         commands: [
           {
-            cmd: "vibestrate status",
+            cmd: "vibe status",
             note: "live counts (text version of the KPI strip)",
           },
           {
@@ -243,7 +243,7 @@ export function hintForRoute(route: Route): CliHint {
           "Roles and the providers they run on. Edit roles/providers in `.vibestrate/project.yml`.",
         commands: [
           {
-            cmd: "vibestrate doctor",
+            cmd: "vibe doctor",
             note: "verify every provider's CLI is on PATH",
           },
           {
@@ -256,12 +256,12 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Providers",
         blurb:
-          "Detect, configure, set, and test the local CLIs Vibestrate drives — the same actions as the `vibestrate provider` commands.",
+          "Detect, configure, set, and test the local CLIs Vibestrate drives — the same actions as the `vibe provider` commands.",
         commands: [
-          { cmd: "vibestrate provider detect", note: "what's installed + confidence" },
-          { cmd: "vibestrate provider setup", note: "apply a preset / wire flags" },
-          { cmd: "vibestrate provider set <id>", note: "make it the default for every agent" },
-          { cmd: "vibestrate provider test <id>", note: "safe smoke test; tells you to log in if needed" },
+          { cmd: "vibe provider detect", note: "what's installed + confidence" },
+          { cmd: "vibe provider setup", note: "apply a preset / wire flags" },
+          { cmd: "vibe provider set <id>", note: "make it the default for every agent" },
+          { cmd: "vibe provider test <id>", note: "safe smoke test; tells you to log in if needed" },
         ],
         tips: [
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",

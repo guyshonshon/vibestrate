@@ -107,7 +107,7 @@ describe("KNOWN_PROVIDERS hygiene", () => {
 
   it("the popular set is the out-of-the-box, preset-ready tier", () => {
     // Popular providers are auto-configured by doctor --fix / setup.
-    // Verification is delegated to `vibestrate provider test <id>` + login check.
+    // Verification is delegated to `vibe provider test <id>` + login check.
     const popular = KNOWN_PROVIDERS.filter((p) => p.popular);
     expect(new Set(popular.map((p) => p.id))).toEqual(POPULAR);
     for (const p of popular) {
