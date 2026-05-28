@@ -40,7 +40,7 @@ export function deriveSchedulerLiveness(
       status: "never-started",
       secondsSinceTick: null,
       summary:
-        "scheduler has never run in this project · start it with `amaco queue run`",
+        "scheduler has never run in this project · start it with `vibestrate queue run`",
       pickingUpWork: false,
     };
   }
@@ -52,7 +52,7 @@ export function deriveSchedulerLiveness(
     return {
       status: "paused",
       secondsSinceTick: seconds,
-      summary: "scheduler is paused · press p or run `amaco queue resume`",
+      summary: "scheduler is paused · press p or run `vibestrate queue resume`",
       pickingUpWork: false,
     };
   }
@@ -62,8 +62,8 @@ export function deriveSchedulerLiveness(
       secondsSinceTick: seconds,
       summary:
         seconds === null
-          ? "scheduler state is unreadable · start it with `amaco queue run`"
-          : `scheduler last ticked ${humanAgo(seconds)} (OFFLINE) · start it with \`amaco queue run\``,
+          ? "scheduler state is unreadable · start it with `vibestrate queue run`"
+          : `scheduler last ticked ${humanAgo(seconds)} (OFFLINE) · start it with \`vibestrate queue run\``,
       pickingUpWork: false,
     };
   }

@@ -4,12 +4,12 @@ import { api } from "../../lib/api.js";
 import type { ChangedFile, DiffSnapshot } from "../../lib/types.js";
 
 const STATUS_COLORS: Record<ChangedFile["status"], string> = {
-  added: "text-amaco-success",
-  modified: "text-amaco-accent",
-  deleted: "text-amaco-fail",
-  renamed: "text-amaco-warn",
-  untracked: "text-amaco-fg-dim",
-  unknown: "text-amaco-fg-muted",
+  added: "text-vibestrate-success",
+  modified: "text-vibestrate-accent",
+  deleted: "text-vibestrate-fail",
+  renamed: "text-vibestrate-warn",
+  untracked: "text-vibestrate-fg-dim",
+  unknown: "text-vibestrate-fg-muted",
 };
 
 const STATUS_GLYPH: Record<ChangedFile["status"], string> = {
@@ -57,10 +57,10 @@ export function ChangedFilesList({
 
   return (
     <div>
-      <div className="flex items-center justify-between text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+      <div className="flex items-center justify-between text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         <span>changed files</span>
         {snapshot ? (
-          <span className="amaco-mono normal-case tracking-normal">
+          <span className="vibestrate-mono normal-case tracking-normal">
             {snapshot.totals.files} · +{snapshot.totals.insertions} −{snapshot.totals.deletions}
             {snapshot.totals.redactedFiles > 0
               ? ` · ${snapshot.totals.redactedFiles} redacted`
@@ -69,13 +69,13 @@ export function ChangedFilesList({
         ) : null}
       </div>
       {error ? (
-        <div className="mt-2 text-[12px] text-amaco-fail">{error}</div>
+        <div className="mt-2 text-[12px] text-vibestrate-fail">{error}</div>
       ) : snapshot === null ? (
-        <div className="mt-2 text-[12px] text-amaco-fg-muted">
+        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
           Worktree not available yet.
         </div>
       ) : snapshot.files.length === 0 ? (
-        <div className="mt-2 text-[12px] text-amaco-fg-muted">
+        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
           No changes detected.
         </div>
       ) : (
@@ -84,25 +84,25 @@ export function ChangedFilesList({
             <li key={f.path}>
               <button
                 onClick={() => onSelect(f.path)}
-                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-amaco-panel-2 ${
-                  selectedPath === f.path ? "bg-amaco-panel-2" : ""
+                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-vibestrate-panel-2 ${
+                  selectedPath === f.path ? "bg-vibestrate-panel-2" : ""
                 }`}
               >
                 <span
-                  className={`amaco-mono w-4 text-[11px] ${STATUS_COLORS[f.status]}`}
+                  className={`vibestrate-mono w-4 text-[11px] ${STATUS_COLORS[f.status]}`}
                 >
                   {STATUS_GLYPH[f.status]}
                 </span>
-                <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+                <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
                   {f.path}
                 </span>
                 {f.isSecretLike ? (
                   <Lock
-                    className="h-3 w-3 text-amaco-warn"
+                    className="h-3 w-3 text-vibestrate-warn"
                     strokeWidth={1.5}
                   />
                 ) : null}
-                <span className="amaco-mono text-[11px] text-amaco-fg-muted">
+                <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
                   +{f.insertions} −{f.deletions}
                 </span>
               </button>

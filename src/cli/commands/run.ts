@@ -13,8 +13,8 @@ import {
   isInteractiveTTY,
   symbol,
 } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
-import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
+import { isVibestrateError } from "../../utils/errors.js";
+import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
   discoverFlows,
@@ -37,30 +37,30 @@ function rewriteFriendly(message: string): string {
   // Worktree already exists.
   if (message.includes("Worktree path already exists")) {
     return [
-      "Amaco could not create the isolated worktree for this run.",
+      "Vibestrate could not create the isolated worktree for this run.",
       "The branch or folder may already exist from a previous run.",
-      `${symbol.arrow()} Inspect: ${color.bold("amaco status")}`,
+      `${symbol.arrow()} Inspect: ${color.bold("vibestrate status")}`,
       `${symbol.arrow()} Remove an old worktree manually: ${color.bold("git worktree remove <path>")}`,
     ].join("\n");
   }
   if (message.includes("Branch already exists")) {
     return [
-      "Amaco wanted to create a new branch but one with that name already exists.",
+      "Vibestrate wanted to create a new branch but one with that name already exists.",
       `${symbol.arrow()} Delete the old branch with: ${color.bold("git branch -D <branch>")}`,
-      `${symbol.arrow()} Or run again — Amaco generates a fresh run-id each time.`,
+      `${symbol.arrow()} Or run again — Vibestrate generates a fresh run-id each time.`,
     ].join("\n");
   }
   if (message.includes("not configured")) {
     return [
       message,
-      `${symbol.arrow()} Run ${color.bold("amaco provider setup")} to add a provider.`,
+      `${symbol.arrow()} Run ${color.bold("vibestrate provider setup")} to add a provider.`,
     ].join("\n");
   }
   if (message.includes("Failed to invoke provider command")) {
     return [
       message,
-      `${symbol.arrow()} Verify the CLI is installed and on PATH: ${color.bold("amaco provider detect")}`,
-      `${symbol.arrow()} Confirm prompt-flag setup: ${color.bold("amaco provider setup")}`,
+      `${symbol.arrow()} Verify the CLI is installed and on PATH: ${color.bold("vibestrate provider detect")}`,
+      `${symbol.arrow()} Confirm prompt-flag setup: ${color.bold("vibestrate provider setup")}`,
     ].join("\n");
   }
   return message;
@@ -109,7 +109,7 @@ export async function runRunCommand(
   }
   if (options.flowInteractive && !isInteractiveTTY()) {
     console.error(
-      `${symbol.fail()} ${color.bold("amaco run --flow <id> --interactive")} needs an interactive terminal.`,
+      `${symbol.fail()} ${color.bold("vibestrate run --flow <id> --interactive")} needs an interactive terminal.`,
     );
     return 1;
   }
@@ -118,7 +118,7 @@ export async function runRunCommand(
       `${symbol.fail()} A task description is required.`,
     );
     console.error(
-      `  ${symbol.arrow()} Try: ${color.bold('amaco run "Add dark mode to settings"')}`,
+      `  ${symbol.arrow()} Try: ${color.bold('vibestrate run "Add dark mode to settings"')}`,
     );
     return 1;
   }
@@ -134,17 +134,17 @@ export async function runRunCommand(
       `${symbol.fail()} ${cwd} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("amaco init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("vibestrate init")}.`,
     );
     return 1;
   }
 
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} Amaco is not initialized in this project.`,
+      `${symbol.fail()} Vibestrate is not initialized in this project.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("amaco init")} to create ${color.bold(".amaco/project.yml")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibestrate init")} to create ${color.bold(".vibestrate/project.yml")}.`,
     );
     return 1;
   }
@@ -154,10 +154,10 @@ export async function runRunCommand(
     loaded = await loadConfig(detected.projectRoot);
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("amaco config validate")} to see the exact issues.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibestrate config validate")} to see the exact issues.`,
     );
     return 1;
   }
@@ -174,7 +174,7 @@ export async function runRunCommand(
     );
     for (const m of missingProviderRefs) console.error(`  - ${m}`);
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("amaco provider setup")} to add the missing provider, or ${color.bold("amaco provider set <id>")} to switch.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibestrate provider setup")} to add the missing provider, or ${color.bold("vibestrate provider set <id>")} to switch.`,
     );
     return 1;
   }
@@ -238,7 +238,7 @@ export async function runRunCommand(
       printResolvedFlow(resolvedFlow);
     } catch (err) {
       const message =
-        err instanceof FlowResolutionError || isAmacoError(err)
+        err instanceof FlowResolutionError || isVibestrateError(err)
           ? err.message
           : err instanceof Error
             ? err.message
@@ -256,7 +256,7 @@ export async function runRunCommand(
     try {
       server = await startServer({
         projectRoot: detected.projectRoot,
-        port: options.uiPort ?? DEFAULT_AMACO_PORT,
+        port: options.uiPort ?? DEFAULT_VIBESTRATE_PORT,
         host: "127.0.0.1",
       });
       console.log(
@@ -267,7 +267,7 @@ export async function runRunCommand(
     } catch (err) {
       console.error(
         `${symbol.warn()} Could not start supervisor: ${
-          isAmacoError(err) ? err.message : String(err)
+          isVibestrateError(err) ? err.message : String(err)
         }`,
       );
       console.error(
@@ -294,7 +294,7 @@ export async function runRunCommand(
       }
     } catch (err) {
       console.error(
-        `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+        `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
       );
       return 1;
     }
@@ -410,7 +410,7 @@ export async function runRunCommand(
         } else {
           console.log(
             indent(
-              `${symbol.arrow()} Run ${color.bold("amaco approvals list <runId>")} (or ${color.bold("amaco ui")}) to decide.`,
+              `${symbol.arrow()} Run ${color.bold("vibestrate approvals list <runId>")} (or ${color.bold("vibestrate ui")}) to decide.`,
             ),
           );
         }
@@ -435,7 +435,7 @@ export async function runRunCommand(
   } catch (err) {
     process.off("SIGINT", onSigint);
     process.off("SIGTERM", onSigterm);
-    const raw = isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err);
+    const raw = isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err);
     const friendly = rewriteFriendly(raw);
     console.error("");
     console.error(`${symbol.fail()} Run failed.`);

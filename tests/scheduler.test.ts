@@ -12,7 +12,7 @@ import { runSchedulerLoop } from "../src/scheduler/scheduler-service.js";
 import { nowIso } from "../src/utils/time.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-sched-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-sched-"));
 }
 
 describe("RunQueue", () => {

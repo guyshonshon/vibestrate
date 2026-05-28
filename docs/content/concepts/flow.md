@@ -5,9 +5,9 @@ section: concepts
 slug: concepts/flow
 ---
 
-**Professional explanation.** A Flow is a structured run recipe — participant slots, step kinds (agent-turn, review-turn, response-turn, validation, approval-gate, summary-turn), optional gates, bounded repeats, and an adaptive review→fix loop. Every run executes a flow through one runner; the built-in `default` flow runs when you don't pick another, and custom flows give a richer choreography for higher-rigor work. Flow definitions are validated against `flowDefinitionSchema` (Zod), live as built-ins under `src/flows/catalog/` or project flows under `.amaco/flows/<id>/flow.yml`, and are resolved into an immutable snapshot at run start.
+**Professional explanation.** A Flow is a structured run recipe — participant slots, step kinds (agent-turn, review-turn, response-turn, validation, approval-gate, summary-turn), optional gates, bounded repeats, and an adaptive review→fix loop. Every run executes a flow through one runner; the built-in `default` flow runs when you don't pick another, and custom flows give a richer choreography for higher-rigor work. Flow definitions are validated against `flowDefinitionSchema` (Zod), live as built-ins under `src/flows/catalog/` or project flows under `.vibestrate/flows/<id>/flow.yml`, and are resolved into an immutable snapshot at run start.
 
-**Simple explanation.** A Flow is a saved playbook for "how to do this kind of work." You name the roles, name the steps, and Amaco runs them.
+**Simple explanation.** A Flow is a saved playbook for "how to do this kind of work." You name the roles, name the steps, and Vibestrate runs them.
 
 ## Why it matters
 
@@ -18,7 +18,7 @@ The default workflow is one shape — good for most edits, fine for refactors. B
 Where the default workflow has fixed agent roles (`planner`, `executor`, `reviewer`), a Flow has named **slots** — `builder`, `challenger`, `arbiter` — and each step says which slot owns it. You assign providers to slots when starting the run:
 
 ```bash
-amaco run "Refactor provider permissions" --flow quality-arbitration \
+vibestrate run "Refactor provider permissions" --flow quality-arbitration \
   --flow-slot builder=claude \
   --flow-slot challenger=codex
 ```
@@ -27,7 +27,7 @@ This is the design point that lets you mix vendors deliberately — builder and 
 
 ## A built-in: `quality-arbitration`
 
-The `quality-arbitration` Flow ships with Amaco. It runs:
+The `quality-arbitration` Flow ships with Vibestrate. It runs:
 
 1. **plan** — builder plans the change.
 2. **plan-review** — challenger critiques the plan (optional).
@@ -42,7 +42,7 @@ The canonical, generated definition (slots, steps, inputs, outputs) is in the [F
 
 ## Project Flows
 
-Drop a `flow.yml` into `.amaco/flows/<id>/`:
+Drop a `flow.yml` into `.vibestrate/flows/<id>/`:
 
 ```yaml
 id: spike-and-decide
@@ -68,14 +68,14 @@ steps:
       requestedAction: continue
 ```
 
-Amaco validates `flow.yml` against the schema on load — malformed Flows fail loud, not silent.
+Vibestrate validates `flow.yml` against the schema on load — malformed Flows fail loud, not silent.
 
 ## Managing Flows in Mission Control
 
 The **Flows** page in the dashboard lists every discovered Flow (built-in +
 project) and shows each one's flow at a glance — slots, ordered steps, and which
 steps are human approval gates. From there you can **fork** a built-in into
-`.amaco/flows/<id>/` to customize it, **delete** a project Flow, or open one in
+`.vibestrate/flows/<id>/` to customize it, **delete** a project Flow, or open one in
 the **Flow Builder** to tune slots/steps before a run. It's the read/curate
 surface; the Flow Builder is the edit/run surface. (All of it runs over the
 local `/api/flows` routes — the browser never shells out.)

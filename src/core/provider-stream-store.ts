@@ -1,5 +1,5 @@
 // Append-only per-agent stream of raw provider stdout/stderr chunks.
-// Lives under `.amaco/runs/<runId>/streams/<promptName>.ndjson`.
+// Lives under `.vibestrate/runs/<runId>/streams/<promptName>.ndjson`.
 // Lets the dashboard tail what the provider's CLI is actually saying
 // in real time — bridges the gap between "I spawned the model" and
 // "here's the final artifact 30 seconds later".

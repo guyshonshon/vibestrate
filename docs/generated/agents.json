@@ -5,7 +5,7 @@
     {
       "id": "planner",
       "role": "Reads the task brief and produces a plan.",
-      "reads": "Task description, project rules, .amaco/roles/planner.md prompt, attached skills.",
+      "reads": "Task description, project rules, .vibestrate/roles/planner.md prompt, attached skills.",
       "writes": "Structured plan artifact.",
       "promptTemplateRelPath": "src/agents/default-prompts/planner.md"
     },

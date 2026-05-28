@@ -29,7 +29,7 @@ export function buildDiscordPayload(n: Notification): unknown {
             ? { name: n.actionLabel, value: n.actionUrl, inline: false }
             : null,
         ].filter(Boolean),
-        footer: { text: `amaco · ${n.category} · ${n.severity}` },
+        footer: { text: `vibestrate · ${n.category} · ${n.severity}` },
         timestamp: n.createdAt,
       },
     ],
@@ -112,7 +112,7 @@ export const discordGateway: Gateway = {
     try {
       const r = await postJsonWithTimeout({
         url,
-        body: { content: "Amaco Discord gateway test." },
+        body: { content: "Vibestrate Discord gateway test." },
       });
       return r.ok
         ? { ok: true, message: `Discord responded ${r.status}.` }

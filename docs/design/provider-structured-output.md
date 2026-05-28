@@ -3,23 +3,23 @@
 Status: **design — endorsed direction, not yet built** · Owner: maintainer
 
 Make a provider's output **structured** (JSON / streaming-JSON) rather than
-plain text, so amaco can (a) stream live execution token-by-token, (b) read
+plain text, so vibestrate can (a) stream live execution token-by-token, (b) read
 **real** token/cost/tool-call metrics, and (c) keep doing all of that for *any*
 provider the user configures — not just Claude. Crucially, this must **not**
-weaken amaco's supervisor control. This doc is the plan + the guarantees.
+weaken vibestrate's supervisor control. This doc is the plan + the guarantees.
 
 ---
 
 ## Why
 
 Today every provider runs **one-shot + headless** (`claude -p "<prompt>"`,
-`codex exec -q`, …) and amaco captures the buffered stdout. Two costs:
+`codex exec`, …) and vibestrate captures the buffered stdout. Two costs:
 
 1. **No live execution.** A CLI in print mode buffers its whole answer to a
    pipe (it only streams to a TTY), so the live panel is empty until the agent
    exits, then dumps. Not "live."
 2. **No real token/cost.** Plain text carries no usage. So the token/cost
-   *control* amaco advertises (budgets, per-step spend, "watch the cost") is
+   *control* vibestrate advertises (budgets, per-step spend, "watch the cost") is
    not actually delivered — the numbers are blank or guessed.
 
 Structured output fixes both: a JSON/stream-JSON event stream carries the text
@@ -28,9 +28,9 @@ incrementally. **More data, native, live.** This is strictly more supervisor
 signal than a plain log — it's the format a supervisor should have wanted all
 along.
 
-## How amaco's control works (the load-bearing fact)
+## How vibestrate's control works (the load-bearing fact)
 
-Amaco supervises by **regex-parsing the model's response *text*** for control
+Vibestrate supervises by **regex-parsing the model's response *text*** for control
 markers (`src/core/approval-types.ts`, `src/core/review-parser.ts`):
 
 - `HUMAN_APPROVAL: REQUIRED` (+ `_REASON` / `_RISK` / `_REQUEST`) → pause + a
@@ -48,7 +48,7 @@ tools, between-turn gating) is set by the invocation, not the output shape.
   `--allowed-tools`, worktree; the CLI still exits when done. A structured
   output format is **reporting**, not an interactive session — the model's
   *actions* are identical. Enforcement is byte-for-byte the same.
-- **Changes:** stdout is now JSON events. Amaco must **extract the assistant's
+- **Changes:** stdout is now JSON events. Vibestrate must **extract the assistant's
   response text** from the stream to feed the control parsers; the markers live
   in that text.
 
@@ -57,12 +57,12 @@ tools, between-turn gating) is set by the invocation, not the output shape.
 These are the invariants any implementation must hold (they're what make this
 safe):
 
-1. **Lossless response text.** The text amaco's control parsers see under a
+1. **Lossless response text.** The text vibestrate's control parsers see under a
    structured format MUST equal what plain-text mode would have produced. A
    gated test asserts `parse(textMode) === parse(structuredMode)`, including a
    `HUMAN_APPROVAL` marker round-trip.
 2. **No silent fallback — fail loud.** If a stream is malformed or no terminal
-   result is found, the agent **turn fails** and the run pauses. Amaco must
+   result is found, the agent **turn fails** and the run pauses. Vibestrate must
    **never** feed raw/garbled JSON to the control regexes, because a missed
    `HUMAN_APPROVAL` = an executor running past a gate the human should have
    seen. (This is the red flag: a "fall back to raw stdout" is exactly that
@@ -72,16 +72,16 @@ safe):
 4. **Live text is display-only.** Streamed deltas feed the live panel; they are
    never the control path. Control runs on the extracted, completed response.
 
-### Does the user still answer approvals via amaco? Yes.
+### Does the user still answer approvals via vibestrate? Yes.
 
 The approval gate fires on the `HUMAN_APPROVAL` marker in the model's response
-text, which we extract from the stream. The human answers it in amaco's UI/CLI
+text, which we extract from the stream. The human answers it in vibestrate's UI/CLI
 exactly as today. Structured output does **not** introduce a provider-side
 interactive prompt (in headless mode the CLI never prompts; it auto-handles
-tools per the permission mode). The only approvals are amaco's, **between
+tools per the permission mode). The only approvals are vibestrate's, **between
 turns**.
 
-> Nuance: amaco's gates are between-turn, not mid-turn. Streaming lets you
+> Nuance: vibestrate's gates are between-turn, not mid-turn. Streaming lets you
 > *watch* a turn live, but you still can't interrupt the CLI mid-tool-call (the
 > turn is one-shot). Per-tool live approval is a different, much larger
 > architecture (an interactive permission-prompt MCP server) — see Non-goals.
@@ -90,7 +90,7 @@ turns**.
 
 The generalization that keeps control **uniform** while letting each provider
 be as rich as it supports: normalize every provider's output to one contract,
-and have amaco's control + display + metrics consume only the normalized shape.
+and have vibestrate's control + display + metrics consume only the normalized shape.
 
 ```ts
 type NormalizedTurn = {
@@ -126,7 +126,7 @@ interface ProviderOutputAdapter {
 - **future adapters:** `codex-json`, `gemini-json`, … land incrementally. Until
   a provider has one, it uses `text` (correct, just not live/metered).
 
-Amaco's control, live panel, and metrics store consume `NormalizedTurn` only —
+Vibestrate's control, live panel, and metrics store consume `NormalizedTurn` only —
 so the **supervision contract stays uniform** even as formats diverge. The
 divergence is contained inside adapters; nothing supervision-critical is
 special-cased per provider.
@@ -148,7 +148,7 @@ providers:
     output: text               # until a codex-json adapter ships
 ```
 
-`amaco doctor` / the Providers page can offer "enable rich output" for
+`vibestrate doctor` / the Providers page can offer "enable rich output" for
 providers whose adapter exists, and explain the tradeoff (richer + live, vs the
 plain-text baseline). The setup never silently changes a working provider.
 
@@ -211,7 +211,7 @@ Once `metrics` is real and per-turn:
 
 - **Mid-turn / per-tool human approval.** That needs an interactive
   permission-prompt server and a different invocation model; out of scope. This
-  design keeps amaco's between-turn gating.
+  design keeps vibestrate's between-turn gating.
 - **Silent fallbacks of any kind.** A structured turn that can't be parsed
   fails loud.
 - **Changing what the CLI is allowed to do.** Output format only; permissions,

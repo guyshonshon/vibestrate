@@ -161,5 +161,5 @@ export function buildFlowRunArgs(input: FlowRunCommandInput): string[] {
 }
 
 export function formatFlowRunCommand(input: FlowRunCommandInput): string {
-  return formatArgv(["amaco", ...buildFlowRunArgs(input)]);
+  return formatArgv(["vibestrate", ...buildFlowRunArgs(input)]);
 }

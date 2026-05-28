@@ -122,32 +122,32 @@ export function GatewaySettings({ initialPermission }: Props) {
 
   if (busy && !settings) {
     return (
-      <div className="px-4 py-6 text-[12px] text-amaco-fg-muted">Loading…</div>
+      <div className="px-4 py-6 text-[12px] text-vibestrate-fg-muted">Loading…</div>
     );
   }
   if (error && !settings) {
-    return <div className="px-4 py-6 text-[12px] text-amaco-fail">{error}</div>;
+    return <div className="px-4 py-6 text-[12px] text-vibestrate-fail">{error}</div>;
   }
   if (!settings) return null;
 
   return (
     <div className="flex flex-col gap-6 px-4 py-4">
       {error ? (
-        <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-3 py-2 text-[12px] text-amaco-fail">
+        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-3 py-2 text-[12px] text-vibestrate-fail">
           {error}
         </div>
       ) : null}
 
-      <section className="rounded border border-amaco-border">
-        <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-2">
-          <Bell className="h-3.5 w-3.5 text-amaco-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-amaco-fg">
+      <section className="rounded border border-vibestrate-border">
+        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
+          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
+          <span className="text-[13px] font-medium text-vibestrate-fg">
             Notification routing
           </span>
           <button
             type="button"
             onClick={() => void refresh()}
-            className="ml-auto rounded border border-amaco-border p-1 text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="ml-auto rounded border border-vibestrate-border p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Refresh"
           >
             <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
@@ -218,28 +218,28 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       </section>
 
-      <section className="rounded border border-amaco-border">
-        <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-2">
-          <Bell className="h-3.5 w-3.5 text-amaco-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-amaco-fg">
+      <section className="rounded border border-vibestrate-border">
+        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
+          <Bell className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
+          <span className="text-[13px] font-medium text-vibestrate-fg">
             Browser notifications
           </span>
         </header>
         <div className="flex items-center gap-3 p-3">
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[11px] text-amaco-fg-dim">
+          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim">
             {permission}
           </span>
           {permission === "default" ? (
             <button
               type="button"
               onClick={() => void requestBrowserPermission()}
-              className="inline-flex items-center gap-1.5 rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2.5 py-1 text-[12px] text-amaco-fg hover:bg-amaco-accent-soft/50"
+              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
             >
               <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
               Allow browser notifications
             </button>
           ) : null}
-          <span className="text-[11.5px] text-amaco-fg-muted">
+          <span className="text-[11.5px] text-vibestrate-fg-muted">
             {permission === "granted"
               ? "Attention/critical alerts will surface as system notifications."
               : permission === "denied"
@@ -251,18 +251,18 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
       </section>
 
-      <section className="rounded border border-amaco-border">
-        <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-2">
-          <Webhook className="h-3.5 w-3.5 text-amaco-accent" strokeWidth={1.5} />
-          <span className="text-[13px] font-medium text-amaco-fg">
+      <section className="rounded border border-vibestrate-border">
+        <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-2">
+          <Webhook className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
+          <span className="text-[13px] font-medium text-vibestrate-fg">
             Communication gateways
           </span>
         </header>
-        <div className="divide-y divide-amaco-border">
+        <div className="divide-y divide-vibestrate-border">
           {gateways.length === 0 ? (
-            <div className="px-3 py-4 text-[12px] text-amaco-fg-muted">
+            <div className="px-3 py-4 text-[12px] text-vibestrate-fg-muted">
               No gateways configured. Run{" "}
-              <span className="amaco-mono">amaco gateways list</span> for help.
+              <span className="vibestrate-mono">vibestrate gateways list</span> for help.
             </div>
           ) : (
             gateways.map((g) => {
@@ -273,33 +273,33 @@ export function GatewaySettings({ initialPermission }: Props) {
               return (
                 <div key={g.id} className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-[12.5px] font-medium text-amaco-fg">
+                    <span className="text-[12.5px] font-medium text-vibestrate-fg">
                       {g.displayName}
                     </span>
-                    <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
                       {g.type}
                     </span>
-                    <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
                       {g.channel}
                     </span>
                     {g.config.enabled ? (
-                      <span className="amaco-mono rounded border border-amaco-success/40 px-1 text-[10px] text-amaco-success">
+                      <span className="vibestrate-mono rounded border border-vibestrate-success/40 px-1 text-[10px] text-vibestrate-success">
                         enabled
                       </span>
                     ) : (
-                      <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
                         disabled
                       </span>
                     )}
                     {g.valid ? (
                       <CheckCircle2
-                        className="h-3.5 w-3.5 text-amaco-success"
+                        className="h-3.5 w-3.5 text-vibestrate-success"
                         strokeWidth={1.5}
                         aria-label="config valid"
                       />
                     ) : (
                       <AlertTriangle
-                        className="h-3.5 w-3.5 text-amaco-warn"
+                        className="h-3.5 w-3.5 text-vibestrate-warn"
                         strokeWidth={1.5}
                         aria-label="config invalid"
                       />
@@ -314,7 +314,7 @@ export function GatewaySettings({ initialPermission }: Props) {
                             ? "Send a probe through this gateway"
                             : "Configure the gateway first to enable testing"
                         }
-                        className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Send className="h-3 w-3" strokeWidth={1.5} />
                         Test
@@ -322,7 +322,7 @@ export function GatewaySettings({ initialPermission }: Props) {
                     ) : null}
                   </div>
                   {g.validationReason ? (
-                    <div className="mt-1 text-[11.5px] text-amaco-warn">
+                    <div className="mt-1 text-[11.5px] text-vibestrate-warn">
                       {g.validationReason}
                     </div>
                   ) : null}
@@ -344,7 +344,7 @@ export function GatewaySettings({ initialPermission }: Props) {
                     />
                   </div>
                   {g.missingEnvVars.length > 0 ? (
-                    <div className="mt-1 amaco-mono text-[10.5px] text-amaco-warn">
+                    <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-warn">
                       missing: {g.missingEnvVars.join(", ")}
                     </div>
                   ) : null}
@@ -352,8 +352,8 @@ export function GatewaySettings({ initialPermission }: Props) {
                     <div
                       className={`mt-1.5 rounded border px-2 py-1 text-[11px] ${
                         test.ok
-                          ? "border-amaco-success/40 bg-amaco-success/10 text-amaco-success"
-                          : "border-amaco-fail/40 bg-amaco-fail/10 text-amaco-fail"
+                          ? "border-vibestrate-success/40 bg-vibestrate-success/10 text-vibestrate-success"
+                          : "border-vibestrate-fail/40 bg-vibestrate-fail/10 text-vibestrate-fail"
                       }`}
                     >
                       {test.message}
@@ -364,11 +364,11 @@ export function GatewaySettings({ initialPermission }: Props) {
             })
           )}
         </div>
-        <p className="border-t border-amaco-border px-3 py-2 text-[10.5px] text-amaco-fg-muted">
+        <p className="border-t border-vibestrate-border px-3 py-2 text-[10.5px] text-vibestrate-fg-muted">
           Secrets stay on your machine. The dashboard never receives token or
           URL values — only whether they are set. Configure with{" "}
-          <span className="amaco-mono">env:VAR_NAME</span> via the CLI or{" "}
-          <span className="amaco-mono">.amaco/notifications/gateways.json</span>.
+          <span className="vibestrate-mono">env:VAR_NAME</span> via the CLI or{" "}
+          <span className="vibestrate-mono">.vibestrate/notifications/gateways.json</span>.
         </p>
       </section>
     </div>
@@ -385,7 +385,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-1.5 text-[12px] text-amaco-fg">
+    <label className="flex cursor-pointer items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1.5 text-[12px] text-vibestrate-fg">
       <input
         type="checkbox"
         checked={value}
@@ -409,18 +409,18 @@ function FieldRow({
   if (hide) return null;
   const color =
     info.status === "ok"
-      ? "text-amaco-success"
+      ? "text-vibestrate-success"
       : info.status === "missing"
-        ? "text-amaco-warn"
+        ? "text-vibestrate-warn"
         : info.status === "literal"
-          ? "text-amaco-fg-dim"
-          : "text-amaco-fg-muted";
+          ? "text-vibestrate-fg-dim"
+          : "text-vibestrate-fg-muted";
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1">
-      <div className="text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
         {label}
       </div>
-      <div className={`amaco-mono mt-0.5 truncate text-[11px] ${color}`}>
+      <div className={`vibestrate-mono mt-0.5 truncate text-[11px] ${color}`}>
         {info.label}
       </div>
     </div>

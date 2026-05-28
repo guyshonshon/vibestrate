@@ -329,7 +329,7 @@ export async function getFileDiff(input: {
       body: "",
       redacted: true,
       redactionReason:
-        "This file looks like a secret (env file, key, credential). Diff body suppressed by Amaco.",
+        "This file looks like a secret (env file, key, credential). Diff body suppressed by Vibestrate.",
     };
   }
 

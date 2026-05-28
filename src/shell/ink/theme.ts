@@ -63,7 +63,7 @@ export function taskStatusToken(status: string): StatusToken {
   return TASK_STATUS_TOKENS[status] ?? { glyph: "○", color: "gray", label: status };
 }
 
-/** Tokens for `AmacoEvent.type`. Only the prefix needs to colorize. */
+/** Tokens for `VibestrateEvent.type`. Only the prefix needs to colorize. */
 export function eventTypeColor(type: string): Color {
   if (type.endsWith(".failed") || type === "run.aborted") return "red";
   if (type === "run.completed" || type === "role.completed") return "green";

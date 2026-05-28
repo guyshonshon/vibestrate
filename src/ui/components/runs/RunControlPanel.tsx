@@ -96,20 +96,20 @@ export function RunControlPanel({
   return (
     <section
       aria-label="Run controls"
-      className="rounded border border-amaco-border bg-amaco-panel p-3"
+      className="rounded border border-vibestrate-border bg-vibestrate-panel p-3"
     >
       <header className="mb-2 flex items-center gap-2">
         <Layers
-          className="h-3.5 w-3.5 text-amaco-accent"
+          className="h-3.5 w-3.5 text-vibestrate-accent"
           strokeWidth={1.5}
           aria-hidden
         />
-        <span className="amaco-mono text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <span className="vibestrate-mono text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           run control
         </span>
         {pending.length > 0 ? (
           <span
-            className="amaco-mono rounded border border-amaco-accent/40 bg-amaco-accent/10 px-1.5 py-0.5 text-[10px] text-amaco-accent"
+            className="vibestrate-mono rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-1.5 py-0.5 text-[10px] text-vibestrate-accent"
             title="Directives queued, waiting for next stage"
           >
             {pending.length} queued
@@ -117,15 +117,15 @@ export function RunControlPanel({
         ) : null}
       </header>
 
-      <p className="mb-2 text-[11.5px] text-amaco-fg-muted">
+      <p className="mb-2 text-[11.5px] text-vibestrate-fg-muted">
         These controls apply at the next stage boundary — providers like
-        Claude Code <code className="amaco-mono">-p</code> don't have a
+        Claude Code <code className="vibestrate-mono">-p</code> don't have a
         live REPL we can pipe commands into mid-flight.
       </p>
 
       {/* Inject-note */}
       <div className="flex flex-col gap-1.5">
-        <label className="amaco-mono text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+        <label className="vibestrate-mono text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
           inject note
         </label>
         <textarea
@@ -144,7 +144,7 @@ export function RunControlPanel({
           disabled={disabled || busy !== null}
           rows={3}
           placeholder="A constraint, hint, or course-correction the next agent should respect…"
-          className="resize-y rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[12px] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent focus:outline-none disabled:opacity-50"
+          className="resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12px] text-vibestrate-fg placeholder:text-vibestrate-fg-muted focus:border-vibestrate-accent focus:outline-none disabled:opacity-50"
           aria-label="Note for the next agent"
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -152,7 +152,7 @@ export function RunControlPanel({
             type="button"
             onClick={submitNote}
             disabled={disabled || busy !== null || note.trim().length === 0}
-            className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2 py-1 text-[11.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-2 py-1 text-[11.5px] font-medium text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
           >
             <MessageSquarePlus className="h-3 w-3" strokeWidth={1.8} aria-hidden />
             {busy === "note" ? "Queueing…" : "Queue note"}
@@ -161,13 +161,13 @@ export function RunControlPanel({
             type="button"
             onClick={submitCompact}
             disabled={disabled || busy !== null}
-            className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[11.5px] font-medium text-amaco-warn hover:bg-amaco-warn/20 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11.5px] font-medium text-vibestrate-warn hover:bg-vibestrate-warn/20 disabled:opacity-50"
             title="Ask the next agent to re-state its understanding before continuing"
           >
             <Send className="h-3 w-3" strokeWidth={1.8} aria-hidden />
             {busy === "compact" ? "Queueing…" : "Compact context"}
           </button>
-          <span className="amaco-mono ml-auto text-[10px] text-amaco-fg-muted">
+          <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
             ⌘↵ to queue note
           </span>
         </div>
@@ -176,7 +176,7 @@ export function RunControlPanel({
       {error ? (
         <div
           role="alert"
-          className="mt-2 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11px] text-amaco-fail"
+          className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11px] text-vibestrate-fail"
         >
           {error}
         </div>
@@ -184,7 +184,7 @@ export function RunControlPanel({
       {ok ? (
         <div
           role="status"
-          className="mt-2 rounded border border-amaco-success/40 bg-amaco-success/10 px-2 py-1 text-[11px] text-amaco-success"
+          className="mt-2 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-[11px] text-vibestrate-success"
         >
           {ok}
         </div>
@@ -193,7 +193,7 @@ export function RunControlPanel({
       {/* Queued + recent applied */}
       {pending.length > 0 ? (
         <details open className="mt-3">
-          <summary className="cursor-pointer text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+          <summary className="cursor-pointer text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
             queued ({pending.length})
           </summary>
           <ul className="mt-1 space-y-1">
@@ -205,7 +205,7 @@ export function RunControlPanel({
       ) : null}
       {history.length > 0 ? (
         <details className="mt-2">
-          <summary className="cursor-pointer text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+          <summary className="cursor-pointer text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
             recently applied ({history.length})
           </summary>
           <ul className="mt-1 space-y-1">
@@ -222,8 +222,8 @@ export function RunControlPanel({
 function DirectiveRow({ d }: { d: RunControlDirective }) {
   const tone =
     d.kind === "compact"
-      ? "border-amaco-warn/40 bg-amaco-warn/5 text-amaco-warn"
-      : "border-amaco-accent/30 bg-amaco-accent/5 text-amaco-fg";
+      ? "border-vibestrate-warn/40 bg-vibestrate-warn/5 text-vibestrate-warn"
+      : "border-vibestrate-accent/30 bg-vibestrate-accent/5 text-vibestrate-fg";
   return (
     <li
       className={`rounded border px-2 py-1 text-[11.5px] ${tone}`}
@@ -233,7 +233,7 @@ function DirectiveRow({ d }: { d: RunControlDirective }) {
           : ""
       }`}
     >
-      <span className="amaco-mono mr-2 text-[10px] uppercase tracking-[0.08em] opacity-70">
+      <span className="vibestrate-mono mr-2 text-[10px] uppercase tracking-[0.08em] opacity-70">
         {d.kind}
       </span>
       {d.kind === "inject-note" ? (
@@ -242,7 +242,7 @@ function DirectiveRow({ d }: { d: RunControlDirective }) {
         <span>{d.note ?? "Re-state understanding before continuing."}</span>
       )}
       {d.consumedAt ? (
-        <span className="amaco-mono ml-2 text-[10px] opacity-70">
+        <span className="vibestrate-mono ml-2 text-[10px] opacity-70">
           ↳ {d.consumedByRole}
         </span>
       ) : null}

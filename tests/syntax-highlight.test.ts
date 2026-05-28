@@ -47,7 +47,7 @@ describe("highlightLines", () => {
   });
 
   it("highlights a JSON file with string + number tokens", () => {
-    const out = highlightLines('{"name":"amaco","port":4317}', "json");
+    const out = highlightLines('{"name":"vibestrate","port":4317}', "json");
     expect(out).toHaveLength(1);
     expect(out[0]).toMatch(/hljs-(string|attr)/);
     expect(out[0]).toMatch(/hljs-(number|literal)/);

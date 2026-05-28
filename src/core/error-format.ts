@@ -63,14 +63,14 @@ export function formatError(err: unknown): FormattedError {
         kind: "spawn-enoent",
         title: `Command not found: ${cmd}`,
         detail: message,
-        hint: `Install \`${cmd}\` and make sure it is on your PATH, or set the matching provider override in .amaco/project.yml.`,
+        hint: `Install \`${cmd}\` and make sure it is on your PATH, or set the matching provider override in .vibestrate/project.yml.`,
       };
     }
     return {
       kind: "fs-enoent",
       title: "File not found",
       detail: targetPath ? `${targetPath} (${message})` : message,
-      hint: "Check the path and re-run. If amaco generated this path, it may have been deleted while a run was in flight.",
+      hint: "Check the path and re-run. If vibestrate generated this path, it may have been deleted while a run was in flight.",
     };
   }
   if (code === "EACCES" || code === "EPERM") {
@@ -78,7 +78,7 @@ export function formatError(err: unknown): FormattedError {
       kind: "fs-perm",
       title: "Permission denied",
       detail: targetPath ? `${targetPath} (${message})` : message,
-      hint: "Check file permissions or rerun from a directory you own. amaco never escalates privileges automatically.",
+      hint: "Check file permissions or rerun from a directory you own. vibestrate never escalates privileges automatically.",
     };
   }
   if (code === "EADDRINUSE") {
@@ -87,7 +87,7 @@ export function formatError(err: unknown): FormattedError {
       kind: "port-in-use",
       title: port ? `Port ${port} is already in use` : "Port already in use",
       detail: message,
-      hint: "Stop the other process or pass --port to amaco ui to pick a different one.",
+      hint: "Stop the other process or pass --port to vibestrate ui to pick a different one.",
     };
   }
   if (code === "ECONNREFUSED") {
@@ -121,7 +121,7 @@ export function formatError(err: unknown): FormattedError {
         statusCode === 404
           ? "The resource no longer exists. It may have been deleted, cancelled, or never existed."
           : statusCode >= 500
-            ? "amaco logged this into .amaco/issues.ndjson — check the Issues panel for context."
+            ? "vibestrate logged this into .vibestrate/issues.ndjson — check the Issues panel for context."
             : undefined,
     };
   }

@@ -5,7 +5,7 @@ import { NotificationStore } from "../../notifications/notification-store.js";
 import { buildDefaultRegistry } from "../../notifications/gateways/gateway-registry.js";
 import { envVarName } from "../../notifications/gateways/secret-resolver.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 async function ctx() {
   const detected = await detectProject(process.cwd());
@@ -103,7 +103,7 @@ async function cmdSettings(): Promise<number> {
   console.log("");
   console.log(header("Gateways"));
   if (Object.keys(g.gateways).length === 0) {
-    console.log(indent(color.dim("No gateways configured. Run `amaco gateways enable <id>`.")));
+    console.log(indent(color.dim("No gateways configured. Run `vibestrate gateways enable <id>`.")));
   } else {
     for (const [id, cfg] of Object.entries(g.gateways)) {
       const flags = cfg.enabled ? color.green("enabled") : color.dim("disabled");
@@ -176,7 +176,7 @@ async function cmdGatewayTest(id: string): Promise<number> {
   const reg = await buildDefaultRegistry(root, () => {});
   const gateway = reg.get(id);
   if (!gateway) {
-    console.error(`${symbol.fail()} No gateway "${id}". Try \`amaco gateways list\`.`);
+    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibestrate gateways list\`.`);
     return 1;
   }
   if (!gateway.test) {
@@ -186,7 +186,7 @@ async function cmdGatewayTest(id: string): Promise<number> {
   const file = await store.readGateways();
   const cfg = file.gateways[id];
   if (!cfg) {
-    console.error(`${symbol.fail()} Gateway "${id}" is not configured. Try \`amaco gateways enable ${id}\` first.`);
+    console.error(`${symbol.fail()} Gateway "${id}" is not configured. Try \`vibestrate gateways enable ${id}\` first.`);
     return 1;
   }
   try {
@@ -208,7 +208,7 @@ async function cmdGatewaySet(id: string, enabled: boolean): Promise<number> {
   const reg = await buildDefaultRegistry(root, () => {});
   const gateway = reg.get(id);
   if (!gateway) {
-    console.error(`${symbol.fail()} No gateway "${id}". Try \`amaco gateways list\`.`);
+    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibestrate gateways list\`.`);
     return 1;
   }
   const file = await store.readGateways();
@@ -239,7 +239,7 @@ async function cmdGatewaySet(id: string, enabled: boolean): Promise<number> {
 
 export function buildNotificationsCommand(): Command {
   const cmd = new Command("notifications").description(
-    "Inspect and manage local Amaco notifications.",
+    "Inspect and manage local Vibestrate notifications.",
   );
 
   cmd
@@ -294,7 +294,7 @@ export function buildNotificationsCommand(): Command {
         process.exit(code);
       } catch (err) {
         console.error(
-          `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+          `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
         );
         process.exit(1);
       }

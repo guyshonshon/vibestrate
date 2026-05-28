@@ -19,7 +19,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeGitProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-doctor-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-doctor-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["-c", "user.email=x@x", "-c", "user.name=x", "commit", "--allow-empty", "-q", "-m", "init"], { cwd: dir });
   return dir;
@@ -43,7 +43,7 @@ describe("doctor service", () => {
     const r = await runDoctor({ cwd: projectRoot });
     expect(r.inGitRepo).toBe(true);
     expect(severityFor(r.findings, "config-present")).toBe("fail");
-    expect(r.recommendedNextSteps.join(" ")).toContain("amaco init");
+    expect(r.recommendedNextSteps.join(" ")).toContain("vibestrate init");
   });
 
   it("reports config-valid=ok after init", async () => {
@@ -58,7 +58,7 @@ describe("doctor service", () => {
 
   it("flags missing prompt files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".amaco", "roles", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.md"));
     const r = await runDoctor({ cwd: projectRoot });
     const find = r.findings.find((f) => f.id === "prompt-files");
     expect(find?.severity).toBe("fail");
@@ -74,21 +74,21 @@ describe("doctor service", () => {
 
   it("doctor --fix restores missing prompts and skills README", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await fs.unlink(path.join(projectRoot, ".amaco", "roles", "planner.md"));
-    await fs.unlink(path.join(projectRoot, ".amaco", "skills", "README.md"));
+    await fs.unlink(path.join(projectRoot, ".vibestrate", "roles", "planner.md"));
+    await fs.unlink(path.join(projectRoot, ".vibestrate", "skills", "README.md"));
 
     const outcome = await applyDoctorFixes({ projectRoot });
     expect(outcome.applied.join("\n")).toContain("planner.md");
     expect(outcome.applied.join("\n")).toContain("skills/README.md");
 
     expect(
-      await fs.readFile(path.join(projectRoot, ".amaco", "roles", "planner.md"), "utf8"),
+      await fs.readFile(path.join(projectRoot, ".vibestrate", "roles", "planner.md"), "utf8"),
     ).toContain("# Planner Agent");
   });
 
   it("doctor --fix never deletes existing files", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    const customPlanner = path.join(projectRoot, ".amaco", "roles", "planner.md");
+    const customPlanner = path.join(projectRoot, ".vibestrate", "roles", "planner.md");
     await fs.writeFile(customPlanner, "# CUSTOM\nDo not overwrite.");
     await applyDoctorFixes({ projectRoot });
     const after = await fs.readFile(customPlanner, "utf8");

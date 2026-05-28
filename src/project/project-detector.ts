@@ -164,18 +164,18 @@ export async function detectFullProject(
 
   const notes: string[] = [];
   if (!ctx.isGitRepo) {
-    notes.push("Not inside a git repository. Run `git init` before `amaco run`.");
+    notes.push("Not inside a git repository. Run `git init` before `vibestrate run`.");
   }
   if (!pkg) {
-    notes.push("No package.json found — Amaco cannot suggest validation commands.");
+    notes.push("No package.json found — Vibestrate cannot suggest validation commands.");
   } else if (suggested.length === 0) {
     notes.push(
-      "package.json has no recognized scripts (lint/typecheck/test). You can still run Amaco; reviews are stronger when validation is configured.",
+      "package.json has no recognized scripts (lint/typecheck/test). You can still run Vibestrate; reviews are stronger when validation is configured.",
     );
   }
   if (packageManager === "unknown" && pkg) {
     notes.push(
-      "No lockfile detected. Amaco cannot suggest a package-manager-specific command. Run `amaco config set commands.validate \"[...]\"` to add your own.",
+      "No lockfile detected. Vibestrate cannot suggest a package-manager-specific command. Run `vibestrate config set commands.validate \"[...]\"` to add your own.",
     );
   }
 

@@ -1,6 +1,6 @@
-# Amaco — Design Direction
+# Vibestrate — Design Direction
 
-This file pins the design language for the Amaco supervisor dashboard so the UI stays coherent across phases.
+This file pins the design language for the Vibestrate supervisor dashboard so the UI stays coherent across phases.
 
 ## Product feel
 
@@ -104,14 +104,14 @@ Diffs are the highest-value content in the inspector. Treat them like the trace 
 
 ## Empty / loading / error
 
-- Empty: one short sentence + the next-step command (e.g. *"No runs yet. Run `amaco run "your task"` from this project."*).
+- Empty: one short sentence + the next-step command (e.g. *"No runs yet. Run `vibestrate run "your task"` from this project."*).
 - Loading: subtle skeleton, never spinners-of-doom. No "AI is thinking" copy.
 - Error: red icon, plain-language message, one fix hint. Same voice as the CLI.
 
 ## What never ships
 
 - Sparkle icons, rainbows, gradients, glow effects.
-- Mascots, avatars, "Amaco Bot" personas.
+- Mascots, avatars, "Vibestrate Bot" personas.
 - Fake progress. Fake metrics. Fake costs. Fake logs.
 - Browser-side shell execution. Browser-side spawning of `claude`.
 - Auto-push, auto-merge, "click to ship" buttons.

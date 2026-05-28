@@ -28,7 +28,7 @@ export async function runInteractiveSetupWizard(args: {
 }): Promise<SetupResult> {
   const plan = await planSetup({ projectRoot: args.projectRoot });
 
-  console.log(header("Amaco setup"));
+  console.log(header("Vibestrate setup"));
   console.log("");
   console.log(
     `Project: ${color.bold(plan.project.name)} (${plan.project.projectType}, ${plan.project.packageManager})`,
@@ -73,7 +73,7 @@ export async function runInteractiveSetupWizard(args: {
         name: `Codex CLI starter preset (${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
         value: "codex",
         description:
-          "Uses `codex exec -q`; run `amaco provider test codex` after setup.",
+          "Uses `codex exec`; run `vibestrate provider test codex` after setup.",
       });
     }
     if (ollama) {
@@ -89,7 +89,7 @@ export async function runInteractiveSetupWizard(args: {
       { name: "Initialize anyway, set up provider later", value: "skip" },
     );
     providerChoice = await select({
-      message: "Detected local CLIs need confirmation. Which provider should Amaco use?",
+      message: "Detected local CLIs need confirmation. Which provider should Vibestrate use?",
       choices,
       default: codex ? "codex" : "ollama",
     });
@@ -171,7 +171,7 @@ export async function runInteractiveSetupWizard(args: {
     const setRes = await setDefaultProvider(args.projectRoot, "codex");
     if (setRes.ok) {
       console.log(`${symbol.ok()} Codex CLI configured with the starter preset.`);
-      console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test codex")}`));
+      console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate provider test codex")}`));
     } else {
       console.log(`${symbol.warn()} ${setRes.reason}`);
     }
@@ -185,7 +185,7 @@ export async function runInteractiveSetupWizard(args: {
     if (setRes.ok) {
       console.log(`${symbol.ok()} Ollama configured with the starter preset.`);
       console.log(indent(`${symbol.arrow()} ${color.bold("ollama pull qwen3.5")}`));
-      console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test ollama")}`));
+      console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate provider test ollama")}`));
     } else {
       console.log(`${symbol.warn()} ${setRes.reason}`);
     }
@@ -197,8 +197,8 @@ export async function runInteractiveSetupWizard(args: {
 
   console.log("");
   console.log(header("Saved."));
-  console.log(indent(`${symbol.arrow()} ${color.bold("amaco doctor")}`));
-  console.log(indent(`${symbol.arrow()} ${color.bold('amaco run "your task"')}`));
+  console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
+  console.log(indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`));
 
   const finalPlan = await planSetup({ projectRoot: args.projectRoot });
   return { plan: finalPlan, init: result.init };
@@ -207,7 +207,7 @@ export async function runInteractiveSetupWizard(args: {
 export async function runStandaloneSetupWizard(args: {
   projectRoot: string;
 }): Promise<void> {
-  console.log(header("Amaco setup"));
+  console.log(header("Vibestrate setup"));
   console.log("");
   console.log(
     "This walks through provider, validation, and run defaults. Press Ctrl+C to cancel anytime.",
@@ -245,7 +245,7 @@ export async function runStandaloneSetupWizard(args: {
         name: `Codex CLI starter preset (${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
         value: "codex",
         description:
-          "Uses `codex exec -q`; run `amaco provider test codex` after setup.",
+          "Uses `codex exec`; run `vibestrate provider test codex` after setup.",
       });
     }
     if (ollama) {
@@ -281,7 +281,7 @@ export async function runStandaloneSetupWizard(args: {
       alsoAssignAllRoles: true,
     });
     console.log(`${symbol.ok()} Codex CLI configured with the starter preset.`);
-    console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test codex")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate provider test codex")}`));
   } else if (providerChoice === "ollama" && ollama) {
     await addProvider(args.projectRoot, {
       id: "ollama",
@@ -290,7 +290,7 @@ export async function runStandaloneSetupWizard(args: {
     });
     console.log(`${symbol.ok()} Ollama configured with the starter preset.`);
     console.log(indent(`${symbol.arrow()} ${color.bold("ollama pull qwen3.5")}`));
-    console.log(indent(`${symbol.arrow()} ${color.bold("amaco provider test ollama")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate provider test ollama")}`));
   } else if (providerChoice === "custom") {
     const id = await askInput({
       message: "Provider id:",
@@ -346,6 +346,6 @@ export async function runStandaloneSetupWizard(args: {
 
   console.log("");
   console.log(header("Done."));
-  console.log(indent(`${symbol.arrow()} ${color.bold("amaco doctor")}`));
-  console.log(indent(`${symbol.arrow()} ${color.bold('amaco run "your task"')}`));
+  console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
+  console.log(indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`));
 }

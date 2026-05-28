@@ -1,17 +1,17 @@
 ---
 title: Architecture overview
-description: How Amaco's pieces fit together — orchestrator, providers, agents, state machine, worktrees, dashboard.
+description: How Vibestrate's pieces fit together — orchestrator, providers, agents, state machine, worktrees, dashboard.
 section: architecture
 slug: architecture/overview
 ---
 
-Amaco is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component.
+Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component.
 
 ## The components
 
 ```text
                 ┌──────────────────────────────────────────┐
-                │              amaco CLI                   │
+                │              vibestrate CLI                   │
                 │     (commander program in src/cli)       │
                 └──────────────┬───────────────────────────┘
                                │
@@ -21,7 +21,7 @@ Amaco is a single Node process that orchestrates other local processes. There is
                 │                                          │
                 │   drives the workflow stage-by-stage,    │
                 │   transitions the state machine,         │
-                │   writes artifacts under .amaco/runs/    │
+                │   writes artifacts under .vibestrate/runs/    │
                 └──────────────┬───────────────────────────┘
                                │
         ┌──────────────────────┼──────────────────────────┐
@@ -59,7 +59,7 @@ Amaco is a single Node process that orchestrates other local processes. There is
 - Stage sequencing — driving a run through the workflow.
 - State machine transitions — calling `assertTransition` before every move.
 - Worktree lifecycle — create, bind a branch, commit per stage.
-- Artifact persistence — every prompt, response, decision, and event under `.amaco/runs/<runId>/`.
+- Artifact persistence — every prompt, response, decision, and event under `.vibestrate/runs/<runId>/`.
 - Approval handling — pause for `waiting_for_approval`, resume on decide.
 - Pause/resume — the user-requested pause flag, durable across restarts.
 
@@ -78,14 +78,14 @@ For each stage that runs a model:
 
 ## What Mission Control reads
 
-The Fastify server in `src/server/` exposes read-only routes over the persisted state — `.amaco/runs/`, `project.yml`, the provider registry, the skills index. Write-side routes are narrow and audited: approval decisions, pause/resume requests, suggestion bundle applies. The browser never executes arbitrary commands.
+The Fastify server in `src/server/` exposes read-only routes over the persisted state — `.vibestrate/runs/`, `project.yml`, the provider registry, the skills index. Write-side routes are narrow and audited: approval decisions, pause/resume requests, suggestion bundle applies. The browser never executes arbitrary commands.
 
 ## What's deliberately *not* in the architecture
 
-- **No global daemon.** When you close the terminal, Amaco's process ends. Runs that are mid-stage end with it (most cleanly at the next stage boundary because of how pause works under the hood).
+- **No global daemon.** When you close the terminal, Vibestrate's process ends. Runs that are mid-stage end with it (most cleanly at the next stage boundary because of how pause works under the hood).
 - **No remote.** No relay, no telemetry beacon, no automatic update check.
-- **No model API.** Amaco doesn't hold tokens. The local provider CLIs do that themselves.
-- **No OS sandboxing.** Path guards and permission profiles refuse risky operations, but they're enforced by Amaco itself, not by the OS.
+- **No model API.** Vibestrate doesn't hold tokens. The local provider CLIs do that themselves.
+- **No OS sandboxing.** Path guards and permission profiles refuse risky operations, but they're enforced by Vibestrate itself, not by the OS.
 
 ## Related
 

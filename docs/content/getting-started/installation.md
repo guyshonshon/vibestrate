@@ -1,39 +1,39 @@
 ---
 title: Installation
-description: Install Amaco from npm and verify your environment.
+description: Install Vibestrate from npm and verify your environment.
 section: getting-started
 slug: getting-started/installation
 ---
 
-Amaco runs on macOS and Linux. Windows is not currently supported.
+Vibestrate runs on macOS and Linux. Windows is not currently supported.
 
 ## Requirements
 
 - **Node.js 18.17 or newer.** Check with `node --version`.
-- **git 2.5+.** Amaco creates and tears down worktrees, which need a modern git.
+- **git 2.5+.** Vibestrate creates and tears down worktrees, which need a modern git.
 - **pnpm or npm.** Either is fine for installing the package.
-- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later — `amaco doctor` will tell you what's missing.
+- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later — `vibestrate doctor` will tell you what's missing.
 
 ## Install globally
 
-One-liner (macOS / Linux) — installs the `amaco` CLI via npm under the hood:
+One-liner (macOS / Linux) — installs the `vibestrate` CLI via npm under the hood:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/guyshonshon/amaco/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 ```
 
-Pin a version with `AMACO_VERSION=0.1.1 sh` after the pipe. Or install with npm / pnpm directly:
+Pin a version with `VIBESTRATE_VERSION=0.1.1 sh` after the pipe. Or install with npm / pnpm directly:
 
 ```bash
-npm install -g amaco-os
+npm install -g vibestrate
 # or
-pnpm add -g amaco-os
+pnpm add -g vibestrate
 ```
 
 Verify:
 
 ```bash
-amaco --version
+vibestrate --version
 ```
 
 ## Initialize a project
@@ -41,15 +41,15 @@ amaco --version
 From the root of any git repository:
 
 ```bash
-amaco init
+vibestrate init
 ```
 
-This creates a `.amaco/` directory containing the project configuration, agent prompt templates, and the runs folder. It does not modify any of your existing files.
+This creates a `.vibestrate/` directory containing the project configuration, agent prompt templates, and the runs folder. It does not modify any of your existing files.
 
 After init, run the environment check:
 
 ```bash
-amaco doctor
+vibestrate doctor
 ```
 
 Doctor walks through everything that needs to be ready before your first run — git state, project config, available providers, validation commands, permissions. Anything red, it tells you how to fix.
@@ -57,7 +57,7 @@ Doctor walks through everything that needs to be ready before your first run —
 ## What got created
 
 ```text
-.amaco/
+.vibestrate/
   project.yml      providers, agents, commands, policies
   rules.md         project instructions agents read on every turn
   agents/          per-role prompt templates you can edit
@@ -66,7 +66,7 @@ Doctor walks through everything that needs to be ready before your first run —
   runs/            run state, artifacts, metrics, events
 ```
 
-You can commit `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents/`, `.amaco/skills/`, and `.amaco/flows/`. The `runs/` directory holds per-run artifacts and is best left untracked — Amaco adds it to your `.gitignore` automatically.
+You can commit `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents/`, `.vibestrate/skills/`, and `.vibestrate/flows/`. The `runs/` directory holds per-run artifacts and is best left untracked — Vibestrate adds it to your `.gitignore` automatically.
 
 ## Next
 

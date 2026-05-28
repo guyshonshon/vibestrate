@@ -20,7 +20,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeFlowRepo(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-flows-phase2-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-flows-phase2-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -36,15 +36,15 @@ async function makeFlowRepo(): Promise<string> {
 let prompt = "";
 process.stdin.on("data", (chunk) => prompt += chunk);
 process.stdin.on("end", () => {
-  if (prompt.includes("Amaco Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: reviewer")) {
     console.log("# Review\\n\\nDECISION: APPROVED\\n\\nNo blocking findings.");
-  } else if (prompt.includes("Amaco Agent: verifier")) {
+  } else if (prompt.includes("Vibestrate Agent: verifier")) {
     console.log("# Decision Summary\\n\\nVERIFICATION: PASSED\\n\\nEvidence checked.");
-  } else if (prompt.includes("Amaco Agent: planner")) {
+  } else if (prompt.includes("Vibestrate Agent: planner")) {
     console.log("# Plan\\n\\nUse persisted Flow outputs.");
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     console.log("# Implementation Summary\\n\\nNo source change required.");
-  } else if (prompt.includes("Amaco Agent: fixer")) {
+  } else if (prompt.includes("Vibestrate Agent: fixer")) {
     console.log("# Challenge Response\\n\\nNo findings require changes.");
   } else {
     console.log("# Unknown Agent");
@@ -104,7 +104,7 @@ describe("Flow Phase 2 sequential runner", () => {
     }).run();
 
     expect(result.state.status).toBe("merge_ready");
-    const runDir = path.join(projectRoot, ".amaco", "runs", result.runId);
+    const runDir = path.join(projectRoot, ".vibestrate", "runs", result.runId);
     const state = runStateSchema.parse(
       JSON.parse(await fs.readFile(path.join(runDir, "state.json"), "utf8")),
     );

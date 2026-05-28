@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-rm-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-rm-"));
 }
 
 describe("RoadmapService", () => {
@@ -74,7 +74,7 @@ describe("RoadmapService", () => {
     const after = await svc.setTaskRun({
       taskId: t.id,
       runId: "20260509-r1",
-      branchName: "amaco/r1",
+      branchName: "vibestrate/r1",
       worktreePath: "/tmp/wt",
       status: "running",
     });

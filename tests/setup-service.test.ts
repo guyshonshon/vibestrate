@@ -20,7 +20,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-setup-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-setup-"));
 }
 
 describe("setup service", () => {

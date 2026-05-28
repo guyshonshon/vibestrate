@@ -42,7 +42,7 @@ export function buildValidationCommand(): Command {
     .action(async (opts: { json?: boolean }) => {
       const cfg = await loadConfig(process.cwd()).catch(() => null);
       if (!cfg) {
-        console.error(color.red("Project not initialised. Run `amaco init`."));
+        console.error(color.red("Project not initialised. Run `vibestrate init`."));
         process.exit(2);
       }
       const profiles = listValidationProfiles(cfg.config);
@@ -107,7 +107,7 @@ export function buildValidationCommand(): Command {
     .action(async (name: string, opts: { json?: boolean }) => {
       const cfg = await loadConfig(process.cwd()).catch(() => null);
       if (!cfg) {
-        console.error(color.red("Project not initialised. Run `amaco init`."));
+        console.error(color.red("Project not initialised. Run `vibestrate init`."));
         process.exit(2);
       }
       try {
@@ -218,7 +218,7 @@ export function buildValidationCommand(): Command {
   profileSub
     .command("doctor")
     .description(
-      "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `amaco doctor` (recent 50 runs); use --all to lift the cap.",
+      "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibestrate doctor` (recent 50 runs); use --all to lift the cap.",
     )
     .option("--all", "scan every run instead of the recent 50")
     .option("--run <runId>", "limit the audit to a single run")
@@ -281,7 +281,7 @@ async function runMigration(input: {
 }): Promise<void> {
   const cfg = await loadConfig(process.cwd()).catch(() => null);
   if (!cfg) {
-    console.error(color.red("Project not initialised. Run `amaco init`."));
+    console.error(color.red("Project not initialised. Run `vibestrate init`."));
     process.exit(2);
   }
   try {
@@ -309,7 +309,7 @@ async function runMigration(input: {
       scope: input.scope,
     });
     console.log(
-      `${symbol.ok()} Applied. Audit: ${color.dim(`.amaco/validation-profile-migrations/${audit.id}.json`)}`,
+      `${symbol.ok()} Applied. Audit: ${color.dim(`.vibestrate/validation-profile-migrations/${audit.id}.json`)}`,
     );
   } catch (err) {
     if (err instanceof ValidationProfileMigrationError) {
@@ -357,7 +357,7 @@ async function runRename(input: {
 }): Promise<void> {
   const cfg = await loadConfig(process.cwd()).catch(() => null);
   if (!cfg) {
-    console.error(color.red("Project not initialised. Run `amaco init`."));
+    console.error(color.red("Project not initialised. Run `vibestrate init`."));
     process.exit(2);
   }
   try {
@@ -378,7 +378,7 @@ async function runRename(input: {
       scope: input.scope,
     });
     console.log(
-      `${symbol.ok()} Renamed ${color.bold(preview.fromProfile)} → ${color.bold(preview.toProfile)}. Audit: ${color.dim(`.amaco/validation-profile-migrations/${audit.id}.json`)}`,
+      `${symbol.ok()} Renamed ${color.bold(preview.fromProfile)} → ${color.bold(preview.toProfile)}. Audit: ${color.dim(`.vibestrate/validation-profile-migrations/${audit.id}.json`)}`,
     );
   } catch (err) {
     if (err instanceof ValidationProfileRenameError) {
@@ -431,13 +431,13 @@ async function runProfileDoctor(input: {
     if (input.json) {
       console.log(
         JSON.stringify(
-          { error: "Project not initialised. Run `amaco init`." },
+          { error: "Project not initialised. Run `vibestrate init`." },
           null,
           2,
         ),
       );
     } else {
-      console.error(color.red("Project not initialised. Run `amaco init`."));
+      console.error(color.red("Project not initialised. Run `vibestrate init`."));
     }
     process.exit(2);
   }
@@ -517,7 +517,7 @@ async function runProfileDoctor(input: {
       const guess = suggestProfileName(r.profileName, liveNamed);
       const suffix = guess
         ? color.dim(
-            `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+            `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`,
           )
         : "";
       console.log(
@@ -536,7 +536,7 @@ async function runProfileDoctor(input: {
       const guess = suggestProfileName(r.profileName, liveNamed);
       const suffix = guess
         ? color.dim(
-            `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`,
+            `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`,
           )
         : "";
       console.log(

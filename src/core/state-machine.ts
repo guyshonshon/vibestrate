@@ -108,7 +108,7 @@ export const runStateSchema = z.object({
   error: z.string().nullable().default(null),
   pendingApprovalId: z.string().nullable().default(null),
   approvalRequestedFromStatus: runStatusSchema.nullable().default(null),
-  // Optional roadmap task this run is associated with. Set by `amaco run --task`
+  // Optional roadmap task this run is associated with. Set by `vibestrate run --task`
   // or by the scheduler. Existing runs round-trip safely (defaults to null).
   taskId: z.string().nullable().default(null),
   // ─── Pause / resume ────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ export const runStateSchema = z.object({
   // surrounding code, bullets over paragraphs, no preamble.
   concise: z.boolean().default(false),
   // Flows persist their immutable resolved snapshot separately at
-  // `.amaco/runs/<id>/flow.json`; this live ledger stays in state.json
+  // `.vibestrate/runs/<id>/flow.json`; this live ledger stays in state.json
   // so run lists, shell snapshots, and replay can expose progress without
   // reading artifacts or provider output.
   flow: flowRunStateSchema.nullable().default(null),

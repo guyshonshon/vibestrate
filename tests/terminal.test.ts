@@ -74,7 +74,7 @@ async function makeProject(opts: {
   allowTerminal: boolean;
   worktreeInsideProjectRoot?: boolean;
 }): Promise<{ project: string; runId: string; worktree: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-term-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-term-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -82,9 +82,9 @@ async function makeProject(opts: {
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -103,15 +103,15 @@ async function makeProject(opts: {
   const runId = "20260512-120000-fixture";
   const worktreeBase = opts.worktreeInsideProjectRoot
     ? path.join(project, "inside-wt")
-    : path.join(await fs.mkdtemp(path.join(os.tmpdir(), "amaco-term-wt-")), "wt");
+    : path.join(await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-term-wt-")), "wt");
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktreeBase, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktreeBase, "main"],
     { cwd: project },
   );
 
   // state.json
-  const runDir = path.join(project, ".amaco/runs", runId);
+  const runDir = path.join(project, ".vibestrate/runs", runId);
   await fs.mkdir(path.join(runDir, "artifacts"), { recursive: true });
   const ts = new Date().toISOString();
   await fs.writeFile(
@@ -122,7 +122,7 @@ async function makeProject(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktreeBase,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -282,7 +282,7 @@ describe("terminal env hygiene", () => {
       expect(env.LD_PRELOAD).toBeUndefined();
       expect(env.DYLD_INSERT_LIBRARIES).toBeUndefined();
       expect(env.TERM).toBe("xterm-256color");
-      expect(env.AMACO_TERMINAL).toBe("1");
+      expect(env.VIBESTRATE_TERMINAL).toBe("1");
     } finally {
       delete process.env.LD_PRELOAD;
       delete process.env.DYLD_INSERT_LIBRARIES;
@@ -343,7 +343,7 @@ describe("terminal lifecycle (create / list / get / resize / close)", () => {
     // Disk-backed record reflects the close
     const persisted = JSON.parse(
       await fs.readFile(
-        path.join(project, ".amaco/terminal/sessions.json"),
+        path.join(project, ".vibestrate/terminal/sessions.json"),
         "utf8",
       ),
     ) as { sessions: { id: string; closedAt: string | null }[] };

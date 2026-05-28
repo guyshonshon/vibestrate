@@ -11,7 +11,7 @@ import type {
 /**
  * Lightweight maintenance panel for validation profiles. Reads:
  *   - the live profile list (default + named)
- *   - usage telemetry (.amaco/validation-profile-usage.json)
+ *   - usage telemetry (.vibestrate/validation-profile-usage.json)
  *   - per-row staleness via a profile-migration preview pass
  *
  * Lets the user dry-run a `fromProfile → toProfile (or clear)` migration
@@ -122,7 +122,7 @@ export function ProfileMaintenancePanel() {
       typeof window !== "undefined" &&
       !window.confirm(
         `Rename profile "${renamePreview.fromProfile}" → "${renamePreview.toProfile}" in project.yml AND migrate ${total} reference(s)?\n\n` +
-          `This rewrites .amaco/project.yml. The profile's ${renamePreview.preservedCommandCount} command(s)` +
+          `This rewrites .vibestrate/project.yml. The profile's ${renamePreview.preservedCommandCount} command(s)` +
           (renamePreview.preservedDescription
             ? ` and description "${renamePreview.preservedDescription}"`
             : "") +
@@ -187,10 +187,10 @@ export function ProfileMaintenancePanel() {
   return (
     <div className="space-y-4 p-4 text-[12px]">
       <header>
-        <h2 className="text-[13px] font-medium text-amaco-fg">
+        <h2 className="text-[13px] font-medium text-vibestrate-fg">
           Validation profiles
         </h2>
-        <p className="mt-0.5 text-[10.5px] text-amaco-fg-muted">
+        <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-muted">
           Migrations update future suggestion / bundle assignments only.
           Historical validation results keep the profile metadata they ran
           with.
@@ -198,18 +198,18 @@ export function ProfileMaintenancePanel() {
       </header>
 
       {error ? (
-        <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-amaco-fail">
+        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
           {error}
         </div>
       ) : null}
       {info ? (
-        <div className="rounded border border-amaco-success/40 bg-amaco-success/10 px-2 py-1 text-amaco-success">
+        <div className="rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-vibestrate-success">
           {info}
         </div>
       ) : null}
 
       <section>
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
           Profiles
         </h3>
         <ul className="mt-1 space-y-1">
@@ -223,39 +223,39 @@ export function ProfileMaintenancePanel() {
             return (
               <li
                 key={`${p.source}:${p.profileName}`}
-                className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5"
+                className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
               >
                 <div className="flex items-baseline gap-2">
                   <span className="font-medium">{p.profileName}</span>
-                  <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                     {p.source}
                   </span>
                   {p.hasCommands ? (
-                    <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                       {p.commands.length} command{p.commands.length === 1 ? "" : "s"}
                     </span>
                   ) : (
-                    <span className="amaco-mono text-[10px] text-amaco-warn">
+                    <span className="vibestrate-mono text-[10px] text-vibestrate-warn">
                       empty
                     </span>
                   )}
                   {u ? (
-                    <span className="amaco-mono ml-auto text-[10px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
                       {u.totalUses} use{u.totalUses === 1 ? "" : "s"} ·{" "}
                       last {u.lastUsedAt ?? "—"}
                     </span>
                   ) : (
-                    <span className="amaco-mono ml-auto text-[10px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
                       never used
                     </span>
                   )}
                 </div>
                 {p.description ? (
-                  <p className="text-[10.5px] text-amaco-fg-dim">
+                  <p className="text-[10.5px] text-vibestrate-fg-dim">
                     {p.description}
                   </p>
                 ) : null}
-                <p className="amaco-mono mt-0.5 truncate text-[10px] text-amaco-fg-muted">
+                <p className="vibestrate-mono mt-0.5 truncate text-[10px] text-vibestrate-fg-muted">
                   {p.commands.length === 0
                     ? "(no commands)"
                     : `→ ${p.commands.join("  ·  ")}`}
@@ -266,11 +266,11 @@ export function ProfileMaintenancePanel() {
         </ul>
       </section>
 
-      <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+      <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
           Migrate profile references
         </h3>
-        <p className="text-[10.5px] text-amaco-fg-muted">
+        <p className="text-[10.5px] text-vibestrate-fg-muted">
           Preview first. Apply requires confirmation.
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -284,7 +284,7 @@ export function ProfileMaintenancePanel() {
                 setPreview(null);
               }}
               placeholder="quikc"
-              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px]"
+              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
             />
           </label>
           <label className="flex items-center gap-1 text-[10.5px]">
@@ -298,7 +298,7 @@ export function ProfileMaintenancePanel() {
               }}
               placeholder="quick"
               disabled={clear}
-              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px] disabled:opacity-50"
+              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px] disabled:opacity-50"
             />
           </label>
           <label className="flex items-center gap-1 text-[10.5px]">
@@ -316,7 +316,7 @@ export function ProfileMaintenancePanel() {
             type="button"
             onClick={() => void doPreview()}
             disabled={busy}
-            className="rounded border border-amaco-border px-2 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel"
+            className="rounded border border-vibestrate-border px-2 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
           >
             Preview changes
           </button>
@@ -327,32 +327,32 @@ export function ProfileMaintenancePanel() {
               type="button"
               onClick={() => void doApply()}
               disabled={busy}
-              className="rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2 py-0.5 text-[11px] text-amaco-fg hover:bg-amaco-accent-soft/50"
+              className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
             >
               Apply migration
             </button>
           ) : null}
         </div>
         {preview ? (
-          <div className="mt-2 rounded border border-amaco-border bg-amaco-panel px-2 py-1.5">
-            <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">
+          <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
+            <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
               {preview.fromProfile} →{" "}
               {preview.toProfile ?? "default (clear)"} · scanned{" "}
               {preview.scannedRuns} run(s)
             </div>
-            <div className="amaco-mono mt-1 text-[10.5px]">
+            <div className="vibestrate-mono mt-1 text-[10.5px]">
               suggestions: {preview.affectedSuggestions.length} · bundles:{" "}
               {preview.affectedBundles.length} · malformed:{" "}
               {preview.malformedFiles.length}
             </div>
             {preview.affectedSuggestions.length === 0 &&
             preview.affectedBundles.length === 0 ? (
-              <p className="text-amaco-fg-muted">
+              <p className="text-vibestrate-fg-muted">
                 Nothing to migrate — no records reference “
                 {preview.fromProfile}” in the scanned runs.
               </p>
             ) : (
-              <ul className="amaco-mono mt-1 max-h-32 overflow-y-auto text-[10px] text-amaco-fg-dim">
+              <ul className="vibestrate-mono mt-1 max-h-32 overflow-y-auto text-[10px] text-vibestrate-fg-dim">
                 {[
                   ...preview.affectedSuggestions.map(
                     (r) => `suggestion ${r.runId}/${r.id}`,
@@ -371,11 +371,11 @@ export function ProfileMaintenancePanel() {
         ) : null}
       </section>
 
-      <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+      <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
           Rename profile
         </h3>
-        <p className="text-[10.5px] text-amaco-fg-muted">
+        <p className="text-[10.5px] text-vibestrate-fg-muted">
           Renames a profile key in <code>commands.validationProfiles</code> and
           migrates every matching suggestion/bundle reference atomically.
           Preview first; apply requires confirmation.
@@ -391,7 +391,7 @@ export function ProfileMaintenancePanel() {
                 setRenamePreview(null);
               }}
               placeholder="quikc"
-              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px]"
+              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
             />
           </label>
           <label className="flex items-center gap-1 text-[10.5px]">
@@ -404,14 +404,14 @@ export function ProfileMaintenancePanel() {
                 setRenamePreview(null);
               }}
               placeholder="quick"
-              className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px]"
+              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px]"
             />
           </label>
           <button
             type="button"
             onClick={() => void doRenamePreview()}
             disabled={busy}
-            className="rounded border border-amaco-border px-2 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel"
+            className="rounded border border-vibestrate-border px-2 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
           >
             Preview rename
           </button>
@@ -420,32 +420,32 @@ export function ProfileMaintenancePanel() {
               type="button"
               onClick={() => void doRenameApply()}
               disabled={busy}
-              className="rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2 py-0.5 text-[11px] text-amaco-fg hover:bg-amaco-accent-soft/50"
+              className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-[11px] text-vibestrate-fg hover:bg-vibestrate-accent-soft/50"
             >
               Apply rename
             </button>
           ) : null}
         </div>
         {renamePreview ? (
-          <div className="mt-2 rounded border border-amaco-border bg-amaco-panel px-2 py-1.5">
-            <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">
+          <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
+            <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
               {renamePreview.fromProfile} → {renamePreview.toProfile} · scanned{" "}
               {renamePreview.scannedRuns} run(s)
             </div>
-            <div className="amaco-mono mt-1 text-[10.5px]">
+            <div className="vibestrate-mono mt-1 text-[10.5px]">
               preserves {renamePreview.preservedCommandCount} command
               {renamePreview.preservedCommandCount === 1 ? "" : "s"}
               {renamePreview.preservedDescription
                 ? ` · description "${renamePreview.preservedDescription}"`
                 : ""}
             </div>
-            <div className="amaco-mono mt-1 text-[10.5px]">
+            <div className="vibestrate-mono mt-1 text-[10.5px]">
               references: {renamePreview.affectedSuggestions.length} suggestion(s),{" "}
               {renamePreview.affectedBundles.length} bundle(s),{" "}
               {renamePreview.malformedFiles.length} malformed
             </div>
             {renamePreview.warnings.length > 0 ? (
-              <ul className="mt-1 text-[10.5px] text-amaco-warn">
+              <ul className="mt-1 text-[10.5px] text-vibestrate-warn">
                 {renamePreview.warnings.map((w) => (
                   <li key={w}>! {w}</li>
                 ))}
@@ -456,27 +456,27 @@ export function ProfileMaintenancePanel() {
       </section>
 
       <section>
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
           Migration history
         </h3>
-        <p className="text-[10.5px] text-amaco-fg-muted">
+        <p className="text-[10.5px] text-vibestrate-fg-muted">
           Every rename/migrate/clear writes a single audit JSON under{" "}
-          <code>.amaco/validation-profile-migrations/</code>.
+          <code>.vibestrate/validation-profile-migrations/</code>.
         </p>
         {history.length === 0 ? (
-          <p className="mt-1 text-[10.5px] text-amaco-fg-muted">
+          <p className="mt-1 text-[10.5px] text-vibestrate-fg-muted">
             No migrations recorded yet.
           </p>
         ) : (
-          <ul className="amaco-mono mt-1 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
+          <ul className="vibestrate-mono mt-1 max-h-48 space-y-1 overflow-y-auto text-[10.5px]">
             {history.map((m) => {
               const kind = m.kind ?? "migrate_references";
               const tagClass =
                 kind === "rename_profile"
-                  ? "text-amaco-accent"
+                  ? "text-vibestrate-accent"
                   : kind === "clear_references"
-                    ? "text-amaco-warn"
-                    : "text-amaco-fg-muted";
+                    ? "text-vibestrate-warn"
+                    : "text-vibestrate-fg-muted";
               const target = m.toProfile ?? "default";
               const total =
                 m.affectedSuggestions.length + m.affectedBundles.length;
@@ -484,23 +484,23 @@ export function ProfileMaintenancePanel() {
               return (
                 <li
                   key={m.id}
-                  className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1"
+                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1"
                 >
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className={tagClass}>
                       {kind.replace("_", " ")}
                     </span>
-                    <span className="text-amaco-fg">
+                    <span className="text-vibestrate-fg">
                       {m.fromProfile} → {target}
                     </span>
-                    <span className="text-amaco-fg-muted">
+                    <span className="text-vibestrate-fg-muted">
                       {total} reference{total === 1 ? "" : "s"}
                     </span>
-                    <span className="ml-auto text-[10px] text-amaco-fg-muted">
+                    <span className="ml-auto text-[10px] text-vibestrate-fg-muted">
                       {stamp}
                     </span>
                   </div>
-                  <div className="text-[10px] text-amaco-fg-muted">
+                  <div className="text-[10px] text-vibestrate-fg-muted">
                     {m.id}
                     {m.renamedProfile &&
                     typeof m.preservedCommandCount === "number"

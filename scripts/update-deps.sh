@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Update amaco-os dependencies, then re-validate.
+# Update vibestrate dependencies, then re-validate.
 #
 # Usage:
 #   ./scripts/update-deps.sh            # update within semver ranges

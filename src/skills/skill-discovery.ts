@@ -5,7 +5,7 @@ import { isPathInside, projectSkillsDir } from "../utils/paths.js";
 import { readSkillMcpServers } from "../mcp/mcp-resolve.js";
 import type { McpServersMap } from "../mcp/mcp-schema.js";
 
-export type SkillSource = "amaco" | "claude" | "user";
+export type SkillSource = "vibestrate" | "claude" | "user";
 
 export type DiscoveredSkill = {
   id: string;
@@ -119,7 +119,7 @@ async function discoverFromDir(input: {
       continue;
     }
 
-    // Flat .md skill (legacy Amaco style).
+    // Flat .md skill (legacy Vibestrate style).
     if (entry.endsWith(".md") && entry !== "README.md") {
       const text = await readText(candidatePath);
       const { frontmatter, body } = parseFrontmatter(text);
@@ -149,17 +149,17 @@ async function discoverFromDir(input: {
 }
 
 export async function discoverSkills(projectRoot: string): Promise<DiscoveredSkill[]> {
-  const amacoDir = projectSkillsDir(projectRoot);
+  const vibestrateDir = projectSkillsDir(projectRoot);
   const claudeDir = path.join(projectRoot, ".claude", "skills");
 
-  const [amaco, claude] = await Promise.all([
-    discoverFromDir({ rootDir: amacoDir, source: "amaco" }),
+  const [vibestrate, claude] = await Promise.all([
+    discoverFromDir({ rootDir: vibestrateDir, source: "vibestrate" }),
     discoverFromDir({ rootDir: claudeDir, source: "claude" }),
   ]);
 
   const merged: DiscoveredSkill[] = [];
   const seen = new Set<string>();
-  for (const skill of [...amaco, ...claude]) {
+  for (const skill of [...vibestrate, ...claude]) {
     if (seen.has(skill.id)) continue;
     seen.add(skill.id);
     merged.push(skill);

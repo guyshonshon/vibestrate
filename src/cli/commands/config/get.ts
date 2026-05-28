@@ -2,7 +2,7 @@ import { detectProject } from "../../../project/project-detector.js";
 import { getConfigValue } from "../../../setup/config-update-service.js";
 import { configExists } from "../../../project/config-loader.js";
 import { color, symbol } from "../../ui/format.js";
-import { isAmacoError } from "../../../utils/errors.js";
+import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runConfigGet(
   pathArg: string,
@@ -10,14 +10,14 @@ export async function runConfigGet(
 ): Promise<number> {
   if (!pathArg) {
     console.error(
-      `${symbol.fail()} A config path is required. Example: ${color.bold("amaco config get commands.validate")}`,
+      `${symbol.fail()} A config path is required. Example: ${color.bold("vibestrate config get commands.validate")}`,
     );
     return 1;
   }
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Amaco config found. Run ${color.bold("amaco init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
@@ -41,7 +41,7 @@ export async function runConfigGet(
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }

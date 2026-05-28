@@ -5,17 +5,17 @@ import fs from "node:fs/promises";
 import { ProposalService } from "../src/roadmap/proposal-service.js";
 import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 
-const happy = `AMACO_ROADMAP_ITEM:
+const happy = `VIBESTRATE_ROADMAP_ITEM:
 TITLE: Build onboarding
 PRIORITY: high
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Create setup wizard
 ROADMAP: Build onboarding
 RISK: medium
 LIKELY_FILES: src/cli/commands/setup.ts
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Add setup tests
 ROADMAP: Build onboarding
 DEPENDS_ON: Create setup wizard
@@ -24,7 +24,7 @@ LIKELY_FILES: tests/setup-service.test.ts
 `;
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-prop-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-prop-"));
 }
 
 describe("ProposalService — dryRun", () => {
@@ -52,7 +52,7 @@ describe("ProposalService — dryRun", () => {
   });
 
   it("treats unresolved DEPENDS_ON as a fatal error in dry-run", async () => {
-    const broken = `AMACO_TASK:\nTITLE: A\nDEPENDS_ON: ghost-not-here\n`;
+    const broken = `VIBESTRATE_TASK:\nTITLE: A\nDEPENDS_ON: ghost-not-here\n`;
     const ps = new ProposalService(projectRoot);
     await ps.writeProposalText("broken", broken);
     const r = await ps.dryRun({ proposalId: "broken" });
@@ -62,7 +62,7 @@ describe("ProposalService — dryRun", () => {
   });
 
   it("--allow-unresolved-dependencies downgrades unresolved deps to warnings", async () => {
-    const broken = `AMACO_TASK:\nTITLE: A\nDEPENDS_ON: ghost-not-here\n`;
+    const broken = `VIBESTRATE_TASK:\nTITLE: A\nDEPENDS_ON: ghost-not-here\n`;
     const ps = new ProposalService(projectRoot);
     await ps.writeProposalText("broken", broken);
     const r = await ps.dryRun({
@@ -73,7 +73,7 @@ describe("ProposalService — dryRun", () => {
   });
 
   it("detects cycles in proposed task dependencies", async () => {
-    const cyc = `AMACO_TASK:\nTITLE: A\nDEPENDS_ON: B\n\nAMACO_TASK:\nTITLE: B\nDEPENDS_ON: A\n`;
+    const cyc = `VIBESTRATE_TASK:\nTITLE: A\nDEPENDS_ON: B\n\nVIBESTRATE_TASK:\nTITLE: B\nDEPENDS_ON: A\n`;
     const ps = new ProposalService(projectRoot);
     await ps.writeProposalText("cycle", cyc);
     const r = await ps.dryRun({ proposalId: "cycle" });
@@ -134,7 +134,7 @@ describe("ProposalService — accept (atomic)", () => {
   });
 
   it("refuses cycles", async () => {
-    const cyc = `AMACO_TASK:\nTITLE: A\nDEPENDS_ON: B\n\nAMACO_TASK:\nTITLE: B\nDEPENDS_ON: A\n`;
+    const cyc = `VIBESTRATE_TASK:\nTITLE: A\nDEPENDS_ON: B\n\nVIBESTRATE_TASK:\nTITLE: B\nDEPENDS_ON: A\n`;
     const ps = new ProposalService(projectRoot);
     await ps.writeProposalText("cycle", cyc);
     await expect(ps.accept({ proposalId: "cycle" })).rejects.toThrow(/Cycle/);

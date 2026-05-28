@@ -26,7 +26,7 @@ const MAX_PATCH_BYTES = 1_000_000;
  *     path the browser supplies) and runs the same engine the CLI uses.
  *     Does NOT apply, does NOT execute, does NOT touch any worktree.
  *   - There is no endpoint that creates/edits/deletes rule files;
- *     authoring stays file-based in .amaco/policies/.
+ *     authoring stays file-based in .vibestrate/policies/.
  */
 export async function registerPoliciesRoutes(
   app: FastifyInstance,

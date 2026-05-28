@@ -15,7 +15,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
         slotProviders: {
           challenger: "codex",
           builder: "claude",
-          arbiter: "amaco",
+          arbiter: "vibestrate",
         },
         skippedOptionalSteps: ["plan-review"],
       }),
@@ -28,7 +28,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
       "--flow-context",
       "compact",
       "--flow-slot",
-      "arbiter=amaco",
+      "arbiter=vibestrate",
       "--flow-slot",
       "builder=claude",
       "--flow-slot",
@@ -39,7 +39,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
     ]);
   });
 
-  it("prints the same run as an amaco command", () => {
+  it("prints the same run as an vibestrate command", () => {
     expect(
       formatFlowRunCommand({
         flowId: "quality-arbitration",
@@ -50,7 +50,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
         skippedOptionalSteps: [],
       }),
     ).toBe(
-      "amaco run --flow quality-arbitration --flow-context balanced --flow-slot builder=claude \"ship it\"",
+      "vibestrate run --flow quality-arbitration --flow-context balanced --flow-slot builder=claude \"ship it\"",
     );
   });
 });

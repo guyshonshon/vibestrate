@@ -11,7 +11,7 @@ A *skill* is a markdown file that gets concatenated onto an agent's prompt. It's
 
 Two roots are scanned:
 
-- `.amaco/skills/` — committed alongside your project. Use this for skills that should travel with the repo.
+- `.vibestrate/skills/` — committed alongside your project. Use this for skills that should travel with the repo.
 - `.claude/skills/` — picked up when you're already using Claude Code's skill system locally.
 
 Filename without the `.md` extension becomes the skill id. So `auth-conventions.md` is the skill `auth-conventions`.
@@ -19,7 +19,7 @@ Filename without the `.md` extension becomes the skill id. So `auth-conventions.
 ## A simple skill
 
 ```markdown
-# .amaco/skills/auth-conventions.md
+# .vibestrate/skills/auth-conventions.md
 
 This codebase uses Lucia for sessions. When touching auth:
 
@@ -45,7 +45,7 @@ agents:
 Or per-run, with `--skills`:
 
 ```bash
-amaco run "Add 2FA enrollment" --skills auth-conventions,security-review
+vibestrate run "Add 2FA enrollment" --skills auth-conventions,security-review
 ```
 
 Skills passed via `--skills` are *merged* with whatever's configured on each agent — they don't replace.
@@ -53,8 +53,8 @@ Skills passed via `--skills` are *merged* with whatever's configured on each age
 ## List what's available
 
 ```bash
-amaco skills list
-amaco skills show auth-conventions
+vibestrate skills list
+vibestrate skills show auth-conventions
 ```
 
 ## When to write a new skill

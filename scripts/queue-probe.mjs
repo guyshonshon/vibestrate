@@ -1,9 +1,15 @@
 import pty from "node-pty";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const distEntry = resolve(repoRoot, "dist/index.js");
+
 const p = pty.spawn(
   process.execPath,
-  ["/Users/guy/Programming/amaco/dist/index.js"],
+  [distEntry],
   {
-    cwd: "/tmp/amaco-shell-smoke",
+    cwd: "/tmp/vibestrate-shell-smoke",
     cols: 160,
     rows: 30,
     env: { ...process.env, TERM: "xterm-256color" },

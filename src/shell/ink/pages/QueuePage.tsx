@@ -9,7 +9,7 @@ import {
   removeQueueEntry,
   resumeScheduler,
 } from "../queue/queue-actions.js";
-import { spawnAmacoDetached } from "../runner/command-runner.js";
+import { spawnVibestrateDetached } from "../runner/command-runner.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
 
 type Props = {
@@ -79,15 +79,15 @@ export function QueuePage({
       // 's' starts the scheduler loop in the background. Spawned
       // detached so the panel stays responsive; the user can quit
       // it later with Ctrl+C from the other terminal or by running
-      // `amaco queue pause`.
+      // `vibestrate queue pause`.
       if (input === "s" || input === "S") {
-        const { pid } = spawnAmacoDetached({
+        const { pid } = spawnVibestrateDetached({
           projectRoot,
           argv: ["queue", "run"],
         });
         onToast(
           "ok",
-          `Started \`amaco queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
+          `Started \`vibestrate queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
         );
         return;
       }
@@ -111,7 +111,7 @@ export function QueuePage({
           {entries.length === 0 ? (
             <Text dimColor>
               queue is empty — add a task with{" "}
-              <Text color="cyan">amaco queue add &lt;taskId&gt;</Text> or from
+              <Text color="cyan">vibestrate queue add &lt;taskId&gt;</Text> or from
               the Roadmap (Q on a selected task)
             </Text>
           ) : (
@@ -205,7 +205,7 @@ function SchedulerHeader({
         </Text>
         <Text dimColor>
           press <Text color="cyan">s</Text> to spawn{" "}
-          <Text color="cyan">amaco queue run</Text> in the background
+          <Text color="cyan">vibestrate queue run</Text> in the background
         </Text>
       </Box>
     );

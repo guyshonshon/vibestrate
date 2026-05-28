@@ -17,7 +17,7 @@ import {
 const MAX_EVENTS = 10_000;
 
 /** Re-stated locally so the projection types don't depend on the event-log
- *  enum — older event logs may carry types newer Amaco versions removed.
+ *  enum — older event logs may carry types newer Vibestrate versions removed.
  *  The projection is forgiving: unknown event types still appear in the
  *  timeline, just classified into the "other" phase. */
 export type ReplayPhaseKey =
@@ -62,7 +62,7 @@ export type ReplayEvent = {
    *  to keep them visible in the same timeline. Synthetic rows never
    *  fabricate state that wasn't already on disk. */
   source: "event" | "synthetic";
-  /** Mirrors AmacoEvent.type for "event" rows; readable synthetic id for
+  /** Mirrors VibestrateEvent.type for "event" rows; readable synthetic id for
    *  "synthetic" rows ("notification.created", "terminal.session.opened",
    *  "terminal.session.closed"). */
   type: string;
@@ -252,13 +252,13 @@ export class RunReplayError extends Error {
 
 /**
  * Read-only projection over a run's persisted files. Tolerates missing
- * optional files (older runs may not have everything new Amaco versions
+ * optional files (older runs may not have everything new Vibestrate versions
  * write); the result lists each one under missingOrMalformed so the UI
  * surfaces honest gaps instead of pretending the data is there.
  *
  * The projection never reads worktree contents, source files, terminal
  * transcripts (none are persisted anyway), or .env files. It reads only
- * .amaco/runs/<runId>/* and the two project-scoped files that carry
+ * .vibestrate/runs/<runId>/* and the two project-scoped files that carry
  * per-run rows (notifications + terminal sessions), filtered to this run.
  */
 export async function buildRunReplay(
@@ -324,7 +324,7 @@ export async function buildRunReplay(
   const metrics = extractMetricsSummary(metricsRaw);
   const flow = extractFlowSummary(state);
 
-  // ─── Artifacts under .amaco/runs/<id>/artifacts/ ───────────────────────
+  // ─── Artifacts under .vibestrate/runs/<id>/artifacts/ ───────────────────────
   const artifactsDir = path.join(runDir(projectRoot, runId), "artifacts");
   const artifactNames = (await readDirSafe(artifactsDir)).sort();
   const artifacts = artifactNames.map((name) => ({ path: name }));

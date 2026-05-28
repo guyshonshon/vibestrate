@@ -263,7 +263,7 @@ export function FlowBuilderPage({
       setToast({
         kind: "ok",
         text: result.alreadyForked
-          ? `${result.flowId} already lives in .amaco/flows/`
+          ? `${result.flowId} already lives in .vibestrate/flows/`
           : `Forked to ${result.definitionPath} — now editable`,
       });
     } catch (err) {
@@ -395,7 +395,7 @@ export function FlowBuilderPage({
               disabled={forking}
               iconLeft={<Copy className="h-3 w-3" strokeWidth={1.7} />}
               onClick={() => void handleFork()}
-              title="Copy this flow into .amaco/flows/<id>/flow.yml so you can edit it"
+              title="Copy this flow into .vibestrate/flows/<id>/flow.yml so you can edit it"
             >
               {forking ? "Forking…" : "Fork to project"}
             </Button>
@@ -422,7 +422,7 @@ export function FlowBuilderPage({
                 ? "Builtin flows are read-only — Fork to project first."
                 : !dirty
                   ? "No changes to save"
-                  : "Save changes to .amaco/flows/"
+                  : "Save changes to .vibestrate/flows/"
             }
             iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
             onClick={() => void handleSave()}
@@ -685,7 +685,7 @@ function DryRunModal({
             </div>
             <p className="mt-3 text-[11.5px] text-fog-500">
               No run started. This is what{" "}
-              <code className="text-fog-300">amaco run "…" --flow {flowId}</code>{" "}
+              <code className="text-fog-300">vibestrate run "…" --flow {flowId}</code>{" "}
               would instantiate (reflects the saved flow).
             </p>
           </>

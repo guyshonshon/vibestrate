@@ -11,7 +11,7 @@ export async function runFlowsShow(
 ): Promise<number> {
   if (!flowId) {
     console.error(
-      `${symbol.fail()} Flow id is required. Try ${color.bold("amaco flows list")}.`,
+      `${symbol.fail()} Flow id is required. Try ${color.bold("vibestrate flows list")}.`,
     );
     return 1;
   }

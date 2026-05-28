@@ -62,11 +62,11 @@ export function InspectorPanel({
   children: ReactNode;
 }) {
   const [height, setHeight] = usePersistedState<number>(
-    "amaco.inspector.height",
+    "vibestrate.inspector.height",
     DEFAULT_HEIGHT,
   );
   const [collapsed, setCollapsed] = usePersistedState<boolean>(
-    "amaco.inspector.collapsed",
+    "vibestrate.inspector.collapsed",
     false,
   );
 
@@ -97,7 +97,7 @@ export function InspectorPanel({
     <aside
       aria-label="Run inspector"
       style={{ height: effectiveHeight }}
-      className="relative flex shrink-0 flex-col border-t border-amaco-border bg-amaco-panel"
+      className="relative flex shrink-0 flex-col border-t border-vibestrate-border bg-vibestrate-panel"
     >
       {/* Drag-to-resize handle on the top edge. Hidden when collapsed —
        * the collapse button itself is the only affordance in that
@@ -120,14 +120,14 @@ export function InspectorPanel({
               setHeight(Math.max(MIN_HEIGHT, height - 16));
           }}
           title="Drag to resize · double-click to reset"
-          className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-row-resize bg-transparent hover:bg-amaco-accent/40 focus:bg-amaco-accent/60 focus:outline-none"
+          className="absolute left-0 right-0 top-0 z-10 h-1.5 cursor-row-resize bg-transparent hover:bg-vibestrate-accent/40 focus:bg-vibestrate-accent/60 focus:outline-none"
         />
       ) : null}
 
       <header
         role="tablist"
         aria-orientation="horizontal"
-        className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-amaco-border-soft bg-amaco-panel-2/60 px-2 py-1"
+        className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-vibestrate-border-soft bg-vibestrate-panel-2/60 px-2 py-1"
       >
         <button
           type="button"
@@ -139,7 +139,7 @@ export function InspectorPanel({
           }
           aria-label={collapsed ? "Expand inspector" : "Collapse inspector"}
           aria-expanded={!collapsed}
-          className="shrink-0 rounded p-1 text-amaco-fg-muted hover:bg-amaco-panel hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+          className="shrink-0 rounded p-1 text-vibestrate-fg-muted hover:bg-vibestrate-panel hover:text-vibestrate-fg focus:outline-none focus:ring-1 focus:ring-vibestrate-accent"
         >
           {collapsed ? (
             <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
@@ -147,7 +147,7 @@ export function InspectorPanel({
             <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
           )}
         </button>
-        <span className="amaco-mono mr-2 shrink-0 text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+        <span className="vibestrate-mono mr-2 shrink-0 text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
           inspect
         </span>
         {TABS.map((t) => {
@@ -166,8 +166,8 @@ export function InspectorPanel({
               }}
               className={`shrink-0 inline-flex items-center gap-1 rounded px-2 py-1 text-[11.5px] transition-colors ${
                 isActive
-                  ? "bg-amaco-accent/15 text-amaco-accent"
-                  : "text-amaco-fg-dim hover:bg-amaco-panel hover:text-amaco-fg"
+                  ? "bg-vibestrate-accent/15 text-vibestrate-accent"
+                  : "text-vibestrate-fg-dim hover:bg-vibestrate-panel hover:text-vibestrate-fg"
               }`}
               title={t.label}
             >
@@ -185,7 +185,7 @@ export function InspectorPanel({
           }}
           title="Expand to full height"
           aria-label="Expand to full height"
-          className="ml-auto shrink-0 rounded p-1 text-amaco-fg-muted hover:bg-amaco-panel hover:text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+          className="ml-auto shrink-0 rounded p-1 text-vibestrate-fg-muted hover:bg-vibestrate-panel hover:text-vibestrate-fg focus:outline-none focus:ring-1 focus:ring-vibestrate-accent"
         >
           <Maximize2 className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden />
         </button>

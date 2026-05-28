@@ -26,7 +26,7 @@ const TERMINAL_STATUSES = new Set<RunStatus>([
 
 /**
  * Live tail of the provider CLI's stdout/stderr for each agent
- * invocation in this run. Backed by .amaco/runs/<runId>/streams/*.ndjson
+ * invocation in this run. Backed by .vibestrate/runs/<runId>/streams/*.ndjson
  * + a per-stream SSE endpoint. By default it follows the newest stream,
  * so the view tracks the currently active agent instead of staying on
  * an older planner transcript.
@@ -162,18 +162,18 @@ export function LiveOutputPanel({
   return (
     <section
       aria-label="Active provider CLI"
-      className="overflow-hidden rounded border border-amaco-border bg-amaco-panel"
+      className="overflow-hidden rounded border border-vibestrate-border bg-vibestrate-panel"
     >
-      <header className="flex flex-wrap items-center gap-2 border-b border-amaco-border-soft px-3 py-2 text-[11px]">
+      <header className="flex flex-wrap items-center gap-2 border-b border-vibestrate-border-soft px-3 py-2 text-[11px]">
         <TerminalSquare
-          className="h-3.5 w-3.5 text-amaco-accent"
+          className="h-3.5 w-3.5 text-vibestrate-accent"
           strokeWidth={1.5}
           aria-hidden
         />
-        <span className="amaco-mono uppercase tracking-[0.12em] text-amaco-fg-muted">
+        <span className="vibestrate-mono uppercase tracking-[0.12em] text-vibestrate-fg-muted">
           active CLI
         </span>
-        <span className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[10px] text-amaco-fg-muted">
+        <span className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted">
           read-only attach
         </span>
         {streams.length > 0 ? (
@@ -184,7 +184,7 @@ export function LiveOutputPanel({
               setFollowLatest(false);
             }}
             aria-label="Pick provider stream"
-            className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[11px] text-amaco-fg focus:outline-none focus:ring-1 focus:ring-amaco-accent"
+            className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg focus:outline-none focus:ring-1 focus:ring-vibestrate-accent"
           >
             {streams.map((s) => (
               <option key={s.promptName} value={s.promptName}>
@@ -200,10 +200,10 @@ export function LiveOutputPanel({
               setFollowLatest(true);
               setActive(streams[0]?.promptName ?? null);
             }}
-            className={`amaco-mono inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
+            className={`vibestrate-mono inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
               followLatest
-                ? "border-amaco-success/40 text-amaco-success"
-                : "border-amaco-border text-amaco-fg-muted hover:bg-amaco-panel-2"
+                ? "border-vibestrate-success/40 text-vibestrate-success"
+                : "border-vibestrate-border text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
             }`}
             title="Follow the newest provider CLI stream"
           >
@@ -211,7 +211,7 @@ export function LiveOutputPanel({
             follow latest
           </button>
         ) : null}
-        <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+        <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
           {lines.length} chunk{lines.length === 1 ? "" : "s"} ·{" "}
           {totalChars.toLocaleString()} char
           {totalChars === 1 ? "" : "s"}
@@ -219,43 +219,43 @@ export function LiveOutputPanel({
         </span>
       </header>
       {routeMissing ? (
-        <p className="px-3 py-2 text-[11.5px] text-amaco-warn">
+        <p className="px-3 py-2 text-[11.5px] text-vibestrate-warn">
           The streams endpoint returned 404. Your{" "}
-          <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
-            amaco ui
+          <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
+            vibestrate ui
           </code>{" "}
           server bundle predates live streaming. Restart it after a
           rebuild to enable. Polling stopped to keep the dev console
           clean.
         </p>
       ) : streams.length === 0 ? (
-        <div className="border-t border-amaco-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-amaco-fg-muted">
+        <div className="border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
           {isTerminal
             ? "This run finished without recording any provider CLI output."
             : "No provider CLI output recorded yet for this run."}{" "}
           Streams are captured per agent invocation under{" "}
-          <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
-            .amaco/runs/&lt;runId&gt;/streams/*.ndjson
+          <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
+            .vibestrate/runs/&lt;runId&gt;/streams/*.ndjson
           </code>
           .
         </div>
       ) : lines.length === 0 || !active ? (
-        <div className="min-h-[220px] border-t border-amaco-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-amaco-fg-muted">
+        <div className="min-h-[220px] border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
           Waiting for provider stdout/stderr…
         </div>
       ) : (
         <div className="bg-[#0b0e13]">
-          <div className="flex items-center gap-2 border-t border-amaco-border-soft px-3 py-1.5 text-[10.5px] text-amaco-fg-muted">
-            <span className="amaco-mono truncate">
+          <div className="flex items-center gap-2 border-t border-vibestrate-border-soft px-3 py-1.5 text-[10.5px] text-vibestrate-fg-muted">
+            <span className="vibestrate-mono truncate">
               {activeStream?.promptName ?? active}
             </span>
-            <span className="amaco-mono ml-auto shrink-0">
+            <span className="vibestrate-mono ml-auto shrink-0">
               stdout/stderr
             </span>
           </div>
           <Suspense
             fallback={
-              <div className="min-h-[220px] border-t border-amaco-border-soft px-3 py-3 text-[11.5px] text-amaco-fg-muted">
+              <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
                 Opening terminal view…
               </div>
             }

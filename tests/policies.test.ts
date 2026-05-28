@@ -18,7 +18,7 @@ async function tempProject(): Promise<{
   worktree: string;
   runId: string;
 }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-policy-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-policy-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -30,9 +30,9 @@ async function tempProject(): Promise<{
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -46,10 +46,10 @@ async function tempProject(): Promise<{
   );
 
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-policy-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-policy-wt-")),
     "wt",
   );
-  await execa("git", ["worktree", "add", "-b", "amaco/test", worktree, "main"], {
+  await execa("git", ["worktree", "add", "-b", "vibestrate/test", worktree, "main"], {
     cwd: project,
   });
   const runId = "run-1";
@@ -63,7 +63,7 @@ async function tempProject(): Promise<{
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -91,12 +91,12 @@ async function writeRuleFile(
   filename: string,
   contents: string,
 ): Promise<void> {
-  await fs.mkdir(path.join(project, ".amaco/policies"), { recursive: true });
-  await fs.writeFile(path.join(project, ".amaco/policies", filename), contents);
+  await fs.mkdir(path.join(project, ".vibestrate/policies"), { recursive: true });
+  await fs.writeFile(path.join(project, ".vibestrate/policies", filename), contents);
 }
 
 describe("policy-store loading", () => {
-  it("returns an empty snapshot when .amaco/policies/ does not exist", async () => {
+  it("returns an empty snapshot when .vibestrate/policies/ does not exist", async () => {
     const { project } = await tempProject();
     const snap = await loadPolicySnapshot(project);
     expect(snap.rules).toEqual([]);

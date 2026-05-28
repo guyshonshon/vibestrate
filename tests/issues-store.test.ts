@@ -9,14 +9,14 @@ import {
 } from "../src/core/issues-store.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-issues-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-issues-"));
 }
 
 describe("issues store", () => {
   let root: string;
   beforeEach(async () => {
     root = await tempProject();
-    await fs.mkdir(path.join(root, ".amaco"), { recursive: true });
+    await fs.mkdir(path.join(root, ".vibestrate"), { recursive: true });
   });
 
   it("recordIssue + listIssues round-trips with newest first", async () => {
@@ -50,7 +50,7 @@ describe("issues store", () => {
   it("captures fix + context + detail when supplied", async () => {
     await recordIssue(root, {
       kind: "spawn-failure",
-      message: "amaco queue run failed to spawn",
+      message: "vibestrate queue run failed to spawn",
       detail: "Error: ENOENT\n  at …",
       fix: "verify dist/index.js exists; run `pnpm build`",
       context: { argv: ["queue", "run"], cwd: "/tmp/x" },

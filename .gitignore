@@ -1,8 +1,8 @@
 node_modules/
 dist/
 coverage/
-.amaco/runs/
-.amaco-worktrees/
+.vibestrate/runs/
+.vibestrate-worktrees/
 *.log
 .DS_Store
 .env
@@ -15,16 +15,20 @@ coverage/
 CLAUDE.md
 
 # Scheduler runtime state — changes on every run, not source.
-.amaco/scheduler/lock
-.amaco/scheduler/state.json
-.amaco/scheduler/*.ndjson
+.vibestrate/scheduler/lock
+.vibestrate/scheduler/state.json
+.vibestrate/scheduler/*.ndjson
 
 # Transient dashboard run-spec handoff files (deleted by run-entry on read).
-.amaco/.run-spec-*.json
+.vibestrate/.run-spec-*.json
 
 # Notification runtime state — changes as runs emit/receipt notifications.
-.amaco/notifications/notifications.json
-.amaco/notifications/receipts.json
+.vibestrate/notifications/notifications.json
+.vibestrate/notifications/receipts.json
+
+# Legacy local state from before the Vibestrate rename. Do not publish stale
+# run history/config from an old checkout.
+.amaco/
 
 # Stray local asset.
 logo-text.png

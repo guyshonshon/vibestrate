@@ -53,7 +53,7 @@ Use this exact structure:
 
 ## Human approval signal (structured)
 
-If you believe Amaco should pause for an explicit human decision before
+If you believe Vibestrate should pause for an explicit human decision before
 implementation begins (because the task is unsafe, ambiguous in a way that
 materially changes the implementation, requires irreversible actions, or
 crosses security/privacy/auth/payment/migration boundaries), emit a

@@ -3,7 +3,7 @@
  * Strip sourcemaps from dist/ before publishing.
  *
  * The dev build emits `.map` files (useful locally), but they're dead
- * weight in the published npm tarball — users never step into Amaco's
+ * weight in the published npm tarball — users never step into Vibestrate's
  * compiled output. Removing them takes the package from ~4 MB to ~1.5 MB.
  *
  * Runtime assets (the Mission Control UI bundle, fonts, logos) are left

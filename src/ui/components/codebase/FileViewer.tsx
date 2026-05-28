@@ -83,19 +83,19 @@ export function FileViewer({
 
   if (loading) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-amaco-fg-muted">
+      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fg-muted">
         Loading file…
       </div>
     );
   }
   if (error) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-amaco-fail">{error}</div>
+      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fail">{error}</div>
     );
   }
   if (!view) {
     return (
-      <div className="px-4 py-6 text-[12.5px] text-amaco-fg-muted">
+      <div className="px-4 py-6 text-[12.5px] text-vibestrate-fg-muted">
         Select a file from the tree.
       </div>
     );
@@ -103,22 +103,22 @@ export function FileViewer({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-2 border-b border-amaco-border bg-amaco-panel/40 px-3 py-1.5">
-        <span className="amaco-mono truncate text-[12px] text-amaco-fg">
+      <header className="flex items-center gap-2 border-b border-vibestrate-border bg-vibestrate-panel/40 px-3 py-1.5">
+        <span className="vibestrate-mono truncate text-[12px] text-vibestrate-fg">
           {view.path}
         </span>
-        <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+        <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
           {view.rootKind}
         </span>
-        <span className="amaco-mono rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+        <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
           {view.language}
         </span>
         {view.totalLines !== null ? (
-          <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
             {view.totalLines} lines · {(view.size / 1024).toFixed(1)} KB
           </span>
         ) : (
-          <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
             {(view.size / 1024).toFixed(1)} KB
           </span>
         )}
@@ -127,7 +127,7 @@ export function FileViewer({
           type="button"
           onClick={() => void openInEditor(highlightLine ?? null)}
           disabled={view.isSecretLike}
-          className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:opacity-40"
+          className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:opacity-40"
           title={
             view.isSecretLike
               ? "Editor handoff is blocked for secret-like files"
@@ -139,18 +139,18 @@ export function FileViewer({
         </button>
       </header>
       {openMsg ? (
-        <div className="border-b border-amaco-border bg-amaco-panel-2/60 px-3 py-1 text-[10.5px] text-amaco-fg-dim">
+        <div className="border-b border-vibestrate-border bg-vibestrate-panel-2/60 px-3 py-1 text-[10.5px] text-vibestrate-fg-dim">
           {openMsg}
         </div>
       ) : null}
       {view.notice ? (
-        <div className="border-b border-amaco-warn/40 bg-amaco-warn/10 px-3 py-1.5 text-[11.5px] text-amaco-warn">
+        <div className="border-b border-vibestrate-warn/40 bg-vibestrate-warn/10 px-3 py-1.5 text-[11.5px] text-vibestrate-warn">
           {view.notice}
         </div>
       ) : null}
-      <div className="flex-1 overflow-auto bg-amaco-canvas">
+      <div className="flex-1 overflow-auto bg-vibestrate-canvas">
         {view.lines.length === 0 ? (
-          <div className="px-3 py-6 text-[12px] text-amaco-fg-muted">
+          <div className="px-3 py-6 text-[12px] text-vibestrate-fg-muted">
             {view.isSecretLike
               ? "Contents redacted."
               : view.isBinary
@@ -160,38 +160,38 @@ export function FileViewer({
         ) : (
           <>
           {view.lines.length > RENDER_LINE_CAP && !showAllLines ? (
-            <div className="border-b border-amaco-warn/40 bg-amaco-warn/5 px-3 py-1.5 text-[11px] text-amaco-warn">
+            <div className="border-b border-vibestrate-warn/40 bg-vibestrate-warn/5 px-3 py-1.5 text-[11px] text-vibestrate-warn">
               Showing first {RENDER_LINE_CAP.toLocaleString()} of{" "}
               {view.lines.length.toLocaleString()} lines — rendering the
               rest can make the page sluggish.{" "}
               <button
                 type="button"
                 onClick={() => setShowAllLines(true)}
-                className="amaco-mono ml-1 rounded border border-amaco-warn/60 px-1.5 py-0.5 text-[10.5px] hover:bg-amaco-warn/10"
+                className="vibestrate-mono ml-1 rounded border border-vibestrate-warn/60 px-1.5 py-0.5 text-[10.5px] hover:bg-vibestrate-warn/10"
               >
                 Show all {view.lines.length.toLocaleString()}
               </button>
             </div>
           ) : null}
           {view.lines.length > HIGHLIGHT_LINE_CAP ? (
-            <div className="border-b border-amaco-border-soft px-3 py-1 text-[10.5px] text-amaco-fg-muted">
+            <div className="border-b border-vibestrate-border-soft px-3 py-1 text-[10.5px] text-vibestrate-fg-muted">
               Syntax highlighting skipped for files over{" "}
               {HIGHLIGHT_LINE_CAP.toLocaleString()} lines.
             </div>
           ) : null}
-          <pre className="amaco-mono m-0 text-[12px] leading-[1.45]">
+          <pre className="vibestrate-mono m-0 text-[12px] leading-[1.45]">
             {visibleLines.map((l, idx) => (
               <div
                 key={l.number}
                 className={`group flex border-b border-transparent ${
                   highlightLine === l.number
-                    ? "bg-amaco-accent-soft/30"
-                    : "hover:bg-amaco-panel-2/40"
+                    ? "bg-vibestrate-accent-soft/30"
+                    : "hover:bg-vibestrate-panel-2/40"
                 }`}
               >
                 <button
                   type="button"
-                  className="amaco-mono inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-amaco-border px-2 py-0.5 text-[10.5px] text-amaco-fg-muted hover:text-amaco-fg"
+                  className="vibestrate-mono inline-flex w-14 shrink-0 select-none items-center justify-end gap-0.5 border-r border-vibestrate-border px-2 py-0.5 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
                   title="Copy file:line reference"
                   onClick={() => {
                     const ref = `${view.path}:${l.number}${
@@ -249,7 +249,7 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+      className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
       title={title}
     >
       <Copy className="h-3 w-3" strokeWidth={1.5} />

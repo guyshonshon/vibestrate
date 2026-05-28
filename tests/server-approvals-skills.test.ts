@@ -18,7 +18,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-server-appr-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-server-appr-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -104,7 +104,7 @@ describe("server: skill assign/unassign", () => {
 
   it("returns 404 for unknown skill id", async () => {
     const res = await fetch(
-      `${server!.url}/api/skills/${encodeURIComponent("amaco:no-such")}/assign`,
+      `${server!.url}/api/skills/${encodeURIComponent("vibestrate:no-such")}/assign`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -135,7 +135,7 @@ describe("server: approvals API", () => {
   beforeEach(async () => {
     project = await makeProject();
     // seed one approval directly via service.
-    await fs.mkdir(path.join(project, ".amaco", "runs", "r1"), {
+    await fs.mkdir(path.join(project, ".vibestrate", "runs", "r1"), {
       recursive: true,
     });
     const svc = new ApprovalService(project, "r1");

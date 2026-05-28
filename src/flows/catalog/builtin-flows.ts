@@ -6,7 +6,7 @@ import {
 // The built-in **default flow**: the fixed plan → architect → implement →
 // validate → review → (fix → re-validate → review)* → verify workflow, expressed
 // as a real flow definition. This is the single source of truth for the default
-// workflow's shape — a plain `amaco run` resolves it and executes it through the
+// workflow's shape — a plain `vibestrate run` resolves it and executes it through the
 // one flow runner (see runner-unification.md). There is no separate code path.
 //
 // The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
@@ -166,7 +166,7 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
   version: 1,
   label: "Quality Arbitration",
   description:
-    "Cross-provider planning, review, implementation, challenge, second review, and Amaco decision summary.",
+    "Cross-provider planning, review, implementation, challenge, second review, and Vibestrate decision summary.",
   slots: {
     builder: {
       label: "Builder",

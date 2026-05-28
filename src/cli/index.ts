@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 // Single source of truth for the version: package.json. The bundler
 // (tsup/esbuild) inlines this at build time, and `npm version patch`
-// updates it in one place — flowing into `amaco --version` and the
+// updates it in one place — flowing into `vibestrate --version` and the
 // generated docs reference automatically.
 import pkg from "../../package.json";
 import { runInitCommand } from "./commands/init.js";
@@ -65,19 +65,19 @@ function parseFlowSlots(values: string[]): Record<string, string> {
 // Build the full commander program without parsing argv. Exported so the
 // docs metadata generator can introspect the command tree, and so tests
 // can construct a fresh program when needed. Kept side-effect-free.
-export function buildAmacoProgram(): Command {
+export function buildVibestrateProgram(): Command {
   const program = new Command();
 
   program
-    .name("amaco")
+    .name("vibestrate")
     .description(
-      "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
+      "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
     .version(pkg.version);
 
   program
     .command("init")
-    .description("Initialize Amaco in the current project (.amaco/ scaffold).")
+    .description("Initialize Vibestrate in the current project (.vibestrate/ scaffold).")
     .option("--force", "overwrite existing config files (runs are preserved)")
     .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
     .option("--interactive", "force the flowd wizard even when --yes would default to non-interactive")
@@ -224,7 +224,7 @@ export function buildAmacoProgram(): Command {
             console.error(
               `--resume-stage must be one of planning|architecting|executing (got "${opts.resumeStage}").` +
                 (opts.resumeStage === "reviewing" || opts.resumeStage === "verifying"
-                  ? " Resuming at reviewing/verifying isn't supported yet — it needs the executor's code, which Amaco doesn't snapshot per step."
+                  ? " Resuming at reviewing/verifying isn't supported yet — it needs the executor's code, which Vibestrate doesn't snapshot per step."
                   : ""),
             );
             process.exit(2);
@@ -333,7 +333,7 @@ export function buildAmacoProgram(): Command {
 
   program
     .command("status")
-    .description("List Amaco runs in this project.")
+    .description("List Vibestrate runs in this project.")
     .option("--json", "emit JSON instead of a human-readable table")
     .action(async (opts: { json?: boolean }) => {
       const code = await runStatusCommand({ json: opts.json });
@@ -365,8 +365,8 @@ export function buildAmacoProgram(): Command {
 
 // Only run the CLI when this module is executed as the main script (not
 // when imported by the docs generator or by tests). We compare *realpaths*:
-// when installed globally the `amaco` bin is a symlink, so process.argv[1]
-// (the symlink, e.g. .../bin/amaco) differs from import.meta.url (the
+// when installed globally the `vibestrate` bin is a symlink, so process.argv[1]
+// (the symlink, e.g. .../bin/vibestrate) differs from import.meta.url (the
 // resolved module, .../dist/index.js). Resolving both through the symlink
 // makes the comparison hold for direct runs, symlinked bins, and tsx dev.
 const isMain = (() => {
@@ -380,9 +380,9 @@ const isMain = (() => {
 })();
 
 if (isMain) {
-  // `amaco` with no subcommand opens the interactive shell. Use `amaco
+  // `vibestrate` with no subcommand opens the interactive shell. Use `vibestrate
   // --help` (or any other subcommand) to opt out. We only treat *zero*
-  // extra args as the shell trigger so `amaco --version` etc still work.
+  // extra args as the shell trigger so `vibestrate --version` etc still work.
   const extraArgv = process.argv.slice(2);
   if (extraArgv.length === 0) {
     void (async () => {
@@ -395,7 +395,7 @@ if (isMain) {
       } catch (err) {
         const { formatError } = await import("../core/error-format.js");
         const f = formatError(err);
-        process.stderr.write(`amaco: ${f.title}\n`);
+        process.stderr.write(`vibestrate: ${f.title}\n`);
         if (f.detail && f.detail !== f.title)
           process.stderr.write(`  detail: ${f.detail}\n`);
         if (f.hint) process.stderr.write(`  hint:   ${f.hint}\n`);
@@ -403,11 +403,11 @@ if (isMain) {
       }
     })();
   } else {
-    const program = buildAmacoProgram();
+    const program = buildVibestrateProgram();
     program.parseAsync(process.argv).catch(async (err: unknown) => {
       const { formatError } = await import("../core/error-format.js");
       const f = formatError(err);
-      console.error(`amaco: ${f.title}`);
+      console.error(`vibestrate: ${f.title}`);
       if (f.detail && f.detail !== f.title) console.error(`  detail: ${f.detail}`);
       if (f.hint) console.error(`  hint:   ${f.hint}`);
       process.exit(1);

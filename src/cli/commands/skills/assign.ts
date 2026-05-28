@@ -5,7 +5,7 @@ import {
   unassignSkillFromRole,
 } from "../../../skills/skill-assignment-service.js";
 import { color, indent, symbol } from "../../ui/format.js";
-import { isAmacoError } from "../../../utils/errors.js";
+import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runSkillsAssign(
   roleId: string,
@@ -29,7 +29,7 @@ async function change(
   if (!roleId || !skillName) {
     console.error(
       `${symbol.fail()} Both agent and skill are required. Example: ${color.bold(
-        `amaco skills ${action} reviewer security`,
+        `vibestrate skills ${action} reviewer security`,
       )}`,
     );
     return 1;
@@ -37,7 +37,7 @@ async function change(
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Amaco config found. Run ${color.bold("amaco init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
@@ -63,7 +63,7 @@ async function change(
   } catch (err) {
     console.error(
       `${symbol.fail()} ${
-        isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)
+        isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)
       }`,
     );
     return 1;

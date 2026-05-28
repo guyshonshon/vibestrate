@@ -11,7 +11,7 @@ export async function loadSkill(
 ): Promise<LoadedSkill> {
   skillReferenceSchema.parse(reference);
 
-  // 1. Try the legacy flat .amaco/skills/<name>.md path (kept for back-compat).
+  // 1. Try the legacy flat .vibestrate/skills/<name>.md path (kept for back-compat).
   const skillsDir = projectSkillsDir(projectRoot);
   const flatPath = path.join(skillsDir, `${reference}.md`);
   if (isPathInside(skillsDir, flatPath) && (await pathExists(flatPath))) {
@@ -19,7 +19,7 @@ export async function loadSkill(
     return { name: reference, filePath: flatPath, content, mcpServers: {} };
   }
 
-  // 2. Fall back to discovery (handles .claude/skills/<dir>/SKILL.md and .amaco/skills/<dir>/SKILL.md).
+  // 2. Fall back to discovery (handles .claude/skills/<dir>/SKILL.md and .vibestrate/skills/<dir>/SKILL.md).
   const discovered = await discoverSkills(projectRoot);
   const match = discovered.find((s) => s.name === reference);
   if (match) {
@@ -38,7 +38,7 @@ export async function loadSkill(
   }
 
   throw new ConfigError(
-    `Configured skill "${reference}" was not found. Looked at .amaco/skills/${reference}.md, .amaco/skills/<dir>/SKILL.md, and .claude/skills/<dir>/SKILL.md.`,
+    `Configured skill "${reference}" was not found. Looked at .vibestrate/skills/${reference}.md, .vibestrate/skills/<dir>/SKILL.md, and .claude/skills/<dir>/SKILL.md.`,
   );
 }
 

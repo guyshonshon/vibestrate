@@ -55,7 +55,7 @@ export function DiffViewer({
 
   if (!filePath) {
     return (
-      <div className="text-[12px] text-amaco-fg-muted">
+      <div className="text-[12px] text-vibestrate-fg-muted">
         Select a file to see its diff.
       </div>
     );
@@ -63,12 +63,12 @@ export function DiffViewer({
 
   if (error) {
     return (
-      <div className="text-[12px] text-amaco-fail">{error}</div>
+      <div className="text-[12px] text-vibestrate-fail">{error}</div>
     );
   }
 
   if (!diff) {
-    return <div className="text-[12px] text-amaco-fg-muted">Loading diff…</div>;
+    return <div className="text-[12px] text-vibestrate-fg-muted">Loading diff…</div>;
   }
 
   if (diff.redacted) {
@@ -78,15 +78,15 @@ export function DiffViewer({
   const lines = diff.body.split("\n").map(classifyLine);
 
   return (
-    <div className="overflow-auto rounded border border-amaco-border bg-amaco-canvas">
-      <header className="flex items-center gap-1.5 border-b border-amaco-border bg-amaco-panel px-3 py-1.5 text-[11.5px] text-amaco-fg-dim">
-        <span className="amaco-mono truncate">{diff.path}</span>
+    <div className="overflow-auto rounded border border-vibestrate-border bg-vibestrate-canvas">
+      <header className="flex items-center gap-1.5 border-b border-vibestrate-border bg-vibestrate-panel px-3 py-1.5 text-[11.5px] text-vibestrate-fg-dim">
+        <span className="vibestrate-mono truncate">{diff.path}</span>
         <div className="ml-auto flex items-center gap-1">
           {onOpenInProject ? (
             <button
               type="button"
               onClick={() => onOpenInProject(diff.path)}
-              className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+              className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
               title="Open this file in the project codebase view"
             >
               <FolderOpen className="h-3 w-3" strokeWidth={1.5} />
@@ -97,7 +97,7 @@ export function DiffViewer({
             <button
               type="button"
               onClick={() => onOpenInWorktree(diff.path)}
-              className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+              className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
               title="Open this file in the run's worktree"
             >
               <GitBranch className="h-3 w-3" strokeWidth={1.5} />
@@ -109,7 +109,7 @@ export function DiffViewer({
             onClick={() => {
               void navigator.clipboard.writeText(diff.path).catch(() => {});
             }}
-            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Copy path"
           >
             <Copy className="h-3 w-3" strokeWidth={1.5} />
@@ -126,7 +126,7 @@ export function DiffViewer({
                   }
                 });
             }}
-            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Open in editor (if configured)"
           >
             <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
@@ -134,15 +134,15 @@ export function DiffViewer({
           </button>
         </div>
       </header>
-      <pre className="amaco-mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
+      <pre className="vibestrate-mono whitespace-pre p-3 text-[12.5px] leading-[1.55]">
         {lines.map((line, i) => {
-          let cls = "text-amaco-fg-dim";
+          let cls = "text-vibestrate-fg-dim";
           if (line.kind === "add")
-            cls = "text-amaco-diff-add-fg bg-amaco-diff-add/40";
+            cls = "text-vibestrate-diff-add-fg bg-vibestrate-diff-add/40";
           else if (line.kind === "del")
-            cls = "text-amaco-diff-del-fg bg-amaco-diff-del/40";
-          else if (line.kind === "hunk") cls = "text-amaco-accent";
-          else if (line.kind === "header") cls = "text-amaco-fg-muted";
+            cls = "text-vibestrate-diff-del-fg bg-vibestrate-diff-del/40";
+          else if (line.kind === "hunk") cls = "text-vibestrate-accent";
+          else if (line.kind === "header") cls = "text-vibestrate-fg-muted";
           return (
             <span key={i} className={`block px-2 ${cls}`}>
               {line.text || " "}

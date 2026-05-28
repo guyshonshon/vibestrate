@@ -14,7 +14,7 @@ import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import type { Task, TaskStatus } from "../src/roadmap/roadmap-types.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-dg-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-dg-"));
 }
 
 function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Task {

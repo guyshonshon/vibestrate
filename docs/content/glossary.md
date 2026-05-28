@@ -1,25 +1,25 @@
 ---
 title: Glossary
-description: Beginner-friendly definitions for the terms used throughout Amaco's docs.
+description: Beginner-friendly definitions for the terms used throughout Vibestrate's docs.
 section: ops
 slug: glossary
 ---
 
-Short definitions for the vocabulary Amaco's docs assume.
+Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Agent.** A worker with one role in a workflow — planner, executor, reviewer. Bound to a provider, a prompt template, a permission profile, and any attached skills. See [Agent](/docs/concepts/role).
 
 **Approval gate.** A point in a workflow or Flow where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Flow.
 
-**Artifact.** Any file produced or recorded by a run — plan, architecture, diff, validation output, review findings, verification summary. Lives under `.amaco/runs/<runId>/`.
+**Artifact.** Any file produced or recorded by a run — plan, architecture, diff, validation output, review findings, verification summary. Lives under `.vibestrate/runs/<runId>/`.
 
-**CLI.** The `amaco` command-line tool. The primary surface, alongside Mission Control.
+**CLI.** The `vibestrate` command-line tool. The primary surface, alongside Mission Control.
 
 **Effort.** A coarse bucket — `low | medium | high` — that maps to a provider via `effortMap` in `project.yml`. Used as a shorthand for "run this on the cheap model" vs "run this on the expensive model."
 
 **Flow.** A saved run recipe. Like the default workflow, but with named slots, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
 
-**Mission Control.** The local web dashboard, served by `amaco ui`. Inspect runs, approve gates, read diffs, edit config.
+**Mission Control.** The local web dashboard, served by `vibestrate ui`. Inspect runs, approve gates, read diffs, edit config.
 
 **Orchestrator.** The component that drives a run through its stages. Lives in `src/core/orchestrator.ts`. Transitions the state machine, persists artifacts, hands off between agents.
 
@@ -29,17 +29,17 @@ Short definitions for the vocabulary Amaco's docs assume.
 
 **Plan.** The planner agent's structured output. The first stage of the default workflow produces it.
 
-**Project root.** The git repository where `amaco init` was run. Where `.amaco/` lives.
+**Project root.** The git repository where `vibestrate init` was run. Where `.vibestrate/` lives.
 
-**Provider.** A local CLI Amaco can drive to talk to a model. Claude Code, Codex, Aider, Ollama, OpenCode are the built-in ones. See [Provider](/docs/concepts/provider).
+**Provider.** A local CLI Vibestrate can drive to talk to a model. Claude Code, Codex, Aider, Ollama, OpenCode are the built-in ones. See [Provider](/docs/concepts/provider).
 
-**Replay.** The read-only inspector for a persisted run. `amaco replay <runId>`.
+**Replay.** The read-only inspector for a persisted run. `vibestrate replay <runId>`.
 
-**Roadmap task.** An entry in `.amaco/roadmap/roadmap.json` that you can link a run to via `--task <taskId>`. Separate from the run itself.
+**Roadmap task.** An entry in `.vibestrate/roadmap/roadmap.json` that you can link a run to via `--task <taskId>`. Separate from the run itself.
 
 **Run.** A live instance of the workflow, born from a task. Has its own runId, worktree, branch, status, artifacts, events.
 
-**Skill.** A markdown attachment that loads alongside an agent's prompt. Lives under `.amaco/skills/` or `.claude/skills/`. See [Skill](/docs/concepts/skill).
+**Skill.** A markdown attachment that loads alongside an agent's prompt. Lives under `.vibestrate/skills/` or `.claude/skills/`. See [Skill](/docs/concepts/skill).
 
 **Slot.** A named participant in a Flow — `builder`, `challenger`, `arbiter`. Each slot has a default agent and can be bound to a specific provider per run.
 
@@ -49,12 +49,12 @@ Short definitions for the vocabulary Amaco's docs assume.
 
 **Status.** The current state of a run. Drawn from a fixed enum: `created`, `planning`, `planned`, ... `merge_ready`, `blocked`, `failed`, `aborted`. See [Run state](/docs/concepts/state).
 
-**Task.** A description of what you want done, submitted to Amaco. Triggers a run. See [Task](/docs/concepts/task).
+**Task.** A description of what you want done, submitted to Vibestrate. Triggers a run. See [Task](/docs/concepts/task).
 
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once reached, a run cannot transition out.
 
 **Validation.** The stage that runs `commands.validate` from `project.yml` — typecheck, tests, build, lint. The ground-truth check between executor and reviewer.
 
-**Worktree.** A separate git working directory bound to its own branch. Amaco creates one per run under `git.worktreeDir`. See [Worktree](/docs/concepts/worktree).
+**Worktree.** A separate git working directory bound to its own branch. Vibestrate creates one per run under `git.worktreeDir`. See [Worktree](/docs/concepts/worktree).
 
 **Workflow.** The static, ordered description of stages a run progresses through. See [Workflow](/docs/concepts/workflow).

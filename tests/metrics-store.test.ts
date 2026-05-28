@@ -6,7 +6,7 @@ import { MetricsStore } from "../src/core/metrics-store.js";
 import { makeEmptyMetrics } from "../src/core/runtime-metrics.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-metrics-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-metrics-"));
 }
 
 describe("MetricsStore", () => {

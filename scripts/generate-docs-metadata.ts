@@ -2,7 +2,7 @@
 /**
  * Source-aware docs metadata generator.
  *
- * Walks Amaco's structured registries (commander program, Zod schemas,
+ * Walks Vibestrate's structured registries (commander program, Zod schemas,
  * provider registry, workflow stages, flow definitions, run-state
  * schema) and emits committed deterministic JSON under
  * `docs/generated/`. The marketing site (and any other consumer) renders
@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { z, type ZodTypeAny } from "zod";
 
 // ─── Schema imports ──────────────────────────────────────────────────────
-import { buildAmacoProgram } from "../src/cli/index.js";
+import { buildVibestrateProgram } from "../src/cli/index.js";
 import { KNOWN_PROVIDERS } from "../src/providers/provider-detection.js";
 import { PROVIDER_PRESETS } from "../src/providers/provider-presets.js";
 import { defaultWorkflowStages } from "../src/workflow/default-workflow.js";
@@ -104,7 +104,7 @@ type DocCommand = {
   subcommands: DocCommand[];
 };
 
-function dumpCommand(cmd: ReturnType<typeof buildAmacoProgram>, parentPath: string[]): DocCommand {
+function dumpCommand(cmd: ReturnType<typeof buildVibestrateProgram>, parentPath: string[]): DocCommand {
   const name = cmd.name();
   const path = [...parentPath, name];
 
@@ -152,7 +152,7 @@ function dumpCommand(cmd: ReturnType<typeof buildAmacoProgram>, parentPath: stri
 }
 
 function generateCliMetadata() {
-  const program = buildAmacoProgram();
+  const program = buildVibestrateProgram();
   const root = dumpCommand(program, []);
   writeJson("cli-commands.json", {
     schemaVersion: 1,
@@ -290,7 +290,7 @@ function generateConfigSchema() {
     schemaVersion: 1,
     rootKey: "project.yml",
     description:
-      "Schema for .amaco/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Amaco fills in when the key is missing.",
+      "Schema for .vibestrate/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
     fields,
   });
 }
@@ -317,7 +317,7 @@ function generateProviders() {
   writeJson("providers.json", {
     schemaVersion: 1,
     description:
-      "Built-in providers Amaco detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Amaco when the provider isn't authenticated. Verify any provider with `amaco provider test <id>`.",
+      "Built-in providers Vibestrate detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Vibestrate when the provider isn't authenticated. Verify any provider with `vibestrate provider test <id>`.",
     providers,
   });
 }
@@ -355,7 +355,7 @@ function generateFlows() {
   writeJson("flows.json", {
     schemaVersion: 1,
     description:
-      "Built-in run Flows. Project Flows live in `.amaco/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
+      "Built-in run Flows. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
     flows,
   });
 }
@@ -404,7 +404,7 @@ function generateWorkflow() {
   writeJson("workflow.json", {
     schemaVersion: 1,
     description:
-      "The default Amaco workflow: plan → architect → execute → validate → review → fix → verify. Stages are defined in src/workflow/default-workflow.ts; the per-stage prose lives in the docs generator.",
+      "The default Vibestrate workflow: plan → architect → execute → validate → review → fix → verify. Stages are defined in src/workflow/default-workflow.ts; the per-stage prose lives in the docs generator.",
     stages,
   });
 }
@@ -456,7 +456,7 @@ function generateStateMachine() {
 const AGENT_DESCRIPTIONS: Record<string, { role: string; reads: string; writes: string }> = {
   planner: {
     role: "Reads the task brief and produces a plan.",
-    reads: "Task description, project rules, .amaco/roles/planner.md prompt, attached skills.",
+    reads: "Task description, project rules, .vibestrate/roles/planner.md prompt, attached skills.",
     writes: "Structured plan artifact.",
   },
   architect: {
@@ -506,7 +506,7 @@ function generatePolicies() {
   const stages = policyApprovalStageSchema.options.map((stage) => ({
     id: stage,
     description:
-      `When listed under \`policies.requireApprovalAtStages\`, the orchestrator pauses at the boundary into the \`${stage}\` stage and emits a \`waiting_for_approval\` event. A human must approve via \`amaco approvals decide\` (or the dashboard) before the run continues.`,
+      `When listed under \`policies.requireApprovalAtStages\`, the orchestrator pauses at the boundary into the \`${stage}\` stage and emits a \`waiting_for_approval\` event. A human must approve via \`vibestrate approvals decide\` (or the dashboard) before the run continues.`,
   }));
   writeJson("policies.json", {
     schemaVersion: 1,
@@ -549,7 +549,7 @@ function generateMeta() {
     {
       schemaVersion: 1,
       generator: "scripts/generate-docs-metadata.ts",
-      amacoVersion: pkg.version,
+      vibestrateVersion: pkg.version,
       sourceRev: gitRev,
     },
     { sort: true },

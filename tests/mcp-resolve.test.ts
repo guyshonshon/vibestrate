@@ -96,14 +96,14 @@ describe("resolveMcpServers", () => {
 
 describe("readSkillMcpServers", () => {
   it("returns {} when no .mcp.json sits next to SKILL.md", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mcp-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
     const skillFile = path.join(dir, "SKILL.md");
     await fs.writeFile(skillFile, "# skill\n");
     expect(await readSkillMcpServers(skillFile)).toEqual({});
   });
 
   it("loads valid .mcp.json", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mcp-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
     const skillFile = path.join(dir, "SKILL.md");
     await fs.writeFile(skillFile, "# skill\n");
     await fs.writeFile(
@@ -118,7 +118,7 @@ describe("readSkillMcpServers", () => {
   });
 
   it("throws on malformed JSON or schema violations", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mcp-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
     const skillFile = path.join(dir, "SKILL.md");
     await fs.writeFile(skillFile, "# skill\n");
     await fs.writeFile(path.join(dir, ".mcp.json"), "{ not json");
@@ -128,7 +128,7 @@ describe("readSkillMcpServers", () => {
 
 describe("writeMcpConfigFile", () => {
   it("returns null and writes nothing when there are no servers", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mcp-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
     const out = await writeMcpConfigFile({ dir, servers: [] });
     expect(out).toBeNull();
     const entries = await fs.readdir(dir);
@@ -136,7 +136,7 @@ describe("writeMcpConfigFile", () => {
   });
 
   it("materializes resolved servers to <dir>/mcp.json", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mcp-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mcp-"));
     const file = await writeMcpConfigFile({
       dir,
       servers: [

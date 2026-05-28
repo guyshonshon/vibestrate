@@ -19,7 +19,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeProject(): Promise<{ project: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mig-srv-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mig-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -36,11 +36,11 @@ async function makeProject(): Promise<{ project: string; runId: string }> {
     detectionRunner: noProvider,
   });
   const yml = await fs.readFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     "utf8",
   );
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     yml.replace(
       /^commands:\n  validate: \[\]\n/m,
       [
@@ -212,7 +212,7 @@ describe("server: validation profile migrations + usage", () => {
     expect(body.preview.preservedCommandCount).toBe(1);
     // project.yml untouched
     const yml = await fs.readFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       "utf8",
     );
     expect(yml).toMatch(/\bquick:/);
@@ -248,7 +248,7 @@ describe("server: validation profile migrations + usage", () => {
     const after = await svc.get(s.id);
     expect(after?.validationProfile).toBe("smoke");
     const yml = await fs.readFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       "utf8",
     );
     expect(yml).toMatch(/\bsmoke:/);
@@ -263,7 +263,7 @@ describe("server: validation profile migrations + usage", () => {
       host: "127.0.0.1",
     });
     // Inject a second profile so we can collide on it.
-    const ymlPath = path.join(t.project, ".amaco/project.yml");
+    const ymlPath = path.join(t.project, ".vibestrate/project.yml");
     const before = await fs.readFile(ymlPath, "utf8");
     await fs.writeFile(
       ymlPath,

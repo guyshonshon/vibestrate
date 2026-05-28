@@ -1,6 +1,6 @@
 import path from "node:path";
 
-export const AMACO_DIR = ".amaco";
+export const VIBESTRATE_DIR = ".vibestrate";
 export const CONFIG_FILENAME = "project.yml";
 export const RULES_FILENAME = "rules.md";
 export const ROLES_DIRNAME = "roles";
@@ -13,32 +13,32 @@ export const NOTIFICATIONS_DIRNAME = "notifications";
 export const TERMINAL_DIRNAME = "terminal";
 export const POLICIES_DIRNAME = "policies";
 
-export function amacoRoot(projectRoot: string): string {
-  return path.join(projectRoot, AMACO_DIR);
+export function vibestrateRoot(projectRoot: string): string {
+  return path.join(projectRoot, VIBESTRATE_DIR);
 }
 
 export function projectConfigPath(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), CONFIG_FILENAME);
+  return path.join(vibestrateRoot(projectRoot), CONFIG_FILENAME);
 }
 
 export function projectRulesPath(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), RULES_FILENAME);
+  return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
 }
 
 export function projectRolesDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), ROLES_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), ROLES_DIRNAME);
 }
 
 export function projectSkillsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), SKILLS_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), SKILLS_DIRNAME);
 }
 
 export function projectFlowsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), FLOWS_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), FLOWS_DIRNAME);
 }
 
 export function projectRunsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), RUNS_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), RUNS_DIRNAME);
 }
 
 export function runDir(projectRoot: string, runId: string): string {
@@ -70,7 +70,7 @@ export function runFlowArbitrationPath(projectRoot: string, runId: string): stri
 }
 
 export function roadmapDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), ROADMAP_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), ROADMAP_DIRNAME);
 }
 
 export function roadmapFile(projectRoot: string): string {
@@ -102,7 +102,7 @@ export function roadmapTaskReportFile(projectRoot: string, taskId: string): stri
 }
 
 export function schedulerDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), SCHEDULER_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), SCHEDULER_DIRNAME);
 }
 
 export function schedulerQueueFile(projectRoot: string): string {
@@ -118,7 +118,7 @@ export function schedulerConflictsFile(projectRoot: string): string {
 }
 
 export function notificationsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), NOTIFICATIONS_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), NOTIFICATIONS_DIRNAME);
 }
 
 export function notificationsFile(projectRoot: string): string {
@@ -138,7 +138,7 @@ export function notificationGatewaysFile(projectRoot: string): string {
 }
 
 export function terminalDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), TERMINAL_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), TERMINAL_DIRNAME);
 }
 
 export function terminalSessionsFile(projectRoot: string): string {
@@ -146,7 +146,7 @@ export function terminalSessionsFile(projectRoot: string): string {
 }
 
 export function policiesDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), POLICIES_DIRNAME);
+  return path.join(vibestrateRoot(projectRoot), POLICIES_DIRNAME);
 }
 
 export function isPathInside(parent: string, candidate: string): boolean {

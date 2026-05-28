@@ -9,24 +9,24 @@ This walks through one complete cycle from a fresh init to a `merge_ready` diff.
 
 ## Pick a small, well-scoped task
 
-Amaco runs best on tasks you'd give a careful colleague: clear scope, a known surface, testable. Don't start with "refactor the whole auth flow" — start with something like "add structured logging to the settings save handler."
+Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a known surface, testable. Don't start with "refactor the whole auth flow" — start with something like "add structured logging to the settings save handler."
 
 ## Start the run
 
 ```bash
-amaco run "Add structured logging to the settings save handler"
+vibestrate run "Add structured logging to the settings save handler"
 ```
 
 If you want to watch it as it goes, add `--ui`:
 
 ```bash
-amaco run "Add structured logging to the settings save handler" --ui
+vibestrate run "Add structured logging to the settings save handler" --ui
 ```
 
-Amaco will:
+Vibestrate will:
 
 1. Detect your project (language, package manager, validation commands).
-2. Create a git worktree under `../.amaco-worktrees/<runId>/`.
+2. Create a git worktree under `../.vibestrate-worktrees/<runId>/`.
 3. Send the task to the planner agent.
 4. Hand the plan to the architect.
 5. Hand the architecture to the executor, which edits files in the worktree.
@@ -43,15 +43,15 @@ When the run ends, you'll see something like:
 
 ```text
 Run abc123 → merge_ready
-  worktree: ../.amaco-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
-  branch:   amaco/abc123-add-structured-logging-to-the-settings-save-handler
-  artifacts: .amaco/runs/abc123/
+  worktree: ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
+  branch:   vibestrate/abc123-add-structured-logging-to-the-settings-save-handler
+  artifacts: .vibestrate/runs/abc123/
 ```
 
 ## Inspect the diff
 
 ```bash
-cd ../.amaco-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
+cd ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
 git diff main
 ```
 
@@ -59,7 +59,7 @@ Or, from the dashboard, open the **Git** tab — it renders the same diff inline
 
 ## Merge it (or don't)
 
-Amaco never merges for you. The diff sits on its branch in the worktree, ready for you to:
+Vibestrate never merges for you. The diff sits on its branch in the worktree, ready for you to:
 
 - Open a PR (`gh pr create` or your tool of choice).
 - Fast-forward locally if the branch is yours alone.
@@ -68,11 +68,11 @@ Amaco never merges for you. The diff sits on its branch in the worktree, ready f
 
 ## When it doesn't end at `merge_ready`
 
-- **`blocked`** — the reviewer or verifier found something that needs a human decision. Read `.amaco/runs/<runId>/review.md` and `verification.md`.
-- **`failed`** — an unrecoverable error during a stage. Check `.amaco/runs/<runId>/events.jsonl` and the provider stream log.
+- **`blocked`** — the reviewer or verifier found something that needs a human decision. Read `.vibestrate/runs/<runId>/review.md` and `verification.md`.
+- **`failed`** — an unrecoverable error during a stage. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
 
 See [Debug a failed run](/docs/workflows/debug-failed) for the practical playbook.
 
 ## Next
 
-[Set up a provider →](/docs/getting-started/providers) — Amaco picks a sensible default, but knowing how providers are wired up is worth the five minutes.
+[Set up a provider →](/docs/getting-started/providers) — Vibestrate picks a sensible default, but knowing how providers are wired up is worth the five minutes.

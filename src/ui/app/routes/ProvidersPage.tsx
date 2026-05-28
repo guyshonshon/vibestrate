@@ -10,7 +10,7 @@ type Busy = { id: string; action: "apply" | "default" | "test" } | null;
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
- * Providers page — the dashboard mirror of `amaco provider …`.
+ * Providers page — the dashboard mirror of `vibestrate provider …`.
  *
  * Detect / list / set-default / apply-preset / test, all over the narrow,
  * audited server routes in `src/server/routes/providers.ts`. The browser
@@ -194,7 +194,7 @@ export function ProvidersPage() {
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Providers · the CLIs Amaco drives</div>
+        <div className="eyebrow mb-1.5">Providers · the CLIs Vibestrate drives</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           {rows ? `${availableCount} detected` : "—"}
           <span className="text-fog-400">
@@ -204,8 +204,8 @@ export function ProvidersPage() {
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
           Detect installed coding-agent CLIs, apply their preset, set a default,
           and run a safe connectivity test — the same actions as{" "}
-          <code className="text-violet-soft">amaco provider …</code>. When a
-          provider isn't authenticated, Amaco shows the login command to run{" "}
+          <code className="text-violet-soft">vibestrate provider …</code>. When a
+          provider isn't authenticated, Vibestrate shows the login command to run{" "}
           <span className="text-fog-100">in your own terminal</span> — it never
           logs you in for you.
         </p>
@@ -297,7 +297,7 @@ function TestResultRow({
         <div className="font-medium">Not logged in.</div>
         {cmd ? (
           <div className="mt-1.5">
-            Run this <span className="text-fog-100 font-medium">in your own terminal</span> (Amaco won't do it for you):
+            Run this <span className="text-fog-100 font-medium">in your own terminal</span> (Vibestrate won't do it for you):
             <pre className="mt-1 rounded bg-black/30 px-2 py-1 mono text-[12px] text-amber-100 overflow-x-auto">
               {cmd}
             </pre>
@@ -411,7 +411,7 @@ function InstallWizard({
         </ol>
 
         <p className="mt-4 text-[11px] text-fog-500">
-          Install and login run entirely on your machine — Amaco never runs them
+          Install and login run entirely on your machine — Vibestrate never runs them
           for you and never sees your credentials.
         </p>
       </div>

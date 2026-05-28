@@ -14,7 +14,7 @@ import { ReviewSuggestionService } from "../src/reviews/review-suggestion-servic
 import { SuggestionBundleService } from "../src/reviews/suggestion-bundle-service.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { ensureDir } from "../src/utils/fs.js";
-import { runStatePath, runDir, amacoRoot } from "../src/utils/paths.js";
+import { runStatePath, runDir, vibestrateRoot } from "../src/utils/paths.js";
 import { writeJson } from "../src/utils/json.js";
 import { loadConfig } from "../src/project/config-loader.js";
 
@@ -24,7 +24,7 @@ async function tempProjectWithProfiles(opts: {
   validate?: string[];
   profiles?: Record<string, ProfileSpec>;
 }): Promise<{ project: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-rename-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-rename-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -46,9 +46,9 @@ async function tempProjectWithProfiles(opts: {
     })
     .join("\n");
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -241,7 +241,7 @@ describe("validation-profile-rename: applyRename", () => {
 
     // 1. project.yml has been rewritten.
     const yml = await fs.readFile(
-      path.join(project, ".amaco/project.yml"),
+      path.join(project, ".vibestrate/project.yml"),
       "utf8",
     );
     expect(yml).toMatch(/\bquick:/);
@@ -268,7 +268,7 @@ describe("validation-profile-rename: applyRename", () => {
 
     // 4. exactly one audit file exists.
     const auditDir = path.join(
-      amacoRoot(project),
+      vibestrateRoot(project),
       "validation-profile-migrations",
     );
     const entries = (await fs.readdir(auditDir)).filter((n) =>
@@ -293,7 +293,7 @@ describe("validation-profile-rename: applyRename", () => {
 
     const cfg = await loadConfig(project);
     const ymlBefore = await fs.readFile(
-      path.join(project, ".amaco/project.yml"),
+      path.join(project, ".vibestrate/project.yml"),
       "utf8",
     );
 
@@ -309,7 +309,7 @@ describe("validation-profile-rename: applyRename", () => {
 
       // project.yml has been restored to its pre-rename state.
       const ymlAfter = await fs.readFile(
-        path.join(project, ".amaco/project.yml"),
+        path.join(project, ".vibestrate/project.yml"),
         "utf8",
       );
       expect(ymlAfter).toBe(ymlBefore);
@@ -318,7 +318,7 @@ describe("validation-profile-rename: applyRename", () => {
 
       // No audit was written either.
       const auditDir = path.join(
-        amacoRoot(project),
+        vibestrateRoot(project),
         "validation-profile-migrations",
       );
       const exists = await fs

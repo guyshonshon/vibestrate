@@ -14,7 +14,7 @@ import {
 let root = "";
 
 beforeEach(async () => {
-  root = await mkdtemp(path.join(os.tmpdir(), "amaco-lock-"));
+  root = await mkdtemp(path.join(os.tmpdir(), "vibestrate-lock-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
@@ -49,9 +49,9 @@ describe("scheduler-lock", () => {
     // most systems; use a very large number we can be confident is
     // unallocated. Pick 2**31 - 2.
     const dead = 2_147_483_646;
-    await mkdir(path.join(root, ".amaco", "scheduler"), { recursive: true });
+    await mkdir(path.join(root, ".vibestrate", "scheduler"), { recursive: true });
     await writeFile(
-      path.join(root, ".amaco", "scheduler", "lock"),
+      path.join(root, ".vibestrate", "scheduler", "lock"),
       JSON.stringify({ pid: dead, host: os.hostname(), startedAt: "x" }),
     );
     const r = await acquireLock(root, process.pid);
@@ -72,13 +72,13 @@ describe("scheduler-lock", () => {
       expect(holder.pid).toBeTruthy();
       const old = new Date(Date.now() - LOCK_HEARTBEAT_STALE_MS - 5000)
         .toISOString();
-      await mkdir(path.join(root, ".amaco", "scheduler"), { recursive: true });
+      await mkdir(path.join(root, ".vibestrate", "scheduler"), { recursive: true });
       await writeFile(
-        path.join(root, ".amaco", "scheduler", "lock"),
+        path.join(root, ".vibestrate", "scheduler", "lock"),
         JSON.stringify({ pid: holder.pid, host: os.hostname(), startedAt: old }),
       );
       await writeFile(
-        path.join(root, ".amaco", "scheduler", "state.json"),
+        path.join(root, ".vibestrate", "scheduler", "state.json"),
         JSON.stringify({
           paused: false,
           runningTaskIds: [],

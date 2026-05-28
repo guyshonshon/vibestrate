@@ -1,18 +1,18 @@
 ---
 title: CLI overview
-description: The shape of the amaco command, how subcommands group, and the conventions every command follows.
+description: The shape of the vibestrate command, how subcommands group, and the conventions every command follows.
 section: cli
 slug: cli/overview
 ---
 
-The `amaco` command is the primary surface for working with Amaco from a terminal. Run `amaco --help` to see the live list; the [CLI reference](/docs/reference/cli) page is generated from the same command tree.
+The `vibestrate` command is the primary surface for working with Vibestrate from a terminal. Run `vibestrate --help` to see the live list; the [CLI reference](/docs/reference/cli) page is generated from the same command tree.
 
 ## Shape
 
 ```text
-amaco                 → open the interactive shell (no args)
-amaco <command>       → run a top-level command (init, run, status, ...)
-amaco <area> <verb>   → run a subcommand under an area (provider list, config set, ...)
+vibestrate                 → open the interactive shell (no args)
+vibestrate <command>       → run a top-level command (init, run, status, ...)
+vibestrate <area> <verb>   → run a subcommand under an area (provider list, config set, ...)
 ```
 
 Top-level commands are things you do directly to a run or project: `init`, `run`, `status`, `abort`, `pause`, `resume`, `doctor`, `ui`, `replay`, `shell`.
@@ -23,43 +23,43 @@ Area groups are for related sub-actions: `provider`, `config`, `skills`, `flows`
 
 - **`--json`** wherever it's offered emits machine-readable output. Use it for scripting; the human-readable default is for terminals.
 - **`--yes`** on commands that would otherwise prompt makes them non-interactive. Safe defaults are used.
-- **No subcommand opens the shell.** Running `amaco` with zero arguments opens the interactive Ink-based shell. Use `amaco --help` to see commands instead.
+- **No subcommand opens the shell.** Running `vibestrate` with zero arguments opens the interactive Ink-based shell. Use `vibestrate --help` to see commands instead.
 - **Errors are typed.** When something fails, you get a structured error with a title, optional detail, and an optional hint pointing you at the next thing to try.
 
 ## The core loop
 
 ```bash
-amaco init                                 # one-time per project
-amaco doctor                                # verify env + config
-amaco run "Your task description"          # start a run
-amaco status                                # see active and recent runs
-amaco replay <runId>                        # inspect any past run
+vibestrate init                                 # one-time per project
+vibestrate doctor                                # verify env + config
+vibestrate run "Your task description"          # start a run
+vibestrate status                                # see active and recent runs
+vibestrate replay <runId>                        # inspect any past run
 ```
 
 Rewind a prior run instead of restarting — reuse its plan (and architecture) and resume from a later stage:
 
 ```bash
-amaco run "<same task>" --resume-from <runId>                        # reuse plan + architecture, redo implementation
-amaco run "<same task>" --resume-from <runId> --resume-stage architecting  # reuse plan, redo from architecture
+vibestrate run "<same task>" --resume-from <runId>                        # reuse plan + architecture, redo implementation
+vibestrate run "<same task>" --resume-from <runId> --resume-stage architecting  # reuse plan, redo from architecture
 ```
 
 ## Working with providers
 
 ```bash
-amaco provider detect                       # what's installed?
-amaco provider setup                        # apply presets
-amaco provider test <id>                    # verify the invocation works
-amaco provider set <id>                     # set as the default for every agent
-amaco provider list                         # show the configured providers
+vibestrate provider detect                       # what's installed?
+vibestrate provider setup                        # apply presets
+vibestrate provider test <id>                    # verify the invocation works
+vibestrate provider set <id>                     # set as the default for every agent
+vibestrate provider list                         # show the configured providers
 ```
 
 ## Working with config
 
 ```bash
-amaco config show                           # full project.yml as YAML
-amaco config get commands.validate          # a single key
-amaco config set commands.validate '["pnpm typecheck","pnpm test"]'
-amaco config validate                       # check against the Zod schema
+vibestrate config show                           # full project.yml as YAML
+vibestrate config get commands.validate          # a single key
+vibestrate config set commands.validate '["pnpm typecheck","pnpm test"]'
+vibestrate config validate                       # check against the Zod schema
 ```
 
 The `config set` command accepts JSON for non-scalar values, and a plain string otherwise.
@@ -67,35 +67,35 @@ The `config set` command accepts JSON for non-scalar values, and a plain string 
 ## Working with skills
 
 ```bash
-amaco skills list                           # what's discoverable
-amaco skills show <id>                      # the rendered skill
-amaco skills assign <agent> <skill>         # attach a skill to an agent
+vibestrate skills list                           # what's discoverable
+vibestrate skills show <id>                      # the rendered skill
+vibestrate skills assign <agent> <skill>         # attach a skill to an agent
 ```
 
 ## Working with Flows
 
 ```bash
-amaco flows list                           # built-in + project Flows
-amaco flows show <id>                      # the resolved definition
-amaco flows suggest "<task>" --risk high   # advisory suggestion only
-amaco run "<task>" --flow <id>             # run with a Flow
+vibestrate flows list                           # built-in + project Flows
+vibestrate flows show <id>                      # the resolved definition
+vibestrate flows suggest "<task>" --risk high   # advisory suggestion only
+vibestrate run "<task>" --flow <id>             # run with a Flow
 ```
 
 ## Working with approvals
 
 ```bash
-amaco approvals list <runId>                # what's awaiting approval
-amaco approvals show <runId> <approvalId>   # the approval context
-amaco approvals decide <runId> <approvalId> --approve
-amaco approvals decide <runId> <approvalId> --reject
+vibestrate approvals list <runId>                # what's awaiting approval
+vibestrate approvals show <runId> <approvalId>   # the approval context
+vibestrate approvals decide <runId> <approvalId> --approve
+vibestrate approvals decide <runId> <approvalId> --reject
 ```
 
 ## Working with the dashboard
 
 ```bash
-amaco ui                                    # start Mission Control
-amaco ui --no-open                          # don't auto-open the browser
-amaco run "<task>" --ui                     # start a run with the dashboard alongside
+vibestrate ui                                    # start Mission Control
+vibestrate ui --no-open                          # don't auto-open the browser
+vibestrate run "<task>" --ui                     # start a run with the dashboard alongside
 ```
 
 ## Reference

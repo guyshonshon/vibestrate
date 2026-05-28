@@ -272,7 +272,7 @@ export function CrewPage() {
         kind: "ok",
         text: opts.setAsDefault
           ? `${providerId}: configured + set as default for every agent.`
-          : `${providerId}: configured in .amaco/project.yml.`,
+          : `${providerId}: configured in .vibestrate/project.yml.`,
       });
       // Force an immediate overview refresh.
       const r = await api.getProvidersOverview();
@@ -673,7 +673,7 @@ function ConfigureProviderModal({
               <section>
                 <div className="eyebrow mb-2">Quick install · {installHint.title}</div>
                 <p className="text-[11.5px] text-fog-400 mb-2.5">
-                  Copy each line and run it in your terminal — Amaco will detect
+                  Copy each line and run it in your terminal — Vibestrate will detect
                   the CLI within a few seconds of refresh.
                 </p>
                 <ul className="space-y-1.5">
@@ -757,7 +757,7 @@ function ConfigureProviderModal({
             {form ? (
               <section>
                 <div className="eyebrow mb-2">
-                  YAML that will be written to .amaco/project.yml
+                  YAML that will be written to .vibestrate/project.yml
                 </div>
                 <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
                   {yamlPreview}

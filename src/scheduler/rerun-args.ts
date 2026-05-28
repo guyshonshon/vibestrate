@@ -1,4 +1,4 @@
-// Pure helper: take a persisted run record and derive the `amaco run`
+// Pure helper: take a persisted run record and derive the `vibestrate run`
 // argv that re-runs the same task with the same options. Used by the
 // panel's R-key handler and the `POST /api/runs/:id/retry` route so
 // both surfaces stay byte-identical.

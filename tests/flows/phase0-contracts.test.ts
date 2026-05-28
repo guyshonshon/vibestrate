@@ -31,32 +31,32 @@ function flowTestConfig() {
     roles: {
       planner: {
         provider: "claude",
-        prompt: ".amaco/roles/planner.md",
+        prompt: ".vibestrate/roles/planner.md",
         permissions: "readOnly",
       },
       architect: {
         provider: "claude",
-        prompt: ".amaco/roles/architect.md",
+        prompt: ".vibestrate/roles/architect.md",
         permissions: "readOnly",
       },
       executor: {
         provider: "claude",
-        prompt: ".amaco/roles/executor.md",
+        prompt: ".vibestrate/roles/executor.md",
         permissions: "codeWrite",
       },
       fixer: {
         provider: "claude",
-        prompt: ".amaco/roles/fixer.md",
+        prompt: ".vibestrate/roles/fixer.md",
         permissions: "codeWrite",
       },
       reviewer: {
         provider: "codex",
-        prompt: ".amaco/roles/reviewer.md",
+        prompt: ".vibestrate/roles/reviewer.md",
         permissions: "readOnly",
       },
       verifier: {
         provider: "codex",
-        prompt: ".amaco/roles/verifier.md",
+        prompt: ".vibestrate/roles/verifier.md",
         permissions: "readOnly",
       },
     },

@@ -30,11 +30,11 @@ describe("starter presets", () => {
     });
   });
 
-  it("codex preset uses `codex exec -q` with stdin", () => {
+  it("codex preset uses `codex exec` with stdin (no removed `-q` flag)", () => {
     expect(codexPreset).toEqual({
       type: "cli",
       command: "codex",
-      args: ["exec", "-q"],
+      args: ["exec"],
       input: "stdin",
     });
   });
@@ -76,7 +76,7 @@ describe("starter presets", () => {
       notes: [],
     });
     expect(cfg.command).toBe("/opt/homebrew/bin/codex");
-    expect(cfg.args).toEqual(["exec", "-q"]);
+    expect(cfg.args).toEqual(["exec"]);
     expect(cfg.input).toBe("stdin");
     expect(cfg.type).toBe("cli");
   });
@@ -107,7 +107,7 @@ describe("KNOWN_PROVIDERS hygiene", () => {
 
   it("the popular set is the out-of-the-box, preset-ready tier", () => {
     // Popular providers are auto-configured by doctor --fix / setup.
-    // Verification is delegated to `amaco provider test <id>` + login check.
+    // Verification is delegated to `vibestrate provider test <id>` + login check.
     const popular = KNOWN_PROVIDERS.filter((p) => p.popular);
     expect(new Set(popular.map((p) => p.id))).toEqual(POPULAR);
     for (const p of popular) {

@@ -16,7 +16,7 @@ function fmtTokens(t: RuntimeMetrics["roles"][number]["tokenUsage"]): string {
 export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }) {
   if (!metrics) {
     return (
-      <div className="rounded border border-amaco-border bg-amaco-panel p-3 text-[12px] text-amaco-fg-muted">
+      <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3 text-[12px] text-vibestrate-fg-muted">
         Metrics will appear once the first agent finishes.
       </div>
     );
@@ -46,15 +46,15 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
     });
 
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel">
-      <header className="flex items-center justify-between border-b border-amaco-border px-3 py-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel">
+      <header className="flex items-center justify-between border-b border-vibestrate-border px-3 py-2 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         <span>metrics</span>
-        <span className="amaco-mono normal-case tracking-normal">
+        <span className="vibestrate-mono normal-case tracking-normal">
           run {metrics.runId}
         </span>
       </header>
       {totals.length === 0 ? (
-        <div className="px-3 py-2 text-[11.5px] text-amaco-fg-muted">
+        <div className="px-3 py-2 text-[11.5px] text-vibestrate-fg-muted">
           No totals reported yet — the provider hasn't returned cost or
           token usage for this run.
         </div>
@@ -62,17 +62,17 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2 text-[12px] sm:grid-cols-5">
           {totals.map((t) => (
             <div key={t.label}>
-              <div className="text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+              <div className="text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
                 {t.label}
               </div>
-              <div className="amaco-mono text-amaco-fg">{t.value}</div>
+              <div className="vibestrate-mono text-vibestrate-fg">{t.value}</div>
             </div>
           ))}
         </div>
       )}
-      <div className="overflow-x-auto border-t border-amaco-border-soft">
+      <div className="overflow-x-auto border-t border-vibestrate-border-soft">
         <table className="w-full text-[12px]">
-          <thead className="bg-amaco-panel-2 text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+          <thead className="bg-vibestrate-panel-2 text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
             <tr>
               <th className="px-3 py-1.5 text-left font-medium">Stage</th>
               <th className="px-3 py-1.5 text-left font-medium">Agent</th>
@@ -92,7 +92,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
               <tr>
                 <td
                   colSpan={11}
-                  className="px-3 py-2 text-[12px] text-amaco-fg-muted"
+                  className="px-3 py-2 text-[12px] text-vibestrate-fg-muted"
                 >
                   No agent metrics yet.
                 </td>
@@ -101,17 +101,17 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
               metrics.roles.map((a, i) => (
                 <tr
                   key={`${a.roleId}-${i}`}
-                  className="border-t border-amaco-border-soft"
+                  className="border-t border-vibestrate-border-soft"
                 >
-                  <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
                     {a.stageId}
                   </td>
-                  <td className="px-3 py-1.5 text-amaco-fg">{a.roleId}</td>
-                  <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
+                  <td className="px-3 py-1.5 text-vibestrate-fg">{a.roleId}</td>
+                  <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
                     {a.providerType}:{a.providerId}
                   </td>
                   <td
-                    className="amaco-mono px-3 py-1.5 text-amaco-fg-dim"
+                    className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim"
                     title={a.flowContextFallbackReason ?? undefined}
                   >
                     {a.flowContextMode
@@ -120,35 +120,35 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                         ? "session"
                         : "—"}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-right text-amaco-fg">
+                  <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg">
                     {a.durationMs}ms
                   </td>
                   <td
-                    className={`amaco-mono px-3 py-1.5 text-right ${
-                      a.exitCode === 0 ? "text-amaco-fg-dim" : "text-amaco-fail"
+                    className={`vibestrate-mono px-3 py-1.5 text-right ${
+                      a.exitCode === 0 ? "text-vibestrate-fg-dim" : "text-vibestrate-fail"
                     }`}
                   >
                     {a.exitCode}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-right text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {a.diffInsertionsAfter !== null && a.diffDeletionsAfter !== null
                       ? `+${a.diffInsertionsAfter} −${a.diffDeletionsAfter}`
                       : "—"}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-right text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {a.totalCostUsd !== null
                       ? `$${a.totalCostUsd.toFixed(4)}`
                       : "—"}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-right text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {fmtTokens(a.tokenUsage)}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
                     {a.skillsAttached.length > 0
                       ? a.skillsAttached.join(", ")
                       : "—"}
                   </td>
-                  <td className="amaco-mono px-3 py-1.5 text-amaco-fg-dim">
+                  <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
                     {a.reviewDecision ?? a.verificationDecision ?? "—"}
                   </td>
                 </tr>
@@ -157,7 +157,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
           </tbody>
         </table>
       </div>
-      <footer className="border-t border-amaco-border-soft px-3 py-2 text-[11px] text-amaco-fg-muted">
+      <footer className="border-t border-vibestrate-border-soft px-3 py-2 text-[11px] text-vibestrate-fg-muted">
         Tokens and cost are reported only when the provider exposes them.
         Generic CLIs show "—".
       </footer>

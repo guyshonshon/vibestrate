@@ -18,9 +18,9 @@ const noProvider: ProviderDetectionRunner = async () => ({
   stderr: "",
 });
 
-/** Initialise a git repo + Amaco project wired to a fake, no-gate provider. */
+/** Initialise a git repo + Vibestrate project wired to a fake, no-gate provider. */
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-run-launcher-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-run-launcher-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -34,11 +34,11 @@ async function makeProject(): Promise<string> {
     fakeJs,
     `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
-  if (i.includes('Amaco Agent: reviewer')) console.log('# Review\\n\\nDECISION: APPROVED');
-  else if (i.includes('Amaco Agent: verifier')) console.log('VERIFICATION: PASSED');
-  else if (i.includes('Amaco Agent: planner')) console.log('# Plan');
-  else if (i.includes('Amaco Agent: architect')) console.log('# Architecture\\nNothing risky.');
-  else if (i.includes('Amaco Agent: executor')) console.log('# Implementation Summary\\nNone.');
+  if (i.includes('Vibestrate Agent: reviewer')) console.log('# Review\\n\\nDECISION: APPROVED');
+  else if (i.includes('Vibestrate Agent: verifier')) console.log('VERIFICATION: PASSED');
+  else if (i.includes('Vibestrate Agent: planner')) console.log('# Plan');
+  else if (i.includes('Vibestrate Agent: architect')) console.log('# Architecture\\nNothing risky.');
+  else if (i.includes('Vibestrate Agent: executor')) console.log('# Implementation Summary\\nNone.');
   else console.log('?');
 });
 `,
@@ -64,14 +64,14 @@ describe("run launcher (shared core run pipeline)", () => {
   });
 
   it("rejects a non-git directory", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-run-nogit-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-run-nogit-"));
     await expect(
       runFromSpec({ projectRoot: dir, task: "x" }),
     ).rejects.toMatchObject({ name: "RunLaunchError", code: "not_git_repo" });
   });
 
   it("rejects an uninitialised git repo", async () => {
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-run-noinit-"));
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-run-noinit-"));
     await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
     await expect(
       runFromSpec({ projectRoot: dir, task: "x" }),

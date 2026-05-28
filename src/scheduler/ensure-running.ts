@@ -4,9 +4,9 @@
 // never-started.
 //
 // Keeps the philosophy "queueing = work starts" — the user should
-// never have to remember to run `amaco queue run` in another
+// never have to remember to run `vibestrate queue run` in another
 // terminal just to make their queued tasks move. Also: every spawn
-// is observable (`.amaco/scheduler/scheduler.log` for stdout/stderr,
+// is observable (`.vibestrate/scheduler/scheduler.log` for stdout/stderr,
 // `scheduler-spawns.ndjson` for spawn+exit events) so failures are
 // never silent.
 
@@ -38,7 +38,7 @@ export type EnsureRunningResult = {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-function resolveAmacoBin(): string {
+function resolveVibestrateBin(): string {
   const candidates = [
     // Bundled: dist/index.js
     path.resolve(HERE, "..", "..", "..", "dist", "index.js"),
@@ -50,11 +50,11 @@ function resolveAmacoBin(): string {
 
 /**
  * If the scheduler isn't actively picking up work, spawn
- * `amaco queue run` detached. Returns what happened so the caller
+ * `vibestrate queue run` detached. Returns what happened so the caller
  * can surface it (toast / response body) — never silent.
  *
  * Visibility:
- *   - stdout + stderr stream into `.amaco/scheduler/scheduler.log`
+ *   - stdout + stderr stream into `.vibestrate/scheduler/scheduler.log`
  *     (appended; tailable from the dashboard)
  *   - the spawn is recorded in `scheduler-spawns.ndjson` immediately
  *   - if the child exits within 3s the exit code + a short tail are
@@ -82,7 +82,7 @@ export async function ensureSchedulerRunning(input: {
     return { action: "already-live", liveness };
   }
   try {
-    const bin = resolveAmacoBin();
+    const bin = resolveVibestrateBin();
     const logFd = openLogForAppend(input.projectRoot);
     const args = ["queue", "run"];
     if (input.exitWhenDrained) args.push("--exit-when-drained");
@@ -91,8 +91,8 @@ export async function ensureSchedulerRunning(input: {
       cwd: input.projectRoot,
       env: {
         ...process.env,
-        AMACO_SPAWNED_BY: source,
-        ...(input.parentPid ? { AMACO_PARENT_PID: String(input.parentPid) } : {}),
+        VIBESTRATE_SPAWNED_BY: source,
+        ...(input.parentPid ? { VIBESTRATE_PARENT_PID: String(input.parentPid) } : {}),
         NO_COLOR: "1",
       },
       // stdout + stderr land in the log file; stdin is discarded.
@@ -137,7 +137,7 @@ export async function ensureSchedulerRunning(input: {
           message: `Scheduler exited with code ${code} shortly after starting.`,
           detail:
             "Open the scheduler log in Mission Control's Task Control panel for the full traceback.",
-          fix: "Check `.amaco/scheduler/scheduler.log` (or the Task Control panel) for the stack.",
+          fix: "Check `.vibestrate/scheduler/scheduler.log` (or the Task Control panel) for the stack.",
         }).catch(() => undefined);
       }
     });
@@ -146,7 +146,7 @@ export async function ensureSchedulerRunning(input: {
       action: "spawned",
       liveness,
       ...(pid !== null ? { pid } : {}),
-      message: `started \`amaco ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .amaco/scheduler/scheduler.log`,
+      message: `started \`vibestrate ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .vibestrate/scheduler/scheduler.log`,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

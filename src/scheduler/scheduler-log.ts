@@ -1,6 +1,6 @@
 // Visibility layer for the (auto-)spawned scheduler. Captures stderr
-// and stdout from the detached `amaco queue run` child into a tail-
-// readable file under `.amaco/scheduler/`, plus a tiny ndjson stream
+// and stdout from the detached `vibestrate queue run` child into a tail-
+// readable file under `.vibestrate/scheduler/`, plus a tiny ndjson stream
 // of spawn / exit events so the dashboard can show "what happened
 // the last time we tried to start the scheduler".
 //

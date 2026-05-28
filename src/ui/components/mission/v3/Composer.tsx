@@ -337,7 +337,7 @@ export function ComposerV3({
           {flows.length === 0 ? (
             <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-4 text-[12.5px] text-fog-400">
               No flows discovered yet. Project-local flows live in{" "}
-              <span className="mono">.amaco/flows/</span>.
+              <span className="mono">.vibestrate/flows/</span>.
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">

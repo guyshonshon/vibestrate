@@ -20,7 +20,7 @@ const claudeOk: ProviderDetectionRunner = async (cmd) =>
     : { exitCode: 127, stdout: "", stderr: "" };
 
 async function tempProjectWithConfig(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-cfg-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-cfg-"));
   await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
   await applySetup({ options: { projectRoot: dir }, detectionRunner: claudeOk });
   return dir;
@@ -44,7 +44,7 @@ describe("coerceValueString", () => {
   });
   it("treats bare strings as strings", () => {
     expect(coerceValueString("main")).toBe("main");
-    expect(coerceValueString("amaco/")).toBe("amaco/");
+    expect(coerceValueString("vibestrate/")).toBe("vibestrate/");
   });
   it("throws on malformed JSON for json-prefixed input", () => {
     expect(() => coerceValueString("[bad")).toThrow(ConfigError);
@@ -102,7 +102,7 @@ describe("config get/set/validate", () => {
   });
 
   it("validate reports issues when YAML is corrupted", async () => {
-    const cfgPath = path.join(projectRoot, ".amaco", "project.yml");
+    const cfgPath = path.join(projectRoot, ".vibestrate", "project.yml");
     await fs.writeFile(cfgPath, "::: not yaml :::");
     const r = await validateConfigFile(projectRoot);
     expect(r.ok).toBe(false);
@@ -123,7 +123,7 @@ describe("config get/set/validate", () => {
 
     // Round-trip: parse again, ensure structure intact.
     const text = await fs.readFile(
-      path.join(projectRoot, ".amaco", "project.yml"),
+      path.join(projectRoot, ".vibestrate", "project.yml"),
       "utf8",
     );
     const reparsed = YAML.parse(text) as { roles: Record<string, unknown> };

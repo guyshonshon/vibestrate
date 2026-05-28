@@ -52,7 +52,7 @@ export function renderTaskReport(input: TaskReportInput): string {
     lines.push(`_No runs yet._`);
   } else {
     for (const r of task.runIds) {
-      lines.push(`- \`${r}\` — see \`.amaco/runs/${r}/artifacts/12-final-report.md\``);
+      lines.push(`- \`${r}\` — see \`.vibestrate/runs/${r}/artifacts/12-final-report.md\``);
     }
     if (task.currentRunId) {
       lines.push(`- Current run: \`${task.currentRunId}\``);
@@ -73,7 +73,7 @@ export function renderTaskReport(input: TaskReportInput): string {
     lines.push("");
     lines.push(`- Proposal id: \`${input.proposalId}\``);
     lines.push(
-      `- Audit: \`.amaco/roadmap/proposals/${input.proposalId}-accepted.json\``,
+      `- Audit: \`.vibestrate/roadmap/proposals/${input.proposalId}-accepted.json\``,
     );
     lines.push("");
   }

@@ -46,7 +46,7 @@ export type Priority = z.infer<typeof prioritySchema>;
  * use. The mapping from effort → provider id lives in
  * `project.yml#effortMap` so a low-effort task in one repo can route to
  * `claude-haiku` and in another to `codex`. The same three buckets
- * (low/medium/high) work across every provider Amaco knows about — see
+ * (low/medium/high) work across every provider Vibestrate knows about — see
  * the design note in `effort-resolver.ts`.
  */
 export const effortSchema = z.enum(["low", "medium", "high"]);

@@ -5,7 +5,7 @@ Branch intent: define the architecture work before implementing Guides
 
 ## Goal
 
-Amaco should let a user start a feature with a reusable Guide instead of manually moving context between local coding CLIs. The first productized Guide should be Quality Arbitration:
+Vibestrate should let a user start a feature with a reusable Guide instead of manually moving context between local coding CLIs. The first productized Guide should be Quality Arbitration:
 
 1. Plan with one provider.
 2. Review the plan with another provider.
@@ -13,7 +13,7 @@ Amaco should let a user start a feature with a reusable Guide instead of manuall
 4. Review the diff with the challenger side.
 5. Let the implementer challenge or respond.
 6. Run a second review.
-7. Produce an Amaco decision summary grounded in artifacts and validation.
+7. Produce an Vibestrate decision summary grounded in artifacts and validation.
 
 This is not a Skill. A Skill changes what an agent knows inside one invocation. A Guide changes the run recipe: steps, participants, provider choices, context policy, artifact contracts, gates, and the final decision record.
 
@@ -23,7 +23,7 @@ This is not a Skill. A Skill changes what an agent knows inside one invocation. 
 
 | Area | Existing asset | Why it matters for Guides |
 | --- | --- | --- |
-| Run supervision | `src/core/orchestrator.ts`, `src/core/state-machine.ts` | Amaco already owns a durable run record, worktree lifecycle, approval gates, validation, and final status. |
+| Run supervision | `src/core/orchestrator.ts`, `src/core/state-machine.ts` | Vibestrate already owns a durable run record, worktree lifecycle, approval gates, validation, and final status. |
 | Artifacts | `src/core/artifact-store.ts` | Every meaningful provider turn can have a prompt and output artifact instead of relying on hidden chat state. |
 | Events and replay | `src/core/event-log.ts`, `src/core/run-replay-service.ts` | A Guide can be inspectable if each resolved step emits typed events and artifacts. |
 | Metrics | `src/core/runtime-metrics.ts`, `src/core/metrics-store.ts` | Provider duration, cost, token usage, model, tool calls, and Claude session ids already have a place to land. |
@@ -39,12 +39,12 @@ This is not a Skill. A Skill changes what an agent knows inside one invocation. 
 - Provider selection is run-wide today. Effort and provider override resolve one provider id for every agent in a run unless agent defaults win.
 - Provider execution is one CLI invocation per agent turn. The generic `cli` provider and `claude-code` provider receive a prompt and return buffered output plus optional stream chunks.
 - Claude output parsing may record a `sessionId`, but the provider contract does not own session lifecycle, resume, a persistent PTY, or a normalized conversation handle.
-- Skills are reusable prompt attachments. They are discovered from `.amaco/skills` and `.claude/skills`, assigned to agents, optionally attached per run, and may add MCP servers.
-- The dashboard can spawn a constrained `amaco run` process. The shell can surface runs, skills, approvals, queues, and a command runner. Neither surface has a Guide picker or per-step provider editor.
+- Skills are reusable prompt attachments. They are discovered from `.vibestrate/skills` and `.claude/skills`, assigned to agents, optionally attached per run, and may add MCP servers.
+- The dashboard can spawn a constrained `vibestrate run` process. The shell can surface runs, skills, approvals, queues, and a command runner. Neither surface has a Guide picker or per-step provider editor.
 
 ## Fit Assessment
 
-Amaco already has the right supervisory center for Guides:
+Vibestrate already has the right supervisory center for Guides:
 
 - durable local files over invisible orchestrator memory,
 - fixed argv provider calls rather than browser shell execution,
@@ -123,7 +123,7 @@ The default reviewer emits one `DECISION:`. The verifier emits one `VERIFICATION
 - first review findings,
 - implementer acceptance, rebuttal, or fix plan per finding,
 - second review resolution,
-- final Amaco decision summary that distinguishes validation evidence, reviewer agreement, disagreement, remaining risk, and human-required decisions.
+- final Vibestrate decision summary that distinguishes validation evidence, reviewer agreement, disagreement, remaining risk, and human-required decisions.
 
 Needed:
 
@@ -165,7 +165,7 @@ Needed:
 2. Letting Guide YAML inject raw CLI args will turn provider compatibility and security into template problems.
 3. Depending only on live sessions will make replay, restart, and audits incomplete.
 4. Copying every artifact into every prompt will defeat token efficiency and make arbitration slower than manual handoff.
-5. Surfacing Guides only in the dashboard will violate Amaco's CLI-first and shell parity.
+5. Surfacing Guides only in the dashboard will violate Vibestrate's CLI-first and shell parity.
 6. Calling every disagreement "quality improvement" without validation or labels will create vanity telemetry.
 
 ## Recommended Boundary

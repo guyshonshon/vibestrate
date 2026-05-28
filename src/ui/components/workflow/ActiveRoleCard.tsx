@@ -30,32 +30,32 @@ export function ActiveRoleCard({
       status === "verifying");
 
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel p-3">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
       <div className="flex items-center justify-between">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           {inFlight ? "active agent" : "last agent"}
         </div>
         {inFlight ? (
-          <span className="amaco-mono text-[10.5px] text-amaco-accent">
+          <span className="vibestrate-mono text-[10.5px] text-vibestrate-accent">
             running
           </span>
         ) : null}
       </div>
       <div className="mt-2 flex flex-wrap items-baseline gap-3">
-        <span className="text-[15px] font-medium text-amaco-fg">
+        <span className="text-[15px] font-medium text-vibestrate-fg">
           {expectedRole ?? lastForRole?.roleId ?? "—"}
         </span>
         {lastForRole ? (
           <>
-            <span className="amaco-mono text-[12px] text-amaco-fg-dim">
+            <span className="vibestrate-mono text-[12px] text-vibestrate-fg-dim">
               {lastForRole.providerType}:{lastForRole.providerId}
             </span>
-            <span className="amaco-mono text-[12px] text-amaco-fg-muted">
+            <span className="vibestrate-mono text-[12px] text-vibestrate-fg-muted">
               {lastForRole.durationMs}ms · exit {lastForRole.exitCode}
             </span>
           </>
         ) : (
-          <span className="text-[12px] text-amaco-fg-muted">
+          <span className="text-[12px] text-vibestrate-fg-muted">
             (no agent metrics yet)
           </span>
         )}
@@ -65,7 +65,7 @@ export function ActiveRoleCard({
           {lastForRole.skillsAttached.map((s) => (
             <span
               key={s}
-              className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg-dim"
+              className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-vibestrate-fg-dim"
             >
               skill: {s}
             </span>

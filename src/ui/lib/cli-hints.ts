@@ -1,5 +1,5 @@
 // Pure mapping from the active dashboard Route to a "teach the CLI"
-// hint card: a short title, one or more equivalent `amaco …` commands,
+// hint card: a short title, one or more equivalent `vibestrate …` commands,
 // and a one-line explanation. The point is to make the CLI surface
 // discoverable from the UI — every dashboard action should be doable
 // from the terminal, and this surface tells the user how.
@@ -38,9 +38,9 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Live view of every active run + queue depth + pending attention. The CLI has the same data behind several commands.",
         commands: [
-          { cmd: "amaco status", note: "current runs (table)" },
-          { cmd: "amaco shell", note: "interactive TUI version of this page" },
-          { cmd: 'amaco run "describe the change"', note: "start a new run" },
+          { cmd: "vibestrate status", note: "current runs (table)" },
+          { cmd: "vibestrate shell", note: "interactive TUI version of this page" },
+          { cmd: 'vibestrate run "describe the change"', note: "start a new run" },
         ],
         tips: TIPS_RUN,
       };
@@ -50,10 +50,10 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Browse, start, and inspect runs. Everything you see here is also exposed on the CLI.",
         commands: [
-          { cmd: "amaco shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
-          { cmd: "amaco status", note: "one-shot run table" },
-          { cmd: 'amaco run "describe the change"', note: "start a new run" },
-          { cmd: "amaco replay <runId>", note: "open the run timeline in the terminal" },
+          { cmd: "vibestrate shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
+          { cmd: "vibestrate status", note: "one-shot run table" },
+          { cmd: 'vibestrate run "describe the change"', note: "start a new run" },
+          { cmd: "vibestrate replay <runId>", note: "open the run timeline in the terminal" },
         ],
         tips: TIPS_RUN,
       };
@@ -63,11 +63,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Live state of a single run. The CLI surfaces the same projection plus pause/resume.",
         commands: [
-          { cmd: `amaco status ${route.runId}`, note: "current phase + summary" },
-          { cmd: `amaco replay ${route.runId}`, note: "scroll the timeline event-by-event" },
-          { cmd: `amaco pause ${route.runId}`, note: "request a pause at the next safe boundary" },
-          { cmd: `amaco resume ${route.runId}`, note: "resume from the paused boundary" },
-          { cmd: `amaco abort ${route.runId}`, note: "stop the run immediately" },
+          { cmd: `vibestrate status ${route.runId}`, note: "current phase + summary" },
+          { cmd: `vibestrate replay ${route.runId}`, note: "scroll the timeline event-by-event" },
+          { cmd: `vibestrate pause ${route.runId}`, note: "request a pause at the next safe boundary" },
+          { cmd: `vibestrate resume ${route.runId}`, note: "resume from the paused boundary" },
+          { cmd: `vibestrate abort ${route.runId}`, note: "stop the run immediately" },
         ],
         tips: [
           "The inspector tab in the URL (`?tab=replay`, `?tab=diff`, …) deep-links into a panel.",
@@ -77,17 +77,17 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Roadmap board",
         blurb:
-          "Tasks across status columns. The same backlog drives `amaco tasks` and `amaco queue`.",
+          "Tasks across status columns. The same backlog drives `vibestrate tasks` and `vibestrate queue`.",
         commands: [
-          { cmd: "amaco tasks list", note: "table of tasks with status + linked runs" },
+          { cmd: "vibestrate tasks list", note: "table of tasks with status + linked runs" },
           {
-            cmd: 'amaco tasks add "title" --effort medium',
+            cmd: 'vibestrate tasks add "title" --effort medium',
             note: "create a new task with an effort bucket",
           },
-          { cmd: "amaco roadmap show", note: "raw roadmap document" },
+          { cmd: "vibestrate roadmap show", note: "raw roadmap document" },
         ],
         tips: [
-          "Append `--read-only` on `amaco tasks add` to mark the task as investigation-only.",
+          "Append `--read-only` on `vibestrate tasks add` to mark the task as investigation-only.",
         ],
       };
     case "task":
@@ -96,11 +96,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "One task with its runs, comments, and report. The CLI mirrors every view here.",
         commands: [
-          { cmd: `amaco tasks show ${route.taskId}`, note: "full task record" },
-          { cmd: `amaco tasks report ${route.taskId}`, note: "rendered implementation report" },
-          { cmd: `amaco tasks comments ${route.taskId}`, note: "thread of comments" },
-          { cmd: `amaco tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
-          { cmd: `amaco run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
+          { cmd: `vibestrate tasks show ${route.taskId}`, note: "full task record" },
+          { cmd: `vibestrate tasks report ${route.taskId}`, note: "rendered implementation report" },
+          { cmd: `vibestrate tasks comments ${route.taskId}`, note: "thread of comments" },
+          { cmd: `vibestrate tasks queue ${route.taskId}`, note: "enqueue this task for the runner" },
+          { cmd: `vibestrate run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
         ],
         tips: TIPS_RUN,
       };
@@ -108,13 +108,13 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Queue",
         blurb:
-          "FIFO + priority + dependency queue. `amaco queue` is the canonical surface.",
+          "FIFO + priority + dependency queue. `vibestrate queue` is the canonical surface.",
         commands: [
-          { cmd: "amaco queue list", note: "what's enqueued, in order" },
-          { cmd: "amaco queue status", note: "runner state + active item" },
-          { cmd: "amaco queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
-          { cmd: "amaco queue run", note: "drain the queue (one task at a time)" },
-          { cmd: "amaco queue conflicts", note: "show predicted worktree conflicts" },
+          { cmd: "vibestrate queue list", note: "what's enqueued, in order" },
+          { cmd: "vibestrate queue status", note: "runner state + active item" },
+          { cmd: "vibestrate queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
+          { cmd: "vibestrate queue run", note: "drain the queue (one task at a time)" },
+          { cmd: "vibestrate queue conflicts", note: "show predicted worktree conflicts" },
         ],
         tips: [
           "Set `scheduler.queuePolicy: fair` + `sourceQuotas: { cron: 1, user: 3 }` in project.yml to stop one origin from starving others.",
@@ -126,8 +126,8 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Agent-generated change proposals waiting for human approval.",
         commands: [
-          { cmd: "amaco approvals list", note: "all pending approvals" },
-          { cmd: "amaco suggestions list", note: "all suggestions waiting for review" },
+          { cmd: "vibestrate approvals list", note: "all pending approvals" },
+          { cmd: "vibestrate suggestions list", note: "all suggestions waiting for review" },
         ],
       };
     case "proposal":
@@ -135,9 +135,9 @@ export function hintForRoute(route: Route): CliHint {
         title: "Proposal detail",
         blurb: "Inspect or accept a single proposal from the CLI.",
         commands: [
-          { cmd: `amaco approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
-          { cmd: `amaco approvals accept ${route.proposalId}`, note: "accept the proposed change" },
-          { cmd: `amaco approvals reject ${route.proposalId}`, note: "reject with a reason" },
+          { cmd: `vibestrate approvals show ${route.proposalId}`, note: "inspect the diff + metadata" },
+          { cmd: `vibestrate approvals accept ${route.proposalId}`, note: "accept the proposed change" },
+          { cmd: `vibestrate approvals reject ${route.proposalId}`, note: "reject with a reason" },
         ],
       };
     case "settings":
@@ -146,11 +146,11 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Project + provider + notification settings. The CLI exposes the same knobs without a server.",
         commands: [
-          { cmd: "amaco config show", note: "dump the resolved project config" },
-          { cmd: "amaco provider list", note: "available providers + which CLI is detected" },
-          { cmd: "amaco provider test <id>", note: "smoke-test that a provider works" },
-          { cmd: "amaco doctor", note: "diagnose environment + config issues" },
-          { cmd: "amaco notifications gateways", note: "configure notification gateways" },
+          { cmd: "vibestrate config show", note: "dump the resolved project config" },
+          { cmd: "vibestrate provider list", note: "available providers + which CLI is detected" },
+          { cmd: "vibestrate provider test <id>", note: "smoke-test that a provider works" },
+          { cmd: "vibestrate doctor", note: "diagnose environment + config issues" },
+          { cmd: "vibestrate notifications gateways", note: "configure notification gateways" },
         ],
       };
     case "project":
@@ -158,14 +158,14 @@ export function hintForRoute(route: Route): CliHint {
         title: "Project overview",
         blurb: "High-level project state. CLI equivalents below.",
         commands: [
-          { cmd: "amaco status", note: "recent runs at a glance" },
-          { cmd: "amaco roadmap show", note: "current roadmap document" },
-          { cmd: "amaco doctor", note: "environment + config check" },
+          { cmd: "vibestrate status", note: "recent runs at a glance" },
+          { cmd: "vibestrate roadmap show", note: "current roadmap document" },
+          { cmd: "vibestrate doctor", note: "environment + config check" },
         ],
       };
     case "codebase": {
       const cmds: CliCommand[] = [
-        { cmd: "amaco skills list", note: "skills the orchestrator can pull in" },
+        { cmd: "vibestrate skills list", note: "skills the orchestrator can pull in" },
       ];
       if (route.filePath) {
         cmds.unshift({
@@ -176,7 +176,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Codebase browser",
         blurb:
-          "Read-only navigation of the repo as Amaco sees it. The CLI doesn't replicate the tree, but exposes the metadata.",
+          "Read-only navigation of the repo as Vibestrate sees it. The CLI doesn't replicate the tree, but exposes the metadata.",
         commands: cmds,
       };
     }
@@ -186,25 +186,25 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Per-run worktree + diff state. Bundles and validation live on the CLI.",
         commands: [
-          { cmd: "amaco bundles list", note: "validation bundles per run" },
-          { cmd: "amaco bundles apply <bundleId>", note: "apply a bundle to the project root" },
-          { cmd: "amaco bundles revert <bundleId>", note: "revert a previously applied bundle" },
-          { cmd: "amaco validation run", note: "execute the validation profile" },
+          { cmd: "vibestrate bundles list", note: "validation bundles per run" },
+          { cmd: "vibestrate bundles apply <bundleId>", note: "apply a bundle to the project root" },
+          { cmd: "vibestrate bundles revert <bundleId>", note: "revert a previously applied bundle" },
+          { cmd: "vibestrate validation run", note: "execute the validation profile" },
         ],
       };
     case "flow":
       return {
         title: "Flow Builder",
         blurb:
-          "Design how agents work together. Project flows live in .amaco/flows/.",
+          "Design how agents work together. Project flows live in .vibestrate/flows/.",
         commands: [
-          { cmd: "amaco flows list", note: "discovered flows" },
+          { cmd: "vibestrate flows list", note: "discovered flows" },
           {
-            cmd: "amaco flows show <flowId>",
+            cmd: "vibestrate flows show <flowId>",
             note: "resolved snapshot for a flow",
           },
           {
-            cmd: 'amaco run "task" --flow <flowId>',
+            cmd: 'vibestrate run "task" --flow <flowId>',
             note: "run using a specific flow",
           },
         ],
@@ -213,11 +213,11 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Flows",
         blurb:
-          "Browse the flow recipes Amaco discovers. Fork a builtin into .amaco/flows/ to customize it, then run it.",
+          "Browse the flow recipes Vibestrate discovers. Fork a builtin into .vibestrate/flows/ to customize it, then run it.",
         commands: [
-          { cmd: "amaco flows list", note: "discovered flows (builtin + project)" },
-          { cmd: "amaco flows show <flowId>", note: "inspect a flow's flow" },
-          { cmd: 'amaco run "task" --flow <flowId>', note: "run using a flow" },
+          { cmd: "vibestrate flows list", note: "discovered flows (builtin + project)" },
+          { cmd: "vibestrate flows show <flowId>", note: "inspect a flow's flow" },
+          { cmd: 'vibestrate run "task" --flow <flowId>', note: "run using a flow" },
         ],
       };
     case "metrics":
@@ -227,7 +227,7 @@ export function hintForRoute(route: Route): CliHint {
           "Rollups across every run and every model. Same data as the JSON metrics endpoint.",
         commands: [
           {
-            cmd: "amaco status",
+            cmd: "vibestrate status",
             note: "live counts (text version of the KPI strip)",
           },
           {
@@ -240,10 +240,10 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Crew",
         blurb:
-          "Roles and the providers they run on. Edit roles/providers in `.amaco/project.yml`.",
+          "Roles and the providers they run on. Edit roles/providers in `.vibestrate/project.yml`.",
         commands: [
           {
-            cmd: "amaco doctor",
+            cmd: "vibestrate doctor",
             note: "verify every provider's CLI is on PATH",
           },
           {
@@ -256,12 +256,12 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Providers",
         blurb:
-          "Detect, configure, set, and test the local CLIs Amaco drives — the same actions as the `amaco provider` commands.",
+          "Detect, configure, set, and test the local CLIs Vibestrate drives — the same actions as the `vibestrate provider` commands.",
         commands: [
-          { cmd: "amaco provider detect", note: "what's installed + confidence" },
-          { cmd: "amaco provider setup", note: "apply a preset / wire flags" },
-          { cmd: "amaco provider set <id>", note: "make it the default for every agent" },
-          { cmd: "amaco provider test <id>", note: "safe smoke test; tells you to log in if needed" },
+          { cmd: "vibestrate provider detect", note: "what's installed + confidence" },
+          { cmd: "vibestrate provider setup", note: "apply a preset / wire flags" },
+          { cmd: "vibestrate provider set <id>", note: "make it the default for every agent" },
+          { cmd: "vibestrate provider test <id>", note: "safe smoke test; tells you to log in if needed" },
         ],
         tips: [
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",

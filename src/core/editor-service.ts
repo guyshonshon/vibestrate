@@ -82,7 +82,7 @@ export function validateEditorConfig(
     return {
       ok: false,
       reason:
-        'Editor command must be a single token (no spaces, no "/", no ".."). Configure via `amaco editor set`.',
+        'Editor command must be a single token (no spaces, no "/", no ".."). Configure via `vibestrate editor set`.',
       resolvedPlaceholders: [],
     };
   }

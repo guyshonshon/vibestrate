@@ -5,13 +5,13 @@ section: concepts
 slug: concepts/worktree
 ---
 
-**Professional explanation.** A run worktree is a separate git worktree linked to the project repository, created at run start under `git.worktreeDir` (default `../.amaco-worktrees/`), and bound to a fresh branch named `<git.branchPrefix><runId>-<slug>`. All write-side actions during the run are constrained to this directory by the path guard (`src/core/path-guard.ts`); any attempt to write outside it is refused. The worktree is preserved across `aborted` and `blocked` runs for inspection.
+**Professional explanation.** A run worktree is a separate git worktree linked to the project repository, created at run start under `git.worktreeDir` (default `../.vibestrate-worktrees/`), and bound to a fresh branch named `<git.branchPrefix><runId>-<slug>`. All write-side actions during the run are constrained to this directory by the path guard (`src/core/path-guard.ts`); any attempt to write outside it is refused. The worktree is preserved across `aborted` and `blocked` runs for inspection.
 
 **Simple explanation.** Each run gets its own copy of your repo, on its own branch. Your main checkout is never touched.
 
 ## Why it matters
 
-Isolation is what makes Amaco safe to run on a real working repo. You can have an active run editing files while you keep coding in the project root — they're on different branches in different directories, and git doesn't notice the overlap.
+Isolation is what makes Vibestrate safe to run on a real working repo. You can have an active run editing files while you keep coding in the project root — they're on different branches in different directories, and git doesn't notice the overlap.
 
 It also means a failed run leaves a forensic copy: the worktree is on disk, the branch exists, you can `cd` in and read the half-finished work.
 
@@ -21,7 +21,7 @@ By default:
 
 ```text
 your-project/                  ← your main checkout
-../.amaco-worktrees/
+../.vibestrate-worktrees/
   abc123-add-audit-logging/    ← run abc123's worktree
   def456-fix-token-leak/       ← run def456's worktree
 ```
@@ -30,8 +30,8 @@ You can change the location in `project.yml`:
 
 ```yaml
 git:
-  worktreeDir: ../.amaco-worktrees   # default
-  branchPrefix: amaco/                # default
+  worktreeDir: ../.vibestrate-worktrees   # default
+  branchPrefix: vibestrate/                # default
 ```
 
 ## What goes in (and out)
@@ -40,7 +40,7 @@ The orchestrator writes:
 
 - File edits from the executor and fixer agents.
 - The branch's commit history (one commit per stage, signed by the role).
-- Nothing else. No `.amaco/runs/` artifacts go inside the worktree — those live under the project root's `.amaco/runs/<runId>/`.
+- Nothing else. No `.vibestrate/runs/` artifacts go inside the worktree — those live under the project root's `.vibestrate/runs/<runId>/`.
 
 The orchestrator refuses:
 
@@ -58,8 +58,8 @@ To clean up:
 
 ```bash
 cd your-project
-git worktree remove ../.amaco-worktrees/<runId>-<slug>
-git branch -D amaco/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
+git branch -D vibestrate/<runId>-<slug>
 ```
 
 ## Common mistakes

@@ -22,7 +22,7 @@ async function makeClaudeFlowRepo(): Promise<{
   argvLog: string;
 }> {
   const projectRoot = await fs.mkdtemp(
-    path.join(os.tmpdir(), "amaco-flows-phase3-"),
+    path.join(os.tmpdir(), "vibestrate-flows-phase3-"),
   );
   await execa("git", ["init", "-q", "-b", "main"], { cwd: projectRoot });
   await execa("git", ["config", "user.email", "x@x"], { cwd: projectRoot });
@@ -45,7 +45,7 @@ async function makeClaudeFlowRepo(): Promise<{
     `#!/usr/bin/env node
 const fs = require("node:fs");
 const argv = process.argv.slice(2);
-fs.appendFileSync(process.env.AMACO_TEST_ARGV_LOG, JSON.stringify(argv) + "\\n");
+fs.appendFileSync(process.env.VIBESTRATE_TEST_ARGV_LOG, JSON.stringify(argv) + "\\n");
 const flagValue = (flag) => {
   const index = argv.indexOf(flag);
   return index >= 0 ? argv[index + 1] : null;
@@ -55,15 +55,15 @@ let prompt = "";
 process.stdin.on("data", (chunk) => prompt += chunk);
 process.stdin.on("end", () => {
   let response = "";
-  if (prompt.includes("Amaco Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: reviewer")) {
     response = "# Review\\n\\nDECISION: APPROVED\\n\\nNo blocking findings.";
-  } else if (prompt.includes("Amaco Agent: verifier")) {
+  } else if (prompt.includes("Vibestrate Agent: verifier")) {
     response = "# Decision Summary\\n\\nVERIFICATION: PASSED\\n\\nEvidence checked.";
-  } else if (prompt.includes("Amaco Agent: planner")) {
+  } else if (prompt.includes("Vibestrate Agent: planner")) {
     response = "# Plan\\n\\nReuse the builder context.";
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     response = "# Implementation Summary\\n\\nBuilder kept its session.";
-  } else if (prompt.includes("Amaco Agent: fixer")) {
+  } else if (prompt.includes("Vibestrate Agent: fixer")) {
     response = "# Challenge Response\\n\\nBuilder answered findings.";
   }
   // Real claude stream-json puts the answer in the result event's \`result\`.
@@ -88,7 +88,7 @@ process.stdin.on("end", () => {
       command: "node",
       args: [fakeClaude],
       input: "stdin",
-      env: { AMACO_TEST_ARGV_LOG: argvLog },
+      env: { VIBESTRATE_TEST_ARGV_LOG: argvLog },
       settings: { outputFormat: "stream-json" },
     }),
   );
@@ -131,7 +131,7 @@ describe("Flow Phase 3 participant sessions", () => {
     }).run();
 
     expect(result.state.status).toBe("merge_ready");
-    const runDir = path.join(projectRoot, ".amaco", "runs", result.runId);
+    const runDir = path.join(projectRoot, ".vibestrate", "runs", result.runId);
     const ledger = JSON.parse(
       await fs.readFile(path.join(runDir, "participants.json"), "utf8"),
     ) as {

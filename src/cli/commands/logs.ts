@@ -22,7 +22,7 @@ async function cmdLogs(
     console.error(
       indent(
         color.dim(
-          `Looked under .amaco/runs/${runId}/streams/. Streams appear once the orchestrator invokes a provider.`,
+          `Looked under .vibestrate/runs/${runId}/streams/. Streams appear once the orchestrator invokes a provider.`,
         ),
       ),
     );
@@ -125,7 +125,7 @@ export function buildLogsCommand(): Command {
     .description(
       "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
     )
-    .argument("<runId>", "Run id (see `amaco status`)")
+    .argument("<runId>", "Run id (see `vibestrate status`)")
     .option(
       "--follow",
       "tail the stream live (like `tail -f`); Ctrl+C to stop",

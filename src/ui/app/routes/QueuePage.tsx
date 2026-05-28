@@ -76,7 +76,7 @@ export function QueuePage({
         <div className="text-[11.5px] text-fog-500 mono">
           Start the loop:{" "}
           <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
-            amaco queue run
+            vibestrate queue run
           </code>
         </div>
       </section>
@@ -149,7 +149,7 @@ export function QueuePage({
           {queue.length === 0 ? (
             <div className="text-[12px] text-fog-500">
               Queue is empty. Add a task from the board, then run{" "}
-              <code className="mono text-fog-300">amaco queue run</code>.
+              <code className="mono text-fog-300">vibestrate queue run</code>.
             </div>
           ) : (
             <ol className="space-y-1.5">

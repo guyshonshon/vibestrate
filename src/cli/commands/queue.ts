@@ -11,7 +11,7 @@ import {
   releaseLock,
 } from "../../scheduler/scheduler-lock.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 import { nowIso } from "../../utils/time.js";
 
 async function context() {
@@ -96,7 +96,7 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
       );
       console.error(
         indent(
-          "Amaco will reclaim crashed or stale schedulers automatically once their heartbeat expires.",
+          "Vibestrate will reclaim crashed or stale schedulers automatically once their heartbeat expires.",
         ),
       );
       return 1;
@@ -143,7 +143,7 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
       }, 10_000);
       forceTimer.unref?.();
     };
-    const parentPid = Number.parseInt(process.env.AMACO_PARENT_PID ?? "", 10);
+    const parentPid = Number.parseInt(process.env.VIBESTRATE_PARENT_PID ?? "", 10);
     if (
       Number.isInteger(parentPid) &&
       parentPid > 0 &&
@@ -169,7 +169,7 @@ async function cmdRun(opts: { exitWhenDrained?: boolean }): Promise<number> {
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   } finally {

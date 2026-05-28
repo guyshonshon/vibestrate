@@ -31,10 +31,10 @@ export function RunList({
 
   if (error) {
     return (
-      <div className="px-6 py-8 text-amaco-fg-dim">
-        <div className="text-amaco-fail">{error}</div>
+      <div className="px-6 py-8 text-vibestrate-fg-dim">
+        <div className="text-vibestrate-fail">{error}</div>
         <div className="mt-2 text-[12px]">
-          Make sure <code className="amaco-mono">amaco ui</code> is running and a
+          Make sure <code className="vibestrate-mono">vibestrate ui</code> is running and a
           project is initialized in the current directory.
         </div>
       </div>
@@ -43,12 +43,12 @@ export function RunList({
 
   if (runs.length === 0) {
     return (
-      <div className="px-6 py-8 text-amaco-fg-dim">
+      <div className="px-6 py-8 text-vibestrate-fg-dim">
         <div className="text-[14px]">No runs yet.</div>
         <div className="mt-2 text-[12.5px]">
           Run{" "}
-          <code className="amaco-mono rounded bg-amaco-panel-2 px-1.5 py-0.5">
-            amaco run "your task"
+          <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1.5 py-0.5">
+            vibestrate run "your task"
           </code>{" "}
           from this project.
         </div>
@@ -59,8 +59,8 @@ export function RunList({
   return (
     <div className="overflow-auto">
       <table className="w-full text-[12.5px]">
-        <thead className="sticky top-0 z-10 bg-amaco-panel text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
-          <tr className="border-b border-amaco-border">
+        <thead className="sticky top-0 z-10 bg-vibestrate-panel text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
+          <tr className="border-b border-vibestrate-border">
             <th className="px-4 py-2 text-left font-medium">Run</th>
             <th className="px-4 py-2 text-left font-medium">Task</th>
             <th className="px-4 py-2 text-left font-medium">Status</th>
@@ -75,22 +75,22 @@ export function RunList({
             <tr
               key={run.runId}
               onClick={() => onSelect(run.runId)}
-              className="cursor-pointer border-b border-amaco-border-soft hover:bg-amaco-panel-2"
+              className="cursor-pointer border-b border-vibestrate-border-soft hover:bg-vibestrate-panel-2"
             >
-              <td className="amaco-mono px-4 py-2 text-amaco-fg-dim">
+              <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
                 {run.runId}
               </td>
-              <td className="px-4 py-2 text-amaco-fg">{run.task}</td>
+              <td className="px-4 py-2 text-vibestrate-fg">{run.task}</td>
               <td className="px-4 py-2">
                 <RunStatusBadge status={run.status} />
               </td>
-              <td className="amaco-mono px-4 py-2 text-amaco-fg-dim">
+              <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
                 {run.finalDecision ?? "—"}
               </td>
-              <td className="amaco-mono px-4 py-2 text-amaco-fg-dim">
+              <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
                 {run.verification ?? "—"}
               </td>
-              <td className="amaco-mono px-4 py-2 text-right text-amaco-fg-muted">
+              <td className="vibestrate-mono px-4 py-2 text-right text-vibestrate-fg-muted">
                 {new Date(run.updatedAt).toLocaleString()}
               </td>
               <td className="px-4 py-2 text-right">
@@ -103,7 +103,7 @@ export function RunList({
                       e.stopPropagation();
                       onOpenReplay(run.runId);
                     }}
-                    className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel"
+                    className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
                     title="Open the read-only Replay timeline for this run"
                   >
                     <History className="h-3 w-3" strokeWidth={1.5} />

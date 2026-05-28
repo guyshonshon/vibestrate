@@ -1,12 +1,12 @@
-# Contributing to Amaco
+# Contributing to Vibestrate
 
-Thanks for being here. Amaco is a local‑first, open‑source learning project,
+Thanks for being here. Vibestrate is a local‑first, open‑source learning project,
 and it gets better every time someone pokes at it. Here's how to help in a way
 that lands smoothly.
 
 ## The short version
 
-- **Bugs → issues.** [Open one](https://github.com/guyshonshon/amaco/issues/new/choose).
+- **Bugs → issues.** [Open one](https://github.com/guyshonshon/vibestrate/issues/new/choose).
 - **Security → private.** See [SECURITY.md](./SECURITY.md). Don't file a public issue.
 - **Features → pull requests.** This is the path we encourage most. Build the
   thing, send the PR.
@@ -15,10 +15,10 @@ that lands smoothly.
 
 Open an issue with:
 
-- What you ran (the exact `amaco …` command).
+- What you ran (the exact `vibestrate …` command).
 - What you expected vs. what happened.
 - The `runId` if a run was involved - its artifacts under
-  `.amaco/runs/<runId>/` (especially `events.jsonl`) are the fastest path to a
+  `.vibestrate/runs/<runId>/` (especially `events.jsonl`) are the fastest path to a
   diagnosis.
 - Your OS, Node version (`node --version`), and which provider CLIs are
   installed.
@@ -38,7 +38,7 @@ Good PRs tend to:
   is not.
 - **Match the repo.** Read the surrounding code and follow its naming, comment
   density, and structure. Don't reformat unrelated lines.
-- **Respect the safety model.** Amaco is local‑first by design - no model APIs,
+- **Respect the safety model.** Vibestrate is local‑first by design - no model APIs,
   no cloud backend, no telemetry, no auto‑push, no auto‑merge, no reading of
   secrets into prompts or logs. Changes that cross those lines won't merge.
 - **Come with green checks.**
@@ -58,7 +58,7 @@ Good PRs tend to:
 
 The documentation system lives in this repo (`docs/content/` for prose,
 `docs/generated/` for the source‑aware reference) and renders at
-[amaco.shonshon.com/docs](https://amaco.shonshon.com/docs). Prose edits are
+[vibestrate.shonshon.com/docs](https://vibestrate.shonshon.com/docs). Prose edits are
 markdown; reference data is generated - never hand‑edit `docs/generated/`.
 
 ## Code of conduct

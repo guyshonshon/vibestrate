@@ -8,7 +8,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-init-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-init-"));
 }
 
 const claudeOk: ProviderDetectionRunner = async (cmd) => {
@@ -24,7 +24,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 
 async function readGeneratedConfig(projectRoot: string): Promise<Record<string, unknown>> {
   const text = await fs.readFile(
-    path.join(projectRoot, ".amaco", "project.yml"),
+    path.join(projectRoot, ".vibestrate", "project.yml"),
     "utf8",
   );
   return YAML.parse(text);
@@ -88,7 +88,7 @@ describe("init template", () => {
 
   it("preserves runs across re-init", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: claudeOk });
-    const runDir = path.join(projectRoot, ".amaco", "runs", "20260509-x");
+    const runDir = path.join(projectRoot, ".vibestrate", "runs", "20260509-x");
     await fs.mkdir(runDir, { recursive: true });
     await fs.writeFile(path.join(runDir, "marker.txt"), "preserve me");
 

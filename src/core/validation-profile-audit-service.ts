@@ -53,11 +53,11 @@ export class ValidationProfileAuditError extends Error {
  * caller.
  *
  * Scope semantics mirror MigrationScope:
- *  - `recent` (default, 50 runs) — fast feedback for `amaco doctor`
- *  - `all` — full scan, used by `amaco validation profile doctor --all`
+ *  - `recent` (default, 50 runs) — fast feedback for `vibestrate doctor`
+ *  - `all` — full scan, used by `vibestrate validation profile doctor --all`
  *  - `run` — single run, used for targeted inspection
  *
- * The scan is purely read-only and bounded to the project's `.amaco/runs`
+ * The scan is purely read-only and bounded to the project's `.vibestrate/runs`
  * tree — never reads arbitrary paths.
  */
 export async function auditValidationProfileReferences(

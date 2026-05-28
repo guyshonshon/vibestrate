@@ -13,7 +13,7 @@ import {
 let root = "";
 
 beforeEach(async () => {
-  root = await mkdtemp(path.join(os.tmpdir(), "amaco-stream-"));
+  root = await mkdtemp(path.join(os.tmpdir(), "vibestrate-stream-"));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });

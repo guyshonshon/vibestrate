@@ -5,12 +5,12 @@ section: workflows
 slug: workflows/pause-resume
 ---
 
-Pausing is durable — the run state is persisted, so killing Amaco's process and restarting it preserves the pause.
+Pausing is durable — the run state is persisted, so killing Vibestrate's process and restarting it preserves the pause.
 
 ## Pause
 
 ```bash
-amaco pause <runId>
+vibestrate pause <runId>
 ```
 
 The orchestrator polls between stages. When it sees the pause flag, it transitions the run to `paused` and remembers the status it was about to enter. Nothing is interrupted mid-stage — pauses always land cleanly at a boundary.
@@ -18,36 +18,36 @@ The orchestrator polls between stages. When it sees the pause flag, it transitio
 ## Resume
 
 ```bash
-amaco resume <runId>
+vibestrate resume <runId>
 ```
 
 Clears the pause flag. The orchestrator picks the run back up from the status recorded in `pausedAtStatus`.
 
 ## Cancel a pause request before it fires
 
-If you ran `amaco pause` and then changed your mind before the next stage boundary, `amaco resume` cancels the pending pause without ever transitioning to `paused`.
+If you ran `vibestrate pause` and then changed your mind before the next stage boundary, `vibestrate resume` cancels the pending pause without ever transitioning to `paused`.
 
 ## Abort
 
 ```bash
-amaco abort <runId>
+vibestrate abort <runId>
 ```
 
 Marks the run as `aborted`. The worktree is preserved on disk — you can still `cd` into it to read the partial work. To clean up the worktree:
 
 ```bash
 cd your-project
-git worktree remove ../.amaco-worktrees/<runId>-<slug>
-git branch -D amaco/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
+git branch -D vibestrate/<runId>-<slug>
 ```
 
 ## Policy-gated pauses are different
 
-If `policies.requireApprovalAtStages` lists a stage, the run automatically pauses at the boundary into that stage with status `waiting_for_approval`. The fix is `amaco approvals decide`, not `amaco resume`:
+If `policies.requireApprovalAtStages` lists a stage, the run automatically pauses at the boundary into that stage with status `waiting_for_approval`. The fix is `vibestrate approvals decide`, not `vibestrate resume`:
 
 ```bash
-amaco approvals list <runId>
-amaco approvals decide <runId> <approvalId> --approve   # or --reject
+vibestrate approvals list <runId>
+vibestrate approvals decide <runId> <approvalId> --approve   # or --reject
 ```
 
 ## When to abort vs let it block

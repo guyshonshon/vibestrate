@@ -25,18 +25,18 @@ export async function runPreflightChecks(input: {
 
   if (!isGitRepo) {
     throw new PolicyError(
-      `Amaco requires a git repository. ${projectRoot} is not inside a git repo.`,
+      `Vibestrate requires a git repository. ${projectRoot} is not inside a git repo.`,
     );
   }
 
   if (config.policies.forbidAutoPush && config.git.allowAutoPush) {
     throw new PolicyError(
-      "Auto-push is enabled in git config but policies forbid it. Run `amaco config set git.allowAutoPush false`. Amaco never pushes for you.",
+      "Auto-push is enabled in git config but policies forbid it. Run `vibestrate config set git.allowAutoPush false`. Vibestrate never pushes for you.",
     );
   }
   if (config.policies.forbidAutoMerge && config.git.allowAutoMerge) {
     throw new PolicyError(
-      "Auto-merge is enabled in git config but policies forbid it. Run `amaco config set git.allowAutoMerge false`. Amaco never merges for you.",
+      "Auto-merge is enabled in git config but policies forbid it. Run `vibestrate config set git.allowAutoMerge false`. Vibestrate never merges for you.",
     );
   }
 
@@ -44,7 +44,7 @@ export async function runPreflightChecks(input: {
     const profile = resolveProfile(config.permissions.profiles, agent.permissions);
     if (profile.allowWrite && profile.cwd !== "worktree") {
       throw new PolicyError(
-        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`amaco config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`vibestrate config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
       );
     }
   }
@@ -54,7 +54,7 @@ export async function runPreflightChecks(input: {
     if (await pathExists(candidate)) {
       warnings.push({
         code: "ENV_FILE_PRESENT",
-        message: `${envFile} is present. Amaco never reads its contents into prompts; just be sure your agents do not edit it.`,
+        message: `${envFile} is present. Vibestrate never reads its contents into prompts; just be sure your agents do not edit it.`,
       });
     }
   }
@@ -63,7 +63,7 @@ export async function runPreflightChecks(input: {
     warnings.push({
       code: "NO_VALIDATION_COMMANDS",
       message:
-        "No validation commands configured. Reviews are stronger when Amaco can run your real checks. Add some with `amaco doctor --fix` or `amaco config set commands.validate \"[...]\"`.",
+        "No validation commands configured. Reviews are stronger when Vibestrate can run your real checks. Add some with `vibestrate doctor --fix` or `vibestrate config set commands.validate \"[...]\"`.",
     });
   }
 

@@ -12,8 +12,8 @@ export const projectMetaSchema = z.object({
 
 export const gitConfigSchema = z.object({
   mainBranch: z.string().default("main"),
-  branchPrefix: z.string().default("amaco/"),
-  worktreeDir: z.string().default("../.amaco-worktrees"),
+  branchPrefix: z.string().default("vibestrate/"),
+  worktreeDir: z.string().default("../.vibestrate-worktrees"),
   requireCleanMain: z.boolean().default(false),
   allowAutoMerge: z.boolean().default(false),
   allowAutoPush: z.boolean().default(false),
@@ -117,7 +117,7 @@ export const policiesConfigSchema = z.object({
   forbidAutoPush: z.boolean().default(true),
   forbidAutoMerge: z.boolean().default(true),
   preserveArtifacts: z.boolean().default(true),
-  // Stages where Amaco MUST pause for human approval before continuing,
+  // Stages where Vibestrate MUST pause for human approval before continuing,
   // regardless of whether the agent emitted HUMAN_APPROVAL: REQUIRED.
   // Default empty: do not force approvals.
   requireApprovalAtStages: z.array(policyApprovalStageSchema).default([]),
@@ -152,8 +152,8 @@ export const projectConfigSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
     mainBranch: "main",
-    branchPrefix: "amaco/",
-    worktreeDir: "../.amaco-worktrees",
+    branchPrefix: "vibestrate/",
+    worktreeDir: "../.vibestrate-worktrees",
     requireCleanMain: false,
     allowAutoMerge: false,
     allowAutoPush: false,

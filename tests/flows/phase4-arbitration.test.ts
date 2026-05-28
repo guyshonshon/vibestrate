@@ -23,7 +23,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 
 async function makeArbitrationRepo(): Promise<string> {
   const projectRoot = await fs.mkdtemp(
-    path.join(os.tmpdir(), "amaco-flows-phase4-"),
+    path.join(os.tmpdir(), "vibestrate-flows-phase4-"),
   );
   await execa("git", ["init", "-q", "-b", "main"], { cwd: projectRoot });
   await execa("git", ["config", "user.email", "x@x"], { cwd: projectRoot });
@@ -43,20 +43,20 @@ async function makeArbitrationRepo(): Promise<string> {
 let prompt = "";
 process.stdin.on("data", (chunk) => prompt += chunk);
 const block = (value) => [
-  "AMACO_FLOW_OUTPUT:",
+  "VIBESTRATE_FLOW_OUTPUT:",
   JSON.stringify(value),
-  "AMACO_FLOW_OUTPUT_END",
+  "VIBESTRATE_FLOW_OUTPUT_END",
 ].join("\\n");
 process.stdin.on("end", () => {
   if (prompt.includes("Flow step: Plan Review (plan-review)")) {
     console.log("# Plan Review\\n\\nDECISION: APPROVED\\n\\n" + block({
-      contract: "amaco.flow.findings.v1",
+      contract: "vibestrate.flow.findings.v1",
       stepId: "plan-review",
       findings: []
     }));
   } else if (prompt.includes("Flow step: Implementation Review (implementation-review)")) {
     console.log("# Review\\n\\nDECISION: APPROVED\\n\\n" + block({
-      contract: "amaco.flow.findings.v1",
+      contract: "vibestrate.flow.findings.v1",
       stepId: "implementation-review",
       findings: [{
         id: "finding-tests",
@@ -69,7 +69,7 @@ process.stdin.on("end", () => {
     }));
   } else if (prompt.includes("Flow step: Second Review (second-review)")) {
     console.log("# Second Review\\n\\nDECISION: APPROVED\\n\\n" + block({
-      contract: "amaco.flow.finding-resolutions.v1",
+      contract: "vibestrate.flow.finding-resolutions.v1",
       stepId: "second-review",
       resolutions: [{
         findingId: "finding-tests",
@@ -80,7 +80,7 @@ process.stdin.on("end", () => {
     }));
   } else if (prompt.includes("Flow step: Challenge Response (challenge-response)")) {
     console.log("# Challenge Response\\n\\n" + block({
-      contract: "amaco.flow.finding-responses.v1",
+      contract: "vibestrate.flow.finding-responses.v1",
       stepId: "challenge-response",
       responses: [{
         findingId: "finding-tests",
@@ -91,7 +91,7 @@ process.stdin.on("end", () => {
     }));
   } else if (prompt.includes("Flow step: Decision Summary (decision-summary)")) {
     console.log("# Decision Summary\\n\\nVERIFICATION: PASSED\\n\\n" + block({
-      contract: "amaco.flow.decision-summary.v1",
+      contract: "vibestrate.flow.decision-summary.v1",
       stepId: "decision-summary",
       recommendation: "merge-ready",
       summary: "The accepted finding is resolved and validation passed.",
@@ -104,9 +104,9 @@ process.stdin.on("end", () => {
       residualRisks: [],
       requiredHumanActions: []
     }));
-  } else if (prompt.includes("Amaco Agent: planner")) {
+  } else if (prompt.includes("Vibestrate Agent: planner")) {
     console.log("# Plan\\n\\nUse structured arbitration records.");
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     console.log("# Implementation\\n\\nNo code change required.");
   } else {
     console.log("# Unhandled Flow turn");
@@ -169,7 +169,7 @@ describe("Flow Phase 4 arbitration records", () => {
     }).run();
 
     expect(result.state.status).toBe("merge_ready");
-    const runDir = path.join(projectRoot, ".amaco", "runs", result.runId);
+    const runDir = path.join(projectRoot, ".vibestrate", "runs", result.runId);
     const ledger = flowArbitrationLedgerSchema.parse(
       JSON.parse(await fs.readFile(path.join(runDir, "arbitration.json"), "utf8")),
     );
@@ -222,7 +222,7 @@ describe("Flow Phase 4 arbitration records", () => {
         ),
         "utf8",
       ),
-    ).resolves.toContain("AMACO_FLOW_OUTPUT:");
+    ).resolves.toContain("VIBESTRATE_FLOW_OUTPUT:");
     await expect(
       fs.readFile(path.join(runDir, "events.ndjson"), "utf8"),
     ).resolves.toContain('"flow.decision.completed"');

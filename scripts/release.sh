@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Release amaco-os to npm.
+# Release vibestrate to npm.
 #
 # Usage:
 #   ./scripts/release.sh [patch|minor|major]   # default: patch
@@ -67,7 +67,7 @@ cat <<EOF
 ✓ Released $NEW_VERSION.
 
   The tag push triggers .github/workflows/release.yml, which publishes to npm.
-  Watch it:   gh run watch --repo guyshonshon/amaco
+  Watch it:   gh run watch --repo guyshonshon/vibestrate
 
   If Actions is unavailable, publish locally instead:
       npm publish --provenance --access public --otp=<your-2fa-code>

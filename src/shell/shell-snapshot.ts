@@ -1,8 +1,8 @@
-// Build a single snapshot of "what is amaco doing right now" by
+// Build a single snapshot of "what is vibestrate doing right now" by
 // reading the on-disk state. The TUI repeatedly fetches a fresh
 // snapshot and re-renders. Kept here so it can be tested without a
 // terminal and reused by anything else that wants the same view
-// (eg. a future `amaco status --live --json`).
+// (eg. a future `vibestrate status --live --json`).
 
 import path from "node:path";
 import { readDirSafe, pathExists, readText } from "../utils/fs.js";

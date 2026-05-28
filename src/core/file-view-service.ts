@@ -120,7 +120,7 @@ export async function viewFile(input: ViewFileInput): Promise<FileView> {
     return {
       ...baseView,
       notice:
-        "This file looks like a secret (env file, key, credential). Amaco does not load its contents.",
+        "This file looks like a secret (env file, key, credential). Vibestrate does not load its contents.",
     };
   }
 

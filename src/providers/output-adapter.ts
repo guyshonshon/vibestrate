@@ -1,5 +1,5 @@
 // Provider output adapters — normalize any provider's stdout (plain text,
-// JSON, or streaming-JSON) down to one contract so amaco's supervision,
+// JSON, or streaming-JSON) down to one contract so vibestrate's supervision,
 // live panel, and metrics consume a single shape. See
 // docs/design/provider-structured-output.md.
 //
@@ -54,7 +54,7 @@ export interface ProviderOutputAdapter {
 
 /**
  * The default, provider-agnostic adapter: stdout *is* the response text, no
- * native metrics, chunks stream verbatim. This is exactly amaco's behavior
+ * native metrics, chunks stream verbatim. This is exactly vibestrate's behavior
  * before adapters existed, so every provider that hasn't opted into a richer
  * format keeps working unchanged.
  */

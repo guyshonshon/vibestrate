@@ -90,7 +90,7 @@ export function RunsPage({
             {runs.length === 0 ? (
               <>
                 No runs yet. Try{" "}
-                <span className="mono text-fog-200">amaco run "your task"</span>{" "}
+                <span className="mono text-fog-200">vibestrate run "your task"</span>{" "}
                 from this project.
               </>
             ) : (

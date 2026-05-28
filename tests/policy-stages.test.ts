@@ -18,7 +18,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function tempProjectWithConfig(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-policy-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-policy-"));
   await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
   return dir;

@@ -1,5 +1,5 @@
 // Advisory exclusive lock for the scheduler loop. Lives at
-// `.amaco/scheduler/lock` and contains `{ pid, host, startedAt }`.
+// `.vibestrate/scheduler/lock` and contains `{ pid, host, startedAt }`.
 //
 // Why advisory: we don't try to enforce true OS-level exclusion
 // (different platforms, different filesystems). Instead, every
@@ -99,7 +99,7 @@ async function readHeartbeatAgeMs(
 /**
  * Determine whether an existing local lock can be reclaimed without
  * user intervention. A live pid is not enough: the scheduler must
- * also keep touching `.amaco/scheduler/state.json`.
+ * also keep touching `.vibestrate/scheduler/state.json`.
  */
 export async function getLockReclaimReason(
   projectRoot: string,

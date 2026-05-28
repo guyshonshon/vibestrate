@@ -23,7 +23,7 @@ async function tempProjectWithWorktree(): Promise<{
   worktree: string;
   runId: string;
 }> {
-  const project = await tempDir("amaco-vbr-");
+  const project = await tempDir("vibestrate-vbr-");
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -38,16 +38,16 @@ async function tempProjectWithWorktree(): Promise<{
   );
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
-  const worktree = path.join(await tempDir("amaco-vbr-wt-"), "wt");
+  const worktree = path.join(await tempDir("vibestrate-vbr-wt-"), "wt");
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
-  // Set up a minimal .amaco/project.yml with no validation commands by default.
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  // Set up a minimal .vibestrate/project.yml with no validation commands by default.
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco", "project.yml"),
+    path.join(project, ".vibestrate", "project.yml"),
     [
       "project:",
       "  name: demo",
@@ -78,7 +78,7 @@ async function tempProjectWithWorktree(): Promise<{
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -150,7 +150,7 @@ describe("suggestion validate", () => {
       await fs.readFile(
         path.join(
           project,
-          ".amaco",
+          ".vibestrate",
           "runs",
           runId,
           "suggestion-validations",
@@ -165,7 +165,7 @@ describe("suggestion validate", () => {
 
   it("runs the configured command in the worktree and reports passed", async () => {
     await fs.writeFile(
-      path.join(project, ".amaco", "project.yml"),
+      path.join(project, ".vibestrate", "project.yml"),
       [
         "project:",
         "  name: demo",
@@ -201,7 +201,7 @@ describe("suggestion validate", () => {
 
   it("reports failed when a configured command exits non-zero", async () => {
     await fs.writeFile(
-      path.join(project, ".amaco", "project.yml"),
+      path.join(project, ".vibestrate", "project.yml"),
       [
         "project:",
         "  name: demo",

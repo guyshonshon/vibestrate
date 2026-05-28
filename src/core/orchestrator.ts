@@ -49,7 +49,7 @@ import {
 } from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable } from "../git/git.js";
-import { GitError, AmacoError, describeError } from "../utils/errors.js";
+import { GitError, VibestrateError, describeError } from "../utils/errors.js";
 import { formatRunIdTimestamp, nowIso, durationMs } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
 import type {
@@ -324,9 +324,9 @@ export class Orchestrator {
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
-   *  doesn't pick an explicit flow — a plain `amaco run` executes the default
+   *  doesn't pick an explicit flow — a plain `vibestrate run` executes the default
    *  flow through the same runner as every other flow. A project may fork + edit
-   *  the default (`.amaco/flows/default`); that shadows the builtin here too, so
+   *  the default (`.vibestrate/flows/default`); that shadows the builtin here too, so
    *  editing the default actually takes effect for plain runs. Falls back to the
    *  builtin. Throws if the configured roles/providers can't satisfy it. */
   private async resolveDefaultFlow(): Promise<ResolvedFlowSnapshot> {
@@ -1831,7 +1831,7 @@ export class Orchestrator {
           reviewArtifact,
           verificationArtifact,
         });
-        if (err instanceof AmacoError) throw err;
+        if (err instanceof VibestrateError) throw err;
         throw err instanceof Error ? err : new Error(message);
       }
     }
@@ -1948,7 +1948,7 @@ export class Orchestrator {
   }
 
   /**
-   * Capture AMACO_SUGGESTION marker blocks from a stage artifact. Best-effort:
+   * Capture VIBESTRATE_SUGGESTION marker blocks from a stage artifact. Best-effort:
    * never throws into the orchestrator's hot path. Notifies the dashboard via
    * the notification service when a suggestion was extracted (one summary
    * notification per stage, not one per suggestion).
@@ -2391,7 +2391,7 @@ export class Orchestrator {
     const liveFilter = outputAdapter.createLiveFilter?.();
     let liveEmitted = false;
 
-    // Honor `amaco abort` mid-stage: poll state.json every 500ms; when
+    // Honor `vibestrate abort` mid-stage: poll state.json every 500ms; when
     // we see `aborted`, abort the controller to SIGTERM the provider
     // child. Without this the run waited for the current CLI call to
     // finish on its own, which could mean minutes per stage. Cleared

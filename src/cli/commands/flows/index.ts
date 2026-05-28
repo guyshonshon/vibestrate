@@ -13,7 +13,7 @@ import { color, symbol } from "../../ui/format.js";
 
 export function buildFlowsCommand(): Command {
   const cmd = new Command("flows").description(
-    "List and inspect Flow run recipes from built-ins and .amaco/flows.",
+    "List and inspect Flow run recipes from built-ins and .vibestrate/flows.",
   );
 
   cmd

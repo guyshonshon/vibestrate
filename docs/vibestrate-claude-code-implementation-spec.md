@@ -1,28 +1,28 @@
-# Amaco — Autonomous Multi-Agent Completion Orchestrator — Claude Code Implementation Spec
+# Vibestrate — Autonomous Multi-Agent Completion Orchestrator — Claude Code Implementation Spec
 
 ## Working Product Name
 
 Use this working name for now:
 
-> **Amaco**
+> **Vibestrate**
 
 Repository/package name:
 
 ```txt
-amaco
+vibestrate
 ```
 
 CLI command:
 
 ```txt
-amaco
+vibestrate
 ```
 
 This name is only a working implementation name. Keep naming isolated in package metadata, README, and generated templates so it can be renamed later without touching the core architecture.
 
 ## One-Line Definition
 
-Amaco is a **local-first autonomous multi-agent completion orchestrator** that runs agent CLIs through a rules-based:
+Vibestrate is a **local-first autonomous multi-agent completion orchestrator** that runs agent CLIs through a rules-based:
 
 ```txt
 plan → architect → implement → validate → review → fix → verify
@@ -43,10 +43,10 @@ Build the first serious open-source version of a reusable local-first autonomous
 The tool should let a developer run:
 
 ```bash
-amaco init
-amaco run "Add policy re-acceptance when Terms or Privacy changes"
-amaco status
-amaco abort <run-id>
+vibestrate init
+vibestrate run "Add policy re-acceptance when Terms or Privacy changes"
+vibestrate status
+vibestrate abort <run-id>
 ```
 
 Then the orchestrator should autonomously run a controlled workflow:
@@ -243,7 +243,7 @@ The orchestrator should be able to run any CLI command that accepts input throug
 Create this structure:
 
 ```txt
-amaco/
+vibestrate/
   package.json
   pnpm-lock.yaml
   tsconfig.json
@@ -457,7 +457,7 @@ performance
 accessibility
 ```
 
-V0 should support loading `.amaco/skills/*.md` and including relevant skill files in prompts when an agent or workflow requests them.
+V0 should support loading `.vibestrate/skills/*.md` and including relevant skill files in prompts when an agent or workflow requests them.
 
 Do not implement complex semantic skill selection in V0.
 
@@ -470,13 +470,13 @@ Support explicit skills only.
 Inside any target project, the user runs:
 
 ```bash
-amaco init
+vibestrate init
 ```
 
 This creates:
 
 ```txt
-.amaco/
+.vibestrate/
   project.yml
   rules.md
   agents/
@@ -491,13 +491,13 @@ This creates:
   runs/
 ```
 
-Use `.amaco`, not `.aid`, because the product command is `amaco`.
+Use `.vibestrate`, not `.aid`, because the product command is `vibestrate`.
 
 Make it easy to rename later by centralizing paths.
 
 ---
 
-# 9. Default `.amaco/project.yml`
+# 9. Default `.vibestrate/project.yml`
 
 Generate:
 
@@ -508,8 +508,8 @@ project:
 
 git:
   mainBranch: main
-  branchPrefix: amaco/
-  worktreeDir: ../.amaco-worktrees
+  branchPrefix: vibestrate/
+  worktreeDir: ../.vibestrate-worktrees
   requireCleanMain: false
   allowAutoMerge: false
   allowAutoPush: false
@@ -533,37 +533,37 @@ providers:
 agents:
   planner:
     provider: claude
-    prompt: .amaco/agents/planner.md
+    prompt: .vibestrate/agents/planner.md
     permissions: read_only
     skills: []
 
   architect:
     provider: claude
-    prompt: .amaco/agents/architect.md
+    prompt: .vibestrate/agents/architect.md
     permissions: read_only
     skills: []
 
   executor:
     provider: claude
-    prompt: .amaco/agents/executor.md
+    prompt: .vibestrate/agents/executor.md
     permissions: code_write
     skills: []
 
   fixer:
     provider: claude
-    prompt: .amaco/agents/fixer.md
+    prompt: .vibestrate/agents/fixer.md
     permissions: code_write
     skills: []
 
   reviewer:
     provider: claude
-    prompt: .amaco/agents/reviewer.md
+    prompt: .vibestrate/agents/reviewer.md
     permissions: read_only
     skills: []
 
   verifier:
     provider: claude
-    prompt: .amaco/agents/verifier.md
+    prompt: .vibestrate/agents/verifier.md
     permissions: read_only
     skills: []
 
@@ -602,14 +602,14 @@ Document this honestly.
 
 ---
 
-# 10. Default `.amaco/rules.md`
+# 10. Default `.vibestrate/rules.md`
 
 Generate:
 
 ```md
-# Project Rules for Amaco
+# Project Rules for Vibestrate
 
-These rules are provided to local agent CLIs during Amaco runs.
+These rules are provided to local agent CLIs during Vibestrate runs.
 
 ## Project Overview
 
@@ -659,15 +659,15 @@ Add anything planner, architect, executor, reviewer, and verifier agents should 
 
 # 11. Default Agent Prompt Files
 
-`amaco init` should create editable default agent prompt files:
+`vibestrate init` should create editable default agent prompt files:
 
 ```txt
-.amaco/agents/planner.md
-.amaco/agents/architect.md
-.amaco/agents/executor.md
-.amaco/agents/fixer.md
-.amaco/agents/reviewer.md
-.amaco/agents/verifier.md
+.vibestrate/agents/planner.md
+.vibestrate/agents/architect.md
+.vibestrate/agents/executor.md
+.vibestrate/agents/fixer.md
+.vibestrate/agents/reviewer.md
+.vibestrate/agents/verifier.md
 ```
 
 The built-in templates should also exist in:
@@ -941,18 +941,18 @@ Implement a simple explicit skill loader.
 Project skills live in:
 
 ```txt
-.amaco/skills/
+.vibestrate/skills/
 ```
 
 Each skill is a Markdown file:
 
 ```txt
-.amaco/skills/security.md
-.amaco/skills/frontend-ux.md
-.amaco/skills/testing.md
+.vibestrate/skills/security.md
+.vibestrate/skills/frontend-ux.md
+.vibestrate/skills/testing.md
 ```
 
-Agents can reference skills by filename stem in `.amaco/project.yml`:
+Agents can reference skills by filename stem in `.vibestrate/project.yml`:
 
 ```yaml
 agents:
@@ -980,7 +980,7 @@ Rules:
 
 - If a configured skill is missing, fail with a clear error.
 - Do not auto-select skills in V0.
-- Do not read skills outside `.amaco/skills`.
+- Do not read skills outside `.vibestrate/skills`.
 - Prevent path traversal.
 
 ---
@@ -1192,7 +1192,7 @@ Do not implement full arbitrary DAG execution in V0. Keep the default workflow r
 Create run folder in the original project:
 
 ```txt
-.amaco/runs/<run-id>/
+.vibestrate/runs/<run-id>/
   state.json
   events.ndjson
   artifacts/
@@ -1262,8 +1262,8 @@ Create:
   "task": "Add policy re-acceptance when Terms or Privacy version changes",
   "status": "created",
   "projectRoot": "/absolute/path/to/project",
-  "worktreePath": "/absolute/path/to/.amaco-worktrees/20260509-143012-add-policy-reacceptance",
-  "branchName": "amaco/20260509-143012-add-policy-reacceptance",
+  "worktreePath": "/absolute/path/to/.vibestrate-worktrees/20260509-143012-add-policy-reacceptance",
+  "branchName": "vibestrate/20260509-143012-add-policy-reacceptance",
   "reviewLoopCount": 0,
   "maxReviewLoops": 2,
   "startedAt": "2026-05-09T11:30:12.000Z",
@@ -1367,7 +1367,7 @@ Reviewer/verifier run in worktree read-only.
 
 Implement policy checks:
 
-- `.amaco/project.yml` exists before `amaco run`.
+- `.vibestrate/project.yml` exists before `vibestrate run`.
 - current directory is inside git repository.
 - auto-push disabled.
 - auto-merge disabled.
@@ -1509,7 +1509,7 @@ Agents can inspect project files themselves if their local CLI supports it.
 Every prompt must include:
 
 ```txt
-You are running under Amaco.
+You are running under Vibestrate.
 Do not push.
 Do not merge.
 Respect your role and permission boundaries.
@@ -1541,34 +1541,34 @@ Do not edit files.
 Implement:
 
 ```bash
-amaco init
-amaco run "<task idea>"
-amaco status
-amaco abort <run-id>
-amaco doctor
+vibestrate init
+vibestrate run "<task idea>"
+vibestrate status
+vibestrate abort <run-id>
+vibestrate doctor
 ```
 
-## 28.1 `amaco init`
+## 28.1 `vibestrate init`
 
-Creates `.amaco`.
+Creates `.vibestrate`.
 
 Options:
 
 ```bash
-amaco init --force
+vibestrate init --force
 ```
 
 Do not overwrite existing config without `--force`.
 
 Do not delete existing runs.
 
-## 28.2 `amaco run`
+## 28.2 `vibestrate run`
 
 Required:
 
 - task idea argument
 - git repo
-- `.amaco/project.yml`
+- `.vibestrate/project.yml`
 - create run folder
 - create worktree
 - run full default workflow
@@ -1579,9 +1579,9 @@ Required:
 Terminal output should be concise:
 
 ```txt
-Amaco run created: 20260509-143012-add-policy-reacceptance
-Worktree: ../.amaco-worktrees/20260509-143012-add-policy-reacceptance
-Branch: amaco/20260509-143012-add-policy-reacceptance
+Vibestrate run created: 20260509-143012-add-policy-reacceptance
+Worktree: ../.vibestrate-worktrees/20260509-143012-add-policy-reacceptance
+Branch: vibestrate/20260509-143012-add-policy-reacceptance
 
 Planning...
 Architecting...
@@ -1591,12 +1591,12 @@ Reviewing...
 Verifying...
 
 Final status: merge_ready
-Artifacts: .amaco/runs/20260509-143012-add-policy-reacceptance
+Artifacts: .vibestrate/runs/20260509-143012-add-policy-reacceptance
 ```
 
 Do not print full prompts to terminal.
 
-## 28.3 `amaco status`
+## 28.3 `vibestrate status`
 
 Shows recent runs.
 
@@ -1615,10 +1615,10 @@ Fields:
 Support:
 
 ```bash
-amaco status --json
+vibestrate status --json
 ```
 
-## 28.4 `amaco abort <run-id>`
+## 28.4 `vibestrate abort <run-id>`
 
 Marks run aborted.
 
@@ -1628,14 +1628,14 @@ Do not delete worktree.
 
 Explain manual cleanup.
 
-## 28.5 `amaco doctor`
+## 28.5 `vibestrate doctor`
 
 Useful for open-source usability.
 
 Checks:
 
 - inside git repo
-- `.amaco/project.yml` exists
+- `.vibestrate/project.yml` exists
 - config valid
 - provider commands appear available
 - git available
@@ -1658,7 +1658,7 @@ Write:
 Structure:
 
 ```md
-# Amaco Final Report
+# Vibestrate Final Report
 
 ## Run
 
@@ -1729,7 +1729,7 @@ Write a polished README.
 Use this definition prominently:
 
 ```md
-Amaco is a local-first autonomous multi-agent completion orchestrator for software tasks.
+Vibestrate is a local-first autonomous multi-agent completion orchestrator for software tasks.
 
 It runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.
 ```
@@ -1737,7 +1737,7 @@ It runs your existing local agent CLIs through a controlled plan → architect �
 README sections:
 
 ```md
-# Amaco
+# Vibestrate
 
 ## What It Is
 
@@ -1986,7 +1986,7 @@ Expose binary:
 ```json
 {
   "bin": {
-    "amaco": "./dist/index.js"
+    "vibestrate": "./dist/index.js"
   }
 }
 ```
@@ -2019,7 +2019,7 @@ Implement protections:
 README must say:
 
 ```md
-Amaco is not a full sandbox in V0. It runs local CLI tools on your machine. Configure only providers you trust.
+Vibestrate is not a full sandbox in V0. It runs local CLI tools on your machine. Configure only providers you trust.
 ```
 
 ---
@@ -2031,8 +2031,8 @@ After implementation, test with a temp repo.
 Example:
 
 ```bash
-mkdir /tmp/amaco-smoke-project
-cd /tmp/amaco-smoke-project
+mkdir /tmp/vibestrate-smoke-project
+cd /tmp/vibestrate-smoke-project
 git init
 echo '{"scripts":{"test":"node -e \"console.log(123)\""}}' > package.json
 git add .
@@ -2042,7 +2042,7 @@ git commit -m "init"
 Run:
 
 ```bash
-amaco init
+vibestrate init
 ```
 
 For smoke testing without Claude, use a local fake provider script.
@@ -2076,10 +2076,10 @@ Implementation is acceptable only if:
 2. `pnpm typecheck` passes.
 3. `pnpm test` passes.
 4. `pnpm build` passes.
-5. `amaco init` creates `.amaco/project.yml`, `.amaco/rules.md`, `.amaco/agents`, `.amaco/skills`, `.amaco/runs`.
-6. `amaco doctor` works.
-7. `amaco run "test task"` creates a run folder.
-8. `amaco run` creates git worktree.
+5. `vibestrate init` creates `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents`, `.vibestrate/skills`, `.vibestrate/runs`.
+6. `vibestrate doctor` works.
+7. `vibestrate run "test task"` creates a run folder.
+8. `vibestrate run` creates git worktree.
 9. Planner runs.
 10. Architect runs.
 11. Executor runs in worktree.
@@ -2092,8 +2092,8 @@ Implementation is acceptable only if:
 18. Final status becomes `blocked` when reviewer blocks.
 19. Final status becomes `blocked` when verifier fails/needs human.
 20. Final status becomes `blocked` after max review loops.
-21. `amaco status` lists runs.
-22. `amaco abort` marks run aborted.
+21. `vibestrate status` lists runs.
+22. `vibestrate abort` marks run aborted.
 23. No model API code exists.
 24. No GitHub API code exists.
 25. No auto-push exists.

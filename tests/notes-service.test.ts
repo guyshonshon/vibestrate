@@ -9,8 +9,8 @@ import {
 } from "../src/notes/notes-service.js";
 
 async function tempProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-notes-"));
-  await fs.mkdir(path.join(dir, ".amaco", "runs", "r1"), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-notes-"));
+  await fs.mkdir(path.join(dir, ".vibestrate", "runs", "r1"), { recursive: true });
   return dir;
 }
 

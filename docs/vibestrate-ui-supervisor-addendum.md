@@ -1,8 +1,8 @@
-# Amaco UI Supervisor Addendum
+# Vibestrate UI Supervisor Addendum
 
 ## Product Change
 
-Amaco must remain fully CLI-friendly and local-first, but it should also provide an optional UI dashboard.
+Vibestrate must remain fully CLI-friendly and local-first, but it should also provide an optional UI dashboard.
 
 The UI is not the orchestrator.
 
@@ -17,19 +17,19 @@ No separate state model.
 No separate agent execution model.
 ```
 
-Amaco should work perfectly without the UI:
+Vibestrate should work perfectly without the UI:
 
 ```bash
-amaco run "implement X"
-amaco status
-amaco abort <run-id>
+vibestrate run "implement X"
+vibestrate status
+vibestrate abort <run-id>
 ```
 
 The UI should be optional:
 
 ```bash
-amaco ui
-amaco run "implement X" --ui
+vibestrate ui
+vibestrate run "implement X" --ui
 ```
 
 ---
@@ -54,7 +54,7 @@ It should show:
 - approval prompts, in future
 - recovery actions, in future
 
-The UI should make Amaco feel like a local mission-control dashboard for coding agents.
+The UI should make Vibestrate feel like a local mission-control dashboard for coding agents.
 
 It should not become a heavy SaaS dashboard.
 
@@ -70,7 +70,7 @@ It should run locally.
 
 # 2. CLI + UI Relationship
 
-Amaco has one core engine.
+Vibestrate has one core engine.
 
 ```txt
 core orchestrator
@@ -92,7 +92,7 @@ UI = local supervisor interface
 
 The UI must not execute secret independent flows.
 
-The UI can call Amaco local server endpoints, which call the same core services used by CLI commands.
+The UI can call Vibestrate local server endpoints, which call the same core services used by CLI commands.
 
 ---
 
@@ -101,7 +101,7 @@ The UI can call Amaco local server endpoints, which call the same core services 
 Use a monorepo-style structure:
 
 ```txt
-amaco/
+vibestrate/
   package.json
 
   packages/
@@ -182,7 +182,7 @@ For notes/annotations, normal HTTP POST is enough.
 Add:
 
 ```bash
-amaco ui
+vibestrate ui
 ```
 
 This starts a local server:
@@ -194,7 +194,7 @@ http://localhost:4317
 Port should be configurable:
 
 ```bash
-amaco ui --port 4317
+vibestrate ui --port 4317
 ```
 
 The local server should:
@@ -333,7 +333,7 @@ file-level notes
 Store notes locally in:
 
 ```txt
-.amaco/runs/<run-id>/notes.json
+.vibestrate/runs/<run-id>/notes.json
 ```
 
 Example:
@@ -489,22 +489,22 @@ Every action that matters should still be possible through CLI.
 V0 CLI commands:
 
 ```bash
-amaco init
-amaco run "task"
-amaco status
-amaco abort <run-id>
-amaco doctor
-amaco ui
+vibestrate init
+vibestrate run "task"
+vibestrate status
+vibestrate abort <run-id>
+vibestrate doctor
+vibestrate ui
 ```
 
 Future CLI commands:
 
 ```bash
-amaco note <run-id> "message"
-amaco pause <run-id>
-amaco resume <run-id>
-amaco approve <run-id>
-amaco reject <run-id>
+vibestrate note <run-id> "message"
+vibestrate pause <run-id>
+vibestrate resume <run-id>
+vibestrate approve <run-id>
+vibestrate reject <run-id>
 ```
 
 ---
@@ -571,11 +571,11 @@ UI server must:
 - bind to 127.0.0.1 by default
 - not expose secrets
 - not serve arbitrary filesystem paths
-- only serve files from `.amaco/runs` and known worktree diff outputs
+- only serve files from `.vibestrate/runs` and known worktree diff outputs
 - prevent path traversal
 - hide `.env` diff contents
 - not allow arbitrary shell commands from UI
-- only call safe Amaco actions
+- only call safe Vibestrate actions
 - log actions to events
 
 V0 UI actions allowed:
@@ -598,13 +598,13 @@ Do not allow arbitrary command execution from UI.
 Use this definition:
 
 ```txt
-Amaco is a local-first autonomous multi-agent completion orchestrator for software tasks.
+Vibestrate is a local-first autonomous multi-agent completion orchestrator for software tasks.
 ```
 
 Expanded:
 
 ```txt
-Amaco coordinates local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify workflow inside isolated git worktrees, with both a CLI and an optional local supervisor dashboard.
+Vibestrate coordinates local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify workflow inside isolated git worktrees, with both a CLI and an optional local supervisor dashboard.
 ```
 
 Dashboard tagline:
@@ -619,9 +619,9 @@ A local mission-control dashboard for your autonomous coding-agent runs.
 
 Add these to the implementation acceptance criteria:
 
-1. `amaco ui` starts a local dashboard server.
+1. `vibestrate ui` starts a local dashboard server.
 2. Server binds to `127.0.0.1` by default.
-3. UI lists runs from `.amaco/runs`.
+3. UI lists runs from `.vibestrate/runs`.
 4. UI shows run detail.
 5. UI shows workflow timeline.
 6. UI shows active/current stage from state/events.
@@ -630,9 +630,9 @@ Add these to the implementation acceptance criteria:
 9. UI shows changed files and git diff from worktree.
 10. UI hides `.env` diff contents.
 11. UI supports run-level/file-level notes.
-12. Notes persist in `.amaco/runs/<run-id>/notes.json`.
+12. Notes persist in `.vibestrate/runs/<run-id>/notes.json`.
 13. UI can mark notes resolved.
-14. UI can abort a run through safe Amaco action.
+14. UI can abort a run through safe Vibestrate action.
 15. UI does not execute arbitrary shell commands.
 16. CLI remains fully usable without UI.
 17. UI does not duplicate orchestration logic.
@@ -657,7 +657,7 @@ If implementing in one pass, build in this order:
 11. Artifacts viewer.
 12. Validation viewer.
 13. Notes viewer/editor.
-14. `amaco ui` command.
+14. `vibestrate ui` command.
 15. Tests for server services and path safety.
 
 Keep the first UI simple but real.

@@ -100,7 +100,7 @@ export function SkillsPage({
         <Box flexDirection="column" minWidth={36}>
           {skills.length === 0 ? (
             <Text dimColor>
-              no skills found in <Text color="cyan">.amaco/skills</Text> or{" "}
+              no skills found in <Text color="cyan">.vibestrate/skills</Text> or{" "}
               <Text color="cyan">.claude/skills</Text>
             </Text>
           ) : (

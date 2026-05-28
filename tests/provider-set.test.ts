@@ -17,7 +17,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function tempProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pset-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pset-"));
   await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
   return dir;
@@ -62,7 +62,7 @@ describe("provider set / list", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.reason).toContain('"ghost"');
-      expect(r.hint).toContain("amaco provider setup");
+      expect(r.hint).toContain("vibestrate provider setup");
     }
   });
 

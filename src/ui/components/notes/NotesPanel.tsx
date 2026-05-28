@@ -44,7 +44,7 @@ export function NotesPanel({ runId }: { runId: string }) {
         onAdd={(note) => setNotes((prev) => [note, ...prev])}
       />
       {error ? (
-        <div className="text-[12px] text-amaco-fail">{error}</div>
+        <div className="text-[12px] text-vibestrate-fail">{error}</div>
       ) : null}
       <Section title={`Open (${open.length})`} notes={open} onResolve={handleResolve} />
       {resolved.length > 0 ? (
@@ -72,38 +72,38 @@ function Section({
 }) {
   return (
     <div>
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         {title}
       </div>
       {notes.length === 0 ? (
-        <div className="mt-1 text-[12px] text-amaco-fg-muted">—</div>
+        <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
       ) : (
         <ul className="mt-1.5 space-y-1.5">
           {notes.map((n) => (
             <li
               key={n.id}
-              className={`rounded border border-amaco-border bg-amaco-panel-2 p-2 ${
+              className={`rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 ${
                 dim ? "opacity-60" : ""
               }`}
             >
-              <div className="flex items-center gap-2 text-[11px] text-amaco-fg-muted">
-                <span className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1 py-0.5">
+              <div className="flex items-center gap-2 text-[11px] text-vibestrate-fg-muted">
+                <span className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1 py-0.5">
                   {n.scope}
                 </span>
-                <span className="amaco-mono truncate">{n.target}</span>
-                <span className="ml-auto amaco-mono">
+                <span className="vibestrate-mono truncate">{n.target}</span>
+                <span className="ml-auto vibestrate-mono">
                   {new Date(n.createdAt).toLocaleTimeString()}
                 </span>
                 {!n.resolved ? (
                   <button
                     onClick={() => onResolve(n.id)}
-                    className="ml-1 inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:text-amaco-fg"
+                    className="ml-1 inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:text-vibestrate-fg"
                   >
                     <Check className="h-3 w-3" strokeWidth={1.5} /> resolve
                   </button>
                 ) : null}
               </div>
-              <div className="mt-1.5 whitespace-pre-wrap text-[12.5px] text-amaco-fg">
+              <div className="mt-1.5 whitespace-pre-wrap text-[12.5px] text-vibestrate-fg">
                 {n.message}
               </div>
             </li>

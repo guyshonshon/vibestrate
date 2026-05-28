@@ -24,7 +24,7 @@ async function makeProject(): Promise<{
   worktree: string;
   runId: string;
 }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pe-srv-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pe-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -41,11 +41,11 @@ async function makeProject(): Promise<{
     detectionRunner: noProvider,
   });
   const yml = await fs.readFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     "utf8",
   );
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     yml.replace(
       /^commands:\n  validate: \[\]\n/m,
       [
@@ -60,12 +60,12 @@ async function makeProject(): Promise<{
     ),
   );
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pe-srv-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pe-srv-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -79,7 +79,7 @@ async function makeProject(): Promise<{
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,

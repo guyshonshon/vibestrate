@@ -6,7 +6,7 @@
 
 ## Status: shipped
 
-**Amaco has one execution model.** There is no longer a separate "default
+**Vibestrate has one execution model.** There is no longer a separate "default
 workflow runner" and "flow runner". Every run executes a **flow** through one
 runner (`Orchestrator.runFlowSequence`):
 
@@ -14,10 +14,10 @@ runner (`Orchestrator.runFlowSequence`):
 Flow → Steps → Role (seat) → Provider
 ```
 
-- A plain `amaco run` resolves the built-in **`default` flow** and runs it
+- A plain `vibestrate run` resolves the built-in **`default` flow** and runs it
   through the flow runner.
-- `amaco run --flow default` runs the same flow explicitly.
-- `amaco run --flow <custom>` runs any other flow through the same runner.
+- `vibestrate run --flow default` runs the same flow explicitly.
+- `vibestrate run --flow <custom>` runs any other flow through the same runner.
 
 The hardcoded `Orchestrator.run()` **runner body** (the plan→build→verify
 sequence) was deleted; `run()` remains only as the public entry point that
@@ -69,7 +69,7 @@ runner hardcoding role names. Three first-class step fields:
 
 ### Resume / rewind (native to the flow runner)
 
-`amaco run --resume-from <runId> [--resume-stage planning|architecting|executing]`
+`vibestrate run --resume-from <runId> [--resume-stage planning|architecting|executing]`
 is handled inside the flow runner — no delegation to a separate path:
 
 1. Find the first step whose `stage` matches the resume stage (fails clearly if
@@ -132,7 +132,7 @@ validates that a source run exists. Old runs are treated as never having existed
 
 Resume targets the stages with a clean seed boundary: **`planning`,
 `architecting`, `executing`**. `reviewing` / `verifying` are intentionally **not**
-resumable — they need the executor's code present, and Amaco doesn't snapshot the
+resumable — they need the executor's code present, and Vibestrate doesn't snapshot the
 per-step worktree yet. The CLI and `--resume-stage` schema reject other values
 with a clear message.
 

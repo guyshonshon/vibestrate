@@ -2,7 +2,7 @@ import { appendLine } from "../utils/fs.js";
 import { runEventsPath } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
 
-export type AmacoEventType =
+export type VibestrateEventType =
   | "run.created"
   | "run.rewound"
   | "state.changed"
@@ -86,9 +86,9 @@ export type AmacoEventType =
   | "flow.loop.iteration"
   | "flow.loop.decision";
 
-export type AmacoEvent = {
+export type VibestrateEvent = {
   timestamp: string;
-  type: AmacoEventType;
+  type: VibestrateEventType;
   message: string;
   data?: Record<string, unknown>;
 };
@@ -100,8 +100,8 @@ export class EventLog {
     return runEventsPath(this.projectRoot, this.runId);
   }
 
-  async append(event: Omit<AmacoEvent, "timestamp">): Promise<void> {
-    const full: AmacoEvent = { timestamp: nowIso(), ...event };
+  async append(event: Omit<VibestrateEvent, "timestamp">): Promise<void> {
+    const full: VibestrateEvent = { timestamp: nowIso(), ...event };
     await appendLine(this.filePath, JSON.stringify(full));
   }
 }

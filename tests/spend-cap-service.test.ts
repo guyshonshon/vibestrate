@@ -33,14 +33,14 @@ describe("evaluateSpendCap", () => {
 describe("computeDailySpendUsd", () => {
   let root: string;
   beforeEach(async () => {
-    root = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-spend-"));
+    root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-spend-"));
   });
   afterEach(async () => {
     await fs.rm(root, { recursive: true, force: true });
   });
 
   async function writeRunMetrics(runId: string, totalCostUsd: number, updatedAt: string): Promise<void> {
-    const dir = path.join(root, ".amaco", "runs", runId);
+    const dir = path.join(root, ".vibestrate", "runs", runId);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(
       path.join(dir, "runtime-metrics.json"),

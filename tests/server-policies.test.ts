@@ -6,7 +6,7 @@ import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 
 async function makeProject(opts: { withRule?: boolean; withMalformed?: boolean } = {}): Promise<string> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-policies-srv-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-policies-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -14,9 +14,9 @@ async function makeProject(opts: { withRule?: boolean; withMalformed?: boolean }
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -30,9 +30,9 @@ async function makeProject(opts: { withRule?: boolean; withMalformed?: boolean }
   );
 
   if (opts.withRule) {
-    await fs.mkdir(path.join(project, ".amaco/policies"), { recursive: true });
+    await fs.mkdir(path.join(project, ".vibestrate/policies"), { recursive: true });
     await fs.writeFile(
-      path.join(project, ".amaco/policies/no-console.yml"),
+      path.join(project, ".vibestrate/policies/no-console.yml"),
       [
         "rules:",
         "  - id: no-console-log",
@@ -45,9 +45,9 @@ async function makeProject(opts: { withRule?: boolean; withMalformed?: boolean }
     );
   }
   if (opts.withMalformed) {
-    await fs.mkdir(path.join(project, ".amaco/policies"), { recursive: true });
+    await fs.mkdir(path.join(project, ".vibestrate/policies"), { recursive: true });
     await fs.writeFile(
-      path.join(project, ".amaco/policies/broken.yml"),
+      path.join(project, ".vibestrate/policies/broken.yml"),
       "rules: [: this isn't yaml",
     );
   }

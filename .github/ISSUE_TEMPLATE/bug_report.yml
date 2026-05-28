@@ -11,8 +11,8 @@ body:
     id: command
     attributes:
       label: What did you run?
-      description: The exact `amaco …` command (or UI action).
-      placeholder: amaco run "Add audit logging" --ui
+      description: The exact `vibestrate …` command (or UI action).
+      placeholder: vibestrate run "Add audit logging" --ui
     validations:
       required: true
   - type: textarea
@@ -25,7 +25,7 @@ body:
     id: run-id
     attributes:
       label: runId (if a run was involved)
-      description: Helps us find the artifacts under .amaco/runs/<runId>/.
+      description: Helps us find the artifacts under .vibestrate/runs/<runId>/.
       placeholder: abc123
   - type: textarea
     id: logs
@@ -36,8 +36,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Amaco version
-      description: Output of `amaco --version`.
+      label: Vibestrate version
+      description: Output of `vibestrate --version`.
       placeholder: "0.1.0"
     validations:
       required: true

@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { discoverSkills } from "../src/skills/skill-discovery.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-skill-disc-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-skill-disc-"));
 }
 
 describe("skill discovery", () => {
@@ -29,24 +29,24 @@ describe("skill discovery", () => {
     expect(skills[0]!.bodyPreview).toContain("Design rules");
   });
 
-  it("discovers SKILL.md from .amaco/skills/<dir>/SKILL.md and flat .md", async () => {
-    const dirSkill = path.join(projectRoot, ".amaco", "skills", "security");
+  it("discovers SKILL.md from .vibestrate/skills/<dir>/SKILL.md and flat .md", async () => {
+    const dirSkill = path.join(projectRoot, ".vibestrate", "skills", "security");
     await fs.mkdir(dirSkill, { recursive: true });
     await fs.writeFile(
       path.join(dirSkill, "SKILL.md"),
       `---\nname: security\ndescription: Security review checklist\n---\n\nBe careful.\n`,
     );
 
-    await fs.mkdir(path.join(projectRoot, ".amaco", "skills"), {
+    await fs.mkdir(path.join(projectRoot, ".vibestrate", "skills"), {
       recursive: true,
     });
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "skills", "testing.md"),
+      path.join(projectRoot, ".vibestrate", "skills", "testing.md"),
       `# Testing skill\nFlat-md format.\n`,
     );
     // README.md should be ignored.
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "skills", "README.md"),
+      path.join(projectRoot, ".vibestrate", "skills", "README.md"),
       `# Project Skills\nIgnored.\n`,
     );
 
@@ -54,7 +54,7 @@ describe("skill discovery", () => {
     const names = skills.map((s) => s.name).sort();
     expect(names).toEqual(["security", "testing"]);
     const flat = skills.find((s) => s.name === "testing")!;
-    expect(flat.source).toBe("amaco");
+    expect(flat.source).toBe("vibestrate");
   });
 
   it("picks up sibling .mcp.json as the skill's MCP servers", async () => {
@@ -93,7 +93,7 @@ describe("skill discovery", () => {
     expect(skills).toEqual([]);
   });
 
-  it("does not read outside .claude/.amaco roots", async () => {
+  it("does not read outside .claude/.vibestrate roots", async () => {
     const outside = path.join(projectRoot, "elsewhere", "SKILL.md");
     await fs.mkdir(path.dirname(outside), { recursive: true });
     await fs.writeFile(

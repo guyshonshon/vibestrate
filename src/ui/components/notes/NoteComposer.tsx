@@ -57,7 +57,7 @@ export function NoteComposer({
         <select
           value={scope}
           onChange={(e) => setScope(e.target.value as Note["scope"])}
-          className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-1 text-[11.5px] text-amaco-fg"
+          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-1 text-[11.5px] text-vibestrate-fg"
         >
           {SCOPES.map((s) => (
             <option key={s} value={s}>
@@ -69,7 +69,7 @@ export function NoteComposer({
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           placeholder="target (run id, stage, file path, etc.)"
-          className="amaco-mono flex-1 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px] text-amaco-fg placeholder-amaco-fg-muted"
+          className="vibestrate-mono flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
         />
       </div>
       <textarea
@@ -77,18 +77,18 @@ export function NoteComposer({
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Note…"
         rows={2}
-        className="block w-full resize-y rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[12.5px] text-amaco-fg placeholder-amaco-fg-muted"
+        className="block w-full resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
       />
       <div className="flex items-center justify-between gap-2">
         {error ? (
-          <span className="text-[11.5px] text-amaco-fail">{error}</span>
+          <span className="text-[11.5px] text-vibestrate-fail">{error}</span>
         ) : (
           <span />
         )}
         <button
           type="submit"
           disabled={saving || !message.trim()}
-          className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-1 text-[12px] text-amaco-fg hover:bg-amaco-panel disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? "Saving…" : "Add note"}
         </button>

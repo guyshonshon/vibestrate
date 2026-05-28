@@ -14,23 +14,23 @@ const noProvider: ProviderDetectionRunner = async () => ({
   stderr: "",
 });
 
-const happy = `AMACO_ROADMAP_ITEM:
+const happy = `VIBESTRATE_ROADMAP_ITEM:
 TITLE: Build onboarding
 PRIORITY: medium
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Wizard
 ROADMAP: Build onboarding
 RISK: medium
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Wizard tests
 ROADMAP: Build onboarding
 DEPENDS_ON: Wizard
 `;
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-srv-prop-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-srv-prop-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -77,7 +77,7 @@ describe("server: proposals routes", () => {
       accepted: unknown;
     };
     expect(body.proposalId).toBe("demo");
-    expect(body.body).toContain("AMACO_ROADMAP_ITEM");
+    expect(body.body).toContain("VIBESTRATE_ROADMAP_ITEM");
     expect(body.accepted).toBeNull();
   });
 
@@ -110,7 +110,7 @@ describe("server: proposals routes", () => {
     expect(body.dryRun).toBe(true);
     expect(body.willCreate.tasks).toHaveLength(2);
     // no tasks/ files exist
-    const tasksDir = path.join(project, ".amaco", "roadmap", "tasks");
+    const tasksDir = path.join(project, ".vibestrate", "roadmap", "tasks");
     const list = (await fs.readdir(tasksDir).catch(() => [])) as string[];
     expect(list).toEqual([]);
   });

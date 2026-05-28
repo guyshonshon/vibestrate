@@ -11,10 +11,10 @@ import {
 import { startServer, type StartedServer } from "../src/server/server.js";
 
 async function makeProject(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-presets-"));
-  await fs.mkdir(path.join(root, ".amaco"), { recursive: true });
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-presets-"));
+  await fs.mkdir(path.join(root, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(root, ".amaco", "project.yml"),
+    path.join(root, ".vibestrate", "project.yml"),
     `project:
   name: presets-test
 providers:
@@ -24,7 +24,7 @@ providers:
 roles:
   planner:
     provider: claude
-    prompt: .amaco/roles/planner.md
+    prompt: .vibestrate/roles/planner.md
     permissions: readOnly
 `,
   );

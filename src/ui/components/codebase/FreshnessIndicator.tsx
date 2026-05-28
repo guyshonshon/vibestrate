@@ -22,10 +22,10 @@ export function FreshnessIndicator({ freshness, onRefresh }: Props) {
 
   const ago = relativeAgo(freshness.lastUpdatedAt);
   const tone = freshness.connected
-    ? "border-amaco-success/40 text-amaco-success"
+    ? "border-vibestrate-success/40 text-vibestrate-success"
     : freshness.reconnecting
-      ? "border-amaco-warn/40 text-amaco-warn"
-      : "border-amaco-border text-amaco-fg-muted";
+      ? "border-vibestrate-warn/40 text-vibestrate-warn"
+      : "border-vibestrate-border text-vibestrate-fg-muted";
   const Icon = freshness.connected
     ? Activity
     : freshness.reconnecting
@@ -39,7 +39,7 @@ export function FreshnessIndicator({ freshness, onRefresh }: Props) {
 
   return (
     <span
-      className={`amaco-mono inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] ${tone}`}
+      className={`vibestrate-mono inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10.5px] ${tone}`}
       title={
         freshness.lastUpdatedAt
           ? `Last update: ${new Date(freshness.lastUpdatedAt).toLocaleTimeString()}`
@@ -48,12 +48,12 @@ export function FreshnessIndicator({ freshness, onRefresh }: Props) {
     >
       <Icon className="h-3 w-3" strokeWidth={1.5} />
       {label}
-      {ago ? <span className="text-amaco-fg-muted">· {ago}</span> : null}
+      {ago ? <span className="text-vibestrate-fg-muted">· {ago}</span> : null}
       {onRefresh ? (
         <button
           type="button"
           onClick={onRefresh}
-          className="ml-1 rounded p-0.5 hover:bg-amaco-panel-2"
+          className="ml-1 rounded p-0.5 hover:bg-vibestrate-panel-2"
           title="Refresh now"
         >
           <RefreshCw className="h-3 w-3" strokeWidth={1.5} />

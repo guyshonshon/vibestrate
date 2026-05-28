@@ -110,7 +110,7 @@ const noVerifyLoopFlow = flowDefinitionSchema.parse({
 // Fake provider: the reviewer asks for changes on its first turn and approves
 // after that (tracked via a counter file), so the loop runs exactly one fix.
 async function makeLoopRepo(reviewerScript: string): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-flow-loop-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-flow-loop-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -145,17 +145,17 @@ const counter = path.join(__dirname, "review-counter.txt");
 let prompt = "";
 process.stdin.on("data", (chunk) => (prompt += chunk));
 process.stdin.on("end", () => {
-  if (prompt.includes("Amaco Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: reviewer")) {
     let n = 0;
     try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
     n += 1;
     fs.writeFileSync(counter, String(n));
     console.log("# Review\\n\\nDECISION: " + (n === 1 ? "CHANGES_REQUESTED" : "APPROVED"));
-  } else if (prompt.includes("Amaco Agent: verifier")) {
+  } else if (prompt.includes("Vibestrate Agent: verifier")) {
     console.log("# Summary\\n\\nVERIFICATION: PASSED");
-  } else if (prompt.includes("Amaco Agent: fixer")) {
+  } else if (prompt.includes("Vibestrate Agent: fixer")) {
     console.log("# Fix\\n\\nAddressed the finding.");
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     console.log("# Implementation\\n\\nNo source change required.");
   } else {
     console.log("# Output");
@@ -164,7 +164,7 @@ process.stdin.on("end", () => {
 `;
 
 async function readEvents(projectRoot: string, runId: string): Promise<{ type: string; data?: Record<string, unknown> }[]> {
-  const file = path.join(projectRoot, ".amaco", "runs", runId, "events.ndjson");
+  const file = path.join(projectRoot, ".vibestrate", "runs", runId, "events.ndjson");
   const raw = await fs.readFile(file, "utf8");
   return raw
     .split("\n")
@@ -197,7 +197,7 @@ describe("Flow adaptive loop execution (D2 phase B-3a)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;
@@ -271,7 +271,7 @@ describe("Flow adaptive loop execution (D2 phase B-3a)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;
@@ -326,7 +326,7 @@ describe("Flow adaptive loop execution (D2 phase B-3a)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;

@@ -16,7 +16,7 @@ import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 
 /**
- * The shared, non-interactive run pipeline. Both the CLI (`amaco run`) and the
+ * The shared, non-interactive run pipeline. Both the CLI (`vibestrate run`) and the
  * dashboard reach a run through the core `Orchestrator`; this launcher is the
  * piece the **dashboard** uses so the server never has to shell out to the CLI
  * binary. It takes a fully-structured spec, loads config, resolves the Flow,
@@ -80,7 +80,7 @@ export type RunLaunchOptions = {
 
 /** Load the upstream artifacts a rewind reuses from the source run, validating
  *  they exist (plan for both stages; architecture for executing). Shared by the
- *  dashboard launcher and the `amaco run --resume-from` CLI path so both reach
+ *  dashboard launcher and the `vibestrate run --resume-from` CLI path so both reach
  *  the same behavior. Throws RunLaunchError with an actionable message. */
 export async function resolveResumeFrom(
   projectRoot: string,
@@ -113,7 +113,7 @@ export async function runFromSpec(
   if (!(await configExists(detected.projectRoot))) {
     throw new RunLaunchError(
       "not_initialized",
-      "Amaco is not initialized here (.amaco/project.yml is missing). Run `amaco init`.",
+      "Vibestrate is not initialized here (.vibestrate/project.yml is missing). Run `vibestrate init`.",
     );
   }
 
@@ -133,7 +133,7 @@ export async function runFromSpec(
   }
 
   // Inherit effort / provider / read-only from a linked roadmap task when the
-  // spec didn't set them explicitly — same precedence as `amaco run --task`.
+  // spec didn't set them explicitly — same precedence as `vibestrate run --task`.
   let effort = spec.effort ?? null;
   let providerOverride = spec.provider ?? null;
   let readOnly = spec.readOnly ?? false;

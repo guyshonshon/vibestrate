@@ -13,7 +13,7 @@ import { spawn } from "node:child_process";
  * fallback to `nano` then `vi`.
  */
 export async function editInEditor(initial: string): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-form-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-form-"));
   const file = path.join(dir, "description.md");
   await fs.writeFile(file, initial, "utf8");
 

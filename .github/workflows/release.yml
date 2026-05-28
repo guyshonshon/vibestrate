@@ -1,6 +1,6 @@
 name: Release
 
-# Publishes amaco-os to npm when a version tag is pushed.
+# Publishes vibestrate to npm when a version tag is pushed.
 #
 # Release flow (run locally on a clean main):
 #
@@ -13,7 +13,7 @@ name: Release
 # Publishing uses npm TRUSTED PUBLISHING (OIDC) + provenance — no
 # long-lived NPM_TOKEN is stored. One-time setup on npmjs.com:
 #   npm package → Settings → Trusted Publisher → GitHub Actions
-#   repo: guyshonshon/amaco · workflow: release.yml
+#   repo: guyshonshon/vibestrate · workflow: release.yml
 # (Until then, set an automation-token secret NPM_TOKEN as a fallback —
 #  it's wired below and used automatically if present.)
 

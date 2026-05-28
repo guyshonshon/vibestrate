@@ -35,7 +35,7 @@ export type ProviderRow = {
   notes: string[];
   /** True when the project's loaded config has a matching `providers.<id>`. */
   configured: boolean;
-  /** Command to run OUTSIDE Amaco to authenticate (null = API-key/local). */
+  /** Command to run OUTSIDE Vibestrate to authenticate (null = API-key/local). */
   loginCommand: string | null;
   /** One-line human note about auth, shown when login is needed. */
   loginNote: string;
@@ -192,7 +192,7 @@ export async function registerProvidersRoutes(
       if (!d) {
         throw new HttpError(
           404,
-          `Provider "${id}" is not a known detectable CLI. Pass a config in the body or hand-edit .amaco/project.yml.`,
+          `Provider "${id}" is not a known detectable CLI. Pass a config in the body or hand-edit .vibestrate/project.yml.`,
         );
       }
       // Every known provider ships a preset now.

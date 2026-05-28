@@ -10,7 +10,7 @@ import {
 } from "../src/project/project-detector.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-projdet-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-projdet-"));
 }
 
 describe("package manager detection", () => {

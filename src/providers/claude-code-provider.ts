@@ -44,7 +44,7 @@ export async function runClaudeCodeProvider(
     ...(input.env ?? {}),
   };
   if (input.mcpConfigPath) {
-    env.AMACO_MCP_CONFIG = input.mcpConfigPath;
+    env.VIBESTRATE_MCP_CONFIG = input.mcpConfigPath;
   }
 
   let result;

@@ -15,30 +15,30 @@ export type ParsedSuggestion = {
 };
 
 /**
- * Parse explicit AMACO_SUGGESTION marker blocks out of a reviewer/verifier
+ * Parse explicit VIBESTRATE_SUGGESTION marker blocks out of a reviewer/verifier
  * artifact. We never invent suggestions from prose — only blocks that begin
- * with an `AMACO_SUGGESTION:` marker line are recognised.
+ * with an `VIBESTRATE_SUGGESTION:` marker line are recognised.
  *
  * Block grammar (case-sensitive header keys, body collected verbatim):
  *
- *   AMACO_SUGGESTION:
+ *   VIBESTRATE_SUGGESTION:
  *   TITLE: <one line>
  *   FILE: src/foo.ts                 (optional)
  *   LINES: 10-20                      (optional, "10" or "10-20")
  *   BODY:
- *     <multi-line body until PROPOSED_PATCH or AMACO_SUGGESTION_END / EOF>
+ *     <multi-line body until PROPOSED_PATCH or VIBESTRATE_SUGGESTION_END / EOF>
  *   PROPOSED_PATCH:                   (optional)
- *     <unified diff body verbatim until AMACO_SUGGESTION_END / EOF / next marker>
- *   AMACO_SUGGESTION_END               (optional explicit terminator)
+ *     <unified diff body verbatim until VIBESTRATE_SUGGESTION_END / EOF / next marker>
+ *   VIBESTRATE_SUGGESTION_END               (optional explicit terminator)
  */
 export function parseSuggestionBlocks(text: string): ParsedSuggestion[] {
-  if (!text || text.indexOf("AMACO_SUGGESTION:") === -1) return [];
+  if (!text || text.indexOf("VIBESTRATE_SUGGESTION:") === -1) return [];
   const lines = text.split(/\r?\n/);
   const out: ParsedSuggestion[] = [];
 
   let i = 0;
   while (i < lines.length) {
-    if (lines[i]!.trim() !== "AMACO_SUGGESTION:") {
+    if (lines[i]!.trim() !== "VIBESTRATE_SUGGESTION:") {
       i++;
       continue;
     }
@@ -46,8 +46,8 @@ export function parseSuggestionBlocks(text: string): ParsedSuggestion[] {
     let j = i + 1;
     while (j < lines.length) {
       const line = lines[j]!;
-      if (line.trim() === "AMACO_SUGGESTION:") break;
-      if (line.trim() === "AMACO_SUGGESTION_END") {
+      if (line.trim() === "VIBESTRATE_SUGGESTION:") break;
+      if (line.trim() === "VIBESTRATE_SUGGESTION_END") {
         j++;
         break;
       }

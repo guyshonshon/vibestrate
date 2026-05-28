@@ -5,7 +5,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { writeTaskReport } from "../../roadmap/task-report.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 import type { TaskStatus } from "../../roadmap/roadmap-types.js";
 
 async function svc() {
@@ -102,7 +102,7 @@ async function cmdAdd(
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -122,7 +122,7 @@ async function cmdList(opts: { json?: boolean; status?: string }): Promise<numbe
   if (tasks.length === 0) {
     console.log("No tasks yet.");
     console.log(
-      `  ${symbol.arrow()} Add one: ${color.bold('amaco tasks add "Create setup wizard"')}`,
+      `  ${symbol.arrow()} Add one: ${color.bold('vibestrate tasks add "Create setup wizard"')}`,
     );
     return 0;
   }
@@ -183,7 +183,7 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
     }
   }
   console.log("");
-  console.log(color.dim(`task report path: ${path.relative(root, `.amaco/roadmap/tasks/${id}-report.md`)}`));
+  console.log(color.dim(`task report path: ${path.relative(root, `.vibestrate/roadmap/tasks/${id}-report.md`)}`));
   return 0;
 }
 
@@ -199,7 +199,7 @@ async function cmdComment(taskId: string, body: string): Promise<number> {
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -213,7 +213,7 @@ async function cmdSetStatus(taskId: string, status: TaskStatus): Promise<number>
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -240,13 +240,13 @@ async function cmdQueue(taskId: string): Promise<number> {
     console.log(`${symbol.ok()} Task ${color.bold(taskId)} queued.`);
     console.log(
       indent(
-        `${symbol.arrow()} Start the scheduler: ${color.bold("amaco queue run")}`,
+        `${symbol.arrow()} Start the scheduler: ${color.bold("vibestrate queue run")}`,
       ),
     );
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -297,14 +297,14 @@ async function cmdReport(taskId: string): Promise<number> {
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
 }
 
 async function cmdRun(taskId: string): Promise<number> {
-  // Foreground: spawn `amaco run --task <id>` against the local CLI bin so the
+  // Foreground: spawn `vibestrate run --task <id>` against the local CLI bin so the
   // user sees progress live and the orchestrator handles task linkage.
   const { svc: s, root } = await svc();
   const task = await s.getTask(taskId);
@@ -323,7 +323,7 @@ async function cmdRun(taskId: string): Promise<number> {
   const bin = candidates.find((p) => fs.existsSync(p));
   if (!bin) {
     console.error(
-      `${symbol.fail()} Could not locate Amaco bundle. Run \`pnpm build\` first.`,
+      `${symbol.fail()} Could not locate Vibestrate bundle. Run \`pnpm build\` first.`,
     );
     return 1;
   }
@@ -426,7 +426,7 @@ export function buildTasksCommand(): Command {
 
   cmd
     .command("run <id>")
-    .description("Run this task now (foreground; same as amaco run --task <id>).")
+    .description("Run this task now (foreground; same as vibestrate run --task <id>).")
     .action(async (id: string) => {
       const code = await cmdRun(id);
       process.exit(code);
@@ -434,7 +434,7 @@ export function buildTasksCommand(): Command {
 
   cmd
     .command("report <id>")
-    .description("Generate a Markdown task report at .amaco/roadmap/tasks/<id>-report.md.")
+    .description("Generate a Markdown task report at .vibestrate/roadmap/tasks/<id>-report.md.")
     .action(async (id: string) => {
       const code = await cmdReport(id);
       process.exit(code);

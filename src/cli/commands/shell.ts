@@ -2,11 +2,11 @@ import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { runInkShell } from "../../shell/ink/runtime.js";
 import { buildShellSnapshot } from "../../shell/shell-snapshot.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 export function buildShellCommand(): Command {
   const cmd = new Command("shell").description(
-    "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `amaco ui` instead.",
+    "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibestrate ui` instead.",
   );
 
   cmd
@@ -29,15 +29,15 @@ export function buildShellCommand(): Command {
           const code = await runInkShell({
             projectRoot: detected.projectRoot,
             refreshMs: opts.refresh,
-            // The shell honors AMACO_UI_URL env so `B` can still pop
-            // open a separately-running `amaco ui` tab.
-            uiUrl: process.env.AMACO_UI_URL ?? null,
+            // The shell honors VIBESTRATE_UI_URL env so `B` can still pop
+            // open a separately-running `vibestrate ui` tab.
+            uiUrl: process.env.VIBESTRATE_UI_URL ?? null,
           });
           process.exit(code);
         } catch (err) {
           process.stderr.write(
-            `amaco shell: ${
-              isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)
+            `vibestrate shell: ${
+              isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)
             }\n`,
           );
           process.exit(1);

@@ -1,14 +1,16 @@
-// Spawn `amaco` in a real PTY, send a sequence of keystrokes, and
+// Spawn `vibestrate` in a real PTY, send a sequence of keystrokes, and
 // snapshot the visible frame between each one so we can see what
 // actually changed. Used for triaging navigation bugs the user
 // reports.
 import pty from "node-pty";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const cwd = process.argv[2] ?? process.cwd();
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const distEntry = resolve(repoRoot, "dist/index.js");
 
-const p = pty.spawn(process.execPath, [
-  "/Users/guy/Programming/amaco/dist/index.js",
-], {
+const p = pty.spawn(process.execPath, [distEntry], {
   cwd,
   cols: 160,
   rows: 40,

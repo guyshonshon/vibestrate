@@ -2,13 +2,13 @@
  * Plain-text marker parser for proposals produced by the roadmap-planner agent.
  *
  * Format:
- *   AMACO_ROADMAP_ITEM:
+ *   VIBESTRATE_ROADMAP_ITEM:
  *   TITLE: <required>
  *   DESCRIPTION: <optional>
  *   PRIORITY: low | medium | high
  *   TAGS: <comma-separated>
  *
- *   AMACO_TASK:
+ *   VIBESTRATE_TASK:
  *   TITLE: <required>
  *   ROADMAP: <roadmap title in this proposal, optional>
  *   DESCRIPTION: <optional>
@@ -148,13 +148,13 @@ function tokenize(text: string): {
     const line = lines[i]!;
     const trimmed = line.trim();
 
-    // Marker recognises: AMACO_ROADMAP_ITEM:, AMACO_TASK:, END_TASK,
-    // AMACO_NEEDS_CLARIFICATION: <text>.
-    if (/^AMACO_ROADMAP_ITEM\s*:?\s*$/.test(trimmed)) {
+    // Marker recognises: VIBESTRATE_ROADMAP_ITEM:, VIBESTRATE_TASK:, END_TASK,
+    // VIBESTRATE_NEEDS_CLARIFICATION: <text>.
+    if (/^VIBESTRATE_ROADMAP_ITEM\s*:?\s*$/.test(trimmed)) {
       startBlock("roadmap", i);
       continue;
     }
-    if (/^AMACO_TASK\s*:?\s*$/.test(trimmed)) {
+    if (/^VIBESTRATE_TASK\s*:?\s*$/.test(trimmed)) {
       startBlock("task", i);
       continue;
     }
@@ -165,7 +165,7 @@ function tokenize(text: string): {
       }
       continue;
     }
-    const ncMatch = trimmed.match(/^AMACO_NEEDS_CLARIFICATION\s*:\s*(.+)$/);
+    const ncMatch = trimmed.match(/^VIBESTRATE_NEEDS_CLARIFICATION\s*:\s*(.+)$/);
     if (ncMatch) {
       needsClarification = ncMatch[1]!.trim();
       continue;

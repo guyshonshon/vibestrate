@@ -4,25 +4,25 @@ import { cliFor } from "../src/ui/lib/cliFor.js";
 describe("cliFor", () => {
   it("maps queue + cancel + run task actions", () => {
     expect(cliFor({ kind: "queue-task", taskId: "task-1" })).toBe(
-      "amaco queue add task-1",
+      "vibestrate queue add task-1",
     );
     expect(cliFor({ kind: "cancel-task", taskId: "task-1" })).toBe(
-      "amaco tasks cancel task-1",
+      "vibestrate tasks cancel task-1",
     );
     expect(cliFor({ kind: "run-task", taskId: "task-1" })).toBe(
-      "amaco tasks run task-1",
+      "vibestrate tasks run task-1",
     );
   });
 
   it("maps run lifecycle actions", () => {
     expect(cliFor({ kind: "status-run", runId: "run-abc" })).toBe(
-      "amaco status run-abc",
+      "vibestrate status run-abc",
     );
     expect(cliFor({ kind: "pause-run", runId: "run-abc" })).toBe(
-      "amaco pause run-abc",
+      "vibestrate pause run-abc",
     );
     expect(cliFor({ kind: "abort-run", runId: "run-abc" })).toBe(
-      "amaco abort run-abc",
+      "vibestrate abort run-abc",
     );
   });
 
@@ -37,7 +37,7 @@ describe("cliFor", () => {
         skills: ["sec", "logs"],
       }),
     ).toBe(
-      'amaco run --provider claude --effort high --read-only --skills sec,logs "add health check"',
+      'vibestrate run --provider claude --effort high --read-only --skills sec,logs "add health check"',
     );
   });
 

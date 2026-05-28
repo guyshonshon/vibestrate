@@ -186,14 +186,14 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   if (error)
     return (
-      <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-amaco-fail text-[11.5px]">
+      <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail text-[11.5px]">
         {error}
       </div>
     );
 
   if (!availability)
     return (
-      <div className="text-amaco-fg-muted text-[11.5px]">
+      <div className="text-vibestrate-fg-muted text-[11.5px]">
         Checking terminal availability…
       </div>
     );
@@ -203,42 +203,42 @@ export function TerminalPanel({ runId }: { runId: string }) {
     return (
       <div
         role="note"
-        className="flex items-start gap-2 rounded border border-amaco-border bg-amaco-panel-2/40 p-3 text-[11.5px]"
+        className="flex items-start gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2/40 p-3 text-[11.5px]"
       >
         <Lock
-          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amaco-fg-muted"
+          className="mt-0.5 h-3.5 w-3.5 shrink-0 text-vibestrate-fg-muted"
           strokeWidth={1.5}
           aria-hidden
         />
         <div className="space-y-1">
-          <p className="text-amaco-fg">
+          <p className="text-vibestrate-fg">
             Interactive terminal is off for this project
           </p>
-          <p className="text-amaco-fg-muted">
+          <p className="text-vibestrate-fg-muted">
             {availability.reason ?? "Terminal feature unavailable."}
           </p>
           {!availability.policyEnabled ? (
-            <p className="text-amaco-fg-muted">
+            <p className="text-vibestrate-fg-muted">
               Set{" "}
-              <code className="amaco-mono rounded bg-amaco-panel px-1">
+              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
                 policies.allowInteractiveTerminal: true
               </code>{" "}
               in{" "}
-              <code className="amaco-mono rounded bg-amaco-panel px-1">
-                .amaco/project.yml
+              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+                .vibestrate/project.yml
               </code>{" "}
-              to enable. amaco never opens a shell unless this is explicitly on.
+              to enable. vibestrate never opens a shell unless this is explicitly on.
             </p>
           ) : !availability.driverAvailable ? (
-            <p className="text-amaco-fg-muted">
+            <p className="text-vibestrate-fg-muted">
               The optional{" "}
-              <code className="amaco-mono rounded bg-amaco-panel px-1">
+              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
                 node-pty
               </code>{" "}
               native module isn't installed in this environment, so PTYs can't
               be spawned. Install it (or skip the terminal feature) and restart{" "}
-              <code className="amaco-mono rounded bg-amaco-panel px-1">
-                amaco ui
+              <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
+                vibestrate ui
               </code>
               .
             </p>
@@ -251,7 +251,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
   if (!session) {
     return (
       <div className="space-y-2 text-[11.5px]">
-        <p className="text-amaco-fg-muted">
+        <p className="text-vibestrate-fg-muted">
           Open an interactive shell inside this run's worktree. The session
           runs locally on your machine, scoped to the worktree directory.
           Closing the panel or this run kills the shell. No transcript is
@@ -261,7 +261,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
           type="button"
           onClick={() => void startSession()}
           disabled={creating}
-          className="rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-2 py-1 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-60"
+          className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-1 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-60"
         >
           {creating ? "Opening…" : "Open terminal in this worktree"}
         </button>
@@ -271,21 +271,21 @@ export function TerminalPanel({ runId }: { runId: string }) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <div className="flex items-center justify-between text-[11px] text-amaco-fg-muted">
-        <span className="amaco-mono truncate">
+      <div className="flex items-center justify-between text-[11px] text-vibestrate-fg-muted">
+        <span className="vibestrate-mono truncate">
           {session.shell} · {session.cwd}
         </span>
         <button
           type="button"
           onClick={() => void closeSession()}
-          className="rounded border border-amaco-border px-2 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel-2"
+          className="rounded border border-vibestrate-border px-2 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
         >
           Close
         </button>
       </div>
       <div
         ref={hostRef}
-        className="flex-1 overflow-hidden rounded border border-amaco-border bg-[#0b0e13]"
+        className="flex-1 overflow-hidden rounded border border-vibestrate-border bg-[#0b0e13]"
         style={{ minHeight: 240 }}
       />
     </div>

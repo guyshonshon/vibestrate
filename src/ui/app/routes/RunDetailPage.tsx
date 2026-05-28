@@ -3,7 +3,7 @@ import { api, type ProviderRow } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
-  AmacoEvent,
+  VibestrateEvent,
   ApprovalRequest,
   RunState,
   RuntimeMetrics,

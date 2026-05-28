@@ -24,7 +24,7 @@ async function makeRunFixture(opts: {
   eventCount?: number;
   malformedJson?: boolean;
 } = {}): Promise<RunFixture> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-replay-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-replay-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -32,9 +32,9 @@ async function makeRunFixture(opts: {
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: replay-test, type: generic }",
       "providers:",
@@ -47,7 +47,7 @@ async function makeRunFixture(opts: {
   );
 
   const runId = "20260512-100000-fixture";
-  const runDir = path.join(project, ".amaco/runs", runId);
+  const runDir = path.join(project, ".vibestrate/runs", runId);
   await fs.mkdir(path.join(runDir, "artifacts"), { recursive: true });
   const startedAt = "2026-05-12T10:00:00.000Z";
   const finalAt = "2026-05-12T10:30:00.000Z";
@@ -60,7 +60,7 @@ async function makeRunFixture(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: null,
-      branchName: "amaco/fixture",
+      branchName: "vibestrate/fixture",
       reviewLoopCount: 1,
       maxReviewLoops: 2,
       startedAt,
@@ -298,9 +298,9 @@ async function makeRunFixture(opts: {
   }
 
   if (opts.withNotifications) {
-    await fs.mkdir(path.join(project, ".amaco/notifications"), { recursive: true });
+    await fs.mkdir(path.join(project, ".vibestrate/notifications"), { recursive: true });
     await fs.writeFile(
-      path.join(project, ".amaco/notifications/notifications.json"),
+      path.join(project, ".vibestrate/notifications/notifications.json"),
       JSON.stringify({
         notifications: [
           {
@@ -351,9 +351,9 @@ async function makeRunFixture(opts: {
   }
 
   if (opts.withTerminalSessions) {
-    await fs.mkdir(path.join(project, ".amaco/terminal"), { recursive: true });
+    await fs.mkdir(path.join(project, ".vibestrate/terminal"), { recursive: true });
     await fs.writeFile(
-      path.join(project, ".amaco/terminal/sessions.json"),
+      path.join(project, ".vibestrate/terminal/sessions.json"),
       JSON.stringify({
         sessions: [
           {
@@ -508,7 +508,7 @@ describe("buildRunReplay — service", () => {
       );
     }
     await fs.writeFile(
-      path.join(project, ".amaco/runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate/runs", runId, "events.ndjson"),
       lines.join("\n") + "\n",
     );
     const r = await buildRunReplay(project, runId);
@@ -528,11 +528,11 @@ describe("buildRunReplay — service", () => {
     });
     // Drop a corrupt approvals.json + suggestions.json.
     await fs.writeFile(
-      path.join(project, ".amaco/runs", runId, "approvals.json"),
+      path.join(project, ".vibestrate/runs", runId, "approvals.json"),
       "this is { not json",
     );
     await fs.writeFile(
-      path.join(project, ".amaco/runs", runId, "suggestions.json"),
+      path.join(project, ".vibestrate/runs", runId, "suggestions.json"),
       "{[",
     );
     const r = await buildRunReplay(project, runId);
@@ -559,7 +559,7 @@ describe("buildRunReplay — service", () => {
       withFlow: true,
     });
     await fs.writeFile(
-      path.join(project, ".amaco/runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate/runs", runId, "events.ndjson"),
       `${JSON.stringify({
         timestamp: "2026-05-12T10:01:00.000Z",
         type: "flow.step.started",

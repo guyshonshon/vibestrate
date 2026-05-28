@@ -1,6 +1,6 @@
 # Security Policy
 
-Amaco is a small, open‑source, local‑first project. There's no company behind
+Vibestrate is a small, open‑source, local‑first project. There's no company behind
 it, no support team, and no SLA — but security reports are taken seriously and
 handled privately. Use of the software is at your own risk under the
 [Apache-2.0 license](./LICENSE).
@@ -8,7 +8,7 @@ handled privately. Use of the software is at your own risk under the
 ## Reporting a vulnerability
 
 **Private channel — preferred:**
-[Open a GitHub Security Advisory](https://github.com/guyshonshon/amaco/security/advisories/new)
+[Open a GitHub Security Advisory](https://github.com/guyshonshon/vibestrate/security/advisories/new)
 
 This gives us a private tracker and a way to coordinate a fix before public
 disclosure.
@@ -21,14 +21,14 @@ Security Advisories.
 
 ## What to include
 
-- The version (`amaco --version`) and how it's installed.
+- The version (`vibestrate --version`) and how it's installed.
 - A clear description of the issue and its impact.
 - Minimal reproduction steps. Redact anything sensitive — never include real
   secrets, tokens, or private source.
 
 ## Scope worth flagging
 
-Amaco's threat model centers on the fact that it runs untrusted‑ish model
+Vibestrate's threat model centers on the fact that it runs untrusted‑ish model
 output against your machine and git repo. Reports that fit that model are
 especially valuable:
 
@@ -48,7 +48,7 @@ the bundle contains `fetch` → POST → `api.telegram.org` alongside `process.e
 access. **This is a false positive.** That code is the opt‑in **Telegram
 notification gateway** (`src/notifications/gateways/telegram-gateway.ts`) — one
 of several gateways (CLI, in‑app, webhook, Discord, Slack, Telegram) you wire up
-with `amaco gateways add`. Specifically:
+with `vibestrate gateways add`. Specifically:
 
 - There is **no hardcoded bot token** — the URL is `api.telegram.org/bot${token}/…`
   where `${token}` comes from *your* gateway config (a literal or `env:NAME`).
@@ -59,7 +59,7 @@ with `amaco gateways add`. Specifically:
   data or environment variables. Tokens are actively `redact()`‑ed from logs.
 
 If you want to verify, diff a clean local build (`pnpm build`) against the
-published tarball (`npm pack amaco-os`), or read the gateway source above.
+published tarball (`npm pack vibestrate`), or read the gateway source above.
 
 ## Response
 

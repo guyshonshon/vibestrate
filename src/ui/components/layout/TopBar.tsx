@@ -411,7 +411,7 @@ export function TopBar({
         <button
           type="button"
           onClick={() =>
-            window.dispatchEvent(new CustomEvent("amaco:help-overlay"))
+            window.dispatchEvent(new CustomEvent("vibestrate:help-overlay"))
           }
           className="h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center gap-2 text-[12px] text-fog-300 whitespace-nowrap"
           title="Jump to… (⌘K)"

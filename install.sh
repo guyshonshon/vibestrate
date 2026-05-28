@@ -1,17 +1,17 @@
 #!/bin/sh
-# Amaco installer — installs the `amaco` CLI (npm package `amaco-os`) globally.
+# Vibestrate installer — installs the `vibestrate` CLI (npm package `vibestrate`) globally.
 #
-#   curl -fsSL https://raw.githubusercontent.com/guyshonshon/amaco/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 #
-# Pin a version with AMACO_VERSION before the pipe, e.g.
-#   curl -fsSL .../install.sh | AMACO_VERSION=0.1.1 sh
+# Pin a version with VIBESTRATE_VERSION before the pipe, e.g.
+#   curl -fsSL .../install.sh | VIBESTRATE_VERSION=0.1.1 sh
 #
 # This script only runs a global npm/pnpm install of a published package —
 # nothing else. It is plain text you can read before running.
 set -eu
 
-PKG="amaco-os"
-VERSION="${AMACO_VERSION:-latest}"
+PKG="vibestrate"
+VERSION="${VIBESTRATE_VERSION:-latest}"
 MIN_NODE_MAJOR=18
 
 red() { printf '\033[31m%s\033[0m\n' "$*" >&2; }
@@ -42,8 +42,8 @@ else
 fi
 
 cyan ""
-cyan "✓ amaco installed. Next steps:"
+cyan "✓ vibestrate installed. Next steps:"
 cyan "    cd your-project"
-cyan "    amaco init"
-cyan "    amaco doctor --fix"
-cyan "    amaco run \"your task\""
+cyan "    vibestrate init"
+cyan "    vibestrate doctor --fix"
+cyan "    vibestrate run \"your task\""

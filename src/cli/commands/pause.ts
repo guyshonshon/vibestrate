@@ -8,10 +8,10 @@ import {
 import { EventLog } from "../../core/event-log.js";
 import { RunStateStore } from "../../core/state-machine.js";
 import { color } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 /**
- * `amaco pause <runId>` and `amaco resume <runId>` — write-side toggle on
+ * `vibestrate pause <runId>` and `vibestrate resume <runId>` — write-side toggle on
  * a run's pauseRequested flag. The actively-running orchestrator (if any)
  * picks up the flag at the next stage boundary; if the run is currently
  * idle on disk, the flag is just persisted for the next time the
@@ -71,7 +71,7 @@ async function runMutation(
       console.error(color.yellow(err.message));
       return 2;
     }
-    if (isAmacoError(err)) {
+    if (isVibestrateError(err)) {
       console.error(color.red(err.message));
       return 2;
     }

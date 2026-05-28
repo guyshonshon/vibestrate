@@ -1,7 +1,7 @@
 import { detectProject } from "../../project/project-detector.js";
-import { startServer, DEFAULT_AMACO_PORT } from "../../server/server.js";
+import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 import { exec } from "node:child_process";
 
 export type UiCommandOptions = {
@@ -32,12 +32,12 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       `${symbol.fail()} ${process.cwd()} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")}, then ${color.bold("amaco init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")}, then ${color.bold("vibestrate init")}.`,
     );
     return 1;
   }
 
-  const port = opts.port ?? DEFAULT_AMACO_PORT;
+  const port = opts.port ?? DEFAULT_VIBESTRATE_PORT;
   let started;
   try {
     started = await startServer({
@@ -49,15 +49,15 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   } catch (err) {
     console.error(
       `${symbol.fail()} ${
-        isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)
+        isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)
       }`,
     );
     return 1;
   }
 
   // One-line-per-component readout so the user can confirm the
-  // "amaco ui = everything you need in one shot" at a glance.
-  console.log(`${symbol.ok()} ${header("Amaco — dashboard + scheduler")}`);
+  // "vibestrate ui = everything you need in one shot" at a glance.
+  console.log(`${symbol.ok()} ${header("Vibestrate — dashboard + scheduler")}`);
   console.log(
     indent(`${symbol.bullet()} dashboard   ${color.bold(started.url)}`),
   );
@@ -66,20 +66,20 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       indent(
         `${symbol.bullet()} scheduler   ${color.green(
           `pid ${started.schedulerPid}`,
-        )} ${color.dim("(logs: .amaco/scheduler/scheduler.log)")}`,
+        )} ${color.dim("(logs: .vibestrate/scheduler/scheduler.log)")}`,
       ),
     );
   } else if (opts.scheduler === false) {
     console.log(
       indent(
-        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `amaco queue run` externally")}`,
+        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `vibestrate queue run` externally")}`,
       ),
     );
   } else {
     console.log(
       indent(
         `${symbol.bullet()} scheduler   ${color.yellow("not started")} ${color.dim(
-          "(lock held by another process — see .amaco/scheduler/scheduler.log)",
+          "(lock held by another process — see .vibestrate/scheduler/scheduler.log)",
         )}`,
       ),
     );
@@ -97,7 +97,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     console.log(
       indent(
         color.yellow(
-          "  ! UI bundle not found — `pnpm build:ui` from the amaco source repo, then restart.",
+          "  ! UI bundle not found — `pnpm build:ui` from the vibestrate source repo, then restart.",
         ),
       ),
     );

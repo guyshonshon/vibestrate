@@ -1,12 +1,12 @@
 # Design handoff — Crew page, roles display
 
 **For claude.ai/design.** Redesign **only how the roles are displayed** on
-Amaco's **Crew** page. Keep the page's existing structure and the rest of its
+Vibestrate's **Crew** page. Keep the page's existing structure and the rest of its
 sections; bring a fresh visual approach to the roles block.
 
 ## Context
 
-Amaco runs a coding task through a fixed **crew of roles**, in order:
+Vibestrate runs a coding task through a fixed **crew of roles**, in order:
 
 ```
 planner → architect → executor → (validate) → reviewer → fixer → verifier
@@ -39,7 +39,7 @@ them.
 - Don't touch the rest of the page: a tight hero above, and below the roles a
   "Configured providers" list + detail panel and a link to the Providers page.
 
-## Design language (Amaco "Mission Control")
+## Design language (Vibestrate "Mission Control")
 
 Dark, layered **ink** surfaces; cool-grey **fog** text scale; a single
 **violet** accent (`violet-soft ≈ #8b7cff`); **Bricolage Grotesque** for display

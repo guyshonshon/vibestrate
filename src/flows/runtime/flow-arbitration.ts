@@ -27,8 +27,8 @@ import {
   type FlowFindingsOutput,
 } from "../schemas/flow-output-contracts.js";
 
-export const FLOW_OUTPUT_MARKER = "AMACO_FLOW_OUTPUT:";
-export const FLOW_OUTPUT_END_MARKER = "AMACO_FLOW_OUTPUT_END";
+export const FLOW_OUTPUT_MARKER = "VIBESTRATE_FLOW_OUTPUT:";
+export const FLOW_OUTPUT_END_MARKER = "VIBESTRATE_FLOW_OUTPUT_END";
 
 export const flowArbitrationFindingRecordSchema = z
   .object({
@@ -312,7 +312,7 @@ export function parseFlowJsonContract<S extends z.ZodTypeAny>(input: {
     return {
       ok: false,
       message:
-        "No structured Flow JSON block found. Use AMACO_FLOW_OUTPUT markers or a JSON code fence.",
+        "No structured Flow JSON block found. Use VIBESTRATE_FLOW_OUTPUT markers or a JSON code fence.",
     };
   }
 
@@ -372,7 +372,7 @@ export function renderFlowOutputContractNotes(step: ResolvedFlowStep): string {
 
   return [
     "Structured Flow output:",
-    "Return the relevant JSON contract inside an explicit block so Amaco can parse it:",
+    "Return the relevant JSON contract inside an explicit block so Vibestrate can parse it:",
     FLOW_OUTPUT_MARKER,
     "{...}",
     FLOW_OUTPUT_END_MARKER,

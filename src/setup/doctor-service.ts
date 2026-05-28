@@ -2,7 +2,7 @@ import path from "node:path";
 import { execa } from "execa";
 import { pathExists, ensureDir, writeText } from "../utils/fs.js";
 import {
-  amacoRoot,
+  vibestrateRoot,
   projectRolesDir,
   projectRunsDir,
   projectSkillsDir,
@@ -77,7 +77,7 @@ export async function runDoctor(input: {
       id: "git-installed",
       severity: "fail",
       title: "git is not on PATH",
-      detail: "Amaco needs git to create isolated worktrees.",
+      detail: "Vibestrate needs git to create isolated worktrees.",
       fixHint: "Install git first.",
       fixable: false,
     });
@@ -96,10 +96,10 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Not inside a git repository",
       detail: `${input.cwd} is not inside a git repo.`,
-      fixHint: "Run `git init` in your project, then re-run `amaco init`.",
+      fixHint: "Run `git init` in your project, then re-run `vibestrate init`.",
       fixable: false,
     });
-    nextSteps.push("Run `git init` in your project root, then `amaco init`.");
+    nextSteps.push("Run `git init` in your project root, then `vibestrate init`.");
     return {
       projectRoot,
       inGitRepo: false,
@@ -120,12 +120,12 @@ export async function runDoctor(input: {
     findings.push({
       id: "config-present",
       severity: "fail",
-      title: "Amaco has not been initialized in this project",
-      detail: `Missing ${path.join(".amaco", "project.yml")}.`,
-      fixHint: "Run `amaco init`.",
+      title: "Vibestrate has not been initialized in this project",
+      detail: `Missing ${path.join(".vibestrate", "project.yml")}.`,
+      fixHint: "Run `vibestrate init`.",
       fixable: false,
     });
-    nextSteps.push("Run `amaco init`.");
+    nextSteps.push("Run `vibestrate init`.");
     return {
       projectRoot,
       inGitRepo: true,
@@ -136,7 +136,7 @@ export async function runDoctor(input: {
   findings.push({
     id: "config-present",
     severity: "ok",
-    title: ".amaco/project.yml is present",
+    title: ".vibestrate/project.yml is present",
     fixable: false,
   });
 
@@ -155,10 +155,10 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Project config is invalid",
       detail: err instanceof Error ? err.message : String(err),
-      fixHint: "Run `amaco config validate` to see the exact issues, or `amaco init --force` to regenerate (advanced).",
+      fixHint: "Run `vibestrate config validate` to see the exact issues, or `vibestrate init --force` to regenerate (advanced).",
       fixable: false,
     });
-    nextSteps.push("Fix `.amaco/project.yml` (see above), then `amaco doctor` again.");
+    nextSteps.push("Fix `.vibestrate/project.yml` (see above), then `vibestrate doctor` again.");
     return {
       projectRoot,
       inGitRepo: true,
@@ -189,11 +189,11 @@ export async function runDoctor(input: {
       detail: available
         ? undefined
         : installHintForCommand(cfg.command) ??
-          `Install ${cfg.command} or run \`amaco provider setup\` to switch.`,
+          `Install ${cfg.command} or run \`vibestrate provider setup\` to switch.`,
       fixHint: available
         ? undefined
         : installHintForCommand(cfg.command) ??
-          "Install the CLI, or run `amaco provider setup` to choose a different one.",
+          "Install the CLI, or run `vibestrate provider setup` to choose a different one.",
       fixable: false,
     });
   }
@@ -212,7 +212,7 @@ export async function runDoctor(input: {
       title: `Agents reference a missing provider`,
       detail: `These agents point to providers that are not configured: ${missingProviderRefs.join(", ")}.`,
       fixHint:
-        "Run `amaco provider setup` to add a provider, then `amaco provider set <id>` to assign it.",
+        "Run `vibestrate provider setup` to add a provider, then `vibestrate provider set <id>` to assign it.",
       fixable: false,
     });
   } else {
@@ -244,7 +244,7 @@ export async function runDoctor(input: {
       title: `Missing prompt files for: ${missingPrompts.join(", ")}`,
       detail: "Each agent needs a Markdown prompt file.",
       fixHint: restorable.length > 0
-        ? `Run \`amaco doctor --fix\` to restore the default prompt(s) for: ${restorable.join(", ")}.`
+        ? `Run \`vibestrate doctor --fix\` to restore the default prompt(s) for: ${restorable.join(", ")}.`
         : "Restore the missing prompt files manually.",
       fixable: restorable.length > 0,
     });
@@ -257,13 +257,13 @@ export async function runDoctor(input: {
     });
   }
 
-  // Check skills referenced exist (discovery covers .amaco/skills/<name>.md, .amaco/skills/<dir>/SKILL.md, .claude/skills/<dir>/SKILL.md).
+  // Check skills referenced exist (discovery covers .vibestrate/skills/<name>.md, .vibestrate/skills/<dir>/SKILL.md, .claude/skills/<dir>/SKILL.md).
   const discovered = await discoverSkills(projectRoot);
   const knownNames = new Set(discovered.map((s) => s.name));
   const missingSkills: { roleId: string; skill: string }[] = [];
   for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
     for (const skill of agent.skills) {
-      // Legacy: check flat .amaco/skills/<name>.md too.
+      // Legacy: check flat .vibestrate/skills/<name>.md too.
       const flat = path.join(projectSkillsDir(projectRoot), `${skill}.md`);
       const flatExists = await pathExists(flat);
       if (!flatExists && !knownNames.has(skill)) {
@@ -280,7 +280,7 @@ export async function runDoctor(input: {
         .map((m) => `${m.roleId} → ${m.skill}`)
         .join("; "),
       fixHint:
-        "Create the missing skill in `.amaco/skills/<name>/SKILL.md`, drop a flat `.amaco/skills/<name>.md`, or unassign with `amaco skills unassign <agent> <skill>`.",
+        "Create the missing skill in `.vibestrate/skills/<name>/SKILL.md`, drop a flat `.vibestrate/skills/<name>.md`, or unassign with `vibestrate skills unassign <agent> <skill>`.",
       fixable: false,
     });
   } else if (Object.values(loaded.config.roles).some((a) => a.skills.length > 0)) {
@@ -315,13 +315,13 @@ export async function runDoctor(input: {
         severity: "fail",
         title: `Agent "${roleId}" can write but is configured to run in ${profile.cwd}`,
         detail: "Write-enabled agents must run inside the worktree to keep changes isolated.",
-        fixHint: `Run \`amaco config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        fixHint: `Run \`vibestrate config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
         fixable: false,
       });
     }
   }
 
-  // .amaco subdirs
+  // .vibestrate subdirs
   for (const [name, p] of [
     ["runs", projectRunsDir(projectRoot)],
     ["skills", projectSkillsDir(projectRoot)],
@@ -331,8 +331,8 @@ export async function runDoctor(input: {
       findings.push({
         id: `dir-${name}`,
         severity: "warn",
-        title: `Missing .amaco/${name}/ directory`,
-        fixHint: "Run `amaco doctor --fix` to recreate it.",
+        title: `Missing .vibestrate/${name}/ directory`,
+        fixHint: "Run `vibestrate doctor --fix` to recreate it.",
         fixable: true,
       });
     }
@@ -347,8 +347,8 @@ export async function runDoctor(input: {
         severity: "warn",
         title: "No validation commands configured",
         detail:
-          "Reviews are stronger when Amaco can run your real checks (typecheck, lint, tests).",
-        fixHint: `Run \`amaco doctor --fix\` to add suggested commands: ${suggestions
+          "Reviews are stronger when Vibestrate can run your real checks (typecheck, lint, tests).",
+        fixHint: `Run \`vibestrate doctor --fix\` to add suggested commands: ${suggestions
           .map((s) => `\`${s}\``)
           .join(", ")}.`,
         fixable: true,
@@ -359,9 +359,9 @@ export async function runDoctor(input: {
         severity: "warn",
         title: "No validation commands configured",
         detail:
-          "Amaco can run without validation commands, but reviews are much stronger when it can run your real checks.",
+          "Vibestrate can run without validation commands, but reviews are much stronger when it can run your real checks.",
         fixHint:
-          'Add commands manually: `amaco config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"`.',
+          'Add commands manually: `vibestrate config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"`.',
         fixable: false,
       });
     }
@@ -447,7 +447,7 @@ export async function runDoctor(input: {
         const lines = head.map((r) => {
           const guess = suggestProfileName(r.profileName, liveProfileNames);
           const suffix = guess
-            ? `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            ? `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`
             : "";
           return `run ${r.runId} · suggestion ${r.id} → "${r.profileName}"${suffix}`;
         });
@@ -457,7 +457,7 @@ export async function runDoctor(input: {
           title: `${audit.staleSuggestionReferences.length} suggestion(s) reference missing validation profile(s)`,
           detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile in commands.validationProfiles, run `amaco validation profile migrate <from> <to> --dry-run`, or `amaco suggestions profile clear <runId> <suggestionId>`.",
+            "Recreate the named profile in commands.validationProfiles, run `vibestrate validation profile migrate <from> <to> --dry-run`, or `vibestrate suggestions profile clear <runId> <suggestionId>`.",
           fixable: false,
         });
       }
@@ -466,7 +466,7 @@ export async function runDoctor(input: {
         const lines = head.map((r) => {
           const guess = suggestProfileName(r.profileName, liveProfileNames);
           const suffix = guess
-            ? `  did you mean "${guess}"?  (amaco validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            ? `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`
             : "";
           return `run ${r.runId} · bundle ${r.id} → "${r.profileName}"${suffix}`;
         });
@@ -476,7 +476,7 @@ export async function runDoctor(input: {
           title: `${audit.staleBundleReferences.length} review pass(es) reference missing validation profile(s)`,
           detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile, run `amaco validation profile migrate <from> <to> --dry-run`, or `amaco bundles profile clear <runId> <bundleId>`.",
+            "Recreate the named profile, run `vibestrate validation profile migrate <from> <to> --dry-run`, or `vibestrate bundles profile clear <runId> <bundleId>`.",
           fixable: false,
         });
       }
@@ -492,7 +492,7 @@ export async function runDoctor(input: {
         id: `env-${envFile}`,
         severity: "warn",
         title: `${envFile} present in project`,
-        detail: "Amaco never reads its contents into prompts; just be sure agents do not edit it.",
+        detail: "Vibestrate never reads its contents into prompts; just be sure agents do not edit it.",
         fixable: false,
       });
     }
@@ -504,7 +504,7 @@ export async function runDoctor(input: {
       id: "auto-push",
       severity: "fail",
       title: "git.allowAutoPush is true",
-      fixHint: "Run `amaco config set git.allowAutoPush false`. Amaco never pushes for you.",
+      fixHint: "Run `vibestrate config set git.allowAutoPush false`. Vibestrate never pushes for you.",
       fixable: false,
     });
   } else {
@@ -520,7 +520,7 @@ export async function runDoctor(input: {
       id: "auto-merge",
       severity: "fail",
       title: "git.allowAutoMerge is true",
-      fixHint: "Run `amaco config set git.allowAutoMerge false`. Amaco never merges for you.",
+      fixHint: "Run `vibestrate config set git.allowAutoMerge false`. Vibestrate never merges for you.",
       fixable: false,
     });
   } else {
@@ -542,7 +542,7 @@ export async function runDoctor(input: {
       severity: "ok",
       title: `Approval required at: ${requiredStages.join(", ")}`,
       detail:
-        "Amaco will pause for human approval at these stage boundaries even if no agent emits HUMAN_APPROVAL: REQUIRED.",
+        "Vibestrate will pause for human approval at these stage boundaries even if no agent emits HUMAN_APPROVAL: REQUIRED.",
       fixable: false,
     });
   } else {
@@ -551,7 +551,7 @@ export async function runDoctor(input: {
       severity: "ok",
       title: "No stage-level approval policy configured",
       detail:
-        "Approvals only happen when an agent emits HUMAN_APPROVAL: REQUIRED. To force approval at specific stages: `amaco config set policies.requireApprovalAtStages \"[\\\"architecting\\\",\\\"verifying\\\"]\"`.",
+        "Approvals only happen when an agent emits HUMAN_APPROVAL: REQUIRED. To force approval at specific stages: `vibestrate config set policies.requireApprovalAtStages \"[\\\"architecting\\\",\\\"verifying\\\"]\"`.",
       fixable: false,
     });
   }
@@ -573,7 +573,7 @@ export async function runDoctor(input: {
         severity: "ok",
         title: "No external notification gateways enabled",
         detail:
-          "Local in-app and CLI notifications still work. Enable an external gateway with `amaco gateways enable <id>` when you want external delivery.",
+          "Local in-app and CLI notifications still work. Enable an external gateway with `vibestrate gateways enable <id>` when you want external delivery.",
         fixable: false,
       });
     } else {
@@ -594,9 +594,9 @@ export async function runDoctor(input: {
           severity: "warn",
           title: `Notification gateway env vars are not set: ${missing.join(", ")}`,
           detail:
-            "Gateway-secret values stored as env:NAME require the named env var to be set when Amaco runs. Notifications will be skipped until the env var is present.",
+            "Gateway-secret values stored as env:NAME require the named env var to be set when Vibestrate runs. Notifications will be skipped until the env var is present.",
           fixHint:
-            "Export the env var(s) in your shell, then re-run the gateway test (`amaco gateways test <id>`).",
+            "Export the env var(s) in your shell, then re-run the gateway test (`vibestrate gateways test <id>`).",
           fixable: false,
         });
       } else {
@@ -646,7 +646,7 @@ export async function runDoctor(input: {
           title: `${pendingRuns.length} run(s) awaiting your approval`,
           detail: pendingRuns.join(", "),
           fixHint:
-            "Resolve via `amaco approvals list <runId>` and `approve` / `reject`, or open the dashboard with `amaco ui`.",
+            "Resolve via `vibestrate approvals list <runId>` and `approve` / `reject`, or open the dashboard with `vibestrate ui`.",
           fixable: false,
         });
       }
@@ -660,7 +660,7 @@ export async function runDoctor(input: {
   const warnings = findings.filter((f) => f.severity === "warn");
 
   if (failures.length === 0 && warnings.length === 0) {
-    nextSteps.push('Run `amaco run "your task"` whenever you are ready.');
+    nextSteps.push('Run `vibestrate run "your task"` whenever you are ready.');
   } else {
     if (failures.length > 0) {
       nextSteps.push("Resolve the issues marked ✗ above.");
@@ -668,7 +668,7 @@ export async function runDoctor(input: {
     if (warnings.length > 0) {
       const fixable = warnings.some((w) => w.fixable);
       if (fixable) {
-        nextSteps.push("Run `amaco doctor --fix` to apply safe fixes.");
+        nextSteps.push("Run `vibestrate doctor --fix` to apply safe fixes.");
       }
     }
   }
@@ -694,7 +694,7 @@ export async function applyDoctorFixes(input: {
   const skipped: string[] = [];
 
   // Ensure subdirs.
-  await ensureDir(amacoRoot(projectRoot));
+  await ensureDir(vibestrateRoot(projectRoot));
   for (const [name, p] of [
     ["runs", projectRunsDir(projectRoot)],
     ["skills", projectSkillsDir(projectRoot)],
@@ -702,7 +702,7 @@ export async function applyDoctorFixes(input: {
   ] as const) {
     if (!(await pathExists(p))) {
       await ensureDir(p);
-      applied.push(`Created .amaco/${name}/`);
+      applied.push(`Created .vibestrate/${name}/`);
     }
   }
 
@@ -713,7 +713,7 @@ export async function applyDoctorFixes(input: {
       skillsReadme,
       "# Project Skills\n\nDrop reusable instruction bundles here as Markdown files.\n",
     );
-    applied.push("Created .amaco/skills/README.md");
+    applied.push("Created .vibestrate/skills/README.md");
   }
 
   // Restore missing default agent prompts only — never overwrite existing.
@@ -756,7 +756,7 @@ export async function applyDoctorFixes(input: {
         );
       } else if (!hasAnyProvider && !recommended) {
         skipped.push(
-          "No providers configured and no local CLI detected. Run `amaco provider setup`.",
+          "No providers configured and no local CLI detected. Run `vibestrate provider setup`.",
         );
       }
 

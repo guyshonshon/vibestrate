@@ -9,7 +9,7 @@ A flowd tour of `src/`. The list isn't exhaustive — small helpers and utilitie
 
 ## `src/cli/`
 
-The commander program. `index.ts` builds the command tree (exported as `buildAmacoProgram` so the docs generator can introspect it without parsing argv). Each command's implementation lives under `src/cli/commands/`, grouped by area.
+The commander program. `index.ts` builds the command tree (exported as `buildVibestrateProgram` so the docs generator can introspect it without parsing argv). Each command's implementation lives under `src/cli/commands/`, grouped by area.
 
 Read first: `src/cli/index.ts`.
 
@@ -43,7 +43,7 @@ Read first: `src/workflow/default-workflow.ts`.
 Agent role schema and built-in prompt templates.
 
 - `agent-schema.ts` — `agentConfigSchema` and the list of built-in roles.
-- `default-prompts/<role>.md` — the role-specific prompt templates copied into a fresh `.amaco/agents/` on `amaco init`.
+- `default-prompts/<role>.md` — the role-specific prompt templates copied into a fresh `.vibestrate/agents/` on `vibestrate init`.
 
 Read first: `src/agents/agent-schema.ts`.
 
@@ -65,7 +65,7 @@ Read first: `src/providers/provider-detection.ts`.
 Skill discovery and assignment.
 
 - `skill-schema.ts` — the `LoadedSkill` shape.
-- `skill-discovery.ts` — filesystem walker for `.amaco/skills/` + `.claude/skills/`.
+- `skill-discovery.ts` — filesystem walker for `.vibestrate/skills/` + `.claude/skills/`.
 - `skill-loader.ts` — reads a skill file into a runtime object.
 - `skill-assignment-service.ts` — attaches skills to agents.
 
@@ -87,9 +87,9 @@ Read first: `src/flows/catalog/builtin-flows.ts`.
 Project config.
 
 - `config-schema.ts` — the root `projectConfigSchema`.
-- `config-loader.ts` — reads and validates `.amaco/project.yml`.
+- `config-loader.ts` — reads and validates `.vibestrate/project.yml`.
 - `project-detector.ts` — finds the project root and infers language.
-- `init-template.ts` — the files written by `amaco init`.
+- `init-template.ts` — the files written by `vibestrate init`.
 
 Read first: `src/project/config-schema.ts`.
 
@@ -107,7 +107,7 @@ Read first: `src/server/index.ts`.
 Background scheduler for queued runs.
 
 - `state.json` — durable queue snapshot.
-- The scheduler can be managed in-process by `amaco ui` (`--no-scheduler` opts out).
+- The scheduler can be managed in-process by `vibestrate ui` (`--no-scheduler` opts out).
 
 ## `src/policies/` and `src/permissions/`
 
@@ -123,4 +123,4 @@ Local notifications + delivery gateways.
 - `docs/` — this docs system, both content and generated metadata.
 - `scripts/` — utility scripts including `generate-docs-metadata.ts`.
 - `tests/` — Vitest test suite.
-- `.amaco/` — your project's local Amaco state (created by `amaco init`).
+- `.vibestrate/` — your project's local Vibestrate state (created by `vibestrate init`).

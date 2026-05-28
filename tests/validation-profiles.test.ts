@@ -174,14 +174,14 @@ describe("listValidationProfiles", () => {
 
 describe("suggestion parser: VALIDATION_PROFILE marker", () => {
   it("captures the trimmed profile name when present", () => {
-    const text = `AMACO_SUGGESTION:
+    const text = `VIBESTRATE_SUGGESTION:
 TITLE: Touch a
 VALIDATION_PROFILE:   quick
 BODY:
 short
 PROPOSED_PATCH:
 ${PATCH_A.trimEnd()}
-AMACO_SUGGESTION_END
+VIBESTRATE_SUGGESTION_END
 `;
     const blocks = parseSuggestionBlocks(text);
     expect(blocks).toHaveLength(1);
@@ -189,10 +189,10 @@ AMACO_SUGGESTION_END
   });
 
   it("leaves validationProfile null when not present", () => {
-    const text = `AMACO_SUGGESTION:
+    const text = `VIBESTRATE_SUGGESTION:
 TITLE: T
 BODY: short
-AMACO_SUGGESTION_END
+VIBESTRATE_SUGGESTION_END
 `;
     const b = parseSuggestionBlocks(text);
     expect(b[0]!.validationProfile).toBeNull();
@@ -224,7 +224,7 @@ async function tempProjectWithWorktree(opts: {
   validate?: string[];
   profiles?: Record<string, { description?: string; commands: string[] }>;
 } = {}): Promise<{ project: string; worktree: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vp-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vp-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -246,9 +246,9 @@ async function tempProjectWithWorktree(opts: {
     })
     .join("\n");
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -266,12 +266,12 @@ async function tempProjectWithWorktree(opts: {
   );
 
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vp-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vp-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -285,7 +285,7 @@ async function tempProjectWithWorktree(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
