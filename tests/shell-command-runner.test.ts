@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseArgs,
-  runAmacoCommand,
+  runVibestrateCommand,
 } from "../src/shell/ink/runner/command-runner.js";
 
 describe("parseArgs", () => {
@@ -41,10 +41,10 @@ describe("parseArgs", () => {
   });
 });
 
-describe("runAmacoCommand", () => {
-  it("invokes the amaco binary and captures output", async () => {
+describe("runVibestrateCommand", () => {
+  it("invokes the vibestrate binary and captures output", async () => {
     const chunks: string[] = [];
-    const r = await runAmacoCommand({
+    const r = await runVibestrateCommand({
       projectRoot: process.cwd(),
       argv: ["--version"],
       onChunk: (c) => chunks.push(c),

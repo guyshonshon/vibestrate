@@ -29,7 +29,7 @@ export async function registerQueueRoutes(
     return { warnings: file.warnings };
   });
 
-  // Spawn `amaco queue run` in the background. Routes through
+  // Spawn `vibestrate queue run` in the background. Routes through
   // `ensureSchedulerRunning` so the dashboard, the auto-queue path,
   // and the eventual UI-managed scheduler all share one code path —
   // and the same visibility (log file + spawn-event stream).

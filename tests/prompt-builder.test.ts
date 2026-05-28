@@ -27,14 +27,14 @@ describe("prompt builder", () => {
       permission: readProfile,
       permissionName: "read_only",
       worktreePath: "/tmp/wt",
-      branchName: "amaco/x",
+      branchName: "vibestrate/x",
       projectName: "demo",
     });
     expect(out).toContain("Add policy reacceptance");
     expect(out).toContain("Project Rules");
     expect(out).toContain("be careful");
     expect(out).toContain("Plan the work.");
-    expect(out).toContain("Amaco Agent: planner");
+    expect(out).toContain("Vibestrate Agent: planner");
   });
 
   it("includes attached skills with names + content", () => {

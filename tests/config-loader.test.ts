@@ -7,8 +7,8 @@ import { loadConfig } from "../src/project/config-loader.js";
 import { ConfigError } from "../src/utils/errors.js";
 
 async function tempProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-config-"));
-  await fs.mkdir(path.join(dir, ".amaco"), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-config-"));
+  await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
   return dir;
 }
 
@@ -18,20 +18,20 @@ const validConfig = {
     claude: { type: "cli", command: "claude", args: ["-p"], input: "stdin" },
   },
   roles: {
-    planner: { provider: "claude", prompt: ".amaco/roles/planner.md", permissions: "read_only" },
+    planner: { provider: "claude", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
     architect: {
       provider: "claude",
-      prompt: ".amaco/roles/architect.md",
+      prompt: ".vibestrate/roles/architect.md",
       permissions: "read_only",
     },
     executor: {
       provider: "claude",
-      prompt: ".amaco/roles/executor.md",
+      prompt: ".vibestrate/roles/executor.md",
       permissions: "code_write",
     },
-    fixer: { provider: "claude", prompt: ".amaco/roles/fixer.md", permissions: "code_write" },
-    reviewer: { provider: "claude", prompt: ".amaco/roles/reviewer.md", permissions: "read_only" },
-    verifier: { provider: "claude", prompt: ".amaco/roles/verifier.md", permissions: "read_only" },
+    fixer: { provider: "claude", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
+    reviewer: { provider: "claude", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
+    verifier: { provider: "claude", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
   },
 };
 
@@ -43,14 +43,14 @@ describe("config loader", () => {
 
   it("loads a valid config", async () => {
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "project.yml"),
+      path.join(projectRoot, ".vibestrate", "project.yml"),
       YAML.stringify(validConfig),
       "utf8",
     );
     const loaded = await loadConfig(projectRoot);
     expect(loaded.config.project.name).toBe("demo");
     expect(loaded.config.workflow.maxReviewLoops).toBe(2);
-    expect(loaded.config.git.branchPrefix).toBe("amaco/");
+    expect(loaded.config.git.branchPrefix).toBe("vibestrate/");
   });
 
   it("fails when config is missing", async () => {
@@ -59,7 +59,7 @@ describe("config loader", () => {
 
   it("fails when config is invalid", async () => {
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "project.yml"),
+      path.join(projectRoot, ".vibestrate", "project.yml"),
       YAML.stringify({ project: {} }),
       "utf8",
     );
@@ -72,7 +72,7 @@ describe("config loader", () => {
       providers: { claude: { type: "api", command: "claude" } },
     };
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "project.yml"),
+      path.join(projectRoot, ".vibestrate", "project.yml"),
       YAML.stringify(broken),
       "utf8",
     );
@@ -81,7 +81,7 @@ describe("config loader", () => {
 
   it("uses default rules when rules.md is missing", async () => {
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "project.yml"),
+      path.join(projectRoot, ".vibestrate", "project.yml"),
       YAML.stringify(validConfig),
       "utf8",
     );

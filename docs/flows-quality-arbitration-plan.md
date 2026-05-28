@@ -5,7 +5,7 @@ Primary Guide: `quality-arbitration`
 
 ## Product Definition
 
-Guides are selectable run recipes for Amaco. They package a repeatable way to create a feature or review a change across local CLI agents while keeping the run observable and reproducible.
+Guides are selectable run recipes for Vibestrate. They package a repeatable way to create a feature or review a change across local CLI agents while keeping the run observable and reproducible.
 
 Guides should answer:
 
@@ -31,7 +31,7 @@ Skills remain prompt attachments. Guides may attach Skills, but they own workflo
 | `implementation-review` | challenger side | Review architecture, code, tests, and behavior. | Structured findings and review decision. |
 | `challenge-response` | planner side | Fix, accept, or rebut findings with evidence. | Finding responses and any new diff. |
 | `second-review` | challenger side or third slot | Re-review diff and responses. | Resolved/unresolved finding set. |
-| `decision-summary` | Amaco summarizer slot | Summarize evidence, validation, disagreement, risk, and next action. | Decision artifact and final run recommendation. |
+| `decision-summary` | Vibestrate summarizer slot | Summarize evidence, validation, disagreement, risk, and next action. | Decision artifact and final run recommendation. |
 
 The initial Guide should be sequential. Optional steps may be disabled at run start, but the first implementation should not require arbitrary DAG execution.
 
@@ -40,7 +40,7 @@ The initial Guide should be sequential. Optional steps may be disabled at run st
 Use structured data for execution and Markdown for human guidance.
 
 ```text
-.amaco/guides/quality-arbitration/
+.vibestrate/guides/quality-arbitration/
   guide.yml
   GUIDE.md
   prompts/
@@ -140,7 +140,7 @@ type GuideRunRequest = {
 Persist a resolved immutable snapshot under the run directory before execution:
 
 ```text
-.amaco/runs/<run-id>/guide.json
+.vibestrate/runs/<run-id>/guide.json
 ```
 
 The snapshot should include defaults after resolution, provider ids, step order, skipped steps, prompt/template versions, context policy, and Guide source.
@@ -164,10 +164,10 @@ The UI should not claim a CLI session is persistent unless the runtime ledger sa
 Add scriptable commands before the richer wizard:
 
 ```bash
-amaco guides list
-amaco guides show quality-arbitration
-amaco run "add audit logging" --guide quality-arbitration
-amaco run "add audit logging" --guide quality-arbitration \
+vibestrate guides list
+vibestrate guides show quality-arbitration
+vibestrate run "add audit logging" --guide quality-arbitration
+vibestrate run "add audit logging" --guide quality-arbitration \
   --guide-slot builder=claude \
   --guide-slot challenger=codex \
   --guide-slot arbiter=claude
@@ -176,7 +176,7 @@ amaco run "add audit logging" --guide quality-arbitration \
 Then add an interactive terminal path:
 
 ```bash
-amaco run --guide quality-arbitration --interactive
+vibestrate run --guide quality-arbitration --interactive
 ```
 
 The wizard should use the same resolver as the dashboard, print the resolved steps before start, and produce a command summary for replayable non-interactive use.
@@ -197,7 +197,7 @@ The Ink shell needs parity, not a dashboard-only shortcut:
 Add a `src/guides/` domain:
 
 - schema and versioning,
-- discovery from built-ins plus `.amaco/guides`,
+- discovery from built-ins plus `.vibestrate/guides`,
 - resolver that merges Guide defaults, project provider config, run overrides, task metadata, Skills, and policies,
 - doctor checks for malformed Guides, missing prompt fragments, unknown slots, missing providers, invalid output contracts.
 
@@ -281,7 +281,7 @@ type ProviderTurnInput = {
 Run-local ledger:
 
 ```text
-.amaco/runs/<run-id>/participants.json
+.vibestrate/runs/<run-id>/participants.json
 ```
 
 The ledger should record participant slot, provider id, provider-reported model/session refs, session open/reuse timestamps, fallback reason, and context packet refs.
@@ -329,7 +329,7 @@ Minimum records:
 - builder response: accept, fix, rebut, defer, needs-human,
 - diff/test evidence after response,
 - second-review resolution: resolved, still-open, invalid-finding, needs-human,
-- final Amaco summary and final human disposition when the user supplies one,
+- final Vibestrate summary and final human disposition when the user supplies one,
 - provider id/model/session refs/tokens/cost for each step.
 
 Candidate categories:
@@ -364,8 +364,8 @@ Exit:
 ### Phase 1: discovery and start-run UX
 
 - [x] Add built-in and project Guide discovery.
-- [x] Add `amaco guides list/show`.
-- [x] Add `amaco run --guide ...` with slot provider overrides.
+- [x] Add `vibestrate guides list/show`.
+- [x] Add `vibestrate run --guide ...` with slot provider overrides.
 - [x] Add dashboard Guide picker and resolved-step preview.
 - [x] Add shell command-palette entry and inspectable Guide catalog.
 
@@ -373,7 +373,7 @@ Exit:
 
 - [x] All surfaces produce the same resolved snapshot for the same inputs.
 
-Phase 1 resolves and previews Guide requests. `amaco run --guide ...`, Mission
+Phase 1 resolves and previews Guide requests. `vibestrate run --guide ...`, Mission
 Control, and the shell runner all stop before guided execution until the
 sequential Guide runner lands in Phase 2.
 
@@ -415,12 +415,12 @@ Exit:
 
 - [x] A user can compare judgment quality by evidence, not by scrolling prose.
 
-Phase 4 accepts explicit `AMACO_GUIDE_OUTPUT` JSON blocks for findings,
+Phase 4 accepts explicit `VIBESTRATE_GUIDE_OUTPUT` JSON blocks for findings,
 builder responses, second-review resolutions, and decision summaries. Parsed
 records land in `arbitration.json` plus canonical Guide artifacts; prose-only
 providers keep running with parse gaps recorded. Accepted or fixed findings
 become review suggestions and a draft review pass, and
-`amaco guides export-arbitration <runId>` exports the local evidence record.
+`vibestrate guides export-arbitration <runId>` exports the local evidence record.
 
 ### Phase 5: migrate and generalize
 
@@ -460,13 +460,13 @@ Exit:
 
 - [x] Guide definitions, schemas, runtime records, and tests have clear homes without a repo-wide rename churn.
 
-Phase 6 keeps the wider Amaco domain layout intact. The flatness introduced by
+Phase 6 keeps the wider Vibestrate domain layout intact. The flatness introduced by
 the Guide work is now organized under `src/guides/{catalog,schemas,runtime}`
 and `tests/guides/`; `src/guides/README.md` pins those ownership boundaries.
 
 ### Phase 7: interactive CLI Guide setup
 
-- [x] Add `amaco run --guide <id> --interactive` as a Guide-only terminal wizard.
+- [x] Add `vibestrate run --guide <id> --interactive` as a Guide-only terminal wizard.
 - [x] Collect or revise task, Guide brief, context policy, participant providers, and optional step inclusion before resolution.
 - [x] Feed the wizard result through the same Guide resolver and resolved-step preview used by scriptable CLI runs.
 - [x] Print an equivalent non-interactive command so terminal selections can be replayed and shared.
@@ -478,7 +478,7 @@ Exit:
 Phase 7 closes the plain CLI initiation gap first. The Ink shell already shows
 the Guide catalog and running Guide state, but it still needs its own setup
 screen before shell initiation has the same step and slot picker as Mission
-Control and `amaco run --interactive`.
+Control and `vibestrate run --interactive`.
 
 ### Phase 8: context packets and prompt budgeting
 

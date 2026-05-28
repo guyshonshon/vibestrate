@@ -16,12 +16,12 @@ function flowTestConfig() {
       codex: { type: "cli", command: "__must_not_run__" },
     },
     roles: {
-      planner: { provider: "claude", prompt: ".amaco/roles/planner.md", permissions: "readOnly" },
-      architect: { provider: "claude", prompt: ".amaco/roles/architect.md", permissions: "readOnly" },
-      executor: { provider: "claude", prompt: ".amaco/roles/executor.md", permissions: "codeWrite" },
-      fixer: { provider: "claude", prompt: ".amaco/roles/fixer.md", permissions: "codeWrite" },
-      reviewer: { provider: "codex", prompt: ".amaco/roles/reviewer.md", permissions: "readOnly" },
-      verifier: { provider: "codex", prompt: ".amaco/roles/verifier.md", permissions: "readOnly" },
+      planner: { provider: "claude", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
+      architect: { provider: "claude", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
+      executor: { provider: "claude", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
+      fixer: { provider: "claude", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
+      reviewer: { provider: "codex", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
+      verifier: { provider: "codex", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
     },
   });
 }

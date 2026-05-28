@@ -37,11 +37,11 @@ export function ArtifactList({
   }, [runId]);
 
   if (error)
-    return <div className="text-[12px] text-amaco-fail">{error}</div>;
+    return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
 
   if (items.length === 0) {
     return (
-      <div className="text-[12px] text-amaco-fg-muted">
+      <div className="text-[12px] text-vibestrate-fg-muted">
         No artifacts yet.
       </div>
     );
@@ -53,14 +53,14 @@ export function ArtifactList({
         <li key={entry.path}>
           <button
             onClick={() => onSelect(entry.path)}
-            className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-amaco-panel-2 ${
-              selectedPath === entry.path ? "bg-amaco-panel-2" : ""
+            className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-vibestrate-panel-2 ${
+              selectedPath === entry.path ? "bg-vibestrate-panel-2" : ""
             }`}
           >
-            <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+            <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
               {entry.path}
             </span>
-            <span className="amaco-mono text-[11px] text-amaco-fg-muted">
+            <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
               {entry.size}b
             </span>
           </button>

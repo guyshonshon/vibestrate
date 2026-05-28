@@ -38,7 +38,7 @@ function mapError(err: unknown): never {
 
 /**
  * Codebase annotations — human-authored, file-pinned notes the orchestrator
- * shares with agents. All reads/writes are bounded to `.amaco/annotations.json`
+ * shares with agents. All reads/writes are bounded to `.vibestrate/annotations.json`
  * in the project root; the service rejects traversal + secret-like paths and
  * scans note bodies for secret-shaped tokens. No source files are touched.
  */

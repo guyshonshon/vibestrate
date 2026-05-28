@@ -39,7 +39,7 @@ export function resolveProvider(
   const provider = providers[providerId];
   if (!provider) {
     throw new ProviderError(
-      `Provider "${providerId}" is not configured in .amaco/project.yml. Run \`amaco provider setup\` to add one, or \`amaco provider list\` to see what is configured.`,
+      `Provider "${providerId}" is not configured in .vibestrate/project.yml. Run \`vibestrate provider setup\` to add one, or \`vibestrate provider list\` to see what is configured.`,
     );
   }
   return provider;

@@ -87,13 +87,13 @@ function validateRenameInputs(
   if (!entry) {
     throw new ValidationProfileRenameError(
       404,
-      `Profile "${from}" does not exist in commands.validationProfiles. To migrate references whose target was never declared, use \`amaco validation profile migrate ${from} <to> --dry-run\`.`,
+      `Profile "${from}" does not exist in commands.validationProfiles. To migrate references whose target was never declared, use \`vibestrate validation profile migrate ${from} <to> --dry-run\`.`,
     );
   }
   if (profiles[to]) {
     throw new ValidationProfileRenameError(
       409,
-      `Profile "${to}" already exists. Rename refused to avoid overwriting it. Use \`amaco validation profile migrate ${from} ${to}\` if you only want to migrate references onto the existing profile.`,
+      `Profile "${to}" already exists. Rename refused to avoid overwriting it. Use \`vibestrate validation profile migrate ${from} ${to}\` if you only want to migrate references onto the existing profile.`,
     );
   }
   return {

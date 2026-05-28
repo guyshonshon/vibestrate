@@ -26,32 +26,32 @@ export function cliFor(a: UiAction): string | null {
       // No CLI verb opens a task; closest is `tasks show` (planned).
       return null;
     case "queue-task":
-      return `amaco queue add ${a.taskId}`;
+      return `vibestrate queue add ${a.taskId}`;
     case "cancel-task":
-      return `amaco tasks cancel ${a.taskId}`;
+      return `vibestrate tasks cancel ${a.taskId}`;
     case "run-task":
-      return `amaco tasks run ${a.taskId}`;
+      return `vibestrate tasks run ${a.taskId}`;
     case "open-run":
-      return `amaco status ${a.runId}`;
+      return `vibestrate status ${a.runId}`;
     case "status-run":
-      return `amaco status ${a.runId}`;
+      return `vibestrate status ${a.runId}`;
     case "replay-run":
-      return `amaco replay ${a.runId}`;
+      return `vibestrate replay ${a.runId}`;
     case "pause-run":
-      return `amaco pause ${a.runId}`;
+      return `vibestrate pause ${a.runId}`;
     case "resume-run":
-      return `amaco resume ${a.runId}`;
+      return `vibestrate resume ${a.runId}`;
     case "abort-run":
-      return `amaco abort ${a.runId}`;
+      return `vibestrate abort ${a.runId}`;
     case "approve-approval":
       // Server-only at the moment; CLI parity is on the backlog.
       return null;
     case "reject-approval":
       return null;
     case "start-scheduler":
-      return `amaco queue run`;
+      return `vibestrate queue run`;
     case "spawn-run": {
-      const parts = ["amaco", "run"];
+      const parts = ["vibestrate", "run"];
       if (a.provider) parts.push("--provider", a.provider);
       if (a.effort) parts.push("--effort", a.effort);
       if (a.readOnly) parts.push("--read-only");

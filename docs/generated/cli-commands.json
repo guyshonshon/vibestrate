@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "binary": "amaco",
-  "description": "Amaco — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
+  "binary": "vibestrate",
+  "description": "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
   "version": "0.1.1",
   "commands": [
     {
       "name": "init",
       "path": [
-        "amaco",
+        "vibestrate",
         "init"
       ],
-      "description": "Initialize Amaco in the current project (.amaco/ scaffold).",
+      "description": "Initialize Vibestrate in the current project (.vibestrate/ scaffold).",
       "usage": "[options]",
       "arguments": [],
       "options": [
@@ -41,7 +41,7 @@
     {
       "name": "setup",
       "path": [
-        "amaco",
+        "vibestrate",
         "setup"
       ],
       "description": "Flowd wizard for provider, validation commands, and run defaults.",
@@ -53,7 +53,7 @@
     {
       "name": "provider",
       "path": [
-        "amaco",
+        "vibestrate",
         "provider"
       ],
       "description": "Inspect, configure, and test local coding-CLI providers.",
@@ -64,7 +64,7 @@
         {
           "name": "detect",
           "path": [
-            "amaco",
+            "vibestrate",
             "provider",
             "detect"
           ],
@@ -85,7 +85,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "provider",
             "list"
           ],
@@ -106,7 +106,7 @@
         {
           "name": "test",
           "path": [
-            "amaco",
+            "vibestrate",
             "provider",
             "test"
           ],
@@ -134,7 +134,7 @@
         {
           "name": "set",
           "path": [
-            "amaco",
+            "vibestrate",
             "provider",
             "set"
           ],
@@ -162,7 +162,7 @@
         {
           "name": "setup",
           "path": [
-            "amaco",
+            "vibestrate",
             "provider",
             "setup"
           ],
@@ -177,10 +177,10 @@
     {
       "name": "config",
       "path": [
-        "amaco",
+        "vibestrate",
         "config"
       ],
-      "description": "Show and edit .amaco/project.yml without hand-editing YAML.",
+      "description": "Show and edit .vibestrate/project.yml without hand-editing YAML.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -188,7 +188,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "config",
             "show"
           ],
@@ -209,7 +209,7 @@
         {
           "name": "get",
           "path": [
-            "amaco",
+            "vibestrate",
             "config",
             "get"
           ],
@@ -237,11 +237,11 @@
         {
           "name": "set",
           "path": [
-            "amaco",
+            "vibestrate",
             "config",
             "set"
           ],
-          "description": "Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'amaco config set commands.validate \"[\\\"pnpm test\\\"]\"').",
+          "description": "Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. 'vibestrate config set commands.validate \"[\\\"pnpm test\\\"]\"').",
           "usage": "[options] <path> <value>",
           "arguments": [
             {
@@ -263,11 +263,11 @@
         {
           "name": "validate",
           "path": [
-            "amaco",
+            "vibestrate",
             "config",
             "validate"
           ],
-          "description": "Validate the project.yml file against the Amaco schema.",
+          "description": "Validate the project.yml file against the Vibestrate schema.",
           "usage": "[options]",
           "arguments": [],
           "options": [
@@ -286,10 +286,10 @@
     {
       "name": "skills",
       "path": [
-        "amaco",
+        "vibestrate",
         "skills"
       ],
-      "description": "List, inspect, and assign skills (.amaco/skills and .claude/skills).",
+      "description": "List, inspect, and assign skills (.vibestrate/skills and .claude/skills).",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -297,7 +297,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "skills",
             "list"
           ],
@@ -318,7 +318,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "skills",
             "show"
           ],
@@ -338,11 +338,11 @@
         {
           "name": "assign",
           "path": [
-            "amaco",
+            "vibestrate",
             "skills",
             "assign"
           ],
-          "description": "Attach a skill to an agent (writes to .amaco/project.yml).",
+          "description": "Attach a skill to an agent (writes to .vibestrate/project.yml).",
           "usage": "[options] <agent> <skill>",
           "arguments": [
             {
@@ -364,7 +364,7 @@
         {
           "name": "unassign",
           "path": [
-            "amaco",
+            "vibestrate",
             "skills",
             "unassign"
           ],
@@ -392,10 +392,10 @@
     {
       "name": "flows",
       "path": [
-        "amaco",
+        "vibestrate",
         "flows"
       ],
-      "description": "List and inspect Flow run recipes from built-ins and .amaco/flows.",
+      "description": "List and inspect Flow run recipes from built-ins and .vibestrate/flows.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -403,7 +403,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "flows",
             "list"
           ],
@@ -424,7 +424,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "flows",
             "show"
           ],
@@ -452,7 +452,7 @@
         {
           "name": "suggest",
           "path": [
-            "amaco",
+            "vibestrate",
             "flows",
             "suggest"
           ],
@@ -495,7 +495,7 @@
         {
           "name": "export-arbitration",
           "path": [
-            "amaco",
+            "vibestrate",
             "flows",
             "export-arbitration"
           ],
@@ -525,7 +525,7 @@
     {
       "name": "approvals",
       "path": [
-        "amaco",
+        "vibestrate",
         "approvals"
       ],
       "description": "Inspect and resolve human-approval requests for a paused run.",
@@ -536,7 +536,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "approvals",
             "list"
           ],
@@ -564,7 +564,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "approvals",
             "show"
           ],
@@ -598,7 +598,7 @@
         {
           "name": "approve",
           "path": [
-            "amaco",
+            "vibestrate",
             "approvals",
             "approve"
           ],
@@ -632,7 +632,7 @@
         {
           "name": "reject",
           "path": [
-            "amaco",
+            "vibestrate",
             "approvals",
             "reject"
           ],
@@ -668,10 +668,10 @@
     {
       "name": "roadmap",
       "path": [
-        "amaco",
+        "vibestrate",
         "roadmap"
       ],
-      "description": "Manage local roadmap items (.amaco/roadmap/roadmap.json).",
+      "description": "Manage local roadmap items (.vibestrate/roadmap/roadmap.json).",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -679,11 +679,11 @@
         {
           "name": "init",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "init"
           ],
-          "description": "Create the .amaco/roadmap/ scaffold if missing.",
+          "description": "Create the .vibestrate/roadmap/ scaffold if missing.",
           "usage": "[options]",
           "arguments": [],
           "options": [],
@@ -692,7 +692,7 @@
         {
           "name": "add",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "add"
           ],
@@ -735,7 +735,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "list"
           ],
@@ -756,7 +756,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "show"
           ],
@@ -784,7 +784,7 @@
         {
           "name": "update",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "update"
           ],
@@ -833,7 +833,7 @@
         {
           "name": "archive",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "archive"
           ],
@@ -853,11 +853,11 @@
         {
           "name": "proposals",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "proposals"
           ],
-          "description": "List roadmap proposals stored in .amaco/roadmap/proposals/.",
+          "description": "List roadmap proposals stored in .vibestrate/roadmap/proposals/.",
           "usage": "[options]",
           "arguments": [],
           "options": [
@@ -874,7 +874,7 @@
         {
           "name": "proposal",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "proposal"
           ],
@@ -886,7 +886,7 @@
             {
               "name": "show",
               "path": [
-                "amaco",
+                "vibestrate",
                 "roadmap",
                 "proposal",
                 "show"
@@ -907,7 +907,7 @@
             {
               "name": "parse",
               "path": [
-                "amaco",
+                "vibestrate",
                 "roadmap",
                 "proposal",
                 "parse"
@@ -938,7 +938,7 @@
         {
           "name": "accept",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "accept"
           ],
@@ -980,7 +980,7 @@
         {
           "name": "plan",
           "path": [
-            "amaco",
+            "vibestrate",
             "roadmap",
             "plan"
           ],
@@ -1017,7 +1017,7 @@
     {
       "name": "tasks",
       "path": [
-        "amaco",
+        "vibestrate",
         "tasks"
       ],
       "description": "Manage local tasks: backlog → queued → running → done.",
@@ -1028,7 +1028,7 @@
         {
           "name": "add",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "add"
           ],
@@ -1120,7 +1120,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "list"
           ],
@@ -1148,7 +1148,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "show"
           ],
@@ -1176,7 +1176,7 @@
         {
           "name": "comment",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "comment"
           ],
@@ -1202,7 +1202,7 @@
         {
           "name": "ready",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "ready"
           ],
@@ -1222,7 +1222,7 @@
         {
           "name": "cancel",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "cancel"
           ],
@@ -1242,7 +1242,7 @@
         {
           "name": "queue",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "queue"
           ],
@@ -1262,11 +1262,11 @@
         {
           "name": "run",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "run"
           ],
-          "description": "Run this task now (foreground; same as amaco run --task <id>).",
+          "description": "Run this task now (foreground; same as vibestrate run --task <id>).",
           "usage": "[options] <id>",
           "arguments": [
             {
@@ -1282,11 +1282,11 @@
         {
           "name": "report",
           "path": [
-            "amaco",
+            "vibestrate",
             "tasks",
             "report"
           ],
-          "description": "Generate a Markdown task report at .amaco/roadmap/tasks/<id>-report.md.",
+          "description": "Generate a Markdown task report at .vibestrate/roadmap/tasks/<id>-report.md.",
           "usage": "[options] <id>",
           "arguments": [
             {
@@ -1304,7 +1304,7 @@
     {
       "name": "queue",
       "path": [
-        "amaco",
+        "vibestrate",
         "queue"
       ],
       "description": "Manage the local task scheduler queue.",
@@ -1315,7 +1315,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "list"
           ],
@@ -1336,7 +1336,7 @@
         {
           "name": "add",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "add"
           ],
@@ -1364,7 +1364,7 @@
         {
           "name": "remove",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "remove"
           ],
@@ -1384,7 +1384,7 @@
         {
           "name": "run",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "run"
           ],
@@ -1405,7 +1405,7 @@
         {
           "name": "pause",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "pause"
           ],
@@ -1418,7 +1418,7 @@
         {
           "name": "resume",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "resume"
           ],
@@ -1431,7 +1431,7 @@
         {
           "name": "status",
           "path": [
-            "amaco",
+            "vibestrate",
             "queue",
             "status"
           ],
@@ -1454,7 +1454,7 @@
     {
       "name": "logs",
       "path": [
-        "amaco",
+        "vibestrate",
         "logs"
       ],
       "description": "Show the captured provider stdout/stderr stream for a run (the model's live CLI output).",
@@ -1462,7 +1462,7 @@
       "arguments": [
         {
           "name": "name() {\n    return this._name;\n  }",
-          "description": "Run id (see `amaco status`)",
+          "description": "Run id (see `vibestrate status`)",
           "required": true,
           "variadic": false
         }
@@ -1488,10 +1488,10 @@
     {
       "name": "notifications",
       "path": [
-        "amaco",
+        "vibestrate",
         "notifications"
       ],
-      "description": "Inspect and manage local Amaco notifications.",
+      "description": "Inspect and manage local Vibestrate notifications.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -1499,7 +1499,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "list"
           ],
@@ -1534,7 +1534,7 @@
         {
           "name": "read",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "read"
           ],
@@ -1554,7 +1554,7 @@
         {
           "name": "resolve",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "resolve"
           ],
@@ -1574,7 +1574,7 @@
         {
           "name": "read-all",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "read-all"
           ],
@@ -1587,7 +1587,7 @@
         {
           "name": "settings",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "settings"
           ],
@@ -1600,7 +1600,7 @@
         {
           "name": "test",
           "path": [
-            "amaco",
+            "vibestrate",
             "notifications",
             "test"
           ],
@@ -1622,7 +1622,7 @@
     {
       "name": "gateways",
       "path": [
-        "amaco",
+        "vibestrate",
         "gateways"
       ],
       "description": "Inspect and toggle notification delivery gateways.",
@@ -1633,7 +1633,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "gateways",
             "list"
           ],
@@ -1654,7 +1654,7 @@
         {
           "name": "test",
           "path": [
-            "amaco",
+            "vibestrate",
             "gateways",
             "test"
           ],
@@ -1674,7 +1674,7 @@
         {
           "name": "enable",
           "path": [
-            "amaco",
+            "vibestrate",
             "gateways",
             "enable"
           ],
@@ -1694,7 +1694,7 @@
         {
           "name": "disable",
           "path": [
-            "amaco",
+            "vibestrate",
             "gateways",
             "disable"
           ],
@@ -1716,7 +1716,7 @@
     {
       "name": "editor",
       "path": [
-        "amaco",
+        "vibestrate",
         "editor"
       ],
       "description": "Configure and test the local editor handoff used by the dashboard.",
@@ -1727,7 +1727,7 @@
         {
           "name": "detect",
           "path": [
-            "amaco",
+            "vibestrate",
             "editor",
             "detect"
           ],
@@ -1740,7 +1740,7 @@
         {
           "name": "set",
           "path": [
-            "amaco",
+            "vibestrate",
             "editor",
             "set"
           ],
@@ -1768,7 +1768,7 @@
         {
           "name": "test",
           "path": [
-            "amaco",
+            "vibestrate",
             "editor",
             "test"
           ],
@@ -1798,7 +1798,7 @@
     {
       "name": "suggestions",
       "path": [
-        "amaco",
+        "vibestrate",
         "suggestions"
       ],
       "description": "Inspect and act on review suggestions captured for a run.",
@@ -1809,7 +1809,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "list"
           ],
@@ -1837,7 +1837,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "show"
           ],
@@ -1863,7 +1863,7 @@
         {
           "name": "approve",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "approve"
           ],
@@ -1897,7 +1897,7 @@
         {
           "name": "reject",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "reject"
           ],
@@ -1931,7 +1931,7 @@
         {
           "name": "apply",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "apply"
           ],
@@ -1979,7 +1979,7 @@
         {
           "name": "validate",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "validate"
           ],
@@ -2013,7 +2013,7 @@
         {
           "name": "revert",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "revert"
           ],
@@ -2039,7 +2039,7 @@
         {
           "name": "profile",
           "path": [
-            "amaco",
+            "vibestrate",
             "suggestions",
             "profile"
           ],
@@ -2051,7 +2051,7 @@
             {
               "name": "show",
               "path": [
-                "amaco",
+                "vibestrate",
                 "suggestions",
                 "profile",
                 "show"
@@ -2078,7 +2078,7 @@
             {
               "name": "set",
               "path": [
-                "amaco",
+                "vibestrate",
                 "suggestions",
                 "profile",
                 "set"
@@ -2111,7 +2111,7 @@
             {
               "name": "clear",
               "path": [
-                "amaco",
+                "vibestrate",
                 "suggestions",
                 "profile",
                 "clear"
@@ -2142,7 +2142,7 @@
     {
       "name": "bundles",
       "path": [
-        "amaco",
+        "vibestrate",
         "bundles"
       ],
       "description": "Group reviewed suggestions into a review pass that applies, validates, and reverts as a unit.",
@@ -2153,7 +2153,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "list"
           ],
@@ -2181,7 +2181,7 @@
         {
           "name": "create",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "create"
           ],
@@ -2223,7 +2223,7 @@
         {
           "name": "add",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "add"
           ],
@@ -2255,7 +2255,7 @@
         {
           "name": "remove",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "remove"
           ],
@@ -2287,7 +2287,7 @@
         {
           "name": "approve",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "approve"
           ],
@@ -2321,7 +2321,7 @@
         {
           "name": "reject",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "reject"
           ],
@@ -2355,7 +2355,7 @@
         {
           "name": "apply",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "apply"
           ],
@@ -2403,7 +2403,7 @@
         {
           "name": "smart-apply",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "smart-apply"
           ],
@@ -2458,7 +2458,7 @@
         {
           "name": "validate",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "validate"
           ],
@@ -2492,7 +2492,7 @@
         {
           "name": "revert",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "revert"
           ],
@@ -2518,7 +2518,7 @@
         {
           "name": "preflight",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "preflight"
           ],
@@ -2544,7 +2544,7 @@
         {
           "name": "profile",
           "path": [
-            "amaco",
+            "vibestrate",
             "bundles",
             "profile"
           ],
@@ -2556,7 +2556,7 @@
             {
               "name": "show",
               "path": [
-                "amaco",
+                "vibestrate",
                 "bundles",
                 "profile",
                 "show"
@@ -2583,7 +2583,7 @@
             {
               "name": "set",
               "path": [
-                "amaco",
+                "vibestrate",
                 "bundles",
                 "profile",
                 "set"
@@ -2616,7 +2616,7 @@
             {
               "name": "clear",
               "path": [
-                "amaco",
+                "vibestrate",
                 "bundles",
                 "profile",
                 "clear"
@@ -2647,7 +2647,7 @@
     {
       "name": "validation",
       "path": [
-        "amaco",
+        "vibestrate",
         "validation"
       ],
       "description": "Inspect validation profiles configured under commands.validationProfiles.",
@@ -2658,7 +2658,7 @@
         {
           "name": "profiles",
           "path": [
-            "amaco",
+            "vibestrate",
             "validation",
             "profiles"
           ],
@@ -2679,7 +2679,7 @@
         {
           "name": "usage",
           "path": [
-            "amaco",
+            "vibestrate",
             "validation",
             "usage"
           ],
@@ -2700,7 +2700,7 @@
         {
           "name": "profile",
           "path": [
-            "amaco",
+            "vibestrate",
             "validation",
             "profile"
           ],
@@ -2712,7 +2712,7 @@
             {
               "name": "show",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "show"
@@ -2741,7 +2741,7 @@
             {
               "name": "migrate",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "migrate"
@@ -2797,7 +2797,7 @@
             {
               "name": "clear-references",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "clear-references"
@@ -2840,7 +2840,7 @@
             {
               "name": "rename",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "rename"
@@ -2889,12 +2889,12 @@
             {
               "name": "doctor",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "doctor"
               ],
-              "description": "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `amaco doctor` (recent 50 runs); use --all to lift the cap.",
+              "description": "Audit every suggestion + bundle for stale validation-profile references. Default scope matches `vibestrate doctor` (recent 50 runs); use --all to lift the cap.",
               "usage": "[options]",
               "arguments": [],
               "options": [
@@ -2925,7 +2925,7 @@
             {
               "name": "migrations",
               "path": [
-                "amaco",
+                "vibestrate",
                 "validation",
                 "profile",
                 "migrations"
@@ -2951,7 +2951,7 @@
     {
       "name": "terminal",
       "path": [
-        "amaco",
+        "vibestrate",
         "terminal"
       ],
       "description": "Inspect and close dashboard terminal sessions. Sessions are user-launched from the dashboard; this CLI never spawns one.",
@@ -2962,7 +2962,7 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "terminal",
             "list"
           ],
@@ -2983,7 +2983,7 @@
         {
           "name": "close",
           "path": [
-            "amaco",
+            "vibestrate",
             "terminal",
             "close"
           ],
@@ -3005,10 +3005,10 @@
     {
       "name": "policies",
       "path": [
-        "amaco",
+        "vibestrate",
         "policies"
       ],
-      "description": "Inspect user policy rules in .amaco/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
+      "description": "Inspect user policy rules in .vibestrate/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -3016,11 +3016,11 @@
         {
           "name": "list",
           "path": [
-            "amaco",
+            "vibestrate",
             "policies",
             "list"
           ],
-          "description": "List every rule loaded from .amaco/policies/*.yml (after schema + regex/glob validation).",
+          "description": "List every rule loaded from .vibestrate/policies/*.yml (after schema + regex/glob validation).",
           "usage": "[options]",
           "arguments": [],
           "options": [
@@ -3037,7 +3037,7 @@
         {
           "name": "check",
           "path": [
-            "amaco",
+            "vibestrate",
             "policies",
             "check"
           ],
@@ -3073,7 +3073,7 @@
         {
           "name": "doctor",
           "path": [
-            "amaco",
+            "vibestrate",
             "policies",
             "doctor"
           ],
@@ -3096,7 +3096,7 @@
     {
       "name": "budget",
       "path": [
-        "amaco",
+        "vibestrate",
         "budget"
       ],
       "description": "View or configure the daily spend cap (and what happens when it's hit).",
@@ -3107,7 +3107,7 @@
         {
           "name": "show",
           "path": [
-            "amaco",
+            "vibestrate",
             "budget",
             "show"
           ],
@@ -3120,7 +3120,7 @@
         {
           "name": "set",
           "path": [
-            "amaco",
+            "vibestrate",
             "budget",
             "set"
           ],
@@ -3162,7 +3162,7 @@
         {
           "name": "off",
           "path": [
-            "amaco",
+            "vibestrate",
             "budget",
             "off"
           ],
@@ -3177,7 +3177,7 @@
     {
       "name": "replay",
       "path": [
-        "amaco",
+        "vibestrate",
         "replay"
       ],
       "description": "Read-only inspector for a persisted run (mirrors the Replay tab in the dashboard).",
@@ -3204,7 +3204,7 @@
     {
       "name": "pause",
       "path": [
-        "amaco",
+        "vibestrate",
         "pause"
       ],
       "description": "Request that an active run pause at the next stage boundary.",
@@ -3223,7 +3223,7 @@
     {
       "name": "resume",
       "path": [
-        "amaco",
+        "vibestrate",
         "resume"
       ],
       "description": "Clear a pending pause request or resume a paused run.",
@@ -3242,10 +3242,10 @@
     {
       "name": "shell",
       "path": [
-        "amaco",
+        "vibestrate",
         "shell"
       ],
-      "description": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `amaco ui` instead.",
+      "description": "Interactive terminal panel. For the full dashboard + scheduler + browser in one shot, use `vibestrate ui` instead.",
       "usage": "[options]",
       "arguments": [],
       "options": [
@@ -3269,7 +3269,7 @@
     {
       "name": "run",
       "path": [
-        "amaco",
+        "vibestrate",
         "run"
       ],
       "description": "Run the default plan→architect→implement→review→verify workflow.",
@@ -3410,7 +3410,7 @@
     {
       "name": "ui",
       "path": [
-        "amaco",
+        "vibestrate",
         "ui"
       ],
       "description": "Start the local supervisor dashboard for this project.",
@@ -3444,10 +3444,10 @@
     {
       "name": "status",
       "path": [
-        "amaco",
+        "vibestrate",
         "status"
       ],
-      "description": "List Amaco runs in this project.",
+      "description": "List Vibestrate runs in this project.",
       "usage": "[options]",
       "arguments": [],
       "options": [
@@ -3464,7 +3464,7 @@
     {
       "name": "abort",
       "path": [
-        "amaco",
+        "vibestrate",
         "abort"
       ],
       "description": "Mark a run as aborted (does not delete the worktree).",
@@ -3483,7 +3483,7 @@
     {
       "name": "doctor",
       "path": [
-        "amaco",
+        "vibestrate",
         "doctor"
       ],
       "description": "Check environment, config, providers, and recommend next steps.",

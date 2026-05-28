@@ -26,7 +26,7 @@ export async function runFlowsList(opts: { json?: boolean }): Promise<number> {
     }
     console.log(
       color.dim(
-        "Use `amaco flows show <id>` to inspect slots and ordered steps.",
+        "Use `vibestrate flows show <id>` to inspect slots and ordered steps.",
       ),
     );
   }

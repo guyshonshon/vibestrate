@@ -1,5 +1,5 @@
 // Lifecycle-managed scheduler subprocess: spawned as a real child of
-// `amaco ui` (not detached), pipes stdout/stderr to the same
+// `vibestrate ui` (not detached), pipes stdout/stderr to the same
 // scheduler.log other entry points use, and gets a polite SIGTERM
 // followed by a hard SIGKILL when the UI shuts down.
 //
@@ -27,7 +27,7 @@ import { recordIssue } from "../core/issues-store.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-function resolveAmacoBin(): string {
+function resolveVibestrateBin(): string {
   const candidates = [
     path.resolve(HERE, "..", "..", "..", "dist", "index.js"),
     path.resolve(HERE, "..", "..", "..", "..", "dist", "index.js"),
@@ -106,14 +106,14 @@ export async function startManagedScheduler(input: {
 
   const spawnOnce = async (): Promise<void> => {
     if (stopped) return;
-    const bin = resolveAmacoBin();
+    const bin = resolveVibestrateBin();
     const logFd = openLogForAppend(input.projectRoot);
     const child = spawn(process.execPath, [bin, "queue", "run"], {
       cwd: input.projectRoot,
       env: {
         ...process.env,
-        AMACO_SPAWNED_BY: "ui-managed",
-        AMACO_PARENT_PID: String(process.pid),
+        VIBESTRATE_SPAWNED_BY: "ui-managed",
+        VIBESTRATE_PARENT_PID: String(process.pid),
         NO_COLOR: "1",
       },
       stdio: ["ignore", logFd, logFd],
@@ -160,7 +160,7 @@ export async function startManagedScheduler(input: {
             backoff / 1000,
           )}s.`,
           detail:
-            "Tail of `.amaco/scheduler/scheduler.log` in the Task Control panel.",
+            "Tail of `.vibestrate/scheduler/scheduler.log` in the Task Control panel.",
         }).catch(() => undefined);
       }
       nextRestart = setTimeout(() => {

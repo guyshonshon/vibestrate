@@ -11,8 +11,8 @@ import { HelpOverlay } from "./components/HelpOverlay.js";
 import { CommandRunner } from "./components/CommandRunner.js";
 import {
   parseArgs,
-  runAmacoCommand,
-  spawnAmacoDetached,
+  runVibestrateCommand,
+  spawnVibestrateDetached,
   openInBrowser,
 } from "./runner/command-runner.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
@@ -53,8 +53,8 @@ import type { PaletteCommand } from "./palette.js";
 type Props = {
   projectRoot: string;
   refreshMs?: number;
-  /** Dashboard URL when launched alongside the shell (`amaco shell --ui`).
-   *  When null we fall through to AMACO_UI_URL env, then a localhost
+  /** Dashboard URL when launched alongside the shell (`vibestrate shell --ui`).
+   *  When null we fall through to VIBESTRATE_UI_URL env, then a localhost
    *  default — opening it just tries http://127.0.0.1:4317. */
   uiUrl?: string | null;
 };
@@ -65,7 +65,7 @@ const DEFAULT_UI_URL = "http://127.0.0.1:4317";
 
 function resolveUiUrl(propUrl: string | null | undefined): string {
   if (propUrl) return propUrl;
-  const env = process.env.AMACO_UI_URL;
+  const env = process.env.VIBESTRATE_UI_URL;
   if (env && env.length > 0) return env;
   return DEFAULT_UI_URL;
 }
@@ -189,7 +189,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         dispatch({ type: "runner.open", seed: cmd.action.seed });
         return;
       case "spawn-detached": {
-        const { pid } = spawnAmacoDetached({
+        const { pid } = spawnVibestrateDetached({
           projectRoot,
           argv: cmd.action.argv,
         });
@@ -198,14 +198,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           kind: "ok",
           message:
             cmd.action.toast ??
-            `Started \`amaco ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
+            `Started \`vibestrate ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
         });
         return;
       }
       case "open-url": {
         // If the palette entry hard-codes the default localhost URL,
         // upgrade it to the runtime-resolved one so users who picked
-        // a different port via `amaco shell --ui --ui-port` aren't
+        // a different port via `vibestrate shell --ui --ui-port` aren't
         // routed to a dead tab.
         const target =
           cmd.action.url === DEFAULT_UI_URL
@@ -318,7 +318,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
-    // by `amaco shell --ui`, AMACO_UI_URL env, or the localhost default.
+    // by `vibestrate shell --ui`, VIBESTRATE_UI_URL env, or the localhost default.
     // Lowercase `b` is unbound today; uppercase `B` matches the
     // existing "R for re-run" convention for one-letter actions.
     if (input === "B" || input === "b") {
@@ -385,16 +385,16 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         });
         return;
       }
-      // Capital R re-runs the selected run as a fresh `amaco run`.
+      // Capital R re-runs the selected run as a fresh `vibestrate run`.
       // The original run state is preserved on disk so the user can
       // still inspect the failure; the new run gets its own runId.
       if (input === "R" && selectedRun) {
         const argv = deriveRerunArgs(selectedRun);
-        const { pid } = spawnAmacoDetached({ projectRoot, argv });
+        const { pid } = spawnVibestrateDetached({ projectRoot, argv });
         dispatch({
           type: "toast.push",
           kind: "ok",
-          message: `Re-running ${selectedRun.runId} → spawned amaco ${formatArgv(argv)} (pid ${pid ?? "—"}).`,
+          message: `Re-running ${selectedRun.runId} → spawned vibestrate ${formatArgv(argv)} (pid ${pid ?? "—"}).`,
         });
         return;
       }
@@ -583,14 +583,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               const argv = parseArgs(ui.runner.input);
               if (argv.length === 0) return;
               dispatch({ type: "runner.started" });
-              void runAmacoCommand({
+              void runVibestrateCommand({
                 projectRoot,
                 argv,
                 onChunk: (chunk) =>
                   dispatch({ type: "runner.append", chunk }),
               }).then((r) => {
                 dispatch({ type: "runner.finished", exitCode: r.exitCode });
-                // Snapshot may have changed (e.g. amaco queue add) — refresh
+                // Snapshot may have changed (e.g. vibestrate queue add) — refresh
                 // so the rest of the panel sees the new state.
                 void refresh();
               });

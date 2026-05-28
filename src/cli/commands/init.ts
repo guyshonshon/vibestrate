@@ -6,7 +6,7 @@ import {
 } from "../../project/project-detector.js";
 import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
 import { runInteractiveSetupWizard } from "../wizards/setup-wizard.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 export type InitCommandOptions = {
   force?: boolean;
@@ -23,7 +23,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
       `${symbol.fail()} ${cwd} is not inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} in your project, then re-run ${color.bold("amaco init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")} in your project, then re-run ${color.bold("vibestrate init")}.`,
     );
     return 1;
   }
@@ -46,7 +46,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
   } catch (err) {
     console.error(
       `${symbol.fail()} ${
-        isAmacoError(err) ? err.message : String(err)
+        isVibestrateError(err) ? err.message : String(err)
       }`,
     );
     return 1;
@@ -58,20 +58,20 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
   const onlySkipped = init.created.length === 0 && init.skipped.length > 0;
   if (onlySkipped) {
     console.log(
-      `${color.bold("Amaco")} is already initialized in ${color.dim(detected.projectRoot)}.`,
+      `${color.bold("Vibestrate")} is already initialized in ${color.dim(detected.projectRoot)}.`,
     );
     console.log(
       `  ${symbol.arrow()} Re-run with ${color.bold("--force")} to overwrite templates (your runs are preserved).`,
     );
     console.log("");
     console.log(
-      `Try: ${color.bold("amaco doctor")} or ${color.bold('amaco run "your task"')}`,
+      `Try: ${color.bold("vibestrate doctor")} or ${color.bold('vibestrate run "your task"')}`,
     );
     return 0;
   }
 
   // Friendly summary.
-  console.log(`${symbol.ok()} ${color.bold("Amaco initialized")}.`);
+  console.log(`${symbol.ok()} ${color.bold("Vibestrate initialized")}.`);
   console.log("");
 
   console.log(color.bold("Project:"));
@@ -121,7 +121,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     }
     console.log(
       indent(
-        `Install a local CLI, or run ${color.bold("amaco provider setup")} to configure a custom command.`,
+        `Install a local CLI, or run ${color.bold("vibestrate provider setup")} to configure a custom command.`,
       ),
     );
   }
@@ -135,7 +135,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     console.log(
       indent(
         color.dim(
-          "Detected from your package.json scripts. Adjust later with `amaco config set commands.validate \"[...]\"`.",
+          "Detected from your package.json scripts. Adjust later with `vibestrate config set commands.validate \"[...]\"`.",
         ),
       ),
     );
@@ -148,7 +148,7 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
     console.log(
       indent(
         color.dim(
-          'Add later with `amaco config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"` or run `amaco doctor --fix`.',
+          'Add later with `vibestrate config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"` or run `vibestrate doctor --fix`.',
         ),
       ),
     );
@@ -172,17 +172,17 @@ export async function runInitCommand(opts: InitCommandOptions): Promise<number> 
 
   console.log(header("Next:"));
   if (plan.recommendedProvider) {
-    console.log(indent(`${symbol.arrow()} ${color.bold("amaco doctor")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
     console.log(
-      indent(`${symbol.arrow()} ${color.bold('amaco run "your task"')}`),
+      indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`),
     );
   } else {
     console.log(
-      indent(`${symbol.arrow()} ${color.bold("amaco provider setup")}`),
+      indent(`${symbol.arrow()} ${color.bold("vibestrate provider setup")}`),
     );
-    console.log(indent(`${symbol.arrow()} ${color.bold("amaco doctor")}`));
+    console.log(indent(`${symbol.arrow()} ${color.bold("vibestrate doctor")}`));
     console.log(
-      indent(`${symbol.arrow()} ${color.bold('amaco run "your task"')}`),
+      indent(`${symbol.arrow()} ${color.bold('vibestrate run "your task"')}`),
     );
   }
   return 0;

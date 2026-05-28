@@ -103,7 +103,7 @@ export function ProviderCliTerminal({
   return (
     <div
       ref={hostRef}
-      className="min-h-[320px] overflow-hidden rounded-b border-t border-amaco-border-soft bg-[#0b0e13]"
+      className="min-h-[320px] overflow-hidden rounded-b border-t border-vibestrate-border-soft bg-[#0b0e13]"
     />
   );
 }

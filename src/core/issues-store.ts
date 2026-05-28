@@ -1,12 +1,12 @@
 // Append-only failure stream. Anything in the project that hits an
 // unexpected error path can call `recordIssue` and it lands in
-// `.amaco/issues.ndjson`. The dashboard + panel both read this so
+// `.vibestrate/issues.ndjson`. The dashboard + panel both read this so
 // failures are visible from anywhere — never silent.
 
 import path from "node:path";
 import { z } from "zod";
 import { appendLine, pathExists, readText, writeText } from "../utils/fs.js";
-import { amacoRoot } from "../utils/paths.js";
+import { vibestrateRoot } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
 
 export const issueSchema = z.object({
@@ -32,7 +32,7 @@ export const issueSchema = z.object({
 export type Issue = z.infer<typeof issueSchema>;
 
 function issuesPath(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), "issues.ndjson");
+  return path.join(vibestrateRoot(projectRoot), "issues.ndjson");
 }
 
 /** Append one issue. Best-effort — never throws to the caller. */

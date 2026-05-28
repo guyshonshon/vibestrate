@@ -142,7 +142,7 @@ export async function registerValidationRoutes(
   });
 
   /**
-   * Apply a profile rename atomically. Mutates `.amaco/project.yml` and
+   * Apply a profile rename atomically. Mutates `.vibestrate/project.yml` and
    * every matching suggestion/bundle reference. Rolls back project.yml if
    * the reference migration step fails.
    */
@@ -179,7 +179,7 @@ export async function registerValidationRoutes(
 async function requireConfig(projectRoot: string) {
   const cfg = await loadConfig(projectRoot).catch(() => null);
   if (!cfg) {
-    throw new HttpError(409, "Project is not initialised. Run `amaco init`.");
+    throw new HttpError(409, "Project is not initialised. Run `vibestrate init`.");
   }
   return cfg.config;
 }

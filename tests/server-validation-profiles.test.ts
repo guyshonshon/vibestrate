@@ -23,7 +23,7 @@ async function makeProject(opts: { profiles?: boolean } = {}): Promise<{
   worktree: string;
   runId: string;
 }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vp-srv-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vp-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -42,7 +42,7 @@ async function makeProject(opts: { profiles?: boolean } = {}): Promise<{
     // shape is already satisfied by the generator; we only need to add the
     // commands.* keys.
     const yml = await fs.readFile(
-      path.join(project, ".amaco/project.yml"),
+      path.join(project, ".vibestrate/project.yml"),
       "utf8",
     );
     const replaced = yml.replace(
@@ -61,15 +61,15 @@ async function makeProject(opts: { profiles?: boolean } = {}): Promise<{
         "",
       ].join("\n"),
     );
-    await fs.writeFile(path.join(project, ".amaco/project.yml"), replaced);
+    await fs.writeFile(path.join(project, ".vibestrate/project.yml"), replaced);
   }
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vp-srv-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vp-srv-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -83,7 +83,7 @@ async function makeProject(opts: { profiles?: boolean } = {}): Promise<{
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,

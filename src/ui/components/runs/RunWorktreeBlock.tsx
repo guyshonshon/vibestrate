@@ -46,30 +46,30 @@ export function RunWorktreeBlock({
   if (!worktreePath) return null;
 
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel/30 p-3 text-[12px]">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel/30 p-3 text-[12px]">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
+        <span className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
           <GitBranch className="h-3 w-3" strokeWidth={1.5} />
           {branchName ?? "(no branch)"}
         </span>
         {status?.upstream ? (
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-muted">
             ↑{status.ahead ?? 0} ↓{status.behind ?? 0} {status.upstream}
           </span>
         ) : null}
         {status ? (
           <span
-            className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${
+            className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10.5px] ${
               status.isDirty
-                ? "border-amaco-warn/40 text-amaco-warn"
-                : "border-amaco-success/40 text-amaco-success"
+                ? "border-vibestrate-warn/40 text-vibestrate-warn"
+                : "border-vibestrate-success/40 text-vibestrate-success"
             }`}
           >
             {status.isDirty ? `dirty (${status.changedFiles.length})` : "clean"}
           </span>
         ) : null}
         {status?.headHash ? (
-          <span className="amaco-mono inline-flex items-center gap-1 text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono inline-flex items-center gap-1 text-[10.5px] text-vibestrate-fg-muted">
             <GitCommit className="h-3 w-3" strokeWidth={1.5} />
             {status.headHash} · {status.headSubject}
           </span>
@@ -78,7 +78,7 @@ export function RunWorktreeBlock({
           <button
             type="button"
             onClick={onOpenCodebase}
-            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Browse this worktree"
           >
             <FolderTree className="h-3 w-3" strokeWidth={1.5} />
@@ -87,7 +87,7 @@ export function RunWorktreeBlock({
           <button
             type="button"
             onClick={onOpenGit}
-            className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Run git status & history"
           >
             <GitCommit className="h-3 w-3" strokeWidth={1.5} />
@@ -95,14 +95,14 @@ export function RunWorktreeBlock({
           </button>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-2 text-[10.5px] text-amaco-fg-muted">
-        <span className="amaco-mono truncate">{worktreePath}</span>
+      <div className="mt-2 flex items-center gap-2 text-[10.5px] text-vibestrate-fg-muted">
+        <span className="vibestrate-mono truncate">{worktreePath}</span>
         <button
           type="button"
           onClick={() => {
             void navigator.clipboard.writeText(worktreePath).catch(() => {});
           }}
-          className="inline-flex items-center gap-1 rounded border border-amaco-border px-1 py-0.5 text-[10.5px] hover:bg-amaco-panel-2"
+          className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1 py-0.5 text-[10.5px] hover:bg-vibestrate-panel-2"
           title="Copy worktree path"
         >
           <Copy className="h-3 w-3" strokeWidth={1.5} />
@@ -111,7 +111,7 @@ export function RunWorktreeBlock({
           <button
             type="button"
             onClick={() => onOpenTask(taskId)}
-            className="ml-auto rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-accent hover:bg-amaco-panel-2"
+            className="ml-auto rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent hover:bg-vibestrate-panel-2"
           >
             task {taskId} →
           </button>

@@ -6,8 +6,8 @@ import type {
 import { makeReceipt } from "../delivery-receipts.js";
 
 /**
- * CLI gateway: writes a one-line summary to stdout when an Amaco process is
- * actively attached (e.g. `amaco run`). The actual stdout is whatever logger
+ * CLI gateway: writes a one-line summary to stdout when an Vibestrate process is
+ * actively attached (e.g. `vibestrate run`). The actual stdout is whatever logger
  * the embedding caller installs via `setCliWriter`. By default it's a no-op
  * so importing this module from a server context never spams the terminal.
  */

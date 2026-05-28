@@ -5,12 +5,12 @@ section: cli
 slug: cli/dashboard
 ---
 
-Mission Control is Amaco's web UI. It's served by a Fastify process started on demand — fully local, never connected to a remote backend.
+Mission Control is Vibestrate's web UI. It's served by a Fastify process started on demand — fully local, never connected to a remote backend.
 
 ## Start it
 
 ```bash
-amaco ui
+vibestrate ui
 ```
 
 Default port is `4317`. Pass `--port` to change it. By default it opens your browser; `--no-open` keeps it headless.
@@ -18,7 +18,7 @@ Default port is `4317`. Pass `--port` to change it. By default it opens your bro
 You can also start a run with the dashboard attached:
 
 ```bash
-amaco run "Add audit logging" --ui
+vibestrate run "Add audit logging" --ui
 ```
 
 ## The shape
@@ -69,4 +69,4 @@ Open a run to supervise it live:
 
 ## Stopping it
 
-`Ctrl-C` in the terminal where `amaco ui` is running. The Fastify process exits cleanly; the runs continue (or pause at the next stage boundary, depending on what they're doing).
+`Ctrl-C` in the terminal where `vibestrate ui` is running. The Fastify process exits cleanly; the runs continue (or pause at the next stage boundary, depending on what they're doing).

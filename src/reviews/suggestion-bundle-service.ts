@@ -97,7 +97,7 @@ export type SmartApplyResult = {
   finalStatus: BundleStatus;
   /** Index of the failing step in `steps`, or null on full success. */
   failedAt: number | null;
-  /** Path of the persisted JSON inside .amaco/runs/<runId>/. */
+  /** Path of the persisted JSON inside .vibestrate/runs/<runId>/. */
   resultPath: string;
 };
 
@@ -714,7 +714,7 @@ export class SuggestionBundleService {
    *                                up-front preflight catches static issues).
    *
    * The full step-by-step result is persisted to
-   * .amaco/runs/<runId>/suggestion-bundles/<bundleId>-smart-apply.json so a
+   * .vibestrate/runs/<runId>/suggestion-bundles/<bundleId>-smart-apply.json so a
    * later UI/CLI can render it without re-running the chain.
    */
   async smartApply(
@@ -1234,7 +1234,7 @@ export class SuggestionBundleService {
       ),
       errorMessage:
         result.status === "no_commands_configured"
-          ? "No validation commands configured. Run `amaco config set commands.validate '[\"<cmd>\"]'`."
+          ? "No validation commands configured. Run `vibestrate config set commands.validate '[\"<cmd>\"]'`."
           : null,
       updatedAt: nowIso(),
     };

@@ -5,7 +5,7 @@ import { runSkillsAssign, runSkillsUnassign } from "./assign.js";
 
 export function buildSkillsCommand(): Command {
   const cmd = new Command("skills").description(
-    "List, inspect, and assign skills (.amaco/skills and .claude/skills).",
+    "List, inspect, and assign skills (.vibestrate/skills and .claude/skills).",
   );
 
   cmd
@@ -27,7 +27,7 @@ export function buildSkillsCommand(): Command {
 
   cmd
     .command("assign <agent> <skill>")
-    .description("Attach a skill to an agent (writes to .amaco/project.yml).")
+    .description("Attach a skill to an agent (writes to .vibestrate/project.yml).")
     .action(async (agent: string, skill: string) => {
       const code = await runSkillsAssign(agent, skill);
       process.exit(code);

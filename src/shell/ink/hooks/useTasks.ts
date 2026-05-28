@@ -3,7 +3,7 @@ import { RoadmapService } from "../../../roadmap/roadmap-service.js";
 import type { Task } from "../../../roadmap/roadmap-types.js";
 
 /**
- * Periodically reads the full task list from `.amaco/roadmap/tasks/`.
+ * Periodically reads the full task list from `.vibestrate/roadmap/tasks/`.
  * Refresh is best-effort: file errors surface as `error` without
  * blowing up the render. Pass a manual `refresh()` after any write
  * so the UI doesn't wait for the next tick.

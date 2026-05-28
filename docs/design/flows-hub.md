@@ -2,22 +2,22 @@
 
 Status: **planning — core decisions settled** · Tracking issue: #3 · Owner: maintainer
 
-Settled: flat unique names · separate `amaco-flows` repo · curated PR-based v1
+Settled: flat unique names · separate `vibestrate-flows` repo · curated PR-based v1
 (Docker "Official Images" model) · GitHub OAuth if a service is added later ·
 free git-backed v1 with a hosted service deferred. See "Settled decisions".
 
 A place to **discover, share, and install Flows** other people publish, with
-**stars** and **download** metrics — npm / Docker Hub, but for Amaco Flows.
+**stars** and **download** metrics — npm / Docker Hub, but for Vibestrate Flows.
 
 ---
 
 ## Why Flows are the right thing to share
 
-A Flow is the cleanest unit in Amaco to make portable:
+A Flow is the cleanest unit in Vibestrate to make portable:
 
 - **It's declarative data, not code.** `flowDefinitionSchema`
   (`src/flows/schemas/flow-schema.ts`) validates a `flow.yml` of slots +
-  steps. Installing one writes a file under `.amaco/flows/<id>/`; **nothing
+  steps. Installing one writes a file under `.vibestrate/flows/<id>/`; **nothing
   executes** until the user runs it. So a registry is low‑risk by construction.
 - **We already fork/discover/shadow them.** `forkFlowToProject`,
   `deleteProjectFlow`, and project‑shadows‑builtin discovery
@@ -28,7 +28,7 @@ A Flow is the cleanest unit in Amaco to make portable:
 
 ## Local‑first stance (the non‑negotiable)
 
-Amaco's invariant: *no cloud backend / no relay for your runs.* The hub does
+Vibestrate's invariant: *no cloud backend / no relay for your runs.* The hub does
 **not** violate it. It's an **opt‑in catalog** you explicitly publish to and
 pull from — like `npm install`. Your code, prompts, and runs never touch it.
 The core tool stays fully functional offline; the hub is a separate, optional
@@ -40,14 +40,14 @@ surface. This must remain true through every phase.
 
 ### Phase 1 — git‑backed index (zero infra) ← build this first
 
-A public GitHub repo (`guyshonshon/amaco-flows`) is the registry. No service
+A public GitHub repo (`guyshonshon/vibestrate-flows`) is the registry. No service
 to run, no database, no auth to build — GitHub provides hosting, identity (PRs),
 and a coarse "stars" signal for free.
 
 **Layout of the index repo** — flat names, one immutable dir per version:
 
 ```
-amaco-flows/
+vibestrate-flows/
   index.json                  # generated catalog (search source of truth)
   flows/
     <name>/
@@ -71,24 +71,24 @@ amaco-flows/
 }
 ```
 
-**CLI surface** (new `amaco flows` subcommands; the command tree already exists):
+**CLI surface** (new `vibestrate flows` subcommands; the command tree already exists):
 
-- `amaco flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
+- `vibestrate flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
   matches with author + tags + `latest`.
-- `amaco flows install <name>[:<version>]` — Docker‑style ref resolution:
+- `vibestrate flows install <name>[:<version>]` — Docker‑style ref resolution:
   - `name` → `name:latest`
   - `name:1.2.0` → that exact version
   - `name:1` → highest `1.x`
   Resolve via `index.json` to a concrete `flows/<name>/<version>/flow.yml`,
   fetch it, **validate against `flowDefinitionSchema`**, run the secret‑shape
-  scan, then write it into `.amaco/flows/<name>/` (reusing the fork write
+  scan, then write it into `.vibestrate/flows/<name>/` (reusing the fork write
   path). Record the resolved `{ name, version, hash }` in a sidecar
-  (`.amaco/flows/<name>/.hub.json`) so we know what's installed. Refuse on
+  (`.vibestrate/flows/<name>/.hub.json`) so we know what's installed. Refuse on
   invalid schema or a secret‑like hit.
-- `amaco flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
+- `vibestrate flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
   update; **warn on a major bump** before applying.
-- `amaco flows outdated` — list installed hub flows with a newer version.
-- `amaco flows publish [<name>]` — package the project flow + a `meta.json`
+- `vibestrate flows outdated` — list installed hub flows with a newer version.
+- `vibestrate flows publish [<name>]` — package the project flow + a `meta.json`
   (with the **semver** for this release) and open a **PR** to the index repo
   (via `gh`). Review happens in the PR.
 
@@ -109,11 +109,11 @@ amaco-flows/
 - Flat unique `name`; a published `<name>/<version>/` is **immutable** — CI
   rejects re‑publishing an existing version (new content → new version).
 
-**Acceptance:** `amaco flows search` / `install name[:version]` pull a community
-flow into `.amaco/flows/`, validated before it lands; `publish` produces an
+**Acceptance:** `vibestrate flows search` / `install name[:version]` pull a community
+flow into `.vibestrate/flows/`, validated before it lands; `publish` produces an
 index PR.
 
-### Phase 2 — `amaco-hub` service (Docker‑Hub‑style)
+### Phase 2 — `vibestrate-hub` service (Docker‑Hub‑style)
 
 Graduate to a real registry when phase 1's limits bite (no real download
 counts, PR‑gated publishing, no per‑flow stars).
@@ -144,7 +144,7 @@ token/day) + stars (one per account).
 **Moderation:** report flow + takedown; same schema/secret rules enforced
 server‑side; ownership required to publish under a namespace.
 
-**CLI/UI:** the same `amaco flows search/install/publish/star` point at the
+**CLI/UI:** the same `vibestrate flows search/install/publish/star` point at the
 service; a **Hub** tab in Mission Control browses + installs (read‑only HTTP to
 the public API; install still writes locally through the existing path).
 
@@ -166,9 +166,9 @@ the public API; install still writes locally through the existing path).
 - **Names are flat + globally unique** (first-come), not namespaced. Simpler
   ids; we accept the land-grab/collision tradeoff and can add a reserved-prefix
   list if it bites.
-- **Separate `amaco-flows` repo** is the registry — its own repo with its own
-  contributors who help review submissions (not in `amaco` or
-  `amaco-marketing`).
+- **Separate `vibestrate-flows` repo** is the registry — its own repo with its own
+  contributors who help review submissions (not in `vibestrate` or
+  `vibestrate-marketing`).
 - **v1 publishing is curated, PR-based** (Docker "Official Images" model, not
   open self-serve push): submit → automated checks + human review → listed.
 - **Identity, if/when a service is added:** GitHub OAuth (login = identity).
@@ -195,7 +195,7 @@ Rules:
   like `1.3.0-beta` are excluded from `latest`). No manual dist-tag management
   in v1; the publisher just bumps the semver in `meta.json`.
 - **Installs are pinned + tracked.** `install` records the resolved
-  `{ name, version, hash }` in `.amaco/flows/<name>/.hub.json`, so `update` /
+  `{ name, version, hash }` in `.vibestrate/flows/<name>/.hub.json`, so `update` /
   `outdated` know what you have and `update` can warn on a major bump.
 
 Relationship to the existing `flow.yml` `version` (integer): that field stays
@@ -209,8 +209,8 @@ independent; we may unify later, but not as a breaking change now.
 
 Modeled on Docker's **Official Images** curation, not its open push:
 
-1. `amaco flows publish` packages the project flow + `meta.json` and opens a
-   **PR** to `amaco-flows` (via `gh`; the contributor's fork is transparent).
+1. `vibestrate flows publish` packages the project flow + `meta.json` and opens a
+   **PR** to `vibestrate-flows` (via `gh`; the contributor's fork is transparent).
 2. **GitHub Actions on the PR run the automated gate** and post a checklist:
    - schema-valid (`flowDefinitionSchema`)
    - secret-shape scan (reuse the patch scanner)
@@ -242,7 +242,7 @@ Mitigations:
   free-text (`curl … | sh`, `rm -rf`, "ignore previous", base64 blobs, URLs in
   approval text), unbounded repeats, and unknown agent ids. Produces a score +
   reasons.
-- **Human review** by the `amaco-flows` contributor team before listing.
+- **Human review** by the `vibestrate-flows` contributor team before listing.
 - **Install-time validation** still runs locally (schema + secret scan) — a
   compromised index can't bypass the client checks.
 
@@ -257,7 +257,7 @@ first and watch the approval gates":
    a hub flow; the CLI `install` prints it.
 2. **The website docs** — a dedicated docs page (e.g. `/docs/flows-hub` +
    a safety note).
-3. **The repo** — the `amaco-flows` README + a `SECURITY.md`.
+3. **The repo** — the `vibestrate-flows` README + a `SECURITY.md`.
 
 ## Still open (later, with the service)
 

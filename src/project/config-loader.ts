@@ -3,7 +3,7 @@ import YAML from "yaml";
 import { ConfigError } from "../utils/errors.js";
 import { readText, pathExists } from "../utils/fs.js";
 import {
-  amacoRoot,
+  vibestrateRoot,
   projectConfigPath,
   projectRulesPath,
 } from "../utils/paths.js";
@@ -16,13 +16,13 @@ export type LoadedConfig = {
   rules: string;
 };
 
-const DEFAULT_RULES = "# Project Rules for Amaco\n\nDescribe the project here.\n";
+const DEFAULT_RULES = "# Project Rules for Vibestrate\n\nDescribe the project here.\n";
 
 export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
   const configPath = projectConfigPath(projectRoot);
   if (!(await pathExists(configPath))) {
     throw new ConfigError(
-      `Amaco config not found at ${configPath}. Run "amaco init" first.`,
+      `Vibestrate config not found at ${configPath}. Run "vibestrate init" first.`,
     );
   }
 
@@ -40,7 +40,7 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
       .map((i) => `- ${i.path.join(".") || "(root)"}: ${i.message}`)
       .join("\n");
     throw new ConfigError(
-      `Invalid Amaco config at ${configPath}:\n${issues}`,
+      `Invalid Vibestrate config at ${configPath}:\n${issues}`,
     );
   }
 
@@ -57,8 +57,8 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
   };
 }
 
-export function amacoExists(projectRoot: string): Promise<boolean> {
-  return pathExists(amacoRoot(projectRoot));
+export function vibestrateExists(projectRoot: string): Promise<boolean> {
+  return pathExists(vibestrateRoot(projectRoot));
 }
 
 export function configExists(projectRoot: string): Promise<boolean> {

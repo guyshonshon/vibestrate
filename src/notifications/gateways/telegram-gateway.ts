@@ -124,7 +124,7 @@ export const telegramGateway: Gateway = {
     try {
       const r = await postJsonWithTimeout({
         url,
-        body: { chat_id: chatId, text: "Amaco Telegram gateway test." },
+        body: { chat_id: chatId, text: "Vibestrate Telegram gateway test." },
       });
       return r.ok
         ? { ok: true, message: `Telegram responded ${r.status}.` }

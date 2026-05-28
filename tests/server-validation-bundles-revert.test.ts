@@ -23,7 +23,7 @@ async function makeProject(): Promise<{
   worktree: string;
   runId: string;
 }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vbr-srv-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vbr-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -40,12 +40,12 @@ async function makeProject(): Promise<{
     detectionRunner: noProvider,
   });
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-vbr-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-vbr-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -59,7 +59,7 @@ async function makeProject(): Promise<{
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,

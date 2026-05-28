@@ -11,12 +11,12 @@ const STAGE_LABEL: Record<MicroStep["stage"], string> = {
 };
 
 const STATUS_COLOR: Record<MicroStep["status"], string> = {
-  pending: "bg-amaco-fg-muted/40 text-amaco-fg-muted",
-  running: "bg-amaco-accent text-amaco-accent",
-  passed: "bg-amaco-success text-amaco-success",
-  failed: "bg-amaco-fail text-amaco-fail",
-  blocked: "bg-amaco-warn text-amaco-warn",
-  skipped: "bg-amaco-fg-muted/40 text-amaco-fg-muted",
+  pending: "bg-vibestrate-fg-muted/40 text-vibestrate-fg-muted",
+  running: "bg-vibestrate-accent text-vibestrate-accent",
+  passed: "bg-vibestrate-success text-vibestrate-success",
+  failed: "bg-vibestrate-fail text-vibestrate-fail",
+  blocked: "bg-vibestrate-warn text-vibestrate-warn",
+  skipped: "bg-vibestrate-fg-muted/40 text-vibestrate-fg-muted",
 };
 
 export function MicroStepPipeline({
@@ -31,12 +31,12 @@ export function MicroStepPipeline({
   selectedStepId?: string | null;
 }) {
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel p-3">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
       <div className="flex items-center justify-between">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           micro-steps
         </div>
-        <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+        <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
           run {runId}
         </span>
       </div>
@@ -50,8 +50,8 @@ export function MicroStepPipeline({
             <li key={step.id}>
               <button
                 onClick={() => onSelectStep?.(step)}
-                className={`flex w-full flex-col items-start gap-1 rounded px-2 py-1.5 text-left hover:bg-amaco-panel-2 ${
-                  isSelected ? "bg-amaco-panel-2" : ""
+                className={`flex w-full flex-col items-start gap-1 rounded px-2 py-1.5 text-left hover:bg-vibestrate-panel-2 ${
+                  isSelected ? "bg-vibestrate-panel-2" : ""
                 }`}
               >
                 <span className="flex w-full items-center gap-1.5">
@@ -60,7 +60,7 @@ export function MicroStepPipeline({
                     {STAGE_LABEL[step.stage]}
                   </span>
                 </span>
-                <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+                <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                   {step.status}
                 </span>
               </button>

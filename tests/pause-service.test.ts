@@ -16,13 +16,13 @@ import {
 } from "../src/core/pause-service.js";
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pause-"));
-  await fs.mkdir(path.join(dir, ".amaco", "runs"), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pause-"));
+  await fs.mkdir(path.join(dir, ".vibestrate", "runs"), { recursive: true });
   return dir;
 }
 
 async function seedRun(projectRoot: string, runId: string): Promise<void> {
-  await fs.mkdir(path.join(projectRoot, ".amaco", "runs", runId), {
+  await fs.mkdir(path.join(projectRoot, ".vibestrate", "runs", runId), {
     recursive: true,
   });
   const state = createInitialState({
@@ -64,7 +64,7 @@ describe("requestPause", () => {
     // at the next stage boundary, not synchronously here.
     expect(next.status).toBe("created");
     const log = await fs.readFile(
-      path.join(project, ".amaco", "runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate", "runs", runId, "events.ndjson"),
       "utf8",
     );
     expect(log).toContain('"type":"run.pause_requested"');
@@ -75,7 +75,7 @@ describe("requestPause", () => {
     const second = await requestPause(store, events);
     expect(second.pauseRequested).toBe(true);
     const log = await fs.readFile(
-      path.join(project, ".amaco", "runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate", "runs", runId, "events.ndjson"),
       "utf8",
     );
     const occurrences = log.split('"type":"run.pause_requested"').length - 1;
@@ -114,7 +114,7 @@ describe("requestResume", () => {
     // pausedAtStatus, not requestResume.
     expect(next.status).toBe("paused");
     const log = await fs.readFile(
-      path.join(project, ".amaco", "runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate", "runs", runId, "events.ndjson"),
       "utf8",
     );
     expect(log).toContain('"type":"run.resume_requested"');
@@ -173,7 +173,7 @@ describe("applyPauseIfRequested", () => {
     expect(after.pauseRequested).toBe(false);
 
     const log = await fs.readFile(
-      path.join(project, ".amaco", "runs", runId, "events.ndjson"),
+      path.join(project, ".vibestrate", "runs", runId, "events.ndjson"),
       "utf8",
     );
     expect(log).toContain('"type":"run.paused"');
@@ -187,7 +187,7 @@ describe("applyPauseIfRequested", () => {
     await store.write(s);
     await requestPause(store, events);
 
-    // While paused, another writer (e.g., `amaco abort`) transitions to
+    // While paused, another writer (e.g., `vibestrate abort`) transitions to
     // aborted. applyPauseIfRequested must observe that and return the
     // terminal state so the orchestrator exits cleanly.
     setTimeout(async () => {

@@ -11,23 +11,23 @@ import {
 import { detectAllProviders } from "../../../providers/provider-detection.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 import { isInteractiveTTY } from "../../ui/format.js";
-import { isAmacoError } from "../../../utils/errors.js";
+import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runProviderSetup(): Promise<number> {
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Amaco config found. Run ${color.bold("amaco init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
 
   if (!isInteractiveTTY()) {
     console.error(
-      `${symbol.fail()} ${color.bold("amaco provider setup")} needs an interactive terminal.`,
+      `${symbol.fail()} ${color.bold("vibestrate provider setup")} needs an interactive terminal.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run it locally, or use ${color.bold("amaco config set providers.<id>.command <cmd>")} for non-interactive setup.`,
+      `  ${symbol.arrow()} Run it locally, or use ${color.bold("vibestrate config set providers.<id>.command <cmd>")} for non-interactive setup.`,
     );
     return 1;
   }
@@ -57,7 +57,7 @@ export async function runProviderSetup(): Promise<number> {
       name: `Codex CLI — starter preset (detected: ${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
       value: "codex",
       description:
-        "Applies `codex exec -q` with stdin prompt. Run `amaco provider test codex` after to verify the flags work in your version.",
+        "Applies `codex exec` with stdin prompt. Run `vibestrate provider test codex` after to verify the flags work in your version.",
     });
   }
   if (ollama) {
@@ -71,7 +71,7 @@ export async function runProviderSetup(): Promise<number> {
   choices.push({ name: "Custom command", value: "custom" });
 
   const choice = await select<Choice>({
-    message: "Which local coding CLI should Amaco use for its agents?",
+    message: "Which local coding CLI should Vibestrate use for its agents?",
     choices,
     default: claude ? "claude" : codex ? "codex" : ollama ? "ollama" : "custom",
   });
@@ -103,7 +103,7 @@ export async function runProviderSetup(): Promise<number> {
           `${symbol.ok()} Codex CLI is now configured for all default agents with the starter preset.`,
         );
         console.log(
-          `  ${symbol.arrow()} Verify the invocation: ${color.bold("amaco provider test codex")}`,
+          `  ${symbol.arrow()} Verify the invocation: ${color.bold("vibestrate provider test codex")}`,
         );
       } else {
         console.log(`${symbol.warn()} ${setRes.reason}`);
@@ -123,7 +123,7 @@ export async function runProviderSetup(): Promise<number> {
           `  ${symbol.arrow()} Pull the default model if needed: ${color.bold("ollama pull qwen3.5")}`,
         );
         console.log(
-          `  ${symbol.arrow()} Verify the invocation: ${color.bold("amaco provider test ollama")}`,
+          `  ${symbol.arrow()} Verify the invocation: ${color.bold("vibestrate provider test ollama")}`,
         );
       } else {
         console.log(`${symbol.warn()} ${setRes.reason}`);
@@ -183,12 +183,12 @@ export async function runProviderSetup(): Promise<number> {
       }
     }
     console.log("");
-    console.log(`${symbol.arrow()} Next: ${color.bold("amaco doctor")}`);
+    console.log(`${symbol.arrow()} Next: ${color.bold("vibestrate doctor")}`);
     return 0;
   } catch (err) {
     console.error(
       `${symbol.fail()} ${
-        isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)
+        isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)
       }`,
     );
     return 1;

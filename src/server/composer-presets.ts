@@ -2,7 +2,7 @@
 // readOnly) combos surfaced by the Mission Control composer's "Save crew
 // as preset" and "Save as template" affordances.
 //
-// Stored under .amaco/composer-presets.json — one JSON file, one slot
+// Stored under .vibestrate/composer-presets.json — one JSON file, one slot
 // per preset name. Names are slugged so they're URL-safe and stable.
 // Path-guarded: the route never trusts a body-supplied path; everything
 // goes through this module's known on-disk location.
@@ -10,7 +10,7 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { z } from "zod";
-import { amacoRoot } from "../utils/paths.js";
+import { vibestrateRoot } from "../utils/paths.js";
 import { pathExists } from "../utils/fs.js";
 
 const PRESETS_FILENAME = "composer-presets.json";
@@ -57,7 +57,7 @@ export type ComposerPresetUpsert = Omit<
 >;
 
 function presetsPath(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), PRESETS_FILENAME);
+  return path.join(vibestrateRoot(projectRoot), PRESETS_FILENAME);
 }
 
 /**

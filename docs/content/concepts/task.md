@@ -1,13 +1,13 @@
 ---
 title: Task
-description: The unit of work Amaco runs. A short prompt that triggers a full plan → build → review → verify cycle.
+description: The unit of work Vibestrate runs. A short prompt that triggers a full plan → build → review → verify cycle.
 section: concepts
 slug: concepts/task
 ---
 
-**Professional explanation.** A task is the unit of work submitted to Amaco's orchestrator. It carries a free-form description, optional effort hint, optional provider override, and an optional skill list. The orchestrator transforms the task into a run — a stateful instance of the workflow that owns a worktree, an agent crew, validation results, and artifacts.
+**Professional explanation.** A task is the unit of work submitted to Vibestrate's orchestrator. It carries a free-form description, optional effort hint, optional provider override, and an optional skill list. The orchestrator transforms the task into a run — a stateful instance of the workflow that owns a worktree, an agent crew, validation results, and artifacts.
 
-**Simple explanation.** A task is the thing you ask Amaco to do, written in plain language. You say *what* you want; Amaco figures out the steps.
+**Simple explanation.** A task is the thing you ask Vibestrate to do, written in plain language. You say *what* you want; Vibestrate figures out the steps.
 
 ## Why it matters
 
@@ -16,7 +16,7 @@ The shape of the task is the only thing the orchestrator has to commit to a flow
 ## A good task description
 
 ```bash
-amaco run "Add structured logging to the settings save handler in src/server/routes/settings.ts. Use the existing logger from src/lib/logger.ts. Include the user id and the changed keys, but never the values."
+vibestrate run "Add structured logging to the settings save handler in src/server/routes/settings.ts. Use the existing logger from src/lib/logger.ts. Include the user id and the changed keys, but never the values."
 ```
 
 It names the file, names the library to use, and calls out the safety constraint up front.
@@ -24,7 +24,7 @@ It names the file, names the library to use, and calls out the safety constraint
 ## A weak task description
 
 ```bash
-amaco run "Improve logging"
+vibestrate run "Improve logging"
 ```
 
 The planner will guess what you meant. The reviewer will critique its own guess. You'll get a diff that's plausible but probably not what you wanted.

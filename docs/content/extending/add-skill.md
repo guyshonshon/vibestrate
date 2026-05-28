@@ -1,15 +1,15 @@
 ---
 title: Add a skill
-description: Write a markdown file, drop it in .amaco/skills/, attach it to an agent or run.
+description: Write a markdown file, drop it in .vibestrate/skills/, attach it to an agent or run.
 section: extending
 slug: extending/add-skill
 ---
 
-A skill is a markdown file. There's no scaffold to run, no metadata to fill in â€” write the file, save it under `.amaco/skills/`, and Amaco's discovery picks it up.
+A skill is a markdown file. There's no scaffold to run, no metadata to fill in â€” write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up.
 
 ## Steps
 
-1. Create `.amaco/skills/<id>.md`. The filename minus `.md` is the skill id. Pick something kebab-case: `auth-conventions`, `payment-rules`, `oncall-runbook`.
+1. Create `.vibestrate/skills/<id>.md`. The filename minus `.md` is the skill id. Pick something kebab-case: `auth-conventions`, `payment-rules`, `oncall-runbook`.
 2. Write the skill body as plain markdown. There's no required structure. Most useful skills follow:
 
    ```markdown
@@ -32,8 +32,8 @@ A skill is a markdown file. There's no scaffold to run, no metadata to fill in â
 3. Verify it's discovered:
 
    ```bash
-   amaco skills list
-   amaco skills show <id>
+   vibestrate skills list
+   vibestrate skills show <id>
    ```
 
 4. Attach to an agent in `project.yml`:
@@ -47,12 +47,12 @@ A skill is a markdown file. There's no scaffold to run, no metadata to fill in â
    Or for a single run:
 
    ```bash
-   amaco run "Add 2FA" --skills auth-conventions
+   vibestrate run "Add 2FA" --skills auth-conventions
    ```
 
 ## Skills in `.claude/skills/`
 
-If your project already uses Claude Code's skill discovery, Amaco reads `.claude/skills/` too. You don't need to duplicate.
+If your project already uses Claude Code's skill discovery, Vibestrate reads `.claude/skills/` too. You don't need to duplicate.
 
 ## What makes a skill *good*
 

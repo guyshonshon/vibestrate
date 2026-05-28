@@ -4,7 +4,7 @@ import {
   type DoctorFinding,
 } from "../../setup/doctor-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 type DoctorOptions = {
   json?: boolean;
@@ -47,7 +47,7 @@ export async function runDoctorCommand(opts: DoctorOptions = {}): Promise<number
     report = await runDoctor({ cwd });
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -57,7 +57,7 @@ export async function runDoctorCommand(opts: DoctorOptions = {}): Promise<number
     // Re-run report after fixes.
     report = await runDoctor({ cwd });
     if (!opts.json) {
-      console.log(header("Amaco Doctor — Fixes Applied"));
+      console.log(header("Vibestrate Doctor — Fixes Applied"));
       console.log("");
       if (fixOutcome.applied.length === 0) {
         console.log(`${symbol.warn()} No safe fixes were applicable.`);
@@ -94,7 +94,7 @@ export async function runDoctorCommand(opts: DoctorOptions = {}): Promise<number
   }
 
   const version = await readPkgVersion();
-  console.log(`${color.bold("Amaco Doctor")} ${color.dim(`v${version}`)}`);
+  console.log(`${color.bold("Vibestrate Doctor")} ${color.dim(`v${version}`)}`);
   console.log("");
   for (const f of report.findings) {
     const head = `${severitySymbol(f.severity)} ${f.title}`;

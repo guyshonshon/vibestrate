@@ -1,6 +1,6 @@
 import path from "node:path";
 import { ensureDir, pathExists, readText, writeText } from "../utils/fs.js";
-import { amacoRoot } from "../utils/paths.js";
+import { vibestrateRoot } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
 
 export type ValidationProfileUsageSource = "default" | "named";
@@ -22,7 +22,7 @@ export type ValidationProfileUsageReport = {
 };
 
 function usageFile(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), "validation-profile-usage.json");
+  return path.join(vibestrateRoot(projectRoot), "validation-profile-usage.json");
 }
 
 async function readRaw(
@@ -92,7 +92,7 @@ export async function recordValidationProfileUsage(input: {
         lastBundleId: input.bundleId ?? prev.lastBundleId,
       };
     }
-    await ensureDir(amacoRoot(input.projectRoot));
+    await ensureDir(vibestrateRoot(input.projectRoot));
     await writeText(
       usageFile(input.projectRoot),
       `${JSON.stringify({ entries: all }, null, 2)}\n`,

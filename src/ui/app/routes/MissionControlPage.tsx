@@ -13,7 +13,7 @@ import {
   WorkspaceCard,
 } from "../../components/mission/v3/RightRail.js";
 import type {
-  AmacoEvent,
+  VibestrateEvent,
   ApprovalRequest,
   DiscoveredFlow,
   NotificationRecord,
@@ -58,7 +58,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
   const [skills, setSkills] = useState<ComposerSkill[]>([]);
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
   const [presets, setPresets] = useState<ComposerPreset[]>([]);
-  const [eventsByRun, setEventsByRun] = useState<Record<string, AmacoEvent[]>>({});
+  const [eventsByRun, setEventsByRun] = useState<Record<string, VibestrateEvent[]>>({});
   const [diffByRun, setDiffByRun] = useState<
     Record<string, { insertions: number; deletions: number; files: number }>
   >({});
@@ -135,7 +135,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
         setScheduler(q.state);
         setError(null);
 
-        const byRun: Record<string, AmacoEvent[]> = {};
+        const byRun: Record<string, VibestrateEvent[]> = {};
         const diffsByRun: Record<
           string,
           { insertions: number; deletions: number; files: number }

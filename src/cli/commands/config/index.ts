@@ -6,7 +6,7 @@ import { runConfigValidate } from "./validate.js";
 
 export function buildConfigCommand(): Command {
   const cmd = new Command("config").description(
-    "Show and edit .amaco/project.yml without hand-editing YAML.",
+    "Show and edit .vibestrate/project.yml without hand-editing YAML.",
   );
 
   cmd
@@ -30,7 +30,7 @@ export function buildConfigCommand(): Command {
   cmd
     .command("set <path> <value>")
     .description(
-      'Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. \'amaco config set commands.validate "[\\"pnpm test\\"]"\').',
+      'Set a config value. Booleans/numbers/strings parsed automatically; arrays/objects via JSON (e.g. \'vibestrate config set commands.validate "[\\"pnpm test\\"]"\').',
     )
     .action(async (path: string, value: string) => {
       const code = await runConfigSet(path, value);
@@ -39,7 +39,7 @@ export function buildConfigCommand(): Command {
 
   cmd
     .command("validate")
-    .description("Validate the project.yml file against the Amaco schema.")
+    .description("Validate the project.yml file against the Vibestrate schema.")
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
       const code = await runConfigValidate({ json: opts.json });

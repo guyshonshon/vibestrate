@@ -184,7 +184,7 @@ export class ReviewSuggestionService {
   }
 
   /**
-   * Scan a reviewer/verifier artifact for AMACO_SUGGESTION blocks and persist
+   * Scan a reviewer/verifier artifact for VIBESTRATE_SUGGESTION blocks and persist
    * any new suggestions. Returns the records actually inserted (de-duped by
    * source + sourceArtifactPath + title).
    */
@@ -690,7 +690,7 @@ export class ReviewSuggestionService {
       ),
       errorMessage:
         result.status === "no_commands_configured"
-          ? "No validation commands configured. Run `amaco config set commands.validate '[\"<cmd>\"]'`."
+          ? "No validation commands configured. Run `vibestrate config set commands.validate '[\"<cmd>\"]'`."
           : null,
       updatedAt: nowIso(),
     };

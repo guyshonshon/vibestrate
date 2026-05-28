@@ -58,7 +58,7 @@ export const fakeQualityArbitrationFlow = {
 } as const;
 
 export const fakeFlowFindingsOutput = {
-  contract: "amaco.flow.findings.v1",
+  contract: "vibestrate.flow.findings.v1",
   stepId: "implementation-review",
   findings: [
     {
@@ -73,7 +73,7 @@ export const fakeFlowFindingsOutput = {
 } as const;
 
 export const fakeFlowFindingResponsesOutput = {
-  contract: "amaco.flow.finding-responses.v1",
+  contract: "vibestrate.flow.finding-responses.v1",
   stepId: "challenge-response",
   responses: [
     {
@@ -86,7 +86,7 @@ export const fakeFlowFindingResponsesOutput = {
 } as const;
 
 export const fakeFlowDecisionSummaryOutput = {
-  contract: "amaco.flow.decision-summary.v1",
+  contract: "vibestrate.flow.decision-summary.v1",
   stepId: "decision-summary",
   recommendation: "merge-ready",
   summary: "The review finding was fixed and validation evidence is present.",

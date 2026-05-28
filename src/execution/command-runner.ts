@@ -157,7 +157,7 @@ export async function runArgvCommand(input: {
     (result as { isCanceled?: boolean }).isCanceled === true ||
     input.signal?.aborted === true;
   if (aborted) {
-    const note = `\n[aborted: provider CLI was killed by amaco]\n`;
+    const note = `\n[aborted: provider CLI was killed by vibestrate]\n`;
     if (input.onChunk) {
       input.onChunk({
         stream: "stderr",

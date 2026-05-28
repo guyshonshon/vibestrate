@@ -20,7 +20,7 @@ import { filterReplayEvents } from "./replay-filter.js";
  *     agent or invokes a provider.
  *   - No terminal transcript. Terminal session entries surface metadata
  *     only (id, cwd, createdAt, closedAt, exitCode); the panel never
- *     fetches stdout/stderr because Amaco never persists those.
+ *     fetches stdout/stderr because Vibestrate never persists those.
  *   - The eager TODO panels we link to are read-only too (artifact viewer,
  *     event row); this panel does not introduce any new write surface.
  *
@@ -206,13 +206,13 @@ export function ReplayPanel({
 
   if (error)
     return (
-      <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-amaco-fail text-[11.5px]">
+      <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail text-[11.5px]">
         {error}
       </div>
     );
   if (!replay)
     return (
-      <div className="text-amaco-fg-muted text-[11.5px]">Loading replay…</div>
+      <div className="text-vibestrate-fg-muted text-[11.5px]">Loading replay…</div>
     );
 
   function togglePhase(key: ReplayPhaseKey) {
@@ -228,20 +228,20 @@ export function ReplayPanel({
     <div className="flex h-full flex-col gap-2 text-[12px]">
       <header className="space-y-1">
         <div className="flex flex-wrap items-baseline gap-2 text-[11.5px]">
-          <span className="font-medium text-amaco-fg">{replay.task || replay.runId}</span>
-          <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+          <span className="font-medium text-vibestrate-fg">{replay.task || replay.runId}</span>
+          <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
             {replay.finalStatus}
           </span>
           {replay.branchName ? (
-            <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+            <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
               branch {replay.branchName}
             </span>
           ) : null}
-          <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+          <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
             {replay.events.length} event(s)
           </span>
           {replay.flow ? (
-            <span className="amaco-mono text-[10px] text-amaco-accent">
+            <span className="vibestrate-mono text-[10px] text-vibestrate-accent">
               flow {replay.flow.label}
               {currentReplayFlowStep(replay)
                 ? ` · ${currentReplayFlowStep(replay)!.label} (${currentReplayFlowStep(replay)!.status})`
@@ -258,27 +258,27 @@ export function ReplayPanel({
           ) : null}
         </div>
         {replay.truncation.truncated ? (
-          <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[10.5px] text-amaco-warn">
+          <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[10.5px] text-vibestrate-warn">
             {replay.truncation.note}
           </div>
         ) : null}
         {focusUnresolved ? (
-          <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[10.5px] text-amaco-warn">
-            Couldn't locate <span className="amaco-mono">{focusUnresolved}</span>{" "}
+          <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[10.5px] text-vibestrate-warn">
+            Couldn't locate <span className="vibestrate-mono">{focusUnresolved}</span>{" "}
             in this run's timeline. The row may have been truncated, or the
             link points at a different run.
           </div>
         ) : null}
         {replay.missingOrMalformed.length > 0 ? (
-          <details className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[10.5px]">
-            <summary className="cursor-pointer text-amaco-fg-muted">
+          <details className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[10.5px]">
+            <summary className="cursor-pointer text-vibestrate-fg-muted">
               {replay.missingOrMalformed.length} file(s) skipped while building
               replay — click for details
             </summary>
-            <ul className="mt-1 space-y-0.5 text-amaco-fg-muted">
+            <ul className="mt-1 space-y-0.5 text-vibestrate-fg-muted">
               {replay.missingOrMalformed.map((m) => (
                 <li key={m.file}>
-                  <span className="amaco-mono">{m.file}</span>: {m.reason}
+                  <span className="vibestrate-mono">{m.file}</span>: {m.reason}
                 </li>
               ))}
             </ul>
@@ -310,7 +310,7 @@ export function ReplayPanel({
 
       <div className="grid flex-1 grid-cols-[200px_1fr] gap-2 overflow-hidden">
         {/* Left: phase + event timeline */}
-        <aside className="overflow-y-auto rounded border border-amaco-border bg-amaco-panel-2 p-1.5 text-[10.5px]">
+        <aside className="overflow-y-auto rounded border border-vibestrate-border bg-vibestrate-panel-2 p-1.5 text-[10.5px]">
           {replay.phases
             .filter((p) =>
               p.eventIndices.some((i) => visibleIndices.has(i)),
@@ -325,12 +325,12 @@ export function ReplayPanel({
                   <button
                     type="button"
                     onClick={() => togglePhase(phase.key)}
-                    className="flex w-full items-baseline justify-between rounded px-1 py-0.5 text-left text-amaco-fg-dim hover:bg-amaco-panel"
+                    className="flex w-full items-baseline justify-between rounded px-1 py-0.5 text-left text-vibestrate-fg-dim hover:bg-vibestrate-panel"
                   >
                     <span className="font-medium uppercase tracking-[0.06em]">
                       {phase.label}
                     </span>
-                    <span className="amaco-mono text-[9.5px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono text-[9.5px] text-vibestrate-fg-muted">
                       {filterActive
                         ? `${visibleInPhase.length}/${phase.eventIndices.length}`
                         : phase.eventIndices.length}
@@ -354,15 +354,15 @@ export function ReplayPanel({
                               onClick={() => setSelectedIndex(idx)}
                               className={`w-full truncate rounded px-1 py-0.5 text-left ${
                                 isSel
-                                  ? "bg-amaco-accent-soft/30 text-amaco-fg"
-                                  : "text-amaco-fg-dim hover:bg-amaco-panel"
+                                  ? "bg-vibestrate-accent-soft/30 text-vibestrate-fg"
+                                  : "text-vibestrate-fg-dim hover:bg-vibestrate-panel"
                               }`}
                               title={`${ev.timestamp} · ${ev.type}`}
                             >
-                              <span className="amaco-mono text-[9.5px] text-amaco-fg-muted">
+                              <span className="vibestrate-mono text-[9.5px] text-vibestrate-fg-muted">
                                 {formatShortTime(ev.timestamp)}
                               </span>{" "}
-                              <span className="amaco-mono">{ev.type}</span>
+                              <span className="vibestrate-mono">{ev.type}</span>
                             </button>
                           </li>
                         );
@@ -373,9 +373,9 @@ export function ReplayPanel({
               );
             })}
           {replay.events.length === 0 ? (
-            <div className="text-amaco-fg-muted">No events recorded.</div>
+            <div className="text-vibestrate-fg-muted">No events recorded.</div>
           ) : filterActive && visibleIndices.size === 0 ? (
-            <div className="text-amaco-fg-muted">No events match the filter.</div>
+            <div className="text-vibestrate-fg-muted">No events match the filter.</div>
           ) : null}
         </aside>
 
@@ -417,7 +417,7 @@ function SelectedEventCard({
 }) {
   if (!event) {
     return (
-      <div className="rounded border border-amaco-border bg-amaco-panel-2 p-2 text-amaco-fg-muted text-[11px]">
+      <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-vibestrate-fg-muted text-[11px]">
         Select an event from the timeline to see its detail.
       </div>
     );
@@ -425,24 +425,24 @@ function SelectedEventCard({
   const phaseLabel =
     phases.find((p) => p.key === event.phaseKey)?.label ?? event.phaseKey;
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
       <div className="flex items-center gap-2">
-        <div className="amaco-mono flex-1 text-[10.5px] text-amaco-fg-muted">
+        <div className="vibestrate-mono flex-1 text-[10.5px] text-vibestrate-fg-muted">
           {event.timestamp} · {event.source === "synthetic" ? "synthetic" : "event"} ·{" "}
           {phaseLabel}
         </div>
         <CopyPermalinkButton runId={runId} eventIndex={event.index} />
       </div>
-      <div className="amaco-mono mt-1 text-[12px] text-amaco-fg">{event.type}</div>
-      <p className="mt-1 text-[11.5px] text-amaco-fg-dim">{event.message}</p>
+      <div className="vibestrate-mono mt-1 text-[12px] text-vibestrate-fg">{event.type}</div>
+      <p className="mt-1 text-[11.5px] text-vibestrate-fg-dim">{event.message}</p>
       {snapshotAtSelected ? (
-        <div className="amaco-mono mt-1 text-[10.5px] text-amaco-fg-muted">
+        <div className="vibestrate-mono mt-1 text-[10.5px] text-vibestrate-fg-muted">
           run state at this timestamp:{" "}
-          <span className="text-amaco-fg">{snapshotAtSelected.status}</span>
+          <span className="text-vibestrate-fg">{snapshotAtSelected.status}</span>
           {snapshotAtSelected.previousStatus ? (
             <>
               {" "}
-              <span className="text-amaco-fg-muted">
+              <span className="text-vibestrate-fg-muted">
                 (from {snapshotAtSelected.previousStatus})
               </span>
             </>
@@ -452,10 +452,10 @@ function SelectedEventCard({
         </div>
       ) : null}
       {event.artifactRefs.length > 0 ? (
-        <div className="mt-1 text-[10.5px] text-amaco-fg-muted">
+        <div className="mt-1 text-[10.5px] text-vibestrate-fg-muted">
           referenced artifacts:{" "}
           {event.artifactRefs.map((a) => (
-            <span key={a} className="amaco-mono mr-1">
+            <span key={a} className="vibestrate-mono mr-1">
               {a}
             </span>
           ))}
@@ -463,10 +463,10 @@ function SelectedEventCard({
       ) : null}
       {event.data ? (
         <details className="mt-1">
-          <summary className="cursor-pointer text-[10.5px] text-amaco-fg-muted">
+          <summary className="cursor-pointer text-[10.5px] text-vibestrate-fg-muted">
             event data
           </summary>
-          <pre className="amaco-mono mt-1 overflow-x-auto rounded bg-amaco-panel px-2 py-1 text-[10px] text-amaco-fg-dim">
+          <pre className="vibestrate-mono mt-1 overflow-x-auto rounded bg-vibestrate-panel px-2 py-1 text-[10px] text-vibestrate-fg-dim">
             {JSON.stringify(event.data, null, 2)}
           </pre>
         </details>
@@ -484,15 +484,15 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         ) : (
           <ul className="space-y-1">
             {replay.approvals.map((a) => (
-              <li key={a.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
-                <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">
+              <li key={a.id} className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
                   {a.stageId} · {a.roleId} · risk {a.riskLevel} · source {a.source}
                 </div>
                 <div className="text-[11px]">
                   {a.status} {a.resolvedAt ? `· ${formatShortTime(a.resolvedAt)}` : ""}
                 </div>
                 {a.reason ? (
-                  <div className="text-[10.5px] text-amaco-fg-muted">{a.reason}</div>
+                  <div className="text-[10.5px] text-vibestrate-fg-muted">{a.reason}</div>
                 ) : null}
               </li>
             ))}
@@ -506,15 +506,15 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         ) : (
           <ul className="space-y-1">
             {replay.suggestions.map((s) => (
-              <li key={s.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
+              <li key={s.id} className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1">
                 <div className="text-[11px]">{s.title}</div>
-                <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                   {s.status} · {s.source}
                   {s.file ? ` · ${s.file}` : ""}
                   {s.validationProfile ? ` · profile ${s.validationProfile}` : ""}
                 </div>
                 {s.errorMessage ? (
-                  <div className="text-[10.5px] text-amaco-fail">{s.errorMessage}</div>
+                  <div className="text-[10.5px] text-vibestrate-fail">{s.errorMessage}</div>
                 ) : null}
               </li>
             ))}
@@ -528,14 +528,14 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         ) : (
           <ul className="space-y-1">
             {replay.bundles.map((b) => (
-              <li key={b.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
+              <li key={b.id} className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1">
                 <div className="text-[11px]">{b.title}</div>
-                <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                   {b.status} · {b.suggestionIds.length} suggestion(s)
                   {b.validationProfile ? ` · profile ${b.validationProfile}` : ""}
                 </div>
                 {b.errorMessage ? (
-                  <div className="text-[10.5px] text-amaco-fail">{b.errorMessage}</div>
+                  <div className="text-[10.5px] text-vibestrate-fail">{b.errorMessage}</div>
                 ) : null}
               </li>
             ))}
@@ -554,13 +554,13 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
             {replay.policyRefusals.map((p, i) => (
               <li
                 key={`${p.timestamp}-${i}`}
-                className="rounded border border-amaco-border bg-amaco-panel px-2 py-1"
+                className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1"
               >
-                <div className="amaco-mono text-[10.5px] text-amaco-warn">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-warn">
                   {p.surface} · rule {p.ruleId}
                 </div>
-                <div className="text-[10.5px] text-amaco-fg-dim">{p.message}</div>
-                <div className="amaco-mono text-[10px] text-amaco-fg-muted">
+                <div className="text-[10.5px] text-vibestrate-fg-dim">{p.message}</div>
+                <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                   {p.timestamp}
                 </div>
               </li>
@@ -575,9 +575,9 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         ) : (
           <ul className="space-y-1">
             {replay.notifications.map((n) => (
-              <li key={n.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
+              <li key={n.id} className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1">
                 <div className="text-[11px]">{n.title}</div>
-                <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                   {n.severity} · {n.category} · {formatShortTime(n.createdAt)}
                 </div>
               </li>
@@ -595,12 +595,12 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         ) : (
           <ul className="space-y-1">
             {replay.terminalSessions.map((s) => (
-              <li key={s.id} className="rounded border border-amaco-border bg-amaco-panel px-2 py-1">
-                <div className="amaco-mono text-[10.5px] text-amaco-fg-dim">{s.id}</div>
-                <div className="amaco-mono text-[10px] text-amaco-fg-muted">
+              <li key={s.id} className="rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1">
+                <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">{s.id}</div>
+                <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                   {s.shell} · {s.cwd}
                 </div>
-                <div className="amaco-mono text-[10px] text-amaco-fg-muted">
+                <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                   opened {formatShortTime(s.createdAt)}
                   {s.closedAt
                     ? ` · closed ${formatShortTime(s.closedAt)} · exit ${s.exitCode ?? "?"}`
@@ -610,15 +610,15 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
             ))}
           </ul>
         )}
-        <p className="mt-1 text-[10px] text-amaco-fg-muted">
-          Terminal output (stdout/stderr) is never persisted by Amaco, so replay
+        <p className="mt-1 text-[10px] text-vibestrate-fg-muted">
+          Terminal output (stdout/stderr) is never persisted by Vibestrate, so replay
           cannot show it. Only session lifecycle metadata is available.
         </p>
       </SummaryCard>
 
       {replay.metrics ? (
         <SummaryCard title="Metrics" count={null}>
-          <ul className="amaco-mono space-y-0.5 text-[10.5px] text-amaco-fg-dim">
+          <ul className="vibestrate-mono space-y-0.5 text-[10.5px] text-vibestrate-fg-dim">
             <li>duration: {replay.metrics.totalDurationMs} ms</li>
             <li>provider calls: {replay.metrics.totalProviderCalls}</li>
             <li>review loops: {replay.metrics.reviewLoopCount}</li>
@@ -643,7 +643,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
         {replay.artifacts.length === 0 ? (
           <Empty />
         ) : (
-          <ul className="amaco-mono space-y-0.5 text-[10.5px] text-amaco-fg-dim">
+          <ul className="vibestrate-mono space-y-0.5 text-[10.5px] text-vibestrate-fg-dim">
             {replay.artifacts.map((a) => (
               <li key={a.path}>{a.path}</li>
             ))}
@@ -664,13 +664,13 @@ function SummaryCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel-2 p-2">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
       <div className="flex items-baseline gap-2">
-        <h3 className="text-[11px] uppercase tracking-[0.1em] text-amaco-fg-muted">
+        <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
           {title}
         </h3>
         {count !== null ? (
-          <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+          <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
             {count}
           </span>
         ) : null}
@@ -681,7 +681,7 @@ function SummaryCard({
 }
 
 function Empty() {
-  return <div className="text-amaco-fg-muted text-[10.5px]">None.</div>;
+  return <div className="text-vibestrate-fg-muted text-[10.5px]">None.</div>;
 }
 
 function CopyPermalinkButton({
@@ -718,12 +718,12 @@ function CopyPermalinkButton({
     <button
       type="button"
       onClick={copy}
-      className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+      className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
       title="Copy a permalink to this event"
     >
       {copied ? (
         <>
-          <Check className="h-3 w-3 text-amaco-success" strokeWidth={1.5} />
+          <Check className="h-3 w-3 text-vibestrate-success" strokeWidth={1.5} />
           <span>Copied</span>
         </>
       ) : (
@@ -759,10 +759,10 @@ function FilterBar({
 }) {
   const nonEmpty = phases.filter((p) => p.eventIndices.length > 0);
   return (
-    <div className="space-y-1 rounded border border-amaco-border bg-amaco-panel-2 p-1.5">
+    <div className="space-y-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 p-1.5">
       <div className="flex items-center gap-1.5">
         <Search
-          className="h-3 w-3 shrink-0 text-amaco-fg-muted"
+          className="h-3 w-3 shrink-0 text-vibestrate-fg-muted"
           strokeWidth={1.5}
         />
         <input
@@ -770,20 +770,20 @@ function FilterBar({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Filter events by type or message…"
-          className="amaco-mono flex-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[11px] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent/60 focus:outline-none"
+          className="vibestrate-mono flex-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px] text-vibestrate-fg placeholder:text-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
         />
         {active ? (
           <button
             type="button"
             onClick={onClear}
-            className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             title="Clear filter"
           >
             <X className="h-3 w-3" strokeWidth={1.5} />
             Clear
           </button>
         ) : null}
-        <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+        <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
           {active ? `${visibleCount}/${totalCount}` : `${totalCount}`}
         </span>
       </div>
@@ -797,8 +797,8 @@ function FilterBar({
               onClick={() => onTogglePhase(p.key)}
               className={`rounded border px-1.5 py-0.5 text-[10px] ${
                 on
-                  ? "border-amaco-accent/60 bg-amaco-accent-soft/30 text-amaco-fg"
-                  : "border-amaco-border bg-amaco-panel text-amaco-fg-dim hover:bg-amaco-panel-2"
+                  ? "border-vibestrate-accent/60 bg-vibestrate-accent-soft/30 text-vibestrate-fg"
+                  : "border-vibestrate-border bg-vibestrate-panel text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
               }`}
               title={`${on ? "Hide" : "Show only"} ${p.label} events`}
             >

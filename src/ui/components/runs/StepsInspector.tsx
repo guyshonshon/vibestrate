@@ -5,7 +5,7 @@ import type { RoleMetrics, RuntimeMetrics } from "../../lib/types.js";
  * Per-step inspector — one card per agent invocation from the run's runtime
  * metrics: what ran (stage / agent / provider+model), how it went (exit code,
  * review/verification decision), what it touched (files + lines), and the cost
- * (duration, tokens, dollars). Read-only; sourced from `.amaco/runs/<id>` via
+ * (duration, tokens, dollars). Read-only; sourced from `.vibestrate/runs/<id>` via
  * the metrics endpoint the page already loads.
  */
 export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) {

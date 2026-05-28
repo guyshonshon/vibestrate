@@ -133,7 +133,7 @@ async function discoverProjectFlows(
  * Combine builtins + project flows into the effective catalog:
  *
  *   - A **project** flow *shadows* a builtin of the same id. This is how
- *     `fork` works — copy a builtin into `.amaco/flows/<id>/` and edit it;
+ *     `fork` works — copy a builtin into `.vibestrate/flows/<id>/` and edit it;
  *     the project version then wins everywhere.
  *   - Two **project** flows claiming the same id is an unresolvable conflict
  *     (two files, no precedence rule) → the first wins, the rest are reported

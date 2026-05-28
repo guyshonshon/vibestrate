@@ -19,10 +19,10 @@ import {
   providerLoginInstruction,
 } from "../providers/provider-presets.js";
 
-export const SAFE_TEST_MAGIC = "AMACO_PROVIDER_OK";
+export const SAFE_TEST_MAGIC = "VIBESTRATE_PROVIDER_OK";
 
 export const SAFE_TEST_PROMPT = [
-  "You are running a connectivity self-test from Amaco.",
+  "You are running a connectivity self-test from Vibestrate.",
   "Do not perform any other action.",
   `Reply with exactly this token and nothing else: ${SAFE_TEST_MAGIC}`,
 ].join("\n");
@@ -83,8 +83,8 @@ export async function setDefaultProvider(
   if (!found) {
     return {
       ok: false,
-      reason: `Provider "${providerId}" is not configured in .amaco/project.yml.`,
-      hint: "Run `amaco provider setup` to add a provider before assigning it.",
+      reason: `Provider "${providerId}" is not configured in .vibestrate/project.yml.`,
+      hint: "Run `vibestrate provider setup` to add a provider before assigning it.",
     };
   }
   await assignRolesToProvider(projectRoot, providerId);
@@ -127,7 +127,7 @@ export type ProviderTestResult = {
   hint?: string;
   /** True when the failure looks like the provider isn't authenticated. */
   needsLogin: boolean;
-  /** The command to run OUTSIDE Amaco to log in (null = API-key/local provider). */
+  /** The command to run OUTSIDE Vibestrate to log in (null = API-key/local provider). */
   loginCommand?: string | null;
 };
 
@@ -150,7 +150,7 @@ export async function runSafeProviderTest(input: {
       stderr: "",
       matchedMagic: false,
       needsLogin: false,
-      hint: `Provider "${input.providerId}" is not configured. Run \`amaco provider setup\` first.`,
+      hint: `Provider "${input.providerId}" is not configured. Run \`vibestrate provider setup\` first.`,
     };
   }
 
@@ -198,7 +198,7 @@ export async function runSafeProviderTest(input: {
       const login = knownId ? providerLoginInstruction(knownId) : null;
       loginCommand = login?.command ?? null;
       if (login?.command) {
-        hint = `"${provider.command}" looks unauthenticated. Log in OUTSIDE Amaco, then re-test:\n  ${login.command}\n${login.note}`;
+        hint = `"${provider.command}" looks unauthenticated. Log in OUTSIDE Vibestrate, then re-test:\n  ${login.command}\n${login.note}`;
       } else if (login) {
         hint = `"${provider.command}" looks unauthenticated. ${login.note}`;
       } else {
@@ -206,8 +206,11 @@ export async function runSafeProviderTest(input: {
       }
     } else if (kind === "exit") {
       hint = `The CLI exited with code ${exitCode}. Check that "${provider.command}" is installed and authenticated.`;
+    } else if (/unexpected argument|unrecognized|unknown option|unknown flag|invalid option|invalid subcommand/i.test(`${stderr}\n${stdout}`)) {
+      // The CLI rejected our args (e.g. a flag removed in a newer release).
+      hint = `"${provider.command}" rejected its arguments — a flag/subcommand it no longer accepts in this version. Run \`vibestrate provider setup\` to update the command/args.`;
     } else {
-      hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`amaco provider setup\` to adjust args/input mode.`;
+      hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`vibestrate provider setup\` to adjust args/input mode.`;
     }
   }
 
@@ -247,16 +250,18 @@ export function buildClaudeProviderFromDetection(
 
 /**
  * Starter preset for the OpenAI Codex CLI. Unlike the Claude preset,
- * Amaco does NOT auto-apply this in `doctor --fix` — Codex's flag matrix
+ * Vibestrate does NOT auto-apply this in `doctor --fix` — Codex's flag matrix
  * has moved across releases and we don't want to silently configure a
- * provider that might not work. The user opts in via `amaco provider
+ * provider that might not work. The user opts in via `vibestrate provider
  * setup codex` (or the dashboard's setup wizard), and we recommend they
- * follow up with `amaco provider test codex` before a real run depends
+ * follow up with `vibestrate provider test codex` before a real run depends
  * on it.
  *
- * Default invocation: `codex exec -q` with the prompt on stdin.
- *   - `exec` runs a one-shot rather than dropping into the REPL.
- *   - `-q` keeps the output machine-readable.
+ * Default invocation: `codex exec` with the prompt on stdin.
+ *   - `exec` runs a one-shot rather than dropping into the REPL and prints
+ *     the reply to stdout.
+ *   - No `-q`: current codex (0.13x) removed that flag and rejects it with a
+ *     usage error (exit 2). Older releases used it to quiet the output.
  *
  * The starter source of truth is `src/providers/presets/codex.ts`;
  * this function exists so the setup wizard / doctor have one call site
@@ -267,7 +272,7 @@ export function buildCodexPresetConfig(): CliProviderConfig {
   return {
     type: "cli",
     command: "codex",
-    args: ["exec", "-q"],
+    args: ["exec"],
     input: "stdin",
   };
 }
@@ -278,7 +283,7 @@ export function buildCodexProviderFromDetection(
   return {
     type: "cli",
     command: d.command,
-    args: ["exec", "-q"],
+    args: ["exec"],
     input: "stdin",
   };
 }

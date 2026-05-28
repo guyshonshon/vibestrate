@@ -14,7 +14,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeProject(): Promise<string> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-role-ctx-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-role-ctx-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });

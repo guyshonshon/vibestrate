@@ -9,9 +9,9 @@ Each entry lists symptoms, likely cause, fix, and how to verify.
 
 ---
 
-## Install failed: `amaco: command not found`
+## Install failed: `vibestrate: command not found`
 
-**Symptoms:** `npm install -g amaco-os` succeeded, but `amaco --version` returns "command not found."
+**Symptoms:** `npm install -g vibestrate` succeeded, but `vibestrate --version` returns "command not found."
 
 **Likely cause:** Your shell's PATH doesn't include npm's global bin directory.
 
@@ -22,29 +22,29 @@ npm config get prefix
 # Add <prefix>/bin to your PATH in ~/.zshrc or ~/.bashrc
 ```
 
-**Verify:** `which amaco` returns a real path.
+**Verify:** `which vibestrate` returns a real path.
 
 ---
 
-## `amaco init` fails: not a git repository
+## `vibestrate init` fails: not a git repository
 
 **Symptoms:** Init refuses to run with a "not a git repository" error.
 
-**Likely cause:** Amaco needs git for worktree isolation. The current directory isn't initialized.
+**Likely cause:** Vibestrate needs git for worktree isolation. The current directory isn't initialized.
 
 **Fix:**
 
 ```bash
 git init
 git add -A && git commit -m "Initial commit"
-amaco init
+vibestrate init
 ```
 
 **Verify:** `git rev-parse --is-inside-work-tree` returns `true`.
 
 ---
 
-## `amaco doctor` reports "no providers ready"
+## `vibestrate doctor` reports "no providers ready"
 
 **Symptoms:** Doctor lists all providers as `missing` or `detected-needs-setup`.
 
@@ -62,12 +62,12 @@ amaco init
 Then:
 
 ```bash
-amaco provider detect
-amaco provider setup
-amaco provider test <id>
+vibestrate provider detect
+vibestrate provider setup
+vibestrate provider test <id>
 ```
 
-**Verify:** `amaco provider detect` shows at least one provider with confidence `ready` or a working `detected-needs-setup` after `provider setup`.
+**Verify:** `vibestrate provider detect` shows at least one provider with confidence `ready` or a working `detected-needs-setup` after `provider setup`.
 
 ---
 
@@ -80,12 +80,12 @@ amaco provider test <id>
 **Fix:**
 
 ```bash
-amaco config set commands.validate '["pnpm typecheck"]'
+vibestrate config set commands.validate '["pnpm typecheck"]'
 # or
-amaco config set commands.validate '["pnpm typecheck", "pnpm test"]'
+vibestrate config set commands.validate '["pnpm typecheck", "pnpm test"]'
 ```
 
-**Verify:** `amaco config get commands.validate` shows your array.
+**Verify:** `vibestrate config get commands.validate` shows your array.
 
 ---
 
@@ -98,8 +98,8 @@ amaco config set commands.validate '["pnpm typecheck", "pnpm test"]'
 **Fix:**
 
 ```bash
-amaco approvals list <runId>
-amaco approvals decide <runId> <approvalId> --approve   # or --reject
+vibestrate approvals list <runId>
+vibestrate approvals decide <runId> <approvalId> --approve   # or --reject
 ```
 
 **Verify:** Status transitions back to the stage it was about to enter.
@@ -108,25 +108,25 @@ amaco approvals decide <runId> <approvalId> --approve   # or --reject
 
 ## Run stuck in `paused`
 
-**Symptoms:** Status is `paused` and `amaco resume` doesn't seem to do anything.
+**Symptoms:** Status is `paused` and `vibestrate resume` doesn't seem to do anything.
 
 **Likely cause:** Either the orchestrator isn't running (the process that owns the run ended), or the resume hasn't reached the next polling tick yet.
 
 **Fix:**
 
-If Amaco's process is alive: `amaco resume <runId>` and wait a few seconds for the next stage-boundary check.
+If Vibestrate's process is alive: `vibestrate resume <runId>` and wait a few seconds for the next stage-boundary check.
 
-If the process ended: start it again (`amaco run` or `amaco ui`) and the durable state will be picked up automatically.
+If the process ended: start it again (`vibestrate run` or `vibestrate ui`) and the durable state will be picked up automatically.
 
-**Verify:** `amaco status` shows the run transitioning out of `paused`.
+**Verify:** `vibestrate status` shows the run transitioning out of `paused`.
 
 ---
 
 ## Provider test fails: "command not found"
 
-**Symptoms:** `amaco provider test claude` returns "claude: command not found."
+**Symptoms:** `vibestrate provider test claude` returns "claude: command not found."
 
-**Likely cause:** The provider's CLI isn't on the PATH of the shell Amaco was started from.
+**Likely cause:** The provider's CLI isn't on the PATH of the shell Vibestrate was started from.
 
 **Fix:** Add the CLI to your PATH. For shell-installed binaries, restart your terminal so the new PATH is loaded.
 
@@ -136,17 +136,17 @@ If the process ended: start it again (`amaco run` or `amaco ui`) and the durable
 
 ## Provider test passes but runs fail with "unexpected output"
 
-**Symptoms:** `amaco provider test` returns success, but real runs end with "could not parse provider output."
+**Symptoms:** `vibestrate provider test` returns success, but real runs end with "could not parse provider output."
 
-**Likely cause:** The provider's prompt-flag preset is producing output Amaco can't parse — usually because the provider changed its output format between releases.
+**Likely cause:** The provider's prompt-flag preset is producing output Vibestrate can't parse — usually because the provider changed its output format between releases.
 
 **Fix:**
 
 ```bash
-amaco provider setup    # walk the wizard again to confirm flags
+vibestrate provider setup    # walk the wizard again to confirm flags
 ```
 
-If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output (under `.amaco/runs/<runId>/outputs/`).
+If the flags are right but the output format changed, file an issue with the provider's version (`<cli> --version`) and a sample of the captured output (under `.vibestrate/runs/<runId>/outputs/`).
 
 ---
 
@@ -159,17 +159,17 @@ If the flags are right but the output format changed, file an issue with the pro
 **Fix:** Commit or stash, then re-run:
 
 ```bash
-git stash push -m "before amaco run"
-amaco run "..."
+git stash push -m "before vibestrate run"
+vibestrate run "..."
 ```
 
 Or flip the policy if you don't want it:
 
 ```bash
-amaco config set git.requireCleanMain false
+vibestrate config set git.requireCleanMain false
 ```
 
-**Verify:** Worktree appears under `../.amaco-worktrees/`.
+**Verify:** Worktree appears under `../.vibestrate-worktrees/`.
 
 ---
 
@@ -182,31 +182,31 @@ amaco config set git.requireCleanMain false
 **Fix:**
 
 ```bash
-amaco gateways list
-amaco notifications list
+vibestrate gateways list
+vibestrate notifications list
 ```
 
 Confirm the gateway is enabled and the webhook URL is reachable. Send a test:
 
 ```bash
-amaco notifications test <gatewayId>
+vibestrate notifications test <gatewayId>
 ```
 
 ---
 
 ## Dashboard tab is blank
 
-**Symptoms:** `amaco ui` opens, but a tab shows no data even though there are runs.
+**Symptoms:** `vibestrate ui` opens, but a tab shows no data even though there are runs.
 
-**Likely cause:** The browser cached an older asset bundle, or the runs are in a different project root than the one `amaco ui` was started from.
+**Likely cause:** The browser cached an older asset bundle, or the runs are in a different project root than the one `vibestrate ui` was started from.
 
-**Fix:** Hard-reload (Cmd-Shift-R / Ctrl-Shift-R). Confirm `amaco ui` is running from the project root you expect: the dashboard reads `.amaco/runs/` from `cwd`.
+**Fix:** Hard-reload (Cmd-Shift-R / Ctrl-Shift-R). Confirm `vibestrate ui` is running from the project root you expect: the dashboard reads `.vibestrate/runs/` from `cwd`.
 
 ---
 
 ## Worktree didn't get cleaned up after abort
 
-**Symptoms:** `amaco abort <runId>` succeeded, but `../.amaco-worktrees/<runId>-<slug>` is still on disk.
+**Symptoms:** `vibestrate abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>-<slug>` is still on disk.
 
 **Likely cause:** This is by design. Worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work.
 
@@ -214,8 +214,8 @@ amaco notifications test <gatewayId>
 
 ```bash
 cd your-project
-git worktree remove ../.amaco-worktrees/<runId>-<slug>
-git branch -D amaco/<runId>-<slug>
+git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
+git branch -D vibestrate/<runId>-<slug>
 ```
 
 **Verify:** The directory is gone.

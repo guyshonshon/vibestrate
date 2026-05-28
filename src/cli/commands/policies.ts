@@ -8,13 +8,13 @@ import { policySurfaceSchema } from "../../policies/policy-types.js";
 
 export function buildPoliciesCommand(): Command {
   const cmd = new Command("policies").description(
-    "Inspect user policy rules in .amaco/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
+    "Inspect user policy rules in .vibestrate/policies/. Rules can refuse a suggestion/bundle apply; they never permit a patch that built-in safety already refused.",
   );
 
   cmd
     .command("list")
     .description(
-      "List every rule loaded from .amaco/policies/*.yml (after schema + regex/glob validation).",
+      "List every rule loaded from .vibestrate/policies/*.yml (after schema + regex/glob validation).",
     )
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
@@ -25,7 +25,7 @@ export function buildPoliciesCommand(): Command {
       }
       if (snap.rules.length === 0 && snap.ruleFiles.length === 0) {
         console.log(
-          color.dim("No policy rule files in .amaco/policies/. Empty rule set."),
+          color.dim("No policy rule files in .vibestrate/policies/. Empty rule set."),
         );
         return;
       }
@@ -165,7 +165,7 @@ export function buildPoliciesCommand(): Command {
         process.exit(malformed.length === 0 && dupes.length === 0 ? 0 : 1);
       }
 
-      console.log(`${color.bold("Amaco policies — doctor")}`);
+      console.log(`${color.bold("Vibestrate policies — doctor")}`);
       console.log("");
       console.log(`${symbol.ok()} ${fileCount} rule file(s), ${ruleCount} rule(s) loaded.`);
 

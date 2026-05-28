@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "The default Amaco workflow: plan → architect → execute → validate → review → fix → verify. Stages are defined in src/workflow/default-workflow.ts; the per-stage prose lives in the docs generator.",
+  "description": "The default Vibestrate workflow: plan → architect → execute → validate → review → fix → verify. Stages are defined in src/workflow/default-workflow.ts; the per-stage prose lives in the docs generator.",
   "stages": [
     {
       "id": "planning",

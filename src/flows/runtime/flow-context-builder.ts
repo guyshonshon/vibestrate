@@ -211,7 +211,7 @@ function decideContextInclusion(input: {
       disposition: "embedded-summary",
       body: summarizeContent(input.token, input.content, REUSED_SUMMARY_CHARS),
       reason:
-        "Participant session was reused, so Amaco sent a delta summary plus artifact reference instead of replaying the full artifact.",
+        "Participant session was reused, so Vibestrate sent a delta summary plus artifact reference instead of replaying the full artifact.",
     };
   }
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "rootKey": "project.yml",
-  "description": "Schema for .amaco/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Amaco fills in when the key is missing.",
+  "description": "Schema for .vibestrate/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
   "fields": [
     {
       "key": "project",
@@ -34,8 +34,8 @@
       "required": false,
       "default": {
         "mainBranch": "main",
-        "branchPrefix": "amaco/",
-        "worktreeDir": "../.amaco-worktrees",
+        "branchPrefix": "vibestrate/",
+        "worktreeDir": "../.vibestrate-worktrees",
         "requireCleanMain": false,
         "allowAutoMerge": false,
         "allowAutoPush": false
@@ -55,7 +55,7 @@
           "fullKey": "git.branchPrefix",
           "type": "string",
           "required": false,
-          "default": "amaco/",
+          "default": "vibestrate/",
           "itemType": null
         },
         {
@@ -63,7 +63,7 @@
           "fullKey": "git.worktreeDir",
           "type": "string",
           "required": false,
-          "default": "../.amaco-worktrees",
+          "default": "../.vibestrate-worktrees",
           "itemType": null
         },
         {

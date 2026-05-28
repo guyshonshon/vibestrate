@@ -14,8 +14,8 @@ import {
 let root: string;
 
 beforeEach(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-annotations-"));
-  await fs.mkdir(path.join(root, ".amaco"), { recursive: true });
+  root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-annotations-"));
+  await fs.mkdir(path.join(root, ".vibestrate"), { recursive: true });
 });
 
 afterEach(async () => {

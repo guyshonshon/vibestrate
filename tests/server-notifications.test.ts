@@ -16,7 +16,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-notify-srv-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-notify-srv-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -142,12 +142,12 @@ describe("server: notifications + gateways routes", () => {
   it("env-ref gateway URL surfaces as env-ref view, never a literal", async () => {
     const svc = new NotificationService(project);
     await svc.init();
-    delete process.env.AMACO_TEST_NOTSET;
+    delete process.env.VIBESTRATE_TEST_NOTSET;
     await svc.store.writeGateways({
       gateways: {
         slack: {
           enabled: true,
-          url: "env:AMACO_TEST_NOTSET",
+          url: "env:VIBESTRATE_TEST_NOTSET",
           token: null,
           target: null,
           minSeverity: "info",
@@ -163,10 +163,10 @@ describe("server: notifications + gateways routes", () => {
     const slack = r.gateways.find((g) => g.id === "slack");
     expect(slack!.config.url).toMatchObject({
       kind: "env-ref",
-      envVar: "AMACO_TEST_NOTSET",
+      envVar: "VIBESTRATE_TEST_NOTSET",
       envVarSet: false,
     });
-    expect(slack!.missingEnvVars).toContain("AMACO_TEST_NOTSET");
+    expect(slack!.missingEnvVars).toContain("VIBESTRATE_TEST_NOTSET");
   });
 
   it("POST /api/gateways/:id/test on whatsapp returns ok=false (planned, not real)", async () => {

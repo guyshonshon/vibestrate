@@ -7,7 +7,7 @@ import type {
 /**
  * Factory for the production driver. Dynamically imports `node-pty` so a
  * missing native binding (build toolchain unavailable, unsupported arch)
- * never crashes the rest of Amaco — the service surfaces an honest
+ * never crashes the rest of Vibestrate — the service surfaces an honest
  * "unavailable" state instead. Cached after first resolution.
  */
 let cached: TerminalDriver | null = null;

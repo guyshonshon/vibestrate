@@ -66,8 +66,8 @@ export function WorkflowTimeline({
   pausedAtStatus?: RunStatus | null;
 }) {
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         workflow
       </div>
       <ol className="mt-2 grid grid-cols-7 gap-2">
@@ -76,24 +76,24 @@ export function WorkflowTimeline({
           const isSelected = selectedStage === s.id;
           const dot =
             state === "done"
-              ? "bg-amaco-success"
+              ? "bg-vibestrate-success"
               : state === "active"
-                ? "bg-amaco-accent"
+                ? "bg-vibestrate-accent"
                 : state === "awaiting"
-                  ? "bg-amaco-accent"
-                  : "bg-amaco-fg-muted/40";
+                  ? "bg-vibestrate-accent"
+                  : "bg-vibestrate-fg-muted/40";
           const text =
             state === "done"
-              ? "text-amaco-fg"
+              ? "text-vibestrate-fg"
               : state === "active" || state === "awaiting"
-                ? "text-amaco-accent"
-                : "text-amaco-fg-muted";
+                ? "text-vibestrate-accent"
+                : "text-vibestrate-fg-muted";
           return (
             <li key={s.id}>
               <button
                 onClick={() => onSelectStage?.(s.id)}
-                className={`group flex w-full flex-col items-start gap-1.5 rounded px-2 py-1.5 text-left hover:bg-amaco-panel-2 ${
-                  isSelected ? "bg-amaco-panel-2" : ""
+                className={`group flex w-full flex-col items-start gap-1.5 rounded px-2 py-1.5 text-left hover:bg-vibestrate-panel-2 ${
+                  isSelected ? "bg-vibestrate-panel-2" : ""
                 }`}
               >
                 <span className="flex w-full items-center gap-1.5">
@@ -101,7 +101,7 @@ export function WorkflowTimeline({
                   <span className={`text-[12px] ${text}`}>
                     {s.label}
                     {state === "awaiting" ? (
-                      <span className="ml-1 text-[10.5px] text-amaco-fg-muted">
+                      <span className="ml-1 text-[10.5px] text-vibestrate-fg-muted">
                         · awaiting
                       </span>
                     ) : null}
@@ -109,15 +109,15 @@ export function WorkflowTimeline({
                 </span>
                 <span className="block h-px w-full overflow-hidden">
                   {state === "active" ? (
-                    <span className="amaco-pulse-bar block" />
+                    <span className="vibestrate-pulse-bar block" />
                   ) : (
                     <span
                       className={`block h-px w-full ${
                         state === "done"
-                          ? "bg-amaco-success/60"
+                          ? "bg-vibestrate-success/60"
                           : state === "awaiting"
-                            ? "bg-amaco-accent/60"
-                            : "bg-amaco-border"
+                            ? "bg-vibestrate-accent/60"
+                            : "bg-vibestrate-border"
                       }`}
                     />
                   )}

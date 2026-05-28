@@ -14,7 +14,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
-      ["!", "run any `amaco …` command and see the output"],
+      ["!", "run any `vibestrate …` command and see the output"],
       ["/", "filter the events list"],
       ["?", "toggle this help"],
     ],
@@ -25,7 +25,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["p", "pause the selected run"],
       ["r", "resume the selected run"],
       ["a", "abort the selected run (asks y / N)"],
-      ["R", "re-run as a fresh `amaco run` (preserves the original on disk)"],
+      ["R", "re-run as a fresh `vibestrate run` (preserves the original on disk)"],
     ],
   },
   {
@@ -51,7 +51,7 @@ export function HelpOverlay({ currentPage }: Props) {
   return (
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Text bold>Keybindings · context</Text>
-      <Text dimColor>amaco panel · press ? or Esc to close</Text>
+      <Text dimColor>vibestrate panel · press ? or Esc to close</Text>
 
       {/* Current-page context first — most likely what the user wants. */}
       <Box marginTop={1} flexDirection="column">

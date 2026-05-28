@@ -154,16 +154,16 @@ const SKIP_DIRS = new Set([
   "target",
   "venv",
   ".venv",
-  ".amaco-worktrees",
+  ".vibestrate-worktrees",
 ]);
 
 const MAX_ENTRIES = 8_000;
 
 export async function snapshotTree(
   rootPath: string,
-  options?: { includeAmaco?: boolean },
+  options?: { includeVibestrate?: boolean },
 ): Promise<TreeSnapshot> {
-  const includeAmaco = options?.includeAmaco === true;
+  const includeVibestrate = options?.includeVibestrate === true;
   const recents: { path: string; mtimeMs: number }[] = [];
   let newest = 0;
   let visited = 0;
@@ -182,7 +182,7 @@ export async function snapshotTree(
       visited++;
       if (e.isSymbolicLink()) continue;
       if (SKIP_DIRS.has(e.name)) continue;
-      if (!includeAmaco && e.name === ".amaco") continue;
+      if (!includeVibestrate && e.name === ".vibestrate") continue;
       const childRel = rel ? `${rel}/${e.name}` : e.name;
       const childAbs = path.join(rootPath, childRel);
       if (e.isDirectory()) {
@@ -223,7 +223,7 @@ export class FileTreeWatcher {
   constructor(
     private readonly rootPath: string,
     private readonly intervalMs: number = 8_000,
-    private readonly opts?: { includeAmaco?: boolean },
+    private readonly opts?: { includeVibestrate?: boolean },
   ) {}
 
   start(): void {

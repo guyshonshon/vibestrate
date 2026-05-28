@@ -5,7 +5,7 @@ import type { ProjectConfig } from "../../../project/config-schema.js";
 /**
  * Reads the project config periodically. Errors surface as `error`
  * (e.g. missing project.yml) so the page can render an honest
- * "run amaco init" prompt rather than crashing.
+ * "run vibestrate init" prompt rather than crashing.
  */
 export function useProjectConfig(projectRoot: string, refreshMs = 3000) {
   const [config, setConfig] = useState<ProjectConfig | null>(null);

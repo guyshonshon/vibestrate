@@ -9,7 +9,7 @@ const baseState = {
   status: "merge_ready" as const,
   projectRoot: "/p",
   worktreePath: "/wt",
-  branchName: "amaco/r1",
+  branchName: "vibestrate/r1",
   reviewLoopCount: 0,
   maxReviewLoops: 2,
   startedAt: "2026-01-01T00:00:00.000Z",

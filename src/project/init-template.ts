@@ -1,7 +1,7 @@
 import path from "node:path";
 import { ensureDir, writeText, pathExists } from "../utils/fs.js";
 import {
-  amacoRoot,
+  vibestrateRoot,
   policiesDir,
   projectRolesDir,
   projectConfigPath,
@@ -16,9 +16,9 @@ import {
 import { defaultProjectName } from "./project-detector.js";
 import type { SetupPlan } from "../setup/setup-service.js";
 
-const RULES_TEMPLATE = `# Project Rules for Amaco
+const RULES_TEMPLATE = `# Project Rules for Vibestrate
 
-These rules are provided to local agent CLIs during Amaco runs.
+These rules are provided to local agent CLIs during Vibestrate runs.
 
 ## Project Overview
 
@@ -63,7 +63,7 @@ Add product behavior, UX, and copywriting rules here.
 Add anything planner, architect, executor, reviewer, and verifier agents should know.
 `;
 
-const POLICIES_README = `# Amaco Policies
+const POLICIES_README = `# Vibestrate Policies
 
 User-supplied rules that refuse a suggestion or bundle apply if they match.
 They never *permit* a patch — built-in safety (path-based + content-based
@@ -98,9 +98,9 @@ V0 limits:
   truncated to 4096 chars.
 
 CLI:
-- \`amaco policies list [--json]\`
-- \`amaco policies check <patchFile> [--surface suggestion-apply|bundle-apply]\`
-- \`amaco policies doctor [--json]\`
+- \`vibestrate policies list [--json]\`
+- \`vibestrate policies check <patchFile> [--surface suggestion-apply|bundle-apply]\`
+- \`vibestrate policies doctor [--json]\`
 
 Malformed files (parse / schema / regex / glob errors) are skipped with a
 clear reason. Sibling well-formed files still apply.
@@ -110,7 +110,7 @@ const SKILLS_README = `# Project Skills
 
 Drop reusable instruction bundles here as Markdown files. Each filename stem
 (e.g. \`security.md\` → \`security\`) is the name you reference in
-\`.amaco/project.yml\` under \`roles.<role>.skills\`.
+\`.vibestrate/project.yml\` under \`roles.<role>.skills\`.
 
 Examples:
 
@@ -163,7 +163,7 @@ function renderProvidersYaml(input: SetupPlan | null): {
   }
 
   // Otherwise, leave a placeholder claude provider so the schema validates;
-  // doctor will warn if the command is not on PATH and `amaco provider setup`
+  // doctor will warn if the command is not on PATH and `vibestrate provider setup`
   // can swap it.
   return {
     section: `providers:
@@ -185,8 +185,8 @@ function projectYaml(input: ProjectYamlInput): string {
 
 git:
   mainBranch: main
-  branchPrefix: amaco/
-  worktreeDir: ../.amaco-worktrees
+  branchPrefix: vibestrate/
+  worktreeDir: ../.vibestrate-worktrees
   requireCleanMain: false
   allowAutoMerge: false
   allowAutoPush: false
@@ -204,37 +204,37 @@ ${input.providerSection}
 roles:
   planner:
     provider: ${ref}
-    prompt: .amaco/roles/planner.md
+    prompt: .vibestrate/roles/planner.md
     permissions: read_only
     skills: []
 
   architect:
     provider: ${ref}
-    prompt: .amaco/roles/architect.md
+    prompt: .vibestrate/roles/architect.md
     permissions: read_only
     skills: []
 
   executor:
     provider: ${ref}
-    prompt: .amaco/roles/executor.md
+    prompt: .vibestrate/roles/executor.md
     permissions: code_write
     skills: []
 
   fixer:
     provider: ${ref}
-    prompt: .amaco/roles/fixer.md
+    prompt: .vibestrate/roles/fixer.md
     permissions: code_write
     skills: []
 
   reviewer:
     provider: ${ref}
-    prompt: .amaco/roles/reviewer.md
+    prompt: .vibestrate/roles/reviewer.md
     permissions: read_only
     skills: []
 
   verifier:
     provider: ${ref}
-    prompt: .amaco/roles/verifier.md
+    prompt: .vibestrate/roles/verifier.md
     permissions: read_only
     skills: []
 
@@ -264,7 +264,7 @@ policies:
   forbidAutoPush: true
   forbidAutoMerge: true
   preserveArtifacts: true
-  # Stages where Amaco MUST pause for human approval before continuing.
+  # Stages where Vibestrate MUST pause for human approval before continuing.
   # Allowed values: planning, architecting, executing, validating, reviewing, fixing, verifying.
   # Example: requireApprovalAtStages: ["architecting", "verifying"]
   requireApprovalAtStages: []
@@ -279,7 +279,7 @@ policies:
   allowInteractiveTerminal: false
 
 scheduler:
-  # Concurrency for the local task scheduler (\`amaco queue run\`).
+  # Concurrency for the local task scheduler (\`vibestrate queue run\`).
   # Default 1 = one task run at a time. Increase to opt in to parallel runs;
   # each task still gets its own branch and worktree.
   maxConcurrentRuns: 1
@@ -332,7 +332,7 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
     plan: opts.plan ?? null,
   };
 
-  await ensureDir(amacoRoot(projectRoot));
+  await ensureDir(vibestrateRoot(projectRoot));
   await ensureDir(projectRolesDir(projectRoot));
   await ensureDir(projectSkillsDir(projectRoot));
   await ensureDir(projectRunsDir(projectRoot));

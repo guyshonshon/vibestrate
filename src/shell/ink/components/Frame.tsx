@@ -7,7 +7,7 @@ type Props = {
 };
 
 /**
- * Outer "amaco" shell. Single rounded gray border wraps the whole
+ * Outer "vibestrate" shell. Single rounded gray border wraps the whole
  * panel. Padding is intentionally tight (paddingX 2, paddingY 0) so
  * even a short VS-Code terminal pane keeps the header + nav + footer
  * all visible at once.
@@ -22,7 +22,7 @@ export function Frame({ subtitle, children }: Props) {
     >
       <Box>
         <Text bold color="cyan">
-          ⏵ amaco
+          ⏵ vibestrate
         </Text>
         <Box flexGrow={1} />
         {subtitle ? <Text dimColor>{subtitle}</Text> : null}

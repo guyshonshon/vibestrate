@@ -1,14 +1,14 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { z } from "zod";
-import { amacoRoot } from "../utils/paths.js";
+import { vibestrateRoot } from "../utils/paths.js";
 import { readJson, writeJson } from "../utils/json.js";
 import { pathExists } from "../utils/fs.js";
 import { isSecretLikePath, scanTextForSecrets } from "./diff-service.js";
 
 /**
  * Codebase annotations — external, human-authored notes pinned to a file (and
- * optionally a line or line range). They live in `.amaco/annotations.json`,
+ * optionally a line or line range). They live in `.vibestrate/annotations.json`,
  * never inside the source files themselves. When `shareWithRoles` is true and
  * the note is open, the orchestrator injects it into every agent's prompt for a
  * run, so the crew acknowledges the user's guidance ("don't touch this", "this
@@ -47,7 +47,7 @@ const fileSchema = z.object({ annotations: z.array(annotationSchema) });
 const MAX_BODY = 4000;
 
 function annotationsPath(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), "annotations.json");
+  return path.join(vibestrateRoot(projectRoot), "annotations.json");
 }
 
 /** Normalise + reject traversal. Throws AnnotationError(400) on a bad path. */
@@ -79,7 +79,7 @@ async function save(
   projectRoot: string,
   annotations: CodebaseAnnotation[],
 ): Promise<void> {
-  await fs.mkdir(amacoRoot(projectRoot), { recursive: true });
+  await fs.mkdir(vibestrateRoot(projectRoot), { recursive: true });
   await writeJson(annotationsPath(projectRoot), { annotations });
 }
 

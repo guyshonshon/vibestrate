@@ -5,7 +5,7 @@ section: concepts
 slug: concepts/skill
 ---
 
-**Professional explanation.** A skill is a markdown attachment discovered by filename under `.amaco/skills/` or `.claude/skills/`, identified by stem, and loaded into an agent's prompt as additional context. Skills may optionally declare MCP servers (Model Context Protocol) the agent should connect to during its turn.
+**Professional explanation.** A skill is a markdown attachment discovered by filename under `.vibestrate/skills/` or `.claude/skills/`, identified by stem, and loaded into an agent's prompt as additional context. Skills may optionally declare MCP servers (Model Context Protocol) the agent should connect to during its turn.
 
 **Simple explanation.** A skill is a markdown file you write once and any agent can read. Use it for the things that should always be true about your codebase — conventions, security rules, "we don't do X here."
 
@@ -15,7 +15,7 @@ Most "the agent did the wrong thing" problems trace back to context the agent di
 
 ## Two roots
 
-- `.amaco/skills/` — committed with your project. Travels with the repo.
+- `.vibestrate/skills/` — committed with your project. Travels with the repo.
 - `.claude/skills/` — picked up if you're already using Claude Code's skill discovery.
 
 The filename minus `.md` is the skill id. `auth-conventions.md` is the skill `auth-conventions`.
@@ -25,7 +25,7 @@ The filename minus `.md` is the skill id. `auth-conventions.md` is the skill `au
 There's no required schema. It's markdown — write it like documentation for a careful colleague.
 
 ```markdown
-# .amaco/skills/payments.md
+# .vibestrate/skills/payments.md
 
 This codebase handles real money. When touching `src/payments/`:
 
@@ -52,12 +52,12 @@ agents:
 Or per run, merged into every agent for that run:
 
 ```bash
-amaco run "Refund a stuck transaction" --skills payments,oncall-runbook
+vibestrate run "Refund a stuck transaction" --skills payments,oncall-runbook
 ```
 
 ## Skills vs project rules
 
-`.amaco/rules.md` is loaded for *every* agent on *every* run. Skills are loaded only for the agents and runs that ask for them. Use rules for the universal "this is how we work"; use skills for "this is what you need to know if you're touching X."
+`.vibestrate/rules.md` is loaded for *every* agent on *every* run. Skills are loaded only for the agents and runs that ask for them. Use rules for the universal "this is how we work"; use skills for "this is what you need to know if you're touching X."
 
 ## Common mistakes
 

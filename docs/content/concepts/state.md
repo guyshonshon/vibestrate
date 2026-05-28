@@ -5,9 +5,9 @@ section: concepts
 slug: concepts/state
 ---
 
-**Professional explanation.** Every run has a `status` field drawn from a fixed enum, validated by a Zod schema, and persisted at `.amaco/runs/<runId>/state.json`. Transitions between statuses are checked against an explicit allowlist (`ALLOWED_TRANSITIONS` in `src/core/state-machine.ts`); attempting an illegal move raises `StateTransitionError`. Terminal statuses (`merge_ready`, `blocked`, `failed`, `aborted`) cannot transition out.
+**Professional explanation.** Every run has a `status` field drawn from a fixed enum, validated by a Zod schema, and persisted at `.vibestrate/runs/<runId>/state.json`. Transitions between statuses are checked against an explicit allowlist (`ALLOWED_TRANSITIONS` in `src/core/state-machine.ts`); attempting an illegal move raises `StateTransitionError`. Terminal statuses (`merge_ready`, `blocked`, `failed`, `aborted`) cannot transition out.
 
-**Simple explanation.** Every run is in exactly one state at a time, and Amaco enforces which moves between states are legal. You can read a run's state at any point and know exactly what it's doing.
+**Simple explanation.** Every run is in exactly one state at a time, and Vibestrate enforces which moves between states are legal. You can read a run's state at any point and know exactly what it's doing.
 
 ## Why it matters
 
@@ -29,7 +29,7 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 | `reviewing` | Reviewer is reading diff + validation output. |
 | `fixing` | Fixer is addressing review findings. |
 | `verifying` | Verifier is doing the final pass before merge. |
-| `waiting_for_approval` | Run is paused at a policy gate. Awaiting `amaco approvals decide`. |
+| `waiting_for_approval` | Run is paused at a policy gate. Awaiting `vibestrate approvals decide`. |
 | `paused` | User-requested pause. Resume returns to `pausedAtStatus`. |
 | `merge_ready` | Verifier passed. Diff is ready for the user to merge. |
 | `blocked` | Reviewer or verifier flagged the run unsafe to continue. |
@@ -38,10 +38,10 @@ The canonical, generated list lives in the [run-state reference](/docs/reference
 
 ## Two kinds of pause
 
-- **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human runs `amaco approvals decide`.
-- **User-requested:** at any point you run `amaco pause <runId>`, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
+- **Policy-gated:** the project says "always pause at the boundary into `executing`." When the orchestrator reaches that boundary, status becomes `waiting_for_approval` and the run sits until a human runs `vibestrate approvals decide`.
+- **User-requested:** at any point you run `vibestrate pause <runId>`, status becomes `paused` between stage boundaries, and `pausedAtStatus` remembers where to resume.
 
-Both are durable across process restarts. The pause flag is persisted, so killing and restarting Amaco does not lose the pause.
+Both are durable across process restarts. The pause flag is persisted, so killing and restarting Vibestrate does not lose the pause.
 
 ## Terminal statuses are sticky
 
@@ -50,12 +50,12 @@ Both are durable across process restarts. The pause flag is persisted, so killin
 ## Inspecting state
 
 ```bash
-amaco status
-amaco status --json
-amaco replay <runId>
+vibestrate status
+vibestrate status --json
+vibestrate replay <runId>
 ```
 
-`amaco replay` opens a read-only inspector for any persisted run — useful for after-the-fact debugging when something interesting happened and you want to retrace.
+`vibestrate replay` opens a read-only inspector for any persisted run — useful for after-the-fact debugging when something interesting happened and you want to retrace.
 
 ## Related
 

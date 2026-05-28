@@ -4,7 +4,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { ProposalService } from "../../roadmap/proposal-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
@@ -36,7 +36,7 @@ async function cmdAdd(
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -53,7 +53,7 @@ async function cmdList(opts: { json?: boolean }): Promise<number> {
   if (items.length === 0) {
     console.log("No roadmap items yet.");
     console.log(
-      `  ${symbol.arrow()} Add one: ${color.bold("amaco roadmap add \"Build onboarding\"")}`,
+      `  ${symbol.arrow()} Add one: ${color.bold("vibestrate roadmap add \"Build onboarding\"")}`,
     );
     return 0;
   }
@@ -120,7 +120,7 @@ async function cmdUpdate(
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -134,7 +134,7 @@ async function cmdArchive(id: string): Promise<number> {
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -143,18 +143,18 @@ async function cmdArchive(id: string): Promise<number> {
 async function cmdInit(): Promise<number> {
   const s = await svc();
   await s.init();
-  console.log(`${symbol.ok()} Roadmap directory ready under ${color.bold(".amaco/roadmap")}.`);
+  console.log(`${symbol.ok()} Roadmap directory ready under ${color.bold(".vibestrate/roadmap")}.`);
   return 0;
 }
 
 export function buildRoadmapCommand(): Command {
   const cmd = new Command("roadmap").description(
-    "Manage local roadmap items (.amaco/roadmap/roadmap.json).",
+    "Manage local roadmap items (.vibestrate/roadmap/roadmap.json).",
   );
 
   cmd
     .command("init")
-    .description("Create the .amaco/roadmap/ scaffold if missing.")
+    .description("Create the .vibestrate/roadmap/ scaffold if missing.")
     .action(async () => {
       const code = await cmdInit();
       process.exit(code);
@@ -213,7 +213,7 @@ export function buildRoadmapCommand(): Command {
 
   cmd
     .command("proposals")
-    .description("List roadmap proposals stored in .amaco/roadmap/proposals/.")
+    .description("List roadmap proposals stored in .vibestrate/roadmap/proposals/.")
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
       const code = await cmdProposalsList(opts);
@@ -294,7 +294,7 @@ async function cmdProposalsList(opts: { json?: boolean }): Promise<number> {
   if (list.length === 0) {
     console.log("No proposals yet.");
     console.log(
-      `  ${symbol.arrow()} Create one: ${color.bold('amaco roadmap plan "<broad goal>"')}`,
+      `  ${symbol.arrow()} Create one: ${color.bold('vibestrate roadmap plan "<broad goal>"')}`,
     );
     return 0;
   }
@@ -323,7 +323,7 @@ async function cmdProposalShow(id: string): Promise<number> {
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -371,7 +371,7 @@ async function cmdProposalParse(
     return parsed.errors.length > 0 ? 1 : 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -472,12 +472,12 @@ async function cmdProposalAccept(
       for (const w of result.warnings) console.log(`${symbol.warn()} ${w.message}`);
     }
     console.log("");
-    console.log(`${symbol.arrow()} ${color.bold("amaco tasks list")}`);
-    console.log(`${symbol.arrow()} ${color.bold("amaco ui")} → board`);
+    console.log(`${symbol.arrow()} ${color.bold("vibestrate tasks list")}`);
+    console.log(`${symbol.arrow()} ${color.bold("vibestrate ui")} → board`);
     return 0;
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -490,7 +490,7 @@ async function cmdRoadmapPlan(
   if (!goal) {
     console.error(`${symbol.fail()} A goal is required.`);
     console.error(
-      `  ${symbol.arrow()} ${color.bold('amaco roadmap plan "Build first public beta experience"')}`,
+      `  ${symbol.arrow()} ${color.bold('vibestrate roadmap plan "Build first public beta experience"')}`,
     );
     return 1;
   }
@@ -510,10 +510,10 @@ async function cmdRoadmapPlan(
     loaded = await loadConfig(detected.projectRoot);
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("amaco init")} first.`,
+      `  ${symbol.arrow()} Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
@@ -521,7 +521,7 @@ async function cmdRoadmapPlan(
   const plannerRole = loaded.config.roles["planner"];
   if (!plannerRole) {
     console.error(
-      `${symbol.fail()} No planner agent configured. Run ${color.bold("amaco init --force")} or ${color.bold("amaco provider setup")}.`,
+      `${symbol.fail()} No planner agent configured. Run ${color.bold("vibestrate init --force")} or ${color.bold("vibestrate provider setup")}.`,
     );
     return 1;
   }
@@ -579,7 +579,7 @@ async function cmdRoadmapPlan(
       }`,
     );
     console.error(
-      `  ${symbol.arrow()} Make sure ${color.bold(loaded.config.providers[providerId]!.command)} is installed (\`amaco provider detect\`).`,
+      `  ${symbol.arrow()} Make sure ${color.bold(loaded.config.providers[providerId]!.command)} is installed (\`vibestrate provider detect\`).`,
     );
     return 1;
   }
@@ -608,9 +608,9 @@ async function cmdRoadmapPlan(
     console.log(`${symbol.ok()} Saved proposal ${color.bold(id)}.`);
     console.log(indent(`path: ${path.relative(process.cwd(), target)}`));
     console.log("");
-    console.log(`${symbol.arrow()} Review: ${color.bold(`amaco roadmap proposal show ${id}`)}`);
-    console.log(`${symbol.arrow()} Preview: ${color.bold(`amaco roadmap accept ${id} --dry-run`)}`);
-    console.log(`${symbol.arrow()} Accept:  ${color.bold(`amaco roadmap accept ${id}`)}`);
+    console.log(`${symbol.arrow()} Review: ${color.bold(`vibestrate roadmap proposal show ${id}`)}`);
+    console.log(`${symbol.arrow()} Preview: ${color.bold(`vibestrate roadmap accept ${id} --dry-run`)}`);
+    console.log(`${symbol.arrow()} Accept:  ${color.bold(`vibestrate roadmap accept ${id}`)}`);
     return 0;
   } catch (err) {
     console.error(

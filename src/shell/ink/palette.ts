@@ -65,11 +65,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "list + inspector for every run",
     description:
       "Browse, inspect, and control runs. Right pane shows the selected run's events / overview / validation.",
-    cli: "amaco status",
+    cli: "vibestrate status",
     examples: [
-      'amaco run "fix login bug"          # start a new run',
-      "amaco replay <runId>                # event-by-event replay",
-      "amaco pause <runId>                 # pause at next safe stage",
+      'vibestrate run "fix login bug"          # start a new run',
+      "vibestrate replay <runId>                # event-by-event replay",
+      "vibestrate pause <runId>                 # pause at next safe stage",
     ],
     action: { kind: "goto", page: "runs" },
   },
@@ -80,11 +80,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["tasks", "board"],
     description:
       "Workflow board grouped by task status. Navigate states with ←/→, tasks with ↑/↓; n creates, e edits, d deletes, Q queues.",
-    cli: "amaco tasks list",
+    cli: "vibestrate tasks list",
     examples: [
-      'amaco tasks add "title" --priority high --effort medium',
-      "amaco tasks show <taskId>",
-      "amaco roadmap show                  # raw roadmap document",
+      'vibestrate tasks add "title" --priority high --effort medium',
+      "vibestrate tasks show <taskId>",
+      "vibestrate roadmap show                  # raw roadmap document",
     ],
     action: { kind: "goto", page: "roadmap" },
   },
@@ -95,11 +95,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["scheduler"],
     description:
       "FIFO + priority + fairness queue. Each entry carries a source tag for per-source quotas.",
-    cli: "amaco queue list",
+    cli: "vibestrate queue list",
     examples: [
-      "amaco queue add <taskId> --source cron",
-      "amaco queue run                     # drain the queue",
-      "amaco queue status                  # current scheduler state",
+      "vibestrate queue add <taskId> --source cron",
+      "vibestrate queue run                     # drain the queue",
+      "vibestrate queue status                  # current scheduler state",
     ],
     action: { kind: "goto", page: "queue" },
   },
@@ -109,7 +109,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "agents + provider + MCP servers",
     description:
       "Configured agents (planner, architect, executor, …) with their provider, prompt path, permissions, and attached MCP servers.",
-    cli: "(panel only — managed via .amaco/project.yml)",
+    cli: "(panel only — managed via .vibestrate/project.yml)",
     action: { kind: "goto", page: "agents" },
   },
   {
@@ -118,11 +118,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "discovered skills + MCP attachment",
     keywords: ["mcp"],
     description:
-      "Discover amaco / claude / user skills, see their MCP server declarations, attach them to agents.",
-    cli: "amaco skills list",
+      "Discover vibestrate / claude / user skills, see their MCP server declarations, attach them to agents.",
+    cli: "vibestrate skills list",
     examples: [
-      "amaco skills show <id>              # show frontmatter + body",
-      "amaco skills assign <id> <agent>    # attach skill to agent",
+      "vibestrate skills show <id>              # show frontmatter + body",
+      "vibestrate skills assign <id> <agent>    # attach skill to agent",
     ],
     action: { kind: "goto", page: "skills" },
   },
@@ -133,10 +133,10 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["recipes", "quality", "arbitration", "workflow"],
     description:
       "Opens the command runner with the Flow catalog so the shell can inspect the same run recipes as the CLI and dashboard.",
-    cli: "amaco flows list",
+    cli: "vibestrate flows list",
     examples: [
-      "amaco flows show quality-arbitration",
-      'amaco run "review this change" --flow quality-arbitration',
+      "vibestrate flows show quality-arbitration",
+      'vibestrate run "review this change" --flow quality-arbitration',
     ],
     action: { kind: "open-runner", seed: "flows list" },
   },
@@ -147,7 +147,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["flow", "review", "challenger", "cto"],
     description:
       "Loads the built-in Quality Arbitration flow definition in the runner.",
-    cli: "amaco flows show quality-arbitration",
+    cli: "vibestrate flows show quality-arbitration",
     action: {
       kind: "open-runner",
       seed: "flows show quality-arbitration",
@@ -159,11 +159,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "pending approval gates",
     description:
       "Approve or reject every pending approval across runs. Use this when a run pauses at a policy-required boundary.",
-    cli: "amaco approvals list",
+    cli: "vibestrate approvals list",
     examples: [
-      "amaco approvals show <id>",
-      "amaco approvals accept <id>",
-      'amaco approvals reject <id> --reason "needs migration"',
+      "vibestrate approvals show <id>",
+      "vibestrate approvals accept <id>",
+      'vibestrate approvals reject <id> --reason "needs migration"',
     ],
     action: { kind: "goto", page: "approvals" },
   },
@@ -173,12 +173,12 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "per-run suggestions + bundles",
     keywords: ["bundles"],
     description:
-      "Accept / reject suggestions per run; apply bundles, validate, revert. The same surface area as amaco suggestions / bundles.",
-    cli: "amaco suggestions list",
+      "Accept / reject suggestions per run; apply bundles, validate, revert. The same surface area as vibestrate suggestions / bundles.",
+    cli: "vibestrate suggestions list",
     examples: [
-      "amaco suggestions show <id>",
-      "amaco bundles apply <bundleId>",
-      "amaco bundles revert <bundleId>",
+      "vibestrate suggestions show <id>",
+      "vibestrate bundles apply <bundleId>",
+      "vibestrate bundles revert <bundleId>",
     ],
     action: { kind: "goto", page: "suggestions" },
   },
@@ -188,8 +188,8 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "feed + gateway status",
     description:
       "Recent notifications across runs + the health of each configured gateway (CLI, in-app, webhook, Discord, Slack, Telegram).",
-    cli: "amaco notifications list",
-    examples: ["amaco notifications gateways"],
+    cli: "vibestrate notifications list",
+    examples: ["vibestrate notifications gateways"],
     action: { kind: "goto", page: "notifications" },
   },
   {
@@ -198,27 +198,27 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "env + config diagnostics",
     keywords: ["settings", "diagnostics"],
     description:
-      "Run the same checks as `amaco doctor` inline, with a one-click --fix surface for safe recoveries.",
-    cli: "amaco doctor",
+      "Run the same checks as `vibestrate doctor` inline, with a one-click --fix surface for safe recoveries.",
+    cli: "vibestrate doctor",
     examples: [
-      "amaco doctor --fix                  # apply safe scaffold fixes",
-      "amaco doctor --json                 # JSON for scripting",
+      "vibestrate doctor --fix                  # apply safe scaffold fixes",
+      "vibestrate doctor --json                 # JSON for scripting",
     ],
     action: { kind: "goto", page: "doctor" },
   },
   {
     id: "scheduler.start",
     title: "Start scheduler loop",
-    hint: "spawns `amaco queue run` in the background",
+    hint: "spawns `vibestrate queue run` in the background",
     keywords: ["queue", "start", "daemon", "poll"],
     description:
       "Boots the scheduler loop so queued tasks actually get picked up. Without this running, queueing a task does nothing — items sit in queue.json forever.",
-    cli: "amaco queue run",
-    examples: ["amaco queue run --exit-when-drained   # script-friendly"],
+    cli: "vibestrate queue run",
+    examples: ["vibestrate queue run --exit-when-drained   # script-friendly"],
     action: {
       kind: "spawn-detached",
       argv: ["queue", "run"],
-      toast: "Started `amaco queue run` — queued tasks will pick up within ~1s.",
+      toast: "Started `vibestrate queue run` — queued tasks will pick up within ~1s.",
     },
   },
   {
@@ -228,7 +228,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["queue", "halt"],
     description:
       "Sets `paused=true` on the scheduler state. New tasks won't launch; in-flight runs keep running. Resume to drain the queue again.",
-    cli: "amaco queue pause",
+    cli: "vibestrate queue pause",
     action: { kind: "pause-scheduler" },
   },
   {
@@ -237,7 +237,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "clears paused; queue starts draining again",
     keywords: ["queue", "start"],
     description: "Clears the scheduler's `paused` flag so queued tasks launch again.",
-    cli: "amaco queue resume",
+    cli: "vibestrate queue resume",
     action: { kind: "resume-scheduler" },
   },
   {
@@ -247,8 +247,8 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["stop", "halt"],
     description:
       "Requests a pause on the selected run. The orchestrator finishes the current agent and transitions to `paused`. Resume re-enters from the same boundary.",
-    cli: "amaco pause <runId>",
-    examples: ["amaco pause run-2026-…    # same effect as the panel"],
+    cli: "vibestrate pause <runId>",
+    examples: ["vibestrate pause run-2026-…    # same effect as the panel"],
     action: { kind: "pause-run" },
   },
   {
@@ -257,7 +257,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "clears pauseRequested",
     description:
       "Clears the pause request on a paused run. The orchestrator picks it up on the next polling tick and transitions back to the previous stage.",
-    cli: "amaco resume <runId>",
+    cli: "vibestrate resume <runId>",
     action: { kind: "resume-run" },
   },
   {
@@ -267,16 +267,16 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["stop", "kill"],
     description:
       "Marks the run as `aborted` and emits a `run.aborted` event. The worktree stays on disk so you can inspect or clean it up manually.",
-    cli: "amaco abort <runId>",
+    cli: "vibestrate abort <runId>",
     action: { kind: "abort-run" },
   },
   {
     id: "runner.open",
-    title: "Run any amaco command…",
+    title: "Run any vibestrate command…",
     hint: "shell-style command bar — `!` opens it directly",
     keywords: ["shell", "cli", "bang", "run"],
     description:
-      "Opens a free-form command bar where you can type any `amaco …` invocation and see the output inside the panel. Argv-only, no shell expansion.",
+      "Opens a free-form command bar where you can type any `vibestrate …` invocation and see the output inside the panel. Argv-only, no shell expansion.",
     cli: "(this surface — use ! to open directly)",
     examples: [
       "status --json",
@@ -289,40 +289,40 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   {
     id: "runner.config-show",
     title: "Show config.json",
-    hint: "amaco config show",
+    hint: "vibestrate config show",
     keywords: ["config", "yaml", "json"],
     description:
-      "Runs `amaco config show` and dumps the resolved project config into the runner output pane.",
-    cli: "amaco config show",
+      "Runs `vibestrate config show` and dumps the resolved project config into the runner output pane.",
+    cli: "vibestrate config show",
     action: { kind: "open-runner", seed: "config show" },
   },
   {
     id: "runner.status-json",
     title: "Status as JSON",
-    hint: "amaco status --json",
+    hint: "vibestrate status --json",
     keywords: ["runs", "status"],
     description:
       "Seeds the runner with `status --json` so you can capture / pipe / inspect the run list.",
-    cli: "amaco status --json",
+    cli: "vibestrate status --json",
     action: { kind: "open-runner", seed: "status --json" },
   },
   {
     id: "ui.start",
     title: "Open dashboard in browser",
-    hint: "amaco ui --open   (background)",
+    hint: "vibestrate ui --open   (background)",
     keywords: ["ui", "browser", "web", "supervisor", "open", "launch"],
     description:
-      "Spawns `amaco ui --open` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and tells `amaco ui` to open your default browser at that URL.",
-    cli: "amaco ui --open",
+      "Spawns `vibestrate ui --open` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and tells `vibestrate ui` to open your default browser at that URL.",
+    cli: "vibestrate ui --open",
     examples: [
-      "amaco ui --open --port 4318    # custom port + auto-open",
-      "amaco ui                       # start without opening the browser",
+      "vibestrate ui --open --port 4318    # custom port + auto-open",
+      "vibestrate ui                       # start without opening the browser",
     ],
     action: {
       kind: "spawn-detached",
       argv: ["ui", "--open"],
       toast:
-        "Started `amaco ui --open` — http://127.0.0.1:4317 (your browser should open).",
+        "Started `vibestrate ui --open` — http://127.0.0.1:4317 (your browser should open).",
     },
   },
   {
@@ -337,12 +337,12 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   },
   {
     id: "run.start",
-    title: "Run amaco for a free-form task",
+    title: "Run vibestrate for a free-form task",
     hint: "opens the runner pre-seeded with `run`",
     keywords: ["start", "task", "kick"],
     description:
       'Drops you into the runner with `run ""` so you can type the task in quotes. Use Roadmap [3] + Enter to launch a task from the kanban board.',
-    cli: 'amaco run "describe the change"',
+    cli: 'vibestrate run "describe the change"',
     action: { kind: "open-runner", seed: 'run ""' },
   },
   {
@@ -357,7 +357,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   },
   {
     id: "shell.quit",
-    title: "Quit amaco",
+    title: "Quit vibestrate",
     hint: "exits the panel",
     keywords: ["exit"],
     description:

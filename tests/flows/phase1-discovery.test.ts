@@ -23,27 +23,27 @@ providers:
 roles:
   planner:
     provider: claude
-    prompt: .amaco/roles/planner.md
+    prompt: .vibestrate/roles/planner.md
     permissions: readOnly
   architect:
     provider: claude
-    prompt: .amaco/roles/architect.md
+    prompt: .vibestrate/roles/architect.md
     permissions: readOnly
   executor:
     provider: claude
-    prompt: .amaco/roles/executor.md
+    prompt: .vibestrate/roles/executor.md
     permissions: codeWrite
   fixer:
     provider: claude
-    prompt: .amaco/roles/fixer.md
+    prompt: .vibestrate/roles/fixer.md
     permissions: codeWrite
   reviewer:
     provider: codex
-    prompt: .amaco/roles/reviewer.md
+    prompt: .vibestrate/roles/reviewer.md
     permissions: readOnly
   verifier:
     provider: codex
-    prompt: .amaco/roles/verifier.md
+    prompt: .vibestrate/roles/verifier.md
     permissions: readOnly
 `;
 
@@ -65,17 +65,17 @@ steps:
 `;
 
 async function makeProject(): Promise<string> {
-  const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-flows-phase1-"));
-  await fs.mkdir(path.join(projectRoot, ".amaco"), { recursive: true });
+  const projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-flows-phase1-"));
+  await fs.mkdir(path.join(projectRoot, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(projectRoot, ".amaco", "project.yml"),
+    path.join(projectRoot, ".vibestrate", "project.yml"),
     PROJECT_CONFIG,
   );
-  await fs.mkdir(path.join(projectRoot, ".amaco", "flows", "project-review"), {
+  await fs.mkdir(path.join(projectRoot, ".vibestrate", "flows", "project-review"), {
     recursive: true,
   });
   await fs.writeFile(
-    path.join(projectRoot, ".amaco", "flows", "project-review", "flow.yml"),
+    path.join(projectRoot, ".vibestrate", "flows", "project-review", "flow.yml"),
     PROJECT_FLOW,
   );
   return projectRoot;
@@ -107,13 +107,13 @@ describe("Flow Phase 1 discovery", () => {
   it("lets a project flow shadow a builtin of the same id (fork to customize)", async () => {
     const projectRoot = await makeProject();
     await fs.mkdir(
-      path.join(projectRoot, ".amaco", "flows", "quality-arbitration"),
+      path.join(projectRoot, ".vibestrate", "flows", "quality-arbitration"),
       { recursive: true },
     );
     await fs.writeFile(
       path.join(
         projectRoot,
-        ".amaco",
+        ".vibestrate",
         "flows",
         "quality-arbitration",
         "flow.yml",
@@ -130,11 +130,11 @@ describe("Flow Phase 1 discovery", () => {
 
   it("keeps one of two project flows with the same id and reports the duplicate", async () => {
     const projectRoot = await makeProject();
-    await fs.mkdir(path.join(projectRoot, ".amaco", "flows", "dup"), {
+    await fs.mkdir(path.join(projectRoot, ".vibestrate", "flows", "dup"), {
       recursive: true,
     });
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "flows", "dup", "flow.yml"),
+      path.join(projectRoot, ".vibestrate", "flows", "dup", "flow.yml"),
       PROJECT_FLOW, // id stays project-review → collides with the first
     );
     // Resilient: the conflict is reported, not thrown — one wins, the rest are
@@ -146,11 +146,11 @@ describe("Flow Phase 1 discovery", () => {
 
   it("skips a malformed project flow but still returns the valid ones", async () => {
     const projectRoot = await makeProject();
-    await fs.mkdir(path.join(projectRoot, ".amaco", "flows", "broken"), {
+    await fs.mkdir(path.join(projectRoot, ".vibestrate", "flows", "broken"), {
       recursive: true,
     });
     await fs.writeFile(
-      path.join(projectRoot, ".amaco", "flows", "broken", "flow.yml"),
+      path.join(projectRoot, ".vibestrate", "flows", "broken", "flow.yml"),
       "id: broken\nversion: 1\nlabel: Broken\n# missing description/slots/steps\n",
     );
     const { flows, invalid } = await discoverFlowCatalog(projectRoot);

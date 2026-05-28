@@ -20,10 +20,10 @@ export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
 
   if (skills.length === 0) {
     console.log(
-      `${symbol.warn()} No skills discovered in ${color.dim(".amaco/skills/")} or ${color.dim(".claude/skills/")}.`,
+      `${symbol.warn()} No skills discovered in ${color.dim(".vibestrate/skills/")} or ${color.dim(".claude/skills/")}.`,
     );
     console.log(
-      `  ${symbol.arrow()} Drop a folder with ${color.bold("SKILL.md")} or a flat ${color.bold("<name>.md")} into ${color.dim(".amaco/skills/")}.`,
+      `  ${symbol.arrow()} Drop a folder with ${color.bold("SKILL.md")} or a flat ${color.bold("<name>.md")} into ${color.dim(".vibestrate/skills/")}.`,
     );
     console.log("");
     console.log(
@@ -54,7 +54,7 @@ export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
   }
   console.log(
     color.dim(
-      "Use `amaco skills assign <agent> <skill>` to attach a skill to an agent.",
+      "Use `vibestrate skills assign <agent> <skill>` to attach a skill to an agent.",
     ),
   );
   return 0;

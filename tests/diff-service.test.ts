@@ -10,7 +10,7 @@ import {
 } from "../src/core/diff-service.js";
 
 async function makeRepo(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-diff-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-diff-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -80,7 +80,7 @@ describe("getDiffSnapshot", () => {
 
   it("returns empty snapshot for non-existent worktree", async () => {
     const snap = await getDiffSnapshot({
-      worktreePath: "/tmp/definitely-does-not-exist-amaco-xyz",
+      worktreePath: "/tmp/definitely-does-not-exist-vibestrate-xyz",
     });
     expect(snap.files).toEqual([]);
   });

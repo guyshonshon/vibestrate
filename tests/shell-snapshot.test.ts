@@ -9,7 +9,7 @@ import {
 import { createInitialState } from "../src/core/state-machine.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-shell-snap-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shell-snap-"));
 }
 
 async function writeRun(
@@ -17,7 +17,7 @@ async function writeRun(
   runId: string,
   patches: Record<string, unknown>,
 ): Promise<void> {
-  const dir = path.join(root, ".amaco", "runs", runId);
+  const dir = path.join(root, ".vibestrate", "runs", runId);
   await fs.mkdir(dir, { recursive: true });
   const initial = createInitialState({
     runId,
@@ -39,7 +39,7 @@ async function appendEvent(
   runId: string,
   ev: Record<string, unknown>,
 ): Promise<void> {
-  const dir = path.join(root, ".amaco", "runs", runId);
+  const dir = path.join(root, ".vibestrate", "runs", runId);
   await fs.mkdir(dir, { recursive: true });
   await fs.appendFile(
     path.join(dir, "events.ndjson"),
@@ -247,13 +247,13 @@ describe("aggregates and recentActivity", () => {
   it("counts pending approvals and suggestions per run", async () => {
     await writeRun(root, "run-1", { status: "executing" });
     await fs.writeFile(
-      path.join(root, ".amaco", "runs", "run-1", "approvals.json"),
+      path.join(root, ".vibestrate", "runs", "run-1", "approvals.json"),
       JSON.stringify({
         approvals: [{ status: "pending" }, { status: "approved" }, { status: "pending" }],
       }),
     );
     await fs.writeFile(
-      path.join(root, ".amaco", "runs", "run-1", "suggestions.json"),
+      path.join(root, ".vibestrate", "runs", "run-1", "suggestions.json"),
       JSON.stringify({
         suggestions: [
           { status: "pending" },
@@ -272,7 +272,7 @@ describe("aggregates and recentActivity", () => {
     await writeRun(root, "run-a", { status: "executing" });
     await writeRun(root, "run-b", { status: "executing" });
     await fs.appendFile(
-      path.join(root, ".amaco", "runs", "run-a", "events.ndjson"),
+      path.join(root, ".vibestrate", "runs", "run-a", "events.ndjson"),
       JSON.stringify({
         timestamp: "2026-05-16T10:00:00Z",
         type: "role.started",
@@ -280,7 +280,7 @@ describe("aggregates and recentActivity", () => {
       }) + "\n",
     );
     await fs.appendFile(
-      path.join(root, ".amaco", "runs", "run-b", "events.ndjson"),
+      path.join(root, ".vibestrate", "runs", "run-b", "events.ndjson"),
       JSON.stringify({
         timestamp: "2026-05-16T11:00:00Z",
         type: "role.started",

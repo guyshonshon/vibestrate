@@ -82,7 +82,7 @@ export async function registerProjectRoutes(
         throw new HttpError(400, "Invalid role id.");
       }
       if (!(await configExists(projectRoot))) {
-        throw new HttpError(404, "Amaco is not initialized here.");
+        throw new HttpError(404, "Vibestrate is not initialized here.");
       }
       const { config } = await loadConfig(projectRoot);
       const role = config.roles[roleId];
@@ -130,7 +130,7 @@ export async function registerProjectRoutes(
         throw new HttpError(400, "Prompt is too large (100k character max).");
       }
       if (!(await configExists(projectRoot))) {
-        throw new HttpError(404, "Amaco is not initialized here.");
+        throw new HttpError(404, "Vibestrate is not initialized here.");
       }
       const { config } = await loadConfig(projectRoot);
       const role = config.roles[roleId];
@@ -156,7 +156,7 @@ export async function registerProjectRoutes(
       depth?: string;
       maxEntries?: string;
       includeHidden?: string;
-      includeAmaco?: string;
+      includeVibestrate?: string;
     };
   }>("/api/project/tree", async (req) => {
     const tree = await buildFileTree({
@@ -166,7 +166,7 @@ export async function registerProjectRoutes(
       depth: parseIntOrDefault(req.query.depth, 4),
       maxEntries: parseIntOrDefault(req.query.maxEntries, 2000),
       includeHidden: req.query.includeHidden === "true",
-      includeAmaco: req.query.includeAmaco === "true",
+      includeVibestrate: req.query.includeVibestrate === "true",
     });
     return { tree };
   });
@@ -221,7 +221,7 @@ export async function registerProjectRoutes(
       depth: parseIntOrDefault(req.query.depth, 4),
       maxEntries: parseIntOrDefault(req.query.maxEntries, 2000),
       includeHidden: req.query.includeHidden === "true",
-      includeAmaco: false,
+      includeVibestrate: false,
     });
     return { tree };
   });

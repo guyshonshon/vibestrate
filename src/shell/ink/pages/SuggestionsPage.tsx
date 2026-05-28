@@ -138,7 +138,7 @@ export function SuggestionsPage({
                 <Text dimColor>
                   patch attached · run{" "}
                   <Text color="cyan">
-                    amaco suggestions show {selected.id}
+                    vibestrate suggestions show {selected.id}
                   </Text>{" "}
                   to inspect
                 </Text>

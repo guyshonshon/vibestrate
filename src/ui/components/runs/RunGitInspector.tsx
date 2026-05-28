@@ -34,12 +34,12 @@ export function RunGitInspector({ runId }: { runId: string }) {
     };
   }, [runId]);
 
-  if (error) return <div className="text-[12px] text-amaco-fail">{error}</div>;
+  if (error) return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
   if (!status)
-    return <div className="text-[12px] text-amaco-fg-muted">Loading…</div>;
+    return <div className="text-[12px] text-vibestrate-fg-muted">Loading…</div>;
   if (!status.available) {
     return (
-      <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2.5 py-2 text-[12px] text-amaco-warn">
+      <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2.5 py-2 text-[12px] text-vibestrate-warn">
         Worktree git status unavailable.
       </div>
     );
@@ -47,24 +47,24 @@ export function RunGitInspector({ runId }: { runId: string }) {
 
   return (
     <div className="space-y-3 text-[12px]">
-      <div className="rounded border border-amaco-border bg-amaco-panel-2 p-2.5">
+      <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
+          <span className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
             <GitBranch className="h-3 w-3" strokeWidth={1.5} />
             {status.branch ?? "(detached)"}
           </span>
           <span
-            className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${
+            className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10.5px] ${
               status.isDirty
-                ? "border-amaco-warn/40 text-amaco-warn"
-                : "border-amaco-success/40 text-amaco-success"
+                ? "border-vibestrate-warn/40 text-vibestrate-warn"
+                : "border-vibestrate-success/40 text-vibestrate-success"
             }`}
           >
             {status.isDirty ? `dirty (${status.changedFiles.length})` : "clean"}
           </span>
         </div>
         {status.headHash ? (
-          <div className="mt-1 amaco-mono text-[10.5px] text-amaco-fg-muted">
+          <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
             {status.headHash} · {status.headSubject}
           </div>
         ) : null}
@@ -73,9 +73,9 @@ export function RunGitInspector({ runId }: { runId: string }) {
             {status.changedFiles.map((f) => (
               <li
                 key={f.path}
-                className="flex items-baseline gap-2 amaco-mono text-[11.5px]"
+                className="flex items-baseline gap-2 vibestrate-mono text-[11.5px]"
               >
-                <span className="w-7 shrink-0 text-amaco-fg-muted">
+                <span className="w-7 shrink-0 text-vibestrate-fg-muted">
                   {f.status}
                 </span>
                 <span className="truncate">{f.path}</span>
@@ -85,26 +85,26 @@ export function RunGitInspector({ runId }: { runId: string }) {
         ) : null}
       </div>
       {history && history.commits.length > 0 ? (
-        <div className="rounded border border-amaco-border bg-amaco-panel-2">
-          <header className="flex items-center gap-1.5 border-b border-amaco-border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+        <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2">
+          <header className="flex items-center gap-1.5 border-b border-vibestrate-border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
             <GitCommit className="h-3 w-3" strokeWidth={1.5} />
             {history.baseRef ? `Task commits since ${history.baseRef}` : "Commits"}
           </header>
-          <ul className="divide-y divide-amaco-border">
+          <ul className="divide-y divide-vibestrate-border">
             {history.commits.map((c) => (
               <li key={c.hash} className="px-2.5 py-1 text-[11.5px]">
                 <div className="flex items-baseline gap-2">
-                  <span className="amaco-mono w-14 shrink-0 text-amaco-fg-muted">
+                  <span className="vibestrate-mono w-14 shrink-0 text-vibestrate-fg-muted">
                     {c.shortHash}
                   </span>
-                  <span className="truncate text-amaco-fg">{c.subject}</span>
+                  <span className="truncate text-vibestrate-fg">{c.subject}</span>
                 </div>
               </li>
             ))}
           </ul>
         </div>
       ) : history?.baseRef ? (
-        <div className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-2 text-[11.5px] text-amaco-fg-muted">
+        <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-2 text-[11.5px] text-vibestrate-fg-muted">
           No task-specific commits since {history.baseRef}. Uncommitted worktree
           changes are listed above.
         </div>

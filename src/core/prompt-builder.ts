@@ -31,7 +31,7 @@ export type PromptBuildInput = {
   concise?: boolean;
 };
 
-const COMMON_BOUNDARIES = `You are running under Amaco.
+const COMMON_BOUNDARIES = `You are running under Vibestrate.
 Do not push.
 Do not merge.
 Respect your role and permission boundaries.
@@ -114,7 +114,7 @@ function renderValidation(results: ValidationResults | null | undefined): string
 export function buildRolePrompt(input: PromptBuildInput): string {
   const sections: string[] = [];
 
-  sections.push(`# Amaco Agent: ${input.roleId}`);
+  sections.push(`# Vibestrate Agent: ${input.roleId}`);
   sections.push(``);
   sections.push(`Project: ${input.projectName}`);
   sections.push(`Task: ${input.task}`);

@@ -43,7 +43,7 @@ export type RunRoutesDeps = {
   projectRoot: string;
 };
 
-// Schema for `POST /api/runs`. Mirrors the `amaco run` CLI surface
+// Schema for `POST /api/runs`. Mirrors the `vibestrate run` CLI surface
 // at the body level, but constrained so only audited fields flow
 // through (no arbitrary argv).
 const spawnRunBody = z.object({
@@ -120,8 +120,8 @@ function resolveRunEntry(): string {
 /**
  * Start a run as a DETACHED CORE process — `node dist/run-entry.js <specFile>`,
  * never the CLI binary. This is the decoupling: the dashboard drives runs
- * through `src/core/run-launcher.ts`, not the `amaco` command surface. The spec
- * is written to a transient file under `.amaco/` (keeps argv short); the entry
+ * through `src/core/run-launcher.ts`, not the `vibestrate` command surface. The spec
+ * is written to a transient file under `.vibestrate/` (keeps argv short); the entry
  * reads it, deletes it, and runs. Detached + unref'd so the run outlives the
  * request and the dashboard, exactly like a CLI run.
  */
@@ -134,7 +134,7 @@ async function startDetachedRun(input: {
   const entry = resolveRunEntry();
   const specPath = path.join(
     input.projectRoot,
-    ".amaco",
+    ".vibestrate",
     `.run-spec-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`,
   );
   await writeJson(specPath, input.spec);
@@ -142,7 +142,7 @@ async function startDetachedRun(input: {
     cwd: input.projectRoot,
     env: {
       ...process.env,
-      AMACO_SPAWNED_BY: input.spawnedBy,
+      VIBESTRATE_SPAWNED_BY: input.spawnedBy,
       NO_COLOR: "1",
       ...input.extraEnv,
     },
@@ -178,7 +178,7 @@ export async function registerRunsRoutes(
   });
 
   // ─── POST /api/runs ───────────────────────────────────────────────
-  // Start a run through the shared core run launcher (NOT the `amaco`
+  // Start a run through the shared core run launcher (NOT the `vibestrate`
   // CLI binary): a detached `dist/run-entry.js` reads a typed, length-
   // bounded spec and drives the orchestrator. cwd is pinned to the
   // project root the server is serving. UI ⇄ CLI stay decoupled — both
@@ -236,7 +236,7 @@ export async function registerRunsRoutes(
         ok: true,
         pid,
         argv,
-        message: `started run (equivalent: amaco ${formatArgv(argv)})`,
+        message: `started run (equivalent: vibestrate ${formatArgv(argv)})`,
       };
     } catch (err) {
       throw new HttpError(
@@ -456,14 +456,14 @@ export async function registerRunsRoutes(
           projectRoot,
           spec,
           spawnedBy: "dashboard-retry",
-          extraEnv: { AMACO_RETRY_OF: req.params.runId },
+          extraEnv: { VIBESTRATE_RETRY_OF: req.params.runId },
         });
         return {
           ok: true,
           pid,
           argv,
           retryOf: req.params.runId,
-          message: `started retry (equivalent: amaco ${formatArgv(argv)})`,
+          message: `started retry (equivalent: vibestrate ${formatArgv(argv)})`,
         };
       } catch (err) {
         throw new HttpError(

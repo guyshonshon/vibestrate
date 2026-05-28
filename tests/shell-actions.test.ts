@@ -6,7 +6,7 @@ import { pauseRun, resumeRun, abortRun } from "../src/shell/shell-actions.js";
 import { createInitialState } from "../src/core/state-machine.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-shell-act-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shell-act-"));
 }
 
 async function writeRun(
@@ -14,7 +14,7 @@ async function writeRun(
   runId: string,
   patches: Record<string, unknown>,
 ): Promise<void> {
-  const dir = path.join(root, ".amaco", "runs", runId);
+  const dir = path.join(root, ".vibestrate", "runs", runId);
   await fs.mkdir(dir, { recursive: true });
   const initial = createInitialState({
     runId,
@@ -32,7 +32,7 @@ async function writeRun(
 
 async function readState(root: string, runId: string): Promise<Record<string, unknown>> {
   const text = await fs.readFile(
-    path.join(root, ".amaco", "runs", runId, "state.json"),
+    path.join(root, ".vibestrate", "runs", runId, "state.json"),
     "utf8",
   );
   return JSON.parse(text) as Record<string, unknown>;

@@ -29,21 +29,21 @@ const counter = path.join(__dirname, "review-counter.txt");
 let prompt = "";
 process.stdin.on("data", (chunk) => (prompt += chunk));
 process.stdin.on("end", () => {
-  if (prompt.includes("Amaco Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: reviewer")) {
     let n = 0;
     try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
     n += 1;
     fs.writeFileSync(counter, String(n));
     console.log("# Review\\n\\nDECISION: " + (n === 1 ? "CHANGES_REQUESTED" : "APPROVED"));
-  } else if (prompt.includes("Amaco Agent: verifier")) {
+  } else if (prompt.includes("Vibestrate Agent: verifier")) {
     console.log("# Verification\\n\\nVERIFICATION: PASSED");
-  } else if (prompt.includes("Amaco Agent: fixer")) {
+  } else if (prompt.includes("Vibestrate Agent: fixer")) {
     console.log("# Fix\\n\\nAddressed the finding.");
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     console.log("# Implementation\\n\\nNo source change required.");
-  } else if (prompt.includes("Amaco Agent: architect")) {
+  } else if (prompt.includes("Vibestrate Agent: architect")) {
     console.log("# Architecture\\n\\nApproach described.");
-  } else if (prompt.includes("Amaco Agent: planner")) {
+  } else if (prompt.includes("Vibestrate Agent: planner")) {
     console.log("# Plan\\n\\nSteps outlined.");
   } else {
     console.log("# Output");
@@ -58,7 +58,7 @@ const APPROVE_PROVIDER = PROVIDER.replace(
 );
 
 async function makeRepo(providerScript: string = PROVIDER): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-default-flow-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-default-flow-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -110,7 +110,7 @@ async function runDefaultFlow(
   const interval = setInterval(async () => {
     if (approvedOnce) return;
     const runs = await fs
-      .readdir(path.join(projectRoot, ".amaco", "runs"))
+      .readdir(path.join(projectRoot, ".vibestrate", "runs"))
       .catch(() => []);
     const runId = runs[0];
     if (!runId) return;
@@ -127,7 +127,7 @@ async function runDefaultFlow(
     clearInterval(interval);
   }
   const eventsRaw = await fs.readFile(
-    path.join(projectRoot, ".amaco", "runs", result.runId, "events.ndjson"),
+    path.join(projectRoot, ".vibestrate", "runs", result.runId, "events.ndjson"),
     "utf8",
   );
   const events = eventsRaw
@@ -168,7 +168,7 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;
@@ -190,7 +190,7 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     expect(result.state.flow?.flowId).toBe("default");
 
     const eventsRaw = await fs.readFile(
-      path.join(projectRoot, ".amaco", "runs", result.runId, "events.ndjson"),
+      path.join(projectRoot, ".vibestrate", "runs", result.runId, "events.ndjson"),
       "utf8",
     );
     const events = eventsRaw
@@ -265,7 +265,7 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;
@@ -308,7 +308,7 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const interval = setInterval(async () => {
       if (approvedOnce) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;

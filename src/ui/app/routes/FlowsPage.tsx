@@ -70,7 +70,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         kind: "ok",
         text: r.alreadyForked
           ? `${flowId} is already a project flow.`
-          : `Forked ${flowId} into .amaco/flows/ — customize it in the Flow Builder.`,
+          : `Forked ${flowId} into .vibestrate/flows/ — customize it in the Flow Builder.`,
       });
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
@@ -81,7 +81,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 
   // Fork a builtin (e.g. the default flow) into the project and jump straight
   // into the Flow Builder to edit it. The project copy then shadows the builtin
-  // everywhere — including plain `amaco run` for the default flow.
+  // everywhere — including plain `vibestrate run` for the default flow.
   async function forkAndEdit(flowId: string) {
     setBusy({ id: flowId, action: "fork" });
     try {
@@ -95,7 +95,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   }
 
   async function remove(flowId: string) {
-    if (!window.confirm(`Delete the project flow "${flowId}"? This removes .amaco/flows/${flowId}/.`)) {
+    if (!window.confirm(`Delete the project flow "${flowId}"? This removes .vibestrate/flows/${flowId}/.`)) {
       return;
     }
     setBusy({ id: flowId, action: "delete" });

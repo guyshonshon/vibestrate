@@ -6,7 +6,7 @@ import { ArtifactStore } from "../src/core/artifact-store.js";
 import { runValidationCommands } from "../src/core/validation-runner.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-validation-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-validation-"));
 }
 
 describe("validation runner", () => {

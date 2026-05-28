@@ -55,7 +55,7 @@ export async function runApprovalsDecide(
       console.log(
         indent(
           color.dim(
-            "If `amaco run` is still attached, the run will resume automatically.",
+            "If `vibestrate run` is still attached, the run will resume automatically.",
           ),
         ),
       );

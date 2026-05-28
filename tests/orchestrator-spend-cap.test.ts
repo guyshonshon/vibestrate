@@ -17,7 +17,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 
 // Fake claude-code provider that reports $1.00 per turn via stream-json.
 async function makeRepo(capAction: "stop" | "reduce-effort"): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-spendcap-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-spendcap-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -32,11 +32,11 @@ async function makeRepo(capAction: "stop" | "reduce-effort"): Promise<string> {
     `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   let r='# Plan\\nOk.';
-  if (i.includes('Amaco Agent: reviewer')) r='# Review\\n\\nDECISION: APPROVED';
-  else if (i.includes('Amaco Agent: verifier')) r='VERIFICATION: PASSED';
-  else if (i.includes('Amaco Agent: architect')) r='# Architecture\\nFine.';
-  else if (i.includes('Amaco Agent: executor')) r='# Implementation\\nDone.';
-  else if (i.includes('Amaco Agent: fixer')) r='# Fix\\nDone.';
+  if (i.includes('Vibestrate Agent: reviewer')) r='# Review\\n\\nDECISION: APPROVED';
+  else if (i.includes('Vibestrate Agent: verifier')) r='VERIFICATION: PASSED';
+  else if (i.includes('Vibestrate Agent: architect')) r='# Architecture\\nFine.';
+  else if (i.includes('Vibestrate Agent: executor')) r='# Implementation\\nDone.';
+  else if (i.includes('Vibestrate Agent: fixer')) r='# Fix\\nDone.';
   console.log(JSON.stringify({type:'result',result:r,session_id:'s',model:'claude-opus-4-7',total_cost_usd:1.0,usage:{input_tokens:10,output_tokens:5}}));
 });
 `,

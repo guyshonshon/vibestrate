@@ -30,7 +30,7 @@ The reviewer can return `CHANGES_REQUESTED`, sending the run back into `fixing`.
 ... → executing → waiting_for_approval → executing → ...
 ```
 
-If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into that stage. The run sits at `waiting_for_approval` until `amaco approvals decide` is invoked.
+If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator pauses at the boundary into that stage. The run sits at `waiting_for_approval` until `vibestrate approvals decide` is invoked.
 
 ## With a user pause
 
@@ -38,7 +38,7 @@ If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator 
 ... → executing → paused → executing → ...
 ```
 
-`amaco pause <runId>` sets a flag the orchestrator picks up at the next stage boundary. The run transitions to `paused`; `pausedAtStatus` records where to resume. `amaco resume <runId>` clears the flag.
+`vibestrate pause <runId>` sets a flag the orchestrator picks up at the next stage boundary. The run transitions to `paused`; `pausedAtStatus` records where to resume. `vibestrate resume <runId>` clears the flag.
 
 ## Terminal statuses
 
@@ -61,7 +61,7 @@ Four statuses are terminal — once reached, the run cannot transition out:
 | `fixing` | new commits in the worktree + `finding-responses.md` |
 | `verifying` | `verification.md` |
 
-All under `.amaco/runs/<runId>/`. The `events.jsonl` file logs every transition, append-only.
+All under `.vibestrate/runs/<runId>/`. The `events.jsonl` file logs every transition, append-only.
 
 ## Related
 

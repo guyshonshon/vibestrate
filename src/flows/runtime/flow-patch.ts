@@ -192,7 +192,7 @@ export function mergeFlowPatch(
 }
 
 /**
- * Copy a builtin (or fixture) flow into the project's `.amaco/flows/`
+ * Copy a builtin (or fixture) flow into the project's `.vibestrate/flows/`
  * directory so the user can edit it freely. If a project-local flow
  * with the same id already exists, the fork is a no-op (returns
  * existing). Path-guarded the same way as `applyFlowPatch`.
@@ -317,7 +317,7 @@ export type ApplyFlowPatchResult =
  * End-to-end: load the flow, refuse if it isn't project-local, merge
  * the patch, validate, and write the YAML back atomically (write to a
  * sibling tempfile + rename). Path-guarded so an attacker can't escape
- * `.amaco/flows/` via a weird flow id (the loader itself only ever
+ * `.vibestrate/flows/` via a weird flow id (the loader itself only ever
  * returns paths under `projectFlowsDir`, but we double-check here so
  * a future loader change can't widen the blast radius).
  */
@@ -340,7 +340,7 @@ export async function applyFlowPatch(input: {
   }
   // Flows are always editable. A project flow is patched in place; a builtin /
   // fixture is transparently forked — the patched result is written to a project
-  // copy (`.amaco/flows/<id>/flow.yml`) that shadows the builtin everywhere.
+  // copy (`.vibestrate/flows/<id>/flow.yml`) that shadows the builtin everywhere.
   const rootDir = projectFlowsDir(projectRoot);
   const targetPath =
     flow.source.kind === "project" && flow.definitionPath

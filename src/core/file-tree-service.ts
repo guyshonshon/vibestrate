@@ -66,8 +66,8 @@ export type BuildFileTreeInput = {
   maxEntries?: number;
   /** Include dotfiles + dotted dirs (still excludes .git). Default false. */
   includeHidden?: boolean;
-  /** Include the .amaco directory in the tree. Default false. */
-  includeAmaco?: boolean;
+  /** Include the .vibestrate directory in the tree. Default false. */
+  includeVibestrate?: boolean;
 };
 
 export async function buildFileTree(
@@ -76,7 +76,7 @@ export async function buildFileTree(
   const depth = Math.max(1, Math.min(input.depth ?? 4, 12));
   const maxEntries = Math.max(50, Math.min(input.maxEntries ?? 2000, 20_000));
   const includeHidden = input.includeHidden === true;
-  const includeAmaco = input.includeAmaco === true;
+  const includeVibestrate = input.includeVibestrate === true;
   const counter = { count: 0, truncated: false };
 
   const root: FileTreeEntry = {
@@ -95,7 +95,7 @@ export async function buildFileTree(
     depth,
     maxEntries,
     includeHidden,
-    includeAmaco,
+    includeVibestrate,
     counter,
   );
 
@@ -119,7 +119,7 @@ async function walk(
   depth: number,
   maxEntries: number,
   includeHidden: boolean,
-  includeAmaco: boolean,
+  includeVibestrate: boolean,
   counter: { count: number; truncated: boolean },
 ): Promise<void> {
   const abs = path.join(baseAbs, baseRel);
@@ -132,8 +132,8 @@ async function walk(
 
   const filtered = dirEntries.filter((e) => {
     if (DEFAULT_EXCLUDES.has(e.name)) return false;
-    if (!includeAmaco && e.name === ".amaco") return false;
-    if (!includeHidden && e.name.startsWith(".") && e.name !== ".amaco") {
+    if (!includeVibestrate && e.name === ".vibestrate") return false;
+    if (!includeHidden && e.name.startsWith(".") && e.name !== ".vibestrate") {
       return false;
     }
     return true;
@@ -196,7 +196,7 @@ async function walk(
           depth,
           maxEntries,
           includeHidden,
-          includeAmaco,
+          includeVibestrate,
           counter,
         );
       } else {

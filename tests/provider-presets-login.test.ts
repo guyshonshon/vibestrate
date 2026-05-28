@@ -95,4 +95,25 @@ describe("classifyProviderFailure", () => {
       }),
     ).toBe("flags");
   });
+
+  it("classifies a rejected-argument usage error as 'flags', not 'exit'", () => {
+    // Regression: codex 0.13x removed `exec -q`, so the old preset exited 2
+    // with "unexpected argument '-q'". That must read as a flags problem
+    // (→ run setup), not a generic non-zero exit.
+    expect(
+      classifyProviderFailure({
+        exitCode: 2,
+        stdout: "",
+        stderr: "error: unexpected argument '-q' found\n\nUsage: codex exec [OPTIONS] [PROMPT]",
+        matchedMagic: false,
+      }),
+    ).toBe("flags");
+  });
+});
+
+describe("codex preset args", () => {
+  it("invokes `codex exec` without the removed `-q` flag", () => {
+    expect(PROVIDER_PRESETS.codex.preset.args).toEqual(["exec"]);
+    expect(PROVIDER_PRESETS.codex.preset.args).not.toContain("-q");
+  });
 });

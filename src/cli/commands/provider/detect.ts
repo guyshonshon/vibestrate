@@ -31,7 +31,7 @@ export async function runProviderDetect(opts: { json?: boolean }): Promise<numbe
   }
   console.log(
     color.dim(
-      "Tip: run `amaco provider setup` to configure or `amaco provider set <id>` after setup.",
+      "Tip: run `vibestrate provider setup` to configure or `vibestrate provider set <id>` after setup.",
     ),
   );
   return 0;

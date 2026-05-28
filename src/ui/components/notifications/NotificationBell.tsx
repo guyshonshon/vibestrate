@@ -25,7 +25,7 @@ function shouldNotifyInBrowser(n: NotificationRecord): boolean {
  * Top-bar bell + the slide-in NotificationsSidebar. The bell shows the
  * live unread count (polled + reactive to the sidebar's optimistic
  * mark-as-read), opens the drawer on click, and also listens for the
- * global `amaco:open-notifications` event so other surfaces (e.g. the
+ * global `vibestrate:open-notifications` event so other surfaces (e.g. the
  * `g n` chord) can pop the drawer too.
  */
 export function NotificationBell({
@@ -60,7 +60,7 @@ export function NotificationBell({
           try {
             new window.Notification(n.title, {
               body: n.message,
-              tag: `amaco:${n.id}`,
+              tag: `vibestrate:${n.id}`,
             });
           } catch {
             // ignore — browser may rate-limit
@@ -78,10 +78,10 @@ export function NotificationBell({
     void refresh();
     const interval = window.setInterval(refresh, POLL_INTERVAL_MS);
     const onGlobalOpen = () => setOpen(true);
-    window.addEventListener("amaco:open-notifications", onGlobalOpen);
+    window.addEventListener("vibestrate:open-notifications", onGlobalOpen);
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("amaco:open-notifications", onGlobalOpen);
+      window.removeEventListener("vibestrate:open-notifications", onGlobalOpen);
     };
   }, []);
 

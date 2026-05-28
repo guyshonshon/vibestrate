@@ -2,10 +2,10 @@ import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { buildRunReplay, RunReplayError } from "../../core/run-replay-service.js";
 import { color, header, indent } from "../ui/format.js";
-import { isAmacoError } from "../../utils/errors.js";
+import { isVibestrateError } from "../../utils/errors.js";
 
 /**
- * `amaco replay <runId>` — read-only inspector for a persisted run. Calls
+ * `vibestrate replay <runId>` — read-only inspector for a persisted run. Calls
  * the same projection the dashboard's Replay tab uses (no shared mutation,
  * no provider calls, no worktree writes). Default output is a short text
  * summary; `--json` dumps the full projection for piping into jq or saving
@@ -38,7 +38,7 @@ async function runReplay(
       console.error(color.red(err.message));
       return err.statusCode === 404 ? 1 : 2;
     }
-    if (isAmacoError(err)) {
+    if (isVibestrateError(err)) {
       console.error(color.red(err.message));
       return 2;
     }
@@ -158,7 +158,7 @@ async function runReplay(
     console.log(
       indent(
         color.dim(
-          "Metadata only — Amaco never persists terminal stdout/stderr.",
+          "Metadata only — Vibestrate never persists terminal stdout/stderr.",
         ),
       ),
     );

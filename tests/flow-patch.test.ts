@@ -22,11 +22,11 @@ providers:
 roles:
   planner:
     provider: claude
-    prompt: .amaco/roles/planner.md
+    prompt: .vibestrate/roles/planner.md
     permissions: readOnly
   reviewer:
     provider: claude
-    prompt: .amaco/roles/reviewer.md
+    prompt: .vibestrate/roles/reviewer.md
     permissions: readOnly
 `;
 
@@ -54,13 +54,13 @@ steps:
 `;
 
 async function makeProject(): Promise<string> {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-flow-patch-"));
-  await fs.mkdir(path.join(root, ".amaco", "flows", "project-review"), {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-flow-patch-"));
+  await fs.mkdir(path.join(root, ".vibestrate", "flows", "project-review"), {
     recursive: true,
   });
-  await fs.writeFile(path.join(root, ".amaco", "project.yml"), PROJECT_CONFIG);
+  await fs.writeFile(path.join(root, ".vibestrate", "project.yml"), PROJECT_CONFIG);
   await fs.writeFile(
-    path.join(root, ".amaco", "flows", "project-review", "flow.yml"),
+    path.join(root, ".vibestrate", "flows", "project-review", "flow.yml"),
     PROJECT_FLOW,
   );
   return root;
@@ -215,7 +215,7 @@ describe("applyFlowPatch", () => {
     expect(result.definitionPath).toMatch(/flow\.yml$/);
 
     const written = await fs.readFile(
-      path.join(root, ".amaco", "flows", "project-review", "flow.yml"),
+      path.join(root, ".vibestrate", "flows", "project-review", "flow.yml"),
       "utf8",
     );
     const reparsed = YAML.parse(written) as {
@@ -236,7 +236,7 @@ describe("applyFlowPatch", () => {
     if (!result.ok) throw new Error(result.reasons.join("\n"));
     // A project copy was written, shadowing the builtin.
     const written = await fs.readFile(
-      path.join(root, ".amaco", "flows", "quality-arbitration", "flow.yml"),
+      path.join(root, ".vibestrate", "flows", "quality-arbitration", "flow.yml"),
       "utf8",
     );
     expect((YAML.parse(written) as { label: string }).label).toBe(
@@ -379,7 +379,7 @@ describe("mergeFlowPatch — loop, stage, read-only authoring", () => {
 });
 
 describe("forkFlowToProject", () => {
-  it("copies a builtin into .amaco/flows and is idempotent", async () => {
+  it("copies a builtin into .vibestrate/flows and is idempotent", async () => {
     const root = await makeProject();
     try {
       const first = await forkFlowToProject({
@@ -390,7 +390,7 @@ describe("forkFlowToProject", () => {
       expect(first.alreadyForked).toBe(false);
       const filePath = path.join(
         root,
-        ".amaco",
+        ".vibestrate",
         "flows",
         "quality-arbitration",
         "flow.yml",
@@ -427,7 +427,7 @@ describe("deleteProjectFlow", () => {
       const r = await deleteProjectFlow({ projectRoot: root, flowId: "project-review" });
       if (!r.ok) throw new Error(r.reasons.join(", "));
       const exists = await fs
-        .access(path.join(root, ".amaco", "flows", "project-review", "flow.yml"))
+        .access(path.join(root, ".vibestrate", "flows", "project-review", "flow.yml"))
         .then(() => true)
         .catch(() => false);
       expect(exists).toBe(false);

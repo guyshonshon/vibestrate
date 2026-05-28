@@ -27,7 +27,7 @@ export type StartSchedulerInput = {
   schedulerConfig: SchedulerConfig;
   log?: SchedulerLogger;
   /**
-   * Override how a task run is launched. Default: spawn `amaco run --task <id> "<title>"`
+   * Override how a task run is launched. Default: spawn `vibestrate run --task <id> "<title>"`
    * as a child process. Tests inject a synchronous local runner.
    */
   runTask?: (
@@ -96,7 +96,7 @@ function defaultRunTask(
         "--task",
         task.id,
       ];
-      // Resolve the amaco entry point. Prefer dist next to this file (bundled),
+      // Resolve the vibestrate entry point. Prefer dist next to this file (bundled),
       // fall back to dist resolved from source layout.
       const candidate = [DEFAULT_BIN.distInDist, DEFAULT_BIN.distFromSource].find(
         (p) => fs.existsSync(p),
@@ -105,13 +105,13 @@ function defaultRunTask(
         ? spawn(process.execPath, [candidate, ...args], {
             cwd: projectRoot,
             stdio: "inherit",
-            env: { ...process.env, AMACO_SCHEDULED: "1" },
+            env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
             detached: process.platform !== "win32",
           })
-        : spawn("amaco", args, {
+        : spawn("vibestrate", args, {
             cwd: projectRoot,
             stdio: "inherit",
-            env: { ...process.env, AMACO_SCHEDULED: "1" },
+            env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
             detached: process.platform !== "win32",
           });
       const abort = (): void => terminateChildProcess(child);
@@ -132,7 +132,7 @@ function defaultRunTask(
 /**
  * Run the local scheduler loop. Bound to this process: when this function
  * returns or the process exits, no scheduling happens. The queue and conflict
- * warnings remain on disk and another `amaco queue run` picks up where this
+ * warnings remain on disk and another `vibestrate queue run` picks up where this
  * left off.
  */
 export async function runSchedulerLoop(input: StartSchedulerInput): Promise<SchedulerHandle> {

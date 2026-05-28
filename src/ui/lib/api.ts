@@ -1,6 +1,6 @@
 import type {
   RoleWorkReport,
-  AmacoEvent,
+  VibestrateEvent,
   ApprovalRequest,
   ArtifactEntry,
   CodeReference,
@@ -460,8 +460,8 @@ export const api = {
     const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);
     return r.run;
   },
-  async listEvents(runId: string): Promise<AmacoEvent[]> {
-    const r = await jsonGet<{ events: AmacoEvent[] }>(
+  async listEvents(runId: string): Promise<VibestrateEvent[]> {
+    const r = await jsonGet<{ events: VibestrateEvent[] }>(
       `/api/runs/${runId}/events`,
     );
     return r.events;
@@ -1012,14 +1012,14 @@ export const api = {
     depth?: number;
     maxEntries?: number;
     includeHidden?: boolean;
-    includeAmaco?: boolean;
+    includeVibestrate?: boolean;
   }): Promise<FileTreeResult> {
     const q = new URLSearchParams();
     if (input?.depth !== undefined) q.set("depth", String(input.depth));
     if (input?.maxEntries !== undefined)
       q.set("maxEntries", String(input.maxEntries));
     if (input?.includeHidden) q.set("includeHidden", "true");
-    if (input?.includeAmaco) q.set("includeAmaco", "true");
+    if (input?.includeVibestrate) q.set("includeVibestrate", "true");
     const qs = q.toString();
     const r = await jsonGet<{ tree: FileTreeResult }>(
       `/api/project/tree${qs ? `?${qs}` : ""}`,

@@ -39,7 +39,7 @@ import { HttpError } from "./security.js";
 import { recordIssue } from "../core/issues-store.js";
 import { formatError, toIssueInput } from "../core/error-format.js";
 
-export const DEFAULT_AMACO_PORT = 4317;
+export const DEFAULT_VIBESTRATE_PORT = 4317;
 
 export type StartServerOptions = {
   projectRoot: string;
@@ -50,7 +50,7 @@ export type StartServerOptions = {
   /** Optional driver injection for the terminal feature (tests). */
   terminalDriver?: TerminalRoutesDeps["driver"];
   /** Spawn the scheduler as a managed subprocess of the UI server.
-   *  Default false (safe for tests / library users). The `amaco ui`
+   *  Default false (safe for tests / library users). The `vibestrate ui`
    *  CLI flips it to true so the dashboard owns the scheduler's
    *  lifecycle out of the box. */
   withScheduler?: boolean;
@@ -94,7 +94,7 @@ async function locateUiDir(explicit?: string): Promise<string | null> {
 }
 
 export async function startServer(opts: StartServerOptions): Promise<StartedServer> {
-  const port = opts.port ?? DEFAULT_AMACO_PORT;
+  const port = opts.port ?? DEFAULT_VIBESTRATE_PORT;
   const host = opts.host ?? "127.0.0.1";
 
   const app = Fastify({
@@ -150,7 +150,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   });
 
   // Map errors → typed JSON, AND record server-side failures into
-  // .amaco/issues.ndjson so the failure inbox surface (panel +
+  // .vibestrate/issues.ndjson so the failure inbox surface (panel +
   // dashboard badge) can show every problem the user might have
   // missed. 4xx caused by client input are NOT recorded (would
   // flood the stream); 5xx and uncaught errors always are.
@@ -305,7 +305,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       return reply
         .type("text/html")
         .send(
-          `<!doctype html><meta charset="utf-8"><title>Amaco</title><body style="font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e13;color:#cfd8e3;padding:24px;line-height:1.5"><h1 style="margin:0 0 8px">Amaco</h1><p>The dashboard UI bundle is not built yet.</p><p>Run <code>pnpm build:ui</code> from the Amaco project, then restart the server.</p></body>`,
+          `<!doctype html><meta charset="utf-8"><title>Vibestrate</title><body style="font-family:ui-monospace,Menlo,Consolas,monospace;background:#0b0e13;color:#cfd8e3;padding:24px;line-height:1.5"><h1 style="margin:0 0 8px">Vibestrate</h1><p>The dashboard UI bundle is not built yet.</p><p>Run <code>pnpm build:ui</code> from the Vibestrate project, then restart the server.</p></body>`,
         );
     });
   }

@@ -6,8 +6,8 @@ import { ApprovalService } from "../src/core/approval-service.js";
 import { detectApprovalRequest } from "../src/core/approval-types.js";
 
 async function tempProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-approval-"));
-  await fs.mkdir(path.join(dir, ".amaco", "runs", "r1"), { recursive: true });
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-approval-"));
+  await fs.mkdir(path.join(dir, ".vibestrate", "runs", "r1"), { recursive: true });
   return dir;
 }
 
@@ -133,7 +133,7 @@ describe("ApprovalService", () => {
     const round = await fresh.get(a.id);
     expect(round?.id).toBe(a.id);
     const fileBody = await fs.readFile(
-      path.join(projectRoot, ".amaco", "runs", "r1", "approvals.json"),
+      path.join(projectRoot, ".vibestrate", "runs", "r1", "approvals.json"),
       "utf8",
     );
     expect(fileBody).toContain(a.id);

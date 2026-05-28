@@ -2,13 +2,13 @@ import { detectProject } from "../../../project/project-detector.js";
 import { listConfiguredProviders } from "../../../setup/provider-setup-service.js";
 import { configExists } from "../../../project/config-loader.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
-import { isAmacoError } from "../../../utils/errors.js";
+import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runProviderList(opts: { json?: boolean }): Promise<number> {
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Amaco config found. Run ${color.bold("amaco init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
@@ -18,7 +18,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
     providers = await listConfiguredProviders(detected.projectRoot);
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
@@ -30,7 +30,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
 
   if (providers.length === 0) {
     console.log(
-      `${symbol.warn()} No providers configured yet. Run ${color.bold("amaco provider setup")}.`,
+      `${symbol.warn()} No providers configured yet. Run ${color.bold("vibestrate provider setup")}.`,
     );
     return 0;
   }
@@ -47,7 +47,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
         `Used by: ${
           p.rolesUsing.length > 0
             ? p.rolesUsing.join(", ")
-            : color.dim("(no agents — assign with `amaco provider set " + p.id + "`)")
+            : color.dim("(no agents — assign with `vibestrate provider set " + p.id + "`)")
         }`,
       ),
     );

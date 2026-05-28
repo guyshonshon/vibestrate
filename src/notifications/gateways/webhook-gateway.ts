@@ -83,7 +83,7 @@ export const webhookGateway: Gateway = {
     try {
       const r = await postJsonWithTimeout({
         url,
-        body: { type: "amaco.notification", notification: buildBody(notification) },
+        body: { type: "vibestrate.notification", notification: buildBody(notification) },
       });
       if (r.ok) {
         return makeReceipt({
@@ -121,7 +121,7 @@ export const webhookGateway: Gateway = {
     try {
       const r = await postJsonWithTimeout({
         url,
-        body: { type: "amaco.test", message: "Amaco webhook test." },
+        body: { type: "vibestrate.test", message: "Vibestrate webhook test." },
       });
       return r.ok
         ? { ok: true, message: `Webhook responded ${r.status}.` }

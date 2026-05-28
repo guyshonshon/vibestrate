@@ -21,7 +21,7 @@ export function LazyReplayPanel({
   return (
     <Suspense
       fallback={
-        <div className="text-amaco-fg-muted text-[11.5px]">Loading replay…</div>
+        <div className="text-vibestrate-fg-muted text-[11.5px]">Loading replay…</div>
       }
     >
       <ReplayPanelLazy runId={runId} focus={focus ?? null} />

@@ -1,11 +1,11 @@
 ---
 title: Add a provider
-description: Configure a local CLI Amaco doesn't ship support for, or override the flags of one it does.
+description: Configure a local CLI Vibestrate doesn't ship support for, or override the flags of one it does.
 section: extending
 slug: extending/add-provider
 ---
 
-Amaco's built-in detector knows about Claude Code, Codex, Aider, Ollama, and OpenCode. To use a CLI it doesn't know about — or to override the flags of one it does — declare it under `providers:` in `project.yml`.
+Vibestrate's built-in detector knows about Claude Code, Codex, Aider, Ollama, and OpenCode. To use a CLI it doesn't know about — or to override the flags of one it does — declare it under `providers:` in `project.yml`.
 
 ## A custom CLI provider
 
@@ -30,14 +30,14 @@ agents:
 Or for a one-off run:
 
 ```bash
-amaco run "..." --provider my-model
+vibestrate run "..." --provider my-model
 ```
 
 ## Verify it
 
 ```bash
-amaco provider list                 # confirms the provider is registered
-amaco provider test my-model        # sends a one-shot prompt
+vibestrate provider list                 # confirms the provider is registered
+vibestrate provider test my-model        # sends a one-shot prompt
 ```
 
 If the test fails, the most common causes are:

@@ -20,7 +20,7 @@ import { SuggestionBundleService } from "../src/reviews/suggestion-bundle-servic
 import { runDoctor } from "../src/setup/doctor-service.js";
 import { runStateSchema } from "../src/core/state-machine.js";
 import { ensureDir } from "../src/utils/fs.js";
-import { runStatePath, runDir, amacoRoot } from "../src/utils/paths.js";
+import { runStatePath, runDir, vibestrateRoot } from "../src/utils/paths.js";
 import { writeJson } from "../src/utils/json.js";
 import { loadConfig } from "../src/project/config-loader.js";
 
@@ -28,7 +28,7 @@ async function tempProjectWithProfiles(opts: {
   validate?: string[];
   profiles?: Record<string, { description?: string; commands: string[] }>;
 } = {}): Promise<{ project: string; worktree: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mig-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mig-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -50,9 +50,9 @@ async function tempProjectWithProfiles(opts: {
     })
     .join("\n");
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -70,12 +70,12 @@ async function tempProjectWithProfiles(opts: {
   );
 
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-mig-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-mig-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -89,7 +89,7 @@ async function tempProjectWithProfiles(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -178,7 +178,7 @@ describe("validation-profile-migration: preview", () => {
     expect(after).toBe(before);
     // Migrations dir was not created either.
     const auditsDir = path.join(
-      amacoRoot(project),
+      vibestrateRoot(project),
       "validation-profile-migrations",
     );
     expect(
@@ -374,7 +374,7 @@ describe("validation-profile-usage", () => {
 
     // Now configure an empty default profile (commands.validate=[]) and validate
     // again — should NOT increment.
-    const ymlPath = path.join(project, ".amaco/project.yml");
+    const ymlPath = path.join(project, ".vibestrate/project.yml");
     const yml = await fs.readFile(ymlPath, "utf8");
     await fs.writeFile(ymlPath, yml.replace('"true"', "")); // breaks validate to []
     // Easier: write a fresh yml.
@@ -399,7 +399,7 @@ describe("validation-profile-usage", () => {
   });
 
   it("never mutates project.yml", async () => {
-    const ymlPath = path.join(project, ".amaco/project.yml");
+    const ymlPath = path.join(project, ".vibestrate/project.yml");
     const before = await fs.readFile(ymlPath, "utf8");
     await recordValidationProfileUsage({
       projectRoot: project,
@@ -412,9 +412,9 @@ describe("validation-profile-usage", () => {
   });
 
   it("tolerates a corrupt usage file", async () => {
-    await ensureDir(amacoRoot(project));
+    await ensureDir(vibestrateRoot(project));
     await fs.writeFile(
-      path.join(amacoRoot(project), "validation-profile-usage.json"),
+      path.join(vibestrateRoot(project), "validation-profile-usage.json"),
       "{ not json",
     );
     // Recording should succeed (overwrites the corrupt file with a clean

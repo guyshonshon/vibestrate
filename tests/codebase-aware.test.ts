@@ -29,7 +29,7 @@ import { runStatePath, runDir } from "../src/utils/paths.js";
 import { ensureDir } from "../src/utils/fs.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-codeaware-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-codeaware-"));
 }
 
 describe("path-guard", () => {
@@ -97,8 +97,8 @@ describe("file-tree", () => {
     await fs.writeFile(path.join(project, "dist", "out.js"), "noise");
     await fs.mkdir(path.join(project, ".git"), { recursive: true });
     await fs.writeFile(path.join(project, ".git", "config"), "noise");
-    await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
-    await fs.writeFile(path.join(project, ".amaco", "project.yml"), "noise");
+    await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
+    await fs.writeFile(path.join(project, ".vibestrate", "project.yml"), "noise");
   });
 
   it("excludes node_modules / dist / .git and hides .env when includeHidden is false", async () => {
@@ -111,20 +111,20 @@ describe("file-tree", () => {
     expect(names).not.toContain("node_modules");
     expect(names).not.toContain("dist");
     expect(names).not.toContain(".git");
-    expect(names).not.toContain(".amaco");
+    expect(names).not.toContain(".vibestrate");
     expect(names).not.toContain(".env");
   });
 
-  it("includes .amaco when includeAmaco=true and .env when includeHidden=true with secret-like flag", async () => {
+  it("includes .vibestrate when includeVibestrate=true and .env when includeHidden=true with secret-like flag", async () => {
     const r = await buildFileTree({
       rootPath: project,
       rootKind: "project",
       rootLabel: "p",
       includeHidden: true,
-      includeAmaco: true,
+      includeVibestrate: true,
     });
     const names = (r.tree.children ?? []).map((c) => c.name);
-    expect(names).toContain(".amaco");
+    expect(names).toContain(".vibestrate");
     const env = (r.tree.children ?? []).find((c) => c.name === ".env");
     expect(env).toBeDefined();
     expect(env!.isSecretLike).toBe(true);
@@ -407,7 +407,7 @@ describe("agent-work attribution", () => {
           validationSummary: { total: 2, passed: 2, failed: 0 },
           reviewDecision: null,
           verificationDecision: null,
-          skillsAttached: ["amaco/code-review"],
+          skillsAttached: ["vibestrate/code-review"],
           skillsRequested: [],
           notes: ["touched 2 files"],
         },

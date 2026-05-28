@@ -5,11 +5,11 @@ section: extending
 slug: extending/add-flow
 ---
 
-A Flow is YAML. Drop it under `.amaco/flows/<id>/flow.yml` and Amaco's discovery picks it up. The schema is validated on load — malformed Flows fail loud at start, not silently mid-run.
+A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's discovery picks it up. The schema is validated on load — malformed Flows fail loud at start, not silently mid-run.
 
 ## Steps
 
-1. Create the directory: `.amaco/flows/spike-and-decide/`.
+1. Create the directory: `.vibestrate/flows/spike-and-decide/`.
 2. Add `flow.yml`:
 
    ```yaml
@@ -58,14 +58,14 @@ A Flow is YAML. Drop it under `.amaco/flows/<id>/flow.yml` and Amaco's discovery
 3. Verify:
 
    ```bash
-   amaco flows list
-   amaco flows show spike-and-decide
+   vibestrate flows list
+   vibestrate flows show spike-and-decide
    ```
 
 4. Run with it:
 
    ```bash
-   amaco run "Prototype the new search ranking" --flow spike-and-decide
+   vibestrate run "Prototype the new search ranking" --flow spike-and-decide
    ```
 
 ## Step kinds
@@ -84,7 +84,7 @@ A Flow is YAML. Drop it under `.amaco/flows/<id>/flow.yml` and Amaco's discovery
 A *slot* is a named participant — `builder`, `challenger`, `arbiter`, `prototyper`. The slot has a `defaultAgent` (a role name like `executor` or `reviewer`), and at run start the user can override which provider each slot uses.
 
 ```bash
-amaco run "..." --flow spike-and-decide --flow-slot prototyper=claude
+vibestrate run "..." --flow spike-and-decide --flow-slot prototyper=claude
 ```
 
 That binds the `prototyper` slot to the `claude` provider for that run.
@@ -94,7 +94,7 @@ That binds the `prototyper` slot to the `claude` provider for that run.
 Set `optional: true` on a step to let users skip it per run:
 
 ```bash
-amaco run "..." --flow spike-and-decide --flow-skip plan
+vibestrate run "..." --flow spike-and-decide --flow-skip plan
 ```
 
 ## Common mistakes

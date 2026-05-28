@@ -101,7 +101,7 @@ export async function registerFlowsRoutes(
   );
 
   /**
-   * Copy a builtin / fixture flow into `.amaco/flows/<id>/flow.yml`
+   * Copy a builtin / fixture flow into `.vibestrate/flows/<id>/flow.yml`
    * so the dashboard can edit it. Idempotent — re-forking returns the
    * existing project flow.
    */

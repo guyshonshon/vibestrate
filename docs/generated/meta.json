@@ -1,6 +1,6 @@
 {
-  "amacoVersion": "0.1.1",
   "generator": "scripts/generate-docs-metadata.ts",
   "schemaVersion": 1,
-  "sourceRev": "44ed22cc236e2bcd9a2643c71180f301ffbde06b"
+  "sourceRev": "5dc7e5a746775fd1db6667f56b92dd3a047dc732",
+  "vibestrateVersion": "0.1.1"
 }

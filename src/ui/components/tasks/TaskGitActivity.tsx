@@ -58,11 +58,11 @@ export function TaskGitActivity({
 
   if (runIds.length === 0) {
     return (
-      <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+      <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           git activity
         </div>
-        <div className="mt-1 text-[12px] text-amaco-fg-muted">
+        <div className="mt-1 text-[12px] text-vibestrate-fg-muted">
           No runs yet — queue this task to see scoped git activity here.
         </div>
       </section>
@@ -70,11 +70,11 @@ export function TaskGitActivity({
   }
 
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         git activity ({runIds.length} run{runIds.length === 1 ? "" : "s"})
       </div>
-      <div className="mt-1 text-[10.5px] text-amaco-fg-muted">
+      <div className="mt-1 text-[10.5px] text-vibestrate-fg-muted">
         Scoped to this task's worktrees — nothing from the rest of the repo.
       </div>
       <ul className="mt-2 space-y-1.5">
@@ -85,27 +85,27 @@ export function TaskGitActivity({
           return (
             <li
               key={rid}
-              className="rounded border border-amaco-border-soft bg-amaco-panel-2 p-2 text-[11.5px]"
+              className="rounded border border-vibestrate-border-soft bg-vibestrate-panel-2 p-2 text-[11.5px]"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenRun(rid)}
-                  className="amaco-mono text-[10.5px] text-amaco-accent hover:underline"
+                  className="vibestrate-mono text-[10.5px] text-vibestrate-accent hover:underline"
                 >
                   {rid}
                 </button>
                 {status?.upstream || status?.headHash ? (
                   <>
-                    <span className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10px]">
+                    <span className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px]">
                       <GitBranch className="h-3 w-3" strokeWidth={1.5} aria-hidden />
                       {status.upstream ?? status.headHash}
                     </span>
                     <span
-                      className={`amaco-mono rounded border px-1.5 py-0.5 text-[10px] ${
+                      className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10px] ${
                         status.isDirty
-                          ? "border-amaco-warn/40 text-amaco-warn"
-                          : "border-amaco-success/40 text-amaco-success"
+                          ? "border-vibestrate-warn/40 text-vibestrate-warn"
+                          : "border-vibestrate-success/40 text-vibestrate-success"
                       }`}
                     >
                       {status.isDirty
@@ -114,19 +114,19 @@ export function TaskGitActivity({
                     </span>
                   </>
                 ) : (
-                  <span className="amaco-mono text-[10px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
                     (worktree unavailable)
                   </span>
                 )}
                 {diff && diff.totals.files > 0 ? (
                   <span
-                    className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10px]"
+                    className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px]"
                     title={`${diff.totals.files} file(s) changed`}
                   >
-                    <span className="text-amaco-success">
+                    <span className="text-vibestrate-success">
                       +{diff.totals.insertions}
                     </span>
-                    <span className="text-amaco-fail">
+                    <span className="text-vibestrate-fail">
                       −{diff.totals.deletions}
                     </span>
                   </span>
@@ -134,7 +134,7 @@ export function TaskGitActivity({
                 <button
                   type="button"
                   onClick={() => onOpenGit(rid)}
-                  className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-dim hover:bg-amaco-panel"
+                  className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
                   title="Open git inspector for this run"
                 >
                   <GitCommit className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -142,7 +142,7 @@ export function TaskGitActivity({
                 </button>
               </div>
               {status?.headHash && status.headSubject ? (
-                <div className="mt-1 amaco-mono truncate text-[10.5px] text-amaco-fg-muted">
+                <div className="mt-1 vibestrate-mono truncate text-[10.5px] text-vibestrate-fg-muted">
                   {status.headHash} · {status.headSubject}
                 </div>
               ) : null}

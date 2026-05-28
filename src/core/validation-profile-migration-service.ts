@@ -8,7 +8,7 @@ import {
   writeText,
 } from "../utils/fs.js";
 import {
-  amacoRoot,
+  vibestrateRoot,
   projectRunsDir,
   runDir,
 } from "../utils/paths.js";
@@ -90,7 +90,7 @@ const DEFAULT_RECENT_RUNS = 50;
 const SAFE_RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 export function migrationsDir(projectRoot: string): string {
-  return path.join(amacoRoot(projectRoot), "validation-profile-migrations");
+  return path.join(vibestrateRoot(projectRoot), "validation-profile-migrations");
 }
 
 function validateFromTo(
@@ -259,7 +259,7 @@ export async function previewMigration(input: {
  * Apply a previously-previewed migration. Rewrites the matching
  * `validationProfile` fields in each suggestions.json / suggestion-bundles.json
  * file under the chosen scope, then persists an audit record under
- * `.amaco/validation-profile-migrations/<id>.json`.
+ * `.vibestrate/validation-profile-migrations/<id>.json`.
  *
  * Honours the same safety rules as the preview:
  *   - never modifies historical validation result files

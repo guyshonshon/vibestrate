@@ -13,7 +13,7 @@ slug: concepts/role
 
 ## Why it matters
 
-Splitting a task into named agent roles is what makes Amaco's loop inspectable. The planner only plans. The reviewer only reviews. When something goes wrong, you can read each role's output independently and see where the chain broke.
+Splitting a task into named agent roles is what makes Vibestrate's loop inspectable. The planner only plans. The reviewer only reviews. When something goes wrong, you can read each role's output independently and see where the chain broke.
 
 It also lets you mix models. The planner might be a strong reasoning model. The executor might be a cheap, fast one. The reviewer might be a different vendor's model entirely, so it doesn't share the same blind spots as the executor.
 
@@ -34,10 +34,10 @@ See the [agents reference](/docs/reference/agents) for the source of each role's
 
 ## How an agent's prompt is assembled
 
-For each agent invocation, Amaco builds the prompt from:
+For each agent invocation, Vibestrate builds the prompt from:
 
-1. The role's template (e.g. `.amaco/agents/planner.md`).
-2. The project rules file (`.amaco/rules.md`).
+1. The role's template (e.g. `.vibestrate/agents/planner.md`).
+2. The project rules file (`.vibestrate/rules.md`).
 3. Any attached skills — both the agent's configured skills and per-run skills.
 4. The current task description.
 5. The artifacts produced by previous stages (plan, architecture, diff, validation output).

@@ -1,4 +1,4 @@
-# Maintaining Amaco
+# Maintaining Vibestrate
 
 Notes for the maintainer (you). Releases are maintainer-only — this file is the
 playbook so the README doesn't have to instruct it.
@@ -16,7 +16,7 @@ with origin), runs the full gate (typecheck → build → test → audit), then
 `npm version` (commits + tags `vX.Y.Z`) and pushes the tag. The tag triggers
 `.github/workflows/release.yml`, which re-runs the gate and publishes to npm.
 
-The version lives in `package.json` only and flows into `amaco --version` and
+The version lives in `package.json` only and flows into `vibestrate --version` and
 the generated docs reference — no other place to bump.
 
 ### One-time setup so CI can publish without a token
@@ -25,8 +25,8 @@ npm **trusted publishing** (OIDC) lets the workflow publish with no stored
 secret:
 
 1. Publish once manually (below) so the package exists.
-2. npmjs.com → `amaco-os` → Settings → **Trusted Publisher** → GitHub Actions
-   → repo `guyshonshon/amaco`, workflow `release.yml`.
+2. npmjs.com → `vibestrate` → Settings → **Trusted Publisher** → GitHub Actions
+   → repo `guyshonshon/vibestrate`, workflow `release.yml`.
 3. After that, `pnpm release` is fully hands-off.
 
 Fallback if you'd rather not use CI / OIDC: an automation token secret

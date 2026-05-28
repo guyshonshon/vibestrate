@@ -154,7 +154,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
       const ok =
         typeof window === "undefined" ||
         window.confirm(
-          `Smart apply "${b.title}": if a step's validation fails, Amaco will revert ONLY that step in the worktree. Earlier steps stay applied. Continue?`,
+          `Smart apply "${b.title}": if a step's validation fails, Vibestrate will revert ONLY that step in the worktree. Earlier steps stay applied. Continue?`,
         );
       if (!ok) return;
     }
@@ -265,30 +265,30 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
   return (
     <div className="space-y-2 text-[12px]">
       <header className="flex items-center gap-2">
-        <Layers className="h-3.5 w-3.5 text-amaco-accent" strokeWidth={1.5} />
-        <span className="text-[12px] font-medium text-amaco-fg">
+        <Layers className="h-3.5 w-3.5 text-vibestrate-accent" strokeWidth={1.5} />
+        <span className="text-[12px] font-medium text-vibestrate-fg">
           Review passes
         </span>
-        <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+        <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
           {bundles.length}
         </span>
         <button
           type="button"
           onClick={() => void load()}
-          className="ml-auto rounded border border-amaco-border p-1 text-amaco-fg-dim hover:bg-amaco-panel-2"
+          className="ml-auto rounded border border-vibestrate-border p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
           title="Refresh"
         >
           <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
         </button>
       </header>
       {error ? (
-        <div className="rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11.5px] text-amaco-fail">
+        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11.5px] text-vibestrate-fail">
           {error}
         </div>
       ) : null}
       {bundles.length === 0 ? (
-        <div className="rounded border border-dashed border-amaco-border px-3 py-3 text-center text-[11.5px] text-amaco-fg-muted">
-          No review passes yet. Use the <span className="amaco-mono">Select</span>{" "}
+        <div className="rounded border border-dashed border-vibestrate-border px-3 py-3 text-center text-[11.5px] text-vibestrate-fg-muted">
+          No review passes yet. Use the <span className="vibestrate-mono">Select</span>{" "}
           mode above to group suggestions into a pass.
         </div>
       ) : (
@@ -305,31 +305,31 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
             return (
               <li
                 key={b.id}
-                className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-2"
+                className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-2"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <BundleStatusBadge status={b.status} />
-                  <span className="font-medium text-amaco-fg">{b.title}</span>
-                  <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                  <span className="font-medium text-vibestrate-fg">{b.title}</span>
+                  <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                     {b.suggestionIds.length} suggestion
                     {b.suggestionIds.length === 1 ? "" : "s"}
                   </span>
                   <button
                     type="button"
                     onClick={() => setOpen(expanded ? null : b.id)}
-                    className="ml-auto rounded border border-amaco-border px-1.5 py-0.5 text-[11px] text-amaco-fg-dim hover:bg-amaco-panel"
+                    className="ml-auto rounded border border-vibestrate-border px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
                   >
                     {expanded ? "Hide" : "Details"}
                   </button>
                 </div>
                 {b.errorMessage ? (
-                  <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-amaco-fail">
+                  <div className="mt-1 inline-flex items-center gap-1 text-[11px] text-vibestrate-fail">
                     <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
                     {b.errorMessage}
                   </div>
                 ) : null}
                 {b.sameFileWarnings.length > 0 ? (
-                  <div className="mt-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[11px] text-amaco-warn">
+                  <div className="mt-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11px] text-vibestrate-warn">
                     {b.sameFileWarnings.length} same-file warning
                     {b.sameFileWarnings.length === 1 ? "" : "s"} — patches in
                     this pass touch overlapping files.
@@ -338,15 +338,15 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                 {expanded ? (
                   <div className="mt-2 space-y-1.5 text-[11.5px]">
                     {b.description ? (
-                      <p className="whitespace-pre-wrap text-amaco-fg-dim">
+                      <p className="whitespace-pre-wrap text-vibestrate-fg-dim">
                         {b.description}
                       </p>
                     ) : null}
-                    <ul className="ml-3 list-disc text-amaco-fg-dim">
+                    <ul className="ml-3 list-disc text-vibestrate-fg-dim">
                       {b.suggestionIds.map((sid) => (
-                        <li key={sid} className="amaco-mono">
+                        <li key={sid} className="vibestrate-mono">
                           {titleFor(sid)}{" "}
-                          <span className="text-amaco-fg-muted">{sid}</span>
+                          <span className="text-vibestrate-fg-muted">{sid}</span>
                         </li>
                       ))}
                     </ul>
@@ -356,7 +356,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                     {validations[b.id] ? (
                       <ValidationBlock result={validations[b.id]!} />
                     ) : b.validationResultPath ? (
-                      <div className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                      <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                         last validation: {b.validationResultPath}
                       </div>
                     ) : null}
@@ -375,7 +375,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         type="button"
                         onClick={() => void preflight(b)}
                         disabled={busy === b.id}
-                        className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:opacity-50"
                       >
                         Preflight
                       </button>
@@ -383,7 +383,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         type="button"
                         onClick={() => void approve(b)}
                         disabled={busy === b.id}
-                        className="inline-flex items-center gap-1 rounded border border-amaco-success/40 bg-amaco-success/10 px-1.5 py-0.5 text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-1.5 py-0.5 text-vibestrate-success hover:bg-vibestrate-success/15 disabled:opacity-50"
                       >
                         <Check className="h-3 w-3" strokeWidth={1.5} />
                         Approve pass
@@ -392,7 +392,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         type="button"
                         onClick={() => void reject(b)}
                         disabled={busy === b.id}
-                        className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
                       >
                         <X className="h-3 w-3" strokeWidth={1.5} />
                         Reject
@@ -432,7 +432,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         type="button"
                         onClick={() => void validate(b)}
                         disabled={busy === b.id}
-                        className="inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-amaco-fg-dim hover:bg-amaco-panel-2 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 disabled:opacity-50"
                       >
                         <Wrench className="h-3 w-3" strokeWidth={1.5} />
                         Validate
@@ -441,7 +441,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                         type="button"
                         onClick={() => void revert(b)}
                         disabled={busy === b.id}
-                        className="inline-flex items-center gap-1 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-1.5 py-0.5 text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
                       >
                         <RotateCcw className="h-3 w-3" strokeWidth={1.5} />
                         Revert
@@ -464,8 +464,8 @@ function PreflightBlock({ result }: { result: BundlePreflightResult }) {
     <div
       className={`rounded border px-2 py-1 text-[11px] ${
         result.ok
-          ? "border-amaco-success/40 bg-amaco-success/10 text-amaco-success"
-          : "border-amaco-fail/40 bg-amaco-fail/10 text-amaco-fail"
+          ? "border-vibestrate-success/40 bg-vibestrate-success/10 text-vibestrate-success"
+          : "border-vibestrate-fail/40 bg-vibestrate-fail/10 text-vibestrate-fail"
       }`}
     >
       <div>
@@ -476,14 +476,14 @@ function PreflightBlock({ result }: { result: BundlePreflightResult }) {
       {failures.length > 0 ? (
         <ul className="mt-1 space-y-0.5">
           {failures.map((f, i) => (
-            <li key={i} className="amaco-mono text-[10.5px]">
+            <li key={i} className="vibestrate-mono text-[10.5px]">
               {f.suggestionId}: {f.reason}
             </li>
           ))}
         </ul>
       ) : null}
       {result.sameFileWarnings.length > 0 ? (
-        <div className="mt-1 amaco-mono text-[10.5px] text-amaco-warn">
+        <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-warn">
           {result.sameFileWarnings.length} same-file warning
           {result.sameFileWarnings.length === 1 ? "" : "s"}
         </div>
@@ -499,8 +499,8 @@ function ValidationBlock({
 }) {
   if (result.status === "no_commands_configured") {
     return (
-      <div className="rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2 py-1 text-[11px] text-amaco-warn">
-        No <span className="amaco-mono">commands.validate</span> configured.
+      <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11px] text-vibestrate-warn">
+        No <span className="vibestrate-mono">commands.validate</span> configured.
       </div>
     );
   }
@@ -509,8 +509,8 @@ function ValidationBlock({
     <div
       className={`rounded border px-2 py-1 text-[11px] ${
         ok
-          ? "border-amaco-success/40 bg-amaco-success/10 text-amaco-success"
-          : "border-amaco-fail/40 bg-amaco-fail/10 text-amaco-fail"
+          ? "border-vibestrate-success/40 bg-vibestrate-success/10 text-vibestrate-success"
+          : "border-vibestrate-fail/40 bg-vibestrate-fail/10 text-vibestrate-fail"
       }`}
     >
       Validation {ok ? "passed" : "failed"}: {result.summary.passed}/
@@ -524,20 +524,20 @@ function BundleStatusBadge({ status }: { status: SuggestionBundle["status"] }) {
     status === "applied" ||
     status === "approved" ||
     status === "validation_passed"
-      ? "border-amaco-success/40 text-amaco-success"
+      ? "border-vibestrate-success/40 text-vibestrate-success"
       : status === "failed" ||
           status === "validation_failed" ||
           status === "revert_failed" ||
           status === "partially_applied"
-        ? "border-amaco-fail/40 text-amaco-fail"
+        ? "border-vibestrate-fail/40 text-vibestrate-fail"
         : status === "rejected" || status === "reverted"
-          ? "border-amaco-border text-amaco-fg-muted"
+          ? "border-vibestrate-border text-vibestrate-fg-muted"
           : status === "applying"
-            ? "border-amaco-warn/40 text-amaco-warn"
-            : "border-amaco-accent/40 text-amaco-accent";
+            ? "border-vibestrate-warn/40 text-vibestrate-warn"
+            : "border-vibestrate-accent/40 text-vibestrate-accent";
   return (
     <span
-      className={`amaco-mono inline-flex items-center rounded border px-1 text-[10px] ${tone}`}
+      className={`vibestrate-mono inline-flex items-center rounded border px-1 text-[10px] ${tone}`}
     >
       {status}
     </span>
@@ -588,7 +588,7 @@ function SmartApplyControls({
           type="button"
           onClick={onApply}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-accent-soft/30 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-accent-soft/50 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-1.5 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-50"
           title="All-or-nothing apply: every patch lands together, with rollback on first failure."
         >
           <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} />
@@ -598,13 +598,13 @@ function SmartApplyControls({
           type="button"
           onClick={onSmartApply}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded border border-amaco-accent/40 bg-amaco-panel-2 px-1.5 py-0.5 text-amaco-fg hover:bg-amaco-panel disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-panel-2 px-1.5 py-0.5 text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
           title="Apply step-by-step. Earlier passing steps stay applied if a later step fails."
         >
           Smart apply
         </button>
       </div>
-      <div className="flex flex-wrap gap-3 text-[10.5px] text-amaco-fg-dim">
+      <div className="flex flex-wrap gap-3 text-[10.5px] text-vibestrate-fg-dim">
         <label className="inline-flex items-center gap-1">
           <input
             type="checkbox"
@@ -667,30 +667,30 @@ function SmartApplyResultBlock({
   titleFor: (id: string) => string;
 }) {
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[11px]">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[11px]">
       <div className="flex items-baseline gap-2">
         <span className="font-medium">Smart apply</span>
-        <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+        <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
           {result.finalStatus}
         </span>
         {result.failedAt !== null && result.failedAt >= 0 ? (
-          <span className="amaco-mono text-[10.5px] text-amaco-warn">
+          <span className="vibestrate-mono text-[10.5px] text-vibestrate-warn">
             stopped at step {result.failedAt + 1}
           </span>
         ) : null}
       </div>
       <ol className="mt-1 ml-4 list-decimal space-y-0.5">
         {result.steps.map((step) => (
-          <li key={step.suggestionId} className="amaco-mono text-[10.5px]">
-            <span className="text-amaco-fg-dim">{titleFor(step.suggestionId)}</span>
+          <li key={step.suggestionId} className="vibestrate-mono text-[10.5px]">
+            <span className="text-vibestrate-fg-dim">{titleFor(step.suggestionId)}</span>
             {" — "}
             <span
               className={
                 step.applyStatus === "applied"
-                  ? "text-amaco-success"
+                  ? "text-vibestrate-success"
                   : step.applyStatus === "skipped"
-                    ? "text-amaco-fg-muted"
-                    : "text-amaco-fail"
+                    ? "text-vibestrate-fg-muted"
+                    : "text-vibestrate-fail"
               }
             >
               apply {step.applyStatus}
@@ -698,7 +698,7 @@ function SmartApplyResultBlock({
             {step.validation ? (
               <>
                 {" · "}
-                <span className="text-amaco-fg-muted">
+                <span className="text-vibestrate-fg-muted">
                   {step.validation.profileName}
                   {step.validation.profileSource !== "default"
                     ? `(${step.validation.profileSource})`
@@ -708,10 +708,10 @@ function SmartApplyResultBlock({
                 <span
                   className={
                     step.validation.status === "passed"
-                      ? "text-amaco-success"
+                      ? "text-vibestrate-success"
                       : step.validation.status === "failed"
-                        ? "text-amaco-fail"
-                        : "text-amaco-warn"
+                        ? "text-vibestrate-fail"
+                        : "text-vibestrate-warn"
                   }
                 >
                   validation {step.validation.status}
@@ -724,8 +724,8 @@ function SmartApplyResultBlock({
                 <span
                   className={
                     step.revertStatus === "reverted"
-                      ? "text-amaco-warn"
-                      : "text-amaco-fail"
+                      ? "text-vibestrate-warn"
+                      : "text-vibestrate-fail"
                   }
                 >
                   {step.revertStatus}

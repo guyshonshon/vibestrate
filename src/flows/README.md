@@ -7,6 +7,6 @@ The Guide domain is split by ownership:
 - `runtime/` resolves Guides and records run-local Guide state such as
   participants, arbitration evidence, exports, and suggestions.
 
-Project definitions live under `.amaco/guides/`. They are schema-validated
+Project definitions live under `.vibestrate/guides/`. They are schema-validated
 data, not executable code. Provider invocation and approval behavior stay in
 the orchestrator and runtime services.

@@ -1,17 +1,17 @@
-# Hand-off prompt — claude.ai/design: Amaco "Flows Hub" UI
+# Hand-off prompt — claude.ai/design: Vibestrate "Flows Hub" UI
 
 > Paste everything under the line into claude.ai/design. It's written to be
 > self-contained. It targets a **dark, glassy, local-first developer tool**, and
-> it matches Amaco's existing Mission Control design system (tokens below) so the
+> it matches Vibestrate's existing Mission Control design system (tokens below) so the
 > result drops into the app with minimal rework.
 
 ---
 
-## Design a "Flows Hub" surface for Amaco (Mission Control dashboard)
+## Design a "Flows Hub" surface for Vibestrate (Mission Control dashboard)
 
-### What Amaco is
+### What Vibestrate is
 
-Amaco is a **local-first multi-agent orchestrator** for coding agents. It runs
+Vibestrate is a **local-first multi-agent orchestrator** for coding agents. It runs
 entirely on the developer's machine — no cloud backend, no hosted relay. It
 drives local coding-agent CLIs (Claude Code, Gemini, Codex, Ollama, Aider…) and
 coordinates them through declarative **Flows**. Its dashboard is called
@@ -23,12 +23,12 @@ consumer SaaS app.
 A Flow is a **declarative YAML recipe** (slots + steps) that defines how a team
 of agents collaborates on a task — e.g. *plan → implement → review → verify*,
 with human approval gates. Flows are small, reviewable data (no embedded code).
-Today users fork/customize them in a Flow Builder. They are the unit Amaco wants
+Today users fork/customize them in a Flow Builder. They are the unit Vibestrate wants
 to make shareable.
 
 ### What the Flows Hub is (what you're designing)
 
-A **registry browser inside Mission Control** — "npm / Docker Hub, but for Amaco
+A **registry browser inside Mission Control** — "npm / Docker Hub, but for Vibestrate
 Flows." It lets a developer **discover, inspect, install, and publish** Flows
 that other people share. It is **opt-in and read-mostly**: browsing fetches a
 public catalog over HTTP; installing writes a flow file locally; nothing
@@ -67,7 +67,7 @@ content area). Each screen needs: empty, loading, populated, and error states.
 
 2. **Flow detail**
    - Header: name, author, `latest` chip, stars/downloads, **Install** action.
-   - The **install command** shown copyable: `amaco flows install <name>` (and
+   - The **install command** shown copyable: `vibestrate flows install <name>` (and
      the pinned `name:1.2.0` form).
    - A **version selector / history** (list of semver versions, dates, "latest").
    - Readable summary of the flow's **flow**: the ordered steps and which
@@ -99,7 +99,7 @@ content area). Each screen needs: empty, loading, populated, and error states.
 
 ## Design system — match these exactly
 
-Amaco's Mission Control is **dark-only**, near-black, with violet/cyan accents,
+Vibestrate's Mission Control is **dark-only**, near-black, with violet/cyan accents,
 glass surfaces, and a grotesque display typeface. Use these tokens verbatim.
 
 **Color (CSS custom-prop values):**
@@ -115,7 +115,7 @@ glass surfaces, and a grotesque display typeface. Use these tokens verbatim.
 
 **Type:**
 - **Display / big titles & headings → "Bricolage Grotesque"** (variable), weight
-  ~500, tight tracking (`-0.02em`). Keep heros **compact** — Amaco recently
+  ~500, tight tracking (`-0.02em`). Keep heros **compact** — Vibestrate recently
   minimized oversized hero titles; favor a small mono **eyebrow** + a modest
   (~21–24px) title + a 13px subtitle, not giant marketing type.
 - **Body / UI → "Geist"** (sans). **Mono → "Geist Mono"** (code, version chips,

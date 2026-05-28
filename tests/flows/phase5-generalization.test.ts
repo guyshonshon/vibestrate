@@ -81,7 +81,7 @@ const releaseChecklistFlow = flowDefinitionSchema.parse({
 });
 
 async function makeFlowRepo(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-flows-phase5-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-flows-phase5-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -97,13 +97,13 @@ async function makeFlowRepo(): Promise<string> {
 let prompt = "";
 process.stdin.on("data", (chunk) => prompt += chunk);
 process.stdin.on("end", () => {
-  if (prompt.includes("Amaco Agent: reviewer")) {
+  if (prompt.includes("Vibestrate Agent: reviewer")) {
     console.log("# Review\\n\\nDECISION: APPROVED");
-  } else if (prompt.includes("Amaco Agent: verifier")) {
+  } else if (prompt.includes("Vibestrate Agent: verifier")) {
     console.log("# Summary\\n\\nVERIFICATION: PASSED");
-  } else if (prompt.includes("Amaco Agent: planner")) {
+  } else if (prompt.includes("Vibestrate Agent: planner")) {
     console.log("# Plan\\n\\nPrepare a bounded handoff.");
-  } else if (prompt.includes("Amaco Agent: executor")) {
+  } else if (prompt.includes("Vibestrate Agent: executor")) {
     console.log("# Implementation\\n\\nNo source change required.");
   } else {
     console.log("# Unknown");
@@ -175,7 +175,7 @@ describe("Flow Phase 5 generalization", () => {
     const interval = setInterval(async () => {
       if (approved) return;
       const runs = await fs
-        .readdir(path.join(projectRoot, ".amaco", "runs"))
+        .readdir(path.join(projectRoot, ".vibestrate", "runs"))
         .catch(() => []);
       const runId = runs[0];
       if (!runId) return;
@@ -214,7 +214,7 @@ describe("Flow Phase 5 generalization", () => {
       files: [
         "src/core/orchestrator.ts",
         "src/providers/provider-runner.ts",
-        ".amaco/project.yml",
+        ".vibestrate/project.yml",
       ],
       riskLevel: "high",
       availableFlows: [

@@ -96,7 +96,7 @@ export const slackGateway: Gateway = {
     try {
       const r = await postJsonWithTimeout({
         url,
-        body: { text: ":wave: Amaco Slack gateway test." },
+        body: { text: ":wave: Vibestrate Slack gateway test." },
       });
       return r.ok
         ? { ok: true, message: `Slack responded ${r.status}.` }

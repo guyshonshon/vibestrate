@@ -135,7 +135,7 @@ export function App() {
           setSwitcherOpen(true);
           break;
         case "n":
-          window.dispatchEvent(new CustomEvent("amaco:open-notifications"));
+          window.dispatchEvent(new CustomEvent("vibestrate:open-notifications"));
           break;
       }
     };
@@ -310,7 +310,7 @@ export function App() {
       ) : route.kind === "settings" ? (
         <Suspense
           fallback={
-            <div className="px-4 py-6 text-[11.5px] text-amaco-fg-muted">
+            <div className="px-4 py-6 text-[11.5px] text-vibestrate-fg-muted">
               Loading settings…
             </div>
           }

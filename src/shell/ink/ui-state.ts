@@ -61,8 +61,8 @@ export type ShellUiStateV2 = {
   paletteSelectedIndex: number;
   helpOpen: boolean;
   /**
-   * Free-form `amaco …` command runner overlay. Opens with `!`. The
-   * runtime spawns the resolved amaco binary argv-only with the
+   * Free-form `vibestrate …` command runner overlay. Opens with `!`. The
+   * runtime spawns the resolved vibestrate binary argv-only with the
    * user's input parsed via `parseArgs` (no shell expansion) and
    * streams the output back into `runner.output`.
    */

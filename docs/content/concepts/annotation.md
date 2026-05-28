@@ -7,11 +7,11 @@ slug: concepts/annotation
 
 Annotations are short, human-authored notes you pin to your codebase from
 Mission Control's **Codebase** page. They live outside your source files — in
-`.amaco/annotations.json` — so they never touch the code itself. Their point:
+`.vibestrate/annotations.json` — so they never touch the code itself. Their point:
 **give the agents guidance they'll acknowledge** ("don't refactor this", "this
 function is the bug", "match the pattern in `x.ts`") without editing the files.
 
-Annotations are entirely optional. Amaco works exactly the same with none.
+Annotations are entirely optional. Vibestrate works exactly the same with none.
 
 ## What an annotation anchors to
 
@@ -47,7 +47,7 @@ out) and can be reopened.
 
 ## Safety
 
-- Notes are stored only in `.amaco/annotations.json`; source files are never
+- Notes are stored only in `.vibestrate/annotations.json`; source files are never
   modified.
 - You can't annotate secret-like files (`.env`, `*.key`, …), and note bodies are
   scanned for secret-shaped tokens and refused — annotations are injected into

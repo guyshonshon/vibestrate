@@ -21,7 +21,7 @@ async function tempProjectWithProfiles(opts: {
   validate?: string[];
   profiles?: Record<string, { description?: string; commands: string[] }>;
 } = {}): Promise<{ project: string; worktree: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pde-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pde-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -43,9 +43,9 @@ async function tempProjectWithProfiles(opts: {
     })
     .join("\n");
 
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -63,12 +63,12 @@ async function tempProjectWithProfiles(opts: {
   );
 
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-pde-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-pde-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "run-1";
@@ -82,7 +82,7 @@ async function tempProjectWithProfiles(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -178,11 +178,11 @@ describe("validation-profile-audit-service", () => {
     // sort puts the oldest first — so the most recent 50 should win.
     for (let i = 1; i <= 60; i++) {
       const id = `run-${String(i + 100).padStart(4, "0")}`;
-      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+      await fs.mkdir(path.join(t.project, ".vibestrate/runs", id), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        path.join(t.project, ".vibestrate/runs", id, "suggestions.json"),
         JSON.stringify({
           suggestions: [{ id: "s-1", validationProfile: "missing" }],
         }),
@@ -203,11 +203,11 @@ describe("validation-profile-audit-service", () => {
     const t = await tempProjectWithProfiles({ validate: ["true"] });
     for (let i = 1; i <= 60; i++) {
       const id = `run-${String(i + 100).padStart(4, "0")}`;
-      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+      await fs.mkdir(path.join(t.project, ".vibestrate/runs", id), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        path.join(t.project, ".vibestrate/runs", id, "suggestions.json"),
         JSON.stringify({
           suggestions: [{ id: "s-1", validationProfile: "missing" }],
         }),
@@ -227,11 +227,11 @@ describe("validation-profile-audit-service", () => {
   it("run scope only scans the given runId", async () => {
     const t = await tempProjectWithProfiles({ validate: ["true"] });
     for (const id of ["run-aaa", "run-bbb"]) {
-      await fs.mkdir(path.join(t.project, ".amaco/runs", id), {
+      await fs.mkdir(path.join(t.project, ".vibestrate/runs", id), {
         recursive: true,
       });
       await fs.writeFile(
-        path.join(t.project, ".amaco/runs", id, "suggestions.json"),
+        path.join(t.project, ".vibestrate/runs", id, "suggestions.json"),
         JSON.stringify({
           suggestions: [{ id: `${id}-s`, validationProfile: "missing" }],
         }),
@@ -313,7 +313,7 @@ describe("doctor: validation profiles section", () => {
     const s = await svc.addManual({ title: "S", proposedPatch: PATCH_A });
     await svc.store.upsert({ ...s, validationProfile: "missing" });
     const ymlBefore = await fs.readFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       "utf8",
     );
     const sjBefore = await fs.readFile(
@@ -323,7 +323,7 @@ describe("doctor: validation profiles section", () => {
     const fix = await applyDoctorFixes({ projectRoot: t.project });
     void fix;
     const ymlAfter = await fs.readFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       "utf8",
     );
     const sjAfter = await fs.readFile(

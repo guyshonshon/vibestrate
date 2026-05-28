@@ -8,7 +8,7 @@ import { configExists } from "../../../project/config-loader.js";
 import { color, indent, symbol } from "../../ui/format.js";
 import { isInteractiveTTY } from "../../ui/format.js";
 import { confirm } from "@inquirer/prompts";
-import { isAmacoError } from "../../../utils/errors.js";
+import { isVibestrateError } from "../../../utils/errors.js";
 
 export async function runProviderTest(
   providerIdArg: string | undefined,
@@ -17,7 +17,7 @@ export async function runProviderTest(
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Amaco config found. Run ${color.bold("amaco init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
     );
     return 1;
   }
@@ -27,14 +27,14 @@ export async function runProviderTest(
     providers = await listConfiguredProviders(detected.projectRoot);
   } catch (err) {
     console.error(
-      `${symbol.fail()} ${isAmacoError(err) ? err.message : String(err)}`,
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : String(err)}`,
     );
     return 1;
   }
 
   if (providers.length === 0) {
     console.error(
-      `${symbol.warn()} No providers configured. Run ${color.bold("amaco provider setup")}.`,
+      `${symbol.warn()} No providers configured. Run ${color.bold("vibestrate provider setup")}.`,
     );
     return 1;
   }
@@ -45,7 +45,7 @@ export async function runProviderTest(
   if (!providerId) {
     console.error(
       `${symbol.fail()} Multiple providers configured. Specify one: ${providers
-        .map((p) => `\`amaco provider test ${p.id}\``)
+        .map((p) => `\`vibestrate provider test ${p.id}\``)
         .join(" or ")}.`,
     );
     return 1;
@@ -69,7 +69,7 @@ export async function runProviderTest(
   );
   console.log(
     color.dim(
-      "Amaco will send a tiny no-op prompt and look for the magic token in stdout. This may consume a small amount of usage from your CLI provider.",
+      "Vibestrate will send a tiny no-op prompt and look for the magic token in stdout. This may consume a small amount of usage from your CLI provider.",
     ),
   );
 
@@ -103,7 +103,7 @@ export async function runProviderTest(
     if (result.loginCommand) {
       console.error(
         indent(
-          `Run this ${color.bold("outside Amaco")}, then re-test:\n${indent(color.bold(result.loginCommand))}`,
+          `Run this ${color.bold("outside Vibestrate")}, then re-test:\n${indent(color.bold(result.loginCommand))}`,
         ),
       );
     }

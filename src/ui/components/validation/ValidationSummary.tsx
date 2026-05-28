@@ -60,29 +60,29 @@ export function ValidationSummary({ runId }: { runId: string }) {
 
   if (error)
     return (
-      <div className="rounded border border-amaco-border bg-amaco-panel p-3 text-[12px] text-amaco-fail">
+      <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3 text-[12px] text-vibestrate-fail">
         {error}
       </div>
     );
 
   return (
-    <div className="rounded border border-amaco-border bg-amaco-panel p-3">
+    <div className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
       <div className="flex items-center justify-between">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           validation
         </div>
         {data ? (
-          <span className="amaco-mono text-[11px] text-amaco-fg-dim">
+          <span className="vibestrate-mono text-[11px] text-vibestrate-fg-dim">
             {data.summary.passed}/{data.summary.total} passed
           </span>
         ) : null}
       </div>
       {!data ? (
-        <div className="mt-2 text-[12px] text-amaco-fg-muted">
+        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
           Validation has not run yet.
         </div>
       ) : data.commands.length === 0 ? (
-        <div className="mt-2 text-[12px] text-amaco-fg-muted">
+        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
           {data.note ?? "No validation commands configured."}
         </div>
       ) : (

@@ -43,7 +43,7 @@ export type StreamEventsOptions = {
 };
 
 /**
- * Tail .amaco/runs/<runId>/events.ndjson and forward each line to the SSE
+ * Tail .vibestrate/runs/<runId>/events.ndjson and forward each line to the SSE
  * client. Sends an initial backlog of every existing line, then watches the
  * file for new content.
  */
@@ -141,7 +141,7 @@ export type StreamProviderOutputOptions = {
 };
 
 /**
- * Tail .amaco/runs/<runId>/streams/<promptName>.ndjson and forward each
+ * Tail .vibestrate/runs/<runId>/streams/<promptName>.ndjson and forward each
  * line as an SSE `chunk` event. Mirrors `streamRunEvents` but for the
  * raw provider stdout/stderr stream — used by the run-detail Live
  * Output panel to show what the model's CLI is currently saying.

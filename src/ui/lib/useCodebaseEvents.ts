@@ -86,7 +86,7 @@ export function useCodebaseEvents(url: string | null): CodebaseFreshness {
       attempt++;
       if (attempt > MAX_RECONNECT_ATTEMPTS) {
         // Stop the storm. After this many consecutive failures we're
-        // either talking to a server that's down (`amaco ui` exited)
+        // either talking to a server that's down (`vibestrate ui` exited)
         // or a stale route. Park the channel until the user navigates
         // away and back; surface the state so the page can show
         // a banner instead of silently retrying forever.

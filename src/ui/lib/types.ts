@@ -390,7 +390,7 @@ export type ApprovalRequest = {
   decisionNote: string | null;
 };
 
-export type AmacoEvent = {
+export type VibestrateEvent = {
   timestamp: string;
   type: string;
   message: string;
@@ -452,7 +452,7 @@ export type DiscoveredSkill = {
   id: string;
   name: string;
   description: string | null;
-  source: "amaco" | "claude" | "user";
+  source: "vibestrate" | "claude" | "user";
   filePath: string;
   rootDir: string;
   bodyPreview: string;
@@ -708,7 +708,7 @@ export type ProjectMetadata = {
     hasNotifications: boolean;
   };
   projectRoot: string;
-  amacoRoot: string;
+  vibestrateRoot: string;
   worktreeDir: string;
   projectName: string;
   projectType: ProjectType;

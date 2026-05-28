@@ -21,26 +21,26 @@
   --color-violet-deep: #6951f0;
   --color-sky-glow: #7cc5ff;
 
-  /* ── Legacy amaco-* tokens (kept so non-redesigned routes don't
+  /* ── Legacy vibestrate-* tokens (kept so non-redesigned routes don't
    * break — the new screens use the ink/fog/violet tokens above) ── */
-  --color-amaco-canvas: #06070b;
-  --color-amaco-panel: #0e1118;
-  --color-amaco-panel-2: #13171f;
-  --color-amaco-border: rgba(255, 255, 255, 0.09);
-  --color-amaco-border-soft: rgba(255, 255, 255, 0.06);
-  --color-amaco-fg: #f4f5fa;
-  --color-amaco-fg-dim: #c9ccd9;
-  --color-amaco-fg-muted: #6a7186;
-  --color-amaco-accent: #a78bfa;
-  --color-amaco-accent-soft: rgba(167, 139, 250, 0.12);
-  --color-amaco-success: #4ade80;
-  --color-amaco-info: #7cc5ff;
-  --color-amaco-warn: #fbbf24;
-  --color-amaco-fail: #fb7185;
-  --color-amaco-diff-add: #1e3327;
-  --color-amaco-diff-add-fg: #9fdcb0;
-  --color-amaco-diff-del: #3d2326;
-  --color-amaco-diff-del-fg: #f0a5a5;
+  --color-vibestrate-canvas: #06070b;
+  --color-vibestrate-panel: #0e1118;
+  --color-vibestrate-panel-2: #13171f;
+  --color-vibestrate-border: rgba(255, 255, 255, 0.09);
+  --color-vibestrate-border-soft: rgba(255, 255, 255, 0.06);
+  --color-vibestrate-fg: #f4f5fa;
+  --color-vibestrate-fg-dim: #c9ccd9;
+  --color-vibestrate-fg-muted: #6a7186;
+  --color-vibestrate-accent: #a78bfa;
+  --color-vibestrate-accent-soft: rgba(167, 139, 250, 0.12);
+  --color-vibestrate-success: #4ade80;
+  --color-vibestrate-info: #7cc5ff;
+  --color-vibestrate-warn: #fbbf24;
+  --color-vibestrate-fail: #fb7185;
+  --color-vibestrate-diff-add: #1e3327;
+  --color-vibestrate-diff-add-fg: #9fdcb0;
+  --color-vibestrate-diff-del: #3d2326;
+  --color-vibestrate-diff-del-fg: #f0a5a5;
 
   --font-sans:
     "Geist", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
@@ -135,7 +135,7 @@ body {
 }
 
 /* ── Backdrop wash: subtle violet/cyan on near-black ─────────────── */
-.amaco-backdrop {
+.vibestrate-backdrop {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -236,7 +236,7 @@ button:active,
 }
 
 /* ── Status pulse dot ────────────────────────────────────────────── */
-@keyframes amaco-pulse-dot {
+@keyframes vibestrate-pulse-dot {
   0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
   50% { box-shadow: 0 0 0 6px transparent; opacity: 0.6; }
 }
@@ -246,11 +246,11 @@ button:active,
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  animation: amaco-pulse-dot 1.6s ease-in-out infinite;
+  animation: vibestrate-pulse-dot 1.6s ease-in-out infinite;
 }
 
 /* ── Marquee meter (active phase shimmer) ─────────────────────────── */
-@keyframes amaco-meter-shimmer {
+@keyframes vibestrate-meter-shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
@@ -272,11 +272,11 @@ button:active,
     rgba(167, 139, 250, 0.85),
     transparent
   );
-  animation: amaco-meter-shimmer 1.8s ease-in-out infinite;
+  animation: vibestrate-meter-shimmer 1.8s ease-in-out infinite;
 }
 
 /* ── Terminal blink ──────────────────────────────────────────────── */
-@keyframes amaco-caret {
+@keyframes vibestrate-caret {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
 }
@@ -286,7 +286,7 @@ button:active,
   height: 14px;
   background: var(--color-violet-soft);
   vertical-align: -2px;
-  animation: amaco-caret 1s steps(1, end) infinite;
+  animation: vibestrate-caret 1s steps(1, end) infinite;
   margin-left: 2px;
   border-radius: 1px;
 }
@@ -318,12 +318,12 @@ button:active,
 }
 
 /* ── Slide-in helpers ────────────────────────────────────────────── */
-@keyframes amaco-fade-up {
+@keyframes vibestrate-fade-up {
   from { opacity: 0.4; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 .fade-up {
-  animation: amaco-fade-up 280ms ease both;
+  animation: vibestrate-fade-up 280ms ease both;
 }
 .fade-up-delay-1 { animation-delay: 60ms; }
 .fade-up-delay-2 { animation-delay: 120ms; }
@@ -383,7 +383,7 @@ button:active,
     rgba(255, 255, 255, 0.5),
     transparent
   );
-  animation: amaco-meter-shimmer 1.6s ease-in-out infinite;
+  animation: vibestrate-meter-shimmer 1.6s ease-in-out infinite;
 }
 
 /* ── Board card "done" strike — softer than browser default ─────── */
@@ -414,21 +414,21 @@ button:active,
   border-radius: 8px;
 }
 
-@keyframes amaco-pulse {
+@keyframes vibestrate-pulse {
   0%, 100% { opacity: 0.4; transform: scaleX(0.6); }
   50% { opacity: 1; transform: scaleX(1); }
 }
 
-.amaco-pulse-bar {
+.vibestrate-pulse-bar {
   position: relative;
   display: block;
   height: 1px;
   background: var(--color-violet-soft);
   transform-origin: left center;
-  animation: amaco-pulse 1200ms ease-in-out infinite;
+  animation: vibestrate-pulse 1200ms ease-in-out infinite;
 }
 
-.amaco-mono {
+.vibestrate-mono {
   font-family: var(--font-mono);
   font-size: 12.5px;
 }
@@ -494,7 +494,7 @@ button:active,
   font-style: italic;
 }
 .hljs-deletion {
-  color: var(--color-amaco-diff-del-fg);
+  color: var(--color-vibestrate-diff-del-fg);
 }
 .hljs-operator,
 .hljs-punctuation {

@@ -10,12 +10,12 @@ import {
 } from "./policy-types.js";
 
 /**
- * Disk-backed read of .amaco/policies/*.yml. Pure projection — no caching,
+ * Disk-backed read of .vibestrate/policies/*.yml. Pure projection — no caching,
  * no watchers; callers (CLI / server / engine) re-read whenever they want
  * a fresh view.
  *
  * Hard rules:
- *   - Only files directly under .amaco/policies/ are read. No recursion,
+ *   - Only files directly under .vibestrate/policies/ are read. No recursion,
  *     no symlink-following past the directory boundary.
  *   - Only .yml / .yaml extensions are loaded. Other files are ignored
  *     silently (a README.md sitting next to rule files is fine).

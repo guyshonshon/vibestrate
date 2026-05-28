@@ -9,7 +9,7 @@ import { color, header, indent, symbol } from "../../ui/format.js";
 export async function runSkillsShow(name: string): Promise<number> {
   if (!name) {
     console.error(
-      `${symbol.fail()} Skill name is required. Try ${color.bold("amaco skills list")} to see what is available.`,
+      `${symbol.fail()} Skill name is required. Try ${color.bold("vibestrate skills list")} to see what is available.`,
     );
     return 1;
   }

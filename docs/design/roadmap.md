@@ -9,7 +9,7 @@ fine-grained shipped/backlog checklist.
 
 ## Epic A — Provider structured output + real token/cost control  ← active
 
-The keystone: a provider's output becomes **structured** so amaco gets live
+The keystone: a provider's output becomes **structured** so vibestrate gets live
 streaming *and* real token/cost data, behind a per-provider adapter that keeps
 supervision uniform. Full design + guarantees:
 [`provider-structured-output.md`](./provider-structured-output.md). This
@@ -43,13 +43,46 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   warn event at the threshold, then at the cap apply `capAction` —
   **stop** (block the run), **downgrade-model** (switch to the cheaper
   fallback/effortMap.low and continue), or **reduce-effort** (drop a notch).
-  Configurable via the **CLI** (`amaco budget set/show/off`) and the **UI**
+  Configurable via the **CLI** (`vibestrate budget set/show/off`) and the **UI**
   (Metrics page control + `/api/budget`). Uses the A3 cost ledger. Tested.
 - **A6 — (optional) Webhooks.** POST on approve / merge / cap-hit, via the
   existing `src/notifications/` system.
 - **A7 — Real metrics for Codex / Gemini / Ollama** (structured adapters, like
   Claude). Tracked in **GitHub issue #5** — until then these show estimated
   tokens (labelled `est.`) and no cost.
+
+## Epic S — Hard policy enforcement + run assurance  ← core safety pillar
+
+Vibestrate must not become prompt automation with nice UI. Its durable value is hard
+gates: policy enforcement, approval boundaries, rollback, validation evidence,
+and an honest final assurance artifact. Full design:
+[`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md).
+Tracked in **GitHub issue #7**.
+
+- **S0 — Action Broker foundation.** Add the Vibestrate-owned boundary that all real
+  effects must cross: provider spawn, command run, file patch/write,
+  terminal create, suggestion/bundle apply, and run completion. Do this early
+  so policy is one core path, not scattered checks added later.
+- **S1 — Language cleanup.** Stop calling prompt boundaries enforcement.
+  Reserve "policy enforcement" for code-enforced gates. Docs/UI should say
+  "instructions" when a rule is only injected into the prompt.
+- **S2 — Policy engine V2.** Expand policies beyond suggestion/bundle patch
+  apply: `run.preflight`, `provider.spawn`, `agent.turn.diff`,
+  `suggestion.apply`, `bundle.apply`, `terminal.create`, `run.complete`.
+  Effects: `deny`, `require_approval`.
+- **S3 — Post-turn diff gate.** Snapshot before every write-capable role,
+  run the provider, diff after the turn, evaluate policies, then accept,
+  request approval, or rollback and block.
+- **S4 — Strict apply-only mode.** Optional high-assurance mode where agents
+  propose patches/structured file edits and Vibestrate applies them through the
+  policy gateway. No direct writes accepted.
+- **S5 — Run Assurance artifact.** Generate
+  `.vibestrate/runs/<runId>/assurance.json` with discrete verdicts:
+  `blocked`, `unsafe`, `unverified`, `partially_verified`, `verified`.
+  No fake confidence percentage.
+- **S6 — OS sandbox path.** Tie into the Docker/sandbox execution backend so
+  forbidden-path guarantees become process-level guarantees, not only
+  accepted-diff guarantees.
 
 ## Epic B — Run control & rework
 
@@ -64,7 +97,7 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
     source run, skips earlier stages, and uses a fresh worktree off main (valid
     because both stages regenerate the downstream code). New runId +
     `state.resumedFrom` lineage; original untouched. UI "Start from" selector +
-    `amaco run --resume-from <runId> [--resume-stage …]`. Permission/effort/
+    `vibestrate run --resume-from <runId> [--resume-stage …]`. Permission/effort/
     provider overrides ride the existing re-run controls.
   - ☐ **Rewind phase 2** — resume at **review / verify / fix** (which need the
     executor's code present). Requires per-phase **worktree snapshots**
@@ -97,7 +130,7 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
   - **Vocabulary decision:** keep **Provider** (rejected "Engine"); **Role** is
     an acceptable user-facing label for an agent.
   - ~~**Agent→Role rename + page merge** (done): clean rename (no back-compat,
-    pre-release) of `agents:`→`roles:`, `.amaco/agents/`→`.amaco/roles/`,
+    pre-release) of `agents:`→`roles:`, `.vibestrate/agents/`→`.vibestrate/roles/`,
     `agentId`→`roleId`, `agent.*` events→`role.*`, and ~60 code identifiers;
     mislabeled provider-fleet data corrected to Provider. Dashboard Agents +
     Providers merged into one **Crew** page (`#/crew`). Canonical terms in
@@ -123,9 +156,9 @@ what makes the ledger real; the pricing/cap/dashboard work sits on top.
 
 - **E1 — Windows support.** Audit what breaks on Windows (path handling,
   detached spawns, signals, worktrees) and decide supported scope.
-- **E2 — Homebrew install.** Stand up a `guyshonshon/homebrew-amaco` tap with a
-  `Formula/amaco.rb` (depends_on node; installs the published npm tarball,
-  pinned version + sha256) so `brew install guyshonshon/amaco/amaco` works.
+- **E2 — Homebrew install.** Stand up a `guyshonshon/homebrew-vibestrate` tap with a
+  `Formula/vibestrate.rb` (depends_on node; installs the published npm tarball,
+  pinned version + sha256) so `brew install guyshonshon/vibestrate/vibestrate` works.
   npm + the `curl | sh` installer cover macOS/Linux today; brew is a
   nice-to-have. (Deferred — user opted to skip for now.)
 
@@ -142,7 +175,8 @@ lives in the repo-local (gitignored) `CLAUDE.md`.
 
 ~~A1~~ → ~~A2~~ → ~~A3~~ → ~~A4~~ → ~~A5~~ (**Epic A complete** — structured
 output, real metrics/cost, dashboard, spend cap) → ~~B1 (rewind phase 1)~~ →
-~~B2 (run nav + blocked UX)~~ → then **D1** (Agents vs Providers — design the
-vocabulary; the dashboard's split Agents/Providers pages confuse users),
-C1, rewind phase 2 (per-phase worktree snapshots), A6, E1.
+~~B2 (run nav + blocked UX)~~ → **Epic S** (hard policy enforcement + run
+assurance) → then **D1** (Agents vs Providers — design the vocabulary; the
+dashboard's split Agents/Providers pages confuse users), C1, rewind phase 2
+(per-phase worktree snapshots), A6, E1.
 Adjust as priorities shift.

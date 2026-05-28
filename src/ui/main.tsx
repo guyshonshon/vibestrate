@@ -5,7 +5,7 @@ import "./index.css";
 
 const container = document.getElementById("root");
 if (!container) {
-  throw new Error("Amaco UI: #root not found");
+  throw new Error("Vibestrate UI: #root not found");
 }
 
 createRoot(container).render(

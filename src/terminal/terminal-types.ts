@@ -4,7 +4,7 @@ import { z } from "zod";
  * Persisted metadata about a terminal session. We deliberately do NOT
  * persist transcripts, command history, or environment. The dashboard
  * exposes an interactive shell — its output is the user's responsibility
- * and Amaco neither records it nor sends it anywhere.
+ * and Vibestrate neither records it nor sends it anywhere.
  *
  * Closed sessions stay in the file as audit trail (id, runId, cwd,
  * createdAt, closedAt, exitCode) until pruned.

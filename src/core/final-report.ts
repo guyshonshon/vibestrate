@@ -237,7 +237,7 @@ ${renderFlowArbitrationSection(arbitration)}
 `
     : "";
 
-  return `# Amaco Final Report
+  return `# Vibestrate Final Report
 
 ## Run
 

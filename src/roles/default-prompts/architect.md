@@ -49,7 +49,7 @@ Use this exact structure:
 
 ## Human approval signal (structured)
 
-If you believe Amaco should pause for an explicit human decision before
+If you believe Vibestrate should pause for an explicit human decision before
 implementation begins, emit a structured approval request — each line on its
 own line:
 

@@ -17,7 +17,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function tempProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-ptest-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ptest-"));
   await fs.writeFile(path.join(dir, "package.json"), '{"name":"demo"}');
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
   return dir;
@@ -93,6 +93,6 @@ describe("safe provider test", () => {
   it("returns helpful error if provider id is unknown", async () => {
     const r = await runSafeProviderTest({ projectRoot, providerId: "ghost" });
     expect(r.ok).toBe(false);
-    expect(r.hint).toContain("amaco provider setup");
+    expect(r.hint).toContain("vibestrate provider setup");
   });
 });

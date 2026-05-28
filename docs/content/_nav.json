@@ -81,7 +81,7 @@
     },
     {
       "id": "extending",
-      "label": "Extending Amaco",
+      "label": "Extending Vibestrate",
       "items": [
         { "slug": "extending/add-skill", "label": "Add a skill" },
         { "slug": "extending/add-flow", "label": "Add a Flow" },

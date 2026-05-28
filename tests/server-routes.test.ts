@@ -14,7 +14,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 async function makeProject(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-server-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-server-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -26,7 +26,7 @@ async function makeProject(): Promise<string> {
 }
 
 async function writeFakeRun(projectRoot: string, runId: string): Promise<void> {
-  const runDir = path.join(projectRoot, ".amaco", "runs", runId);
+  const runDir = path.join(projectRoot, ".vibestrate", "runs", runId);
   await fs.mkdir(path.join(runDir, "artifacts"), { recursive: true });
   const ts = new Date().toISOString();
   const state = {

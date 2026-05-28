@@ -5,13 +5,13 @@ const happy = `# Plan
 
 A short summary.
 
-AMACO_ROADMAP_ITEM:
+VIBESTRATE_ROADMAP_ITEM:
 TITLE: Build onboarding
 DESCRIPTION: Make first-run setup simple for vibe coders.
 PRIORITY: high
 TAGS: onboarding, setup
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Create setup wizard
 ROADMAP: Build onboarding
 DESCRIPTION: Add flowd setup flow.
@@ -20,7 +20,7 @@ SKILLS: typescript-node-cli, ux-design
 LIKELY_FILES: src/cli/commands/setup.ts, src/setup/setup-service.ts
 VALIDATION: pnpm typecheck, pnpm test
 
-AMACO_TASK:
+VIBESTRATE_TASK:
 TITLE: Add setup tests
 ROADMAP: Build onboarding
 DESCRIPTION: Tests for the wizard.
@@ -80,7 +80,7 @@ describe("parseProposal — validation", () => {
   it("missing TITLE on a task is a fatal error", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: "AMACO_TASK:\nDESCRIPTION: no title here\n",
+      rawText: "VIBESTRATE_TASK:\nDESCRIPTION: no title here\n",
     });
     expect(r.tasks).toHaveLength(0);
     expect(r.errors.some((e) => /missing TITLE/.test(e.message))).toBe(true);
@@ -89,7 +89,7 @@ describe("parseProposal — validation", () => {
   it("duplicate task titles in one proposal are a fatal error", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_TASK:\nTITLE: same\n\nAMACO_TASK:\nTITLE: same\n`,
+      rawText: `VIBESTRATE_TASK:\nTITLE: same\n\nVIBESTRATE_TASK:\nTITLE: same\n`,
     });
     expect(r.errors.some((e) => /Duplicate task/.test(e.message))).toBe(true);
   });
@@ -97,7 +97,7 @@ describe("parseProposal — validation", () => {
   it("duplicate roadmap item titles in one proposal are a fatal error", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_ROADMAP_ITEM:\nTITLE: A\n\nAMACO_ROADMAP_ITEM:\nTITLE: A\n`,
+      rawText: `VIBESTRATE_ROADMAP_ITEM:\nTITLE: A\n\nVIBESTRATE_ROADMAP_ITEM:\nTITLE: A\n`,
     });
     expect(r.errors.some((e) => /Duplicate roadmap item/.test(e.message))).toBe(
       true,
@@ -107,7 +107,7 @@ describe("parseProposal — validation", () => {
   it("invalid RISK falls back to medium with a warning", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_TASK:\nTITLE: x\nRISK: spicy\n`,
+      rawText: `VIBESTRATE_TASK:\nTITLE: x\nRISK: spicy\n`,
     });
     expect(r.tasks[0]!.riskLevel).toBe("medium");
     expect(r.warnings.some((w) => /Invalid RISK/.test(w.message))).toBe(true);
@@ -116,7 +116,7 @@ describe("parseProposal — validation", () => {
   it("rejects path traversal in LIKELY_FILES", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_TASK:\nTITLE: x\nLIKELY_FILES: ../etc/passwd, /etc/shadow\n`,
+      rawText: `VIBESTRATE_TASK:\nTITLE: x\nLIKELY_FILES: ../etc/passwd, /etc/shadow\n`,
     });
     expect(r.tasks[0]!.touchedFiles).toEqual([]);
     expect(
@@ -127,7 +127,7 @@ describe("parseProposal — validation", () => {
   it("unknown DEPENDS_ON yields a warning, not an error", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_TASK:\nTITLE: x\nDEPENDS_ON: ghost\n`,
+      rawText: `VIBESTRATE_TASK:\nTITLE: x\nDEPENDS_ON: ghost\n`,
     });
     expect(r.tasks[0]!.dependencies).toEqual([]);
     expect(r.errors).toEqual([]);
@@ -139,15 +139,15 @@ describe("parseProposal — validation", () => {
   it("DEPENDS_ON: none is treated as no dependency", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_TASK:\nTITLE: x\nDEPENDS_ON: none\n`,
+      rawText: `VIBESTRATE_TASK:\nTITLE: x\nDEPENDS_ON: none\n`,
     });
     expect(r.tasks[0]!.dependencies).toEqual([]);
   });
 
-  it("AMACO_NEEDS_CLARIFICATION is captured", () => {
+  it("VIBESTRATE_NEEDS_CLARIFICATION is captured", () => {
     const r = parseProposal({
       proposalId: "x",
-      rawText: `AMACO_NEEDS_CLARIFICATION: which auth provider?\n`,
+      rawText: `VIBESTRATE_NEEDS_CLARIFICATION: which auth provider?\n`,
     });
     expect(r.needsClarification).toBe("which auth provider?");
     expect(r.tasks).toEqual([]);

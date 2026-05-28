@@ -34,7 +34,7 @@ async function tempDir(prefix: string): Promise<string> {
 }
 
 async function tempGitWorktree(): Promise<{ project: string; worktree: string }> {
-  const project = await tempDir("amaco-live-proj-");
+  const project = await tempDir("vibestrate-live-proj-");
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -43,10 +43,10 @@ async function tempGitWorktree(): Promise<{ project: string; worktree: string }>
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
   // Create a separate worktree for the run.
-  const worktree = path.join(await tempDir("amaco-live-wt-"), "wt");
+  const worktree = path.join(await tempDir("vibestrate-live-wt-"), "wt");
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   return { project, worktree };
@@ -96,7 +96,7 @@ describe("editor-service", () => {
   });
 
   it("openInEditor uses fixed argv (no shell), receives substituted path:line", async () => {
-    const project = await tempDir("amaco-live-edit-");
+    const project = await tempDir("vibestrate-live-edit-");
     await fs.writeFile(path.join(project, "x.ts"), "console.log(1)\n");
     const captureFile = path.join(project, "captured.json");
     // Build a tiny shell script that records argv to JSON, then exits ok.
@@ -148,7 +148,7 @@ process.exit(0);
   });
 
   it("openInEditor refuses to open a secret-like file", async () => {
-    const project = await tempDir("amaco-live-secret-");
+    const project = await tempDir("vibestrate-live-secret-");
     await fs.writeFile(path.join(project, ".env"), "SECRET=v\n");
     const resolved = await resolveSafePath(
       ".env",
@@ -166,7 +166,7 @@ process.exit(0);
 });
 
 describe("suggestion parser", () => {
-  it("ignores prose without AMACO_SUGGESTION markers", () => {
+  it("ignores prose without VIBESTRATE_SUGGESTION markers", () => {
     expect(
       parseSuggestionBlocks(
         "We should rename `foo` and add a test. The reviewer is happy otherwise.",
@@ -177,7 +177,7 @@ describe("suggestion parser", () => {
   it("parses a complete marker block with patch", () => {
     const text = `
 prelude
-AMACO_SUGGESTION:
+VIBESTRATE_SUGGESTION:
 TITLE: Replace foo with bar
 FILE: src/example.ts
 LINES: 3-5
@@ -190,7 +190,7 @@ diff --git a/src/example.ts b/src/example.ts
 @@
 -const x = 1
 +const x = 2
-AMACO_SUGGESTION_END
+VIBESTRATE_SUGGESTION_END
 `;
     const blocks = parseSuggestionBlocks(text);
     expect(blocks).toHaveLength(1);
@@ -203,10 +203,10 @@ AMACO_SUGGESTION_END
   });
 
   it("parses multiple back-to-back blocks", () => {
-    const text = `AMACO_SUGGESTION:
+    const text = `VIBESTRATE_SUGGESTION:
 TITLE: One
 BODY: short
-AMACO_SUGGESTION:
+VIBESTRATE_SUGGESTION:
 TITLE: Two
 BODY: also short
 `;
@@ -237,7 +237,7 @@ BODY: also short
 
 describe("ReviewSuggestionStore", () => {
   it("upserts and reads suggestions", async () => {
-    const project = await tempDir("amaco-live-store-");
+    const project = await tempDir("vibestrate-live-store-");
     await ensureDir(runDir(project, "run-1"));
     const store = new ReviewSuggestionStore(project, "run-1");
     await store.upsert({
@@ -464,7 +464,7 @@ describe("ReviewSuggestionService apply (gated)", () => {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: new Date().toISOString(),

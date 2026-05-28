@@ -20,7 +20,7 @@ export function LazyTerminalPanel({ runId }: { runId: string }) {
   return (
     <Suspense
       fallback={
-        <div className="text-amaco-fg-muted text-[11.5px]">
+        <div className="text-vibestrate-fg-muted text-[11.5px]">
           Loading terminal…
         </div>
       }

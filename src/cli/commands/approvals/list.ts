@@ -9,7 +9,7 @@ export async function runApprovalsList(
   if (!runId) {
     console.error(`${symbol.fail()} Run id is required.`);
     console.error(
-      `  ${symbol.arrow()} ${color.bold("amaco approvals list <runId>")}`,
+      `  ${symbol.arrow()} ${color.bold("vibestrate approvals list <runId>")}`,
     );
     return 1;
   }

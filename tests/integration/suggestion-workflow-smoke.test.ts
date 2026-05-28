@@ -27,7 +27,7 @@ import { writeJson } from "../../src/utils/json.js";
 async function tempProjectWithWorktree(opts: {
   validateCommands?: string[];
 } = {}): Promise<{ project: string; worktree: string; runId: string }> {
-  const project = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-int-"));
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-int-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
   await execa("git", ["config", "user.email", "x@x"], { cwd: project });
   await execa("git", ["config", "user.name", "x"], { cwd: project });
@@ -44,9 +44,9 @@ async function tempProjectWithWorktree(opts: {
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
 
   const validateLine = `commands: { validate: ${JSON.stringify(opts.validateCommands ?? [])} }`;
-  await fs.mkdir(path.join(project, ".amaco"), { recursive: true });
+  await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
   await fs.writeFile(
-    path.join(project, ".amaco/project.yml"),
+    path.join(project, ".vibestrate/project.yml"),
     [
       "project: { name: demo, type: generic }",
       "providers:",
@@ -59,12 +59,12 @@ async function tempProjectWithWorktree(opts: {
   );
 
   const worktree = path.join(
-    await fs.mkdtemp(path.join(os.tmpdir(), "amaco-int-wt-")),
+    await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-int-wt-")),
     "wt",
   );
   await execa(
     "git",
-    ["worktree", "add", "-b", "amaco/test", worktree, "main"],
+    ["worktree", "add", "-b", "vibestrate/test", worktree, "main"],
     { cwd: project },
   );
   const runId = "smoke-1";
@@ -78,7 +78,7 @@ async function tempProjectWithWorktree(opts: {
       status: "merge_ready",
       projectRoot: project,
       worktreePath: worktree,
-      branchName: "amaco/test",
+      branchName: "vibestrate/test",
       reviewLoopCount: 0,
       maxReviewLoops: 2,
       startedAt: ts,
@@ -123,14 +123,14 @@ function reviewerArtifact(opts: {
     "",
     "Looks fine, but:",
     "",
-    "AMACO_SUGGESTION:",
+    "VIBESTRATE_SUGGESTION:",
     `TITLE: ${opts.title}`,
     `FILE: ${opts.file}`,
     "BODY:",
     "Capture this in the worktree.",
     "PROPOSED_PATCH:",
     opts.patch,
-    "AMACO_SUGGESTION_END",
+    "VIBESTRATE_SUGGESTION_END",
     "",
   ].join("\n");
 }
@@ -311,7 +311,7 @@ describe("integration: bundle smartApply", () => {
     );
     await fs.chmod(validateScript, 0o755);
     await fs.writeFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       [
         "project: { name: demo, type: generic }",
         "providers:",
@@ -367,7 +367,7 @@ describe("integration: bundle smartApply", () => {
     );
     await fs.chmod(validateScript, 0o755);
     await fs.writeFile(
-      path.join(t.project, ".amaco/project.yml"),
+      path.join(t.project, ".vibestrate/project.yml"),
       [
         "project: { name: demo, type: generic }",
         "providers:",

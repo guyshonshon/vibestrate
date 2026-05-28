@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { flowTokenSchema } from "./flow-schema.js";
 
-export const FLOW_FINDINGS_CONTRACT = "amaco.flow.findings.v1";
+export const FLOW_FINDINGS_CONTRACT = "vibestrate.flow.findings.v1";
 export const FLOW_FINDING_RESPONSES_CONTRACT =
-  "amaco.flow.finding-responses.v1";
+  "vibestrate.flow.finding-responses.v1";
 export const FLOW_FINDING_RESOLUTIONS_CONTRACT =
-  "amaco.flow.finding-resolutions.v1";
+  "vibestrate.flow.finding-resolutions.v1";
 export const FLOW_DECISION_SUMMARY_CONTRACT =
-  "amaco.flow.decision-summary.v1";
+  "vibestrate.flow.decision-summary.v1";
 
 export const flowFindingCategorySchema = z.enum([
   "correctness",

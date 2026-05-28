@@ -1,6 +1,6 @@
 # Vocabulary (canonical terms)
 
-The settled names for Amaco's core concepts (Epic D / D1). Use these in code,
+The settled names for Vibestrate's core concepts (Epic D / D1). Use these in code,
 config, UI, and docs. The goal is as few, as clear concepts as possible.
 
 | Term | Means | Not |
@@ -11,7 +11,7 @@ config, UI, and docs. The goal is as few, as clear concepts as possible.
 | **Flow** | A reusable, versioned recipe of ordered steps + roles + approval gates. The fixed plan→build→verify workflow is the built-in **default flow**. Edited in the **Flow Builder**. | ~~Guide~~ (renamed to Flow) |
 | **Task** | The plain-language request the user submits. | — |
 | **Run** | One execution of a task (its own runId, worktree, artifacts, state). | — |
-| **Supervisor** | The product role Amaco plays for the user — the review/verification layer over coding agents. | — |
+| **Supervisor** | The product role Vibestrate plays for the user — the review/verification layer over coding agents. | — |
 | **Orchestrator** | The internal engine that drives a run's stages. | — |
 
 ## Agent → Role
@@ -24,12 +24,12 @@ keeps the rename honest:
   industry's term for Claude Code, Codex, etc. That prose stays; it is not the
   role concept.
 
-It is a **clean rename — no backward-compatibility shims.** Amaco is
+It is a **clean rename — no backward-compatibility shims.** Vibestrate is
 pre-release beta with no published-user config or run history to preserve, so
 the old names are simply replaced, not dual-read:
 
 - Config key `agents:` → `roles:` (no fallback read of `agents:`).
-- Prompt scaffolding `.amaco/agents/<role>.md` → `.amaco/roles/<role>.md`.
+- Prompt scaffolding `.vibestrate/agents/<role>.md` → `.vibestrate/roles/<role>.md`.
 - Metrics field `agentId` → `roleId`.
 - Event types `agent.started|completed|failed` → `role.started|completed|failed`.
 

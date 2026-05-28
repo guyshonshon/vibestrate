@@ -30,7 +30,7 @@ export function ProposalsPage({
   }, []);
 
   if (error)
-    return <div className="px-6 py-8 text-amaco-fail">{error}</div>;
+    return <div className="px-6 py-8 text-vibestrate-fail">{error}</div>;
 
   return (
     <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
@@ -46,7 +46,7 @@ export function ProposalsPage({
         <span className="text-[11.5px] text-fog-500 mono ml-auto">
           generate one:{" "}
           <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
-            amaco roadmap plan "&lt;goal&gt;"
+            vibestrate roadmap plan "&lt;goal&gt;"
           </code>
         </span>
       </section>
@@ -172,12 +172,12 @@ export function ProposalDetailPage({
 
   if (error)
     return (
-      <div className="px-6 py-8 text-amaco-fail">
+      <div className="px-6 py-8 text-vibestrate-fail">
         {error}
         <div className="mt-2">
           <button
             onClick={onBack}
-            className="rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px] text-amaco-fg-dim hover:bg-amaco-panel"
+            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
           >
             Back to proposals
           </button>
@@ -237,25 +237,25 @@ export function ProposalDetailPage({
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-4 mt-5">
-        <section className="flex flex-col rounded border border-amaco-border bg-amaco-panel">
-          <header className="border-b border-amaco-border px-3 py-1.5 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <section className="flex flex-col rounded border border-vibestrate-border bg-vibestrate-panel">
+          <header className="border-b border-vibestrate-border px-3 py-1.5 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
             raw markdown
           </header>
-          <pre className="amaco-mono flex-1 overflow-auto whitespace-pre-wrap p-3 text-[12px] text-amaco-fg">
+          <pre className="vibestrate-mono flex-1 overflow-auto whitespace-pre-wrap p-3 text-[12px] text-vibestrate-fg">
             {body || ""}
           </pre>
         </section>
-        <section className="flex flex-col gap-3 overflow-y-auto rounded border border-amaco-border bg-amaco-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <section className="flex flex-col gap-3 overflow-y-auto rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
             preview
           </div>
           {preview === null ? (
-            <div className="text-[12px] text-amaco-fg-muted">Loading…</div>
+            <div className="text-[12px] text-vibestrate-fg-muted">Loading…</div>
           ) : (
             <>
-              <div className="text-[12.5px] text-amaco-fg">
+              <div className="text-[12.5px] text-vibestrate-fg">
                 Will create:{" "}
-                <span className="amaco-mono">
+                <span className="vibestrate-mono">
                   {preview.willCreate.roadmapItems.length} roadmap item(s),{" "}
                   {preview.willCreate.tasks.length} task(s),{" "}
                   {preview.willCreate.dependencyEdges.length} dependency edge(s)
@@ -263,17 +263,17 @@ export function ProposalDetailPage({
               </div>
               {preview.willCreate.roadmapItems.length > 0 ? (
                 <div>
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
                     roadmap items
                   </div>
                   <ul className="mt-1 space-y-0.5">
                     {preview.willCreate.roadmapItems.map((r) => (
                       <li
                         key={r.title}
-                        className="amaco-mono text-[12px] text-amaco-fg"
+                        className="vibestrate-mono text-[12px] text-vibestrate-fg"
                       >
                         + {r.title}{" "}
-                        <span className="text-amaco-fg-muted">({r.priority})</span>
+                        <span className="text-vibestrate-fg-muted">({r.priority})</span>
                       </li>
                     ))}
                   </ul>
@@ -281,17 +281,17 @@ export function ProposalDetailPage({
               ) : null}
               {preview.willCreate.tasks.length > 0 ? (
                 <div>
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
                     tasks
                   </div>
                   <ul className="mt-1 space-y-0.5">
                     {preview.willCreate.tasks.map((t) => (
                       <li
                         key={t.title}
-                        className="amaco-mono text-[12px] text-amaco-fg"
+                        className="vibestrate-mono text-[12px] text-vibestrate-fg"
                       >
                         + {t.title}{" "}
-                        <span className="text-amaco-fg-muted">
+                        <span className="text-vibestrate-fg-muted">
                           ({t.priority}, risk {t.riskLevel})
                           {t.dependencies.length > 0
                             ? ` ← ${t.dependencies.join(", ")}`
@@ -303,12 +303,12 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {preview.cycle.length > 0 ? (
-                <div className="rounded border border-amaco-fail/40 bg-amaco-fail/5 p-2 text-[12px] text-amaco-fail">
+                <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
                   Cycle: {preview.cycle.join(" → ")} → {preview.cycle[0]}
                 </div>
               ) : null}
               {warnList.length > 0 ? (
-                <div className="rounded border border-amaco-warn/40 bg-amaco-warn/5 p-2 text-[12px] text-amaco-warn">
+                <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/5 p-2 text-[12px] text-vibestrate-warn">
                   <div className="text-[10.5px] uppercase tracking-[0.14em]">
                     warnings ({warnList.length})
                   </div>
@@ -320,7 +320,7 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {errorList.length > 0 ? (
-                <div className="rounded border border-amaco-fail/40 bg-amaco-fail/5 p-2 text-[12px] text-amaco-fail">
+                <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
                   <div className="text-[10.5px] uppercase tracking-[0.14em]">
                     errors ({errorList.length})
                   </div>
@@ -336,7 +336,7 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {accepted ? (
-                <div className="rounded border border-amaco-success/40 bg-amaco-success/5 p-2 text-[12px] text-amaco-success">
+                <div className="rounded border border-vibestrate-success/40 bg-vibestrate-success/5 p-2 text-[12px] text-vibestrate-success">
                   This proposal was already accepted.
                 </div>
               ) : null}

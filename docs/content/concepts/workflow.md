@@ -11,7 +11,7 @@ slug: concepts/workflow
 
 ## Why it matters
 
-The workflow is the spine of Amaco. Without it, a "multi-agent" run would just be a chat in a loop. With it, you get a deterministic, inspectable path with clear handoffs and a known finish line.
+The workflow is the spine of Vibestrate. Without it, a "multi-agent" run would just be a chat in a loop. With it, you get a deterministic, inspectable path with clear handoffs and a known finish line.
 
 ## The default workflow
 
@@ -57,12 +57,12 @@ higher-risk feature work.
 These all share the same runner:
 
 ```bash
-amaco run "..."                  # the built-in default flow
-amaco run "..." --flow default   # the same flow, explicit
-amaco run "..." --flow quality-arbitration
+vibestrate run "..."                  # the built-in default flow
+vibestrate run "..." --flow default   # the same flow, explicit
+vibestrate run "..." --flow quality-arbitration
 ```
 
-`amaco run --resume-from <runId> --resume-stage <stage>` rewinds any flow that
+`vibestrate run --resume-from <runId> --resume-stage <stage>` rewinds any flow that
 declares the matching stage: the runner seeds the upstream steps' outputs from
 the source run and starts there.
 

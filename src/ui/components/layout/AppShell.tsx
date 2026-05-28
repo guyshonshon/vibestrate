@@ -76,7 +76,7 @@ export function AppShell({
 }
 
 /**
- * Loud-by-default banner shown whenever the local amaco server stops
+ * Loud-by-default banner shown whenever the local vibestrate server stops
  * answering /api/health. Kept above the TopBar so it cannot be missed.
  */
 function ServerHealthBanner() {
@@ -88,12 +88,12 @@ function ServerHealthBanner() {
       className="flex items-center gap-2 border-b border-rose-400/40 bg-rose-500/10 px-4 py-1.5 text-[12px] text-rose-300"
     >
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
-      <span className="font-medium">amaco ui is unreachable.</span>
+      <span className="font-medium">vibestrate ui is unreachable.</span>
       <span className="text-rose-300/80">
         The server at this origin stopped answering /api/health
         {" "}
         — restart it with{" "}
-        <code className="mono rounded bg-rose-500/15 px-1">amaco ui</code>
+        <code className="mono rounded bg-rose-500/15 px-1">vibestrate ui</code>
         {" "}from the project root and refresh.
       </span>
       <span className="mono ml-auto text-[10.5px] opacity-70">

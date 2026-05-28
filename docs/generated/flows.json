@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Built-in run Flows. Project Flows live in `.amaco/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
+  "description": "Built-in run Flows. Project Flows live in `.vibestrate/flows/<id>/flow.yml` and follow the same schema (src/flows/schemas/flow-schema.ts).",
   "flows": [
     {
       "id": "default",
@@ -222,7 +222,7 @@
       "id": "quality-arbitration",
       "version": 1,
       "label": "Quality Arbitration",
-      "description": "Cross-provider planning, review, implementation, challenge, second review, and Amaco decision summary.",
+      "description": "Cross-provider planning, review, implementation, challenge, second review, and Vibestrate decision summary.",
       "slots": [
         {
           "id": "builder",

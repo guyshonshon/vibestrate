@@ -40,7 +40,7 @@ export async function readDocumentText(projectRoot: string): Promise<{
   const configPath = projectConfigPath(projectRoot);
   if (!(await pathExists(configPath))) {
     throw new ConfigError(
-      `No Amaco config found. Run \`amaco init\` first. Looked at ${configPath}.`,
+      `No Vibestrate config found. Run \`vibestrate init\` first. Looked at ${configPath}.`,
     );
   }
   const text = await readText(configPath);

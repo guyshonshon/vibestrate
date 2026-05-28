@@ -106,11 +106,11 @@ export function RunHeader({
   }
 
   const [wtOpen, setWtOpen] = usePersistedState<boolean>(
-    "amaco.run.worktree.open",
+    "vibestrate.run.worktree.open",
     false,
   );
   return (
-    <header className="border-b border-amaco-border bg-amaco-panel px-6 py-2.5">
+    <header className="border-b border-vibestrate-border bg-vibestrate-panel px-6 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           {/* Title row: status pill + task title + run id stay on one
@@ -120,13 +120,13 @@ export function RunHeader({
           <div className="flex items-center gap-2">
             <RunStatusBadge status={run.status} />
             <h1
-              className="truncate text-[14px] font-medium text-amaco-fg"
+              className="truncate text-[14px] font-medium text-vibestrate-fg"
               title={run.task}
             >
               {run.task}
             </h1>
             <span
-              className="amaco-mono shrink-0 text-[10px] uppercase tracking-[0.14em] text-amaco-fg-muted"
+              className="vibestrate-mono shrink-0 text-[10px] uppercase tracking-[0.14em] text-vibestrate-fg-muted"
               title={`Run id · updated ${new Date(run.updatedAt).toLocaleString()}`}
             >
               {run.runId}
@@ -134,7 +134,7 @@ export function RunHeader({
             <div className="ml-auto flex shrink-0 items-center gap-1">
               {run.readOnly ? (
                 <span
-                  className="inline-flex items-center gap-1 rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
+                  className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/60 bg-vibestrate-warn/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-vibestrate-warn"
                   title="Investigation-only run."
                 >
                   <Eye className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -143,7 +143,7 @@ export function RunHeader({
               ) : null}
               {run.effort ? (
                 <span
-                  className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-muted"
+                  className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted"
                   title={`Task effort: ${run.effort}.`}
                 >
                   <Zap className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -152,7 +152,7 @@ export function RunHeader({
               ) : null}
               {run.resolvedProviderId ? (
                 <span
-                  className="amaco-mono inline-flex items-center gap-1 rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10px] text-amaco-accent"
+                  className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 px-1.5 py-0.5 text-[10px] text-vibestrate-accent"
                   title={`Run-wide provider override: ${run.resolvedProviderId}.`}
                 >
                   <Cpu className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -161,26 +161,26 @@ export function RunHeader({
               ) : null}
               {pausePending ? (
                 <span
-                  className="amaco-mono rounded border border-amaco-warn/50 bg-amaco-warn/10 px-1.5 py-0.5 text-[10px] text-amaco-warn"
+                  className="vibestrate-mono rounded border border-vibestrate-warn/50 bg-vibestrate-warn/10 px-1.5 py-0.5 text-[10px] text-vibestrate-warn"
                   title={`Pause queued; takes effect at the next stage boundary.`}
                 >
                   pause queued
                 </span>
               ) : null}
               {run.finalDecision ? (
-                <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-dim">
+                <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim">
                   {run.finalDecision}
                 </span>
               ) : null}
               {run.verification ? (
-                <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10px] text-amaco-fg-dim">
+                <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim">
                   {run.verification}
                 </span>
               ) : null}
             </div>
           </div>
           {error ? (
-            <div className="mt-1.5 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[11px] text-amaco-fail">
+            <div className="mt-1.5 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11px] text-vibestrate-fail">
               {error}
             </div>
           ) : null}
@@ -195,7 +195,7 @@ export function RunHeader({
               type="button"
               onClick={doResume}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-vibestrate-accent/50 bg-vibestrate-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-vibestrate-accent hover:bg-vibestrate-accent/20 focus:outline-none focus:ring-1 focus:ring-vibestrate-accent disabled:opacity-50"
               title={
                 isPaused
                   ? "Resume the paused run"
@@ -210,7 +210,7 @@ export function RunHeader({
               type="button"
               onClick={doPause}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-warn/50 bg-amaco-warn/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-warn hover:bg-amaco-warn/20 focus:outline-none focus:ring-1 focus:ring-amaco-warn disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-vibestrate-warn/50 bg-vibestrate-warn/10 px-3 py-1.5 text-[12.5px] font-medium text-vibestrate-warn hover:bg-vibestrate-warn/20 focus:outline-none focus:ring-1 focus:ring-vibestrate-warn disabled:opacity-50"
               title="Request pause at the next stage boundary"
             >
               <Pause className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
@@ -225,7 +225,7 @@ export function RunHeader({
               type="button"
               onClick={doAbort}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-fail/50 bg-amaco-fail/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-fail hover:bg-amaco-fail/20 focus:outline-none focus:ring-1 focus:ring-amaco-fail disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-vibestrate-fail/50 bg-vibestrate-fail/10 px-3 py-1.5 text-[12.5px] font-medium text-vibestrate-fail hover:bg-vibestrate-fail/20 focus:outline-none focus:ring-1 focus:ring-vibestrate-fail disabled:opacity-50"
               title="Abort the run: kill the in-flight provider CLI and mark the run aborted."
             >
               <StopCircle className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
@@ -237,7 +237,7 @@ export function RunHeader({
               type="button"
               onClick={doRetry}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded-md border border-amaco-accent/50 bg-amaco-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-amaco-accent hover:bg-amaco-accent/20 focus:outline-none focus:ring-1 focus:ring-amaco-accent disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-vibestrate-accent/50 bg-vibestrate-accent/10 px-3 py-1.5 text-[12.5px] font-medium text-vibestrate-accent hover:bg-vibestrate-accent/20 focus:outline-none focus:ring-1 focus:ring-vibestrate-accent disabled:opacity-50"
               title="Re-run this task with the same flags. The current run record stays on disk; the retry gets a fresh runId."
             >
               <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.8} aria-hidden />
@@ -255,7 +255,7 @@ export function RunHeader({
             type="button"
             onClick={() => setWtOpen((v) => !v)}
             aria-expanded={wtOpen}
-            className="amaco-mono inline-flex items-center gap-1 text-[10.5px] text-amaco-fg-muted hover:text-amaco-fg"
+            className="vibestrate-mono inline-flex items-center gap-1 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
           >
             {wtOpen ? (
               <ChevronDown className="h-3 w-3" strokeWidth={1.5} aria-hidden />
@@ -266,7 +266,7 @@ export function RunHeader({
               worktree {run.branchName ?? "(no branch)"}
             </span>
             {!wtOpen ? (
-              <span className="truncate text-amaco-fg-muted/70">
+              <span className="truncate text-vibestrate-fg-muted/70">
                 · {run.worktreePath}
               </span>
             ) : null}
@@ -297,21 +297,21 @@ function FlowRunProgress({ run }: { run: RunState }) {
     flow.steps.find((step) => step.id === flow.currentStepId) ?? null;
   return (
     <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-[10.5px]">
-      <span className="amaco-mono rounded border border-amaco-accent/40 bg-amaco-accent/10 px-1.5 py-0.5 text-amaco-accent">
+      <span className="vibestrate-mono rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-1.5 py-0.5 text-vibestrate-accent">
         flow {flow.label}
       </span>
       {flow.steps.map((step) => (
         <span
           key={step.id}
           title={`${step.label}: ${step.status}`}
-          className={`amaco-mono max-w-40 truncate rounded border px-1.5 py-0.5 ${
+          className={`vibestrate-mono max-w-40 truncate rounded border px-1.5 py-0.5 ${
             step.id === current?.id
-              ? "border-amaco-accent/50 text-amaco-accent"
+              ? "border-vibestrate-accent/50 text-vibestrate-accent"
               : step.status === "passed"
-                ? "border-amaco-success/40 text-amaco-success"
+                ? "border-vibestrate-success/40 text-vibestrate-success"
                 : step.status === "failed" || step.status === "blocked"
-                  ? "border-amaco-fail/40 text-amaco-fail"
-                  : "border-amaco-border text-amaco-fg-muted"
+                  ? "border-vibestrate-fail/40 text-vibestrate-fail"
+                  : "border-vibestrate-border text-vibestrate-fg-muted"
           }`}
         >
           {step.label}
@@ -324,7 +324,7 @@ function FlowRunProgress({ run }: { run: RunState }) {
             participant.lastFallbackReason ??
             `${participant.providerType}:${participant.providerId}`
           }
-          className="amaco-mono max-w-48 truncate rounded border border-amaco-border px-1.5 py-0.5 text-amaco-fg-dim"
+          className="vibestrate-mono max-w-48 truncate rounded border border-vibestrate-border px-1.5 py-0.5 text-vibestrate-fg-dim"
         >
           {participant.label} {participant.lastContextMode ?? participant.sessionReuse}
         </span>

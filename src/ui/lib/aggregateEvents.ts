@@ -1,8 +1,8 @@
-import type { AmacoEvent } from "./types.js";
+import type { VibestrateEvent } from "./types.js";
 
 export type AggregateFrame = {
   runId: string;
-  event: AmacoEvent;
+  event: VibestrateEvent;
 };
 
 export type AggregateHandlers = {

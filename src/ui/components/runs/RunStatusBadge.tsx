@@ -6,26 +6,26 @@ type Props = {
 };
 
 const STATUS_COLORS: Record<RunStatus, { dot: string; text: string }> = {
-  created: { dot: "bg-amaco-fg-muted", text: "text-amaco-fg-dim" },
-  planning: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  planned: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  architecting: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  architected: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  executing: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  validating: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  reviewing: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
-  fixing: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
-  verifying: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
+  created: { dot: "bg-vibestrate-fg-muted", text: "text-vibestrate-fg-dim" },
+  planning: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  planned: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  architecting: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  architected: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  executing: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  validating: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  reviewing: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
+  fixing: { dot: "bg-vibestrate-warn", text: "text-vibestrate-warn" },
+  verifying: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
   // Awaiting human approval is *attention-needed*, not failure.
   // Cyan accent matches in-flight stages so it never reads as "broken".
-  waiting_for_approval: { dot: "bg-amaco-accent", text: "text-amaco-accent" },
+  waiting_for_approval: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
   // Paused is "intentional halt" — not an error, not in-flight. Use a
   // dim warn tint so it reads as "the user did this" rather than "broken."
-  paused: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
-  merge_ready: { dot: "bg-amaco-success", text: "text-amaco-success" },
-  blocked: { dot: "bg-amaco-warn", text: "text-amaco-warn" },
-  failed: { dot: "bg-amaco-fail", text: "text-amaco-fail" },
-  aborted: { dot: "bg-amaco-fg-muted", text: "text-amaco-fg-dim" },
+  paused: { dot: "bg-vibestrate-warn", text: "text-vibestrate-warn" },
+  merge_ready: { dot: "bg-vibestrate-success", text: "text-vibestrate-success" },
+  blocked: { dot: "bg-vibestrate-warn", text: "text-vibestrate-warn" },
+  failed: { dot: "bg-vibestrate-fail", text: "text-vibestrate-fail" },
+  aborted: { dot: "bg-vibestrate-fg-muted", text: "text-vibestrate-fg-dim" },
 };
 
 const STATUS_LABEL: Record<RunStatus, string> = {
@@ -52,8 +52,8 @@ export function RunStatusBadge({ status, compact }: Props) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 ${
-        compact ? "" : "rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5"
-      } amaco-mono text-[11px] ${c.text}`}
+        compact ? "" : "rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5"
+      } vibestrate-mono text-[11px] ${c.text}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
       {!compact ? STATUS_LABEL[status] : null}

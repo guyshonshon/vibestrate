@@ -10,11 +10,11 @@ type Props = {
 };
 
 const RISK_PILL: Record<ApprovalRequest["riskLevel"], string> = {
-  low: "border-amaco-fg-muted/40 text-amaco-fg-dim",
-  medium: "border-amaco-accent/50 text-amaco-accent",
+  low: "border-vibestrate-fg-muted/40 text-vibestrate-fg-dim",
+  medium: "border-vibestrate-accent/50 text-vibestrate-accent",
   // High risk warns clearly without going panic-red. Failure red is reserved
   // for actually-broken runs.
-  high: "border-amaco-warn/60 text-amaco-warn",
+  high: "border-vibestrate-warn/60 text-vibestrate-warn",
 };
 
 const RISK_LABEL: Record<ApprovalRequest["riskLevel"], string> = {
@@ -65,9 +65,9 @@ export function ApprovalBanner({ runId, approval, onResolved }: Props) {
   const isHigh = approval.riskLevel === "high";
   const Icon = isHigh ? ShieldAlert : ShieldQuestion;
   const containerBorder = isHigh
-    ? "border-amaco-warn/50 bg-amaco-warn/5"
-    : "border-amaco-accent/40 bg-amaco-accent-soft/40";
-  const iconColor = isHigh ? "text-amaco-warn" : "text-amaco-accent";
+    ? "border-vibestrate-warn/50 bg-vibestrate-warn/5"
+    : "border-vibestrate-accent/40 bg-vibestrate-accent-soft/40";
+  const iconColor = isHigh ? "text-vibestrate-warn" : "text-vibestrate-accent";
 
   return (
     <div className={`rounded border ${containerBorder} p-3`}>
@@ -78,16 +78,16 @@ export function ApprovalBanner({ runId, approval, onResolved }: Props) {
         />
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-[12.5px] font-medium text-amaco-fg">
+            <span className="text-[12.5px] font-medium text-vibestrate-fg">
               Awaiting your decision
             </span>
             <span
-              className={`amaco-mono rounded border px-1.5 py-0.5 text-[10.5px] ${RISK_PILL[approval.riskLevel]}`}
+              className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10.5px] ${RISK_PILL[approval.riskLevel]}`}
             >
               {RISK_LABEL[approval.riskLevel]}
             </span>
             <span
-              className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-muted"
+              className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-muted"
               title={
                 approval.source === "policy"
                   ? "Required by project config"
@@ -96,40 +96,40 @@ export function ApprovalBanner({ runId, approval, onResolved }: Props) {
             >
               {approval.source === "policy" ? "policy" : "agent-requested"}
             </span>
-            <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+            <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
               {approval.stageId}
             </span>
           </div>
-          <div className="mt-1 text-[12px] text-amaco-fg-dim">
+          <div className="mt-1 text-[12px] text-vibestrate-fg-dim">
             {describeSource(approval)}
           </div>
 
           {approval.requestedAction ? (
-            <div className="mt-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+            <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
+              <div className="text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
                 requested action
               </div>
-              <div className="mt-0.5 text-[12.5px] text-amaco-fg">
+              <div className="mt-0.5 text-[12.5px] text-vibestrate-fg">
                 {approval.requestedAction}
               </div>
             </div>
           ) : null}
 
           {approval.reason ? (
-            <div className="mt-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+            <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
+              <div className="text-[10.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
                 reason
               </div>
-              <div className="mt-0.5 text-[12.5px] text-amaco-fg">
+              <div className="mt-0.5 text-[12.5px] text-vibestrate-fg">
                 {approval.reason}
               </div>
             </div>
           ) : null}
 
           {approval.sourceArtifactPath ? (
-            <div className="mt-1 text-[11.5px] text-amaco-fg-muted">
+            <div className="mt-1 text-[11.5px] text-vibestrate-fg-muted">
               Source artifact:{" "}
-              <span className="amaco-mono text-amaco-fg-dim">
+              <span className="vibestrate-mono text-vibestrate-fg-dim">
                 {approval.sourceArtifactPath}
               </span>
             </div>
@@ -140,16 +140,16 @@ export function ApprovalBanner({ runId, approval, onResolved }: Props) {
             onChange={(e) => setNote(e.target.value)}
             placeholder="Optional decision note (recorded in approvals.json)"
             rows={2}
-            className="mt-2 block w-full resize-y rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[12.5px] text-amaco-fg placeholder-amaco-fg-muted"
+            className="mt-2 block w-full resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
           />
           {error ? (
-            <div className="mt-1.5 text-[12px] text-amaco-fail">{error}</div>
+            <div className="mt-1.5 text-[12px] text-vibestrate-fail">{error}</div>
           ) : null}
           <div className="mt-2 flex items-center gap-2">
             <button
               onClick={() => decide("approve")}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded border border-amaco-success/40 bg-amaco-success/10 px-2.5 py-1 text-[12px] text-amaco-success hover:bg-amaco-success/15 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2.5 py-1 text-[12px] text-vibestrate-success hover:bg-vibestrate-success/15 disabled:opacity-50"
             >
               <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
               {busy === "approve" ? "Approving…" : "Approve"}
@@ -157,7 +157,7 @@ export function ApprovalBanner({ runId, approval, onResolved }: Props) {
             <button
               onClick={() => decide("reject")}
               disabled={busy !== null}
-              className="inline-flex items-center gap-1.5 rounded border border-amaco-warn/40 bg-amaco-warn/10 px-2.5 py-1 text-[12px] text-amaco-warn hover:bg-amaco-warn/15 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2.5 py-1 text-[12px] text-vibestrate-warn hover:bg-vibestrate-warn/15 disabled:opacity-50"
             >
               <X className="h-3.5 w-3.5" strokeWidth={1.5} />
               {busy === "reject" ? "Rejecting…" : "Reject"}

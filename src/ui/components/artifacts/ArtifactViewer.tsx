@@ -36,14 +36,14 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
 
   if (!path) {
     return (
-      <div className="text-[12px] text-amaco-fg-muted">
+      <div className="text-[12px] text-vibestrate-fg-muted">
         Select an artifact to read it.
       </div>
     );
   }
-  if (error) return <div className="text-[12px] text-amaco-fail">{error}</div>;
+  if (error) return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
   if (content === null)
-    return <div className="text-[12px] text-amaco-fg-muted">Loading…</div>;
+    return <div className="text-[12px] text-vibestrate-fg-muted">Loading…</div>;
 
   // Pretty-print JSON for readability while keeping the original text in the
   // raw `content` state. The reference parser runs against the prettified
@@ -60,11 +60,11 @@ export function ArtifactViewer({ runId, path, onOpenReference }: Props) {
   }
 
   return (
-    <div className="overflow-auto rounded border border-amaco-border bg-amaco-canvas">
-      <header className="border-b border-amaco-border bg-amaco-panel px-3 py-1.5">
-        <span className="amaco-mono text-[11.5px] text-amaco-fg-dim">{path}</span>
+    <div className="overflow-auto rounded border border-vibestrate-border bg-vibestrate-canvas">
+      <header className="border-b border-vibestrate-border bg-vibestrate-panel px-3 py-1.5">
+        <span className="vibestrate-mono text-[11.5px] text-vibestrate-fg-dim">{path}</span>
       </header>
-      <pre className="amaco-mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-amaco-fg">
+      <pre className="vibestrate-mono whitespace-pre-wrap p-3 text-[12.5px] leading-[1.55] text-vibestrate-fg">
         <CodeReferenceText
           text={body}
           runId={runId}

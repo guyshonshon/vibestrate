@@ -24,7 +24,7 @@ async function makeRepoWithFakeProvider(input: {
     decide: (svc: ApprovalService, runId: string) => Promise<void>,
   ) => Promise<{ status: string; runId: string }>;
 }> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "amaco-policy-orch-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-policy-orch-"));
   await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
   await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
   await execa("git", ["config", "user.name", "x"], { cwd: dir });
@@ -60,15 +60,15 @@ async function makeRepoWithFakeProvider(input: {
     fakeJs,
     `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
-  if (i.includes('Amaco Agent: reviewer')) {
+  if (i.includes('Vibestrate Agent: reviewer')) {
     console.log('# Review\\nDECISION: APPROVED');
-  } else if (i.includes('Amaco Agent: verifier')) {
+  } else if (i.includes('Vibestrate Agent: verifier')) {
     console.log('VERIFICATION: PASSED');
-  } else if (i.includes('Amaco Agent: planner')) {
+  } else if (i.includes('Vibestrate Agent: planner')) {
     console.log('# Plan');
-  } else if (i.includes('Amaco Agent: architect')) {
+  } else if (i.includes('Vibestrate Agent: architect')) {
     console.log(\`${architectBody}\`);
-  } else if (i.includes('Amaco Agent: executor')) {
+  } else if (i.includes('Vibestrate Agent: executor')) {
     console.log('# Implementation Summary\\nNone.');
   } else {
     console.log('?');
@@ -116,7 +116,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
       const interval = setInterval(async () => {
         if (resolverDone) return;
         try {
-          const runs = await fs.readdir(path.join(dir, ".amaco", "runs"));
+          const runs = await fs.readdir(path.join(dir, ".vibestrate", "runs"));
           if (runs.length === 0) return;
           const runId = runs[runs.length - 1]!;
           const svc = new ApprovalService(dir, runId);
@@ -133,7 +133,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
       const result = await orch.run();
       clearInterval(interval);
       const stateRaw = await fs.readFile(
-        path.join(dir, ".amaco", "runs", result.runId, "state.json"),
+        path.join(dir, ".vibestrate", "runs", result.runId, "state.json"),
         "utf8",
       );
       const state = JSON.parse(stateRaw) as { status: string };
@@ -220,7 +220,7 @@ describe("orchestrator: per-stage policy approvals", () => {
     expect(all[0]!.requestedAction).toBe("Approve auth move");
     const reportPath = path.join(
       harness.projectRoot,
-      ".amaco",
+      ".vibestrate",
       "runs",
       out.runId,
       "artifacts",

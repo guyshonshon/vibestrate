@@ -1,21 +1,21 @@
 {
-  "name": "amaco-os",
+  "name": "vibestrate",
   "version": "0.1.1",
-  "description": "Amaco — local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
+  "description": "Vibestrate — local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
   "license": "Apache-2.0",
   "author": "Guy Shonshon (https://shonshon.com)",
-  "homepage": "https://amaco.shonshon.com",
+  "homepage": "https://vibestrate.shonshon.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guyshonshon/amaco.git"
+    "url": "git+https://github.com/guyshonshon/vibestrate.git"
   },
   "bugs": {
-    "url": "https://github.com/guyshonshon/amaco/issues"
+    "url": "https://github.com/guyshonshon/vibestrate/issues"
   },
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "amaco": "dist/index.js"
+    "vibestrate": "dist/index.js"
   },
   "files": [
     "dist",

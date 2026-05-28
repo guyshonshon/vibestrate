@@ -1,4 +1,4 @@
-import type { AmacoEvent } from "./types.js";
+import type { VibestrateEvent } from "./types.js";
 
 export type EventStreamHandle = {
   close: () => void;
@@ -6,14 +6,14 @@ export type EventStreamHandle = {
 
 export function streamRunEvents(
   runId: string,
-  onEvent: (event: AmacoEvent) => void,
+  onEvent: (event: VibestrateEvent) => void,
   onError?: (err: unknown) => void,
 ): EventStreamHandle {
   const url = `/api/runs/${runId}/events/stream`;
   const source = new EventSource(url);
   source.addEventListener("event", (msg) => {
     try {
-      const parsed = JSON.parse((msg as MessageEvent).data) as AmacoEvent;
+      const parsed = JSON.parse((msg as MessageEvent).data) as VibestrateEvent;
       onEvent(parsed);
     } catch {
       // ignore malformed

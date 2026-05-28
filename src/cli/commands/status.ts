@@ -40,7 +40,7 @@ export async function runStatusCommand(opts: StatusOptions): Promise<number> {
   }
 
   if (states.length === 0) {
-    console.log("No Amaco runs found.");
+    console.log("No Vibestrate runs found.");
     return 0;
   }
 

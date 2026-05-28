@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Fix: **codex preset no longer passes the removed `-q` flag** — current codex
+  (0.13x) rejects `codex exec -q` with an "unexpected argument" usage error
+  (exit 2). Preset/builders now use `codex exec` (prompt on stdin). Existing
+  configs with `-q` need a one-time `vibestrate provider setup codex` (or edit args).
+- Change: provider-test classifier now reads a **rejected-argument** usage error
+  as a "flags" problem (→ run setup) instead of a generic non-zero exit, with a
+  clearer hint.
+
 - Add: **"Add provider" card** on Crew — a dashed card beneath the configured
   roster that drops down the not-yet-configured CLIs; picking one opens the
   setup modal inline (no detour to the Providers page).
@@ -24,7 +32,7 @@ version. Update it in the same commit as the change it describes.
   edits.)
 
 - Change: **flows are always editable** — editing a built-in flow transparently
-  writes a project copy (`.amaco/flows/<id>`) that shadows it, instead of
+  writes a project copy (`.vibestrate/flows/<id>`) that shadows it, instead of
   refusing with "fork it first". No read-only gate.
 - Add: **role context API** — `GET/PUT /api/roles/:roleId/context` reads and
   writes a role's prompt (its "brain"), path-guarded; the bulk roles list still
@@ -43,7 +51,7 @@ version. Update it in the same commit as the change it describes.
   for them.
 - Add: the **default flow is editable** — "Fork & edit" on the Flows page forks it
   into the project and opens the Flow Builder; a forked/edited `default` now
-  shadows the builtin for plain `amaco run` too (the orchestrator resolves the
+  shadows the builtin for plain `vibestrate run` too (the orchestrator resolves the
   project copy when present).
 - Add: the flow-edit patch can author the adaptive **loop** (set/clear) and
   per-step **stage** / **skipWhenReadOnly** — groundwork for loop authoring in the
@@ -73,9 +81,9 @@ version. Update it in the same commit as the change it describes.
   longer hides the entire Flows catalog. Discovery now loads all valid flows —
   builtins are always present — and reports the broken ones separately:
   `GET /api/flows` returns `{ flows, invalid }`, the Flows page shows a
-  non-blocking warning, and `amaco flows list` lists them and exits non-zero.
+  non-blocking warning, and `vibestrate flows list` lists them and exits non-zero.
   Duplicate project flow ids are reported the same way instead of throwing.
-- Fix: removed a stale `.amaco/flows/quality-arbitration` fork that predated the
+- Fix: removed a stale `.vibestrate/flows/quality-arbitration` fork that predated the
   Agent→Role rename (used `defaultAgent`/`agentId`); the built-in is used.
 
 - Fix: the dashboard "Re-run with changes → Rewind" selector was disabled for
@@ -88,7 +96,7 @@ version. Update it in the same commit as the change it describes.
   run executes the built-in `default` flow; other flows run through the same
   engine; added the `--resume-from`/`--resume-stage` rewind example.
 
-- Change: **one runner** (D2 phase B-3c). Plain `amaco run` now resolves the
+- Change: **one runner** (D2 phase B-3c). Plain `vibestrate run` now resolves the
   built-in `default` flow and executes it through the same flow runner as every
   other flow; the hardcoded `Orchestrator.run()` plan→build→verify sequence is
   deleted. `run()` is now a thin entry that sets up the run and calls
@@ -153,7 +161,7 @@ version. Update it in the same commit as the change it describes.
 
 - Change: **rename Guide → Flow** across code, config-paths, API, UI, CLI, and
   docs (Epic D / D2, phase A-1). Clean rename, no back-compat (pre-release):
-  `src/guides`→`src/flows`, `.amaco/guides/`→`.amaco/flows/` (flow files are
+  `src/guides`→`src/flows`, `.vibestrate/guides/`→`.vibestrate/flows/` (flow files are
   `flow.yml`), `/api/guides`→`/api/flows`, `--guide*` CLI flags→`--flow*`, the
   dashboard's Guides catalog → **Flows** (`#/flows`; the Flow Builder is
   `#/flow`). The default plan→build→verify workflow is being reframed as the
@@ -177,7 +185,7 @@ version. Update it in the same commit as the change it describes.
 - Change: **rename Agent → Role** across config, API, code, and UI, and **merge
   the Agents + Providers dashboard pages into one Crew page** (Epic D / D1·2).
   Clean rename, no back-compat (pre-release): config key `agents:` → `roles:`,
-  on-disk prompt dir `.amaco/agents/` → `.amaco/roles/`, metrics `agentId` →
+  on-disk prompt dir `.vibestrate/agents/` → `.vibestrate/roles/`, metrics `agentId` →
   `roleId`, events `agent.*` → `role.*`. The provider-fleet data that was
   mislabeled "agent" is corrected to Provider (`/api/agents/overview` →
   `/api/providers/overview`; roles list at `/api/roles`). The dashboard's
@@ -187,11 +195,11 @@ version. Update it in the same commit as the change it describes.
   unchanged. Canonical terms pinned in `docs/design/vocabulary.md`.
 
 - Add: **`curl | sh` installer** (`install.sh`, served from raw GitHub) — wraps
-  the global npm/pnpm install of `amaco-os` with a Node-version check and an
-  `AMACO_VERSION` pin. Surfaced as the first install option in the README Quick
+  the global npm/pnpm install of `vibestrate` with a Node-version check and an
+  `VIBESTRATE_VERSION` pin. Surfaced as the first install option in the README Quick
   start and the install docs.
-- Fix: install docs showed `pnpm add -g amaco` (wrong package) — corrected to
-  `amaco-os`.
+- Fix: install docs showed `pnpm add -g vibestrate` (wrong package) — corrected to
+  `vibestrate`.
 - Docs: README now leads with a **Quick start** (install + run) right after the
   table of contents, so installation is above the fold; "Ready in one command"
   keeps the deeper `doctor` walkthrough (install block de-duplicated).
@@ -232,7 +240,7 @@ version. Update it in the same commit as the change it describes.
   untouched (new runId, `state.resumedFrom` lineage, `run.rewound` event).
   Surfaced in the run "Re-run with changes" dialog as a **Start from** selector
   (gated by which artifacts the source captured) and on the CLI via
-  `amaco run --resume-from <runId> [--resume-stage architecting|executing]`.
+  `vibestrate run --resume-from <runId> [--resume-stage architecting|executing]`.
   Resuming at review/verify (needs the executor's code present) is deferred to
   phase 2 (per-phase worktree snapshots). Tested (e2e resume + artifact
   validation).
@@ -254,7 +262,7 @@ version. Update it in the same commit as the change it describes.
   agent turn: warn at the threshold, then at the cap apply the action —
   **stop** (block the run), **downgrade-model** (switch to the cheaper
   fallback / effortMap.low), or **reduce-effort** (drop a notch). Configure via
-  CLI (`amaco budget set/show/off`) or the Metrics page (`/api/budget`). Builds
+  CLI (`vibestrate budget set/show/off`) or the Metrics page (`/api/budget`). Builds
   on the A3 cost ledger. Tested (service + a stop-action e2e).
 - Add: **metrics dashboard** (A4) — total-tokens KPI (+Δ vs prior window),
   median run duration beside the average, a per-model table
@@ -274,7 +282,7 @@ version. Update it in the same commit as the change it describes.
   keep working unchanged. Roadmap A1+A2 marked done.
 - Add: **Claude `stream-json` output adapter** (structured-output phase 2) —
   when a claude provider is configured `type: claude-code` with
-  `settings.outputFormat: stream-json`, amaco streams live token-by-token text
+  `settings.outputFormat: stream-json`, vibestrate streams live token-by-token text
   to the run panel and reads real token/cost/model metrics from the event
   stream. The response text is extracted losslessly from the terminal `result`
   event (control parsers unaffected); a malformed stream **fails the turn loud**
@@ -294,7 +302,7 @@ version. Update it in the same commit as the change it describes.
 - Add: prioritized `docs/design/roadmap.md` consolidating the scratch TODOs
   (token/cost ledger folded into the structured-output epic; rework-from-phase,
   guide complexity, naming unification, run nav, Windows as later epics).
-- Chore: stop tracking notification runtime state (`.amaco/notifications/
+- Chore: stop tracking notification runtime state (`.vibestrate/notifications/
   notifications.json`, `receipts.json`) — it churns on every run.
 - Add: design doc for **provider structured output** (`docs/design/provider-
   structured-output.md`) — a per-provider output-adapter architecture for live
@@ -344,20 +352,20 @@ version. Update it in the same commit as the change it describes.
   ordered steps, approval gates), forks a builtin into the project, deletes a
   project guide, or opens one in the Flow Builder. Over `/api/guides` only.
   Groundwork for the Guides Hub. Docs + route test updated.
-- Change: decouple UI ⇄ CLI — the dashboard no longer spawns the `amaco`
+- Change: decouple UI ⇄ CLI — the dashboard no longer spawns the `vibestrate`
   binary to start/retry runs. New shared core run launcher
   (`core/run-launcher.ts`, `runFromSpec`) + a detached core entry
   (`core/run-entry.js`, second build output) the server spawns with a JSON
   spec. Both CLI and dashboard now reach a run only through core; runs stay
   detached (survive closing the dashboard). Tests + tsup multi-entry.
-- Change: README hero — centered Amaco logo + ASCII wordmark as a transparent
+- Change: README hero — centered Vibestrate logo + ASCII wordmark as a transparent
   image (no code-block background); dropped the redundant plain-text title and
   the footer "made for the love of building" line. Logo added to
   `.github/assets/` for use as the GitHub social preview.
 - Add: codebase annotations — pin notes to a file / line / range from the
   Codebase page; "visible to agents" (default on, optional) injects open notes
   into every agent prompt as a `# Human Annotations` section so the crew
-  acknowledges them. Stored in `.amaco/annotations.json` (never in source);
+  acknowledges them. Stored in `.vibestrate/annotations.json` (never in source);
   path-guarded + secret-scanned. New core service, `/api/annotations` routes,
   prompt-builder section, docs page, and a redesigned Codebase page (glass
   sidebar + annotations panel).
@@ -378,7 +386,7 @@ version. Update it in the same commit as the change it describes.
   `name` / `name:1.2.0` / `name:1` refs, `latest` = highest stable (auto),
   immutable versions; pinned installs + `update` / `outdated`.
 - Add: Guides Hub design doc (`docs/design/guides-hub.md`, #3) — phased plan
-  (git-backed index → Cloudflare `amaco-hub` service) with API, rules, metrics.
+  (git-backed index → Cloudflare `vibestrate-hub` service) with API, rules, metrics.
 - Chore: stop tracking `CLAUDE.md` (local agent protocol) and scheduler
   runtime state (`lock`, `state.json`, `*.ndjson`); gitignore them plus a
   stray `logo-text.png`. CLAUDE.md references trimmed from public docs.
@@ -389,7 +397,7 @@ version. Update it in the same commit as the change it describes.
   id (enables fork-to-customize) instead of erroring; only project-vs-project
   id clashes are rejected.
 - Add: Providers page in Mission Control (#4) — detect / apply-preset /
-  set-default / safe-test + "log in outside Amaco" prompts; TopBar nav entry
+  set-default / safe-test + "log in outside Vibestrate" prompts; TopBar nav entry
   and CLI-hints. Browser never spawns commands.
 - Change: providers server route uses the generic preset registry (all 11
   providers) and exposes each provider's `loginCommand`; the test endpoint
@@ -400,17 +408,17 @@ version. Update it in the same commit as the change it describes.
 
 ## 0.1.1
 
-- Fix: global/symlinked `amaco` bin was inert — entrypoint check now compares
+- Fix: global/symlinked `vibestrate` bin was inert — entrypoint check now compares
   realpaths; added `tests/cli-bin-entrypoint.test.ts` regression guard.
 
 ## 0.1.0
 
-- Add: first npm release as `amaco-os` (binary stays `amaco`).
-- Add: out-of-the-box presets for all 11 providers + "log in outside Amaco"
+- Add: first npm release as `vibestrate` (binary stays `vibestrate`).
+- Add: out-of-the-box presets for all 11 providers + "log in outside Vibestrate"
   prompts; `doctor --fix` auto-applies any detected provider.
 - Add: Gemini, Qwen Code, Crush, Goose, Cursor, Amp providers.
 - Add: documentation system — handwritten content + source-aware generated
-  reference (`pnpm docs:generate`), rendered at amaco.shonshon.com/docs.
+  reference (`pnpm docs:generate`), rendered at vibestrate.shonshon.com/docs.
 - Change: CLI version single-sourced from `package.json`.
 - Add: CI + tag-release GitHub workflows (OIDC trusted publishing); lean
   publish tarball (sourcemaps stripped); pinned `ws` (security advisory).

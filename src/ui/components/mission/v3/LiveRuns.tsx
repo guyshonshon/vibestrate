@@ -11,7 +11,7 @@ import { PhaseRail } from "../../design/PhaseRail.js";
 import { cn } from "../../design/cn.js";
 import { fmtElapsed, relTime } from "../../design/format.js";
 import { MiniTerminal, type TerminalLine } from "../../design/Terminal.js";
-import type { AmacoEvent, RunState, RunStatus } from "../../../lib/types.js";
+import type { VibestrateEvent, RunState, RunStatus } from "../../../lib/types.js";
 
 const PHASES = [
   { key: "plan", label: "Plan", statuses: ["planning", "planned"] },
@@ -66,7 +66,7 @@ function prettyStatus(s: RunStatus): string {
   );
 }
 
-function eventsToLines(events: AmacoEvent[]): TerminalLine[] {
+function eventsToLines(events: VibestrateEvent[]): TerminalLine[] {
   return events.slice(-8).map((e) => {
     const tag = (e.type ?? "event").split(".").pop() ?? "event";
     const text =
@@ -97,7 +97,7 @@ export function LiveRunsSection({
   onAbort,
 }: {
   runs: RunState[];
-  eventsByRun: Record<string, AmacoEvent[]>;
+  eventsByRun: Record<string, VibestrateEvent[]>;
   diffByRun: Record<string, { insertions: number; deletions: number; files: number }>;
   onOpen: (runId: string) => void;
   onPause: (runId: string) => void;
@@ -156,7 +156,7 @@ function RunCard({
   onResume,
 }: {
   run: RunState;
-  events: AmacoEvent[];
+  events: VibestrateEvent[];
   diff?: { insertions: number; deletions: number; files: number };
   delayIdx: number;
   onOpen: (runId: string) => void;

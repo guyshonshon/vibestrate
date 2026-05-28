@@ -52,13 +52,13 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
 
   if (error)
     return (
-      <div className="p-6 text-[12.5px] text-amaco-fail">
+      <div className="p-6 text-[12.5px] text-vibestrate-fail">
         Failed to load project metadata: {error}
       </div>
     );
   if (!meta)
     return (
-      <div className="p-6 text-[12.5px] text-amaco-fg-muted">Loading…</div>
+      <div className="p-6 text-[12.5px] text-vibestrate-fg-muted">Loading…</div>
     );
 
   const cards: StatusCard[] = [
@@ -129,7 +129,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </span>
           {!meta.status.initialised ? (
             <span className="mono text-[10.5px] text-amber-300">
-              .amaco not initialised
+              .vibestrate not initialised
             </span>
           ) : null}
         </div>
@@ -151,24 +151,24 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           <KV label="Repo">
             <span
               className={
-                meta.git.isGitRepo ? "text-amaco-success" : "text-amaco-warn"
+                meta.git.isGitRepo ? "text-vibestrate-success" : "text-vibestrate-warn"
               }
             >
               {meta.git.isGitRepo ? "yes" : "no"}
             </span>
           </KV>
           <KV label="Main branch">
-            <span className="amaco-mono">{meta.git.mainBranch ?? "—"}</span>
+            <span className="vibestrate-mono">{meta.git.mainBranch ?? "—"}</span>
           </KV>
           <KV label="Current branch">
-            <span className="amaco-mono">{meta.git.currentBranch ?? "—"}</span>
+            <span className="vibestrate-mono">{meta.git.currentBranch ?? "—"}</span>
           </KV>
           <KV label="HEAD">
             {meta.git.headHash ? (
               <span className="flex items-center gap-2">
                 <GitCommit className="h-3 w-3" strokeWidth={1.5} />
-                <span className="amaco-mono">{meta.git.headHash}</span>
-                <span className="truncate text-amaco-fg-dim">
+                <span className="vibestrate-mono">{meta.git.headHash}</span>
+                <span className="truncate text-vibestrate-fg-dim">
                   {meta.git.headSubject ?? ""}
                 </span>
               </span>
@@ -177,22 +177,22 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             )}
           </KV>
           <KV label="Worktree dir">
-            <span className="amaco-mono truncate">{meta.worktreeDir}</span>
+            <span className="vibestrate-mono truncate">{meta.worktreeDir}</span>
           </KV>
         </Section>
 
         <Section title="Validation commands">
           {meta.validationCommands.length === 0 ? (
-            <div className="text-[12px] text-amaco-fg-muted">
+            <div className="text-[12px] text-vibestrate-fg-muted">
               No commands configured. Run{" "}
-              <span className="amaco-mono">amaco config set commands.validate</span>.
+              <span className="vibestrate-mono">vibestrate config set commands.validate</span>.
             </div>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {meta.validationCommands.map((c) => (
                 <li
                   key={c}
-                  className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[11.5px]"
+                  className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px]"
                 >
                   {c}
                 </li>
@@ -205,21 +205,21 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           {meta.providers.length === 0 ? (
             <Empty>
               No providers configured. Run{" "}
-              <span className="amaco-mono">amaco provider add</span>.
+              <span className="vibestrate-mono">vibestrate provider add</span>.
             </Empty>
           ) : (
             <ul className="flex flex-col gap-1.5">
               {meta.providers.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                  className="flex items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                 >
                   <span className="font-medium">{p.id}</span>
-                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
                     {p.type}
                   </span>
                   {p.command ? (
-                    <span className="amaco-mono ml-auto truncate text-[11px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono ml-auto truncate text-[11px] text-vibestrate-fg-muted">
                       {p.command}
                     </span>
                   ) : null}
@@ -237,17 +237,17 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               {meta.roles.map((a) => (
                 <li
                   key={a.id}
-                  className="flex flex-wrap items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                  className="flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                 >
                   <span className="font-medium">{a.id}</span>
-                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
                     {a.provider}
                   </span>
-                  <span className="amaco-mono rounded border border-amaco-border px-1 text-[10.5px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
                     {a.permissions}
                   </span>
                   {a.skills.length > 0 ? (
-                    <span className="text-[11px] text-amaco-fg-dim">
+                    <span className="text-[11px] text-vibestrate-fg-dim">
                       skills: {a.skills.join(", ")}
                     </span>
                   ) : null}
@@ -265,15 +265,15 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               {meta.skills.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-baseline gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-[12px]"
+                  className="flex items-baseline gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                   title={s.filePath}
                 >
                   <Layers
-                    className="h-3 w-3 text-amaco-fg-muted"
+                    className="h-3 w-3 text-vibestrate-fg-muted"
                     strokeWidth={1.5}
                   />
                   <span>{s.name}</span>
-                  <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+                  <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
                     {s.source}
                   </span>
                 </li>
@@ -290,16 +290,16 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             {meta.scheduler.maxConcurrentWriteRoles}
           </KV>
           <KV label="Conflict policy">
-            <span className="amaco-mono">{meta.scheduler.conflictPolicy}</span>
+            <span className="vibestrate-mono">{meta.scheduler.conflictPolicy}</span>
           </KV>
           <KV label="Queue policy">
-            <span className="amaco-mono">{meta.scheduler.queuePolicy}</span>
+            <span className="vibestrate-mono">{meta.scheduler.queuePolicy}</span>
           </KV>
           <KV label="Queue length">
             <button
               type="button"
               onClick={onShowQueue}
-              className="amaco-mono text-amaco-accent hover:underline"
+              className="vibestrate-mono text-vibestrate-accent hover:underline"
             >
               {meta.counts.queueLength} entries →
             </button>
@@ -318,11 +318,11 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                   <button
                     type="button"
                     onClick={() => onSelectRun(r.runId)}
-                    className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[12px] hover:border-amaco-accent/40"
+                    className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left text-[12px] hover:border-vibestrate-accent/40"
                   >
                     <RunStatusBadge status={r.status} compact />
                     <span className="truncate">{r.task}</span>
-                    <span className="amaco-mono ml-auto text-[10.5px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
                       {r.runId}
                     </span>
                   </button>
@@ -366,14 +366,14 @@ type StatusCard = {
 function StatusCardView({ card }: { card: StatusCard }) {
   const tone =
     card.tone === "ok"
-      ? "border-amaco-success/40 text-amaco-success"
+      ? "border-vibestrate-success/40 text-vibestrate-success"
       : card.tone === "warn"
-        ? "border-amaco-warn/40 text-amaco-warn"
-        : "border-amaco-border text-amaco-fg";
+        ? "border-vibestrate-warn/40 text-vibestrate-warn"
+        : "border-vibestrate-border text-vibestrate-fg";
   const Icon = card.icon;
   return (
-    <div className={`rounded border ${tone} bg-amaco-panel-2/60 px-3 py-2`}>
-      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <div className={`rounded border ${tone} bg-vibestrate-panel-2/60 px-3 py-2`}>
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         <Icon className="h-3 w-3" strokeWidth={1.5} />
         {card.label}
       </div>
@@ -390,12 +390,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel/30">
-      <header className="flex items-center gap-2 border-b border-amaco-border px-3 py-1.5 text-[11.5px] uppercase tracking-[0.12em] text-amaco-fg-muted">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel/30">
+      <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-1.5 text-[11.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
         <Package className="h-3 w-3" strokeWidth={1.5} />
         {title}
       </header>
-      <div className="p-3 text-[12px] text-amaco-fg">{children}</div>
+      <div className="p-3 text-[12px] text-vibestrate-fg">{children}</div>
     </section>
   );
 }
@@ -403,25 +403,25 @@ function Section({
 function KV({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[160px_1fr] gap-3 py-0.5 text-[12px]">
-      <span className="text-amaco-fg-muted">{label}</span>
-      <span className="text-amaco-fg">{children}</span>
+      <span className="text-vibestrate-fg-muted">{label}</span>
+      <span className="text-vibestrate-fg">{children}</span>
     </div>
   );
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11.5px] text-amaco-fg-muted">{children}</div>
+    <div className="text-[11.5px] text-vibestrate-fg-muted">{children}</div>
   );
 }
 
 function Toggle({ on }: { on: boolean }) {
   return on ? (
-    <span className="inline-flex items-center gap-1 text-amaco-success">
+    <span className="inline-flex items-center gap-1 text-vibestrate-success">
       <CheckCircle2 className="h-3 w-3" strokeWidth={1.5} /> on
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-amaco-warn">
+    <span className="inline-flex items-center gap-1 text-vibestrate-warn">
       <ShieldCheck className="h-3 w-3" strokeWidth={1.5} /> off
     </span>
   );
@@ -441,7 +441,7 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="inline-flex items-center gap-1 rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:bg-amaco-panel-2"
+      className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
       title={title}
     >
       <Copy className="h-3 w-3" strokeWidth={1.5} />

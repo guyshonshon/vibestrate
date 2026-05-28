@@ -1,4 +1,4 @@
-// Spawn `amaco <args>` argv-only (never via a shell) and stream
+// Spawn `vibestrate <args>` argv-only (never via a shell) and stream
 // stdout/stderr back as line events. Used by the panel's command
 // runner so the user can invoke any CLI from inside the TUI.
 
@@ -9,7 +9,7 @@ import { spawn, exec } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-function resolveAmacoBin(): string {
+function resolveVibestrateBin(): string {
   // src/shell/ink/runner -> ../../../../dist/index.js when running from src
   // dist/index.js itself when running bundled.
   const candidates = [
@@ -64,18 +64,18 @@ export type RunResult = {
 };
 
 /**
- * Run `amaco <args>` from the project root and return the combined
+ * Run `vibestrate <args>` from the project root and return the combined
  * stdout + stderr capped at `maxOutputBytes` so a runaway command
  * can't blow up the panel.
  */
-export async function runAmacoCommand(input: {
+export async function runVibestrateCommand(input: {
   projectRoot: string;
   argv: string[];
   onChunk?: (text: string) => void;
   maxOutputBytes?: number;
 }): Promise<RunResult> {
   const cap = input.maxOutputBytes ?? 64 * 1024;
-  const bin = resolveAmacoBin();
+  const bin = resolveVibestrateBin();
   return new Promise<RunResult>((resolve) => {
     let buf = "";
     const append = (text: string): void => {
@@ -87,7 +87,7 @@ export async function runAmacoCommand(input: {
     };
     const child = spawn(process.execPath, [bin, ...input.argv], {
       cwd: input.projectRoot,
-      env: { ...process.env, AMACO_PANEL: "1", NO_COLOR: "1" },
+      env: { ...process.env, VIBESTRATE_PANEL: "1", NO_COLOR: "1" },
       stdio: ["ignore", "pipe", "pipe"],
     });
     child.stdout?.setEncoding("utf8");
@@ -105,21 +105,21 @@ export async function runAmacoCommand(input: {
 }
 
 /**
- * Spawn `amaco <args>` in the background — detached, unref'd, with
+ * Spawn `vibestrate <args>` in the background — detached, unref'd, with
  * stdio redirected to /dev/null. Used for long-running invocations
- * like `amaco run …` and `amaco ui` where the user doesn't want
+ * like `vibestrate run …` and `vibestrate ui` where the user doesn't want
  * the panel to block waiting for output.
  *
  * The child's pid is returned so the caller can show it in a toast.
  */
-export function spawnAmacoDetached(input: {
+export function spawnVibestrateDetached(input: {
   projectRoot: string;
   argv: string[];
 }): { pid: number | undefined } {
-  const bin = resolveAmacoBin();
+  const bin = resolveVibestrateBin();
   const child = spawn(process.execPath, [bin, ...input.argv], {
     cwd: input.projectRoot,
-    env: { ...process.env, AMACO_PANEL: "1", NO_COLOR: "1" },
+    env: { ...process.env, VIBESTRATE_PANEL: "1", NO_COLOR: "1" },
     stdio: "ignore",
     detached: true,
   });

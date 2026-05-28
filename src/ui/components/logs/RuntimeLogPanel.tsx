@@ -55,13 +55,13 @@ export function RuntimeLogPanel({ runId }: { runId: string }) {
     void load();
   }, [runId, activePath]);
 
-  if (error) return <div className="text-[12px] text-amaco-fail">{error}</div>;
+  if (error) return <div className="text-[12px] text-vibestrate-fail">{error}</div>;
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {entries.length === 0 ? (
-          <div className="text-[12px] text-amaco-fg-muted">
+          <div className="text-[12px] text-vibestrate-fg-muted">
             No runtime logs yet.
           </div>
         ) : (
@@ -69,10 +69,10 @@ export function RuntimeLogPanel({ runId }: { runId: string }) {
             <button
               key={e.path}
               onClick={() => setActivePath(e.path)}
-              className={`amaco-mono rounded border px-1.5 py-0.5 text-[11px] ${
+              className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[11px] ${
                 activePath === e.path
-                  ? "border-amaco-accent text-amaco-accent"
-                  : "border-amaco-border text-amaco-fg-dim hover:text-amaco-fg"
+                  ? "border-vibestrate-accent text-vibestrate-accent"
+                  : "border-vibestrate-border text-vibestrate-fg-dim hover:text-vibestrate-fg"
               }`}
             >
               {e.path}
@@ -81,7 +81,7 @@ export function RuntimeLogPanel({ runId }: { runId: string }) {
         )}
       </div>
       {activePath ? (
-        <pre className="amaco-mono max-h-72 overflow-auto whitespace-pre-wrap rounded border border-amaco-border bg-amaco-canvas p-2 text-[12px] leading-[1.55] text-amaco-fg">
+        <pre className="vibestrate-mono max-h-72 overflow-auto whitespace-pre-wrap rounded border border-vibestrate-border bg-vibestrate-canvas p-2 text-[12px] leading-[1.55] text-vibestrate-fg">
           {body || "Empty."}
         </pre>
       ) : null}

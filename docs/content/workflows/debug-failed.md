@@ -10,7 +10,7 @@ There are two failure shapes: `failed` (an unrecoverable error during a stage) a
 ## Start with `replay`
 
 ```bash
-amaco replay <runId>
+vibestrate replay <runId>
 ```
 
 This opens the read-only inspector. The status line tells you which stage threw, and the artifact list tells you what was already recorded.
@@ -20,15 +20,15 @@ This opens the read-only inspector. The status line tells you which stage threw,
 The orchestrator landed in `failed` because a stage raised an error it couldn't recover from. Look at:
 
 1. **`events.jsonl`** — the last event before the failure shows which transition triggered the error.
-2. **The provider stream log** at `.amaco/runs/<runId>/outputs/<stage>.log` — usually contains the model's last response and any tool-use error.
-3. **The validation output** at `.amaco/runs/<runId>/validation.json` — if the failure was during validation, the exit codes and stderr are here.
+2. **The provider stream log** at `.vibestrate/runs/<runId>/outputs/<stage>.log` — usually contains the model's last response and any tool-use error.
+3. **The validation output** at `.vibestrate/runs/<runId>/validation.json` — if the failure was during validation, the exit codes and stderr are here.
 
 Common causes:
 
-- **Provider not authenticated.** Run `amaco provider test <id>` to confirm.
+- **Provider not authenticated.** Run `vibestrate provider test <id>` to confirm.
 - **Validation command missing.** Check `commands.validate` in `project.yml`.
 - **Worktree creation failed.** `requireCleanMain: true` and main has uncommitted changes is a common one.
-- **Skill referenced doesn't exist.** Check `amaco skills list`.
+- **Skill referenced doesn't exist.** Check `vibestrate skills list`.
 
 ## If status is `blocked`
 
@@ -46,10 +46,10 @@ Then act on the findings. The right answer is rarely "rerun and hope." Usually i
 
 ## Re-run after fixing
 
-Each `amaco run` is a fresh run with a fresh runId. Past runs are preserved at `.amaco/runs/`, so you can compare what the planner produced this time vs last time:
+Each `vibestrate run` is a fresh run with a fresh runId. Past runs are preserved at `.vibestrate/runs/`, so you can compare what the planner produced this time vs last time:
 
 ```bash
-diff .amaco/runs/<oldRunId>/plan.md .amaco/runs/<newRunId>/plan.md
+diff .vibestrate/runs/<oldRunId>/plan.md .vibestrate/runs/<newRunId>/plan.md
 ```
 
 ## Rewind instead of restarting
@@ -58,18 +58,18 @@ When the plan and architecture were fine and only the implementation needs anoth
 
 ```bash
 # Reuse the plan + architecture, redo the implementation onward:
-amaco run "<same task>" --resume-from <oldRunId> --resume-stage executing
+vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage executing
 
 # Reuse just the plan, redo from architecture onward:
-amaco run "<same task>" --resume-from <oldRunId> --resume-stage architecting
+vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage architecting
 
 # Re-run everything from scratch (seeds nothing):
-amaco run "<same task>" --resume-from <oldRunId> --resume-stage planning
+vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage planning
 ```
 
 `--resume-stage` defaults to `executing`, and accepts `planning`, `architecting`, or `executing`. The flow runner finds the first step at that stage, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch — correct, because these stages regenerate the downstream code — and the original run is untouched (its `state.json` records the lineage under `resumedFrom`). Works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
-Resuming at *reviewing* or *verifying* isn't supported: those stages need the executor's code already present, and Amaco doesn't snapshot the per-step worktree yet. The CLI rejects those stages with a clear message.
+Resuming at *reviewing* or *verifying* isn't supported: those stages need the executor's code already present, and Vibestrate doesn't snapshot the per-step worktree yet. The CLI rejects those stages with a clear message.
 
 ## When to file a bug
 

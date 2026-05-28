@@ -248,7 +248,7 @@ export class TerminalService {
     }
     if (isPathInside(this.projectRoot, resolved)) {
       // Worktrees should live outside the project root (default
-      // ../.amaco-worktrees) — if a misconfigured project has them inside,
+      // ../.vibestrate-worktrees) — if a misconfigured project has them inside,
       // refuse rather than silently allow.
       throw new TerminalError(
         409,
@@ -313,7 +313,7 @@ function pickShell(): string {
 function buildSafeEnv(): Record<string, string> {
   const out: Record<string, string> = {
     TERM: "xterm-256color",
-    AMACO_TERMINAL: "1",
+    VIBESTRATE_TERMINAL: "1",
   };
   for (const k of FORWARDED_ENV_VARS) {
     const v = process.env[k];

@@ -1,12 +1,12 @@
 import path from "node:path";
 import { execa } from "execa";
 import {
-  amacoRoot,
+  vibestrateRoot,
   notificationsDir,
   projectRunsDir,
   schedulerDir,
 } from "../utils/paths.js";
-import { loadConfig, amacoExists } from "../project/config-loader.js";
+import { loadConfig, vibestrateExists } from "../project/config-loader.js";
 import {
   defaultProjectName,
   detectPackageManager,
@@ -25,11 +25,11 @@ import { RunQueue } from "../scheduler/run-queue.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 
 export type ProjectContextStatus = {
-  /** True when .amaco/project.yml exists. */
+  /** True when .vibestrate/project.yml exists. */
   initialised: boolean;
   /** True when the project root is inside a git repository. */
   isGitRepo: boolean;
-  /** True when we found a usable .amaco/notifications dir. */
+  /** True when we found a usable .vibestrate/notifications dir. */
   hasNotifications: boolean;
 };
 
@@ -47,7 +47,7 @@ export type ProjectGitContext = {
 export type ProjectMetadata = {
   status: ProjectContextStatus;
   projectRoot: string;
-  amacoRoot: string;
+  vibestrateRoot: string;
   worktreeDir: string;
   projectName: string;
   projectType: ProjectType;
@@ -89,15 +89,15 @@ export type ProjectMetadata = {
 };
 
 /**
- * Build a single, dashboard-friendly snapshot of the project Amaco is
+ * Build a single, dashboard-friendly snapshot of the project Vibestrate is
  * supervising. Defensive: every step that can fail (git not installed, no
- * package.json, missing .amaco) degrades to null/empty rather than throwing.
+ * package.json, missing .vibestrate) degrades to null/empty rather than throwing.
  */
 export async function getProjectMetadata(
   projectRoot: string,
 ): Promise<ProjectMetadata> {
   const status: ProjectContextStatus = {
-    initialised: await amacoExists(projectRoot),
+    initialised: await vibestrateExists(projectRoot),
     isGitRepo: false,
     hasNotifications: await pathExists(notificationsDir(projectRoot)),
   };
@@ -152,8 +152,8 @@ export async function getProjectMetadata(
   return {
     status,
     projectRoot,
-    amacoRoot: amacoRoot(projectRoot),
-    worktreeDir: config?.git.worktreeDir ?? "../.amaco-worktrees",
+    vibestrateRoot: vibestrateRoot(projectRoot),
+    worktreeDir: config?.git.worktreeDir ?? "../.vibestrate-worktrees",
     projectName,
     projectType,
     projectTypeLabel: describeProjectType(projectType),

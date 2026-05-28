@@ -65,7 +65,7 @@ export function MetricsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `amaco-metrics-${overview.range}-${overview.generatedAt.slice(0, 10)}.csv`;
+    a.download = `vibestrate-metrics-${overview.range}-${overview.generatedAt.slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

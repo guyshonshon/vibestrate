@@ -4,7 +4,7 @@ import { Keyboard, X } from "lucide-react";
 /**
  * Global help overlay. Opens on:
  *   - `?` keystroke (outside an input)
- *   - the custom `amaco:help-overlay` event dispatched by the TopBar
+ *   - the custom `vibestrate:help-overlay` event dispatched by the TopBar
  *     and other shortcut handlers
  *   - the `?` button surfaces sprinkled around the chrome
  *
@@ -34,10 +34,10 @@ export function HelpOverlay() {
         setOpen((v) => !v);
       }
     };
-    window.addEventListener("amaco:help-overlay", onCustom);
+    window.addEventListener("vibestrate:help-overlay", onCustom);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("amaco:help-overlay", onCustom);
+      window.removeEventListener("vibestrate:help-overlay", onCustom);
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -53,26 +53,26 @@ export function HelpOverlay() {
         // Close on backdrop click — but not on inner panel clicks.
         if (e.target === e.currentTarget) setOpen(false);
       }}
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-amaco-canvas/80 backdrop-blur-sm px-4 py-12 sm:py-20"
+      className="fixed inset-0 z-[100] flex items-start justify-center bg-vibestrate-canvas/80 backdrop-blur-sm px-4 py-12 sm:py-20"
     >
-      <div className="relative w-full max-w-2xl rounded-md border border-amaco-border bg-amaco-panel shadow-2xl">
-        <header className="flex items-center gap-2 border-b border-amaco-border px-4 py-3">
+      <div className="relative w-full max-w-2xl rounded-md border border-vibestrate-border bg-vibestrate-panel shadow-2xl">
+        <header className="flex items-center gap-2 border-b border-vibestrate-border px-4 py-3">
           <Keyboard
-            className="h-4 w-4 text-amaco-accent"
+            className="h-4 w-4 text-vibestrate-accent"
             strokeWidth={1.5}
             aria-hidden
           />
-          <h2 className="text-[14px] font-medium text-amaco-fg">
+          <h2 className="text-[14px] font-medium text-vibestrate-fg">
             Keyboard shortcuts
           </h2>
-          <span className="amaco-mono ml-2 text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono ml-2 text-[10.5px] text-vibestrate-fg-muted">
             press ? to toggle · Esc to close
           </span>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close help"
-            className="ml-auto rounded p-1 text-amaco-fg-dim hover:bg-amaco-panel-2 hover:text-amaco-fg"
+            className="ml-auto rounded p-1 text-vibestrate-fg-dim hover:bg-vibestrate-panel-2 hover:text-vibestrate-fg"
           >
             <X className="h-4 w-4" strokeWidth={1.5} aria-hidden />
           </button>
@@ -83,7 +83,7 @@ export function HelpOverlay() {
               <section key={g.title} aria-labelledby={`hg-${g.title}`}>
                 <h3
                   id={`hg-${g.title}`}
-                  className="mb-1 text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted"
+                  className="mb-1 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted"
                 >
                   {g.title}
                 </h3>
@@ -93,16 +93,16 @@ export function HelpOverlay() {
                       key={it.what}
                       className="flex items-baseline justify-between gap-2 text-[12px]"
                     >
-                      <dt className="text-amaco-fg-dim">{it.what}</dt>
+                      <dt className="text-vibestrate-fg-dim">{it.what}</dt>
                       <dd>
                         {it.keys.map((k, i) => (
                           <span key={`${it.what}-${i}`}>
                             {i > 0 ? (
-                              <span className="amaco-mono mx-1 text-amaco-fg-muted">
+                              <span className="vibestrate-mono mx-1 text-vibestrate-fg-muted">
                                 {it.combinator ?? "·"}
                               </span>
                             ) : null}
-                            <kbd className="amaco-mono rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[11px] text-amaco-fg">
+                            <kbd className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg">
                               {k}
                             </kbd>
                           </span>
@@ -114,10 +114,10 @@ export function HelpOverlay() {
               </section>
             ))}
           </div>
-          <p className="mt-4 text-[11px] text-amaco-fg-muted">
+          <p className="mt-4 text-[11px] text-vibestrate-fg-muted">
             Layout state (sidebar width, panel order + collapsed state,
             section order, composer config) persists per-browser via{" "}
-            <code className="amaco-mono rounded bg-amaco-panel-2 px-1">
+            <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
               localStorage
             </code>
             .

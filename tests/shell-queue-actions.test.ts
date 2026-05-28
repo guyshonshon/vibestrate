@@ -12,14 +12,14 @@ import { RoadmapService } from "../src/roadmap/roadmap-service.js";
 import { nowIso } from "../src/utils/time.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-shell-q-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-shell-q-"));
 }
 
 describe("queue panel actions", () => {
   let root: string;
   beforeEach(async () => {
     root = await tempProject();
-    await fs.mkdir(path.join(root, ".amaco", "scheduler"), { recursive: true });
+    await fs.mkdir(path.join(root, ".vibestrate", "scheduler"), { recursive: true });
   });
 
   it("pauseScheduler sets paused=true and resumeScheduler clears it", async () => {

@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import { ArtifactStore } from "../src/core/artifact-store.js";
 
 async function tempProjectRoot(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-artifact-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-artifact-"));
 }
 
 describe("ArtifactStore", () => {

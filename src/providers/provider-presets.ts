@@ -15,14 +15,14 @@ import { ollamaPreset } from "./presets/ollama.js";
  *
  *   - `preset`      — the best-known non-interactive invocation (the command
  *                     is overridden with the detected path when applied).
- *   - `loginCommand`— the command the user runs **outside Amaco** to
+ *   - `loginCommand`— the command the user runs **outside Vibestrate** to
  *                     authenticate, or `null` when the provider uses an API
  *                     key / needs no login.
  *   - `loginNote`   — a one-line, human explanation shown alongside it.
  *
  * The presets are "works out of the box" defaults so a detected provider can
  * be auto-configured (like Claude always has been). They are best-effort:
- * coding-CLI flag matrices move across releases, so `amaco provider test
+ * coding-CLI flag matrices move across releases, so `vibestrate provider test
  * <id>` remains the source of truth, and the auth check below turns a failed
  * test into a precise "log in here" instruction instead of a vague error.
  */
@@ -153,10 +153,25 @@ const AUTH_SIGNALS = [
   "401",
 ];
 
+// A CLI rejecting our args (a flag it no longer accepts, a renamed
+// subcommand) prints one of these and exits non-zero — usually exit 2.
+// We treat that as a "flags" problem, not a generic exit, so the hint can
+// point at `vibestrate provider setup` instead of "check it's installed".
+const USAGE_SIGNALS = [
+  "unexpected argument",
+  "unrecognized argument",
+  "unrecognized option",
+  "unknown option",
+  "unknown flag",
+  "invalid option",
+  "invalid argument",
+  "invalid subcommand",
+];
+
 /**
  * Classify why a provider invocation failed, so callers can give the right
- * advice: an auth failure → "log in outside Amaco"; a clean exit with the
- * wrong output → "your prompt flags need adjusting"; anything else → a plain
+ * advice: an auth failure → "log in outside Vibestrate"; rejected args / wrong
+ * output → "your prompt flags need adjusting"; anything else → a plain
  * non-zero exit.
  */
 export function classifyProviderFailure(input: {
@@ -167,6 +182,7 @@ export function classifyProviderFailure(input: {
 }): ProviderFailureKind {
   const haystack = `${input.stdout}\n${input.stderr}`.toLowerCase();
   if (AUTH_SIGNALS.some((s) => haystack.includes(s))) return "auth";
+  if (USAGE_SIGNALS.some((s) => haystack.includes(s))) return "flags";
   if (input.exitCode !== 0) return "exit";
   return "flags";
 }

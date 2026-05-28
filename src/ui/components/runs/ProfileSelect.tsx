@@ -28,7 +28,7 @@ export function ProfileSelect({
 
   return (
     <div className="flex flex-col gap-1 text-[10.5px]">
-      <label className="flex items-center gap-1.5 text-amaco-fg-dim">
+      <label className="flex items-center gap-1.5 text-vibestrate-fg-dim">
         <span>{label}</span>
         <select
           value={selected}
@@ -37,7 +37,7 @@ export function ProfileSelect({
             onChange(next === "default" ? null : next);
           }}
           disabled={disabled || loading || profiles.length === 0}
-          className="rounded border border-amaco-border bg-amaco-panel-2 px-1.5 py-0.5 text-[11px] text-amaco-fg disabled:opacity-50"
+          className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg disabled:opacity-50"
         >
           {profiles.map((p) => (
             <option key={p.profileName} value={p.profileName}>
@@ -49,9 +49,9 @@ export function ProfileSelect({
         </select>
       </label>
       {error ? (
-        <span className="text-amaco-fail">{error}</span>
+        <span className="text-vibestrate-fail">{error}</span>
       ) : found ? (
-        <span className="amaco-mono truncate text-amaco-fg-muted">
+        <span className="vibestrate-mono truncate text-vibestrate-fg-muted">
           {found.commands.length === 0
             ? "(no commands — validation will report no_commands_configured)"
             : `→ ${found.commands.join("  ·  ")}`}

@@ -28,7 +28,7 @@ export type SuggestionValidationResult = {
   status: "passed" | "failed" | "no_commands_configured";
   summary: { total: number; passed: number; failed: number };
   commands: SuggestionValidationCommand[];
-  /** Path to the persisted JSON inside .amaco/runs/<runId>/. */
+  /** Path to the persisted JSON inside .vibestrate/runs/<runId>/. */
   resultPath: string;
   /** Which validation profile was used. "default" means commands.validate. */
   profileName: string;

@@ -80,7 +80,7 @@ export const PAGES_GROUP: HintGroup = {
     { key: "1-9/0", label: "switch" },
     { key: "Esc", label: "back" },
     { key: ":", label: "palette" },
-    { key: "!", label: "run amaco" },
+    { key: "!", label: "run vibestrate" },
     { key: "B", label: "open in browser" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },

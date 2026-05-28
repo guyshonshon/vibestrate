@@ -11,21 +11,21 @@ export function ValidationCommandResult({ item }: { item: Item }) {
     <div
       className={`flex items-center gap-3 rounded border px-2.5 py-1.5 ${
         ok
-          ? "border-amaco-success/30 bg-amaco-success/5"
-          : "border-amaco-fail/30 bg-amaco-fail/5"
+          ? "border-vibestrate-success/30 bg-vibestrate-success/5"
+          : "border-vibestrate-fail/30 bg-vibestrate-fail/5"
       }`}
     >
       <span
-        className={`amaco-mono text-[11px] ${
-          ok ? "text-amaco-success" : "text-amaco-fail"
+        className={`vibestrate-mono text-[11px] ${
+          ok ? "text-vibestrate-success" : "text-vibestrate-fail"
         }`}
       >
         {ok ? "PASS" : "FAIL"}
       </span>
-      <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+      <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
         {item.command}
       </span>
-      <span className="amaco-mono text-[11px] text-amaco-fg-muted">
+      <span className="vibestrate-mono text-[11px] text-vibestrate-fg-muted">
         exit {item.exitCode} · {item.durationMs}ms
       </span>
     </div>

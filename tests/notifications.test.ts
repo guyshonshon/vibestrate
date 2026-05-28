@@ -34,7 +34,7 @@ import { notificationsConfigSchema } from "../src/notifications/notification-typ
 import type { Notification } from "../src/notifications/notification-types.js";
 
 async function tempProject(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), "amaco-notify-"));
+  return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-notify-"));
 }
 
 function fakeNotification(over: Partial<Notification> = {}): Notification {
@@ -71,7 +71,7 @@ describe("NotificationStore", () => {
   it("init creates the notifications directory", async () => {
     const store = new NotificationStore(project);
     await store.init();
-    const stat = await fs.stat(path.join(project, ".amaco", "notifications"));
+    const stat = await fs.stat(path.join(project, ".vibestrate", "notifications"));
     expect(stat.isDirectory()).toBe(true);
   });
 
@@ -80,11 +80,11 @@ describe("NotificationStore", () => {
     await store.init();
     await store.ensureSettingsFile();
     const rules = await fs.readFile(
-      path.join(project, ".amaco", "notifications", "rules.json"),
+      path.join(project, ".vibestrate", "notifications", "rules.json"),
       "utf8",
     );
     const gateways = await fs.readFile(
-      path.join(project, ".amaco", "notifications", "gateways.json"),
+      path.join(project, ".vibestrate", "notifications", "gateways.json"),
       "utf8",
     );
     expect(JSON.parse(rules).enabled).toBe(true);
@@ -104,7 +104,7 @@ describe("NotificationStore", () => {
     const store = new NotificationStore(project);
     await store.init();
     await fs.writeFile(
-      path.join(project, ".amaco", "notifications", "notifications.json"),
+      path.join(project, ".vibestrate", "notifications", "notifications.json"),
       "not json",
     );
     const file = await store.readAll();
@@ -172,8 +172,8 @@ describe("secret-resolver", () => {
   });
 
   it("resolveSecret reads env when value is env:NAME", () => {
-    process.env.AMACO_TEST_SECRET = "shh";
-    expect(resolveSecret("env:AMACO_TEST_SECRET")).toBe("shh");
+    process.env.VIBESTRATE_TEST_SECRET = "shh";
+    expect(resolveSecret("env:VIBESTRATE_TEST_SECRET")).toBe("shh");
   });
 
   it("resolveSecret returns undefined when the env var is unset", () => {
@@ -264,12 +264,12 @@ describe("webhook-gateway delivery (mocked fetch)", () => {
   });
 
   it("returns skipped when env-ref URL is unset", async () => {
-    delete process.env.AMACO_NOEXIST_URL;
+    delete process.env.VIBESTRATE_NOEXIST_URL;
     const r = await webhookGateway.deliver({
       notification: fakeNotification(),
       config: {
         enabled: true,
-        url: "env:AMACO_NOEXIST_URL",
+        url: "env:VIBESTRATE_NOEXIST_URL",
         token: null,
         target: null,
         minSeverity: "info",
@@ -281,17 +281,17 @@ describe("webhook-gateway delivery (mocked fetch)", () => {
   });
 
   it("validateConfig flags missing env var", () => {
-    delete process.env.AMACO_NOEXIST_URL;
+    delete process.env.VIBESTRATE_NOEXIST_URL;
     const r = webhookGateway.validateConfig({
       enabled: true,
-      url: "env:AMACO_NOEXIST_URL",
+      url: "env:VIBESTRATE_NOEXIST_URL",
       token: null,
       target: null,
       minSeverity: "info",
       categories: [],
     });
-    expect(r.envVarsReferenced).toContain("AMACO_NOEXIST_URL");
-    expect(r.missingEnvVars).toContain("AMACO_NOEXIST_URL");
+    expect(r.envVarsReferenced).toContain("VIBESTRATE_NOEXIST_URL");
+    expect(r.missingEnvVars).toContain("VIBESTRATE_NOEXIST_URL");
   });
 });
 
@@ -350,9 +350,9 @@ describe("telegram-gateway validation", () => {
   });
 
   it("delivers only notification text, never process.env contents", async () => {
-    process.env.AMACO_TELEGRAM_TOKEN = "1234:secret";
-    process.env.AMACO_TELEGRAM_CHAT = "chat-1";
-    process.env.AMACO_SHOULD_NOT_LEAK = "do-not-send";
+    process.env.VIBESTRATE_TELEGRAM_TOKEN = "1234:secret";
+    process.env.VIBESTRATE_TELEGRAM_CHAT = "chat-1";
+    process.env.VIBESTRATE_SHOULD_NOT_LEAK = "do-not-send";
 
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("ok", { status: 200 }),
@@ -369,8 +369,8 @@ describe("telegram-gateway validation", () => {
       config: {
         enabled: true,
         url: null,
-        token: "env:AMACO_TELEGRAM_TOKEN",
-        target: "env:AMACO_TELEGRAM_CHAT",
+        token: "env:VIBESTRATE_TELEGRAM_TOKEN",
+        target: "env:VIBESTRATE_TELEGRAM_CHAT",
         minSeverity: "info",
         categories: [],
       },
@@ -390,7 +390,7 @@ describe("telegram-gateway validation", () => {
     expect(bodyText).toContain("Build finished");
     expect(bodyText).toContain("Validation passed");
     expect(bodyText).not.toContain("do-not-send");
-    expect(bodyText).not.toContain("AMACO_SHOULD_NOT_LEAK");
+    expect(bodyText).not.toContain("VIBESTRATE_SHOULD_NOT_LEAK");
   });
 });
 

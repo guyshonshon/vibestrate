@@ -102,9 +102,9 @@ export function TaskDetailPage({
   }
 
   if (error)
-    return <div className="px-6 py-8 text-amaco-fail">{error}</div>;
+    return <div className="px-6 py-8 text-vibestrate-fail">{error}</div>;
   if (!data)
-    return <div className="px-6 py-8 text-amaco-fg-muted">Loading task…</div>;
+    return <div className="px-6 py-8 text-vibestrate-fg-muted">Loading task…</div>;
 
   const { task, comments, microSteps } = data;
   const open = comments.filter((c) => !c.resolved);
@@ -112,29 +112,29 @@ export function TaskDetailPage({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-amaco-border bg-amaco-panel px-6 py-4">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+      <header className="border-b border-vibestrate-border bg-vibestrate-panel px-6 py-4">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           task · {task.id}
         </div>
         <h1 className="mt-1 text-[16px] font-medium">{task.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-amaco-fg-dim">
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-vibestrate-fg-dim">
+          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
             {task.status}
           </span>
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
+          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
             priority: {task.priority}
           </span>
-          <span className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]">
+          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
             risk: {task.riskLevel}
           </span>
           {task.roadmapItemId ? (
-            <span className="amaco-mono text-amaco-fg-muted">
+            <span className="vibestrate-mono text-vibestrate-fg-muted">
               roadmap: {task.roadmapItemId}
             </span>
           ) : null}
           {task.effort ? (
             <span
-              className="amaco-mono rounded border border-amaco-border px-1.5 py-0.5 text-[10.5px]"
+              className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]"
               title="Maps to a provider via project.yml#effortMap."
             >
               effort: {task.effort}
@@ -142,7 +142,7 @@ export function TaskDetailPage({
           ) : null}
           {task.providerOverride ? (
             <span
-              className="amaco-mono rounded border border-amaco-accent/40 px-1.5 py-0.5 text-[10.5px] text-amaco-accent"
+              className="vibestrate-mono rounded border border-vibestrate-accent/40 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent"
               title="Every agent in runs spawned from this task uses this provider."
             >
               provider: {task.providerOverride}
@@ -150,7 +150,7 @@ export function TaskDetailPage({
           ) : null}
           {task.readOnly ? (
             <span
-              className="amaco-mono rounded border border-amaco-warn/60 bg-amaco-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amaco-warn"
+              className="vibestrate-mono rounded border border-vibestrate-warn/60 bg-vibestrate-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-vibestrate-warn"
               title="Investigation-only — runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
             >
               read-only
@@ -171,21 +171,21 @@ export function TaskDetailPage({
               task.status === "queued" ||
               task.status === "running"
             }
-            className="rounded border border-amaco-accent/40 bg-amaco-accent/10 px-2.5 py-1 text-[12px] text-amaco-accent hover:bg-amaco-accent/20 disabled:opacity-50"
+            className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-2.5 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
           >
             {busy === "queue" ? "Queueing…" : "Queue task"}
           </button>
           <button
             onClick={cancel}
             disabled={busy !== null || task.status === "cancelled"}
-            className="rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-1 text-[12px] text-amaco-fg-dim hover:bg-amaco-panel disabled:opacity-50"
+            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
           >
             Cancel
           </button>
-          <span className="ml-auto text-[10.5px] text-amaco-fg-muted">
+          <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
             Run from CLI:{" "}
-            <code className="amaco-mono rounded bg-amaco-panel-2 px-1 py-0.5">
-              amaco tasks run {task.id}
+            <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1 py-0.5">
+              vibestrate tasks run {task.id}
             </code>
           </span>
         </div>
@@ -193,34 +193,34 @@ export function TaskDetailPage({
 
       <div className="flex flex-col gap-3 p-4">
         {task.description ? (
-          <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+          <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+            <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
               description
             </div>
-            <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-amaco-fg">
+            <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-vibestrate-fg">
               {task.description}
             </div>
           </section>
         ) : null}
 
-        <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
             runs
           </div>
           {task.runIds.length === 0 ? (
-            <div className="mt-1 text-[12px] text-amaco-fg-muted">No runs yet.</div>
+            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">No runs yet.</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {task.runIds.map((rid) => (
                 <li key={rid}>
                   <button
                     onClick={() => onOpenRun(rid)}
-                    className="amaco-mono inline-flex items-center gap-1.5 text-[12px] text-amaco-fg-dim hover:text-amaco-fg"
+                    className="vibestrate-mono inline-flex items-center gap-1.5 text-[12px] text-vibestrate-fg-dim hover:text-vibestrate-fg"
                   >
                     <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
                     {rid}
                     {rid === task.currentRunId ? (
-                      <span className="amaco-mono ml-1 rounded border border-amaco-accent/50 px-1 text-[10px] text-amaco-accent">
+                      <span className="vibestrate-mono ml-1 rounded border border-vibestrate-accent/50 px-1 text-[10px] text-vibestrate-accent">
                         current
                       </span>
                     ) : null}
@@ -252,8 +252,8 @@ export function TaskDetailPage({
           onOpenTask={onOpenTask}
         />
 
-        <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+        <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
             comments
           </div>
           <form onSubmit={submitComment} className="mt-2 flex gap-2">
@@ -261,37 +261,37 @@ export function TaskDetailPage({
               rows={2}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add a comment (saved to .amaco/roadmap/comments/<task>.json)"
-              className="flex-1 resize-y rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1.5 text-[12.5px] text-amaco-fg placeholder-amaco-fg-muted"
+              placeholder="Add a comment (saved to .vibestrate/roadmap/comments/<task>.json)"
+              className="flex-1 resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
             />
             <button
               type="submit"
               disabled={busy === "comment" || !newComment.trim()}
-              className="self-start rounded border border-amaco-border bg-amaco-panel-2 px-2.5 py-1 text-[12px] text-amaco-fg hover:bg-amaco-panel disabled:opacity-50"
+              className="self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
             >
               {busy === "comment" ? "Saving…" : "Add"}
             </button>
           </form>
           {open.length > 0 ? (
             <div className="mt-3 space-y-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+              <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
                 open ({open.length})
               </div>
               {open.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12.5px] text-amaco-fg"
+                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12.5px] text-vibestrate-fg"
                 >
                   <div>{c.body}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-amaco-fg-muted">
-                    <span className="amaco-mono">{c.target}</span>
-                    <span className="amaco-mono">
+                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-vibestrate-fg-muted">
+                    <span className="vibestrate-mono">{c.target}</span>
+                    <span className="vibestrate-mono">
                       {new Date(c.createdAt).toLocaleString()}
                     </span>
                     <button
                       onClick={() => resolveComment(c.id)}
                       disabled={busy === c.id}
-                      className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-border bg-amaco-panel px-1.5 py-0.5 text-[10.5px] text-amaco-fg-dim hover:text-amaco-fg"
+                      className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:text-vibestrate-fg"
                     >
                       <Check className="h-3 w-3" strokeWidth={1.5} /> resolve
                     </button>
@@ -302,13 +302,13 @@ export function TaskDetailPage({
           ) : null}
           {resolved.length > 0 ? (
             <div className="mt-3 space-y-1.5 opacity-60">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+              <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
                 resolved ({resolved.length})
               </div>
               {resolved.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12.5px] text-amaco-fg-dim"
+                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12.5px] text-vibestrate-fg-dim"
                 >
                   <div className="line-through">{c.body}</div>
                 </div>
@@ -349,17 +349,17 @@ function DependenciesSection({
   const isDone = (s: Task["status"]) => s === "done" || s === "cancelled";
 
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         dependencies
       </div>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         <div>
-          <div className="text-[11px] text-amaco-fg-muted">
+          <div className="text-[11px] text-vibestrate-fg-muted">
             Blocked by ({blockers.length + missingBlockers.length})
           </div>
           {blockers.length === 0 && missingBlockers.length === 0 ? (
-            <div className="mt-1 text-[12px] text-amaco-fg-muted">—</div>
+            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {blockers.map((b) => {
@@ -368,15 +368,15 @@ function DependenciesSection({
                   <li key={b.id}>
                     <button
                       onClick={() => onOpenTask(b.id)}
-                      className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left hover:bg-amaco-panel"
+                      className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left hover:bg-vibestrate-panel"
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-amaco-warn" : "bg-amaco-success"}`}
+                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-vibestrate-warn" : "bg-vibestrate-success"}`}
                       />
-                      <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+                      <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
                         {b.title}
                       </span>
-                      <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                      <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                         {b.status}
                       </span>
                     </button>
@@ -386,33 +386,33 @@ function DependenciesSection({
               {missingBlockers.map((id) => (
                 <li
                   key={id}
-                  className="flex items-center gap-2 rounded border border-amaco-fail/40 bg-amaco-fail/5 px-2 py-1 text-[12px] text-amaco-fail"
+                  className="flex items-center gap-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 px-2 py-1 text-[12px] text-vibestrate-fail"
                 >
-                  <span className="amaco-mono flex-1 truncate">{id}</span>
-                  <span className="amaco-mono text-[10.5px]">missing</span>
+                  <span className="vibestrate-mono flex-1 truncate">{id}</span>
+                  <span className="vibestrate-mono text-[10.5px]">missing</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
         <div>
-          <div className="text-[11px] text-amaco-fg-muted">
+          <div className="text-[11px] text-vibestrate-fg-muted">
             Unlocks ({unlocks.length})
           </div>
           {unlocks.length === 0 ? (
-            <div className="mt-1 text-[12px] text-amaco-fg-muted">—</div>
+            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {unlocks.map((u) => (
                 <li key={u.id}>
                   <button
                     onClick={() => onOpenTask(u.id)}
-                    className="flex w-full items-center gap-2 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left hover:bg-amaco-panel"
+                    className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left hover:bg-vibestrate-panel"
                   >
-                    <span className="amaco-mono flex-1 truncate text-[12px] text-amaco-fg">
+                    <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
                       {u.title}
                     </span>
-                    <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+                    <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
                       {u.status}
                     </span>
                   </button>
@@ -459,13 +459,13 @@ function FilesSection({ task }: { task: Task }) {
   }
 
   return (
-    <section className="rounded border border-amaco-border bg-amaco-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-amaco-fg-muted">
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
         Files
       </div>
       {task.touchedFiles.length > 0 ? (
         <div className="mt-2">
-          <div className="text-[10.5px] text-amaco-fg-muted">
+          <div className="text-[10.5px] text-vibestrate-fg-muted">
             declared (touchedFiles)
           </div>
           <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -479,7 +479,7 @@ function FilesSection({ task }: { task: Task }) {
       ) : null}
       {runFiles.length > 0 ? (
         <div className="mt-3">
-          <div className="text-[10.5px] text-amaco-fg-muted">
+          <div className="text-[10.5px] text-vibestrate-fg-muted">
             changed by linked runs
           </div>
           <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -530,10 +530,10 @@ function FileLink({
             })
       }
       disabled={redacted}
-      className={`flex w-full items-center gap-1.5 rounded border border-amaco-border bg-amaco-panel-2 px-2 py-1 text-left text-[11.5px] ${
+      className={`flex w-full items-center gap-1.5 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left text-[11.5px] ${
         redacted
-          ? "text-amaco-warn opacity-80"
-          : "text-amaco-fg-dim hover:border-amaco-accent/40 hover:text-amaco-fg"
+          ? "text-vibestrate-warn opacity-80"
+          : "text-vibestrate-fg-dim hover:border-vibestrate-accent/40 hover:text-vibestrate-fg"
       }`}
       title={redacted ? "Secret file — contents redacted" : path}
     >
@@ -542,9 +542,9 @@ function FileLink({
       ) : (
         <FileCode className="h-3 w-3 shrink-0" strokeWidth={1.5} />
       )}
-      <span className="truncate amaco-mono">{path}</span>
+      <span className="truncate vibestrate-mono">{path}</span>
       {status ? (
-        <span className="amaco-mono ml-auto rounded border border-amaco-border px-1 text-[10px] text-amaco-fg-muted">
+        <span className="vibestrate-mono ml-auto rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
           {status}
         </span>
       ) : null}
@@ -622,37 +622,37 @@ function TaskRunMode({
     heuristic !== null && task.effort !== heuristic.effort;
 
   return (
-    <div className="mt-3 grid grid-cols-1 gap-2 rounded border border-amaco-border bg-amaco-panel-2 p-2 text-[12px] md:grid-cols-3">
+    <div className="mt-3 grid grid-cols-1 gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12px] md:grid-cols-3">
       {showSuggestion ? (
-        <div className="md:col-span-3 flex flex-wrap items-center gap-2 rounded border border-amaco-accent/30 bg-amaco-accent-soft/15 px-2 py-1 text-[11.5px]">
-          <span className="amaco-mono text-[10.5px] uppercase tracking-[0.10em] text-amaco-accent">
+        <div className="md:col-span-3 flex flex-wrap items-center gap-2 rounded border border-vibestrate-accent/30 bg-vibestrate-accent-soft/15 px-2 py-1 text-[11.5px]">
+          <span className="vibestrate-mono text-[10.5px] uppercase tracking-[0.10em] text-vibestrate-accent">
             heuristic suggests
           </span>
-          <span className="amaco-mono font-medium text-amaco-fg">
+          <span className="vibestrate-mono font-medium text-vibestrate-fg">
             {heuristic!.effort}
           </span>
-          <span className="amaco-mono text-[10.5px] text-amaco-fg-muted">
+          <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
             @ confidence {heuristic!.confidence}
           </span>
           <button
             type="button"
             disabled={busy !== null}
             onClick={() => void setField("effort", heuristic!.effort)}
-            className="ml-auto inline-flex items-center gap-1 rounded border border-amaco-accent/50 bg-amaco-accent/15 px-1.5 py-0.5 text-[11px] text-amaco-accent hover:bg-amaco-accent/25 disabled:opacity-50"
+            className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-accent/50 bg-vibestrate-accent/15 px-1.5 py-0.5 text-[11px] text-vibestrate-accent hover:bg-vibestrate-accent/25 disabled:opacity-50"
             title="Apply the heuristic verdict to this task's effort field."
           >
             apply
           </button>
           {heuristic!.reasons.length > 0 ? (
             <details className="basis-full">
-              <summary className="cursor-pointer text-[10.5px] text-amaco-fg-muted">
+              <summary className="cursor-pointer text-[10.5px] text-vibestrate-fg-muted">
                 why?
               </summary>
               <ul className="mt-1 space-y-0.5">
                 {heuristic!.reasons.map((r) => (
                   <li
                     key={r}
-                    className="text-[10.5px] text-amaco-fg-dim"
+                    className="text-[10.5px] text-vibestrate-fg-dim"
                   >
                     · {r}
                   </li>
@@ -662,14 +662,14 @@ function TaskRunMode({
           ) : null}
         </div>
       ) : heuristic !== null && task.effort === heuristic.effort ? (
-        <div className="md:col-span-3 text-[10.5px] text-amaco-success">
+        <div className="md:col-span-3 text-[10.5px] text-vibestrate-success">
           ✓ effort matches the heuristic suggestion @ {heuristic.confidence}
         </div>
       ) : null}
 
       <label className="flex flex-col gap-1">
         <span
-          className="amaco-mono text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted"
+          className="vibestrate-mono text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted"
           title="Maps to a provider via project.yml#effortMap. Leave unset to use each agent's configured provider."
         >
           effort
@@ -685,7 +685,7 @@ function TaskRunMode({
                 : (e.target.value as "low" | "medium" | "high"),
             )
           }
-          className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-1 text-[11.5px] text-amaco-fg focus:border-amaco-accent/60 focus:outline-none"
+          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11.5px] text-vibestrate-fg focus:border-vibestrate-accent/60 focus:outline-none"
         >
           <option value="">— none —</option>
           <option value="low">low</option>
@@ -696,7 +696,7 @@ function TaskRunMode({
 
       <label className="flex flex-col gap-1">
         <span
-          className="amaco-mono text-[10px] uppercase tracking-[0.12em] text-amaco-fg-muted"
+          className="vibestrate-mono text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted"
           title="Pin every agent in runs spawned from this task to a specific provider id. Wins over effort."
         >
           provider override
@@ -711,7 +711,7 @@ function TaskRunMode({
             if (v === (task.providerOverride ?? "")) return;
             void setField("providerOverride", v.length === 0 ? null : v);
           }}
-          className="amaco-mono rounded border border-amaco-border bg-amaco-panel px-1.5 py-1 text-[11.5px] text-amaco-fg placeholder:text-amaco-fg-muted focus:border-amaco-accent/60 focus:outline-none"
+          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11.5px] text-vibestrate-fg placeholder:text-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
         />
       </label>
 
@@ -724,7 +724,7 @@ function TaskRunMode({
           className="h-3.5 w-3.5"
         />
         <span
-          className="amaco-mono text-[11px] uppercase tracking-[0.10em] text-amaco-fg-dim"
+          className="vibestrate-mono text-[11px] uppercase tracking-[0.10em] text-vibestrate-fg-dim"
           title="Investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
         >
           read-only
@@ -732,7 +732,7 @@ function TaskRunMode({
       </label>
 
       {error ? (
-        <div className="md:col-span-3 rounded border border-amaco-fail/40 bg-amaco-fail/10 px-2 py-1 text-[10.5px] text-amaco-fail">
+        <div className="md:col-span-3 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
           {error}
         </div>
       ) : null}

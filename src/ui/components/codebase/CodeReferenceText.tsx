@@ -48,7 +48,7 @@ export function CodeReferenceText({
   if (refs === null) {
     return (
       <span
-        className={preserveWhitespace ? "amaco-mono whitespace-pre-wrap" : ""}
+        className={preserveWhitespace ? "vibestrate-mono whitespace-pre-wrap" : ""}
       >
         {text}
       </span>
@@ -67,10 +67,10 @@ export function CodeReferenceText({
         key={`${i}-${r.startIndex}`}
         type="button"
         onClick={() => onOpenReference(r)}
-        className={`amaco-mono inline rounded px-0.5 ${
+        className={`vibestrate-mono inline rounded px-0.5 ${
           exists
-            ? "text-amaco-accent hover:underline"
-            : "text-amaco-fg-muted line-through decoration-amaco-fg-muted/40"
+            ? "text-vibestrate-accent hover:underline"
+            : "text-vibestrate-fg-muted line-through decoration-vibestrate-fg-muted/40"
         }`}
         title={
           exists
@@ -90,7 +90,7 @@ export function CodeReferenceText({
   return (
     <span
       className={
-        preserveWhitespace ? "amaco-mono whitespace-pre-wrap leading-[1.55]" : ""
+        preserveWhitespace ? "vibestrate-mono whitespace-pre-wrap leading-[1.55]" : ""
       }
     >
       {segments}
