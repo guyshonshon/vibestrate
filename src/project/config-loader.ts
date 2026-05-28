@@ -22,7 +22,7 @@ export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
   const configPath = projectConfigPath(projectRoot);
   if (!(await pathExists(configPath))) {
     throw new ConfigError(
-      `Vibestrate config not found at ${configPath}. Run "vibestrate init" first.`,
+      `Vibestrate config not found at ${configPath}. Run "vibe init" first.`,
     );
   }
 

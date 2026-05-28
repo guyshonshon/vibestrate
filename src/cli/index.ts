@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 // Single source of truth for the version: package.json. The bundler
 // (tsup/esbuild) inlines this at build time, and `npm version patch`
-// updates it in one place — flowing into `vibestrate --version` and the
+// updates it in one place — flowing into `vibe --version` and the
 // generated docs reference automatically.
 import pkg from "../../package.json";
 import { runInitCommand } from "./commands/init.js";
@@ -69,7 +69,7 @@ export function buildVibestrateProgram(): Command {
   const program = new Command();
 
   program
-    .name("vibestrate")
+    .name("vibe")
     .description(
       "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
@@ -365,8 +365,8 @@ export function buildVibestrateProgram(): Command {
 
 // Only run the CLI when this module is executed as the main script (not
 // when imported by the docs generator or by tests). We compare *realpaths*:
-// when installed globally the `vibestrate` bin is a symlink, so process.argv[1]
-// (the symlink, e.g. .../bin/vibestrate) differs from import.meta.url (the
+// when installed globally the `vibe` bin is a symlink, so process.argv[1]
+// (the symlink, e.g. .../bin/vibe) differs from import.meta.url (the
 // resolved module, .../dist/index.js). Resolving both through the symlink
 // makes the comparison hold for direct runs, symlinked bins, and tsx dev.
 const isMain = (() => {
@@ -380,9 +380,9 @@ const isMain = (() => {
 })();
 
 if (isMain) {
-  // `vibestrate` with no subcommand opens the interactive shell. Use `vibestrate
-  // --help` (or any other subcommand) to opt out. We only treat *zero*
-  // extra args as the shell trigger so `vibestrate --version` etc still work.
+  // `vibe` with no subcommand opens the interactive shell. Use `vibe --help`
+  // (or any other subcommand) to opt out. We only treat *zero*
+  // extra args as the shell trigger so `vibe --version` etc still work.
   const extraArgv = process.argv.slice(2);
   if (extraArgv.length === 0) {
     void (async () => {
@@ -395,7 +395,7 @@ if (isMain) {
       } catch (err) {
         const { formatError } = await import("../core/error-format.js");
         const f = formatError(err);
-        process.stderr.write(`vibestrate: ${f.title}\n`);
+        process.stderr.write(`vibe: ${f.title}\n`);
         if (f.detail && f.detail !== f.title)
           process.stderr.write(`  detail: ${f.detail}\n`);
         if (f.hint) process.stderr.write(`  hint:   ${f.hint}\n`);
@@ -407,7 +407,7 @@ if (isMain) {
     program.parseAsync(process.argv).catch(async (err: unknown) => {
       const { formatError } = await import("../core/error-format.js");
       const f = formatError(err);
-      console.error(`vibestrate: ${f.title}`);
+      console.error(`vibe: ${f.title}`);
       if (f.detail && f.detail !== f.title) console.error(`  detail: ${f.detail}`);
       if (f.hint) console.error(`  hint:   ${f.hint}`);
       process.exit(1);

@@ -1,5 +1,5 @@
 // Thin {ok, message} wrappers for the panel — reuse the same on-disk
-// writes the `vibestrate queue …` CLI uses so the scheduler picks them up.
+// writes the `vibe queue …` CLI uses so the scheduler picks them up.
 
 import { RunQueue } from "../../../scheduler/run-queue.js";
 import { RoadmapService } from "../../../roadmap/roadmap-service.js";

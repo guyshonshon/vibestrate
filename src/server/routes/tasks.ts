@@ -290,6 +290,6 @@ export async function registerTasksRoutes(
 
   // Note: there is intentionally no POST /api/tasks/:taskId/run endpoint.
   // Spawning a child vibestrate process from the dashboard would be an
-  // arbitrary-shell vector. The dashboard surfaces "vibestrate tasks run <id>" as
+  // arbitrary-shell vector. The dashboard surfaces "vibe tasks run <id>" as
   // copy-paste guidance instead.
 }

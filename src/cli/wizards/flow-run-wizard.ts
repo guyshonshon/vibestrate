@@ -161,5 +161,5 @@ export function buildFlowRunArgs(input: FlowRunCommandInput): string[] {
 }
 
 export function formatFlowRunCommand(input: FlowRunCommandInput): string {
-  return formatArgv(["vibestrate", ...buildFlowRunArgs(input)]);
+  return formatArgv(["vibe", ...buildFlowRunArgs(input)]);
 }

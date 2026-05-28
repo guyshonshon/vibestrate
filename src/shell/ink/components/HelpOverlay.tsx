@@ -14,7 +14,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
-      ["!", "run any `vibestrate …` command and see the output"],
+      ["!", "run any `vibe …` command and see the output"],
       ["/", "filter the events list"],
       ["?", "toggle this help"],
     ],
@@ -25,7 +25,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["p", "pause the selected run"],
       ["r", "resume the selected run"],
       ["a", "abort the selected run (asks y / N)"],
-      ["R", "re-run as a fresh `vibestrate run` (preserves the original on disk)"],
+      ["R", "re-run as a fresh `vibe run` (preserves the original on disk)"],
     ],
   },
   {

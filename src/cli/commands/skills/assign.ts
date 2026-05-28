@@ -29,7 +29,7 @@ async function change(
   if (!roleId || !skillName) {
     console.error(
       `${symbol.fail()} Both agent and skill are required. Example: ${color.bold(
-        `vibestrate skills ${action} reviewer security`,
+        `vibe skills ${action} reviewer security`,
       )}`,
     );
     return 1;
@@ -37,7 +37,7 @@ async function change(
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }

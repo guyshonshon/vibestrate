@@ -57,13 +57,13 @@ export async function registerEditorRoutes(
     if (!loaded) {
       throw new HttpError(
         409,
-        "Project is not initialised. Run `vibestrate init` first.",
+        "Project is not initialised. Run `vibe init` first.",
       );
     }
     if (!loaded.config.editor.enabled) {
       throw new HttpError(
         409,
-        "Editor handoff is disabled. Run `vibestrate editor set <command>` to enable it.",
+        "Editor handoff is disabled. Run `vibe editor set <command>` to enable it.",
       );
     }
 

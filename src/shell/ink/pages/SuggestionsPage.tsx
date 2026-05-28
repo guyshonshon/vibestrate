@@ -138,7 +138,7 @@ export function SuggestionsPage({
                 <Text dimColor>
                   patch attached · run{" "}
                   <Text color="cyan">
-                    vibestrate suggestions show {selected.id}
+                    vibe suggestions show {selected.id}
                   </Text>{" "}
                   to inspect
                 </Text>

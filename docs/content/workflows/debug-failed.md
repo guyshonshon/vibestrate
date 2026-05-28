@@ -10,7 +10,7 @@ There are two failure shapes: `failed` (an unrecoverable error during a stage) a
 ## Start with `replay`
 
 ```bash
-vibestrate replay <runId>
+vibe replay <runId>
 ```
 
 This opens the read-only inspector. The status line tells you which stage threw, and the artifact list tells you what was already recorded.
@@ -25,10 +25,10 @@ The orchestrator landed in `failed` because a stage raised an error it couldn't 
 
 Common causes:
 
-- **Provider not authenticated.** Run `vibestrate provider test <id>` to confirm.
+- **Provider not authenticated.** Run `vibe provider test <id>` to confirm.
 - **Validation command missing.** Check `commands.validate` in `project.yml`.
 - **Worktree creation failed.** `requireCleanMain: true` and main has uncommitted changes is a common one.
-- **Skill referenced doesn't exist.** Check `vibestrate skills list`.
+- **Skill referenced doesn't exist.** Check `vibe skills list`.
 
 ## If status is `blocked`
 
@@ -46,7 +46,7 @@ Then act on the findings. The right answer is rarely "rerun and hope." Usually i
 
 ## Re-run after fixing
 
-Each `vibestrate run` is a fresh run with a fresh runId. Past runs are preserved at `.vibestrate/runs/`, so you can compare what the planner produced this time vs last time:
+Each `vibe run` is a fresh run with a fresh runId. Past runs are preserved at `.vibestrate/runs/`, so you can compare what the planner produced this time vs last time:
 
 ```bash
 diff .vibestrate/runs/<oldRunId>/plan.md .vibestrate/runs/<newRunId>/plan.md
@@ -58,13 +58,13 @@ When the plan and architecture were fine and only the implementation needs anoth
 
 ```bash
 # Reuse the plan + architecture, redo the implementation onward:
-vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage executing
+vibe run "<same task>" --resume-from <oldRunId> --resume-stage executing
 
 # Reuse just the plan, redo from architecture onward:
-vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage architecting
+vibe run "<same task>" --resume-from <oldRunId> --resume-stage architecting
 
 # Re-run everything from scratch (seeds nothing):
-vibestrate run "<same task>" --resume-from <oldRunId> --resume-stage planning
+vibe run "<same task>" --resume-from <oldRunId> --resume-stage planning
 ```
 
 `--resume-stage` defaults to `executing`, and accepts `planning`, `architecting`, or `executing`. The flow runner finds the first step at that stage, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch — correct, because these stages regenerate the downstream code — and the original run is untouched (its `state.json` records the lineage under `resumedFrom`). Works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.

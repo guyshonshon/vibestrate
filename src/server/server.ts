@@ -50,7 +50,7 @@ export type StartServerOptions = {
   /** Optional driver injection for the terminal feature (tests). */
   terminalDriver?: TerminalRoutesDeps["driver"];
   /** Spawn the scheduler as a managed subprocess of the UI server.
-   *  Default false (safe for tests / library users). The `vibestrate ui`
+   *  Default false (safe for tests / library users). The `vibe ui`
    *  CLI flips it to true so the dashboard owns the scheduler's
    *  lifecycle out of the box. */
   withScheduler?: boolean;

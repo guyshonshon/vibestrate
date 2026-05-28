@@ -32,8 +32,8 @@ A skill is a markdown file. There's no scaffold to run, no metadata to fill in â
 3. Verify it's discovered:
 
    ```bash
-   vibestrate skills list
-   vibestrate skills show <id>
+   vibe skills list
+   vibe skills show <id>
    ```
 
 4. Attach to an agent in `project.yml`:
@@ -47,7 +47,7 @@ A skill is a markdown file. There's no scaffold to run, no metadata to fill in â
    Or for a single run:
 
    ```bash
-   vibestrate run "Add 2FA" --skills auth-conventions
+   vibe run "Add 2FA" --skills auth-conventions
    ```
 
 ## Skills in `.claude/skills/`

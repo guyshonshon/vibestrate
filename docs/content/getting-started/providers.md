@@ -10,19 +10,19 @@ A *provider* is any local coding-agent CLI Vibestrate can hand a prompt to. The 
 ## See what you have
 
 ```bash
-vibestrate provider detect
+vibe provider detect
 ```
 
 This walks each known provider and reports:
 
 - **ready** — Vibestrate ships a verified preset and can drive the CLI as-is.
-- **detected-needs-setup** — the binary is on your PATH but Vibestrate does not ship verified prompt flags for it. Run `vibestrate provider setup` to fill them in.
+- **detected-needs-setup** — the binary is on your PATH but Vibestrate does not ship verified prompt flags for it. Run `vibe provider setup` to fill them in.
 - **missing** — the binary is not installed.
 
 ## Apply the right preset
 
 ```bash
-vibestrate provider setup
+vibe provider setup
 ```
 
 The wizard walks you through every detected provider, applies the preset if one exists, and lets you test the invocation. For each provider, you'll be asked for any extra arguments (model, system prompt, etc.) and Vibestrate will record them under `providers.<id>` in `project.yml`.
@@ -30,8 +30,8 @@ The wizard walks you through every detected provider, applies the preset if one 
 ## Verify it actually responds
 
 ```bash
-vibestrate provider test claude
-vibestrate provider test ollama
+vibe provider test claude
+vibe provider test ollama
 ```
 
 The test sends a one-shot prompt and prints the raw output. If your provider doesn't respond — or responds with an error about flags or auth — fix that before running a real task.
@@ -39,7 +39,7 @@ The test sends a one-shot prompt and prints the raw output. If your provider doe
 ## Pick the default
 
 ```bash
-vibestrate provider set claude
+vibe provider set claude
 ```
 
 This sets `agents.<role>.provider` for every role to the chosen id. You can also assign providers per role in `project.yml`:
@@ -57,7 +57,7 @@ agents:
 ## Override per run
 
 ```bash
-vibestrate run "..." --provider codex
+vibe run "..." --provider codex
 ```
 
 This overrides the configured provider for every agent in that single run. Or use effort buckets — `low | medium | high` map to providers via `project.yml#effortMap`:
@@ -72,7 +72,7 @@ effortMap:
 Then:
 
 ```bash
-vibestrate run "..." --effort high
+vibe run "..." --effort high
 ```
 
 ## Install from the dashboard

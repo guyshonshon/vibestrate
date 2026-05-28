@@ -22,7 +22,7 @@ This is the design choice that makes the tool *local-first*: Vibestrate never ho
 | Id | Status | Notes |
 |---|---|---|
 | `claude` | Preset-ready | Default args: `-p` with prompt on stdin. Vibestrate configures Claude Code automatically. |
-| `codex` | Detected, needs setup | Starter preset uses `codex exec` (prompt on stdin). Run `vibestrate provider setup`. |
+| `codex` | Detected, needs setup | Starter preset uses `codex exec` (prompt on stdin). Run `vibe provider setup`. |
 | `ollama` | Detected, needs setup | Starter preset runs `ollama run qwen3.5`. You probably want to edit the model. |
 | `opencode` | Detected, needs setup | No verified preset shipped. |
 | `aider` | Detected, needs setup | No verified preset shipped. |
@@ -31,7 +31,7 @@ The canonical, generated list lives in the [providers reference](/docs/reference
 
 ## "Preset-ready" vs "needs setup"
 
-Coding-agent CLIs disagree on flags — `--prompt` here, `-p` there, `exec` for some, stdin for others. When a vendor's flag set is stable enough that Vibestrate can drive it without surprises, that provider is marked **preset-ready**. Otherwise Vibestrate will detect it but won't guess flags; `vibestrate provider setup` walks you through the choices.
+Coding-agent CLIs disagree on flags — `--prompt` here, `-p` there, `exec` for some, stdin for others. When a vendor's flag set is stable enough that Vibestrate can drive it without surprises, that provider is marked **preset-ready**. Otherwise Vibestrate will detect it but won't guess flags; `vibe provider setup` walks you through the choices.
 
 ## Per-agent assignment
 
@@ -50,7 +50,7 @@ agents:
 A single run can override every agent's provider:
 
 ```bash
-vibestrate run "..." --provider claude
+vibe run "..." --provider claude
 ```
 
 Or you can map effort buckets to providers globally:
@@ -63,7 +63,7 @@ effortMap:
 ```
 
 ```bash
-vibestrate run "..." --effort high   # uses claude for every agent in this run
+vibe run "..." --effort high   # uses claude for every agent in this run
 ```
 
 ## Common mistakes

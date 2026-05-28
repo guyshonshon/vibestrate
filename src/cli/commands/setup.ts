@@ -7,10 +7,10 @@ export async function runSetupCommand(): Promise<number> {
   const detected = await detectProject(process.cwd());
   if (!detected.isGitRepo) {
     console.error(
-      `${symbol.fail()} ${color.bold("vibestrate setup")} must be run inside a git repository.`,
+      `${symbol.fail()} ${color.bold("vibe setup")} must be run inside a git repository.`,
     );
     console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("vibestrate init")}.`,
+      `  ${symbol.arrow()} Run ${color.bold("git init")} first, then ${color.bold("vibe init")}.`,
     );
     return 1;
   }

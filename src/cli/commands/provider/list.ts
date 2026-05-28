@@ -8,7 +8,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
   const detected = await detectProject(process.cwd());
   if (!(await configExists(detected.projectRoot))) {
     console.error(
-      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibestrate init")} first.`,
+      `${symbol.fail()} No Vibestrate config found. Run ${color.bold("vibe init")} first.`,
     );
     return 1;
   }
@@ -30,7 +30,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
 
   if (providers.length === 0) {
     console.log(
-      `${symbol.warn()} No providers configured yet. Run ${color.bold("vibestrate provider setup")}.`,
+      `${symbol.warn()} No providers configured yet. Run ${color.bold("vibe provider setup")}.`,
     );
     return 0;
   }
@@ -47,7 +47,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
         `Used by: ${
           p.rolesUsing.length > 0
             ? p.rolesUsing.join(", ")
-            : color.dim("(no agents — assign with `vibestrate provider set " + p.id + "`)")
+            : color.dim("(no agents — assign with `vibe provider set " + p.id + "`)")
         }`,
       ),
     );

@@ -11,8 +11,8 @@ body:
     id: command
     attributes:
       label: What did you run?
-      description: The exact `vibestrate …` command (or UI action).
-      placeholder: vibestrate run "Add audit logging" --ui
+      description: The exact `vibe …` command (or UI action).
+      placeholder: vibe run "Add audit logging" --ui
     validations:
       required: true
   - type: textarea
@@ -37,7 +37,7 @@ body:
     id: version
     attributes:
       label: Vibestrate version
-      description: Output of `vibestrate --version`.
+      description: Output of `vibe --version`.
       placeholder: "0.1.0"
     validations:
       required: true

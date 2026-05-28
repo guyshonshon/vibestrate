@@ -122,7 +122,7 @@ async function cmdList(opts: { json?: boolean; status?: string }): Promise<numbe
   if (tasks.length === 0) {
     console.log("No tasks yet.");
     console.log(
-      `  ${symbol.arrow()} Add one: ${color.bold('vibestrate tasks add "Create setup wizard"')}`,
+      `  ${symbol.arrow()} Add one: ${color.bold('vibe tasks add "Create setup wizard"')}`,
     );
     return 0;
   }
@@ -240,7 +240,7 @@ async function cmdQueue(taskId: string): Promise<number> {
     console.log(`${symbol.ok()} Task ${color.bold(taskId)} queued.`);
     console.log(
       indent(
-        `${symbol.arrow()} Start the scheduler: ${color.bold("vibestrate queue run")}`,
+        `${symbol.arrow()} Start the scheduler: ${color.bold("vibe queue run")}`,
       ),
     );
     return 0;
@@ -304,7 +304,7 @@ async function cmdReport(taskId: string): Promise<number> {
 }
 
 async function cmdRun(taskId: string): Promise<number> {
-  // Foreground: spawn `vibestrate run --task <id>` against the local CLI bin so the
+  // Foreground: spawn `vibe run --task <id>` against the local CLI bin so the
   // user sees progress live and the orchestrator handles task linkage.
   const { svc: s, root } = await svc();
   const task = await s.getTask(taskId);
@@ -426,7 +426,7 @@ export function buildTasksCommand(): Command {
 
   cmd
     .command("run <id>")
-    .description("Run this task now (foreground; same as vibestrate run --task <id>).")
+    .description("Run this task now (foreground; same as vibe run --task <id>).")
     .action(async (id: string) => {
       const code = await cmdRun(id);
       process.exit(code);

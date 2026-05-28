@@ -62,7 +62,7 @@ describe("provider set / list", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(r.reason).toContain('"ghost"');
-      expect(r.hint).toContain("vibestrate provider setup");
+      expect(r.hint).toContain("vibe provider setup");
     }
   });
 

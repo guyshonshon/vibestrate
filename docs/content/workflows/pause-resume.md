@@ -10,7 +10,7 @@ Pausing is durable — the run state is persisted, so killing Vibestrate's proce
 ## Pause
 
 ```bash
-vibestrate pause <runId>
+vibe pause <runId>
 ```
 
 The orchestrator polls between stages. When it sees the pause flag, it transitions the run to `paused` and remembers the status it was about to enter. Nothing is interrupted mid-stage — pauses always land cleanly at a boundary.
@@ -18,19 +18,19 @@ The orchestrator polls between stages. When it sees the pause flag, it transitio
 ## Resume
 
 ```bash
-vibestrate resume <runId>
+vibe resume <runId>
 ```
 
 Clears the pause flag. The orchestrator picks the run back up from the status recorded in `pausedAtStatus`.
 
 ## Cancel a pause request before it fires
 
-If you ran `vibestrate pause` and then changed your mind before the next stage boundary, `vibestrate resume` cancels the pending pause without ever transitioning to `paused`.
+If you ran `vibe pause` and then changed your mind before the next stage boundary, `vibe resume` cancels the pending pause without ever transitioning to `paused`.
 
 ## Abort
 
 ```bash
-vibestrate abort <runId>
+vibe abort <runId>
 ```
 
 Marks the run as `aborted`. The worktree is preserved on disk — you can still `cd` into it to read the partial work. To clean up the worktree:
@@ -43,11 +43,11 @@ git branch -D vibestrate/<runId>-<slug>
 
 ## Policy-gated pauses are different
 
-If `policies.requireApprovalAtStages` lists a stage, the run automatically pauses at the boundary into that stage with status `waiting_for_approval`. The fix is `vibestrate approvals decide`, not `vibestrate resume`:
+If `policies.requireApprovalAtStages` lists a stage, the run automatically pauses at the boundary into that stage with status `waiting_for_approval`. The fix is `vibe approvals decide`, not `vibe resume`:
 
 ```bash
-vibestrate approvals list <runId>
-vibestrate approvals decide <runId> <approvalId> --approve   # or --reject
+vibe approvals list <runId>
+vibe approvals decide <runId> <approvalId> --approve   # or --reject
 ```
 
 ## When to abort vs let it block

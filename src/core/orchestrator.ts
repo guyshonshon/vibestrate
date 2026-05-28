@@ -324,7 +324,7 @@ export class Orchestrator {
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
-   *  doesn't pick an explicit flow — a plain `vibestrate run` executes the default
+   *  doesn't pick an explicit flow — a plain `vibe run` executes the default
    *  flow through the same runner as every other flow. A project may fork + edit
    *  the default (`.vibestrate/flows/default`); that shadows the builtin here too, so
    *  editing the default actually takes effect for plain runs. Falls back to the
@@ -2391,7 +2391,7 @@ export class Orchestrator {
     const liveFilter = outputAdapter.createLiveFilter?.();
     let liveEmitted = false;
 
-    // Honor `vibestrate abort` mid-stage: poll state.json every 500ms; when
+    // Honor `vibe abort` mid-stage: poll state.json every 500ms; when
     // we see `aborted`, abort the controller to SIGTERM the provider
     // child. Without this the run waited for the current CLI call to
     // finish on its own, which could mean minutes per stage. Cleared

@@ -12,11 +12,11 @@ Vibestrate runs on macOS and Linux. Windows is not currently supported.
 - **Node.js 18.17 or newer.** Check with `node --version`.
 - **git 2.5+.** Vibestrate creates and tears down worktrees, which need a modern git.
 - **pnpm or npm.** Either is fine for installing the package.
-- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later — `vibestrate doctor` will tell you what's missing.
+- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later — `vibe doctor` will tell you what's missing.
 
 ## Install globally
 
-One-liner (macOS / Linux) — installs the `vibestrate` CLI via npm under the hood:
+One-liner (macOS / Linux) — installs the `vibe` CLI via the `vibestrate` npm package under the hood:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
@@ -33,7 +33,7 @@ pnpm add -g vibestrate
 Verify:
 
 ```bash
-vibestrate --version
+vibe --version
 ```
 
 ## Initialize a project
@@ -41,7 +41,7 @@ vibestrate --version
 From the root of any git repository:
 
 ```bash
-vibestrate init
+vibe init
 ```
 
 This creates a `.vibestrate/` directory containing the project configuration, agent prompt templates, and the runs folder. It does not modify any of your existing files.
@@ -49,7 +49,7 @@ This creates a `.vibestrate/` directory containing the project configuration, ag
 After init, run the environment check:
 
 ```bash
-vibestrate doctor
+vibe doctor
 ```
 
 Doctor walks through everything that needs to be ready before your first run — git state, project config, available providers, validation commands, permissions. Anything red, it tells you how to fix.

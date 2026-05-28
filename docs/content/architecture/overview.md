@@ -11,7 +11,7 @@ Vibestrate is a single Node process that orchestrates other local processes. The
 
 ```text
                 ┌──────────────────────────────────────────┐
-                │              vibestrate CLI                   │
+                │                vibe CLI                       │
                 │     (commander program in src/cli)       │
                 └──────────────┬───────────────────────────┘
                                │

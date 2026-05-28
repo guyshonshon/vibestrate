@@ -30,14 +30,14 @@ agents:
 Or for a one-off run:
 
 ```bash
-vibestrate run "..." --provider my-model
+vibe run "..." --provider my-model
 ```
 
 ## Verify it
 
 ```bash
-vibestrate provider list                 # confirms the provider is registered
-vibestrate provider test my-model        # sends a one-shot prompt
+vibe provider list                 # confirms the provider is registered
+vibe provider test my-model        # sends a one-shot prompt
 ```
 
 If the test fails, the most common causes are:

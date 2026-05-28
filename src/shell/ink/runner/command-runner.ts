@@ -1,4 +1,4 @@
-// Spawn `vibestrate <args>` argv-only (never via a shell) and stream
+// Spawn `vibe <args>` argv-only (never via a shell) and stream
 // stdout/stderr back as line events. Used by the panel's command
 // runner so the user can invoke any CLI from inside the TUI.
 
@@ -64,7 +64,7 @@ export type RunResult = {
 };
 
 /**
- * Run `vibestrate <args>` from the project root and return the combined
+ * Run `vibe <args>` from the project root and return the combined
  * stdout + stderr capped at `maxOutputBytes` so a runaway command
  * can't blow up the panel.
  */
@@ -105,9 +105,9 @@ export async function runVibestrateCommand(input: {
 }
 
 /**
- * Spawn `vibestrate <args>` in the background — detached, unref'd, with
+ * Spawn `vibe <args>` in the background — detached, unref'd, with
  * stdio redirected to /dev/null. Used for long-running invocations
- * like `vibestrate run …` and `vibestrate ui` where the user doesn't want
+ * like `vibe run …` and `vibe ui` where the user doesn't want
  * the panel to block waiting for output.
  *
  * The child's pid is returned so the caller can show it in a toast.

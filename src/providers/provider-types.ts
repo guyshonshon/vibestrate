@@ -69,7 +69,7 @@ export type ProviderRunInput = {
   onChunk?: (chunk: ProviderStreamChunk) => void;
   /**
    * Optional AbortSignal — when it fires, the provider CLI subprocess
-   * is killed (SIGTERM). Used by the orchestrator to honor "vibestrate abort"
+   * is killed (SIGTERM). Used by the orchestrator to honor "vibe abort"
    * mid-stage instead of waiting for the current provider call to
    * finish on its own.
    */

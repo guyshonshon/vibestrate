@@ -27,7 +27,7 @@ export type StartSchedulerInput = {
   schedulerConfig: SchedulerConfig;
   log?: SchedulerLogger;
   /**
-   * Override how a task run is launched. Default: spawn `vibestrate run --task <id> "<title>"`
+   * Override how a task run is launched. Default: spawn `vibe run --task <id> "<title>"`
    * as a child process. Tests inject a synchronous local runner.
    */
   runTask?: (
@@ -108,7 +108,7 @@ function defaultRunTask(
             env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
             detached: process.platform !== "win32",
           })
-        : spawn("vibestrate", args, {
+        : spawn("vibe", args, {
             cwd: projectRoot,
             stdio: "inherit",
             env: { ...process.env, VIBESTRATE_SCHEDULED: "1" },
@@ -132,7 +132,7 @@ function defaultRunTask(
 /**
  * Run the local scheduler loop. Bound to this process: when this function
  * returns or the process exits, no scheduling happens. The queue and conflict
- * warnings remain on disk and another `vibestrate queue run` picks up where this
+ * warnings remain on disk and another `vibe queue run` picks up where this
  * left off.
  */
 export async function runSchedulerLoop(input: StartSchedulerInput): Promise<SchedulerHandle> {

@@ -20,16 +20,16 @@ No separate agent execution model.
 Vibestrate should work perfectly without the UI:
 
 ```bash
-vibestrate run "implement X"
-vibestrate status
-vibestrate abort <run-id>
+vibe run "implement X"
+vibe status
+vibe abort <run-id>
 ```
 
 The UI should be optional:
 
 ```bash
-vibestrate ui
-vibestrate run "implement X" --ui
+vibe ui
+vibe run "implement X" --ui
 ```
 
 ---
@@ -182,7 +182,7 @@ For notes/annotations, normal HTTP POST is enough.
 Add:
 
 ```bash
-vibestrate ui
+vibe ui
 ```
 
 This starts a local server:
@@ -194,7 +194,7 @@ http://localhost:4317
 Port should be configurable:
 
 ```bash
-vibestrate ui --port 4317
+vibe ui --port 4317
 ```
 
 The local server should:
@@ -489,22 +489,22 @@ Every action that matters should still be possible through CLI.
 V0 CLI commands:
 
 ```bash
-vibestrate init
-vibestrate run "task"
-vibestrate status
-vibestrate abort <run-id>
-vibestrate doctor
-vibestrate ui
+vibe init
+vibe run "task"
+vibe status
+vibe abort <run-id>
+vibe doctor
+vibe ui
 ```
 
 Future CLI commands:
 
 ```bash
-vibestrate note <run-id> "message"
-vibestrate pause <run-id>
-vibestrate resume <run-id>
-vibestrate approve <run-id>
-vibestrate reject <run-id>
+vibe note <run-id> "message"
+vibe pause <run-id>
+vibe resume <run-id>
+vibe approve <run-id>
+vibe reject <run-id>
 ```
 
 ---
@@ -619,7 +619,7 @@ A local mission-control dashboard for your autonomous coding-agent runs.
 
 Add these to the implementation acceptance criteria:
 
-1. `vibestrate ui` starts a local dashboard server.
+1. `vibe ui` starts a local dashboard server.
 2. Server binds to `127.0.0.1` by default.
 3. UI lists runs from `.vibestrate/runs`.
 4. UI shows run detail.
@@ -657,7 +657,7 @@ If implementing in one pass, build in this order:
 11. Artifacts viewer.
 12. Validation viewer.
 13. Notes viewer/editor.
-14. `vibestrate ui` command.
+14. `vibe ui` command.
 15. Tests for server services and path safety.
 
 Keep the first UI simple but real.

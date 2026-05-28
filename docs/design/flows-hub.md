@@ -71,11 +71,11 @@ vibestrate-flows/
 }
 ```
 
-**CLI surface** (new `vibestrate flows` subcommands; the command tree already exists):
+**CLI surface** (new `vibe flows` subcommands; the command tree already exists):
 
-- `vibestrate flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
+- `vibe flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
   matches with author + tags + `latest`.
-- `vibestrate flows install <name>[:<version>]` — Docker‑style ref resolution:
+- `vibe flows install <name>[:<version>]` — Docker‑style ref resolution:
   - `name` → `name:latest`
   - `name:1.2.0` → that exact version
   - `name:1` → highest `1.x`
@@ -85,10 +85,10 @@ vibestrate-flows/
   path). Record the resolved `{ name, version, hash }` in a sidecar
   (`.vibestrate/flows/<name>/.hub.json`) so we know what's installed. Refuse on
   invalid schema or a secret‑like hit.
-- `vibestrate flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
+- `vibe flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
   update; **warn on a major bump** before applying.
-- `vibestrate flows outdated` — list installed hub flows with a newer version.
-- `vibestrate flows publish [<name>]` — package the project flow + a `meta.json`
+- `vibe flows outdated` — list installed hub flows with a newer version.
+- `vibe flows publish [<name>]` — package the project flow + a `meta.json`
   (with the **semver** for this release) and open a **PR** to the index repo
   (via `gh`). Review happens in the PR.
 
@@ -109,7 +109,7 @@ vibestrate-flows/
 - Flat unique `name`; a published `<name>/<version>/` is **immutable** — CI
   rejects re‑publishing an existing version (new content → new version).
 
-**Acceptance:** `vibestrate flows search` / `install name[:version]` pull a community
+**Acceptance:** `vibe flows search` / `install name[:version]` pull a community
 flow into `.vibestrate/flows/`, validated before it lands; `publish` produces an
 index PR.
 
@@ -144,7 +144,7 @@ token/day) + stars (one per account).
 **Moderation:** report flow + takedown; same schema/secret rules enforced
 server‑side; ownership required to publish under a namespace.
 
-**CLI/UI:** the same `vibestrate flows search/install/publish/star` point at the
+**CLI/UI:** the same `vibe flows search/install/publish/star` point at the
 service; a **Hub** tab in Mission Control browses + installs (read‑only HTTP to
 the public API; install still writes locally through the existing path).
 
@@ -209,7 +209,7 @@ independent; we may unify later, but not as a breaking change now.
 
 Modeled on Docker's **Official Images** curation, not its open push:
 
-1. `vibestrate flows publish` packages the project flow + `meta.json` and opens a
+1. `vibe flows publish` packages the project flow + `meta.json` and opens a
    **PR** to `vibestrate-flows` (via `gh`; the contributor's fork is transparent).
 2. **GitHub Actions on the PR run the automated gate** and post a checklist:
    - schema-valid (`flowDefinitionSchema`)

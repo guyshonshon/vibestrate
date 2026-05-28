@@ -317,7 +317,7 @@ function generateProviders() {
   writeJson("providers.json", {
     schemaVersion: 1,
     description:
-      "Built-in providers Vibestrate detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Vibestrate when the provider isn't authenticated. Verify any provider with `vibestrate provider test <id>`.",
+      "Built-in providers Vibestrate detects and auto-configures. Each ships a preset (the non-interactive invocation) and a login command to run outside Vibestrate when the provider isn't authenticated. Verify any provider with `vibe provider test <id>`.",
     providers,
   });
 }
@@ -506,7 +506,7 @@ function generatePolicies() {
   const stages = policyApprovalStageSchema.options.map((stage) => ({
     id: stage,
     description:
-      `When listed under \`policies.requireApprovalAtStages\`, the orchestrator pauses at the boundary into the \`${stage}\` stage and emits a \`waiting_for_approval\` event. A human must approve via \`vibestrate approvals decide\` (or the dashboard) before the run continues.`,
+      `When listed under \`policies.requireApprovalAtStages\`, the orchestrator pauses at the boundary into the \`${stage}\` stage and emits a \`waiting_for_approval\` event. A human must approve via \`vibe approvals decide\` (or the dashboard) before the run continues.`,
   }));
   writeJson("policies.json", {
     schemaVersion: 1,

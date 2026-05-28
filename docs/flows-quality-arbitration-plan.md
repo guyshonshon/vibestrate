@@ -164,10 +164,10 @@ The UI should not claim a CLI session is persistent unless the runtime ledger sa
 Add scriptable commands before the richer wizard:
 
 ```bash
-vibestrate guides list
-vibestrate guides show quality-arbitration
-vibestrate run "add audit logging" --guide quality-arbitration
-vibestrate run "add audit logging" --guide quality-arbitration \
+vibe guides list
+vibe guides show quality-arbitration
+vibe run "add audit logging" --guide quality-arbitration
+vibe run "add audit logging" --guide quality-arbitration \
   --guide-slot builder=claude \
   --guide-slot challenger=codex \
   --guide-slot arbiter=claude
@@ -176,7 +176,7 @@ vibestrate run "add audit logging" --guide quality-arbitration \
 Then add an interactive terminal path:
 
 ```bash
-vibestrate run --guide quality-arbitration --interactive
+vibe run --guide quality-arbitration --interactive
 ```
 
 The wizard should use the same resolver as the dashboard, print the resolved steps before start, and produce a command summary for replayable non-interactive use.
@@ -364,8 +364,8 @@ Exit:
 ### Phase 1: discovery and start-run UX
 
 - [x] Add built-in and project Guide discovery.
-- [x] Add `vibestrate guides list/show`.
-- [x] Add `vibestrate run --guide ...` with slot provider overrides.
+- [x] Add `vibe guides list/show`.
+- [x] Add `vibe run --guide ...` with slot provider overrides.
 - [x] Add dashboard Guide picker and resolved-step preview.
 - [x] Add shell command-palette entry and inspectable Guide catalog.
 
@@ -373,7 +373,7 @@ Exit:
 
 - [x] All surfaces produce the same resolved snapshot for the same inputs.
 
-Phase 1 resolves and previews Guide requests. `vibestrate run --guide ...`, Mission
+Phase 1 resolves and previews Guide requests. `vibe run --guide ...`, Mission
 Control, and the shell runner all stop before guided execution until the
 sequential Guide runner lands in Phase 2.
 
@@ -420,7 +420,7 @@ builder responses, second-review resolutions, and decision summaries. Parsed
 records land in `arbitration.json` plus canonical Guide artifacts; prose-only
 providers keep running with parse gaps recorded. Accepted or fixed findings
 become review suggestions and a draft review pass, and
-`vibestrate guides export-arbitration <runId>` exports the local evidence record.
+`vibe guides export-arbitration <runId>` exports the local evidence record.
 
 ### Phase 5: migrate and generalize
 
@@ -466,7 +466,7 @@ and `tests/guides/`; `src/guides/README.md` pins those ownership boundaries.
 
 ### Phase 7: interactive CLI Guide setup
 
-- [x] Add `vibestrate run --guide <id> --interactive` as a Guide-only terminal wizard.
+- [x] Add `vibe run --guide <id> --interactive` as a Guide-only terminal wizard.
 - [x] Collect or revise task, Guide brief, context policy, participant providers, and optional step inclusion before resolution.
 - [x] Feed the wizard result through the same Guide resolver and resolved-step preview used by scriptable CLI runs.
 - [x] Print an equivalent non-interactive command so terminal selections can be replayed and shared.
@@ -478,7 +478,7 @@ Exit:
 Phase 7 closes the plain CLI initiation gap first. The Ink shell already shows
 the Guide catalog and running Guide state, but it still needs its own setup
 screen before shell initiation has the same step and slot picker as Mission
-Control and `vibestrate run --interactive`.
+Control and `vibe run --interactive`.
 
 ### Phase 8: context packets and prompt budgeting
 

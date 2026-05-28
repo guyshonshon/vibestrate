@@ -1,4 +1,4 @@
-// Spawn `vibestrate` in a real PTY, send a sequence of keystrokes, and
+// Spawn `vibe` in a real PTY, send a sequence of keystrokes, and
 // snapshot the visible frame between each one so we can see what
 // actually changed. Used for triaging navigation bugs the user
 // reports.

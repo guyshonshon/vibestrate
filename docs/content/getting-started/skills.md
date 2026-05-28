@@ -45,7 +45,7 @@ agents:
 Or per-run, with `--skills`:
 
 ```bash
-vibestrate run "Add 2FA enrollment" --skills auth-conventions,security-review
+vibe run "Add 2FA enrollment" --skills auth-conventions,security-review
 ```
 
 Skills passed via `--skills` are *merged* with whatever's configured on each agent — they don't replace.
@@ -53,8 +53,8 @@ Skills passed via `--skills` are *merged* with whatever's configured on each age
 ## List what's available
 
 ```bash
-vibestrate skills list
-vibestrate skills show auth-conventions
+vibe skills list
+vibe skills show auth-conventions
 ```
 
 ## When to write a new skill

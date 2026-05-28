@@ -6,7 +6,7 @@ export type StartInkShellOptions = {
   projectRoot: string;
   refreshMs?: number;
   /** When set, "B" / `:open` inside the shell open this URL in the
-   *  user's default browser. Populated by `vibestrate shell --ui`. */
+   *  user's default browser. Populated by `vibe shell --ui`. */
   uiUrl?: string | null;
 };
 

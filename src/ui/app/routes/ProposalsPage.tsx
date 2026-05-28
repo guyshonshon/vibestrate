@@ -46,7 +46,7 @@ export function ProposalsPage({
         <span className="text-[11.5px] text-fog-500 mono ml-auto">
           generate one:{" "}
           <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
-            vibestrate roadmap plan "&lt;goal&gt;"
+            vibe roadmap plan "&lt;goal&gt;"
           </code>
         </span>
       </section>

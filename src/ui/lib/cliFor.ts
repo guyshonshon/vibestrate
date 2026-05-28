@@ -26,32 +26,32 @@ export function cliFor(a: UiAction): string | null {
       // No CLI verb opens a task; closest is `tasks show` (planned).
       return null;
     case "queue-task":
-      return `vibestrate queue add ${a.taskId}`;
+      return `vibe queue add ${a.taskId}`;
     case "cancel-task":
-      return `vibestrate tasks cancel ${a.taskId}`;
+      return `vibe tasks cancel ${a.taskId}`;
     case "run-task":
-      return `vibestrate tasks run ${a.taskId}`;
+      return `vibe tasks run ${a.taskId}`;
     case "open-run":
-      return `vibestrate status ${a.runId}`;
+      return `vibe status ${a.runId}`;
     case "status-run":
-      return `vibestrate status ${a.runId}`;
+      return `vibe status ${a.runId}`;
     case "replay-run":
-      return `vibestrate replay ${a.runId}`;
+      return `vibe replay ${a.runId}`;
     case "pause-run":
-      return `vibestrate pause ${a.runId}`;
+      return `vibe pause ${a.runId}`;
     case "resume-run":
-      return `vibestrate resume ${a.runId}`;
+      return `vibe resume ${a.runId}`;
     case "abort-run":
-      return `vibestrate abort ${a.runId}`;
+      return `vibe abort ${a.runId}`;
     case "approve-approval":
       // Server-only at the moment; CLI parity is on the backlog.
       return null;
     case "reject-approval":
       return null;
     case "start-scheduler":
-      return `vibestrate queue run`;
+      return `vibe queue run`;
     case "spawn-run": {
-      const parts = ["vibestrate", "run"];
+      const parts = ["vibe", "run"];
       if (a.provider) parts.push("--provider", a.provider);
       if (a.effort) parts.push("--effort", a.effort);
       if (a.readOnly) parts.push("--read-only");

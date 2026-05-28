@@ -185,7 +185,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           {meta.validationCommands.length === 0 ? (
             <div className="text-[12px] text-vibestrate-fg-muted">
               No commands configured. Run{" "}
-              <span className="vibestrate-mono">vibestrate config set commands.validate</span>.
+              <span className="vibestrate-mono">vibe config set commands.validate</span>.
             </div>
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -205,7 +205,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           {meta.providers.length === 0 ? (
             <Empty>
               No providers configured. Run{" "}
-              <span className="vibestrate-mono">vibestrate provider add</span>.
+              <span className="vibestrate-mono">vibe provider add</span>.
             </Empty>
           ) : (
             <ul className="flex flex-col gap-1.5">

@@ -85,7 +85,7 @@ export async function queueTask(
     await svc.updateTaskStatus(taskId, "queued");
     // Auto-spawn the scheduler if nothing's currently picking up
     // queued work. "Queueing = work starts" — the user shouldn't
-    // have to remember to run `vibestrate queue run` separately.
+    // have to remember to run `vibe queue run` separately.
     const ensure = await ensureSchedulerRunning({
       projectRoot,
       exitWhenDrained: true,
@@ -95,7 +95,7 @@ export async function queueTask(
       ensure.action === "spawned"
         ? ` · auto-started scheduler (pid ${ensure.pid ?? "—"})`
         : ensure.action === "paused"
-          ? ` · scheduler is paused; run \`vibestrate queue resume\` when ready`
+          ? ` · scheduler is paused; run \`vibe queue resume\` when ready`
           : ensure.action === "spawn-failed"
             ? ` · failed to auto-start scheduler: ${ensure.message ?? "unknown error"}`
             : ` · scheduler is already live`;

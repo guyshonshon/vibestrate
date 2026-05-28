@@ -103,7 +103,7 @@ async function cmdSettings(): Promise<number> {
   console.log("");
   console.log(header("Gateways"));
   if (Object.keys(g.gateways).length === 0) {
-    console.log(indent(color.dim("No gateways configured. Run `vibestrate gateways enable <id>`.")));
+    console.log(indent(color.dim("No gateways configured. Run `vibe gateways enable <id>`.")));
   } else {
     for (const [id, cfg] of Object.entries(g.gateways)) {
       const flags = cfg.enabled ? color.green("enabled") : color.dim("disabled");
@@ -176,7 +176,7 @@ async function cmdGatewayTest(id: string): Promise<number> {
   const reg = await buildDefaultRegistry(root, () => {});
   const gateway = reg.get(id);
   if (!gateway) {
-    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibestrate gateways list\`.`);
+    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibe gateways list\`.`);
     return 1;
   }
   if (!gateway.test) {
@@ -186,7 +186,7 @@ async function cmdGatewayTest(id: string): Promise<number> {
   const file = await store.readGateways();
   const cfg = file.gateways[id];
   if (!cfg) {
-    console.error(`${symbol.fail()} Gateway "${id}" is not configured. Try \`vibestrate gateways enable ${id}\` first.`);
+    console.error(`${symbol.fail()} Gateway "${id}" is not configured. Try \`vibe gateways enable ${id}\` first.`);
     return 1;
   }
   try {
@@ -208,7 +208,7 @@ async function cmdGatewaySet(id: string, enabled: boolean): Promise<number> {
   const reg = await buildDefaultRegistry(root, () => {});
   const gateway = reg.get(id);
   if (!gateway) {
-    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibestrate gateways list\`.`);
+    console.error(`${symbol.fail()} No gateway "${id}". Try \`vibe gateways list\`.`);
     return 1;
   }
   const file = await store.readGateways();

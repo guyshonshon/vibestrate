@@ -96,10 +96,10 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Not inside a git repository",
       detail: `${input.cwd} is not inside a git repo.`,
-      fixHint: "Run `git init` in your project, then re-run `vibestrate init`.",
+      fixHint: "Run `git init` in your project, then re-run `vibe init`.",
       fixable: false,
     });
-    nextSteps.push("Run `git init` in your project root, then `vibestrate init`.");
+    nextSteps.push("Run `git init` in your project root, then `vibe init`.");
     return {
       projectRoot,
       inGitRepo: false,
@@ -122,10 +122,10 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Vibestrate has not been initialized in this project",
       detail: `Missing ${path.join(".vibestrate", "project.yml")}.`,
-      fixHint: "Run `vibestrate init`.",
+      fixHint: "Run `vibe init`.",
       fixable: false,
     });
-    nextSteps.push("Run `vibestrate init`.");
+    nextSteps.push("Run `vibe init`.");
     return {
       projectRoot,
       inGitRepo: true,
@@ -155,10 +155,10 @@ export async function runDoctor(input: {
       severity: "fail",
       title: "Project config is invalid",
       detail: err instanceof Error ? err.message : String(err),
-      fixHint: "Run `vibestrate config validate` to see the exact issues, or `vibestrate init --force` to regenerate (advanced).",
+      fixHint: "Run `vibe config validate` to see the exact issues, or `vibe init --force` to regenerate (advanced).",
       fixable: false,
     });
-    nextSteps.push("Fix `.vibestrate/project.yml` (see above), then `vibestrate doctor` again.");
+    nextSteps.push("Fix `.vibestrate/project.yml` (see above), then `vibe doctor` again.");
     return {
       projectRoot,
       inGitRepo: true,
@@ -189,11 +189,11 @@ export async function runDoctor(input: {
       detail: available
         ? undefined
         : installHintForCommand(cfg.command) ??
-          `Install ${cfg.command} or run \`vibestrate provider setup\` to switch.`,
+          `Install ${cfg.command} or run \`vibe provider setup\` to switch.`,
       fixHint: available
         ? undefined
         : installHintForCommand(cfg.command) ??
-          "Install the CLI, or run `vibestrate provider setup` to choose a different one.",
+          "Install the CLI, or run `vibe provider setup` to choose a different one.",
       fixable: false,
     });
   }
@@ -212,7 +212,7 @@ export async function runDoctor(input: {
       title: `Agents reference a missing provider`,
       detail: `These agents point to providers that are not configured: ${missingProviderRefs.join(", ")}.`,
       fixHint:
-        "Run `vibestrate provider setup` to add a provider, then `vibestrate provider set <id>` to assign it.",
+        "Run `vibe provider setup` to add a provider, then `vibe provider set <id>` to assign it.",
       fixable: false,
     });
   } else {
@@ -244,7 +244,7 @@ export async function runDoctor(input: {
       title: `Missing prompt files for: ${missingPrompts.join(", ")}`,
       detail: "Each agent needs a Markdown prompt file.",
       fixHint: restorable.length > 0
-        ? `Run \`vibestrate doctor --fix\` to restore the default prompt(s) for: ${restorable.join(", ")}.`
+        ? `Run \`vibe doctor --fix\` to restore the default prompt(s) for: ${restorable.join(", ")}.`
         : "Restore the missing prompt files manually.",
       fixable: restorable.length > 0,
     });
@@ -280,7 +280,7 @@ export async function runDoctor(input: {
         .map((m) => `${m.roleId} → ${m.skill}`)
         .join("; "),
       fixHint:
-        "Create the missing skill in `.vibestrate/skills/<name>/SKILL.md`, drop a flat `.vibestrate/skills/<name>.md`, or unassign with `vibestrate skills unassign <agent> <skill>`.",
+        "Create the missing skill in `.vibestrate/skills/<name>/SKILL.md`, drop a flat `.vibestrate/skills/<name>.md`, or unassign with `vibe skills unassign <agent> <skill>`.",
       fixable: false,
     });
   } else if (Object.values(loaded.config.roles).some((a) => a.skills.length > 0)) {
@@ -315,7 +315,7 @@ export async function runDoctor(input: {
         severity: "fail",
         title: `Agent "${roleId}" can write but is configured to run in ${profile.cwd}`,
         detail: "Write-enabled agents must run inside the worktree to keep changes isolated.",
-        fixHint: `Run \`vibestrate config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        fixHint: `Run \`vibe config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
         fixable: false,
       });
     }
@@ -332,7 +332,7 @@ export async function runDoctor(input: {
         id: `dir-${name}`,
         severity: "warn",
         title: `Missing .vibestrate/${name}/ directory`,
-        fixHint: "Run `vibestrate doctor --fix` to recreate it.",
+        fixHint: "Run `vibe doctor --fix` to recreate it.",
         fixable: true,
       });
     }
@@ -348,7 +348,7 @@ export async function runDoctor(input: {
         title: "No validation commands configured",
         detail:
           "Reviews are stronger when Vibestrate can run your real checks (typecheck, lint, tests).",
-        fixHint: `Run \`vibestrate doctor --fix\` to add suggested commands: ${suggestions
+        fixHint: `Run \`vibe doctor --fix\` to add suggested commands: ${suggestions
           .map((s) => `\`${s}\``)
           .join(", ")}.`,
         fixable: true,
@@ -361,7 +361,7 @@ export async function runDoctor(input: {
         detail:
           "Vibestrate can run without validation commands, but reviews are much stronger when it can run your real checks.",
         fixHint:
-          'Add commands manually: `vibestrate config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"`.',
+          'Add commands manually: `vibe config set commands.validate "[\\"pnpm typecheck\\",\\"pnpm test\\"]"`.',
         fixable: false,
       });
     }
@@ -447,7 +447,7 @@ export async function runDoctor(input: {
         const lines = head.map((r) => {
           const guess = suggestProfileName(r.profileName, liveProfileNames);
           const suffix = guess
-            ? `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            ? `  did you mean "${guess}"?  (vibe validation profile migrate ${r.profileName} ${guess} --dry-run)`
             : "";
           return `run ${r.runId} · suggestion ${r.id} → "${r.profileName}"${suffix}`;
         });
@@ -457,7 +457,7 @@ export async function runDoctor(input: {
           title: `${audit.staleSuggestionReferences.length} suggestion(s) reference missing validation profile(s)`,
           detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile in commands.validationProfiles, run `vibestrate validation profile migrate <from> <to> --dry-run`, or `vibestrate suggestions profile clear <runId> <suggestionId>`.",
+            "Recreate the named profile in commands.validationProfiles, run `vibe validation profile migrate <from> <to> --dry-run`, or `vibe suggestions profile clear <runId> <suggestionId>`.",
           fixable: false,
         });
       }
@@ -466,7 +466,7 @@ export async function runDoctor(input: {
         const lines = head.map((r) => {
           const guess = suggestProfileName(r.profileName, liveProfileNames);
           const suffix = guess
-            ? `  did you mean "${guess}"?  (vibestrate validation profile migrate ${r.profileName} ${guess} --dry-run)`
+            ? `  did you mean "${guess}"?  (vibe validation profile migrate ${r.profileName} ${guess} --dry-run)`
             : "";
           return `run ${r.runId} · bundle ${r.id} → "${r.profileName}"${suffix}`;
         });
@@ -476,7 +476,7 @@ export async function runDoctor(input: {
           title: `${audit.staleBundleReferences.length} review pass(es) reference missing validation profile(s)`,
           detail: lines.join("\n"),
           fixHint:
-            "Recreate the named profile, run `vibestrate validation profile migrate <from> <to> --dry-run`, or `vibestrate bundles profile clear <runId> <bundleId>`.",
+            "Recreate the named profile, run `vibe validation profile migrate <from> <to> --dry-run`, or `vibe bundles profile clear <runId> <bundleId>`.",
           fixable: false,
         });
       }
@@ -504,7 +504,7 @@ export async function runDoctor(input: {
       id: "auto-push",
       severity: "fail",
       title: "git.allowAutoPush is true",
-      fixHint: "Run `vibestrate config set git.allowAutoPush false`. Vibestrate never pushes for you.",
+      fixHint: "Run `vibe config set git.allowAutoPush false`. Vibestrate never pushes for you.",
       fixable: false,
     });
   } else {
@@ -520,7 +520,7 @@ export async function runDoctor(input: {
       id: "auto-merge",
       severity: "fail",
       title: "git.allowAutoMerge is true",
-      fixHint: "Run `vibestrate config set git.allowAutoMerge false`. Vibestrate never merges for you.",
+      fixHint: "Run `vibe config set git.allowAutoMerge false`. Vibestrate never merges for you.",
       fixable: false,
     });
   } else {
@@ -551,7 +551,7 @@ export async function runDoctor(input: {
       severity: "ok",
       title: "No stage-level approval policy configured",
       detail:
-        "Approvals only happen when an agent emits HUMAN_APPROVAL: REQUIRED. To force approval at specific stages: `vibestrate config set policies.requireApprovalAtStages \"[\\\"architecting\\\",\\\"verifying\\\"]\"`.",
+        "Approvals only happen when an agent emits HUMAN_APPROVAL: REQUIRED. To force approval at specific stages: `vibe config set policies.requireApprovalAtStages \"[\\\"architecting\\\",\\\"verifying\\\"]\"`.",
       fixable: false,
     });
   }
@@ -573,7 +573,7 @@ export async function runDoctor(input: {
         severity: "ok",
         title: "No external notification gateways enabled",
         detail:
-          "Local in-app and CLI notifications still work. Enable an external gateway with `vibestrate gateways enable <id>` when you want external delivery.",
+          "Local in-app and CLI notifications still work. Enable an external gateway with `vibe gateways enable <id>` when you want external delivery.",
         fixable: false,
       });
     } else {
@@ -596,7 +596,7 @@ export async function runDoctor(input: {
           detail:
             "Gateway-secret values stored as env:NAME require the named env var to be set when Vibestrate runs. Notifications will be skipped until the env var is present.",
           fixHint:
-            "Export the env var(s) in your shell, then re-run the gateway test (`vibestrate gateways test <id>`).",
+            "Export the env var(s) in your shell, then re-run the gateway test (`vibe gateways test <id>`).",
           fixable: false,
         });
       } else {
@@ -646,7 +646,7 @@ export async function runDoctor(input: {
           title: `${pendingRuns.length} run(s) awaiting your approval`,
           detail: pendingRuns.join(", "),
           fixHint:
-            "Resolve via `vibestrate approvals list <runId>` and `approve` / `reject`, or open the dashboard with `vibestrate ui`.",
+            "Resolve via `vibe approvals list <runId>` and `approve` / `reject`, or open the dashboard with `vibe ui`.",
           fixable: false,
         });
       }
@@ -660,7 +660,7 @@ export async function runDoctor(input: {
   const warnings = findings.filter((f) => f.severity === "warn");
 
   if (failures.length === 0 && warnings.length === 0) {
-    nextSteps.push('Run `vibestrate run "your task"` whenever you are ready.');
+    nextSteps.push('Run `vibe run "your task"` whenever you are ready.');
   } else {
     if (failures.length > 0) {
       nextSteps.push("Resolve the issues marked ✗ above.");
@@ -668,7 +668,7 @@ export async function runDoctor(input: {
     if (warnings.length > 0) {
       const fixable = warnings.some((w) => w.fixable);
       if (fixable) {
-        nextSteps.push("Run `vibestrate doctor --fix` to apply safe fixes.");
+        nextSteps.push("Run `vibe doctor --fix` to apply safe fixes.");
       }
     }
   }
@@ -756,7 +756,7 @@ export async function applyDoctorFixes(input: {
         );
       } else if (!hasAnyProvider && !recommended) {
         skipped.push(
-          "No providers configured and no local CLI detected. Run `vibestrate provider setup`.",
+          "No providers configured and no local CLI detected. Run `vibe provider setup`.",
         );
       }
 

@@ -31,7 +31,7 @@ export async function runProviderDetect(opts: { json?: boolean }): Promise<numbe
   }
   console.log(
     color.dim(
-      "Tip: run `vibestrate provider setup` to configure or `vibestrate provider set <id>` after setup.",
+      "Tip: run `vibe provider setup` to configure or `vibe provider set <id>` after setup.",
     ),
   );
   return 0;

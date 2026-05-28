@@ -47,7 +47,7 @@ export function AgentsPage({
         <Text dimColor>{configError}</Text>
         <Box marginTop={1}>
           <Text dimColor>
-            run <Text color="cyan">vibestrate init</Text> to scaffold the project
+            run <Text color="cyan">vibe init</Text> to scaffold the project
           </Text>
         </Box>
       </Box>
@@ -103,7 +103,7 @@ export function AgentsPage({
             <Box marginTop={1}>
               <Text dimColor>
                 edit via project.yml ·{" "}
-                <Text color="cyan">vibestrate config show</Text>
+                <Text color="cyan">vibe config show</Text>
               </Text>
             </Box>
           </Box>

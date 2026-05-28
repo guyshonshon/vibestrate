@@ -87,7 +87,7 @@ export function formatError(err: unknown): FormattedError {
       kind: "port-in-use",
       title: port ? `Port ${port} is already in use` : "Port already in use",
       detail: message,
-      hint: "Stop the other process or pass --port to vibestrate ui to pick a different one.",
+      hint: "Stop the other process or pass --port to vibe ui to pick a different one.",
     };
   }
   if (code === "ECONNREFUSED") {

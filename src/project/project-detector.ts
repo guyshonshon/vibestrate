@@ -164,7 +164,7 @@ export async function detectFullProject(
 
   const notes: string[] = [];
   if (!ctx.isGitRepo) {
-    notes.push("Not inside a git repository. Run `git init` before `vibestrate run`.");
+    notes.push("Not inside a git repository. Run `git init` before `vibe run`.");
   }
   if (!pkg) {
     notes.push("No package.json found — Vibestrate cannot suggest validation commands.");
@@ -175,7 +175,7 @@ export async function detectFullProject(
   }
   if (packageManager === "unknown" && pkg) {
     notes.push(
-      "No lockfile detected. Vibestrate cannot suggest a package-manager-specific command. Run `vibestrate config set commands.validate \"[...]\"` to add your own.",
+      "No lockfile detected. Vibestrate cannot suggest a package-manager-specific command. Run `vibe config set commands.validate \"[...]\"` to add your own.",
     );
   }
 

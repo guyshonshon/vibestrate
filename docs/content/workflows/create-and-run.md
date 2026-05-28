@@ -22,31 +22,31 @@ Bad:
 ## 2. Start the run
 
 ```bash
-vibestrate run "Add audit logging to the settings save handler..."
+vibe run "Add audit logging to the settings save handler..."
 ```
 
 Add `--ui` if you want the dashboard alongside:
 
 ```bash
-vibestrate run "..." --ui
+vibe run "..." --ui
 ```
 
 Pick a Flow if the work warrants the extra rigor:
 
 ```bash
-vibestrate run "..." --flow quality-arbitration
+vibe run "..." --flow quality-arbitration
 ```
 
 Override the provider for this run:
 
 ```bash
-vibestrate run "..." --provider claude
+vibe run "..." --provider claude
 ```
 
 Or use the effort bucket:
 
 ```bash
-vibestrate run "..." --effort high
+vibe run "..." --effort high
 ```
 
 ## 3. Watch (or don't)
@@ -62,8 +62,8 @@ When the run finishes, it lands in one of:
 ## 4. Inspect the result
 
 ```bash
-vibestrate status                  # what landed
-vibestrate replay <runId>          # full read-only inspector
+vibe status                  # what landed
+vibe replay <runId>          # full read-only inspector
 ```
 
 Or open the dashboard's **Git** tab to read the diff inline.
@@ -88,7 +88,7 @@ git merge --ff-only vibestrate/<runId>-<slug>
 Or abandon it:
 
 ```bash
-vibestrate abort <runId>
+vibe abort <runId>
 # worktree is preserved for inspection; remove when you're done
 ```
 

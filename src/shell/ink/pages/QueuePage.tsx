@@ -79,7 +79,7 @@ export function QueuePage({
       // 's' starts the scheduler loop in the background. Spawned
       // detached so the panel stays responsive; the user can quit
       // it later with Ctrl+C from the other terminal or by running
-      // `vibestrate queue pause`.
+      // `vibe queue pause`.
       if (input === "s" || input === "S") {
         const { pid } = spawnVibestrateDetached({
           projectRoot,
@@ -87,7 +87,7 @@ export function QueuePage({
         });
         onToast(
           "ok",
-          `Started \`vibestrate queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
+          `Started \`vibe queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
         );
         return;
       }
@@ -111,7 +111,7 @@ export function QueuePage({
           {entries.length === 0 ? (
             <Text dimColor>
               queue is empty — add a task with{" "}
-              <Text color="cyan">vibestrate queue add &lt;taskId&gt;</Text> or from
+              <Text color="cyan">vibe queue add &lt;taskId&gt;</Text> or from
               the Roadmap (Q on a selected task)
             </Text>
           ) : (
@@ -205,7 +205,7 @@ function SchedulerHeader({
         </Text>
         <Text dimColor>
           press <Text color="cyan">s</Text> to spawn{" "}
-          <Text color="cyan">vibestrate queue run</Text> in the background
+          <Text color="cyan">vibe queue run</Text> in the background
         </Text>
       </Box>
     );

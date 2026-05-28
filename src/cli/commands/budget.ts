@@ -18,14 +18,14 @@ export function buildBudgetCommand(): Command {
       const cwd = process.cwd();
       const loaded = await loadConfig(cwd).catch(() => null);
       if (!loaded) {
-        console.error(`${symbol.fail()} Not an initialized project (run \`vibestrate init\`).`);
+        console.error(`${symbol.fail()} Not an initialized project (run \`vibe init\`).`);
         process.exit(1);
       }
       const b = loaded.config.budget;
       const today = await computeDailySpendUsd(cwd).catch(() => 0);
       if (!b?.spendCapDailyUsd) {
         console.log(`${symbol.bullet()} No daily spend cap set. Today's spend: ${color.bold(`$${today.toFixed(2)}`)}.`);
-        console.log(color.dim(`  Set one: vibestrate budget set --cap 5 --action stop`));
+        console.log(color.dim(`  Set one: vibe budget set --cap 5 --action stop`));
         return;
       }
       const pct = Math.round((today / b.spendCapDailyUsd) * 100);

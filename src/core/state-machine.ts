@@ -108,7 +108,7 @@ export const runStateSchema = z.object({
   error: z.string().nullable().default(null),
   pendingApprovalId: z.string().nullable().default(null),
   approvalRequestedFromStatus: runStatusSchema.nullable().default(null),
-  // Optional roadmap task this run is associated with. Set by `vibestrate run --task`
+  // Optional roadmap task this run is associated with. Set by `vibe run --task`
   // or by the scheduler. Existing runs round-trip safely (defaults to null).
   taskId: z.string().nullable().default(null),
   // ─── Pause / resume ────────────────────────────────────────────────────

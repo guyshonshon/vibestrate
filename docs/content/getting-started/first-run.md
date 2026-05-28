@@ -14,13 +14,13 @@ Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a kno
 ## Start the run
 
 ```bash
-vibestrate run "Add structured logging to the settings save handler"
+vibe run "Add structured logging to the settings save handler"
 ```
 
 If you want to watch it as it goes, add `--ui`:
 
 ```bash
-vibestrate run "Add structured logging to the settings save handler" --ui
+vibe run "Add structured logging to the settings save handler" --ui
 ```
 
 Vibestrate will:

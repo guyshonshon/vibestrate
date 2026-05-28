@@ -13,7 +13,7 @@ const distEntry = resolve(
 /**
  * Regression guard for the global-install entrypoint.
  *
- * When installed globally (`npm i -g`, `npm link`), the `vibestrate` bin is a
+ * When installed globally (`npm i -g`, `npm link`), the `vibe` bin is a
  * SYMLINK. The "is this module the entrypoint?" check must compare realpaths,
  * or `process.argv[1]` (the symlink) won't match `import.meta.url` (the
  * resolved module) and the CLI silently does nothing. This test runs the
@@ -36,7 +36,7 @@ describe("CLI bin entrypoint", () => {
 
   it("prints a version when run through a symlink (global-install shape)", async () => {
     const dir = mkdtempSync(join(tmpdir(), "vibestrate-bin-"));
-    const link = join(dir, "vibestrate");
+    const link = join(dir, "vibe");
     symlinkSync(distEntry, link);
     const r = await execa("node", [link, "--version"], { reject: false });
     expect(r.exitCode).toBe(0);
@@ -46,10 +46,10 @@ describe("CLI bin entrypoint", () => {
 
   it("shows help (not the interactive shell) when given --help via a symlink", async () => {
     const dir = mkdtempSync(join(tmpdir(), "vibestrate-bin-"));
-    const link = join(dir, "vibestrate");
+    const link = join(dir, "vibe");
     symlinkSync(distEntry, link);
     const r = await execa("node", [link, "--help"], { reject: false });
     expect(r.exitCode).toBe(0);
-    expect(r.stdout).toMatch(/Usage: vibestrate/);
+    expect(r.stdout).toMatch(/Usage: vibe/);
   });
 });

@@ -50,7 +50,7 @@ describe("issues store", () => {
   it("captures fix + context + detail when supplied", async () => {
     await recordIssue(root, {
       kind: "spawn-failure",
-      message: "vibestrate queue run failed to spawn",
+      message: "vibe queue run failed to spawn",
       detail: "Error: ENOENT\n  at …",
       fix: "verify dist/index.js exists; run `pnpm build`",
       context: { argv: ["queue", "run"], cwd: "/tmp/x" },

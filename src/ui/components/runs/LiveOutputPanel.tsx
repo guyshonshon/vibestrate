@@ -222,7 +222,7 @@ export function LiveOutputPanel({
         <p className="px-3 py-2 text-[11.5px] text-vibestrate-warn">
           The streams endpoint returned 404. Your{" "}
           <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
-            vibestrate ui
+            vibe ui
           </code>{" "}
           server bundle predates live streaming. Restart it after a
           rebuild to enable. Polling stopped to keep the dev console

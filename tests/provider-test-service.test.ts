@@ -93,6 +93,6 @@ describe("safe provider test", () => {
   it("returns helpful error if provider id is unknown", async () => {
     const r = await runSafeProviderTest({ projectRoot, providerId: "ghost" });
     expect(r.ok).toBe(false);
-    expect(r.hint).toContain("vibestrate provider setup");
+    expect(r.hint).toContain("vibe provider setup");
   });
 });

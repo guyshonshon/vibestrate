@@ -54,7 +54,7 @@ export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
   }
   console.log(
     color.dim(
-      "Use `vibestrate skills assign <agent> <skill>` to attach a skill to an agent.",
+      "Use `vibe skills assign <agent> <skill>` to attach a skill to an agent.",
     ),
   );
   return 0;

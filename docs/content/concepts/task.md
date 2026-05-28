@@ -16,7 +16,7 @@ The shape of the task is the only thing the orchestrator has to commit to a flow
 ## A good task description
 
 ```bash
-vibestrate run "Add structured logging to the settings save handler in src/server/routes/settings.ts. Use the existing logger from src/lib/logger.ts. Include the user id and the changed keys, but never the values."
+vibe run "Add structured logging to the settings save handler in src/server/routes/settings.ts. Use the existing logger from src/lib/logger.ts. Include the user id and the changed keys, but never the values."
 ```
 
 It names the file, names the library to use, and calls out the safety constraint up front.
@@ -24,7 +24,7 @@ It names the file, names the library to use, and calls out the safety constraint
 ## A weak task description
 
 ```bash
-vibestrate run "Improve logging"
+vibe run "Improve logging"
 ```
 
 The planner will guess what you meant. The reviewer will critique its own guess. You'll get a diff that's plausible but probably not what you wanted.

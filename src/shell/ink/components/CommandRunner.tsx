@@ -14,8 +14,8 @@ type Props = {
 };
 
 /**
- * Modal overlay for "run an arbitrary vibestrate command". Renders the
- * input prompt with an `vibestrate` prefix, a live output viewport
+ * Modal overlay for "run an arbitrary vibe command". Renders the
+ * input prompt with a `vibe` prefix, a live output viewport
  * capped at the last 18 lines, and the exit code once the spawn
  * completes.
  */
@@ -33,7 +33,7 @@ export function CommandRunner({
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Box>
         <Text color="cyan" bold>
-          $ vibestrate{" "}
+          $ vibe{" "}
         </Text>
         <TextInput
           value={input}

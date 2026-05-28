@@ -695,7 +695,7 @@ function ValidationBlock({ result }: { result: SuggestionValidationResult }) {
     return (
       <div className="mt-1.5 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11px] text-vibestrate-warn">
         No `commands.validate` configured. Run{" "}
-        <span className="vibestrate-mono">vibestrate config set commands.validate '["pnpm test"]'</span>.
+        <span className="vibestrate-mono">vibe config set commands.validate '["pnpm test"]'</span>.
       </div>
     );
   }

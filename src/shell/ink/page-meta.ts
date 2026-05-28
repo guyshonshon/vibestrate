@@ -26,7 +26,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["2", "switch to Roadmap to define a task"],
       ["4", "switch to Runs to inspect an execution"],
     ],
-    commonCli: ["vibestrate status", "vibestrate shell"],
+    commonCli: ["vibe status", "vibe shell"],
   },
   roadmap: {
     subtitle:
@@ -41,25 +41,25 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["c", "promote a backlog task to ready"],
     ],
     commonCli: [
-      "vibestrate tasks list",
-      'vibestrate tasks add "title" --priority high --effort medium',
-      "vibestrate tasks show <taskId>",
+      "vibe tasks list",
+      'vibe tasks add "title" --priority high --effort medium',
+      "vibe tasks show <taskId>",
     ],
   },
   queue: {
     subtitle:
       "tasks scheduled to run next · the scheduler picks them up here",
     blurb:
-      "FIFO + priority + fair queue. Each entry has a `source` so per-source quotas can prevent one origin (cron, agent, you) from monopolizing the workers. Start the loop with `vibestrate queue run`.",
+      "FIFO + priority + fair queue. Each entry has a `source` so per-source quotas can prevent one origin (cron, agent, you) from monopolizing the workers. Start the loop with `vibe queue run`.",
     commonKeys: [
       ["↑↓", "select queued entry"],
       ["p", "pause / resume the scheduler"],
       ["x", "remove the selected entry from the queue"],
     ],
     commonCli: [
-      "vibestrate queue list",
-      "vibestrate queue add <taskId> --source <name>",
-      "vibestrate queue run",
+      "vibe queue list",
+      "vibe queue add <taskId> --source <name>",
+      "vibe queue run",
     ],
   },
   runs: {
@@ -72,13 +72,13 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["tab / o e v", "switch inspector section"],
       ["/", "filter the events tail"],
       ["p / r / a", "pause / resume / abort"],
-      ["R", "re-run as a fresh vibestrate run"],
+      ["R", "re-run as a fresh vibe run"],
     ],
     commonCli: [
-      "vibestrate status",
-      "vibestrate status <runId>",
-      "vibestrate replay <runId>",
-      "vibestrate pause <runId>",
+      "vibe status",
+      "vibe status <runId>",
+      "vibe replay <runId>",
+      "vibe pause <runId>",
     ],
   },
   approvals: {
@@ -92,9 +92,9 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["r", "reject"],
     ],
     commonCli: [
-      "vibestrate approvals list",
-      "vibestrate approvals accept <id>",
-      'vibestrate approvals reject <id> --reason "needs migration"',
+      "vibe approvals list",
+      "vibe approvals accept <id>",
+      'vibe approvals reject <id> --reason "needs migration"',
     ],
   },
   suggestions: {
@@ -108,18 +108,18 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["r", "reject"],
     ],
     commonCli: [
-      "vibestrate suggestions list",
-      "vibestrate suggestions show <id>",
-      "vibestrate bundles apply <bundleId>",
-      "vibestrate bundles revert <bundleId>",
+      "vibe suggestions list",
+      "vibe suggestions show <id>",
+      "vibe bundles apply <bundleId>",
+      "vibe bundles revert <bundleId>",
     ],
   },
   notifications: {
     subtitle: "alerts routed through your configured gateways",
     blurb:
-      "Every notable orchestrator event can route to CLI / in-app / webhook / Discord / Slack / Telegram gateways. Use `vibestrate gateways add` to wire one up.",
+      "Every notable orchestrator event can route to CLI / in-app / webhook / Discord / Slack / Telegram gateways. Use `vibe gateways add` to wire one up.",
     commonKeys: [["↑↓", "select notification"]],
-    commonCli: ["vibestrate notifications list", "vibestrate gateways"],
+    commonCli: ["vibe notifications list", "vibe gateways"],
   },
   agents: {
     subtitle:
@@ -127,7 +127,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     blurb:
       "Configured agents from .vibestrate/project.yml. Each agent has a provider (claude-code / codex / ollama / aider), a prompt file, a permissions profile, attached skills, and optional MCP servers. Edit via project.yml.",
     commonKeys: [["↑↓", "select agent"]],
-    commonCli: ["vibestrate config show", "vibestrate provider list"],
+    commonCli: ["vibe config show", "vibe provider list"],
   },
   skills: {
     subtitle:
@@ -140,19 +140,19 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["↵ or space", "toggle assignment for the focused skill-agent pair"],
     ],
     commonCli: [
-      "vibestrate skills list",
-      "vibestrate skills show <id>",
-      "vibestrate skills assign <id> <agent>",
+      "vibe skills list",
+      "vibe skills show <id>",
+      "vibe skills assign <id> <agent>",
     ],
   },
   doctor: {
     subtitle: "environment + config diagnostics · with safe auto-fixes",
     blurb:
-      "Runs the same checks as `vibestrate doctor` against your machine: git available, project.yml present + valid, prompts reachable, providers detected. Press f to apply safe scaffold fixes.",
+      "Runs the same checks as `vibe doctor` against your machine: git available, project.yml present + valid, prompts reachable, providers detected. Press f to apply safe scaffold fixes.",
     commonKeys: [
       ["r", "rerun diagnostics"],
       ["f", "apply safe fixes (creates missing dirs/templates)"],
     ],
-    commonCli: ["vibestrate doctor", "vibestrate doctor --fix", "vibestrate doctor --json"],
+    commonCli: ["vibe doctor", "vibe doctor --fix", "vibe doctor --json"],
   },
 };

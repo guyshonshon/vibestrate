@@ -113,7 +113,7 @@ function GatewayStrip({ gateways }: { gateways: GatewaysFile }) {
   if (entries.length === 0) {
     return (
       <Text dimColor>
-        no gateways configured · <Text color="cyan">vibestrate gateways add</Text>
+        no gateways configured · <Text color="cyan">vibe gateways add</Text>
       </Text>
     );
   }

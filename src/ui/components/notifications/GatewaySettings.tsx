@@ -262,7 +262,7 @@ export function GatewaySettings({ initialPermission }: Props) {
           {gateways.length === 0 ? (
             <div className="px-3 py-4 text-[12px] text-vibestrate-fg-muted">
               No gateways configured. Run{" "}
-              <span className="vibestrate-mono">vibestrate gateways list</span> for help.
+              <span className="vibestrate-mono">vibe gateways list</span> for help.
             </div>
           ) : (
             gateways.map((g) => {

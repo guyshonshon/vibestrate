@@ -39,7 +39,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
     ]);
   });
 
-  it("prints the same run as an vibestrate command", () => {
+  it("prints the same run as a vibe command", () => {
     expect(
       formatFlowRunCommand({
         flowId: "quality-arbitration",
@@ -50,7 +50,7 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
         skippedOptionalSteps: [],
       }),
     ).toBe(
-      "vibestrate run --flow quality-arbitration --flow-context balanced --flow-slot builder=claude \"ship it\"",
+      "vibe run --flow quality-arbitration --flow-context balanced --flow-slot builder=claude \"ship it\"",
     );
   });
 });

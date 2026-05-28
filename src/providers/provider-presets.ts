@@ -22,7 +22,7 @@ import { ollamaPreset } from "./presets/ollama.js";
  *
  * The presets are "works out of the box" defaults so a detected provider can
  * be auto-configured (like Claude always has been). They are best-effort:
- * coding-CLI flag matrices move across releases, so `vibestrate provider test
+ * coding-CLI flag matrices move across releases, so `vibe provider test
  * <id>` remains the source of truth, and the auth check below turns a failed
  * test into a precise "log in here" instruction instead of a vague error.
  */
@@ -156,7 +156,7 @@ const AUTH_SIGNALS = [
 // A CLI rejecting our args (a flag it no longer accepts, a renamed
 // subcommand) prints one of these and exits non-zero — usually exit 2.
 // We treat that as a "flags" problem, not a generic exit, so the hint can
-// point at `vibestrate provider setup` instead of "check it's installed".
+// point at `vibe provider setup` instead of "check it's installed".
 const USAGE_SIGNALS = [
   "unexpected argument",
   "unrecognized argument",

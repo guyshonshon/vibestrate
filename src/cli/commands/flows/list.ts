@@ -26,7 +26,7 @@ export async function runFlowsList(opts: { json?: boolean }): Promise<number> {
     }
     console.log(
       color.dim(
-        "Use `vibestrate flows show <id>` to inspect slots and ordered steps.",
+        "Use `vibe flows show <id>` to inspect slots and ordered steps.",
       ),
     );
   }

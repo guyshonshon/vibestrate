@@ -71,7 +71,7 @@ export async function abortRun(
     const events = new EventLog(projectRoot, runId);
     await events.append({
       type: "run.aborted",
-      message: `Run ${runId} aborted from vibestrate shell.`,
+      message: `Run ${runId} aborted from vibe shell.`,
     });
     return { ok: true, message: `${runId} marked as aborted.` };
   } catch (err) {

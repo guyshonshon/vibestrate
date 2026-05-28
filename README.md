@@ -59,7 +59,7 @@ Vibestrate runs the coding-agent CLIs you already have through a visible **plan 
 
 ## ◆ Quick start
 
-Install the `vibestrate` CLI — one-liner or npm (both need Node ≥ 18.17):
+Install Vibestrate — the command is `vibe`:
 
 ```bash
 # macOS / Linux
@@ -73,12 +73,12 @@ Then point it at any git repo:
 
 ```bash
 cd your-project
-vibestrate init                     # scaffold .vibestrate/ - touches nothing else
-vibestrate doctor --fix             # detect providers + project, wire it up
-vibestrate run "Add audit logging to the settings flow"
+vibe init                     # scaffold .vibestrate/ - touches nothing else
+vibe doctor --fix             # detect providers + project, wire it up
+vibe run "Add audit logging to the settings flow"
 ```
 
-Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in one command](#-ready-in-one-command) explains what `vibestrate doctor` detects and wires up for you.
+Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in one command](#-ready-in-one-command) explains what `vibe doctor` detects and wires up for you.
 
 > **Security scanner note:** Some automated scanners have flagged the optional
 > Telegram notification gateway as "exfiltration" because the bundled CLI
@@ -115,9 +115,9 @@ No keys to paste, no YAML to hand-author. Point Vibestrate at a repo and it figu
 - **Reads your project.** Detects the language, package manager, and project type, then suggests the real validation commands (typecheck · test · build) it should run as ground truth.
 - **Uses logins you already have.** No API key ever lives in Vibestrate; it rides the CLIs you've already authenticated, so prompts and code go straight to those vendors.
 
-**`vibestrate doctor` is the superpower** - the one command that tells you, in plain language, exactly where you stand, and `--fix` closes the gaps for you:
+**`vibe doctor` is the superpower** - the one command that tells you, in plain language, exactly where you stand, and `--fix` closes the gaps for you:
 
-| `vibestrate doctor` checks | `vibestrate doctor --fix` does |
+| `vibe doctor` checks | `vibe doctor --fix` does |
 |---|---|
 | git present · you're inside a repo | configures the detected provider |
 | `.vibestrate/` initialized · config valid | assigns the crew to it |
@@ -129,7 +129,7 @@ No keys to paste, no YAML to hand-author. Point Vibestrate at a repo and it figu
 Green across the board means you're ready to run. Want the dashboard? Add `--ui` to any run:
 
 ```bash
-vibestrate run "Tighten retry handling" --ui    # opens Mission Control
+vibe run "Tighten retry handling" --ui    # opens Mission Control
 ```
 
 > Full walkthrough → **[vibestrate.shonshon.com/docs/getting-started/installation](https://vibestrate.shonshon.com/docs/getting-started/installation)**
@@ -152,7 +152,7 @@ This is the part that matters, so it gets no asterisks:
 
 ## ◆ How a run works
 
-Every run executes a **flow** - an ordered recipe of steps, each performed by a role on a provider. A plain `vibestrate run` runs the built-in **`default` flow**:
+Every run executes a **flow** - an ordered recipe of steps, each performed by a role on a provider. A plain `vibe run` runs the built-in **`default` flow**:
 
 ```text
 plan → architecture → implement → validate → review → fix → verify
@@ -165,14 +165,14 @@ Each step is a named agent with one job, so when something goes wrong you can re
 Higher-stakes work runs a **different flow** through the same engine - for example one where multiple models arbitrate each other:
 
 ```bash
-vibestrate run "Refactor provider permissions" --flow quality-arbitration \
+vibe run "Refactor provider permissions" --flow quality-arbitration \
   --flow-slot builder=claude --flow-slot challenger=codex
 ```
 
 Stuck mid-run? **Rewind** instead of restarting - fork a fresh run that reuses the earlier steps and picks up from a chosen stage:
 
 ```bash
-vibestrate run "<same task>" --resume-from <runId> --resume-stage executing
+vibe run "<same task>" --resume-from <runId> --resume-stage executing
 ```
 
 > [Concepts](https://vibestrate.shonshon.com/docs/concepts/task) · [Task lifecycle](https://vibestrate.shonshon.com/docs/task-lifecycle) · [CLI reference](https://vibestrate.shonshon.com/docs/reference/cli)
@@ -228,7 +228,7 @@ pnpm install && pnpm typecheck && pnpm test && pnpm build
 
 ## ◆ Versioning
 
-Vibestrate follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) - the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `vibestrate --version` and the generated docs reference.
+Vibestrate follows [SemVer](https://semver.org). We're pre-1.0 (`0.x`) - the surface is real and tested, but minor versions may still carry breaking changes. The version lives in [`package.json`](./package.json) only, and flows into `vibe --version` and the generated docs reference.
 
 ## ◆ License
 

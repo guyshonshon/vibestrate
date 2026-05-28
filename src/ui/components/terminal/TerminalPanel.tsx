@@ -238,7 +238,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
               native module isn't installed in this environment, so PTYs can't
               be spawned. Install it (or skip the terminal feature) and restart{" "}
               <code className="vibestrate-mono rounded bg-vibestrate-panel px-1">
-                vibestrate ui
+                vibe ui
               </code>
               .
             </p>

@@ -84,7 +84,7 @@ export async function setDefaultProvider(
     return {
       ok: false,
       reason: `Provider "${providerId}" is not configured in .vibestrate/project.yml.`,
-      hint: "Run `vibestrate provider setup` to add a provider before assigning it.",
+      hint: "Run `vibe provider setup` to add a provider before assigning it.",
     };
   }
   await assignRolesToProvider(projectRoot, providerId);
@@ -150,7 +150,7 @@ export async function runSafeProviderTest(input: {
       stderr: "",
       matchedMagic: false,
       needsLogin: false,
-      hint: `Provider "${input.providerId}" is not configured. Run \`vibestrate provider setup\` first.`,
+      hint: `Provider "${input.providerId}" is not configured. Run \`vibe provider setup\` first.`,
     };
   }
 
@@ -208,9 +208,9 @@ export async function runSafeProviderTest(input: {
       hint = `The CLI exited with code ${exitCode}. Check that "${provider.command}" is installed and authenticated.`;
     } else if (/unexpected argument|unrecognized|unknown option|unknown flag|invalid option|invalid subcommand/i.test(`${stderr}\n${stdout}`)) {
       // The CLI rejected our args (e.g. a flag removed in a newer release).
-      hint = `"${provider.command}" rejected its arguments — a flag/subcommand it no longer accepts in this version. Run \`vibestrate provider setup\` to update the command/args.`;
+      hint = `"${provider.command}" rejected its arguments — a flag/subcommand it no longer accepts in this version. Run \`vibe provider setup\` to update the command/args.`;
     } else {
-      hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`vibestrate provider setup\` to adjust args/input mode.`;
+      hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`vibe provider setup\` to adjust args/input mode.`;
     }
   }
 
@@ -252,9 +252,9 @@ export function buildClaudeProviderFromDetection(
  * Starter preset for the OpenAI Codex CLI. Unlike the Claude preset,
  * Vibestrate does NOT auto-apply this in `doctor --fix` — Codex's flag matrix
  * has moved across releases and we don't want to silently configure a
- * provider that might not work. The user opts in via `vibestrate provider
+ * provider that might not work. The user opts in via `vibe provider
  * setup codex` (or the dashboard's setup wizard), and we recommend they
- * follow up with `vibestrate provider test codex` before a real run depends
+ * follow up with `vibe provider test codex` before a real run depends
  * on it.
  *
  * Default invocation: `codex exec` with the prompt on stdin.

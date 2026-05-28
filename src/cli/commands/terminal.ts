@@ -49,7 +49,7 @@ export function buildTerminalCommand(): Command {
       try {
         await loadConfig(process.cwd());
       } catch {
-        console.error(color.red("Project not initialised. Run `vibestrate init`."));
+        console.error(color.red("Project not initialised. Run `vibe init`."));
         process.exit(2);
       }
       const driver = await loadNodePtyDriver();
