@@ -36,25 +36,25 @@ describe("role context API", () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    const read = await fetch(`${server.url}/api/roles/planner/context`);
+    const read = await fetch(`${server.url}/api/crews/default/roles/planner/context`);
     expect(read.status).toBe(200);
     const before = (await read.json()) as {
       roleId: string;
-      provider: string;
+      profile: string;
       promptPath: string;
       content: string;
     };
     expect(before.roleId).toBe("planner");
     expect(before.promptPath).toContain("planner");
 
-    const write = await fetch(`${server.url}/api/roles/planner/context`, {
+    const write = await fetch(`${server.url}/api/crews/default/roles/planner/context`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: "# Planner\n\nYou are a careful planner.\n" }),
     });
     expect(write.status).toBe(200);
 
-    const after = (await fetch(`${server.url}/api/roles/planner/context`).then((r) =>
+    const after = (await fetch(`${server.url}/api/crews/default/roles/planner/context`).then((r) =>
       r.json(),
     )) as { content: string };
     expect(after.content).toContain("You are a careful planner.");
@@ -64,10 +64,10 @@ describe("role context API", () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    const missing = await fetch(`${server.url}/api/roles/no-such-role/context`);
+    const missing = await fetch(`${server.url}/api/crews/default/roles/no-such-role/context`);
     expect(missing.status).toBe(404);
 
-    const bad = await fetch(`${server.url}/api/roles/planner/context`, {
+    const bad = await fetch(`${server.url}/api/crews/default/roles/planner/context`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: 123 }),
@@ -78,11 +78,11 @@ describe("role context API", () => {
   it("does not leak prompt contents in the bulk roles list", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
-    const list = (await fetch(`${server.url}/api/roles`).then((r) => r.json())) as {
-      roles: Record<string, unknown>[];
+    const list = (await fetch(`${server.url}/api/crews/default`).then((r) => r.json())) as {
+      crew: { roles: Record<string, unknown>[] };
     };
-    expect(list.roles.length).toBeGreaterThan(0);
-    for (const role of list.roles) {
+    expect(list.crew.roles.length).toBeGreaterThan(0);
+    for (const role of list.crew.roles) {
       expect(role).not.toHaveProperty("content");
       expect(role).not.toHaveProperty("prompt");
     }

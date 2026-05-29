@@ -26,18 +26,17 @@ const loopingFlow = flowDefinitionSchema.parse({
   version: 1,
   label: "Looping",
   description: "Exercises the adaptive review→fix loop in the flow runner.",
-  slots: {
-    builder: { label: "Builder", defaultRole: "executor" },
-    reviewer: { label: "Reviewer", defaultRole: "reviewer" },
-    arbiter: { label: "Arbiter", defaultRole: "verifier" },
+  seats: {
+    builder: { label: "Builder" },
+    reviewer: { label: "Reviewer" },
+    arbiter: { label: "Arbiter" },
   },
   steps: [
     {
       id: "implement",
       label: "Implement",
       kind: "agent-turn",
-      slot: "builder",
-      roleId: "executor",
+      seat: "builder",
       inputs: ["task-brief"],
       outputs: ["execution", "diff"],
     },
@@ -45,8 +44,7 @@ const loopingFlow = flowDefinitionSchema.parse({
       id: "review",
       label: "Review",
       kind: "review-turn",
-      slot: "reviewer",
-      roleId: "reviewer",
+      seat: "reviewer",
       inputs: ["execution", "diff"],
       outputs: ["findings", "review-decision"],
     },
@@ -54,8 +52,7 @@ const loopingFlow = flowDefinitionSchema.parse({
       id: "fix",
       label: "Fix",
       kind: "response-turn",
-      slot: "builder",
-      roleId: "fixer",
+      seat: "builder",
       inputs: ["findings", "diff"],
       outputs: ["diff"],
     },
@@ -63,8 +60,7 @@ const loopingFlow = flowDefinitionSchema.parse({
       id: "summary",
       label: "Summary",
       kind: "summary-turn",
-      slot: "arbiter",
-      roleId: "verifier",
+      seat: "arbiter",
       inputs: ["execution", "review-decision"],
       outputs: ["decision-summary"],
     },
@@ -80,17 +76,16 @@ const noVerifyLoopFlow = flowDefinitionSchema.parse({
   version: 1,
   label: "No-verify loop",
   description: "Coder + reviewer loop with no verify step.",
-  slots: {
-    coder: { label: "Coder", defaultRole: "executor" },
-    reviewer: { label: "Reviewer", defaultRole: "reviewer" },
+  seats: {
+    builder: { label: "Coder" },
+    reviewer: { label: "Reviewer" },
   },
   steps: [
     {
       id: "implement",
       label: "Implement",
       kind: "agent-turn",
-      slot: "coder",
-      roleId: "executor",
+      seat: "builder",
       inputs: ["task-brief", "findings"],
       outputs: ["execution", "diff"],
     },
@@ -98,8 +93,7 @@ const noVerifyLoopFlow = flowDefinitionSchema.parse({
       id: "review",
       label: "Review",
       kind: "review-turn",
-      slot: "reviewer",
-      roleId: "reviewer",
+      seat: "reviewer",
       inputs: ["execution", "diff"],
       outputs: ["findings", "review-decision"],
     },
@@ -133,7 +127,7 @@ async function makeLoopRepo(reviewerScript: string): Promise<string> {
     }),
   );
   for (const role of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-    await setConfigValue(dir, `roles.${role}.provider`, "fake");
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   }
   return dir;
 }

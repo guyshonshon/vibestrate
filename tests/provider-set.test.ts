@@ -30,19 +30,14 @@ describe("provider set / list", () => {
     projectRoot = await tempProject();
   });
 
-  it("listConfiguredProviders shows the default claude entry and used-by agents", async () => {
+  it("listConfiguredProviders shows the default claude entry and the profiles using it", async () => {
     const list = await listConfiguredProviders(projectRoot);
     expect(list).toHaveLength(1);
     expect(list[0]!.id).toBe("claude");
+    // The init template creates a `claude-balanced` profile on the recommended
+    // provider; every default-crew role runs on it.
     expect(list[0]!.profilesUsing).toEqual(
-      expect.arrayContaining([
-        "planner",
-        "architect",
-        "executor",
-        "fixer",
-        "reviewer",
-        "verifier",
-      ]),
+      expect.arrayContaining(["claude-balanced"]),
     );
   });
 

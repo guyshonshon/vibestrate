@@ -164,35 +164,28 @@
       "itemType": null
     },
     {
-      "key": "effortMap",
-      "fullKey": "effortMap",
-      "type": "object",
+      "key": "profiles",
+      "fullKey": "profiles",
+      "type": "record<string, object>",
       "required": false,
       "default": {},
-      "itemType": null,
-      "children": [
-        {
-          "key": "low",
-          "fullKey": "effortMap.low",
-          "type": "string",
-          "required": false,
-          "itemType": null
-        },
-        {
-          "key": "medium",
-          "fullKey": "effortMap.medium",
-          "type": "string",
-          "required": false,
-          "itemType": null
-        },
-        {
-          "key": "high",
-          "fullKey": "effortMap.high",
-          "type": "string",
-          "required": false,
-          "itemType": null
-        }
-      ]
+      "itemType": null
+    },
+    {
+      "key": "crews",
+      "fullKey": "crews",
+      "type": "record<string, object>",
+      "required": false,
+      "default": {},
+      "itemType": null
+    },
+    {
+      "key": "defaultCrew",
+      "fullKey": "defaultCrew",
+      "type": "string",
+      "required": false,
+      "default": "default",
+      "itemType": null
     },
     {
       "key": "budget",
@@ -236,20 +229,13 @@
           "itemType": null
         },
         {
-          "key": "fallbackProvider",
-          "fullKey": "budget.fallbackProvider",
+          "key": "fallbackProfile",
+          "fullKey": "budget.fallbackProfile",
           "type": "string",
           "required": false,
           "itemType": null
         }
       ]
-    },
-    {
-      "key": "roles",
-      "fullKey": "roles",
-      "type": "record<string, object>",
-      "required": true,
-      "itemType": null
     },
     {
       "key": "commands",

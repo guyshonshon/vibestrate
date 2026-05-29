@@ -20,46 +20,59 @@ providers:
   codex:
     type: cli
     command: __flow_phase1_codex_must_not_run__
-roles:
-  planner:
+profiles:
+  claude-balanced:
     provider: claude
-    prompt: .vibestrate/roles/planner.md
-    permissions: readOnly
-  architect:
-    provider: claude
-    prompt: .vibestrate/roles/architect.md
-    permissions: readOnly
-  executor:
-    provider: claude
-    prompt: .vibestrate/roles/executor.md
-    permissions: codeWrite
-  fixer:
-    provider: claude
-    prompt: .vibestrate/roles/fixer.md
-    permissions: codeWrite
-  reviewer:
+  codex-balanced:
     provider: codex
-    prompt: .vibestrate/roles/reviewer.md
-    permissions: readOnly
-  verifier:
-    provider: codex
-    prompt: .vibestrate/roles/verifier.md
-    permissions: readOnly
+crews:
+  default:
+    roles:
+      planner:
+        fills: [planner]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/planner.md
+        permissions: readOnly
+      architect:
+        fills: [architect]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/architect.md
+        permissions: readOnly
+      executor:
+        fills: [implementer, builder]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/executor.md
+        permissions: codeWrite
+      fixer:
+        fills: [fixer]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/fixer.md
+        permissions: codeWrite
+      reviewer:
+        fills: [reviewer, challenger]
+        profile: codex-balanced
+        prompt: .vibestrate/roles/reviewer.md
+        permissions: readOnly
+      verifier:
+        fills: [verifier, arbiter]
+        profile: codex-balanced
+        prompt: .vibestrate/roles/verifier.md
+        permissions: readOnly
+defaultCrew: default
 `;
 
 const PROJECT_FLOW = `id: project-review
 version: 1
 label: Project Review
 description: Project-local review recipe.
-slots:
+seats:
   reviewer:
     label: Reviewer
-    defaultRole: reviewer
 steps:
   - id: review
     label: Review
     kind: review-turn
-    slot: reviewer
+    seat: reviewer
     inputs: [diff]
     outputs: [findings]
 `;
@@ -179,7 +192,7 @@ describe("Flow Phase 1 server preview", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           task: "Preview the quality arbitration plan.",
-          slotProviders: { challenger: "claude" },
+          stepProfileOverrides: { implement: "codex-balanced" },
           skippedOptionalSteps: ["plan-review"],
         }),
       },
@@ -188,20 +201,23 @@ describe("Flow Phase 1 server preview", () => {
     const body = (await res.json()) as {
       snapshot: {
         flowId: string;
-        slots: { id: string; providerId: string }[];
-        steps: { id: string; enabled: boolean }[];
+        crewId: string;
+        seats: { id: string }[];
+        steps: { id: string; enabled: boolean; profileId: string | null }[];
       };
     };
     expect(body.snapshot.flowId).toBe("quality-arbitration");
-    expect(body.snapshot.slots).toContainEqual(
-      expect.objectContaining({ id: "challenger", providerId: "claude" }),
+    expect(body.snapshot.seats.map((s) => s.id)).toContain("challenger");
+    // The step-level Profile override is applied to the resolved step.
+    expect(body.snapshot.steps).toContainEqual(
+      expect.objectContaining({ id: "implement", profileId: "codex-balanced" }),
     );
     expect(body.snapshot.steps).toContainEqual(
       expect.objectContaining({ id: "plan-review", enabled: false }),
     );
   });
 
-  it("returns a client error for an invalid slot override", async () => {
+  it("returns a client error for an override that references an unknown step", async () => {
     const projectRoot = await makeProject();
     server = await startServer({ projectRoot, port: 0, host: "127.0.0.1" });
 
@@ -211,8 +227,8 @@ describe("Flow Phase 1 server preview", () => {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          task: "Reject an unknown slot before providers run.",
-          slotProviders: { ghost: "codex" },
+          task: "Reject an unknown step override before providers run.",
+          stepProfileOverrides: { "no-such-step": "codex-balanced" },
         }),
       },
     );

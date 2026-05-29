@@ -37,7 +37,7 @@ import {
 } from "../src/core/state-machine.js";
 import { builtinFlows } from "../src/flows/catalog/builtin-flows.js";
 import {
-  projectConfigSchema,
+  projectConfigBaseSchema,
   policyApprovalStageSchema,
 } from "../src/project/config-schema.js";
 import { builtinRoleIds } from "../src/roles/role-schema.js";
@@ -284,7 +284,9 @@ function walkObjectSchema(
 }
 
 function generateConfigSchema() {
-  const root = projectConfigSchema;
+  // The exported `projectConfigSchema` is a ZodEffects (cross-record
+  // superRefine); the doc walker needs the underlying object shape.
+  const root = projectConfigBaseSchema;
   const fields = walkObjectSchema(root as unknown as z.ZodObject<z.ZodRawShape>, "");
   writeJson("config-schema.json", {
     schemaVersion: 1,
@@ -330,18 +332,16 @@ function generateFlows() {
     version: g.version,
     label: g.label,
     description: g.description,
-    slots: Object.entries(g.slots).map(([slotId, slot]) => ({
-      id: slotId,
-      label: slot.label,
-      description: slot.description ?? null,
-      defaultRole: slot.defaultRole,
+    seats: Object.entries(g.seats).map(([seatId, seat]) => ({
+      id: seatId,
+      label: seat.label,
+      description: seat.description ?? null,
     })),
     steps: g.steps.map((s) => ({
       id: s.id,
       label: s.label,
       kind: s.kind,
-      slot: s.slot ?? null,
-      roleId: s.roleId ?? null,
+      seat: s.seat ?? null,
       inputs: s.inputs,
       outputs: s.outputs,
       optional: s.optional,

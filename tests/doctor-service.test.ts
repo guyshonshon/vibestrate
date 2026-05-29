@@ -65,11 +65,24 @@ describe("doctor service", () => {
     expect(find?.fixable).toBe(true);
   });
 
-  it("flags agent referencing missing provider", async () => {
+  it("flags a profile that references a missing provider (invalid config)", async () => {
     await applySetup({ options: { projectRoot }, detectionRunner: noProvider });
-    await setConfigValue(projectRoot, "roles.planner.provider", "nonexistent");
+    // Write a config whose profile points at an unconfigured provider. The
+    // schema's cross-record validation rejects it, so doctor reports the config
+    // as invalid (a guarantee setConfigValue would refuse to write).
+    await fs.writeFile(
+      path.join(projectRoot, ".vibestrate", "project.yml"),
+      [
+        "project: { name: demo, type: generic }",
+        "providers: { claude: { type: cli, command: claude } }",
+        "profiles: { broken: { provider: nonexistent } }",
+        "crews: { default: { roles: { planner: { fills: [planner], profile: broken, prompt: p, permissions: read_only } } } }",
+        "defaultCrew: default",
+        "",
+      ].join("\n"),
+    );
     const r = await runDoctor({ cwd: projectRoot });
-    expect(severityFor(r.findings, "agent-provider-refs")).toBe("fail");
+    expect(severityFor(r.findings, "config-valid")).toBe("fail");
   });
 
   it("doctor --fix restores missing prompts and skills README", async () => {

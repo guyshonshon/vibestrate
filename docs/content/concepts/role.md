@@ -1,57 +1,82 @@
 ---
 title: Role
-description: A scoped execution unit (role) — one role in the workflow, bound to a provider, a prompt template, a permission profile, and any attached skills.
+description: One teammate inside a Crew — its instructions, permissions, skills, the Profile it runs on, and the Seats it can fill.
 section: concepts
 slug: concepts/role
 ---
 
-**Professional explanation.** An agent is a scoped execution unit that receives task context, a role-specific instruction template, a permission profile, and access to a configured provider. It performs one named role inside a workflow — for example *planner* or *reviewer* — and produces a structured artifact the orchestrator routes to the next stage.
+# Role
 
-**Simple explanation.** An agent is a worker with a job and a set of rules. You assign each role to a provider — Claude Code, Codex, Ollama — and the agent stays in its lane.
+## Basically
 
-> **Agent vs [provider](/docs/concepts/provider):** an *agent* is a **role** (planner, reviewer…); a *provider* is the **CLI** it runs on. One provider can power many roles, and you can give each role a different one. In the dashboard, the **Agents** page shows the roles and the provider each runs on; the **Providers** page is where you attach and test those providers.
+A Role says how one teammate behaves and which Seats it can fill.
 
-## Why it matters
+## Example
 
-Splitting a task into named agent roles is what makes Vibestrate's loop inspectable. The planner only plans. The reviewer only reviews. When something goes wrong, you can read each role's output independently and see where the chain broke.
+```yaml
+crews:
+  default:
+    roles:
+      reviewer:
+        label: Reviewer
+        fills: [reviewer, challenger]
+        profile: opus-deep
+        prompt: .vibestrate/roles/reviewer.md
+        permissions: read_only
+        skills: []
+```
 
-It also lets you mix models. The planner might be a strong reasoning model. The executor might be a cheap, fast one. The reviewer might be a different vendor's model entirely, so it doesn't share the same blind spots as the executor.
+## More Detail
 
-## The six built-in agents
+A Role is one row inside a [[crew]]. It carries instructions (a prompt file),
+a permission profile, attached skills, the **[[profile]]** it runs on, and a
+list of **[[seat]]s** it can fill in a [[flow]]. Roles live under
+`crews.<crewId>.roles` — there is no top-level `roles` map any more, and a Role
+points at a Profile (`profile:`), not directly at a provider.
 
-Each is a configured row under `agents:` in `project.yml`. The role names are fixed; the provider, prompt template, permission profile, and skill list are yours to set.
+> **Role vs Profile vs Provider:** a *Role* is the behavior (Reviewer); a
+> *Profile* is how strong/expensive it runs (opus-deep); a *Provider* is the
+> installed CLI behind the Profile (claude). One Profile can back many Roles;
+> one Provider can back many Profiles.
 
-| Role | What it does |
-|---|---|
-| `planner` | Reads the task and produces a structured plan. |
-| `architect` | Expands the plan with module boundaries and interfaces. |
-| `executor` | Edits files in the worktree. |
-| `fixer` | Addresses review findings without rebuilding from scratch. |
-| `reviewer` | Critiques the diff against the plan, returns APPROVED / CHANGES_REQUESTED / BLOCKED. |
-| `verifier` | Final gate before `merge_ready` — checks for unresolved findings and validation gaps. |
+Splitting work into named Roles is what makes the loop inspectable: the planner
+only plans, the reviewer only reviews. Because each Role names a Profile, you
+can also mix models — a strong reasoning Profile for the planner, a cheap fast
+one for the executor, a different vendor for the reviewer so it doesn't share
+the executor's blind spots.
 
-See the [agents reference](/docs/reference/agents) for the source of each role's prompt template.
+## The six built-in roles (default crew)
 
-## How an agent's prompt is assembled
+| Role | Fills seats | What it does |
+|---|---|---|
+| `planner` | planner | Reads the task and produces a structured plan. |
+| `architect` | architect | Expands the plan with module boundaries and interfaces. |
+| `executor` | implementer, executor, builder | Edits files in the worktree. |
+| `fixer` | fixer | Addresses review findings without rebuilding from scratch. |
+| `reviewer` | reviewer, challenger | Critiques the diff; returns APPROVED / CHANGES_REQUESTED / BLOCKED. |
+| `verifier` | verifier, arbiter | Final gate before `merge_ready`. |
 
-For each agent invocation, Vibestrate builds the prompt from:
+## How a Role's prompt is assembled
 
-1. The role's template (e.g. `.vibestrate/agents/planner.md`).
+1. The Role's prompt template (e.g. `.vibestrate/roles/planner.md`).
 2. The project rules file (`.vibestrate/rules.md`).
-3. Any attached skills — both the agent's configured skills and per-run skills.
+3. Any attached skills (configured + per-run).
 4. The current task description.
-5. The artifacts produced by previous stages (plan, architecture, diff, validation output).
+5. The named artifacts from previous Steps (plan, architecture, diff, validation).
 
-The order matters: project rules come first so they bind the agent's behavior; skills follow as domain context; the task description and prior artifacts come last as the immediate brief.
+## Advanced
 
-## Common mistakes
-
-- **Assigning the same model to planner and reviewer.** They'll agree with themselves. Use different vendors for the contrast.
-- **Loading every skill on every agent.** Each skill is more context the agent has to process. Attach skills to the role that actually uses them.
-- **Editing the prompt template to add task-specific instructions.** Templates are durable; task-specific instructions go in the task description.
+- Schema: `src/roles/role-schema.ts` (`crewRoleConfigSchema`).
+- The run records the resolved Role per Step (`resolvedRoleId`,
+  `resolvedRoleLabel`) in `flow.json`.
+- API: `PATCH /api/crews/:crewId/roles/:roleId` edits a Role's
+  profile / seats (`fills`) / permissions / label / skills; the role context
+  (prompt) is read/written at `/api/crews/:crewId/roles/:roleId/context`.
 
 ## Related
 
-- [Provider](/docs/concepts/provider) — what an agent talks to.
-- [Skill](/docs/concepts/skill) — what an agent reads as domain context.
-- [Workflow](/docs/concepts/workflow) — the sequence of agents in a run.
+- [[crew]] — the roster a Role belongs to.
+- [[seat]] — what a Role fills in a Flow.
+- [[profile]] — how strong/expensive a Role runs.
+- [[provider]] — the CLI behind the Profile.
+- [[skill]] — what a Role reads as domain context.

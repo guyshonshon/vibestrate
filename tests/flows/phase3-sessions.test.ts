@@ -100,7 +100,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(projectRoot, `roles.${agent}.provider`, "fake-claude");
+    await setConfigValue(projectRoot, "profiles.claude-balanced.provider", "fake-claude");
   }
   await setConfigValue(
     projectRoot,
@@ -136,16 +136,16 @@ describe("Flow Phase 3 participant sessions", () => {
       await fs.readFile(path.join(runDir, "participants.json"), "utf8"),
     ) as {
       participants: {
-        slotId: string;
+        seat: string;
         sessionId: string | null;
         turns: { contextMode: string; sessionId: string | null }[];
       }[];
     };
     const builder = ledger.participants.find(
-      (participant) => participant.slotId === "builder",
+      (participant) => participant.seat === "builder",
     );
     const challenger = ledger.participants.find(
-      (participant) => participant.slotId === "challenger",
+      (participant) => participant.seat === "challenger",
     );
     expect(builder?.turns.map((turn) => turn.contextMode)).toEqual([
       "opened",

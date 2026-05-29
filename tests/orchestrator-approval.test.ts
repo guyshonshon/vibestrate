@@ -79,7 +79,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   }
 
   return {

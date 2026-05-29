@@ -72,7 +72,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   }
   await setConfigValue(
     dir,
@@ -164,13 +164,13 @@ describe("Flow Phase 2 sequential runner", () => {
       await fs.readFile(path.join(runDir, "participants.json"), "utf8"),
     ) as {
       participants: {
-        slotId: string;
+        seat: string;
         turns: { contextMode: string }[];
       }[];
     };
     expect(
       participants.participants
-        .find((participant) => participant.slotId === "builder")
+        .find((participant) => participant.seat === "builder")
         ?.turns.map((turn) => turn.contextMode),
     ).toEqual(["stateless", "rehydrated", "rehydrated"]);
     expect(state.flow?.participants.find((p) => p.seat === "builder"))

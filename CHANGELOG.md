@@ -6,6 +6,27 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **BREAKING — Core model rewrite (Phase 0 / Epic D):** `Task + Flow + Crew = Run`
+  with nouns Flow / Step / Seat / Crew / Role / Profile / Provider.
+- Config: add top-level `profiles`, `crews`, `defaultCrew`; remove top-level
+  `roles` and `effortMap`. Roles live under `crews.<id>.roles` and run on a
+  Profile (`role.profile`), not a provider. Profile power/effort is
+  provider-specific (free string), never a forced global enum.
+- Flows: `slots` → `seats`, `step.slot` → `step.seat`; dropped `step.roleId`.
+  Flows declare required Seats only and stay shareable.
+- Resolver: `step.seat` → Crew role (via `fills`) → Profile → Provider; clear
+  errors on missing / ambiguous seat fills. Resolved snapshot records `crewId`
+  and per-step `seat`/`resolvedRoleId`/`resolvedRoleLabel`/`profileId`/`providerId`.
+- Orchestrator runs each step from its resolved Profile→Provider; run records
+  `crewId`/`profileOverride`/`stepProfileOverrides`. Budget cap downgrade is
+  temporarily stop-only in the Profile model (TODO: switch to `fallbackProfile`).
+- CLI: `--crew`, `--profile`, `--step-profile <stepId=profileId>` (replacing
+  `--provider`/`--flow-slot`); flow-run wizard picks per-step Profiles.
+- Server: `GET /api/crews`, `GET /api/crews/:id`, `PATCH /api/crews/:id/roles/:roleId`,
+  `GET /api/profiles`, `PATCH /api/profiles/:id`; crew-scoped role context; run
+  resolve payload uses `crewId`/`profileOverride`/`stepProfileOverrides`
+  (replacing `/api/roles` and `slotProviders`).
+- TUI: the `agents` page is now **Crew**.
 - Docs: **Unified TODO** — `docs/TODO.md` is now the single source of truth for
   pending work (Phase 0 rewrite → S safety pillar → API → board → context/
   providers → integration/hub → observability → backlog → UI/UX → SEO/GEO).

@@ -154,7 +154,7 @@ export const budgetConfigSchema = z
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 
-const projectConfigBaseSchema = z.object({
+export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
     mainBranch: "main",

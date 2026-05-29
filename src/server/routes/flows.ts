@@ -19,7 +19,7 @@ import {
 } from "../../flows/runtime/flow-patch.js";
 import { HttpError } from "../security.js";
 
-const providerOverridesSchema = z
+const idOverridesSchema = z
   .record(z.string().min(1).max(80), z.string().min(1).max(128))
   .optional();
 
@@ -28,8 +28,14 @@ const resolveFlowBody = z
     task: z.string().min(1).max(2000),
     brief: z.string().max(4000).nullable().optional(),
     contextPolicy: flowContextPolicySchema.optional(),
-    slotProviders: providerOverridesSchema,
-    stepProviders: providerOverridesSchema,
+    /** Crew to resolve against (default: project.defaultCrew). */
+    crewId: z.string().min(1).max(128).optional(),
+    /** Run-wide Profile override applied to every seated step. */
+    profileOverride: z.string().min(1).max(128).optional(),
+    /** Pin a specific Role to a Seat (seat → roleId). */
+    seatRoleOverrides: idOverridesSchema,
+    /** Per-step Profile overrides (step id → profile id). */
+    stepProfileOverrides: idOverridesSchema,
     skippedOptionalSteps: z.array(z.string().min(1).max(80)).max(64).optional(),
   })
   .strict();

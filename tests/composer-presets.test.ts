@@ -21,11 +21,18 @@ providers:
   claude:
     type: cli
     command: __must_not_run__
-roles:
-  planner:
+profiles:
+  claude-balanced:
     provider: claude
-    prompt: .vibestrate/roles/planner.md
-    permissions: readOnly
+crews:
+  default:
+    roles:
+      planner:
+        fills: [planner]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/planner.md
+        permissions: readOnly
+defaultCrew: default
 `,
   );
   return root;

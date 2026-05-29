@@ -51,15 +51,25 @@ describe("init template", () => {
 
     const cfg = (await readGeneratedConfig(projectRoot)) as {
       providers: Record<string, { command: string; args: string[]; input: string }>;
-      roles: Record<string, { provider: string }>;
+      profiles: Record<string, { provider: string }>;
+      crews: Record<string, { roles: Record<string, { profile: string; fills: string[] }> }>;
+      defaultCrew: string;
       commands: { validate: string[] };
     };
     expect(cfg.providers["claude"]?.command).toBe("claude");
     expect(cfg.providers["claude"]?.args).toEqual(["-p"]);
     expect(cfg.providers["claude"]?.input).toBe("stdin");
+    // A profile is created on the recommended provider, and every default-crew
+    // role runs on it.
+    expect(cfg.profiles["claude-balanced"]?.provider).toBe("claude");
+    expect(cfg.defaultCrew).toBe("default");
+    const roles = cfg.crews["default"]!.roles;
     for (const roleId of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-      expect(cfg.roles[roleId]?.provider).toBe("claude");
+      expect(roles[roleId]?.profile).toBe("claude-balanced");
+      expect(cfg.profiles[roles[roleId]!.profile]?.provider).toBe("claude");
     }
+    // The implementer seat is fillable by the executor role.
+    expect(roles["executor"]?.fills).toContain("implementer");
     expect(cfg.commands.validate).toEqual(["pnpm typecheck", "pnpm test"]);
   });
 

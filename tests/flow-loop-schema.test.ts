@@ -7,14 +7,14 @@ function baseFlow(loop: unknown) {
     version: 1,
     label: "Looping",
     description: "A flow with an adaptive review loop.",
-    slots: {
-      builder: { label: "Builder", defaultRole: "executor" },
-      reviewer: { label: "Reviewer", defaultRole: "reviewer" },
+    seats: {
+      builder: { label: "Builder" },
+      reviewer: { label: "Reviewer" },
     },
     steps: [
-      { id: "implement", label: "Implement", kind: "agent-turn", slot: "builder" },
-      { id: "review", label: "Review", kind: "review-turn", slot: "reviewer" },
-      { id: "fix", label: "Fix", kind: "response-turn", slot: "builder" },
+      { id: "implement", label: "Implement", kind: "agent-turn", seat: "builder" },
+      { id: "review", label: "Review", kind: "review-turn", seat: "reviewer" },
+      { id: "fix", label: "Fix", kind: "response-turn", seat: "builder" },
     ],
     loop,
   };

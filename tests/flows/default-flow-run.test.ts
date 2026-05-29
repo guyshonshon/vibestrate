@@ -75,9 +75,9 @@ async function makeRepo(providerScript: string = PROVIDER): Promise<string> {
     "providers.fake",
     JSON.stringify({ type: "cli", command: "node", args: [providerPath], input: "stdin" }),
   );
-  for (const role of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-    await setConfigValue(dir, `roles.${role}.provider`, "fake");
-  }
+  // Every default-crew role runs on the `claude-balanced` profile; point it at
+  // the fake provider so the whole crew uses it.
+  await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   return dir;
 }
 

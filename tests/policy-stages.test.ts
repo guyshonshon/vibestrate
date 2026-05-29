@@ -29,14 +29,20 @@ describe("policies.requireApprovalAtStages — schema", () => {
     const r = projectConfigSchema.safeParse({
       project: { name: "x" },
       providers: { claude: { type: "cli", command: "claude" } },
-      roles: {
-        planner: { provider: "claude", prompt: "p", permissions: "read_only" },
-        architect: { provider: "claude", prompt: "p", permissions: "read_only" },
-        executor: { provider: "claude", prompt: "p", permissions: "code_write" },
-        fixer: { provider: "claude", prompt: "p", permissions: "code_write" },
-        reviewer: { provider: "claude", prompt: "p", permissions: "read_only" },
-        verifier: { provider: "claude", prompt: "p", permissions: "read_only" },
+      profiles: { "claude-balanced": { provider: "claude" } },
+      crews: {
+        default: {
+          roles: {
+            planner: { fills: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { fills: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { fills: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
       },
+      defaultCrew: "default",
     });
     expect(r.success).toBe(true);
     if (r.success) {
@@ -57,14 +63,20 @@ describe("policies.requireApprovalAtStages — schema", () => {
     const r = projectConfigSchema.safeParse({
       project: { name: "x" },
       providers: { claude: { type: "cli", command: "claude" } },
-      roles: {
-        planner: { provider: "claude", prompt: "p", permissions: "read_only" },
-        architect: { provider: "claude", prompt: "p", permissions: "read_only" },
-        executor: { provider: "claude", prompt: "p", permissions: "code_write" },
-        fixer: { provider: "claude", prompt: "p", permissions: "code_write" },
-        reviewer: { provider: "claude", prompt: "p", permissions: "read_only" },
-        verifier: { provider: "claude", prompt: "p", permissions: "read_only" },
+      profiles: { "claude-balanced": { provider: "claude" } },
+      crews: {
+        default: {
+          roles: {
+            planner: { fills: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { fills: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { fills: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
       },
+      defaultCrew: "default",
       policies: { requireApprovalAtStages: stages },
     });
     expect(r.success).toBe(true);
@@ -74,14 +86,20 @@ describe("policies.requireApprovalAtStages — schema", () => {
     const r = projectConfigSchema.safeParse({
       project: { name: "x" },
       providers: { claude: { type: "cli", command: "claude" } },
-      roles: {
-        planner: { provider: "claude", prompt: "p", permissions: "read_only" },
-        architect: { provider: "claude", prompt: "p", permissions: "read_only" },
-        executor: { provider: "claude", prompt: "p", permissions: "code_write" },
-        fixer: { provider: "claude", prompt: "p", permissions: "code_write" },
-        reviewer: { provider: "claude", prompt: "p", permissions: "read_only" },
-        verifier: { provider: "claude", prompt: "p", permissions: "read_only" },
+      profiles: { "claude-balanced": { provider: "claude" } },
+      crews: {
+        default: {
+          roles: {
+            planner: { fills: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { fills: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { fills: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
       },
+      defaultCrew: "default",
       policies: { requireApprovalAtStages: ["architecting", "merging"] },
     });
     expect(r.success).toBe(false);

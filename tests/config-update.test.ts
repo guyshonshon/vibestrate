@@ -126,8 +126,10 @@ describe("config get/set/validate", () => {
       path.join(projectRoot, ".vibestrate", "project.yml"),
       "utf8",
     );
-    const reparsed = YAML.parse(text) as { roles: Record<string, unknown> };
-    expect(Object.keys(reparsed.roles)).toEqual(
+    const reparsed = YAML.parse(text) as {
+      crews: { default: { roles: Record<string, unknown> } };
+    };
+    expect(Object.keys(reparsed.crews.default.roles)).toEqual(
       expect.arrayContaining(["planner", "architect", "executor", "fixer", "reviewer", "verifier"]),
     );
   });

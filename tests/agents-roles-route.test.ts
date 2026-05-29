@@ -5,7 +5,10 @@ import fs from "node:fs/promises";
 import { execa } from "execa";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { applySetup } from "../src/setup/setup-service.js";
-import { setConfigValue } from "../src/setup/config-update-service.js";
+import {
+  setConfigValue,
+  setProfileFields,
+} from "../src/setup/config-update-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
 
 const noProvider: ProviderDetectionRunner = async () => ({
@@ -23,15 +26,13 @@ async function makeProject(): Promise<string> {
   await execa("git", ["add", "."], { cwd: project });
   await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
   await applySetup({ options: { projectRoot: project }, detectionRunner: noProvider });
-  // Configure a provider and bind one role to it so we can assert the binding.
+  // Configure a second provider and a profile that runs on it.
   await setConfigValue(
     project,
     "providers.fake",
     JSON.stringify({ type: "cli", command: "true", args: [], input: "stdin" }),
   );
-  await setConfigValue(project, "roles.reviewer.provider", "fake");
-  // Bind planner to a provider that isn't configured, to assert the flag.
-  await setConfigValue(project, "roles.planner.provider", "ghost");
+  await setProfileFields(project, "fake-balanced", { provider: "fake" });
   return project;
 }
 
@@ -41,69 +42,72 @@ afterEach(async () => {
   server = null;
 });
 
-describe("GET /api/roles", () => {
-  it("returns the role→engine bindings without leaking prompt contents", async () => {
+describe("GET /api/crews", () => {
+  it("returns the crew roster with each role's seats/profile/provider, no prompt contents", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    const res = await fetch(`${server.url}/api/roles`);
+    const res = await fetch(`${server.url}/api/crews`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      roles: {
+      defaultCrew: string;
+      crews: {
         id: string;
-        provider: string;
-        providerConfigured: boolean;
-        permissions: string;
-        skills: string[];
+        roles: {
+          id: string;
+          fills: string[];
+          profile: string;
+          provider: string | null;
+          providerConfigured: boolean;
+          permissions: string;
+          skills: string[];
+        }[];
       }[];
     };
 
-    const ids = body.roles.map((r) => r.id).sort();
+    expect(body.defaultCrew).toBe("default");
+    const crew = body.crews.find((c) => c.id === "default")!;
+    const ids = crew.roles.map((r) => r.id).sort();
     expect(ids).toEqual(
       ["architect", "executor", "fixer", "planner", "reviewer", "verifier"].sort(),
     );
 
-    const reviewer = body.roles.find((r) => r.id === "reviewer")!;
-    expect(reviewer.provider).toBe("fake");
+    const reviewer = crew.roles.find((r) => r.id === "reviewer")!;
+    expect(reviewer.fills).toContain("reviewer");
+    expect(typeof reviewer.profile).toBe("string");
     expect(reviewer.providerConfigured).toBe(true);
-    expect(typeof reviewer.permissions).toBe("string");
-
-    // A role bound to a provider that isn't configured is flagged.
-    const planner = body.roles.find((r) => r.id === "planner")!;
-    expect(planner.providerConfigured).toBe(false);
 
     // No prompt contents (or any "prompt" field) are exposed.
-    for (const r of body.roles as unknown as Record<string, unknown>[]) {
+    for (const r of crew.roles as unknown as Record<string, unknown>[]) {
       expect(r.prompt).toBeUndefined();
     }
   });
 });
 
-describe("PATCH /api/roles/:roleId", () => {
-  it("points a role at a configured provider; rejects an unconfigured one", async () => {
+describe("PATCH /api/crews/:crewId/roles/:roleId", () => {
+  it("points a role at a configured profile; rejects an unknown one", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    // planner was bound to the unconfigured "ghost" — repoint it at "fake".
-    const ok = await fetch(`${server.url}/api/roles/planner`, {
+    const ok = await fetch(`${server.url}/api/crews/default/roles/reviewer`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ provider: "fake" }),
+      body: JSON.stringify({ profile: "fake-balanced" }),
     });
     expect(ok.status).toBe(200);
 
-    const after = (await (await fetch(`${server.url}/api/roles`)).json()) as {
-      roles: { id: string; provider: string; providerConfigured: boolean }[];
+    const after = (await (await fetch(`${server.url}/api/crews/default`)).json()) as {
+      crew: { roles: { id: string; profile: string; provider: string | null }[] };
     };
-    const planner = after.roles.find((r) => r.id === "planner")!;
-    expect(planner.provider).toBe("fake");
-    expect(planner.providerConfigured).toBe(true);
+    const reviewer = after.crew.roles.find((r) => r.id === "reviewer")!;
+    expect(reviewer.profile).toBe("fake-balanced");
+    expect(reviewer.provider).toBe("fake");
 
-    // An unconfigured provider is refused (no silent write).
-    const bad = await fetch(`${server.url}/api/roles/reviewer`, {
+    // An unknown profile is refused (no silent write).
+    const bad = await fetch(`${server.url}/api/crews/default/roles/reviewer`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ provider: "ghost" }),
+      body: JSON.stringify({ profile: "ghost-profile" }),
     });
     expect(bad.status).toBe(400);
   });

@@ -3179,7 +3179,7 @@
             },
             {
               "flags": "--fallback <providerId>",
-              "description": "cheaper provider to switch to on downgrade-model",
+              "description": "cheaper Profile to switch to on downgrade-model",
               "required": true,
               "optional": false,
               "negated": false
@@ -3334,21 +3334,28 @@
         },
         {
           "flags": "--effort <level>",
-          "description": "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+          "description": "task-difficulty hint (low|medium|high). Recorded for planning; does not pick a provider.",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
-          "flags": "--provider <id>",
-          "description": "override the provider for every agent in this run (wins over --effort).",
+          "flags": "--crew <id>",
+          "description": "crew to resolve the flow's seats against (default: project.defaultCrew).",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--profile <id>",
+          "description": "run-wide Profile override applied to every seated step in this run.",
           "required": true,
           "optional": false,
           "negated": false
         },
         {
           "flags": "--read-only",
-          "description": "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every agent.",
+          "description": "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every role.",
           "required": false,
           "optional": false,
           "negated": false
@@ -3382,8 +3389,8 @@
           "negated": false
         },
         {
-          "flags": "--flow-slot <slot=provider>",
-          "description": "override a Flow participant slot provider. Repeat for multiple slots.",
+          "flags": "--step-profile <stepId=profileId>",
+          "description": "override the Profile for a Flow step (same Role, different runtime). Repeat for multiple steps.",
           "defaultValue": "[]",
           "required": true,
           "optional": false,
