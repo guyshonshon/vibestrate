@@ -6,6 +6,23 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **UI: web dashboard rewired to the Crew/Profile/Seat model.** `ui/lib/{types,api}`
+  now talk to `/api/crews`, `/api/profiles`, and the
+  `crewId`/`profileOverride`/`stepProfileOverrides` resolve/run payload.
+- UI: **Crew page** redesigned around the crew — role roster cards (seat chips,
+  profile badge with provider/model/power, permissions, skills, inline prompt
+  editor) plus a seat-coverage panel (covered / uncovered / ambiguous).
+- UI: new **Profiles page** (+ TopBar nav) to edit a profile's provider, model,
+  power (provider-specific, free text), budget, max tokens, and timeout.
+- UI: **Mission Control composer** now picks a **Crew** and shows a live
+  **Step → Seat → Role → Profile → Provider** allocation table with per-step
+  profile overrides; uncovered/ambiguous seats block Send with a "fix crew" link
+  (run-time seat→role disambiguation isn't wired into the run path yet).
+- UI: **Flow Builder** uses **Seat** (not slot); the per-step role override is
+  gone (flows stay shareable — the Crew decides the role at run time); dry-run
+  previews the seat→role→profile→provider resolution.
+- Composer presets (`.vibestrate/composer-presets.json`, server + UI) now store
+  `crewId`/`profileOverride`/`stepProfileOverrides` instead of `slotProviders`/`provider`.
 - **BREAKING — Core model rewrite (Phase 0 / Epic D):** `Task + Flow + Crew = Run`
   with nouns Flow / Step / Seat / Crew / Role / Profile / Provider.
 - Config: add top-level `profiles`, `crews`, `defaultCrew`; remove top-level
