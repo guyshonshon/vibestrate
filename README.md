@@ -4,7 +4,7 @@
 
 <img src="./.github/assets/logo.png" alt="Vibestrate logo" width="108" />
 
-<img src="./.github/assets/hero.png" alt="Vibestrate" width="480" />
+<img src="./.github/assets/wordmark-ascii.svg" alt="VIBESTRATE" width="520" />
 
 <sub>the missing piece of vibe-coding</sub>
 

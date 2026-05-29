@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="628" height="131" viewBox="0 0 628 131" role="img" aria-label="VIBESTRATE">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b794ff"/>
+      <stop offset="0.5" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#5b21b6"/>
+    </linearGradient>
+  </defs>
+  <text font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16.0" font-weight="700" fill="url(#g)" xml:space="preserve">
+    <tspan x="18" y="34.0">__     _____ ____  _____ ____ _____ ____      _  _____ _____ </tspan><tspan x="18" y="53.0">\ \   / /_ _| __ )| ____/ ___|_   _|  _ \    / \|_   _| ____|</tspan><tspan x="18" y="72.0"> \ \ / / | ||  _ \|  _| \___ \ | | | |_) |  / _ \ | | |  _|  </tspan><tspan x="18" y="91.0">  \ V /  | || |_) | |___ ___) || | |  _ &lt;  / ___ \| | | |___ </tspan><tspan x="18" y="110.0">   \_/  |___|____/|_____|____/ |_| |_| \_\/_/   \_\_| |_____|</tspan>
+  </text>
+</svg>

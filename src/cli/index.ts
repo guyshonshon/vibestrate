@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 // updates it in one place — flowing into `vibe --version` and the
 // generated docs reference automatically.
 import pkg from "../../package.json";
+import { renderBanner } from "./ui/banner.js";
 import { runInitCommand } from "./commands/init.js";
 import { runRunCommand } from "./commands/run.js";
 import { runStatusCommand } from "./commands/status.js";
@@ -74,6 +75,11 @@ export function buildVibestrateProgram(): Command {
       "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
     .version(pkg.version);
+
+  // Purple ASCII banner above the *root* help only (not subcommand help).
+  program.addHelpText("beforeAll", (ctx) =>
+    ctx.command === program ? `\n${renderBanner()}\n` : "",
+  );
 
   program
     .command("init")
