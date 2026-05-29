@@ -84,7 +84,10 @@ export type VibestrateEventType =
   | "flow.step.failed"
   | "flow.step.skipped"
   | "flow.loop.iteration"
-  | "flow.loop.decision";
+  | "flow.loop.decision"
+  | "action.allowed"
+  | "action.denied"
+  | "action.approval_required";
 
 export type VibestrateEvent = {
   timestamp: string;

@@ -36,6 +36,11 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import {
+  DefaultActionBroker,
+  type ActionBroker,
+  type ActionRequest,
+} from "../safety/action-broker.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import {
@@ -238,6 +243,16 @@ class __SpendCapStopSignal extends Error {
   }
 }
 
+/** Thrown when the Action Broker denies (or requires unavailable approval for)
+ *  a proposed effect. Fail-closed: the run() loop catches it and blocks the
+ *  run rather than failing it — the decision is already recorded as evidence. */
+class __ActionDeniedSignal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ActionDeniedSignal";
+  }
+}
+
 function summarizeApprovals(
   approvals: import("./approval-types.js").ApprovalRequest[],
 ): {
@@ -307,6 +322,9 @@ export class Orchestrator {
   /** Crew the active flow snapshot was resolved against; set in run(). Used by
    *  runRole to look up the resolved Role's config (prompt/permissions/skills). */
   private activeCrewId: string | null = null;
+  /** Action Broker for this run; set in run(). Every real effect (S0: provider
+   *  spawn) is decided + recorded through it. Null only before run() is called. */
+  private broker: ActionBroker | null = null;
   /** One-time guard so the spend warning fires once per run, not every turn. */
   private spendWarned = false;
   private readonly readOnly: boolean;
@@ -383,6 +401,7 @@ export class Orchestrator {
     const eventLog = new EventLog(this.projectRoot, runId);
     const metricsStore = new MetricsStore(this.projectRoot, runId);
     const approvalService = new ApprovalService(this.projectRoot, runId);
+    this.broker = new DefaultActionBroker(this.projectRoot, runId);
     const notifications = new NotificationService(this.projectRoot);
     const notify = (draft: NotificationDraft): void => {
       // Fire-and-forget: gateway delivery never blocks the orchestrator and
@@ -1790,6 +1809,16 @@ export class Orchestrator {
         }
         state = { ...state, error: err.message };
         await input.stateStore.write(state);
+      } else if (err instanceof __ActionDeniedSignal) {
+        // Action Broker denied an effect → "blocked" (not "failed"); the
+        // action.denied event + actions.ndjson record were already written.
+        try {
+          state = applyTransition(state, "blocked");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: err.message };
+        await input.stateStore.write(state);
       } else if (!(err instanceof __ApprovalRejectedSignal)) {
         const stepId = state.flow?.currentStepId;
         if (stepId) {
@@ -2394,6 +2423,47 @@ export class Orchestrator {
       data: { roleId, provider: effectiveProviderId, cwd },
     });
 
+    // ── Action Broker boundary (S0) ──────────────────────────────────────
+    // Every provider spawn is decided and recorded as evidence before the
+    // child process is started. Fail-closed: a non-allow decision blocks the
+    // run (default policy is allow, so behavior is unchanged until S2 wires
+    // evaluators). The post-execution evidence is appended after runProvider.
+    const actionRequest: ActionRequest = {
+      runId: ctx.runId,
+      roleId,
+      kind: "provider.spawn",
+      subject: {
+        providerId: effectiveProviderId,
+        seat: input.flowTurn?.seat ?? null,
+        cwd,
+      },
+      proposedBy: "system",
+    };
+    const actionDecision = await this.broker!.decide(actionRequest);
+    if (actionDecision.effect !== "allow") {
+      await this.broker!.record(actionRequest, actionDecision, null);
+      const reason =
+        "reason" in actionDecision ? actionDecision.reason : "policy denied";
+      await ctx.eventLog.append({
+        type:
+          actionDecision.effect === "deny"
+            ? "action.denied"
+            : "action.approval_required",
+        message: `Action broker ${actionDecision.effect} provider.spawn for ${roleId}: ${reason}`,
+        data: {
+          roleId,
+          kind: "provider.spawn",
+          provider: effectiveProviderId,
+          effect: actionDecision.effect,
+          ruleIds: actionDecision.ruleIds,
+          reason,
+        },
+      });
+      throw new __ActionDeniedSignal(
+        `Action broker ${actionDecision.effect} provider.spawn for ${roleId}: ${reason}`,
+      );
+    }
+
     let providerResult: RichProviderRunResult;
     const stageStart = new Date();
     // Materialize a live stream file for this agent invocation so the
@@ -2494,6 +2564,15 @@ export class Orchestrator {
           at: new Date().toISOString(),
         }).catch(() => undefined);
       }
+      // Post-execution evidence for the allowed action (S0 audit trail).
+      await this.broker!.record(actionRequest, actionDecision, {
+        ok: providerResult.exitCode === 0,
+        summary: `provider.spawn ${effectiveProviderId} exited ${providerResult.exitCode}`,
+        data: {
+          exitCode: providerResult.exitCode,
+          durationMs: Date.now() - stageStart.getTime(),
+        },
+      });
     } catch (err) {
       const stageEnd = new Date();
       await ctx.eventLog.append({

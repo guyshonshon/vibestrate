@@ -1106,3 +1106,32 @@ The product value is:
 ```text
 controlled execution + hard policy gates + visible evidence
 ```
+
+---
+
+## Implementation status
+
+### S0 — Action Broker boundary + decision/evidence records ✅ shipped
+
+The boundary and the audit record landed first (`src/safety/action-broker.ts`):
+
+- `ActionRequest` / `ActionDecision` / `ActionEvidence` / `ActionRecord` types
+  and the `ActionBroker` interface, matching the model above.
+- `DefaultActionBroker` — deterministic, side-effect-free `decide()` running an
+  ordered `ActionEvaluator[]` chain (first `deny` wins, else first
+  `require_approval`, else `allow`); `record()` appends one NDJSON line to the
+  per-run evidence log.
+- Evidence log at `runs/<id>/actions.ndjson` (`runActionsPath`), read back by
+  `readActionLog()` (tolerates a torn final line).
+- Orchestrator wiring: every **`provider.spawn`** is decided before the child
+  process starts and recorded with post-execution evidence (exit code,
+  duration) after. Fail-closed — a non-allow decision throws
+  `__ActionDeniedSignal`, which blocks the run (status `blocked`, not `failed`)
+  and emits `action.denied` / `action.approval_required` events.
+- Default policy is **allow** (no evaluators wired yet), so run behavior is
+  unchanged until the Policy Engine (S2) plugs evaluators into the same chain.
+
+Not yet brokered (later slices): `command.run`, `file.patch`, `file.write`,
+`network.request`, `mcp.tool`, `terminal.create`, `run.complete`. These call
+sites route through the broker as their slices land — no call-site change is
+needed beyond constructing the request and honoring the decision.

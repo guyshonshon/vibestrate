@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Action Broker (S0):** new `src/safety/action-broker.ts` — the
+  Vibestrate-owned boundary every real effect crosses. `decide()` runs an
+  ordered evaluator chain (deny > require_approval > allow); `record()` appends
+  evidence to `runs/<id>/actions.ndjson`. The orchestrator routes every
+  `provider.spawn` through it (fail-closed, default-allow → behavior unchanged);
+  a denial blocks the run and emits `action.denied`/`action.approval_required`.
 - **Run-time seat disambiguation:** the run path now threads `seatRoleOverrides`
   (seat → role) end to end — CLI `--seat-role <seat=roleId>`, the `/api/runs`
   spawn payload, RunSpec, the orchestrator, and the resolved snapshot/run state.
