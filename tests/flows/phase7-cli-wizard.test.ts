@@ -12,10 +12,10 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
         task: "add audit logging",
         brief: "keep migrations reversible",
         contextPolicy: "compact",
-        slotProviders: {
-          challenger: "codex",
-          builder: "claude",
-          arbiter: "vibestrate",
+        stepProfiles: {
+          "implementation-review": "codex-balanced",
+          implement: "claude-balanced",
+          "decision-summary": "opus-deep",
         },
         skippedOptionalSteps: ["plan-review"],
       }),
@@ -27,12 +27,12 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
       "keep migrations reversible",
       "--flow-context",
       "compact",
-      "--flow-slot",
-      "arbiter=vibestrate",
-      "--flow-slot",
-      "builder=claude",
-      "--flow-slot",
-      "challenger=codex",
+      "--step-profile",
+      "decision-summary=opus-deep",
+      "--step-profile",
+      "implement=claude-balanced",
+      "--step-profile",
+      "implementation-review=codex-balanced",
       "--flow-skip",
       "plan-review",
       "add audit logging",
@@ -46,11 +46,11 @@ describe("Phase 7 Flow CLI wizard command summary", () => {
         task: "ship it",
         brief: null,
         contextPolicy: "balanced",
-        slotProviders: { builder: "claude" },
+        stepProfiles: { implement: "claude-balanced" },
         skippedOptionalSteps: [],
       }),
     ).toBe(
-      "vibe run --flow quality-arbitration --flow-context balanced --flow-slot builder=claude \"ship it\"",
+      "vibe run --flow quality-arbitration --flow-context balanced --step-profile implement=claude-balanced \"ship it\"",
     );
   });
 });

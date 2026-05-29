@@ -392,7 +392,7 @@ describe("agent-work attribution", () => {
           promptArtifactPath: "artifacts/2_implement.md",
           outputArtifactPath: "artifacts/2_implement_output.md",
           sessionId: null,
-          flowSlotId: null,
+          flowSeat: null,
           flowContextMode: null,
           flowContextFallbackReason: null,
           model: null,

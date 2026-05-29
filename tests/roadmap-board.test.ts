@@ -31,7 +31,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     commentsCount: 0,
     lastEventAt: updatedAt,
     effort: null,
-    providerOverride: null,
+    profileOverride: null,
     readOnly: false,
   };
 }

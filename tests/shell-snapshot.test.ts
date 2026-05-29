@@ -186,7 +186,7 @@ describe("buildShellSnapshot", () => {
       readOnly: true,
       pauseRequested: true,
       pausedAtStatus: "executing",
-      providerOverride: "codex",
+      profileOverride: "codex",
       resolvedProviderId: "codex",
     });
     const snap = await buildShellSnapshot(root);
@@ -195,7 +195,7 @@ describe("buildShellSnapshot", () => {
     expect(row.readOnly).toBe(true);
     expect(row.pauseRequested).toBe(true);
     expect(row.pausedAtStatus).toBe("executing");
-    expect(row.providerOverride).toBe("codex");
+    expect(row.profileOverride).toBe("codex");
   });
 
   it("surfaces the current Flow step from state.json", async () => {

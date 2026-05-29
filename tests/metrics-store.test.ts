@@ -51,7 +51,7 @@ describe("MetricsStore", () => {
       durationMs: 1000,
       exitCode: 0,
       sessionId: null,
-      flowSlotId: null,
+      flowSeat: null,
       flowContextMode: null,
       flowContextFallbackReason: null,
       model: null,

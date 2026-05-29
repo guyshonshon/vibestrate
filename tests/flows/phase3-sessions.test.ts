@@ -167,7 +167,7 @@ describe("Flow Phase 3 participant sessions", () => {
       .map((line) => JSON.parse(line) as string[]);
     expect(argvRows.some((args) => args.includes("--session-id"))).toBe(true);
     expect(argvRows.filter((args) => args.includes("--resume")).length).toBe(4);
-    expect(result.state.flow?.participants.find((p) => p.slotId === "builder"))
+    expect(result.state.flow?.participants.find((p) => p.seat === "builder"))
       .toMatchObject({
         providerType: "claude-code",
         sessionReuse: "resume",

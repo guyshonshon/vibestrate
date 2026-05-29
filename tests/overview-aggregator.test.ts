@@ -12,10 +12,46 @@ import type { RuntimeMetrics } from "../src/core/runtime-metrics.js";
 
 const FIXED_NOW = new Date("2026-05-25T18:00:00Z").getTime();
 
-function run(over: Partial<RunState>): RunState {
+function run(over: Partial<RunState> & { resolvedProviderId?: string }): RunState {
   // Minimal RunState that satisfies the zod schema's shape — we don't
   // .parse() here because the aggregator only consumes a subset of
   // fields. Casts are confined to this helper.
+  // The aggregator now derives a run's provider from its flow steps, so the
+  // `resolvedProviderId` shorthand seeds a one-step flow carrying that provider.
+  const { resolvedProviderId = "claude-sonnet", ...rest } = over;
+  const flow =
+    rest.flow ??
+    ({
+      flowId: "default",
+      flowVersion: 1,
+      label: "Default",
+      snapshotPath: "flow.json",
+      participantLedgerPath: null,
+      participants: [],
+      currentStepId: null,
+      steps: [
+        {
+          id: "implement",
+          label: "Implement",
+          kind: "agent-turn",
+          status: "passed",
+          optional: false,
+          stage: "executing",
+          seat: "implementer",
+          resolvedRoleId: "executor",
+          resolvedRoleLabel: "Executor",
+          profileId: "p",
+          providerId: resolvedProviderId,
+          promptArtifactPath: null,
+          outputArtifactPath: null,
+          contextPacketPath: null,
+          validationArtifactPath: null,
+          startedAt: null,
+          endedAt: null,
+          error: null,
+        },
+      ],
+    } as RunState["flow"]);
   return {
     runId: "r-x",
     task: "test",
@@ -36,13 +72,14 @@ function run(over: Partial<RunState>): RunState {
     pauseRequested: false,
     pausedAtStatus: null,
     effort: null,
-    providerOverride: null,
-    resolvedProviderId: "claude-sonnet",
+    crewId: null,
+    profileOverride: null,
+    stepProfileOverrides: {},
     readOnly: false,
     runtimeSkills: [],
     concise: false,
-    flow: null,
-    ...over,
+    ...rest,
+    flow,
   } as RunState;
 }
 

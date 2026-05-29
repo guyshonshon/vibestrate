@@ -15,14 +15,23 @@ function flowTestConfig() {
       claude: { type: "cli", command: "__must_not_run__" },
       codex: { type: "cli", command: "__must_not_run__" },
     },
-    roles: {
-      planner: { provider: "claude", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
-      architect: { provider: "claude", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
-      executor: { provider: "claude", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
-      fixer: { provider: "claude", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
-      reviewer: { provider: "codex", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
-      verifier: { provider: "codex", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
+    profiles: {
+      "claude-balanced": { provider: "claude" },
+      "codex-balanced": { provider: "codex" },
     },
+    crews: {
+      default: {
+        roles: {
+          planner: { fills: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
+          architect: { fills: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
+          executor: { fills: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
+          fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
+          reviewer: { fills: ["reviewer"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
+          verifier: { fills: ["verifier"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
+        },
+      },
+    },
+    defaultCrew: "default",
   });
 }
 
@@ -33,10 +42,10 @@ describe("Default flow definition (D2 phase B-2)", () => {
     expect(() => flowDefinitionSchema.parse(defaultFlow)).not.toThrow();
 
     expect(defaultFlow.id).toBe("default");
-    expect(defaultFlow.steps.map((s) => [s.id, s.kind, s.roleId ?? null])).toEqual([
+    expect(defaultFlow.steps.map((s) => [s.id, s.kind, s.seat ?? null])).toEqual([
       ["plan", "agent-turn", "planner"],
       ["architecture", "agent-turn", "architect"],
-      ["implement", "agent-turn", "executor"],
+      ["implement", "agent-turn", "implementer"],
       ["validation", "validation", null],
       ["review", "review-turn", "reviewer"],
       ["fix", "response-turn", "fixer"],
@@ -79,11 +88,24 @@ describe("Default flow definition (D2 phase B-2)", () => {
       resolvedAt: "2026-05-27T00:00:00.000Z",
     });
 
-    // One slot per role, each bound to its configured provider.
-    expect(snapshot.slots.map((s) => [s.id, s.defaultRole, s.providerId])).toEqual([
+    // Seats are declared by the flow; each seated step resolves to its crew
+    // role's profile/provider.
+    expect(snapshot.seats.map((s) => s.id)).toEqual([
+      "planner",
+      "architect",
+      "implementer",
+      "reviewer",
+      "fixer",
+      "verifier",
+    ]);
+    expect(
+      snapshot.steps
+        .filter((s) => s.seat)
+        .map((s) => [s.seat, s.resolvedRoleId, s.providerId]),
+    ).toEqual([
       ["planner", "planner", "claude"],
       ["architect", "architect", "claude"],
-      ["executor", "executor", "claude"],
+      ["implementer", "executor", "claude"],
       ["reviewer", "reviewer", "codex"],
       ["fixer", "fixer", "claude"],
       ["verifier", "verifier", "codex"],

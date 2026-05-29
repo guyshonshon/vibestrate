@@ -173,7 +173,7 @@ describe("Flow Phase 2 sequential runner", () => {
         .find((participant) => participant.slotId === "builder")
         ?.turns.map((turn) => turn.contextMode),
     ).toEqual(["stateless", "rehydrated", "rehydrated"]);
-    expect(state.flow?.participants.find((p) => p.slotId === "builder"))
+    expect(state.flow?.participants.find((p) => p.seat === "builder"))
       .toMatchObject({
         providerType: "cli",
         sessionReuse: "none",
