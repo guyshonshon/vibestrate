@@ -223,7 +223,7 @@ export class ProposalService {
       commentsCount: 0,
       lastEventAt: null,
       effort: null,
-      providerOverride: null,
+      profileOverride: null,
       readOnly: false,
     }));
     const graph = buildDependencyGraph(tempTasks);

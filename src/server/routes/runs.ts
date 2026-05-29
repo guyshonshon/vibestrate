@@ -55,7 +55,10 @@ const spawnRunBody = z.object({
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
     .optional(),
   effort: z.enum(["low", "medium", "high"]).optional(),
-  provider: z.string().min(1).max(64).optional(),
+  /** Crew to resolve the flow against (default: project.defaultCrew). */
+  crewId: z.string().min(1).max(128).optional(),
+  /** Run-wide Profile override applied to every seated step. */
+  profileOverride: z.string().min(1).max(128).optional(),
   readOnly: z.boolean().optional(),
   // Per-run skill ids — merged into every agent's configured skills
   // for this single run. Each id is the slug `loadSkills` accepts.
@@ -75,7 +78,7 @@ const spawnRunBody = z.object({
       contextPolicy: z
         .enum(["balanced", "compact", "artifact-heavy"])
         .optional(),
-      slotProviders: z
+      stepProfileOverrides: z
         .record(
           z.string().min(1).max(80).regex(/^[a-z][a-z0-9-]*$/),
           z.string().min(1).max(128),
@@ -192,7 +195,8 @@ export async function registerRunsRoutes(
     const argv: string[] = ["run", body.task];
     if (body.taskId) argv.push("--task", body.taskId);
     if (body.effort) argv.push("--effort", body.effort);
-    if (body.provider) argv.push("--provider", body.provider);
+    if (body.crewId) argv.push("--crew", body.crewId);
+    if (body.profileOverride) argv.push("--profile", body.profileOverride);
     if (body.readOnly) argv.push("--read-only");
     if (body.skills && body.skills.length > 0) {
       argv.push("--skills", body.skills.join(","));
@@ -204,10 +208,10 @@ export async function registerRunsRoutes(
       if (body.flow.contextPolicy) {
         argv.push("--flow-context", body.flow.contextPolicy);
       }
-      for (const [slotId, providerId] of Object.entries(
-        body.flow.slotProviders ?? {},
+      for (const [stepId, profileId] of Object.entries(
+        body.flow.stepProfileOverrides ?? {},
       )) {
-        argv.push("--flow-slot", `${slotId}=${providerId}`);
+        argv.push("--step-profile", `${stepId}=${profileId}`);
       }
       for (const stepId of body.flow.skippedOptionalSteps ?? []) {
         argv.push("--flow-skip", stepId);
@@ -219,7 +223,8 @@ export async function registerRunsRoutes(
       task: body.task,
       taskId: body.taskId ?? null,
       effort: body.effort ?? null,
-      provider: body.provider ?? null,
+      crewId: body.crewId ?? null,
+      profileOverride: body.profileOverride ?? null,
       readOnly: body.readOnly ?? false,
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,
@@ -443,7 +448,8 @@ export async function registerRunsRoutes(
         task: run.task,
         taskId: run.taskId ?? null,
         effort: run.effort ?? null,
-        provider: run.providerOverride ?? null,
+        crewId: run.crewId ?? null,
+        profileOverride: run.profileOverride ?? null,
         readOnly: run.readOnly ?? false,
         runtimeSkills: run.runtimeSkills ?? [],
         concise: run.concise ?? false,

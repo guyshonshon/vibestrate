@@ -4,7 +4,7 @@ import { ollamaPreset } from "../providers/presets/ollama.js";
 import { claudeCodePreset } from "../providers/presets/claude-code.js";
 import {
   ensureProvider,
-  assignRolesToProvider,
+  pointAllProfilesAtProvider,
   deleteProvider,
   readDocument,
 } from "./config-update-service.js";
@@ -33,7 +33,8 @@ export type ProviderSummary = {
   command: string;
   args: string[];
   input: "stdin" | "arg";
-  rolesUsing: string[];
+  /** Profile ids whose `provider` points at this provider. */
+  profilesUsing: string[];
 };
 
 export async function listConfiguredProviders(
@@ -42,22 +43,22 @@ export async function listConfiguredProviders(
   const { doc } = await readDocument(projectRoot);
   const js = doc.toJS() as {
     providers?: Record<string, { command?: string; args?: string[]; input?: "stdin" | "arg" }>;
-    roles?: Record<string, { provider?: string }>;
+    profiles?: Record<string, { provider?: string }>;
   };
   const providers = js.providers ?? {};
-  const agents = js.roles ?? {};
+  const profiles = js.profiles ?? {};
   const out: ProviderSummary[] = [];
   for (const [id, prov] of Object.entries(providers)) {
     const usedBy: string[] = [];
-    for (const [roleId, agent] of Object.entries(agents)) {
-      if (agent.provider === id) usedBy.push(roleId);
+    for (const [profileId, profile] of Object.entries(profiles)) {
+      if (profile.provider === id) usedBy.push(profileId);
     }
     out.push({
       id,
       command: prov.command ?? "",
       args: prov.args ?? [],
       input: prov.input ?? "stdin",
-      rolesUsing: usedBy.sort(),
+      profilesUsing: usedBy.sort(),
     });
   }
   return out;
@@ -66,7 +67,7 @@ export async function listConfiguredProviders(
 export type SetProviderResult = {
   ok: true;
   providerId: string;
-  rolesUpdated: string[];
+  profilesUpdated: string[];
 };
 
 export type SetProviderError = {
@@ -88,16 +89,17 @@ export async function setDefaultProvider(
       hint: "Run `vibe provider setup` to add a provider before assigning it.",
     };
   }
-  await assignRolesToProvider(projectRoot, providerId);
+  await pointAllProfilesAtProvider(projectRoot, providerId);
   const after = await listConfiguredProviders(projectRoot);
-  const updated = after.find((s) => s.id === providerId)?.rolesUsing ?? [];
-  return { ok: true, providerId, rolesUpdated: updated };
+  const updated = after.find((s) => s.id === providerId)?.profilesUsing ?? [];
+  return { ok: true, providerId, profilesUpdated: updated };
 }
 
 export type AddProviderInput = {
   id: string;
   config: ProviderConfig;
-  alsoAssignAllRoles?: boolean;
+  /** Also point every Profile at this provider after adding it. */
+  alsoAssignAllProfiles?: boolean;
 };
 
 export async function addProvider(
@@ -110,8 +112,8 @@ export async function addProvider(
     );
   }
   await ensureProvider(projectRoot, input.id, input.config);
-  if (input.alsoAssignAllRoles) {
-    await assignRolesToProvider(projectRoot, input.id);
+  if (input.alsoAssignAllProfiles) {
+    await pointAllProfilesAtProvider(projectRoot, input.id);
   }
 }
 
@@ -138,11 +140,11 @@ export async function removeProvider(
       hint: "Nothing to remove.",
     };
   }
-  if (found.rolesUsing.length > 0) {
+  if (found.profilesUsing.length > 0) {
     return {
       ok: false,
-      reason: `"${providerId}" is still used by role(s): ${found.rolesUsing.join(", ")}.`,
-      hint: "Point those roles at another provider first, then remove it.",
+      reason: `"${providerId}" is still used by profile(s): ${found.profilesUsing.join(", ")}.`,
+      hint: "Point those profiles at another provider first, then remove it.",
     };
   }
   await deleteProvider(projectRoot, providerId);

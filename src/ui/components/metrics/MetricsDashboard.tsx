@@ -115,7 +115,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                     title={a.flowContextFallbackReason ?? undefined}
                   >
                     {a.flowContextMode
-                      ? `${a.flowSlotId ?? "flow"}:${a.flowContextMode}`
+                      ? `${a.flowSeat ?? "flow"}:${a.flowContextMode}`
                       : a.sessionId
                         ? "session"
                         : "—"}

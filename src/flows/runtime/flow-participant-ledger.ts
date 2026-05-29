@@ -51,7 +51,7 @@ export type FlowParticipantTurn = z.infer<typeof flowParticipantTurnSchema>;
 
 export const flowParticipantSchema = z
   .object({
-    slotId: z.string().min(1),
+    seat: z.string().min(1),
     label: z.string().min(1),
     providerId: z.string().min(1),
     capabilities: flowParticipantCapabilitiesSchema,
@@ -63,7 +63,7 @@ export type FlowParticipant = z.infer<typeof flowParticipantSchema>;
 
 export const flowRunParticipantStateSchema = z
   .object({
-    slotId: z.string().min(1),
+    seat: z.string().min(1),
     label: z.string().min(1),
     providerId: z.string().min(1),
     providerType: z.string().min(1),
@@ -93,7 +93,7 @@ export type FlowParticipantLedger = z.infer<
 >;
 
 export type PreparedFlowParticipantTurn = {
-  slotId: string;
+  seat: string;
   contextMode: FlowContextRetentionMode;
   fallbackReason: string | null;
   sessionRequest?: ProviderSessionRequest;
@@ -104,17 +104,31 @@ export function createFlowParticipantLedger(input: {
   capabilities: (providerId: string) => ProviderCapabilities;
 }): FlowParticipantLedger {
   const createdAt = nowIso();
+  // One participant per Seat that an enabled, seated step resolves a provider
+  // for. The provider/label come from the seat's resolved Role/Profile (the
+  // first resolved step using that seat). Steps that share a seat reuse the
+  // participant — that's what lets a Role keep a session across steps.
+  const bySeat = new Map<string, { providerId: string; label: string }>();
+  for (const step of input.snapshot.steps) {
+    if (!step.seat || !step.providerId) continue;
+    if (bySeat.has(step.seat)) continue;
+    const seatDef = input.snapshot.seats.find((s) => s.id === step.seat);
+    bySeat.set(step.seat, {
+      providerId: step.providerId,
+      label: seatDef?.label ?? step.resolvedRoleLabel ?? step.seat,
+    });
+  }
   return flowParticipantLedgerSchema.parse({
     schemaVersion: 1,
     flowId: input.snapshot.flowId,
     flowVersion: input.snapshot.flowVersion,
     createdAt,
     updatedAt: createdAt,
-    participants: input.snapshot.slots.map((slot) => ({
-      slotId: slot.id,
-      label: slot.label,
-      providerId: slot.providerId,
-      capabilities: input.capabilities(slot.providerId),
+    participants: Array.from(bySeat.entries()).map(([seat, info]) => ({
+      seat,
+      label: info.label,
+      providerId: info.providerId,
+      capabilities: input.capabilities(info.providerId),
       sessionId: null,
       turns: [],
     })),
@@ -123,13 +137,13 @@ export function createFlowParticipantLedger(input: {
 
 export function prepareFlowParticipantTurn(
   ledger: FlowParticipantLedger,
-  slotId: string,
+  seat: string,
 ): PreparedFlowParticipantTurn {
-  const participant = requireParticipant(ledger, slotId);
+  const participant = requireParticipant(ledger, seat);
   if (participant.capabilities.sessionReuse === "resume") {
     if (participant.sessionId) {
       return {
-        slotId,
+        seat,
         contextMode: "reused",
         fallbackReason: null,
         sessionRequest: {
@@ -140,7 +154,7 @@ export function prepareFlowParticipantTurn(
     }
 
     return {
-      slotId,
+      seat,
       contextMode: "opened",
       fallbackReason: null,
       sessionRequest: {
@@ -152,7 +166,7 @@ export function prepareFlowParticipantTurn(
 
   if (participant.turns.length > 0) {
     return {
-      slotId,
+      seat,
       contextMode: "rehydrated",
       fallbackReason:
         "Provider has no Flow session reuse adapter; prior context came from Flow artifacts.",
@@ -160,7 +174,7 @@ export function prepareFlowParticipantTurn(
   }
 
   return {
-    slotId,
+    seat,
     contextMode: "stateless",
     fallbackReason:
       "Provider has no Flow session reuse adapter; this is the participant's first turn.",
@@ -180,7 +194,7 @@ export function recordFlowParticipantTurn(input: {
 }): FlowParticipantLedger {
   const updatedAt = nowIso();
   const participants = input.ledger.participants.map((participant) => {
-    if (participant.slotId !== input.prepared.slotId) return participant;
+    if (participant.seat !== input.prepared.seat) return participant;
 
     const sessionId =
       input.providerSessionId ??
@@ -220,7 +234,7 @@ export function summarizeFlowParticipants(
   return ledger.participants.map((participant) => {
     const lastTurn = participant.turns.at(-1) ?? null;
     return {
-      slotId: participant.slotId,
+      seat: participant.seat,
       label: participant.label,
       providerId: participant.providerId,
       providerType: participant.capabilities.providerType,
@@ -235,11 +249,11 @@ export function summarizeFlowParticipants(
 
 function requireParticipant(
   ledger: FlowParticipantLedger,
-  slotId: string,
+  seat: string,
 ): FlowParticipant {
-  const participant = ledger.participants.find((entry) => entry.slotId === slotId);
+  const participant = ledger.participants.find((entry) => entry.seat === seat);
   if (!participant) {
-    throw new Error(`Flow participant slot "${slotId}" is not in the participant ledger.`);
+    throw new Error(`Flow participant seat "${seat}" is not in the participant ledger.`);
   }
   return participant;
 }

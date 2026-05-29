@@ -4,6 +4,7 @@ import { detectProject } from "../../project/project-detector.js";
 import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { ProposalService } from "../../roadmap/proposal-service.js";
 import { color, header, indent, symbol } from "../ui/format.js";
+import { getCrew, rolesFillingSeat } from "../../crews/crew-registry.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 async function svc() {
@@ -518,14 +519,22 @@ async function cmdRoadmapPlan(
     return 1;
   }
 
-  const plannerRole = loaded.config.roles["planner"];
-  if (!plannerRole) {
+  // Pick a provider for the ad-hoc roadmap planning call: the default crew's
+  // role that fills the "planner" seat (via its Profile), else any profile.
+  const { crew } = getCrew(loaded.config);
+  const plannerRole =
+    rolesFillingSeat(crew, "planner")[0]?.role ??
+    Object.values(crew.roles)[0];
+  const plannerProvider = plannerRole
+    ? loaded.config.profiles[plannerRole.profile]?.provider
+    : Object.values(loaded.config.profiles)[0]?.provider;
+  if (!plannerProvider) {
     console.error(
-      `${symbol.fail()} No planner agent configured. Run ${color.bold("vibe init --force")} or ${color.bold("vibe provider setup")}.`,
+      `${symbol.fail()} No planner role/provider configured. Run ${color.bold("vibe init --force")} or ${color.bold("vibe provider setup")}.`,
     );
     return 1;
   }
-  const providerId = opts.provider ?? plannerRole.provider;
+  const providerId = opts.provider ?? plannerProvider;
   if (!loaded.config.providers[providerId]) {
     console.error(
       `${symbol.fail()} Provider "${providerId}" is not configured.`,

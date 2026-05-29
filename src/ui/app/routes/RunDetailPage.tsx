@@ -370,7 +370,7 @@ function ActiveRolePanel({
               "auto"}
           </div>
           <div className="text-[11.5px] text-fog-400 truncate">
-            {agent?.flowSlotId ?? agent?.stageId ?? "—"}
+            {agent?.flowSeat ?? agent?.stageId ?? "—"}
           </div>
         </div>
         <Chip tone={run.status === "executing" ? "violet" : "neutral"}>

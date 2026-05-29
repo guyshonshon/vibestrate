@@ -64,8 +64,10 @@ export const flowRunStepStateSchema = z
       .enum(["planning", "architecting", "executing", "reviewing", "verifying"])
       .nullable()
       .default(null),
-    slotId: z.string().nullable().default(null),
-    roleId: z.string().nullable().default(null),
+    seat: z.string().nullable().default(null),
+    resolvedRoleId: z.string().nullable().default(null),
+    resolvedRoleLabel: z.string().nullable().default(null),
+    profileId: z.string().nullable().default(null),
     providerId: z.string().nullable().default(null),
     promptArtifactPath: z.string().nullable().default(null),
     outputArtifactPath: z.string().nullable().default(null),
@@ -120,15 +122,20 @@ export const runStateSchema = z.object({
   // existing runs that predate pause/resume.
   pauseRequested: z.boolean().default(false),
   pausedAtStatus: runStatusSchema.nullable().default(null),
-  // ─── Per-task effort + override + read-only (Phase A/B) ───────────────
+  // ─── Per-run Crew + Profile selection + read-only ─────────────────────
   // Locked into the run at start so the audit trail is faithful even if
-  // the originating task is later edited or deleted. resolvedProviderId
-  // records the provider that effort/providerOverride actually mapped
-  // to (so `agent.provider` in events stays the canonical id used per
-  // call, while resolvedProviderId surfaces the run-wide override).
+  // the originating task/config is later edited. The resolved per-step
+  // profile/provider lives in flow.json (the immutable snapshot); these
+  // record the run-level choices that fed resolution.
+  // `effort` is a task-difficulty hint carried through from the roadmap; it
+  // no longer maps to a provider (that's a Profile's job now).
   effort: z.enum(["low", "medium", "high"]).nullable().default(null),
-  providerOverride: z.string().nullable().default(null),
-  resolvedProviderId: z.string().nullable().default(null),
+  /** Crew the run resolved against (null = project.defaultCrew). */
+  crewId: z.string().nullable().default(null),
+  /** Run-wide Profile override applied to every seated step (null = none). */
+  profileOverride: z.string().nullable().default(null),
+  /** Per-step Profile overrides (step id → profile id). */
+  stepProfileOverrides: z.record(z.string(), z.string()).default({}),
   readOnly: z.boolean().default(false),
   // Per-run skill ids. Merged into every agent's configured skill list
   // before invocation, so the user can attach context to a single run
@@ -351,8 +358,9 @@ export function createInitialState(input: {
     pauseRequested: false,
     pausedAtStatus: null,
     effort: null,
-    providerOverride: null,
-    resolvedProviderId: null,
+    crewId: null,
+    profileOverride: null,
+    stepProfileOverrides: {},
     readOnly: false,
     runtimeSkills: [],
     concise: false,

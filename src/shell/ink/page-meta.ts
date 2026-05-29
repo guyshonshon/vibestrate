@@ -121,7 +121,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     commonKeys: [["↑↓", "select notification"]],
     commonCli: ["vibe notifications list", "vibe gateways"],
   },
-  agents: {
+  crew: {
     subtitle:
       "the planner / architect / executor / etc. that do the work",
     blurb:

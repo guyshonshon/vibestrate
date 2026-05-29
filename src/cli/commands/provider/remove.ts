@@ -56,10 +56,10 @@ export async function runProviderRemove(
     return 1;
   }
 
-  if (provider.rolesUsing.length > 0) {
+  if (provider.profilesUsing.length > 0) {
     console.error(
       `${symbol.fail()} "${providerId}" is still used by role(s): ${color.bold(
-        provider.rolesUsing.join(", "),
+        provider.profilesUsing.join(", "),
       )}.`,
     );
     console.error(

@@ -147,14 +147,14 @@ export async function runInteractiveSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: id.trim(),
       config: { type: "cli", command: command.trim(), args: argList, input: inputMode },
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     console.log(`${symbol.ok()} Configured custom provider ${color.bold(id.trim())}.`);
   } else if (providerChoice === "claude" && claude) {
     await addProvider(args.projectRoot, {
       id: "claude",
       config: buildClaudeProviderFromDetection(claude),
-      alsoAssignAllRoles: false,
+      alsoAssignAllProfiles: false,
     });
     const setRes = await setDefaultProvider(args.projectRoot, "claude");
     if (setRes.ok) {
@@ -166,7 +166,7 @@ export async function runInteractiveSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: "codex",
       config: buildCodexProviderFromDetection(codex),
-      alsoAssignAllRoles: false,
+      alsoAssignAllProfiles: false,
     });
     const setRes = await setDefaultProvider(args.projectRoot, "codex");
     if (setRes.ok) {
@@ -179,7 +179,7 @@ export async function runInteractiveSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: "ollama",
       config: buildOllamaProviderFromDetection(ollama),
-      alsoAssignAllRoles: false,
+      alsoAssignAllProfiles: false,
     });
     const setRes = await setDefaultProvider(args.projectRoot, "ollama");
     if (setRes.ok) {
@@ -271,14 +271,14 @@ export async function runStandaloneSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: "claude",
       config: buildClaudeProviderFromDetection(claude),
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     console.log(`${symbol.ok()} Claude Code configured for all default agents.`);
   } else if (providerChoice === "codex" && codex) {
     await addProvider(args.projectRoot, {
       id: "codex",
       config: buildCodexProviderFromDetection(codex),
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     console.log(`${symbol.ok()} Codex CLI configured with the starter preset.`);
     console.log(indent(`${symbol.arrow()} ${color.bold("vibe provider test codex")}`));
@@ -286,7 +286,7 @@ export async function runStandaloneSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: "ollama",
       config: buildOllamaProviderFromDetection(ollama),
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     console.log(`${symbol.ok()} Ollama configured with the starter preset.`);
     console.log(indent(`${symbol.arrow()} ${color.bold("ollama pull qwen3.5")}`));
@@ -315,7 +315,7 @@ export async function runStandaloneSetupWizard(args: {
     await addProvider(args.projectRoot, {
       id: id.trim(),
       config: { type: "cli", command: command.trim(), args: argList, input: inputMode },
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     console.log(`${symbol.ok()} Custom provider ${color.bold(id.trim())} configured.`);
   }

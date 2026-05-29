@@ -131,6 +131,16 @@ type Inputs = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** A run's representative provider id: the first seated flow step that resolved
+ *  one. In the Profile model a run can span multiple providers (per step), so
+ *  this is a best-effort label for grouping/leaderboards. */
+function runPrimaryProviderId(run: RunState): string | null {
+  for (const step of run.flow?.steps ?? []) {
+    if (step.providerId) return step.providerId;
+  }
+  return null;
+}
+
 function dayKeyLocal(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -330,7 +340,7 @@ export function leaderboard({
   for (const run of runs) {
     const t = new Date(run.updatedAt).getTime();
     if (!Number.isFinite(t)) continue;
-    const id = run.resolvedProviderId ?? run.providerOverride ?? null;
+    const id = runPrimaryProviderId(run);
     if (!id) continue;
     const into = t >= windowStart ? cur : t >= prevWindowStart ? prev : null;
     if (!into) continue;
@@ -343,7 +353,7 @@ export function leaderboard({
   const durByProvider = new Map<string, number[]>();
   for (const run of runs) {
     if (new Date(run.updatedAt).getTime() < windowStart) continue;
-    const id = run.resolvedProviderId ?? run.providerOverride ?? null;
+    const id = runPrimaryProviderId(run);
     if (!id) continue;
     const m = metricsByRun.get(run.runId);
     if (m) {
@@ -455,7 +465,7 @@ function tokensByRole(
     const m = metricsByRun.get(r.runId);
     if (!m) continue;
     for (const a of m.roles) {
-      const role = a.flowSlotId ?? a.roleId;
+      const role = a.flowSeat ?? a.roleId;
       map.set(role, (map.get(role) ?? 0) + roleTokens(a));
     }
   }
@@ -668,7 +678,7 @@ export function buildProvidersOverview(input: {
 
   for (const run of input.runs) {
     if (new Date(run.updatedAt).getTime() < cutoff7d) continue;
-    const id = run.resolvedProviderId ?? run.providerOverride ?? null;
+    const id = runPrimaryProviderId(run);
     if (!id) continue;
     const entry = byProvider.get(id) ?? {
       runs: [],

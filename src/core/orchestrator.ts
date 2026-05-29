@@ -29,7 +29,7 @@ import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 import { loadRolePrompt } from "../project/config-loader.js";
-import { getRoleConfig } from "../roles/role-registry.js";
+import { getCrew, getCrewRole, roleLabel } from "../crews/crew-registry.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
 import { assertExecutableContext, resolveCwd } from "../permissions/access-policy.js";
 import { loadSkills } from "../skills/skill-loader.js";
@@ -77,7 +77,6 @@ import { ReviewSuggestionService } from "../reviews/review-suggestion-service.js
 import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
-import { resolveEffort } from "./effort-resolver.js";
 import { writeJson } from "../utils/json.js";
 import { runFlowSnapshotPath } from "../utils/paths.js";
 import type {
@@ -153,11 +152,16 @@ export type OrchestratorInput = {
   onProgress?: (message: string) => void;
   /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
   taskId?: string | null;
-  /** Effort hint (low|medium|high) that maps to a provider via
-   * project.yml#effortMap. Optional; defaults to no override. */
+  /** Task-difficulty hint carried from the roadmap. Recorded for audit; it no
+   * longer maps to a provider (Profiles own runtime now). */
   effort?: "low" | "medium" | "high" | null;
-  /** Explicit provider override. Wins over effort when both are set. */
-  providerOverride?: string | null;
+  /** Crew to resolve the flow against. null = project.defaultCrew. Ignored when
+   * an already-resolved `flow` snapshot is supplied (it carries its own crew). */
+  crewId?: string | null;
+  /** Run-wide Profile override applied to every seated step at resolve time. */
+  profileOverride?: string | null;
+  /** Per-step Profile overrides (step id → profile id) applied at resolve time. */
+  stepProfileOverrides?: Record<string, string>;
   /** Investigation-only run: force readOnly permissions on every agent,
    * skip the executor / fix loop entirely, refuse write-side actions. */
   readOnly?: boolean;
@@ -198,7 +202,7 @@ type RoleRunResult = {
 };
 
 type FlowRoleTurn = {
-  slotId: string;
+  seat: string;
   contextMode: PreparedFlowParticipantTurn["contextMode"];
   fallbackReason: string | null;
   sessionRequest?: ProviderSessionRequest;
@@ -292,10 +296,13 @@ export class Orchestrator {
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
-  // Mutable: the spend-cap "reduce-effort" / "downgrade-model" actions adjust
-  // these mid-run so subsequent turns resolve a cheaper provider.
-  private effort: "low" | "medium" | "high" | null;
-  private providerOverride: string | null;
+  private readonly effort: "low" | "medium" | "high" | null;
+  private readonly crewId: string | null;
+  private readonly profileOverride: string | null;
+  private readonly stepProfileOverrides: Record<string, string>;
+  /** Crew the active flow snapshot was resolved against; set in run(). Used by
+   *  runRole to look up the resolved Role's config (prompt/permissions/skills). */
+  private activeCrewId: string | null = null;
   /** One-time guard so the spend warning fires once per run, not every turn. */
   private spendWarned = false;
   private readonly readOnly: boolean;
@@ -314,7 +321,9 @@ export class Orchestrator {
     this.onProgress = input.onProgress ?? (() => {});
     this.taskId = input.taskId ?? null;
     this.effort = input.effort ?? null;
-    this.providerOverride = input.providerOverride ?? null;
+    this.crewId = input.crewId ?? null;
+    this.profileOverride = input.profileOverride ?? null;
+    this.stepProfileOverrides = input.stepProfileOverrides ?? {};
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
@@ -336,6 +345,9 @@ export class Orchestrator {
       source: discovered?.source ?? { kind: "builtin", ref: defaultFlow.id },
       config: this.config,
       task: this.task,
+      crewId: this.crewId,
+      profileOverride: this.profileOverride,
+      stepProfileOverrides: this.stepProfileOverrides,
     });
   }
 
@@ -353,6 +365,10 @@ export class Orchestrator {
     // Every run executes a flow. An explicit `--flow` snapshot wins; otherwise
     // the `default` flow is resolved here. There is one runner.
     const flow = this.flow ?? (await this.resolveDefaultFlow());
+    // runRole resolves the Role's config from the Crew the snapshot was built
+    // against — not necessarily this.crewId (a pre-resolved snapshot carries its
+    // own crew).
+    this.activeCrewId = flow.crewId;
 
     const runId = makeRunId(this.task);
 
@@ -387,21 +403,17 @@ export class Orchestrator {
       branchName: null,
       maxReviewLoops: this.config.workflow.maxReviewLoops,
     });
-    // Resolve effort/provider override before persisting initial state so
-    // events.ndjson + state.json carry the exact provider that will be
-    // used. Read-only runs are stamped too — every subsequent enforcement
-    // (route guards, executor short-circuit) reads from state.readOnly.
-    const resolution = resolveEffort({
-      effort: this.effort,
-      providerOverride: this.providerOverride,
-      config: this.config,
-    });
+    // Persist the run-level Crew/Profile choices. The exact per-step
+    // profile/provider resolution lives in flow.json (the immutable snapshot).
+    // Read-only runs are stamped too — every subsequent enforcement (route
+    // guards, executor short-circuit) reads from state.readOnly.
     state = {
       ...state,
       taskId: this.taskId,
       effort: this.effort,
-      providerOverride: this.providerOverride,
-      resolvedProviderId: resolution.providerId,
+      crewId: flow.crewId,
+      profileOverride: this.profileOverride,
+      stepProfileOverrides: this.stepProfileOverrides,
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
@@ -422,18 +434,11 @@ export class Orchestrator {
         task: this.task,
         taskId: this.taskId,
         effort: this.effort,
-        providerOverride: this.providerOverride,
-        resolvedProviderId: resolution.providerId,
-        resolutionSource: resolution.source,
+        crewId: flow.crewId,
+        profileOverride: this.profileOverride,
+        stepProfileOverrides: this.stepProfileOverrides,
         readOnly: this.readOnly,
       },
-    });
-    // Honest log line so users can see *why* a given provider was
-    // picked (or *why* the override was ignored).
-    await eventLog.append({
-      type: "policy.warning",
-      message: resolution.note,
-      data: { kind: "effort-resolution", source: resolution.source },
     });
     await eventLog.append({
       type: "flow.snapshot.written",
@@ -546,8 +551,10 @@ export class Orchestrator {
         status: step.enabled ? "pending" : "skipped",
         optional: step.optional,
         stage: step.stage,
-        slotId: step.slotId,
-        roleId: step.roleId,
+        seat: step.seat,
+        resolvedRoleId: step.resolvedRoleId,
+        resolvedRoleLabel: step.resolvedRoleLabel,
+        profileId: step.profileId,
         providerId: step.providerId,
         promptArtifactPath: null,
         outputArtifactPath: null,
@@ -624,7 +631,7 @@ export class Orchestrator {
         ) {
           return step.stage;
         }
-        return step.roleId === "planner" ? "planning" : "executing";
+        return step.resolvedRoleId === "planner" ? "planning" : "executing";
     }
   }
 
@@ -1139,7 +1146,7 @@ export class Orchestrator {
   ): RoleRunResult {
     const ts = nowIso();
     return {
-      roleId: step.roleId ?? "(seeded)",
+      roleId: step.resolvedRoleId ?? "(seeded)",
       output: output.content,
       outputArtifactPath: output.artifactPath,
       promptArtifactPath: "",
@@ -1216,10 +1223,10 @@ export class Orchestrator {
     for (const participant of participantLedger.participants) {
       await input.eventLog.append({
         type: "flow.participant.capabilities",
-        message: `Flow participant ${participant.slotId} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
+        message: `Flow participant ${participant.seat} uses ${participant.providerId} with ${participant.capabilities.sessionReuse} session reuse.`,
         data: {
           flowId: input.snapshot.flowId,
-          slotId: participant.slotId,
+          seat: participant.seat,
           providerId: participant.providerId,
           capabilities: participant.capabilities,
         },
@@ -1352,8 +1359,8 @@ export class Orchestrator {
             stateStore: input.stateStore,
           });
 
-          const preparedTurn = step.slotId && step.roleId
-            ? prepareFlowParticipantTurn(participantLedger, step.slotId)
+          const preparedTurn = step.seat && step.resolvedRoleId
+            ? prepareFlowParticipantTurn(participantLedger, step.seat)
             : null;
           const context = await this.buildFlowContextPacket({
             snapshot: input.snapshot,
@@ -1393,7 +1400,9 @@ export class Orchestrator {
               flowId: input.snapshot.flowId,
               stepId: step.id,
               kind: step.kind,
-              roleId: step.roleId,
+              seat: step.seat,
+              resolvedRoleId: step.resolvedRoleId,
+              profileId: step.profileId,
               providerId: step.providerId,
               contextPacketPath: context.contextPacketPath,
             },
@@ -1483,12 +1492,12 @@ export class Orchestrator {
             return;
           }
 
-          if (!step.roleId) {
-            throw new Error(`Flow step "${step.id}" needs an agent.`);
+          if (!step.resolvedRoleId) {
+            throw new Error(`Flow step "${step.id}" needs a seated role.`);
           }
 
           const result = await this.runRole({
-            roleId: step.roleId,
+            roleId: step.resolvedRoleId,
             providerId: step.providerId,
             stageId: step.id,
             promptIndex: 0,
@@ -1503,7 +1512,7 @@ export class Orchestrator {
             ...(preparedTurn
               ? {
                   flowTurn: {
-                    slotId: preparedTurn.slotId,
+                    seat: preparedTurn.seat,
                     contextMode: preparedTurn.contextMode,
                     fallbackReason: preparedTurn.fallbackReason,
                     ...(preparedTurn.sessionRequest
@@ -1520,7 +1529,7 @@ export class Orchestrator {
               ledger: participantLedger,
               prepared: preparedTurn,
               stepId: step.id,
-              roleId: step.roleId,
+              roleId: step.resolvedRoleId,
               providerId: step.providerId ?? result.providerResult.providerId,
               contextPacketPath: context.contextPacketPath,
               promptArtifactPath: result.promptArtifactPath,
@@ -1539,11 +1548,11 @@ export class Orchestrator {
                     : preparedTurn.contextMode === "rehydrated"
                       ? "flow.session.rehydrated"
                       : "flow.session.stateless",
-              message: `Flow participant ${preparedTurn.slotId} completed ${step.id} with ${preparedTurn.contextMode} context.`,
+              message: `Flow participant ${preparedTurn.seat} completed ${step.id} with ${preparedTurn.contextMode} context.`,
               data: {
                 flowId: input.snapshot.flowId,
                 stepId: step.id,
-                slotId: preparedTurn.slotId,
+                seat: preparedTurn.seat,
                 providerId: step.providerId,
                 contextMode: preparedTurn.contextMode,
                 fallbackReason: preparedTurn.fallbackReason,
@@ -1610,7 +1619,7 @@ export class Orchestrator {
             // (planning/architecting/executing/validating/reviewing/fixing/
             // verifying); match on the step's phase, not its id.
             stageId: this.flowStatusForStep(step),
-            roleId: step.roleId,
+            roleId: step.resolvedRoleId,
             roleArtifact: result,
             approvalService: input.approvalService,
             stateStore: input.stateStore,
@@ -2214,13 +2223,14 @@ export class Orchestrator {
   }): Promise<RoleRunResult> {
     const { roleId, ctx } = input;
     // Budget gate: before spending on this turn, check today's spend against
-    // the daily cap and apply the configured action (warn / reduce-effort /
-    // downgrade-model / stop). Runs before provider resolution so a downgrade
-    // applies to this turn too.
+    // the daily cap and apply the configured action (warn / stop). Runs before
+    // provider resolution.
     await this.enforceSpendCap(ctx);
-    const agent = getRoleConfig(this.config.roles, roleId);
-    // Read-only runs override every agent's permission profile to the built-in
-    // `read_only` (allowWrite/allowShell false), regardless of how the agent is
+    // Resolve the Role from the Crew the run's flow snapshot was built against.
+    const { crew } = getCrew(this.config, this.activeCrewId);
+    const agent = getCrewRole(crew, roleId);
+    // Read-only runs override every role's permission profile to the built-in
+    // `read_only` (allowWrite/allowShell false), regardless of how the role is
     // configured. Using the builtin name guarantees resolution via
     // resolveProfile's builtin fallback even on a project that hasn't defined a
     // read-only profile of its own.
@@ -2229,12 +2239,17 @@ export class Orchestrator {
       this.config.permissions.profiles,
       effectivePermissions,
     );
-    // Effective provider id: run-wide resolved override (effort or
-    // explicit) beats the agent's default. Falls back to the agent's
-    // configured provider when no override applies or the override
-    // couldn't be resolved.
+    // Effective provider id: the resolved snapshot already mapped this step's
+    // Seat → Role → Profile → Provider, so input.providerId is authoritative.
+    // Fall back to the role's Profile's provider if (defensively) absent.
     const effectiveProviderId =
-      input.providerId ?? this.runtimeProviderId() ?? agent.provider;
+      input.providerId ?? this.config.profiles[agent.profile]?.provider;
+    if (!effectiveProviderId) {
+      throw new VibestrateError(
+        "provider-unresolved",
+        `Role "${roleId}" has no resolvable provider (profile "${agent.profile}").`,
+      );
+    }
 
     assertExecutableContext({
       roleId,
@@ -2362,7 +2377,7 @@ export class Orchestrator {
         skillsAttached: skills.map((s) => s.name),
         skillsConfigured: agent.skills.slice(),
         skillsFromRuntime: this.runtimeSkills.slice(),
-        flowSlotId: input.flowTurn?.slotId ?? null,
+        flowSeat: input.flowTurn?.seat ?? null,
         flowContextMode: input.flowTurn?.contextMode ?? null,
       },
     });
@@ -2499,7 +2514,7 @@ export class Orchestrator {
         durationMs: durationMs(stageStart, stageEnd),
         exitCode: -1,
         sessionId: null,
-        flowSlotId: input.flowTurn?.slotId ?? null,
+        flowSeat: input.flowTurn?.seat ?? null,
         flowContextMode: input.flowTurn?.contextMode ?? null,
         flowContextFallbackReason: input.flowTurn?.fallbackReason ?? null,
         model: null,
@@ -2615,7 +2630,7 @@ export class Orchestrator {
       outputArtifactPath: ctx.artifactStore.relPath(outputArtifactPathAbs),
       sessionId:
         metrics?.sessionId ?? providerResult.session?.sessionId ?? null,
-      flowSlotId: input.flowTurn?.slotId ?? null,
+      flowSeat: input.flowTurn?.seat ?? null,
       flowContextMode: input.flowTurn?.contextMode ?? null,
       flowContextFallbackReason: input.flowTurn?.fallbackReason ?? null,
       model: metrics?.model ?? null,
@@ -2702,49 +2717,13 @@ export class Orchestrator {
   }
 
   /**
-   * The provider id that should override agent.provider for this run, OR
-   * null when no override is in effect. Cached at run start
-   * (state.resolvedProviderId) but re-derived here so the orchestrator
-   * never has to thread state through to every runRole call.
-   */
-  private runtimeProviderId(): string | null {
-    const resolution = resolveEffort({
-      effort: this.effort,
-      providerOverride: this.providerOverride,
-      config: this.config,
-    });
-    return resolution.providerId;
-  }
-
-  /** Drop effort one notch (high→medium→low; none→low). False if already lowest. */
-  private lowerEffort(): boolean {
-    if (this.effort === "high") {
-      this.effort = "medium";
-      return true;
-    }
-    if (this.effort === "medium" || this.effort === null) {
-      this.effort = "low";
-      return true;
-    }
-    return false;
-  }
-
-  /** Switch to the configured cheaper provider (budget.fallbackProvider, else
-   *  effortMap.low). False if none, already on it, or not configured. */
-  private downgradeProvider(): boolean {
-    const target =
-      this.config.budget?.fallbackProvider ?? this.config.effortMap?.low ?? null;
-    if (!target || target === this.providerOverride) return false;
-    if (!this.config.providers[target]) return false;
-    this.providerOverride = target;
-    return true;
-  }
-
-  /**
    * Enforce the daily spend cap before an agent turn. Warns once at the
-   * threshold; at the cap applies `capAction` (reduce-effort / downgrade-model
-   * fall back to stop when no cheaper option remains). "stop" throws a signal
-   * the run loop turns into a blocked run. No cap configured ⇒ no-op.
+   * threshold; at the cap, stops the run. NOTE: in the new Profile model the
+   * `reduce-effort` / `downgrade-model` cap actions are not yet implemented —
+   * mid-run Profile downgrade (switching every seated step to
+   * `budget.fallbackProfile`) is a TODO. Until then every cap action stops the
+   * run honestly rather than silently continuing at full cost. No cap
+   * configured ⇒ no-op.
    */
   private async enforceSpendCap(ctx: { eventLog: EventLog }): Promise<void> {
     const budget = this.config.budget;
@@ -2769,27 +2748,14 @@ export class Orchestrator {
     if (evaluation.state !== "exceeded") return;
 
     const at = `Daily spend ~$${dailySpendUsd.toFixed(2)} reached the $${cap}/day cap`;
-    if (budget.capAction === "reduce-effort" && this.lowerEffort()) {
+    if (budget.capAction !== "stop") {
+      // Honest TODO: Profile-based downgrade isn't wired up yet.
       await ctx.eventLog.append({
-        type: "spend.action",
-        message: `${at}; reduced effort to "${this.effort}" and continued.`,
-        data: { action: "reduce-effort", effort: this.effort, dailySpendUsd },
+        type: "policy.warning",
+        message: `${at}; capAction="${budget.capAction}" is not yet supported in the Profile model — stopping instead.`,
+        data: { kind: "spend-cap-downgrade-unsupported", capAction: budget.capAction },
       });
-      return;
     }
-    if (budget.capAction === "downgrade-model" && this.downgradeProvider()) {
-      await ctx.eventLog.append({
-        type: "spend.action",
-        message: `${at}; downgraded provider to "${this.providerOverride}" and continued.`,
-        data: {
-          action: "downgrade-model",
-          provider: this.providerOverride,
-          dailySpendUsd,
-        },
-      });
-      return;
-    }
-    // "stop", or reduce/downgrade with no cheaper option left.
     await ctx.eventLog.append({
       type: "spend.capped",
       message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,

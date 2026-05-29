@@ -41,16 +41,18 @@ export async function runFlowsShow(
   console.log("");
   console.log(flow.description);
   console.log("");
-  console.log(color.bold("Slots"));
-  for (const [slotId, slot] of Object.entries(flow.definition.slots)) {
+  console.log(color.bold("Seats"));
+  for (const [seatId, seat] of Object.entries(flow.definition.seats)) {
     console.log(
-      indent(`${slotId}: ${slot.label} ${color.dim(`(default agent ${slot.defaultRole})`)}`),
+      indent(
+        `${seatId}: ${seat.label}${seat.description ? color.dim(` — ${seat.description}`) : ""}`,
+      ),
     );
   }
   console.log("");
   console.log(color.bold("Steps"));
   for (const [index, step] of flow.definition.steps.entries()) {
-    const slot = step.slot ? ` via ${step.slot}` : "";
+    const seat = step.seat ? ` seat ${step.seat}` : "";
     const optional = step.optional ? " optional" : "";
     const repeat = step.repeat ? ` repeat x${step.repeat.times}` : "";
     const gate = step.approval
@@ -58,7 +60,7 @@ export async function runFlowsShow(
       : "";
     console.log(
       indent(
-        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${slot}${optional}${repeat}${gate})`)}`,
+        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${seat}${optional}${repeat}${gate})`)}`,
       ),
     );
   }

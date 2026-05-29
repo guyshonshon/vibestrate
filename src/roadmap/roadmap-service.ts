@@ -50,7 +50,7 @@ export type AddTaskInput = {
   riskLevel?: Priority;
   validationProfile?: string | null;
   effort?: "low" | "medium" | "high" | null;
-  providerOverride?: string | null;
+  profileOverride?: string | null;
   readOnly?: boolean;
 };
 
@@ -161,7 +161,7 @@ export class RoadmapService {
       commentsCount: 0,
       lastEventAt: ts,
       effort: input.effort ?? null,
-      providerOverride: input.providerOverride ?? null,
+      profileOverride: input.profileOverride ?? null,
       readOnly: input.readOnly ?? false,
     };
     await this.store.writeTask(task);
@@ -209,7 +209,7 @@ export class RoadmapService {
         | "touchedFiles"
         | "riskLevel"
         | "effort"
-        | "providerOverride"
+        | "profileOverride"
         | "readOnly"
       >
     >,

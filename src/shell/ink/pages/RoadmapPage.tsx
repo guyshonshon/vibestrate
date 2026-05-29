@@ -84,7 +84,7 @@ export function RoadmapPage({
         description: selected.description,
         priority: selected.priority,
         effort: selected.effort ?? "",
-        providerOverride: selected.providerOverride ?? "",
+        profileOverride: selected.profileOverride ?? "",
         readOnly: selected.readOnly,
       });
       // Reset by issuing field actions for each value (the reducer
@@ -96,7 +96,7 @@ export function RoadmapPage({
           k === "description" ||
           k === "priority" ||
           k === "effort" ||
-          k === "providerOverride" ||
+          k === "profileOverride" ||
           k === "readOnly"
         ) {
           dispatchForm({ type: "field", field: k, value: seeded[k] as never });
@@ -104,7 +104,7 @@ export function RoadmapPage({
       }
     } else {
       const seeded = initTaskForm("create", null);
-      for (const k of ["title", "description", "providerOverride"] as const) {
+      for (const k of ["title", "description", "profileOverride"] as const) {
         dispatchForm({ type: "field", field: k, value: seeded[k] });
       }
       dispatchForm({ type: "field", field: "priority", value: "medium" });
@@ -500,8 +500,8 @@ function TaskDetail({ task }: { task: Task }) {
           value={task.readOnly ? "read-only" : "writable"}
           tint={task.readOnly ? "yellow" : undefined}
         />
-        {task.providerOverride ? (
-          <DetailRow label="Provider" value={task.providerOverride} />
+        {task.profileOverride ? (
+          <DetailRow label="Profile" value={task.profileOverride} />
         ) : null}
         {task.validationProfile ? (
           <DetailRow label="Profile" value={task.validationProfile} />

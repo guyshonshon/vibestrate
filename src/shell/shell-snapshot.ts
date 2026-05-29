@@ -52,8 +52,8 @@ export type ShellRunRow = {
   status: RunStatus;
   effort: "low" | "medium" | "high" | null;
   readOnly: boolean;
-  providerOverride: string | null;
-  resolvedProviderId: string | null;
+  crewId: string | null;
+  profileOverride: string | null;
   pauseRequested: boolean;
   pausedAtStatus: RunStatus | null;
   updatedAt: string;
@@ -180,8 +180,8 @@ export async function buildShellSnapshot(
       status: s.status,
       effort: s.effort,
       readOnly: s.readOnly,
-      providerOverride: s.providerOverride,
-      resolvedProviderId: s.resolvedProviderId,
+      crewId: s.crewId,
+      profileOverride: s.profileOverride,
       pauseRequested: s.pauseRequested,
       pausedAtStatus: s.pausedAtStatus,
       updatedAt: s.updatedAt,

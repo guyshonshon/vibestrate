@@ -32,8 +32,10 @@ export const runSpecSchema = z.object({
   task: z.string().min(1).max(2000),
   taskId: z.string().min(1).max(128).nullable().optional(),
   effort: z.enum(["low", "medium", "high"]).nullable().optional(),
-  /** Provider override (wins over effort). */
-  provider: z.string().min(1).max(128).nullable().optional(),
+  /** Crew to resolve the flow against (default: project.defaultCrew). */
+  crewId: z.string().min(1).max(128).nullable().optional(),
+  /** Run-wide Profile override applied to every seated step. */
+  profileOverride: z.string().min(1).max(128).nullable().optional(),
   readOnly: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
@@ -44,7 +46,8 @@ export const runSpecSchema = z.object({
       contextPolicy: z
         .enum(["balanced", "compact", "artifact-heavy"])
         .optional(),
-      slotProviders: z.record(z.string(), z.string()).optional(),
+      /** Per-step Profile overrides (step id → profile id). */
+      stepProfileOverrides: z.record(z.string(), z.string()).optional(),
       skippedOptionalSteps: z.array(z.string()).max(64).optional(),
     })
     .nullable()
@@ -118,24 +121,12 @@ export async function runFromSpec(
   }
 
   const loaded = await loadConfig(detected.projectRoot);
+  // Profile → provider integrity is enforced by the config schema at load time.
 
-  const missing: string[] = [];
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
-    if (!loaded.config.providers[agent.provider]) {
-      missing.push(`${roleId} → ${agent.provider}`);
-    }
-  }
-  if (missing.length > 0) {
-    throw new RunLaunchError(
-      "missing_provider",
-      `Some agents reference an unconfigured provider: ${missing.join(", ")}.`,
-    );
-  }
-
-  // Inherit effort / provider / read-only from a linked roadmap task when the
-  // spec didn't set them explicitly — same precedence as `vibe run --task`.
+  // Inherit effort / profile override / read-only from a linked roadmap task
+  // when the spec didn't set them — same precedence as `vibe run --task`.
   let effort = spec.effort ?? null;
-  let providerOverride = spec.provider ?? null;
+  let profileOverride = spec.profileOverride ?? null;
   let readOnly = spec.readOnly ?? false;
   if (spec.taskId) {
     const { RoadmapService } = await import("../roadmap/roadmap-service.js");
@@ -148,7 +139,7 @@ export async function runFromSpec(
       );
     }
     if (effort === null) effort = task.effort;
-    if (providerOverride === null) providerOverride = task.providerOverride;
+    if (profileOverride === null) profileOverride = task.profileOverride;
     if (!spec.readOnly) readOnly = task.readOnly;
   }
 
@@ -174,9 +165,11 @@ export async function runFromSpec(
       source: flow.source,
       config: loaded.config,
       task: spec.task,
+      crewId: spec.crewId ?? null,
+      profileOverride,
       brief: spec.flow.brief ?? null,
       contextPolicy: spec.flow.contextPolicy,
-      slotProviders: spec.flow.slotProviders ?? {},
+      stepProfileOverrides: spec.flow.stepProfileOverrides ?? {},
       skippedOptionalSteps: spec.flow.skippedOptionalSteps ?? [],
     });
   }
@@ -189,7 +182,9 @@ export async function runFromSpec(
     isGitRepo: detected.isGitRepo,
     taskId: spec.taskId ?? null,
     effort,
-    providerOverride,
+    crewId: spec.crewId ?? null,
+    profileOverride,
+    stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
     readOnly,
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,

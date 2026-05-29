@@ -1,17 +1,17 @@
 import { ConfigError } from "../utils/errors.js";
-import type { RoleConfig, RolesConfigMap } from "./role-schema.js";
+import type { CrewRoleConfig, CrewRolesConfigMap } from "./role-schema.js";
 
 export function getRoleConfig(
-  agents: RolesConfigMap,
+  roles: CrewRolesConfigMap,
   roleId: string,
-): RoleConfig {
-  const cfg = agents[roleId];
+): CrewRoleConfig {
+  const cfg = roles[roleId];
   if (!cfg) {
-    throw new ConfigError(`Agent "${roleId}" is not defined in project config.`);
+    throw new ConfigError(`Role "${roleId}" is not defined in the selected crew.`);
   }
   return cfg;
 }
 
-export function listRoleIds(agents: RolesConfigMap): string[] {
-  return Object.keys(agents);
+export function listRoleIds(roles: CrewRolesConfigMap): string[] {
+  return Object.keys(roles);
 }

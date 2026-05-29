@@ -131,7 +131,7 @@ export async function registerProvidersRoutes(
             args: existing.args,
             input: existing.input,
           },
-          rolesUsing: existing.rolesUsing,
+          profilesUsing: existing.profilesUsing,
         };
       }
       // Pre-fill from the provider's preset (every known provider ships one).
@@ -147,7 +147,7 @@ export async function registerProvidersRoutes(
           args: [] as string[],
           input: "stdin" as const,
         },
-        rolesUsing: [],
+        profilesUsing: [],
       };
     },
   );
@@ -202,7 +202,7 @@ export async function registerProvidersRoutes(
     await addProvider(projectRoot, {
       id,
       config: cfg,
-      alsoAssignAllRoles: body.setAsDefault === true,
+      alsoAssignAllProfiles: body.setAsDefault === true,
     });
     bustCache();
     return { ok: true, providerId: id, configured: true };

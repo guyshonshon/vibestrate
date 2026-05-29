@@ -486,7 +486,7 @@ export type RoleMetrics = {
   promptArtifactPath?: string;
   outputArtifactPath?: string;
   sessionId: string | null;
-  flowSlotId: string | null;
+  flowSeat: string | null;
   flowContextMode: FlowContextRetentionMode | null;
   flowContextFallbackReason: string | null;
   model: string | null;

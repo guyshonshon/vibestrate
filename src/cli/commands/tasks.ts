@@ -74,7 +74,7 @@ async function cmdAdd(
       requiredSkills: opts.skills ? opts.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
       touchedFiles: fileList,
       effort: effortToUse ?? null,
-      providerOverride: opts.provider ?? null,
+      profileOverride: opts.provider ?? null,
       readOnly: opts.readOnly ?? false,
     });
     if (opts.json) {

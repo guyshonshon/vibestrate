@@ -10,7 +10,6 @@ import YAML from "yaml";
 import { z } from "zod";
 import { isPathInside, projectFlowsDir } from "../../utils/paths.js";
 import {
-  flowRoleIdSchema,
   flowApprovalGateSchema,
   flowDefinitionSchema,
   flowStepKindSchema,
@@ -18,7 +17,7 @@ import {
   flowStageSchema,
   flowLoopSchema,
   flowTokenSchema,
-  flowSlotSchema,
+  flowSeatSchema,
   type FlowDefinition,
 } from "../schemas/flow-schema.js";
 import {
@@ -45,8 +44,7 @@ const stepPatchSchema = z
     label: z.string().min(1).max(160).optional(),
     optional: z.boolean().optional(),
     kind: flowStepKindSchema.optional(),
-    slot: flowTokenSchema.nullable().optional(),
-    roleId: flowRoleIdSchema.nullable().optional(),
+    seat: flowTokenSchema.nullable().optional(),
     stage: flowStageSchema.nullable().optional(),
     skipWhenReadOnly: z.boolean().optional(),
     approval: flowApprovalGateSchema.nullable().optional(),
@@ -66,8 +64,8 @@ export const flowPatchInputSchema = z
      * so the merge is unambiguous.
      */
     replaceSteps: z.array(flowStepSchema).min(1).max(64).optional(),
-    /** Replace the slot map wholesale. */
-    replaceSlots: z.record(flowTokenSchema, flowSlotSchema).optional(),
+    /** Replace the seat map wholesale. */
+    replaceSeats: z.record(flowTokenSchema, flowSeatSchema).optional(),
     /**
      * Set the adaptive review→fix loop, or `null` to remove it. Validated
      * against the resulting steps by the full schema (decisionStep must be a
@@ -103,13 +101,9 @@ function mergeStep<S extends FlowDefinition["steps"][number]>(
   if (edit.label !== undefined) next.label = edit.label;
   if (edit.optional !== undefined) next.optional = edit.optional;
   if (edit.kind !== undefined) next.kind = edit.kind;
-  if ("slot" in edit) {
-    if (edit.slot === null) delete next.slot;
-    else if (edit.slot !== undefined) next.slot = edit.slot;
-  }
-  if ("roleId" in edit) {
-    if (edit.roleId === null) delete next.roleId;
-    else if (edit.roleId !== undefined) next.roleId = edit.roleId;
+  if ("seat" in edit) {
+    if (edit.seat === null) delete next.seat;
+    else if (edit.seat !== undefined) next.seat = edit.seat;
   }
   if ("stage" in edit) {
     if (edit.stage === null) delete next.stage;
@@ -140,7 +134,7 @@ export function mergeFlowPatch(
     ...(patch.description !== undefined
       ? { description: patch.description }
       : {}),
-    ...(patch.replaceSlots !== undefined ? { slots: patch.replaceSlots } : {}),
+    ...(patch.replaceSeats !== undefined ? { seats: patch.replaceSeats } : {}),
     steps:
       patch.replaceSteps !== undefined
         ? patch.replaceSteps.map((s) => ({ ...s }))

@@ -26,7 +26,7 @@ import {
 import { discoverSkills } from "../skills/skill-discovery.js";
 import {
   ensureProvider,
-  assignRolesToProvider,
+  pointAllProfilesAtProvider,
   setValidationCommands,
 } from "./config-update-service.js";
 import { buildProviderFromDetection } from "../providers/provider-presets.js";
@@ -198,40 +198,54 @@ export async function runDoctor(input: {
     });
   }
 
-  // All agents reference valid providers.
+  // Flatten every Role across Crews. The `key` is the role id within the
+  // default crew, else `crewId/roleId`, so messages stay readable.
+  const crewRoles = Object.entries(loaded.config.crews).flatMap(
+    ([crewId, crew]) =>
+      Object.entries(crew.roles).map(([roleId, role]) => ({
+        crewId,
+        roleId,
+        role,
+        key:
+          crewId === loaded.config.defaultCrew ? roleId : `${crewId}/${roleId}`,
+      })),
+  );
+
+  // Every Role's Profile resolves to a configured Provider.
   const missingProviderRefs: string[] = [];
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
-    if (!loaded.config.providers[agent.provider]) {
-      missingProviderRefs.push(roleId);
+  for (const { key, role } of crewRoles) {
+    const provider = loaded.config.profiles[role.profile]?.provider;
+    if (!provider || !loaded.config.providers[provider]) {
+      missingProviderRefs.push(key);
     }
   }
   if (missingProviderRefs.length > 0) {
     findings.push({
       id: "agent-provider-refs",
       severity: "fail",
-      title: `Agents reference a missing provider`,
-      detail: `These agents point to providers that are not configured: ${missingProviderRefs.join(", ")}.`,
+      title: `Roles resolve to a missing provider`,
+      detail: `These roles' profiles point to providers that are not configured: ${missingProviderRefs.join(", ")}.`,
       fixHint:
-        "Run `vibe provider setup` to add a provider, then `vibe provider set <id>` to assign it.",
+        "Run `vibe provider setup` to add a provider, then point the role's Profile at it.",
       fixable: false,
     });
   } else {
     findings.push({
       id: "agent-provider-refs",
       severity: "ok",
-      title: "All agents reference valid providers",
+      title: "All roles resolve to valid providers",
       fixable: false,
     });
   }
 
   // Check prompt files exist.
   const missingPrompts: string[] = [];
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
-    const promptPath = path.isAbsolute(agent.prompt)
-      ? agent.prompt
-      : path.join(projectRoot, agent.prompt);
+  for (const { key, roleId, role } of crewRoles) {
+    const promptPath = path.isAbsolute(role.prompt)
+      ? role.prompt
+      : path.join(projectRoot, role.prompt);
     if (!(await pathExists(promptPath))) {
-      missingPrompts.push(roleId);
+      missingPrompts.push(builtinRoleIds.includes(roleId as never) ? roleId : key);
     }
   }
   if (missingPrompts.length > 0) {
@@ -261,13 +275,13 @@ export async function runDoctor(input: {
   const discovered = await discoverSkills(projectRoot);
   const knownNames = new Set(discovered.map((s) => s.name));
   const missingSkills: { roleId: string; skill: string }[] = [];
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
-    for (const skill of agent.skills) {
+  for (const { key, role } of crewRoles) {
+    for (const skill of role.skills) {
       // Legacy: check flat .vibestrate/skills/<name>.md too.
       const flat = path.join(projectSkillsDir(projectRoot), `${skill}.md`);
       const flatExists = await pathExists(flat);
       if (!flatExists && !knownNames.has(skill)) {
-        missingSkills.push({ roleId, skill });
+        missingSkills.push({ roleId: key, skill });
       }
     }
   }
@@ -283,25 +297,25 @@ export async function runDoctor(input: {
         "Create the missing skill in `.vibestrate/skills/<name>/SKILL.md`, drop a flat `.vibestrate/skills/<name>.md`, or unassign with `vibe skills unassign <agent> <skill>`.",
       fixable: false,
     });
-  } else if (Object.values(loaded.config.roles).some((a) => a.skills.length > 0)) {
+  } else if (crewRoles.some((r) => r.role.skills.length > 0)) {
     findings.push({
       id: "skills-present",
       severity: "ok",
-      title: "All skills referenced by agents are present",
+      title: "All skills referenced by roles are present",
       fixable: false,
     });
   }
 
-  // Check write-enabled agents are configured for the worktree.
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
+  // Check write-enabled roles are configured for the worktree.
+  for (const { key, role } of crewRoles) {
     let profile;
     try {
-      profile = resolveProfile(loaded.config.permissions.profiles, agent.permissions);
+      profile = resolveProfile(loaded.config.permissions.profiles, role.permissions);
     } catch (err) {
       findings.push({
-        id: `permission-${roleId}`,
+        id: `permission-${key}`,
         severity: "fail",
-        title: `Agent "${roleId}" uses unknown permission profile "${agent.permissions}"`,
+        title: `Role "${key}" uses unknown permission profile "${role.permissions}"`,
         detail: err instanceof Error ? err.message : String(err),
         fixHint:
           "Use one of the built-in profiles (read_only, code_write, review_only, verify_only) or define one under permissions.profiles.",
@@ -311,11 +325,11 @@ export async function runDoctor(input: {
     }
     if (profile.allowWrite && profile.cwd !== "worktree") {
       findings.push({
-        id: `permission-${roleId}`,
+        id: `permission-${key}`,
         severity: "fail",
-        title: `Agent "${roleId}" can write but is configured to run in ${profile.cwd}`,
-        detail: "Write-enabled agents must run inside the worktree to keep changes isolated.",
-        fixHint: `Run \`vibe config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
+        title: `Role "${key}" can write but is configured to run in ${profile.cwd}`,
+        detail: "Write-enabled roles must run inside the worktree to keep changes isolated.",
+        fixHint: `Run \`vibe config set permissions.profiles.${role.permissions}.cwd worktree\`.`,
         fixable: false,
       });
     }
@@ -725,11 +739,14 @@ export async function applyDoctorFixes(input: {
       loaded = null;
     }
     if (loaded) {
-      for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
+      const allRoles = Object.values(loaded.config.crews).flatMap((crew) =>
+        Object.entries(crew.roles),
+      );
+      for (const [roleId, role] of allRoles) {
         if (!(builtinRoleIds as readonly string[]).includes(roleId)) continue;
-        const promptPath = path.isAbsolute(agent.prompt)
-          ? agent.prompt
-          : path.join(projectRoot, agent.prompt);
+        const promptPath = path.isAbsolute(role.prompt)
+          ? role.prompt
+          : path.join(projectRoot, role.prompt);
         if (await pathExists(promptPath)) continue;
         const contents = await readDefaultPrompt(roleId as BuiltinRoleId);
         await writeText(promptPath, contents);
@@ -750,9 +767,9 @@ export async function applyDoctorFixes(input: {
           recommended.id,
           buildProviderFromDetection(recommended.id, recommended.command),
         );
-        await assignRolesToProvider(projectRoot, recommended.id);
+        await pointAllProfilesAtProvider(projectRoot, recommended.id);
         applied.push(
-          `Added '${recommended.id}' provider and assigned all default agents to it`,
+          `Added '${recommended.id}' provider and pointed all profiles at it`,
         );
       } else if (!hasAnyProvider && !recommended) {
         skipped.push(

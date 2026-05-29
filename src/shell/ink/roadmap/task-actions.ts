@@ -24,7 +24,7 @@ export async function createTask(
       description: form.description,
       priority: form.priority,
       effort: form.effort,
-      providerOverride: form.providerOverride,
+      profileOverride: form.profileOverride,
       readOnly: form.readOnly,
     });
     return { ok: true, message: `Created task ${task.id}.` };
@@ -45,7 +45,7 @@ export async function editTask(
       description: form.description,
       priority: form.priority,
       effort: form.effort,
-      providerOverride: form.providerOverride,
+      profileOverride: form.profileOverride,
       readOnly: form.readOnly,
     });
     return { ok: true, message: `Updated task ${taskId}.` };

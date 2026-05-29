@@ -40,12 +40,14 @@ export async function runPreflightChecks(input: {
     );
   }
 
-  for (const [roleId, agent] of Object.entries(config.roles)) {
-    const profile = resolveProfile(config.permissions.profiles, agent.permissions);
-    if (profile.allowWrite && profile.cwd !== "worktree") {
-      throw new PolicyError(
-        `Agent "${roleId}" can write code, but its permission profile "${agent.permissions}" runs in "${profile.cwd}". Write-enabled agents must run inside the worktree to keep changes isolated. Run \`vibe config set permissions.profiles.${agent.permissions}.cwd worktree\`.`,
-      );
+  for (const [crewId, crew] of Object.entries(config.crews)) {
+    for (const [roleId, role] of Object.entries(crew.roles)) {
+      const profile = resolveProfile(config.permissions.profiles, role.permissions);
+      if (profile.allowWrite && profile.cwd !== "worktree") {
+        throw new PolicyError(
+          `Role "${roleId}" (crew "${crewId}") can write code, but its permission profile "${role.permissions}" runs in "${profile.cwd}". Write-enabled roles must run inside the worktree to keep changes isolated. Run \`vibe config set permissions.profiles.${role.permissions}.cwd worktree\`.`,
+        );
+      }
     }
   }
 

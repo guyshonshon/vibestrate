@@ -33,7 +33,7 @@ export const roleMetricsSchema = z.object({
   stdoutArtifactPath: z.string().optional(),
   stderrArtifactPath: z.string().optional(),
   sessionId: z.string().nullable().default(null),
-  flowSlotId: z.string().nullable().default(null),
+  flowSeat: z.string().nullable().default(null),
   flowContextMode: z
     .enum(["opened", "reused", "rehydrated", "stateless"])
     .nullable()

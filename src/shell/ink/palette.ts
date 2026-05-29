@@ -105,12 +105,12 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   },
   {
     id: "goto.roles",
-    title: "Go to Agents",
+    title: "Go to Crew",
     hint: "agents + provider + MCP servers",
     description:
       "Configured agents (planner, architect, executor, …) with their provider, prompt path, permissions, and attached MCP servers.",
     cli: "(panel only — managed via .vibestrate/project.yml)",
-    action: { kind: "goto", page: "agents" },
+    action: { kind: "goto", page: "crew" },
   },
   {
     id: "goto.skills",

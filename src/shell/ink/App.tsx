@@ -434,13 +434,13 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               }
               active
             />
-          ) : ui.page === "agents" ? (
+          ) : ui.page === "crew" ? (
             <AgentsPage
               config={config}
               configError={configError}
-              selectedIndex={ui.selection.agents ?? 0}
+              selectedIndex={ui.selection.crew ?? 0}
               setSelectedIndex={(i) =>
-                dispatch({ type: "selection.set", page: "agents", index: i })
+                dispatch({ type: "selection.set", page: "crew", index: i })
               }
               active
             />

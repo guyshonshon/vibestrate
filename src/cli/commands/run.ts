@@ -71,17 +71,20 @@ export type RunCommandOptions = {
   uiPort?: number;
   taskId?: string | null;
   effort?: "low" | "medium" | "high" | null;
-  providerOverride?: string | null;
+  /** Crew to resolve against. null = project.defaultCrew. */
+  crewId?: string | null;
+  /** Run-wide Profile override applied to every seated step. */
+  profileOverride?: string | null;
   readOnly?: boolean;
   autoEffort?: boolean;
-  /** Skill ids attached only for this run, merged into agent.skills. */
+  /** Skill ids attached only for this run, merged into role skills. */
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
   /** Flow id to resolve before start. */
   flowId?: string | null;
-  /** Provider overrides by Flow participant slot id. */
-  flowSlotProviders?: Record<string, string>;
+  /** Per-step Profile overrides (step id → profile id). */
+  flowStepProfiles?: Record<string, string>;
   /** Extra run brief included in the Flow task packet. */
   flowBrief?: string | null;
   /** Flow context packing policy. */
@@ -162,22 +165,9 @@ export async function runRunCommand(
     return 1;
   }
 
-  const missingProviderRefs: string[] = [];
-  for (const [roleId, agent] of Object.entries(loaded.config.roles)) {
-    if (!loaded.config.providers[agent.provider]) {
-      missingProviderRefs.push(`${roleId} → ${agent.provider}`);
-    }
-  }
-  if (missingProviderRefs.length > 0) {
-    console.error(
-      `${symbol.fail()} Some agents reference a provider that is not configured:`,
-    );
-    for (const m of missingProviderRefs) console.error(`  - ${m}`);
-    console.error(
-      `  ${symbol.arrow()} Run ${color.bold("vibe provider setup")} to add the missing provider, or ${color.bold("vibe provider set <id>")} to switch.`,
-    );
-    return 1;
-  }
+  // Profile → provider and crew role → profile integrity is enforced by the
+  // config schema at load time, so a successful loadConfig already guarantees
+  // every Profile resolves to a configured Provider.
 
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
   if (options.flowId) {
@@ -191,22 +181,23 @@ export async function runRunCommand(
     }
     let flowBrief = options.flowBrief ?? null;
     let flowContextPolicy = options.flowContextPolicy;
-    let flowSlotProviders = options.flowSlotProviders ?? {};
+    let flowStepProfiles = options.flowStepProfiles ?? {};
     let flowSkippedOptionalSteps = options.flowSkippedOptionalSteps ?? [];
     if (options.flowInteractive) {
       const setup = await runFlowRunWizard({
         task: resolvedTask,
         flow,
         config: loaded.config,
+        crewId: options.crewId ?? null,
         brief: flowBrief,
         contextPolicy: flowContextPolicy,
-        slotProviders: flowSlotProviders,
+        stepProfiles: flowStepProfiles,
         skippedOptionalSteps: flowSkippedOptionalSteps,
       });
       resolvedTask = setup.task;
       flowBrief = setup.brief;
       flowContextPolicy = setup.contextPolicy;
-      flowSlotProviders = setup.slotProviders;
+      flowStepProfiles = setup.stepProfiles;
       flowSkippedOptionalSteps = setup.skippedOptionalSteps;
       console.log("");
       console.log(header("Equivalent command"));
@@ -217,7 +208,7 @@ export async function runRunCommand(
             task: resolvedTask,
             brief: flowBrief,
             contextPolicy: flowContextPolicy,
-            slotProviders: flowSlotProviders,
+            stepProfiles: flowStepProfiles,
             skippedOptionalSteps: flowSkippedOptionalSteps,
           }),
         ),
@@ -230,9 +221,11 @@ export async function runRunCommand(
         source: flow.source,
         config: loaded.config,
         task: resolvedTask,
+        crewId: options.crewId ?? null,
+        profileOverride: options.profileOverride ?? null,
         brief: flowBrief,
         contextPolicy: flowContextPolicy,
-        slotProviders: flowSlotProviders,
+        stepProfileOverrides: flowStepProfiles,
         skippedOptionalSteps: flowSkippedOptionalSteps,
       });
       printResolvedFlow(resolvedFlow);
@@ -303,7 +296,7 @@ export async function runRunCommand(
   // If --task <id> was passed and the user did NOT override effort /
   // provider / read-only on the CLI, inherit those from the roadmap task.
   let effort: "low" | "medium" | "high" | null = options.effort ?? null;
-  let providerOverride: string | null = options.providerOverride ?? null;
+  let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
   if (roadmapTaskId) {
     try {
@@ -312,7 +305,7 @@ export async function runRunCommand(
       const t = await svc.getTask(roadmapTaskId);
       if (t) {
         if (effort === null) effort = t.effort;
-        if (providerOverride === null) providerOverride = t.providerOverride;
+        if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
       }
     } catch {
@@ -390,7 +383,9 @@ export async function runRunCommand(
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
     effort,
-    providerOverride,
+    crewId: options.crewId ?? null,
+    profileOverride,
+    stepProfileOverrides: options.flowStepProfiles ?? {},
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
@@ -577,19 +572,18 @@ function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {
     `${symbol.bullet()} Flow ${color.bold(snapshot.flowId)} v${snapshot.flowVersion} ${color.dim(`(${snapshot.source.kind})`)}`,
   );
   console.log(`${symbol.bullet()} Context ${color.bold(snapshot.contextPolicy)}`);
-  console.log(`${symbol.bullet()} Participants`);
-  for (const slot of snapshot.slots) {
-    console.log(
-      indent(`${slot.id}: ${slot.defaultRole} ${color.dim("via")} ${slot.providerId}`),
-    );
-  }
+  console.log(`${symbol.bullet()} Crew ${color.bold(snapshot.crewId)}`);
   console.log(`${symbol.bullet()} Steps`);
   for (const [index, step] of snapshot.steps.entries()) {
-    const provider = step.providerId ? ` via ${step.providerId}` : "";
-    const state = step.enabled ? "" : " skipped";
+    const seat = step.seat ? `${step.seat}` : color.dim("—");
+    const role = step.resolvedRoleLabel ?? step.resolvedRoleId ?? color.dim("—");
+    const profile = step.profileId
+      ? `${step.profileId}${step.providerId ? color.dim(` (${step.providerId})`) : ""}`
+      : color.dim("—");
+    const state = step.enabled ? "" : color.dim(" skipped");
     console.log(
       indent(
-        `${index + 1}. ${step.id}: ${step.kind}${provider}${color.dim(state)}`,
+        `${index + 1}. ${color.bold(step.label)} ${color.dim(`[${step.kind}]`)}  seat=${seat}  role=${role}  profile=${profile}${state}`,
       ),
     );
   }

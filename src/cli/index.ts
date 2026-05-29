@@ -38,7 +38,7 @@ import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
 
-function collectFlowSlot(value: string, previous: string[]): string[] {
+function collectStepProfile(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
@@ -46,18 +46,18 @@ function collectFlowStep(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
-function parseFlowSlots(values: string[]): Record<string, string> {
+function parseStepProfiles(values: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of values) {
     const index = raw.indexOf("=");
-    const slot = raw.slice(0, index).trim();
-    const provider = raw.slice(index + 1).trim();
-    if (index <= 0 || !slot || !provider) {
+    const step = raw.slice(0, index).trim();
+    const profile = raw.slice(index + 1).trim();
+    if (index <= 0 || !step || !profile) {
       throw new Error(
-        `--flow-slot must use <slot=provider> (got "${raw}").`,
+        `--step-profile must use <stepId=profileId> (got "${raw}").`,
       );
     }
-    out[slot] = provider;
+    out[step] = profile;
   }
   return out;
 }
@@ -132,15 +132,19 @@ export function buildVibestrateProgram(): Command {
     )
     .option(
       "--effort <level>",
-      "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+      "task-difficulty hint (low|medium|high). Recorded for planning; does not pick a provider.",
     )
     .option(
-      "--provider <id>",
-      "override the provider for every agent in this run (wins over --effort).",
+      "--crew <id>",
+      "crew to resolve the flow's seats against (default: project.defaultCrew).",
+    )
+    .option(
+      "--profile <id>",
+      "run-wide Profile override applied to every seated step in this run.",
     )
     .option(
       "--read-only",
-      "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every agent.",
+      "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every role.",
     )
     .option(
       "--auto-effort",
@@ -159,9 +163,9 @@ export function buildVibestrateProgram(): Command {
       "resolve and run a Flow recipe for this run.",
     )
     .option(
-      "--flow-slot <slot=provider>",
-      "override a Flow participant slot provider. Repeat for multiple slots.",
-      collectFlowSlot,
+      "--step-profile <stepId=profileId>",
+      "override the Profile for a Flow step (same Role, different runtime). Repeat for multiple steps.",
+      collectStepProfile,
       [],
     )
     .option(
@@ -198,13 +202,14 @@ export function buildVibestrateProgram(): Command {
           uiPort?: number;
           task?: string;
           effort?: string;
-          provider?: string;
+          crew?: string;
+          profile?: string;
           readOnly?: boolean;
           autoEffort?: boolean;
           skills?: string;
           concise?: boolean;
           flow?: string;
-          flowSlot?: string[];
+          stepProfile?: string[];
           flowBrief?: string;
           flowContext?: string;
           flowSkip?: string[];
@@ -249,13 +254,13 @@ export function buildVibestrateProgram(): Command {
           .filter((s) => s.length > 0);
         if (
           !opts.flow &&
-          ((opts.flowSlot?.length ?? 0) > 0 ||
+          ((opts.stepProfile?.length ?? 0) > 0 ||
             !!opts.flowBrief ||
             !!opts.flowContext ||
             (opts.flowSkip?.length ?? 0) > 0 ||
             opts.interactive === true)
         ) {
-          console.error("--flow-* options and run --interactive require --flow <id>.");
+          console.error("--flow-*/--step-profile options and run --interactive require --flow <id>.");
           process.exit(2);
         }
         let flowContextPolicy:
@@ -276,9 +281,9 @@ export function buildVibestrateProgram(): Command {
           }
           flowContextPolicy = opts.flowContext;
         }
-        let flowSlotProviders: Record<string, string> = {};
+        let flowStepProfiles: Record<string, string> = {};
         try {
-          flowSlotProviders = parseFlowSlots(opts.flowSlot ?? []);
+          flowStepProfiles = parseStepProfiles(opts.stepProfile ?? []);
         } catch (err) {
           console.error(err instanceof Error ? err.message : String(err));
           process.exit(2);
@@ -288,13 +293,14 @@ export function buildVibestrateProgram(): Command {
           uiPort: opts.uiPort,
           taskId: opts.task ?? null,
           effort,
-          providerOverride: opts.provider ?? null,
+          crewId: opts.crew ?? null,
+          profileOverride: opts.profile ?? null,
           readOnly: opts.readOnly ?? false,
           autoEffort: opts.autoEffort ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,
           flowId: opts.flow ?? null,
-          flowSlotProviders,
+          flowStepProfiles,
           flowBrief: opts.flowBrief ?? null,
           flowContextPolicy,
           flowSkippedOptionalSteps: opts.flowSkip ?? [],
