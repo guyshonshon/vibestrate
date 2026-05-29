@@ -41,7 +41,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     commentsCount: 0,
     lastEventAt: null,
     effort: null,
-    providerOverride: null,
+    profileOverride: null,
     readOnly: false,
   };
 }

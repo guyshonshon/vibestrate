@@ -136,7 +136,7 @@ describe("page history / back", () => {
       "runs",
       "roadmap",
       "queue",
-      "agents",
+      "crew",
       "skills",
       "approvals",
     ];

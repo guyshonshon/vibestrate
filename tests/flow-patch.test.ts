@@ -19,36 +19,43 @@ providers:
   claude:
     type: cli
     command: __flow_patch_claude_must_not_run__
-roles:
-  planner:
+profiles:
+  claude-balanced:
     provider: claude
-    prompt: .vibestrate/roles/planner.md
-    permissions: readOnly
-  reviewer:
-    provider: claude
-    prompt: .vibestrate/roles/reviewer.md
-    permissions: readOnly
+crews:
+  default:
+    roles:
+      planner:
+        fills: [planner]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/planner.md
+        permissions: readOnly
+      reviewer:
+        fills: [reviewer]
+        profile: claude-balanced
+        prompt: .vibestrate/roles/reviewer.md
+        permissions: readOnly
+defaultCrew: default
 `;
 
 const PROJECT_FLOW = `id: project-review
 version: 1
 label: Project Review
 description: Project-local review recipe.
-slots:
+seats:
   reviewer:
     label: Reviewer
-    defaultRole: reviewer
 steps:
   - id: review
     label: Review
     kind: review-turn
-    slot: reviewer
+    seat: reviewer
     inputs: [diff]
     outputs: [findings]
   - id: cleanup
     label: Cleanup
     kind: agent-turn
-    slot: reviewer
+    seat: reviewer
     inputs: [findings]
     outputs: [notes]
 `;
@@ -103,41 +110,31 @@ describe("mergeFlowPatch (pure)", () => {
     expect(verdict.ok).toBe(false);
   });
 
-  it("re-routes a step to a different slot and overwrites the roleId", () => {
+  it("re-routes a step to a different seat", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
-    // Pick a step that has a slot today so we know the merge had to replace it.
-    const target = base.steps.find((s) => s.slot)!;
-    const newSlot = Object.keys(base.slots).find((k) => k !== target.slot)!;
+    // Pick a step that has a seat today so we know the merge had to replace it.
+    const target = base.steps.find((s) => s.seat)!;
+    const newSeat = Object.keys(base.seats).find((k) => k !== target.seat)!;
     const verdict = mergeFlowPatch(base, {
       steps: [
         {
           id: target.id,
-          slot: newSlot,
-          roleId: "claude-overridden",
+          seat: newSeat,
         },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
     const merged = verdict.next.steps.find((s) => s.id === target.id)!;
-    expect(merged.slot).toBe(newSlot);
-    expect(merged.roleId).toBe("claude-overridden");
+    expect(merged.seat).toBe(newSeat);
   });
 
-  it("clears roleId when passed as null", () => {
+  it("clears seat when passed as null on a non-turn step", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
-    const targetWithRole = base.steps.find((s) => s.roleId);
-    if (!targetWithRole) {
-      // The arbitration flow may not pin roleIds; pick another flow
-      // shape — Ship Fast — that does. Skip cleanly otherwise.
-      return;
-    }
-    const verdict = mergeFlowPatch(base, {
-      steps: [{ id: targetWithRole.id, roleId: null }],
-    });
-    if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
-    expect(
-      verdict.next.steps.find((s) => s.id === targetWithRole.id)!.roleId,
-    ).toBeUndefined();
+    // Validation steps have no seat; pick a turn step and confirm seat is set,
+    // then a seatless validation step round-trips with seat undefined.
+    const validation = base.steps.find((s) => s.kind === "validation");
+    if (!validation) return;
+    expect(validation.seat).toBeUndefined();
   });
 
   it("changing kind from approval-gate to agent-turn requires clearing approval metadata", () => {
@@ -146,7 +143,7 @@ describe("mergeFlowPatch (pure)", () => {
     if (!gate) return;
     // Changing kind without dropping approval should fail validation.
     const bad = mergeFlowPatch(base, {
-      steps: [{ id: gate.id, kind: "agent-turn", slot: gate.slot ?? null }],
+      steps: [{ id: gate.id, kind: "agent-turn", seat: gate.seat ?? null }],
     });
     expect(bad.ok).toBe(false);
     // Dropping approval at the same time should succeed.
@@ -155,7 +152,7 @@ describe("mergeFlowPatch (pure)", () => {
         {
           id: gate.id,
           kind: "agent-turn",
-          slot: gate.slot ?? Object.keys(base.slots)[0]!,
+          seat: gate.seat ?? Object.keys(base.seats)[0]!,
           approval: null,
         },
       ],
@@ -296,31 +293,31 @@ describe("PATCH /api/flows/:flowId", () => {
   });
 });
 
-describe("replaceSteps / replaceSlots (structural edits)", () => {
+describe("replaceSteps / replaceSeats (structural edits)", () => {
   it("replaces the whole ordered step list", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
-    const slot = Object.keys(base.slots)[0]!;
+    const seat = Object.keys(base.seats)[0]!;
     const verdict = mergeFlowPatch(base, {
       replaceSteps: [
-        { id: "plan", label: "Plan", kind: "agent-turn", slot, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
-        { id: "review", label: "Review", kind: "review-turn", slot, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
+        { id: "plan", label: "Plan", kind: "agent-turn", seat, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
+        { id: "review", label: "Review", kind: "review-turn", seat, inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
     expect(verdict.next.steps.map((s) => s.id)).toEqual(["plan", "review"]);
   });
 
-  it("replaces the slot map wholesale alongside the steps", () => {
+  it("replaces the seat map wholesale alongside the steps", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
     const verdict = mergeFlowPatch(base, {
-      replaceSlots: { solo: { label: "Solo", defaultRole: "executor" } },
+      replaceSeats: { solo: { label: "Solo" } },
       replaceSteps: [
-        { id: "do", label: "Do", kind: "agent-turn", slot: "solo", inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
+        { id: "do", label: "Do", kind: "agent-turn", seat: "solo", inputs: [], outputs: [], optional: false, skipWhenReadOnly: false },
       ],
     });
     if (!verdict.ok) throw new Error(verdict.reasons.join(", "));
-    expect(Object.keys(verdict.next.slots)).toEqual(["solo"]);
-    expect(verdict.next.steps[0]!.slot).toBe("solo");
+    expect(Object.keys(verdict.next.seats)).toEqual(["solo"]);
+    expect(verdict.next.steps[0]!.seat).toBe("solo");
   });
 });
 

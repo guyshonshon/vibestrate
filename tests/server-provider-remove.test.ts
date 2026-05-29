@@ -39,7 +39,7 @@ describe("DELETE /api/providers/:id", () => {
     await addProvider(project, {
       id: "spare",
       config: { type: "cli", command: "spare", args: [], input: "stdin" },
-      alsoAssignAllRoles: false,
+      alsoAssignAllProfiles: false,
     });
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 

@@ -13,27 +13,27 @@ describe("validateTaskForm", () => {
     if (!r.ok) expect(r.errors.title).toMatch(/required/i);
   });
 
-  it("normalizes empty effort to null and empty providerOverride to null", () => {
+  it("normalizes empty effort to null and empty profileOverride to null", () => {
     let s = initTaskForm("create", null, { title: "x" });
-    s = reduceTaskForm(s, { type: "field", field: "providerOverride", value: "  " });
+    s = reduceTaskForm(s, { type: "field", field: "profileOverride", value: "  " });
     const r = validateTaskForm(s);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.effort).toBeNull();
-      expect(r.value.providerOverride).toBeNull();
+      expect(r.value.profileOverride).toBeNull();
     }
   });
 
   it("preserves valid effort + provider overrides", () => {
     let s = initTaskForm("create", null, { title: "x" });
     s = reduceTaskForm(s, { type: "field", field: "effort", value: "high" });
-    s = reduceTaskForm(s, { type: "field", field: "providerOverride", value: "codex" });
+    s = reduceTaskForm(s, { type: "field", field: "profileOverride", value: "codex" });
     s = reduceTaskForm(s, { type: "field", field: "readOnly", value: true });
     const r = validateTaskForm(s);
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.effort).toBe("high");
-      expect(r.value.providerOverride).toBe("codex");
+      expect(r.value.profileOverride).toBe("codex");
       expect(r.value.readOnly).toBe(true);
     }
   });
@@ -72,7 +72,7 @@ describe("reduceTaskForm", () => {
       description: "hi",
       priority: "high",
       effort: "low",
-      providerOverride: "codex",
+      profileOverride: "codex",
       readOnly: true,
     });
     expect(s.mode).toBe("edit");
@@ -80,7 +80,7 @@ describe("reduceTaskForm", () => {
     expect(s.title).toBe("abc");
     expect(s.priority).toBe("high");
     expect(s.effort).toBe("low");
-    expect(s.providerOverride).toBe("codex");
+    expect(s.profileOverride).toBe("codex");
     expect(s.readOnly).toBe(true);
   });
 });

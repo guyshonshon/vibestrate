@@ -28,38 +28,24 @@ function flowTestConfig() {
       claude: { type: "cli", command: "__flow_test_claude_must_not_run__" },
       codex: { type: "cli", command: "__flow_test_codex_must_not_run__" },
     },
-    roles: {
-      planner: {
-        provider: "claude",
-        prompt: ".vibestrate/roles/planner.md",
-        permissions: "readOnly",
-      },
-      architect: {
-        provider: "claude",
-        prompt: ".vibestrate/roles/architect.md",
-        permissions: "readOnly",
-      },
-      executor: {
-        provider: "claude",
-        prompt: ".vibestrate/roles/executor.md",
-        permissions: "codeWrite",
-      },
-      fixer: {
-        provider: "claude",
-        prompt: ".vibestrate/roles/fixer.md",
-        permissions: "codeWrite",
-      },
-      reviewer: {
-        provider: "codex",
-        prompt: ".vibestrate/roles/reviewer.md",
-        permissions: "readOnly",
-      },
-      verifier: {
-        provider: "codex",
-        prompt: ".vibestrate/roles/verifier.md",
-        permissions: "readOnly",
+    profiles: {
+      "claude-balanced": { provider: "claude" },
+      "codex-balanced": { provider: "codex" },
+      "opus-deep": { provider: "claude", model: "opus", power: "deep" },
+    },
+    crews: {
+      default: {
+        roles: {
+          planner: { fills: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
+          architect: { fills: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
+          executor: { fills: ["implementer", "builder"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
+          fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
+          reviewer: { fills: ["reviewer", "challenger"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
+          verifier: { fills: ["verifier", "arbiter"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
+        },
       },
     },
+    defaultCrew: "default",
   });
 }
 
@@ -73,7 +59,7 @@ describe("Flow Phase 0 contracts", () => {
           id: "ghost-review",
           label: "Ghost Review",
           kind: "review-turn",
-          slot: "missing-slot",
+          seat: "missing-seat",
           inputs: ["diff"],
           outputs: ["findings"],
         },
@@ -83,12 +69,12 @@ describe("Flow Phase 0 contracts", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message)).toContain(
-        'Flow step "ghost-review" references unknown slot "missing-slot".',
+        'Flow step "ghost-review" references unknown seat "missing-seat".',
       );
     }
   });
 
-  it("resolves the built-in Quality Arbitration Flow from configured providers", () => {
+  it("resolves the built-in Quality Arbitration Flow: seat → crew role → profile → provider", () => {
     const snapshot = resolveFlow({
       flow: qualityArbitrationFlow,
       source: { kind: "builtin", ref: "quality-arbitration" },
@@ -99,46 +85,98 @@ describe("Flow Phase 0 contracts", () => {
     });
 
     expect(resolvedFlowSnapshotSchema.parse(snapshot)).toEqual(snapshot);
-    expect(snapshot.slots).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "builder", providerId: "claude" }),
-        expect.objectContaining({ id: "challenger", providerId: "codex" }),
-      ]),
+    expect(snapshot.crewId).toBe("default");
+    // Seats are pure contracts — no provider on the seat itself.
+    expect(snapshot.seats.map((s) => s.id)).toEqual(
+      expect.arrayContaining(["builder", "challenger", "arbiter"]),
     );
+    // plan → builder seat → executor role → claude-balanced → claude.
     expect(snapshot.steps.find((step) => step.id === "plan")).toEqual(
       expect.objectContaining({
-        roleId: "planner",
+        seat: "builder",
+        resolvedRoleId: "executor",
+        profileId: "claude-balanced",
         providerId: "claude",
         enabled: true,
+      }),
+    );
+    // implementation-review → challenger seat → reviewer role → codex.
+    expect(snapshot.steps.find((step) => step.id === "implementation-review")).toEqual(
+      expect.objectContaining({
+        seat: "challenger",
+        resolvedRoleId: "reviewer",
+        providerId: "codex",
       }),
     );
     expect(snapshot.steps.find((step) => step.id === "plan-review")).toEqual(
       expect.objectContaining({ enabled: false }),
     );
+    // Seatless steps (validation) resolve no role/profile/provider.
     expect(snapshot.steps.find((step) => step.id === "validation")).toEqual(
-      expect.objectContaining({ roleId: null, providerId: null }),
+      expect.objectContaining({ seat: null, resolvedRoleId: null, profileId: null, providerId: null }),
     );
   });
 
-  it("refuses a Flow provider override that project config does not define", () => {
+  it("a step-level Profile override changes only the runtime Profile, not the Role", () => {
+    const snapshot = resolveFlow({
+      flow: qualityArbitrationFlow,
+      source: { kind: "builtin", ref: "quality-arbitration" },
+      config: flowTestConfig(),
+      task: "Implement crypto carefully.",
+      stepProfileOverrides: { implement: "opus-deep" },
+    });
+    const step = snapshot.steps.find((s) => s.id === "implement")!;
+    // Same Role behavior (executor), stronger runtime Profile + its provider.
+    expect(step.resolvedRoleId).toBe("executor");
+    expect(step.profileId).toBe("opus-deep");
+    expect(step.providerId).toBe("claude");
+  });
+
+  it("fails clearly when no crew role fills a required seat", () => {
+    const config = flowTestConfig();
+    // Drop the role that fills the challenger seat.
+    delete config.crews.default!.roles.reviewer;
+    expect(() =>
+      resolveFlow({
+        flow: qualityArbitrationFlow,
+        source: { kind: "builtin", ref: "quality-arbitration" },
+        config,
+        task: "no challenger",
+      }),
+    ).toThrow(/needs the "challenger" seat/);
+  });
+
+  it("fails clearly when more than one crew role fills a seat", () => {
+    const config = flowTestConfig();
+    // Add a second role that also fills the builder seat → ambiguous.
+    config.crews.default!.roles["builder2"] = {
+      fills: ["builder"],
+      profile: "claude-balanced",
+      prompt: ".vibestrate/roles/executor.md",
+      permissions: "codeWrite",
+      skills: [],
+      mcpServers: {},
+    };
+    expect(() =>
+      resolveFlow({
+        flow: qualityArbitrationFlow,
+        source: { kind: "builtin", ref: "quality-arbitration" },
+        config,
+        task: "ambiguous builder",
+      }),
+    ).toThrow(/more than one role filling the "builder" seat/);
+  });
+
+  it("refuses a step Profile override that references an unknown step", () => {
     expect(() =>
       resolveFlow({
         flow: qualityArbitrationFlow,
         source: { kind: "builtin", ref: "quality-arbitration" },
         config: flowTestConfig(),
-        task: "Do not run a provider.",
-        slotProviders: { challenger: "missing" },
+        task: "bad override",
+        stepProfileOverrides: { "no-such-step": "opus-deep" },
       }),
     ).toThrow(FlowResolutionError);
-    expect(() =>
-      resolveFlow({
-        flow: qualityArbitrationFlow,
-        source: { kind: "builtin", ref: "quality-arbitration" },
-        config: flowTestConfig(),
-        task: "Reject typos before a run starts.",
-        slotProviders: { reviewer: "codex" },
-      }),
-    ).toThrow(/unknown Flow slot "reviewer"/);
   });
 
   it("parses deterministic Quality Arbitration JSON output fixtures", () => {

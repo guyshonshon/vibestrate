@@ -34,7 +34,7 @@ describe("provider set / list", () => {
     const list = await listConfiguredProviders(projectRoot);
     expect(list).toHaveLength(1);
     expect(list[0]!.id).toBe("claude");
-    expect(list[0]!.rolesUsing).toEqual(
+    expect(list[0]!.profilesUsing).toEqual(
       expect.arrayContaining([
         "planner",
         "architect",
@@ -50,12 +50,12 @@ describe("provider set / list", () => {
     await addProvider(projectRoot, {
       id: "myagent",
       config: { type: "cli", command: "myagent", args: ["--prompt"], input: "arg" },
-      alsoAssignAllRoles: true,
+      alsoAssignAllProfiles: true,
     });
     const list = await listConfiguredProviders(projectRoot);
     const myagent = list.find((p) => p.id === "myagent")!;
     expect(myagent.command).toBe("myagent");
-    expect(myagent.rolesUsing.length).toBeGreaterThan(0);
+    expect(myagent.profilesUsing.length).toBeGreaterThan(0);
   });
 
   it("setDefaultProvider fails clearly when provider is not configured", async () => {
@@ -72,7 +72,7 @@ describe("provider set / list", () => {
       addProvider(projectRoot, {
         id: "1bad",
         config: { type: "cli", command: "x", args: [], input: "stdin" },
-        alsoAssignAllRoles: false,
+        alsoAssignAllProfiles: false,
       }),
     ).rejects.toThrow();
   });
@@ -82,7 +82,7 @@ describe("provider set / list", () => {
     await addProvider(projectRoot, {
       id: "spare",
       config: { type: "cli", command: "spare", args: [], input: "stdin" },
-      alsoAssignAllRoles: false,
+      alsoAssignAllProfiles: false,
     });
     const removedSpare = await removeProvider(projectRoot, "spare");
     expect(removedSpare.ok).toBe(true);
