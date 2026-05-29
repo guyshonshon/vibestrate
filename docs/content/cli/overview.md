@@ -51,7 +51,12 @@ vibe provider setup                        # apply presets
 vibe provider test <id>                    # verify the invocation works
 vibe provider set <id>                     # set as the default for every agent
 vibe provider list                         # show the configured providers
+vibe provider remove <id>                  # remove one (refuses if a role uses it)
 ```
+
+Everything here is also doable in the dashboard's **Providers** page — detect,
+set up, edit `command`/`args`/`input`, test, set default, and remove. Neither
+surface is more capable than the other.
 
 ## Working with config
 

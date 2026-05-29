@@ -17,6 +17,7 @@ import {
 } from "../../lib/api.js";
 import type { DiscoveredFlow, DiscoveredSkill } from "../../lib/types.js";
 import { navigate } from "../App.js";
+import { parseArgs, renderProviderYaml } from "../../lib/provider-yaml.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
@@ -841,54 +842,6 @@ function FormField({
       {children}
     </label>
   );
-}
-
-function parseArgs(raw: string): string[] {
-  // Simple whitespace split that respects double-quoted segments so
-  // users can pass args like `"--system" "be brief"`. Good enough for
-  // CLI provider arg lists; full POSIX parsing would be overkill.
-  const out: string[] = [];
-  let cur = "";
-  let inQuote = false;
-  for (const ch of raw.trim()) {
-    if (ch === '"') {
-      inQuote = !inQuote;
-      continue;
-    }
-    if (!inQuote && /\s/.test(ch)) {
-      if (cur) {
-        out.push(cur);
-        cur = "";
-      }
-      continue;
-    }
-    cur += ch;
-  }
-  if (cur) out.push(cur);
-  return out;
-}
-
-function renderProviderYaml(
-  id: string,
-  config: { command: string; args: string[]; input: "stdin" | "arg" },
-): string {
-  const argsLine =
-    config.args.length === 0
-      ? "    args: []"
-      : `    args: [${config.args.map((a) => yamlQuote(a)).join(", ")}]`;
-  return [
-    "providers:",
-    `  ${id}:`,
-    "    type: cli",
-    `    command: ${yamlQuote(config.command)}`,
-    argsLine,
-    `    input: ${config.input}`,
-  ].join("\n");
-}
-
-function yamlQuote(s: string): string {
-  if (/^[a-zA-Z0-9_./-]+$/.test(s)) return s;
-  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 // ── KPI strip ─────────────────────────────────────────────────────────────

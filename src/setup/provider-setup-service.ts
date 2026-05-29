@@ -5,6 +5,7 @@ import { claudeCodePreset } from "../providers/presets/claude-code.js";
 import {
   ensureProvider,
   assignRolesToProvider,
+  deleteProvider,
   readDocument,
 } from "./config-update-service.js";
 import type {
@@ -112,6 +113,40 @@ export async function addProvider(
   if (input.alsoAssignAllRoles) {
     await assignRolesToProvider(projectRoot, input.id);
   }
+}
+
+export type RemoveProviderResult =
+  | { ok: true; providerId: string }
+  | { ok: false; reason: string; hint: string };
+
+/**
+ * Remove a configured provider from project.yml. Refuses (without writing)
+ * if any role still points at it — removing it would leave a dangling
+ * reference (and the config write would reject anyway). The caller reassigns
+ * those roles first. Mirrors the `setDefaultProvider` ok/refusal shape.
+ */
+export async function removeProvider(
+  projectRoot: string,
+  providerId: string,
+): Promise<RemoveProviderResult> {
+  const summaries = await listConfiguredProviders(projectRoot);
+  const found = summaries.find((s) => s.id === providerId);
+  if (!found) {
+    return {
+      ok: false,
+      reason: `Provider "${providerId}" is not configured in .vibestrate/project.yml.`,
+      hint: "Nothing to remove.",
+    };
+  }
+  if (found.rolesUsing.length > 0) {
+    return {
+      ok: false,
+      reason: `"${providerId}" is still used by role(s): ${found.rolesUsing.join(", ")}.`,
+      hint: "Point those roles at another provider first, then remove it.",
+    };
+  }
+  await deleteProvider(projectRoot, providerId);
+  return { ok: true, providerId };
 }
 
 export type ProviderTestResult = {

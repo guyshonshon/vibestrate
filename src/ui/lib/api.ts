@@ -433,6 +433,11 @@ export const api = {
       `/api/providers/${encodeURIComponent(providerId)}/default`,
     );
   },
+  async removeProvider(
+    providerId: string,
+  ): Promise<{ ok: true; providerId: string }> {
+    return jsonDelete(`/api/providers/${encodeURIComponent(providerId)}`);
+  },
   async testProvider(providerId: string): Promise<{
     ok: boolean;
     providerId: string;

@@ -7,6 +7,7 @@ import { loadConfig } from "../../project/config-loader.js";
 import {
   addProvider,
   listConfiguredProviders,
+  removeProvider,
   runSafeProviderTest,
   setDefaultProvider,
 } from "../../setup/provider-setup-service.js";
@@ -241,6 +242,25 @@ export async function registerProvidersRoutes(
         providerId: id,
         timeoutMs: 45_000,
       });
+      return result;
+    },
+  );
+
+  /**
+   * Remove a provider from project.yml. Refuses with 409 if a role still
+   * uses it (the user reassigns those roles first) — mirrors the CLI
+   * `vibe provider remove`. Narrow + audited: deletes only `providers.<id>`.
+   */
+  app.delete<{ Params: { providerId: string } }>(
+    "/api/providers/:providerId",
+    async (req) => {
+      const id = req.params.providerId;
+      assertSafeProviderId(id);
+      const result = await removeProvider(projectRoot, id);
+      if (!result.ok) {
+        throw new HttpError(409, `${result.reason} ${result.hint}`);
+      }
+      bustCache();
       return result;
     },
   );
