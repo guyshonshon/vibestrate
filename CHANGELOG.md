@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Vocabulary (S1):** reserve "policy"/"enforced" for code-enforced gates and
+  call prompt-injected `rules.md` guidance "instructions". New glossary entries
+  (Action Broker, Instructions, Policy); the `vibe init` rules template + the
+  default-rules fallback now read "Project Instructions" and state up front that
+  they are advisory (not enforced) — point to `.vibestrate/policies/` for gates.
 - **Action Broker (S0):** new `src/safety/action-broker.ts` — the
   Vibestrate-owned boundary every real effect crosses. `decide()` runs an
   ordered evaluator chain (deny > require_approval > allow); `record()` appends

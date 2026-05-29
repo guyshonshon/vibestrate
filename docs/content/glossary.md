@@ -7,6 +7,8 @@ slug: glossary
 
 Short definitions for the vocabulary Vibestrate's docs assume.
 
+**Action Broker.** The single boundary every real effect crosses (provider spawn, command run, file write, …). It *decides* each action — allow, deny, or require approval — and *records* the decision plus evidence to `.vibestrate/runs/<runId>/actions.ndjson`. This is where **Policy** is enforced in code. Lives in `src/safety/action-broker.ts`.
+
 **Crew.** Your local team of Roles. A run picks one Crew (default: `defaultCrew`) and matches the Flow's Seats to its Roles. See [Crew](/docs/concepts/crew).
 
 **Role.** One teammate inside a Crew — instructions (prompt), permissions, skills, the Profile it runs on, and the Seats it can fill. See [Role](/docs/concepts/role).
@@ -25,6 +27,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Flow.** A saved run recipe. Like the default workflow, but with named Seats, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
 
+**Instructions.** The project guidance in `.vibestrate/rules.md`, injected into every agent's prompt on every turn. These are *guidance*, not guarantees — the model may follow or ignore them, like a teammate reading a style guide. Contrast with **Policy**, which is enforced in code. Use instructions for "this is how we work"; use policy for "this must not happen."
+
 **Mission Control.** The local web dashboard, served by `vibe ui`. Inspect runs, approve gates, read diffs, edit config.
 
 **Orchestrator.** The component that drives a run through its stages. Lives in `src/core/orchestrator.ts`. Transitions the state machine, persists artifacts, hands off between agents.
@@ -34,6 +38,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 **Phase.** Same as stage. (Internally, "stage" is the term.)
 
 **Plan.** The planner agent's structured output. The first stage of the default workflow produces it.
+
+**Policy.** A code-enforced gate — not a prompt instruction. Policies live in `.vibestrate/policies/*.yml` (and as approval gates via `policies.requireApprovalAtStages`); the **Action Broker** evaluates them and can `deny` or `require_approval` for a real effect. A policy the model cannot talk its way past. Contrast with **Instructions** (`rules.md`), which are injected into prompts and only advisory.
 
 **Project root.** The git repository where `vibe init` was run. Where `.vibestrate/` lives.
 

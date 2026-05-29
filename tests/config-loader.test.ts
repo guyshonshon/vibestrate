@@ -86,6 +86,6 @@ describe("config loader", () => {
       "utf8",
     );
     const loaded = await loadConfig(projectRoot);
-    expect(loaded.rules).toContain("Project Rules");
+    expect(loaded.rules).toContain("Project Instructions");
   });
 });

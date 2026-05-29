@@ -3397,6 +3397,14 @@
           "negated": false
         },
         {
+          "flags": "--seat-role <seat=roleId>",
+          "description": "pin a Role to a Seat when the crew has more than one role filling it. Repeat for multiple seats.",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
           "flags": "--flow-brief <text>",
           "description": "extra brief for the Flow task packet.",
           "required": true,
