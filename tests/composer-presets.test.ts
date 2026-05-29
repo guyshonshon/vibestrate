@@ -28,7 +28,7 @@ crews:
   default:
     roles:
       planner:
-        fills: [planner]
+        seats: [planner]
         profile: claude-balanced
         prompt: .vibestrate/roles/planner.md
         permissions: readOnly

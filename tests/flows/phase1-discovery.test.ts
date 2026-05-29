@@ -29,32 +29,32 @@ crews:
   default:
     roles:
       planner:
-        fills: [planner]
+        seats: [planner]
         profile: claude-balanced
         prompt: .vibestrate/roles/planner.md
         permissions: readOnly
       architect:
-        fills: [architect]
+        seats: [architect]
         profile: claude-balanced
         prompt: .vibestrate/roles/architect.md
         permissions: readOnly
       executor:
-        fills: [implementer, builder]
+        seats: [implementer, builder]
         profile: claude-balanced
         prompt: .vibestrate/roles/executor.md
         permissions: codeWrite
       fixer:
-        fills: [fixer]
+        seats: [fixer]
         profile: claude-balanced
         prompt: .vibestrate/roles/fixer.md
         permissions: codeWrite
       reviewer:
-        fills: [reviewer, challenger]
+        seats: [reviewer, challenger]
         profile: codex-balanced
         prompt: .vibestrate/roles/reviewer.md
         permissions: readOnly
       verifier:
-        fills: [verifier, arbiter]
+        seats: [verifier, arbiter]
         profile: codex-balanced
         prompt: .vibestrate/roles/verifier.md
         permissions: readOnly

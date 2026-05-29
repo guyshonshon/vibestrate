@@ -90,7 +90,7 @@ async function makeProject(opts: {
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
       "profiles: { fake-balanced: { provider: fake } }",
-      "crews: { default: { roles: { reviewer: { fills: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
+      "crews: { default: { roles: { reviewer: { seats: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
       "defaultCrew: default",
       "commands:",
       '  validate: []',

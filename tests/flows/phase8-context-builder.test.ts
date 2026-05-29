@@ -20,12 +20,12 @@ const config = projectConfigSchema.parse({
   crews: {
     default: {
       roles: {
-        planner: { fills: ["planner"], profile: "claude-balanced", permissions: "readOnly", prompt: "planner.md" },
-        architect: { fills: ["architect"], profile: "claude-balanced", permissions: "readOnly", prompt: "architect.md" },
-        executor: { fills: ["implementer", "builder"], profile: "claude-balanced", permissions: "codeWrite", prompt: "executor.md" },
-        fixer: { fills: ["fixer"], profile: "claude-balanced", permissions: "codeWrite", prompt: "fixer.md" },
-        reviewer: { fills: ["reviewer", "challenger"], profile: "codex-balanced", permissions: "readOnly", prompt: "reviewer.md" },
-        verifier: { fills: ["verifier", "arbiter"], profile: "claude-balanced", permissions: "readOnly", prompt: "verifier.md" },
+        planner: { seats: ["planner"], profile: "claude-balanced", permissions: "readOnly", prompt: "planner.md" },
+        architect: { seats: ["architect"], profile: "claude-balanced", permissions: "readOnly", prompt: "architect.md" },
+        executor: { seats: ["implementer", "builder"], profile: "claude-balanced", permissions: "codeWrite", prompt: "executor.md" },
+        fixer: { seats: ["fixer"], profile: "claude-balanced", permissions: "codeWrite", prompt: "fixer.md" },
+        reviewer: { seats: ["reviewer", "challenger"], profile: "codex-balanced", permissions: "readOnly", prompt: "reviewer.md" },
+        verifier: { seats: ["verifier", "arbiter"], profile: "claude-balanced", permissions: "readOnly", prompt: "verifier.md" },
       },
     },
   },

@@ -26,12 +26,12 @@ crews:
   default:
     roles:
       planner:
-        fills: [planner]
+        seats: [planner]
         profile: claude-balanced
         prompt: .vibestrate/roles/planner.md
         permissions: readOnly
       reviewer:
-        fills: [reviewer]
+        seats: [reviewer]
         profile: claude-balanced
         prompt: .vibestrate/roles/reviewer.md
         permissions: readOnly

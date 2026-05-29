@@ -37,7 +37,7 @@ run start.
 A Flow has named **Seats** — `builder`, `challenger`, `arbiter` — and each step
 says which Seat owns it. A Flow **never names your local Role ids or Profiles**,
 which is what keeps it shareable. At run time the [[crew]] matches each Seat to a
-Role (via the Role's `fills` list), that Role's [[profile]] picks the runtime, and
+Role (via the Role's `seats` list), that Role's [[profile]] picks the runtime, and
 the Profile names the [[provider]]. To run a single step on a stronger Profile
 without changing the Role:
 

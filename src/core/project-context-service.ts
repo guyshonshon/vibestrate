@@ -69,7 +69,7 @@ export type ProjectMetadata = {
     roles: {
       id: string;
       label: string;
-      fills: string[];
+      seats: string[];
       profile: string;
       permissions: string;
       skills: string[];
@@ -203,7 +203,7 @@ export async function getProjectMetadata(
           roles: Object.entries(crew.roles).map(([id, r]) => ({
             id,
             label: r.label ?? id,
-            fills: r.fills,
+            seats: r.seats,
             profile: r.profile,
             permissions: r.permissions,
             skills: r.skills,

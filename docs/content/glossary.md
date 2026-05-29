@@ -11,7 +11,7 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Role.** One teammate inside a Crew — instructions (prompt), permissions, skills, the Profile it runs on, and the Seats it can fill. See [Role](/docs/concepts/role).
 
-**Seat.** What a Flow step needs filled (e.g. `implementer`). A contract the Crew satisfies with a Role whose `fills` includes the seat. See [Seat](/docs/concepts/seat).
+**Seat.** What a Flow step needs filled (e.g. `implementer`). A contract the Crew satisfies with a Role whose `seats` includes the seat. See [Seat](/docs/concepts/seat).
 
 **Profile.** How strong and expensive a Role runs: provider + model + power + budget + timeout. Provider-specific power. See [Profile](/docs/concepts/profile).
 
@@ -21,15 +21,15 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **CLI.** The `vibe` command-line tool. The primary surface, alongside Mission Control.
 
-**Effort.** A coarse bucket — `low | medium | high` — that maps to a provider via `effortMap` in `project.yml`. Used as a shorthand for "run this on the cheap model" vs "run this on the expensive model."
+**Effort.** A coarse task-difficulty hint — `low | medium | high` — recorded for planning/heuristics. It no longer maps to a provider; runtime strength is a [Profile](/docs/concepts/profile)'s job.
 
-**Flow.** A saved run recipe. Like the default workflow, but with named slots, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
+**Flow.** A saved run recipe. Like the default workflow, but with named Seats, custom step ordering, optional gates, and bounded repeats. See [Flow](/docs/concepts/flow).
 
 **Mission Control.** The local web dashboard, served by `vibe ui`. Inspect runs, approve gates, read diffs, edit config.
 
 **Orchestrator.** The component that drives a run through its stages. Lives in `src/core/orchestrator.ts`. Transitions the state machine, persists artifacts, hands off between agents.
 
-**Permission profile.** A named set of allowed and disallowed actions for an agent — `read_only`, `code_write`, etc. Declared under `permissions.profiles` in `project.yml`. Attached to each agent via `agents.<role>.permissions`.
+**Permission profile.** A named set of allowed and disallowed actions for a Role — `read_only`, `code_write`, etc. Declared under `permissions.profiles` in `project.yml`. Attached to each Role via `crews.<crewId>.roles.<role>.permissions`. (Distinct from a runtime [Profile](/docs/concepts/profile).)
 
 **Phase.** Same as stage. (Internally, "stage" is the term.)
 
@@ -46,8 +46,6 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 **Run.** A live instance of the workflow, born from a task. Has its own runId, worktree, branch, status, artifacts, events.
 
 **Skill.** A markdown attachment that loads alongside an agent's prompt. Lives under `.vibestrate/skills/` or `.claude/skills/`. See [Skill](/docs/concepts/skill).
-
-**Slot.** A named participant in a Flow — `builder`, `challenger`, `arbiter`. Each slot has a default agent and can be bound to a specific provider per run.
 
 **Stage.** One step in the workflow — `planning`, `executing`, etc. Each stage has an entering status and an exiting status.
 

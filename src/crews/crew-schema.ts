@@ -4,7 +4,7 @@ import { crewRolesConfigSchema } from "../roles/role-schema.js";
 /**
  * A **Crew** is your local team of AI Roles. Each Crew holds a roster of Roles;
  * a run picks one Crew (defaulting to `defaultCrew`) and matches the Flow's
- * Seats to Roles in that Crew via each Role's `fills` list.
+ * Seats to Roles in that Crew via each Role's `seats` list.
  */
 export const crewConfigSchema = z
   .object({

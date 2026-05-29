@@ -44,12 +44,12 @@ export function roleLabel(roleId: string, role: CrewRoleConfig): string {
   return role.label ?? roleId;
 }
 
-/** Crew roles whose `fills` includes the given seat. */
+/** Crew roles whose `seats` list includes the given seat. */
 export function rolesFillingSeat(
   crew: CrewConfig,
   seat: string,
 ): Array<{ roleId: string; role: CrewRoleConfig }> {
   return Object.entries(crew.roles)
-    .filter(([, role]) => role.fills.includes(seat))
+    .filter(([, role]) => role.seats.includes(seat))
     .map(([roleId, role]) => ({ roleId, role }));
 }

@@ -43,12 +43,12 @@ describe("workflow schema", () => {
       crews: {
         default: {
           roles: {
-            planner: { fills: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
-            architect: { fills: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
-            executor: { fills: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
-            fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
-            reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
-            verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            planner: { seats: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { seats: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { seats: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { seats: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { seats: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
           },
         },
       },

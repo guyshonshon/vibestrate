@@ -107,7 +107,7 @@ export async function registerProjectRoutes(
         throw new HttpError(400, "Invalid crew or role id.");
       }
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const allowed = ["profile", "fills", "permissions", "label", "skills"];
+      const allowed = ["profile", "seats", "permissions", "label", "skills"];
       const patch: Record<string, unknown> = {};
       for (const key of allowed) {
         if (key in body) patch[key] = body[key];
@@ -158,7 +158,7 @@ export async function registerProjectRoutes(
         crewId,
         roleId,
         profile: role.profile,
-        fills: role.fills,
+        seats: role.seats,
         permissions: role.permissions,
         skills: role.skills,
         promptPath: role.prompt,
@@ -333,7 +333,7 @@ function serializeCrew(
       return {
         id: roleId,
         label: role.label ?? roleId,
-        fills: role.fills,
+        seats: role.seats,
         profile: role.profile,
         profileConfigured: Boolean(profile),
         provider: profile?.provider ?? null,

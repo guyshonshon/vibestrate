@@ -24,7 +24,7 @@ steps:
 ```
 
 Your Crew may fill the `implementer` seat with a Role named Backend Implementer,
-Executor, Coder — anything, as long as its `fills` list includes `implementer`.
+Executor, Coder — anything, as long as its `seats` list includes `implementer`.
 
 ## More Detail
 
@@ -40,7 +40,7 @@ Validation steps and approval gates don't need a Seat. Turn steps
 - A Seat (`src/flows/schemas/flow-schema.ts` → `flowSeatSchema`) has a `label`
   and optional `description`. It carries no provider — the resolved Role's
   [[profile]] supplies the runtime.
-- At resolve time, `step.seat` → Crew Role (whose `fills` includes the seat) →
+- At resolve time, `step.seat` → Crew Role (whose `seats` includes the seat) →
   Profile → Provider. The resolved snapshot records `seat`, `resolvedRoleId`,
   `resolvedRoleLabel`, `profileId`, and `providerId` per step.
 
