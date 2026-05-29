@@ -270,8 +270,8 @@ function DefaultFlowCard({
                     ↺
                   </span>
                 ) : null}
-                {s.roleId ? (
-                  <span className="mono ml-1 text-[10px] text-violet-soft">{s.roleId}</span>
+                {s.seat ? (
+                  <span className="mono ml-1 text-[10px] text-violet-soft">{s.seat}</span>
                 ) : null}
               </span>
             </span>
@@ -301,7 +301,7 @@ function FlowCard({
 }) {
   const isProject = g.source.kind === "project";
   const steps = g.definition.steps;
-  const slots = Object.entries(g.definition.slots);
+  const seats = Object.entries(g.definition.seats);
   const gateCount = steps.filter(
     (s) => s.kind === "approval-gate" || s.approval,
   ).length;
@@ -335,7 +335,7 @@ function FlowCard({
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-fog-500">
               <span>{steps.length} steps</span>
               <span>·</span>
-              <span>{slots.length} slots</span>
+              <span>{seats.length} seats</span>
               {gateCount > 0 ? (
                 <>
                   <span>·</span>
@@ -386,18 +386,18 @@ function FlowCard({
 
       {expanded ? (
         <div className="border-t border-white/10 px-4 py-3.5">
-          {slots.length > 0 ? (
+          {seats.length > 0 ? (
             <div className="mb-3">
-              <div className="eyebrow mb-1.5">Slots</div>
+              <div className="eyebrow mb-1.5">Seats</div>
               <div className="flex flex-wrap gap-1.5">
-                {slots.map(([id, slot]) => (
+                {seats.map(([id, seat]) => (
                   <span
                     key={id}
                     className="rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
-                    title={slot.description ?? undefined}
+                    title={seat.description ?? undefined}
                   >
-                    <span className="text-fog-100">{slot.label}</span>{" "}
-                    <span className="text-fog-500">→ {slot.defaultRole}</span>
+                    <span className="text-fog-100">{seat.label}</span>{" "}
+                    <span className="text-fog-500">({id})</span>
                   </span>
                 ))}
               </div>
@@ -418,7 +418,7 @@ function FlowCard({
 
 function StepRow({ index, step }: { index: number; step: FlowStepDefinition }) {
   const kind = stepKindChip(step.kind);
-  const target = step.slot ?? step.roleId ?? null;
+  const target = step.seat ?? null;
   const hasApproval = step.kind === "approval-gate" || !!step.approval;
   return (
     <li className="flex items-center gap-2.5 rounded-md border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5">

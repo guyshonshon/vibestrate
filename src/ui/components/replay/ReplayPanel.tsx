@@ -250,7 +250,7 @@ export function ReplayPanel({
                 ? ` · ${replay.flow.participants
                     .map(
                       (participant) =>
-                        `${participant.slotId}:${participant.lastContextMode ?? "pending"}`,
+                        `${participant.seat}:${participant.lastContextMode ?? "pending"}`,
                     )
                     .join(" ")}`
                 : ""}

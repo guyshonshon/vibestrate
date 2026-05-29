@@ -150,13 +150,13 @@ export function RunHeader({
                   {run.effort}
                 </span>
               ) : null}
-              {run.resolvedProviderId ? (
+              {run.profileOverride ? (
                 <span
                   className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 px-1.5 py-0.5 text-[10px] text-vibestrate-accent"
-                  title={`Run-wide provider override: ${run.resolvedProviderId}.`}
+                  title={`Run-wide profile override: ${run.profileOverride}.`}
                 >
                   <Cpu className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-                  {run.resolvedProviderId}
+                  {run.profileOverride}
                 </span>
               ) : null}
               {pausePending ? (
@@ -319,7 +319,7 @@ function FlowRunProgress({ run }: { run: RunState }) {
       ))}
       {flow.participants.map((participant) => (
         <span
-          key={participant.slotId}
+          key={participant.seat}
           title={
             participant.lastFallbackReason ??
             `${participant.providerType}:${participant.providerId}`

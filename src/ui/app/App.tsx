@@ -14,6 +14,7 @@ import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
+import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
@@ -249,9 +250,11 @@ export function App() {
                         ? "flows"
                         : route.kind === "metrics"
                           ? "metrics"
-                          : route.kind === "crew" || route.kind === "providers"
-                            ? "crew"
-                            : route.kind === "runs"
+                          : route.kind === "profiles"
+                            ? "profiles"
+                            : route.kind === "crew" || route.kind === "providers"
+                              ? "crew"
+                              : route.kind === "runs"
                                 ? "runs"
                                 : "home"
       }
@@ -260,6 +263,7 @@ export function App() {
       onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew" })}
+      onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
@@ -349,6 +353,8 @@ export function App() {
         <MetricsPage />
       ) : route.kind === "crew" ? (
         <CrewPage />
+      ) : route.kind === "profiles" ? (
+        <ProfilesPage />
       ) : route.kind === "providers" ? (
         <ProvidersPage />
       ) : route.kind === "proposals" ? (

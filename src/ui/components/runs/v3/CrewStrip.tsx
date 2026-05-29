@@ -16,17 +16,17 @@ function deriveSlots(flow: FlowRunState | null | undefined): Slot[] {
   // Stitch participants (one per slot id) with their most-recent step status.
   const byId = new Map<string, Slot>();
   for (const p of flow.participants) {
-    byId.set(p.slotId, {
-      id: p.slotId,
-      role: classifyRole(p.label || p.slotId),
+    byId.set(p.seat, {
+      id: p.seat,
+      role: classifyRole(p.label || p.seat),
       label: p.label,
       agent: p.providerId || null,
       state: "queued",
     });
   }
   for (const step of flow.steps) {
-    if (!step.slotId) continue;
-    const cur = byId.get(step.slotId);
+    if (!step.seat) continue;
+    const cur = byId.get(step.seat);
     if (!cur) continue;
     if (step.status === "running") cur.state = "active";
     else if (step.status === "passed" && cur.state !== "active")

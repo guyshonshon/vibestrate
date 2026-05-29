@@ -140,12 +140,12 @@ export function TaskDetailPage({
               effort: {task.effort}
             </span>
           ) : null}
-          {task.providerOverride ? (
+          {task.profileOverride ? (
             <span
               className="vibestrate-mono rounded border border-vibestrate-accent/40 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent"
               title="Every agent in runs spawned from this task uses this provider."
             >
-              provider: {task.providerOverride}
+              provider: {task.profileOverride}
             </span>
           ) : null}
           {task.readOnly ? (
@@ -589,7 +589,7 @@ function TaskRunMode({
     };
   }, [task.title, task.description, task.touchedFiles?.join("|")]);
 
-  async function setField<K extends "effort" | "providerOverride" | "readOnly">(
+  async function setField<K extends "effort" | "profileOverride" | "readOnly">(
     field: K,
     value:
       | "low"
@@ -703,13 +703,13 @@ function TaskRunMode({
         </span>
         <input
           type="text"
-          value={task.providerOverride ?? ""}
+          value={task.profileOverride ?? ""}
           disabled={busy !== null}
           placeholder="e.g. codex"
           onBlur={(e) => {
             const v = e.target.value.trim();
-            if (v === (task.providerOverride ?? "")) return;
-            void setField("providerOverride", v.length === 0 ? null : v);
+            if (v === (task.profileOverride ?? "")) return;
+            void setField("profileOverride", v.length === 0 ? null : v);
           }}
           className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11.5px] text-vibestrate-fg placeholder:text-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
         />

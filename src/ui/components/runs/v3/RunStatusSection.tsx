@@ -110,8 +110,7 @@ export function RunStatusSection({
   const nowLabel = currentStep?.label ?? rail.steps[rail.active] ?? null;
   const nowRole =
     currentStep?.providerId ??
-    run.resolvedProviderId ??
-    run.providerOverride ??
+    run.profileOverride ?? run.crewId ??
     null;
   return (
     <section className="bevel-violet p-[1px] fade-up" data-screen-label="01 Status">
@@ -189,8 +188,7 @@ export function RunStatusSection({
           <span className="flex items-center gap-1.5 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
             <span className="text-fog-100">
-              {run.resolvedProviderId ??
-                run.providerOverride ??
+              {run.profileOverride ?? run.crewId ??
                 "auto"}
             </span>
           </span>

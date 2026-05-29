@@ -12,26 +12,35 @@ import {
   Check,
   ChevronDown,
   Clock,
-  GitBranch,
+  Cpu,
   Lock,
   Play,
-  Plus,
   Save,
-  Shuffle,
   Sparkles,
-  User,
+  Users,
 } from "lucide-react";
-import { Chip, KBD, ToneDot } from "../../design/Chip.js";
+import { KBD, ToneDot, type ChipTone } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
-import {
-  classifyRole,
-  iconForRole,
-  toneForRole,
-  type Role,
-} from "../../design/roleTone.js";
+import { classifyRole } from "../../design/roleTone.js";
+
+// Map a classified role to a Chip tone for the role dot.
+function roleDotTone(label: string): ChipTone {
+  switch (classifyRole(label)) {
+    case "Reviewer":
+      return "sky";
+    case "Verifier":
+      return "emerald";
+    case "Arbiter":
+      return "amber";
+    default:
+      return "violet";
+  }
+}
 import type {
+  CrewView,
   DiscoveredFlow,
   FlowContextPolicy,
+  ProfileView,
 } from "../../../lib/types.js";
 import type { ComposerPreset } from "../../../lib/api.js";
 
@@ -48,9 +57,9 @@ export type ComposerSkill = { id: string; name: string };
 export type ComposerSubmitInput = {
   brief: string;
   flowId: string | null;
+  crewId: string | null;
   contextPolicy: FlowContextPolicy;
-  slotProviders: Record<string, string>;
-  providerOverride: string | null;
+  stepProfileOverrides: Record<string, string>;
   skills: string[];
   readOnly: boolean;
 };
@@ -61,6 +70,9 @@ type Props = {
   defaultProviderId: string | null;
   skills: ComposerSkill[];
   flows: DiscoveredFlow[];
+  crews: CrewView[];
+  defaultCrewId: string | null;
+  profiles: ProfileView[];
   presets: ComposerPreset[];
   onSubmit: (input: ComposerSubmitInput) => void | Promise<void>;
   onSavePreset: (input: ComposerPreset) => void | Promise<void>;
@@ -75,13 +87,28 @@ const SUGGESTIONS = [
   "Wire up SSE for live event streams in the run detail page",
 ];
 
+// One resolved allocation row: a seated Flow step → the Crew role that fills
+// its seat → the profile it'll run on → the provider behind that profile.
+type AllocStatus = "ok" | "uncovered" | "ambiguous";
+type AllocRow = {
+  stepId: string;
+  stepLabel: string;
+  seat: string;
+  status: AllocStatus;
+  candidates: { roleId: string; label: string; profile: string }[];
+  roleLabel: string | null;
+  profileId: string | null;
+  provider: string | null;
+};
+
 /**
  * Mission Control composer (v3 layout).
  *
  *   1 · The brief    — narrow auto-growing textarea
- *   2 · Flow         — full-shape chips (4 across) with step pips
- *   3 · Crew         — slot cards built from the chosen flow
- *   4 · Run          — meta chips + Send-to-crew button
+ *   2 · Flow         — full-shape chips with step pips
+ *   3 · Crew         — pick a crew; the Step→Seat→Role→Profile allocation is
+ *                      derived and shown, with per-step profile overrides
+ *   4 · Run          — skills + read-only + presets + Send
  */
 export function ComposerV3({
   busy,
@@ -89,6 +116,9 @@ export function ComposerV3({
   defaultProviderId,
   skills,
   flows,
+  crews,
+  defaultCrewId,
+  profiles,
   presets,
   onSubmit,
   onSavePreset,
@@ -97,23 +127,23 @@ export function ComposerV3({
 }: Props) {
   const [brief, setBrief] = useState("");
   const [flowId, setFlowId] = useState<string>(() => flows[0]?.id ?? "");
-  const [slotProviders, setSlotProviders] = useState<Record<string, string>>({});
+  const [crewId, setCrewId] = useState<string | null>(defaultCrewId);
+  const [stepProfiles, setStepProfiles] = useState<Record<string, string>>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
-  const [openPickerSlot, setOpenPickerSlot] = useState<string | null>(null);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const presetsRef = useRef<HTMLDivElement | null>(null);
 
-  // When the flows list arrives, default to a Quality-Arbitration-shaped
-  // recipe if present (it carries the strongest design intent — four
-  // visible crew slots). Falls back to the first available flow.
+  useEffect(() => {
+    if (crewId === null && defaultCrewId) setCrewId(defaultCrewId);
+  }, [defaultCrewId, crewId]);
+
   useEffect(() => {
     if (flowId) return;
     if (flows.length === 0) return;
-    const pick =
-      flows.find((g) => /arbitr|quality/i.test(g.label)) ?? flows[0]!;
+    const pick = flows.find((g) => /arbitr|quality/i.test(g.label)) ?? flows[0]!;
     setFlowId(pick.id);
   }, [flows, flowId]);
 
@@ -135,7 +165,6 @@ export function ComposerV3({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Auto-grow the textarea up to ~14 lines, then scroll.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -150,38 +179,49 @@ export function ComposerV3({
     () => flows.find((g) => g.id === flowId) ?? null,
     [flowId, flows],
   );
+  const crew = useMemo(
+    () => crews.find((c) => c.id === crewId) ?? null,
+    [crews, crewId],
+  );
 
-  const slotEntries = useMemo(() => {
+  // Derive the full allocation client-side from the flow's seated steps +
+  // the selected crew + profiles. The server re-validates on submit.
+  const allocation = useMemo<AllocRow[]>(() => {
     if (!selectedFlow) return [];
-    return Object.entries(selectedFlow.definition.slots).map(
-      ([id, def]) => ({
-        id,
-        label: def.label,
-        description: def.description ?? null,
-        defaultRole: def.defaultRole,
-        role: classifyRole(def.label || id),
-      }),
-    );
-  }, [selectedFlow]);
-
-  // Always render 4 slot columns so the rhythm matches the design.
-  const slots = useMemo(() => {
-    const list = slotEntries.slice(0, 4).map((entry) => ({
-      ...entry,
-      active: true,
-    }));
-    while (list.length < 4) {
-      list.push({
-        id: `__placeholder_${list.length}`,
-        label: "—",
-        description: null,
-        defaultRole: "",
-        role: "Executor" as Role,
-        active: false,
+    const rows: AllocRow[] = [];
+    for (const step of selectedFlow.definition.steps) {
+      if (!step.seat) continue;
+      const candidates = (crew?.roles ?? [])
+        .filter((r) => r.seats.includes(step.seat!))
+        .map((r) => ({ roleId: r.id, label: r.label, profile: r.profile }));
+      let status: AllocStatus = "ok";
+      let roleLabel: string | null = null;
+      let profileId: string | null = null;
+      let provider: string | null = null;
+      if (candidates.length === 0) status = "uncovered";
+      else if (candidates.length > 1) status = "ambiguous";
+      else {
+        const role = candidates[0]!;
+        roleLabel = role.label;
+        profileId = stepProfiles[step.id] ?? role.profile;
+        provider = profiles.find((p) => p.id === profileId)?.provider ?? null;
+      }
+      rows.push({
+        stepId: step.id,
+        stepLabel: step.label,
+        seat: step.seat,
+        status,
+        candidates,
+        roleLabel,
+        profileId,
+        provider,
       });
     }
-    return list;
-  }, [slotEntries]);
+    return rows;
+  }, [selectedFlow, crew, profiles, stepProfiles]);
+
+  const blockers = allocation.filter((r) => r.status !== "ok");
+  const canSend = brief.trim().length > 0 && !busy && blockers.length === 0;
 
   function toggleSkill(id: string) {
     setSelectedSkills((cur) =>
@@ -189,19 +229,24 @@ export function ComposerV3({
     );
   }
 
-  function setSlotProvider(slotId: string, providerId: string) {
-    setSlotProviders((cur) => ({ ...cur, [slotId]: providerId }));
+  function setStepProfile(stepId: string, profileId: string, roleDefault: string) {
+    setStepProfiles((cur) => {
+      const next = { ...cur };
+      if (profileId === roleDefault) delete next[stepId];
+      else next[stepId] = profileId;
+      return next;
+    });
   }
 
   function handleSubmit() {
     const trimmed = brief.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed || busy || blockers.length > 0) return;
     void onSubmit({
       brief: trimmed,
       flowId: flowId || null,
+      crewId,
       contextPolicy: "balanced",
-      slotProviders,
-      providerOverride: null,
+      stepProfileOverrides: stepProfiles,
       skills: selectedSkills,
       readOnly,
     });
@@ -216,11 +261,12 @@ export function ComposerV3({
         ? {
             id: flowId,
             contextPolicy: "balanced",
-            slotProviders,
+            stepProfileOverrides: stepProfiles,
             skippedOptionalSteps: [],
           }
         : null,
-      provider: null,
+      crewId,
+      profileOverride: null,
       skills: selectedSkills,
       readOnly,
     };
@@ -229,8 +275,9 @@ export function ComposerV3({
   function applyPreset(p: ComposerPreset) {
     if (p.flow) {
       setFlowId(p.flow.id);
-      setSlotProviders(p.flow.slotProviders ?? {});
+      setStepProfiles(p.flow.stepProfileOverrides ?? {});
     }
+    if (p.crewId) setCrewId(p.crewId);
     if (p.brief !== null) setBrief(p.brief);
     setSelectedSkills(p.skills);
     setReadOnly(p.readOnly);
@@ -251,7 +298,7 @@ export function ComposerV3({
   function promptAndSave(kind: "crew" | "template") {
     const suggested =
       kind === "crew"
-        ? `${selected(flowId, flows) ?? "Crew"} preset`
+        ? `${crew?.label ?? "Crew"} preset`
         : (brief.split("\n")[0] || "Template").slice(0, 60);
     const name = window.prompt(
       kind === "crew" ? "Name this crew preset" : "Name this template",
@@ -348,7 +395,7 @@ export function ComposerV3({
                   selected={g.id === flowId}
                   onSelect={() => {
                     setFlowId(g.id);
-                    setSlotProviders({});
+                    setStepProfiles({});
                   }}
                 />
               ))}
@@ -356,11 +403,11 @@ export function ComposerV3({
           )}
         </div>
 
-        {/* 3 · Crew */}
+        {/* 3 · Crew + allocation */}
         <div className="px-5 pt-3 pb-4 border-t border-white/[0.06]">
-          <div className="flex items-baseline justify-between mb-2.5">
-            <span className="eyebrow">
-              3 · Crew · {slotEntries.length} active
+          <div className="flex items-baseline justify-between mb-2.5 flex-wrap gap-2">
+            <span className="eyebrow flex items-center gap-1.5">
+              <Users className="h-3 w-3" strokeWidth={1.8} /> 3 · Crew
             </span>
             <div className="flex items-center gap-3 text-[11.5px] text-fog-400 whitespace-nowrap">
               <button
@@ -368,51 +415,50 @@ export function ComposerV3({
                 onClick={() => promptAndSave("crew")}
                 className="hover:text-fog-200 flex items-center gap-1.5"
               >
-                <User className="h-3 w-3" strokeWidth={1.7} /> Save crew as preset
-              </button>
-              <span className="text-fog-500">·</span>
-              <button
-                type="button"
-                onClick={() => setSlotProviders({})}
-                className="hover:text-fog-200 flex items-center gap-1.5"
-              >
-                <Shuffle className="h-3 w-3" strokeWidth={1.7} /> Reset
+                <Save className="h-3 w-3" strokeWidth={1.7} /> Save as preset
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-            {slots.map((s) =>
-              s.active ? (
-                <CrewCard
-                  key={s.id}
-                  slotId={s.id}
-                  role={s.role}
-                  label={s.label}
-                  providerId={slotProviders[s.id] ?? s.defaultRole}
-                  providers={providers}
-                  open={openPickerSlot === s.id}
-                  setOpen={setOpenPickerSlot}
-                  onPick={(pid) => {
-                    setSlotProvider(s.id, pid);
-                    setOpenPickerSlot(null);
-                  }}
-                />
-              ) : (
+
+          {/* crew selector */}
+          {crews.length === 0 ? (
+            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-[12.5px] text-fog-400">
+              No crews configured. Add one under{" "}
+              <span className="mono">crews:</span> in{" "}
+              <span className="mono">.vibestrate/project.yml</span>.
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {crews.map((c) => (
                 <button
-                  key={s.id}
+                  key={c.id}
                   type="button"
-                  className="rounded-xl border border-dashed border-white/10 bg-white/[0.015] px-3 py-2.5 text-left hover:border-violet-soft/30 hover:bg-violet-500/[0.04] transition"
+                  onClick={() => setCrewId(c.id)}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-[12.5px] transition",
+                    c.id === crewId
+                      ? "border-violet-soft/45 bg-violet-soft/[0.08] text-fog-100 ring-1 ring-violet-soft/30"
+                      : "border-white/[0.08] bg-white/[0.02] text-fog-300 hover:text-fog-100",
+                  )}
                 >
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-fog-400 mb-1">
-                    Slot
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[12px] text-fog-400">
-                    <Plus className="h-3 w-3" strokeWidth={1.7} /> Optional for this flow
-                  </div>
+                  {c.label}
+                  {c.id === defaultCrewId ? (
+                    <span className="ml-1.5 text-[10px] text-fog-500">default</span>
+                  ) : null}
                 </button>
-              ),
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* allocation table */}
+          {selectedFlow && allocation.length > 0 ? (
+            <AllocationTable
+              rows={allocation}
+              profiles={profiles}
+              onSetProfile={setStepProfile}
+              onCustomizeCrew={onCustomizeFlow}
+            />
+          ) : null}
         </div>
 
         {/* 4 · Run */}
@@ -484,7 +530,7 @@ export function ComposerV3({
                           </div>
                           <div className="text-[10.5px] text-fog-400 truncate">
                             {p.kind} · {p.flow?.id ?? "no flow"} ·{" "}
-                            {p.skills.length} skills
+                            {p.crewId ?? "default crew"}
                           </div>
                         </button>
                         <button
@@ -509,7 +555,12 @@ export function ComposerV3({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!brief.trim() || busy}
+            disabled={!canSend}
+            title={
+              blockers.length > 0
+                ? "Resolve the seat issues below before sending."
+                : undefined
+            }
             className="h-10 px-5 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep text-white font-medium text-[13.5px] flex items-center gap-2 ring-1 ring-violet-soft/35 shadow-[0_8px_24px_-8px_rgba(139,124,255,0.55)] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Play className="h-3 w-3" strokeWidth={2} />
@@ -533,29 +584,101 @@ function providerLabel(
   return providers.find((p) => p.id === id)?.label ?? id;
 }
 
-function selected(
-  flowId: string,
-  flows: DiscoveredFlow[],
-): string | null {
-  return flows.find((g) => g.id === flowId)?.label ?? null;
-}
+// ─── allocation table ───────────────────────────────────────────────────────
 
-/**
- * Best-effort vendor classification from a provider id slug. Mirrors
- * the helper in `server/routes/metrics.ts` so the dropdown's "vendor
- * · role" caption matches what the Agents/Metrics pages render.
- */
-function vendorForProvider(providerId: string): string | null {
-  const lower = providerId.toLowerCase();
-  if (lower.includes("claude") || lower.includes("anthropic"))
-    return "Anthropic";
-  if (lower.includes("codex") || lower.includes("openai") || lower.includes("gpt"))
-    return "OpenAI";
-  if (lower.includes("gemini") || lower.includes("google")) return "Google";
-  if (lower.includes("ollama") || lower.includes("llama")) return "Ollama";
-  if (lower.includes("aider")) return "Aider";
-  if (lower.includes("opencode")) return "OpenCode";
-  return null;
+function AllocationTable({
+  rows,
+  profiles,
+  onSetProfile,
+  onCustomizeCrew,
+}: {
+  rows: AllocRow[];
+  profiles: ProfileView[];
+  onSetProfile: (stepId: string, profileId: string, roleDefault: string) => void;
+  onCustomizeCrew: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-white/[0.07] overflow-hidden">
+      <div className="grid grid-cols-[1.4fr_0.9fr_1.1fr_1.4fr] gap-2 px-3 py-1.5 bg-white/[0.02] eyebrow">
+        <span>Step</span>
+        <span>Seat</span>
+        <span>Role</span>
+        <span>Profile · provider</span>
+      </div>
+      {rows.map((r) => {
+        const roleDefault =
+          r.candidates.length === 1 ? r.candidates[0]!.profile : "";
+        return (
+          <div
+            key={r.stepId}
+            className={cn(
+              "grid grid-cols-[1.4fr_0.9fr_1.1fr_1.4fr] gap-2 px-3 py-2 items-center border-t border-white/[0.05] text-[12px]",
+              r.status !== "ok" ? "bg-rose-500/[0.04]" : "",
+            )}
+          >
+            <span className="text-fog-200 truncate">{r.stepLabel}</span>
+            <span className="mono text-[11px] text-fog-400 truncate">
+              {r.seat}
+            </span>
+            {r.status === "ok" ? (
+              <span className="text-fog-100 truncate flex items-center gap-1.5">
+                <ToneDot tone={roleDotTone(r.roleLabel ?? r.seat)} />
+                {r.roleLabel}
+              </span>
+            ) : r.status === "uncovered" ? (
+              <button
+                type="button"
+                onClick={onCustomizeCrew}
+                className="text-rose-300 text-[11px] text-left hover:underline"
+                title="No role in this crew takes this seat."
+              >
+                no role — fix crew
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onCustomizeCrew}
+                className="text-amber-300 text-[11px] text-left hover:underline"
+                title={`More than one role takes "${r.seat}": ${r.candidates
+                  .map((c) => c.label)
+                  .join(", ")}.`}
+              >
+                ambiguous ×{r.candidates.length} — fix crew
+              </button>
+            )}
+            {r.status === "ok" ? (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <select
+                  value={r.profileId ?? ""}
+                  onChange={(e) =>
+                    onSetProfile(r.stepId, e.target.value, roleDefault)
+                  }
+                  className="min-w-0 flex-1 rounded-md border border-white/10 bg-ink-200/70 px-1.5 py-1 text-[11.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+                >
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                      {p.id === roleDefault ? " (default)" : ""}
+                    </option>
+                  ))}
+                  {r.profileId &&
+                  !profiles.some((p) => p.id === r.profileId) ? (
+                    <option value={r.profileId}>{r.profileId}</option>
+                  ) : null}
+                </select>
+                <span className="mono text-[10px] text-fog-500 shrink-0 inline-flex items-center gap-1">
+                  <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
+                  {r.provider ?? "—"}
+                </span>
+              </div>
+            ) : (
+              <span className="text-fog-500 text-[11px]">—</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function FlowChip({
@@ -613,164 +736,6 @@ function FlowChip({
   );
 }
 
-function CrewCard({
-  slotId,
-  role,
-  label,
-  providerId,
-  providers,
-  open,
-  setOpen,
-  onPick,
-}: {
-  slotId: string;
-  role: Role;
-  label: string;
-  providerId: string;
-  providers: ComposerProvider[];
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<string | null>>;
-  onPick: (id: string) => void;
-}) {
-  const tone = toneForRole(role);
-  const Icon = iconForRole(role);
-  const ref = useRef<HTMLDivElement | null>(null);
-  const provider = providers.find((p) => p.id === providerId) ?? null;
-
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(null);
-      }
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [open, setOpen]);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(open ? null : slotId)}
-        className={cn(
-          "w-full text-left rounded-xl border px-3 py-2.5 transition group",
-          open
-            ? "border-violet-soft/40 bg-violet-500/[0.08] ring-1 ring-violet-soft/30"
-            : "border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.04]",
-        )}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className={cn(
-              "w-7 h-7 rounded-lg bg-gradient-to-br ring-1 flex items-center justify-center shrink-0",
-              tone.grad,
-              tone.ring,
-              tone.text,
-            )}
-          >
-            <Icon className="h-3 w-3" strokeWidth={1.7} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-fog-400 leading-none">
-              {label || role}
-            </div>
-            <div className="text-[12.5px] text-fog-100 font-medium truncate leading-tight mt-1">
-              {provider?.label ?? providerId ?? "Unassigned"}
-            </div>
-          </div>
-          <ChevronDown
-            className={cn(
-              "h-3 w-3 transition",
-              open ? "text-violet-soft rotate-180" : "text-fog-500 group-hover:text-fog-200",
-            )}
-            strokeWidth={1.7}
-          />
-        </div>
-        <div className="flex items-center justify-between text-[10.5px]">
-          <span className="text-fog-400 truncate">
-            {provider?.available
-              ? "available"
-              : provider
-                ? "not installed"
-                : "pick agent"}
-          </span>
-          <span className="mono text-fog-500 shrink-0 ml-2">
-            {provider?.confidence === "ready"
-              ? "ready"
-              : provider?.confidence === "detected-needs-setup"
-                ? "setup"
-                : "—"}
-          </span>
-        </div>
-      </button>
-      {open ? (
-        <div className="absolute top-full left-0 right-0 mt-2 z-30 menu-surface overflow-hidden py-1 min-w-[260px]">
-          {providers.length === 0 ? (
-            <div className="px-3 py-2 text-[12px] text-fog-400">
-              No providers discovered.
-            </div>
-          ) : (
-            providers.map((p) => {
-              const vendor = vendorForProvider(p.id);
-              const sub =
-                vendor && p.configured
-                  ? `${vendor} · configured`
-                  : vendor
-                    ? `${vendor} · needs setup`
-                    : p.configured
-                      ? `${p.id} · configured`
-                      : `${p.id} · needs setup`;
-              const costSigil =
-                p.id === "local-llama" || p.id === "ollama"
-                  ? "free"
-                  : p.confidence === "ready" && p.configured
-                    ? "$$"
-                    : p.confidence === "detected-needs-setup"
-                      ? "$"
-                      : "—";
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  disabled={!p.available}
-                  onClick={() => onPick(p.id)}
-                  className={cn(
-                    "w-full text-left px-3 py-2 hover:bg-white/[0.05]",
-                    !p.available && "opacity-40 cursor-not-allowed",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-[13px] text-fog-100 truncate">
-                        {p.label}
-                      </div>
-                      <div className="text-[11px] text-fog-400 truncate">
-                        {sub}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {p.id === providerId ? (
-                        <Check
-                          className="h-3 w-3 text-violet-soft"
-                          strokeWidth={1.7}
-                        />
-                      ) : null}
-                      <span className="text-[10.5px] text-fog-400 mono">
-                        {costSigil}
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function SkillsChip({
   skills,
   selected,
@@ -809,10 +774,7 @@ function SkillsChip({
       >
         <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />
         {selected.length} skill{selected.length === 1 ? "" : "s"}
-        <ChevronDown
-          className="h-3 w-3 text-fog-500"
-          strokeWidth={1.7}
-        />
+        <ChevronDown className="h-3 w-3 text-fog-500" strokeWidth={1.7} />
       </button>
       {open ? (
         <div className="absolute top-full left-0 mt-2 z-30 menu-surface overflow-hidden py-1 min-w-[240px]">
@@ -839,9 +801,7 @@ function SkillsChip({
                     <span className="flex items-center gap-2">
                       <ToneDot tone="violet" /> {s.name}
                     </span>
-                    {on ? (
-                      <Check className="h-3 w-3" strokeWidth={1.7} />
-                    ) : null}
+                    {on ? <Check className="h-3 w-3" strokeWidth={1.7} /> : null}
                   </button>
                 );
               })

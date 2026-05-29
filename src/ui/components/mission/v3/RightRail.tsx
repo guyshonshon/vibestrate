@@ -309,7 +309,7 @@ function providerUsage(
   const counts = new Map<string, number>();
   let total = 0;
   for (const r of runs) {
-    const id = r.resolvedProviderId ?? r.providerOverride ?? null;
+    const id = r.profileOverride ?? r.crewId ?? null;
     if (!id) continue;
     counts.set(id, (counts.get(id) ?? 0) + 1);
     total += 1;
