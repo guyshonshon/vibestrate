@@ -24,18 +24,17 @@ const releaseChecklistFlow = flowDefinitionSchema.parse({
   version: 1,
   label: "Release Checklist",
   description: "A non-arbitration Flow with an explicit handoff gate.",
-  slots: {
-    builder: { label: "Builder", defaultRole: "executor" },
-    reviewer: { label: "Reviewer", defaultRole: "reviewer" },
-    arbiter: { label: "Arbiter", defaultRole: "verifier" },
+  seats: {
+    builder: { label: "Builder" },
+    reviewer: { label: "Reviewer" },
+    arbiter: { label: "Arbiter" },
   },
   steps: [
     {
       id: "plan",
       label: "Plan",
       kind: "agent-turn",
-      slot: "builder",
-      roleId: "planner",
+      seat: "builder",
       inputs: ["task-brief"],
       outputs: ["plan"],
     },
@@ -55,8 +54,7 @@ const releaseChecklistFlow = flowDefinitionSchema.parse({
       id: "implement",
       label: "Implement",
       kind: "agent-turn",
-      slot: "builder",
-      roleId: "executor",
+      seat: "builder",
       inputs: ["task-brief", "plan"],
       outputs: ["execution"],
     },
@@ -64,7 +62,7 @@ const releaseChecklistFlow = flowDefinitionSchema.parse({
       id: "review",
       label: "Review",
       kind: "review-turn",
-      slot: "reviewer",
+      seat: "reviewer",
       inputs: ["execution"],
       outputs: ["review-decision"],
       repeat: { times: 2 },
@@ -73,7 +71,7 @@ const releaseChecklistFlow = flowDefinitionSchema.parse({
       id: "summary",
       label: "Summary",
       kind: "summary-turn",
-      slot: "arbiter",
+      seat: "arbiter",
       inputs: ["execution", "review-decision"],
       outputs: ["decision-summary"],
     },
@@ -131,7 +129,7 @@ process.stdin.on("end", () => {
     "reviewer",
     "verifier",
   ]) {
-    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   }
   return dir;
 }

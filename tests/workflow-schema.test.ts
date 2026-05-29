@@ -39,14 +39,20 @@ describe("workflow schema", () => {
       providers: {
         claude: { type: "cli", command: "claude" },
       },
-      roles: {
-        planner: { provider: "claude", prompt: "p", permissions: "read_only" },
-        architect: { provider: "claude", prompt: "p", permissions: "read_only" },
-        executor: { provider: "claude", prompt: "p", permissions: "code_write" },
-        fixer: { provider: "claude", prompt: "p", permissions: "code_write" },
-        reviewer: { provider: "claude", prompt: "p", permissions: "read_only" },
-        verifier: { provider: "claude", prompt: "p", permissions: "read_only" },
+      profiles: { "claude-balanced": { provider: "claude" } },
+      crews: {
+        default: {
+          roles: {
+            planner: { fills: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { fills: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { fills: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
       },
+      defaultCrew: "default",
     };
     const r = projectConfigSchema.safeParse(minimal);
     expect(r.success).toBe(true);

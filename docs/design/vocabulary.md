@@ -1,18 +1,25 @@
 # Vocabulary (canonical terms)
 
-The settled names for Vibestrate's core concepts (Epic D / D1). Use these in code,
-config, UI, and docs. The goal is as few, as clear concepts as possible.
+The settled names for Vibestrate's core concepts (Epic D / Phase 0). The model is
+`Task + Flow + Crew = Run`. Use these exact words in code, config, UI, and docs.
 
 | Term | Means | Not |
 |---|---|---|
-| **Role** | A seat in the workflow — planner, architect, executor, fixer, reviewer, verifier. Has a prompt, a permission profile, skills, and a bound provider. | ~~Agent~~ (renamed; see below) |
-| **Provider** | A local coding-agent CLI that supplies the model (Claude Code, Codex, Aider, Ollama, OpenCode). One provider can back many roles. | ~~Engine~~ (rejected) |
-| **Crew** | The set of roles working a run; also the dashboard page that shows roles and the providers they run on. | — |
-| **Flow** | A reusable, versioned recipe of ordered steps + roles + approval gates. The fixed plan→build→verify workflow is the built-in **default flow**. Edited in the **Flow Builder**. | ~~Guide~~ (renamed to Flow) |
+| **Flow** | The recipe: ordered **Steps** + the **Seats** they need + gates/loop. The fixed plan→build→verify workflow is the built-in **default flow**. | ~~Guide~~ |
+| **Step** | One phase of a Flow. **Reserved** — do not reuse for the Phase-3 card "Checklist / items". | — |
+| **Seat** | What a Step needs filled (e.g. `implementer`). A contract the Crew satisfies; the Flow never names local Role ids. | ~~Slot~~ (renamed) |
+| **Crew** | Your local team of Roles. A run picks one (default `defaultCrew`). | — |
+| **Role** | One teammate in a Crew: prompt, permissions, skills, a **Profile**, and the **Seats** it `fills`. | ~~Agent~~ |
+| **Profile** | How strong/expensive a Role runs: provider + model + power + budget + timeout. Power is **provider-specific**. | ~~effortMap~~ |
+| **Provider** | A local coding-agent CLI (Claude Code, Codex, Aider, Ollama, OpenCode). Backs Profiles. | ~~Engine~~ |
 | **Task** | The plain-language request the user submits. | — |
 | **Run** | One execution of a task (its own runId, worktree, artifacts, state). | — |
-| **Supervisor** | The product role Vibestrate plays for the user — the review/verification layer over coding agents. | — |
+| **Supervisor** | The product role Vibestrate plays — the review/verification layer over coding agents. | — |
 | **Orchestrator** | The internal engine that drives a run's stages. | — |
+
+The chain at run time: **Step → Seat → (Crew) Role → Profile → Provider.** A Flow
+declares Seats; the Crew's Roles fill them (via `fills`); each Role names a
+Profile; each Profile names a Provider.
 
 ## Agent → Role
 

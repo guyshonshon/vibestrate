@@ -26,7 +26,9 @@ import { writeJson } from "../src/utils/json.js";
 const BASE_CONFIG = {
   project: { name: "demo", type: "generic" },
   providers: { fake: { type: "cli", command: "/bin/true", inputMode: "stdin" } },
-  roles: { reviewer: { provider: "fake", prompt: "reviewer", permissions: "read" } },
+  profiles: { "fake-balanced": { provider: "fake" } },
+  crews: { default: { roles: { reviewer: { fills: ["reviewer"], profile: "fake-balanced", prompt: "reviewer", permissions: "read" } } } },
+  defaultCrew: "default",
 };
 
 function configFromYaml(input: {
@@ -253,8 +255,9 @@ async function tempProjectWithWorktree(opts: {
       "project: { name: demo, type: generic }",
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
-      "roles:",
-      "  reviewer: { provider: fake, prompt: reviewer, permissions: read }",
+      "profiles: { fake-balanced: { provider: fake } }",
+      "crews: { default: { roles: { reviewer: { fills: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
+      "defaultCrew: default",
       "commands:",
       `  validate: ${JSON.stringify(validate)}`,
       profilesYaml ? "  validationProfiles:" : "",

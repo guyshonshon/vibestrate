@@ -17,22 +17,22 @@ const validConfig = {
   providers: {
     claude: { type: "cli", command: "claude", args: ["-p"], input: "stdin" },
   },
-  roles: {
-    planner: { provider: "claude", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
-    architect: {
-      provider: "claude",
-      prompt: ".vibestrate/roles/architect.md",
-      permissions: "read_only",
-    },
-    executor: {
-      provider: "claude",
-      prompt: ".vibestrate/roles/executor.md",
-      permissions: "code_write",
-    },
-    fixer: { provider: "claude", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
-    reviewer: { provider: "claude", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
-    verifier: { provider: "claude", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
+  profiles: {
+    "claude-balanced": { provider: "claude" },
   },
+  crews: {
+    default: {
+      roles: {
+        planner: { fills: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
+        architect: { fills: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "read_only" },
+        executor: { fills: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "code_write" },
+        fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
+        reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
+        verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
+      },
+    },
+  },
+  defaultCrew: "default",
 };
 
 describe("config loader", () => {

@@ -126,20 +126,11 @@ process.stdin.on("end", () => {
       input: "stdin",
     }),
   );
-  for (const agent of [
-    "planner",
-    "architect",
-    "executor",
-    "fixer",
-    "reviewer",
-    "verifier",
-  ]) {
-    await setConfigValue(
-      projectRoot,
-      `roles.${agent}.provider`,
-      "fake-arbitration",
-    );
-  }
+  await setConfigValue(
+    projectRoot,
+    "profiles.claude-balanced.provider",
+    "fake-arbitration",
+  );
   await setConfigValue(
     projectRoot,
     "commands.validate",

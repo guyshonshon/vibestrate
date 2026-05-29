@@ -7,7 +7,13 @@ slug: glossary
 
 Short definitions for the vocabulary Vibestrate's docs assume.
 
-**Agent.** A worker with one role in a workflow — planner, executor, reviewer. Bound to a provider, a prompt template, a permission profile, and any attached skills. See [Agent](/docs/concepts/role).
+**Crew.** Your local team of Roles. A run picks one Crew (default: `defaultCrew`) and matches the Flow's Seats to its Roles. See [Crew](/docs/concepts/crew).
+
+**Role.** One teammate inside a Crew — instructions (prompt), permissions, skills, the Profile it runs on, and the Seats it can fill. See [Role](/docs/concepts/role).
+
+**Seat.** What a Flow step needs filled (e.g. `implementer`). A contract the Crew satisfies with a Role whose `fills` includes the seat. See [Seat](/docs/concepts/seat).
+
+**Profile.** How strong and expensive a Role runs: provider + model + power + budget + timeout. Provider-specific power. See [Profile](/docs/concepts/profile).
 
 **Approval gate.** A point in a workflow or Flow where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Flow.
 

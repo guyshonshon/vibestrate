@@ -7,42 +7,36 @@
       "version": 1,
       "label": "Default",
       "description": "The standard plan → architect → implement → validate → review workflow. Review loops back to fix and re-validate until it passes or the bound is hit, then a verify gate decides merge-readiness. Runs when no other flow is picked.",
-      "slots": [
+      "seats": [
         {
           "id": "planner",
           "label": "Planner",
-          "description": "Turns the task into a plan.",
-          "defaultRole": "planner"
+          "description": "Turns the task into a plan."
         },
         {
           "id": "architect",
           "label": "Architect",
-          "description": "Designs the approach from the plan.",
-          "defaultRole": "architect"
+          "description": "Designs the approach from the plan."
         },
         {
-          "id": "executor",
-          "label": "Executor",
-          "description": "Implements the plan and architecture.",
-          "defaultRole": "executor"
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements the plan and architecture."
         },
         {
           "id": "reviewer",
           "label": "Reviewer",
-          "description": "Reviews the diff and decides whether changes are needed.",
-          "defaultRole": "reviewer"
+          "description": "Reviews the diff and decides whether changes are needed."
         },
         {
           "id": "fixer",
           "label": "Fixer",
-          "description": "Addresses review findings.",
-          "defaultRole": "fixer"
+          "description": "Addresses review findings."
         },
         {
           "id": "verifier",
           "label": "Verifier",
-          "description": "Independently verifies the approved result.",
-          "defaultRole": "verifier"
+          "description": "Independently verifies the approved result."
         }
       ],
       "steps": [
@@ -50,8 +44,7 @@
           "id": "plan",
           "label": "Plan",
           "kind": "agent-turn",
-          "slot": "planner",
-          "roleId": "planner",
+          "seat": "planner",
           "inputs": [
             "task-brief"
           ],
@@ -68,8 +61,7 @@
           "id": "architecture",
           "label": "Architecture",
           "kind": "agent-turn",
-          "slot": "architect",
-          "roleId": "architect",
+          "seat": "architect",
           "inputs": [
             "task-brief",
             "plan"
@@ -87,8 +79,7 @@
           "id": "implement",
           "label": "Implement",
           "kind": "agent-turn",
-          "slot": "executor",
-          "roleId": "executor",
+          "seat": "implementer",
           "inputs": [
             "task-brief",
             "plan",
@@ -108,8 +99,7 @@
           "id": "validation",
           "label": "Validate",
           "kind": "validation",
-          "slot": null,
-          "roleId": null,
+          "seat": null,
           "inputs": [
             "diff"
           ],
@@ -126,8 +116,7 @@
           "id": "review",
           "label": "Review",
           "kind": "review-turn",
-          "slot": "reviewer",
-          "roleId": "reviewer",
+          "seat": "reviewer",
           "inputs": [
             "task-brief",
             "plan",
@@ -149,8 +138,7 @@
           "id": "fix",
           "label": "Fix",
           "kind": "response-turn",
-          "slot": "fixer",
-          "roleId": "fixer",
+          "seat": "fixer",
           "inputs": [
             "task-brief",
             "plan",
@@ -173,8 +161,7 @@
           "id": "revalidation",
           "label": "Re-validate",
           "kind": "validation",
-          "slot": null,
-          "roleId": null,
+          "seat": null,
           "inputs": [
             "diff"
           ],
@@ -191,8 +178,7 @@
           "id": "verify",
           "label": "Verify",
           "kind": "summary-turn",
-          "slot": "verifier",
-          "roleId": "verifier",
+          "seat": "verifier",
           "inputs": [
             "task-brief",
             "plan",
@@ -223,24 +209,21 @@
       "version": 1,
       "label": "Quality Arbitration",
       "description": "Cross-provider planning, review, implementation, challenge, second review, and Vibestrate decision summary.",
-      "slots": [
+      "seats": [
         {
           "id": "builder",
           "label": "Builder",
-          "description": "Plans, implements, and answers review findings.",
-          "defaultRole": "executor"
+          "description": "Plans, implements, and answers review findings."
         },
         {
           "id": "challenger",
           "label": "Challenger",
-          "description": "Challenges plans and code before the final decision.",
-          "defaultRole": "reviewer"
+          "description": "Challenges plans and code before the final decision."
         },
         {
           "id": "arbiter",
           "label": "Arbiter",
-          "description": "Summarizes evidence, disagreement, and residual risk.",
-          "defaultRole": "verifier"
+          "description": "Summarizes evidence, disagreement, and residual risk."
         }
       ],
       "steps": [
@@ -248,8 +231,7 @@
           "id": "plan",
           "label": "Plan",
           "kind": "agent-turn",
-          "slot": "builder",
-          "roleId": "planner",
+          "seat": "builder",
           "inputs": [
             "task-brief"
           ],
@@ -266,8 +248,7 @@
           "id": "plan-review",
           "label": "Plan Review",
           "kind": "review-turn",
-          "slot": "challenger",
-          "roleId": "reviewer",
+          "seat": "challenger",
           "inputs": [
             "task-brief",
             "plan"
@@ -285,8 +266,7 @@
           "id": "implement",
           "label": "Implement",
           "kind": "agent-turn",
-          "slot": "builder",
-          "roleId": "executor",
+          "seat": "builder",
           "inputs": [
             "task-brief",
             "plan",
@@ -306,8 +286,7 @@
           "id": "validation",
           "label": "Validate",
           "kind": "validation",
-          "slot": null,
-          "roleId": null,
+          "seat": null,
           "inputs": [
             "diff"
           ],
@@ -324,8 +303,7 @@
           "id": "implementation-review",
           "label": "Implementation Review",
           "kind": "review-turn",
-          "slot": "challenger",
-          "roleId": "reviewer",
+          "seat": "challenger",
           "inputs": [
             "plan",
             "diff",
@@ -345,8 +323,7 @@
           "id": "challenge-response",
           "label": "Challenge Response",
           "kind": "response-turn",
-          "slot": "builder",
-          "roleId": "fixer",
+          "seat": "builder",
           "inputs": [
             "findings",
             "diff",
@@ -366,8 +343,7 @@
           "id": "second-review",
           "label": "Second Review",
           "kind": "review-turn",
-          "slot": "challenger",
-          "roleId": "reviewer",
+          "seat": "challenger",
           "inputs": [
             "findings",
             "finding-responses",
@@ -388,8 +364,7 @@
           "id": "decision-summary",
           "label": "Decision Summary",
           "kind": "summary-turn",
-          "slot": "arbiter",
-          "roleId": "verifier",
+          "seat": "arbiter",
           "inputs": [
             "plan",
             "findings",

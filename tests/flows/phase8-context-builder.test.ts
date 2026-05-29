@@ -13,14 +13,23 @@ const config = projectConfigSchema.parse({
     claude: { type: "claude-code", command: "claude", input: "stdin" },
     codex: { type: "cli", command: "codex", input: "stdin" },
   },
-  roles: {
-    planner: { provider: "claude", permissions: "readOnly", prompt: "planner.md" },
-    architect: { provider: "claude", permissions: "readOnly", prompt: "architect.md" },
-    executor: { provider: "claude", permissions: "codeWrite", prompt: "executor.md" },
-    fixer: { provider: "claude", permissions: "codeWrite", prompt: "fixer.md" },
-    reviewer: { provider: "codex", permissions: "readOnly", prompt: "reviewer.md" },
-    verifier: { provider: "claude", permissions: "readOnly", prompt: "verifier.md" },
+  profiles: {
+    "claude-balanced": { provider: "claude" },
+    "codex-balanced": { provider: "codex" },
   },
+  crews: {
+    default: {
+      roles: {
+        planner: { fills: ["planner"], profile: "claude-balanced", permissions: "readOnly", prompt: "planner.md" },
+        architect: { fills: ["architect"], profile: "claude-balanced", permissions: "readOnly", prompt: "architect.md" },
+        executor: { fills: ["implementer", "builder"], profile: "claude-balanced", permissions: "codeWrite", prompt: "executor.md" },
+        fixer: { fills: ["fixer"], profile: "claude-balanced", permissions: "codeWrite", prompt: "fixer.md" },
+        reviewer: { fills: ["reviewer", "challenger"], profile: "codex-balanced", permissions: "readOnly", prompt: "reviewer.md" },
+        verifier: { fills: ["verifier", "arbiter"], profile: "claude-balanced", permissions: "readOnly", prompt: "verifier.md" },
+      },
+    },
+  },
+  defaultCrew: "default",
 });
 
 function output(

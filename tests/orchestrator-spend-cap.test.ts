@@ -55,7 +55,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
     }),
   );
   for (const agent of ["planner", "architect", "executor", "fixer", "reviewer", "verifier"]) {
-    await setConfigValue(dir, `roles.${agent}.provider`, "fake");
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake");
   }
   // Cap well below the $1/turn cost so it trips after the first agent.
   await setConfigValue(

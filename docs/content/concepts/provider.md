@@ -9,7 +9,10 @@ slug: concepts/provider
 
 **Simple explanation.** A provider is the actual model you're using, wrapped so Vibestrate can talk to it. Claude Code, Codex, Ollama — Vibestrate doesn't care which, as long as it's installed locally.
 
-> **Provider vs [agent](/docs/concepts/role):** a *provider* is a **CLI** (the thing that supplies the model); an *agent* is a **role** that runs on one. The same provider can back several roles, so attaching one provider can light up the whole crew.
+> **Provider vs [[profile]] vs [[role]]:** a *Provider* is the installed **CLI**;
+> a *Profile* names a Provider plus how strong/expensive to run it; a *Role*
+> runs on a Profile. Roles never point at a Provider directly — they go through a
+> Profile. One Provider backs many Profiles; one Profile backs many Roles.
 
 ## Why it matters
 
@@ -35,38 +38,35 @@ Coding-agent CLIs disagree on flags — `--prompt` here, `-p` there, `exec` for 
 
 If a preset is wrong for your installed version (e.g. a flag the CLI removed), you can correct `command`/`args`/`input` directly — either with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or in the dashboard's **Providers** page, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
 
-## Per-agent assignment
+## Providers back Profiles, Profiles back Roles
 
-Agents reference providers by id:
-
-```yaml
-agents:
-  planner:
-    provider: claude
-  executor:
-    provider: codex
-  reviewer:
-    provider: claude
-```
-
-A single run can override every agent's provider:
-
-```bash
-vibe run "..." --provider claude
-```
-
-Or you can map effort buckets to providers globally:
+A Provider is a raw tool. A [[profile]] wraps it with model/power/budget, and a
+[[role]] in your [[crew]] runs on a Profile:
 
 ```yaml
-effortMap:
-  low: ollama
-  medium: codex
-  high: claude
+providers:
+  claude: { type: cli, command: claude, args: ["-p"], input: stdin }
+  codex:  { type: cli, command: codex, args: ["exec"], input: stdin }
+
+profiles:
+  claude-sonnet-deep: { provider: claude, model: sonnet, power: deep }
+  codex-balanced:      { provider: codex, power: balanced }
+
+crews:
+  default:
+    roles:
+      reviewer: { fills: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
 ```
 
+To run a whole run on a different Profile, or one Step on a stronger one:
+
 ```bash
-vibe run "..." --effort high   # uses claude for every agent in this run
+vibe run "..." --profile claude-sonnet-deep            # run-wide
+vibe run "..." --flow default --step-profile implement=opus-deep   # one step
 ```
+
+(Provider commands — `vibe provider list/setup/test` — manage the raw tools
+only. Profiles and Crews are edited in `project.yml`, the dashboard, or the API.)
 
 ## Common mistakes
 
