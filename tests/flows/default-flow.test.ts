@@ -22,12 +22,12 @@ function flowTestConfig() {
     crews: {
       default: {
         roles: {
-          planner: { fills: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
-          architect: { fills: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
-          executor: { fills: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
-          fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
-          reviewer: { fills: ["reviewer"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
-          verifier: { fills: ["verifier"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
+          planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
+          architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
+          executor: { seats: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
+          fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
+          reviewer: { seats: ["reviewer"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
+          verifier: { seats: ["verifier"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
         },
       },
     },

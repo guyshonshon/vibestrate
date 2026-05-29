@@ -13,7 +13,7 @@ crews:
     roles:
       backend-implementer:
         label: Backend Implementer
-        fills: [implementer, executor, builder]
+        seats: [implementer, executor, builder]
         profile: claude-sonnet-deep
         prompt: .vibestrate/roles/executor.md
         permissions: code_write
@@ -25,7 +25,7 @@ defaultCrew: default
 
 Each Crew holds a roster of **Roles**. A run picks one Crew (defaulting to
 `defaultCrew`) and matches the Flow's **Seats** to Roles in that Crew via each
-Role's `fills` list. The same Role can fill several Seats, and you can keep more
+Role's `seats` list. The same Role can fill several Seats, and you can keep more
 than one Crew (e.g. a fast crew and a careful crew) and choose at run time with
 `--crew`.
 
@@ -38,7 +38,7 @@ the same Seat, it's ambiguous and the run asks you to pick one.
 Schema (`src/crews/crew-schema.ts`, `src/roles/role-schema.ts`):
 
 - `crews.<crewId>.label?` and `crews.<crewId>.roles.<roleId>` — at least one role.
-- A Role has `fills: string[]`, `profile`, `prompt`, `permissions`, `skills`,
+- A Role has `seats: string[]`, `profile`, `prompt`, `permissions`, `skills`,
   and optional `mcpServers`. It runs on a [[profile]] (not a provider directly).
 - `defaultCrew` must name a crew that exists.
 

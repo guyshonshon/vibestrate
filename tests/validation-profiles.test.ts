@@ -27,7 +27,7 @@ const BASE_CONFIG = {
   project: { name: "demo", type: "generic" },
   providers: { fake: { type: "cli", command: "/bin/true", inputMode: "stdin" } },
   profiles: { "fake-balanced": { provider: "fake" } },
-  crews: { default: { roles: { reviewer: { fills: ["reviewer"], profile: "fake-balanced", prompt: "reviewer", permissions: "read" } } } },
+  crews: { default: { roles: { reviewer: { seats: ["reviewer"], profile: "fake-balanced", prompt: "reviewer", permissions: "read" } } } },
   defaultCrew: "default",
 };
 
@@ -256,7 +256,7 @@ async function tempProjectWithWorktree(opts: {
       "providers:",
       "  fake: { type: cli, command: /bin/true, inputMode: stdin }",
       "profiles: { fake-balanced: { provider: fake } }",
-      "crews: { default: { roles: { reviewer: { fills: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
+      "crews: { default: { roles: { reviewer: { seats: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
       "defaultCrew: default",
       "commands:",
       `  validate: ${JSON.stringify(validate)}`,

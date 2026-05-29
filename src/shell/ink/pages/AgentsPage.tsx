@@ -87,7 +87,7 @@ export function AgentsPage({
             <Box marginTop={1} flexDirection="column">
               <KV label="profile" value={selected.profile} />
               <KV label="provider" value={selected.provider} />
-              <KV label="fills" value={selected.fills.join(", ")} />
+              <KV label="seats" value={selected.seats.join(", ")} />
               <KV label="prompt" value={selected.prompt} mono />
               <KV label="permissions" value={selected.permissions} />
               <KV

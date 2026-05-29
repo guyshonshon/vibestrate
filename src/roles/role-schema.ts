@@ -26,8 +26,8 @@ export const crewRoleConfigSchema = z
   .object({
     /** Human label. Defaults to the role id when omitted. */
     label: z.string().min(1).max(120).optional(),
-    /** Seats this role can fill (Flow step seats it satisfies). */
-    fills: z.array(seatTokenSchema).min(1, "A role must fill at least one seat."),
+    /** Seats this role can take (the Flow step seats it satisfies). */
+    seats: z.array(seatTokenSchema).min(1, "A role must take at least one seat."),
     /** Profile id this role runs on. Must exist in `profiles`. */
     profile: z.string().min(1),
     /** Path to the role's instruction prompt markdown. */

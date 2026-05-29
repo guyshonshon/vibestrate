@@ -220,7 +220,7 @@ crews:
     roles:
       planner:
         label: Planner
-        fills: [planner]
+        seats: [planner]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/planner.md
         permissions: read_only
@@ -228,7 +228,7 @@ crews:
 
       architect:
         label: Architect
-        fills: [architect]
+        seats: [architect]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/architect.md
         permissions: read_only
@@ -236,7 +236,7 @@ crews:
 
       executor:
         label: Backend Implementer
-        fills: [implementer, executor, builder]
+        seats: [implementer, executor, builder]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/executor.md
         permissions: code_write
@@ -244,7 +244,7 @@ crews:
 
       fixer:
         label: Fixer
-        fills: [fixer]
+        seats: [fixer]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/fixer.md
         permissions: code_write
@@ -252,7 +252,7 @@ crews:
 
       reviewer:
         label: Reviewer
-        fills: [reviewer, challenger]
+        seats: [reviewer, challenger]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/reviewer.md
         permissions: read_only
@@ -260,7 +260,7 @@ crews:
 
       verifier:
         label: Verifier
-        fills: [verifier, arbiter]
+        seats: [verifier, arbiter]
         profile: ${ref}-balanced
         prompt: .vibestrate/roles/verifier.md
         permissions: read_only

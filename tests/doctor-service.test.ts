@@ -76,7 +76,7 @@ describe("doctor service", () => {
         "project: { name: demo, type: generic }",
         "providers: { claude: { type: cli, command: claude } }",
         "profiles: { broken: { provider: nonexistent } }",
-        "crews: { default: { roles: { planner: { fills: [planner], profile: broken, prompt: p, permissions: read_only } } } }",
+        "crews: { default: { roles: { planner: { seats: [planner], profile: broken, prompt: p, permissions: read_only } } } }",
         "defaultCrew: default",
         "",
       ].join("\n"),

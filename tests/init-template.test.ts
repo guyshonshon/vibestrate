@@ -52,7 +52,7 @@ describe("init template", () => {
     const cfg = (await readGeneratedConfig(projectRoot)) as {
       providers: Record<string, { command: string; args: string[]; input: string }>;
       profiles: Record<string, { provider: string }>;
-      crews: Record<string, { roles: Record<string, { profile: string; fills: string[] }> }>;
+      crews: Record<string, { roles: Record<string, { profile: string; seats: string[] }> }>;
       defaultCrew: string;
       commands: { validate: string[] };
     };
@@ -69,7 +69,7 @@ describe("init template", () => {
       expect(cfg.profiles[roles[roleId]!.profile]?.provider).toBe("claude");
     }
     // The implementer seat is fillable by the executor role.
-    expect(roles["executor"]?.fills).toContain("implementer");
+    expect(roles["executor"]?.seats).toContain("implementer");
     expect(cfg.commands.validate).toEqual(["pnpm typecheck", "pnpm test"]);
   });
 

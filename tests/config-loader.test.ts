@@ -23,12 +23,12 @@ const validConfig = {
   crews: {
     default: {
       roles: {
-        planner: { fills: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
-        architect: { fills: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "read_only" },
-        executor: { fills: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "code_write" },
-        fixer: { fills: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
-        reviewer: { fills: ["reviewer"], profile: "claude-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
-        verifier: { fills: ["verifier"], profile: "claude-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
+        planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
+        architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "read_only" },
+        executor: { seats: ["implementer"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "code_write" },
+        fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
+        reviewer: { seats: ["reviewer"], profile: "claude-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
+        verifier: { seats: ["verifier"], profile: "claude-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
       },
     },
   },

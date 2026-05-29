@@ -55,7 +55,7 @@ describe("GET /api/crews", () => {
         id: string;
         roles: {
           id: string;
-          fills: string[];
+          seats: string[];
           profile: string;
           provider: string | null;
           providerConfigured: boolean;
@@ -73,7 +73,7 @@ describe("GET /api/crews", () => {
     );
 
     const reviewer = crew.roles.find((r) => r.id === "reviewer")!;
-    expect(reviewer.fills).toContain("reviewer");
+    expect(reviewer.seats).toContain("reviewer");
     expect(typeof reviewer.profile).toBe("string");
     expect(reviewer.providerConfigured).toBe(true);
 

@@ -55,7 +55,7 @@ profiles:
 crews:
   default:
     roles:
-      reviewer: { fills: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
+      reviewer: { seats: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
 ```
 
 To run a whole run on a different Profile, or one Step on a stronger one:

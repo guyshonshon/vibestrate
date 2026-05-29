@@ -19,7 +19,7 @@ crews:
     roles:
       reviewer:
         label: Reviewer
-        fills: [reviewer, challenger]
+        seats: [reviewer, challenger]
         profile: opus-deep
         prompt: .vibestrate/roles/reviewer.md
         permissions: read_only
@@ -70,7 +70,7 @@ the executor's blind spots.
 - The run records the resolved Role per Step (`resolvedRoleId`,
   `resolvedRoleLabel`) in `flow.json`.
 - API: `PATCH /api/crews/:crewId/roles/:roleId` edits a Role's
-  profile / seats (`fills`) / permissions / label / skills; the role context
+  `profile` / `seats` / `permissions` / `label` / `skills`; the role context
   (prompt) is read/written at `/api/crews/:crewId/roles/:roleId/context`.
 
 ## Related

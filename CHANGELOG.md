@@ -10,7 +10,8 @@ version. Update it in the same commit as the change it describes.
   with nouns Flow / Step / Seat / Crew / Role / Profile / Provider.
 - Config: add top-level `profiles`, `crews`, `defaultCrew`; remove top-level
   `roles` and `effortMap`. Roles live under `crews.<id>.roles` and run on a
-  Profile (`role.profile`), not a provider. Profile power/effort is
+  Profile (`role.profile`), not a provider. A Role lists the Seats it can take
+  via `seats: [...]` (the Flow declares Seats; the Role's `seats` list fills them). Profile power/effort is
   provider-specific (free string), never a forced global enum.
 - Flows: `slots` → `seats`, `step.slot` → `step.seat`; dropped `step.roleId`.
   Flows declare required Seats only and stay shareable.
