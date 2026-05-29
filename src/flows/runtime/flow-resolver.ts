@@ -1,11 +1,17 @@
 import type { ProjectConfig } from "../../project/config-schema.js";
 import { nowIso } from "../../utils/time.js";
 import {
+  getCrew,
+  getProfile,
+  roleLabel,
+  rolesFillingSeat,
+} from "../../crews/crew-registry.js";
+import {
   resolvedFlowSnapshotSchema,
   type FlowContextPolicy,
   type FlowDefinition,
   type FlowSource,
-  type ResolvedFlowSlot,
+  type ResolvedFlowSeat,
   type ResolvedFlowSnapshot,
 } from "../schemas/flow-schema.js";
 
@@ -23,86 +29,106 @@ export type ResolveFlowInput = {
   task: string;
   brief?: string | null;
   contextPolicy?: FlowContextPolicy;
-  slotProviders?: Record<string, string | undefined>;
-  stepProviders?: Record<string, string | undefined>;
+  /** Crew to resolve against. Defaults to `project.defaultCrew`. */
+  crewId?: string | null;
+  /** Pin a specific Role to a Seat (overrides the fills lookup). seat → roleId. */
+  seatRoleOverrides?: Record<string, string | undefined>;
+  /** Run-wide Profile override applied to every seated step. */
+  profileOverride?: string | null;
+  /** Per-step Profile override (step id → profile id). Wins over profileOverride. */
+  stepProfileOverrides?: Record<string, string | undefined>;
   skippedOptionalSteps?: string[];
   resolvedAt?: string;
 };
 
 export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
-  const slotEntries = Object.entries(input.flow.slots);
-  const knownSlotIds = new Set(slotEntries.map(([id]) => id));
-  for (const slotId of Object.keys(input.slotProviders ?? {})) {
-    if (!knownSlotIds.has(slotId)) {
+  const { crewId, crew } = getCrew(input.config, input.crewId);
+
+  // Seats the Flow declares. A Seat is just a contract — no provider here; the
+  // Role (resolved per step) supplies the Profile/Provider.
+  const seats: ResolvedFlowSeat[] = Object.entries(input.flow.seats).map(
+    ([id, seat]) => ({
+      id,
+      label: seat.label,
+      description: seat.description ?? null,
+    }),
+  );
+  const knownSeatIds = new Set(seats.map((s) => s.id));
+
+  for (const seatId of Object.keys(input.seatRoleOverrides ?? {})) {
+    if (!knownSeatIds.has(seatId)) {
       throw new FlowResolutionError(
-        `Provider override references unknown Flow slot "${slotId}".`,
+        `Role override references unknown Flow seat "${seatId}".`,
       );
     }
   }
 
-  const slots = slotEntries.map(([id, slot]) => {
-    const defaultRole = input.config.roles[slot.defaultRole];
-    if (!defaultRole) {
-      throw new FlowResolutionError(
-        `Flow slot "${id}" references missing default agent "${slot.defaultRole}".`,
-      );
-    }
-    const providerId = input.slotProviders?.[id] ?? defaultRole.provider;
-    assertProviderConfigured(input.config, providerId, `slot "${id}"`);
-    return {
-      id,
-      label: slot.label,
-      description: slot.description ?? null,
-      defaultRole: slot.defaultRole,
-      providerId,
-    } satisfies ResolvedFlowSlot;
-  });
-
-  const resolvedSlots = new Map(slots.map((slot) => [slot.id, slot]));
   const knownStepIds = new Set(input.flow.steps.map((step) => step.id));
   const skippedOptionalSteps = new Set(input.skippedOptionalSteps ?? []);
   for (const stepId of skippedOptionalSteps) {
     const step = input.flow.steps.find((candidate) => candidate.id === stepId);
     if (!step) {
-      throw new FlowResolutionError(
-        `Cannot skip unknown Flow step "${stepId}".`,
-      );
+      throw new FlowResolutionError(`Cannot skip unknown Flow step "${stepId}".`);
     }
     if (!step.optional) {
-      throw new FlowResolutionError(
-        `Cannot skip required Flow step "${stepId}".`,
-      );
+      throw new FlowResolutionError(`Cannot skip required Flow step "${stepId}".`);
     }
   }
-  for (const stepId of Object.keys(input.stepProviders ?? {})) {
+  for (const stepId of Object.keys(input.stepProfileOverrides ?? {})) {
     if (!knownStepIds.has(stepId)) {
       throw new FlowResolutionError(
-        `Provider override references unknown Flow step "${stepId}".`,
+        `Profile override references unknown Flow step "${stepId}".`,
       );
     }
   }
 
   const steps = input.flow.steps.flatMap((step) => {
-    const slot = step.slot ? resolvedSlots.get(step.slot) : null;
-    const roleId = step.roleId ?? slot?.defaultRole ?? null;
-    if (roleId && !input.config.roles[roleId]) {
-      throw new FlowResolutionError(
-        `Flow step "${step.id}" references missing agent "${roleId}".`,
-      );
-    }
+    // Seatless steps (validation / approval-gate) resolve no role/profile.
+    let resolvedRoleId: string | null = null;
+    let resolvedRoleLabel: string | null = null;
+    let profileId: string | null = null;
+    let providerId: string | null = null;
 
-    const providerOverride = input.stepProviders?.[step.id];
-    if (providerOverride) {
-      if (!slot) {
+    if (step.seat) {
+      const override = input.seatRoleOverrides?.[step.seat];
+      const candidates = rolesFillingSeat(crew, step.seat);
+      let chosen: { roleId: string; role: (typeof candidates)[number]["role"] };
+      if (override) {
+        const match = candidates.find((c) => c.roleId === override);
+        if (!match) {
+          throw new FlowResolutionError(
+            `Role override "${override}" for seat "${step.seat}" is not a role in crew "${crewId}" that fills that seat.`,
+          );
+        }
+        chosen = match;
+      } else if (candidates.length === 0) {
         throw new FlowResolutionError(
-          `Provider override for Flow step "${step.id}" requires a participant slot.`,
+          `This Flow needs the "${step.seat}" seat, but crew "${crewId}" has no role that fills it. Open Crew and add "${step.seat}" to a role's Seats.`,
+        );
+      } else if (candidates.length > 1) {
+        throw new FlowResolutionError(
+          `Crew "${crewId}" has more than one role filling the "${step.seat}" seat (${candidates
+            .map((c) => c.roleId)
+            .join(", ")}). Pick one with a role override.`,
+        );
+      } else {
+        chosen = candidates[0]!;
+      }
+
+      resolvedRoleId = chosen.roleId;
+      resolvedRoleLabel = roleLabel(chosen.roleId, chosen.role);
+      profileId =
+        input.stepProfileOverrides?.[step.id] ??
+        input.profileOverride ??
+        chosen.role.profile;
+      const profile = getProfile(input.config, profileId);
+      providerId = profile.provider;
+      // Defense in depth: config schema already validates provider exists.
+      if (!input.config.providers[providerId]) {
+        throw new FlowResolutionError(
+          `Profile "${profileId}" (seat "${step.seat}") resolves to missing provider "${providerId}".`,
         );
       }
-      assertProviderConfigured(
-        input.config,
-        providerOverride,
-        `step "${step.id}"`,
-      );
     }
 
     const repeatCount = step.repeat?.times ?? 1;
@@ -119,9 +145,11 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         optional: step.optional,
         skipWhenReadOnly: step.skipWhenReadOnly,
         stage: step.stage ?? null,
-        slotId: slot?.id ?? null,
-        roleId,
-        providerId: providerOverride ?? slot?.providerId ?? null,
+        seat: step.seat ?? null,
+        resolvedRoleId,
+        resolvedRoleLabel,
+        profileId,
+        providerId,
         inputs: step.inputs,
         outputs: step.outputs,
         approval: step.approval ?? null,
@@ -144,7 +172,8 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     brief: input.brief ?? null,
     contextPolicy: input.contextPolicy ?? "balanced",
     resolvedAt: input.resolvedAt ?? nowIso(),
-    slots,
+    crewId,
+    seats,
     steps,
     // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
     // resolved ids equal their source ids — the loop refs carry over as-is.
@@ -152,9 +181,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
   });
 }
 
-function assertResolvedStepIds(
-  steps: ResolvedFlowSnapshot["steps"],
-): void {
+function assertResolvedStepIds(steps: ResolvedFlowSnapshot["steps"]): void {
   const ids = new Set<string>();
   for (const step of steps) {
     if (ids.has(step.id)) {
@@ -163,17 +190,5 @@ function assertResolvedStepIds(
       );
     }
     ids.add(step.id);
-  }
-}
-
-function assertProviderConfigured(
-  config: ProjectConfig,
-  providerId: string,
-  owner: string,
-): void {
-  if (!config.providers[providerId]) {
-    throw new FlowResolutionError(
-      `Flow ${owner} resolves to missing provider "${providerId}".`,
-    );
   }
 }

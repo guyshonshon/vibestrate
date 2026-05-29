@@ -69,22 +69,23 @@ export const flowContextPolicySchema = z.enum([
 ]);
 export type FlowContextPolicy = z.infer<typeof flowContextPolicySchema>;
 
-export const flowSlotSchema = z
+// A **Seat** is what a Flow step needs filled (e.g. an `implementer`). The Flow
+// declares its required seats; it does NOT name local Role ids — the run's Crew
+// supplies a Role whose `fills` includes the seat. Keeps Flows shareable.
+export const flowSeatSchema = z
   .object({
     label: z.string().min(1).max(120),
     description: z.string().min(1).max(400).optional(),
-    defaultRole: flowRoleIdSchema,
   })
   .strict();
-export type FlowSlot = z.infer<typeof flowSlotSchema>;
+export type FlowSeat = z.infer<typeof flowSeatSchema>;
 
 export const flowStepSchema = z
   .object({
     id: flowTokenSchema,
     label: z.string().min(1).max(160),
     kind: flowStepKindSchema,
-    slot: flowTokenSchema.optional(),
-    roleId: flowRoleIdSchema.optional(),
+    seat: flowTokenSchema.optional(),
     inputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
     optional: z.boolean().default(false),
@@ -122,7 +123,7 @@ const flowDefinitionBaseSchema = z
     version: z.number().int().positive(),
     label: z.string().min(1).max(160),
     description: z.string().min(1).max(600),
-    slots: z.record(flowTokenSchema, flowSlotSchema),
+    seats: z.record(flowTokenSchema, flowSeatSchema),
     steps: z.array(flowStepSchema).min(1),
     loop: flowLoopSchema.optional(),
   })
@@ -137,12 +138,12 @@ const TURN_STEP_KINDS = new Set<FlowStepKind>([
 
 export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
   (flow, ctx) => {
-    const slotIds = new Set(Object.keys(flow.slots));
-    if (slotIds.size === 0) {
+    const seatIds = new Set(Object.keys(flow.seats));
+    if (seatIds.size === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["slots"],
-        message: "Flows must declare at least one participant slot.",
+        path: ["seats"],
+        message: "Flows must declare at least one participant seat.",
       });
     }
 
@@ -157,18 +158,18 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       }
       stepIds.add(step.id);
 
-      if (step.slot && !slotIds.has(step.slot)) {
+      if (step.seat && !seatIds.has(step.seat)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["steps", index, "slot"],
-          message: `Flow step "${step.id}" references unknown slot "${step.slot}".`,
+          path: ["steps", index, "seat"],
+          message: `Flow step "${step.id}" references unknown seat "${step.seat}".`,
         });
       }
-      if (TURN_STEP_KINDS.has(step.kind) && !step.slot) {
+      if (TURN_STEP_KINDS.has(step.kind) && !step.seat) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["steps", index, "slot"],
-          message: `Flow step "${step.id}" of kind "${step.kind}" needs a slot.`,
+          path: ["steps", index, "seat"],
+          message: `Flow step "${step.id}" of kind "${step.kind}" needs a seat.`,
         });
       }
       if (step.kind === "approval-gate" && !step.approval) {
@@ -252,16 +253,14 @@ export const flowSourceSchema = z
   .strict();
 export type FlowSource = z.infer<typeof flowSourceSchema>;
 
-export const resolvedFlowSlotSchema = z
+export const resolvedFlowSeatSchema = z
   .object({
     id: flowTokenSchema,
     label: z.string().min(1).max(120),
     description: z.string().nullable().default(null),
-    defaultRole: flowRoleIdSchema,
-    providerId: z.string().min(1),
   })
   .strict();
-export type ResolvedFlowSlot = z.infer<typeof resolvedFlowSlotSchema>;
+export type ResolvedFlowSeat = z.infer<typeof resolvedFlowSeatSchema>;
 
 export const resolvedFlowStepSchema = z
   .object({
@@ -272,8 +271,13 @@ export const resolvedFlowStepSchema = z
     optional: z.boolean(),
     skipWhenReadOnly: z.boolean(),
     stage: flowStageSchema.nullable(),
-    slotId: flowTokenSchema.nullable(),
-    roleId: flowRoleIdSchema.nullable(),
+    // The Seat this step needs (null for validation / approval-gate steps).
+    seat: flowTokenSchema.nullable(),
+    // Resolved from the run's Crew: the Role that fills the Seat, its Profile,
+    // and the Provider behind that Profile. All null for seatless steps.
+    resolvedRoleId: flowRoleIdSchema.nullable(),
+    resolvedRoleLabel: z.string().min(1).max(160).nullable(),
+    profileId: z.string().min(1).nullable(),
     providerId: z.string().min(1).nullable(),
     inputs: z.array(flowTokenSchema),
     outputs: z.array(flowTokenSchema),
@@ -297,7 +301,9 @@ export const resolvedFlowSnapshotSchema = z
     brief: z.string().nullable().default(null),
     contextPolicy: flowContextPolicySchema,
     resolvedAt: z.string(),
-    slots: z.array(resolvedFlowSlotSchema).min(1),
+    // The Crew this snapshot was resolved against (Seats → Roles came from it).
+    crewId: z.string().min(1),
+    seats: z.array(resolvedFlowSeatSchema).min(1),
     steps: z.array(resolvedFlowStepSchema).min(1),
     // Carried through unchanged when the flow declares an adaptive loop; the
     // runner (not the resolver) iterates it. null for linear flows.

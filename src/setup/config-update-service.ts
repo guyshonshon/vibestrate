@@ -206,34 +206,89 @@ export async function deleteProvider(
   await writeDocument(projectRoot, doc);
 }
 
-export async function assignRolesToProvider(
+/** Point every configured Profile at a provider. This is the new "use this
+ *  provider for everything" action — Roles run on Profiles, Profiles name the
+ *  provider. If no profiles exist yet, create a `<providerId>-balanced` one and
+ *  point the default crew's roles at it. */
+export async function pointAllProfilesAtProvider(
   projectRoot: string,
   providerId: string,
 ): Promise<void> {
   const { doc } = await readDocument(projectRoot);
-  for (const roleId of builtinRoleIds) {
-    if (doc.hasIn(["roles", roleId])) {
-      doc.setIn(["roles", roleId, "provider"], providerId);
+  if (!doc.hasIn(["providers", providerId])) {
+    throw new Error(`Provider "${providerId}" is not configured.`);
+  }
+  const js = doc.toJS() as { profiles?: Record<string, unknown> };
+  const profileIds = Object.keys(js.profiles ?? {});
+  if (profileIds.length === 0) {
+    const profileId = `${providerId}-balanced`;
+    doc.setIn(["profiles", profileId], {
+      provider: providerId,
+      label: `${providerId} balanced`,
+      model: null,
+      power: null,
+      budget: "medium",
+    });
+    for (const roleId of builtinRoleIds) {
+      const crewId = defaultCrewIdOf(doc);
+      if (doc.hasIn(["crews", crewId, "roles", roleId])) {
+        doc.setIn(["crews", crewId, "roles", roleId, "profile"], profileId);
+      }
+    }
+  } else {
+    for (const profileId of profileIds) {
+      doc.setIn(["profiles", profileId, "provider"], providerId);
     }
   }
   await writeDocument(projectRoot, doc);
 }
 
-/** Point a single role at a provider (the per-role version of
- *  assignRolesToProvider). Throws if the role or provider isn't in config. */
-export async function setRoleProvider(
+function defaultCrewIdOf(doc: YAML.Document.Parsed): string {
+  const raw = doc.get("defaultCrew");
+  return typeof raw === "string" && raw.length > 0 ? raw : "default";
+}
+
+/** Update a Profile's fields (provider, model, power, budget, etc.). Creates
+ *  the profile if missing. Throws if the named provider isn't configured. */
+export async function setProfileFields(
   projectRoot: string,
-  roleId: string,
-  providerId: string,
+  profileId: string,
+  patch: Record<string, unknown>,
 ): Promise<void> {
   const { doc } = await readDocument(projectRoot);
-  if (!doc.hasIn(["roles", roleId])) {
-    throw new Error(`Role "${roleId}" is not configured.`);
+  if (
+    typeof patch.provider === "string" &&
+    !doc.hasIn(["providers", patch.provider])
+  ) {
+    throw new Error(`Provider "${patch.provider}" is not configured.`);
   }
-  if (!doc.hasIn(["providers", providerId])) {
-    throw new Error(`Provider "${providerId}" is not configured.`);
+  for (const [key, value] of Object.entries(patch)) {
+    doc.setIn(["profiles", profileId, key], value);
   }
-  doc.setIn(["roles", roleId, "provider"], providerId);
+  await writeDocument(projectRoot, doc);
+}
+
+/** Update a Crew Role's fields (profile, fills, permissions, label, skills).
+ *  Throws if the crew/role isn't configured, or a named profile is missing. */
+export async function setCrewRoleFields(
+  projectRoot: string,
+  crewId: string,
+  roleId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { doc } = await readDocument(projectRoot);
+  if (!doc.hasIn(["crews", crewId, "roles", roleId])) {
+    throw new Error(`Role "${roleId}" is not configured in crew "${crewId}".`);
+  }
+  if (
+    typeof patch.profile === "string" &&
+    !doc.hasIn(["profiles", patch.profile])
+  ) {
+    throw new Error(`Profile "${patch.profile}" is not configured.`);
+  }
+  for (const [key, value] of Object.entries(patch)) {
+    doc.setIn(["crews", crewId, "roles", roleId, key], value);
+  }
   await writeDocument(projectRoot, doc);
 }
 

@@ -201,42 +201,72 @@ execution:
 
 ${input.providerSection}
 
-roles:
-  planner:
+# Profiles = reusable runtime setups. A Profile picks a provider plus how
+# strong/expensive to run (model, power, budget). Power/effort is
+# provider-specific; leave it null when the provider exposes no effort control.
+profiles:
+  ${ref}-balanced:
     provider: ${ref}
-    prompt: .vibestrate/roles/planner.md
-    permissions: read_only
-    skills: []
+    label: ${ref} balanced
+    model: null
+    power: null
+    budget: medium
 
-  architect:
-    provider: ${ref}
-    prompt: .vibestrate/roles/architect.md
-    permissions: read_only
-    skills: []
+# Crews = your local team of Roles. Each Role runs on a Profile and lists the
+# Seats it can fill in a Flow (the same Role can fill several seats).
+crews:
+  default:
+    label: Default
+    roles:
+      planner:
+        label: Planner
+        fills: [planner]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/planner.md
+        permissions: read_only
+        skills: []
 
-  executor:
-    provider: ${ref}
-    prompt: .vibestrate/roles/executor.md
-    permissions: code_write
-    skills: []
+      architect:
+        label: Architect
+        fills: [architect]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/architect.md
+        permissions: read_only
+        skills: []
 
-  fixer:
-    provider: ${ref}
-    prompt: .vibestrate/roles/fixer.md
-    permissions: code_write
-    skills: []
+      executor:
+        label: Backend Implementer
+        fills: [implementer, executor, builder]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/executor.md
+        permissions: code_write
+        skills: []
 
-  reviewer:
-    provider: ${ref}
-    prompt: .vibestrate/roles/reviewer.md
-    permissions: read_only
-    skills: []
+      fixer:
+        label: Fixer
+        fills: [fixer]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/fixer.md
+        permissions: code_write
+        skills: []
 
-  verifier:
-    provider: ${ref}
-    prompt: .vibestrate/roles/verifier.md
-    permissions: read_only
-    skills: []
+      reviewer:
+        label: Reviewer
+        fills: [reviewer, challenger]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/reviewer.md
+        permissions: read_only
+        skills: []
+
+      verifier:
+        label: Verifier
+        fills: [verifier, arbiter]
+        profile: ${ref}-balanced
+        prompt: .vibestrate/roles/verifier.md
+        permissions: read_only
+        skills: []
+
+defaultCrew: default
 
 ${renderValidationYaml(input.validationCommands)}
 

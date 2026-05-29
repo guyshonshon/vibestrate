@@ -48,7 +48,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "x", label: "remove selected" },
         ]},
       ];
-    case "agents":
+    case "crew":
       return [
         { name: "Move", hints: [{ key: "↑↓", label: "agent" }] },
       ];

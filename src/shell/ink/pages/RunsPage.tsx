@@ -207,11 +207,9 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         <Field label="updated" value={timeAgo(row.updatedAt)} />
         {row.taskId ? <Field label="task" value={row.taskId} /> : null}
         {row.effort ? <Field label="effort" value={row.effort} /> : null}
-        {row.providerOverride ? (
-          <Field label="override" value={row.providerOverride} />
-        ) : null}
-        {row.resolvedProviderId ? (
-          <Field label="provider" value={row.resolvedProviderId} />
+        {row.crewId ? <Field label="crew" value={row.crewId} /> : null}
+        {row.profileOverride ? (
+          <Field label="profile" value={row.profileOverride} />
         ) : null}
         {row.readOnly ? <Field label="mode" value="read-only" tint="yellow" /> : null}
         {row.pausedAtStatus ? (

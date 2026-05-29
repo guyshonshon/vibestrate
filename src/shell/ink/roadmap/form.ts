@@ -13,7 +13,7 @@ export type TaskFormField =
   | "description"
   | "priority"
   | "effort"
-  | "providerOverride"
+  | "profileOverride"
   | "readOnly";
 
 export const TASK_FORM_FIELDS: TaskFormField[] = [
@@ -21,7 +21,7 @@ export const TASK_FORM_FIELDS: TaskFormField[] = [
   "description",
   "priority",
   "effort",
-  "providerOverride",
+  "profileOverride",
   "readOnly",
 ];
 
@@ -34,7 +34,7 @@ export type TaskFormState = {
   /** "" represents "not set" (effort is nullable on Task). */
   effort: "" | "low" | "medium" | "high";
   /** "" represents "no override". */
-  providerOverride: string;
+  profileOverride: string;
   readOnly: boolean;
   focused: TaskFormField;
   /** Errors keyed by field, set by validate() before the view repaints. */
@@ -48,7 +48,7 @@ export type TaskFormSeed = Partial<
     | "description"
     | "priority"
     | "effort"
-    | "providerOverride"
+    | "profileOverride"
     | "readOnly"
   >
 >;
@@ -65,7 +65,7 @@ export function initTaskForm(
     description: seed.description ?? "",
     priority: seed.priority ?? "medium",
     effort: seed.effort ?? "",
-    providerOverride: seed.providerOverride ?? "",
+    profileOverride: seed.profileOverride ?? "",
     readOnly: seed.readOnly ?? false,
     focused: "title",
     errors: {},
@@ -108,8 +108,8 @@ export function reduceTaskForm(
             next.effort = value;
           }
           break;
-        case "providerOverride":
-          next.providerOverride = String(value);
+        case "profileOverride":
+          next.profileOverride = String(value);
           break;
         case "readOnly":
           next.readOnly = Boolean(value);
@@ -142,7 +142,7 @@ export type TaskFormReady = {
   description: string;
   priority: Priority;
   effort: "low" | "medium" | "high" | null;
-  providerOverride: string | null;
+  profileOverride: string | null;
   readOnly: boolean;
 };
 
@@ -152,7 +152,7 @@ export type ValidateResult =
 
 /**
  * Pure validation: the form is ready when title is non-empty. Effort
- * "" becomes null; providerOverride trimmed-empty becomes null.
+ * "" becomes null; profileOverride trimmed-empty becomes null.
  */
 export function validateTaskForm(state: TaskFormState): ValidateResult {
   const errors: Partial<Record<TaskFormField, string>> = {};
@@ -166,10 +166,10 @@ export function validateTaskForm(state: TaskFormState): ValidateResult {
       description: state.description,
       priority: state.priority,
       effort: state.effort === "" ? null : state.effort,
-      providerOverride:
-        state.providerOverride.trim() === ""
+      profileOverride:
+        state.profileOverride.trim() === ""
           ? null
-          : state.providerOverride.trim(),
+          : state.profileOverride.trim(),
       readOnly: state.readOnly,
     },
   };

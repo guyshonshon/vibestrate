@@ -30,7 +30,7 @@ export function buildBudgetCommand(): Command {
       }
       const pct = Math.round((today / b.spendCapDailyUsd) * 100);
       console.log(`${symbol.bullet()} Daily cap: ${color.bold(`$${b.spendCapDailyUsd}`)} · action: ${color.bold(b.capAction)} · warn at ${Math.round((b.warnThresholdPct ?? 0.8) * 100)}%`);
-      console.log(`  Today's spend: ${color.bold(`$${today.toFixed(2)}`)} (${pct}% of cap)${b.fallbackProvider ? ` · downgrade → ${b.fallbackProvider}` : ""}`);
+      console.log(`  Today's spend: ${color.bold(`$${today.toFixed(2)}`)} (${pct}% of cap)${b.fallbackProfile ? ` · downgrade → ${b.fallbackProfile}` : ""}`);
     });
 
   cmd
@@ -39,7 +39,7 @@ export function buildBudgetCommand(): Command {
     .option("--cap <usd>", "daily cap in USD (e.g. 5)")
     .option("--action <action>", `what to do at the cap: ${ACTIONS.join(" | ")}`)
     .option("--warn <pct>", "warn threshold as a fraction 0..1 (default 0.8)")
-    .option("--fallback <providerId>", "cheaper provider to switch to on downgrade-model")
+    .option("--fallback <providerId>", "cheaper Profile to switch to on downgrade-model")
     .action(
       async (opts: {
         cap?: string;
@@ -76,7 +76,7 @@ export function buildBudgetCommand(): Command {
           await setConfigValue(cwd, "budget.warnThresholdPct", opts.warn);
         }
         if (opts.fallback !== undefined) {
-          await setConfigValue(cwd, "budget.fallbackProvider", opts.fallback);
+          await setConfigValue(cwd, "budget.fallbackProfile", opts.fallback);
         }
         console.log(`${symbol.ok()} Budget updated.`);
       },

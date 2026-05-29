@@ -19,8 +19,13 @@ export function AgentsPage({
   setSelectedIndex,
   active,
 }: Props) {
+  const crewId = config?.defaultCrew ?? "default";
   const agents = config
-    ? Object.entries(config.roles).map(([id, a]) => ({ id, ...a }))
+    ? Object.entries(config.crews[crewId]?.roles ?? {}).map(([id, a]) => ({
+        id,
+        ...a,
+        provider: config.profiles[a.profile]?.provider ?? "(unset)",
+      }))
     : [];
   const idx = Math.max(0, Math.min(agents.length - 1, selectedIndex));
   const selected = agents[idx] ?? null;
@@ -59,8 +64,8 @@ export function AgentsPage({
   return (
     <Box flexDirection="column">
       <Text bold color="cyan">
-        AGENTS
-        <Text dimColor>   ({agents.length})</Text>
+        CREW
+        <Text dimColor>   {crewId} · ({agents.length})</Text>
       </Text>
       <Box marginTop={1} flexDirection="row" gap={2}>
         <Box flexDirection="column" minWidth={28}>
@@ -80,7 +85,9 @@ export function AgentsPage({
               {selected.id}
             </Text>
             <Box marginTop={1} flexDirection="column">
+              <KV label="profile" value={selected.profile} />
               <KV label="provider" value={selected.provider} />
+              <KV label="fills" value={selected.fills.join(", ")} />
               <KV label="prompt" value={selected.prompt} mono />
               <KV label="permissions" value={selected.permissions} />
               <KV

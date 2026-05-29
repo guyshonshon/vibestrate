@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { rolesConfigSchema } from "../roles/role-schema.js";
+import { crewsConfigSchema } from "../crews/crew-schema.js";
+import { profilesConfigSchema } from "../profiles/profile-schema.js";
 import { permissionProfilesSchema } from "../permissions/permission-schema.js";
 import { providersConfigSchema } from "../providers/provider-schema.js";
 import { workflowConfigSchema } from "../workflow/workflow-schema.js";
@@ -141,14 +142,19 @@ export const budgetConfigSchema = z
       .enum(["stop", "downgrade-model", "reduce-effort"])
       .default("stop"),
     warnThresholdPct: z.number().min(0).max(1).default(0.8),
-    /** Cheaper provider id to switch to on `downgrade-model` (else effortMap.low). */
-    fallbackProvider: z.string().min(1).optional(),
+    /**
+     * Cheaper **Profile** id to switch every seated step to on
+     * `downgrade-model`. When unset (or the profile is missing), the cap
+     * action falls back to `stop`. Budget downgrade is best-effort in the
+     * new model — see the orchestrator's enforceSpendCap.
+     */
+    fallbackProfile: z.string().min(1).optional(),
   })
   .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 
-export const projectConfigSchema = z.object({
+const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
     mainBranch: "main",
@@ -164,24 +170,16 @@ export const projectConfigSchema = z.object({
     requireHumanMerge: true,
   }),
   execution: executionConfigSchema.default({ backend: "local-worktree" }),
+  // ─── Providers / Profiles / Crews ────────────────────────────────────
+  // providers = raw local tools.
+  // profiles  = reusable runtime setups (provider + model/power/budget).
+  // crews     = local Role rosters; each Role runs on a Profile and fills Seats.
   providers: providersConfigSchema,
-  // ─── Shared effort → provider mapping ────────────────────────────────
-  // Optional. When set, a task's `effort: low|medium|high` resolves to
-  // the corresponding provider id; the orchestrator then forces every
-  // agent in that run to use it (overriding agent.provider). When the
-  // map is missing or doesn't have the requested key, the run logs an
-  // honest "effort X requested but no mapping" event and falls back to
-  // the agent's configured provider.
-  effortMap: z
-    .object({
-      low: z.string().min(1).optional(),
-      medium: z.string().min(1).optional(),
-      high: z.string().min(1).optional(),
-    })
-    .partial()
-    .default({}),
+  profiles: profilesConfigSchema.default({}),
+  crews: crewsConfigSchema.default({}),
+  /** Crew used when a run doesn't pick one. Must exist in `crews`. */
+  defaultCrew: z.string().min(1).default("default"),
   budget: budgetConfigSchema,
-  roles: rolesConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z
     .object({
@@ -210,5 +208,64 @@ export const projectConfigSchema = z.object({
     args: ["--goto", "{file}:{line}:{column}"],
   }),
 });
+
+/**
+ * Cross-record integrity:
+ *  - every profile.provider exists in providers,
+ *  - every crew role.profile exists in profiles,
+ *  - every crew has at least one role,
+ *  - defaultCrew exists in crews.
+ * (fills tokens are validated by the seat token schema; per-record shape by the
+ * sub-schemas above.)
+ */
+export const projectConfigSchema = projectConfigBaseSchema.superRefine(
+  (cfg, ctx) => {
+    for (const [profileId, profile] of Object.entries(cfg.profiles)) {
+      if (!cfg.providers[profile.provider]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["profiles", profileId, "provider"],
+          message: `Profile "${profileId}" references unknown provider "${profile.provider}".`,
+        });
+      }
+    }
+
+    const crewIds = Object.keys(cfg.crews);
+    if (crewIds.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["crews"],
+        message: "At least one crew must be defined.",
+      });
+    }
+    for (const [crewId, crew] of Object.entries(cfg.crews)) {
+      const roleIds = Object.keys(crew.roles);
+      if (roleIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["crews", crewId, "roles"],
+          message: `Crew "${crewId}" must define at least one role.`,
+        });
+      }
+      for (const [roleId, role] of Object.entries(crew.roles)) {
+        if (!cfg.profiles[role.profile]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["crews", crewId, "roles", roleId, "profile"],
+            message: `Crew "${crewId}" role "${roleId}" references unknown profile "${role.profile}".`,
+          });
+        }
+      }
+    }
+
+    if (crewIds.length > 0 && !cfg.crews[cfg.defaultCrew]) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["defaultCrew"],
+        message: `defaultCrew "${cfg.defaultCrew}" is not defined in crews.`,
+      });
+    }
+  },
+);
 
 export type ProjectConfig = z.infer<typeof projectConfigSchema>;

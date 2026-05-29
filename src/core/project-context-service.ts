@@ -56,11 +56,24 @@ export type ProjectMetadata = {
   git: ProjectGitContext;
   validationCommands: string[];
   providers: { id: string; type: string; command: string | null }[];
-  roles: {
+  defaultCrew: string | null;
+  profiles: {
     id: string;
     provider: string;
-    permissions: string;
-    skills: string[];
+    model: string | null;
+    power: string | null;
+  }[];
+  crews: {
+    id: string;
+    label: string;
+    roles: {
+      id: string;
+      label: string;
+      fills: string[];
+      profile: string;
+      permissions: string;
+      skills: string[];
+    }[];
   }[];
   skills: {
     id: string;
@@ -174,12 +187,27 @@ export async function getProjectMetadata(
           command: "command" in p ? (p.command ?? null) : null,
         }))
       : [],
-    roles: config
-      ? Object.entries(config.roles).map(([id, a]) => ({
+    defaultCrew: config?.defaultCrew ?? null,
+    profiles: config
+      ? Object.entries(config.profiles).map(([id, p]) => ({
           id,
-          provider: a.provider,
-          permissions: a.permissions,
-          skills: a.skills,
+          provider: p.provider,
+          model: p.model,
+          power: p.power,
+        }))
+      : [],
+    crews: config
+      ? Object.entries(config.crews).map(([crewId, crew]) => ({
+          id: crewId,
+          label: crew.label ?? crewId,
+          roles: Object.entries(crew.roles).map(([id, r]) => ({
+            id,
+            label: r.label ?? id,
+            fills: r.fills,
+            profile: r.profile,
+            permissions: r.permissions,
+            skills: r.skills,
+          })),
         }))
       : [],
     skills: skills.map((s) => ({

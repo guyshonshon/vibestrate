@@ -45,8 +45,8 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
     console.log(
       indent(
         `Used by: ${
-          p.rolesUsing.length > 0
-            ? p.rolesUsing.join(", ")
+          p.profilesUsing.length > 0
+            ? p.profilesUsing.join(", ")
             : color.dim("(no agents — assign with `vibe provider set " + p.id + "`)")
         }`,
       ),

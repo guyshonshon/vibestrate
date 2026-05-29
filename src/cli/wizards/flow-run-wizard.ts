@@ -9,6 +9,7 @@ import type {
   FlowStep,
 } from "../../flows/schemas/flow-schema.js";
 import type { ProjectConfig } from "../../project/config-schema.js";
+import { getCrew, rolesFillingSeat } from "../../crews/crew-registry.js";
 import { formatArgv } from "../../scheduler/rerun-args.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
@@ -16,9 +17,11 @@ export type FlowRunWizardInput = {
   task: string;
   flow: DiscoveredFlow;
   config: ProjectConfig;
+  crewId?: string | null;
   brief?: string | null;
   contextPolicy?: FlowContextPolicy;
-  slotProviders?: Record<string, string>;
+  /** Per-step Profile overrides (step id → profile id). */
+  stepProfiles?: Record<string, string>;
   skippedOptionalSteps?: string[];
 };
 
@@ -26,7 +29,7 @@ export type FlowRunWizardResult = {
   task: string;
   brief: string | null;
   contextPolicy: FlowContextPolicy;
-  slotProviders: Record<string, string>;
+  stepProfiles: Record<string, string>;
   skippedOptionalSteps: string[];
 };
 
@@ -73,40 +76,50 @@ export async function runFlowRunWizard(
     default: input.contextPolicy ?? "balanced",
   });
 
-  const slotProviders = await chooseSlotProviders(input);
+  const stepProfiles = await chooseStepProfiles(input);
   const skippedOptionalSteps = await chooseOptionalSteps(input);
 
   return {
     task,
     brief: brief.length > 0 ? brief : null,
     contextPolicy,
-    slotProviders,
+    stepProfiles,
     skippedOptionalSteps,
   };
 }
 
-async function chooseSlotProviders(
+/**
+ * For each seated step, offer the Profiles the user can pick from. The default
+ * is the Profile the step's Seat → Crew Role resolves to; choosing a different
+ * Profile records a per-step override (same Role behavior, different runtime).
+ */
+async function chooseStepProfiles(
   input: FlowRunWizardInput,
 ): Promise<Record<string, string>> {
-  const providerIds = Object.keys(input.config.providers).sort();
-  const slotProviders: Record<string, string> = {};
+  const profileIds = Object.keys(input.config.profiles).sort();
+  const stepProfiles: Record<string, string> = {};
+  if (profileIds.length === 0) return stepProfiles;
+
+  const { crew } = getCrew(input.config, input.crewId);
 
   console.log("");
-  console.log(header("Participants"));
-  for (const [slotId, slot] of Object.entries(input.flow.definition.slots)) {
-    const defaultProvider =
-      input.slotProviders?.[slotId] ??
-      input.config.roles[slot.defaultRole]?.provider ??
-      providerIds[0];
-    const providerId = await select<string>({
-      message: `${slot.label} (${slotId}) provider:`,
-      choices: providerIds.map((id) => ({ name: id, value: id })),
-      default: defaultProvider,
+  console.log(header("Step profiles"));
+  for (const step of input.flow.definition.steps) {
+    if (!step.seat) continue;
+    const candidates = rolesFillingSeat(crew, step.seat);
+    const roleProfile = candidates[0]?.role.profile;
+    const defaultProfile =
+      input.stepProfiles?.[step.id] ?? roleProfile ?? profileIds[0]!;
+    const profileId = await select<string>({
+      message: `${step.label} (seat ${step.seat}) profile:`,
+      choices: profileIds.map((id) => ({ name: id, value: id })),
+      default: defaultProfile,
     });
-    slotProviders[slotId] = providerId;
+    // Only record it as an override when it differs from the role's default.
+    if (profileId !== roleProfile) stepProfiles[step.id] = profileId;
   }
 
-  return slotProviders;
+  return stepProfiles;
 }
 
 async function chooseOptionalSteps(
@@ -150,8 +163,8 @@ export function buildFlowRunArgs(input: FlowRunCommandInput): string[] {
   const argv = ["run", "--flow", input.flowId];
   if (input.brief) argv.push("--flow-brief", input.brief);
   argv.push("--flow-context", input.contextPolicy);
-  for (const slotId of Object.keys(input.slotProviders).sort()) {
-    argv.push("--flow-slot", `${slotId}=${input.slotProviders[slotId]}`);
+  for (const stepId of Object.keys(input.stepProfiles).sort()) {
+    argv.push("--step-profile", `${stepId}=${input.stepProfiles[stepId]}`);
   }
   for (const stepId of [...input.skippedOptionalSteps].sort()) {
     argv.push("--flow-skip", stepId);

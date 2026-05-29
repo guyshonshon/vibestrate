@@ -22,7 +22,7 @@ const FIELD_LABELS: Record<TaskFormField, string> = {
   description: "description",
   priority: "priority",
   effort: "effort",
-  providerOverride: "provider override",
+  profileOverride: "profile override",
   readOnly: "read-only",
 };
 
@@ -146,18 +146,18 @@ function FieldRow({
           focused={focused}
           onChange={(v) => dispatch({ type: "field", field: "effort", value: v })}
         />
-      ) : field === "providerOverride" ? (
+      ) : field === "profileOverride" ? (
         focused ? (
           <TextInput
-            value={form.providerOverride}
+            value={form.profileOverride}
             onChange={(v) =>
-              dispatch({ type: "field", field: "providerOverride", value: v })
+              dispatch({ type: "field", field: "profileOverride", value: v })
             }
             placeholder="(none)"
           />
         ) : (
           <Text>
-            {form.providerOverride || <Text dimColor>(none)</Text>}
+            {form.profileOverride || <Text dimColor>(none)</Text>}
           </Text>
         )
       ) : (
