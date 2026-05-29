@@ -57,6 +57,12 @@ export function runEventsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "events.ndjson");
 }
 
+/** Append-only Action Broker evidence log: one JSON line per brokered action
+ *  (decision + evidence). The audit trail of every real effect a run attempted. */
+export function runActionsPath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "actions.ndjson");
+}
+
 export function runFlowSnapshotPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "flow.json");
 }
