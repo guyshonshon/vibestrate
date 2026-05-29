@@ -160,13 +160,14 @@ plan → architecture → implement → validate → review → fix → verify
                                       └──── (loops) ─────┘
 ```
 
-Each step is a named agent with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own step - it runs the commands in `.vibestrate/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." The review→fix loop repeats until the review passes or hits its bound. Approval gates can pause a run for a human at any step.
+Each step is filled by a named Role with one job, so when something goes wrong you can read exactly where the chain broke. Validation is its own step - it runs the commands in `.vibestrate/project.yml` (your typecheck, tests, build) as ground truth between "I wrote it" and "looks good to me." The review→fix loop repeats until the review passes or hits its bound. Approval gates can pause a run for a human at any step.
 
-Higher-stakes work runs a **different flow** through the same engine - for example one where multiple models arbitrate each other:
+A **Flow** declares the **Seats** it needs (planner, implementer, reviewer…); your **Crew** supplies the **Roles** that fill them, each running on a **Profile** (provider + model + power). Higher-stakes work runs a **different flow** through the same engine - for example one where multiple models arbitrate each other:
 
 ```bash
-vibe run "Refactor provider permissions" --flow quality-arbitration \
-  --flow-slot builder=claude --flow-slot challenger=codex
+vibe run "Refactor provider permissions" --flow quality-arbitration --crew default
+# run one step on a stronger Profile without changing the Role:
+vibe run "Implement auth crypto" --flow quality-arbitration --step-profile implement=opus-deep
 ```
 
 Stuck mid-run? **Rewind** instead of restarting - fork a fresh run that reuses the earlier steps and picks up from a chosen stage:
