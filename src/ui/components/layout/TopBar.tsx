@@ -14,6 +14,7 @@ import {
   Menu,
   Search,
   Settings as SettingsIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -30,6 +31,7 @@ type Props = {
   onShowFlows: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
+  onShowProfiles: () => void;
   onShowBoard: () => void;
   onShowRunsList: () => void;
   onShowQueue: () => void;
@@ -73,6 +75,7 @@ export function TopBar({
   onShowFlows,
   onShowMetrics,
   onShowCrew,
+  onShowProfiles,
   onShowBoard,
   onShowRunsList,
   onShowQueue,
@@ -156,6 +159,13 @@ export function TopBar({
       active: currentNav === "crew",
       icon: Cpu,
       onClick: onShowCrew,
+    },
+    {
+      id: "profiles",
+      label: "Profiles",
+      active: currentNav === "profiles",
+      icon: SlidersHorizontal,
+      onClick: onShowProfiles,
     },
     {
       id: "metrics",

@@ -75,7 +75,7 @@ export function ProvidersPage() {
     setBusy({ id, action: "default" });
     try {
       const r = await api.setDefaultProvider(id);
-      flash({ kind: "ok", text: `Set ${id} as default for ${r.rolesUpdated.length} agents.` });
+      flash({ kind: "ok", text: `Set ${id} as default for ${r.profilesUpdated.length} agents.` });
       await load();
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
@@ -313,7 +313,7 @@ function ProviderEditor({
   const [command, setCommand] = useState("");
   const [args, setArgs] = useState("");
   const [input, setInput] = useState<"stdin" | "arg">("stdin");
-  const [rolesUsing, setRolesUsing] = useState<string[]>([]);
+  const [profilesUsing, setRolesUsing] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<null | "save" | "saveTest" | "remove">(null);
   const [result, setResult] = useState<TestResult | null>(null);
@@ -337,7 +337,7 @@ function ProviderEditor({
         setCommand(r.config.command);
         setArgs(r.config.args.join(" "));
         setInput(r.config.input);
-        setRolesUsing(r.rolesUsing);
+        setRolesUsing(r.profilesUsing);
         setLoading(false);
       })
       .catch((err) => {
@@ -498,10 +498,10 @@ function ProviderEditor({
               <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
                 {yamlPreview}
               </pre>
-              {rolesUsing.length > 0 ? (
+              {profilesUsing.length > 0 ? (
                 <div className="text-[11px] text-fog-500 mt-2">
-                  Used by role{rolesUsing.length === 1 ? "" : "s"}:{" "}
-                  <span className="mono text-fog-300">{rolesUsing.join(", ")}</span>
+                  Used by role{profilesUsing.length === 1 ? "" : "s"}:{" "}
+                  <span className="mono text-fog-300">{profilesUsing.join(", ")}</span>
                 </div>
               ) : null}
             </div>
@@ -537,16 +537,16 @@ function ProviderEditor({
                   confirmRemove ? (
                     <div className="flex items-center gap-2">
                       <span className="text-[11.5px] text-rose-300">
-                        {rolesUsing.length > 0
-                          ? `In use by ${rolesUsing.length} role(s)`
+                        {profilesUsing.length > 0
+                          ? `In use by ${profilesUsing.length} role(s)`
                           : "Remove?"}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={anyBusy || rolesUsing.length > 0}
+                        disabled={anyBusy || profilesUsing.length > 0}
                         title={
-                          rolesUsing.length > 0
+                          profilesUsing.length > 0
                             ? "Reassign the roles using it first"
                             : undefined
                         }

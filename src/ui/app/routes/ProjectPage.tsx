@@ -229,33 +229,50 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           )}
         </Section>
 
-        <Section title={`Agents (${meta.roles.length})`}>
-          {meta.roles.length === 0 ? (
-            <Empty>No agents configured.</Empty>
-          ) : (
-            <ul className="flex flex-col gap-1.5">
-              {meta.roles.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
-                >
-                  <span className="font-medium">{a.id}</span>
-                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
-                    {a.provider}
-                  </span>
-                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
-                    {a.permissions}
-                  </span>
-                  {a.skills.length > 0 ? (
-                    <span className="text-[11px] text-vibestrate-fg-dim">
-                      skills: {a.skills.join(", ")}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+        {(() => {
+          const crew =
+            meta.crews.find((c) => c.id === meta.defaultCrew) ??
+            meta.crews[0] ??
+            null;
+          const roles = crew?.roles ?? [];
+          return (
+            <Section title={`Crew — ${crew?.label ?? "none"} (${roles.length})`}>
+              {roles.length === 0 ? (
+                <Empty>No roles configured.</Empty>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {roles.map((a) => (
+                    <li
+                      key={a.id}
+                      className="flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
+                    >
+                      <span className="font-medium">{a.label}</span>
+                      {a.seats.map((s) => (
+                        <span
+                          key={s}
+                          className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
+                        {a.profile}
+                      </span>
+                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
+                        {a.permissions}
+                      </span>
+                      {a.skills.length > 0 ? (
+                        <span className="text-[11px] text-vibestrate-fg-dim">
+                          skills: {a.skills.join(", ")}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          );
+        })()}
 
         <Section title={`Skills (${meta.skills.length})`}>
           {meta.skills.length === 0 ? (

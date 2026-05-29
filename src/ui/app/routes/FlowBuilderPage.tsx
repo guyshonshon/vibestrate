@@ -52,8 +52,7 @@ type StepDraft = {
   optional?: boolean;
   kind?: FlowStepKind;
   // null = clear; undefined = no change; string = set
-  slot?: string | null;
-  roleId?: string | null;
+  seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
 };
 
@@ -319,7 +318,7 @@ export function FlowBuilderPage({
       id,
       label: "New step",
       kind: "agent-turn",
-      slot: Object.keys(selected.definition.slots)[0] ?? "",
+      seat: Object.keys(selected.definition.seats)[0] ?? "",
       inputs: [],
       outputs: [],
       optional: false,
@@ -460,7 +459,7 @@ export function FlowBuilderPage({
         {selected ? (
           <span className="text-[11.5px] text-fog-500">
             {selected.definition.steps.length} steps ·{" "}
-            {Object.keys(selected.definition.slots).length} slots · v
+            {Object.keys(selected.definition.seats).length} seats · v
             {selected.version}
           </span>
         ) : null}
@@ -642,15 +641,18 @@ function DryRunModal({
         ) : snapshot ? (
           <>
             <div className="mt-4">
-              <div className="eyebrow mb-1.5">Slots → provider</div>
+              <div className="eyebrow mb-1.5">
+                Seats · crew {snapshot.crewId}
+              </div>
               <div className="flex flex-wrap gap-1.5">
-                {snapshot.slots.map((s) => (
+                {snapshot.seats.map((s) => (
                   <span
                     key={s.id}
                     className="rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
+                    title={s.description ?? undefined}
                   >
                     <span className="text-fog-100">{s.label}</span>{" "}
-                    <span className="mono text-violet-soft">{s.providerId}</span>
+                    <span className="mono text-fog-500">({s.id})</span>
                   </span>
                 ))}
               </div>
@@ -671,8 +673,19 @@ function DryRunModal({
                     <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{i + 1}</span>
                     <span className="truncate text-fog-200">{s.label}</span>
                     <span className="mono text-[10.5px] text-fog-500">{s.kind}</span>
-                    {s.providerId ? (
-                      <span className="mono text-[10.5px] text-violet-soft">{s.providerId}</span>
+                    {s.seat ? (
+                      <span className="mono text-[10.5px] text-fog-400">{s.seat}</span>
+                    ) : null}
+                    {s.resolvedRoleLabel ? (
+                      <span className="mono text-[10.5px] text-fog-300">
+                        → {s.resolvedRoleLabel}
+                      </span>
+                    ) : null}
+                    {s.profileId ? (
+                      <span className="mono text-[10.5px] text-violet-soft">
+                        {s.profileId}
+                        {s.providerId ? ` · ${s.providerId}` : ""}
+                      </span>
                     ) : null}
                     {!s.enabled ? (
                       <span className="ml-auto text-[10.5px] text-fog-500">skipped</span>
@@ -768,7 +781,7 @@ function StepRow({
         <div className="text-[11.5px] text-fog-400 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.7} />{" "}
-            {step.roleId ?? step.slot ?? "auto"}
+            {step.seat ?? "—"}
           </span>
           {step.inputs.length > 0 ? (
             <>
@@ -868,12 +881,11 @@ function StepInspector({
   const label = draft.label ?? step.label;
   const optional = draft.optional ?? step.optional;
   const kind = draft.kind ?? step.kind;
-  const slotId = resolveNullable(draft.slot, step.slot ?? null);
-  const roleId = resolveNullable(draft.roleId, step.roleId ?? null);
+  const seatId = resolveNullable(draft.seat, step.seat ?? null);
   const approval = resolveNullable(draft.approval, step.approval ?? null);
 
-  const slotOptions = Object.entries(flow.definition.slots);
-  const requiresSlot = TURN_KINDS.has(kind);
+  const seatOptions = Object.entries(flow.definition.seats);
+  const requiresSeat = TURN_KINDS.has(kind);
   const requiresApproval = kind === "approval-gate";
 
   return (
@@ -919,14 +931,14 @@ function StepInspector({
       </Field>
 
       <Field
-        label={requiresSlot ? "Slot (required)" : "Slot (optional)"}
+        label={requiresSeat ? "Seat (required)" : "Seat (optional)"}
       >
         <select
-          value={slotId ?? ""}
-          disabled={!editable || slotOptions.length === 0}
+          value={seatId ?? ""}
+          disabled={!editable || seatOptions.length === 0}
           onChange={(e) => {
             const v = e.target.value;
-            onPatchDraft({ slot: v === "" ? null : v });
+            onPatchDraft({ seat: v === "" ? null : v });
           }}
           className={cn(
             "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-3 text-[13px] text-fog-100 outline-none",
@@ -935,40 +947,22 @@ function StepInspector({
               : "opacity-70 cursor-not-allowed",
           )}
         >
-          <option value="">— no slot —</option>
-          {slotOptions.map(([id, def]) => (
+          <option value="">— no seat —</option>
+          {seatOptions.map(([id, def]) => (
             <option key={id} value={id}>
               {def.label} ({id})
             </option>
           ))}
         </select>
-        {requiresSlot && !slotId ? (
+        {requiresSeat && !seatId ? (
           <div className="text-[11px] text-amber-300 mt-1">
-            {kind} steps need a slot.
+            {kind} steps need a seat.
           </div>
         ) : null}
-      </Field>
-
-      <Field label="Agent override (optional)">
-        <input
-          value={roleId ?? ""}
-          placeholder={
-            slotId
-              ? `default: ${flow.definition.slots[slotId]?.defaultRole ?? "—"}`
-              : "leave blank to use the slot default"
-          }
-          disabled={!editable}
-          onChange={(e) => {
-            const v = e.target.value.trim();
-            onPatchDraft({ roleId: v === "" ? null : v });
-          }}
-          className={cn(
-            "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-3 text-[13px] text-fog-100 outline-none font-mono",
-            editable
-              ? "focus:border-violet-soft/40"
-              : "opacity-70 cursor-not-allowed",
-          )}
-        />
+        <div className="text-[11px] text-fog-500 mt-1">
+          Which Role fills this seat — and on which Profile — is decided by the
+          Crew at run time, not here. Flows stay shareable.
+        </div>
       </Field>
 
       <Field label="Optional step">
@@ -1181,13 +1175,9 @@ function diffStep(
   if (draft.kind !== undefined && draft.kind !== cur.kind)
     out.kind = draft.kind;
 
-  if (draft.slot !== undefined) {
-    const currentSlot = cur.slot ?? null;
-    if (draft.slot !== currentSlot) out.slot = draft.slot;
-  }
-  if (draft.roleId !== undefined) {
-    const currentRole = cur.roleId ?? null;
-    if (draft.roleId !== currentRole) out.roleId = draft.roleId;
+  if (draft.seat !== undefined) {
+    const currentSeat = cur.seat ?? null;
+    if (draft.seat !== currentSeat) out.seat = draft.seat;
   }
   if (draft.approval !== undefined) {
     const currentApproval = cur.approval ?? null;
@@ -1214,8 +1204,7 @@ function toFlowStepFull(
     outputs: step.outputs.length ? [...step.outputs] : [],
     optional: step.optional,
   };
-  if (step.slot !== undefined) base.slot = step.slot;
-  if (step.roleId !== undefined) base.roleId = step.roleId;
+  if (step.seat !== undefined) base.seat = step.seat;
   if (step.stage !== undefined) base.stage = step.stage;
   if (step.skipWhenReadOnly !== undefined)
     base.skipWhenReadOnly = step.skipWhenReadOnly;
@@ -1234,8 +1223,7 @@ function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
     outputs: step.outputs ?? [],
     optional: step.optional ?? false,
   };
-  if (step.slot !== undefined) out.slot = step.slot;
-  if (step.roleId !== undefined) out.roleId = step.roleId;
+  if (step.seat !== undefined) out.seat = step.seat;
   if (step.stage !== undefined) out.stage = step.stage;
   if (step.skipWhenReadOnly !== undefined)
     out.skipWhenReadOnly = step.skipWhenReadOnly;
@@ -1254,13 +1242,9 @@ function applyDraftToFullStep(
   if (draft.label !== undefined) next.label = draft.label;
   if (draft.kind !== undefined) next.kind = draft.kind;
   if (draft.optional !== undefined) next.optional = draft.optional;
-  if (draft.slot !== undefined) {
-    if (draft.slot === null) delete next.slot;
-    else next.slot = draft.slot;
-  }
-  if (draft.roleId !== undefined) {
-    if (draft.roleId === null) delete next.roleId;
-    else next.roleId = draft.roleId;
+  if (draft.seat !== undefined) {
+    if (draft.seat === null) delete next.seat;
+    else next.seat = draft.seat;
   }
   if (draft.approval !== undefined) {
     if (draft.approval === null) delete next.approval;

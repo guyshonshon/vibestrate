@@ -244,7 +244,7 @@ function RunCard({
                 <Cpu className="h-3 w-3" strokeWidth={1.7} />
               </span>
               <span className="text-[12px] text-fog-200 truncate">
-                {run.resolvedProviderId ?? run.providerOverride ?? "auto"}
+                {run.profileOverride ?? run.crewId ?? "auto"}
               </span>
             </div>
             {run.branchName ? (

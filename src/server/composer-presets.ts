@@ -21,7 +21,8 @@ const flowRefSchema = z
     contextPolicy: z
       .enum(["balanced", "compact", "artifact-heavy"])
       .default("balanced"),
-    slotProviders: z
+    /** Per-step Profile overrides (step id → profile id). */
+    stepProfileOverrides: z
       .record(z.string().min(1).max(80), z.string().min(1).max(128))
       .default({}),
     skippedOptionalSteps: z.array(z.string().min(1).max(80)).max(64).default([]),
@@ -34,7 +35,10 @@ export const composerPresetSchema = z
     kind: z.enum(["crew", "template"]).default("crew"),
     brief: z.string().max(4000).nullable().default(null),
     flow: flowRefSchema.nullable().default(null),
-    provider: z.string().min(1).max(128).nullable().default(null),
+    /** Crew to resolve against (null = project.defaultCrew). */
+    crewId: z.string().min(1).max(128).nullable().default(null),
+    /** Run-wide Profile override (null = none). */
+    profileOverride: z.string().min(1).max(128).nullable().default(null),
     skills: z.array(z.string().min(1).max(80)).max(64).default([]),
     readOnly: z.boolean().default(false),
     createdAt: z.string().optional(),

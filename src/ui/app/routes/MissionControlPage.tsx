@@ -3,7 +3,12 @@ import { api, type ComposerPreset } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
-import { ComposerV3, type ComposerProvider, type ComposerSkill } from "../../components/mission/v3/Composer.js";
+import {
+  ComposerV3,
+  type ComposerProvider,
+  type ComposerSkill,
+  type ComposerSubmitInput,
+} from "../../components/mission/v3/Composer.js";
 import { LiveRunsSection } from "../../components/mission/v3/LiveRuns.js";
 import { RecentRunsSection } from "../../components/mission/v3/RecentRuns.js";
 import {
@@ -16,6 +21,8 @@ import type {
   VibestrateEvent,
   ApprovalRequest,
   DiscoveredFlow,
+  CrewView,
+  ProfileView,
   NotificationRecord,
   RunState,
   RunStatus,
@@ -57,6 +64,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
   const [providers, setProviders] = useState<ComposerProvider[]>([]);
   const [skills, setSkills] = useState<ComposerSkill[]>([]);
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
+  const [crews, setCrews] = useState<CrewView[]>([]);
+  const [defaultCrewId, setDefaultCrewId] = useState<string | null>(null);
+  const [composerProfiles, setComposerProfiles] = useState<ProfileView[]>([]);
   const [presets, setPresets] = useState<ComposerPreset[]>([]);
   const [eventsByRun, setEventsByRun] = useState<Record<string, VibestrateEvent[]>>({});
   const [diffByRun, setDiffByRun] = useState<
@@ -86,15 +96,22 @@ export function MissionControlPage({ onSelectRun }: Props) {
     let cancelled = false;
     const load = async () => {
       try {
-        const [p, s, g, pr] = await Promise.all([
+        const [p, s, g, pr, cr, pf] = await Promise.all([
           api.listProviders(),
           api.listSkills(),
           api.listFlows(),
           api
             .listComposerPresets()
             .catch(() => ({ presets: [] as ComposerPreset[] })),
+          api
+            .getCrews()
+            .catch(() => ({ crews: [] as CrewView[], defaultCrew: null })),
+          api.getProfiles().catch(() => ({ profiles: [] as ProfileView[] })),
         ]);
         if (cancelled) return;
+        setCrews(cr.crews);
+        setDefaultCrewId(cr.defaultCrew);
+        setComposerProfiles(pf.profiles);
         setProviders(
           p.providers.map((row) => ({
             id: row.id,
@@ -268,34 +285,24 @@ export function MissionControlPage({ onSelectRun }: Props) {
     providers.find((p) => p.available) ??
     null;
 
-  const handleComposerSubmit = async (input: {
-    brief: string;
-    flowId: string | null;
-    contextPolicy: "balanced" | "compact" | "artifact-heavy";
-    slotProviders: Record<string, string>;
-    providerOverride: string | null;
-    skills: string[];
-    readOnly: boolean;
-  }) => {
+  const handleComposerSubmit = async (input: ComposerSubmitInput) => {
     setBusy(true);
     try {
-      const compactProviders: Record<string, string> = {};
-      for (const [k, v] of Object.entries(input.slotProviders)) {
-        if (v) compactProviders[k] = v;
+      const overrides: Record<string, string> = {};
+      for (const [k, v] of Object.entries(input.stepProfileOverrides)) {
+        if (v) overrides[k] = v;
       }
       const r = await api.spawnRun({
         task: input.brief,
         readOnly: input.readOnly || undefined,
-        provider: input.providerOverride ?? undefined,
+        crewId: input.crewId ?? undefined,
         skills: input.skills.length > 0 ? input.skills : undefined,
         flow: input.flowId
           ? {
               id: input.flowId,
               contextPolicy: input.contextPolicy,
-              slotProviders:
-                Object.keys(compactProviders).length > 0
-                  ? compactProviders
-                  : undefined,
+              stepProfileOverrides:
+                Object.keys(overrides).length > 0 ? overrides : undefined,
             }
           : undefined,
       });
@@ -383,6 +390,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
           defaultProviderId={defaultProvider?.id ?? null}
           skills={skills}
           flows={flows}
+          crews={crews}
+          defaultCrewId={defaultCrewId}
+          profiles={composerProfiles}
           presets={presets}
           onSubmit={handleComposerSubmit}
           onSavePreset={async (preset) => {

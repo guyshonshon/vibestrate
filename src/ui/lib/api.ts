@@ -5,6 +5,8 @@ import type {
   ArtifactEntry,
   CodeReference,
   ConflictWarning,
+  CrewView,
+  ProfileView,
   DiffSnapshot,
   DiscoveredSkill,
   DiscoveredFlow,
@@ -315,8 +317,7 @@ export type FlowStepPatch = {
   label?: string;
   optional?: boolean;
   kind?: FlowStepKind;
-  slot?: string | null;
-  roleId?: string | null;
+  seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
 };
 
@@ -326,8 +327,7 @@ export type FlowStepFull = {
   id: string;
   label: string;
   kind: FlowStepKind;
-  slot?: string;
-  roleId?: string;
+  seat?: string;
   stage?: "planning" | "architecting" | "executing" | "reviewing" | "verifying";
   skipWhenReadOnly?: boolean;
   inputs?: string[];
@@ -337,10 +337,9 @@ export type FlowStepFull = {
   repeat?: { times: number };
 };
 
-export type FlowSlotFull = {
+export type FlowSeatFull = {
   label: string;
   description?: string;
-  defaultRole: string;
 };
 
 export type FlowPatch = {
@@ -349,8 +348,8 @@ export type FlowPatch = {
   steps?: FlowStepPatch[];
   /** Replace the entire ordered step list (used for add / remove / reorder). */
   replaceSteps?: FlowStepFull[];
-  /** Replace the slot map wholesale. */
-  replaceSlots?: Record<string, FlowSlotFull>;
+  /** Replace the seat map wholesale. */
+  replaceSeats?: Record<string, FlowSeatFull>;
   /** Set the adaptive loop, or null to clear it. */
   loop?: FlowLoop | null;
 };
@@ -362,10 +361,11 @@ export type ComposerPreset = {
   flow: {
     id: string;
     contextPolicy: "balanced" | "compact" | "artifact-heavy";
-    slotProviders: Record<string, string>;
+    stepProfileOverrides: Record<string, string>;
     skippedOptionalSteps: string[];
   } | null;
-  provider: string | null;
+  crewId: string | null;
+  profileOverride: string | null;
   skills: string[];
   readOnly: boolean;
   createdAt?: string;
@@ -381,7 +381,8 @@ export const api = {
     task: string;
     taskId?: string;
     effort?: "low" | "medium" | "high";
-    provider?: string;
+    crewId?: string;
+    profileOverride?: string;
     readOnly?: boolean;
     skills?: string[];
     concise?: boolean;
@@ -389,7 +390,7 @@ export const api = {
       id: string;
       brief?: string | null;
       contextPolicy?: FlowContextPolicy;
-      slotProviders?: Record<string, string>;
+      stepProfileOverrides?: Record<string, string>;
       skippedOptionalSteps?: string[];
     };
     resumeFrom?: {
@@ -408,7 +409,7 @@ export const api = {
       args: string[];
       input: "stdin" | "arg";
     };
-    rolesUsing: string[];
+    profilesUsing: string[];
   }> {
     return jsonGet(
       `/api/providers/${encodeURIComponent(providerId)}/config`,
@@ -428,7 +429,7 @@ export const api = {
   },
   async setDefaultProvider(
     providerId: string,
-  ): Promise<{ ok: true; providerId: string; rolesUpdated: string[] }> {
+  ): Promise<{ ok: true; providerId: string; profilesUpdated: string[] }> {
     return jsonPost(
       `/api/providers/${encodeURIComponent(providerId)}/default`,
     );
@@ -618,32 +619,73 @@ export const api = {
   async getProvidersOverview(): Promise<ProvidersOverview> {
     return jsonGet("/api/providers/overview");
   },
-  async getRoles(): Promise<{ roles: Role[] }> {
-    return jsonGet("/api/roles");
+  // ─── crews ────────────────────────────────────────────────────────────
+  async getCrews(): Promise<{ crews: CrewView[]; defaultCrew: string | null }> {
+    return jsonGet("/api/crews");
   },
-  async setRoleProvider(
+  async getCrew(crewId: string): Promise<{ crew: CrewView }> {
+    return jsonGet(`/api/crews/${encodeURIComponent(crewId)}`);
+  },
+  async patchCrewRole(
+    crewId: string,
     roleId: string,
-    provider: string,
-  ): Promise<{ ok: true; roleId: string; provider: string }> {
-    return jsonPatch(`/api/roles/${encodeURIComponent(roleId)}`, { provider });
+    patch: {
+      profile?: string;
+      seats?: string[];
+      permissions?: string;
+      label?: string;
+      skills?: string[];
+    },
+  ): Promise<{ ok: true; crewId: string; roleId: string }> {
+    return jsonPatch(
+      `/api/crews/${encodeURIComponent(crewId)}/roles/${encodeURIComponent(roleId)}`,
+      patch,
+    );
   },
-  async getRoleContext(roleId: string): Promise<{
+  async getCrewRoleContext(
+    crewId: string,
+    roleId: string,
+  ): Promise<{
+    crewId: string;
     roleId: string;
-    provider: string;
+    profile: string;
+    seats: string[];
     permissions: string;
     skills: string[];
     promptPath: string;
     content: string;
   }> {
-    return jsonGet(`/api/roles/${encodeURIComponent(roleId)}/context`);
+    return jsonGet(
+      `/api/crews/${encodeURIComponent(crewId)}/roles/${encodeURIComponent(roleId)}/context`,
+    );
   },
-  async setRoleContext(
+  async setCrewRoleContext(
+    crewId: string,
     roleId: string,
     content: string,
-  ): Promise<{ ok: true; roleId: string; promptPath: string }> {
-    return jsonPut(`/api/roles/${encodeURIComponent(roleId)}/context`, {
-      content,
-    });
+  ): Promise<{ ok: true; crewId: string; roleId: string; promptPath: string }> {
+    return jsonPut(
+      `/api/crews/${encodeURIComponent(crewId)}/roles/${encodeURIComponent(roleId)}/context`,
+      { content },
+    );
+  },
+  // ─── profiles ─────────────────────────────────────────────────────────
+  async getProfiles(): Promise<{ profiles: ProfileView[] }> {
+    return jsonGet("/api/profiles");
+  },
+  async patchProfile(
+    profileId: string,
+    patch: {
+      provider?: string;
+      label?: string;
+      model?: string | null;
+      power?: string | null;
+      budget?: string | null;
+      maxTokens?: number | null;
+      timeoutMs?: number | null;
+    },
+  ): Promise<{ ok: true; profileId: string }> {
+    return jsonPatch(`/api/profiles/${encodeURIComponent(profileId)}`, patch);
   },
   async resolveFlow(
     flowId: string,
@@ -651,8 +693,10 @@ export const api = {
       task: string;
       brief?: string | null;
       contextPolicy?: FlowContextPolicy;
-      slotProviders?: Record<string, string>;
-      stepProviders?: Record<string, string>;
+      crewId?: string;
+      profileOverride?: string;
+      seatRoleOverrides?: Record<string, string>;
+      stepProfileOverrides?: Record<string, string>;
       skippedOptionalSteps?: string[];
     },
   ): Promise<ResolvedFlowSnapshot> {
@@ -818,7 +862,7 @@ export const api = {
       priority: "low" | "medium" | "high";
       validationProfile: string | null;
       effort: "low" | "medium" | "high" | null;
-      providerOverride: string | null;
+      profileOverride: string | null;
       readOnly: boolean;
     }>,
   ): Promise<Task> {

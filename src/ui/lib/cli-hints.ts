@@ -27,7 +27,7 @@ export type CliHint = {
 const TIPS_RUN: string[] = [
   "Add `--effort low|medium|high` to bucket the work; the heuristic picks one when omitted.",
   "Add `--read-only` for an investigation-only run (refuses apply/validate/revert).",
-  "Add `--provider <id>` to override the agent provider just for this run.",
+  "Add `--crew <id>` to pick the crew, or `--profile <id>` to run every seated step on one profile.",
 ];
 
 export function hintForRoute(route: Route): CliHint {
@@ -240,14 +240,24 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Crew",
         blurb:
-          "Roles and the providers they run on. Edit roles/providers in `.vibestrate/project.yml`.",
+          "Your local team of roles — the seats each fills and the profile each runs on. Edit roles in `.vibestrate/project.yml` or here.",
         commands: [
+          { cmd: "vibe config show", note: "crews + roles in project.yml" },
           {
-            cmd: "vibe doctor",
-            note: "verify every provider's CLI is on PATH",
+            cmd: 'curl http://127.0.0.1:4317/api/crews',
+            note: "raw JSON, scriptable",
           },
+        ],
+      };
+    case "profiles":
+      return {
+        title: "Profiles",
+        blurb:
+          "Runtime profiles — provider + model + power + budget. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
+        commands: [
+          { cmd: "vibe config show", note: "profiles in project.yml" },
           {
-            cmd: 'curl http://127.0.0.1:4317/api/providers/overview',
+            cmd: 'curl http://127.0.0.1:4317/api/profiles',
             note: "raw JSON, scriptable",
           },
         ],

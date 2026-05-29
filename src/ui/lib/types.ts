@@ -40,8 +40,10 @@ export type FlowRunStepState = {
     | "reviewing"
     | "verifying"
     | null;
-  slotId: string | null;
-  roleId: string | null;
+  seat: string | null;
+  resolvedRoleId: string | null;
+  resolvedRoleLabel: string | null;
+  profileId: string | null;
   providerId: string | null;
   promptArtifactPath: string | null;
   outputArtifactPath: string | null;
@@ -70,7 +72,7 @@ export type FlowContextRetentionMode =
   | "stateless";
 
 export type FlowRunParticipantState = {
-  slotId: string;
+  seat: string;
   label: string;
   providerId: string;
   providerType: string;
@@ -101,8 +103,12 @@ export type RunState = {
   pauseRequested?: boolean;
   pausedAtStatus?: RunStatus | null;
   effort?: "low" | "medium" | "high" | null;
-  providerOverride?: string | null;
-  resolvedProviderId?: string | null;
+  /** Crew the run resolved against (null = project.defaultCrew). */
+  crewId?: string | null;
+  /** Run-wide Profile override applied to every seated step. */
+  profileOverride?: string | null;
+  /** Per-step Profile overrides (step id → profile id). */
+  stepProfileOverrides?: Record<string, string>;
   readOnly?: boolean;
   /** Skill ids attached to every agent for this single run. */
   runtimeSkills?: string[];
@@ -137,10 +143,9 @@ export type FlowSource = {
   ref: string;
 };
 
-export type FlowSlotDefinition = {
+export type FlowSeatDefinition = {
   label: string;
   description?: string;
-  defaultRole: string;
 };
 
 export type FlowStepDefinition = {
@@ -153,8 +158,7 @@ export type FlowStepDefinition = {
     | "validation"
     | "approval-gate"
     | "summary-turn";
-  slot?: string;
-  roleId?: string;
+  seat?: string;
   inputs: string[];
   outputs: string[];
   optional: boolean;
@@ -183,7 +187,7 @@ export type FlowDefinition = {
   version: number;
   label: string;
   description: string;
-  slots: Record<string, FlowSlotDefinition>;
+  seats: Record<string, FlowSeatDefinition>;
   steps: FlowStepDefinition[];
   loop?: FlowLoop;
 };
@@ -198,12 +202,10 @@ export type DiscoveredFlow = {
   definition: FlowDefinition;
 };
 
-export type ResolvedFlowSlot = {
+export type ResolvedFlowSeat = {
   id: string;
   label: string;
   description: string | null;
-  defaultRole: string;
-  providerId: string;
 };
 
 export type ResolvedFlowStep = {
@@ -212,8 +214,12 @@ export type ResolvedFlowStep = {
   kind: FlowStepDefinition["kind"];
   enabled: boolean;
   optional: boolean;
-  slotId: string | null;
-  roleId: string | null;
+  /** Seat the step needs (null for validation / approval-gate). */
+  seat: string | null;
+  /** Resolved from the run's Crew. All null for seatless steps. */
+  resolvedRoleId: string | null;
+  resolvedRoleLabel: string | null;
+  profileId: string | null;
   providerId: string | null;
   inputs: string[];
   outputs: string[];
@@ -234,8 +240,43 @@ export type ResolvedFlowSnapshot = {
   brief: string | null;
   contextPolicy: FlowContextPolicy;
   resolvedAt: string;
-  slots: ResolvedFlowSlot[];
+  crewId: string;
+  seats: ResolvedFlowSeat[];
   steps: ResolvedFlowStep[];
+};
+
+// ─── crews / profiles (the new run-composition model) ───────────────────────
+
+export type CrewRoleView = {
+  id: string;
+  label: string;
+  /** Seats this role can take. */
+  seats: string[];
+  profile: string;
+  profileConfigured: boolean;
+  /** Provider behind the role's profile (null if profile missing). */
+  provider: string | null;
+  providerConfigured: boolean;
+  permissions: string;
+  skills: string[];
+};
+
+export type CrewView = {
+  id: string;
+  label: string;
+  roles: CrewRoleView[];
+};
+
+export type ProfileView = {
+  id: string;
+  provider: string;
+  providerConfigured: boolean;
+  label: string;
+  model: string | null;
+  power: string | null;
+  budget: string | null;
+  maxTokens: number | null;
+  timeoutMs: number | null;
 };
 
 export type FlowSuggestion = {
@@ -293,7 +334,7 @@ export type Task = {
   commentsCount: number;
   lastEventAt: string | null;
   effort?: "low" | "medium" | "high" | null;
-  providerOverride?: string | null;
+  profileOverride?: string | null;
   readOnly?: boolean;
 };
 
@@ -724,11 +765,24 @@ export type ProjectMetadata = {
   };
   validationCommands: string[];
   providers: { id: string; type: string; command: string | null }[];
-  roles: {
+  defaultCrew: string | null;
+  profiles: {
     id: string;
     provider: string;
-    permissions: string;
-    skills: string[];
+    model: string | null;
+    power: string | null;
+  }[];
+  crews: {
+    id: string;
+    label: string;
+    roles: {
+      id: string;
+      label: string;
+      seats: string[];
+      profile: string;
+      permissions: string;
+      skills: string[];
+    }[];
   }[];
   skills: {
     id: string;
@@ -1364,7 +1418,7 @@ export type ReplayFlowSummary = {
   label: string;
   currentStepId: string | null;
   participants: {
-    slotId: string;
+    seat: string;
     label: string;
     providerId: string;
     providerType: string;

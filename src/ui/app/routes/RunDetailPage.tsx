@@ -365,8 +365,7 @@ function ActiveRolePanel({
         <div className="flex-1 min-w-0">
           <div className="text-[13.5px] text-fog-100 font-medium truncate">
             {agent?.providerId ??
-              run.resolvedProviderId ??
-              run.providerOverride ??
+              run.profileOverride ?? run.crewId ??
               "auto"}
           </div>
           <div className="text-[11.5px] text-fog-400 truncate">
@@ -503,7 +502,7 @@ function RerunDialog({
   const [effort, setEffort] = useState<"" | "low" | "medium" | "high">(
     run.effort ?? "",
   );
-  const [provider, setProvider] = useState(run.providerOverride ?? "");
+  const [provider, setProvider] = useState(run.profileOverride ?? "");
   // Rewind seeds the upstream steps and restarts at a stage. It's available
   // when the run's flow declares a step at that stage and the run captured the
   // upstream artifacts (every run is a flow run; the default flow has these
@@ -533,7 +532,7 @@ function RerunDialog({
         task,
         readOnly: readOnly || undefined,
         effort: effort || undefined,
-        provider: provider || undefined,
+        profileOverride: provider || undefined,
         // Re-run the same flow (resume seeds the upstream steps of that flow).
         // Omitting it for the built-in default is also fine, but passing the id
         // keeps a resumed custom flow on its own definition.
