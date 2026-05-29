@@ -6,6 +6,21 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Docs: **Unified TODO** — `docs/TODO.md` is now the single source of truth for
+  pending work (Phase 0 rewrite → S safety pillar → API → board → context/
+  providers → integration/hub → observability → backlog → UI/UX → SEO/GEO).
+  Reconciled the competing `docs/design/roadmap.md` (Epics A–E) into it; design
+  docs remain as linked deep-dives. Older/superseded planning docs
+  (`roadmap.md`, `CODEX_PLAN.md`, `TODO_NEW*.md`) archived to gitignored
+  `docs/archive/`.
+- Docs: **Roadmap debated + sequenced** — `docs/design/roadmap-and-sequencing.md`
+  answers the open design questions (board/planning, sources/context, parallel
+  merge, HTTP API, guides hub, cloud models, telemetry), with continuous-mode
+  execution resolved; places the core model rewrite as Phase 0.
+- Docs: **TODO cleanup** — archived the completed spec checklist + Shipped
+  Phases to gitignored `docs/archive/`; folded `moretodos.md` / `docs/TODO-v2` /
+  `docs/TODO-V3.md` in (raw notes in `docs/archive/scratch-notes.md`).
+
 - Add: **Providers page is the complete management surface** (UI⇄CLI parity) —
   each provider now has an editor to change `command`/`args`/`input` with a YAML
   preview and a **Save & test** loop in one place, plus **Remove**. You no longer
