@@ -6,6 +6,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import {
   addProvider,
   setDefaultProvider,
+  removeProvider,
   listConfiguredProviders,
 } from "../src/setup/provider-setup-service.js";
 import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
@@ -74,5 +75,37 @@ describe("provider set / list", () => {
         alsoAssignAllRoles: false,
       }),
     ).rejects.toThrow();
+  });
+
+  it("removeProvider refuses while a role still uses it, then succeeds once unused", async () => {
+    // Add an unused provider — it removes cleanly.
+    await addProvider(projectRoot, {
+      id: "spare",
+      config: { type: "cli", command: "spare", args: [], input: "stdin" },
+      alsoAssignAllRoles: false,
+    });
+    const removedSpare = await removeProvider(projectRoot, "spare");
+    expect(removedSpare.ok).toBe(true);
+    expect(
+      (await listConfiguredProviders(projectRoot)).some((p) => p.id === "spare"),
+    ).toBe(false);
+
+    // The default claude provider is used by every role → refused with reason.
+    const refused = await removeProvider(projectRoot, "claude");
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) {
+      expect(refused.reason).toContain("still used by");
+      expect(refused.hint).toContain("another provider");
+    }
+    // Still present after the refusal.
+    expect(
+      (await listConfiguredProviders(projectRoot)).some((p) => p.id === "claude"),
+    ).toBe(true);
+  });
+
+  it("removeProvider reports a clear miss for an unknown provider", async () => {
+    const r = await removeProvider(projectRoot, "ghost");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toContain('"ghost"');
   });
 });

@@ -171,6 +171,34 @@
           "arguments": [],
           "options": [],
           "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "vibe",
+            "provider",
+            "remove"
+          ],
+          "description": "Remove a provider from project.yml (refuses if a role still uses it).",
+          "usage": "[options] <providerId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--yes",
+              "description": "skip the confirmation prompt (non-interactive)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },

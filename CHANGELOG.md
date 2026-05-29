@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- Add: **Providers page is the complete management surface** (UI⇄CLI parity) —
+  each provider now has an editor to change `command`/`args`/`input` with a YAML
+  preview and a **Save & test** loop in one place, plus **Remove**. You no longer
+  have to drop to `vibe provider setup` to fix a provider in the dashboard.
+- Add: **`vibe provider remove <id>`** + `DELETE /api/providers/:id` — removes a
+  provider from project.yml, refusing if a role still uses it (reassign first).
+- Change: shared `provider-yaml` helpers (parse args / render YAML) deduped
+  across the Crew Configure modal and the Providers editor.
+
 - Fix: **codex preset no longer passes the removed `-q` flag** — current codex
   (0.13x) rejects `codex exec -q` with an "unexpected argument" usage error
   (exit 2). Preset/builders now use `codex exec` (prompt on stdin). Existing

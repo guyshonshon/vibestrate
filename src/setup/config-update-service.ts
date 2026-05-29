@@ -194,6 +194,18 @@ export async function ensureProvider(
   await writeDocument(projectRoot, doc);
 }
 
+/** Delete `providers.<id>` from project.yml. No-op if absent. Caller is
+ *  responsible for checking no role still references it (writeDocument
+ *  re-validates the whole config, so a dangling reference would throw). */
+export async function deleteProvider(
+  projectRoot: string,
+  providerId: string,
+): Promise<void> {
+  const { doc } = await readDocument(projectRoot);
+  doc.deleteIn(["providers", providerId]);
+  await writeDocument(projectRoot, doc);
+}
+
 export async function assignRolesToProvider(
   projectRoot: string,
   providerId: string,

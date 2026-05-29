@@ -4,6 +4,7 @@ import { runProviderList } from "./list.js";
 import { runProviderTest } from "./test.js";
 import { runProviderSet } from "./set.js";
 import { runProviderSetup } from "./setup.js";
+import { runProviderRemove } from "./remove.js";
 
 export function buildProviderCommand(): Command {
   const cmd = new Command("provider").description(
@@ -53,6 +54,15 @@ export function buildProviderCommand(): Command {
     .description("Flowd provider setup wizard.")
     .action(async () => {
       const code = await runProviderSetup();
+      process.exit(code);
+    });
+
+  cmd
+    .command("remove <providerId>")
+    .description("Remove a provider from project.yml (refuses if a role still uses it).")
+    .option("--yes", "skip the confirmation prompt (non-interactive)")
+    .action(async (providerId: string, opts: { yes?: boolean }) => {
+      const code = await runProviderRemove(providerId, { yes: opts.yes });
       process.exit(code);
     });
 
