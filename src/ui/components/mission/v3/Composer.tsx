@@ -60,6 +60,7 @@ export type ComposerSubmitInput = {
   crewId: string | null;
   contextPolicy: FlowContextPolicy;
   stepProfileOverrides: Record<string, string>;
+  seatRoleOverrides: Record<string, string>;
   skills: string[];
   readOnly: boolean;
 };
@@ -129,6 +130,8 @@ export function ComposerV3({
   const [flowId, setFlowId] = useState<string>(() => flows[0]?.id ?? "");
   const [crewId, setCrewId] = useState<string | null>(defaultCrewId);
   const [stepProfiles, setStepProfiles] = useState<Record<string, string>>({});
+  // seat → roleId, to disambiguate a seat filled by >1 crew role.
+  const [seatRoles, setSeatRoles] = useState<Record<string, string>>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
@@ -190,26 +193,31 @@ export function ComposerV3({
     if (!selectedFlow) return [];
     const rows: AllocRow[] = [];
     for (const step of selectedFlow.definition.steps) {
-      if (!step.seat) continue;
+      const seat = step.seat;
+      if (!seat) continue;
       const candidates = (crew?.roles ?? [])
-        .filter((r) => r.seats.includes(step.seat!))
+        .filter((r) => r.seats.includes(seat))
         .map((r) => ({ roleId: r.id, label: r.label, profile: r.profile }));
       let status: AllocStatus = "ok";
       let roleLabel: string | null = null;
       let profileId: string | null = null;
       let provider: string | null = null;
+      // For an ambiguous seat, an explicit seat→role pick disambiguates it.
+      const picked =
+        candidates.length > 1
+          ? candidates.find((c) => c.roleId === seatRoles[seat]) ?? null
+          : candidates[0] ?? null;
       if (candidates.length === 0) status = "uncovered";
-      else if (candidates.length > 1) status = "ambiguous";
-      else {
-        const role = candidates[0]!;
-        roleLabel = role.label;
-        profileId = stepProfiles[step.id] ?? role.profile;
+      else if (candidates.length > 1 && !picked) status = "ambiguous";
+      else if (picked) {
+        roleLabel = picked.label;
+        profileId = stepProfiles[step.id] ?? picked.profile;
         provider = profiles.find((p) => p.id === profileId)?.provider ?? null;
       }
       rows.push({
         stepId: step.id,
         stepLabel: step.label,
-        seat: step.seat,
+        seat,
         status,
         candidates,
         roleLabel,
@@ -218,7 +226,7 @@ export function ComposerV3({
       });
     }
     return rows;
-  }, [selectedFlow, crew, profiles, stepProfiles]);
+  }, [selectedFlow, crew, profiles, stepProfiles, seatRoles]);
 
   const blockers = allocation.filter((r) => r.status !== "ok");
   const canSend = brief.trim().length > 0 && !busy && blockers.length === 0;
@@ -238,6 +246,15 @@ export function ComposerV3({
     });
   }
 
+  function setSeatRole(seat: string, roleId: string) {
+    setSeatRoles((cur) => {
+      const next = { ...cur };
+      if (roleId) next[seat] = roleId;
+      else delete next[seat];
+      return next;
+    });
+  }
+
   function handleSubmit() {
     const trimmed = brief.trim();
     if (!trimmed || busy || blockers.length > 0) return;
@@ -247,6 +264,7 @@ export function ComposerV3({
       crewId,
       contextPolicy: "balanced",
       stepProfileOverrides: stepProfiles,
+      seatRoleOverrides: seatRoles,
       skills: selectedSkills,
       readOnly,
     });
@@ -396,6 +414,7 @@ export function ComposerV3({
                   onSelect={() => {
                     setFlowId(g.id);
                     setStepProfiles({});
+                    setSeatRoles({});
                   }}
                 />
               ))}
@@ -455,7 +474,9 @@ export function ComposerV3({
             <AllocationTable
               rows={allocation}
               profiles={profiles}
+              seatRoles={seatRoles}
               onSetProfile={setStepProfile}
+              onSetSeatRole={setSeatRole}
               onCustomizeCrew={onCustomizeFlow}
             />
           ) : null}
@@ -589,12 +610,16 @@ function providerLabel(
 function AllocationTable({
   rows,
   profiles,
+  seatRoles,
   onSetProfile,
+  onSetSeatRole,
   onCustomizeCrew,
 }: {
   rows: AllocRow[];
   profiles: ProfileView[];
+  seatRoles: Record<string, string>;
   onSetProfile: (stepId: string, profileId: string, roleDefault: string) => void;
+  onSetSeatRole: (seat: string, roleId: string) => void;
   onCustomizeCrew: () => void;
 }) {
   return (
@@ -635,16 +660,19 @@ function AllocationTable({
                 no role — fix crew
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={onCustomizeCrew}
-                className="text-amber-300 text-[11px] text-left hover:underline"
-                title={`More than one role takes "${r.seat}": ${r.candidates
-                  .map((c) => c.label)
-                  .join(", ")}.`}
+              <select
+                value={seatRoles[r.seat] ?? ""}
+                onChange={(e) => onSetSeatRole(r.seat, e.target.value)}
+                title={`More than one role takes "${r.seat}" — pick which fills it for this run.`}
+                className="min-w-0 rounded-md border border-amber-400/40 bg-amber-500/[0.06] px-1.5 py-1 text-[11.5px] text-amber-100 outline-none focus:border-amber-300"
               >
-                ambiguous ×{r.candidates.length} — fix crew
-              </button>
+                <option value="">pick role…</option>
+                {r.candidates.map((c) => (
+                  <option key={c.roleId} value={c.roleId}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             )}
             {r.status === "ok" ? (
               <div className="flex items-center gap-1.5 min-w-0">

@@ -59,6 +59,13 @@ const spawnRunBody = z.object({
   crewId: z.string().min(1).max(128).optional(),
   /** Run-wide Profile override applied to every seated step. */
   profileOverride: z.string().min(1).max(128).optional(),
+  /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
+  seatRoleOverrides: z
+    .record(
+      z.string().min(1).max(80),
+      z.string().min(1).max(128),
+    )
+    .optional(),
   readOnly: z.boolean().optional(),
   // Per-run skill ids — merged into every agent's configured skills
   // for this single run. Each id is the slug `loadSkills` accepts.
@@ -197,6 +204,9 @@ export async function registerRunsRoutes(
     if (body.effort) argv.push("--effort", body.effort);
     if (body.crewId) argv.push("--crew", body.crewId);
     if (body.profileOverride) argv.push("--profile", body.profileOverride);
+    for (const [seat, role] of Object.entries(body.seatRoleOverrides ?? {})) {
+      argv.push("--seat-role", `${seat}=${role}`);
+    }
     if (body.readOnly) argv.push("--read-only");
     if (body.skills && body.skills.length > 0) {
       argv.push("--skills", body.skills.join(","));
@@ -225,6 +235,7 @@ export async function registerRunsRoutes(
       effort: body.effort ?? null,
       crewId: body.crewId ?? null,
       profileOverride: body.profileOverride ?? null,
+      seatRoleOverrides: body.seatRoleOverrides ?? {},
       readOnly: body.readOnly ?? false,
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,

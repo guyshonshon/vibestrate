@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Run-time seat disambiguation:** the run path now threads `seatRoleOverrides`
+  (seat → role) end to end — CLI `--seat-role <seat=roleId>`, the `/api/runs`
+  spawn payload, RunSpec, the orchestrator, and the resolved snapshot/run state.
+  The Mission Control allocation table turns an ambiguous seat into an inline
+  role picker (was a blocking "fix crew" link). Closes the last Phase 0 gap.
 - **UI: web dashboard rewired to the Crew/Profile/Seat model.** `ui/lib/{types,api}`
   now talk to `/api/crews`, `/api/profiles`, and the
   `crewId`/`profileOverride`/`stepProfileOverrides` resolve/run payload.

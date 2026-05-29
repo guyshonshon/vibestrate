@@ -383,6 +383,7 @@ export const api = {
     effort?: "low" | "medium" | "high";
     crewId?: string;
     profileOverride?: string;
+    seatRoleOverrides?: Record<string, string>;
     readOnly?: boolean;
     skills?: string[];
     concise?: boolean;

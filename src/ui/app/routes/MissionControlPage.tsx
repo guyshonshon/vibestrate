@@ -296,6 +296,10 @@ export function MissionControlPage({ onSelectRun }: Props) {
         task: input.brief,
         readOnly: input.readOnly || undefined,
         crewId: input.crewId ?? undefined,
+        seatRoleOverrides:
+          Object.keys(input.seatRoleOverrides).length > 0
+            ? input.seatRoleOverrides
+            : undefined,
         skills: input.skills.length > 0 ? input.skills : undefined,
         flow: input.flowId
           ? {

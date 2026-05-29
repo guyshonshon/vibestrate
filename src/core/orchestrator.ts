@@ -162,6 +162,9 @@ export type OrchestratorInput = {
   profileOverride?: string | null;
   /** Per-step Profile overrides (step id → profile id) applied at resolve time. */
   stepProfileOverrides?: Record<string, string>;
+  /** Pin a Role to a Seat (seat → roleId) — disambiguates a seat filled by
+   *  more than one Crew role. Applied at resolve time. */
+  seatRoleOverrides?: Record<string, string>;
   /** Investigation-only run: force readOnly permissions on every agent,
    * skip the executor / fix loop entirely, refuse write-side actions. */
   readOnly?: boolean;
@@ -300,6 +303,7 @@ export class Orchestrator {
   private readonly crewId: string | null;
   private readonly profileOverride: string | null;
   private readonly stepProfileOverrides: Record<string, string>;
+  private readonly seatRoleOverrides: Record<string, string>;
   /** Crew the active flow snapshot was resolved against; set in run(). Used by
    *  runRole to look up the resolved Role's config (prompt/permissions/skills). */
   private activeCrewId: string | null = null;
@@ -324,6 +328,7 @@ export class Orchestrator {
     this.crewId = input.crewId ?? null;
     this.profileOverride = input.profileOverride ?? null;
     this.stepProfileOverrides = input.stepProfileOverrides ?? {};
+    this.seatRoleOverrides = input.seatRoleOverrides ?? {};
     this.readOnly = input.readOnly ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
@@ -348,6 +353,7 @@ export class Orchestrator {
       crewId: this.crewId,
       profileOverride: this.profileOverride,
       stepProfileOverrides: this.stepProfileOverrides,
+      seatRoleOverrides: this.seatRoleOverrides,
     });
   }
 
@@ -414,6 +420,7 @@ export class Orchestrator {
       crewId: flow.crewId,
       profileOverride: this.profileOverride,
       stepProfileOverrides: this.stepProfileOverrides,
+      seatRoleOverrides: this.seatRoleOverrides,
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
