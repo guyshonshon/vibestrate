@@ -63,6 +63,20 @@ function parseStepProfiles(values: string[]): Record<string, string> {
   return out;
 }
 
+function parseSeatRoles(values: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const raw of values) {
+    const index = raw.indexOf("=");
+    const seat = raw.slice(0, index).trim();
+    const role = raw.slice(index + 1).trim();
+    if (index <= 0 || !seat || !role) {
+      throw new Error(`--seat-role must use <seat=roleId> (got "${raw}").`);
+    }
+    out[seat] = role;
+  }
+  return out;
+}
+
 // Build the full commander program without parsing argv. Exported so the
 // docs metadata generator can introspect the command tree, and so tests
 // can construct a fresh program when needed. Kept side-effect-free.
@@ -175,6 +189,12 @@ export function buildVibestrateProgram(): Command {
       [],
     )
     .option(
+      "--seat-role <seat=roleId>",
+      "pin a Role to a Seat when the crew has more than one role filling it. Repeat for multiple seats.",
+      collectStepProfile,
+      [],
+    )
+    .option(
       "--flow-brief <text>",
       "extra brief for the Flow task packet.",
     )
@@ -216,6 +236,7 @@ export function buildVibestrateProgram(): Command {
           concise?: boolean;
           flow?: string;
           stepProfile?: string[];
+          seatRole?: string[];
           flowBrief?: string;
           flowContext?: string;
           flowSkip?: string[];
@@ -288,8 +309,10 @@ export function buildVibestrateProgram(): Command {
           flowContextPolicy = opts.flowContext;
         }
         let flowStepProfiles: Record<string, string> = {};
+        let seatRoleOverrides: Record<string, string> = {};
         try {
           flowStepProfiles = parseStepProfiles(opts.stepProfile ?? []);
+          seatRoleOverrides = parseSeatRoles(opts.seatRole ?? []);
         } catch (err) {
           console.error(err instanceof Error ? err.message : String(err));
           process.exit(2);
@@ -300,6 +323,7 @@ export function buildVibestrateProgram(): Command {
           taskId: opts.task ?? null,
           effort,
           crewId: opts.crew ?? null,
+          seatRoleOverrides,
           profileOverride: opts.profile ?? null,
           readOnly: opts.readOnly ?? false,
           autoEffort: opts.autoEffort ?? false,

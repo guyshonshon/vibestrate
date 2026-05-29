@@ -26,6 +26,7 @@ const baseState = {
   crewId: null,
   profileOverride: null,
   stepProfileOverrides: {},
+  seatRoleOverrides: {},
   readOnly: false,
   runtimeSkills: [],
   concise: false,

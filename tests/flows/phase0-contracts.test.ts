@@ -167,6 +167,39 @@ describe("Flow Phase 0 contracts", () => {
     ).toThrow(/more than one role filling the "builder" seat/);
   });
 
+  it("a seat role override disambiguates an otherwise-ambiguous seat", () => {
+    const config = flowTestConfig();
+    config.crews.default!.roles["builder2"] = {
+      seats: ["builder"],
+      profile: "opus-deep",
+      prompt: ".vibestrate/roles/executor.md",
+      permissions: "codeWrite",
+      skills: [],
+      mcpServers: {},
+    };
+    // Pin the builder seat to the second role; resolution succeeds.
+    const snapshot = resolveFlow({
+      flow: qualityArbitrationFlow,
+      source: { kind: "builtin", ref: "quality-arbitration" },
+      config,
+      task: "disambiguated builder",
+      seatRoleOverrides: { builder: "builder2" },
+    });
+    const plan = snapshot.steps.find((s) => s.id === "plan")!;
+    expect(plan.resolvedRoleId).toBe("builder2");
+    expect(plan.profileId).toBe("opus-deep");
+    // Pinning to a role that doesn't fill the seat fails clearly.
+    expect(() =>
+      resolveFlow({
+        flow: qualityArbitrationFlow,
+        source: { kind: "builtin", ref: "quality-arbitration" },
+        config,
+        task: "bad pin",
+        seatRoleOverrides: { builder: "reviewer" },
+      }),
+    ).toThrow(/not a role in crew/);
+  });
+
   it("refuses a step Profile override that references an unknown step", () => {
     expect(() =>
       resolveFlow({

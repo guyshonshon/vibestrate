@@ -136,6 +136,8 @@ export const runStateSchema = z.object({
   profileOverride: z.string().nullable().default(null),
   /** Per-step Profile overrides (step id → profile id). */
   stepProfileOverrides: z.record(z.string(), z.string()).default({}),
+  /** Seat → Role overrides used to disambiguate seats filled by >1 role. */
+  seatRoleOverrides: z.record(z.string(), z.string()).default({}),
   readOnly: z.boolean().default(false),
   // Per-run skill ids. Merged into every agent's configured skill list
   // before invocation, so the user can attach context to a single run
@@ -361,6 +363,7 @@ export function createInitialState(input: {
     crewId: null,
     profileOverride: null,
     stepProfileOverrides: {},
+    seatRoleOverrides: {},
     readOnly: false,
     runtimeSkills: [],
     concise: false,

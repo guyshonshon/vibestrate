@@ -36,6 +36,8 @@ export const runSpecSchema = z.object({
   crewId: z.string().min(1).max(128).nullable().optional(),
   /** Run-wide Profile override applied to every seated step. */
   profileOverride: z.string().min(1).max(128).nullable().optional(),
+  /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
+  seatRoleOverrides: z.record(z.string(), z.string()).optional(),
   readOnly: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
@@ -167,6 +169,7 @@ export async function runFromSpec(
       task: spec.task,
       crewId: spec.crewId ?? null,
       profileOverride,
+      seatRoleOverrides: spec.seatRoleOverrides ?? {},
       brief: spec.flow.brief ?? null,
       contextPolicy: spec.flow.contextPolicy,
       stepProfileOverrides: spec.flow.stepProfileOverrides ?? {},
@@ -185,6 +188,7 @@ export async function runFromSpec(
     crewId: spec.crewId ?? null,
     profileOverride,
     stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
+    seatRoleOverrides: spec.seatRoleOverrides ?? {},
     readOnly,
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,

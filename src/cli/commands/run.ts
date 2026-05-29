@@ -75,6 +75,8 @@ export type RunCommandOptions = {
   crewId?: string | null;
   /** Run-wide Profile override applied to every seated step. */
   profileOverride?: string | null;
+  /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
+  seatRoleOverrides?: Record<string, string>;
   readOnly?: boolean;
   autoEffort?: boolean;
   /** Skill ids attached only for this run, merged into role skills. */
@@ -223,6 +225,7 @@ export async function runRunCommand(
         task: resolvedTask,
         crewId: options.crewId ?? null,
         profileOverride: options.profileOverride ?? null,
+        seatRoleOverrides: options.seatRoleOverrides ?? {},
         brief: flowBrief,
         contextPolicy: flowContextPolicy,
         stepProfileOverrides: flowStepProfiles,
@@ -386,6 +389,7 @@ export async function runRunCommand(
     crewId: options.crewId ?? null,
     profileOverride,
     stepProfileOverrides: options.flowStepProfiles ?? {},
+    seatRoleOverrides: options.seatRoleOverrides ?? {},
     readOnly,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
