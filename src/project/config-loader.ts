@@ -16,7 +16,8 @@ export type LoadedConfig = {
   rules: string;
 };
 
-const DEFAULT_RULES = "# Project Rules for Vibestrate\n\nDescribe the project here.\n";
+const DEFAULT_RULES =
+  "# Project Instructions for Vibestrate\n\nDescribe the project here.\n";
 
 export async function loadConfig(projectRoot: string): Promise<LoadedConfig> {
   const configPath = projectConfigPath(projectRoot);

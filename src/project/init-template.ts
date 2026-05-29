@@ -16,9 +16,12 @@ import {
 import { defaultProjectName } from "./project-detector.js";
 import type { SetupPlan } from "../setup/setup-service.js";
 
-const RULES_TEMPLATE = `# Project Rules for Vibestrate
+const RULES_TEMPLATE = `# Project Instructions for Vibestrate
 
-These rules are provided to local agent CLIs during Vibestrate runs.
+These instructions are injected into every agent's prompt on every run. They
+are guidance, not guarantees — an agent may follow or ignore them, the same way
+a teammate reads a style guide. For gates that are enforced in code (and that a
+model cannot talk its way past), use policies in \`.vibestrate/policies/*.yml\`.
 
 ## Project Overview
 
