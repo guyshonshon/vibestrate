@@ -33,6 +33,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     effort: null,
     profileOverride: null,
     readOnly: false,
+    checklist: [],
   };
 }
 

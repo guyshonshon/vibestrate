@@ -27,6 +27,17 @@ const commentBody = z.object({
   targetRef: z.string().nullable().optional(),
 });
 
+const checklistAddBody = z.object({ text: z.string().min(1) });
+const checklistPatchBody = z
+  .object({
+    text: z.string().min(1).optional(),
+    status: z.enum(["pending", "in_progress", "done", "blocked"]).optional(),
+  })
+  .refine((b) => b.text !== undefined || b.status !== undefined, {
+    message: "Provide at least one of: text, status.",
+  });
+const checklistReorderBody = z.object({ order: z.array(z.string().min(1)) });
+
 const patchBody = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
@@ -154,6 +165,79 @@ export async function registerTasksRoutes(
       const c = await svc.resolveComment(req.params.taskId, req.params.commentId);
       if (!c) throw new HttpError(404, "Comment not found.");
       return { comment: c };
+    },
+  );
+
+  // ─── checklist (the ordered breakdown inside a card) ──────────────────────
+
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/checklist",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = checklistAddBody.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const { task, item } = await svc.addChecklistItem(
+          req.params.taskId,
+          parsed.data.text,
+        );
+        return { task, item };
+      } catch (err) {
+        throw new HttpError(404, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  app.patch<{ Params: { taskId: string; itemId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/checklist/:itemId",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = checklistPatchBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const { task, item } = await svc.updateChecklistItem(
+          req.params.taskId,
+          req.params.itemId,
+          parsed.data,
+        );
+        return { task, item };
+      } catch (err) {
+        throw new HttpError(404, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  app.delete<{ Params: { taskId: string; itemId: string } }>(
+    "/api/tasks/:taskId/checklist/:itemId",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      try {
+        const task = await svc.removeChecklistItem(
+          req.params.taskId,
+          req.params.itemId,
+        );
+        return { task };
+      } catch (err) {
+        throw new HttpError(404, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  app.put<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/checklist",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = checklistReorderBody.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const task = await svc.reorderChecklist(
+          req.params.taskId,
+          parsed.data.order,
+        );
+        return { task };
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
     },
   );
 

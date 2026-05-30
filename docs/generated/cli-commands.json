@@ -1378,6 +1378,256 @@
           "subcommands": []
         },
         {
+          "name": "checklist",
+          "path": [
+            "vibe",
+            "tasks",
+            "checklist"
+          ],
+          "description": "Manage a task's in-card checklist (the ordered breakdown of items).",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "list",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "list"
+              ],
+              "description": "List a task's checklist items.",
+              "usage": "[options] <taskId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "add",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "add"
+              ],
+              "description": "Append a checklist item.",
+              "usage": "[options] <taskId> <text...>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": true
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "check",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "check"
+              ],
+              "description": "Mark a checklist item done.",
+              "usage": "[options] <taskId> <itemId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "uncheck",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "uncheck"
+              ],
+              "description": "Reset a checklist item to pending.",
+              "usage": "[options] <taskId> <itemId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "status",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "status"
+              ],
+              "description": "Set an item status: pending | in_progress | done | blocked.",
+              "usage": "[options] <taskId> <itemId> <status>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "edit",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "edit"
+              ],
+              "description": "Edit a checklist item's text.",
+              "usage": "[options] <taskId> <itemId> <text...>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": true
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "remove",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "remove"
+              ],
+              "description": "Remove a checklist item.",
+              "usage": "[options] <taskId> <itemId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "move",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "move"
+              ],
+              "description": "Move a checklist item to a 1-based position.",
+              "usage": "[options] <taskId> <itemId> <position>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
+        },
+        {
           "name": "report",
           "path": [
             "vibe",

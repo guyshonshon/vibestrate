@@ -19,6 +19,7 @@ import {
   Files,
   Grid3X3,
   Hourglass,
+  ListChecks,
   Lock,
   MessageSquare,
   Pencil,
@@ -972,6 +973,7 @@ function TaskCard({
       {(task.assignedRoles.length > 0 ||
         task.commentsCount > 0 ||
         task.touchedFiles.length > 0 ||
+        (task.checklist?.length ?? 0) > 0 ||
         blockedBy > 0 ||
         unlocks > 0) ? (
         <div className="mt-2 pt-1.5 border-t border-white/[0.04] flex items-center justify-between gap-2">
@@ -981,6 +983,16 @@ function TaskCard({
             <span className="mono text-[9.5px] text-fog-500">unassigned</span>
           )}
           <div className="flex items-center gap-1.5 text-[9.5px] text-fog-500 mono">
+            {(task.checklist?.length ?? 0) > 0 ? (
+              <span
+                className="inline-flex items-center gap-0.5"
+                title={`${task.checklist!.filter((c) => c.status === "done").length}/${task.checklist!.length} checklist items done`}
+              >
+                <ListChecks className="h-2.5 w-2.5" strokeWidth={1.7} />
+                {task.checklist!.filter((c) => c.status === "done").length}/
+                {task.checklist!.length}
+              </span>
+            ) : null}
             {task.commentsCount > 0 ? (
               <span className="inline-flex items-center gap-0.5">
                 <MessageSquare className="h-2.5 w-2.5" strokeWidth={1.7} />
