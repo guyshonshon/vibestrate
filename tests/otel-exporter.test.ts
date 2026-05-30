@@ -67,7 +67,7 @@ function metricsFixture(): RuntimeMetrics {
         tokenUsage: { input: 300, output: 120 },
       },
     ],
-  } as RuntimeMetrics;
+  } as unknown as RuntimeMetrics;
 }
 
 describe("buildRunTraceOtlp", () => {

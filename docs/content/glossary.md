@@ -83,6 +83,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Integration.** Combining the branches of several finished (`merge_ready`) runs. Vibestrate previews the merges first (real `git merge` dry-runs that surface conflicts), then integrates the clean ones **sequentially into a dedicated integration branch** — never `main`, never pushed, stopping at the first conflict for you to resolve. `vibe integrate preview/apply` or the Integration panel on the Runs page.
 
+**Workspace.** The user-level registry of Vibestrate projects you've opened (`~/.vibestrate/workspace.json`). Each `vibe ui` adds its project (and the port it bound); the dashboard's project switcher lists them and hops to another project's dashboard. Projects stay fully independent — each is its own `vibe ui` on its own port — so several can run at once. `vibe workspace list/add/remove`.
+
 **Worktree.** A separate git working directory bound to its own branch. Vibestrate creates one per run under `git.worktreeDir`. See [Worktree](/docs/concepts/worktree).
 
 **Workflow.** The static, ordered description of stages a run progresses through. See [Workflow](/docs/concepts/workflow).

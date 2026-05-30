@@ -26,6 +26,7 @@ import { buildIntegrateCommand } from "./commands/integrate.js";
 import { buildQueueCommand } from "./commands/queue.js";
 import { buildLogsCommand } from "./commands/logs.js";
 import { buildTelemetryCommand } from "./commands/telemetry.js";
+import { buildWorkspaceCommand } from "./commands/workspace.js";
 import {
   buildGatewaysCommand,
   buildNotificationsCommand,
@@ -132,6 +133,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildQueueCommand());
   program.addCommand(buildLogsCommand());
   program.addCommand(buildTelemetryCommand());
+  program.addCommand(buildWorkspaceCommand());
   program.addCommand(buildNotificationsCommand());
   program.addCommand(buildGatewaysCommand());
   program.addCommand(buildEditorCommand());

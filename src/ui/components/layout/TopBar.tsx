@@ -212,11 +212,8 @@ export function TopBar({
             strokeWidth={1.7}
           />
           <span className="truncate max-w-[160px]">{projectLabel}</span>
-          <ChevronDown
-            className="h-3.5 w-3.5 text-fog-500 shrink-0"
-            strokeWidth={1.7}
-          />
         </button>
+        <WorkspaceSwitcher />
         {meta.branch ? (
           <>
             <span className="text-fog-500 hidden xl:inline">/</span>
@@ -517,5 +514,96 @@ function DropItem({
       {icon}
       {children}
     </button>
+  );
+}
+
+type WsProject = {
+  root: string;
+  label: string;
+  lastPort: number | null;
+  lastOpenedAt: string;
+  current: boolean;
+};
+
+/**
+ * Project switcher (multi-project v1): lists registered projects and hops to
+ * another project's dashboard (its own `vibe ui` on its own port). Local-first
+ * — each project is an independent dashboard; this just makes them switchable.
+ */
+function WorkspaceSwitcher() {
+  const [open, setOpen] = useState(false);
+  const [projects, setProjects] = useState<WsProject[]>([]);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    api
+      .listWorkspace()
+      .then((r) => setProjects(r.projects))
+      .catch(() => setProjects([]));
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  // Only one project known ⇒ nothing to switch to; keep the chrome quiet.
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Switch project"
+        className="flex items-center text-fog-500 hover:text-fog-200"
+      >
+        <ChevronDown className="h-3.5 w-3.5 shrink-0" strokeWidth={1.7} />
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-7 z-50 w-[280px] rounded-lg border border-white/10 bg-ink-100/95 backdrop-blur-xl p-1 shadow-xl">
+          <div className="px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-fog-500">
+            Projects ({projects.length})
+          </div>
+          {projects.length === 0 ? (
+            <div className="px-2 py-2 text-[11.5px] text-fog-400">
+              Only this project is registered. Run <span className="mono">vibe ui</span> in another to add it.
+            </div>
+          ) : (
+            <ul className="max-h-[320px] overflow-y-auto">
+              {projects.map((p) => {
+                const reachable = !p.current && p.lastPort;
+                return (
+                  <li key={p.root}>
+                    <button
+                      type="button"
+                      disabled={p.current || !p.lastPort}
+                      onClick={() => {
+                        if (reachable) window.open(`http://localhost:${p.lastPort}/`, "_blank");
+                        setOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-white/[0.05] disabled:hover:bg-transparent"
+                    >
+                      <Folder className="h-3.5 w-3.5 shrink-0 text-fog-400" strokeWidth={1.7} />
+                      <span className="flex-1 truncate text-[12.5px] text-fog-100">{p.label}</span>
+                      {p.current ? (
+                        <span className="text-[10px] text-emerald-300">current</span>
+                      ) : p.lastPort ? (
+                        <span className="mono text-[10px] text-fog-500">:{p.lastPort} ↗</span>
+                      ) : (
+                        <span className="text-[10px] text-fog-600">not running</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

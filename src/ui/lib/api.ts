@@ -910,6 +910,18 @@ export const api = {
     } }>("/api/integration/apply", { into, runIds });
     return r.result;
   },
+  async listWorkspace(): Promise<{
+    current: string;
+    projects: {
+      root: string;
+      label: string;
+      lastPort: number | null;
+      lastOpenedAt: string;
+      current: boolean;
+    }[];
+  }> {
+    return jsonGet("/api/workspace");
+  },
   async suggestNext(): Promise<TaskSuggestion[]> {
     const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(
       "/api/tasks/suggest",
