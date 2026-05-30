@@ -951,6 +951,26 @@ export const api = {
     );
     return r.task;
   },
+  async enhanceChecklist(
+    taskId: string,
+    opts: { apply?: boolean; profileId?: string | null } = {},
+  ): Promise<{
+    applied: boolean;
+    proposal: {
+      taskId: string;
+      items: string[];
+      providerId: string;
+      profileId: string;
+      attempts: number;
+    };
+    task?: Task;
+    added?: ChecklistItem[];
+  }> {
+    return jsonPost(`/api/tasks/${encodeURIComponent(taskId)}/enhance`, {
+      apply: opts.apply ?? false,
+      profileId: opts.profileId ?? null,
+    });
+  },
   async queueTask(taskId: string): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/queue`,

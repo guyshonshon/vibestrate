@@ -42,7 +42,16 @@ vibe tasks checklist status <taskId> <itemId> in_progress
 vibe tasks checklist move <taskId> <itemId> 1     # reorder (1-based)
 ```
 
-The same actions are available in the task detail page of [Mission Control](/docs/cli/dashboard) (add, check off, edit, reorder, remove). Each item carries a status — `pending`, `in_progress`, `done`, or `blocked`.
+The same actions are available in the task detail page of [Mission Control](/docs/cli/dashboard) (add, check off, edit, drag-reorder, remove). Each item carries a status — `pending`, `in_progress`, `done`, or `blocked`.
+
+**Enhance** — instead of writing the checklist by hand, let an AI assist propose one:
+
+```bash
+vibe tasks enhance <taskId>            # read-only: prints a proposed checklist
+vibe tasks enhance <taskId> --apply    # append the proposed items
+```
+
+Enhance is a one-shot, read-only [assist](/docs/glossary#assist) run — it *proposes* an ordered breakdown of the card; you decide whether to add the items (the "Enhance" button on a task previews them, then "Add all" appends). The model never writes to the board on its own.
 
 A checklist item is **not** a Flow [Step](/docs/concepts/workflow): a Step is a phase of the workflow (plan / implement / review); a checklist item is a piece of *what to build*. Don't conflate them.
 

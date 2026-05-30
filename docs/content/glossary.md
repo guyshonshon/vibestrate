@@ -61,6 +61,10 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Task.** A description of what you want done, submitted to Vibestrate. Triggers a run. See [Task](/docs/concepts/task).
 
+**Assist.** A one-shot, **read-only**, structured-output run: Vibestrate asks a provider one question and gets back validated JSON — no worktree, no fix loop, no run lifecycle. The spawn is gated and audited through the [Action Broker](#) like any other effect (evidence in `.vibestrate/runs/assist/`). Building block for **Enhance** (and later overview/suggest). Lives in `src/assist/`.
+
+**Enhance.** An [Assist](#) that *decomposes* a task/card into an ordered **Checklist** — e.g. "Add a health endpoint" → `1. define the route`, `2. return json`, `3. add a test`. It **proposes**; you accept. The model never writes to the board on its own. Run it with `vibe tasks enhance <id>` (add `--apply` to append) or the "Enhance" button on a task. Distinct from macro **Proposals**, which create *separate* cards.
+
 **Checklist.** An ordered list of **items** (todos) that lives *inside* a task/card — the concrete breakdown of what the card entails (e.g. `1. /health returns json`, `2. test the endpoint`). Kept on the task on purpose so context isn't scattered across many cards. Each item has a status (`pending`/`in_progress`/`done`/`blocked`). Manage it with `vibe tasks checklist …` or in the task detail page. (Distinct from a Flow **Step**, which is a workflow phase.)
 
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once reached, a run cannot transition out.
