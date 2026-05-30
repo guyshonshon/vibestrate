@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Suggest-next:** a pure ranker over the backlog (status
+  backlog/ready) — dependency-ready first, then priority, then fewest open
+  blockers, then oldest. `vibe tasks suggest [--all] [--json]`,
+  `GET /api/tasks/suggest`, and a "next:" pill on the board header. Unknown deps
+  count as open blockers; done deps don't block.
 - **Phase 3 — Promote item → card:** a checklist item can graduate to its own
   card. The new card keeps a `derivedFrom` back-pointer and the origin item gains
   a `promotedTaskId` forward-pointer (a relation — the item stays put, inherits

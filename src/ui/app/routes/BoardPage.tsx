@@ -26,6 +26,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Sparkles,
   Unlock,
   X,
 } from "lucide-react";
@@ -35,6 +36,7 @@ import type {
   RoadmapItem,
   Task,
   TaskStatus,
+  TaskSuggestion,
 } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
@@ -101,6 +103,7 @@ export function BoardPage({
 }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [items, setItems] = useState<RoadmapItem[]>([]);
+  const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; text: string } | null>(
     null,
@@ -119,9 +122,14 @@ export function BoardPage({
 
   const load = useCallback(async () => {
     try {
-      const [t, r] = await Promise.all([api.listTasks(), api.listRoadmap()]);
+      const [t, r, sg] = await Promise.all([
+        api.listTasks(),
+        api.listRoadmap(),
+        api.suggestNext().catch(() => [] as TaskSuggestion[]),
+      ]);
       setTasks(t);
       setItems(r);
+      setSuggestions(sg);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -254,6 +262,18 @@ export function BoardPage({
             <span className="text-[11.5px] text-fog-500 hidden md:inline">
               roadmap → tasks → runs
             </span>
+            {suggestions[0] ? (
+              <button
+                type="button"
+                onClick={() => onOpenTask(suggestions[0]!.taskId)}
+                title={`Suggested next — ${suggestions[0]!.reason}`}
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-violet-soft/30 bg-violet-mid/15 px-2.5 py-0.5 text-[11px] text-fog-100 hover:bg-violet-mid/25 max-w-[280px]"
+              >
+                <Sparkles className="h-3 w-3 text-violet-soft shrink-0" strokeWidth={1.7} />
+                <span className="text-fog-500">next:</span>
+                <span className="truncate">{suggestions[0]!.title}</span>
+              </button>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <button

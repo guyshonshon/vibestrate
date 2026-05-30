@@ -48,6 +48,7 @@ import type {
   SkillAssignmentSummary,
   Task,
   TaskComment,
+  TaskSuggestion,
   TerminalAvailability,
   TerminalSession,
   PolicyStoreSnapshot,
@@ -845,6 +846,12 @@ export const api = {
   async listTasks(): Promise<Task[]> {
     const r = await jsonGet<{ tasks: Task[] }>("/api/tasks");
     return r.tasks;
+  },
+  async suggestNext(): Promise<TaskSuggestion[]> {
+    const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(
+      "/api/tasks/suggest",
+    );
+    return r.suggestions;
   },
   async addTask(input: {
     title: string;

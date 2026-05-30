@@ -79,6 +79,12 @@ export async function registerTasksRoutes(
     return { tasks };
   });
 
+  // Suggest-next: rank backlog cards by dependency-readiness + priority.
+  app.get("/api/tasks/suggest", async () => {
+    await svc.init();
+    return { suggestions: await svc.suggestNext() };
+  });
+
   // Phase C: heuristic effort suggestion. Pure, free, deterministic —
   // safe to expose without any rate limit. The dashboard's task-add /
   // task-detail surface a "Suggested: …" panel that calls this.

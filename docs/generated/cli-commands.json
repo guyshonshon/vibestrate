@@ -1244,6 +1244,34 @@
           "subcommands": []
         },
         {
+          "name": "suggest",
+          "path": [
+            "vibe",
+            "tasks",
+            "suggest"
+          ],
+          "description": "Suggest which backlog card to pick up next (ready + priority).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--all",
+              "description": "show the full ranked backlog, not just the top few",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "show",
           "path": [
             "vibe",
