@@ -630,6 +630,27 @@ export const api = {
   }> {
     return jsonPost("/api/flows/import", input);
   },
+  // ─── hub (Phase 5) ──────────────────────────────────────────────────────
+  async listHubFlows(q?: string): Promise<{
+    flows: {
+      name: string;
+      latest: string;
+      versions: string[];
+      label?: string;
+      description?: string;
+      tags: string[];
+      author?: string;
+    }[];
+  }> {
+    return jsonGet(`/api/flows/hub${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+  },
+  async installHubFlow(input: {
+    name: string;
+    version?: string;
+    overwrite?: boolean;
+  }): Promise<{ result: { ok: boolean } }> {
+    return jsonPost("/api/flows/hub/install", input);
+  },
   /** Create a project flow from a full definition (the flow-creator API). */
   async createFlow(
     flow: unknown,

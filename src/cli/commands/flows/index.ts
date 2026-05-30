@@ -116,6 +116,32 @@ export function buildFlowsCommand(): Command {
       }
     });
 
+  const hub = new Command("hub").description(
+    "Browse + install Flows from the community hub (a curated git-backed index).",
+  );
+  hub
+    .command("list [query...]")
+    .description("List (or search) Flows in the hub index.")
+    .option("--base-url <url>", "override the hub index base URL")
+    .option("--json", "emit JSON")
+    .action(async (query: string[], opts: { baseUrl?: string; json?: boolean }) => {
+      const { runHubList } = await import("./hub.js");
+      process.exit(
+        await runHubList({ baseUrl: opts.baseUrl, query: (query ?? []).join(" "), json: opts.json }),
+      );
+    });
+  hub
+    .command("install <name>")
+    .description("Download + validate + install a hub Flow into .vibestrate/flows/.")
+    .option("--version <v>", "a specific published version (default: latest)")
+    .option("--base-url <url>", "override the hub index base URL")
+    .option("--overwrite", "replace an existing project flow with the same id")
+    .action(async (name: string, opts: { version?: string; baseUrl?: string; overwrite?: boolean }) => {
+      const { runHubInstall } = await import("./hub.js");
+      process.exit(await runHubInstall(name, opts));
+    });
+  cmd.addCommand(hub);
+
   return cmd;
 }
 

@@ -617,6 +617,99 @@
             }
           ],
           "subcommands": []
+        },
+        {
+          "name": "hub",
+          "path": [
+            "vibe",
+            "flows",
+            "hub"
+          ],
+          "description": "Browse + install Flows from the community hub (a curated git-backed index).",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "list",
+              "path": [
+                "vibe",
+                "flows",
+                "hub",
+                "list"
+              ],
+              "description": "List (or search) Flows in the hub index.",
+              "usage": "[options] [query...]",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": false,
+                  "variadic": true
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--base-url <url>",
+                  "description": "override the hub index base URL",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "install",
+              "path": [
+                "vibe",
+                "flows",
+                "hub",
+                "install"
+              ],
+              "description": "Download + validate + install a hub Flow into .vibestrate/flows/.",
+              "usage": "[options] <name>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--version <v>",
+                  "description": "a specific published version (default: latest)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--base-url <url>",
+                  "description": "override the hub index base URL",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--overwrite",
+                  "description": "replace an existing project flow with the same id",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            }
+          ]
         }
       ]
     },

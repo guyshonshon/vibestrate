@@ -78,6 +78,13 @@ const createFlowBody = z
   })
   .strict();
 
+const hubInstallBody = z.object({
+  name: z.string().min(1).max(80),
+  version: z.string().min(1).max(40).optional(),
+  baseUrl: z.string().url().max(2000).optional(),
+  overwrite: z.boolean().optional(),
+});
+
 export type FlowsRoutesDeps = {
   projectRoot: string;
 };
@@ -93,6 +100,35 @@ export async function registerFlowsRoutes(
     // project flow is reported in `invalid` instead of failing the whole list.
     const catalog = await discoverFlowCatalog(projectRoot);
     return { flows: catalog.flows, invalid: catalog.invalid };
+  });
+
+  // ─── hub (Phase 5) ────────────────────────────────────────────────────────
+  // Browse + install community flows. The API never allows private hosts
+  // (SSRF), and install goes through the same validated/guarded import writer.
+  app.get<{ Querystring: { baseUrl?: string; q?: string } }>(
+    "/api/flows/hub",
+    async (req) => {
+      const { fetchHubIndex, searchHub } = await import("../../flows/hub/flow-hub.js");
+      const r = await fetchHubIndex({ baseUrl: req.query.baseUrl });
+      if (!r.ok) throw new HttpError(502, r.reason);
+      const flows = req.query.q ? searchHub(r.value, req.query.q) : r.value.flows;
+      return { flows };
+    },
+  );
+
+  app.post<{ Body: unknown }>("/api/flows/hub/install", async (req) => {
+    const parsed = hubInstallBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const { installFlowFromHub } = await import("../../flows/hub/flow-hub.js");
+    const r = await installFlowFromHub({
+      projectRoot,
+      name: parsed.data.name,
+      version: parsed.data.version,
+      baseUrl: parsed.data.baseUrl,
+      overwrite: parsed.data.overwrite,
+    });
+    if (!r.ok) throw new HttpError(r.status >= 400 && r.status < 600 ? r.status : 400, r.reasons.join(" "));
+    return { result: r };
   });
 
   app.post<{ Body: unknown }>("/api/flows/suggest", async (req) => {
