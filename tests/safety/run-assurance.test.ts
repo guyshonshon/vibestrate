@@ -118,6 +118,28 @@ describe("deriveRunAssurance verdicts", () => {
     expect(a.verdict).toBe("unsafe");
   });
 
+  it("excludes a DENIED command.run from the validation tally", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [
+        rec({ evidence: { ok: true } }), // one real passing command
+        rec({
+          decision: { effect: "deny", ruleIds: ["no-net"], reason: "blocked" },
+          evidence: null, // denied → not a validation result
+        }),
+      ],
+    });
+    // Only the executed command counts; the deny is a policy violation, not a
+    // validation failure that silently inflates total.
+    expect(a.validation).toMatchObject({ total: 1, passed: 1, failed: 0 });
+    expect(a.validation.status).toBe("passed");
+    // ...but the deny still poisons the overall verdict.
+    expect(a.verdict).toBe("unsafe");
+  });
+
   it("counts validation pass/fail from command.run evidence", () => {
     const a = deriveRunAssurance({
       ...base,

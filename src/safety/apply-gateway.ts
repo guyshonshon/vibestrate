@@ -20,10 +20,22 @@ import {
  * ```patch / ```udiff) fenced block, falling back to a raw `diff --git …` body.
  * Returns null when no patch-shaped content is present.
  */
+/** True when text actually looks like a unified diff (has a hunk or a git/---
+ *  header) — not just prose inside a ```diff fence. */
+function looksLikePatch(text: string): boolean {
+  return /(^|\n)(@@ |diff --git |--- )/.test(text);
+}
+
+/** How many fenced diff/patch blocks the output contains. The gateway refuses
+ *  more than one (an ambiguous multi-block reply must not be partially applied). */
+export function countPatchBlocks(output: string): number {
+  return (output.match(/```(?:diff|patch|udiff)\b/gi) ?? []).length;
+}
+
 export function extractProposedPatch(output: string): string | null {
   if (!output) return null;
   const fence = output.match(/```(?:diff|patch|udiff)\n([\s\S]*?)```/i);
-  if (fence && fence[1] && fence[1].trim()) {
+  if (fence && fence[1] && looksLikePatch(fence[1])) {
     return fence[1].replace(/\s*$/, "") + "\n";
   }
   // Fallback: a bare unified diff starting at a `diff --git` header.
@@ -51,6 +63,15 @@ export async function applyProposedPatchThroughGateway(input: {
   worktree: string;
   output: string;
 }): Promise<GatewayApplyResult> {
+  // Refuse an ambiguous multi-block reply rather than silently applying only
+  // the first diff (the rest would be dropped while reporting "applied").
+  if (countPatchBlocks(input.output) > 1) {
+    return {
+      status: "refused",
+      reason:
+        "multiple diff blocks in the reply — emit a single unified diff in one ```diff block",
+    };
+  }
   const patch = extractProposedPatch(input.output);
   if (!patch) return { status: "no_patch" };
 

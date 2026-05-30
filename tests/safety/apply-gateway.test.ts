@@ -46,6 +46,12 @@ describe("extractProposedPatch", () => {
   it("returns null when there is no patch", () => {
     expect(extractProposedPatch("no diff here")).toBeNull();
   });
+
+  it("returns null for a ```diff fence that is just prose (no hunk/header)", () => {
+    expect(
+      extractProposedPatch("```diff\njust some explanation, not a patch\n```"),
+    ).toBeNull();
+  });
 });
 
 describe("applyProposedPatchThroughGateway", () => {
@@ -112,6 +118,28 @@ describe("applyProposedPatchThroughGateway", () => {
         output: `\`\`\`diff\n${PATCH}\`\`\``,
       });
       expect(r.status).toBe("refused");
+      expect(await fs.readFile(path.join(wt, "src/a.ts"), "utf8")).toBe(
+        "export const a = 1\n",
+      );
+    } finally {
+      await fs.rm(wt, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses (applies nothing) when the reply has multiple diff blocks", async () => {
+    const wt = await tempRepo();
+    try {
+      const broker = new DefaultActionBroker(wt, "run-1");
+      const r = await applyProposedPatchThroughGateway({
+        broker,
+        runId: "run-1",
+        roleId: "executor",
+        worktree: wt,
+        output: `\`\`\`diff\n${PATCH}\`\`\`\nand also:\n\`\`\`diff\n${PATCH}\`\`\``,
+      });
+      expect(r.status).toBe("refused");
+      if (r.status === "refused") expect(r.reason).toMatch(/multiple diff blocks/i);
+      // First block was NOT silently applied.
       expect(await fs.readFile(path.join(wt, "src/a.ts"), "utf8")).toBe(
         "export const a = 1\n",
       );

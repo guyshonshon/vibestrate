@@ -2736,19 +2736,39 @@ export class Orchestrator {
         baseTree: preTurnTree,
       });
       if (verdict.verdict === "rollback") {
-        await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
-          () => undefined,
+        const restored = await restoreWorktree(
+          ctx.worktreePath,
+          preTurnTree,
+        ).catch(() => false);
+        // Record the rollback outcome as broker evidence. A failed rollback
+        // leaves the worktree dirty — the "rollback failed" summary is what the
+        // Run Assurance artifact (S5) keys on to render the verdict `unsafe`.
+        await this.broker!.record(
+          {
+            runId: ctx.runId,
+            roleId,
+            kind: "file.patch",
+            subject: { op: "agent.turn.diff.rollback", roleId, files: verdict.files },
+            proposedBy: "system",
+          },
+          { effect: "deny", ruleIds: [], reason: verdict.reason },
+          {
+            ok: false,
+            summary: restored
+              ? `rolled back ${roleId}'s denied changes`
+              : `rollback failed for ${roleId} — worktree may be partially modified`,
+          },
         );
         await ctx.eventLog.append({
           type: "action.denied",
-          message: `Post-turn diff gate rolled back ${roleId}'s changes: ${verdict.reason}`,
+          message: `Post-turn diff gate ${restored ? "rolled back" : "FAILED to roll back"} ${roleId}'s changes: ${verdict.reason}`,
           data: {
             kind: "agent.turn.diff",
             roleId,
             verdict: "rollback",
             reason: verdict.reason,
             files: verdict.files,
-            rolledBack: true,
+            rolledBack: restored,
           },
         });
         throw new __ActionDeniedSignal(

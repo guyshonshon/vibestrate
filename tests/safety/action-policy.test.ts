@@ -85,6 +85,28 @@ describe("actionPolicyMatches", () => {
     ).toBe(false); // wrong kind
   });
 
+  it("pathGlob with leading **/ also matches a repo-ROOT file (no bypass)", () => {
+    const p = policy({ on: ["file.write"], match: { pathGlob: "**/*.env" } });
+    // Root-level secret — must still match (regression: **/ used to require a /).
+    expect(
+      actionPolicyMatches(p, req({ kind: "file.write", subject: { path: ".env" } })),
+    ).toBe(true);
+    // Nested still matches.
+    expect(
+      actionPolicyMatches(
+        p,
+        req({ kind: "file.write", subject: { path: "config/prod.env" } }),
+      ),
+    ).toBe(true);
+    // A non-match still doesn't.
+    expect(
+      actionPolicyMatches(
+        p,
+        req({ kind: "file.write", subject: { path: "src/a.ts" } }),
+      ),
+    ).toBe(false);
+  });
+
   it("matches exact run.complete status", () => {
     const p = policy({
       on: ["run.complete"],

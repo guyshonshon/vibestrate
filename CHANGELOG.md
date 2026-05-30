@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Safety hardening (QA pass):** fixed real issues found reviewing the safety
+  pillar — (1) `globToRegex` leading `**/` now also matches repo-ROOT files, so a
+  `**/*.env`-style policy no longer lets a root-level secret through; (2) the
+  apply-only gateway refuses a reply with multiple ```diff blocks (was silently
+  applying only the first) and ignores non-patch fenced prose; (3) Run Assurance
+  no longer counts a *denied* `command.run` as a validation result (it's a policy
+  violation, not a check); (4) the post-turn diff-gate rollback now reports
+  success/failure and records "rollback failed" evidence so a failed rollback
+  surfaces as an `unsafe` verdict. Added a strict-apply-only end-to-end test.
+  (Kept `git clean -fd` — not `-fdx` — on rollback so it can't delete pre-existing
+  gitignored files like node_modules/.env.)
 - **Safety UI/UX:** the Policies dashboard panel gains a highlighted **Advanced —
   Safety behavior** section: editable toggles for strict apply-only (badged
   high-assurance), interactive terminal, and the forbid-* guards, with a **live

@@ -28,6 +28,12 @@ async function git(cwd: string, args: string[]): Promise<string> {
   return r.stdout ?? "";
 }
 
+/** Like `git`, but reports whether the command succeeded (exit 0). */
+async function gitOk(cwd: string, args: string[]): Promise<boolean> {
+  const r = await execa("git", args, { cwd, reject: false });
+  return r.exitCode === 0;
+}
+
 /** Capture the current worktree as a tree object. Stages everything first so
  *  untracked files are part of the snapshot; non-destructive to the files. */
 export async function snapshotWorktree(worktree: string): Promise<string> {
@@ -62,15 +68,25 @@ export async function captureWorktreePatch(
 }
 
 /** Restore the worktree to an earlier snapshot tree (destructive — used only on
- *  a deny/unsafe verdict). Tracked files revert; files added after the snapshot
- *  are removed; the index is left matching the snapshot. */
+ *  a deny/unsafe verdict). Tracked files revert; untracked files added after the
+ *  snapshot are removed. Returns false if any git step failed (the worktree may
+ *  still be dirty — the caller records this so the run assurance verdict can
+ *  flag it `unsafe`).
+ *
+ *  Note: `clean -fd` deliberately does NOT use `-x` — the snapshot (`add -A` +
+ *  `write-tree`) never includes gitignored files, so `-x` would delete
+ *  PRE-EXISTING ignored files too (node_modules, dist, a local .env). A denied
+ *  turn that wrote a *new* gitignored file leaves it behind; that's acceptable
+ *  (gitignored content is never part of the diff that gets reviewed/merged) and
+ *  far safer than risking data loss in the user's worktree. */
 export async function restoreWorktree(
   worktree: string,
   baseTree: string,
-): Promise<void> {
-  await git(worktree, ["read-tree", baseTree]);
-  await git(worktree, ["checkout-index", "-f", "-a"]);
-  await git(worktree, ["clean", "-fd"]);
+): Promise<boolean> {
+  const a = await gitOk(worktree, ["read-tree", baseTree]);
+  const b = await gitOk(worktree, ["checkout-index", "-f", "-a"]);
+  const c = await gitOk(worktree, ["clean", "-fd"]);
+  return a && b && c;
 }
 
 export type TurnDiffVerdict =
