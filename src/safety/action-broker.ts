@@ -122,6 +122,43 @@ export class DefaultActionBroker implements ActionBroker {
   }
 }
 
+/**
+ * Single construction point for a run's broker. Both the orchestrator and the
+ * effect-site services (suggestion/bundle apply, …) build their broker here so
+ * the Policy Engine V2 (S2) can wire the evaluator chain in ONE place and every
+ * effect kind inherits it — the "one boundary" guarantee. They all append to
+ * the same per-run `runs/<id>/actions.ndjson`.
+ */
+export function createActionBroker(
+  projectRoot: string,
+  runId: string,
+  opts: DefaultActionBrokerOptions = {},
+): ActionBroker {
+  return new DefaultActionBroker(projectRoot, runId, opts);
+}
+
+/** Result of gating an effect at a call site. */
+export type ActionGate =
+  | { allowed: true; decision: ActionDecision }
+  | { allowed: false; decision: ActionDecision; effect: "deny" | "require_approval"; reason: string };
+
+/**
+ * Gate an effect: decide, and on a non-allow verdict record the denial (so the
+ * evidence log shows the blocked attempt) and return it so the caller can fail
+ * closed. On allow, returns the decision; the caller runs the effect and then
+ * calls `broker.record(request, decision, evidence)` with the outcome.
+ */
+export async function gateAction(
+  broker: ActionBroker,
+  request: ActionRequest,
+): Promise<ActionGate> {
+  const decision = await broker.decide(request);
+  if (decision.effect === "allow") return { allowed: true, decision };
+  await broker.record(request, decision, null);
+  const reason = "reason" in decision ? decision.reason : "policy denied";
+  return { allowed: false, decision, effect: decision.effect, reason };
+}
+
 /** Read the append-only action log for a run (skips malformed lines). */
 export async function readActionLog(
   projectRoot: string,

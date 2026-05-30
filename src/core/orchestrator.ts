@@ -37,7 +37,7 @@ import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import {
-  DefaultActionBroker,
+  createActionBroker,
   type ActionBroker,
   type ActionRequest,
 } from "../safety/action-broker.js";
@@ -401,7 +401,7 @@ export class Orchestrator {
     const eventLog = new EventLog(this.projectRoot, runId);
     const metricsStore = new MetricsStore(this.projectRoot, runId);
     const approvalService = new ApprovalService(this.projectRoot, runId);
-    this.broker = new DefaultActionBroker(this.projectRoot, runId);
+    this.broker = createActionBroker(this.projectRoot, runId);
     const notifications = new NotificationService(this.projectRoot);
     const notify = (draft: NotificationDraft): void => {
       // Fire-and-forget: gateway delivery never blocks the orchestrator and

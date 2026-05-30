@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Action Broker (S0) — file.patch:** single-suggestion patch apply/revert now
+  cross the broker boundary (`kind: "file.patch"`), recording allow/deny +
+  ok/fail evidence to `runs/<id>/actions.ndjson`. Fail-closed: a deny verdict
+  refuses the patch and marks the suggestion failed (worktree untouched).
+  New `createActionBroker` factory + `gateAction` helper centralise construction
+  so S2 wires evaluators once for every effect kind.
 - **Vocabulary (S1):** reserve "policy"/"enforced" for code-enforced gates and
   call prompt-injected `rules.md` guidance "instructions". New glossary entries
   (Action Broker, Instructions, Policy); the `vibe init` rules template + the
