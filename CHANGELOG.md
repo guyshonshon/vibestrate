@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 5 — Guides/Flows hub:** install community flows the "npm-without-a-
+  registry" way — a curated `index.json` in a git repo served over raw static
+  URLs, no backend. `fetchHubIndex` (guarded + bounded + schema-validated),
+  `searchHub`, and `installFlowFromHub` (downloads the raw `flow.yml` and writes
+  it through the existing validated, secret/shell-guarded import path).
+  `vibe flows hub list|install <name>`, `GET /api/flows/hub` +
+  `POST /api/flows/hub/install`. Stays local-first (opt-in pull; your runs never
+  touch it).
 - **Phase 5 — Integration / merge-preview:** a gated surface to combine the
   branches of parallel `merge_ready` runs. `mergePreview` does cumulative
   `git merge --no-ff --no-commit` dry-runs in a throwaway scratch worktree
