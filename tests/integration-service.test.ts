@@ -147,6 +147,20 @@ describe("integration — integrate", () => {
       integrate({ projectRoot: dir, branches: [{ branch: "feat-a" }], integrationBranch: "feat-b" }),
     ).rejects.toThrow(/already exists/);
   });
+
+  it("errors clearly when the base branch does not exist", async () => {
+    await expect(
+      integrate({
+        projectRoot: dir,
+        branches: [{ branch: "feat-a" }],
+        integrationBranch: "integration/x",
+        baseBranch: "no-such-base",
+      }),
+    ).rejects.toThrow(/does not exist/);
+    await expect(
+      mergePreview({ projectRoot: dir, branches: [{ branch: "feat-a" }], baseBranch: "no-such-base" }),
+    ).rejects.toThrow(/does not exist/);
+  });
 });
 
 describe("integration — listMergeReadyRuns", () => {

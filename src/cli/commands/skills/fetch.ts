@@ -7,7 +7,7 @@ import { color, indent, symbol } from "../../ui/format.js";
 
 export async function runSkillsFetch(
   url: string,
-  opts: { name?: string; assess?: boolean; profile?: string },
+  opts: { name?: string; assess?: boolean; overwrite?: boolean; profile?: string },
 ): Promise<number> {
   const { projectRoot } = await detectProject(process.cwd());
 
@@ -17,6 +17,7 @@ export async function runSkillsFetch(
       projectRoot,
       url,
       name: opts.name,
+      overwrite: opts.overwrite,
       allowPrivateHosts: true,
     });
     // installSkillFromUrl already wrote the file; for --assess we also judge it.
@@ -55,6 +56,7 @@ export async function runSkillsFetch(
     projectRoot,
     url,
     name: opts.name,
+    overwrite: opts.overwrite,
     allowPrivateHosts: true,
   });
   if (!r.ok) {

@@ -21,6 +21,7 @@ const skillFetchBody = z.object({
   url: z.string().url().max(2000),
   name: z.string().min(1).max(80).optional(),
   assess: z.boolean().optional(),
+  overwrite: z.boolean().optional(),
 });
 
 export async function registerSkillsRoutes(
@@ -49,8 +50,9 @@ export async function registerSkillsRoutes(
       projectRoot,
       url: parsed.data.url,
       name: parsed.data.name,
+      overwrite: parsed.data.overwrite,
     });
-    if (!r.ok) throw new HttpError(400, r.reason);
+    if (!r.ok) throw new HttpError(409, r.reason);
     let assessment = null;
     if (parsed.data.assess) {
       try {

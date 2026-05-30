@@ -6,6 +6,8 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Fix (Phase 5 hardening):** skill fetch refuses to overwrite an existing skill unless `--overwrite` (no silent data loss); integration `mergePreview`/`integrate` error clearly on a missing base branch and clean a stale integration worktree before re-creating it.
+
 - **Phase 5 — Skill fetching + AI overview:** `vibe skills fetch <url>` downloads
   a skill markdown (SSRF-guarded, bounded, secret-redacted) into
   `.vibestrate/skills/<name>.md` (path-guarded write). `--assess` adds a

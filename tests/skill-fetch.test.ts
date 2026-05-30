@@ -67,6 +67,31 @@ describe("installSkillFromUrl", () => {
     }
   });
 
+  it("refuses to overwrite an existing skill unless told to", async () => {
+    const opts = {
+      projectRoot: dir,
+      url: "https://example.test/s/dup.md",
+      allowPrivateHosts: true,
+    };
+    const first = await installSkillFromUrl({ ...opts, fetchImpl: okFetch("v1") });
+    expect(first.ok).toBe(true);
+    const second = await installSkillFromUrl({ ...opts, fetchImpl: okFetch("v2") });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toMatch(/already exists/);
+    expect(
+      await fs.readFile(path.join(dir, ".vibestrate", "skills", "dup.md"), "utf8"),
+    ).toContain("v1");
+    const third = await installSkillFromUrl({
+      ...opts,
+      overwrite: true,
+      fetchImpl: okFetch("v3"),
+    });
+    expect(third.ok).toBe(true);
+    expect(
+      await fs.readFile(path.join(dir, ".vibestrate", "skills", "dup.md"), "utf8"),
+    ).toContain("v3");
+  });
+
   it("blocks SSRF (localhost) and reports empty content", async () => {
     const blocked = await installSkillFromUrl({
       projectRoot: dir,

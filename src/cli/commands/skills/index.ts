@@ -48,10 +48,13 @@ export function buildSkillsCommand(): Command {
     )
     .option("--name <name>", "skill filename (default: derived from the URL)")
     .option("--assess", "read-only AI overview: helpful / already-present / conflicting")
-    .action(async (url: string, opts: { name?: string; assess?: boolean }) => {
-      const { runSkillsFetch } = await import("./fetch.js");
-      process.exit(await runSkillsFetch(url, opts));
-    });
+    .option("--overwrite", "replace an existing skill of the same name")
+    .action(
+      async (url: string, opts: { name?: string; assess?: boolean; overwrite?: boolean }) => {
+        const { runSkillsFetch } = await import("./fetch.js");
+        process.exit(await runSkillsFetch(url, opts));
+      },
+    );
 
   return cmd;
 }
