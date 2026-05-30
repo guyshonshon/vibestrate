@@ -26,6 +26,10 @@ CLAUDE.md
 .vibestrate/notifications/notifications.json
 .vibestrate/notifications/receipts.json
 
+# Issues failure-inbox — runtime diagnostics stream the app appends to on
+# every error/scheduler restart. Not source; was tracked by accident.
+.vibestrate/issues.ndjson
+
 # Legacy local state from before the Vibestrate rename. Do not publish stale
 # run history/config from an old checkout.
 .amaco/
