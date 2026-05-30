@@ -147,6 +147,7 @@ export const defaultFlow = flowDefinitionSchema.parse({
     decisionStep: "review",
     maxIterations: 3,
   },
+  complexity: "high",
 });
 
 export const qualityArbitrationFlow = flowDefinitionSchema.parse({
@@ -242,6 +243,7 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
       outputs: ["decision-summary"],
     },
   ],
+  complexity: "high",
 });
 
 // The built-in **pick-up flow**: the checklist-aware shape for executing a card
@@ -320,6 +322,7 @@ export const pickupFlow = flowDefinitionSchema.parse({
     },
   ],
   checklistSegment: { from: "micro-plan", to: "implement" },
+  complexity: "medium",
 });
 
 export const builtinFlows: readonly FlowDefinition[] = [

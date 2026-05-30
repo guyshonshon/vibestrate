@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — C1 flow-complexity warning:** flows carry a `complexity` weight
+  (or it's inferred from the agent-turn count); compared against the task's
+  estimated effort, `flowComplexityAdvice` warns when a flow is heavier than the
+  task needs (non-blocking) — printed by `vibe run`, returned as `flowAdvice`
+  from `POST /api/runs`. Built-ins: default + quality-arbitration = high,
+  pickup = medium.
 - **Phase 3 — Suggest-next:** a pure ranker over the backlog (status
   backlog/ready) — dependency-ready first, then priority, then fewest open
   blockers, then oldest. `vibe tasks suggest [--all] [--json]`,
