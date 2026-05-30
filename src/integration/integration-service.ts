@@ -106,6 +106,9 @@ export async function mergePreview(input: {
 }): Promise<MergePreviewResult> {
   const loaded = await loadConfig(input.projectRoot);
   const baseBranch = input.baseBranch ?? loaded.config.git.mainBranch;
+  if (!(await refExists(input.projectRoot, baseBranch))) {
+    throw new IntegrationError(`Base branch "${baseBranch}" does not exist.`);
+  }
   const scratchBranch = `vibe-preview-${randomUUID().slice(0, 8)}`;
   const scratchPath = resolveWorktreePath(
     input.projectRoot,
@@ -173,6 +176,9 @@ export async function integrate(input: {
       "Refusing to integrate into the main/base branch — use a dedicated integration branch.",
     );
   }
+  if (!(await refExists(input.projectRoot, baseBranch))) {
+    throw new IntegrationError(`Base branch "${baseBranch}" does not exist.`);
+  }
   if (await refExists(input.projectRoot, target)) {
     throw new IntegrationError(
       `Integration branch "${target}" already exists. Delete it or choose another name.`,
@@ -184,6 +190,9 @@ export async function integrate(input: {
     loaded.config.git.worktreeDir,
     `integration-${target.replace(/[/]/g, "-")}`,
   );
+  // Clean a stale worktree dir left from a prior integration whose branch was
+  // since deleted (the branch-exists check above already covers the live case).
+  await removeWorktree(input.projectRoot, worktreePath);
   await createWorktree({
     cwd: input.projectRoot,
     worktreePath,

@@ -8,7 +8,7 @@
 
 import path from "node:path";
 import { z } from "zod";
-import { writeText } from "../utils/fs.js";
+import { writeText, pathExists } from "../utils/fs.js";
 import { projectSkillsDir } from "../utils/paths.js";
 import { isPathInside } from "../utils/paths.js";
 import { fetchGuardedText } from "../core/guarded-fetch.js";
@@ -50,6 +50,8 @@ export async function installSkillFromUrl(input: {
   name?: string;
   fetchImpl?: FetchImpl;
   allowPrivateHosts?: boolean;
+  /** Replace an existing skill of the same name. Default false (refuse). */
+  overwrite?: boolean;
 }): Promise<SkillFetchResult> {
   let name: string | null;
   try {
@@ -74,6 +76,12 @@ export async function installSkillFromUrl(input: {
   const dest = path.join(skillsDir, `${name}.md`);
   if (!isPathInside(skillsDir, dest)) {
     return { ok: false, reason: "Refusing to write outside the skills directory." };
+  }
+  if (!input.overwrite && (await pathExists(dest))) {
+    return {
+      ok: false,
+      reason: `A skill named "${name}" already exists. Pass --overwrite to replace it.`,
+    };
   }
   await writeText(dest, redacted.endsWith("\n") ? redacted : `${redacted}\n`);
   return {
