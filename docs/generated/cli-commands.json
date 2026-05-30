@@ -2276,6 +2276,100 @@
       ]
     },
     {
+      "name": "workspace",
+      "path": [
+        "vibe",
+        "workspace"
+      ],
+      "description": "Track + switch between multiple Vibestrate projects (a user-level registry).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "workspace",
+            "list"
+          ],
+          "description": "List registered projects (most recently opened first).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "add",
+          "path": [
+            "vibe",
+            "workspace",
+            "add"
+          ],
+          "description": "Register a project directory (default: the current directory).",
+          "usage": "[options] [path]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "vibe",
+            "workspace",
+            "remove"
+          ],
+          "description": "Remove a project from the workspace registry (leaves it on disk).",
+          "usage": "[options] <pathOrLabel>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "open",
+          "path": [
+            "vibe",
+            "workspace",
+            "open"
+          ],
+          "description": "Show how to open a registered project's dashboard.",
+          "usage": "[options] <pathOrLabel>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
+    },
+    {
       "name": "notifications",
       "path": [
         "vibe",

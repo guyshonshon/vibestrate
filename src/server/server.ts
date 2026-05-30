@@ -16,6 +16,7 @@ import { registerApprovalsRoutes } from "./routes/approvals.js";
 import { registerRoadmapRoutes } from "./routes/roadmap.js";
 import { registerTasksRoutes } from "./routes/tasks.js";
 import { registerIntegrationRoutes } from "./routes/integration.js";
+import { registerWorkspaceRoutes } from "./routes/workspace.js";
 import { registerQueueRoutes } from "./routes/queue.js";
 import { registerIssuesRoutes } from "./routes/issues.js";
 import { registerProposalsRoutes } from "./routes/proposals.js";
@@ -311,6 +312,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerRoadmapRoutes(app, { projectRoot: opts.projectRoot });
   await registerTasksRoutes(app, { projectRoot: opts.projectRoot });
   await registerIntegrationRoutes(app, { projectRoot: opts.projectRoot });
+  await registerWorkspaceRoutes(app, { projectRoot: opts.projectRoot });
   await registerQueueRoutes(app, { projectRoot: opts.projectRoot });
   await registerIssuesRoutes(app, { projectRoot: opts.projectRoot });
   await registerProposalsRoutes(app, { projectRoot: opts.projectRoot });

@@ -60,6 +60,18 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     return 1;
   }
 
+  // Register this project (+ the port it bound) in the user-level workspace
+  // registry so the dashboard switcher can find + hop to it. Best-effort.
+  try {
+    const { WorkspaceStore } = await import("../../workspace/workspace-store.js");
+    await new WorkspaceStore().register({
+      root: detected.projectRoot,
+      port: started.port,
+    });
+  } catch {
+    // registry is advisory — never block `vibe ui`.
+  }
+
   // One-line-per-component readout so the user can confirm the
   // "vibe ui = everything you need in one shot" at a glance.
   console.log(`${symbol.ok()} ${header("Vibestrate — dashboard + scheduler")}`);

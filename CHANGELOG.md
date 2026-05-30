@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Multi-project / workspace (v1):** a user-level registry
+  (`~/.vibestrate/workspace.json`) of known projects that each `vibe ui`
+  auto-registers with its bound port, so the dashboard can switch between
+  independent per-project dashboards (local-first "run many at once" — no shared
+  backend). `vibe workspace list|add|remove|open`, `GET /api/workspace` (the
+  served project marked `current`), and a TopBar project switcher that opens
+  another project's dashboard URL. Server stays single-project; switching = hop
+  between dashboards.
 - **Phase 6 — OpenTelemetry exporter (opt-in):** `vibe telemetry export <runId>
   --endpoint <url> [--auth env:TOKEN]` maps a finished run's persisted metrics to
   an OTLP/HTTP trace (a root run span + a child span per role turn, with
