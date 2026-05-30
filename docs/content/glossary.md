@@ -77,6 +77,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once reached, a run cannot transition out.
 
+**Telemetry export.** An opt-in, one-off `vibe telemetry export <runId> --endpoint <url>` that maps a finished run's metrics to an OpenTelemetry (OTLP) trace — a root run span + a child span per role turn (provider, model, tokens, cost) — and POSTs it to *your own* collector (Langfuse, Tempo, Jaeger). Off by default; nothing leaves until you run it. `vibe telemetry trace` prints the JSON without sending.
+
 **Validation.** The stage that runs `commands.validate` from `project.yml` — typecheck, tests, build, lint. The ground-truth check between executor and reviewer.
 
 **Integration.** Combining the branches of several finished (`merge_ready`) runs. Vibestrate previews the merges first (real `git merge` dry-runs that surface conflicts), then integrates the clean ones **sequentially into a dedicated integration branch** — never `main`, never pushed, stopping at the first conflict for you to resolve. `vibe integrate preview/apply` or the Integration panel on the Runs page.

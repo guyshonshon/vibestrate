@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 6 — OpenTelemetry exporter (opt-in):** `vibe telemetry export <runId>
+  --endpoint <url> [--auth env:TOKEN]` maps a finished run's persisted metrics to
+  an OTLP/HTTP trace (a root run span + a child span per role turn, with
+  provider/model/seat and `gen_ai.usage.*` token/cost attributes) and POSTs it to
+  your own collector (Langfuse / Tempo / Jaeger). Dependency-free, deterministic
+  span ids, bearer via env-ref (redacted). `vibe telemetry trace <runId>` prints
+  the OTLP JSON without sending. Off by default; nothing leaves until you run it.
+- **Phase 6 — A6 webhooks:** approve + merge notifications already route to the
+  existing `webhook` gateway; added the missing **cap-hit** notification
+  (`draftSpendCapHit`) fired when the daily spend cap stops a run.
 - **Fix (Phase 5 hardening):** skill fetch refuses to overwrite an existing skill unless `--overwrite` (no silent data loss); integration `mergePreview`/`integrate` error clearly on a missing base branch and clean a stale integration worktree before re-creating it.
 
 - **Phase 5 — Skill fetching + AI overview:** `vibe skills fetch <url>` downloads

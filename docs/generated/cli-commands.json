@@ -446,6 +446,13 @@
               "required": false,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--overwrite",
+              "description": "replace an existing skill of the same name",
+              "required": false,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []
@@ -2199,6 +2206,74 @@
         }
       ],
       "subcommands": []
+    },
+    {
+      "name": "telemetry",
+      "path": [
+        "vibe",
+        "telemetry"
+      ],
+      "description": "Opt-in OpenTelemetry export of a run's metrics to your own collector (off by default).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "trace",
+          "path": [
+            "vibe",
+            "telemetry",
+            "trace"
+          ],
+          "description": "Print the OTLP trace JSON for a run (no network — inspect before exporting).",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "export",
+          "path": [
+            "vibe",
+            "telemetry",
+            "export"
+          ],
+          "description": "Export a run's metrics as an OTLP trace to a collector (Langfuse, Tempo, Jaeger…).",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--endpoint <url>",
+              "description": "OTLP/HTTP base URL (e.g. http://localhost:4318)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--auth <envRef>",
+              "description": "env reference for a bearer token, e.g. env:LANGFUSE_TOKEN",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "notifications",

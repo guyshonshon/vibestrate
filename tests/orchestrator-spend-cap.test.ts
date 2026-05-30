@@ -81,5 +81,12 @@ describe("orchestrator daily spend cap", () => {
     // Planner spends $1 (> $0.01 cap); the next turn's gate stops the run.
     expect(out.state.status).toBe("blocked");
     expect(out.state.error ?? "").toMatch(/spend cap/i);
+
+    // A6: a cap-hit notification was emitted (deliverable to webhooks etc.).
+    const { NotificationStore } = await import(
+      "../src/notifications/notification-store.js"
+    );
+    const { notifications } = await new NotificationStore(dir).readAll();
+    expect(notifications.some((n) => n.title === "Daily spend cap hit")).toBe(true);
   }, 30_000);
 });
