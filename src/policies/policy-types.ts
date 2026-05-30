@@ -76,8 +76,66 @@ export const policyRuleSchema = z
   );
 export type PolicyRule = z.infer<typeof policyRuleSchema>;
 
+/**
+ * S2 — Action policies. Where `rules` gate *patch content* at the apply
+ * surfaces, `actions` gate the Action Broker's effect kinds (provider spawn,
+ * command run, file write, terminal create, run completion) with a `deny` or
+ * `require_approval` effect. An action policy with no `match` applies to every
+ * request of the listed kinds.
+ */
+export const actionKindSchema = z.enum([
+  "provider.spawn",
+  "command.run",
+  "file.patch",
+  "file.write",
+  "terminal.create",
+  "run.complete",
+]);
+export type PolicyActionKind = z.infer<typeof actionKindSchema>;
+
+const actionMatchSchema = z
+  .object({
+    /** Exact provider id (provider.spawn). */
+    providerId: z.string().min(1).max(96).optional(),
+    /** Regex over the command string (command.run). */
+    commandRegex: z
+      .string()
+      .min(1)
+      .max(POLICY_LIMITS.maxRegexLength, "regex pattern too long")
+      .optional(),
+    commandFlags: z
+      .string()
+      .max(8)
+      .regex(POLICY_LIMITS.allowedRegexFlags, "regex flags must be a subset of [gimsuy]")
+      .optional(),
+    /** Glob over a touched/written path (file.write / file.patch). */
+    pathGlob: z
+      .string()
+      .min(1)
+      .max(POLICY_LIMITS.maxGlobLength, "glob pattern too long")
+      .optional(),
+    /** Exact terminal verdict (run.complete: "merge_ready" / "blocked"). */
+    status: z.string().min(1).max(64).optional(),
+  })
+  .optional();
+
+export const actionPolicySchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(96)
+    .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "id must match [A-Za-z][A-Za-z0-9_-]*"),
+  description: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
+  on: z.array(actionKindSchema).min(1),
+  match: actionMatchSchema,
+  effect: z.enum(["deny", "require_approval"]).default("deny"),
+  message: z.string().min(1).max(POLICY_LIMITS.maxMessageLength),
+});
+export type ActionPolicy = z.infer<typeof actionPolicySchema>;
+
 export const policyRuleFileSchema = z.object({
   rules: z.array(policyRuleSchema).default([]),
+  actions: z.array(actionPolicySchema).default([]),
 });
 export type PolicyRuleFile = z.infer<typeof policyRuleFileSchema>;
 
@@ -120,8 +178,10 @@ export type MalformedPolicyFile = {
  */
 export type PolicyStoreSnapshot = {
   rules: PolicyRule[];
-  /** Files keyed by absolute path, with the rule ids parsed from them. */
-  ruleFiles: { file: string; ruleIds: string[] }[];
+  /** S2 — broker action policies (deny / require_approval on effect kinds). */
+  actions: ActionPolicy[];
+  /** Files keyed by absolute path, with the rule + action ids parsed from them. */
+  ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[];
   malformedFiles: MalformedPolicyFile[];
   duplicateIds: string[];
 };

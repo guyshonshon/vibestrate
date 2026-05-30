@@ -156,9 +156,18 @@ export function PoliciesPanel() {
                   >
                     <div className="vibestrate-mono truncate text-vibestrate-fg">{f.file}</div>
                     <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
-                      {f.ruleIds.length === 0
-                        ? "(no rules)"
-                        : `rules: ${f.ruleIds.join(", ")}`}
+                      {f.ruleIds.length === 0 && f.actionIds.length === 0
+                        ? "(empty)"
+                        : [
+                            f.ruleIds.length > 0
+                              ? `rules: ${f.ruleIds.join(", ")}`
+                              : null,
+                            f.actionIds.length > 0
+                              ? `actions: ${f.actionIds.join(", ")}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join("  ·  ")}
                     </div>
                   </li>
                 ))
@@ -199,6 +208,63 @@ export function PoliciesPanel() {
                     ) : null}
                     <p className="text-[10.5px] text-vibestrate-fg-muted">
                       message: {r.message}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+              Action policies (Action Broker)
+            </h3>
+            <ul className="mt-1 space-y-1">
+              {snap.actions.length === 0 ? (
+                <li className="text-vibestrate-fg-muted">
+                  No action policies loaded.
+                </li>
+              ) : (
+                snap.actions.map((a) => (
+                  <li
+                    key={a.id}
+                    className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
+                  >
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-medium">{a.id}</span>
+                      <span className="vibestrate-mono text-[10px] text-vibestrate-fail">
+                        {a.effect}
+                      </span>
+                      <span className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                        on {a.on.join(", ")}
+                      </span>
+                    </div>
+                    <p className="text-[10.5px] text-vibestrate-fg-dim">
+                      {a.description}
+                    </p>
+                    {a.match?.providerId ? (
+                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                        providerId: {a.match.providerId}
+                      </p>
+                    ) : null}
+                    {a.match?.commandRegex ? (
+                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                        command regex: /{a.match.commandRegex}/
+                        {a.match.commandFlags ?? ""}
+                      </p>
+                    ) : null}
+                    {a.match?.pathGlob ? (
+                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                        path glob: {a.match.pathGlob}
+                      </p>
+                    ) : null}
+                    {a.match?.status ? (
+                      <p className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
+                        status: {a.match.status}
+                      </p>
+                    ) : null}
+                    <p className="text-[10.5px] text-vibestrate-fg-muted">
+                      message: {a.message}
                     </p>
                   </li>
                 ))

@@ -1258,6 +1258,29 @@ export type PolicyRuleSummary = {
   message: string;
 };
 
+export type PolicyActionKind =
+  | "provider.spawn"
+  | "command.run"
+  | "file.patch"
+  | "file.write"
+  | "terminal.create"
+  | "run.complete";
+
+export type ActionPolicySummary = {
+  id: string;
+  description: string;
+  on: PolicyActionKind[];
+  match?: {
+    providerId?: string;
+    commandRegex?: string;
+    commandFlags?: string;
+    pathGlob?: string;
+    status?: string;
+  };
+  effect: "deny" | "require_approval";
+  message: string;
+};
+
 export type MalformedPolicyFile = {
   file: string;
   reason: string;
@@ -1265,7 +1288,8 @@ export type MalformedPolicyFile = {
 
 export type PolicyStoreSnapshot = {
   rules: PolicyRuleSummary[];
-  ruleFiles: { file: string; ruleIds: string[] }[];
+  actions: ActionPolicySummary[];
+  ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[];
   malformedFiles: MalformedPolicyFile[];
   duplicateIds: string[];
 };

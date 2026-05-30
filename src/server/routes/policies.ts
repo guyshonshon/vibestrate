@@ -42,6 +42,7 @@ export async function registerPoliciesRoutes(
     const snap = await loadPolicySnapshot(projectRoot);
     return {
       ruleCount: snap.rules.length,
+      actionCount: snap.actions.length,
       fileCount: snap.ruleFiles.length,
       malformedFiles: snap.malformedFiles,
       duplicateIds: snap.duplicateIds,

@@ -1111,6 +1111,23 @@ controlled execution + hard policy gates + visible evidence
 
 ## Implementation status
 
+### S2 — Policy Engine V2 (action policies) ✅ shipped
+
+Policy files gained an `actions:` list alongside the patch-content `rules:`.
+Each action policy (`src/policies/policy-types.ts`) declares `on: ActionKind[]`,
+an optional `match` (exact `providerId`, bounded `commandRegex`, `pathGlob`, or
+exact run `status`), and an `effect` of `deny` / `require_approval`.
+`action-policy-engine.ts` compiles them to broker `ActionEvaluator`s
+(`actionPolicyToEvaluator`); `loadActionPolicyEvaluators(projectRoot)` reads the
+store and builds the chain. `createActionBroker` wires that loader as a lazy
+`evaluatorLoader` — construction stays synchronous, and the policies are read at
+most once per broker on first `decide()`, fail-open on a loader error (malformed
+*files* are already skipped by the store). The same enum, store, and CLI/API/UI
+surfaces are reused, so action policies show up in `vibe policies list`/`doctor`,
+`GET /api/policies`, and the Policies panel. The patch-content `rules:` path
+(`applyPolicyGate`) is unchanged; `run.preflight` / `agent.turn.diff` surfaces
+arrive with S3.
+
 ### S0 — Action Broker boundary + decision/evidence records ✅ shipped
 
 The boundary and the audit record landed first (`src/safety/action-broker.ts`):

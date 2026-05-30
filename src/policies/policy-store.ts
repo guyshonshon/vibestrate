@@ -4,6 +4,7 @@ import { pathExists, readDirSafe, readText } from "../utils/fs.js";
 import { isPathInside, policiesDir } from "../utils/paths.js";
 import {
   policyRuleFileSchema,
+  type ActionPolicy,
   type MalformedPolicyFile,
   type PolicyRule,
   type PolicyStoreSnapshot,
@@ -32,11 +33,19 @@ export async function loadPolicySnapshot(
 ): Promise<PolicyStoreSnapshot> {
   const dir = policiesDir(projectRoot);
   if (!(await pathExists(dir))) {
-    return { rules: [], ruleFiles: [], malformedFiles: [], duplicateIds: [] };
+    return {
+      rules: [],
+      actions: [],
+      ruleFiles: [],
+      malformedFiles: [],
+      duplicateIds: [],
+    };
   }
   const entries = await readDirSafe(dir);
   const rules: PolicyRule[] = [];
-  const ruleFiles: { file: string; ruleIds: string[] }[] = [];
+  const actions: ActionPolicy[] = [];
+  const ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[] =
+    [];
   const malformedFiles: MalformedPolicyFile[] = [];
   const seenIds = new Map<string, string>(); // id → first file that defined it
   const duplicateIds = new Set<string>();
@@ -67,7 +76,7 @@ export async function loadPolicySnapshot(
     }
     if (!text.trim()) {
       // Empty file — record as a file with zero rules. Not malformed.
-      ruleFiles.push({ file, ruleIds: [] });
+      ruleFiles.push({ file, ruleIds: [], actionIds: [] });
       continue;
     }
     let parsed: unknown;
@@ -129,11 +138,49 @@ export async function loadPolicySnapshot(
       rules.push(rule);
       fileIds.push(rule.id);
     }
-    ruleFiles.push({ file, ruleIds: fileIds });
+
+    // S2 — action policies share the rule id space (one namespace per project).
+    const actionIds: string[] = [];
+    for (const action of result.data.actions) {
+      if (action.match?.commandRegex) {
+        try {
+          new RegExp(action.match.commandRegex, action.match.commandFlags);
+        } catch (err) {
+          malformedFiles.push({
+            file,
+            reason: `Action "${action.id}" has uncompilable commandRegex: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          continue;
+        }
+      }
+      if (action.match?.pathGlob) {
+        try {
+          globToRegex(action.match.pathGlob);
+        } catch (err) {
+          malformedFiles.push({
+            file,
+            reason: `Action "${action.id}" has malformed pathGlob: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          continue;
+        }
+      }
+      const prev = seenIds.get(action.id);
+      if (prev) {
+        duplicateIds.add(action.id);
+        actionIds.push(action.id);
+        continue;
+      }
+      seenIds.set(action.id, file);
+      actions.push(action);
+      actionIds.push(action.id);
+    }
+
+    ruleFiles.push({ file, ruleIds: fileIds, actionIds });
   }
 
   return {
     rules,
+    actions,
     ruleFiles,
     malformedFiles,
     duplicateIds: [...duplicateIds].sort(),
