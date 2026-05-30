@@ -165,6 +165,13 @@ export const runStateSchema = z.object({
     })
     .nullable()
     .default(null),
+  // Non-blocking "a human should look at this" advisory (Phase 3). Set when a
+  // reviewer/verifier emits HUMAN_REVIEW: ADVISORY. Does NOT change the run's
+  // terminal verdict; it flags the linked card for human testing.
+  needsTesting: z
+    .object({ reason: z.string().nullable() })
+    .nullable()
+    .default(null),
   // Pick-up execution (Phase 3): how the per-item checklist band advances.
   // "continuous" runs items back-to-back; "step" pauses between items for a
   // human. null when the run isn't iterating a checklist.
@@ -385,6 +392,7 @@ export function createInitialState(input: {
     concise: false,
     flow: null,
     resumedFrom: null,
+    needsTesting: null,
     checklistMode: null,
     checklistProgress: null,
   };

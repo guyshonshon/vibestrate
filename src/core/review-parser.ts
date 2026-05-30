@@ -3,6 +3,27 @@ import type { ReviewDecision, VerificationDecision } from "./state-machine.js";
 const REVIEW_LINE_RE = /^\s*DECISION\s*:\s*(APPROVED|CHANGES_REQUESTED|BLOCKED)\s*$/m;
 const VERIFY_LINE_RE = /^\s*VERIFICATION\s*:\s*(PASSED|FAILED|NEEDS_HUMAN)\s*$/m;
 
+// Advisory "a human should look at this" marker (Phase 3). Non-blocking — the
+// run still reaches its terminal verdict; the linked card is flagged so a human
+// can eyeball something the model can't perceive (visual/UX/3D), then pass it or
+// send it back. Distinct from HUMAN_APPROVAL, which blocks.
+const NEEDS_TESTING_RE = /^\s*HUMAN_REVIEW\s*:\s*ADVISORY\s*$/m;
+const NEEDS_TESTING_REASON_RE = /^\s*HUMAN_REVIEW_REASON\s*:\s*(.+)$/m;
+
+export type NeedsTestingSignal = {
+  advisory: boolean;
+  reason: string | null;
+};
+
+/** Detect a non-blocking "needs human testing" advisory in agent output. */
+export function detectNeedsTesting(text: string): NeedsTestingSignal {
+  if (!text || !NEEDS_TESTING_RE.test(text)) {
+    return { advisory: false, reason: null };
+  }
+  const reason = text.match(NEEDS_TESTING_REASON_RE);
+  return { advisory: true, reason: reason ? reason[1]!.trim() : null };
+}
+
 export type ReviewParseResult = {
   decision: ReviewDecision | null;
   reason: string | null;

@@ -181,6 +181,11 @@ export const taskSchema = z.object({
   // synthetic-1-item case. Defaults to empty for backward-compat with tasks
   // written before this field existed.
   checklist: z.array(checklistItemSchema).default([]),
+  // Non-blocking advisory: a run finished but a human should eyeball something
+  // the model can't perceive (visual/UX/3D). Set from a HUMAN_REVIEW: ADVISORY
+  // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)
+  needsTesting: z.boolean().default(false),
+  needsTestingReason: z.string().nullable().default(null),
 });
 export type Task = z.infer<typeof taskSchema>;
 

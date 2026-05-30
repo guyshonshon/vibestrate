@@ -337,6 +337,8 @@ export type Task = {
   profileOverride?: string | null;
   readOnly?: boolean;
   checklist?: ChecklistItem[];
+  needsTesting?: boolean;
+  needsTestingReason?: string | null;
 };
 
 export type ChecklistItemStatus = "pending" | "in_progress" | "done" | "blocked";

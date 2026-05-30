@@ -12,6 +12,7 @@ import {
 import {
   effectiveReviewDecision,
   effectiveVerificationDecision,
+  detectNeedsTesting,
 } from "./review-parser.js";
 import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
 import { buildRolePrompt, type PriorArtifact } from "./prompt-builder.js";
@@ -1247,6 +1248,11 @@ export class Orchestrator {
     let lastValidation = null as ValidationResults | null;
     let reviewDecision = "BLOCKED" as ReviewDecision;
     let verificationDecision = "NEEDS_HUMAN" as VerificationDecision;
+    // Non-blocking "a human should look at this" advisory (Phase 3). Set if a
+    // reviewer/verifier emits HUMAN_REVIEW: ADVISORY; surfaced at finalize.
+    // Widened initializer (`as`) — reassigned inside the runStep closure, which
+    // TS control-flow can't see (same pattern as reviewDecision above).
+    let needsTestingAdvisory = null as { reason: string | null } | null;
     let planArtifact: RoleRunResult | null = null;
     let executionArtifact: RoleRunResult | null = null;
     let reviewArtifact: RoleRunResult | null = null;
@@ -1780,6 +1786,18 @@ export class Orchestrator {
               source: step.kind === "summary-turn" ? "verifier" : "reviewer",
               notify: input.notify,
             });
+            // Non-blocking advisory: a reviewer/verifier can flag that a human
+            // should eyeball the result (something the model can't perceive).
+            // It never changes the verdict — last writer wins.
+            const advisory = detectNeedsTesting(result.output);
+            if (advisory.advisory) {
+              needsTestingAdvisory = { reason: advisory.reason };
+              await input.eventLog.append({
+                type: "needs_testing.flagged",
+                message: `Flagged for human testing at ${step.id}${advisory.reason ? `: ${advisory.reason}` : "."}`,
+                data: { stepId: step.id, reason: advisory.reason },
+              });
+            }
           }
 
           const gate = await this.maybeAwaitApproval({
@@ -2040,6 +2058,7 @@ export class Orchestrator {
         ...state,
         finalDecision: reviewDecision,
         verification: finalVerification,
+        needsTesting: needsTestingAdvisory,
       };
       await input.stateStore.write(state);
       state = applyTransition(
@@ -2047,6 +2066,14 @@ export class Orchestrator {
         effectiveMergeReady ? "merge_ready" : "blocked",
       );
       await input.stateStore.write(state);
+      // Propagate a needs-testing advisory to the linked card (best-effort,
+      // non-blocking). The run keeps its real verdict; the card is flagged so a
+      // human can pass it or send it back.
+      if (needsTestingAdvisory && this.taskId) {
+        await roadmap
+          .flagNeedsTesting(this.taskId, needsTestingAdvisory.reason)
+          .catch(() => {});
+      }
       await this.broker!.record(completeReq, completeDecision, {
         ok: effectiveMergeReady,
         summary: `run ${input.runId} ${state.status}`,

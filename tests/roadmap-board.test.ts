@@ -34,6 +34,8 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     profileOverride: null,
     readOnly: false,
     checklist: [],
+    needsTesting: false,
+    needsTestingReason: null,
   };
 }
 

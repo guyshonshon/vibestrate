@@ -3,6 +3,7 @@ import {
   Check,
   ExternalLink,
   FileCode,
+  FlaskConical,
   GripVertical,
   Lock,
   Plus,
@@ -204,6 +205,9 @@ export function TaskDetailPage({
       </header>
 
       <div className="flex flex-col gap-3 p-4">
+        {task.needsTesting ? (
+          <NeedsTestingBanner task={task} onResolved={load} />
+        ) : null}
         {task.description ? (
           <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
             <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
@@ -434,6 +438,71 @@ function DependenciesSection({
               ))}
             </ul>
           )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function NeedsTestingBanner({
+  task,
+  onResolved,
+}: {
+  task: Task;
+  onResolved: () => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function verdict(v: "pass" | "fail") {
+    setBusy(v);
+    setError(null);
+    try {
+      await api.resolveNeedsTesting(task.id, v);
+      await onResolved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="rounded border border-vibestrate-warn/50 bg-vibestrate-warn/10 p-3">
+      <div className="flex items-start gap-2">
+        <FlaskConical
+          className="mt-0.5 h-4 w-4 shrink-0 text-vibestrate-warn"
+          strokeWidth={1.7}
+        />
+        <div className="flex-1">
+          <div className="text-[12.5px] font-medium text-vibestrate-warn">
+            Needs testing — a human should check this
+          </div>
+          <div className="mt-0.5 text-[12px] text-vibestrate-fg-dim">
+            {task.needsTestingReason ||
+              "A run finished but flagged something for human review (e.g. visual / UX the model can't perceive)."}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => verdict("pass")}
+              disabled={busy !== null}
+              className="rounded border border-vibestrate-success/50 bg-vibestrate-success/15 px-2 py-1 text-[12px] text-vibestrate-success hover:bg-vibestrate-success/25 disabled:opacity-50"
+            >
+              {busy === "pass" ? "…" : "Looks good → Done"}
+            </button>
+            <button
+              type="button"
+              onClick={() => verdict("fail")}
+              disabled={busy !== null}
+              className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+            >
+              {busy === "fail" ? "…" : "Needs work → Reopen"}
+            </button>
+          </div>
+          {error ? (
+            <div className="mt-1 text-[10.5px] text-vibestrate-fail">{error}</div>
+          ) : null}
         </div>
       </div>
     </section>
