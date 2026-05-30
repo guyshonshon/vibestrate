@@ -129,6 +129,11 @@ export const policiesConfigSchema = z.object({
   // an already-created PTY over a WS channel; the server never executes
   // a shell command string supplied over HTTP.
   allowInteractiveTerminal: z.boolean().default(false),
+  // S4 — strict apply-only mode. When true, write-capable roles run read-only
+  // (no direct disk writes); they propose a unified diff, which Vibestrate
+  // applies through the Action Broker gateway (secret/path safety + file.patch
+  // policy + audited git apply). High-assurance: every change crosses the gate.
+  strictApplyOnly: z.boolean().default(false),
 });
 
 // Daily spend governance. When `spendCapDailyUsd` is set, the orchestrator

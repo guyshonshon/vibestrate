@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Strict apply-only mode (S4):** new `policies.strictApplyOnly` flag. When on,
+  write-capable roles run read-only (no direct disk writes); they propose a
+  unified diff (```diff block) which Vibestrate applies through the broker
+  gateway — secret/forbidden-path safety → `file.patch` policy → audited
+  `git apply` → recorded evidence. A refused patch blocks the run. The role
+  prompt is augmented to instruct the agent to emit the diff. (`apply-gateway.ts`.)
 - **Post-turn diff gate (S3):** every write-capable agent turn is now snapshotted
   before it runs (`git write-tree`) and its diff evaluated after — built-in
   secret/forbidden-path safety plus `file.patch` action policies. A deny/unsafe

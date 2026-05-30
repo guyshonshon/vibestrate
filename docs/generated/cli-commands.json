@@ -3122,6 +3122,33 @@
       ]
     },
     {
+      "name": "assurance",
+      "path": [
+        "vibe",
+        "assurance"
+      ],
+      "description": "Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the run id (see `vibe status`)",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
       "name": "budget",
       "path": [
         "vibe",
