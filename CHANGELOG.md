@@ -6,6 +6,19 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Pick-up execution (continuous-mode loop):** a run bound to a task
+  with a Checklist now executes it **item-by-item in one worktree**. The flow's
+  `checklistSegment` (a contiguous step body) repeats once per item: the
+  current-item brief + carried compact summaries are injected as context, the
+  item's work is committed (stamped `Vibestrate-Checklist-Item: <id>`), a compact
+  summary is carried forward (not full diffs), and status + commit sha are
+  written back to the task. A holistic plan runs once before, review once after.
+  **Continuous** (back-to-back) or **step-by-step** (pauses between items, reuses
+  the pause gate). Stop-on-failure, linear. New built-in `pickup` flow;
+  `vibe tasks pickup <id> [--step]`, `vibe run --checklist <continuous|step>`,
+  `POST /api/runs {checklistMode}`, and a "Run checklist" button on the task. New
+  git commit helpers + `src/pickup/item-summary.ts` (the forward-carry). With no
+  checklist a flow runs once — the instant-task N=1 case, unchanged.
 - **Phase 3 — Assist primitive + Enhance:** new `src/assist/` — a one-shot,
   read-only, structured-output run (`runAssist`: resolve crew-planner profile →
   broker-gated `provider.spawn` → parse + Zod-validate JSON, one reprompt on

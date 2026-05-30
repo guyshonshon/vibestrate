@@ -65,6 +65,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Enhance.** An [Assist](#) that *decomposes* a task/card into an ordered **Checklist** — e.g. "Add a health endpoint" → `1. define the route`, `2. return json`, `3. add a test`. It **proposes**; you accept. The model never writes to the board on its own. Run it with `vibe tasks enhance <id>` (add `--apply` to append) or the "Enhance" button on a task. Distinct from macro **Proposals**, which create *separate* cards.
 
+**Pick-up execution.** Running a card's [Checklist](#) item-by-item in one run + one worktree: the flow's `checklistSegment` repeats once per item (micro-plan → implement), committing each item and carrying a compact summary forward to the next, with a holistic plan once before and review once after. **Continuous** runs items back-to-back; **step-by-step** pauses between them. Start it with `vibe tasks pickup <id>` or the "Run checklist" button. An instant task is the degenerate one-item case.
+
 **Checklist.** An ordered list of **items** (todos) that lives *inside* a task/card — the concrete breakdown of what the card entails (e.g. `1. /health returns json`, `2. test the endpoint`). Kept on the task on purpose so context isn't scattered across many cards. Each item has a status (`pending`/`in_progress`/`done`/`blocked`). Manage it with `vibe tasks checklist …` or in the task detail page. (Distinct from a Flow **Step**, which is a workflow phase.)
 
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once reached, a run cannot transition out.

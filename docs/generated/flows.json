@@ -384,6 +384,112 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "pickup",
+      "version": 1,
+      "label": "Pick-up (checklist)",
+      "description": "Execute a card item-by-item: a holistic plan once, then micro-plan → implement repeated per checklist item in one worktree (compact summaries carried forward, a commit per item), then a holistic review.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Plans the card and each item."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements one checklist item at a time."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the accumulated result across all items."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "micro-plan",
+          "label": "Micro-plan item",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "micro-plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement item",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "execution",
+            "prior-items"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }

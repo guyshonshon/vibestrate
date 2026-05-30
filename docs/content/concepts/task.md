@@ -53,6 +53,17 @@ vibe tasks enhance <taskId> --apply    # append the proposed items
 
 Enhance is a one-shot, read-only [assist](/docs/glossary#assist) run — it *proposes* an ordered breakdown of the card; you decide whether to add the items (the "Enhance" button on a task previews them, then "Add all" appends). The model never writes to the board on its own.
 
+## Pick-up execution — run the whole checklist
+
+Once a card has a checklist, **pick it up** to execute every item in one run, in one worktree:
+
+```bash
+vibe tasks pickup <taskId>          # continuous: items back-to-back
+vibe tasks pickup <taskId> --step   # pause between items for review
+```
+
+The dashboard's "Run checklist" button on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow): a holistic **plan** once, then a per-item band (**micro-plan → implement**) repeated for each item, then a holistic **review**. Each item is committed on its own (stamped with the item id, so a single item can be reverted), and a *compact summary* of each finished item is carried forward so later items have context without re-reading every diff. Item status and the commit sha are written back onto the checklist as the run progresses. Execution is linear and stops on the first failing item.
+
 A checklist item is **not** a Flow [Step](/docs/concepts/workflow): a Step is a phase of the workflow (plan / implement / review); a checklist item is a piece of *what to build*. Don't conflate them.
 
 ## Practical tips

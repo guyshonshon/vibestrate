@@ -553,6 +553,54 @@ async function cmdRun(taskId: string): Promise<number> {
   });
 }
 
+async function cmdPickup(
+  taskId: string,
+  opts: { step?: boolean },
+): Promise<number> {
+  const { svc: s, root } = await svc();
+  const task = await s.getTask(taskId);
+  if (!task) {
+    console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+    return 1;
+  }
+  if (task.checklist.length === 0) {
+    console.error(
+      `${symbol.fail()} Task "${taskId}" has no checklist. Add items (vibe tasks checklist add) or run "vibe tasks enhance ${taskId}" first.`,
+    );
+    return 2;
+  }
+  const { fileURLToPath } = await import("node:url");
+  const fs = await import("node:fs");
+  // Re-invoke the exact entrypoint this process was launched with — robust
+  // whether the CLI ships as a single bundle or a tsc-compiled tree.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const bin =
+    [
+      process.argv[1],
+      path.resolve(here, "..", "..", "..", "dist", "index.js"),
+      path.resolve(here, "..", "..", "index.js"),
+    ].find((p) => p && fs.existsSync(p)) ?? null;
+  if (!bin) {
+    console.error(
+      `${symbol.fail()} Could not locate the Vibestrate CLI entrypoint.`,
+    );
+    return 1;
+  }
+  const mode = opts.step ? "step" : "continuous";
+  console.log(
+    `${symbol.arrow()} Picking up ${color.bold(task.title)} — ${task.checklist.length} item(s), ${mode} mode.`,
+  );
+  return new Promise<number>((resolve) => {
+    const child = spawn(
+      process.execPath,
+      [bin, "run", task.title, "--task", task.id, "--flow", "pickup", "--checklist", mode],
+      { cwd: root, stdio: "inherit" },
+    );
+    child.on("exit", (code) => resolve(code ?? -1));
+    child.on("error", () => resolve(-1));
+  });
+}
+
 export function buildTasksCommand(): Command {
   const cmd = new Command("tasks").description(
     "Manage local tasks: backlog → queued → running → done.",
@@ -644,6 +692,17 @@ export function buildTasksCommand(): Command {
     .description("Run this task now (foreground; same as vibe run --task <id>).")
     .action(async (id: string) => {
       const code = await cmdRun(id);
+      process.exit(code);
+    });
+
+  cmd
+    .command("pickup <id>")
+    .description(
+      "Execute the task's checklist item-by-item (pick-up flow). Continuous by default; --step pauses between items.",
+    )
+    .option("--step", "pause between items for review (step-by-step)")
+    .action(async (id: string, opts) => {
+      const code = await cmdPickup(id, opts);
       process.exit(code);
     });
 

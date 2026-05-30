@@ -99,6 +99,10 @@ export type RunCommandOptions = {
    *  resuming at `resumeStage`. Mutually exclusive with a Flow. */
   resumeFromRunId?: string | null;
   resumeStage?: "planning" | "architecting" | "executing";
+  /** Pick-up execution: iterate the linked task's checklist through the flow's
+   *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
+   *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */
+  checklistMode?: "continuous" | "step" | null;
 };
 
 export async function runRunCommand(
@@ -395,6 +399,7 @@ export async function runRunCommand(
     concise: options.concise ?? false,
     flow: resolvedFlow,
     resumeFrom,
+    checklistMode: options.checklistMode ?? null,
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);
