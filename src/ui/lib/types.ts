@@ -340,6 +340,7 @@ export type Task = {
   needsTesting?: boolean;
   needsTestingReason?: string | null;
   derivedFrom?: { taskId: string; itemId: string } | null;
+  archived?: boolean;
 };
 
 export type TaskSuggestion = {

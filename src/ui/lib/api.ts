@@ -997,6 +997,13 @@ export const api = {
     );
     return r.task;
   },
+  async setTaskArchived(taskId: string, archived: boolean): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/archive`,
+      { archived },
+    );
+    return r.task;
+  },
   async queueTask(taskId: string): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/queue`,

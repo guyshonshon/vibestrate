@@ -1366,6 +1366,46 @@
           "subcommands": []
         },
         {
+          "name": "archive",
+          "path": [
+            "vibe",
+            "tasks",
+            "archive"
+          ],
+          "description": "Archive a task (files it into the board's Archived column).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "unarchive",
+          "path": [
+            "vibe",
+            "tasks",
+            "unarchive"
+          ],
+          "description": "Un-archive a task.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
           "name": "queue",
           "path": [
             "vibe",

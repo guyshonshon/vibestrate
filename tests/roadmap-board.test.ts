@@ -37,6 +37,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     needsTesting: false,
     needsTestingReason: null,
     derivedFrom: null,
+    archived: false,
   };
 }
 

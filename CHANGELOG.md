@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Board coarse columns:** the planning board now shows a coarse
+  human kanban — `Planned · In-progress · Needs testing · Completed · Archived`
+  — derived from a card's status plus the needs-testing / archived overlays
+  (`coarseColumn`), not the orchestrator's fine run stages (those stay in Mission
+  Control). New `archived` flag + `setArchived` (refuses while a run is active),
+  `vibe tasks archive|unarchive`, `POST /api/tasks/:id/archive`, an archive
+  button on the task. **Phase 3 is complete.**
 - **Phase 3 — C1 flow-complexity warning:** flows carry a `complexity` weight
   (or it's inferred from the agent-turn count); compared against the task's
   estimated effort, `flowComplexityAdvice` warns when a flow is heavier than the
