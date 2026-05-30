@@ -382,6 +382,26 @@ export async function runRunCommand(
     );
   }
 
+  // C1: warn (non-blocking) when the chosen flow looks heavier than the task.
+  if (resolvedFlow) {
+    const { inferFlowComplexity, flowComplexityAdvice } = await import(
+      "../../flows/runtime/flow-complexity.js"
+    );
+    const { classifyEffort } = await import("../../core/effort-heuristic.js");
+    const taskEffort =
+      effort ?? classifyEffort({ text: resolvedTask, files: [] }).effort;
+    const advice = flowComplexityAdvice({
+      flowComplexity: inferFlowComplexity(resolvedFlow),
+      taskEffort,
+      flowLabel: resolvedFlow.label,
+    });
+    if (advice.message) {
+      console.log(
+        `${advice.level === "overkill" ? symbol.warn() : symbol.bullet()} ${advice.message}`,
+      );
+    }
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,

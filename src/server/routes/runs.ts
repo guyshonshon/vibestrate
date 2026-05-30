@@ -251,6 +251,32 @@ export async function registerRunsRoutes(
       flow: body.flow ?? null,
       resumeFrom: body.resumeFrom ?? null,
     };
+    // C1: best-effort flow-complexity advice (non-blocking, informational).
+    let flowAdvice: { level: string; message: string | null } | null = null;
+    if (body.flow) {
+      try {
+        const { findFlowById } = await import(
+          "../../flows/catalog/flow-discovery.js"
+        );
+        const { inferFlowComplexity, flowComplexityAdvice } = await import(
+          "../../flows/runtime/flow-complexity.js"
+        );
+        const { classifyEffort } = await import("../../core/effort-heuristic.js");
+        const found = await findFlowById(projectRoot, body.flow.id);
+        if (found) {
+          const advice = flowComplexityAdvice({
+            flowComplexity: inferFlowComplexity(found.definition),
+            taskEffort: classifyEffort({ text: body.task, files: [] }).effort,
+            flowLabel: found.definition.label,
+          });
+          if (advice.message) {
+            flowAdvice = { level: advice.level, message: advice.message };
+          }
+        }
+      } catch {
+        // advisory only — never block a launch.
+      }
+    }
     try {
       const pid = await startDetachedRun({
         projectRoot,
@@ -262,6 +288,7 @@ export async function registerRunsRoutes(
         pid,
         argv,
         message: `started run (equivalent: vibe ${formatArgv(argv)})`,
+        flowAdvice,
       };
     } catch (err) {
       throw new HttpError(

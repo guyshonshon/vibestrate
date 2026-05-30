@@ -69,6 +69,13 @@ export const flowContextPolicySchema = z.enum([
 ]);
 export type FlowContextPolicy = z.infer<typeof flowContextPolicySchema>;
 
+// How heavy a Flow is — its "weight class" (Phase 3 C1). Used to warn when a
+// heavy flow is run against a light task ("this flow might be too much"). When
+// a Flow doesn't declare it, the runner infers it from the number of agent
+// turns (see flow-complexity.ts).
+export const flowComplexitySchema = z.enum(["low", "medium", "high"]);
+export type FlowComplexity = z.infer<typeof flowComplexitySchema>;
+
 // A **Seat** is what a Flow step needs filled (e.g. an `implementer`). The Flow
 // declares its required seats; it does NOT name local Role ids — the run's Crew
 // supplies a Role whose `fills` includes the seat. Keeps Flows shareable.
@@ -141,6 +148,7 @@ const flowDefinitionBaseSchema = z
     steps: z.array(flowStepSchema).min(1),
     loop: flowLoopSchema.optional(),
     checklistSegment: flowChecklistSegmentSchema.optional(),
+    complexity: flowComplexitySchema.optional(),
   })
   .strict();
 
@@ -359,6 +367,8 @@ export const resolvedFlowSnapshotSchema = z
     // definition; the runner repeats from..to once per checklist item. null
     // when the flow isn't checklist-aware (then every run is the N=1 case).
     checklistSegment: flowChecklistSegmentSchema.nullable().default(null),
+    // Declared weight class (Phase 3 C1). null ⇒ infer from agent-turn count.
+    complexity: flowComplexitySchema.nullable().default(null),
   })
   .strict();
 export type ResolvedFlowSnapshot = z.infer<typeof resolvedFlowSnapshotSchema>;
