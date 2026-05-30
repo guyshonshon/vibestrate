@@ -481,6 +481,22 @@ async function cmdSetStatus(taskId: string, status: TaskStatus): Promise<number>
   }
 }
 
+async function cmdArchive(taskId: string, archived: boolean): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    await s.setArchived(taskId, archived);
+    console.log(
+      `${symbol.ok()} Task ${color.bold(taskId)} ${archived ? "archived" : "un-archived"}.`,
+    );
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 async function cmdQueue(taskId: string): Promise<number> {
   try {
     const { svc: s, root } = await svc();
@@ -733,6 +749,20 @@ export function buildTasksCommand(): Command {
     .action(async (id: string) => {
       const code = await cmdSetStatus(id, "cancelled");
       process.exit(code);
+    });
+
+  cmd
+    .command("archive <id>")
+    .description("Archive a task (files it into the board's Archived column).")
+    .action(async (id: string) => {
+      process.exit(await cmdArchive(id, true));
+    });
+
+  cmd
+    .command("unarchive <id>")
+    .description("Un-archive a task.")
+    .action(async (id: string) => {
+      process.exit(await cmdArchive(id, false));
     });
 
   cmd

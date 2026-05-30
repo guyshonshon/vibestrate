@@ -174,6 +174,7 @@ export class RoadmapService {
       needsTesting: false,
       needsTestingReason: null,
       derivedFrom: input.derivedFrom ?? null,
+      archived: false,
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {
@@ -308,6 +309,25 @@ export class RoadmapService {
       ...t,
       currentRunId: null,
       status: finalStatus,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Archive or un-archive a task (board overlay; orthogonal to run status). */
+  async setArchived(taskId: string, archived: boolean): Promise<Task> {
+    const t = await this.store.getTask(taskId);
+    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
+    if (archived && t.currentRunId) {
+      throw new RoadmapServiceError(
+        `Task "${taskId}" is linked to active run ${t.currentRunId}; abort the run before archiving.`,
+      );
+    }
+    const next: Task = {
+      ...t,
+      archived,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

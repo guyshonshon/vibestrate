@@ -46,24 +46,47 @@ import type { ChipTone } from "../../components/design/Chip.js";
 
 type ColumnTone = "fog" | "sky" | "violet" | "emerald" | "amber" | "rose";
 
+type CoarseId =
+  | "planned"
+  | "in_progress"
+  | "needs_testing"
+  | "completed"
+  | "archived";
+
 type ColumnDef = {
-  id: string;
+  id: CoarseId;
   label: string;
-  statuses: TaskStatus[];
   tone: ColumnTone;
   accent: string;
 };
 
+// The board is a *coarse* human kanban (Phase 3) — not the orchestrator's fine
+// run stages, which live in Mission Control. A card's column is derived from its
+// status + the archived / needs-testing overlays (see coarseColumnOf).
 const COLUMNS: ColumnDef[] = [
-  { id: "ideas",   label: "Ideas",      statuses: ["backlog"],              tone: "fog",     accent: "rgba(255,255,255,0.04)" },
-  { id: "ready",   label: "Ready",      statuses: ["ready"],                tone: "sky",     accent: "rgba(124,197,255,0.5)" },
-  { id: "queued",  label: "Queued",     statuses: ["queued"],               tone: "violet",  accent: "rgba(167,139,250,0.45)" },
-  { id: "running", label: "Running",    statuses: ["running"],              tone: "emerald", accent: "rgba(74,222,128,0.55)" },
-  { id: "waiting", label: "Approval",   statuses: ["waiting_for_approval"], tone: "amber",   accent: "rgba(251,191,36,0.55)" },
-  { id: "review",  label: "Review",     statuses: ["review"],               tone: "sky",     accent: "rgba(124,197,255,0.5)" },
-  { id: "blocked", label: "Blocked",    statuses: ["blocked", "failed"],    tone: "rose",    accent: "rgba(244,114,128,0.5)" },
-  { id: "done",    label: "Done",       statuses: ["done", "cancelled"],    tone: "emerald", accent: "rgba(74,222,128,0.35)" },
+  { id: "planned",       label: "Planned",      tone: "fog",     accent: "rgba(255,255,255,0.04)" },
+  { id: "in_progress",   label: "In-progress",  tone: "emerald", accent: "rgba(74,222,128,0.55)" },
+  { id: "needs_testing", label: "Needs testing", tone: "amber",  accent: "rgba(251,191,36,0.55)" },
+  { id: "completed",     label: "Completed",    tone: "sky",     accent: "rgba(124,197,255,0.5)" },
+  { id: "archived",      label: "Archived",     tone: "fog",     accent: "rgba(255,255,255,0.04)" },
 ];
+
+// Mirror of the canonical coarseColumn() in roadmap-types (server/UI type split).
+function coarseColumnOf(task: Task): CoarseId {
+  if (task.archived) return "archived";
+  if (task.needsTesting) return "needs_testing";
+  switch (task.status) {
+    case "backlog":
+    case "ready":
+      return "planned";
+    case "done":
+      return "completed";
+    case "cancelled":
+      return "archived";
+    default:
+      return "in_progress";
+  }
+}
 
 const COLUMN_TONE: Record<ColumnTone, { dot: string; text: string }> = {
   fog:     { dot: "bg-fog-500",     text: "text-fog-300"     },
@@ -425,8 +448,8 @@ export function BoardPage({
               }}
             >
               {COLUMNS.map((col) => {
-                const colTasks = filtered.filter((t) =>
-                  col.statuses.includes(t.status),
+                const colTasks = filtered.filter(
+                  (t) => coarseColumnOf(t) === col.id,
                 );
                 return (
                   <BoardColumn
@@ -702,8 +725,8 @@ function BoardColumn({
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
 }) {
   const tone = COLUMN_TONE[column.tone];
-  const isRunning = column.id === "running";
-  const urgent = column.id === "waiting" && tasks.length > 0;
+  const isRunning = column.id === "in_progress";
+  const urgent = column.id === "needs_testing" && tasks.length > 0;
 
   return (
     <section

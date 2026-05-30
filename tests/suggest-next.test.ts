@@ -37,6 +37,7 @@ function task(
     needsTesting: false,
     needsTestingReason: null,
     derivedFrom: null,
+    archived: false,
     ...over,
   };
 }

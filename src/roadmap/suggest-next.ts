@@ -33,7 +33,7 @@ export type Suggestion = {
 export function suggestNext(tasks: readonly Task[]): Suggestion[] {
   const graph = buildDependencyGraph(tasks);
   const scored = tasks
-    .filter((t) => BACKLOG_STATUSES.has(t.status))
+    .filter((t) => BACKLOG_STATUSES.has(t.status) && !t.archived)
     .map((task) => {
       const openBlockers = getOpenBlockers(graph, task.id);
       return { task, openBlockers, ready: openBlockers.length === 0 };

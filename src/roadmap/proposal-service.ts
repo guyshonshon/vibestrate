@@ -229,6 +229,7 @@ export class ProposalService {
       needsTesting: false,
       needsTestingReason: null,
       derivedFrom: null,
+      archived: false,
     }));
     const graph = buildDependencyGraph(tempTasks);
     const cycleReport = findFirstCycle(graph);

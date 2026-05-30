@@ -47,6 +47,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     needsTesting: false,
     needsTestingReason: null,
     derivedFrom: null,
+    archived: false,
   };
 }
 

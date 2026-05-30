@@ -194,6 +194,10 @@ export const taskSchema = z.object({
     .object({ taskId: safeIdSchema, itemId: z.string().min(1) })
     .nullable()
     .default(null),
+  // Filed-away flag (Phase 3 board): an archived card sits in the board's
+  // Archived column regardless of its run status. Orthogonal to status so a
+  // done OR abandoned card can be archived without losing its real state.
+  archived: z.boolean().default(false),
 });
 export type Task = z.infer<typeof taskSchema>;
 
@@ -225,6 +229,54 @@ export const TASK_STATUSES_BOARD: readonly TaskStatus[] = [
   "failed",
   "cancelled",
 ] as const;
+
+// ── Coarse board columns (Phase 3) ──────────────────────────────────────────
+// The planning board shows a *coarse* human kanban — not the orchestrator's
+// fine run stages (those live in Mission Control). A card's column is derived
+// from its status plus the archived / needs-testing overlays. Auto-nudged: as
+// the run status changes (→ running, → done) and the advisory flag flips, the
+// card moves columns on its own.
+
+export type CoarseColumnId =
+  | "planned"
+  | "in_progress"
+  | "needs_testing"
+  | "completed"
+  | "archived";
+
+export const COARSE_COLUMNS: { id: CoarseColumnId; label: string }[] = [
+  { id: "planned", label: "Planned" },
+  { id: "in_progress", label: "In-progress" },
+  { id: "needs_testing", label: "Needs testing" },
+  { id: "completed", label: "Completed" },
+  { id: "archived", label: "Archived" },
+];
+
+/**
+ * Map a task to its coarse board column. Overlays win over status: an archived
+ * card is always Archived; a needs-testing card is Needs testing (even when its
+ * run reached done/merge_ready). Otherwise it's derived from the run status.
+ */
+export function coarseColumn(task: {
+  status: TaskStatus;
+  needsTesting?: boolean;
+  archived?: boolean;
+}): CoarseColumnId {
+  if (task.archived) return "archived";
+  if (task.needsTesting) return "needs_testing";
+  switch (task.status) {
+    case "backlog":
+    case "ready":
+      return "planned";
+    case "done":
+      return "completed";
+    case "cancelled":
+      return "archived";
+    default:
+      // queued / running / waiting_for_approval / review / blocked / failed
+      return "in_progress";
+  }
+}
 
 export const ROADMAP_COLUMNS: { id: string; label: string; statuses: TaskStatus[] }[] = [
   { id: "ideas", label: "Ideas", statuses: ["backlog"] },

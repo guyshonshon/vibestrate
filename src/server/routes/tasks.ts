@@ -44,6 +44,7 @@ const enhanceBody = z.object({
 const needsTestingVerdictBody = z.object({
   verdict: z.enum(["pass", "fail"]),
 });
+const archiveBody = z.object({ archived: z.boolean() });
 
 const patchBody = z.object({
   title: z.string().optional(),
@@ -321,6 +322,25 @@ export async function registerTasksRoutes(
         return { task };
       } catch (err) {
         throw new HttpError(404, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Archive / un-archive a task (board overlay).
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/archive",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = archiveBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const task = await svc.setArchived(
+          req.params.taskId,
+          parsed.data.archived,
+        );
+        return { task };
+      } catch (err) {
+        throw new HttpError(409, err instanceof Error ? err.message : String(err));
       }
     },
   );

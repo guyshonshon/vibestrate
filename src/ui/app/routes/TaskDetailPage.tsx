@@ -88,6 +88,18 @@ export function TaskDetailPage({
     }
   }
 
+  async function toggleArchive(archived: boolean) {
+    setBusy("archive");
+    try {
+      await api.setTaskArchived(taskId, archived);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function submitComment(e: React.FormEvent) {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -206,6 +218,17 @@ export function TaskDetailPage({
             className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
           >
             Cancel
+          </button>
+          <button
+            onClick={() => toggleArchive(!task.archived)}
+            disabled={busy !== null}
+            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+          >
+            {busy === "archive"
+              ? "…"
+              : task.archived
+                ? "Un-archive"
+                : "Archive"}
           </button>
           <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
             Run from CLI:{" "}
