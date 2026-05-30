@@ -5,6 +5,8 @@ import { color, symbol } from "../ui/format.js";
 import { loadPolicySnapshot } from "../../policies/policy-store.js";
 import { evaluatePatchAgainstPolicies } from "../../policies/policy-engine.js";
 import { policySurfaceSchema } from "../../policies/policy-types.js";
+import { loadConfig } from "../../project/config-loader.js";
+import { setConfigValue } from "../../setup/config-update-service.js";
 
 export function buildPoliciesCommand(): Command {
   const cmd = new Command("policies").description(
@@ -216,6 +218,74 @@ export function buildPoliciesCommand(): Command {
         process.exit(1);
       }
     });
+
+  // ── Safety behavior toggles (the `policies.*` config block) ──────────────
+  // Mirrors the dashboard's Advanced — Safety panel (UI⇄CLI parity).
+  const boolOpt = (v: string): boolean => {
+    if (v === "true" || v === "on" || v === "1") return true;
+    if (v === "false" || v === "off" || v === "0") return false;
+    throw new Error(`expected true|false, got "${v}"`);
+  };
+  cmd
+    .command("config")
+    .description(
+      "Show or set the safety behavior toggles (strict apply-only, terminal, forbid-* guards).",
+    )
+    .option("--json", "emit JSON")
+    .option("--strict-apply-only <bool>", "agents propose diffs; gateway applies", boolOpt)
+    .option("--allow-terminal <bool>", "enable the dashboard terminal panel", boolOpt)
+    .option("--forbid-main-writes <bool>", "block writes to the main branch", boolOpt)
+    .option("--forbid-secrets <bool>", "block reads/writes of secret files", boolOpt)
+    .option("--forbid-push <bool>", "block auto-push", boolOpt)
+    .option("--forbid-merge <bool>", "block auto-merge", boolOpt)
+    .action(
+      async (opts: {
+        json?: boolean;
+        strictApplyOnly?: boolean;
+        allowTerminal?: boolean;
+        forbidMainWrites?: boolean;
+        forbidSecrets?: boolean;
+        forbidPush?: boolean;
+        forbidMerge?: boolean;
+      }) => {
+        const root = process.cwd();
+        const writes: [string, boolean][] = [];
+        if (opts.strictApplyOnly !== undefined)
+          writes.push(["strictApplyOnly", opts.strictApplyOnly]);
+        if (opts.allowTerminal !== undefined)
+          writes.push(["allowInteractiveTerminal", opts.allowTerminal]);
+        if (opts.forbidMainWrites !== undefined)
+          writes.push(["forbidMainBranchWrites", opts.forbidMainWrites]);
+        if (opts.forbidSecrets !== undefined)
+          writes.push(["forbidSecretsAccess", opts.forbidSecrets]);
+        if (opts.forbidPush !== undefined)
+          writes.push(["forbidAutoPush", opts.forbidPush]);
+        if (opts.forbidMerge !== undefined)
+          writes.push(["forbidAutoMerge", opts.forbidMerge]);
+
+        for (const [key, value] of writes) {
+          await setConfigValue(root, `policies.${key}`, String(value));
+        }
+
+        const loaded = await loadConfig(root);
+        const p = loaded.config.policies;
+        if (opts.json) {
+          console.log(JSON.stringify(p, null, 2));
+          return;
+        }
+        if (writes.length > 0) {
+          console.log(`${symbol.ok()} Updated ${writes.length} setting(s).`);
+        }
+        const onOff = (b: boolean) => (b ? color.green("on") : color.dim("off"));
+        console.log(color.bold("Safety behavior:"));
+        console.log(`  strict apply-only:        ${onOff(p.strictApplyOnly)}`);
+        console.log(`  interactive terminal:     ${onOff(p.allowInteractiveTerminal)}`);
+        console.log(`  forbid main-branch writes: ${onOff(p.forbidMainBranchWrites)}`);
+        console.log(`  forbid secrets access:    ${onOff(p.forbidSecretsAccess)}`);
+        console.log(`  forbid auto-push:         ${onOff(p.forbidAutoPush)}`);
+        console.log(`  forbid auto-merge:        ${onOff(p.forbidAutoMerge)}`);
+      },
+    );
 
   return cmd;
 }

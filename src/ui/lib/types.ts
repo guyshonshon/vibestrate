@@ -1294,6 +1294,17 @@ export type PolicyStoreSnapshot = {
   duplicateIds: string[];
 };
 
+/** The editable `policies.*` safety toggles (Advanced — Safety panel). */
+export type SafetyPoliciesConfig = {
+  strictApplyOnly: boolean;
+  allowInteractiveTerminal: boolean;
+  forbidMainBranchWrites: boolean;
+  forbidSecretsAccess: boolean;
+  forbidAutoPush: boolean;
+  forbidAutoMerge: boolean;
+  requireApprovalAtStages: string[];
+};
+
 export type RunAssuranceVerdict =
   | "blocked"
   | "unsafe"

@@ -3118,6 +3118,69 @@
             }
           ],
           "subcommands": []
+        },
+        {
+          "name": "config",
+          "path": [
+            "vibe",
+            "policies",
+            "config"
+          ],
+          "description": "Show or set the safety behavior toggles (strict apply-only, terminal, forbid-* guards).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--strict-apply-only <bool>",
+              "description": "agents propose diffs; gateway applies",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--allow-terminal <bool>",
+              "description": "enable the dashboard terminal panel",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--forbid-main-writes <bool>",
+              "description": "block writes to the main branch",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--forbid-secrets <bool>",
+              "description": "block reads/writes of secret files",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--forbid-push <bool>",
+              "description": "block auto-push",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--forbid-merge <bool>",
+              "description": "block auto-merge",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },

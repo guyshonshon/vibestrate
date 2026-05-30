@@ -50,6 +50,7 @@ import type {
   TerminalSession,
   PolicyStoreSnapshot,
   PolicyDoctorResult,
+  SafetyPoliciesConfig,
   PolicyCheckResult,
   PolicySurface,
   RunReplay,
@@ -1542,6 +1543,21 @@ export const api = {
   },
   async getPolicyDoctor(): Promise<PolicyDoctorResult> {
     return jsonGet("/api/policies/doctor");
+  },
+  async getSafetyConfig(): Promise<SafetyPoliciesConfig> {
+    const r = await jsonGet<{ config: SafetyPoliciesConfig }>(
+      "/api/policies/config",
+    );
+    return r.config;
+  },
+  async updateSafetyConfig(
+    patch: Partial<Omit<SafetyPoliciesConfig, "requireApprovalAtStages">>,
+  ): Promise<SafetyPoliciesConfig> {
+    const r = await jsonPatch<{ config: SafetyPoliciesConfig }>(
+      "/api/policies/config",
+      patch,
+    );
+    return r.config;
   },
   async checkPatchAgainstPolicies(input: {
     patch: string;

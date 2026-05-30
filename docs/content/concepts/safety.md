@@ -80,6 +80,17 @@ they never permit something the built-in safety checks already refused.
 Inspect what's loaded with `vibe policies list` / `vibe policies doctor`, the
 `GET /api/policies` endpoint, or the Policies panel in the dashboard.
 
+### Configuring safety behavior
+
+The `policies.*` toggles — strict apply-only, interactive terminal, and the
+`forbid*` guards — are editable from both surfaces (UI⇄CLI parity):
+
+- **CLI:** `vibe policies config` shows them; `vibe policies config
+  --strict-apply-only true` (and friends) set them.
+- **Dashboard:** the Policies panel's **Advanced — Safety behavior** section has
+  a switch per toggle plus a **live preview** that spells out what a run will do
+  under the current settings before you commit to them.
+
 ## Run assurance
 
 When a run reaches a terminal state, Vibestrate derives a single honest verdict

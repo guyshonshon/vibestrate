@@ -4,7 +4,9 @@ import type {
   PolicyCheckResult,
   PolicyStoreSnapshot,
   PolicySurface,
+  SafetyPoliciesConfig,
 } from "../../lib/types.js";
+import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
 
 /**
  * Read-only Policies surface.
@@ -24,6 +26,7 @@ import type {
  */
 export function PoliciesPanel() {
   const [snap, setSnap] = useState<PolicyStoreSnapshot | null>(null);
+  const [safety, setSafety] = useState<SafetyPoliciesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [patch, setPatch] = useState("");
   const [surface, setSurface] = useState<PolicySurface>("suggestion-apply");
@@ -32,11 +35,14 @@ export function PoliciesPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .getPolicies()
-      .then((r) => {
+    void Promise.all([
+      api.getPolicies(),
+      api.getSafetyConfig().catch(() => null),
+    ])
+      .then(([r, s]) => {
         if (!cancelled) {
           setSnap(r);
+          setSafety(s);
           setError(null);
         }
       })
@@ -48,6 +54,23 @@ export function PoliciesPanel() {
       cancelled = true;
     };
   }, []);
+
+  async function toggleSafety(
+    key: keyof Omit<SafetyPoliciesConfig, "requireApprovalAtStages">,
+    value: boolean,
+  ) {
+    if (!safety) return;
+    const prev = safety;
+    setSafety({ ...safety, [key]: value }); // optimistic
+    try {
+      const updated = await api.updateSafetyConfig({ [key]: value });
+      setSafety(updated);
+      setError(null);
+    } catch (err) {
+      setSafety(prev); // revert
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   async function runCheck() {
     if (!patch.trim()) {
@@ -91,6 +114,14 @@ export function PoliciesPanel() {
         <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
           {error}
         </div>
+      ) : null}
+
+      {safety ? (
+        <AdvancedSafetySection
+          safety={safety}
+          actionCount={snap?.actions.length ?? 0}
+          onToggle={(k, v) => void toggleSafety(k, v)}
+        />
       ) : null}
 
       {!snap ? (
