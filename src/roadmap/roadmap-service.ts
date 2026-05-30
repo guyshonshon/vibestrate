@@ -54,6 +54,7 @@ export type AddTaskInput = {
   effort?: "low" | "medium" | "high" | null;
   profileOverride?: string | null;
   readOnly?: boolean;
+  derivedFrom?: { taskId: string; itemId: string } | null;
 };
 
 export type CommentInput = {
@@ -172,6 +173,7 @@ export class RoadmapService {
       checklist: [],
       needsTesting: false,
       needsTestingReason: null,
+      derivedFrom: input.derivedFrom ?? null,
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {
@@ -270,6 +272,25 @@ export class RoadmapService {
       throw new RoadmapServiceError(
         `Task "${id}" is linked to active run ${t.currentRunId}; abort the run before deleting.`,
       );
+    }
+    // If this card was promoted from a checklist item, clear the origin item's
+    // forward-pointer so it no longer shows "→ card X" pointing at nothing.
+    if (t.derivedFrom) {
+      const origin = await this.store.getTask(t.derivedFrom.taskId);
+      if (origin) {
+        const idx = origin.checklist.findIndex(
+          (c) => c.id === t.derivedFrom!.itemId,
+        );
+        if (idx >= 0 && origin.checklist[idx]!.promotedTaskId === id) {
+          const checklist = [...origin.checklist];
+          checklist[idx] = {
+            ...checklist[idx]!,
+            promotedTaskId: null,
+            updatedAt: nowIso(),
+          };
+          await this.writeChecklist(origin, checklist);
+        }
+      }
     }
     await this.store.deleteTask(id);
   }
@@ -450,6 +471,54 @@ export class RoadmapService {
     const byId = new Map(t.checklist.map((c) => [c.id, c]));
     const checklist = orderedIds.map((id) => byId.get(id)!);
     return this.writeChecklist(t, checklist);
+  }
+
+  /**
+   * Promote a checklist item to its own card. Creates a new Task whose
+   * `derivedFrom` points back at the origin item, and stamps the item's
+   * `promotedTaskId` with the new card id (a relation — the item is NOT removed,
+   * and the new card is independent). Idempotent-guarded: refuses to promote an
+   * item that already points at a still-existing card.
+   */
+  async promoteChecklistItem(
+    taskId: string,
+    itemId: string,
+  ): Promise<{ task: Task; card: Task }> {
+    const t = await this.requireTask(taskId);
+    const idx = t.checklist.findIndex((c) => c.id === itemId);
+    if (idx < 0) {
+      throw new RoadmapServiceError(
+        `Checklist item "${itemId}" not found on task "${taskId}".`,
+      );
+    }
+    const item = t.checklist[idx]!;
+    if (item.promotedTaskId) {
+      const existing = await this.store.getTask(item.promotedTaskId);
+      if (existing) {
+        throw new RoadmapServiceError(
+          `Checklist item "${itemId}" was already promoted to card "${item.promotedTaskId}".`,
+        );
+      }
+      // The previously-promoted card was deleted — allow re-promotion.
+    }
+    // Create the new card, carrying the origin task's roadmap link so it stays
+    // grouped under the same epic.
+    const card = await this.addTask({
+      title: item.text,
+      roadmapItemId: t.roadmapItemId,
+      derivedFrom: { taskId, itemId },
+    });
+    // Stamp the forward-pointer on the item (re-read in case addTask touched it).
+    const fresh = await this.requireTask(taskId);
+    const freshIdx = fresh.checklist.findIndex((c) => c.id === itemId);
+    const checklist = [...fresh.checklist];
+    checklist[freshIdx] = {
+      ...checklist[freshIdx]!,
+      promotedTaskId: card.id,
+      updatedAt: nowIso(),
+    };
+    const task = await this.writeChecklist(fresh, checklist);
+    return { task, card };
   }
 
   // ─── needs-testing advisory ───────────────────────────────────────────────

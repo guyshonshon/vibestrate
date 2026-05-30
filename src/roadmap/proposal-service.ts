@@ -228,6 +228,7 @@ export class ProposalService {
       checklist: [],
       needsTesting: false,
       needsTestingReason: null,
+      derivedFrom: null,
     }));
     const graph = buildDependencyGraph(tempTasks);
     const cycleReport = findFirstCycle(graph);

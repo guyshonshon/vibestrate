@@ -46,6 +46,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     checklist: [],
     needsTesting: false,
     needsTestingReason: null,
+    derivedFrom: null,
   };
 }
 

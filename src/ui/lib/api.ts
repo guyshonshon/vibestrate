@@ -939,6 +939,14 @@ export const api = {
       patch,
     );
   },
+  async promoteChecklistItem(
+    taskId: string,
+    itemId: string,
+  ): Promise<{ task: Task; card: Task }> {
+    return jsonPost(
+      `/api/tasks/${encodeURIComponent(taskId)}/checklist/${encodeURIComponent(itemId)}/promote`,
+    );
+  },
   async removeChecklistItem(taskId: string, itemId: string): Promise<Task> {
     const r = await jsonDelete<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/checklist/${encodeURIComponent(itemId)}`,
