@@ -422,6 +422,33 @@ async function cmdEnhance(
   }
 }
 
+async function cmdSuggest(opts: { json?: boolean; all?: boolean }): Promise<number> {
+  const { svc: s } = await svc();
+  await s.init();
+  const suggestions = await s.suggestNext();
+  if (opts.json) {
+    console.log(JSON.stringify(suggestions, null, 2));
+    return 0;
+  }
+  if (suggestions.length === 0) {
+    console.log("No backlog cards to suggest. Add one or mark a task ready.");
+    return 0;
+  }
+  const shown = opts.all ? suggestions : suggestions.slice(0, 5);
+  console.log(header("Suggested next"));
+  console.log("");
+  shown.forEach((sg, i) => {
+    const marker = sg.ready ? symbol.ok() : color.dim("·");
+    console.log(`${color.dim(String(i + 1).padStart(2) + ".")} ${marker} ${color.bold(sg.title)} ${color.dim(`(${sg.taskId})`)}`);
+    console.log(indent(color.dim(sg.reason)));
+  });
+  if (!opts.all && suggestions.length > shown.length) {
+    console.log("");
+    console.log(color.dim(`  …and ${suggestions.length - shown.length} more (--all to show).`));
+  }
+  return 0;
+}
+
 async function cmdComment(taskId: string, body: string): Promise<number> {
   if (!body || !body.trim()) {
     console.error(`${symbol.fail()} Comment body is required.`);
@@ -664,6 +691,15 @@ export function buildTasksCommand(): Command {
     .action(async (opts) => {
       const code = await cmdList(opts);
       process.exit(code);
+    });
+
+  cmd
+    .command("suggest")
+    .description("Suggest which backlog card to pick up next (ready + priority).")
+    .option("--all", "show the full ranked backlog, not just the top few")
+    .option("--json", "emit JSON")
+    .action(async (opts) => {
+      process.exit(await cmdSuggest(opts));
     });
 
   cmd

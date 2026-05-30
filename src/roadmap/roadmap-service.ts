@@ -194,6 +194,12 @@ export class RoadmapService {
     return this.store.listTasks();
   }
 
+  /** Rank backlog cards by dependency-readiness + priority (suggest-next). */
+  async suggestNext(): Promise<import("./suggest-next.js").Suggestion[]> {
+    const { suggestNext } = await import("./suggest-next.js");
+    return suggestNext(await this.store.listTasks());
+  }
+
   async getTask(id: string): Promise<Task | null> {
     return this.store.getTask(id);
   }

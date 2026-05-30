@@ -342,6 +342,15 @@ export type Task = {
   derivedFrom?: { taskId: string; itemId: string } | null;
 };
 
+export type TaskSuggestion = {
+  taskId: string;
+  title: string;
+  ready: boolean;
+  priority: Priority;
+  openBlockers: string[];
+  reason: string;
+};
+
 export type ChecklistItemStatus = "pending" | "in_progress" | "done" | "blocked";
 
 export type ChecklistItem = {
