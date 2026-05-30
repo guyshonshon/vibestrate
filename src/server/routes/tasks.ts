@@ -214,6 +214,23 @@ export async function registerTasksRoutes(
     },
   );
 
+  // Promote a checklist item to its own card (relation, not reparent).
+  app.post<{ Params: { taskId: string; itemId: string } }>(
+    "/api/tasks/:taskId/checklist/:itemId/promote",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      try {
+        const { task, card } = await svc.promoteChecklistItem(
+          req.params.taskId,
+          req.params.itemId,
+        );
+        return { task, card };
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
   app.delete<{ Params: { taskId: string; itemId: string } }>(
     "/api/tasks/:taskId/checklist/:itemId",
     async (req) => {

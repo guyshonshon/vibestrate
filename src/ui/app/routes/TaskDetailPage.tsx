@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ArrowUpRight,
   Check,
   ExternalLink,
   FileCode,
@@ -129,6 +130,17 @@ export function TaskDetailPage({
         <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
           task · {task.id}
         </div>
+        {task.derivedFrom ? (
+          <button
+            type="button"
+            onClick={() => onOpenTask(task.derivedFrom!.taskId)}
+            className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-accent"
+            title="This card was promoted from a checklist item on another card."
+          >
+            <ArrowUpRight className="h-3 w-3" strokeWidth={1.5} />
+            derived from {task.derivedFrom.taskId}
+          </button>
+        ) : null}
         <h1 className="mt-1 text-[16px] font-medium">{task.title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-vibestrate-fg-dim">
           <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
@@ -219,7 +231,7 @@ export function TaskDetailPage({
           </section>
         ) : null}
 
-        <ChecklistSection task={task} onChanged={load} />
+        <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 
         <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
           <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
@@ -523,9 +535,11 @@ function checklistGlyph(s: ChecklistItemStatus): string {
 function ChecklistSection({
   task,
   onChanged,
+  onOpenTask,
 }: {
   task: Task;
   onChanged: () => Promise<void> | void;
+  onOpenTask: (taskId: string) => void;
 }) {
   const items = task.checklist ?? [];
   const [text, setText] = useState("");
@@ -722,6 +736,12 @@ function ChecklistSection({
                   api.removeChecklistItem(task.id, item.id),
                 )
               }
+              onPromote={() =>
+                run(`p-${item.id}`, () =>
+                  api.promoteChecklistItem(task.id, item.id),
+                )
+              }
+              onOpenCard={onOpenTask}
             />
           ))}
         </ul>
@@ -798,6 +818,8 @@ function ChecklistRow({
   onStatus,
   onEdit,
   onRemove,
+  onPromote,
+  onOpenCard,
 }: {
   item: ChecklistItem;
   busy: string | null;
@@ -811,6 +833,8 @@ function ChecklistRow({
   onStatus: (status: ChecklistItemStatus) => void;
   onEdit: (text: string) => void;
   onRemove: () => void;
+  onPromote: () => void;
+  onOpenCard: (taskId: string) => void;
 }) {
   const [draft, setDraft] = useState(item.text);
   // Drag is initiated only from the grip handle, so the text input stays
@@ -903,6 +927,26 @@ function ChecklistRow({
           </option>
         ))}
       </select>
+      {item.promotedTaskId ? (
+        <button
+          type="button"
+          onClick={() => onOpenCard(item.promotedTaskId!)}
+          title={`Promoted to card ${item.promotedTaskId}`}
+          className="shrink-0 text-vibestrate-accent hover:text-vibestrate-fg"
+        >
+          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onPromote}
+          disabled={anyBusy}
+          title="Promote this item to its own card"
+          className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-accent disabled:opacity-50"
+        >
+          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </button>
+      )}
       <button
         type="button"
         onClick={onRemove}

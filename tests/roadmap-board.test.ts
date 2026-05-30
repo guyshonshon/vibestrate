@@ -36,6 +36,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     checklist: [],
     needsTesting: false,
     needsTestingReason: null,
+    derivedFrom: null,
   };
 }
 

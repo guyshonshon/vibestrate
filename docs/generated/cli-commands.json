@@ -1652,6 +1652,33 @@
               ],
               "options": [],
               "subcommands": []
+            },
+            {
+              "name": "promote",
+              "path": [
+                "vibe",
+                "tasks",
+                "checklist",
+                "promote"
+              ],
+              "description": "Promote a checklist item to its own card (keeps a derived-from link).",
+              "usage": "[options] <taskId> <itemId>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                },
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
             }
           ]
         },

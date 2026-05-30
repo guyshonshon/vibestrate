@@ -311,6 +311,26 @@ async function cmdChecklistRemove(taskId: string, itemId: string): Promise<numbe
   }
 }
 
+async function cmdChecklistPromote(
+  taskId: string,
+  itemId: string,
+): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const { card } = await s.promoteChecklistItem(taskId, itemId);
+    console.log(
+      `${symbol.ok()} Promoted to card ${color.bold(card.id)} (${card.title}).`,
+    );
+    console.log(indent(color.dim(`derived from ${taskId} · item ${itemId}`)));
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 async function cmdChecklistMove(
   taskId: string,
   itemId: string,
@@ -771,6 +791,12 @@ export function buildTasksCommand(): Command {
     .description("Move a checklist item to a 1-based position.")
     .action(async (taskId: string, itemId: string, position: string) => {
       process.exit(await cmdChecklistMove(taskId, itemId, position));
+    });
+  checklist
+    .command("promote <taskId> <itemId>")
+    .description("Promote a checklist item to its own card (keeps a derived-from link).")
+    .action(async (taskId: string, itemId: string) => {
+      process.exit(await cmdChecklistPromote(taskId, itemId));
     });
   cmd.addCommand(checklist);
 

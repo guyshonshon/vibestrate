@@ -339,6 +339,7 @@ export type Task = {
   checklist?: ChecklistItem[];
   needsTesting?: boolean;
   needsTestingReason?: string | null;
+  derivedFrom?: { taskId: string; itemId: string } | null;
 };
 
 export type ChecklistItemStatus = "pending" | "in_progress" | "done" | "blocked";

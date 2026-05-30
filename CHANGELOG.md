@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Promote item → card:** a checklist item can graduate to its own
+  card. The new card keeps a `derivedFrom` back-pointer and the origin item gains
+  a `promotedTaskId` forward-pointer (a relation — the item stays put, inherits
+  the parent's roadmap item). Double-promote is refused; re-promote is allowed
+  after the derived card is deleted (delete clears the dangling pointer).
+  `vibe tasks checklist promote <task> <item>`, `POST /api/tasks/:id/checklist/
+  :itemId/promote`, an ↗ button per item + a "derived from" link on the card.
 - **Phase 3 — "Needs testing" advisory:** a reviewer/verifier can emit a
   non-blocking `HUMAN_REVIEW: ADVISORY` marker (+ optional `HUMAN_REVIEW_REASON`)
   when a human should eyeball something the model can't perceive (visual/UX/3D).

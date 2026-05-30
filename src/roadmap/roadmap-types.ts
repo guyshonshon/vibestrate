@@ -186,6 +186,14 @@ export const taskSchema = z.object({
   // marker; cleared by a human verdict (pass → done, fail → reopen). (Phase 3)
   needsTesting: z.boolean().default(false),
   needsTestingReason: z.string().nullable().default(null),
+  // "Derived from" back-pointer (Phase 3 promote-item-to-card): set when this
+  // card was promoted out of another card's checklist item. A *relation*, not a
+  // reparent — the origin item keeps its own status and points here via
+  // `promotedTaskId`. null for normal cards.
+  derivedFrom: z
+    .object({ taskId: safeIdSchema, itemId: z.string().min(1) })
+    .nullable()
+    .default(null),
 });
 export type Task = z.infer<typeof taskSchema>;
 
