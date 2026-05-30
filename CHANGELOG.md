@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Post-turn diff gate (S3):** every write-capable agent turn is now snapshotted
+  before it runs (`git write-tree`) and its diff evaluated after — built-in
+  secret/forbidden-path safety plus `file.patch` action policies. A deny/unsafe
+  verdict restores the worktree to the pre-turn snapshot (`read-tree` +
+  `checkout-index` + `clean`) and blocks the run; `require_approval` blocks
+  fail-closed with changes left for a human. Default-allow → no behavior change.
+  (`src/safety/diff-gate.ts`.)
 - **Run Assurance artifact (S5):** every terminal run derives an evidence-backed
   verdict — `blocked` / `unsafe` / `unverified` / `partially_verified` /
   `verified` (no fake confidence %) — from the Action Broker log + the run's

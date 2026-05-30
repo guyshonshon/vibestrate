@@ -42,6 +42,11 @@ import {
   type ActionRequest,
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
+import {
+  snapshotWorktree,
+  restoreWorktree,
+  evaluateTurnDiff,
+} from "../safety/diff-gate.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import {
@@ -2521,6 +2526,16 @@ export class Orchestrator {
       );
     }
 
+    // ── Post-turn diff gate (S3): pre-turn snapshot ──────────────────────
+    // For write-capable turns, snapshot the worktree so the diff this turn
+    // produces can be evaluated (and rolled back) after the provider returns.
+    // Best-effort: a snapshot failure disables the gate for this turn, never
+    // blocks the run.
+    let preTurnTree: string | null = null;
+    if (profile.allowWrite && ctx.worktreePath) {
+      preTurnTree = await snapshotWorktree(ctx.worktreePath).catch(() => null);
+    }
+
     let providerResult: RichProviderRunResult;
     const stageStart = new Date();
     // Materialize a live stream file for this agent invocation so the
@@ -2630,6 +2645,43 @@ export class Orchestrator {
           durationMs: Date.now() - stageStart.getTime(),
         },
       });
+
+      // ── Post-turn diff gate (S3): evaluate what the turn wrote ───────────
+      // Snapshot → diff → evaluate. A deny / unsafe verdict rolls the worktree
+      // back to the pre-turn snapshot and blocks; require_approval blocks
+      // fail-closed with the changes left in place for a human. Default-allow
+      // (no policies) → no behavior change.
+      if (preTurnTree && ctx.worktreePath) {
+        const verdict = await evaluateTurnDiff({
+          broker: this.broker!,
+          runId: ctx.runId,
+          roleId,
+          worktree: ctx.worktreePath,
+          baseTree: preTurnTree,
+        });
+        if (verdict.verdict !== "accept") {
+          if (verdict.verdict === "rollback") {
+            await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
+              () => undefined,
+            );
+          }
+          await ctx.eventLog.append({
+            type: "action.denied",
+            message: `Post-turn diff gate ${verdict.verdict} for ${roleId}: ${verdict.reason}`,
+            data: {
+              kind: "agent.turn.diff",
+              roleId,
+              verdict: verdict.verdict,
+              reason: verdict.reason,
+              files: verdict.files,
+              rolledBack: verdict.verdict === "rollback",
+            },
+          });
+          throw new __ActionDeniedSignal(
+            `Post-turn diff gate ${verdict.verdict} for ${roleId}: ${verdict.reason}`,
+          );
+        }
+      }
     } catch (err) {
       const stageEnd = new Date();
       await ctx.eventLog.append({
