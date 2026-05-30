@@ -22,6 +22,7 @@ import { buildFlowsCommand } from "./commands/flows/index.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
+import { buildIntegrateCommand } from "./commands/integrate.js";
 import { buildQueueCommand } from "./commands/queue.js";
 import { buildLogsCommand } from "./commands/logs.js";
 import {
@@ -126,6 +127,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildApprovalsCommand());
   program.addCommand(buildRoadmapCommand());
   program.addCommand(buildTasksCommand());
+  program.addCommand(buildIntegrateCommand());
   program.addCommand(buildQueueCommand());
   program.addCommand(buildLogsCommand());
   program.addCommand(buildNotificationsCommand());

@@ -139,6 +139,84 @@ export async function filesInCommit(cwd: string, sha: string): Promise<string[]>
     .filter(Boolean);
 }
 
+/** True when a local branch (or ref) exists / is resolvable. */
+export async function refExists(cwd: string, ref: string): Promise<boolean> {
+  const r = await execa("git", ["rev-parse", "--verify", "--quiet", ref], {
+    cwd,
+    reject: false,
+  });
+  return r.exitCode === 0;
+}
+
+/** Remove a worktree (force) and prune. Best-effort. */
+export async function removeWorktree(cwd: string, worktreePath: string): Promise<void> {
+  await execa("git", ["worktree", "remove", "--force", worktreePath], {
+    cwd,
+    reject: false,
+  });
+  await execa("git", ["worktree", "prune"], { cwd, reject: false });
+}
+
+/** Delete a local branch (force). Best-effort. */
+export async function deleteBranch(cwd: string, branch: string): Promise<void> {
+  await execa("git", ["branch", "-D", branch], { cwd, reject: false });
+}
+
+export type MergeAttempt = {
+  clean: boolean;
+  /** Files left with merge conflicts (unmerged), when not clean. */
+  conflictedFiles: string[];
+  /** Raw git message (first line), for surfacing. */
+  message: string;
+};
+
+/** Attempt `git merge --no-ff --no-commit <branch>` in `cwd`. Does NOT commit.
+ *  On conflict the working tree is left mid-merge — call {@link abortMerge}. */
+export async function mergeNoCommit(
+  cwd: string,
+  branch: string,
+): Promise<MergeAttempt> {
+  const r = await execa(
+    "git",
+    ["merge", "--no-ff", "--no-commit", branch],
+    { cwd, reject: false },
+  );
+  const conflicted = await execa(
+    "git",
+    ["diff", "--name-only", "--diff-filter=U"],
+    { cwd, reject: false },
+  );
+  const conflictedFiles = conflicted.stdout
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const clean = r.exitCode === 0 && conflictedFiles.length === 0;
+  return {
+    clean,
+    conflictedFiles,
+    message: (r.stdout || r.stderr || "").split("\n")[0] ?? "",
+  };
+}
+
+/** Abort an in-progress merge (best-effort). */
+export async function abortMerge(cwd: string): Promise<void> {
+  await execa("git", ["merge", "--abort"], { cwd, reject: false });
+}
+
+/** Commit a staged (no-commit) merge. Returns the new sha, or null. */
+export async function commitMerge(
+  cwd: string,
+  message: string,
+): Promise<{ sha: string } | null> {
+  const r = await execa("git", ["commit", "--no-edit", "-m", message], {
+    cwd,
+    reject: false,
+  });
+  if (r.exitCode !== 0) return null;
+  const sha = await currentHeadSha(cwd);
+  return sha ? { sha } : null;
+}
+
 export function resolveWorktreePath(
   projectRoot: string,
   worktreeDir: string,

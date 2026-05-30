@@ -1815,6 +1815,80 @@
       ]
     },
     {
+      "name": "integrate",
+      "path": [
+        "vibe",
+        "integrate"
+      ],
+      "description": "Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "integrate",
+            "list"
+          ],
+          "description": "List merge-ready runs (integration candidates).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "preview",
+          "path": [
+            "vibe",
+            "integrate",
+            "preview"
+          ],
+          "description": "Dry-run merge the selected (or all) merge-ready branches; show conflicts.",
+          "usage": "[options] [runIds...]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "apply",
+          "path": [
+            "vibe",
+            "integrate",
+            "apply"
+          ],
+          "description": "Integrate the selected (or all) merge-ready branches into --into <branch>.",
+          "usage": "[options] [runIds...]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": true
+            }
+          ],
+          "options": [
+            {
+              "flags": "--into <branch>",
+              "description": "the integration branch to create (never main)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
       "name": "queue",
       "path": [
         "vibe",
