@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   Check,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
   FileCode,
+  GripVertical,
   Lock,
   Plus,
   Trash2,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
+import { reorderByDrop } from "../../lib/reorder.js";
 import { navigate } from "../App.js";
 import type {
   ChangedFile,
@@ -461,6 +461,8 @@ function ChecklistSection({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const done = items.filter((i) => i.status === "done").length;
   const pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
 
@@ -487,13 +489,16 @@ function ChecklistSection({
     });
   }
 
-  function move(item: ChecklistItem, dir: -1 | 1) {
-    const ids = items.map((i) => i.id);
-    const idx = ids.indexOf(item.id);
-    const j = idx + dir;
-    if (j < 0 || j >= ids.length) return;
-    [ids[idx], ids[j]] = [ids[j]!, ids[idx]!];
-    void run(`move-${item.id}`, () => api.reorderChecklist(task.id, ids));
+  // Drop `draggingId` at the position currently occupied by `targetId`.
+  function reorderTo(targetId: string) {
+    const dragId = draggingId;
+    setDraggingId(null);
+    setOverId(null);
+    if (!dragId || dragId === targetId) return;
+    const before = items.map((i) => i.id);
+    const after = reorderByDrop(before, dragId, targetId);
+    if (after.join(" ") === before.join(" ")) return;
+    void run(`move-${dragId}`, () => api.reorderChecklist(task.id, after));
   }
 
   return (
@@ -522,14 +527,26 @@ function ChecklistSection({
           No items yet. Break this card into a concrete ordered checklist below.
         </div>
       ) : (
-        <ul className="mt-2 space-y-1">
-          {items.map((item, i) => (
+        <ul
+          className="mt-2 space-y-1"
+          onDragOver={(e) => e.preventDefault()}
+        >
+          {items.map((item) => (
             <ChecklistRow
               key={item.id}
               item={item}
-              index={i}
-              count={items.length}
               busy={busy}
+              dragging={draggingId === item.id}
+              dragOver={overId === item.id && draggingId !== item.id}
+              onDragStart={() => setDraggingId(item.id)}
+              onDragEnter={() => {
+                if (draggingId && draggingId !== item.id) setOverId(item.id);
+              }}
+              onDragEnd={() => {
+                setDraggingId(null);
+                setOverId(null);
+              }}
+              onDrop={() => reorderTo(item.id)}
               onToggle={() =>
                 run(`s-${item.id}`, () =>
                   api.updateChecklistItem(task.id, item.id, {
@@ -552,7 +569,6 @@ function ChecklistSection({
                   api.removeChecklistItem(task.id, item.id),
                 )
               }
-              onMove={(dir) => move(item, dir)}
             />
           ))}
         </ul>
@@ -586,26 +602,35 @@ function ChecklistSection({
 
 function ChecklistRow({
   item,
-  index,
-  count,
   busy,
+  dragging,
+  dragOver,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDrop,
   onToggle,
   onStatus,
   onEdit,
   onRemove,
-  onMove,
 }: {
   item: ChecklistItem;
-  index: number;
-  count: number;
   busy: string | null;
+  dragging: boolean;
+  dragOver: boolean;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragEnd: () => void;
+  onDrop: () => void;
   onToggle: () => void;
   onStatus: (status: ChecklistItemStatus) => void;
   onEdit: (text: string) => void;
   onRemove: () => void;
-  onMove: (dir: -1 | 1) => void;
 }) {
   const [draft, setDraft] = useState(item.text);
+  // Drag is initiated only from the grip handle, so the text input stays
+  // selectable. We flip the row's draggable flag on grip mousedown.
+  const [grabbed, setGrabbed] = useState(false);
   // Keep the editable draft in sync when the item changes underneath us
   // (polling reload or another client).
   useEffect(() => {
@@ -622,7 +647,41 @@ function ChecklistRow({
           : "text-vibestrate-fg-muted";
 
   return (
-    <li className="flex items-center gap-1.5 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1">
+    <li
+      draggable={grabbed}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart();
+      }}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={() => {
+        setGrabbed(false);
+        onDragEnd();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setGrabbed(false);
+        onDrop();
+      }}
+      className={`flex items-center gap-1.5 rounded border bg-vibestrate-panel-2 px-2 py-1 transition ${
+        dragging
+          ? "border-vibestrate-accent/50 opacity-50"
+          : dragOver
+            ? "border-vibestrate-accent/60 ring-1 ring-vibestrate-accent/40"
+            : "border-vibestrate-border"
+      }`}
+    >
+      <span
+        role="button"
+        aria-label="Drag to reorder"
+        title="Drag to reorder"
+        onMouseDown={() => setGrabbed(true)}
+        onMouseUp={() => setGrabbed(false)}
+        className="shrink-0 cursor-grab text-vibestrate-fg-muted hover:text-vibestrate-fg active:cursor-grabbing"
+      >
+        <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </span>
       <button
         type="button"
         onClick={onToggle}
@@ -659,24 +718,6 @@ function ChecklistRow({
           </option>
         ))}
       </select>
-      <button
-        type="button"
-        onClick={() => onMove(-1)}
-        disabled={anyBusy || index === 0}
-        title="Move up"
-        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fg disabled:opacity-30"
-      >
-        <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.5} />
-      </button>
-      <button
-        type="button"
-        onClick={() => onMove(1)}
-        disabled={anyBusy || index === count - 1}
-        title="Move down"
-        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fg disabled:opacity-30"
-      >
-        <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />
-      </button>
       <button
         type="button"
         onClick={onRemove}
