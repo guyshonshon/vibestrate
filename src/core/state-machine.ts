@@ -165,6 +165,22 @@ export const runStateSchema = z.object({
     })
     .nullable()
     .default(null),
+  // Pick-up execution (Phase 3): how the per-item checklist band advances.
+  // "continuous" runs items back-to-back; "step" pauses between items for a
+  // human. null when the run isn't iterating a checklist.
+  checklistMode: z.enum(["continuous", "step"]).nullable().default(null),
+  // Live per-item progress for the dashboard/report. null unless the run is
+  // iterating a checklist segment. The authoritative per-item status + commit
+  // sha live on the task's own checklist (written back as each item finishes).
+  checklistProgress: z
+    .object({
+      total: z.number().int().min(0),
+      completed: z.number().int().min(0),
+      currentItemId: z.string().nullable(),
+      currentIndex: z.number().int().min(0),
+    })
+    .nullable()
+    .default(null),
 });
 
 export type RunState = z.infer<typeof runStateSchema>;
@@ -369,6 +385,8 @@ export function createInitialState(input: {
     concise: false,
     flow: null,
     resumedFrom: null,
+    checklistMode: null,
+    checklistProgress: null,
   };
 }
 
