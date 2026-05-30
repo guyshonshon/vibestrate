@@ -18,7 +18,7 @@ slug: concepts/provider
 
 Providers are the boundary between Vibestrate and "the model." Vibestrate itself is provider-agnostic — it builds the prompt, captures the output, and routes the result. Anything model-specific (login, billing, context limits) is the provider's responsibility.
 
-This is the design choice that makes the tool *local-first*: Vibestrate never holds an API key, never opens a connection to a model vendor's API directly. If your provider needs auth, you log into it the way you normally would.
+This is what makes the tool *local-first* — where local-first means **sovereignty, not zero-egress**: there is no Vibestrate-operated backend or relay; you run an independent tool you fully control. Most providers are local CLIs that own their own auth and egress. You *may* also point a provider at a model API with your own key (see **Non-CLI providers** below) — that's your sovereign choice and doesn't change the local-first guarantee, because nothing ever flows through a service *we* run.
 
 ## Built-in providers
 
@@ -37,6 +37,35 @@ The canonical, generated list lives in the [providers reference](/docs/reference
 Coding-agent CLIs disagree on flags — `--prompt` here, `-p` there, `exec` for some, stdin for others. When a vendor's flag set is stable enough that Vibestrate can drive it without surprises, that provider is marked **preset-ready**. Otherwise Vibestrate will detect it but won't guess flags; `vibe provider setup` walks you through the choices.
 
 If a preset is wrong for your installed version (e.g. a flag the CLI removed), you can correct `command`/`args`/`input` directly — either with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or in the dashboard's **Providers** page, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
+
+## Non-CLI providers (HTTP)
+
+Beyond local CLIs, two HTTP-backed provider types let you run a model over the network:
+
+```yaml
+providers:
+  # Cloud API — your own key, external destination.
+  anthropic-api:
+    type: http-api
+    api: anthropic                 # or: openai
+    baseUrl: https://api.anthropic.com
+    model: claude-sonnet-4-5
+    apiKey: env:ANTHROPIC_API_KEY   # env-ref ONLY — never a literal key
+
+  # Local model server — no key, no egress.
+  ollama-local:
+    type: localhost-proxy
+    api: ollama                     # or: openai (OpenAI-compatible servers)
+    baseUrl: http://localhost:11434
+    model: qwen3.5
+```
+
+Rules the schema enforces:
+
+- **`http-api`** must be **https** and **not** a localhost host; its `apiKey` must be an `env:NAME` reference (a literal key in config is rejected). The key is resolved at call time, never written to YAML, never logged, and redacted from any error. The dashboard marks these providers **external**.
+- **`localhost-proxy`** must point at a loopback host (`localhost` / `127.0.0.1` / `[::1]`) — so there is **no egress**. A key is optional.
+
+Both report **real token usage** from the API response (not estimates). They run one request per turn — no session reuse.
 
 ## Providers back Profiles, Profiles back Roles
 
@@ -72,7 +101,7 @@ only. Profiles and Crews are edited in `project.yml`, the dashboard, or the API.
 
 - **Setting up the same provider twice.** If Claude Code is your `claude` id, don't create a `claude-pro` and `claude-haiku` row unless the flags differ. Use one provider and switch models inside the provider's own settings.
 - **Assuming session reuse where there isn't any.** Only `claude-code` reports its session id back; everything else is fresh-start per call.
-- **Putting API keys in `project.yml`.** Don't. Providers authenticate the way their CLI authenticates — through the vendor's own login flow.
+- **Putting a literal API key in `project.yml`.** Don't — and for `http-api` providers the schema refuses it. CLI providers authenticate through their own login flow; `http-api` providers take an `env:NAME` reference and read the key from the environment at run time.
 
 ## Related
 

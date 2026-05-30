@@ -179,6 +179,39 @@ export async function runDoctor(input: {
   const providerIds = Object.keys(loaded.config.providers);
   for (const id of providerIds) {
     const cfg = loaded.config.providers[id]!;
+    // Non-CLI providers have no command on PATH — check readiness by type:
+    // http-api needs its env-var key set; localhost-proxy is just reported as
+    // configured (we don't ping the local server here).
+    if (cfg.type === "http-api") {
+      const { envVarName } = await import(
+        "../notifications/gateways/secret-resolver.js"
+      );
+      const envName = envVarName(cfg.apiKey);
+      const keySet = !!(envName && process.env[envName]);
+      findings.push({
+        id: `provider-${id}`,
+        severity: keySet ? "ok" : "warn",
+        title: keySet
+          ? `Provider "${id}" (cloud ${cfg.api}) — key set, destination ${cfg.baseUrl}`
+          : `Provider "${id}" (cloud ${cfg.api}) — env var ${envName ?? "(unset)"} is not set`,
+        detail: keySet
+          ? undefined
+          : `Set ${envName ?? "the API key env var"} to use this external provider.`,
+        fixHint: keySet ? undefined : `export ${envName ?? "YOUR_API_KEY"}=…`,
+        fixable: false,
+      });
+      continue;
+    }
+    if (cfg.type === "localhost-proxy") {
+      findings.push({
+        id: `provider-${id}`,
+        severity: "ok",
+        title: `Provider "${id}" (local ${cfg.api}) — ${cfg.baseUrl}`,
+        detail: `Make sure the local server is running at ${cfg.baseUrl}.`,
+        fixable: false,
+      });
+      continue;
+    }
     const available = await checkProviderAvailable(cfg.command);
     findings.push({
       id: `provider-${id}`,

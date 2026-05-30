@@ -191,6 +191,76 @@ export async function runSafeProviderTest(input: {
     };
   }
 
+  // Non-CLI providers have no command to spawn. Test them by type without a
+  // surprise token spend: localhost-proxy makes a real (free) call; cloud
+  // http-api just verifies the key env var is set (we don't call the paid API
+  // on a "test" click — it'll be exercised on the next real run).
+  {
+    const { loadConfig } = await import("../project/config-loader.js");
+    const loaded = await loadConfig(input.projectRoot).catch(() => null);
+    const cfg = loaded?.config.providers[input.providerId];
+    if (cfg && (cfg.type === "http-api" || cfg.type === "localhost-proxy")) {
+      const base = {
+        providerId: input.providerId,
+        command: cfg.baseUrl,
+        args: [cfg.model],
+        startedAt: new Date().toISOString(),
+        matchedMagic: false as boolean,
+        needsLogin: false,
+      };
+      if (cfg.type === "http-api") {
+        const { envVarName } = await import(
+          "../notifications/gateways/secret-resolver.js"
+        );
+        const envName = envVarName(cfg.apiKey);
+        const keySet = !!(envName && process.env[envName]);
+        return {
+          ...base,
+          ok: keySet,
+          durationMs: 0,
+          exitCode: keySet ? 0 : -1,
+          stdout: "",
+          stderr: keySet ? "" : `Env var ${envName ?? "(unset)"} not set.`,
+          hint: keySet
+            ? `Config valid. Key ${envName} is set; the external ${cfg.api} API will be called on the next run (not tested here to avoid spend).`
+            : `Set ${envName ?? "the API key env var"} before running.`,
+        };
+      }
+      // localhost-proxy → real, free connectivity test.
+      const started = Date.now();
+      try {
+        const { runProvider } = await import("../providers/provider-runner.js");
+        const r = await runProvider(loaded!.config.providers, {
+          providerId: input.providerId,
+          prompt: SAFE_TEST_PROMPT,
+          cwd: input.projectRoot,
+        });
+        return {
+          ...base,
+          ok: r.exitCode === 0,
+          durationMs: Date.now() - started,
+          exitCode: r.exitCode,
+          stdout: r.stdout.slice(0, 400),
+          stderr: r.stderr.slice(0, 400),
+          hint:
+            r.exitCode === 0
+              ? `Reached the local ${cfg.api} server at ${cfg.baseUrl}.`
+              : `Could not reach ${cfg.baseUrl}. Is the local server running?`,
+        };
+      } catch (err) {
+        return {
+          ...base,
+          ok: false,
+          durationMs: Date.now() - started,
+          exitCode: -1,
+          stdout: "",
+          stderr: err instanceof Error ? err.message : String(err),
+          hint: `Could not reach ${cfg.baseUrl}. Is the local server running?`,
+        };
+      }
+    }
+  }
+
   const args = [...provider.args];
   let stdin: string | undefined;
   if (provider.input === "arg") {

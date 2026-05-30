@@ -40,6 +40,9 @@ export type ProviderRow = {
   loginCommand: string | null;
   /** One-line human note about auth, shown when login is needed. */
   loginNote: string;
+  /** True when the provider's destination is an external network service
+   *  (cloud http-api). Local-proxy and CLI providers are not external. */
+  external?: boolean;
 };
 
 /**
@@ -103,6 +106,36 @@ export async function registerProvidersRoutes(
       loginCommand: PROVIDER_PRESETS[d.id].loginCommand,
       loginNote: PROVIDER_PRESETS[d.id].loginNote,
     }));
+    // Surface configured non-CLI providers (http-api / localhost-proxy) that
+    // aren't in the detected-CLI list, so the dashboard can show + manage them.
+    const detectedIds = new Set(rows.map((r) => r.id));
+    for (const [id, cfg] of Object.entries(loaded?.config.providers ?? {})) {
+      if (detectedIds.has(id)) continue;
+      if (cfg.type !== "http-api" && cfg.type !== "localhost-proxy") continue;
+      const external = cfg.type === "http-api";
+      rows.push({
+        id,
+        label: external ? `Cloud API (${cfg.api})` : `Local server (${cfg.api})`,
+        command: cfg.baseUrl,
+        available: true,
+        version: null,
+        confidence: "ready",
+        recommended: false,
+        popular: false,
+        installHint: null,
+        notes: [
+          external
+            ? `External destination ${cfg.baseUrl} · model ${cfg.model}`
+            : `Local server ${cfg.baseUrl} · model ${cfg.model}`,
+        ],
+        configured: true,
+        loginCommand: null,
+        loginNote: external
+          ? "Set the API key env var; egress goes to the destination above."
+          : "Runs locally — no key, no egress. Start the server first.",
+        external,
+      });
+    }
     cached = { at: now, rows };
     return { providers: rows, cachedFor: CACHE_TTL_MS };
   });

@@ -15,6 +15,18 @@ export function providerCapabilitiesForConfig(
     };
   }
 
+  if (config.type === "http-api" || config.type === "localhost-proxy") {
+    // One-shot HTTP turn (no session reuse), but the response carries real
+    // token usage that the runner maps into NormalizedMetrics.
+    return {
+      providerType: config.type,
+      sessionReuse: "none",
+      interactiveSessions: false,
+      reportsSessionId: false,
+      reportsTokenUsage: true,
+    };
+  }
+
   return {
     providerType: config.type,
     sessionReuse: "none",
