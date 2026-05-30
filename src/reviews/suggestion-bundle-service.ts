@@ -28,6 +28,12 @@ import {
 import { NotificationService } from "../notifications/notification-service.js";
 import { draftBundleEvent } from "../notifications/notification-router.js";
 import {
+  createActionBroker,
+  gateAction,
+  type ActionBroker,
+  type ActionRequest,
+} from "../safety/action-broker.js";
+import {
   resolveValidationProfile,
   ValidationProfileError,
   type ValidationProfileSource,
@@ -110,14 +116,22 @@ export class SuggestionBundleService {
   private readonly suggestionService: ReviewSuggestionService;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
+  /** S0 Action Broker boundary — every bundle patch apply/revert is decided and
+   *  recorded as evidence in `runs/<id>/actions.ndjson`. Shared with the inner
+   *  ReviewSuggestionService so injected (test) brokers propagate. */
+  private readonly broker: ActionBroker;
 
   constructor(
     private readonly projectRoot: string,
     private readonly runId: string,
+    opts: { broker?: ActionBroker } = {},
   ) {
+    this.broker = opts.broker ?? createActionBroker(projectRoot, runId);
     this.bundleStore = new SuggestionBundleStore(projectRoot, runId);
     this.suggestionStore = new ReviewSuggestionStore(projectRoot, runId);
-    this.suggestionService = new ReviewSuggestionService(projectRoot, runId);
+    this.suggestionService = new ReviewSuggestionService(projectRoot, runId, {
+      broker: this.broker,
+    });
     this.approvals = new ApprovalService(projectRoot, runId);
     this.events = new EventLog(projectRoot, runId);
   }
@@ -452,6 +466,30 @@ export class SuggestionBundleService {
       return { bundle: updated, preflight };
     }
 
+    // ── Action Broker boundary (S0): file.patch (bundle apply) ───────────
+    // One decision for the whole transactional apply, after preflight cleared.
+    // Fail-closed: a non-allow verdict refuses the bundle (worktree untouched).
+    const action: ActionRequest = {
+      runId: this.runId,
+      kind: "file.patch",
+      subject: {
+        op: "bundle.apply",
+        bundleId,
+        suggestionIds: bundle.suggestionIds.slice(),
+        files: unique(preflight.findings.flatMap((f) => f.touchedFiles)),
+      },
+      proposedBy: "system",
+    };
+    const gate = await gateAction(this.broker, action);
+    if (!gate.allowed) {
+      const updated = await this.markFailed(
+        bundle,
+        `action broker ${gate.effect} the bundle apply: ${gate.reason}`,
+        preflight.sameFileWarnings,
+      );
+      return { bundle: updated, preflight };
+    }
+
     // Live patch list, in declared order.
     const patches: { id: string; patch: string }[] = [];
     for (const sid of bundle.suggestionIds) {
@@ -479,6 +517,10 @@ export class SuggestionBundleService {
         const reason = (r.stderr || r.stdout || "git apply --check failed")
           .toString()
           .slice(0, 500);
+        await this.broker.record(action, gate.decision, {
+          ok: false,
+          summary: `git apply --check rejected ${p.id}`,
+        });
         const updated = await this.markFailed(
           bundle,
           `git apply --check rejected ${p.id}: ${reason}`,
@@ -544,6 +586,10 @@ export class SuggestionBundleService {
           break;
         }
       }
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `bundle apply failed at ${failureSuggestionId}${rollbackOk ? "; rolled back" : "; rollback failed"}`,
+      });
       const reason = rollbackOk
         ? `Apply failed at ${failureSuggestionId}; rolled back. Reason: ${failureReason}`
         : `Apply failed at ${failureSuggestionId} AND rollback failed. The worktree may be partially modified.`;
@@ -591,6 +637,11 @@ export class SuggestionBundleService {
       await this.markSuggestionApplied(a.id, bundle.id);
     }
 
+    await this.broker.record(action, gate.decision, {
+      ok: true,
+      summary: `applied bundle ${bundleId} (${applied.length} suggestion${applied.length === 1 ? "" : "s"})`,
+      data: { suggestionIds: applied.map((p) => p.id), files: touched },
+    });
     await this.events.append({
       type: "bundle.applied",
       message: `bundle ${bundleId} applied (${applied.length} suggestion${applied.length === 1 ? "" : "s"})`,
@@ -812,6 +863,48 @@ export class SuggestionBundleService {
       const finalBundle = await this.markFailed(
         bundle,
         `Smart-apply preflight rejected ${offenders.length} suggestion(s): ${summary}`,
+        preflight.sameFileWarnings,
+        "smart_failed",
+      );
+      result.resultPath = await this.persistSmartApplyResult(bundle.id, result);
+      return { bundle: finalBundle, result };
+    }
+
+    // ── Action Broker boundary (S0): file.patch (bundle smartApply) ──────
+    // One decision for the whole step-by-step pass, after preflight cleared.
+    // (Per-step reverts delegate to the gated ReviewSuggestionService.revert.)
+    const action: ActionRequest = {
+      runId: this.runId,
+      kind: "file.patch",
+      subject: {
+        op: "bundle.smartApply",
+        bundleId,
+        suggestionIds: bundle.suggestionIds.slice(),
+        files: unique(preflight.findings.flatMap((f) => f.touchedFiles)),
+      },
+      proposedBy: "system",
+    };
+    const gate = await gateAction(this.broker, action);
+    if (!gate.allowed) {
+      const result: SmartApplyResult = {
+        bundleId,
+        runId: this.runId,
+        startedAt,
+        endedAt: nowIso(),
+        mode: {
+          validateEachStep: !!options.validateEachStep,
+          autoRevertFailing: !!options.autoRevertFailing,
+          profileOverride: options.profileName?.trim() || null,
+          useSuggestionProfiles: !!options.useSuggestionProfiles,
+        },
+        steps,
+        finalStatus: "smart_failed",
+        failedAt: -1,
+        resultPath: "",
+      };
+      const finalBundle = await this.markFailed(
+        bundle,
+        `action broker ${gate.effect} the smart apply: ${gate.reason}`,
         preflight.sameFileWarnings,
         "smart_failed",
       );
@@ -1115,6 +1208,11 @@ export class SuggestionBundleService {
       });
     }
 
+    await this.broker.record(action, gate.decision, {
+      ok: finalStatus === "smart_applied",
+      summary: `smart apply ${finalStatus}: ${appliedSteps.length}/${steps.length} step(s) applied`,
+      data: { finalStatus, failedAt, files: touched },
+    });
     return { bundle: finalBundle, result };
   }
 
@@ -1318,6 +1416,26 @@ export class SuggestionBundleService {
       return updated;
     }
 
+    // ── Action Broker boundary (S0): file.patch (bundle revert) ──────────
+    const action: ActionRequest = {
+      runId: this.runId,
+      kind: "file.patch",
+      subject: {
+        op: "bundle.revert",
+        bundleId,
+        suggestionIds: bundle.suggestionIds.slice(),
+        files: safety.touchedFiles,
+      },
+      proposedBy: "system",
+    };
+    const gate = await gateAction(this.broker, action);
+    if (!gate.allowed) {
+      return this.markRevertFailed(
+        bundle,
+        `action broker ${gate.effect} the bundle revert: ${gate.reason}`,
+      );
+    }
+
     const check = await execa(
       "git",
       ["apply", "-R", "--check", "--whitespace=nowarn"],
@@ -1333,6 +1451,10 @@ export class SuggestionBundleService {
       const reason = (check.stderr || check.stdout || "git apply -R --check failed")
         .toString()
         .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply -R --check rejected revert of bundle ${bundleId}`,
+      });
       return this.markRevertFailed(
         bundle,
         `git apply -R --check rejected the reverse patch: ${reason}`,
@@ -1354,8 +1476,17 @@ export class SuggestionBundleService {
       const reason = (reverted.stderr || reverted.stdout || "git apply -R failed")
         .toString()
         .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply -R failed for bundle ${bundleId}`,
+      });
       return this.markRevertFailed(bundle, `git apply -R failed: ${reason}`);
     }
+    await this.broker.record(action, gate.decision, {
+      ok: true,
+      summary: `reverted bundle ${bundleId}`,
+      data: { files: safety.touchedFiles },
+    });
 
     const updated: SuggestionBundle = {
       ...bundle,

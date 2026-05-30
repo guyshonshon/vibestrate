@@ -1144,8 +1144,15 @@ failure both append `file.patch` evidence. Construction is centralised in
 caller records outcome), so every later effect kind inherits the S2 evaluator
 chain from one place. The service takes an injectable `broker` for tests.
 
-Not yet brokered (later slices): `file.patch` for **bundle** apply/smartApply/revert,
-`command.run`, `file.write`, `network.request`, `mcp.tool`, `terminal.create`,
-`run.complete`. These call sites route through the broker as their slices land —
-no call-site change is needed beyond constructing the request and honoring the
-decision.
+The **bundle** apply/smartApply/revert (`SuggestionBundleService`) gate the same
+way — one `file.patch` decision per operation, taken after preflight clears and
+before the first `git apply`, with evidence recorded at each terminal outcome.
+The bundle service shares its broker with the inner `ReviewSuggestionService`, so
+smartApply's per-step reverts (which delegate to the single-suggestion path) are
+gated too, and an injected (test) broker propagates to both. That completes
+`file.patch` coverage across the suggestion + bundle apply surface.
+
+Not yet brokered (later slices): `command.run`, `file.write`, `network.request`,
+`mcp.tool`, `terminal.create`, `run.complete`. These call sites route through the
+broker as their slices land — no call-site change is needed beyond constructing
+the request and honoring the decision.

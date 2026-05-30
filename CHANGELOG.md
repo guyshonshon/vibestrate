@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Action Broker (S0) — file.patch (bundles):** bundle apply / smartApply /
+  revert now also cross the broker (`kind: "file.patch"`, one decision per
+  operation) with allow/deny + ok/fail evidence; fail-closed (a deny refuses the
+  bundle, worktree untouched). Completes `file.patch` coverage across the
+  suggestion + bundle apply surface.
 - **Action Broker (S0) — file.patch:** single-suggestion patch apply/revert now
   cross the broker boundary (`kind: "file.patch"`), recording allow/deny +
   ok/fail evidence to `runs/<id>/actions.ndjson`. Fail-closed: a deny verdict
