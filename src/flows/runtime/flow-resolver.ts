@@ -178,6 +178,9 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
     // resolved ids equal their source ids — the loop refs carry over as-is.
     loop: input.flow.loop ?? null,
+    // Same for the per-item band: its step ids are stable, so the from/to refs
+    // carry over unchanged for the runner to map onto resolved step indices.
+    checklistSegment: input.flow.checklistSegment ?? null,
   });
 }
 
