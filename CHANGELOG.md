@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Assist primitive + Enhance:** new `src/assist/` — a one-shot,
+  read-only, structured-output run (`runAssist`: resolve crew-planner profile →
+  broker-gated `provider.spawn` → parse + Zod-validate JSON, one reprompt on
+  failure; audited to `runs/assist/`). First consumer **Enhance** decomposes a
+  task into a checklist: `proposeChecklist` (dry-run) / `enhanceChecklist`
+  (append), `vibe tasks enhance [--apply]`, `POST /api/tasks/:id/enhance`, and an
+  "Enhance" button in the checklist panel (preview → Add all). Model never
+  mutates the board on its own — accepting is explicit.
 - **Phase 3 — Checklist drag-reorder:** task-detail checklist items now reorder
   via native drag-and-drop (grip handle), replacing the up/down buttons; new-order
   math extracted to `ui/lib/reorder.ts` and unit-tested. CLI `checklist move` stays.

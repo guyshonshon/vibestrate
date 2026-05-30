@@ -6,6 +6,7 @@ import {
   GripVertical,
   Lock,
   Plus,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -463,6 +464,7 @@ function ChecklistSection({
   const [error, setError] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [proposed, setProposed] = useState<string[] | null>(null);
   const done = items.filter((i) => i.status === "done").length;
   const pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
 
@@ -486,6 +488,24 @@ function ChecklistSection({
     await run("add", async () => {
       await api.addChecklistItem(task.id, t);
       setText("");
+    });
+  }
+
+  async function enhance() {
+    setProposed(null);
+    await run("enhance", async () => {
+      const r = await api.enhanceChecklist(task.id, { apply: false });
+      setProposed(r.proposal.items);
+    });
+  }
+
+  async function acceptProposed() {
+    const toAdd = proposed ?? [];
+    await run("accept", async () => {
+      for (const t of toAdd) {
+        await api.addChecklistItem(task.id, t);
+      }
+      setProposed(null);
     });
   }
 
@@ -520,7 +540,53 @@ function ChecklistSection({
             </div>
           </>
         ) : null}
+        <button
+          type="button"
+          onClick={enhance}
+          disabled={busy !== null}
+          title="Propose a checklist with an AI assist (read-only — you choose whether to add the items)"
+          className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
+        >
+          <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+          {busy === "enhance" ? "Thinking…" : "Enhance"}
+        </button>
       </div>
+
+      {proposed ? (
+        <div className="mt-2 rounded border border-vibestrate-accent/30 bg-vibestrate-accent-soft/10 p-2">
+          <div className="flex items-center gap-2">
+            <span className="vibestrate-mono text-[10px] uppercase tracking-[0.10em] text-vibestrate-accent">
+              proposed ({proposed.length}) — not added yet
+            </span>
+            <button
+              type="button"
+              onClick={acceptProposed}
+              disabled={busy !== null || proposed.length === 0}
+              className="ml-auto rounded border border-vibestrate-accent/50 bg-vibestrate-accent/15 px-1.5 py-0.5 text-[11px] text-vibestrate-accent hover:bg-vibestrate-accent/25 disabled:opacity-50"
+            >
+              {busy === "accept" ? "Adding…" : "Add all"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setProposed(null)}
+              disabled={busy !== null}
+              className="rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:text-vibestrate-fg disabled:opacity-50"
+            >
+              Dismiss
+            </button>
+          </div>
+          <ol className="mt-1.5 space-y-0.5">
+            {proposed.map((t, i) => (
+              <li key={i} className="text-[12px] text-vibestrate-fg">
+                <span className="vibestrate-mono text-vibestrate-fg-muted">
+                  {i + 1}.
+                </span>{" "}
+                {t}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
 
       {items.length === 0 ? (
         <div className="mt-2 text-[12px] text-vibestrate-fg-muted">

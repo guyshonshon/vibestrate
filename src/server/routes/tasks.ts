@@ -37,6 +37,10 @@ const checklistPatchBody = z
     message: "Provide at least one of: text, status.",
   });
 const checklistReorderBody = z.object({ order: z.array(z.string().min(1)) });
+const enhanceBody = z.object({
+  apply: z.boolean().optional(),
+  profileId: z.string().min(1).nullable().optional(),
+});
 
 const patchBody = z.object({
   title: z.string().optional(),
@@ -235,6 +239,40 @@ export async function registerTasksRoutes(
           parsed.data.order,
         );
         return { task };
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Enhance: an AI assist (read-only, structured output) proposes a checklist
+  // for the task. `apply: false` (default) is a dry-run preview that mutates
+  // nothing; `apply: true` appends the proposed items. The model never writes
+  // to the board on its own — accepting is an explicit, separate step.
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/enhance",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = enhanceBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const { proposeChecklist, enhanceChecklist } = await import(
+        "../../assist/enhance.js"
+      );
+      try {
+        if (parsed.data.apply) {
+          const { task, added, proposal } = await enhanceChecklist(
+            deps.projectRoot,
+            req.params.taskId,
+            { profileId: parsed.data.profileId ?? null },
+          );
+          return { applied: true, task, added, proposal };
+        }
+        const proposal = await proposeChecklist(
+          deps.projectRoot,
+          req.params.taskId,
+          { profileId: parsed.data.profileId ?? null },
+        );
+        return { applied: false, proposal };
       } catch (err) {
         throw new HttpError(400, err instanceof Error ? err.message : String(err));
       }

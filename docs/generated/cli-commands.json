@@ -1628,6 +1628,48 @@
           ]
         },
         {
+          "name": "enhance",
+          "path": [
+            "vibe",
+            "tasks",
+            "enhance"
+          ],
+          "description": "Propose a checklist for a task with an AI assist (read-only). Add --apply to append the items.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--apply",
+              "description": "append the proposed items to the task's checklist",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--profile <id>",
+              "description": "profile to run the assist on (default: crew planner)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "report",
           "path": [
             "vibe",

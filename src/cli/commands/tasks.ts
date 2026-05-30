@@ -350,6 +350,58 @@ async function cmdChecklistMove(
   }
 }
 
+async function cmdEnhance(
+  taskId: string,
+  opts: { apply?: boolean; profile?: string; json?: boolean },
+): Promise<number> {
+  try {
+    const { root } = await svc();
+    if (opts.apply) {
+      const { enhanceChecklist } = await import("../../assist/enhance.js");
+      const { added, proposal } = await enhanceChecklist(root, taskId, {
+        profileId: opts.profile ?? null,
+      });
+      if (opts.json) {
+        console.log(JSON.stringify({ added, proposal }, null, 2));
+        return 0;
+      }
+      console.log(
+        `${symbol.ok()} Added ${added.length} checklist item(s) via ${color.dim(proposal.providerId)}.`,
+      );
+      printChecklist(added);
+      return 0;
+    }
+    const { proposeChecklist } = await import("../../assist/enhance.js");
+    const proposal = await proposeChecklist(root, taskId, {
+      profileId: opts.profile ?? null,
+    });
+    if (opts.json) {
+      console.log(JSON.stringify(proposal, null, 2));
+      return 0;
+    }
+    console.log(
+      header(`Proposed checklist (${proposal.items.length} items)`),
+    );
+    console.log(
+      color.dim(`via ${proposal.providerId} · not yet added — re-run with --apply to append`),
+    );
+    console.log("");
+    proposal.items.forEach((t, i) => {
+      console.log(`  ${color.dim(String(i + 1).padStart(2) + ".")} ${t}`);
+    });
+    console.log("");
+    console.log(
+      indent(`${symbol.arrow()} Apply: ${color.bold(`vibe tasks enhance ${taskId} --apply`)}`),
+    );
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 async function cmdComment(taskId: string, body: string): Promise<number> {
   if (!body || !body.trim()) {
     console.error(`${symbol.fail()} Comment body is required.`);
@@ -662,6 +714,18 @@ export function buildTasksCommand(): Command {
       process.exit(await cmdChecklistMove(taskId, itemId, position));
     });
   cmd.addCommand(checklist);
+
+  cmd
+    .command("enhance <id>")
+    .description(
+      "Propose a checklist for a task with an AI assist (read-only). Add --apply to append the items.",
+    )
+    .option("--apply", "append the proposed items to the task's checklist")
+    .option("--profile <id>", "profile to run the assist on (default: crew planner)")
+    .option("--json", "emit JSON")
+    .action(async (id: string, opts) => {
+      process.exit(await cmdEnhance(id, opts));
+    });
 
   cmd
     .command("report <id>")
