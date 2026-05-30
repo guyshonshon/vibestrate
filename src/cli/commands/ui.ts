@@ -6,6 +6,10 @@ import { exec } from "node:child_process";
 
 export type UiCommandOptions = {
   port?: number;
+  /** Bind host. Default 127.0.0.1 (loopback). A non-loopback host exposes the
+   *  API on the network and requires VIBESTRATE_API_TOKEN (the server refuses
+   *  to start otherwise). */
+  host?: string;
   open?: boolean;
   /** When false, skip spawning the managed scheduler subprocess.
    *  Default true: the UI owns the scheduler's lifecycle. */
@@ -38,12 +42,13 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   }
 
   const port = opts.port ?? DEFAULT_VIBESTRATE_PORT;
+  const host = opts.host && opts.host.length > 0 ? opts.host : "127.0.0.1";
   let started;
   try {
     started = await startServer({
       projectRoot: detected.projectRoot,
       port,
-      host: "127.0.0.1",
+      host,
       withScheduler: opts.scheduler !== false,
     });
   } catch (err) {
@@ -61,6 +66,24 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   console.log(
     indent(`${symbol.bullet()} dashboard   ${color.bold(started.url)}`),
   );
+  const tokenSet = !!process.env.VIBESTRATE_API_TOKEN;
+  if (host !== "127.0.0.1") {
+    console.log(
+      indent(
+        `${symbol.bullet()} api auth    ${color.yellow(
+          `bearer token required (non-loopback bind ${host})`,
+        )}`,
+      ),
+    );
+  } else if (tokenSet) {
+    console.log(
+      indent(
+        `${symbol.bullet()} api auth    ${color.green(
+          "bearer token required (VIBESTRATE_API_TOKEN set)",
+        )}`,
+      ),
+    );
+  }
   if (started.schedulerPid !== null) {
     console.log(
       indent(

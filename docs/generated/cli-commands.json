@@ -521,6 +521,76 @@
           "subcommands": []
         },
         {
+          "name": "export",
+          "path": [
+            "vibe",
+            "flows",
+            "export"
+          ],
+          "description": "Export a Flow as canonical YAML (for sharing / backup).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--out <file>",
+              "description": "write the YAML to a file instead of stdout",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON { flowId, source, yaml }",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "import",
+          "path": [
+            "vibe",
+            "flows",
+            "import"
+          ],
+          "description": "Import a Flow from a local file path or an http(s) URL into .vibestrate/flows/.",
+          "usage": "[options] <source>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--overwrite",
+              "description": "replace an existing project flow with the same id",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "export-arbitration",
           "path": [
             "vibe",
@@ -3553,6 +3623,13 @@
         {
           "flags": "--port <port>",
           "description": "port to bind (default 4317)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--host <host>",
+          "description": "bind host (default 127.0.0.1). A non-loopback host exposes the API on the network and requires VIBESTRATE_API_TOKEN.",
           "required": true,
           "optional": false,
           "negated": false

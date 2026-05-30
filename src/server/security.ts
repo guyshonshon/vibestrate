@@ -1,4 +1,5 @@
 import path from "node:path";
+import crypto from "node:crypto";
 import { isPathInside } from "../utils/paths.js";
 
 export class HttpError extends Error {
@@ -6,6 +7,40 @@ export class HttpError extends Error {
     super(message);
     this.name = "HttpError";
   }
+}
+
+/**
+ * A bind to a loopback host keeps the server's default "no-auth,
+ * origin-allow-listed" posture. Any other host (including `0.0.0.0`, which
+ * binds every interface) is treated as a real network exposure that must
+ * carry a bearer token — see the auth hook in `startServer`.
+ */
+export function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === "127.0.0.1" || normalized === "::1" || normalized === "localhost";
+}
+
+/**
+ * Constant-time string compare that never short-circuits on length. Returns
+ * false for any mismatch (including length) without leaking timing about how
+ * much of the token matched.
+ */
+export function timingSafeEqualStr(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  // timingSafeEqual throws on unequal lengths; hash both to a fixed width first
+  // so the comparison itself is always constant-time regardless of input size.
+  const ah = crypto.createHash("sha256").update(ab).digest();
+  const bh = crypto.createHash("sha256").update(bb).digest();
+  return crypto.timingSafeEqual(ah, bh);
+}
+
+/** Pull a bearer token out of an Authorization header. Returns null when the
+ *  header is absent or not a well-formed `Bearer <token>`. */
+export function bearerToken(authorization: string | undefined): string | null {
+  if (typeof authorization !== "string") return null;
+  const m = /^Bearer[ \t]+(.+)$/i.exec(authorization.trim());
+  return m ? m[1]!.trim() : null;
 }
 
 const RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;

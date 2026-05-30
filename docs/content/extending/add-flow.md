@@ -103,7 +103,31 @@ vibe run "..." --flow spike-and-decide --flow-skip plan
 - **Skipping validation.** Without a `validation` step, your Flow has no ground truth.
 - **Over-stuffing one Flow.** Twelve steps is too many. If a Flow grew long, split it.
 
+## Share a Flow (import / export)
+
+Flows are portable: they name **Seats**, not your local Roles or Providers, so
+one project's Flow drops into another and resolves against that project's Crew.
+
+```bash
+# export a Flow to a file you can commit or send
+vibe flows export spike-and-decide --out spike-and-decide.flow.yml
+
+# import one from a file or an http(s) URL
+vibe flows import ./spike-and-decide.flow.yml
+vibe flows import https://example.com/flows/spike-and-decide.flow.yml
+```
+
+Imports are schema-validated and **refused if they carry a secret token shape**
+or disallowed control characters; URL fetches are size- and time-bounded. An
+existing project Flow with the same id is only replaced with `--overwrite`.
+
+The dashboard **Flows** page has the same controls (**Export**, **Import**,
+**New flow**), and the underlying HTTP endpoints
+(`/api/v1/flows/:id/export`, `POST /api/v1/flows/import`, `POST /api/v1/flows`)
+are documented under [HTTP API](/docs/architecture/http-api).
+
 ## Related
 
 - [Flow (concept)](/docs/concepts/flow).
 - [Built-in Flows reference](/docs/reference/flows).
+- [HTTP API](/docs/architecture/http-api).

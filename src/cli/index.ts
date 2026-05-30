@@ -349,6 +349,10 @@ export function buildVibestrateProgram(): Command {
     .description("Start the local supervisor dashboard for this project.")
     .option("--port <port>", "port to bind (default 4317)", (v) => parseInt(v, 10))
     .option(
+      "--host <host>",
+      "bind host (default 127.0.0.1). A non-loopback host exposes the API on the network and requires VIBESTRATE_API_TOKEN.",
+    )
+    .option(
       "--no-open",
       "don't open the dashboard in your default browser on startup (default: open).",
     )
@@ -357,9 +361,15 @@ export function buildVibestrateProgram(): Command {
       "don't start the managed scheduler subprocess (default: on; the UI owns its lifecycle).",
     )
     .action(
-      async (opts: { port?: number; open?: boolean; scheduler?: boolean }) => {
+      async (opts: {
+        port?: number;
+        host?: string;
+        open?: boolean;
+        scheduler?: boolean;
+      }) => {
         const code = await runUiCommand({
           port: opts.port,
+          host: opts.host,
           // commander's `--no-foo` form sets `opts.foo` to `false`; the
           // absence of the flag leaves it `undefined`. Default to true.
           open: opts.open !== false,

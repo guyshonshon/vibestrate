@@ -17,6 +17,13 @@ import {
   forkFlowToProject,
   flowPatchInputSchema,
 } from "../../flows/runtime/flow-patch.js";
+import {
+  createProjectFlow,
+  exportFlowYaml,
+  importFlowFromText,
+  importFlowFromUrl,
+} from "../../flows/runtime/flow-portability.js";
+import { flowDefinitionSchema } from "../../flows/schemas/flow-schema.js";
 import { HttpError } from "../security.js";
 
 const idOverridesSchema = z
@@ -48,6 +55,29 @@ const suggestFlowsBody = z
   })
   .strict();
 
+// Import one flow from raw YAML text or a URL (exactly one). File-path imports
+// are CLI-only: the server never reads arbitrary local paths over HTTP.
+const importFlowBody = z
+  .object({
+    yaml: z.string().min(1).max(512 * 1024).optional(),
+    url: z.string().min(1).max(2048).optional(),
+    overwrite: z.boolean().optional(),
+  })
+  .strict()
+  .refine(
+    (b) => (b.yaml ? 1 : 0) + (b.url ? 1 : 0) === 1,
+    "Provide exactly one of `yaml` or `url`.",
+  );
+
+// Flow-creator API: a full FlowDefinition (validated by the portability layer)
+// plus an optional overwrite flag.
+const createFlowBody = z
+  .object({
+    flow: flowDefinitionSchema,
+    overwrite: z.boolean().optional(),
+  })
+  .strict();
+
 export type FlowsRoutesDeps = {
   projectRoot: string;
 };
@@ -76,11 +106,91 @@ export async function registerFlowsRoutes(
     };
   });
 
+  // Flow-creator API: write a brand-new project flow from a full definition.
+  // Create-only by default; pass `overwrite: true` to replace an existing
+  // project flow (a builtin of the same id is always shadowable, like fork).
+  app.post<{ Body: unknown }>("/api/flows", async (req, reply) => {
+    const parsed = createFlowBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const result = await createProjectFlow({
+      projectRoot,
+      definition: parsed.data.flow,
+      overwrite: parsed.data.overwrite,
+    });
+    if (!result.ok) {
+      throw new HttpError(result.status, result.reasons.join("\n"));
+    }
+    reply.code(result.overwritten ? 200 : 201);
+    return {
+      ok: true,
+      flowId: result.flowId,
+      definitionPath: result.definitionPath,
+      overwritten: result.overwritten,
+      flow: await flowOr404(projectRoot, result.flowId),
+    };
+  });
+
+  // Import a single flow from raw YAML or a URL, dropping it into
+  // `.vibestrate/flows/`. Schema-validated + secret/control-char guarded; URL
+  // fetches are SSRF-guarded, size- and time-bounded.
+  app.post<{ Body: unknown }>("/api/flows/import", async (req, reply) => {
+    const parsed = importFlowBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const result = parsed.data.url
+      ? await importFlowFromUrl({
+          projectRoot,
+          url: parsed.data.url,
+          overwrite: parsed.data.overwrite,
+        })
+      : await importFlowFromText({
+          projectRoot,
+          text: parsed.data.yaml!,
+          overwrite: parsed.data.overwrite,
+        });
+    if (!result.ok) {
+      throw new HttpError(result.status, result.reasons.join("\n"));
+    }
+    reply.code(result.overwritten ? 200 : 201);
+    return {
+      ok: true,
+      flowId: result.flowId,
+      definitionPath: result.definitionPath,
+      overwritten: result.overwritten,
+      flow: await flowOr404(projectRoot, result.flowId),
+    };
+  });
+
   app.get<{ Params: { flowId: string } }>(
     "/api/flows/:flowId",
     async (req) => {
       const flow = await flowOr404(projectRoot, req.params.flowId);
       return { flow };
+    },
+  );
+
+  // Export any discovered flow (builtin / fixture / project) as canonical YAML
+  // for sharing. `?format=yaml` returns the raw text as a download; default is
+  // JSON `{ flowId, source, yaml }`.
+  app.get<{ Params: { flowId: string }; Querystring: { format?: string } }>(
+    "/api/flows/:flowId/export",
+    async (req, reply) => {
+      const result = await exportFlowYaml({
+        projectRoot,
+        flowId: decodeURIComponent(req.params.flowId),
+      });
+      if (!result.ok) {
+        throw new HttpError(result.status, result.reasons.join("\n"));
+      }
+      if (req.query.format === "yaml") {
+        return reply
+          .type("application/x-yaml")
+          .header(
+            "Content-Disposition",
+            `attachment; filename="${result.flowId}.flow.yml"`,
+          )
+          .send(result.yaml);
+      }
+      return { flowId: result.flowId, source: result.source, yaml: result.yaml };
     },
   );
 

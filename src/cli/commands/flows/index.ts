@@ -3,6 +3,8 @@ import path from "node:path";
 import { runFlowsList } from "./list.js";
 import { runFlowsShow } from "./show.js";
 import { runFlowsSuggest } from "./suggest.js";
+import { runFlowsExport } from "./export.js";
+import { runFlowsImport } from "./import.js";
 import { detectProject } from "../../../project/project-detector.js";
 import {
   exportFlowArbitrationDataset,
@@ -52,6 +54,33 @@ export function buildFlowsCommand(): Command {
         const code = await runFlowsSuggest(taskParts, {
           files: opts.file,
           risk: opts.risk,
+          json: opts.json,
+        });
+        process.exit(code);
+      },
+    );
+
+  cmd
+    .command("export <id>")
+    .description("Export a Flow as canonical YAML (for sharing / backup).")
+    .option("--out <file>", "write the YAML to a file instead of stdout")
+    .option("--json", "emit JSON { flowId, source, yaml }")
+    .action(async (id: string, opts: { out?: string; json?: boolean }) => {
+      const code = await runFlowsExport(id, { out: opts.out, json: opts.json });
+      process.exit(code);
+    });
+
+  cmd
+    .command("import <source>")
+    .description(
+      "Import a Flow from a local file path or an http(s) URL into .vibestrate/flows/.",
+    )
+    .option("--overwrite", "replace an existing project flow with the same id")
+    .option("--json", "emit JSON")
+    .action(
+      async (source: string, opts: { overwrite?: boolean; json?: boolean }) => {
+        const code = await runFlowsImport(source, {
+          overwrite: opts.overwrite,
           json: opts.json,
         });
         process.exit(code);
