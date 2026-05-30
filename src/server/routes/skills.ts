@@ -17,6 +17,12 @@ export type SkillsRoutesDeps = {
   projectRoot: string;
 };
 
+const skillFetchBody = z.object({
+  url: z.string().url().max(2000),
+  name: z.string().min(1).max(80).optional(),
+  assess: z.boolean().optional(),
+});
+
 export async function registerSkillsRoutes(
   app: FastifyInstance,
   deps: SkillsRoutesDeps,
@@ -29,6 +35,37 @@ export async function registerSkillsRoutes(
       listRoleSkillAssignments(projectRoot).catch(() => []),
     ]);
     return { skills, assignments };
+  });
+
+  // Fetch a skill from a URL (guarded + secret-redacted), optionally with a
+  // read-only AI overview. The API never allows private hosts (SSRF).
+  app.post<{ Body: unknown }>("/api/skills/fetch", async (req) => {
+    const parsed = skillFetchBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const { installSkillFromUrl, assessSkill } = await import(
+      "../../skills/skill-fetch.js"
+    );
+    const r = await installSkillFromUrl({
+      projectRoot,
+      url: parsed.data.url,
+      name: parsed.data.name,
+    });
+    if (!r.ok) throw new HttpError(400, r.reason);
+    let assessment = null;
+    if (parsed.data.assess) {
+      try {
+        const { readText } = await import("../../utils/fs.js");
+        const { projectSkillsDir } = await import("../../utils/paths.js");
+        const path = await import("node:path");
+        const skillText = await readText(
+          path.join(projectSkillsDir(projectRoot), `${r.name}.md`),
+        );
+        assessment = await assessSkill({ projectRoot, skillText });
+      } catch {
+        assessment = null;
+      }
+    }
+    return { skill: r, assessment };
   });
 
   app.get<{ Params: { skillId: string } }>(

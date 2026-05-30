@@ -414,6 +414,41 @@
           ],
           "options": [],
           "subcommands": []
+        },
+        {
+          "name": "fetch",
+          "path": [
+            "vibe",
+            "skills",
+            "fetch"
+          ],
+          "description": "Fetch a skill markdown from an http(s) URL into .vibestrate/skills/ (guarded + secret-redacted).",
+          "usage": "[options] <url>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--name <name>",
+              "description": "skill filename (default: derived from the URL)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--assess",
+              "description": "read-only AI overview: helpful / already-present / conflicting",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },

@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 5 — Skill fetching + AI overview:** `vibe skills fetch <url>` downloads
+  a skill markdown (SSRF-guarded, bounded, secret-redacted) into
+  `.vibestrate/skills/<name>.md` (path-guarded write). `--assess` adds a
+  read-only AI overview — a broker-gated assist run that judges the candidate
+  **helpful / already_present / conflicting** against the project's existing
+  skills. Also `POST /api/skills/fetch { url, name?, assess? }`.
 - **Phase 5 — Guides/Flows hub:** install community flows the "npm-without-a-
   registry" way — a curated `index.json` in a git repo served over raw static
   URLs, no backend. `fetchHubIndex` (guarded + bounded + schema-validated),
