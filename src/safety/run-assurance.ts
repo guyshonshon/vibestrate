@@ -79,8 +79,16 @@ export function deriveRunAssurance(input: {
     reason: "reason" in r.decision ? r.decision.reason : "denied",
   }));
 
-  // ── Validation (from command.run evidence — broker truth, not model claims)
-  const cmds = actionLog.filter((r) => r.request.kind === "command.run");
+  // ── Validation (from command.run evidence — broker truth, not model claims).
+  // Only commands that actually RAN count: a denied command.run is recorded
+  // with a deny decision + null evidence and belongs to policy.violations, not
+  // the validation tally (otherwise it would silently inflate `total`).
+  const cmds = actionLog.filter(
+    (r) =>
+      r.request.kind === "command.run" &&
+      r.decision.effect === "allow" &&
+      r.evidence !== null,
+  );
   const cmdPassed = cmds.filter((r) => r.evidence?.ok === true).length;
   const cmdFailed = cmds.filter((r) => r.evidence?.ok === false).length;
   const validationStatus: RunAssurance["validation"]["status"] =

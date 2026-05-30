@@ -201,6 +201,15 @@ export function globToRegex(glob: string): RegExp {
     const c = glob[i]!;
     if (c === "*") {
       if (glob[i + 1] === "*") {
+        // `**/` matches any number of leading path segments INCLUDING zero, so
+        // `**/*.pem` also matches a repo-root `c.pem` (gitignore/minimatch
+        // semantics). Without this, root-level secrets escape `**/*.key`-style
+        // rules — a real policy bypass.
+        if (glob[i + 2] === "/") {
+          out += "(?:.*/)?";
+          i += 3;
+          continue;
+        }
         out += ".*";
         i += 2;
         continue;
