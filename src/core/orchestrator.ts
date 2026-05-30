@@ -2663,43 +2663,6 @@ export class Orchestrator {
           durationMs: Date.now() - stageStart.getTime(),
         },
       });
-
-      // ── Post-turn diff gate (S3): evaluate what the turn wrote ───────────
-      // Snapshot → diff → evaluate. A deny / unsafe verdict rolls the worktree
-      // back to the pre-turn snapshot and blocks; require_approval blocks
-      // fail-closed with the changes left in place for a human. Default-allow
-      // (no policies) → no behavior change.
-      if (preTurnTree && ctx.worktreePath) {
-        const verdict = await evaluateTurnDiff({
-          broker: this.broker!,
-          runId: ctx.runId,
-          roleId,
-          worktree: ctx.worktreePath,
-          baseTree: preTurnTree,
-        });
-        if (verdict.verdict !== "accept") {
-          if (verdict.verdict === "rollback") {
-            await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
-              () => undefined,
-            );
-          }
-          await ctx.eventLog.append({
-            type: "action.denied",
-            message: `Post-turn diff gate ${verdict.verdict} for ${roleId}: ${verdict.reason}`,
-            data: {
-              kind: "agent.turn.diff",
-              roleId,
-              verdict: verdict.verdict,
-              reason: verdict.reason,
-              files: verdict.files,
-              rolledBack: verdict.verdict === "rollback",
-            },
-          });
-          throw new __ActionDeniedSignal(
-            `Post-turn diff gate ${verdict.verdict} for ${roleId}: ${verdict.reason}`,
-          );
-        }
-      }
     } catch (err) {
       const stageEnd = new Date();
       await ctx.eventLog.append({
@@ -2756,6 +2719,75 @@ export class Orchestrator {
     } finally {
       clearInterval(observer);
       this.abortSignal?.removeEventListener("abort", abortFromSignal);
+    }
+
+    // ── Post-turn diff gate (S3) ──────────────────────────────────────────
+    // The turn ran with write access; evaluate what it wrote. `accept` →
+    // continue; `rollback` (deny/unsafe) → restore the worktree to the pre-turn
+    // snapshot and block; `approve` (require_approval) → pause for a human via
+    // the standard approval flow — on approval keep the changes, on rejection
+    // roll back and block. Default-allow (no policies) → no behavior change.
+    if (preTurnTree && ctx.worktreePath) {
+      const verdict = await evaluateTurnDiff({
+        broker: this.broker!,
+        runId: ctx.runId,
+        roleId,
+        worktree: ctx.worktreePath,
+        baseTree: preTurnTree,
+      });
+      if (verdict.verdict === "rollback") {
+        await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
+          () => undefined,
+        );
+        await ctx.eventLog.append({
+          type: "action.denied",
+          message: `Post-turn diff gate rolled back ${roleId}'s changes: ${verdict.reason}`,
+          data: {
+            kind: "agent.turn.diff",
+            roleId,
+            verdict: "rollback",
+            reason: verdict.reason,
+            files: verdict.files,
+            rolledBack: true,
+          },
+        });
+        throw new __ActionDeniedSignal(
+          `Post-turn diff gate rolled back ${roleId}'s changes: ${verdict.reason}`,
+        );
+      }
+      if (verdict.verdict === "approve") {
+        const cur = await ctx.stateStore.read();
+        if (!cur) {
+          throw new __ActionDeniedSignal(
+            `Post-turn diff gate requires approval for ${roleId} but run state is unavailable.`,
+          );
+        }
+        const res = await this.awaitApprovalRequest({
+          state: cur,
+          fromStatus: cur.status,
+          stageId: input.stageId,
+          roleId,
+          reason: verdict.reason,
+          prompt: null,
+          sourceArtifactPath: null,
+          requestedAction: "agent.turn.diff",
+          riskLevel: "high",
+          source: "policy",
+          alsoRequiredByPolicy: true,
+          progressMessage: `Pausing: ${roleId}'s changes need approval...`,
+          requestedMessage: `Approval required for ${roleId}'s changes (${verdict.files.length} file(s)): ${verdict.reason}`,
+          resumedMessage: `Approved ${roleId}'s changes; continuing.`,
+          approvalService: new ApprovalService(this.projectRoot, ctx.runId),
+          stateStore: ctx.stateStore,
+          eventLog: ctx.eventLog,
+        });
+        if (res.rejected) {
+          await restoreWorktree(ctx.worktreePath, preTurnTree).catch(
+            () => undefined,
+          );
+          throw new __ApprovalRejectedSignal();
+        }
+      }
     }
 
     // Control + artifact read the adapter-normalized response text, not raw

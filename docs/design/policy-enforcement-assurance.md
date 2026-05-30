@@ -1136,10 +1136,11 @@ built-in `checkPatchSafety` secret/forbidden-path guard and (2) the broker as a
 Verdicts: `accept` (record evidence, continue); `rollback` for a deny/unsafe diff
 — `restoreWorktree` does `read-tree` + `checkout-index -fa` + `clean -fd` to
 return tracked AND previously-untracked files to the snapshot, then the run is
-blocked via `__ActionDeniedSignal`; `approve` for `require_approval` — blocked
-fail-closed with the changes left in place for a human (interactive mid-turn
-approval is a follow-up). Snapshotting is best-effort: a git failure disables the
-gate for that turn rather than blocking. Default-allow → unchanged behavior.
+blocked via `__ActionDeniedSignal`; `approve` for `require_approval` — the run **pauses** via the standard approval
+flow (`awaitApprovalRequest`): on approval the changes are kept and the turn
+continues; on rejection the worktree is rolled back and the run blocks.
+Snapshotting is best-effort: a git failure disables the gate for that turn rather
+than blocking. Default-allow → unchanged behavior.
 
 ### S5 — Run Assurance artifact ✅ shipped
 
