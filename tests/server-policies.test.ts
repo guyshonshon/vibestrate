@@ -177,6 +177,66 @@ describe("server: policies routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("GET/PATCH /api/policies/config reads and writes the safety toggles", async () => {
+    const project = await fs.mkdtemp(
+      path.join(os.tmpdir(), "vibestrate-pcfg-"),
+    );
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: project });
+    await execa("git", ["config", "user.name", "x"], { cwd: project });
+    await fs.writeFile(path.join(project, "package.json"), '{"name":"demo"}');
+    await execa("git", ["add", "."], { cwd: project });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
+    await fs.mkdir(path.join(project, ".vibestrate"), { recursive: true });
+    await fs.writeFile(
+      path.join(project, ".vibestrate/project.yml"),
+      [
+        "project: { name: demo, type: generic }",
+        "providers: { fake: { type: cli, command: /bin/true, inputMode: stdin } }",
+        "profiles: { fake-balanced: { provider: fake } }",
+        "crews: { default: { roles: { reviewer: { seats: [reviewer], profile: fake-balanced, prompt: reviewer, permissions: read } } } }",
+        "defaultCrew: default",
+        "commands: { validate: [] }",
+        "",
+      ].join("\n"),
+    );
+    const srv = await start(project);
+
+    // Default: strictApplyOnly off.
+    const before = await fetch(`${srv.url}/api/policies/config`).then((x) =>
+      x.json(),
+    );
+    expect(before.config.strictApplyOnly).toBe(false);
+
+    // Turn it on + enable terminal.
+    const res = await fetch(`${srv.url}/api/policies/config`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        strictApplyOnly: true,
+        allowInteractiveTerminal: true,
+      }),
+    });
+    expect(res.status).toBe(200);
+    const updated = await res.json();
+    expect(updated.config.strictApplyOnly).toBe(true);
+    expect(updated.config.allowInteractiveTerminal).toBe(true);
+
+    // Persisted: a fresh GET reflects the change.
+    const after = await fetch(`${srv.url}/api/policies/config`).then((x) =>
+      x.json(),
+    );
+    expect(after.config.strictApplyOnly).toBe(true);
+
+    // Empty patch is rejected.
+    const bad = await fetch(`${srv.url}/api/policies/config`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(bad.status).toBe(400);
+  });
+
   it("no endpoint exists that creates, edits, or deletes rule files", async () => {
     const project = await makeProject();
     const srv = await start(project);

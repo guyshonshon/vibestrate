@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Safety UI/UX:** the Policies dashboard panel gains a highlighted **Advanced —
+  Safety behavior** section: editable toggles for strict apply-only (badged
+  high-assurance), interactive terminal, and the forbid-* guards, with a **live
+  preview** describing exactly how a run will behave under the chosen settings
+  (gate path, action-policy count, hard guards). Backed by `GET/PATCH
+  /api/policies/config` and `vibe policies config` (UI⇄CLI parity).
 - **Strict apply-only mode (S4):** new `policies.strictApplyOnly` flag. When on,
   write-capable roles run read-only (no direct disk writes); they propose a
   unified diff (```diff block) which Vibestrate applies through the broker

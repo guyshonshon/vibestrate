@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { HttpError } from "../security.js";
 import { loadPolicySnapshot } from "../../policies/policy-store.js";
 import { evaluatePatchAgainstPolicies } from "../../policies/policy-engine.js";
@@ -6,8 +7,26 @@ import {
   policySurfaceSchema,
   POLICY_LIMITS,
 } from "../../policies/policy-types.js";
+import { loadConfig } from "../../project/config-loader.js";
+import { setConfigValue } from "../../setup/config-update-service.js";
 
 export type PoliciesRoutesDeps = { projectRoot: string };
+
+/** Safety behavior toggles (the `policies.*` config block) the dashboard's
+ *  Advanced panel and `vibe policies config` both edit. */
+const safetyConfigSchema = z
+  .object({
+    strictApplyOnly: z.boolean().optional(),
+    allowInteractiveTerminal: z.boolean().optional(),
+    forbidMainBranchWrites: z.boolean().optional(),
+    forbidSecretsAccess: z.boolean().optional(),
+    forbidAutoPush: z.boolean().optional(),
+    forbidAutoMerge: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, {
+    message: "Provide at least one field to update.",
+  });
 
 /** Hard cap on patch size accepted by the check endpoint. 1 MB is plenty
  *  for a real-world patch and well below what a malicious caller could
@@ -36,6 +55,31 @@ export async function registerPoliciesRoutes(
 
   app.get("/api/policies", async () => {
     return loadPolicySnapshot(projectRoot);
+  });
+
+  // Safety behavior config (read). The Advanced panel renders these toggles.
+  app.get("/api/policies/config", async () => {
+    const loaded = await loadConfig(projectRoot).catch(() => null);
+    if (!loaded) throw new HttpError(409, "Project is not initialized.");
+    return { config: loaded.config.policies };
+  });
+
+  // Safety behavior config (write) — through the same path-guarded config-update
+  // service the CLI uses. Only the boolean toggles are editable here;
+  // requireApprovalAtStages stays file-edited.
+  app.patch("/api/policies/config", async (req) => {
+    const parsed = safetyConfigSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(
+        400,
+        parsed.error.issues[0]?.message ?? "Invalid safety config.",
+      );
+    }
+    for (const [key, value] of Object.entries(parsed.data)) {
+      await setConfigValue(projectRoot, `policies.${key}`, String(value));
+    }
+    const loaded = await loadConfig(projectRoot);
+    return { ok: true, config: loaded.config.policies };
   });
 
   app.get("/api/policies/doctor", async () => {
