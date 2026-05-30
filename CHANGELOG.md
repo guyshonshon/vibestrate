@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Checklist drag-reorder:** task-detail checklist items now reorder
+  via native drag-and-drop (grip handle), replacing the up/down buttons; new-order
+  math extracted to `ui/lib/reorder.ts` and unit-tested. CLI `checklist move` stays.
 - **Phase 3 — Card Checklist:** tasks now hold an ordered in-card `checklist`
   of items (`pending`/`in_progress`/`done`/`blocked`). Service CRUD + reorder,
   `vibe tasks checklist add|list|check|uncheck|status|edit|remove|move`,
