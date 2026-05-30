@@ -75,15 +75,24 @@ describe("orchestrator routes provider spawns through the Action Broker", () => 
 
     const log = await readActionLog(dir, out.runId);
     expect(log.length).toBeGreaterThan(0);
-    // Every record this run is an allowed provider.spawn with post-exec evidence.
-    for (const rec of log) {
-      expect(rec.request.kind).toBe("provider.spawn");
+
+    // Every provider.spawn is allowed with post-exec evidence.
+    const spawns = log.filter((r) => r.request.kind === "provider.spawn");
+    expect(spawns.length).toBeGreaterThan(0);
+    for (const rec of spawns) {
       expect(rec.decision.effect).toBe("allow");
       expect(rec.request.subject.providerId).toBe("fake");
       expect(rec.evidence?.ok).toBe(true);
       expect(typeof rec.evidence?.data?.exitCode).toBe("number");
     }
     // The first brokered spawn is the planner seat.
-    expect(log[0]!.request.roleId).toBe("planner");
+    expect(spawns[0]!.request.roleId).toBe("planner");
+
+    // The run's terminal verdict also crosses the broker exactly once.
+    const completes = log.filter((r) => r.request.kind === "run.complete");
+    expect(completes).toHaveLength(1);
+    expect(completes[0]!.decision.effect).toBe("allow");
+    expect(completes[0]!.request.subject.status).toBe("merge_ready");
+    expect(completes[0]!.evidence?.ok).toBe(true);
   }, 30_000);
 });

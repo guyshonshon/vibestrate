@@ -6,6 +6,11 @@ import { loadConfig } from "../project/config-loader.js";
 import { isPathInside } from "../utils/paths.js";
 import { TerminalSessionStore } from "./terminal-store.js";
 import {
+  createActionBroker,
+  gateAction,
+  type ActionBroker,
+} from "../safety/action-broker.js";
+import {
   TerminalError,
   type CreateSessionInput,
   type TerminalAvailability,
@@ -40,12 +45,17 @@ type LiveEntry = {
 export class TerminalService {
   private readonly store: TerminalSessionStore;
   private readonly live = new Map<string, LiveEntry>();
+  /** S0 Action Broker factory — one broker per run; injectable for tests. */
+  private readonly brokerFor: (runId: string) => ActionBroker;
 
   constructor(
     private readonly projectRoot: string,
     private readonly driver: TerminalDriver,
+    opts: { brokerFor?: (runId: string) => ActionBroker } = {},
   ) {
     this.store = new TerminalSessionStore(projectRoot);
+    this.brokerFor =
+      opts.brokerFor ?? ((runId) => createActionBroker(projectRoot, runId));
   }
 
   /** Read the policy + driver state, e.g. for a GET /api/terminal/availability. */
@@ -118,6 +128,24 @@ export class TerminalService {
     const shell = pickShell();
     const env = buildSafeEnv();
 
+    // ── Action Broker boundary (S0): terminal.create ──────────────────────
+    // A live PTY is an open-ended effect surface; it crosses the broker before
+    // the child is spawned. Fail-closed: a non-allow verdict refuses (403).
+    const broker = this.brokerFor(input.runId);
+    const action = {
+      runId: input.runId,
+      kind: "terminal.create" as const,
+      subject: { cwd, shell },
+      proposedBy: "ui" as const,
+    };
+    const gate = await gateAction(broker, action);
+    if (!gate.allowed) {
+      throw new TerminalError(
+        403,
+        `Action broker ${gate.effect} terminal.create: ${gate.reason}`,
+      );
+    }
+
     const session: TerminalSession = {
       id: makeSessionId(input.runId),
       runId: input.runId,
@@ -131,6 +159,11 @@ export class TerminalService {
     };
 
     const proc = this.driver.spawn({ shell, cwd, cols, rows, env });
+    await broker.record(action, gate.decision, {
+      ok: true,
+      summary: `terminal session ${session.id} created`,
+      data: { sessionId: session.id },
+    });
 
     proc.onExit(({ exitCode }) => {
       const entry = this.live.get(session.id);

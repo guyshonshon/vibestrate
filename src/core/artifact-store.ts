@@ -8,6 +8,11 @@ export class ArtifactStore {
     private readonly runId: string,
   ) {}
 
+  /** The run this store belongs to (used to scope broker action records). */
+  get runIdValue(): string {
+    return this.runId;
+  }
+
   get rootDir(): string {
     return runDir(this.projectRoot, this.runId);
   }
