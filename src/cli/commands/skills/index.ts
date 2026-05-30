@@ -41,5 +41,17 @@ export function buildSkillsCommand(): Command {
       process.exit(code);
     });
 
+  cmd
+    .command("fetch <url>")
+    .description(
+      "Fetch a skill markdown from an http(s) URL into .vibestrate/skills/ (guarded + secret-redacted).",
+    )
+    .option("--name <name>", "skill filename (default: derived from the URL)")
+    .option("--assess", "read-only AI overview: helpful / already-present / conflicting")
+    .action(async (url: string, opts: { name?: string; assess?: boolean }) => {
+      const { runSkillsFetch } = await import("./fetch.js");
+      process.exit(await runSkillsFetch(url, opts));
+    });
+
   return cmd;
 }
