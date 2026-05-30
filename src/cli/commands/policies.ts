@@ -23,7 +23,11 @@ export function buildPoliciesCommand(): Command {
         console.log(JSON.stringify(snap, null, 2));
         return;
       }
-      if (snap.rules.length === 0 && snap.ruleFiles.length === 0) {
+      if (
+        snap.rules.length === 0 &&
+        snap.actions.length === 0 &&
+        snap.ruleFiles.length === 0
+      ) {
         console.log(
           color.dim("No policy rule files in .vibestrate/policies/. Empty rule set."),
         );
@@ -31,7 +35,9 @@ export function buildPoliciesCommand(): Command {
       }
       for (const f of snap.ruleFiles) {
         const ids = f.ruleIds.length > 0 ? f.ruleIds.join(", ") : color.dim("(no rules)");
-        console.log(`${color.bold(f.file)}  ${color.dim(`rules: ${ids}`)}`);
+        const acts =
+          f.actionIds.length > 0 ? `  actions: ${f.actionIds.join(", ")}` : "";
+        console.log(`${color.bold(f.file)}  ${color.dim(`rules: ${ids}${acts}`)}`);
       }
       console.log("");
       for (const r of snap.rules) {
@@ -50,6 +56,25 @@ export function buildPoliciesCommand(): Command {
           );
         }
         console.log(color.dim(`  message: ${r.message}`));
+      }
+      if (snap.actions.length > 0) {
+        console.log("");
+        console.log(color.bold("Action policies (Action Broker):"));
+        for (const a of snap.actions) {
+          console.log(
+            `${color.bold(a.id)}  ${color.dim(`${a.effect} on ${a.on.join(", ")}`)}`,
+          );
+          console.log(color.dim(`  ${a.description}`));
+          const m = a.match;
+          if (m?.providerId) console.log(color.dim(`  providerId: ${m.providerId}`));
+          if (m?.commandRegex)
+            console.log(
+              color.dim(`  command regex: /${m.commandRegex}/${m.commandFlags ?? ""}`),
+            );
+          if (m?.pathGlob) console.log(color.dim(`  path glob: ${m.pathGlob}`));
+          if (m?.status) console.log(color.dim(`  status: ${m.status}`));
+          console.log(color.dim(`  message: ${a.message}`));
+        }
       }
       if (snap.duplicateIds.length > 0) {
         console.log("");
@@ -147,6 +172,7 @@ export function buildPoliciesCommand(): Command {
       const malformed = snap.malformedFiles;
       const dupes = snap.duplicateIds;
       const ruleCount = snap.rules.length;
+      const actionCount = snap.actions.length;
       const fileCount = snap.ruleFiles.length;
 
       if (opts.json) {
@@ -154,6 +180,7 @@ export function buildPoliciesCommand(): Command {
           JSON.stringify(
             {
               ruleCount,
+              actionCount,
               fileCount,
               malformedFiles: malformed,
               duplicateIds: dupes,
@@ -167,7 +194,9 @@ export function buildPoliciesCommand(): Command {
 
       console.log(`${color.bold("Vibestrate policies — doctor")}`);
       console.log("");
-      console.log(`${symbol.ok()} ${fileCount} rule file(s), ${ruleCount} rule(s) loaded.`);
+      console.log(
+        `${symbol.ok()} ${fileCount} rule file(s), ${ruleCount} rule(s), ${actionCount} action policy(ies) loaded.`,
+      );
 
       if (dupes.length > 0) {
         console.log(

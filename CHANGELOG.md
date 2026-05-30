@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Policy Engine V2 (S2):** policy files (`.vibestrate/policies/*.yml`) can now
+  carry an `actions:` list that gates the Action Broker's effect kinds —
+  `provider.spawn` / `command.run` / `file.patch` / `file.write` /
+  `terminal.create` / `run.complete` — with a `deny` or `require_approval`
+  effect, matched by exact provider id, command regex, path glob, or run status.
+  Compiled to broker evaluators and lazy-loaded into every broker via
+  `createActionBroker` (construction stays sync; one path for all effects).
+  Surfaced in `vibe policies list`/`doctor`, `GET /api/policies`, and the
+  Policies dashboard panel. (Patch-content `rules:` unchanged.)
 - **Action Broker (S0) — complete:** the remaining effect kinds now cross the
   broker — `run.complete` (orchestrator; a non-allow verdict downgrades
   merge_ready→blocked), `command.run` (validation runner), `file.write` (MCP

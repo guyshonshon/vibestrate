@@ -15,6 +15,7 @@
 import { appendLine, pathExists, readText } from "../utils/fs.js";
 import { runActionsPath } from "../utils/paths.js";
 import { nowIso } from "../utils/time.js";
+import { loadActionPolicyEvaluators } from "../policies/action-policy-engine.js";
 
 export type ActionKind =
   | "provider.spawn"
@@ -76,6 +77,10 @@ export interface ActionBroker {
 export type DefaultActionBrokerOptions = {
   /** Ordered veto/escalation chain. Empty ⇒ everything is allowed. */
   evaluators?: ActionEvaluator[];
+  /** Lazily-loaded evaluators (e.g. on-disk policies), appended after the
+   *  static `evaluators` on first `decide()`. Lets construction stay
+   *  synchronous while still wiring async-loaded policy into every broker. */
+  evaluatorLoader?: () => Promise<ActionEvaluator[]>;
 };
 
 /**
@@ -84,6 +89,9 @@ export type DefaultActionBrokerOptions = {
  */
 export class DefaultActionBroker implements ActionBroker {
   private readonly evaluators: ActionEvaluator[];
+  private readonly evaluatorLoader?: () => Promise<ActionEvaluator[]>;
+  /** Memoized loader result so disk policies are read at most once per broker. */
+  private loaded: Promise<ActionEvaluator[]> | null = null;
 
   constructor(
     private readonly projectRoot: string,
@@ -91,11 +99,23 @@ export class DefaultActionBroker implements ActionBroker {
     opts: DefaultActionBrokerOptions = {},
   ) {
     this.evaluators = opts.evaluators ?? [];
+    this.evaluatorLoader = opts.evaluatorLoader;
+  }
+
+  private async allEvaluators(): Promise<ActionEvaluator[]> {
+    if (!this.evaluatorLoader) return this.evaluators;
+    if (!this.loaded) {
+      // Fail-open on a loader error: a broken policy load must not wedge every
+      // effect. Malformed policy FILES are already skipped by the store; this
+      // guards an unexpected throw (e.g. fs error).
+      this.loaded = this.evaluatorLoader().catch(() => []);
+    }
+    return [...this.evaluators, ...(await this.loaded)];
   }
 
   async decide(request: ActionRequest): Promise<ActionDecision> {
     let approval: ActionDecision | null = null;
-    for (const evaluate of this.evaluators) {
+    for (const evaluate of await this.allEvaluators()) {
       const verdict = evaluate(request);
       if (!verdict) continue;
       if (verdict.effect === "deny") return verdict; // first deny wins
@@ -134,7 +154,14 @@ export function createActionBroker(
   runId: string,
   opts: DefaultActionBrokerOptions = {},
 ): ActionBroker {
-  return new DefaultActionBroker(projectRoot, runId, opts);
+  return new DefaultActionBroker(projectRoot, runId, {
+    ...opts,
+    // Wire on-disk action policies (S2) unless the caller supplied a loader
+    // (e.g. tests injecting evaluators directly).
+    evaluatorLoader:
+      opts.evaluatorLoader ??
+      (() => loadActionPolicyEvaluators(projectRoot)),
+  });
 }
 
 /** Result of gating an effect at a call site. */

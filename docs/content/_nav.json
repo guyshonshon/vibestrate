@@ -29,6 +29,7 @@
         { "slug": "concepts/flow", "label": "Flow" },
         { "slug": "concepts/skill", "label": "Skill" },
         { "slug": "concepts/state", "label": "Run state" },
+        { "slug": "concepts/safety", "label": "Safety — Action Broker & policies" },
         { "slug": "concepts/worktree", "label": "Worktree" },
         { "slug": "concepts/annotation", "label": "Annotations" }
       ]
