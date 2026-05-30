@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Rename cleanup (amaco → Vibestrate):** purged the last in-code `amaco`
+  references — `RootKind` union member `"amaco"`→`"vibestrate"` (a dead member,
+  never constructed), and stale comments (`AMACO_MCP_CONFIG`→`VIBESTRATE_MCP_CONFIG`,
+  "Amaco data dirs"→"Vibestrate"). The `.gitignore` `.amaco/` entry is kept on
+  purpose as a legacy-state guard. GitHub remote + npm name were already `vibestrate`.
 - **Phase 2 — API contract:** versioned `/api/v1` prefix (aliased to `/api` via
   Fastify `rewriteUrl`, so the bundled UI and external callers share handlers);
   optional bearer-token auth (`VIBESTRATE_API_TOKEN`) gating every `/api/*`
