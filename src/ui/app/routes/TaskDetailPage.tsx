@@ -465,8 +465,26 @@ function ChecklistSection({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [proposed, setProposed] = useState<string[] | null>(null);
+  const [stepMode, setStepMode] = useState(false);
+  const [launched, setLaunched] = useState<string | null>(null);
   const done = items.filter((i) => i.status === "done").length;
+  const pending = items.filter((i) => i.status !== "done").length;
   const pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
+
+  async function pickup() {
+    setLaunched(null);
+    await run("pickup", async () => {
+      await api.spawnRun({
+        task: task.title,
+        taskId: task.id,
+        flow: { id: "pickup" },
+        checklistMode: stepMode ? "step" : "continuous",
+      });
+      setLaunched(
+        `Pick-up run started (${stepMode ? "step-by-step" : "continuous"}). Watch it in Runs / Mission Control.`,
+      );
+    });
+  }
 
   async function run(key: string, fn: () => Promise<unknown>) {
     setBusy(key);
@@ -639,6 +657,38 @@ function ChecklistSection({
           ))}
         </ul>
       )}
+
+      {items.length > 0 ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
+          <button
+            type="button"
+            onClick={pickup}
+            disabled={busy !== null || pending === 0}
+            title="Execute the checklist item-by-item in one run (a commit per item)."
+            className="inline-flex items-center gap-1 rounded border border-vibestrate-accent/50 bg-vibestrate-accent/15 px-2 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/25 disabled:opacity-50"
+          >
+            {busy === "pickup"
+              ? "Starting…"
+              : `Run checklist (${pending} item${pending === 1 ? "" : "s"})`}
+          </button>
+          <label className="flex items-center gap-1 text-[11px] text-vibestrate-fg-dim">
+            <input
+              type="checkbox"
+              checked={stepMode}
+              onChange={(e) => setStepMode(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            step-by-step
+          </label>
+          {launched ? (
+            <span className="text-[10.5px] text-vibestrate-success">{launched}</span>
+          ) : (
+            <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
+              one worktree · a commit per item · summaries carried forward
+            </span>
+          )}
+        </div>
+      ) : null}
 
       <form onSubmit={add} className="mt-2 flex gap-2">
         <input

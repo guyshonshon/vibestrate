@@ -222,6 +222,10 @@ export function buildVibestrateProgram(): Command {
       "--resume-stage <stage>",
       "stage to resume at with --resume-from: planning | architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
     )
+    .option(
+      "--checklist <mode>",
+      "pick-up execution over the linked task's checklist: continuous | step. Needs --task and a checklist-aware flow (--flow pickup).",
+    )
     .action(
       async (
         taskParts: string[] = [],
@@ -245,9 +249,24 @@ export function buildVibestrateProgram(): Command {
           interactive?: boolean;
           resumeFrom?: string;
           resumeStage?: string;
+          checklist?: string;
         },
       ) => {
         const task = taskParts.join(" ").trim();
+        let checklistMode: "continuous" | "step" | null = null;
+        if (opts.checklist) {
+          if (opts.checklist !== "continuous" && opts.checklist !== "step") {
+            console.error(
+              `--checklist must be one of continuous|step (got "${opts.checklist}").`,
+            );
+            process.exit(2);
+          }
+          if (!opts.task) {
+            console.error("--checklist requires --task <id> (it iterates that task's checklist).");
+            process.exit(2);
+          }
+          checklistMode = opts.checklist;
+        }
         let resumeStage: "planning" | "architecting" | "executing" | undefined;
         if (opts.resumeStage) {
           if (
@@ -339,6 +358,7 @@ export function buildVibestrateProgram(): Command {
           flowInteractive: opts.interactive ?? false,
           resumeFromRunId: opts.resumeFrom ?? null,
           resumeStage,
+          checklistMode,
         });
         process.exit(code);
       },

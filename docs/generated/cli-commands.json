@@ -1378,6 +1378,34 @@
           "subcommands": []
         },
         {
+          "name": "pickup",
+          "path": [
+            "vibe",
+            "tasks",
+            "pickup"
+          ],
+          "description": "Execute the task's checklist item-by-item (pick-up flow). Continuous by default; --step pauses between items.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--step",
+              "description": "pause between items for review (step-by-step)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "checklist",
           "path": [
             "vibe",
@@ -3895,6 +3923,13 @@
         {
           "flags": "--resume-stage <stage>",
           "description": "stage to resume at with --resume-from: planning | architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--checklist <mode>",
+          "description": "pick-up execution over the linked task's checklist: continuous | step. Needs --task and a checklist-aware flow (--flow pickup).",
           "required": true,
           "optional": false,
           "negated": false
