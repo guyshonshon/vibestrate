@@ -849,6 +849,46 @@ export const api = {
     const r = await jsonGet<{ tasks: Task[] }>("/api/tasks");
     return r.tasks;
   },
+  // ─── integration (Phase 5) ──────────────────────────────────────────────
+  async listMergeReady(): Promise<
+    { runId: string; task: string; branchName: string; taskId: string | null }[]
+  > {
+    const r = await jsonGet<{
+      mergeReady: { runId: string; task: string; branchName: string; taskId: string | null }[];
+    }>("/api/integration");
+    return r.mergeReady;
+  },
+  async previewIntegration(runIds?: string[]): Promise<{
+    baseBranch: string;
+    allClean: boolean;
+    results: { branch: string; runId?: string; clean: boolean; conflictedFiles: string[]; note: string }[];
+  }> {
+    const r = await jsonPost<{ preview: {
+      baseBranch: string;
+      allClean: boolean;
+      results: { branch: string; runId?: string; clean: boolean; conflictedFiles: string[]; note: string }[];
+    } }>("/api/integration/preview", { runIds });
+    return r.preview;
+  },
+  async applyIntegration(
+    into: string,
+    runIds?: string[],
+  ): Promise<{
+    integrationBranch: string;
+    baseBranch: string;
+    worktreePath: string;
+    stoppedAt: string | null;
+    integrated: { branch: string; clean: boolean; note: string }[];
+  }> {
+    const r = await jsonPost<{ result: {
+      integrationBranch: string;
+      baseBranch: string;
+      worktreePath: string;
+      stoppedAt: string | null;
+      integrated: { branch: string; clean: boolean; note: string }[];
+    } }>("/api/integration/apply", { into, runIds });
+    return r.result;
+  },
   async suggestNext(): Promise<TaskSuggestion[]> {
     const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(
       "/api/tasks/suggest",

@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 5 — Integration / merge-preview:** a gated surface to combine the
+  branches of parallel `merge_ready` runs. `mergePreview` does cumulative
+  `git merge --no-ff --no-commit` dry-runs in a throwaway scratch worktree
+  (surfacing branch-vs-branch conflicts + the conflicted files), cleaning up
+  after. `integrate` merges the selected branches sequentially into a **fresh,
+  dedicated** integration branch — refuses the main branch and any existing
+  branch, stops at the first conflict (leaving the worktree for you to resolve),
+  and **never touches main, never pushes**. `vibe integrate list|preview|apply
+  --into <branch>`, `GET /api/integration` + `POST /api/integration/preview|apply`,
+  and an Integration panel on the Runs page.
 - **Phase 4 — Context sources:** attach files / URLs to a run or a task and have
   them injected into **every** agent's prompt. Materialized once at run start
   (`src/core/context-sources.ts`): files are path-guarded (secret-shaped *paths*
