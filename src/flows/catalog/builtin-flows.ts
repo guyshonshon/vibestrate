@@ -244,9 +244,88 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
   ],
 });
 
+// The built-in **pick-up flow**: the checklist-aware shape for executing a card
+// item-by-item (Phase 3, design §1). A holistic `plan` runs ONCE (it sees the
+// whole card + all items via the task brief); then the `checklistSegment`
+// (`micro-plan` → `implement`) repeats ONCE PER checklist item, in one worktree,
+// with the current-item brief + carried compact summaries injected as the
+// `checklist-item` / `prior-items` context tokens; finally a holistic `review`
+// runs ONCE over the accumulated work. The runner commits + summarizes each item
+// at the segment tail. With no checklist (or an instant task) the segment just
+// runs once — the N=1 case.
+export const pickupFlow = flowDefinitionSchema.parse({
+  id: "pickup",
+  version: 1,
+  label: "Pick-up (checklist)",
+  description:
+    "Execute a card item-by-item: a holistic plan once, then micro-plan → implement repeated per checklist item in one worktree (compact summaries carried forward, a commit per item), then a holistic review.",
+  seats: {
+    planner: { label: "Planner", description: "Plans the card and each item." },
+    implementer: {
+      label: "Implementer",
+      description: "Implements one checklist item at a time.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description: "Reviews the accumulated result across all items.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "micro-plan",
+      label: "Micro-plan item",
+      kind: "agent-turn",
+      seat: "planner",
+      // The whole per-item band runs under the "executing" run status (the run
+      // is executing the checklist); keeping micro-plan here makes the
+      // jump-back between items a self-transition rather than a regress to
+      // "planning".
+      stage: "executing",
+      inputs: ["task-brief", "plan", "checklist-item", "prior-items"],
+      outputs: ["micro-plan"],
+    },
+    {
+      id: "implement",
+      label: "Implement item",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      inputs: [
+        "task-brief",
+        "plan",
+        "micro-plan",
+        "checklist-item",
+        "prior-items",
+      ],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "execution", "prior-items"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  checklistSegment: { from: "micro-plan", to: "implement" },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   qualityArbitrationFlow,
+  pickupFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

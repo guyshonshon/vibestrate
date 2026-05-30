@@ -41,6 +41,10 @@ export const runSpecSchema = z.object({
   readOnly: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
+  /** Pick-up execution (Phase 3): iterate the linked task's checklist through
+   *  the flow's checklistSegment. "continuous" runs items back-to-back; "step"
+   *  pauses between items. Omitted = no checklist iteration. */
+  checklistMode: z.enum(["continuous", "step"]).nullable().optional(),
   flow: z
     .object({
       id: z.string().min(1).max(80),
@@ -194,6 +198,7 @@ export async function runFromSpec(
     concise: spec.concise ?? false,
     flow: resolvedFlow,
     resumeFrom,
+    checklistMode: spec.checklistMode ?? null,
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

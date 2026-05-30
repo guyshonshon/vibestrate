@@ -60,7 +60,15 @@ import {
   ensureStreamsDir,
 } from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
-import { isGitAvailable } from "../git/git.js";
+import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
+import { RoadmapService } from "../roadmap/roadmap-service.js";
+import {
+  renderCurrentItemBrief,
+  buildPriorItemsContext,
+  renderItemSummaryArtifact,
+  compactImplementationSummary,
+  type ChecklistItemOutcome,
+} from "../pickup/item-summary.js";
 import { GitError, VibestrateError, describeError } from "../utils/errors.js";
 import { formatRunIdTimestamp, nowIso, durationMs } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
@@ -194,6 +202,11 @@ export type OrchestratorInput = {
    *  upstream artifacts from a prior run instead of regenerating them.
    *  Mutually exclusive with `flow`. */
   resumeFrom?: ResumeFromInput | null;
+  /** Pick-up execution (Phase 3): when the linked task has a checklist and the
+   *  flow declares a checklistSegment, iterate the segment once per item.
+   *  "continuous" runs items back-to-back; "step" pauses between items. null /
+   *  omitted = no checklist iteration (the instant-task N=1 case). */
+  checklistMode?: "continuous" | "step" | null;
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -339,6 +352,7 @@ export class Orchestrator {
   private readonly concise: boolean;
   private readonly flow: ResolvedFlowSnapshot | null;
   private readonly resumeFrom: ResumeFromInput | null;
+  private readonly checklistMode: "continuous" | "step" | null;
   private readonly abortSignal: AbortSignal | null;
 
   constructor(input: OrchestratorInput) {
@@ -359,6 +373,7 @@ export class Orchestrator {
     this.concise = input.concise ?? false;
     this.flow = input.flow ?? null;
     this.resumeFrom = input.resumeFrom ?? null;
+    this.checklistMode = input.checklistMode ?? null;
     this.abortSignal = input.abortSignal ?? null;
   }
 
@@ -450,6 +465,7 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
+      checklistMode: this.checklistMode,
       flow: this.createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
         ? {
@@ -1276,12 +1292,38 @@ export class Orchestrator {
         snapshot: input.snapshot,
       });
     await arbitrationStore.write(arbitrationLedger);
+
+    // ── Pick-up execution setup (Phase 3) ──────────────────────────────────
+    // When this run is bound to a task, the task has a Checklist, the flow
+    // declares a checklistSegment, and a checklist mode was requested, the
+    // segment band repeats once per item (in this one worktree, carrying
+    // compact summaries forward). Otherwise the segment runs once — the N=1
+    // instant-task case, identical to today.
+    const roadmap = new RoadmapService(this.projectRoot);
+    let checklistItems: { id: string; text: string }[] = [];
+    if (input.snapshot.checklistSegment && this.taskId && this.checklistMode) {
+      const task = await roadmap.getTask(this.taskId);
+      if (task) {
+        checklistItems = task.checklist
+          .filter((c) => c.status !== "done")
+          .map((c) => ({ id: c.id, text: c.text }));
+      }
+    }
+    // Hoisted above the try so the finalize block (final report) and the catch
+    // (mark a failed item blocked) can see them.
+    const itemOutcomes: ChecklistItemOutcome[] = [];
+    let currentChecklistItemId: string | null = null;
+
     const taskBriefBody = [
       "# Flow Task Brief",
       "",
       `Task: ${this.task}`,
       "",
       input.snapshot.brief ? input.snapshot.brief : "_No extra Flow brief._",
+      checklistItems.length
+        ? "\n## Checklist (work these in order, one per item band)\n" +
+          checklistItems.map((c, i) => `${i + 1}. ${c.text}`).join("\n")
+        : "",
     ].join("\n");
     const taskBriefAbs = await input.artifactStore.write(
       path.posix.join("flows", "task-brief.md"),
@@ -1297,6 +1339,44 @@ export class Orchestrator {
     try {
       const steps = input.snapshot.steps;
       const loop = input.snapshot.loop;
+      // Per-item band indices (Phase 3). Disjoint from the adaptive loop by
+      // schema (segment ends before any loop), so the two jump-backs never
+      // collide. Read-only runs never iterate items (the band writes code).
+      const segment = input.snapshot.checklistSegment;
+      const segFrom = segment
+        ? steps.findIndex((s) => s.sourceStepId === segment.from)
+        : -1;
+      const segTo = segment
+        ? steps.findIndex((s) => s.sourceStepId === segment.to)
+        : -1;
+      const usingChecklist =
+        segment !== null &&
+        segFrom >= 0 &&
+        segTo >= 0 &&
+        checklistItems.length > 0 &&
+        !this.readOnly;
+      let itemIndex = 0;
+      if (usingChecklist) {
+        state = {
+          ...state,
+          checklistProgress: {
+            total: checklistItems.length,
+            completed: 0,
+            currentItemId: checklistItems[0]!.id,
+            currentIndex: 0,
+          },
+        };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "checklist.run.started",
+          message: `Pick-up run over ${checklistItems.length} checklist item(s) (${this.checklistMode}).`,
+          data: {
+            total: checklistItems.length,
+            mode: this.checklistMode,
+            segment: { from: segment!.from, to: segment!.to },
+          },
+        });
+      }
       const loopFrom = loop
         ? steps.findIndex((s) => s.sourceStepId === loop.from)
         : -1;
@@ -1352,6 +1432,63 @@ export class Orchestrator {
               to: loop.to,
             },
           });
+        }
+        // ── Per-item band entry (Phase 3): scope the segment to this item ──
+        // Register the current-item brief + the carried compact summaries of
+        // completed items so the segment's steps (which declare them as inputs)
+        // see exactly what to do and what's already done.
+        if (usingChecklist && stepIndex === segFrom) {
+          const item = checklistItems[itemIndex]!;
+          const briefContent = renderCurrentItemBrief(
+            item,
+            itemIndex,
+            checklistItems.length,
+          );
+          const briefAbs = await input.artifactStore.write(
+            path.posix.join("flows", "checklist", `item-${itemIndex + 1}-brief.md`),
+            briefContent,
+          );
+          outputs.set("checklist-item", {
+            token: "checklist-item",
+            label: `Checklist item ${itemIndex + 1}/${checklistItems.length}`,
+            content: briefContent,
+            artifactPath: input.artifactStore.relPath(briefAbs),
+          });
+          const priorContent = buildPriorItemsContext(itemOutcomes, 1400);
+          if (priorContent) {
+            const priorAbs = await input.artifactStore.write(
+              path.posix.join("flows", "checklist", `before-item-${itemIndex + 1}.md`),
+              priorContent,
+            );
+            outputs.set("prior-items", {
+              token: "prior-items",
+              label: "Completed checklist items",
+              content: priorContent,
+              artifactPath: input.artifactStore.relPath(priorAbs),
+            });
+          }
+          currentChecklistItemId = item.id;
+          await roadmap
+            .setChecklistItemStatus(this.taskId!, item.id, "in_progress")
+            .catch(() => {});
+          state = {
+            ...state,
+            checklistProgress: {
+              total: checklistItems.length,
+              completed: itemIndex,
+              currentItemId: item.id,
+              currentIndex: itemIndex,
+            },
+          };
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "checklist.item.started",
+            message: `Checklist item ${itemIndex + 1}/${checklistItems.length}: ${item.text}`,
+            data: { itemId: item.id, index: itemIndex, text: item.text },
+          });
+          this.onProgress(
+            `Item ${itemIndex + 1}/${checklistItems.length}: ${item.text}`,
+          );
         }
         const runStep = async (): Promise<void> => {
           // Read-only runs skip write/validation/verify steps the same way
@@ -1705,6 +1842,106 @@ export class Orchestrator {
           });
         };
         await runStep();
+        // ── Per-item band exit (Phase 3): commit, summarize, carry, gate ──
+        // Runs at the segment tail (disjoint from the adaptive loop by schema).
+        // Commit this item's work tagged with its id, record a compact summary
+        // for forward-carry, write the status + sha back to the task, then jump
+        // back for the next item (pausing first in step-by-step mode).
+        if (usingChecklist && stepIndex === segTo) {
+          const item = checklistItems[itemIndex]!;
+          let commitSha: string | null = null;
+          let filesTouched: string[] = [];
+          if (input.worktreePath) {
+            const committed = await stageAndCommitAll({
+              cwd: input.worktreePath,
+              message: `${item.text}\n\nChecklist item ${itemIndex + 1}/${checklistItems.length}.`,
+              trailers: {
+                "Vibestrate-Run": input.runId,
+                "Vibestrate-Checklist-Item": item.id,
+              },
+            });
+            commitSha = committed?.sha ?? null;
+            if (commitSha) {
+              filesTouched = await filesInCommit(input.worktreePath, commitSha);
+            }
+          }
+          const implTok = steps[segTo]!.outputs[0];
+          const implOutput = implTok ? outputs.get(implTok)?.content ?? "" : "";
+          const outcome: ChecklistItemOutcome = {
+            itemId: item.id,
+            index: itemIndex,
+            total: checklistItems.length,
+            text: item.text,
+            status: "done",
+            commitSha,
+            filesTouched,
+            summary: compactImplementationSummary(implOutput),
+            error: null,
+          };
+          itemOutcomes.push(outcome);
+          currentChecklistItemId = null;
+          await input.artifactStore.write(
+            path.posix.join(
+              "flows",
+              "checklist",
+              `item-${itemIndex + 1}-summary.md`,
+            ),
+            renderItemSummaryArtifact(outcome),
+          );
+          await roadmap
+            .updateChecklistItem(this.taskId!, item.id, {
+              status: "done",
+              commitSha,
+            })
+            .catch(() => {});
+          state = {
+            ...state,
+            checklistProgress: {
+              total: checklistItems.length,
+              completed: itemIndex + 1,
+              currentItemId: null,
+              currentIndex: itemIndex,
+            },
+          };
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "checklist.item.completed",
+            message: `Checklist item ${itemIndex + 1}/${checklistItems.length} done${commitSha ? ` (${commitSha.slice(0, 8)})` : " (no file changes)"}.`,
+            data: { itemId: item.id, index: itemIndex, commitSha, files: filesTouched },
+          });
+          if (itemIndex < checklistItems.length - 1) {
+            itemIndex += 1;
+            if (this.checklistMode === "step") {
+              // Reuse the standard pause gate: the next segment step's
+              // applyPauseIfRequested holds until the human resumes.
+              state = { ...state, pauseRequested: true };
+              await input.stateStore.write(state);
+              await input.eventLog.append({
+                type: "checklist.item.gate",
+                message: `Step-by-step: paused before item ${itemIndex + 1}/${checklistItems.length}.`,
+                data: { nextIndex: itemIndex },
+              });
+            }
+            stepIndex = segFrom;
+            continue;
+          }
+          // Last item done → rebuild prior-items with the FULL ledger so the
+          // holistic postlude (review/verify) sees every item, then fall
+          // through to it.
+          const fullPrior = buildPriorItemsContext(itemOutcomes, 1400);
+          if (fullPrior) {
+            const fullAbs = await input.artifactStore.write(
+              path.posix.join("flows", "checklist", "all-items.md"),
+              fullPrior,
+            );
+            outputs.set("prior-items", {
+              token: "prior-items",
+              label: "All completed checklist items",
+              content: fullPrior,
+              artifactPath: input.artifactStore.relPath(fullAbs),
+            });
+          }
+        }
         // Adaptive loop control (no-op for linear flows). The decisionStep
         // gates the loop; an early non-CHANGES_REQUESTED exit skips the rest of
         // the body, and exhausting the budget exits with the last decision
@@ -1889,6 +2126,18 @@ export class Orchestrator {
             data: { flowId: input.snapshot.flowId, stepId },
           });
         }
+        // Pick-up: an item that failed mid-band is marked blocked on the task
+        // (remaining items keep their pending status — stop-on-failure, linear).
+        if (currentChecklistItemId && this.taskId) {
+          await roadmap
+            .setChecklistItemStatus(this.taskId, currentChecklistItemId, "blocked")
+            .catch(() => {});
+          await input.eventLog.append({
+            type: "checklist.item.blocked",
+            message: `Checklist item blocked after a failed step: ${currentChecklistItemId}.`,
+            data: { itemId: currentChecklistItemId },
+          });
+        }
         const message = describeError(err);
         try {
           state = applyTransition(state, "failed");
@@ -1965,6 +2214,7 @@ export class Orchestrator {
       executionArtifact,
       reviewArtifact,
       verificationArtifact,
+      checklistOutcomes: itemOutcomes,
     });
     return {
       runId: input.runId,
@@ -2033,9 +2283,31 @@ export class Orchestrator {
     executionArtifact: RoleRunResult | null;
     reviewArtifact: RoleRunResult | null;
     verificationArtifact: RoleRunResult | null;
+    checklistOutcomes?: ChecklistItemOutcome[];
   }): Promise<string> {
     const metrics = (await input.metricsStore.read()) ?? null;
     const approvals = await input.approvalService.readAll().catch(() => []);
+    // Pick-up runs: a consolidated per-item outcomes table alongside the report.
+    const outcomes = input.checklistOutcomes ?? [];
+    if (outcomes.length > 0) {
+      const done = outcomes.filter((o) => o.status === "done").length;
+      const table = [
+        "# Checklist outcomes",
+        "",
+        `${done}/${outcomes.length} items completed.`,
+        "",
+        "| # | Item | Status | Commit | Files |",
+        "| --- | --- | --- | --- | --- |",
+        ...outcomes.map(
+          (o) =>
+            `| ${o.index + 1} | ${o.text.replace(/\|/g, "\\|")} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "—"} | ${o.filesTouched.length} |`,
+        ),
+        "",
+      ].join("\n");
+      await input.artifactStore
+        .write(path.posix.join("flows", "checklist", "outcomes.md"), table)
+        .catch(() => {});
+    }
     return this.writeFinalReport({
       artifactStore: input.artifactStore,
       state: input.state,

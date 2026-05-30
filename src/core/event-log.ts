@@ -85,6 +85,11 @@ export type VibestrateEventType =
   | "flow.step.skipped"
   | "flow.loop.iteration"
   | "flow.loop.decision"
+  | "checklist.run.started"
+  | "checklist.item.started"
+  | "checklist.item.completed"
+  | "checklist.item.blocked"
+  | "checklist.item.gate"
   | "action.allowed"
   | "action.denied"
   | "action.approval_required";

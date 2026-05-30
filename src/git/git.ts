@@ -125,6 +125,20 @@ export async function stageAndCommitAll(input: {
   return sha ? { sha } : null;
 }
 
+/** Paths changed by a single commit (best-effort; empty on any error). */
+export async function filesInCommit(cwd: string, sha: string): Promise<string[]> {
+  const result = await execa(
+    "git",
+    ["show", "--name-only", "--pretty=format:", sha],
+    { cwd, reject: false },
+  );
+  if (result.exitCode !== 0) return [];
+  return result.stdout
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
 export function resolveWorktreePath(
   projectRoot: string,
   worktreeDir: string,

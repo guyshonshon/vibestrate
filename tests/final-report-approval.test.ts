@@ -32,6 +32,8 @@ const baseState = {
   concise: false,
   flow: null,
   resumedFrom: null,
+  checklistMode: null,
+  checklistProgress: null,
 };
 
 describe("final report — approval section", () => {
