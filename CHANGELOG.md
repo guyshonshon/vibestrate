@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Chore:** untrack `.vibestrate/issues.ndjson` (gitignored) — it's the
+  runtime failure-inbox stream the app appends to on every error/scheduler
+  restart, was tracked by accident; dropped stale `logo_full*.png` assets.
 - **Rename cleanup (amaco → Vibestrate):** purged the last in-code `amaco`
   references — `RootKind` union member `"amaco"`→`"vibestrate"` (a dead member,
   never constructed), and stale comments (`AMACO_MCP_CONFIG`→`VIBESTRATE_MCP_CONFIG`,
