@@ -63,6 +63,8 @@ import {
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
+import { materializeContextSources } from "./context-sources.js";
+import type { ContextSource } from "./context-source-schema.js";
 import {
   renderCurrentItemBrief,
   buildPriorItemsContext,
@@ -208,6 +210,10 @@ export type OrchestratorInput = {
    *  "continuous" runs items back-to-back; "step" pauses between items. null /
    *  omitted = no checklist iteration (the instant-task N=1 case). */
   checklistMode?: "continuous" | "step" | null;
+  /** Context sources (Phase 4): files/URLs materialized once at run start and
+   *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
+   *  redacted). */
+  contextSources?: ContextSource[];
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -354,6 +360,9 @@ export class Orchestrator {
   private readonly flow: ResolvedFlowSnapshot | null;
   private readonly resumeFrom: ResumeFromInput | null;
   private readonly checklistMode: "continuous" | "step" | null;
+  private readonly contextSources: ContextSource[];
+  /** Materialized once at run start; merged into every role's prior artifacts. */
+  private materializedContext: PriorArtifact[] = [];
   private readonly abortSignal: AbortSignal | null;
 
   constructor(input: OrchestratorInput) {
@@ -375,6 +384,7 @@ export class Orchestrator {
     this.flow = input.flow ?? null;
     this.resumeFrom = input.resumeFrom ?? null;
     this.checklistMode = input.checklistMode ?? null;
+    this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
   }
 
@@ -467,6 +477,7 @@ export class Orchestrator {
       concise: this.concise,
       readOnly: this.readOnly,
       checklistMode: this.checklistMode,
+      contextSources: this.contextSources,
       flow: this.createFlowRunState(flow, "flow.json"),
       resumedFrom: this.resumeFrom
         ? {
@@ -547,6 +558,30 @@ export class Orchestrator {
         message: `Failed to prepare worktree: ${describeError(err)}`,
       });
       throw err;
+    }
+
+    // Materialize context sources once (path-guarded files / SSRF-guarded URLs,
+    // secret-redacted). Merged into every role's prompt below. Failures are
+    // non-fatal notes — a bad attachment never blocks a run.
+    if (this.contextSources.length > 0) {
+      const ctxResult = await materializeContextSources({
+        sources: this.contextSources,
+        projectRoot: this.projectRoot,
+        worktreePath,
+        allowUrlFetch: true,
+        allowPrivateHosts: false,
+      });
+      this.materializedContext = ctxResult.artifacts;
+      await artifactStore.writeJson("context/sources.json", {
+        sources: this.contextSources,
+        materialized: ctxResult.artifacts.map((a) => a.label),
+        notes: ctxResult.notes,
+      });
+      await eventLog.append({
+        type: "context.materialized",
+        message: `Context: ${ctxResult.artifacts.length} source(s) attached${ctxResult.notes.length ? `, ${ctxResult.notes.length} skipped` : ""}.`,
+        data: { attached: ctxResult.artifacts.length, notes: ctxResult.notes },
+      });
     }
 
     const ctx = {
@@ -2748,7 +2783,9 @@ export class Orchestrator {
       rules: this.rules,
       rolePromptTemplate: promptTemplate,
       skills,
-      priorArtifacts: input.priorArtifacts,
+      // Run-level context sources are visible to every role, ahead of the
+      // flow's per-step handoff artifacts.
+      priorArtifacts: [...this.materializedContext, ...input.priorArtifacts],
       permission: profile,
       permissionName: agent.permissions,
       worktreePath: ctx.worktreePath,

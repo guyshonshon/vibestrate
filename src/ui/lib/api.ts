@@ -999,6 +999,16 @@ export const api = {
     );
     return r.task;
   },
+  async setTaskContextSources(
+    taskId: string,
+    sources: import("./types.js").ContextSource[],
+  ): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/context`,
+      { sources },
+    );
+    return r.task;
+  },
   async setTaskArchived(taskId: string, archived: boolean): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/archive`,

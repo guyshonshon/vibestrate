@@ -48,6 +48,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     needsTestingReason: null,
     derivedFrom: null,
     archived: false,
+    contextSources: [],
   };
 }
 

@@ -19,6 +19,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Approval gate.** A point in a workflow or Flow where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Flow.
 
+**Context source.** A file or URL you attach to a run or task so its content is injected into **every** agent's prompt (`vibe run --context-file/--context-url`, or a task's context panel). Files are path-guarded (secret files refused, secret-shaped content redacted); URLs are SSRF-guarded, bounded, and redacted before they reach a prompt. A bad source is skipped with a note, never a hard failure.
+
 **Artifact.** Any file produced or recorded by a run — plan, architecture, diff, validation output, review findings, verification summary. Lives under `.vibestrate/runs/<runId>/`.
 
 **CLI.** The `vibe` command-line tool. The primary surface, alongside Mission Control.

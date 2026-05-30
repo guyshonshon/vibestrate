@@ -175,6 +175,7 @@ export class RoadmapService {
       needsTestingReason: null,
       derivedFrom: input.derivedFrom ?? null,
       archived: false,
+      contextSources: [],
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {
@@ -309,6 +310,23 @@ export class RoadmapService {
       ...t,
       currentRunId: null,
       status: finalStatus,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /** Replace a task's context sources (Phase 4). */
+  async setContextSources(
+    taskId: string,
+    sources: import("../core/context-source-schema.js").ContextSource[],
+  ): Promise<Task> {
+    const t = await this.store.getTask(taskId);
+    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
+    const next: Task = {
+      ...t,
+      contextSources: sources,
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

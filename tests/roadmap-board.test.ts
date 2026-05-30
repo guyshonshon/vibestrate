@@ -38,6 +38,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     needsTestingReason: null,
     derivedFrom: null,
     archived: false,
+    contextSources: [],
   };
 }
 

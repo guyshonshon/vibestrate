@@ -14,6 +14,7 @@ import {
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
+import { contextSourceSchema } from "./context-source-schema.js";
 
 /**
  * The shared, non-interactive run pipeline. Both the CLI (`vibe run`) and the
@@ -45,6 +46,9 @@ export const runSpecSchema = z.object({
    *  the flow's checklistSegment. "continuous" runs items back-to-back; "step"
    *  pauses between items. Omitted = no checklist iteration. */
   checklistMode: z.enum(["continuous", "step"]).nullable().optional(),
+  /** Context sources (Phase 4): files/URLs injected into every agent prompt.
+   *  Omitted ⇒ inherit the linked task's sources (if any). */
+  contextSources: z.array(contextSourceSchema).max(32).optional(),
   flow: z
     .object({
       id: z.string().min(1).max(80),
@@ -134,6 +138,7 @@ export async function runFromSpec(
   let effort = spec.effort ?? null;
   let profileOverride = spec.profileOverride ?? null;
   let readOnly = spec.readOnly ?? false;
+  let contextSources = spec.contextSources ?? null;
   if (spec.taskId) {
     const { RoadmapService } = await import("../roadmap/roadmap-service.js");
     const svc = new RoadmapService(detected.projectRoot);
@@ -147,6 +152,9 @@ export async function runFromSpec(
     if (effort === null) effort = task.effort;
     if (profileOverride === null) profileOverride = task.profileOverride;
     if (!spec.readOnly) readOnly = task.readOnly;
+    if (contextSources === null && task.contextSources.length > 0) {
+      contextSources = task.contextSources;
+    }
   }
 
   // Rewind: the flow runner seeds the upstream step outputs from the source run
@@ -199,6 +207,7 @@ export async function runFromSpec(
     flow: resolvedFlow,
     resumeFrom,
     checklistMode: spec.checklistMode ?? null,
+    contextSources: contextSources ?? [],
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

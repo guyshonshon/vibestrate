@@ -256,6 +256,8 @@ export function TaskDetailPage({
 
         <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 
+        <ContextSourcesSection task={task} onChanged={load} />
+
         <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
           <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
             runs
@@ -540,6 +542,118 @@ function NeedsTestingBanner({
           ) : null}
         </div>
       </div>
+    </section>
+  );
+}
+
+function ContextSourcesSection({
+  task,
+  onChanged,
+}: {
+  task: Task;
+  onChanged: () => Promise<void> | void;
+}) {
+  const sources = task.contextSources ?? [];
+  const [kind, setKind] = useState<"file" | "url">("file");
+  const [ref, setRef] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(next: { kind: "file" | "url"; ref: string }[]) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.setTaskContextSources(task.id, next);
+      await onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    const r = ref.trim();
+    if (!r) return;
+    await save([...sources.map((s) => ({ kind: s.kind, ref: s.ref })), { kind, ref: r }]);
+    setRef("");
+  }
+
+  return (
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        context sources
+      </div>
+      <div className="mt-0.5 text-[10.5px] text-vibestrate-fg-muted">
+        Files / URLs injected into every agent prompt for this card's runs (path-guarded, SSRF-guarded, secrets redacted).
+      </div>
+      {sources.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {sources.map((s, i) => (
+            <li
+              key={`${s.kind}-${s.ref}-${i}`}
+              className="flex items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1"
+            >
+              <span className="vibestrate-mono shrink-0 rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+                {s.kind}
+              </span>
+              {s.kind === "url" ? (
+                <ExternalLink className="h-3 w-3 shrink-0 text-vibestrate-warn" strokeWidth={1.5} />
+              ) : (
+                <FileCode className="h-3 w-3 shrink-0 text-vibestrate-fg-muted" strokeWidth={1.5} />
+              )}
+              <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+                {s.ref}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  save(
+                    sources
+                      .filter((_, j) => j !== i)
+                      .map((x) => ({ kind: x.kind, ref: x.ref })),
+                  )
+                }
+                disabled={busy}
+                className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fail disabled:opacity-50"
+                title="Remove"
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <form onSubmit={add} className="mt-2 flex gap-2">
+        <select
+          value={kind}
+          onChange={(e) => setKind(e.target.value as "file" | "url")}
+          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1 py-1 text-[11px] text-vibestrate-fg-dim"
+        >
+          <option value="file">file</option>
+          <option value="url">url</option>
+        </select>
+        <input
+          value={ref}
+          onChange={(e) => setRef(e.target.value)}
+          placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
+          className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={busy || !ref.trim()}
+          className="inline-flex items-center gap-1 self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
+        >
+          <Plus className="h-3 w-3" strokeWidth={1.5} />
+          Add
+        </button>
+      </form>
+      {error ? (
+        <div className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+          {error}
+        </div>
+      ) : null}
     </section>
   );
 }
