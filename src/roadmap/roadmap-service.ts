@@ -170,6 +170,8 @@ export class RoadmapService {
       profileOverride: input.profileOverride ?? null,
       readOnly: input.readOnly ?? false,
       checklist: [],
+      needsTesting: false,
+      needsTestingReason: null,
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {
@@ -448,6 +450,44 @@ export class RoadmapService {
     const byId = new Map(t.checklist.map((c) => [c.id, c]));
     const checklist = orderedIds.map((id) => byId.get(id)!);
     return this.writeChecklist(t, checklist);
+  }
+
+  // ─── needs-testing advisory ───────────────────────────────────────────────
+
+  /** Flag a task for human testing (non-blocking advisory from a run). */
+  async flagNeedsTesting(taskId: string, reason: string | null): Promise<Task> {
+    const t = await this.requireTask(taskId);
+    const next: Task = {
+      ...t,
+      needsTesting: true,
+      needsTestingReason: reason,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  /**
+   * Resolve a needs-testing advisory with a human verdict. "pass" clears the
+   * flag and marks the task done; "fail" clears it and reopens the task to
+   * `ready` so it can be picked up again.
+   */
+  async resolveNeedsTesting(
+    taskId: string,
+    verdict: "pass" | "fail",
+  ): Promise<Task> {
+    const t = await this.requireTask(taskId);
+    const next: Task = {
+      ...t,
+      needsTesting: false,
+      needsTestingReason: null,
+      status: verdict === "pass" ? "done" : "ready",
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
   }
 
   private async patchTaskCounters(

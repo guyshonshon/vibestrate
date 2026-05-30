@@ -44,6 +44,8 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     profileOverride: null,
     readOnly: false,
     checklist: [],
+    needsTesting: false,
+    needsTestingReason: null,
   };
 }
 

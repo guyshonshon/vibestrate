@@ -41,6 +41,9 @@ const enhanceBody = z.object({
   apply: z.boolean().optional(),
   profileId: z.string().min(1).nullable().optional(),
 });
+const needsTestingVerdictBody = z.object({
+  verdict: z.enum(["pass", "fail"]),
+});
 
 const patchBody = z.object({
   title: z.string().optional(),
@@ -275,6 +278,26 @@ export async function registerTasksRoutes(
         return { applied: false, proposal };
       } catch (err) {
         throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Resolve a needs-testing advisory with a human verdict: "pass" marks the
+  // task done; "fail" reopens it to ready. Both clear the advisory flag.
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/needs-testing/verdict",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = needsTestingVerdictBody.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const task = await svc.resolveNeedsTesting(
+          req.params.taskId,
+          parsed.data.verdict,
+        );
+        return { task };
+      } catch (err) {
+        throw new HttpError(404, err instanceof Error ? err.message : String(err));
       }
     },
   );

@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — "Needs testing" advisory:** a reviewer/verifier can emit a
+  non-blocking `HUMAN_REVIEW: ADVISORY` marker (+ optional `HUMAN_REVIEW_REASON`)
+  when a human should eyeball something the model can't perceive (visual/UX/3D).
+  The run keeps its real verdict (still reaches merge_ready); the linked card is
+  flagged `needsTesting` with the reason. A human verdict routes it —
+  `POST /api/tasks/:id/needs-testing/verdict {pass|fail}` (pass → done, fail →
+  reopen to ready), surfaced as a banner on the task + a board-card badge.
+  Distinct from `HUMAN_APPROVAL`, which blocks.
 - **Phase 3 — Pick-up execution (continuous-mode loop):** a run bound to a task
   with a Checklist now executes it **item-by-item in one worktree**. The flow's
   `checklistSegment` (a contiguous step body) repeats once per item: the

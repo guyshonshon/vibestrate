@@ -226,6 +226,8 @@ export class ProposalService {
       profileOverride: null,
       readOnly: false,
       checklist: [],
+      needsTesting: false,
+      needsTestingReason: null,
     }));
     const graph = buildDependencyGraph(tempTasks);
     const cycleReport = findFirstCycle(graph);

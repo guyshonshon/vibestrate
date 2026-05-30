@@ -972,6 +972,16 @@ export const api = {
       profileId: opts.profileId ?? null,
     });
   },
+  async resolveNeedsTesting(
+    taskId: string,
+    verdict: "pass" | "fail",
+  ): Promise<Task> {
+    const r = await jsonPost<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/needs-testing/verdict`,
+      { verdict },
+    );
+    return r.task;
+  },
   async queueTask(taskId: string): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/queue`,

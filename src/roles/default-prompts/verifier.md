@@ -75,3 +75,17 @@ decisions. Most VERIFICATION: PASSED runs do not need any signal.
 
 Make `HUMAN_APPROVAL_REQUEST` specific to the action being signed off
 (e.g. "Approve marking this change as merge-ready"), not generic.
+
+## Advisory: flag for human testing (non-blocking)
+
+When the result is acceptable but a human should *eyeball* something you cannot
+perceive — visual layout, animation, 3D, UX feel — add this non-blocking
+advisory. Unlike `HUMAN_APPROVAL` it does not pause the run; it flags the card
+for a human to pass or send back.
+
+```
+HUMAN_REVIEW: ADVISORY
+HUMAN_REVIEW_REASON: <one sentence on what the human should look at>
+```
+
+Use it only when human senses or taste are genuinely needed.

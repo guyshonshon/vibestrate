@@ -32,6 +32,7 @@ const baseState = {
   concise: false,
   flow: null,
   resumedFrom: null,
+  needsTesting: null,
   checklistMode: null,
   checklistProgress: null,
 };

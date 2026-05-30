@@ -17,6 +17,7 @@ import {
 import {
   Bolt,
   Files,
+  FlaskConical,
   Grid3X3,
   Hourglass,
   ListChecks,
@@ -896,6 +897,14 @@ function TaskCard({
             className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
           >
             <Bolt className="h-2.5 w-2.5" strokeWidth={1.7} /> failed
+          </Chip>
+        ) : null}
+        {task.needsTesting ? (
+          <Chip
+            tone="amber"
+            className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
+          >
+            <FlaskConical className="h-2.5 w-2.5" strokeWidth={1.7} /> needs testing
           </Chip>
         ) : null}
         <span className="ml-auto mono text-[9px] text-fog-500 num-tabular shrink-0">

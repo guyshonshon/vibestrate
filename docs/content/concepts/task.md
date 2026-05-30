@@ -64,6 +64,10 @@ vibe tasks pickup <taskId> --step   # pause between items for review
 
 The dashboard's "Run checklist" button on the task does the same. Under the hood this runs the built-in `pickup` [flow](/docs/concepts/flow): a holistic **plan** once, then a per-item band (**micro-plan → implement**) repeated for each item, then a holistic **review**. Each item is committed on its own (stamped with the item id, so a single item can be reverted), and a *compact summary* of each finished item is carried forward so later items have context without re-reading every diff. Item status and the commit sha are written back onto the checklist as the run progresses. Execution is linear and stops on the first failing item.
 
+## "Needs testing" — when a human should look
+
+A reviewer or verifier can finish a run with a non-blocking advisory: the change is fine to ship, but a human should *eyeball* something the model can't perceive (visual layout, animation, 3D, UX feel). The run still reaches its normal verdict — it is **not** stuck waiting like an [approval gate](/docs/glossary#approval-gate) — but the card is flagged **Needs testing** with a one-line reason. You resolve it with a verdict: "Looks good" marks the task **Done**, "Needs work" **reopens** it. The flag shows as a banner on the task and a badge on the board card.
+
 A checklist item is **not** a Flow [Step](/docs/concepts/workflow): a Step is a phase of the workflow (plan / implement / review); a checklist item is a piece of *what to build*. Don't conflate them.
 
 ## Practical tips

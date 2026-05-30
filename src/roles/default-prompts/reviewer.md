@@ -88,3 +88,18 @@ reviews do not need it. Use sparingly.
 
 Make `HUMAN_APPROVAL_REQUEST` specific (e.g. "Approve shipping the new
 session-token rotation") rather than generic.
+
+## Advisory: flag for human testing (non-blocking)
+
+When the change is fine to ship but a human should *eyeball* something you
+cannot perceive — visual layout, animation, 3D, UX feel, copy tone — add this
+advisory. It does **not** block the run (unlike `HUMAN_APPROVAL`); it just flags
+the card so a person can pass it or send it back.
+
+```
+HUMAN_REVIEW: ADVISORY
+HUMAN_REVIEW_REASON: <one sentence on what the human should look at>
+```
+
+Use it only when a human's senses or taste are genuinely needed, not for things
+you can verify yourself.
