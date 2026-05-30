@@ -103,6 +103,8 @@ export type RunCommandOptions = {
    *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
    *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */
   checklistMode?: "continuous" | "step" | null;
+  /** Context sources injected into every agent prompt (Phase 4). */
+  contextSources?: import("../../core/context-source-schema.js").ContextSource[];
 };
 
 export async function runRunCommand(
@@ -420,6 +422,7 @@ export async function runRunCommand(
     flow: resolvedFlow,
     resumeFrom,
     checklistMode: options.checklistMode ?? null,
+    contextSources: options.contextSources ?? [],
     abortSignal: cliAbort.signal,
     onProgress: (msg) => {
       console.log(`${symbol.bullet()} ${msg}`);

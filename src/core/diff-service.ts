@@ -166,6 +166,27 @@ function redactSecret(token: string): string {
   return `${token.slice(0, 4)}…(${token.length} chars)`;
 }
 
+/**
+ * Replace every high-precision secret token in raw text with a `[REDACTED:…]`
+ * marker. Used to scrub external content (fetched URLs, referenced files)
+ * before it enters an agent prompt. Returns the scrubbed text + a match count.
+ */
+export function redactSecretsInText(text: string): {
+  redacted: string;
+  count: number;
+} {
+  let count = 0;
+  let out = text;
+  for (const { name, re } of SECRET_CONTENT_PATTERNS) {
+    const flags = re.flags.includes("g") ? re.flags : `${re.flags}g`;
+    out = out.replace(new RegExp(re.source, flags), () => {
+      count += 1;
+      return `[REDACTED:${name}]`;
+    });
+  }
+  return { redacted: out, count };
+}
+
 function parseStatusCode(code: string): ChangedFileStatus {
   if (code.startsWith("A")) return "added";
   if (code.startsWith("M")) return "modified";

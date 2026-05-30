@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 4 — Context sources:** attach files / URLs to a run or a task and have
+  them injected into **every** agent's prompt. Materialized once at run start
+  (`src/core/context-sources.ts`): files are path-guarded (secret-shaped *paths*
+  refused, secret-shaped *content* redacted, size-bounded); URLs are opt-in,
+  SSRF-guarded + bounded (`src/core/guarded-fetch.ts`), and redacted before they
+  reach a prompt; a bad source becomes a non-fatal note. `vibe run
+  --context-file <p> --context-url <u>`, task-level sources
+  (`POST /api/tasks/:id/context` + a panel on the task) inherited by runs launched
+  from the card. (pdf deferred — needs a local parser.)
 - **Phase 4 — Non-CLI providers:** two HTTP-backed provider types behind Profiles.
   `http-api` calls an external cloud API (Anthropic / OpenAI) — https + non-loopback,
   the API key is an **env-ref only** (never a literal in YAML, never logged,

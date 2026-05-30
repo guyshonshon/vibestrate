@@ -341,6 +341,13 @@ export type Task = {
   needsTestingReason?: string | null;
   derivedFrom?: { taskId: string; itemId: string } | null;
   archived?: boolean;
+  contextSources?: ContextSource[];
+};
+
+export type ContextSource = {
+  kind: "file" | "url";
+  ref: string;
+  label?: string;
 };
 
 export type TaskSuggestion = {

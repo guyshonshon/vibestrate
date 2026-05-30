@@ -35,6 +35,7 @@ const baseState = {
   needsTesting: null,
   checklistMode: null,
   checklistProgress: null,
+  contextSources: [],
 };
 
 describe("final report — approval section", () => {

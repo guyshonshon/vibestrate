@@ -91,6 +91,7 @@ export type VibestrateEventType =
   | "checklist.item.blocked"
   | "checklist.item.gate"
   | "needs_testing.flagged"
+  | "context.materialized"
   | "action.allowed"
   | "action.denied"
   | "action.approval_required";

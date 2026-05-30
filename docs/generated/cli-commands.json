@@ -4028,6 +4028,22 @@
           "required": true,
           "optional": false,
           "negated": false
+        },
+        {
+          "flags": "--context-file <path>",
+          "description": "attach a project file as context for every agent (repeatable; path-guarded, secrets redacted).",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--context-url <url>",
+          "description": "attach an http(s) URL as context (repeatable; SSRF-guarded, bounded, secrets redacted).",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
         }
       ],
       "subcommands": []

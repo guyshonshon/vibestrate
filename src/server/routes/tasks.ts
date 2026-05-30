@@ -45,6 +45,17 @@ const needsTestingVerdictBody = z.object({
   verdict: z.enum(["pass", "fail"]),
 });
 const archiveBody = z.object({ archived: z.boolean() });
+const contextSourcesBody = z.object({
+  sources: z
+    .array(
+      z.object({
+        kind: z.enum(["file", "url"]),
+        ref: z.string().min(1).max(2000),
+        label: z.string().min(1).max(120).optional(),
+      }),
+    )
+    .max(32),
+});
 
 const patchBody = z.object({
   title: z.string().optional(),
@@ -318,6 +329,25 @@ export async function registerTasksRoutes(
         const task = await svc.resolveNeedsTesting(
           req.params.taskId,
           parsed.data.verdict,
+        );
+        return { task };
+      } catch (err) {
+        throw new HttpError(404, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Replace a task's context sources (files/URLs injected into its runs).
+  app.post<{ Params: { taskId: string }; Body: unknown }>(
+    "/api/tasks/:taskId/context",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const parsed = contextSourcesBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      try {
+        const task = await svc.setContextSources(
+          req.params.taskId,
+          parsed.data.sources,
         );
         return { task };
       } catch (err) {

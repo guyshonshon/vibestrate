@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { contextSourceSchema } from "../core/context-source-schema.js";
 
 // ─── ids ──────────────────────────────────────────────────────────────────────
 
@@ -198,6 +199,9 @@ export const taskSchema = z.object({
   // Archived column regardless of its run status. Orthogonal to status so a
   // done OR abandoned card can be archived without losing its real state.
   archived: z.boolean().default(false),
+  // Context sources (Phase 4): files/URLs injected into every agent's prompt
+  // for runs launched from this card (inherited when the run doesn't override).
+  contextSources: z.array(contextSourceSchema).default([]),
 });
 export type Task = z.infer<typeof taskSchema>;
 

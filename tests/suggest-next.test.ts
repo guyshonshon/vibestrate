@@ -38,6 +38,7 @@ function task(
     needsTestingReason: null,
     derivedFrom: null,
     archived: false,
+    contextSources: [],
     ...over,
   };
 }

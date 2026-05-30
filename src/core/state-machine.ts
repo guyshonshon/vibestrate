@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { StateTransitionError } from "../utils/errors.js";
+import { contextSourceSchema } from "./context-source-schema.js";
 import { runStatePath } from "../utils/paths.js";
 import { writeJson, readJson } from "../utils/json.js";
 import { pathExists } from "../utils/fs.js";
@@ -172,6 +173,10 @@ export const runStateSchema = z.object({
     .object({ reason: z.string().nullable() })
     .nullable()
     .default(null),
+  // Context sources (Phase 4): the files/URLs attached to this run's prompts.
+  // Recorded for display; the materialized content lives under
+  // runs/<id>/artifacts/context/.
+  contextSources: z.array(contextSourceSchema).default([]),
   // Pick-up execution (Phase 3): how the per-item checklist band advances.
   // "continuous" runs items back-to-back; "step" pauses between items for a
   // human. null when the run isn't iterating a checklist.
@@ -393,6 +398,7 @@ export function createInitialState(input: {
     flow: null,
     resumedFrom: null,
     needsTesting: null,
+    contextSources: [],
     checklistMode: null,
     checklistProgress: null,
   };

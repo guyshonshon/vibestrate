@@ -226,6 +226,18 @@ export function buildVibestrateProgram(): Command {
       "--checklist <mode>",
       "pick-up execution over the linked task's checklist: continuous | step. Needs --task and a checklist-aware flow (--flow pickup).",
     )
+    .option(
+      "--context-file <path>",
+      "attach a project file as context for every agent (repeatable; path-guarded, secrets redacted).",
+      collectFlowStep,
+      [],
+    )
+    .option(
+      "--context-url <url>",
+      "attach an http(s) URL as context (repeatable; SSRF-guarded, bounded, secrets redacted).",
+      collectFlowStep,
+      [],
+    )
     .action(
       async (
         taskParts: string[] = [],
@@ -250,9 +262,15 @@ export function buildVibestrateProgram(): Command {
           resumeFrom?: string;
           resumeStage?: string;
           checklist?: string;
+          contextFile?: string[];
+          contextUrl?: string[];
         },
       ) => {
         const task = taskParts.join(" ").trim();
+        const contextSources = [
+          ...(opts.contextFile ?? []).map((ref) => ({ kind: "file" as const, ref })),
+          ...(opts.contextUrl ?? []).map((ref) => ({ kind: "url" as const, ref })),
+        ];
         let checklistMode: "continuous" | "step" | null = null;
         if (opts.checklist) {
           if (opts.checklist !== "continuous" && opts.checklist !== "step") {
@@ -359,6 +377,7 @@ export function buildVibestrateProgram(): Command {
           resumeFromRunId: opts.resumeFrom ?? null,
           resumeStage,
           checklistMode,
+          contextSources,
         });
         process.exit(code);
       },
