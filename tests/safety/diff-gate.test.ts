@@ -107,6 +107,31 @@ describe("evaluateTurnDiff", () => {
     }
   });
 
+  it("returns approve when a policy requires approval for the turn diff", async () => {
+    const wt = await tempRepo();
+    try {
+      const snap = await snapshotWorktree(wt);
+      await fs.writeFile(path.join(wt, "src/a.ts"), "export const a = 2\n");
+      const hold: ActionEvaluator = (r) =>
+        r.kind === "file.patch"
+          ? { effect: "require_approval", ruleIds: ["h"], reason: "needs ok" }
+          : null;
+      const broker = new DefaultActionBroker(wt, "run-1", {
+        evaluators: [hold],
+      });
+      const v = await evaluateTurnDiff({
+        broker,
+        runId: "run-1",
+        roleId: "executor",
+        worktree: wt,
+        baseTree: snap,
+      });
+      expect(v.verdict).toBe("approve");
+    } finally {
+      await fs.rm(wt, { recursive: true, force: true });
+    }
+  });
+
   it("rolls back a diff that adds a secret file (built-in safety)", async () => {
     const wt = await tempRepo();
     try {
