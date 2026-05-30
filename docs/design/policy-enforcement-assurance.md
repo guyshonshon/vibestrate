@@ -1111,6 +1111,20 @@ controlled execution + hard policy gates + visible evidence
 
 ## Implementation status
 
+### S4 — Strict apply-only mode ✅ shipped
+
+`policies.strictApplyOnly` turns on a high-assurance mode where agents never
+touch the disk. In `runRole`, a write-capable role is forced to the `read_only`
+permission profile (so the provider runs without write access) and a prompt note
+instructs it to emit its changes as a single ```diff block. After the turn,
+`applyProposedPatchThroughGateway` (`src/safety/apply-gateway.ts`) extracts the
+diff, runs `checkPatchSafety`, takes a `file.patch` (op `apply-only`) broker
+decision, and — only on allow — `git apply --check` then `git apply` in the
+worktree, recording evidence. Any refusal (unsafe patch, denied policy, failed
+apply) blocks the run via `__ActionDeniedSignal`. Off by default → no behavior
+change. The gateway and its refusal paths are unit-tested; end-to-end efficacy
+depends on the agent emitting an applyable diff (prompt-guided).
+
 ### S3 — Post-turn diff gate ✅ shipped
 
 `src/safety/diff-gate.ts` wraps every write-capable agent turn in the

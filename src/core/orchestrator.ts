@@ -47,6 +47,7 @@ import {
   restoreWorktree,
   evaluateTurnDiff,
 } from "../safety/diff-gate.js";
+import { applyProposedPatchThroughGateway } from "../safety/apply-gateway.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import {
@@ -2330,7 +2331,17 @@ export class Orchestrator {
     // configured. Using the builtin name guarantees resolution via
     // resolveProfile's builtin fallback even on a project that hasn't defined a
     // read-only profile of its own.
-    const effectivePermissions = this.readOnly ? "read_only" : agent.permissions;
+    // S4 — strict apply-only: a write-capable role runs READ-ONLY (no direct
+    // disk writes); it proposes a diff that Vibestrate applies through the
+    // gateway after the turn. Detect write-capability from the role's own
+    // profile, then force read_only execution.
+    const applyOnly =
+      this.config.policies.strictApplyOnly &&
+      !this.readOnly &&
+      resolveProfile(this.config.permissions.profiles, agent.permissions)
+        .allowWrite;
+    const effectivePermissions =
+      this.readOnly || applyOnly ? "read_only" : agent.permissions;
     const profile = resolveProfile(
       this.config.permissions.profiles,
       effectivePermissions,
@@ -2416,7 +2427,14 @@ export class Orchestrator {
     const allControls = await listControls(this.projectRoot, ctx.runId);
     const pending = pendingControls(allControls);
     const controlNotes = renderControlNotes(pending);
-    const additionalNotes = [input.additionalNotes, controlNotes]
+    const applyOnlyNote = applyOnly
+      ? "STRICT APPLY-ONLY MODE: you do NOT have write access to the filesystem. " +
+        "Do not attempt to edit files directly. Instead, output ALL of your changes " +
+        "as a single unified diff inside one fenced ```diff code block (git-apply " +
+        "compatible, paths relative to the repo root). Vibestrate will review and " +
+        "apply it for you through a safety gateway."
+      : null;
+    const additionalNotes = [input.additionalNotes, controlNotes, applyOnlyNote]
       .filter((note): note is string => !!note && note.trim().length > 0)
       .join("\n\n");
     // Pull the user's shared, open codebase annotations and inject them so
@@ -2755,6 +2773,42 @@ export class Orchestrator {
       input.outputName,
       outputBody,
     );
+
+    // ── Apply-only gateway (S4) ───────────────────────────────────────────
+    // The role ran read-only; apply its proposed diff through the broker. A
+    // refusal (unsafe patch / denied policy / failed apply) blocks the run.
+    if (applyOnly && ctx.worktreePath) {
+      const result = await applyProposedPatchThroughGateway({
+        broker: this.broker!,
+        runId: ctx.runId,
+        roleId,
+        worktree: ctx.worktreePath,
+        output: stdout,
+      });
+      if (result.status === "refused") {
+        await ctx.eventLog.append({
+          type: "action.denied",
+          message: `Apply-only gateway refused ${roleId}'s patch: ${result.reason}`,
+          data: { kind: "apply-only", roleId, reason: result.reason },
+        });
+        throw new __ActionDeniedSignal(
+          `Apply-only gateway refused ${roleId}'s patch: ${result.reason}`,
+        );
+      }
+      await ctx.eventLog.append({
+        type:
+          result.status === "applied" ? "suggestion.applied" : "action.allowed",
+        message:
+          result.status === "applied"
+            ? `Apply-only: applied ${roleId}'s patch (${result.files.length} file(s)).`
+            : `Apply-only: ${roleId} proposed no patch this turn.`,
+        data: {
+          roleId,
+          applyOnly: true,
+          files: result.status === "applied" ? result.files : [],
+        },
+      });
+    }
 
     await ctx.eventLog.append({
       type: "provider.completed",

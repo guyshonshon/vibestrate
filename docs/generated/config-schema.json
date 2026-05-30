@@ -375,6 +375,14 @@
           "required": false,
           "default": false,
           "itemType": null
+        },
+        {
+          "key": "strictApplyOnly",
+          "fullKey": "policies.strictApplyOnly",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
         }
       ]
     },

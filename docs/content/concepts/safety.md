@@ -97,3 +97,19 @@ decisions — and writes it to `.vibestrate/runs/<runId>/assurance.json`:
 There is **no confidence score** — a verdict is a level capped by what's missing,
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
+
+## Defense in depth
+
+Three gates sit on the path between an agent and your files, each independently
+honored:
+
+- **Post-turn diff gate** — every write-capable turn is snapshotted before it
+  runs; afterward its diff is checked against secret/path safety and `file.patch`
+  policies. A denied or unsafe diff is rolled back to the snapshot and the run is
+  blocked.
+- **Strict apply-only mode** (`policies.strictApplyOnly`) — for the highest
+  assurance, write roles run read-only and instead *propose* a unified diff that
+  Vibestrate applies through the broker gateway. Nothing reaches disk without
+  crossing the gate; a refused patch blocks the run.
+- **Run assurance** — the terminal verdict above summarizes what actually
+  happened, from the evidence log.
