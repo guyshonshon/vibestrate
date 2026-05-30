@@ -63,6 +63,10 @@ export function runActionsPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "actions.ndjson");
 }
 
+export function runAssurancePath(projectRoot: string, runId: string): string {
+  return path.join(runDir(projectRoot, runId), "assurance.json");
+}
+
 export function runFlowSnapshotPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "flow.json");
 }

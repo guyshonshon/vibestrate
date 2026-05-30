@@ -79,3 +79,21 @@ they never permit something the built-in safety checks already refused.
 
 Inspect what's loaded with `vibe policies list` / `vibe policies doctor`, the
 `GET /api/policies` endpoint, or the Policies panel in the dashboard.
+
+## Run assurance
+
+When a run reaches a terminal state, Vibestrate derives a single honest verdict
+from the evidence above — the broker log plus the run's review and verification
+decisions — and writes it to `.vibestrate/runs/<runId>/assurance.json`:
+
+| Verdict | Meaning |
+| --- | --- |
+| `verified` | Policy passed, review approved, validation and verification all passed. |
+| `partially_verified` | Some evidence passed, but checks are missing (see `caps`). |
+| `unverified` | The run reached merge_ready with no meaningful evidence. |
+| `blocked` | The run did not reach merge_ready. |
+| `unsafe` | A policy denied an action, or a rollback failed — don't trust the worktree. |
+
+There is **no confidence score** — a verdict is a level capped by what's missing,
+not a guess at truth. Read it with `vibe assurance <runId>`,
+`GET /api/runs/:runId/assurance`, or the badge on the run detail page.

@@ -1294,6 +1294,35 @@ export type PolicyStoreSnapshot = {
   duplicateIds: string[];
 };
 
+export type RunAssuranceVerdict =
+  | "blocked"
+  | "unsafe"
+  | "unverified"
+  | "partially_verified"
+  | "verified";
+
+export type RunAssurance = {
+  schemaVersion: 1;
+  runId: string;
+  verdict: RunAssuranceVerdict;
+  summary: string;
+  generatedAt: string;
+  policy: {
+    status: "passed" | "held" | "violated";
+    rulesEvaluated: string[];
+    violations: { kind: string; ruleIds: string[]; reason: string }[];
+  };
+  validation: {
+    status: "passed" | "failed" | "missing";
+    total: number;
+    passed: number;
+    failed: number;
+  };
+  review: { status: "approved" | "changes_requested" | "missing" };
+  verification: { status: "passed" | "failed" | "not_run" };
+  caps: string[];
+};
+
 export type PolicyDoctorResult = {
   ruleCount: number;
   fileCount: number;

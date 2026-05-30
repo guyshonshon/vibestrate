@@ -5,6 +5,7 @@ import { navigate, type ReplayFocus } from "../App.js";
 import type {
   VibestrateEvent,
   ApprovalRequest,
+  RunAssurance,
   RunState,
   RuntimeMetrics,
 } from "../../lib/types.js";
@@ -66,6 +67,7 @@ export function RunDetailPage({
   );
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
+  const [assurance, setAssurance] = useState<RunAssurance | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +84,15 @@ export function RunDetailPage({
         setMetrics(m);
         setApprovals(a);
         setError(null);
+        // Assurance only exists once a run is terminal.
+        if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
+          api
+            .getRunAssurance(runId)
+            .then((as) => {
+              if (!cancelled) setAssurance(as);
+            })
+            .catch(() => {});
+        }
         if (d) {
           setDiff({
             insertions: d.totals.insertions,
@@ -199,6 +210,8 @@ export function RunDetailPage({
         onApprove={() => void handleApprove()}
         onReject={() => void handleReject()}
       />
+
+      {assurance ? <AssuranceBadge assurance={assurance} /> : null}
 
       {/* Terminal non-success runs: explain what stopped it + what to do. */}
       <RunOutcomeBanner
@@ -696,6 +709,46 @@ function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
+}
+
+const ASSURANCE_TONE: Record<RunAssurance["verdict"], string> = {
+  verified: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+  partially_verified: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+  unverified: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+  blocked: "border-rose-500/40 bg-rose-500/10 text-rose-200",
+  unsafe: "border-rose-500/50 bg-rose-500/15 text-rose-200",
+};
+
+/** Compact, evidence-backed run-assurance verdict (S5). */
+function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
+  const a = assurance;
+  return (
+    <div className={`rounded-xl border px-4 py-3 ${ASSURANCE_TONE[a.verdict]}`}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-[11px] uppercase tracking-[0.12em] opacity-70">
+          Run assurance
+        </span>
+        <span className="text-sm font-semibold">
+          {a.verdict.replace(/_/g, " ")}
+        </span>
+        <span className="text-xs opacity-80">{a.summary}</span>
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] opacity-80">
+        <span>policy: {a.policy.status}</span>
+        <span>
+          validation: {a.validation.status} ({a.validation.passed}/
+          {a.validation.total})
+        </span>
+        <span>review: {a.review.status}</span>
+        <span>verification: {a.verification.status}</span>
+      </div>
+      {a.caps.length > 0 ? (
+        <div className="mt-1 text-[11px] opacity-60">
+          caps: {a.caps.join(", ")}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 // Unused — kept so we can quickly add an inline "needs review" indicator

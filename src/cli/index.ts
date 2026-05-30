@@ -34,6 +34,7 @@ import { buildBundlesCommand } from "./commands/bundles.js";
 import { buildValidationCommand } from "./commands/validation.js";
 import { buildTerminalCommand } from "./commands/terminal.js";
 import { buildPoliciesCommand } from "./commands/policies.js";
+import { buildAssuranceCommand } from "./commands/assurance.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
@@ -135,6 +136,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildValidationCommand());
   program.addCommand(buildTerminalCommand());
   program.addCommand(buildPoliciesCommand());
+  program.addCommand(buildAssuranceCommand());
   program.addCommand(buildBudgetCommand());
   program.addCommand(buildReplayCommand());
   program.addCommand(buildPauseCommand());

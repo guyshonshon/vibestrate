@@ -38,6 +38,7 @@ import type {
   ProposalSummary,
   QueueEntry,
   RoadmapItem,
+  RunAssurance,
   RunControlDirective,
   RunState,
   RuntimeMetrics,
@@ -466,6 +467,12 @@ export const api = {
   async getRun(runId: string): Promise<RunState> {
     const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);
     return r.run;
+  },
+  async getRunAssurance(runId: string): Promise<RunAssurance> {
+    const r = await jsonGet<{ assurance: RunAssurance }>(
+      `/api/runs/${runId}/assurance`,
+    );
+    return r.assurance;
   },
   async listEvents(runId: string): Promise<VibestrateEvent[]> {
     const r = await jsonGet<{ events: VibestrateEvent[] }>(

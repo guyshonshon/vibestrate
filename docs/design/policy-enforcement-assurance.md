@@ -1111,6 +1111,21 @@ controlled execution + hard policy gates + visible evidence
 
 ## Implementation status
 
+### S5 — Run Assurance artifact ✅ shipped
+
+`src/safety/run-assurance.ts` derives a single `RunAssuranceVerdict`
+(`blocked` / `unsafe` / `unverified` / `partially_verified` / `verified`) from
+*evidence*, not model claims: `deriveRunAssurance` reads the broker decisions
+(deny → `unsafe`; require_approval → caps), the `command.run` evidence (validation
+pass/fail counts), and the run's `finalDecision` / `verification`. The verdict
+rule: a deny or failed rollback → `unsafe`; not `merge_ready` → `blocked`; no
+evidence → `unverified`; review approved + validation passed + verification
+passed → `verified`; otherwise `partially_verified`. `caps[]` lists the missing
+checks. The orchestrator writes `runs/<id>/assurance.json` (best-effort) at the
+finalize step for every terminal state; `GET /api/runs/:id/assurance` (derives
+on demand for older runs), `vibe assurance <runId>`, and a run-detail badge
+surface it. No score — a level capped by missing checks, per the design.
+
 ### S2 — Policy Engine V2 (action policies) ✅ shipped
 
 Policy files gained an `actions:` list alongside the patch-content `rules:`.
