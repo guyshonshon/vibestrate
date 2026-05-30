@@ -1131,7 +1131,21 @@ The boundary and the audit record landed first (`src/safety/action-broker.ts`):
 - Default policy is **allow** (no evaluators wired yet), so run behavior is
   unchanged until the Policy Engine (S2) plugs evaluators into the same chain.
 
-Not yet brokered (later slices): `command.run`, `file.patch`, `file.write`,
-`network.request`, `mcp.tool`, `terminal.create`, `run.complete`. These call
-sites route through the broker as their slices land — no call-site change is
-needed beyond constructing the request and honoring the decision.
+**`file.patch` slice (suggestion apply/revert).** `ReviewSuggestionService.apply`
+and `.revert` now gate through the broker *after* the existing built-in safety
+checks (`checkPatchSafety`) and the legacy `applyPolicyGate`, immediately before
+the first `git apply`. The two gates coexist deliberately: `applyPolicyGate` is
+the S1-era patch-policy path; the broker is the unifying boundary + evidence log.
+S2 folds the former into a broker evaluator so there is one decision path. A
+non-allow verdict marks the suggestion `failed` (it does **not** throw — the
+service returns structured results), leaving the worktree untouched; success and
+failure both append `file.patch` evidence. Construction is centralised in
+`createActionBroker` and the `gateAction` helper (decide → record-on-deny →
+caller records outcome), so every later effect kind inherits the S2 evaluator
+chain from one place. The service takes an injectable `broker` for tests.
+
+Not yet brokered (later slices): `file.patch` for **bundle** apply/smartApply/revert,
+`command.run`, `file.write`, `network.request`, `mcp.tool`, `terminal.create`,
+`run.complete`. These call sites route through the broker as their slices land —
+no call-site change is needed beyond constructing the request and honoring the
+decision.

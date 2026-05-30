@@ -36,6 +36,12 @@ import {
 } from "../core/validation-profile-service.js";
 import { recordValidationProfileUsage } from "../core/validation-profile-usage-service.js";
 import { applyPolicyGate } from "../policies/policy-service.js";
+import {
+  createActionBroker,
+  gateAction,
+  type ActionBroker,
+  type ActionRequest,
+} from "../safety/action-broker.js";
 
 export type SuggestionApplyOutcome = {
   ok: boolean;
@@ -58,14 +64,20 @@ export class ReviewSuggestionService {
   readonly store: ReviewSuggestionStore;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
+  /** The S0 Action Broker boundary — every patch apply/revert is decided and
+   *  recorded as evidence in `runs/<id>/actions.ndjson`. Injectable for tests
+   *  (e.g. a deny evaluator); defaults to the run's shared broker. */
+  private readonly broker: ActionBroker;
 
   constructor(
     private readonly projectRoot: string,
     private readonly runId: string,
+    opts: { broker?: ActionBroker } = {},
   ) {
     this.store = new ReviewSuggestionStore(projectRoot, runId);
     this.approvals = new ApprovalService(projectRoot, runId);
     this.events = new EventLog(projectRoot, runId);
+    this.broker = opts.broker ?? createActionBroker(projectRoot, runId);
   }
 
   async list(): Promise<ReviewSuggestion[]> {
@@ -388,6 +400,29 @@ export class ReviewSuggestionService {
       return updated;
     }
 
+    // ── Action Broker boundary (S0): file.patch ──────────────────────────
+    // Decide + record before any bytes touch the worktree. Fail-closed: a
+    // non-allow verdict refuses the apply (default policy is allow, so behavior
+    // is unchanged until S2 wires evaluators). Evidence is appended below.
+    const action: ActionRequest = {
+      runId: this.runId,
+      kind: "file.patch",
+      subject: {
+        op: "apply",
+        suggestionId: id,
+        files: safety.touchedFiles,
+        worktree: worktreePath,
+      },
+      proposedBy: "system",
+    };
+    const gate = await gateAction(this.broker, action);
+    if (!gate.allowed) {
+      return this.markFailed(
+        current,
+        `action broker ${gate.effect} the patch: ${gate.reason}`,
+      );
+    }
+
     const check = await execa(
       "git",
       ["apply", "--check", "--whitespace=nowarn"],
@@ -404,6 +439,10 @@ export class ReviewSuggestionService {
         (check.stderr || check.stdout || "git apply --check failed")
           .toString()
           .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply --check rejected ${id}`,
+      });
       return this.markFailed(current, `git apply --check rejected the patch: ${reason}`);
     }
 
@@ -423,8 +462,17 @@ export class ReviewSuggestionService {
         (applied.stderr || applied.stdout || "git apply failed")
           .toString()
           .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply failed for ${id}`,
+      });
       return this.markFailed(current, `git apply failed: ${reason}`);
     }
+    await this.broker.record(action, gate.decision, {
+      ok: true,
+      summary: `applied suggestion ${id}`,
+      data: { files: safety.touchedFiles },
+    });
 
     // Capture forward + reverse patch text for safe revert later.
     const dir = suggestionPatchesDir(this.projectRoot, this.runId);
@@ -780,6 +828,26 @@ export class ReviewSuggestionService {
       return updated;
     }
 
+    // ── Action Broker boundary (S0): file.patch (reverse) ────────────────
+    const action: ActionRequest = {
+      runId: this.runId,
+      kind: "file.patch",
+      subject: {
+        op: "revert",
+        suggestionId: id,
+        files: safety.touchedFiles,
+        worktree: worktreePath,
+      },
+      proposedBy: "system",
+    };
+    const gate = await gateAction(this.broker, action);
+    if (!gate.allowed) {
+      return this.markRevertFailed(
+        current,
+        `action broker ${gate.effect} the revert: ${gate.reason}`,
+      );
+    }
+
     const check = await execa(
       "git",
       ["apply", "-R", "--check", "--whitespace=nowarn"],
@@ -795,6 +863,10 @@ export class ReviewSuggestionService {
       const reason = (check.stderr || check.stdout || "git apply -R --check failed")
         .toString()
         .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply -R --check rejected revert of ${id}`,
+      });
       return this.markRevertFailed(
         current,
         `git apply -R --check rejected the reverse patch: ${reason}`,
@@ -816,8 +888,17 @@ export class ReviewSuggestionService {
       const reason = (reverted.stderr || reverted.stdout || "git apply -R failed")
         .toString()
         .slice(0, 500);
+      await this.broker.record(action, gate.decision, {
+        ok: false,
+        summary: `git apply -R failed for ${id}`,
+      });
       return this.markRevertFailed(current, `git apply -R failed: ${reason}`);
     }
+    await this.broker.record(action, gate.decision, {
+      ok: true,
+      summary: `reverted suggestion ${id}`,
+      data: { files: safety.touchedFiles },
+    });
 
     const updated: ReviewSuggestion = {
       ...current,
