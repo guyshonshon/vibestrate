@@ -143,6 +143,26 @@ export function draftValidationFailed(input: {
   };
 }
 
+export function draftSpendCapHit(input: {
+  runId: string;
+  taskId: string | null;
+  dailySpendUsd: number;
+  capUsd: number;
+}): NotificationDraft {
+  return {
+    severity: "attention",
+    category: "system",
+    title: "Daily spend cap hit",
+    message: `Daily spend ~$${input.dailySpendUsd.toFixed(2)} reached the $${input.capUsd}/day cap; run ${input.runId} was stopped.`,
+    runId: input.runId,
+    taskId: input.taskId,
+    sourceEventType: "spend.capped",
+    actionRequired: false,
+    actionLabel: "Open run",
+    actionUrl: `#/runs/${input.runId}`,
+  };
+}
+
 export function draftSchedulerConflict(input: {
   taskId: string;
   conflictsWith: string[];

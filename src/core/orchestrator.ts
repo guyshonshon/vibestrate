@@ -93,6 +93,7 @@ import {
   draftApprovalRequested,
   draftRunCompleted,
   draftValidationFailed,
+  draftSpendCapHit,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
@@ -3366,7 +3367,7 @@ export class Orchestrator {
    * run honestly rather than silently continuing at full cost. No cap
    * configured ⇒ no-op.
    */
-  private async enforceSpendCap(ctx: { eventLog: EventLog }): Promise<void> {
+  private async enforceSpendCap(ctx: { eventLog: EventLog; runId: string }): Promise<void> {
     const budget = this.config.budget;
     const cap = budget?.spendCapDailyUsd;
     if (!budget || cap === null || cap === undefined || cap <= 0) return;
@@ -3402,6 +3403,16 @@ export class Orchestrator {
       message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
       data: { action: "stop", dailySpendUsd, cap },
     });
+    // A6: notify on cap-hit so it reaches the user's gateways (webhook/desktop/…).
+    const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
+    notify?.(
+      draftSpendCapHit({
+        runId: ctx.runId,
+        taskId: this.taskId,
+        dailySpendUsd,
+        capUsd: cap,
+      }),
+    );
     throw new __SpendCapStopSignal(
       `${at}. Run stopped by the daily spend cap (capAction=${budget.capAction}).`,
     );
