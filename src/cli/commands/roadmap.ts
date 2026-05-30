@@ -498,13 +498,19 @@ async function cmdRoadmapPlan(
   const detected = await detectProject(process.cwd());
   // Lazily import to avoid pulling provider-runner into the CLI module graph
   // when the user only uses non-plan commands.
-  const [{ loadConfig, loadRolePrompt }, { runProvider }, { fileURLToPath }, fs] =
-    await Promise.all([
-      import("../../project/config-loader.js"),
-      import("../../providers/provider-runner.js"),
-      import("node:url"),
-      import("node:fs/promises"),
-    ]);
+  const [
+    { loadConfig, loadRolePrompt },
+    { runProvider },
+    { providerCommandLabel },
+    { fileURLToPath },
+    fs,
+  ] = await Promise.all([
+    import("../../project/config-loader.js"),
+    import("../../providers/provider-runner.js"),
+    import("../../providers/provider-schema.js"),
+    import("node:url"),
+    import("node:fs/promises"),
+  ]);
 
   let loaded;
   try {
@@ -572,7 +578,7 @@ async function cmdRoadmapPlan(
     `${symbol.bullet()} Planning a roadmap for: ${color.bold(goal)}`,
   );
   console.log(
-    `  ${color.dim(`provider: ${providerId} (${loaded.config.providers[providerId]!.command})`)}`,
+    `  ${color.dim(`provider: ${providerId} (${providerCommandLabel(loaded.config.providers[providerId]!)})`)}`,
   );
   let result;
   try {
@@ -588,7 +594,7 @@ async function cmdRoadmapPlan(
       }`,
     );
     console.error(
-      `  ${symbol.arrow()} Make sure ${color.bold(loaded.config.providers[providerId]!.command)} is installed (\`vibe provider detect\`).`,
+      `  ${symbol.arrow()} Make sure ${color.bold(providerCommandLabel(loaded.config.providers[providerId]!))} is available (\`vibe provider detect\`).`,
     );
     return 1;
   }

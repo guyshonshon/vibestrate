@@ -281,6 +281,8 @@ export type ProviderRow = {
   configured: boolean;
   loginCommand: string | null;
   loginNote: string;
+  /** True when the destination is an external network service (cloud http-api). */
+  external?: boolean;
 };
 
 export type CodebaseAnnotation = {

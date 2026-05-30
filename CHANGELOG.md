@@ -6,6 +6,16 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 4 — Non-CLI providers:** two HTTP-backed provider types behind Profiles.
+  `http-api` calls an external cloud API (Anthropic / OpenAI) — https + non-loopback,
+  the API key is an **env-ref only** (never a literal in YAML, never logged,
+  redacted from errors). `localhost-proxy` calls a model server on this machine
+  (Ollama / LM Studio / vLLM) — loopback host only, so no egress. One request per
+  turn (`src/providers/http-api-provider.ts`) with abort+timeout; the response's
+  real token usage is mapped to metrics (no more `est.` for these). The dashboard
+  lists configured non-CLI providers and marks cloud ones **external**; `vibe
+  doctor` and the safe-test understand them (cloud test = key-set check, no
+  surprise spend). Local-first = no Vibestrate backend, not "no egress".
 - **Phase 3 — Board coarse columns:** the planning board now shows a coarse
   human kanban — `Planned · In-progress · Needs testing · Completed · Archived`
   — derived from a card's status plus the needs-testing / archived overlays

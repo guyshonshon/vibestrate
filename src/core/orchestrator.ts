@@ -2981,8 +2981,10 @@ export class Orchestrator {
         stageId: input.stageId,
         providerId: effectiveProviderId,
         providerType: providerCfg?.type ?? "cli",
-        command: providerCfg?.command ?? "",
-        args: [...(providerCfg?.args ?? [])],
+        command:
+          providerCfg && "command" in providerCfg ? providerCfg.command : "",
+        args:
+          providerCfg && "args" in providerCfg ? [...providerCfg.args] : [],
         cwd,
         startedAt: stageStart.toISOString(),
         endedAt: stageEnd.toISOString(),

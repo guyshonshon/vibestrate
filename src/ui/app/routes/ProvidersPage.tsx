@@ -125,6 +125,9 @@ export function ProvidersPage() {
                 {p.version ? ` · v${p.version}` : ""}
               </span>
               <Chip tone={statusChip.tone}>{statusChip.label}</Chip>
+              {p.external ? (
+                <Chip tone="amber">external</Chip>
+              ) : null}
               {p.recommended ? (
                 <Chip tone="violet">
                   <Star size={10} className="inline -mt-px mr-1" />

@@ -159,7 +159,7 @@
     {
       "key": "providers",
       "fullKey": "providers",
-      "type": "record<string, object | object>",
+      "type": "record<string, unknown>",
       "required": true,
       "itemType": null
     },

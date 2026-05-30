@@ -43,7 +43,7 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Project root.** The git repository where `vibe init` was run. Where `.vibestrate/` lives.
 
-**Provider.** A local CLI Vibestrate can drive to talk to a model. Claude Code, Codex, Aider, Ollama, OpenCode are the built-in ones. See [Provider](/docs/concepts/provider).
+**Provider.** What Vibestrate drives to talk to a model: a local **CLI** (Claude Code, Codex, Aider, Ollama, OpenCode), a **cloud API** (`http-api` → Anthropic/OpenAI with your own env-ref key, marked external), or a **local model server** (`localhost-proxy` → Ollama/LM Studio/vLLM, no egress). See [Provider](/docs/concepts/provider).
 
 **Replay.** The read-only inspector for a persisted run. `vibe replay <runId>`.
 

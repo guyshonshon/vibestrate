@@ -13,6 +13,7 @@ import {
   type NormalizedTurn,
 } from "./output-adapter.js";
 import { claudeStreamJsonAdapter } from "./adapters/claude-stream-json.js";
+import { runHttpApiProvider } from "./http-api-provider.js";
 
 export type RichProviderRunResult = ProviderRunResult & {
   claudeMetrics?: ClaudeCodeRunMetrics;
@@ -74,6 +75,12 @@ export async function runProvider(
         metrics: claudeMetricsToNormalized(result.claudeMetrics),
       },
     };
+  }
+  if (provider.type === "http-api" || provider.type === "localhost-proxy") {
+    // One HTTP request per turn; the runner already parsed the response into
+    // responseText + real token metrics.
+    const result = await runHttpApiProvider(provider, input);
+    return result;
   }
   throw new ProviderError(
     `Unsupported provider type for "${input.providerId}".`,
