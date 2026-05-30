@@ -1152,7 +1152,16 @@ smartApply's per-step reverts (which delegate to the single-suggestion path) are
 gated too, and an injected (test) broker propagates to both. That completes
 `file.patch` coverage across the suggestion + bundle apply surface.
 
-Not yet brokered (later slices): `command.run`, `file.write`, `network.request`,
-`mcp.tool`, `terminal.create`, `run.complete`. These call sites route through the
-broker as their slices land — no call-site change is needed beyond constructing
-the request and honoring the decision.
+**Remaining effect kinds (S0 complete).** `run.complete` gates the run's terminal
+verdict in the orchestrator (a non-allow decision downgrades merge_ready→blocked
+and emits `action.denied`/`action.approval_required`); `command.run` gates each
+validation command in `runValidationCommands` (a deny skips it as a failed
+result); `file.write` gates the MCP-config materialisation (subject carries the
+path only, never the token-bearing body); `terminal.create` gates the PTY spawn
+in `TerminalService` (refuses 403 on deny). All construct their broker via
+`createActionBroker`/an injectable factory and use `gateAction`, so the S2
+evaluator chain reaches every effect kind from one place.
+
+Still advisory until S2 wires evaluators (default-allow). `network.request` /
+`mcp.tool` remain conceptual kinds in the enum, gated if/when those surfaces gain
+a Vibestrate-owned call site.

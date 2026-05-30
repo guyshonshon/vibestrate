@@ -1757,14 +1757,57 @@ export class Orchestrator {
         : reviewDecision === "APPROVED" &&
           validationPassed &&
           (!verified || verificationDecision === "PASSED");
+      // ── Action Broker boundary (S0): run.complete ─────────────────────
+      // The run's terminal verdict crosses the broker. A non-allow decision
+      // cannot reach merge_ready — it downgrades to blocked (fail-closed). The
+      // verdict + evidence anchor the S5 Run Assurance artifact.
+      const completeReq: ActionRequest = {
+        runId: input.runId,
+        kind: "run.complete",
+        subject: {
+          status: mergeReady ? "merge_ready" : "blocked",
+          decision: reviewDecision,
+          verification: finalVerification,
+          validationPassed,
+        },
+        proposedBy: "system",
+      };
+      const completeDecision = await this.broker!.decide(completeReq);
+      let effectiveMergeReady = mergeReady;
+      if (completeDecision.effect !== "allow") {
+        effectiveMergeReady = false;
+        const reason =
+          "reason" in completeDecision ? completeDecision.reason : "policy";
+        await input.eventLog.append({
+          type:
+            completeDecision.effect === "deny"
+              ? "action.denied"
+              : "action.approval_required",
+          message: `Action broker ${completeDecision.effect} run.complete for ${input.runId}: ${reason}`,
+          data: {
+            kind: "run.complete",
+            effect: completeDecision.effect,
+            ruleIds: completeDecision.ruleIds,
+            reason,
+          },
+        });
+      }
       state = {
         ...state,
         finalDecision: reviewDecision,
         verification: finalVerification,
       };
       await input.stateStore.write(state);
-      state = applyTransition(state, mergeReady ? "merge_ready" : "blocked");
+      state = applyTransition(
+        state,
+        effectiveMergeReady ? "merge_ready" : "blocked",
+      );
       await input.stateStore.write(state);
+      await this.broker!.record(completeReq, completeDecision, {
+        ok: effectiveMergeReady,
+        summary: `run ${input.runId} ${state.status}`,
+        data: { decision: reviewDecision, validationPassed },
+      });
       await input.eventLog.append({
         type: "run.completed",
         message: `Flow run ${input.runId} ${state.status}.`,
@@ -2329,6 +2372,8 @@ export class Orchestrator {
       mcpConfigAbsPath = await writeMcpConfigFile({
         dir: path.dirname(ctx.artifactStore.resolveArtifactPath(mcpConfigRelPath)),
         servers: mcpResolved.servers,
+        broker: this.broker ?? undefined,
+        runId: ctx.runId,
       });
       await ctx.eventLog.append({
         type: "mcp.attached",
@@ -2780,6 +2825,8 @@ export class Orchestrator {
       cwd: ctx.worktreePath,
       store: ctx.artifactStore,
       prefix: input.prefix,
+      broker: this.broker ?? undefined,
+      runId: ctx.artifactStore.runIdValue,
     });
     for (const c of results.commands) {
       await ctx.eventLog.append({

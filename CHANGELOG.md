@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Action Broker (S0) — complete:** the remaining effect kinds now cross the
+  broker — `run.complete` (orchestrator; a non-allow verdict downgrades
+  merge_ready→blocked), `command.run` (validation runner), `file.write` (MCP
+  config materialisation, path-only subject — never the token-bearing body), and
+  `terminal.create` (terminal service, refuses 403 on deny). All fail-closed,
+  default-allow; evidence in `runs/<id>/actions.ndjson`. S0 is done; S2 wires
+  the evaluators.
 - **Action Broker (S0) — file.patch (bundles):** bundle apply / smartApply /
   revert now also cross the broker (`kind: "file.patch"`, one decision per
   operation) with allow/deny + ok/fail evidence; fail-closed (a deny refuses the
