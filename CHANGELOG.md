@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Run Assurance artifact (S5):** every terminal run derives an evidence-backed
+  verdict — `blocked` / `unsafe` / `unverified` / `partially_verified` /
+  `verified` (no fake confidence %) — from the Action Broker log + the run's
+  review/verification decisions, persisted to `runs/<id>/assurance.json`.
+  Surfaced via `vibe assurance <runId>`, `GET /api/runs/:id/assurance`, and a
+  verdict badge on the run detail page.
 - **Policy Engine V2 (S2):** policy files (`.vibestrate/policies/*.yml`) can now
   carry an `actions:` list that gates the Action Broker's effect kinds —
   `provider.spawn` / `command.run` / `file.patch` / `file.write` /

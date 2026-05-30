@@ -32,6 +32,10 @@ import {
   RunReplayError,
 } from "../../core/run-replay-service.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
+import {
+  readRunAssurance,
+  buildAndWriteRunAssurance,
+} from "../../safety/run-assurance.js";
 import type { RunSpec } from "../../core/run-launcher.js";
 import {
   appendControl,
@@ -298,6 +302,26 @@ export async function registerRunsRoutes(
         }
       }
       return { events };
+    },
+  );
+
+  // Run Assurance artifact (S5). Returns the persisted verdict; if the run is
+  // terminal but the artifact is missing (e.g. an older run), derive it on read.
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/assurance",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const existing = await readRunAssurance(projectRoot, req.params.runId);
+      if (existing) return { assurance: existing };
+      const derived = await buildAndWriteRunAssurance(
+        projectRoot,
+        req.params.runId,
+      );
+      return { assurance: derived };
     },
   );
 

@@ -41,6 +41,7 @@ import {
   type ActionBroker,
   type ActionRequest,
 } from "../safety/action-broker.js";
+import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import {
@@ -1938,6 +1939,17 @@ export class Orchestrator {
         : null,
       approvalsSummary: summarizeApprovals(approvals),
     }));
+
+    // ── Run Assurance artifact (S5) ───────────────────────────────────────
+    // Derive a single evidence-backed verdict from the broker log + the run's
+    // review/verification decisions and persist runs/<id>/assurance.json.
+    // Best-effort: a failure here must never mask the run's real outcome.
+    try {
+      await buildAndWriteRunAssurance(this.projectRoot, input.runId);
+    } catch {
+      // assurance is advisory; swallow.
+    }
+
     const finalReportPath = await this.writeFlowFinalReport({
       ...input,
       state,
