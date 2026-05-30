@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 2 — API contract:** versioned `/api/v1` prefix (aliased to `/api` via
+  Fastify `rewriteUrl`, so the bundled UI and external callers share handlers);
+  optional bearer-token auth (`VIBESTRATE_API_TOKEN`) gating every `/api/*`
+  request, constant-time compared; `vibe ui --host` for non-loopback binds, which
+  now refuse to start without a token (fail-closed). New `docs/architecture/http-api`.
+- **Phase 2 — flow portability:** single-flow import/export. `vibe flows export
+  <id>` / `vibe flows import <file-or-url>`, plus `GET /api/v1/flows/:id/export`,
+  `POST /api/v1/flows/import`, and the flow-creator `POST /api/v1/flows`. All
+  writes go through one guarded path (schema + secret refusal + control-char/size
+  guard + SSRF guard on URLs + overwrite policy + atomic write). Dashboard Flows
+  page gains Export / Import / New-flow controls (UI⇄CLI parity).
 - **Safety hardening (QA pass):** fixed real issues found reviewing the safety
   pillar — (1) `globToRegex` leading `**/` now also matches repo-ROOT files, so a
   `**/*.env`-style policy no longer lets a root-level secret through; (2) the

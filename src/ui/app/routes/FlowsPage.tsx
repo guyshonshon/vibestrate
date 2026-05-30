@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
+  Download,
   Flag,
   GitFork,
   Library,
   PenLine,
+  Plus,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type {
@@ -23,7 +26,37 @@ type Props = {
 };
 
 type Toast = { kind: "ok" | "err"; text: string } | null;
-type Busy = { id: string; action: "fork" | "delete" } | null;
+type Busy = { id: string; action: "fork" | "delete" | "export" } | null;
+type ImportMode = "yaml" | "url";
+
+/** Trigger a client-side download of text content (no extra round-trip; the
+ *  YAML already came back through the audited export route). */
+function downloadText(filename: string, text: string): void {
+  const blob = new Blob([text], { type: "application/x-yaml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Minimal valid flow used by "New blank flow" — a single seat + one step,
+ *  which the user then shapes in the Flow Builder. */
+function blankFlow(id: string) {
+  return {
+    id,
+    version: 1,
+    label: "New flow",
+    description: "A new flow — customize its seats and steps.",
+    seats: { worker: { label: "Worker" } },
+    steps: [
+      { id: "do", label: "Do the work", kind: "agent-turn", seat: "worker" },
+    ],
+  };
+}
 
 /**
  * Flows — the dashboard catalog of run recipes, independent of the Flow
@@ -39,6 +72,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
   const [toast, setToast] = useState<Toast>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>("yaml");
+  const [importText, setImportText] = useState("");
+  const [importUrl, setImportUrl] = useState("");
+  const [importOverwrite, setImportOverwrite] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   async function load() {
     try {
@@ -110,6 +150,59 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     }
   }
 
+  async function exportFlow(flowId: string) {
+    setBusy({ id: flowId, action: "export" });
+    try {
+      const r = await api.exportFlow(flowId);
+      downloadText(`${r.flowId}.flow.yml`, r.yaml);
+      flash({ kind: "ok", text: `Exported ${r.flowId} as YAML.` });
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function doImport() {
+    setImportBusy(true);
+    try {
+      const input =
+        importMode === "url"
+          ? { url: importUrl.trim(), overwrite: importOverwrite }
+          : { yaml: importText, overwrite: importOverwrite };
+      const r = await api.importFlow(input);
+      await load();
+      setExpanded(r.flowId);
+      setImportOpen(false);
+      setImportText("");
+      setImportUrl("");
+      setImportOverwrite(false);
+      flash({
+        kind: "ok",
+        text: `Imported ${r.flowId}${r.overwritten ? " (overwritten)" : ""}.`,
+      });
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  // Create a fresh project flow and jump into the builder. Ids must be unique,
+  // so we suffix with a short timestamp to avoid clobbering an existing flow.
+  async function createBlank() {
+    setCreating(true);
+    try {
+      const id = `new-flow-${Date.now().toString(36)}`;
+      const r = await api.createFlow(blankFlow(id));
+      onOpenInFlow(r.flowId);
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setCreating(false);
+    }
+  }
+
   // The built-in default flow is rendered as its own "runs by default" card,
   // sourced from the real definition; the rest list below it.
   const defaultFlow = flows?.find((g) => g.id === "default") ?? null;
@@ -130,7 +223,99 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           run them, approval gates. The <strong className="text-fog-100">Default
           flow</strong> runs unless you pick another. Fork a builtin to edit it.
         </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            iconLeft={<Plus size={13} />}
+            disabled={creating}
+            onClick={() => void createBlank()}
+          >
+            {creating ? "Creating…" : "New flow"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            iconLeft={<Upload size={13} />}
+            onClick={() => setImportOpen((v) => !v)}
+          >
+            Import
+          </Button>
+        </div>
       </section>
+
+      {importOpen ? (
+        <section className="mt-4 rounded-xl border border-white/10 surface-ink-100-55 px-4 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="eyebrow">Import a flow</div>
+            <div className="ml-auto inline-flex rounded-md border border-white/10 p-0.5 text-[11.5px]">
+              {(["yaml", "url"] as ImportMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setImportMode(m)}
+                  className={cn(
+                    "rounded px-2 py-0.5",
+                    importMode === m
+                      ? "bg-violet-soft/20 text-fog-100"
+                      : "text-fog-400 hover:text-fog-200",
+                  )}
+                >
+                  {m === "yaml" ? "Paste YAML" : "From URL"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {importMode === "yaml" ? (
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder="Paste a flow.yml here…"
+              spellCheck={false}
+              className="mono mt-3 h-44 w-full resize-y rounded-md border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+            />
+          ) : (
+            <input
+              type="url"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://example.com/path/flow.yml"
+              className="mono mt-3 w-full rounded-md border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+            />
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-1.5 text-[12px] text-fog-300">
+              <input
+                type="checkbox"
+                checked={importOverwrite}
+                onChange={(e) => setImportOverwrite(e.target.checked)}
+              />
+              Overwrite if a project flow with the same id exists
+            </label>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setImportOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                iconLeft={<Upload size={13} />}
+                disabled={
+                  importBusy ||
+                  (importMode === "yaml" ? !importText.trim() : !importUrl.trim())
+                }
+                onClick={() => void doImport()}
+              >
+                {importBusy ? "Importing…" : "Import"}
+              </Button>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-fog-500">
+            Validated against the flow schema; refused if it carries secrets.
+            URL fetches are size- and time-bounded.
+          </p>
+        </section>
+      ) : null}
 
       {error ? (
         <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
@@ -159,8 +344,9 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         {defaultFlow ? (
           <DefaultFlowCard
             flow={defaultFlow}
-            busy={busy?.id === "default"}
+            busy={busy?.id === "default" ? busy.action : null}
             onForkEdit={() => void forkAndEdit("default")}
+            onExport={() => void exportFlow("default")}
           />
         ) : null}
         {!flows ? (
@@ -178,13 +364,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               onOpenInFlow={() => onOpenInFlow(g.id)}
               onFork={() => void fork(g.id)}
               onDelete={() => void remove(g.id)}
+              onExport={() => void exportFlow(g.id)}
             />
           ))
         )}
       </section>
 
       <p className="mt-8 text-[12px] text-fog-500">
-        Sharing community flows (Flows Hub) is on the roadmap.
+        Import/export shares one flow at a time. A browsable community Flows Hub
+        is on the roadmap.
       </p>
 
       {toast ? (
@@ -213,10 +401,12 @@ function DefaultFlowCard({
   flow,
   busy,
   onForkEdit,
+  onExport,
 }: {
   flow: DiscoveredFlow;
-  busy: boolean;
+  busy: "fork" | "delete" | "export" | null;
   onForkEdit: () => void;
+  onExport: () => void;
 }) {
   const steps = flow.definition.steps;
   const loop = flow.definition.loop ?? null;
@@ -240,10 +430,20 @@ function DefaultFlowCard({
           size="sm"
           className="ml-auto"
           iconLeft={isProject ? <PenLine size={13} /> : <GitFork size={13} />}
-          disabled={busy}
+          disabled={busy !== null}
           onClick={onForkEdit}
         >
-          {isProject ? "Edit" : busy ? "Forking…" : "Fork & edit"}
+          {isProject ? "Edit" : busy === "fork" ? "Forking…" : "Fork & edit"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft={<Download size={13} />}
+          disabled={busy !== null}
+          onClick={onExport}
+          title="Export this flow as YAML"
+        >
+          {busy === "export" ? "Exporting…" : "Export"}
         </Button>
       </div>
       <p className="mt-1 text-[12px] text-fog-400 max-w-[68ch]">
@@ -290,14 +490,16 @@ function FlowCard({
   onOpenInFlow,
   onFork,
   onDelete,
+  onExport,
 }: {
   flow: DiscoveredFlow;
   expanded: boolean;
-  busy: "fork" | "delete" | null;
+  busy: "fork" | "delete" | "export" | null;
   onToggle: () => void;
   onOpenInFlow: () => void;
   onFork: () => void;
   onDelete: () => void;
+  onExport: () => void;
 }) {
   const isProject = g.source.kind === "project";
   const steps = g.definition.steps;
@@ -369,6 +571,16 @@ function FlowCard({
             title="Open the flow editor (preview, customize, dry-run)"
           >
             {isProject ? "Edit" : "Open"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            iconLeft={<Download size={13} />}
+            disabled={busy !== null}
+            onClick={onExport}
+            title="Export this flow as YAML"
+          >
+            {busy === "export" ? "Exporting…" : "Export"}
           </Button>
           {isProject ? (
             <Button

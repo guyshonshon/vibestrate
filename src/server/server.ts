@@ -35,11 +35,38 @@ import {
   type TerminalRoutesDeps,
 } from "./routes/terminal.js";
 import { registerPoliciesRoutes } from "./routes/policies.js";
-import { HttpError } from "./security.js";
+import {
+  HttpError,
+  bearerToken,
+  isLoopbackHost,
+  timingSafeEqualStr,
+} from "./security.js";
 import { recordIssue } from "../core/issues-store.js";
 import { formatError, toIssueInput } from "../core/error-format.js";
 
 export const DEFAULT_VIBESTRATE_PORT = 4317;
+
+/** Canonical version prefix. Requests to `/api/v1/...` are rewritten to
+ *  `/api/...` before routing so the versioned contract and the bundled UI
+ *  (which still calls `/api/...`) share one handler set. Bump alongside a
+ *  breaking payload change and keep the old prefix routing for a deprecation
+ *  window. */
+export const API_VERSION_PREFIX = "/api/v1";
+
+/**
+ * Strip a leading `/api/v1` so a versioned client and the bundled UI hit the
+ * same handlers. Runs in Fastify's `rewriteUrl` (before routing), so handlers
+ * and logs see the canonical `/api/...` path. Anything that isn't exactly
+ * `/api/v1`, `/api/v1/...`, or `/api/v1?...` is returned untouched (so paths
+ * like `/api/version` are never mangled).
+ */
+export function rewriteVersionedApiUrl(url: string): string {
+  const p = API_VERSION_PREFIX;
+  if (url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`)) {
+    return `/api${url.slice(p.length)}`;
+  }
+  return url;
+}
 
 export type StartServerOptions = {
   projectRoot: string;
@@ -47,6 +74,14 @@ export type StartServerOptions = {
   host?: string;
   uiDir?: string;
   logger?: boolean;
+  /**
+   * Optional bearer token. When set, every `/api/*` request must carry
+   * `Authorization: Bearer <token>` (constant-time compared). Defaults to the
+   * `VIBESTRATE_API_TOKEN` env var. When a non-loopback host is bound without a
+   * token, the server refuses to start (fail-closed) rather than expose an
+   * unauthenticated API on the network.
+   */
+  apiToken?: string;
   /** Optional driver injection for the terminal feature (tests). */
   terminalDriver?: TerminalRoutesDeps["driver"];
   /** Spawn the scheduler as a managed subprocess of the UI server.
@@ -97,9 +132,30 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   const port = opts.port ?? DEFAULT_VIBESTRATE_PORT;
   const host = opts.host ?? "127.0.0.1";
 
+  // Auth posture. A token (explicit or `VIBESTRATE_API_TOKEN`) turns on bearer
+  // auth for every `/api/*` request. Binding a non-loopback host *without* a
+  // token is a footgun — refuse to start so we never expose an unauthenticated
+  // API on a real interface.
+  const envToken = process.env.VIBESTRATE_API_TOKEN;
+  const apiToken =
+    opts.apiToken && opts.apiToken.length > 0
+      ? opts.apiToken
+      : envToken && envToken.length > 0
+        ? envToken
+        : null;
+  if (!isLoopbackHost(host) && !apiToken) {
+    throw new HttpError(
+      400,
+      `Refusing to bind ${host} without an API token. Non-loopback binds expose the API on the network; set VIBESTRATE_API_TOKEN (or pass apiToken) to require a bearer token, or bind 127.0.0.1.`,
+    );
+  }
+
   const app = Fastify({
     logger: opts.logger === true,
     disableRequestLogging: !opts.logger,
+    // Alias the versioned contract onto the unversioned handlers before
+    // routing. `/api/v1/flows` → `/api/flows`; everything else is untouched.
+    rewriteUrl: (req) => rewriteVersionedApiUrl(req.url ?? "/"),
     // Forcibly close keep-alive sockets on app.close() so SSE clients
     // (codebase watcher, run-events tail, provider-stream tail) don't
     // hold the shutdown open for the OS's TCP timeout. Without this,
@@ -148,6 +204,31 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
       }
     }
   });
+
+  // Optional bearer-token gate. Off by default (loopback, no token) so the
+  // local-first single-user flow stays friction-free. When a token is
+  // configured, every `/api/*` request must present it (constant-time
+  // compared). Static UI assets and the favicon stay open — they carry no
+  // secrets and the UI needs them before it can attach a token. The url here
+  // is already de-versioned (rewriteUrl ran before routing), so `/api/v1/*`
+  // is covered by the same `/api/` check.
+  if (apiToken) {
+    app.addHook("onRequest", async (req, reply) => {
+      if (!req.url.startsWith("/api/")) return;
+      const presented = bearerToken(req.headers["authorization"]);
+      if (!presented || !timingSafeEqualStr(presented, apiToken)) {
+        await reply
+          .code(401)
+          .header("WWW-Authenticate", "Bearer")
+          .send({
+            error: "Missing or invalid API token.",
+            kind: "unauthorized",
+            title: "Unauthorized",
+            hint: "Send Authorization: Bearer <VIBESTRATE_API_TOKEN>.",
+          });
+      }
+    });
+  }
 
   // Map errors → typed JSON, AND record server-side failures into
   // .vibestrate/issues.ndjson so the failure inbox surface (panel +

@@ -602,6 +602,41 @@ export const api = {
   async deleteFlow(flowId: string): Promise<{ ok: true; flowId: string }> {
     return jsonDelete(`/api/flows/${encodeURIComponent(flowId)}`);
   },
+  /** Export a flow as canonical YAML for sharing / backup. */
+  async exportFlow(flowId: string): Promise<{
+    flowId: string;
+    source: { kind: string; ref: string };
+    yaml: string;
+  }> {
+    return jsonGet(`/api/flows/${encodeURIComponent(flowId)}/export`);
+  },
+  /** Import a single flow from raw YAML or a URL into .vibestrate/flows/. */
+  async importFlow(input: {
+    yaml?: string;
+    url?: string;
+    overwrite?: boolean;
+  }): Promise<{
+    ok: true;
+    flowId: string;
+    definitionPath: string;
+    overwritten: boolean;
+    flow: DiscoveredFlow;
+  }> {
+    return jsonPost("/api/flows/import", input);
+  },
+  /** Create a project flow from a full definition (the flow-creator API). */
+  async createFlow(
+    flow: unknown,
+    overwrite?: boolean,
+  ): Promise<{
+    ok: true;
+    flowId: string;
+    definitionPath: string;
+    overwritten: boolean;
+    flow: DiscoveredFlow;
+  }> {
+    return jsonPost("/api/flows", { flow, overwrite });
+  },
   async listComposerPresets(): Promise<{ presets: ComposerPreset[] }> {
     return jsonGet("/api/composer/presets");
   },
