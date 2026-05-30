@@ -75,6 +75,56 @@ export async function createWorktree(input: {
   }
 }
 
+/** True if the worktree has any staged or unstaged changes (incl. untracked). */
+export async function hasChanges(cwd: string): Promise<boolean> {
+  const result = await execa("git", ["status", "--porcelain"], {
+    cwd,
+    reject: false,
+  });
+  if (result.exitCode !== 0) {
+    throw new GitError(`git status failed in ${cwd}: ${result.stderr || result.stdout}`);
+  }
+  return result.stdout.trim().length > 0;
+}
+
+/** The current HEAD commit sha (full), or null when there are no commits. */
+export async function currentHeadSha(cwd: string): Promise<string | null> {
+  const result = await execa("git", ["rev-parse", "HEAD"], { cwd, reject: false });
+  if (result.exitCode !== 0) return null;
+  return result.stdout.trim() || null;
+}
+
+/**
+ * Stage everything and commit. Returns the new commit sha, or null when there
+ * was nothing to commit. `trailers` are appended as `Key: value` lines (used to
+ * stamp the checklist item id onto a per-item commit for attribution/revert).
+ */
+export async function stageAndCommitAll(input: {
+  cwd: string;
+  message: string;
+  trailers?: Record<string, string>;
+}): Promise<{ sha: string } | null> {
+  const { cwd, message, trailers } = input;
+  if (!(await hasChanges(cwd))) return null;
+  const add = await execa("git", ["add", "-A"], { cwd, reject: false });
+  if (add.exitCode !== 0) {
+    throw new GitError(`git add failed in ${cwd}: ${add.stderr || add.stdout}`);
+  }
+  const args = ["commit", "-m", message];
+  for (const [key, value] of Object.entries(trailers ?? {})) {
+    // One-line trailer values only (git trailers are line-oriented).
+    args.push("--trailer", `${key}: ${value.replace(/\n/g, " ")}`);
+  }
+  const commit = await execa("git", args, { cwd, reject: false });
+  if (commit.exitCode !== 0) {
+    throw new GitError(
+      `git commit failed in ${cwd}: ${commit.stderr || commit.stdout}`,
+    );
+  }
+  const sha = await currentHeadSha(cwd);
+  return sha ? { sha } : null;
+}
+
 export function resolveWorktreePath(
   projectRoot: string,
   worktreeDir: string,

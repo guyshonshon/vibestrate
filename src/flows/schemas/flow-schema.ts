@@ -117,6 +117,20 @@ export const flowLoopSchema = z
   .strict();
 export type FlowLoop = z.infer<typeof flowLoopSchema>;
 
+// A contiguous body of steps that repeats **once per checklist item** when a
+// run is picked up from a card with a Checklist (Phase 3). `from`..`to` is the
+// per-item band; steps before it run once (the holistic plan), steps after it
+// run once (the holistic review/verify). The runner iterates it in order in one
+// worktree, committing + carrying a compact summary forward per item. A flow
+// without a checklistSegment just runs once (the instant-task / N=1 case).
+export const flowChecklistSegmentSchema = z
+  .object({
+    from: flowTokenSchema,
+    to: flowTokenSchema,
+  })
+  .strict();
+export type FlowChecklistSegment = z.infer<typeof flowChecklistSegmentSchema>;
+
 const flowDefinitionBaseSchema = z
   .object({
     id: flowTokenSchema,
@@ -126,6 +140,7 @@ const flowDefinitionBaseSchema = z
     seats: z.record(flowTokenSchema, flowSeatSchema),
     steps: z.array(flowStepSchema).min(1),
     loop: flowLoopSchema.optional(),
+    checklistSegment: flowChecklistSegmentSchema.optional(),
   })
   .strict();
 
@@ -194,6 +209,38 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
         });
       }
     });
+
+    if (flow.checklistSegment) {
+      const idx = (id: string) => flow.steps.findIndex((s) => s.id === id);
+      const segFrom = idx(flow.checklistSegment.from);
+      const segTo = idx(flow.checklistSegment.to);
+      if (segFrom < 0 || segTo < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["checklistSegment"],
+          message:
+            "Flow checklistSegment from/to must reference existing step ids.",
+        });
+      } else if (segFrom > segTo) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["checklistSegment"],
+          message: "Flow checklistSegment `from` must come at or before `to`.",
+        });
+      } else if (flow.loop) {
+        // The per-item band and the adaptive review loop must not overlap — the
+        // design puts review/verify/fix in the postlude, *after* the segment.
+        const loopFromI = flow.steps.findIndex((s) => s.id === flow.loop!.from);
+        if (loopFromI >= 0 && loopFromI <= segTo) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["checklistSegment"],
+            message:
+              "Flow checklistSegment must end before the adaptive loop begins (review/verify run once, after the per-item band).",
+          });
+        }
+      }
+    }
 
     if (flow.loop) {
       const idx = (id: string) => flow.steps.findIndex((s) => s.id === id);
@@ -308,6 +355,10 @@ export const resolvedFlowSnapshotSchema = z
     // Carried through unchanged when the flow declares an adaptive loop; the
     // runner (not the resolver) iterates it. null for linear flows.
     loop: flowLoopSchema.nullable().default(null),
+    // The per-item band (Phase 3 pick-up execution). Carried through from the
+    // definition; the runner repeats from..to once per checklist item. null
+    // when the flow isn't checklist-aware (then every run is the N=1 case).
+    checklistSegment: flowChecklistSegmentSchema.nullable().default(null),
   })
   .strict();
 export type ResolvedFlowSnapshot = z.infer<typeof resolvedFlowSnapshotSchema>;
