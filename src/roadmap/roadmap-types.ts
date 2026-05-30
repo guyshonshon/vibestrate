@@ -70,6 +70,17 @@ export const microStepStatusSchema = z.enum([
 ]);
 export type MicroStepStatus = z.infer<typeof microStepStatusSchema>;
 
+// Checklist item lifecycle. `pending` → `in_progress` → `done`; `blocked`
+// when an item can't proceed. The Phase-3 pick-up loop drives these
+// transitions per item; today they're set by hand (or by "enhance").
+export const checklistItemStatusSchema = z.enum([
+  "pending",
+  "in_progress",
+  "done",
+  "blocked",
+]);
+export type ChecklistItemStatus = z.infer<typeof checklistItemStatusSchema>;
+
 export const commentTargetSchema = z.enum([
   "task",
   "step",
@@ -117,6 +128,23 @@ export const microStepSchema = z.object({
 });
 export type MicroStep = z.infer<typeof microStepSchema>;
 
+// A single checklist entry ("item"/todo) that lives *inside* a card. The
+// ordered `checklist` array on a Task is the meso-altitude breakdown (see
+// docs/design/roadmap-and-sequencing.md §1). Kept on the task on purpose so
+// context isn't scattered across many cards. `commitSha`/`promotedTaskId` are
+// forward-compat hooks for the pick-up loop (per-item commits) and
+// promote-item-to-card; null until those land.
+export const checklistItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+  status: checklistItemStatusSchema.default("pending"),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  commitSha: z.string().nullable().default(null),
+  promotedTaskId: safeIdSchema.nullable().default(null),
+});
+export type ChecklistItem = z.infer<typeof checklistItemSchema>;
+
 export const taskSchema = z.object({
   id: safeIdSchema,
   roadmapItemId: safeIdSchema.nullable().default(null),
@@ -148,6 +176,11 @@ export const taskSchema = z.object({
   effort: effortSchema.nullable().default(null),
   profileOverride: z.string().nullable().default(null),
   readOnly: z.boolean().default(false),
+  // Ordered breakdown that lives inside the card (Phase 3 "Checklist"). The
+  // pick-up loop iterates this in order; an instant task is the degenerate
+  // synthetic-1-item case. Defaults to empty for backward-compat with tasks
+  // written before this field existed.
+  checklist: z.array(checklistItemSchema).default([]),
 });
 export type Task = z.infer<typeof taskSchema>;
 

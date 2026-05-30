@@ -3,6 +3,8 @@ import { nowIso } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
 import { RoadmapStore } from "./roadmap-store.js";
 import {
+  type ChecklistItem,
+  type ChecklistItemStatus,
   type Comment,
   type CommentTarget,
   type MicroStep,
@@ -59,6 +61,10 @@ export type CommentInput = {
   target?: CommentTarget;
   targetRef?: string | null;
 };
+
+export type ChecklistItemPatch = Partial<
+  Pick<ChecklistItem, "text" | "status" | "commitSha" | "promotedTaskId">
+>;
 
 export class RoadmapService {
   readonly store: RoadmapStore;
@@ -163,6 +169,7 @@ export class RoadmapService {
       effort: input.effort ?? null,
       profileOverride: input.profileOverride ?? null,
       readOnly: input.readOnly ?? false,
+      checklist: [],
     };
     await this.store.writeTask(task);
     if (input.roadmapItemId) {
@@ -326,6 +333,121 @@ export class RoadmapService {
     await this.store.writeComments(taskId, all);
     await this.patchTaskCounters(taskId, all);
     return updated;
+  }
+
+  // ─── checklist ────────────────────────────────────────────────────────────
+  // The ordered breakdown that lives *inside* a card. Every mutation is a
+  // read-modify-write of the whole task (consistent with patchTask), so the
+  // checklist always round-trips through taskSchema validation.
+
+  private async requireTask(taskId: string): Promise<Task> {
+    const t = await this.store.getTask(taskId);
+    if (!t) throw new RoadmapServiceError(`Task "${taskId}" not found.`);
+    return t;
+  }
+
+  private async writeChecklist(
+    task: Task,
+    checklist: ChecklistItem[],
+  ): Promise<Task> {
+    const next: Task = {
+      ...task,
+      checklist,
+      updatedAt: nowIso(),
+      lastEventAt: nowIso(),
+    };
+    await this.store.writeTask(next);
+    return next;
+  }
+
+  async addChecklistItem(
+    taskId: string,
+    text: string,
+  ): Promise<{ task: Task; item: ChecklistItem }> {
+    const t = await this.requireTask(taskId);
+    const trimmed = text.trim();
+    if (!trimmed) {
+      throw new RoadmapServiceError("Checklist item text is required.");
+    }
+    const ts = nowIso();
+    const item: ChecklistItem = {
+      id: makeId(trimmed, "ci"),
+      text: trimmed,
+      status: "pending",
+      createdAt: ts,
+      updatedAt: ts,
+      commitSha: null,
+      promotedTaskId: null,
+    };
+    const task = await this.writeChecklist(t, [...t.checklist, item]);
+    return { task, item };
+  }
+
+  async updateChecklistItem(
+    taskId: string,
+    itemId: string,
+    patch: ChecklistItemPatch,
+  ): Promise<{ task: Task; item: ChecklistItem }> {
+    const t = await this.requireTask(taskId);
+    const idx = t.checklist.findIndex((c) => c.id === itemId);
+    if (idx < 0) {
+      throw new RoadmapServiceError(
+        `Checklist item "${itemId}" not found on task "${taskId}".`,
+      );
+    }
+    if (patch.text !== undefined && !patch.text.trim()) {
+      throw new RoadmapServiceError("Checklist item text cannot be empty.");
+    }
+    const prev = t.checklist[idx]!;
+    const item: ChecklistItem = {
+      ...prev,
+      ...patch,
+      text: patch.text !== undefined ? patch.text.trim() : prev.text,
+      updatedAt: nowIso(),
+    };
+    const checklist = [...t.checklist];
+    checklist[idx] = item;
+    const task = await this.writeChecklist(t, checklist);
+    return { task, item };
+  }
+
+  async setChecklistItemStatus(
+    taskId: string,
+    itemId: string,
+    status: ChecklistItemStatus,
+  ): Promise<{ task: Task; item: ChecklistItem }> {
+    return this.updateChecklistItem(taskId, itemId, { status });
+  }
+
+  async removeChecklistItem(taskId: string, itemId: string): Promise<Task> {
+    const t = await this.requireTask(taskId);
+    const checklist = t.checklist.filter((c) => c.id !== itemId);
+    if (checklist.length === t.checklist.length) {
+      throw new RoadmapServiceError(
+        `Checklist item "${itemId}" not found on task "${taskId}".`,
+      );
+    }
+    return this.writeChecklist(t, checklist);
+  }
+
+  /** Reorder the checklist to `orderedIds`, which must be a permutation of the
+   *  existing item ids (same set, no additions/removals). */
+  async reorderChecklist(taskId: string, orderedIds: string[]): Promise<Task> {
+    const t = await this.requireTask(taskId);
+    const current = new Set(t.checklist.map((c) => c.id));
+    const wanted = new Set(orderedIds);
+    if (
+      orderedIds.length !== t.checklist.length ||
+      wanted.size !== orderedIds.length ||
+      [...current].some((id) => !wanted.has(id))
+    ) {
+      throw new RoadmapServiceError(
+        "Reorder must be a permutation of the existing checklist item ids.",
+      );
+    }
+    const byId = new Map(t.checklist.map((c) => [c.id, c]));
+    const checklist = orderedIds.map((id) => byId.get(id)!);
+    return this.writeChecklist(t, checklist);
   }
 
   private async patchTaskCounters(

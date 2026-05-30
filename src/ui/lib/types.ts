@@ -336,6 +336,19 @@ export type Task = {
   effort?: "low" | "medium" | "high" | null;
   profileOverride?: string | null;
   readOnly?: boolean;
+  checklist?: ChecklistItem[];
+};
+
+export type ChecklistItemStatus = "pending" | "in_progress" | "done" | "blocked";
+
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  status: ChecklistItemStatus;
+  createdAt: string;
+  updatedAt: string;
+  commitSha: string | null;
+  promotedTaskId: string | null;
 };
 
 export type TaskComment = {

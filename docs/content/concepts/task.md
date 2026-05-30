@@ -29,6 +29,23 @@ vibe run "Improve logging"
 
 The planner will guess what you meant. The reviewer will critique its own guess. You'll get a diff that's plausible but probably not what you wanted.
 
+## Checklist — breaking a card into items
+
+A task (a planning-board card) can hold an ordered **checklist** of **items** — the concrete breakdown of what the card entails. Items live *inside* the card on purpose, so the context stays in one place instead of scattering across many small cards.
+
+```bash
+vibe tasks checklist add  <taskId> "/health returns json"
+vibe tasks checklist add  <taskId> "test the endpoint"
+vibe tasks checklist list <taskId>
+vibe tasks checklist check <taskId> <itemId>      # mark done
+vibe tasks checklist status <taskId> <itemId> in_progress
+vibe tasks checklist move <taskId> <itemId> 1     # reorder (1-based)
+```
+
+The same actions are available in the task detail page of [Mission Control](/docs/cli/dashboard) (add, check off, edit, reorder, remove). Each item carries a status — `pending`, `in_progress`, `done`, or `blocked`.
+
+A checklist item is **not** a Flow [Step](/docs/concepts/workflow): a Step is a phase of the workflow (plan / implement / review); a checklist item is a piece of *what to build*. Don't conflate them.
+
 ## Practical tips
 
 - **One outcome per task.** Two unrelated changes in one run make the review noisy and the diff harder to ship.

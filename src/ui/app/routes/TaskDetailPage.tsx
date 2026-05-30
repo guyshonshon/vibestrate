@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
-import { Check, ExternalLink, FileCode, Lock } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  FileCode,
+  Lock,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import type {
   ChangedFile,
+  ChecklistItem,
+  ChecklistItemStatus,
   MicroStep,
   Task,
   TaskComment,
@@ -202,6 +213,8 @@ export function TaskDetailPage({
             </div>
           </section>
         ) : null}
+
+        <ChecklistSection task={task} onChanged={load} />
 
         <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
           <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
@@ -423,6 +436,257 @@ function DependenciesSection({
         </div>
       </div>
     </section>
+  );
+}
+
+const CHECKLIST_STATUSES: ChecklistItemStatus[] = [
+  "pending",
+  "in_progress",
+  "done",
+  "blocked",
+];
+
+function checklistGlyph(s: ChecklistItemStatus): string {
+  return s === "done" ? "●" : s === "in_progress" ? "◐" : s === "blocked" ? "⊘" : "○";
+}
+
+function ChecklistSection({
+  task,
+  onChanged,
+}: {
+  task: Task;
+  onChanged: () => Promise<void> | void;
+}) {
+  const items = task.checklist ?? [];
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const done = items.filter((i) => i.status === "done").length;
+  const pct = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
+
+  async function run(key: string, fn: () => Promise<unknown>) {
+    setBusy(key);
+    setError(null);
+    try {
+      await fn();
+      await onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t) return;
+    await run("add", async () => {
+      await api.addChecklistItem(task.id, t);
+      setText("");
+    });
+  }
+
+  function move(item: ChecklistItem, dir: -1 | 1) {
+    const ids = items.map((i) => i.id);
+    const idx = ids.indexOf(item.id);
+    const j = idx + dir;
+    if (j < 0 || j >= ids.length) return;
+    [ids[idx], ids[j]] = [ids[j]!, ids[idx]!];
+    void run(`move-${item.id}`, () => api.reorderChecklist(task.id, ids));
+  }
+
+  return (
+    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+      <div className="flex items-center gap-2">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+          checklist
+        </div>
+        {items.length > 0 ? (
+          <>
+            <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
+              {done}/{items.length}
+            </span>
+            <div className="ml-1 h-1 w-24 overflow-hidden rounded-full bg-vibestrate-panel-2">
+              <div
+                className="h-full bg-vibestrate-success transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      {items.length === 0 ? (
+        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+          No items yet. Break this card into a concrete ordered checklist below.
+        </div>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {items.map((item, i) => (
+            <ChecklistRow
+              key={item.id}
+              item={item}
+              index={i}
+              count={items.length}
+              busy={busy}
+              onToggle={() =>
+                run(`s-${item.id}`, () =>
+                  api.updateChecklistItem(task.id, item.id, {
+                    status: item.status === "done" ? "pending" : "done",
+                  }),
+                )
+              }
+              onStatus={(status) =>
+                run(`s-${item.id}`, () =>
+                  api.updateChecklistItem(task.id, item.id, { status }),
+                )
+              }
+              onEdit={(next) =>
+                run(`e-${item.id}`, () =>
+                  api.updateChecklistItem(task.id, item.id, { text: next }),
+                )
+              }
+              onRemove={() =>
+                run(`r-${item.id}`, () =>
+                  api.removeChecklistItem(task.id, item.id),
+                )
+              }
+              onMove={(dir) => move(item, dir)}
+            />
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={add} className="mt-2 flex gap-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Add a checklist item…"
+          className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={busy === "add" || !text.trim()}
+          className="inline-flex items-center gap-1 self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
+        >
+          <Plus className="h-3 w-3" strokeWidth={1.5} />
+          {busy === "add" ? "Adding…" : "Add"}
+        </button>
+      </form>
+
+      {error ? (
+        <div className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+          {error}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ChecklistRow({
+  item,
+  index,
+  count,
+  busy,
+  onToggle,
+  onStatus,
+  onEdit,
+  onRemove,
+  onMove,
+}: {
+  item: ChecklistItem;
+  index: number;
+  count: number;
+  busy: string | null;
+  onToggle: () => void;
+  onStatus: (status: ChecklistItemStatus) => void;
+  onEdit: (text: string) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const [draft, setDraft] = useState(item.text);
+  // Keep the editable draft in sync when the item changes underneath us
+  // (polling reload or another client).
+  useEffect(() => {
+    setDraft(item.text);
+  }, [item.text]);
+  const anyBusy = busy !== null;
+  const glyphColor =
+    item.status === "done"
+      ? "text-vibestrate-success"
+      : item.status === "in_progress"
+        ? "text-vibestrate-accent"
+        : item.status === "blocked"
+          ? "text-vibestrate-warn"
+          : "text-vibestrate-fg-muted";
+
+  return (
+    <li className="flex items-center gap-1.5 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={anyBusy}
+        title={item.status === "done" ? "Mark pending" : "Mark done"}
+        className={`shrink-0 text-[14px] leading-none ${glyphColor} disabled:opacity-50`}
+      >
+        {checklistGlyph(item.status)}
+      </button>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          const next = draft.trim();
+          if (next && next !== item.text) onEdit(next);
+          else setDraft(item.text);
+        }}
+        className={`flex-1 bg-transparent text-[12.5px] focus:outline-none ${
+          item.status === "done"
+            ? "text-vibestrate-fg-muted line-through"
+            : "text-vibestrate-fg"
+        }`}
+      />
+      <select
+        value={item.status}
+        disabled={anyBusy}
+        onChange={(e) => onStatus(e.target.value as ChecklistItemStatus)}
+        className="vibestrate-mono shrink-0 rounded border border-vibestrate-border bg-vibestrate-panel px-1 py-0.5 text-[10px] text-vibestrate-fg-dim focus:border-vibestrate-accent/60 focus:outline-none"
+        title="Item status"
+      >
+        {CHECKLIST_STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() => onMove(-1)}
+        disabled={anyBusy || index === 0}
+        title="Move up"
+        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fg disabled:opacity-30"
+      >
+        <ChevronUp className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </button>
+      <button
+        type="button"
+        onClick={() => onMove(1)}
+        disabled={anyBusy || index === count - 1}
+        title="Move down"
+        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fg disabled:opacity-30"
+      >
+        <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={anyBusy}
+        title="Remove item"
+        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fail disabled:opacity-50"
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </button>
+    </li>
   );
 }
 

@@ -3,6 +3,8 @@ import type {
   VibestrateEvent,
   ApprovalRequest,
   ArtifactEntry,
+  ChecklistItem,
+  ChecklistItemStatus,
   CodeReference,
   ConflictWarning,
   CrewView,
@@ -913,6 +915,39 @@ export const api = {
     const r = await jsonPatch<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}`,
       patch,
+    );
+    return r.task;
+  },
+  // ─── checklist ────────────────────────────────────────────────────────────
+  async addChecklistItem(
+    taskId: string,
+    text: string,
+  ): Promise<{ task: Task; item: ChecklistItem }> {
+    return jsonPost(
+      `/api/tasks/${encodeURIComponent(taskId)}/checklist`,
+      { text },
+    );
+  },
+  async updateChecklistItem(
+    taskId: string,
+    itemId: string,
+    patch: { text?: string; status?: ChecklistItemStatus },
+  ): Promise<{ task: Task; item: ChecklistItem }> {
+    return jsonPatch(
+      `/api/tasks/${encodeURIComponent(taskId)}/checklist/${encodeURIComponent(itemId)}`,
+      patch,
+    );
+  },
+  async removeChecklistItem(taskId: string, itemId: string): Promise<Task> {
+    const r = await jsonDelete<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/checklist/${encodeURIComponent(itemId)}`,
+    );
+    return r.task;
+  },
+  async reorderChecklist(taskId: string, order: string[]): Promise<Task> {
+    const r = await jsonPut<{ task: Task }>(
+      `/api/tasks/${encodeURIComponent(taskId)}/checklist`,
+      { order },
     );
     return r.task;
   },

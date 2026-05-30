@@ -6,6 +6,12 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Phase 3 — Card Checklist:** tasks now hold an ordered in-card `checklist`
+  of items (`pending`/`in_progress`/`done`/`blocked`). Service CRUD + reorder,
+  `vibe tasks checklist add|list|check|uncheck|status|edit|remove|move`,
+  `POST/PATCH/DELETE/PUT /api/tasks/:id/checklist[/:itemId]`, and a checklist
+  panel in the task detail page (UI⇄CLI parity). Foundation for enhance +
+  pick-up execution.
 - **Chore:** untrack `.vibestrate/issues.ndjson` (gitignored) — it's the
   runtime failure-inbox stream the app appends to on every error/scheduler
   restart, was tracked by accident; dropped stale `logo_full*.png` assets.

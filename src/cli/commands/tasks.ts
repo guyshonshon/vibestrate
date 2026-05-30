@@ -6,7 +6,11 @@ import { RoadmapService } from "../../roadmap/roadmap-service.js";
 import { writeTaskReport } from "../../roadmap/task-report.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
-import type { TaskStatus } from "../../roadmap/roadmap-types.js";
+import type {
+  ChecklistItem,
+  ChecklistItemStatus,
+  TaskStatus,
+} from "../../roadmap/roadmap-types.js";
 
 async function svc() {
   const detected = await detectProject(process.cwd());
@@ -174,6 +178,12 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
       console.log(indent(`current: ${color.bold(task.currentRunId)}`));
     }
   }
+  if (task.checklist.length > 0) {
+    const done = task.checklist.filter((c) => c.status === "done").length;
+    console.log("");
+    console.log(`Checklist: ${done}/${task.checklist.length} done`);
+    printChecklist(task.checklist);
+  }
   if (comments.length > 0) {
     const open = comments.filter((c) => !c.resolved);
     console.log("");
@@ -185,6 +195,159 @@ async function cmdShow(id: string, opts: { json?: boolean }): Promise<number> {
   console.log("");
   console.log(color.dim(`task report path: ${path.relative(root, `.vibestrate/roadmap/tasks/${id}-report.md`)}`));
   return 0;
+}
+
+const CHECK_ICON: Record<ChecklistItemStatus, string> = {
+  pending: "○",
+  in_progress: "◐",
+  done: "●",
+  blocked: "⊘",
+};
+
+const CHECK_COLOR: Record<ChecklistItemStatus, (s: string) => string> = {
+  pending: color.dim,
+  in_progress: color.cyan,
+  done: color.green,
+  blocked: color.yellow,
+};
+
+function printChecklist(items: ChecklistItem[]): void {
+  if (items.length === 0) {
+    console.log(color.dim("  (no checklist items)"));
+    return;
+  }
+  items.forEach((it, i) => {
+    const c = CHECK_COLOR[it.status];
+    const num = color.dim(String(i + 1).padStart(2) + ".");
+    console.log(`  ${num} ${c(CHECK_ICON[it.status])} ${it.text}`);
+    console.log(indent(color.dim(`     ${it.id} · ${it.status}`)));
+  });
+}
+
+async function cmdChecklistList(taskId: string, opts: { json?: boolean }): Promise<number> {
+  const { svc: s } = await svc();
+  const task = await s.getTask(taskId);
+  if (!task) {
+    console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+    return 1;
+  }
+  if (opts.json) {
+    console.log(JSON.stringify(task.checklist, null, 2));
+    return 0;
+  }
+  const done = task.checklist.filter((c) => c.status === "done").length;
+  console.log(header(`Checklist — ${task.title}`));
+  console.log(color.dim(`${done}/${task.checklist.length} done`));
+  console.log("");
+  printChecklist(task.checklist);
+  return 0;
+}
+
+async function cmdChecklistAdd(taskId: string, text: string): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const { item } = await s.addChecklistItem(taskId, text);
+    console.log(`${symbol.ok()} Added checklist item ${color.dim(item.id)}.`);
+    console.log(indent(item.text));
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
+async function cmdChecklistStatus(
+  taskId: string,
+  itemId: string,
+  status: ChecklistItemStatus,
+): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const { item } = await s.setChecklistItemStatus(taskId, itemId, status);
+    console.log(
+      `${symbol.ok()} ${color.dim(item.id)} → ${CHECK_COLOR[item.status](item.status)}.`,
+    );
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
+async function cmdChecklistEdit(
+  taskId: string,
+  itemId: string,
+  text: string,
+): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const { item } = await s.updateChecklistItem(taskId, itemId, { text });
+    console.log(`${symbol.ok()} Updated ${color.dim(item.id)}.`);
+    console.log(indent(item.text));
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
+async function cmdChecklistRemove(taskId: string, itemId: string): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    await s.removeChecklistItem(taskId, itemId);
+    console.log(`${symbol.ok()} Removed ${color.dim(itemId)}.`);
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
+async function cmdChecklistMove(
+  taskId: string,
+  itemId: string,
+  positionArg: string,
+): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const task = await s.getTask(taskId);
+    if (!task) {
+      console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+      return 1;
+    }
+    const from = task.checklist.findIndex((c) => c.id === itemId);
+    if (from < 0) {
+      console.error(`${symbol.fail()} Checklist item "${itemId}" not found.`);
+      return 1;
+    }
+    const pos = Number.parseInt(positionArg, 10);
+    if (!Number.isInteger(pos) || pos < 1 || pos > task.checklist.length) {
+      console.error(
+        `${symbol.fail()} position must be between 1 and ${task.checklist.length}.`,
+      );
+      return 2;
+    }
+    const ids = task.checklist.map((c) => c.id);
+    ids.splice(from, 1);
+    ids.splice(pos - 1, 0, itemId);
+    const next = await s.reorderChecklist(taskId, ids);
+    console.log(`${symbol.ok()} Moved ${color.dim(itemId)} to position ${pos}.`);
+    printChecklist(next.checklist);
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
 }
 
 async function cmdComment(taskId: string, body: string): Promise<number> {
@@ -431,6 +594,74 @@ export function buildTasksCommand(): Command {
       const code = await cmdRun(id);
       process.exit(code);
     });
+
+  const checklist = new Command("checklist").description(
+    "Manage a task's in-card checklist (the ordered breakdown of items).",
+  );
+  checklist
+    .command("list <taskId>")
+    .description("List a task's checklist items.")
+    .option("--json", "emit JSON")
+    .action(async (taskId: string, opts) => {
+      process.exit(await cmdChecklistList(taskId, opts));
+    });
+  checklist
+    .command("add <taskId> <text...>")
+    .description("Append a checklist item.")
+    .action(async (taskId: string, text: string[]) => {
+      process.exit(await cmdChecklistAdd(taskId, text.join(" ")));
+    });
+  checklist
+    .command("check <taskId> <itemId>")
+    .description("Mark a checklist item done.")
+    .action(async (taskId: string, itemId: string) => {
+      process.exit(await cmdChecklistStatus(taskId, itemId, "done"));
+    });
+  checklist
+    .command("uncheck <taskId> <itemId>")
+    .description("Reset a checklist item to pending.")
+    .action(async (taskId: string, itemId: string) => {
+      process.exit(await cmdChecklistStatus(taskId, itemId, "pending"));
+    });
+  checklist
+    .command("status <taskId> <itemId> <status>")
+    .description("Set an item status: pending | in_progress | done | blocked.")
+    .action(async (taskId: string, itemId: string, status: string) => {
+      const allowed: ChecklistItemStatus[] = [
+        "pending",
+        "in_progress",
+        "done",
+        "blocked",
+      ];
+      if (!allowed.includes(status as ChecklistItemStatus)) {
+        console.error(
+          `${symbol.fail()} status must be one of: ${allowed.join(" | ")}.`,
+        );
+        process.exit(2);
+      }
+      process.exit(
+        await cmdChecklistStatus(taskId, itemId, status as ChecklistItemStatus),
+      );
+    });
+  checklist
+    .command("edit <taskId> <itemId> <text...>")
+    .description("Edit a checklist item's text.")
+    .action(async (taskId: string, itemId: string, text: string[]) => {
+      process.exit(await cmdChecklistEdit(taskId, itemId, text.join(" ")));
+    });
+  checklist
+    .command("remove <taskId> <itemId>")
+    .description("Remove a checklist item.")
+    .action(async (taskId: string, itemId: string) => {
+      process.exit(await cmdChecklistRemove(taskId, itemId));
+    });
+  checklist
+    .command("move <taskId> <itemId> <position>")
+    .description("Move a checklist item to a 1-based position.")
+    .action(async (taskId: string, itemId: string, position: string) => {
+      process.exit(await cmdChecklistMove(taskId, itemId, position));
+    });
+  cmd.addCommand(checklist);
 
   cmd
     .command("report <id>")

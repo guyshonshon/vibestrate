@@ -61,6 +61,8 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Task.** A description of what you want done, submitted to Vibestrate. Triggers a run. See [Task](/docs/concepts/task).
 
+**Checklist.** An ordered list of **items** (todos) that lives *inside* a task/card — the concrete breakdown of what the card entails (e.g. `1. /health returns json`, `2. test the endpoint`). Kept on the task on purpose so context isn't scattered across many cards. Each item has a status (`pending`/`in_progress`/`done`/`blocked`). Manage it with `vibe tasks checklist …` or in the task detail page. (Distinct from a Flow **Step**, which is a workflow phase.)
+
 **Terminal status.** One of `merge_ready`, `blocked`, `failed`, `aborted`. Once reached, a run cannot transition out.
 
 **Validation.** The stage that runs `commands.validate` from `project.yml` — typecheck, tests, build, lint. The ground-truth check between executor and reviewer.
