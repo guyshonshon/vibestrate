@@ -9,6 +9,8 @@ import {
 } from "../../workspace/workspace-overview.js";
 import {
   ensureProjectServer,
+  closeProjectServer,
+  readProjectBusyStatus,
   probeLiveness,
 } from "../../workspace/workspace-runtime.js";
 import {
@@ -113,6 +115,35 @@ export async function registerWorkspaceRoutes(
       // Validate first for a clean 400; ensureProjectServer re-checks.
       await resolveTargetProject(body.data.project, { currentRoot: current });
       return await ensureProjectServer(body.data, { currentRoot: current });
+    } catch (err) {
+      throw asHttp(err);
+    }
+  });
+
+  // What a project is currently doing — powers the Close confirmation so the
+  // user sees whether shutting down would interrupt active runs / queued work.
+  app.get<{ Querystring: { project?: string } }>(
+    "/api/workspace/status",
+    async (req) => {
+      const sel = (req.query.project ?? "").trim();
+      if (!sel) throw new HttpError(400, "project is required.");
+      try {
+        const target = await resolveTargetProject(sel, { currentRoot: current });
+        const status = await readProjectBusyStatus(target.root);
+        return { project: { root: target.root, label: target.label }, ...status };
+      } catch (err) {
+        throw asHttp(err);
+      }
+    },
+  );
+
+  // Close (shut down) a project's own dashboard + scheduler. Idempotent — a
+  // project that isn't live reports `alreadyStopped`.
+  app.post<{ Body: unknown }>("/api/workspace/close", async (req) => {
+    const body = z.object({ project: z.string().min(1) }).safeParse(req.body);
+    if (!body.success) throw new HttpError(400, body.error.message);
+    try {
+      return await closeProjectServer(body.data, { currentRoot: current });
     } catch (err) {
       throw asHttp(err);
     }

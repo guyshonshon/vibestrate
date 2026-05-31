@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Multi-project — Close a project (graceful shutdown):** the inverse of Open.
+  `POST /api/server/shutdown` lets a project's own `vibe ui` stop its scheduler,
+  close, and exit; the navigator's `POST /api/workspace/close` asks it to (token-
+  forwarded, never a PID kill). A **confirmation modal** shows whether the project
+  is busy (active runs / queued / running tasks, read from disk — a merely-idle
+  scheduler doesn't count) before shutting down; `GET /api/workspace/status`
+  feeds it. `vibe workspace close <label> [--all] [--force]` (refuses a busy
+  project unless `--force`); Close button on live overview cards. Closing frees
+  the port; the project shows dormant ○ again.
 - **Multi-project — navigator over isolated tenants (slices b · d · f; replaces
   the cross-project control plane):** redirected to a *multi-tenant + navigator*
   model — each project is its own `vibe ui` (server + scheduler) processing its

@@ -50,6 +50,12 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       port,
       host,
       withScheduler: opts.scheduler !== false,
+      // A navigator "Close" hits POST /api/server/shutdown; once the server has
+      // stopped the scheduler + closed, end this process so the port frees up.
+      onShutdownRequested: () => {
+        console.log(`${symbol.ok()} Shut down via workspace close.`);
+        process.exit(0);
+      },
     });
   } catch (err) {
     console.error(

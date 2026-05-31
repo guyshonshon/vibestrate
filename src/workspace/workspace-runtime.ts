@@ -21,6 +21,20 @@ import {
   resolveTargetProject,
   type WorkspaceSafetyDeps,
 } from "./workspace-safety.js";
+import { readDirSafe, pathExists } from "../utils/fs.js";
+import { readJson } from "../utils/json.js";
+import {
+  projectRunsDir,
+  runStatePath,
+  schedulerStateFile,
+  schedulerQueueFile,
+} from "../utils/paths.js";
+import { isTerminal, runStateSchema } from "../core/state-machine.js";
+import {
+  schedulerStateSchema,
+  queueFileSchema,
+} from "../scheduler/scheduler-types.js";
+import { deriveSchedulerLiveness } from "../scheduler/scheduler-liveness.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -142,6 +156,143 @@ export async function ensureProjectServer(
     port,
     started: true,
   };
+}
+
+export type ProjectBusyStatus = {
+  /** Non-terminal runs on disk. */
+  activeRuns: number;
+  /** Queued (not-yet-started) tasks in the project's own scheduler queue. */
+  queueDepth: number;
+  /** Tasks the scheduler currently reports as running. */
+  runningTaskIds: string[];
+  /** Whether the scheduler is actively draining its queue. */
+  schedulerPickingUp: boolean;
+  schedulerStatus: string;
+  /** Any of the above ⇒ closing will interrupt in-flight work. */
+  busy: boolean;
+};
+
+/**
+ * Read what a project is currently doing — bounded reads under its own
+ * `.vibestrate` (runs + scheduler state/queue), never an HTTP call into it. The
+ * "Close" confirmation uses this to warn when shutting down would interrupt
+ * active runs or queued work.
+ */
+export async function readProjectBusyStatus(root: string): Promise<ProjectBusyStatus> {
+  let activeRuns = 0;
+  try {
+    const ids = await readDirSafe(projectRunsDir(root));
+    for (const id of ids) {
+      const sf = runStatePath(root, id);
+      if (!(await pathExists(sf))) continue;
+      try {
+        const parsed = runStateSchema.safeParse(await readJson<unknown>(sf));
+        if (parsed.success && !isTerminal(parsed.data.status)) activeRuns += 1;
+      } catch {
+        /* skip unreadable run */
+      }
+    }
+  } catch {
+    /* no runs dir */
+  }
+
+  // Queue depth: an absent file means nothing queued (the RunQueue default
+  // would also synthesize an empty queue — but read the file directly so we
+  // never confuse "no scheduler" with "live scheduler").
+  let queueDepth = 0;
+  try {
+    const qf = schedulerQueueFile(root);
+    if (await pathExists(qf)) {
+      queueDepth = queueFileSchema.parse(await readJson<unknown>(qf)).entries.length;
+    }
+  } catch {
+    /* unreadable queue ⇒ treat as empty */
+  }
+
+  // Scheduler liveness: read the state FILE. A missing file means the scheduler
+  // never started here — crucially distinct from RunQueue.readState()'s default,
+  // which stamps `lastUpdatedAt=now` and would read back as "live".
+  let runningTaskIds: string[] = [];
+  let schedulerPickingUp = false;
+  let schedulerStatus = "never-started";
+  try {
+    const sf = schedulerStateFile(root);
+    if (await pathExists(sf)) {
+      const state = schedulerStateSchema.parse(await readJson<unknown>(sf));
+      const liveness = deriveSchedulerLiveness(state);
+      runningTaskIds = state.runningTaskIds ?? [];
+      schedulerPickingUp = liveness.pickingUpWork;
+      schedulerStatus = liveness.status;
+    }
+  } catch {
+    /* unreadable state ⇒ treat as never-started */
+  }
+
+  // "Busy" = real in-flight work. A merely-live (idle) scheduler loop is the
+  // normal state of any open project and must NOT block a clean close — only
+  // actual runs / queued / running tasks do. `schedulerPickingUp` is reported
+  // for context but doesn't, by itself, count as busy.
+  const busy = activeRuns > 0 || queueDepth > 0 || runningTaskIds.length > 0;
+
+  return {
+    activeRuns,
+    queueDepth,
+    runningTaskIds,
+    schedulerPickingUp,
+    schedulerStatus,
+    busy,
+  };
+}
+
+export type CloseResult = {
+  root: string;
+  label: string;
+  /** True when we asked a live instance to shut down. */
+  closed: boolean;
+  /** True when there was nothing live to close. */
+  alreadyStopped: boolean;
+  port: number | null;
+};
+
+/**
+ * Close a project's dashboard — ask its own server to shut itself down (stop
+ * scheduler + close + exit) via `POST /api/server/shutdown`. We never kill PIDs;
+ * the server owns its lifecycle. Forwards the API token when this machine uses
+ * one. Idempotent: a project that isn't live reports `alreadyStopped`.
+ */
+export async function closeProjectServer(
+  input: { project: string },
+  deps: WorkspaceSafetyDeps,
+): Promise<CloseResult> {
+  const target = await resolveTargetProject(input.project, deps);
+  const entry = (await (deps.store ?? new WorkspaceStore()).list()).find(
+    (p) => p.root === target.root,
+  );
+  const port = entry?.lastPort ?? null;
+  if (!port || !(await probeProjectLive(port, target.root))) {
+    return { root: target.root, label: target.label, closed: false, alreadyStopped: true, port };
+  }
+
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const token = process.env.VIBESTRATE_API_TOKEN;
+  if (token && token.trim()) headers["authorization"] = `Bearer ${token.trim()}`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3000);
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/server/shutdown`, {
+      method: "POST",
+      headers,
+      body: "{}",
+      signal: ctrl.signal,
+    });
+  } catch {
+    // The server closes the socket as it exits — a dropped response is expected
+    // and still means the shutdown was accepted.
+  } finally {
+    clearTimeout(timer);
+  }
+  return { root: target.root, label: target.label, closed: true, alreadyStopped: false, port };
 }
 
 /**

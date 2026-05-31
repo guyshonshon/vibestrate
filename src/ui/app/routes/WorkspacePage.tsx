@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Folder, Play, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Folder,
+  Play,
+  Power,
+  RefreshCw,
+  X,
+} from "lucide-react";
 import {
   api,
   type OverviewRange,
+  type WorkspaceBusyStatus,
   type WorkspaceOverview,
   type WorkspaceProjectSummary,
 } from "../../lib/api.js";
@@ -23,6 +32,10 @@ export function WorkspacePage() {
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [closeTarget, setCloseTarget] = useState<WorkspaceProjectSummary | null>(null);
+
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +59,7 @@ export function WorkspacePage() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [range]);
+  }, [range, reloadKey]);
 
   const totals = overview?.totals;
 
@@ -143,7 +156,12 @@ export function WorkspacePage() {
       {/* ── Project cards ─ */}
       <section className="mt-7 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {(overview?.projects ?? []).map((p) => (
-          <ProjectCard key={p.root} project={p} range={range} />
+          <ProjectCard
+            key={p.root}
+            project={p}
+            range={range}
+            onClose={() => setCloseTarget(p)}
+          />
         ))}
         {overview && overview.projects.length === 0 ? (
           <div className="col-span-full rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
@@ -152,6 +170,17 @@ export function WorkspacePage() {
           </div>
         ) : null}
       </section>
+
+      {closeTarget ? (
+        <CloseDialog
+          project={closeTarget}
+          onCancel={() => setCloseTarget(null)}
+          onClosed={() => {
+            setCloseTarget(null);
+            reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -207,9 +236,11 @@ const STATUS_TONE: Partial<Record<RunStatus, string>> = {
 function ProjectCard({
   project,
   range,
+  onClose,
 }: {
   project: WorkspaceProjectSummary;
   range: OverviewRange;
+  onClose: () => void;
 }) {
   const { window: w } = project;
   const successPct =
@@ -307,8 +338,144 @@ function ProjectCard({
         {project.current ? (
           <span className="text-[10.5px] text-fog-500">you are here</span>
         ) : (
-          <OpenButton project={project} />
+          <div className="flex items-center gap-3">
+            {project.live ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[11.5px] text-fog-400 hover:text-rose-300 flex items-center gap-1.5"
+                title="Shut down this project's dashboard + scheduler"
+              >
+                <Power className="h-3 w-3" strokeWidth={1.7} />
+                Close
+              </button>
+            ) : null}
+            <OpenButton project={project} />
+          </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Confirm + perform a project shutdown, surfacing whether it's busy. */
+function CloseDialog({
+  project,
+  onCancel,
+  onClosed,
+}: {
+  project: WorkspaceProjectSummary;
+  onCancel: () => void;
+  onClosed: () => void;
+}) {
+  const [status, setStatus] = useState<WorkspaceBusyStatus | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [busyAction, setBusyAction] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getWorkspaceStatus(project.root)
+      .then((s) => !cancelled && setStatus(s))
+      .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)))
+      .finally(() => !cancelled && setLoadingStatus(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [project.root]);
+
+  const confirm = async () => {
+    setBusyAction(true);
+    setErr(null);
+    try {
+      await api.closeWorkspaceProject(project.root);
+      onClosed();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setBusyAction(false);
+    }
+  };
+
+  const busy = status?.busy ?? false;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onCancel}
+    >
+      <div className="w-full max-w-[460px] glass p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="eyebrow mb-1">Close project</div>
+            <h3 className="text-[15px] font-semibold text-fog-100 flex items-center gap-2">
+              <Power className="h-4 w-4 text-rose-300" strokeWidth={1.7} />
+              Shut down {project.label}?
+            </h3>
+          </div>
+          <button type="button" onClick={onCancel} className="text-fog-500 hover:text-fog-200">
+            <X className="h-4 w-4" strokeWidth={1.7} />
+          </button>
+        </div>
+
+        <p className="mt-3 text-[12.5px] text-fog-300">
+          This stops the project's dashboard server <em>and</em> its scheduler. Any
+          in-flight runs keep their on-disk state, but the scheduler will stop
+          picking up new work until you open the project again.
+        </p>
+
+        {/* busy status */}
+        <div className="mt-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3">
+          {loadingStatus ? (
+            <div className="text-[12px] text-fog-500">Checking activity…</div>
+          ) : busy ? (
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" strokeWidth={1.7} />
+              <div className="text-[12px] text-amber-200/90">
+                <div className="font-medium text-amber-200">This project is busy.</div>
+                <ul className="mt-1 space-y-0.5 text-amber-200/80">
+                  {status && status.activeRuns > 0 ? (
+                    <li>· {status.activeRuns} active run{status.activeRuns === 1 ? "" : "s"}</li>
+                  ) : null}
+                  {status && status.runningTaskIds.length > 0 ? (
+                    <li>· {status.runningTaskIds.length} task{status.runningTaskIds.length === 1 ? "" : "s"} running</li>
+                  ) : null}
+                  {status && status.queueDepth > 0 ? (
+                    <li>· {status.queueDepth} queued task{status.queueDepth === 1 ? "" : "s"} waiting</li>
+                  ) : null}
+                </ul>
+                <div className="mt-1.5 text-amber-200/70">
+                  Closing now interrupts the scheduler; in-progress runs are left where they are.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-[12px] text-fog-400">
+              Idle — no active runs or queued tasks. Safe to close.
+            </div>
+          )}
+        </div>
+
+        {err ? (
+          <div className="mt-3 rounded-md border border-rose-400/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] text-rose-300">
+            {err}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button variant="ghost" size="sm" disabled={busyAction} onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant={busy ? "secondary" : "primary"}
+            size="sm"
+            disabled={busyAction || loadingStatus}
+            onClick={() => void confirm()}
+            iconLeft={<Power className="h-3.5 w-3.5" strokeWidth={1.7} />}
+          >
+            {busyAction ? "Closing…" : busy ? "Close anyway" : "Close"}
+          </Button>
+        </div>
       </div>
     </div>
   );

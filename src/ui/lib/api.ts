@@ -326,6 +326,24 @@ export type EnsureServerResult = {
   started: boolean;
 };
 
+export type WorkspaceBusyStatus = {
+  project: { root: string; label: string };
+  activeRuns: number;
+  queueDepth: number;
+  runningTaskIds: string[];
+  schedulerPickingUp: boolean;
+  schedulerStatus: string;
+  busy: boolean;
+};
+
+export type WorkspaceCloseResult = {
+  root: string;
+  label: string;
+  closed: boolean;
+  alreadyStopped: boolean;
+  port: number | null;
+};
+
 export type ProviderRow = {
   id: string;
   label: string;
@@ -986,6 +1004,14 @@ export const api = {
    *  return its URL so the caller can open a new tab. */
   async openWorkspaceProject(project: string): Promise<EnsureServerResult> {
     return jsonPost("/api/workspace/open", { project });
+  },
+  /** What a project is currently doing (for the Close confirmation). */
+  async getWorkspaceStatus(project: string): Promise<WorkspaceBusyStatus> {
+    return jsonGet(`/api/workspace/status?project=${encodeURIComponent(project)}`);
+  },
+  /** Shut down a project's own dashboard + scheduler. */
+  async closeWorkspaceProject(project: string): Promise<WorkspaceCloseResult> {
+    return jsonPost("/api/workspace/close", { project });
   },
   async getWorkspaceOverview(range: OverviewRange): Promise<WorkspaceOverview> {
     return jsonGet(`/api/workspace/overview?range=${encodeURIComponent(range)}`);

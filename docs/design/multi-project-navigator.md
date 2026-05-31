@@ -62,6 +62,24 @@ Surfaced as: `POST /api/workspace/open`; a `live` flag on `/api/workspace` and
 the overview; `vibe workspace open <label> [--all] [--no-open]`; Open/Launch
 buttons on the overview cards; and live●/dormant○ status in the TopBar switcher.
 
+## Close: the inverse of Open
+
+Closing a project shuts it back down cleanly — we never kill PIDs. Every server
+exposes `POST /api/server/shutdown`, which stops its scheduler, closes the HTTP
+server, and hands off to the process owner (the `vibe ui` CLI calls
+`process.exit`; tests pass a spy instead, so an in-process server just closes).
+The navigator's `POST /api/workspace/close` finds the project's live port and
+calls that endpoint (forwarding `VIBESTRATE_API_TOKEN` when the machine uses
+one). Idempotent: a project that isn't live reports `alreadyStopped`.
+
+Before shutting down, the UI shows a **confirmation** with a real busy check
+(`GET /api/workspace/status` → `readProjectBusyStatus`): active runs, queued
+tasks, and running task ids, read from the project's own `.vibestrate` on disk —
+never an HTTP call into it. **"Busy" means in-flight work only** — a merely-live
+(idle) scheduler loop is the normal state of any open project and never blocks a
+close. `vibe workspace close <label> [--all] [--force]` refuses a busy project
+unless `--force`. Closing frees the port; the project shows dormant ○ again.
+
 ## Path canonicalization (a correctness fix the navigator exposed)
 
 The registry deduped by `path.resolve`, which doesn't resolve symlinks. Spawning
@@ -85,5 +103,5 @@ queue or daemon — and we don't claim one.
   plane, dispatch queue, or merge.
 - The dashboard you look at is always one project; the workspace navigates
   between independent tenants rather than unifying them.
-- Auto-started servers live until stopped (each is a normal `vibe ui`); the
-  navigator starts them but doesn't supervise their shutdown.
+- Close is cooperative (the server shuts itself down via the endpoint); there's
+  no force-kill of an unresponsive process, and no auto-stop on idle.

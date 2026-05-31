@@ -13,8 +13,11 @@ import {
 } from "../../workspace/workspace-overview.js";
 import {
   ensureProjectServer,
+  closeProjectServer,
+  readProjectBusyStatus,
   probeLiveness,
 } from "../../workspace/workspace-runtime.js";
+import { resolveTargetProject } from "../../workspace/workspace-safety.js";
 import { pathExists } from "../../utils/fs.js";
 import { vibestrateRoot } from "../../utils/paths.js";
 import { color, header, indent, symbol } from "../ui/format.js";
@@ -154,6 +157,63 @@ async function cmdOpenAll(opts: { open?: boolean }): Promise<number> {
   return failures > 0 ? 1 : 0;
 }
 
+function busySummary(s: {
+  activeRuns: number;
+  queueDepth: number;
+  runningTaskIds: string[];
+}): string {
+  const parts: string[] = [];
+  if (s.activeRuns > 0) parts.push(`${s.activeRuns} active run${s.activeRuns === 1 ? "" : "s"}`);
+  if (s.runningTaskIds.length > 0) parts.push(`${s.runningTaskIds.length} running task${s.runningTaskIds.length === 1 ? "" : "s"}`);
+  if (s.queueDepth > 0) parts.push(`${s.queueDepth} queued`);
+  return parts.join(", ");
+}
+
+/** Close one live project. Refuses busy projects unless `force`. */
+async function cmdClose(
+  selector: string,
+  opts: { force?: boolean },
+): Promise<number> {
+  try {
+    const target = await resolveTargetProject(selector, { currentRoot: process.cwd() });
+    const status = await readProjectBusyStatus(target.root);
+    if (status.busy && !opts.force) {
+      console.error(
+        `${symbol.fail()} ${color.bold(target.label)} is busy (${busySummary(status)}).`,
+      );
+      console.error(indent(color.dim("Wait for it to drain, or pass --force to shut down anyway.")));
+      return 1;
+    }
+    const r = await closeProjectServer({ project: selector }, { currentRoot: process.cwd() });
+    if (r.alreadyStopped) {
+      console.log(`${symbol.arrow()} ${color.bold(r.label)} is already stopped.`);
+    } else {
+      console.log(`${symbol.ok()} Closed ${color.bold(r.label)} (was on :${r.port}).`);
+    }
+    return 0;
+  } catch (err) {
+    console.error(`${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`);
+    return 1;
+  }
+}
+
+/** Close every live registered project. */
+async function cmdCloseAll(opts: { force?: boolean }): Promise<number> {
+  const projects = await new WorkspaceStore().list();
+  const liveness = await probeLiveness(projects);
+  const live = projects.filter((p) => liveness[p.root]);
+  if (live.length === 0) {
+    console.log("No live projects to close.");
+    return 0;
+  }
+  let failures = 0;
+  for (const p of live) {
+    const code = await cmdClose(p.root, opts);
+    if (code !== 0) failures += 1;
+  }
+  return failures > 0 ? 1 : 0;
+}
+
 const RANGES = new Set<OverviewRange>(["24h", "7d", "30d", "90d"]);
 
 /** Registered projects + the current directory (marked current), like the API. */
@@ -266,6 +326,19 @@ export function buildWorkspaceCommand(): Command {
         return process.exit(1);
       }
       return process.exit(await cmdOpen(selector, opts));
+    });
+  cmd
+    .command("close [pathOrLabel]")
+    .description("Shut down a project's dashboard + scheduler (refuses if busy unless --force).")
+    .option("--all", "close every live registered project")
+    .option("--force", "shut down even if runs/queue are busy")
+    .action(async (selector: string | undefined, opts: { all?: boolean; force?: boolean }) => {
+      if (opts.all) return process.exit(await cmdCloseAll(opts));
+      if (!selector) {
+        console.error(`${symbol.fail()} Provide a project (path or label), or use --all.`);
+        return process.exit(1);
+      }
+      return process.exit(await cmdClose(selector, opts));
     });
   cmd
     .command("overview")
