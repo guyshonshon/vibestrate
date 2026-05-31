@@ -7,6 +7,7 @@ import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
 import { QueuePage } from "./routes/QueuePage.js";
+import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
@@ -236,6 +237,8 @@ export function App() {
           ? "board"
           : route.kind === "queue"
             ? "queue"
+            : route.kind === "workspace"
+            ? "workspace"
             : route.kind === "proposals" || route.kind === "proposal"
               ? "proposals"
               : route.kind === "settings"
@@ -267,6 +270,7 @@ export function App() {
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
       onShowQueue={() => navigate({ kind: "queue" })}
+      onShowWorkspace={() => navigate({ kind: "workspace" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
       onShowSettings={() => navigate({ kind: "settings" })}
       onShowProject={() => navigate({ kind: "project" })}
@@ -311,6 +315,8 @@ export function App() {
         />
       ) : route.kind === "queue" ? (
         <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
+      ) : route.kind === "workspace" ? (
+        <WorkspacePage />
       ) : route.kind === "settings" ? (
         <Suspense
           fallback={

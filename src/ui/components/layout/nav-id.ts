@@ -9,6 +9,7 @@ export type NavId =
   | "runs"
   | "board"
   | "queue"
+  | "workspace"
   | "proposals"
   | "settings"
   | "project"

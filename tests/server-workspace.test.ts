@@ -38,3 +38,50 @@ describe("GET /api/workspace", () => {
     expect(otherRow.lastPort).toBe(4400);
   });
 });
+
+describe("GET /api/workspace/overview", () => {
+  it("rolls up registered projects and reads each project's runs", async () => {
+    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ovr-"));
+    const regFile = path.join(regDir, "workspace.json");
+    prevEnv = process.env.VIBESTRATE_WORKSPACE_FILE;
+    process.env.VIBESTRATE_WORKSPACE_FILE = regFile;
+
+    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ovs-"));
+    const other = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ovo-"));
+    const store = new WorkspaceStore(regFile);
+    await store.register({ root: served, label: "served", port: 4317 });
+    await store.register({ root: other, label: "other", port: 4400 });
+
+    // One completed run in the served project.
+    const runDir = path.join(served, ".vibestrate", "runs", "r1");
+    await fs.mkdir(runDir, { recursive: true });
+    const at = new Date().toISOString();
+    await fs.writeFile(
+      path.join(runDir, "state.json"),
+      JSON.stringify({
+        runId: "r1",
+        task: "ship it",
+        status: "merge_ready",
+        projectRoot: served,
+        worktreePath: null,
+        branchName: null,
+        startedAt: at,
+        updatedAt: at,
+      }),
+    );
+
+    server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
+    const r = await (
+      await fetch(`${server.url}/api/workspace/overview?range=7d`)
+    ).json();
+
+    expect(r.range).toBe("7d");
+    expect(r.totals.projects).toBe(2);
+    expect(r.totals.runs).toBe(1);
+    expect(r.totals.merged).toBe(1);
+    const servedRow = r.projects.find((p: { label: string }) => p.label === "served");
+    expect(servedRow.current).toBe(true);
+    expect(servedRow.totalRuns).toBe(1);
+    expect(servedRow.lastPort).toBe(4317);
+  });
+});

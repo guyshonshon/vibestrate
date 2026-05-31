@@ -267,6 +267,55 @@ export type ProvidersOverview = {
   };
 };
 
+// ── Cross-project "All projects" overview (Multi-project slice c) ──────────
+export type WorkspaceRecentRun = {
+  runId: string;
+  task: string;
+  status: RunState["status"];
+  updatedAt: string;
+};
+
+export type WorkspaceProjectSummary = {
+  root: string;
+  label: string;
+  current: boolean;
+  lastPort: number | null;
+  lastOpenedAt: string | null;
+  initialized: boolean;
+  unreadable: boolean;
+  totalRuns: number;
+  activeRuns: number;
+  needsTesting: number;
+  lastActivityAt: string | null;
+  window: {
+    runs: number;
+    merged: number;
+    failed: number;
+    changes: number;
+    costUsd: number;
+    tokens: number;
+    successRate: number | null;
+  };
+  recentRuns: WorkspaceRecentRun[];
+};
+
+export type WorkspaceOverview = {
+  generatedAt: string;
+  range: OverviewRange;
+  projects: WorkspaceProjectSummary[];
+  totals: {
+    projects: number;
+    runs: number;
+    activeRuns: number;
+    windowRuns: number;
+    merged: number;
+    failed: number;
+    needsTesting: number;
+    costUsd: number;
+    tokens: number;
+  };
+};
+
 export type ProviderRow = {
   id: string;
   label: string;
@@ -921,6 +970,9 @@ export const api = {
     }[];
   }> {
     return jsonGet("/api/workspace");
+  },
+  async getWorkspaceOverview(range: OverviewRange): Promise<WorkspaceOverview> {
+    return jsonGet(`/api/workspace/overview?range=${encodeURIComponent(range)}`);
   },
   async suggestNext(): Promise<TaskSuggestion[]> {
     const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(

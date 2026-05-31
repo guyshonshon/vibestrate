@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Multi-project — cross-project "All projects" overview (slice c):** a
+  read-only rollup over every registered project's runs —
+  `vibe workspace overview [--range 24h|7d|30d|90d] [--json]`,
+  `GET /api/workspace/overview`, and a new **All projects** dashboard page
+  (TopBar "More" + project switcher). Per-project KPIs (active/window runs,
+  merged/failed, needs-testing, spend/tokens, recent runs) + combined totals,
+  reusing the canonical metrics aggregator. Roots come only from the user-owned
+  registry (+ the served project); reads are bounded to each
+  `<root>/.vibestrate/runs`, schema-validated, never project source or secrets.
+  Server stays single-project; "Open dashboard" still hops to each project's
+  own port.
 - **Multi-project / workspace (v1):** a user-level registry
   (`~/.vibestrate/workspace.json`) of known projects that each `vibe ui`
   auto-registers with its bound port, so the dashboard can switch between
