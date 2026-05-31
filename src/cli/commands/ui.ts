@@ -73,6 +73,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     await new WorkspaceStore().register({
       root: detected.projectRoot,
       port: started.port,
+      pid: process.pid,
     });
   } catch {
     // registry is advisory — never block `vibe ui`.

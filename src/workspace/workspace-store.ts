@@ -36,6 +36,10 @@ export const workspaceProjectSchema = z.object({
   lastOpenedAt: z.string(),
   /** Port the most recent `vibe ui` bound for this project (best-effort). */
   lastPort: z.number().int().positive().nullable().default(null),
+  /** PID of the most recent `vibe ui` server process — lets the navigator
+   *  force-kill a hung instance when a cooperative shutdown doesn't take.
+   *  Best-effort; may be stale (the probe + isProcessAlive confirm reality). */
+  pid: z.number().int().positive().nullable().default(null),
 });
 export type WorkspaceProject = z.infer<typeof workspaceProjectSchema>;
 
@@ -94,6 +98,7 @@ export class WorkspaceStore {
     root: string;
     label?: string;
     port?: number | null;
+    pid?: number | null;
   }): Promise<WorkspaceProject> {
     const root = canonicalRoot(input.root);
     const file = await this.read();
@@ -106,6 +111,7 @@ export class WorkspaceStore {
         label: input.label ?? existing.label,
         lastOpenedAt: ts,
         lastPort: input.port ?? existing.lastPort,
+        pid: input.pid ?? existing.pid,
       };
       file.projects = file.projects.map((p) => (p.root === root ? entry : p));
     } else {
@@ -115,6 +121,7 @@ export class WorkspaceStore {
         addedAt: ts,
         lastOpenedAt: ts,
         lastPort: input.port ?? null,
+        pid: input.pid ?? null,
       };
       file.projects.push(entry);
     }

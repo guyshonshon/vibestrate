@@ -80,6 +80,24 @@ never an HTTP call into it. **"Busy" means in-flight work only** — a merely-li
 close. `vibe workspace close <label> [--all] [--force]` refuses a busy project
 unless `--force`. Closing frees the port; the project shows dormant ○ again.
 
+### Force-kill fallback
+
+Cooperative shutdown can fail to *exit* the process (a lingering handle, a
+mis-wired teardown). So every `vibe ui` records its **PID** in the registry, and
+if a confirmed-live server doesn't exit within a grace window, Close escalates:
+**SIGTERM** (the CLI's own handler tears down the scheduler cleanly) → if still
+alive, **SIGKILL**. The result's `method` (`graceful` / `sigterm` / `sigkill` /
+`unreachable` / `none`) is surfaced.
+
+The safety rule that makes auto-killing acceptable: **a PID is only signalled
+when its server is confirmed live for that root** — i.e. the port answers
+`/api/health` for the project, and that same process self-registered both the
+port and the PID. A dormant/unreachable port means we can't prove the recorded
+PID is still *our* server (PID reuse), so we never signal it — we report
+`unreachable` with the PID for the user to kill manually. This trades
+auto-recovery of a fully event-loop-hung server (rare) for never killing the
+wrong process.
+
 ## Path canonicalization (a correctness fix the navigator exposed)
 
 The registry deduped by `path.resolve`, which doesn't resolve symlinks. Spawning
@@ -103,5 +121,7 @@ queue or daemon — and we don't claim one.
   plane, dispatch queue, or merge.
 - The dashboard you look at is always one project; the workspace navigates
   between independent tenants rather than unifying them.
-- Close is cooperative (the server shuts itself down via the endpoint); there's
-  no force-kill of an unresponsive process, and no auto-stop on idle.
+- Close auto-recovers a confirmed-live server that won't exit (SIGTERM→SIGKILL),
+  but a fully unreachable instance whose PID can't be confirmed is reported
+  `unreachable` for a manual kill rather than risk killing the wrong process.
+  There is no auto-stop on idle (open projects stay live until closed).

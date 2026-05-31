@@ -4,7 +4,11 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { WorkspaceStore } from "../src/workspace/workspace-store.js";
-import { readProjectBusyStatus } from "../src/workspace/workspace-runtime.js";
+import {
+  readProjectBusyStatus,
+  closeProjectServer,
+  findFreePort,
+} from "../src/workspace/workspace-runtime.js";
 
 let prevEnv: string | undefined;
 let regFile: string;
@@ -74,6 +78,37 @@ describe("readProjectBusyStatus", () => {
     expect(s.activeRuns).toBe(1);
     expect(s.queueDepth).toBe(1);
     expect(s.busy).toBe(true);
+  });
+});
+
+describe("closeProjectServer escalation safety", () => {
+  it("never signals an unconfirmed PID: dead port + alive pid → unreachable", async () => {
+    const root = await mkProject("hung");
+    const dormantPort = await findFreePort(); // nothing is listening there
+    // Register OUR pid — if the code wrongly escalated, it would signal the test
+    // runner. The dead-port branch must return `unreachable` without any kill.
+    await new WorkspaceStore(regFile).register({
+      root,
+      label: "hung",
+      port: dormantPort,
+      pid: process.pid,
+    });
+
+    const r = await closeProjectServer({ project: "hung" }, { currentRoot: "/served" });
+    expect(r.method).toBe("unreachable");
+    expect(r.closed).toBe(false);
+    expect(r.forced).toBe(false);
+    // We're obviously still running — the test continues past this line.
+    expect(typeof process.pid).toBe("number");
+  });
+
+  it("no-ops a fully-stopped project (dead port, no pid)", async () => {
+    const root = await mkProject("gone");
+    const dormantPort = await findFreePort();
+    await new WorkspaceStore(regFile).register({ root, label: "gone", port: dormantPort });
+    const r = await closeProjectServer({ project: "gone" }, { currentRoot: "/served" });
+    expect(r.method).toBe("none");
+    expect(r.alreadyStopped).toBe(true);
   });
 });
 

@@ -187,6 +187,18 @@ async function cmdClose(
     const r = await closeProjectServer({ project: selector }, { currentRoot: process.cwd() });
     if (r.alreadyStopped) {
       console.log(`${symbol.arrow()} ${color.bold(r.label)} is already stopped.`);
+    } else if (r.method === "unreachable") {
+      console.error(
+        `${symbol.fail()} ${color.bold(r.label)} isn't responding and couldn't be confirmed${
+          r.pid ? ` — if it's stuck, kill PID ${r.pid} manually` : ""
+        }.`,
+      );
+      return 1;
+    } else if (r.forced) {
+      const how = r.method === "sigkill" ? "SIGKILL" : "SIGTERM";
+      console.log(
+        `${symbol.ok()} Force-closed ${color.bold(r.label)} (${how}; cooperative shutdown didn't take).`,
+      );
     } else {
       console.log(`${symbol.ok()} Closed ${color.bold(r.label)} (was on :${r.port}).`);
     }
