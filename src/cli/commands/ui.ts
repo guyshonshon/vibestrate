@@ -51,10 +51,19 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       host,
       withScheduler: opts.scheduler !== false,
       // A navigator "Close" hits POST /api/server/shutdown; once the server has
-      // stopped the scheduler + closed, end this process so the port frees up.
+      // stopped the scheduler + closed, release our lock and end this process so
+      // the port frees up and the project reads as dormant.
       onShutdownRequested: () => {
-        console.log(`${symbol.ok()} Shut down via workspace close.`);
-        process.exit(0);
+        void (async () => {
+          try {
+            const { releaseUiLock } = await import("../../workspace/ui-lock.js");
+            await releaseUiLock(detected.projectRoot);
+          } catch {
+            // best-effort
+          }
+          console.log(`${symbol.ok()} Shut down via workspace close.`);
+          process.exit(0);
+        })();
       },
     });
   } catch (err) {
@@ -66,14 +75,17 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     return 1;
   }
 
-  // Register this project (+ the port it bound) in the user-level workspace
-  // registry so the dashboard switcher can find + hop to it. Best-effort.
+  // Register this project in the user-level workspace registry (durable intent:
+  // root + label) so the switcher can find it, and write this server's RUNTIME
+  // lock (`<root>/.vibestrate/ui.lock` = pid + port) so the navigator knows it's
+  // live and can reach/close it. Best-effort.
   try {
     const { WorkspaceStore } = await import("../../workspace/workspace-store.js");
-    await new WorkspaceStore().register({
-      root: detected.projectRoot,
-      port: started.port,
+    const { writeUiLock } = await import("../../workspace/ui-lock.js");
+    await new WorkspaceStore().register({ root: detected.projectRoot });
+    await writeUiLock(detected.projectRoot, {
       pid: process.pid,
+      port: started.port,
     });
   } catch {
     // registry is advisory — never block `vibe ui`.
@@ -154,6 +166,18 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     resolveExit = resolve;
   });
 
+  // Release this server's runtime lock on the way out (best-effort) so the
+  // project reads as dormant immediately rather than waiting for the stale-lock
+  // reclaim. A force-kill can't run this — the navigator clears it instead.
+  const releaseOwnUiLock = async () => {
+    try {
+      const { releaseUiLock } = await import("../../workspace/ui-lock.js");
+      await releaseUiLock(detected.projectRoot);
+    } catch {
+      // best-effort
+    }
+  };
+
   // Track whether we're already shutting down. The first SIGINT/SIGTERM
   // triggers the graceful path with a hard cap; a *second* SIGINT
   // means the user is impatient — bail out immediately so they're
@@ -192,6 +216,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     } catch {
       // ignore — we're exiting anyway
     }
+    await releaseOwnUiLock();
     clearTimeout(forceTimer);
     if (resolveExit) resolveExit(code);
   };

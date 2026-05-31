@@ -9,6 +9,7 @@ import {
   findFreePort,
   probeProjectLive,
 } from "../src/workspace/workspace-runtime.js";
+import { writeUiLock } from "../src/workspace/ui-lock.js";
 import { WorkspaceSafetyError } from "../src/workspace/workspace-safety.js";
 
 let server: StartedServer | null = null;
@@ -67,7 +68,10 @@ describe("ensureProjectServer", () => {
     const served = await mkProject("served");
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
     const port = Number(new URL(server.url).port);
-    await new WorkspaceStore(regFile).register({ root: served, label: "served", port });
+    await new WorkspaceStore(regFile).register({ root: served, label: "served" });
+    // Runtime now lives in the project's own ui.lock, not the registry. Our test
+    // process IS the server, so its pid is alive ⇒ readProjectRuntime → running.
+    await writeUiLock(served, { pid: process.pid, port });
 
     const r = await ensureProjectServer(
       { project: "served" },

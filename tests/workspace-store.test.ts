@@ -18,22 +18,20 @@ describe("WorkspaceStore", () => {
 
   it("registers a project (label defaults to the basename)", async () => {
     const { store } = await freshStore();
-    const entry = await store.register({ root: "/tmp/some/my-proj", port: 4317 });
+    const entry = await store.register({ root: "/tmp/some/my-proj" });
     expect(entry.label).toBe("my-proj");
-    expect(entry.lastPort).toBe(4317);
     const list = await store.list();
     expect(list).toHaveLength(1);
     expect(list[0]!.root).toBe(path.resolve("/tmp/some/my-proj"));
   });
 
-  it("dedups by root, refreshing lastOpenedAt + port but keeping addedAt", async () => {
+  it("dedups by root, refreshing lastOpenedAt but keeping addedAt", async () => {
     const { store } = await freshStore();
     const a = await store.register({ root: "/tmp/p" });
-    const b = await store.register({ root: "/tmp/p", port: 5000 });
+    const b = await store.register({ root: "/tmp/p" });
     const list = await store.list();
     expect(list).toHaveLength(1);
     expect(b.addedAt).toBe(a.addedAt);
-    expect(list[0]!.lastPort).toBe(5000);
     expect(b.lastOpenedAt >= a.lastOpenedAt).toBe(true);
   });
 

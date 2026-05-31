@@ -11,7 +11,7 @@ import {
   ensureProjectServer,
   closeProjectServer,
   readProjectBusyStatus,
-  probeLiveness,
+  readWorkspaceRuntimes,
 } from "../../workspace/workspace-runtime.js";
 import {
   resolveTargetProject,
@@ -37,13 +37,17 @@ function asHttp(err: unknown): HttpError {
  * server is serving (even if it was never registered) so the overview always
  * includes "here". The served project is marked `current`.
  */
-async function registryEntries(current: string): Promise<ProjectRegistryEntry[]> {
+async function registryEntries(
+  current: string,
+  runtimes: Record<string, { port: number | null }>,
+): Promise<ProjectRegistryEntry[]> {
   const projects = await new WorkspaceStore().list();
   const entries: ProjectRegistryEntry[] = projects.map((p) => ({
     root: p.root,
     label: p.label,
     current: p.root === current,
-    lastPort: p.lastPort,
+    // Port comes from the project's own ui.lock (runtime), not the registry.
+    lastPort: runtimes[p.root]?.port ?? null,
     lastOpenedAt: p.lastOpenedAt,
   }));
   if (!entries.some((e) => e.root === current)) {
@@ -51,7 +55,7 @@ async function registryEntries(current: string): Promise<ProjectRegistryEntry[]>
       root: current,
       label: path.basename(current) || current,
       current: true,
-      lastPort: null,
+      lastPort: runtimes[current]?.port ?? null,
       lastOpenedAt: null,
     });
   }
@@ -69,13 +73,14 @@ export async function registerWorkspaceRoutes(
   // a dashboard is currently answering (the served one always is).
   app.get("/api/workspace", async () => {
     const projects = await new WorkspaceStore().list();
-    const liveness = await probeLiveness(projects);
+    const runtimes = await readWorkspaceRuntimes(projects.map((p) => p.root));
     return {
       current,
       projects: projects.map((p) => ({
         ...p,
         current: p.root === current,
-        live: p.root === current ? true : (liveness[p.root] ?? false),
+        lastPort: runtimes[p.root]?.port ?? null,
+        live: p.root === current ? true : (runtimes[p.root]?.running ?? false),
       })),
     };
   });
@@ -88,16 +93,17 @@ export async function registerWorkspaceRoutes(
     async (req) => {
       const parsed = rangeSchema.safeParse(req.query.range ?? "7d");
       if (!parsed.success) throw new HttpError(400, parsed.error.message);
-      const entries = await registryEntries(current);
+      const projects = await new WorkspaceStore().list();
+      const roots = projects.map((p) => p.root);
+      if (!roots.includes(current)) roots.push(current);
+      const runtimes = await readWorkspaceRuntimes(roots);
+      const entries = await registryEntries(current, runtimes);
       const overview = await buildWorkspaceOverview({
         projects: entries,
         range: parsed.data as OverviewRange,
       });
-      const liveness = await probeLiveness(
-        entries.map((e) => ({ root: e.root, lastPort: e.lastPort })),
-      );
       for (const p of overview.projects) {
-        p.live = p.current ? true : (liveness[p.root] ?? false);
+        p.live = p.current ? true : (runtimes[p.root]?.running ?? false);
       }
       return overview;
     },

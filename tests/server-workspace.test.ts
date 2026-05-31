@@ -4,6 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { startServer, type StartedServer } from "../src/server/server.js";
 import { WorkspaceStore, canonicalRoot } from "../src/workspace/workspace-store.js";
+import { writeUiLock } from "../src/workspace/ui-lock.js";
 
 let server: StartedServer | null = null;
 let prevEnv: string | undefined;
@@ -24,8 +25,10 @@ describe("GET /api/workspace", () => {
     const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-wsp-"));
     const other = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-wso-"));
     const store = new WorkspaceStore(regFile);
-    await store.register({ root: served, label: "served", port: 4317 });
-    await store.register({ root: other, label: "other", port: 4400 });
+    await store.register({ root: served, label: "served" });
+    await store.register({ root: other, label: "other" });
+    // Runtime (port/pid) lives in each project's ui.lock now.
+    await writeUiLock(other, { pid: process.pid, port: 4400 });
 
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
     const r = await (await fetch(`${server.url}/api/workspace`)).json();
@@ -49,8 +52,9 @@ describe("GET /api/workspace/overview", () => {
     const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ovs-"));
     const other = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ovo-"));
     const store = new WorkspaceStore(regFile);
-    await store.register({ root: served, label: "served", port: 4317 });
-    await store.register({ root: other, label: "other", port: 4400 });
+    await store.register({ root: served, label: "served" });
+    await store.register({ root: other, label: "other" });
+    await writeUiLock(served, { pid: process.pid, port: 4317 });
 
     // One completed run in the served project.
     const runDir = path.join(served, ".vibestrate", "runs", "r1");
@@ -99,14 +103,11 @@ describe("POST /api/workspace/open (navigator)", () => {
     await fs.writeFile(path.join(served, ".vibestrate", "project.yml"), "version: 1\n");
 
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
-    // The server self-registers its bound port via the registry on `vibe ui`;
-    // here we register it explicitly so the served root is live + reusable.
+    // `vibe ui` self-registers + writes its ui.lock; mirror that here so the
+    // served root reads as live + reusable (our pid is alive, port answers).
     const servedPort = new URL(server.url).port;
-    await new WorkspaceStore(regFile).register({
-      root: served,
-      label: "served",
-      port: Number(servedPort),
-    });
+    await new WorkspaceStore(regFile).register({ root: served, label: "served" });
+    await writeUiLock(served, { pid: process.pid, port: Number(servedPort) });
 
     // Unregistered target is refused by the safety gate.
     const bad = await fetch(`${server.url}/api/workspace/open`, {

@@ -9,6 +9,7 @@ import {
   closeProjectServer,
   findFreePort,
 } from "../src/workspace/workspace-runtime.js";
+import { writeUiLock } from "../src/workspace/ui-lock.js";
 
 let prevEnv: string | undefined;
 let regFile: string;
@@ -85,14 +86,11 @@ describe("closeProjectServer escalation safety", () => {
   it("never signals an unconfirmed PID: dead port + alive pid → unreachable", async () => {
     const root = await mkProject("hung");
     const dormantPort = await findFreePort(); // nothing is listening there
-    // Register OUR pid — if the code wrongly escalated, it would signal the test
-    // runner. The dead-port branch must return `unreachable` without any kill.
-    await new WorkspaceStore(regFile).register({
-      root,
-      label: "hung",
-      port: dormantPort,
-      pid: process.pid,
-    });
+    await new WorkspaceStore(regFile).register({ root, label: "hung" });
+    // ui.lock names OUR pid (alive) on a dead port. If the code wrongly
+    // escalated it would signal the test runner; the dead-port branch must
+    // return `unreachable` without any kill.
+    await writeUiLock(root, { pid: process.pid, port: dormantPort });
 
     const r = await closeProjectServer({ project: "hung" }, { currentRoot: "/served" });
     expect(r.method).toBe("unreachable");
@@ -102,10 +100,9 @@ describe("closeProjectServer escalation safety", () => {
     expect(typeof process.pid).toBe("number");
   });
 
-  it("no-ops a fully-stopped project (dead port, no pid)", async () => {
+  it("no-ops a fully-stopped project (no lock)", async () => {
     const root = await mkProject("gone");
-    const dormantPort = await findFreePort();
-    await new WorkspaceStore(regFile).register({ root, label: "gone", port: dormantPort });
+    await new WorkspaceStore(regFile).register({ root, label: "gone" });
     const r = await closeProjectServer({ project: "gone" }, { currentRoot: "/served" });
     expect(r.method).toBe("none");
     expect(r.alreadyStopped).toBe(true);
@@ -150,8 +147,8 @@ describe("POST /api/workspace/close + /status", () => {
     const served = await mkProject("served");
     const other = await mkProject("other");
     await new WorkspaceStore(regFile).register({ root: served, label: "served" });
-    // `other` is registered but its dashboard is not running (dormant).
-    await new WorkspaceStore(regFile).register({ root: other, label: "other", port: 1 });
+    // `other` is registered but its dashboard is not running (dormant: no lock).
+    await new WorkspaceStore(regFile).register({ root: other, label: "other" });
     await writeRun(other, "r1", "executing");
 
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });

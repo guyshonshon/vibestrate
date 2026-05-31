@@ -14,9 +14,11 @@
 import path from "node:path";
 import net from "node:net";
 import { spawn } from "node:child_process";
+import os from "node:os";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { WorkspaceStore, canonicalRoot } from "./workspace-store.js";
+import { canonicalRoot } from "./workspace-store.js";
+import { readUiLock, releaseUiLock } from "./ui-lock.js";
 import {
   resolveTargetProject,
   type WorkspaceSafetyDeps,
@@ -105,6 +107,27 @@ export type EnsureServerResult = {
   started: boolean;
 };
 
+export type ProjectRuntime = {
+  pid: number | null;
+  port: number | null;
+  host: string | null;
+  /** The lock points at an alive process on this host. */
+  running: boolean;
+};
+
+/**
+ * Read a project's runtime from its own `ui.lock` (pid / port / host) and decide
+ * whether it's running — the lock exists, names a live PID, and was written on
+ * THIS host. A crashed server leaves a stale lock that reads as not-running and
+ * is reclaimed on the next start. No shared file, no network.
+ */
+export async function readProjectRuntime(root: string): Promise<ProjectRuntime> {
+  const lock = await readUiLock(root);
+  if (!lock) return { pid: null, port: null, host: null, running: false };
+  const running = lock.host === os.hostname() && isProcessAlive(lock.pid);
+  return { pid: lock.pid, port: lock.port, host: lock.host, running };
+}
+
 /**
  * Ensure a registered project has a live dashboard, returning its URL. Idempotent:
  * reuses an already-live instance; otherwise spawns `vibe ui --port <free>
@@ -117,16 +140,15 @@ export async function ensureProjectServer(
 ): Promise<EnsureServerResult> {
   const target = await resolveTargetProject(input.project, deps);
 
-  // Reuse a live instance if the registry's last port still serves this root.
-  const entry = (await (deps.store ?? new WorkspaceStore()).list()).find(
-    (p) => p.root === target.root,
-  );
-  if (entry?.lastPort && (await probeProjectLive(entry.lastPort, target.root))) {
+  // Reuse a live instance if this project's lock points at a running server that
+  // still answers for this root.
+  const rt = await readProjectRuntime(target.root);
+  if (rt.running && rt.port && (await probeProjectLive(rt.port, target.root))) {
     return {
       root: target.root,
       label: target.label,
-      url: `http://127.0.0.1:${entry.lastPort}/`,
-      port: entry.lastPort,
+      url: `http://127.0.0.1:${rt.port}/`,
+      port: rt.port,
       started: false,
     };
   }
@@ -322,35 +344,46 @@ export async function closeProjectServer(
   deps: WorkspaceSafetyDeps,
 ): Promise<CloseResult> {
   const target = await resolveTargetProject(input.project, deps);
-  const entry = (await (deps.store ?? new WorkspaceStore()).list()).find(
-    (p) => p.root === target.root,
-  );
-  const port = entry?.lastPort ?? null;
-  const pid = entry?.pid ?? null;
+  const rt = await readProjectRuntime(target.root);
+  const port = rt.port;
+  const pid = rt.pid;
   const base = { root: target.root, label: target.label, port, pid };
 
-  const live = port ? await probeProjectLive(port, target.root) : false;
+  // `running` = the lock points at an alive pid on this host. Confirm it's
+  // actually serving (port answers /api/health for this root) before treating
+  // the pid as kill-safe — that rules out a stale lock whose pid was reused.
+  const live = rt.running && port ? await probeProjectLive(port, target.root) : false;
 
   if (!live) {
-    // Not answering. If a PID is still alive it *might* be a hung instance — but
-    // we can't confirm it's ours (PID reuse), so we never force-kill here.
-    if (pid && isProcessAlive(pid)) {
+    if (rt.running && pid) {
+      // Process alive but not answering: hung, or a stale lock on a reused pid.
+      // We can't tell which, so we never signal it — report it for a manual kill.
       return { ...base, closed: false, alreadyStopped: false, forced: false, method: "unreachable" };
     }
+    // Nothing live. Clear any stale lock so the project reads dormant.
+    await releaseUiLock(target.root, { pid: pid ?? process.pid, force: true });
     return { ...base, closed: false, alreadyStopped: true, forced: false, method: "none" };
   }
 
   // Confirmed live (port answers for this root) → cooperative shutdown.
-  // `live` is only ever true when `port` is set, so the assertion is sound.
   await postShutdown(port as number);
+
+  const finish = async (
+    closed: boolean,
+    forced: boolean,
+    method: CloseMethod,
+  ): Promise<CloseResult> => {
+    // The graceful path releases its own lock; force/kill paths can't, so clear
+    // a leftover lock here. Idempotent.
+    if (closed) await releaseUiLock(target.root, { pid: pid ?? process.pid, force: true });
+    return { ...base, closed, alreadyStopped: false, forced, method };
+  };
 
   if (!pid) {
     // Server acked but no PID on record to confirm it actually exited.
-    return { ...base, closed: true, alreadyStopped: false, forced: false, method: "graceful-unverified" };
+    return finish(true, false, "graceful-unverified");
   }
-  if (await waitForExit(pid, 3000)) {
-    return { ...base, closed: true, alreadyStopped: false, forced: false, method: "graceful" };
-  }
+  if (await waitForExit(pid, 3000)) return finish(true, false, "graceful");
 
   // Confirmed-live but didn't exit — escalate on the confirmed PID.
   try {
@@ -358,9 +391,7 @@ export async function closeProjectServer(
   } catch {
     /* already gone */
   }
-  if (await waitForExit(pid, 2500)) {
-    return { ...base, closed: true, alreadyStopped: false, forced: true, method: "sigterm" };
-  }
+  if (await waitForExit(pid, 2500)) return finish(true, true, "sigterm");
   try {
     process.kill(pid, "SIGKILL");
   } catch {
@@ -368,27 +399,21 @@ export async function closeProjectServer(
   }
   await waitForExit(pid, 1500);
   const gone = !isProcessAlive(pid);
-  return {
-    ...base,
-    closed: gone,
-    alreadyStopped: false,
-    forced: true,
-    method: gone ? "sigkill" : "unreachable",
-  };
+  return gone ? finish(true, true, "sigkill") : finish(false, true, "unreachable");
 }
 
 /**
- * Best-effort liveness map for a set of projects (parallel, short timeout).
- * Used to badge the overview / switcher; a dormant project just shows an
- * "Open" affordance that starts it on demand.
+ * Per-project runtime for a set of roots (pid / port / running), read from each
+ * project's own `ui.lock`. No network, no shared file — used to badge the
+ * overview / switcher and to resolve a project's current port.
  */
-export async function probeLiveness(
-  projects: Array<{ root: string; lastPort: number | null }>,
-): Promise<Record<string, boolean>> {
-  const out: Record<string, boolean> = {};
+export async function readWorkspaceRuntimes(
+  roots: string[],
+): Promise<Record<string, ProjectRuntime>> {
+  const out: Record<string, ProjectRuntime> = {};
   await Promise.all(
-    projects.map(async (p) => {
-      out[p.root] = p.lastPort ? await probeProjectLive(p.lastPort, p.root) : false;
+    roots.map(async (root) => {
+      out[root] = await readProjectRuntime(root);
     }),
   );
   return out;
