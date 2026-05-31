@@ -98,7 +98,13 @@ export type RunCommandOptions = {
   /** Rewind: fork from a prior run, reusing its upstream artifacts and
    *  resuming at `resumeStage`. Mutually exclusive with a Flow. */
   resumeFromRunId?: string | null;
-  resumeStage?: "planning" | "architecting" | "executing";
+  resumeStage?:
+    | "planning"
+    | "architecting"
+    | "executing"
+    | "reviewing"
+    | "fixing"
+    | "verifying";
   /** Pick-up execution: iterate the linked task's checklist through the flow's
    *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
    *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */

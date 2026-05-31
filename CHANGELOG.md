@@ -6,6 +6,18 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Rewind phase 2 — resume at review / verify / fix.** A run now captures a
+  durable per-phase **worktree snapshot** after each code-producing step (after
+  executing + after each fixing): `git write-tree` → `commit-tree` → a ref under
+  `refs/vibestrate/snapshots/<runId>/<seq>`, recorded in
+  `runs/<id>/phase-snapshots.json`. Rewinding to `reviewing`/`fixing`/`verifying`
+  restores the source run's code into the fresh worktree (`read-tree` +
+  `checkout-index`) — runs share the repo's object DB, so a tree from one run
+  materializes in another's worktree — then re-runs only the downstream stages.
+  `vibe run --resume-from <id> --resume-stage reviewing|fixing|verifying`, the
+  same `resumeFrom.fromStage` on `POST /api/runs`. `resolveResumeFrom` fails fast
+  with a clear message when the source run captured no snapshot (older/read-only
+  runs). Design: `docs/design/rewind-phase-2.md`.
 - **Multi-project — runtime state moved out of the shared registry into
   per-project locks.** The shared `~/.vibestrate/workspace.json` now holds only
   *durable intent* (which projects exist + labels); a running dashboard's

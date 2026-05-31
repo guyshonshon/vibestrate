@@ -5,6 +5,8 @@ import { nowIso } from "../utils/time.js";
 export type VibestrateEventType =
   | "run.created"
   | "run.rewound"
+  | "run.rewound.restored"
+  | "run.snapshot.captured"
   | "state.changed"
   | "git.worktree.created"
   | "role.started"

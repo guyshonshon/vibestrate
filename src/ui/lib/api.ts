@@ -484,7 +484,12 @@ export const api = {
     };
     resumeFrom?: {
       sourceRunId: string;
-      fromStage: "architecting" | "executing";
+      fromStage:
+        | "architecting"
+        | "executing"
+        | "reviewing"
+        | "fixing"
+        | "verifying";
     };
   }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
     return jsonPost("/api/runs", input);
