@@ -59,15 +59,17 @@ export function PromptBar({
             placeholder='run "add dark mode"   ·   status   ·   tasks list'
           />
         ) : (
-          <Text dimColor>{input || "press / to type a command"}</Text>
+          <Text dimColor>{input || "press i to type a command"}</Text>
         )}
       </Box>
-      <Box>
-        {running ? (
+      {running ? (
+        <Box>
           <Text dimColor>
             <Spinner type="dots" /> <Text>running…</Text>
           </Text>
-        ) : exitCode !== null ? (
+        </Box>
+      ) : exitCode !== null ? (
+        <Box>
           <Text dimColor>
             <Text color={exitCode === 0 ? "green" : "red"}>
               {exitCode === 0 ? "✓" : "✗"}
@@ -75,12 +77,12 @@ export function PromptBar({
             {"  "}exit {exitCode}
             {focused ? <Text>{"   ↵ run · ↑↓ history · Esc done"}</Text> : null}
           </Text>
-        ) : focused ? (
+        </Box>
+      ) : focused ? (
+        <Box>
           <Text dimColor>↵ run · ↑↓ history · : palette · Esc done</Text>
-        ) : (
-          <Text dimColor>/ command · : palette · ? help · q quit</Text>
-        )}
-      </Box>
+        </Box>
+      ) : null}
     </Box>
   );
 }

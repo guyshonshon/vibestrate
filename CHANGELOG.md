@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — three-region layout.** Reorganised the shell into three
+  bordered, color-accented panels for a calmer read: a **header** (brand +
+  project/branch/activity, a divider, the numbered tab menu, page subtitle), a
+  **body** (the active page; the Dashboard splits interactive vs informative with
+  a vertical divider), and a **context + prompt** panel (mode · crew · flow line,
+  then the prompt + key hints; its border brightens to cyan while the prompt has
+  focus). New `Panel` / `HeaderBar` components; `StatusBar` became the bottom
+  `ContextLine`; removed the now-unused `Frame` wrapper usage + `PageTitleBar`.
 - **Interactive shell — status bar + persistent command prompt.** Bare `vibe`
   now opens with a Claude-Code-style context strip (project · git branch +
   `⑂ worktree` badge · safety mode · live activity · selected Crew/Flow · running

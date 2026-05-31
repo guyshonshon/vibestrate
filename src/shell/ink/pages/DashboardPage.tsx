@@ -25,10 +25,10 @@ export function DashboardPage({ snapshot }: Props) {
     .slice(0, 3);
 
   const { cols, rows } = useTerminalSize();
-  // Vertical budget: terminal rows minus chrome (frame border 2, header
-  // 1, tab + rule 2, footer + rule 3 ≈ 8). Divide what's left between
-  // the two lists. Each row in a list is one terminal row.
-  const contentRows = Math.max(6, rows - 11);
+  // Vertical budget: terminal rows minus chrome. The shell now has three
+  // bordered panels (header ≈ 6, body borders 2, prompt panel ≈ 7), so
+  // reserve ~16 rows and split the rest between the two lists.
+  const contentRows = Math.max(6, rows - 16);
   const perList = Math.max(2, Math.floor((contentRows - 4) / 2));
   const stackedBody = cols < 110;
   const compact = rows < 26;
@@ -81,6 +81,15 @@ export function DashboardPage({ snapshot }: Props) {
             )}
           </SectionCard>
         </Box>
+        {!stackedBody ? (
+          <Box
+            borderStyle="single"
+            borderColor="gray"
+            borderTop={false}
+            borderRight={false}
+            borderBottom={false}
+          />
+        ) : null}
         <Box flexBasis={0} flexGrow={1} flexDirection="column">
           <SectionCard
             title="RECENT ACTIVITY"
