@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Multi-project — Close force-kill fallback:** if a confirmed-live project
+  doesn't exit on the cooperative shutdown, Close escalates to SIGTERM then
+  SIGKILL on its registered PID (now recorded in the registry by every
+  `vibe ui`). Safety: a PID is only ever signalled when its server is confirmed
+  live for that root (so a stale/reused PID is never killed); a not-responding
+  instance that can't be confirmed reports `unreachable` with the PID to kill
+  manually. CLI shows "Force-closed (SIGTERM/SIGKILL)"; the modal surfaces
+  unreachable.
 - **Multi-project — Close a project (graceful shutdown):** the inverse of Open.
   `POST /api/server/shutdown` lets a project's own `vibe ui` stop its scheduler,
   close, and exit; the navigator's `POST /api/workspace/close` asks it to (token-

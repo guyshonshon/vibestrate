@@ -389,7 +389,16 @@ function CloseDialog({
     setBusyAction(true);
     setErr(null);
     try {
-      await api.closeWorkspaceProject(project.root);
+      const r = await api.closeWorkspaceProject(project.root);
+      if (r.method === "unreachable") {
+        setErr(
+          `${project.label} isn't responding and couldn't be confirmed${
+            r.pid ? ` — if it's stuck, kill PID ${r.pid} manually` : ""
+          }.`,
+        );
+        setBusyAction(false);
+        return;
+      }
       onClosed();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

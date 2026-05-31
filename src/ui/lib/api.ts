@@ -341,7 +341,10 @@ export type WorkspaceCloseResult = {
   label: string;
   closed: boolean;
   alreadyStopped: boolean;
+  forced: boolean;
+  method: "graceful" | "graceful-unverified" | "sigterm" | "sigkill" | "unreachable" | "none";
   port: number | null;
+  pid: number | null;
 };
 
 export type ProviderRow = {

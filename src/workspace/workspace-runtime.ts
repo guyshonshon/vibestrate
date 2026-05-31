@@ -35,6 +35,7 @@ import {
   queueFileSchema,
 } from "../scheduler/scheduler-types.js";
 import { deriveSchedulerLiveness } from "../scheduler/scheduler-liveness.js";
+import { isProcessAlive } from "../scheduler/scheduler-lock.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -244,21 +245,77 @@ export async function readProjectBusyStatus(root: string): Promise<ProjectBusySt
   };
 }
 
+/** How a close resolved.
+ *  - `graceful`        — cooperative shutdown; the process exited on its own.
+ *  - `graceful-unverified` — cooperative acked, but no PID on record to confirm exit.
+ *  - `sigterm` / `sigkill` — the process didn't exit, so we escalated (only ever
+ *    done to a CONFIRMED-live server whose registered PID came from that same
+ *    process — never an unconfirmed / possibly-reused PID).
+ *  - `unreachable`     — not answering and we can't safely confirm the PID; the
+ *    user may need to kill it manually.
+ *  - `none`            — nothing live to close. */
+export type CloseMethod =
+  | "graceful"
+  | "graceful-unverified"
+  | "sigterm"
+  | "sigkill"
+  | "unreachable"
+  | "none";
+
 export type CloseResult = {
   root: string;
   label: string;
-  /** True when we asked a live instance to shut down. */
+  /** True when we shut a running instance down (cooperatively or by force). */
   closed: boolean;
   /** True when there was nothing live to close. */
   alreadyStopped: boolean;
+  /** True when force (SIGTERM/SIGKILL) was used. */
+  forced: boolean;
+  method: CloseMethod;
   port: number | null;
+  /** PID we acted on / would need to be killed manually, when relevant. */
+  pid: number | null;
 };
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Poll until the process is gone or the window elapses. */
+async function waitForExit(pid: number, ms: number): Promise<boolean> {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    if (!isProcessAlive(pid)) return true;
+    await sleep(150);
+  }
+  return !isProcessAlive(pid);
+}
+
+async function postShutdown(port: number): Promise<void> {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const token = process.env.VIBESTRATE_API_TOKEN;
+  if (token && token.trim()) headers["authorization"] = `Bearer ${token.trim()}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 2500);
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/server/shutdown`, {
+      method: "POST",
+      headers,
+      body: "{}",
+      signal: ctrl.signal,
+    });
+  } catch {
+    // The server closes the socket as it exits — a dropped response is expected.
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
- * Close a project's dashboard — ask its own server to shut itself down (stop
- * scheduler + close + exit) via `POST /api/server/shutdown`. We never kill PIDs;
- * the server owns its lifecycle. Forwards the API token when this machine uses
- * one. Idempotent: a project that isn't live reports `alreadyStopped`.
+ * Close a project's dashboard. First asks its own server to shut down
+ * (`POST /api/server/shutdown` — stop scheduler + close + exit). If the server
+ * is confirmed live but doesn't exit, escalate to SIGTERM then SIGKILL on its
+ * registered PID — but ONLY for a confirmed-live server (the PID was
+ * self-registered by the same process that's answering on the port), so a stale
+ * or reused PID is never signalled. Idempotent.
  */
 export async function closeProjectServer(
   input: { project: string },
@@ -269,30 +326,55 @@ export async function closeProjectServer(
     (p) => p.root === target.root,
   );
   const port = entry?.lastPort ?? null;
-  if (!port || !(await probeProjectLive(port, target.root))) {
-    return { root: target.root, label: target.label, closed: false, alreadyStopped: true, port };
+  const pid = entry?.pid ?? null;
+  const base = { root: target.root, label: target.label, port, pid };
+
+  const live = port ? await probeProjectLive(port, target.root) : false;
+
+  if (!live) {
+    // Not answering. If a PID is still alive it *might* be a hung instance — but
+    // we can't confirm it's ours (PID reuse), so we never force-kill here.
+    if (pid && isProcessAlive(pid)) {
+      return { ...base, closed: false, alreadyStopped: false, forced: false, method: "unreachable" };
+    }
+    return { ...base, closed: false, alreadyStopped: true, forced: false, method: "none" };
   }
 
-  const headers: Record<string, string> = { "content-type": "application/json" };
-  const token = process.env.VIBESTRATE_API_TOKEN;
-  if (token && token.trim()) headers["authorization"] = `Bearer ${token.trim()}`;
+  // Confirmed live (port answers for this root) → cooperative shutdown.
+  // `live` is only ever true when `port` is set, so the assertion is sound.
+  await postShutdown(port as number);
 
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3000);
+  if (!pid) {
+    // Server acked but no PID on record to confirm it actually exited.
+    return { ...base, closed: true, alreadyStopped: false, forced: false, method: "graceful-unverified" };
+  }
+  if (await waitForExit(pid, 3000)) {
+    return { ...base, closed: true, alreadyStopped: false, forced: false, method: "graceful" };
+  }
+
+  // Confirmed-live but didn't exit — escalate on the confirmed PID.
   try {
-    await fetch(`http://127.0.0.1:${port}/api/server/shutdown`, {
-      method: "POST",
-      headers,
-      body: "{}",
-      signal: ctrl.signal,
-    });
+    process.kill(pid, "SIGTERM");
   } catch {
-    // The server closes the socket as it exits — a dropped response is expected
-    // and still means the shutdown was accepted.
-  } finally {
-    clearTimeout(timer);
+    /* already gone */
   }
-  return { root: target.root, label: target.label, closed: true, alreadyStopped: false, port };
+  if (await waitForExit(pid, 2500)) {
+    return { ...base, closed: true, alreadyStopped: false, forced: true, method: "sigterm" };
+  }
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    /* already gone */
+  }
+  await waitForExit(pid, 1500);
+  const gone = !isProcessAlive(pid);
+  return {
+    ...base,
+    closed: gone,
+    alreadyStopped: false,
+    forced: true,
+    method: gone ? "sigkill" : "unreachable",
+  };
 }
 
 /**
