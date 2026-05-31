@@ -91,6 +91,11 @@ export type StartServerOptions = {
    *  CLI flips it to true so the dashboard owns the scheduler's
    *  lifecycle out of the box. */
   withScheduler?: boolean;
+  /** Called after `POST /api/server/shutdown` has stopped the scheduler and
+   *  closed the HTTP server. The `vibe ui` CLI passes `() => process.exit(0)`
+   *  so a navigator "Close" actually ends the process; tests omit it so the
+   *  in-process server just closes without killing the runner. */
+  onShutdownRequested?: () => void;
 };
 
 export type StartedServer = {
@@ -282,6 +287,41 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // Health.
   app.get("/api/health", async () => ({ ok: true, projectRoot: opts.projectRoot }));
 
+  // The managed scheduler handle, assigned after `app.listen` below. Declared
+  // here so the self-shutdown route can stop it. Stays null when the server
+  // runs without a managed scheduler (tests / `--no-scheduler`).
+  let schedulerHandle: { stop: () => Promise<void>; pid: () => number | null } | null = null;
+
+  // Self-shutdown — the inverse of the navigator's "Open". Stops this project's
+  // scheduler, closes the HTTP server, then hands off to the process owner (the
+  // `vibe ui` CLI calls `process.exit`). Loopback-gated like every `/api/*`
+  // route; a non-loopback bind requires the bearer token. Idempotent.
+  let shutdownRequested = false;
+  app.post("/api/server/shutdown", async (_req, reply) => {
+    if (shutdownRequested) return { ok: true, alreadyShuttingDown: true };
+    shutdownRequested = true;
+    void reply
+      .header("connection", "close")
+      .send({ ok: true, shuttingDown: true });
+    // Flush the response first, then tear down + hand off.
+    setTimeout(() => {
+      void (async () => {
+        try {
+          if (schedulerHandle) await schedulerHandle.stop();
+        } catch {
+          /* best-effort */
+        }
+        try {
+          await app.close();
+        } catch {
+          /* best-effort */
+        }
+        opts.onShutdownRequested?.();
+      })();
+    }, 80);
+    return reply;
+  });
+
   // Inline favicon — kills the noisy `/favicon.ico 404` log line that
   // every browser fires by default. Tiny accent-cyan terminal glyph
   // matching the dashboard chrome. Long-cache since it's static.
@@ -406,7 +446,6 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // UI sends SIGTERM to the scheduler and waits for it to finish.
   // Pass `withScheduler: false` to opt out (CI, tests, or when the
   // user manages the scheduler in a separate terminal).
-  let schedulerHandle: { stop: () => Promise<void>; pid: () => number | null } | null = null;
   if (opts.withScheduler === true) {
     const { startManagedScheduler } = await import(
       "../scheduler/managed-scheduler.js"

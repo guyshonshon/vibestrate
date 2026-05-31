@@ -129,10 +129,10 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe workspace overview", note: "rollup across registered projects" },
           { cmd: "vibe workspace list", note: "registered projects (live ● / dormant ○)" },
           { cmd: "vibe workspace open <label>", note: "open a project, starting it if dormant" },
-          { cmd: "vibe workspace open --all", note: "bring every registered project live" },
+          { cmd: "vibe workspace close <label>", note: "shut down its dashboard + scheduler (refuses if busy)" },
         ],
         tips: [
-          "Each project is its own isolated dashboard + scheduler; opening one starts its own `vibe ui` and lands you in a fresh tab.",
+          "Each project is its own isolated dashboard + scheduler; opening one starts its own `vibe ui` and lands you in a fresh tab. `close` stops it (add --force to override a busy project).",
         ],
       };
     case "proposals":

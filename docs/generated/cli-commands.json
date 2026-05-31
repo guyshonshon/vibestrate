@@ -2383,6 +2383,41 @@
           "subcommands": []
         },
         {
+          "name": "close",
+          "path": [
+            "vibe",
+            "workspace",
+            "close"
+          ],
+          "description": "Shut down a project's dashboard + scheduler (refuses if busy unless --force).",
+          "usage": "[options] [pathOrLabel]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--all",
+              "description": "close every live registered project",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--force",
+              "description": "shut down even if runs/queue are busy",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "overview",
           "path": [
             "vibe",
