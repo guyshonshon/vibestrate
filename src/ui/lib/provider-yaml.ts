@@ -34,20 +34,69 @@ export function yamlQuote(s: string): string {
   return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
+/** The editor's working shape for one provider — a superset spanning every
+ *  provider type. `renderProviderYaml` emits only the fields the chosen
+ *  `type` actually uses. */
+export type EditorProviderConfig =
+  | { type: "cli"; command: string; args: string[]; input: "stdin" | "arg" }
+  | {
+      type: "http-api";
+      api: "anthropic" | "openai";
+      baseUrl: string;
+      model: string;
+      apiKey: string;
+      maxTokens: number;
+      headers?: Record<string, string>;
+    }
+  | {
+      type: "localhost-proxy";
+      api: "openai" | "ollama";
+      baseUrl: string;
+      model: string;
+      apiKey?: string;
+      maxTokens: number;
+    };
+
 export function renderProviderYaml(
   id: string,
-  config: { command: string; args: string[]; input: "stdin" | "arg" },
+  config: EditorProviderConfig,
 ): string {
-  const argsLine =
-    config.args.length === 0
-      ? "    args: []"
-      : `    args: [${config.args.map((a) => yamlQuote(a)).join(", ")}]`;
-  return [
-    "providers:",
-    `  ${id}:`,
-    "    type: cli",
-    `    command: ${yamlQuote(config.command)}`,
-    argsLine,
-    `    input: ${config.input}`,
-  ].join("\n");
+  const head = ["providers:", `  ${id}:`];
+  if (config.type === "cli") {
+    const argsLine =
+      config.args.length === 0
+        ? "    args: []"
+        : `    args: [${config.args.map((a) => yamlQuote(a)).join(", ")}]`;
+    return [
+      ...head,
+      "    type: cli",
+      `    command: ${yamlQuote(config.command)}`,
+      argsLine,
+      `    input: ${config.input}`,
+    ].join("\n");
+  }
+  const lines = [
+    ...head,
+    `    type: ${config.type}`,
+    `    api: ${config.api}`,
+    `    baseUrl: ${yamlQuote(config.baseUrl)}`,
+    `    model: ${yamlQuote(config.model)}`,
+  ];
+  // apiKey is an env reference (`env:NAME`), never a literal secret.
+  if (config.type === "http-api") {
+    lines.push(`    apiKey: ${yamlQuote(config.apiKey)}`);
+  } else if (config.apiKey) {
+    lines.push(`    apiKey: ${yamlQuote(config.apiKey)}`);
+  }
+  lines.push(`    maxTokens: ${config.maxTokens}`);
+  if (config.type === "http-api" && config.headers) {
+    const entries = Object.entries(config.headers);
+    if (entries.length > 0) {
+      lines.push("    headers:");
+      for (const [k, v] of entries) {
+        lines.push(`      ${yamlQuote(k)}: ${yamlQuote(v)}`);
+      }
+    }
+  }
+  return lines.join("\n");
 }

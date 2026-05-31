@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Advanced provider UI — cloud + local-server setup in the dashboard.** The
+  Providers page editor is now type-aware: it creates/edits `http-api` (cloud
+  Anthropic/OpenAI) and `localhost-proxy` (Ollama/LM Studio/vLLM) providers, not
+  just CLIs — api/baseUrl/model/maxTokens, an env-ref-only API key, and optional
+  cloud headers, with a type-aware YAML preview. New "Add cloud API / local
+  server / custom CLI" controls; `vibe provider setup` gains matching Cloud/Local
+  choices (UI⇄CLI parity). The `/setup` route validates the full provider union
+  (https-only / loopback-only / env-ref-key guards fire fail-closed → 400), and
+  `/config` round-trips the real typed config.
 - **Rewind safety guard + issue log.** The (destructive) snapshot restore now
   refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
   defense in depth on top of the existing per-run-worktree isolation. Documented

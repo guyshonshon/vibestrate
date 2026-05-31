@@ -1,3 +1,4 @@
+import type { EditorProviderConfig } from "./provider-yaml.js";
 import type {
   RoleWorkReport,
   VibestrateEvent,
@@ -363,6 +364,8 @@ export type ProviderRow = {
   loginNote: string;
   /** True when the destination is an external network service (cloud http-api). */
   external?: boolean;
+  /** Which editor shape this provider uses. */
+  kind: "cli" | "http-api" | "localhost-proxy";
 };
 
 export type CodebaseAnnotation = {
@@ -497,12 +500,7 @@ export const api = {
   async getProviderConfig(providerId: string): Promise<{
     providerId: string;
     configured: boolean;
-    config: {
-      type: "cli";
-      command: string;
-      args: string[];
-      input: "stdin" | "arg";
-    };
+    config: EditorProviderConfig;
     profilesUsing: string[];
   }> {
     return jsonGet(
@@ -513,7 +511,8 @@ export const api = {
     providerId: string,
     opts: {
       setAsDefault?: boolean;
-      config?: { command: string; args?: string[]; input?: "stdin" | "arg" };
+      // A type-less config is treated as CLI by the server (legacy shape).
+      config?: EditorProviderConfig | { command: string; args?: string[]; input?: "stdin" | "arg" };
     } = {},
   ): Promise<{ ok: true; providerId: string; configured: true }> {
     return jsonPost(
