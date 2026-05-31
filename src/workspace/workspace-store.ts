@@ -36,6 +36,23 @@ export function defaultWorkspaceFile(): string {
   return path.join(os.homedir(), ".vibestrate", "workspace.json");
 }
 
+/** The user-level dir holding the registry (+ its sibling queue / audit log).
+ *  Tracks `$VIBESTRATE_WORKSPACE_FILE` so tests that redirect the registry get
+ *  the queue and dispatch log redirected alongside it. */
+export function workspaceDir(): string {
+  return path.dirname(defaultWorkspaceFile());
+}
+
+/** Cross-project dispatch queue, sibling of the registry. */
+export function defaultWorkspaceQueueFile(): string {
+  return path.join(workspaceDir(), "workspace-queue.json");
+}
+
+/** Append-only audit log of every cross-project action (launch/abort/enqueue). */
+export function defaultWorkspaceDispatchLog(): string {
+  return path.join(workspaceDir(), "workspace-dispatch.ndjson");
+}
+
 /** A fresh empty file — new arrays each call, never a shared mutable default. */
 function emptyFile(): WorkspaceFile {
   return { version: 1, projects: [] };

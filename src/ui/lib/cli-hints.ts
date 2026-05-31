@@ -127,11 +127,13 @@ export function hintForRoute(route: Route): CliHint {
           "Cross-project rollup — runs, outcomes, and spend across every registered project. The CLI exposes the same data.",
         commands: [
           { cmd: "vibe workspace overview", note: "rollup across registered projects" },
-          { cmd: "vibe workspace overview --range 30d --json", note: "machine-readable, wider window" },
-          { cmd: "vibe workspace list", note: "registered projects + last ports" },
+          { cmd: 'vibe workspace run "fix X" --project other', note: "launch a run in another project" },
+          { cmd: "vibe workspace queue add … --project other", note: "stage a cross-project run" },
+          { cmd: "vibe workspace queue drain", note: "launch queued runs within concurrency caps" },
+          { cmd: "vibe workspace abort <runId> --project other", note: "abort a run in another project" },
         ],
         tips: [
-          "Each project still runs on its own dashboard/port; this view is read-only across all of them.",
+          "Cross-project actions only target registered, initialized projects (safety gate); each launch is audited in ~/.vibestrate/workspace-dispatch.ndjson.",
         ],
       };
     case "proposals":

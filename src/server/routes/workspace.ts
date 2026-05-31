@@ -7,9 +7,37 @@ import {
   type OverviewRange,
   type ProjectRegistryEntry,
 } from "../../workspace/workspace-overview.js";
+import {
+  launchRunInProject,
+  abortRunInProject,
+  listActiveRunsInProject,
+  workspaceRunRequestSchema,
+} from "../../workspace/workspace-coordinator.js";
+import {
+  WorkspaceQueueStore,
+  drainWorkspaceQueue,
+} from "../../workspace/workspace-queue.js";
+import {
+  resolveTargetProject,
+  WorkspaceSafetyError,
+} from "../../workspace/workspace-safety.js";
 import { HttpError } from "../security.js";
 
 export type WorkspaceRoutesDeps = { projectRoot: string };
+
+/** Map a workspace-safety failure to an HTTP error, preserving its status. */
+function asHttp(err: unknown): HttpError {
+  if (err instanceof WorkspaceSafetyError) {
+    return new HttpError(err.statusCode, err.message);
+  }
+  if (err instanceof HttpError) return err;
+  return new HttpError(500, err instanceof Error ? err.message : String(err));
+}
+
+const drainQuerySchema = z.object({
+  maxConcurrent: z.coerce.number().int().min(1).max(64).optional(),
+  maxPerProject: z.coerce.number().int().min(1).max(32).optional(),
+});
 
 const rangeSchema = z.enum(["24h", "7d", "30d", "90d"]).default("7d");
 
@@ -69,6 +97,102 @@ export async function registerWorkspaceRoutes(
       return buildWorkspaceOverview({
         projects: entries,
         range: parsed.data as OverviewRange,
+      });
+    },
+  );
+
+  // ─── Cross-project write actions (slice c-board) ──────────────────
+  // Every handler below funnels through the workspace-safety gate via the
+  // coordinator: the target must be a registered, initialized project. The
+  // served dashboard stays single-root; these reach other roots only through
+  // the audited detached launcher + dispatch log.
+
+  // Active (non-terminal) runs in a chosen project — powers the abort UI.
+  app.get<{ Querystring: { project?: string } }>(
+    "/api/workspace/active",
+    async (req) => {
+      const sel = (req.query.project ?? "").trim();
+      if (!sel) throw new HttpError(400, "project is required.");
+      try {
+        const target = await resolveTargetProject(sel, { currentRoot: current });
+        const runs = await listActiveRunsInProject(target.root);
+        return { project: { root: target.root, label: target.label }, runs };
+      } catch (err) {
+        throw asHttp(err);
+      }
+    },
+  );
+
+  // Launch a run in a registered project.
+  app.post<{ Body: unknown }>("/api/workspace/runs", async (req) => {
+    const parsed = workspaceRunRequestSchema.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    try {
+      return await launchRunInProject(parsed.data, {
+        currentRoot: current,
+        spawnedBy: "workspace-dashboard",
+      });
+    } catch (err) {
+      throw asHttp(err);
+    }
+  });
+
+  // Abort a run in a registered project.
+  app.post<{ Body: unknown }>("/api/workspace/runs/abort", async (req) => {
+    const body = z
+      .object({ project: z.string().min(1), runId: z.string().min(1) })
+      .safeParse(req.body);
+    if (!body.success) throw new HttpError(400, body.error.message);
+    try {
+      return await abortRunInProject(body.data, {
+        currentRoot: current,
+        spawnedBy: "workspace-dashboard",
+      });
+    } catch (err) {
+      throw asHttp(err);
+    }
+  });
+
+  // ─── Cross-project dispatch queue (slice d) ───────────────────────
+
+  app.get("/api/workspace/queue", async () => {
+    const entries = await new WorkspaceQueueStore().list();
+    return { entries };
+  });
+
+  app.post<{ Body: unknown }>("/api/workspace/queue", async (req) => {
+    const parsed = workspaceRunRequestSchema.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    // Validate the target now so a bad project is rejected at enqueue time,
+    // not silently parked until drain.
+    try {
+      await resolveTargetProject(parsed.data.project, { currentRoot: current });
+    } catch (err) {
+      throw asHttp(err);
+    }
+    const entry = await new WorkspaceQueueStore().enqueue(parsed.data, "dashboard");
+    return { ok: true, entry };
+  });
+
+  app.delete<{ Params: { id: string } }>(
+    "/api/workspace/queue/:id",
+    async (req) => {
+      const removed = await new WorkspaceQueueStore().remove(req.params.id);
+      if (!removed) throw new HttpError(404, "Queue entry not found.");
+      return { ok: true };
+    },
+  );
+
+  app.post<{ Querystring: Record<string, string> }>(
+    "/api/workspace/queue/drain",
+    async (req) => {
+      const q = drainQuerySchema.safeParse(req.query);
+      if (!q.success) throw new HttpError(400, q.error.message);
+      return drainWorkspaceQueue({
+        currentRoot: current,
+        spawnedBy: "workspace-dashboard-drain",
+        maxConcurrent: q.data.maxConcurrent,
+        maxPerProject: q.data.maxPerProject,
       });
     },
   );
