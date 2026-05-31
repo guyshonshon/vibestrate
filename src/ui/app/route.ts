@@ -31,6 +31,7 @@ export type Route =
   | { kind: "board" }
   | { kind: "task"; taskId: string }
   | { kind: "queue" }
+  | { kind: "workspace" }
   | { kind: "proposals" }
   | { kind: "proposal"; proposalId: string }
   | { kind: "settings" }
@@ -153,6 +154,7 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "board") return { kind: "board" };
   if (parts[0] === "tasks" && parts[1]) return { kind: "task", taskId: parts[1] };
   if (parts[0] === "queue") return { kind: "queue" };
+  if (parts[0] === "workspace") return { kind: "workspace" };
   if (parts[0] === "settings") return { kind: "settings" };
   if (parts[0] === "project") return { kind: "project" };
   if (parts[0] === "codebase") {
@@ -208,6 +210,8 @@ export function serializeRoute(route: Route): string {
       return `#/tasks/${route.taskId}`;
     case "queue":
       return "#/queue";
+    case "workspace":
+      return "#/workspace";
     case "proposals":
       return "#/proposals";
     case "proposal":

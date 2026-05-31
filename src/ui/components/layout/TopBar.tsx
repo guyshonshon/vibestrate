@@ -35,6 +35,7 @@ type Props = {
   onShowBoard: () => void;
   onShowRunsList: () => void;
   onShowQueue: () => void;
+  onShowWorkspace: () => void;
   onShowProposals: () => void;
   onShowProject: () => void;
   onShowCodebase: () => void;
@@ -79,6 +80,7 @@ export function TopBar({
   onShowBoard,
   onShowRunsList,
   onShowQueue,
+  onShowWorkspace,
   onShowProposals,
   onShowProject,
   onShowCodebase,
@@ -213,7 +215,7 @@ export function TopBar({
           />
           <span className="truncate max-w-[160px]">{projectLabel}</span>
         </button>
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher onShowOverview={onShowWorkspace} />
         {meta.branch ? (
           <>
             <span className="text-fog-500 hidden xl:inline">/</span>
@@ -294,6 +296,15 @@ export function TopBar({
                 icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Project
+              </DropItem>
+              <DropItem
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowWorkspace();
+                }}
+                icon={<FolderTree className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                All projects
               </DropItem>
               <DropItem
                 onClick={() => {
@@ -390,6 +401,15 @@ export function TopBar({
               icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Project
+            </DropItem>
+            <DropItem
+              onClick={() => {
+                setMenuOpen(false);
+                onShowWorkspace();
+              }}
+              icon={<FolderTree className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              All projects
             </DropItem>
             <DropItem
               onClick={() => {
@@ -530,7 +550,7 @@ type WsProject = {
  * another project's dashboard (its own `vibe ui` on its own port). Local-first
  * — each project is an independent dashboard; this just makes them switchable.
  */
-function WorkspaceSwitcher() {
+function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<WsProject[]>([]);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -568,6 +588,18 @@ function WorkspaceSwitcher() {
           <div className="px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-fog-500">
             Projects ({projects.length})
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onShowOverview();
+            }}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-white/[0.05]"
+          >
+            <FolderTree className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.7} />
+            <span className="flex-1 text-[12.5px] text-fog-100">All projects overview</span>
+          </button>
+          <div className="my-1 border-t border-white/[0.06]" />
           {projects.length === 0 ? (
             <div className="px-2 py-2 text-[11.5px] text-fog-400">
               Only this project is registered. Run <span className="mono">vibe ui</span> in another to add it.

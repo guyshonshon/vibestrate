@@ -2366,6 +2366,35 @@
           ],
           "options": [],
           "subcommands": []
+        },
+        {
+          "name": "overview",
+          "path": [
+            "vibe",
+            "workspace",
+            "overview"
+          ],
+          "description": "Cross-project rollup: runs + cost across every registered project.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--range <range>",
+              "description": "window: 24h|7d|30d|90d",
+              "defaultValue": "7d",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },

@@ -120,6 +120,20 @@ export function hintForRoute(route: Route): CliHint {
           "Set `scheduler.queuePolicy: fair` + `sourceQuotas: { cron: 1, user: 3 }` in project.yml to stop one origin from starving others.",
         ],
       };
+    case "workspace":
+      return {
+        title: "All projects",
+        blurb:
+          "Cross-project rollup — runs, outcomes, and spend across every registered project. The CLI exposes the same data.",
+        commands: [
+          { cmd: "vibe workspace overview", note: "rollup across registered projects" },
+          { cmd: "vibe workspace overview --range 30d --json", note: "machine-readable, wider window" },
+          { cmd: "vibe workspace list", note: "registered projects + last ports" },
+        ],
+        tips: [
+          "Each project still runs on its own dashboard/port; this view is read-only across all of them.",
+        ],
+      };
     case "proposals":
       return {
         title: "Proposals",
