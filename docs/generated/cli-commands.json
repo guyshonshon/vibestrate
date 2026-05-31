@@ -2395,6 +2395,324 @@
             }
           ],
           "subcommands": []
+        },
+        {
+          "name": "run",
+          "path": [
+            "vibe",
+            "workspace",
+            "run"
+          ],
+          "description": "Launch a run in a registered project (cross-project).",
+          "usage": "[options] <task>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--project <pathOrLabel>",
+              "description": "target project (registered path or label)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--task <id>",
+              "description": "link to an existing roadmap task id",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--effort <level>",
+              "description": "low|medium|high",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--crew <id>",
+              "description": "crew to resolve the flow against",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--profile <id>",
+              "description": "run-wide profile override",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--read-only",
+              "description": "investigation-only run (no apply/validate/revert)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--flow <id>",
+              "description": "run a specific flow",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--flow-brief <text>",
+              "description": "brief passed to the flow",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--checklist <mode>",
+              "description": "continuous|step (iterate the task checklist)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--skills <csv>",
+              "description": "comma-separated skill ids for this run",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "abort",
+          "path": [
+            "vibe",
+            "workspace",
+            "abort"
+          ],
+          "description": "Abort a run in a registered project (cross-project).",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--project <pathOrLabel>",
+              "description": "the project the run belongs to",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "queue",
+          "path": [
+            "vibe",
+            "workspace",
+            "queue"
+          ],
+          "description": "Cross-project run queue — enqueue intents and drain them with concurrency caps.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "list",
+              "path": [
+                "vibe",
+                "workspace",
+                "queue",
+                "list"
+              ],
+              "description": "List queued cross-project runs (FIFO).",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "add",
+              "path": [
+                "vibe",
+                "workspace",
+                "queue",
+                "add"
+              ],
+              "description": "Queue a run for a registered project.",
+              "usage": "[options] <task>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [
+                {
+                  "flags": "--project <pathOrLabel>",
+                  "description": "target project (registered path or label)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--task <id>",
+                  "description": "link to an existing roadmap task id",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--effort <level>",
+                  "description": "low|medium|high",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--crew <id>",
+                  "description": "crew to resolve the flow against",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--profile <id>",
+                  "description": "run-wide profile override",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--read-only",
+                  "description": "investigation-only run (no apply/validate/revert)",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--flow <id>",
+                  "description": "run a specific flow",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--flow-brief <text>",
+                  "description": "brief passed to the flow",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--checklist <mode>",
+                  "description": "continuous|step (iterate the task checklist)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--skills <csv>",
+                  "description": "comma-separated skill ids for this run",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "drain",
+              "path": [
+                "vibe",
+                "workspace",
+                "queue",
+                "drain"
+              ],
+              "description": "Launch eligible queued runs (respects global + per-project caps).",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [
+                {
+                  "flags": "--max-concurrent <n>",
+                  "description": "global concurrency cap (default 2)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--max-per-project <n>",
+                  "description": "per-project concurrency cap (default 1)",
+                  "required": true,
+                  "optional": false,
+                  "negated": false
+                },
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "remove",
+              "path": [
+                "vibe",
+                "workspace",
+                "queue",
+                "remove"
+              ],
+              "description": "Remove a queued entry by id.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            },
+            {
+              "name": "clear",
+              "path": [
+                "vibe",
+                "workspace",
+                "queue",
+                "clear"
+              ],
+              "description": "Clear the whole workspace queue.",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [],
+              "subcommands": []
+            }
+          ]
         }
       ]
     },

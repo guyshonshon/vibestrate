@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Folder, RefreshCw } from "lucide-react";
+import {
+  ExternalLink,
+  Folder,
+  ListPlus,
+  Play,
+  RefreshCw,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   api,
   type OverviewRange,
+  type WorkspaceActiveRun,
   type WorkspaceOverview,
   type WorkspaceProjectSummary,
+  type WorkspaceQueueEntry,
+  type WorkspaceRunRequest,
 } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
@@ -24,6 +36,11 @@ export function WorkspacePage() {
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  // The project a run is being composed for (Run dialog), or null.
+  const [runTarget, setRunTarget] = useState<WorkspaceProjectSummary | null>(null);
+
+  const reload = () => setReloadKey((k) => k + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,7 +64,7 @@ export function WorkspacePage() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [range]);
+  }, [range, reloadKey]);
 
   const totals = overview?.totals;
 
@@ -143,7 +160,13 @@ export function WorkspacePage() {
       {/* ── Project cards ─ */}
       <section className="mt-7 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {(overview?.projects ?? []).map((p) => (
-          <ProjectCard key={p.root} project={p} range={range} />
+          <ProjectCard
+            key={p.root}
+            project={p}
+            range={range}
+            onRun={() => setRunTarget(p)}
+            onChanged={reload}
+          />
         ))}
         {overview && overview.projects.length === 0 ? (
           <div className="col-span-full rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
@@ -152,6 +175,20 @@ export function WorkspacePage() {
           </div>
         ) : null}
       </section>
+
+      {/* ── Workspace queue ─ */}
+      <WorkspaceQueuePanel onChanged={reload} />
+
+      {runTarget ? (
+        <WorkspaceRunDialog
+          project={runTarget}
+          onClose={() => setRunTarget(null)}
+          onDone={() => {
+            setRunTarget(null);
+            reload();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -207,14 +244,19 @@ const STATUS_TONE: Partial<Record<RunStatus, string>> = {
 function ProjectCard({
   project,
   range,
+  onRun,
+  onChanged,
 }: {
   project: WorkspaceProjectSummary;
   range: OverviewRange;
+  onRun: () => void;
+  onChanged: () => void;
 }) {
   const { window: w } = project;
   const reachable = !project.current && project.lastPort;
   const successPct =
     w.successRate !== null ? `${Math.round(w.successRate * 100)}%` : "—";
+  const canAct = project.initialized && !project.unreadable;
 
   return (
     <div className="glass p-5 flex flex-col">
@@ -296,28 +338,120 @@ function ProjectCard({
         )}
       </div>
 
+      {/* active runs — abort cross-project */}
+      {canAct && project.activeRuns > 0 ? (
+        <ActiveRunsControl project={project} onChanged={onChanged} />
+      ) : null}
+
       {/* footer */}
-      <div className="mt-4 flex items-center justify-between">
-        <span className="text-[10.5px] text-fog-500">
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <span className="text-[10.5px] text-fog-500 truncate">
           {project.lastActivityAt
             ? `last active ${relTime(project.lastActivityAt)}`
             : "no activity"}
         </span>
-        {reachable ? (
+        <div className="flex items-center gap-3 shrink-0">
+          {reachable ? (
+            <button
+              type="button"
+              onClick={() => window.open(`http://localhost:${project.lastPort}/`, "_blank")}
+              className="text-[11.5px] text-fog-300 hover:text-fog-100 flex items-center gap-1.5"
+            >
+              Dashboard
+              <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => window.open(`http://localhost:${project.lastPort}/`, "_blank")}
-            className="text-[11.5px] text-violet-soft hover:text-violet-200 flex items-center gap-1.5"
+            disabled={!canAct}
+            onClick={onRun}
+            className="text-[11.5px] text-violet-soft hover:text-violet-200 disabled:text-fog-600 flex items-center gap-1.5"
+            title={canAct ? "Start or queue a run here" : "Project not initialized"}
           >
-            Open dashboard
-            <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
+            <Play className="h-3 w-3" strokeWidth={1.7} />
+            Run
           </button>
-        ) : project.current ? (
-          <span className="text-[10.5px] text-fog-500">you are here</span>
-        ) : (
-          <span className="text-[10.5px] text-fog-600">not running</span>
-        )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+/** Lazy-expand a project's non-terminal runs and offer cross-project abort. */
+function ActiveRunsControl({
+  project,
+  onChanged,
+}: {
+  project: WorkspaceProjectSummary;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [runs, setRuns] = useState<WorkspaceActiveRun[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    api
+      .getWorkspaceActive(project.root)
+      .then((r) => !cancelled && setRuns(r.runs))
+      .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)));
+    return () => {
+      cancelled = true;
+    };
+  }, [open, project.root]);
+
+  const abort = async (runId: string) => {
+    setBusy(runId);
+    setErr(null);
+    try {
+      await api.abortWorkspaceRun(project.root, runId);
+      setRuns((prev) => (prev ? prev.filter((r) => r.runId !== runId) : prev));
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/[0.06]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="text-[11px] text-violet-soft hover:text-violet-200"
+      >
+        {open ? "Hide" : "Manage"} {project.activeRuns} active {project.activeRuns === 1 ? "run" : "runs"}
+      </button>
+      {open ? (
+        <div className="mt-2 space-y-1.5">
+          {err ? <div className="text-[11px] text-rose-300">{err}</div> : null}
+          {runs === null ? (
+            <div className="text-[11px] text-fog-500">Loading…</div>
+          ) : runs.length === 0 ? (
+            <div className="text-[11px] text-fog-500">No active runs.</div>
+          ) : (
+            runs.map((r) => (
+              <div key={r.runId} className="flex items-center gap-2 text-[11.5px]">
+                <span className="mono text-[10px] text-violet-soft w-[88px] truncate">{r.status}</span>
+                <span className="text-fog-300 truncate flex-1">{r.task}</span>
+                <button
+                  type="button"
+                  disabled={busy === r.runId}
+                  onClick={() => void abort(r.runId)}
+                  className="text-rose-300 hover:text-rose-200 disabled:text-fog-600 flex items-center gap-1 shrink-0"
+                  title="Abort this run"
+                >
+                  <Square className="h-2.5 w-2.5" strokeWidth={2} />
+                  {busy === r.runId ? "…" : "Abort"}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -349,6 +483,267 @@ function Stat({
       </div>
     </div>
   );
+}
+
+// ── Run composer (start now / add to queue) ────────────────────────────────
+
+function WorkspaceRunDialog({
+  project,
+  onClose,
+  onDone,
+}: {
+  project: WorkspaceProjectSummary;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [task, setTask] = useState("");
+  const [flow, setFlow] = useState("");
+  const [effort, setEffort] = useState<"" | "low" | "medium" | "high">("");
+  const [readOnly, setReadOnly] = useState(false);
+  const [busy, setBusy] = useState<"run" | "queue" | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const buildReq = (): WorkspaceRunRequest => ({
+    project: project.root,
+    task: task.trim(),
+    effort: effort || null,
+    readOnly,
+    flow: flow.trim() ? { id: flow.trim() } : null,
+  });
+
+  const submit = async (mode: "run" | "queue") => {
+    if (!task.trim()) {
+      setErr("Describe the task first.");
+      return;
+    }
+    setBusy(mode);
+    setErr(null);
+    try {
+      if (mode === "run") await api.launchWorkspaceRun(buildReq());
+      else await api.enqueueWorkspaceRun(buildReq());
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[520px] glass p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="eyebrow mb-1">Run in another project</div>
+            <h3 className="text-[15px] font-semibold text-fog-100 flex items-center gap-2">
+              <Folder className="h-4 w-4 text-violet-soft" strokeWidth={1.7} />
+              {project.label}
+            </h3>
+            <div className="mono text-[10.5px] text-fog-500 truncate mt-0.5">{project.root}</div>
+          </div>
+          <button type="button" onClick={onClose} className="text-fog-500 hover:text-fog-200">
+            <X className="h-4 w-4" strokeWidth={1.7} />
+          </button>
+        </div>
+
+        <label className="block mt-4 text-[11.5px] text-fog-400">Task</label>
+        <textarea
+          value={task}
+          onChange={(e) => setTask(e.target.value)}
+          rows={3}
+          autoFocus
+          placeholder="Describe the change to make…"
+          className="mt-1 w-full rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 resize-y"
+        />
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11.5px] text-fog-400">Flow (optional)</label>
+            <input
+              value={flow}
+              onChange={(e) => setFlow(e.target.value)}
+              placeholder="e.g. pickup"
+              className="mt-1 w-full rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+            />
+          </div>
+          <div>
+            <label className="block text-[11.5px] text-fog-400">Effort</label>
+            <select
+              value={effort}
+              onChange={(e) => setEffort(e.target.value as typeof effort)}
+              className="mt-1 w-full rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+            >
+              <option value="">auto</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select>
+          </div>
+        </div>
+
+        <label className="mt-3 flex items-center gap-2 text-[12px] text-fog-300">
+          <input
+            type="checkbox"
+            checked={readOnly}
+            onChange={(e) => setReadOnly(e.target.checked)}
+          />
+          Read-only (investigation; no apply/validate)
+        </label>
+
+        {err ? (
+          <div className="mt-3 rounded-md border border-rose-400/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] text-rose-300">
+            {err}
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy !== null}
+            onClick={() => void submit("queue")}
+            iconLeft={<ListPlus className="h-3.5 w-3.5" strokeWidth={1.7} />}
+          >
+            {busy === "queue" ? "Queuing…" : "Add to queue"}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={busy !== null}
+            onClick={() => void submit("run")}
+            iconLeft={<Play className="h-3.5 w-3.5" strokeWidth={1.7} />}
+          >
+            {busy === "run" ? "Starting…" : "Start now"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Workspace queue panel ──────────────────────────────────────────────────
+
+function WorkspaceQueuePanel({ onChanged }: { onChanged: () => void }) {
+  const [entries, setEntries] = useState<WorkspaceQueueEntry[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = () => {
+    api
+      .getWorkspaceQueue()
+      .then((r) => setEntries(r.entries))
+      .catch(() => setEntries([]));
+  };
+
+  useEffect(() => {
+    load();
+    const id = window.setInterval(load, 10000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const drain = async () => {
+    setBusy(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      const r = await api.drainWorkspaceQueue();
+      setMsg(
+        `Launched ${r.launched.length}, skipped ${r.skipped.length}, ${r.remaining} still queued.`,
+      );
+      load();
+      onChanged();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    try {
+      await api.removeWorkspaceQueueEntry(id);
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <section className="mt-7 glass p-5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="eyebrow mb-1">Workspace queue</div>
+          <h2 className="text-[16px] font-semibold text-fog-100">
+            {entries.length} pending {entries.length === 1 ? "run" : "runs"}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          {msg ? <span className="text-[11.5px] text-fog-400">{msg}</span> : null}
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || entries.length === 0}
+            onClick={() => void drain()}
+            iconLeft={<Play className="h-3.5 w-3.5" strokeWidth={1.7} />}
+          >
+            {busy ? "Draining…" : "Drain"}
+          </Button>
+        </div>
+      </div>
+
+      {err ? (
+        <div className="mt-3 rounded-md border border-rose-400/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] text-rose-300">
+          {err}
+        </div>
+      ) : null}
+
+      {entries.length === 0 ? (
+        <p className="mt-3 text-[12px] text-fog-500">
+          Empty. Use a project's <span className="mono">Run → Add to queue</span> (or{" "}
+          <span className="mono">vibe workspace queue add</span>) to stage cross-project runs,
+          then Drain to launch them within concurrency caps.
+        </p>
+      ) : (
+        <ul className="mt-3 divide-y divide-white/[0.06]">
+          {entries.map((e) => (
+            <li key={e.id} className="flex items-center gap-3 py-2">
+              <span className="mono text-[10.5px] text-fog-500 w-[120px] truncate shrink-0">
+                {projectLabelOf(e.request.project)}
+              </span>
+              <span className="text-[12.5px] text-fog-200 truncate flex-1">{e.request.task}</span>
+              {e.request.flow ? (
+                <span className="mono text-[10px] text-violet-soft shrink-0">
+                  flow:{e.request.flow.id}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void remove(e.id)}
+                className="text-fog-500 hover:text-rose-300 shrink-0"
+                title="Remove from queue"
+              >
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.7} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** Basename of a project path (or the label itself if not a path). */
+function projectLabelOf(sel: string): string {
+  if (!sel.includes("/")) return sel;
+  const parts = sel.split("/").filter(Boolean);
+  return parts[parts.length - 1] || sel;
 }
 
 /** Compact relative time. Pure, no deps. */

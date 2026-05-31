@@ -316,6 +316,49 @@ export type WorkspaceOverview = {
   };
 };
 
+// Cross-project actions (slices c-board + d).
+export type WorkspaceRunRequest = {
+  project: string;
+  task: string;
+  taskId?: string | null;
+  effort?: "low" | "medium" | "high" | null;
+  crewId?: string | null;
+  profileOverride?: string | null;
+  readOnly?: boolean;
+  checklistMode?: "continuous" | "step" | null;
+  skills?: string[];
+  flow?: { id: string; brief?: string | null } | null;
+};
+
+export type WorkspaceActiveRun = {
+  runId: string;
+  task: string;
+  status: string;
+  startedAt: string;
+};
+
+export type WorkspaceQueueEntry = {
+  id: string;
+  enqueuedAt: string;
+  source: string;
+  request: WorkspaceRunRequest;
+};
+
+export type WorkspaceLaunchResult = {
+  ok: true;
+  root: string;
+  label: string;
+  pid: number | null;
+  argv: string[];
+  message: string;
+};
+
+export type WorkspaceDrainResult = {
+  launched: Array<WorkspaceLaunchResult & { id: string }>;
+  skipped: Array<{ id: string; project: string; reason: string; detail: string }>;
+  remaining: number;
+};
+
 export type ProviderRow = {
   id: string;
   label: string;
@@ -973,6 +1016,41 @@ export const api = {
   },
   async getWorkspaceOverview(range: OverviewRange): Promise<WorkspaceOverview> {
     return jsonGet(`/api/workspace/overview?range=${encodeURIComponent(range)}`);
+  },
+  async getWorkspaceActive(
+    project: string,
+  ): Promise<{ project: { root: string; label: string }; runs: WorkspaceActiveRun[] }> {
+    return jsonGet(`/api/workspace/active?project=${encodeURIComponent(project)}`);
+  },
+  async launchWorkspaceRun(req: WorkspaceRunRequest): Promise<WorkspaceLaunchResult> {
+    return jsonPost("/api/workspace/runs", req);
+  },
+  async abortWorkspaceRun(
+    project: string,
+    runId: string,
+  ): Promise<{ ok: true; label: string; alreadyTerminal: boolean; status: string }> {
+    return jsonPost("/api/workspace/runs/abort", { project, runId });
+  },
+  async getWorkspaceQueue(): Promise<{ entries: WorkspaceQueueEntry[] }> {
+    return jsonGet("/api/workspace/queue");
+  },
+  async enqueueWorkspaceRun(
+    req: WorkspaceRunRequest,
+  ): Promise<{ ok: true; entry: WorkspaceQueueEntry }> {
+    return jsonPost("/api/workspace/queue", req);
+  },
+  async removeWorkspaceQueueEntry(id: string): Promise<{ ok: true }> {
+    return jsonDelete(`/api/workspace/queue/${encodeURIComponent(id)}`);
+  },
+  async drainWorkspaceQueue(opts?: {
+    maxConcurrent?: number;
+    maxPerProject?: number;
+  }): Promise<WorkspaceDrainResult> {
+    const q = new URLSearchParams();
+    if (opts?.maxConcurrent) q.set("maxConcurrent", String(opts.maxConcurrent));
+    if (opts?.maxPerProject) q.set("maxPerProject", String(opts.maxPerProject));
+    const qs = q.toString();
+    return jsonPost(`/api/workspace/queue/drain${qs ? `?${qs}` : ""}`);
   },
   async suggestNext(): Promise<TaskSuggestion[]> {
     const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(

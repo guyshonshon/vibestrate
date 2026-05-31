@@ -85,3 +85,49 @@ describe("GET /api/workspace/overview", () => {
     expect(servedRow.lastPort).toBe(4317);
   });
 });
+
+describe("cross-project endpoints (slices c-board + d)", () => {
+  it("refuses launch into an unregistered project and supports the queue lifecycle", async () => {
+    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-xpr-"));
+    const regFile = path.join(regDir, "workspace.json");
+    prevEnv = process.env.VIBESTRATE_WORKSPACE_FILE;
+    process.env.VIBESTRATE_WORKSPACE_FILE = regFile;
+
+    // An initialized served project (has .vibestrate/project.yml).
+    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-xps-"));
+    await fs.mkdir(path.join(served, ".vibestrate"), { recursive: true });
+    await fs.writeFile(path.join(served, ".vibestrate", "project.yml"), "version: 1\n");
+    await new WorkspaceStore(regFile).register({ root: served, label: "served" });
+
+    server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
+
+    // Launch into an unregistered project is refused (safety gate).
+    const bad = await fetch(`${server.url}/api/workspace/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: "/no/such/project", task: "x" }),
+    });
+    expect(bad.status).toBe(400);
+
+    // Enqueue targeting the served project succeeds.
+    const addRes = await fetch(`${server.url}/api/workspace/queue`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: "served", task: "do the thing" }),
+    });
+    expect(addRes.status).toBe(200);
+    const added = await addRes.json();
+    expect(added.ok).toBe(true);
+    const id = added.entry.id as string;
+
+    const listed = await (await fetch(`${server.url}/api/workspace/queue`)).json();
+    expect(listed.entries.map((e: { id: string }) => e.id)).toContain(id);
+
+    const del = await fetch(`${server.url}/api/workspace/queue/${id}`, {
+      method: "DELETE",
+    });
+    expect(del.status).toBe(200);
+    const after = await (await fetch(`${server.url}/api/workspace/queue`)).json();
+    expect(after.entries.length).toBe(0);
+  });
+});
