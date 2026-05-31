@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
 import {
   Check,
+  Cloud,
   Copy,
   Download,
   Pencil,
   Play,
   Plug,
   Plus,
+  Server,
   Star,
   Trash2,
   X,
 } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
-import { parseArgs, renderProviderYaml } from "../../lib/provider-yaml.js";
+import {
+  parseArgs,
+  renderProviderYaml,
+  type EditorProviderConfig,
+} from "../../lib/provider-yaml.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
 import { cn } from "../../components/design/cn.js";
@@ -41,6 +47,9 @@ export function ProvidersPage() {
   const [toast, setToast] = useState<Toast>(null);
   const [installFor, setInstallFor] = useState<ProviderRow | null>(null);
   const [editFor, setEditFor] = useState<ProviderRow | null>(null);
+  // A from-scratch provider the dashboard can't auto-detect (cloud API, local
+  // model server, or a hand-rolled CLI). The user names it and fills the form.
+  const [createKind, setCreateKind] = useState<EditorProviderConfig["type"] | null>(null);
 
   async function load() {
     try {
@@ -101,13 +110,18 @@ export function ProvidersPage() {
 
   const configuredCount = rows?.filter((r) => r.configured).length ?? 0;
   const availableCount = rows?.filter((r) => r.available).length ?? 0;
-  const popularRows = rows?.filter((r) => r.popular) ?? [];
-  const optionalRows = rows?.filter((r) => !r.popular) ?? [];
+  const popularRows = rows?.filter((r) => r.kind === "cli" && r.popular) ?? [];
+  const optionalRows = rows?.filter((r) => r.kind === "cli" && !r.popular) ?? [];
+  // HTTP-backed providers (cloud APIs + local model servers). They only appear
+  // once configured, so this section also hosts the "add" controls.
+  const httpRows = rows?.filter((r) => r.kind !== "cli") ?? [];
 
   const renderRow = (p: ProviderRow) => {
     const t = tests[p.id];
     const statusChip = providerStatus(p);
     const isBusy = busy?.id === p.id;
+    const Icon =
+      p.kind === "http-api" ? Cloud : p.kind === "localhost-proxy" ? Server : Plug;
     return (
       <div
         key={p.id}
@@ -116,7 +130,7 @@ export function ProvidersPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <Plug size={15} className="text-violet-soft shrink-0" />
+              <Icon size={15} className="text-violet-soft shrink-0" />
               <span className="text-[15px] text-fog-100 font-medium">
                 {p.label}
               </span>
@@ -247,6 +261,54 @@ export function ProvidersPage() {
               {optionalRows.map(renderRow)}
             </section>
           ) : null}
+
+          <section className="mt-7 space-y-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <div className="eyebrow">Cloud APIs & local model servers</div>
+                <p className="text-fog-400 text-[12.5px] mt-0.5 max-w-[70ch]">
+                  Drive a model over HTTP instead of a CLI. Cloud APIs use{" "}
+                  <span className="text-fog-100">your own key</span> (an env
+                  reference, never stored in config) over https; local servers
+                  (Ollama, LM Studio, vLLM) stay on{" "}
+                  <span className="text-fog-100">localhost — no egress</span>.
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  iconLeft={<Cloud size={13} />}
+                  onClick={() => setCreateKind("http-api")}
+                >
+                  Add cloud API
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  iconLeft={<Server size={13} />}
+                  onClick={() => setCreateKind("localhost-proxy")}
+                >
+                  Add local server
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconLeft={<Plus size={13} />}
+                  onClick={() => setCreateKind("cli")}
+                >
+                  Custom CLI
+                </Button>
+              </div>
+            </div>
+            {httpRows.length > 0 ? (
+              httpRows.map(renderRow)
+            ) : (
+              <p className="text-fog-500 text-[12px]">
+                None configured yet. Add a cloud API or a local model server above.
+              </p>
+            )}
+          </section>
         </>
       )}
 
@@ -264,6 +326,19 @@ export function ProvidersPage() {
         <ProviderEditor
           provider={rows?.find((r) => r.id === editFor.id) ?? editFor}
           onClose={() => setEditFor(null)}
+          onChanged={async (text) => {
+            await load();
+            if (text) flash({ kind: "ok", text });
+          }}
+          onError={(text) => flash({ kind: "err", text })}
+        />
+      ) : null}
+
+      {createKind ? (
+        <ProviderEditor
+          createKind={createKind}
+          existingIds={rows?.map((r) => r.id) ?? []}
+          onClose={() => setCreateKind(null)}
           onChanged={async (text) => {
             await load();
             if (text) flash({ kind: "ok", text });
@@ -295,29 +370,94 @@ function providerStatus(p: ProviderRow): { tone: ChipTone; label: string } {
   return { tone: "sky", label: "detected" };
 }
 
+/** Local mirror of the server's env-ref rule (provider-schema.ts). Validated
+ *  client-side for a fast hint; the server enforces it on write regardless. */
+const ENV_REF_RE = /^env:[A-Z][A-Z0-9_]*$/;
+
+type ApiName = "anthropic" | "openai" | "ollama";
+type ProviderKind = EditorProviderConfig["type"];
+
+function defaultBaseUrl(kind: ProviderKind, api: ApiName): string {
+  if (kind === "http-api") {
+    return api === "anthropic"
+      ? "https://api.anthropic.com"
+      : "https://api.openai.com/v1";
+  }
+  if (kind === "localhost-proxy") {
+    return api === "ollama" ? "http://localhost:11434" : "http://localhost:1234/v1";
+  }
+  return "";
+}
+
+function defaultModel(api: ApiName): string {
+  if (api === "anthropic") return "claude-sonnet-4-6";
+  if (api === "ollama") return "qwen3.5";
+  return "gpt-4o";
+}
+
+function parseHeaders(text: string): { value?: Record<string, string>; error?: string } {
+  const out: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    const idx = t.indexOf(":");
+    if (idx <= 0) return { error: `Header line "${t}" must be "Name: value".` };
+    out[t.slice(0, idx).trim()] = t.slice(idx + 1).trim();
+  }
+  return { value: out };
+}
+
 /**
- * The complete edit/test/remove loop for one provider — the in-UI equivalent
- * of `vibe provider setup` + `vibe provider test` + `vibe provider remove`.
- * Edits command/args/input, previews the YAML, and (because the safe-test
- * runs the *saved* config — the browser may not name an arbitrary command to
- * run) offers "Save & test" so the edit→save→test loop lives in one place.
+ * The complete create/edit/test/remove loop for one provider — the in-UI
+ * equivalent of `vibe provider setup` + `vibe provider test` + `vibe provider
+ * remove`, for **every** provider type: CLI (command/args/input), cloud
+ * `http-api` (api/baseUrl/model/key), and `localhost-proxy` model servers.
+ * Previews the exact YAML and offers "Save & test" so the loop lives in one
+ * place.
+ *
+ * Secrets never enter config: a cloud API key is captured as an env reference
+ * (`env:NAME`) only — never a literal. The browser still spawns nothing; the
+ * safe-test runs against the *saved* config server-side.
  */
 function ProviderEditor({
   provider: p,
+  createKind,
+  existingIds,
   onClose,
   onChanged,
   onError,
 }: {
-  provider: ProviderRow;
+  /** Edit an existing provider. Omit (with `createKind`) to create a new one. */
+  provider?: ProviderRow;
+  /** Create a brand-new provider of this type (the dashboard can't detect
+   *  cloud/local-server/custom providers, so the user names + fills it). */
+  createKind?: ProviderKind;
+  existingIds?: string[];
   onClose: () => void;
   onChanged: (toast?: string) => Promise<void> | void;
   onError: (text: string) => void;
 }) {
+  const isNew = !p;
+  const kind: ProviderKind = p ? p.kind : createKind!;
+  const initialApi: ApiName =
+    kind === "http-api" ? "anthropic" : kind === "localhost-proxy" ? "ollama" : "openai";
+
+  const [id, setId] = useState(p?.id ?? "");
   const [command, setCommand] = useState("");
   const [args, setArgs] = useState("");
   const [input, setInput] = useState<"stdin" | "arg">("stdin");
-  const [profilesUsing, setRolesUsing] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [apiName, setApiName] = useState<ApiName>(initialApi);
+  const [baseUrl, setBaseUrl] = useState(() =>
+    isNew ? defaultBaseUrl(kind, initialApi) : "",
+  );
+  const [model, setModel] = useState(() => (isNew ? defaultModel(initialApi) : ""));
+  const [apiKey, setApiKey] = useState(() =>
+    isNew && kind === "http-api" ? "env:ANTHROPIC_API_KEY" : "",
+  );
+  const [maxTokens, setMaxTokens] = useState("4096");
+  const [headersText, setHeadersText] = useState("");
+  const [profilesUsing, setProfilesUsing] = useState<string[]>([]);
+  const [loading, setLoading] = useState(!isNew);
   const [busy, setBusy] = useState<null | "save" | "saveTest" | "remove">(null);
   const [result, setResult] = useState<TestResult | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -331,16 +471,33 @@ function ProviderEditor({
   }, [onClose]);
 
   useEffect(() => {
+    if (isNew || !p) return;
     let cancelled = false;
     setLoading(true);
     void api
       .getProviderConfig(p.id)
       .then((r) => {
         if (cancelled) return;
-        setCommand(r.config.command);
-        setArgs(r.config.args.join(" "));
-        setInput(r.config.input);
-        setRolesUsing(r.profilesUsing);
+        const c = r.config;
+        if (c.type === "http-api" || c.type === "localhost-proxy") {
+          setApiName(c.api);
+          setBaseUrl(c.baseUrl);
+          setModel(c.model);
+          setApiKey("apiKey" in c && c.apiKey ? c.apiKey : "");
+          setMaxTokens(String(c.maxTokens));
+          if (c.type === "http-api" && c.headers) {
+            setHeadersText(
+              Object.entries(c.headers)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join("\n"),
+            );
+          }
+        } else {
+          setCommand(c.command);
+          setArgs(c.args.join(" "));
+          setInput(c.input);
+        }
+        setProfilesUsing(r.profilesUsing);
         setLoading(false);
       })
       .catch((err) => {
@@ -352,19 +509,76 @@ function ProviderEditor({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.id]);
+  }, [p?.id]);
 
-  const yamlPreview = renderProviderYaml(p.id, {
-    command,
-    args: parseArgs(args),
-    input,
-  });
+  const idForSave = (isNew ? id.trim() : p!.id) || "";
+
+  // Build the typed config from the form; `error` is shown only on submit.
+  const built: { config?: EditorProviderConfig; error?: string } = (() => {
+    if (kind === "cli") {
+      if (!command.trim()) return { error: "Command is required." };
+      return {
+        config: { type: "cli", command: command.trim(), args: parseArgs(args), input },
+      };
+    }
+    const mt = Number.parseInt(maxTokens, 10);
+    if (!Number.isFinite(mt) || mt <= 0) return { error: "maxTokens must be a positive number." };
+    if (!baseUrl.trim()) return { error: "baseUrl is required." };
+    if (!model.trim()) return { error: "model is required." };
+    if (kind === "http-api") {
+      if (!ENV_REF_RE.test(apiKey.trim()))
+        return { error: "API key must be an env reference like env:ANTHROPIC_API_KEY — never a literal key." };
+      const headers = parseHeaders(headersText);
+      if (headers.error) return { error: headers.error };
+      const hasHeaders = headers.value && Object.keys(headers.value).length > 0;
+      return {
+        config: {
+          type: "http-api",
+          api: apiName as "anthropic" | "openai",
+          baseUrl: baseUrl.trim(),
+          model: model.trim(),
+          apiKey: apiKey.trim(),
+          maxTokens: mt,
+          ...(hasHeaders ? { headers: headers.value } : {}),
+        },
+      };
+    }
+    if (apiKey.trim() && !ENV_REF_RE.test(apiKey.trim()))
+      return { error: "API key, if set, must be an env reference like env:NAME." };
+    return {
+      config: {
+        type: "localhost-proxy",
+        api: apiName as "openai" | "ollama",
+        baseUrl: baseUrl.trim(),
+        model: model.trim(),
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+        maxTokens: mt,
+      },
+    };
+  })();
+
+  const yamlPreview = built.config
+    ? renderProviderYaml(idForSave || "<id>", built.config)
+    : "# fill in the fields above to preview the YAML";
+
+  const idValid = !isNew || /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(idForSave);
+  const canSubmit = !!built.config && idForSave.length > 0 && idValid;
 
   async function save(): Promise<boolean> {
+    if (isNew && !idValid) {
+      onError("Provider id must start with a letter; letters/digits/dash/underscore only.");
+      return false;
+    }
+    if (isNew && existingIds?.includes(idForSave)) {
+      onError(`A provider named "${idForSave}" already exists.`);
+      return false;
+    }
+    if (!built.config) {
+      onError(built.error ?? "Invalid provider config.");
+      return false;
+    }
     try {
-      await api.setupProvider(p.id, {
-        config: { command: command.trim(), args: parseArgs(args), input },
-      });
+      await api.setupProvider(idForSave, { config: built.config });
       return true;
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
@@ -377,7 +591,7 @@ function ProviderEditor({
     const ok = await save();
     setBusy(null);
     if (ok) {
-      await onChanged(`Saved ${p.id} to project.yml.`);
+      await onChanged(`Saved ${idForSave} to project.yml.`);
       onClose();
     }
   }
@@ -392,7 +606,7 @@ function ProviderEditor({
     }
     await onChanged();
     try {
-      const r = await api.testProvider(p.id);
+      const r = await api.testProvider(idForSave);
       setResult(r);
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
@@ -402,6 +616,7 @@ function ProviderEditor({
   }
 
   async function onRemove() {
+    if (!p) return;
     setBusy("remove");
     try {
       await api.removeProvider(p.id);
@@ -415,12 +630,39 @@ function ProviderEditor({
   }
 
   const anyBusy = busy !== null;
+  const eyebrow = isNew
+    ? kind === "http-api"
+      ? "Add cloud API provider"
+      : kind === "localhost-proxy"
+        ? "Add local model server"
+        : "Add custom CLI provider"
+    : p!.configured
+      ? "Edit provider"
+      : "Set up provider";
+  const headerTitle = isNew ? id || "new provider" : p!.label;
+  const apiOptions: ApiName[] =
+    kind === "http-api" ? ["anthropic", "openai"] : ["openai", "ollama"];
+
+  function onApiChange(next: ApiName) {
+    setApiName(next);
+    // In create mode, follow the destination defaults as the user switches.
+    if (isNew) {
+      setBaseUrl(defaultBaseUrl(kind, next));
+      setModel(defaultModel(next));
+      if (kind === "http-api") {
+        setApiKey(next === "anthropic" ? "env:ANTHROPIC_API_KEY" : "env:OPENAI_API_KEY");
+      }
+    }
+  }
+
+  const inputCls =
+    "mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Set up ${p.label}`}
+      aria-label={`${eyebrow} ${headerTitle}`}
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -430,16 +672,20 @@ function ProviderEditor({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="eyebrow">
-              {p.configured ? "Edit provider" : "Set up provider"}
-            </div>
-            <h2 className="text-display text-[19px] mt-0.5">{p.label}</h2>
+            <div className="eyebrow">{eyebrow}</div>
+            <h2 className="text-display text-[19px] mt-0.5">{headerTitle}</h2>
             <div className="mono text-[11px] text-fog-500 mt-1 flex items-center gap-2 flex-wrap">
-              <span>{p.id}</span>
-              <span className="text-fog-600">·</span>
-              <span className={p.available ? "text-emerald-300/90" : "text-amber-300"}>
-                {p.available ? "CLI detected" : "CLI not detected"}
-              </span>
+              {!isNew ? <span>{p!.id}</span> : null}
+              {!isNew ? <span className="text-fog-600">·</span> : null}
+              {kind === "cli" ? (
+                <span className={p?.available ? "text-emerald-300/90" : "text-amber-300"}>
+                  {p?.available ? "CLI detected" : "CLI not detected"}
+                </span>
+              ) : kind === "http-api" ? (
+                <span className="text-amber-300">external · egress over https</span>
+              ) : (
+                <span className="text-emerald-300/90">local only · no egress</span>
+              )}
             </div>
           </div>
           <button
@@ -457,41 +703,130 @@ function ProviderEditor({
         ) : (
           <>
             <div className="mt-4 grid grid-cols-1 gap-2.5">
-              <FormField label="command">
-                <input
-                  value={command}
-                  onChange={(e) => setCommand(e.target.value)}
-                  placeholder={p.id}
-                  className="mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40"
-                />
-              </FormField>
-              <FormField label="args">
-                <input
-                  value={args}
-                  onChange={(e) => setArgs(e.target.value)}
-                  placeholder='space-separated · e.g. "exec"'
-                  className="mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40"
-                />
-              </FormField>
-              <FormField label="input">
-                <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
-                  {(["stdin", "arg"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setInput(mode)}
-                      className={cn(
-                        "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
-                        input === mode
-                          ? "bg-white/[0.08] text-fog-100"
-                          : "text-fog-400 hover:text-fog-100",
-                      )}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </FormField>
+              {isNew ? (
+                <FormField label="provider id">
+                  <input
+                    value={id}
+                    onChange={(e) => setId(e.target.value)}
+                    placeholder={kind === "http-api" ? "anthropic-cloud" : kind === "localhost-proxy" ? "ollama-local" : "myagent"}
+                    className={inputCls}
+                  />
+                </FormField>
+              ) : null}
+
+              {kind === "cli" ? (
+                <>
+                  <FormField label="command">
+                    <input
+                      value={command}
+                      onChange={(e) => setCommand(e.target.value)}
+                      placeholder={idForSave || "my-cli"}
+                      className={inputCls}
+                    />
+                  </FormField>
+                  <FormField label="args">
+                    <input
+                      value={args}
+                      onChange={(e) => setArgs(e.target.value)}
+                      placeholder='space-separated · e.g. "exec"'
+                      className={inputCls}
+                    />
+                  </FormField>
+                  <FormField label="input">
+                    <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
+                      {(["stdin", "arg"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setInput(mode)}
+                          className={cn(
+                            "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
+                            input === mode
+                              ? "bg-white/[0.08] text-fog-100"
+                              : "text-fog-400 hover:text-fog-100",
+                          )}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </FormField>
+                </>
+              ) : (
+                <>
+                  <FormField label="api (wire protocol)">
+                    <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
+                      {apiOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => onApiChange(opt)}
+                          className={cn(
+                            "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
+                            apiName === opt
+                              ? "bg-white/[0.08] text-fog-100"
+                              : "text-fog-400 hover:text-fog-100",
+                          )}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </FormField>
+                  <FormField label="baseUrl">
+                    <input
+                      value={baseUrl}
+                      onChange={(e) => setBaseUrl(e.target.value)}
+                      placeholder={defaultBaseUrl(kind, apiName)}
+                      className={inputCls}
+                    />
+                  </FormField>
+                  <FormField label="model">
+                    <input
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder={defaultModel(apiName)}
+                      className={inputCls}
+                    />
+                  </FormField>
+                  <FormField
+                    label={kind === "http-api" ? "api key (env reference)" : "api key (optional, env reference)"}
+                  >
+                    <input
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="env:ANTHROPIC_API_KEY"
+                      className={inputCls}
+                    />
+                    <p className="text-[10.5px] text-fog-500 mt-1">
+                      An <span className="text-fog-300">env reference</span> like{" "}
+                      <code className="text-violet-soft">env:NAME</code> — the key
+                      stays in your environment, never in config.
+                    </p>
+                  </FormField>
+                  <FormField label="maxTokens">
+                    <input
+                      value={maxTokens}
+                      onChange={(e) => setMaxTokens(e.target.value)}
+                      inputMode="numeric"
+                      placeholder="4096"
+                      className={inputCls}
+                    />
+                  </FormField>
+                  {kind === "http-api" ? (
+                    <FormField label="headers (optional · one per line, Name: value)">
+                      <textarea
+                        value={headersText}
+                        onChange={(e) => setHeadersText(e.target.value)}
+                        rows={2}
+                        spellCheck={false}
+                        placeholder="anthropic-beta: prompt-caching-2024-07-31"
+                        className="mono w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] text-fog-100 focus:outline-none focus:border-violet-soft/40 resize-y"
+                      />
+                    </FormField>
+                  ) : null}
+                </>
+              )}
             </div>
 
             <div className="mt-4">
@@ -512,8 +847,8 @@ function ProviderEditor({
             {result ? (
               <TestResultRow
                 result={result}
-                loginCommand={p.loginCommand}
-                loginNote={p.loginNote}
+                loginCommand={p?.loginCommand ?? null}
+                loginNote={p?.loginNote ?? ""}
               />
             ) : null}
 
@@ -521,7 +856,7 @@ function ProviderEditor({
               <Button
                 variant="primary"
                 size="sm"
-                disabled={anyBusy || !command.trim()}
+                disabled={anyBusy || !canSubmit}
                 iconLeft={<Play size={12} />}
                 onClick={() => void onSaveTest()}
               >
@@ -530,13 +865,13 @@ function ProviderEditor({
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={anyBusy || !command.trim()}
+                disabled={anyBusy || !canSubmit}
                 onClick={() => void onSave()}
               >
                 {busy === "save" ? "Saving…" : "Save"}
               </Button>
               <div className="ml-auto">
-                {p.configured ? (
+                {!isNew && p!.configured ? (
                   confirmRemove ? (
                     <div className="flex items-center gap-2">
                       <span className="text-[11.5px] text-rose-300">
