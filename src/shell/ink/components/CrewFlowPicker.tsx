@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { FOCAL_CARD_PROPS } from "../theme.js";
+import { ACCENT, ACCENT_BRIGHT, FOCAL_CARD_PROPS } from "../theme.js";
 import type { PickerItem } from "../ui-state.js";
 
 /**
@@ -18,7 +18,7 @@ export function CrewFlowPicker({
 }) {
   return (
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
-      <Text bold color="cyan">
+      <Text bold color={ACCENT_BRIGHT}>
         Select {kind}
       </Text>
       <Box marginTop={1} flexDirection="column">
@@ -26,7 +26,7 @@ export function CrewFlowPicker({
           <Text dimColor>none available</Text>
         ) : (
           items.map((it, i) => (
-            <Text key={it.id} color={i === index ? "cyan" : undefined} inverse={i === index}>
+            <Text key={it.id} color={i === index ? ACCENT : undefined} inverse={i === index}>
               {i === index ? "▌ " : "  "}
               {it.label}
               {it.label !== it.id ? <Text dimColor>{`  ${it.id}`}</Text> : null}

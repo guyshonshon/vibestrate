@@ -2,6 +2,9 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { ShellSnapshot } from "../../shell-snapshot.js";
 import {
+  ACCENT,
+  ACCENT_BRIGHT,
+  ACCENT_DIM,
   clip,
   eventTypeColor,
   runStatusToken,
@@ -84,7 +87,7 @@ export function DashboardPage({ snapshot }: Props) {
         {!stackedBody ? (
           <Box
             borderStyle="single"
-            borderColor="gray"
+            borderColor={ACCENT_DIM}
             borderTop={false}
             borderRight={false}
             borderBottom={false}
@@ -166,10 +169,10 @@ function StatStrip({
   };
   sched: { queuePolicy: string; paused: boolean } | null;
 }) {
-  type ChipColor = "cyan" | "yellow" | "gray";
+  type ChipColor = string;
   type Chip = { label: string; value: string; color: ChipColor };
   const chips: Chip[] = [
-    { label: "active", value: String(agg.activeRuns), color: "cyan" },
+    { label: "active", value: String(agg.activeRuns), color: ACCENT },
     {
       label: "queue",
       value: `${agg.queueRunning}/${agg.queueWaiting}`,
@@ -221,7 +224,7 @@ function SectionCard({
   return (
     <Box flexDirection="column">
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={ACCENT_BRIGHT}>
           {title}
         </Text>
         {typeof count === "number" ? (

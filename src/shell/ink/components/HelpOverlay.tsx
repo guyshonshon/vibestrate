@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { FOCAL_CARD_PROPS } from "../theme.js";
+import { ACCENT, FOCAL_CARD_PROPS } from "../theme.js";
 import { pageLabel, type PageId } from "../ui-state.js";
 import { PAGE_META } from "../page-meta.js";
 
@@ -57,7 +57,7 @@ export function HelpOverlay({ currentPage }: Props) {
 
       {/* Current-page context first — most likely what the user wants. */}
       <Box marginTop={1} flexDirection="column">
-        <Text color="cyan">Right now · {pageLabel(currentPage)}</Text>
+        <Text color={ACCENT}>Right now · {pageLabel(currentPage)}</Text>
         <Text>{meta.subtitle}</Text>
         <Box marginTop={1}>
           <Text dimColor>{meta.blurb}</Text>
@@ -68,7 +68,7 @@ export function HelpOverlay({ currentPage }: Props) {
             {meta.commonKeys.map(([k, label]) => (
               <Box key={k}>
                 <Text>
-                  <Text color="cyan">{k.padEnd(14)}</Text>
+                  <Text color={ACCENT}>{k.padEnd(14)}</Text>
                   <Text dimColor>{label}</Text>
                 </Text>
               </Box>
@@ -90,11 +90,11 @@ export function HelpOverlay({ currentPage }: Props) {
 
       {SECTIONS.map((section) => (
         <Box key={section.heading} flexDirection="column" marginTop={1}>
-          <Text color="cyan">{section.heading}</Text>
+          <Text color={ACCENT}>{section.heading}</Text>
           {section.entries.map(([key, label]) => (
             <Box key={key}>
               <Text>
-                <Text color="cyan">{key.padEnd(14)}</Text>
+                <Text color={ACCENT}>{key.padEnd(14)}</Text>
                 <Text dimColor>{label}</Text>
               </Text>
             </Box>

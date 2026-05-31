@@ -6,7 +6,7 @@ import {
   filterPalette,
   type PaletteCommand,
 } from "../palette.js";
-import { FOCAL_CARD_PROPS } from "../theme.js";
+import { ACCENT, FOCAL_CARD_PROPS } from "../theme.js";
 
 type Props = {
   query: string;
@@ -39,7 +39,7 @@ export function CommandPalette({
   return (
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
       <Box>
-        <Text color="cyan" bold>
+        <Text color={ACCENT} bold>
           ›{" "}
         </Text>
         <TextInput
@@ -60,7 +60,7 @@ export function CommandPalette({
               return (
                 <Box key={m.id}>
                   <Text>
-                    <Text color={active ? "cyan" : undefined}>
+                    <Text color={active ? ACCENT : undefined}>
                       {active ? "▌ " : "  "}
                     </Text>
                     <Text bold={active}>{m.title}</Text>
@@ -81,7 +81,7 @@ export function CommandPalette({
             paddingLeft={2}
             flexGrow={1}
           >
-            <Text bold color="cyan">
+            <Text bold color={ACCENT}>
               {focused.title}
             </Text>
             {focused.description ? (
@@ -118,8 +118,8 @@ export function CommandPalette({
       </Box>
       <Box marginTop={1}>
         <Text dimColor>
-          <Text color="cyan">↑↓</Text> select · <Text color="cyan">↵</Text> run
-          · <Text color="cyan">Esc</Text> cancel
+          <Text color={ACCENT}>↑↓</Text> select · <Text color={ACCENT}>↵</Text> run
+          · <Text color={ACCENT}>Esc</Text> cancel
         </Text>
       </Box>
     </Box>

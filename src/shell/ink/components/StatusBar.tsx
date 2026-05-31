@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { ACCENT_BRIGHT } from "../theme.js";
 import type { StatusModel } from "../status-model.js";
 
 /**
@@ -44,9 +45,9 @@ export function ContextLine({ model }: { model: StatusModel }) {
         hotkey="m"
       />
       <Sep />
-      <Field label="crew" value={model.crew} color="blue" hotkey="c" />
+      <Field label="crew" value={model.crew} color={ACCENT_BRIGHT} hotkey="c" />
       <Sep />
-      <Field label="flow" value={model.flow} color="blue" hotkey="f" />
+      <Field label="flow" value={model.flow} color={ACCENT_BRIGHT} hotkey="f" />
       {model.runningTask ? (
         <>
           <Sep />

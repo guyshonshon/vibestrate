@@ -1,22 +1,23 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { Color } from "../theme.js";
+import { ACCENT_DIM } from "../theme.js";
 
 /**
  * A titled, rounded container — the building block for the shell's three
  * stacked regions (header · body · prompt). The border color is the region's
- * accent; an optional title sits on the first inner row.
+ * accent; an optional title sits on the first inner row. Colors accept Ink
+ * names or hex (the violet ramp lives in theme.ts).
  */
 export function Panel({
-  borderColor = "gray",
+  borderColor = ACCENT_DIM,
   title,
   titleColor,
   children,
   flexGrow,
 }: {
-  borderColor?: Color;
+  borderColor?: string;
   title?: string;
-  titleColor?: Color;
+  titleColor?: string;
   children: React.ReactNode;
   flexGrow?: number;
 }) {
