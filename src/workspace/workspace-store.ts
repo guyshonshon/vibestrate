@@ -8,9 +8,25 @@
 
 import os from "node:os";
 import path from "node:path";
+import { realpathSync } from "node:fs";
 import { z } from "zod";
 import { readText, writeText, pathExists } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
+
+/**
+ * Canonical absolute root: resolves symlinks (e.g. macOS `/var` →
+ * `/private/var`) so the SAME project never lands under two keys. Falls back to
+ * `path.resolve` when the path doesn't exist yet (realpath would throw). This is
+ * the dedup key for the registry and the match key for cross-project lookups.
+ */
+export function canonicalRoot(p: string): string {
+  const resolved = path.resolve(p);
+  try {
+    return realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
 
 export const workspaceProjectSchema = z.object({
   /** Absolute, normalized project root. The dedup key. */
@@ -36,21 +52,10 @@ export function defaultWorkspaceFile(): string {
   return path.join(os.homedir(), ".vibestrate", "workspace.json");
 }
 
-/** The user-level dir holding the registry (+ its sibling queue / audit log).
- *  Tracks `$VIBESTRATE_WORKSPACE_FILE` so tests that redirect the registry get
- *  the queue and dispatch log redirected alongside it. */
+/** The user-level dir holding the registry. Tracks `$VIBESTRATE_WORKSPACE_FILE`
+ *  so tests that redirect the registry get siblings redirected alongside it. */
 export function workspaceDir(): string {
   return path.dirname(defaultWorkspaceFile());
-}
-
-/** Cross-project dispatch queue, sibling of the registry. */
-export function defaultWorkspaceQueueFile(): string {
-  return path.join(workspaceDir(), "workspace-queue.json");
-}
-
-/** Append-only audit log of every cross-project action (launch/abort/enqueue). */
-export function defaultWorkspaceDispatchLog(): string {
-  return path.join(workspaceDir(), "workspace-dispatch.ndjson");
 }
 
 /** A fresh empty file — new arrays each call, never a shared mutable default. */
@@ -90,7 +95,7 @@ export class WorkspaceStore {
     label?: string;
     port?: number | null;
   }): Promise<WorkspaceProject> {
-    const root = path.resolve(input.root);
+    const root = canonicalRoot(input.root);
     const file = await this.read();
     const ts = nowIso();
     const existing = file.projects.find((p) => p.root === root);
@@ -119,7 +124,7 @@ export class WorkspaceStore {
 
   /** Remove a project from the registry (does NOT touch the project on disk). */
   async remove(root: string): Promise<boolean> {
-    const norm = path.resolve(root);
+    const norm = canonicalRoot(root);
     const file = await this.read();
     const before = file.projects.length;
     file.projects = file.projects.filter((p) => p.root !== norm);

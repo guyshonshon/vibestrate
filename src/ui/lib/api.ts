@@ -282,6 +282,7 @@ export type WorkspaceProjectSummary = {
   lastPort: number | null;
   lastOpenedAt: string | null;
   initialized: boolean;
+  live: boolean;
   unreadable: boolean;
   totalRuns: number;
   activeRuns: number;
@@ -316,47 +317,13 @@ export type WorkspaceOverview = {
   };
 };
 
-// Cross-project actions (slices c-board + d).
-export type WorkspaceRunRequest = {
-  project: string;
-  task: string;
-  taskId?: string | null;
-  effort?: "low" | "medium" | "high" | null;
-  crewId?: string | null;
-  profileOverride?: string | null;
-  readOnly?: boolean;
-  checklistMode?: "continuous" | "step" | null;
-  skills?: string[];
-  flow?: { id: string; brief?: string | null } | null;
-};
-
-export type WorkspaceActiveRun = {
-  runId: string;
-  task: string;
-  status: string;
-  startedAt: string;
-};
-
-export type WorkspaceQueueEntry = {
-  id: string;
-  enqueuedAt: string;
-  source: string;
-  request: WorkspaceRunRequest;
-};
-
-export type WorkspaceLaunchResult = {
-  ok: true;
+// Navigator: starting/opening another project's own dashboard.
+export type EnsureServerResult = {
   root: string;
   label: string;
-  pid: number | null;
-  argv: string[];
-  message: string;
-};
-
-export type WorkspaceDrainResult = {
-  launched: Array<WorkspaceLaunchResult & { id: string }>;
-  skipped: Array<{ id: string; project: string; reason: string; detail: string }>;
-  remaining: number;
+  url: string;
+  port: number;
+  started: boolean;
 };
 
 export type ProviderRow = {
@@ -1010,47 +977,18 @@ export const api = {
       lastPort: number | null;
       lastOpenedAt: string;
       current: boolean;
+      live: boolean;
     }[];
   }> {
     return jsonGet("/api/workspace");
   },
+  /** Ensure a project's own dashboard is live (starting it if dormant) and
+   *  return its URL so the caller can open a new tab. */
+  async openWorkspaceProject(project: string): Promise<EnsureServerResult> {
+    return jsonPost("/api/workspace/open", { project });
+  },
   async getWorkspaceOverview(range: OverviewRange): Promise<WorkspaceOverview> {
     return jsonGet(`/api/workspace/overview?range=${encodeURIComponent(range)}`);
-  },
-  async getWorkspaceActive(
-    project: string,
-  ): Promise<{ project: { root: string; label: string }; runs: WorkspaceActiveRun[] }> {
-    return jsonGet(`/api/workspace/active?project=${encodeURIComponent(project)}`);
-  },
-  async launchWorkspaceRun(req: WorkspaceRunRequest): Promise<WorkspaceLaunchResult> {
-    return jsonPost("/api/workspace/runs", req);
-  },
-  async abortWorkspaceRun(
-    project: string,
-    runId: string,
-  ): Promise<{ ok: true; label: string; alreadyTerminal: boolean; status: string }> {
-    return jsonPost("/api/workspace/runs/abort", { project, runId });
-  },
-  async getWorkspaceQueue(): Promise<{ entries: WorkspaceQueueEntry[] }> {
-    return jsonGet("/api/workspace/queue");
-  },
-  async enqueueWorkspaceRun(
-    req: WorkspaceRunRequest,
-  ): Promise<{ ok: true; entry: WorkspaceQueueEntry }> {
-    return jsonPost("/api/workspace/queue", req);
-  },
-  async removeWorkspaceQueueEntry(id: string): Promise<{ ok: true }> {
-    return jsonDelete(`/api/workspace/queue/${encodeURIComponent(id)}`);
-  },
-  async drainWorkspaceQueue(opts?: {
-    maxConcurrent?: number;
-    maxPerProject?: number;
-  }): Promise<WorkspaceDrainResult> {
-    const q = new URLSearchParams();
-    if (opts?.maxConcurrent) q.set("maxConcurrent", String(opts.maxConcurrent));
-    if (opts?.maxPerProject) q.set("maxPerProject", String(opts.maxPerProject));
-    const qs = q.toString();
-    return jsonPost(`/api/workspace/queue/drain${qs ? `?${qs}` : ""}`);
   },
   async suggestNext(): Promise<TaskSuggestion[]> {
     const r = await jsonGet<{ suggestions: TaskSuggestion[] }>(

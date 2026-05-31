@@ -17,7 +17,7 @@
 import path from "node:path";
 import { pathExists } from "../utils/fs.js";
 import { projectConfigPath, vibestrateRoot } from "../utils/paths.js";
-import { WorkspaceStore } from "./workspace-store.js";
+import { WorkspaceStore, canonicalRoot } from "./workspace-store.js";
 
 export class WorkspaceSafetyError extends Error {
   constructor(
@@ -54,16 +54,17 @@ export async function resolveTargetProject(
   selector: string,
   deps: WorkspaceSafetyDeps,
 ): Promise<ResolvedProject> {
-  const currentRoot = path.resolve(deps.currentRoot);
+  const currentRoot = canonicalRoot(deps.currentRoot);
   const store = deps.store ?? new WorkspaceStore();
   const projects = await store.list();
 
   const sel = (selector ?? "").trim();
   if (!sel) throw new WorkspaceSafetyError("A target project is required.");
 
-  // Match by registry label first (exact), then by normalized path.
+  // Match by registry label first (exact), then by canonical path (symlink-
+  // resolved) so `/var/…` and `/private/var/…` reach the same registered root.
   const byLabel = projects.find((p) => p.label === sel);
-  const asPath = path.resolve(sel);
+  const asPath = canonicalRoot(sel);
   const byPath = projects.find((p) => p.root === asPath);
 
   let root: string;

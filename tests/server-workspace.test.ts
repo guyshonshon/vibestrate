@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { startServer, type StartedServer } from "../src/server/server.js";
-import { WorkspaceStore } from "../src/workspace/workspace-store.js";
+import { WorkspaceStore, canonicalRoot } from "../src/workspace/workspace-store.js";
 
 let server: StartedServer | null = null;
 let prevEnv: string | undefined;
@@ -30,7 +30,7 @@ describe("GET /api/workspace", () => {
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
     const r = await (await fetch(`${server.url}/api/workspace`)).json();
 
-    expect(r.current).toBe(path.resolve(served));
+    expect(r.current).toBe(canonicalRoot(served));
     const servedRow = r.projects.find((p: { label: string }) => p.label === "served");
     const otherRow = r.projects.find((p: { label: string }) => p.label === "other");
     expect(servedRow.current).toBe(true);
@@ -86,48 +86,45 @@ describe("GET /api/workspace/overview", () => {
   });
 });
 
-describe("cross-project endpoints (slices c-board + d)", () => {
-  it("refuses launch into an unregistered project and supports the queue lifecycle", async () => {
-    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-xpr-"));
+describe("POST /api/workspace/open (navigator)", () => {
+  it("refuses an unregistered project and reuses the live served instance", async () => {
+    const regDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-opn-"));
     const regFile = path.join(regDir, "workspace.json");
     prevEnv = process.env.VIBESTRATE_WORKSPACE_FILE;
     process.env.VIBESTRATE_WORKSPACE_FILE = regFile;
 
     // An initialized served project (has .vibestrate/project.yml).
-    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-xps-"));
+    const served = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ops-"));
     await fs.mkdir(path.join(served, ".vibestrate"), { recursive: true });
     await fs.writeFile(path.join(served, ".vibestrate", "project.yml"), "version: 1\n");
-    await new WorkspaceStore(regFile).register({ root: served, label: "served" });
 
     server = await startServer({ projectRoot: served, port: 0, host: "127.0.0.1" });
+    // The server self-registers its bound port via the registry on `vibe ui`;
+    // here we register it explicitly so the served root is live + reusable.
+    const servedPort = new URL(server.url).port;
+    await new WorkspaceStore(regFile).register({
+      root: served,
+      label: "served",
+      port: Number(servedPort),
+    });
 
-    // Launch into an unregistered project is refused (safety gate).
-    const bad = await fetch(`${server.url}/api/workspace/runs`, {
+    // Unregistered target is refused by the safety gate.
+    const bad = await fetch(`${server.url}/api/workspace/open`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ project: "/no/such/project", task: "x" }),
+      body: JSON.stringify({ project: "/no/such/project" }),
     });
     expect(bad.status).toBe(400);
 
-    // Enqueue targeting the served project succeeds.
-    const addRes = await fetch(`${server.url}/api/workspace/queue`, {
+    // The served project is already live → reused, not spawned.
+    const ok = await fetch(`${server.url}/api/workspace/open`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ project: "served", task: "do the thing" }),
+      body: JSON.stringify({ project: "served" }),
     });
-    expect(addRes.status).toBe(200);
-    const added = await addRes.json();
-    expect(added.ok).toBe(true);
-    const id = added.entry.id as string;
-
-    const listed = await (await fetch(`${server.url}/api/workspace/queue`)).json();
-    expect(listed.entries.map((e: { id: string }) => e.id)).toContain(id);
-
-    const del = await fetch(`${server.url}/api/workspace/queue/${id}`, {
-      method: "DELETE",
-    });
-    expect(del.status).toBe(200);
-    const after = await (await fetch(`${server.url}/api/workspace/queue`)).json();
-    expect(after.entries.length).toBe(0);
+    expect(ok.status).toBe(200);
+    const body = await ok.json();
+    expect(body.started).toBe(false);
+    expect(body.port).toBe(Number(servedPort));
   });
 });
