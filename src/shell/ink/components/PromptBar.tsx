@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
+import { ACCENT } from "../theme.js";
 
 type Props = {
   input: string;
@@ -47,7 +48,7 @@ export function PromptBar({
         </Box>
       ) : null}
       <Box>
-        <Text color={focused ? "cyan" : "gray"} bold>
+        <Text color={focused ? ACCENT : "gray"} bold>
           {"▸ vibe "}
         </Text>
         {focused ? (

@@ -42,6 +42,7 @@ import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
 import { Rule } from "./components/Frame.js";
+import { ACCENT, ACCENT_DIM, ACCENT_DEEP } from "./theme.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -522,11 +523,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   return (
     <Box flexDirection="column">
       {/* Region 1 — header: brand + context + menu. */}
-      <Panel borderColor="cyan">
+      <Panel borderColor={ACCENT}>
         <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
       {/* Region 2 — body: the active page (interactive · informative). */}
-      <Panel borderColor="gray" flexGrow={1}>
+      <Panel borderColor={ACCENT_DIM} flexGrow={1}>
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
@@ -662,7 +663,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       </Panel>
       {/* Region 3 — context line + prompt + key hints. Border brightens
           to cyan while the prompt owns input. */}
-      <Panel borderColor={ui.promptFocused ? "cyan" : "gray"}>
+      <Panel borderColor={ui.promptFocused ? ACCENT_DEEP : ACCENT_DIM}>
         <ContextLine model={statusModel} />
         <Rule />
         <PromptBar

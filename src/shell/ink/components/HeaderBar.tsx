@@ -4,6 +4,7 @@ import { TabBar } from "./TabBar.js";
 import { Rule } from "./Frame.js";
 import { pageLabel, type PageId } from "../ui-state.js";
 import { PAGE_META } from "../page-meta.js";
+import { ACCENT, ACCENT_BRIGHT, PINK } from "../theme.js";
 import type { StatusModel } from "../status-model.js";
 
 /**
@@ -15,19 +16,19 @@ export function HeaderBar({ model, page }: { model: StatusModel; page: PageId })
   return (
     <Box flexDirection="column">
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={ACCENT_BRIGHT}>
           ⏵ vibestrate
         </Text>
         <Box flexGrow={1} />
         <Text>
           <Text dimColor>project </Text>
-          <Text color="cyan">{model.project}</Text>
+          <Text bold color={ACCENT}>{model.project}</Text>
           <Text dimColor>{"   ·   "}</Text>
           <Text dimColor>branch </Text>
-          <Text>{model.branch}</Text>
-          {model.worktree ? <Text color="magenta"> ⑂</Text> : null}
+          <Text color="white">{model.branch}</Text>
+          {model.worktree ? <Text color={PINK}> ⑂</Text> : null}
           <Text dimColor>{"   ·   "}</Text>
-          <Text color={model.busy ? "cyan" : "gray"}>{model.activity}</Text>
+          <Text color={model.busy ? ACCENT : "gray"}>{model.activity}</Text>
         </Text>
       </Box>
       <Rule />

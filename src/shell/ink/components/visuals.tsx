@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import type { Color, StatusToken } from "../theme.js";
+import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM, type Color, type StatusToken } from "../theme.js";
 
 /**
  * Compact pill — `▌ label`. The left bar is colored (status or
@@ -26,7 +26,7 @@ export function Pill({
 }) {
   if (active) {
     return (
-      <Text color="black" backgroundColor={color ?? "cyan"} bold>
+      <Text color="black" backgroundColor={color ?? ACCENT} bold>
         {" "}
         {label}
         {" "}
@@ -60,7 +60,7 @@ export function StatusPill({
     typeof count === "number" ? `${token.label} ${count}` : token.label;
   if (active) {
     return (
-      <Text color="black" backgroundColor={token.color ?? "cyan"} bold>
+      <Text color="black" backgroundColor={token.color ?? ACCENT} bold>
         {" "}
         {label}
         {" "}
@@ -96,12 +96,12 @@ export function AccentHeader({
   return (
     <Box flexDirection="column">
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={ACCENT_BRIGHT}>
           {title.toUpperCase()}
         </Text>
         {hint ? <Text dimColor>     {hint}</Text> : null}
       </Box>
-      <Text dimColor>{"═".repeat(title.length)}</Text>
+      <Text color={ACCENT_DIM}>{"═".repeat(title.length)}</Text>
     </Box>
   );
 }
@@ -112,6 +112,6 @@ export function AccentHeader({
  * active" cue than a small `›` glyph.
  */
 export function SelectionMark({ selected }: { selected: boolean }) {
-  if (selected) return <Text color="cyan" bold>▌ </Text>;
+  if (selected) return <Text color={ACCENT} bold>▌ </Text>;
   return <Text>  </Text>;
 }

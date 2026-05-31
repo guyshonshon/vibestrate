@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
+import { ACCENT } from "../theme.js";
 import type { ShellUiStateV2 } from "../ui-state.js";
 
 export type KeyHint = { key: string; label: string };
@@ -31,7 +32,7 @@ export function Footer({ ui, groups, capturedAt }: Props) {
               {g.hints.map((h, hi) => (
                 <React.Fragment key={`${g.name}-${h.key}`}>
                   {hi > 0 ? <Text dimColor>  </Text> : null}
-                  <Text color="cyan">{h.key}</Text>
+                  <Text color={ACCENT}>{h.key}</Text>
                   <Text dimColor> {h.label}</Text>
                 </React.Fragment>
               ))}

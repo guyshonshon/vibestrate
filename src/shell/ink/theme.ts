@@ -1,6 +1,6 @@
 // Single source of truth for visual tokens used by the panel.
-// Inspired by the Claude CLI: generous whitespace, monochrome with a
-// cyan accent, glyph-based status badges, and rounded card borders.
+// Generous whitespace, a violet/purple accent (matching the web
+// dashboard), glyph-based status badges, and rounded panel borders.
 
 export type Color =
   | "cyan"
@@ -11,6 +11,19 @@ export type Color =
   | "blue"
   | "gray"
   | undefined;
+
+/**
+ * Brand accent ramp — violet/purple, matching the web dashboard's
+ * `violet-soft`. Ink renders hex via chalk, so these pass anywhere a
+ * `color` / `borderColor` is accepted. `ACCENT` is the primary;
+ * `ACCENT_BRIGHT` for titles/active; `ACCENT_DEEP`/`_DIM` for borders
+ * (focused vs resting); `PINK` is a secondary highlight.
+ */
+export const ACCENT = "#a78bfa"; // violet-400 — primary accent
+export const ACCENT_BRIGHT = "#c4b5fd"; // violet-300 — titles / active
+export const ACCENT_DEEP = "#8b5cf6"; // violet-500 — focused borders
+export const ACCENT_DIM = "#6d5b9e"; // muted violet — resting borders / dividers
+export const PINK = "#e879c9"; // secondary highlight (worktree, accents)
 
 export type StatusToken = {
   glyph: string;
@@ -116,7 +129,7 @@ export const CARD_PROPS = {
  */
 export const FOCAL_CARD_PROPS = {
   borderStyle: "round" as const,
-  borderColor: "cyan" as const,
+  borderColor: ACCENT as string,
   paddingX: 2,
   paddingY: 1,
 };

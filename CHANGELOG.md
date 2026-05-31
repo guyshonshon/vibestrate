@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — violet accent theme.** Recoloured the shell around a
+  violet/purple ramp (matching the web dashboard's `violet-soft`): panel borders,
+  brand, active tab, section titles, crew/flow, prompt marker, key hints, and
+  dividers. Hex ramp (`ACCENT*`) centralised in `theme.ts`.
 - **Interactive shell — three-region layout.** Reorganised the shell into three
   bordered, color-accented panels for a calmer read: a **header** (brand +
   project/branch/activity, a divider, the numbered tab menu, page subtitle), a
