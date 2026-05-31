@@ -543,6 +543,7 @@ type WsProject = {
   lastPort: number | null;
   lastOpenedAt: string;
   current: boolean;
+  live: boolean;
 };
 
 /**
@@ -553,6 +554,7 @@ type WsProject = {
 function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<WsProject[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -562,6 +564,22 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
       .then((r) => setProjects(r.projects))
       .catch(() => setProjects([]));
   }, [open]);
+
+  // Open a project's own dashboard in a new tab — starting it (server +
+  // scheduler) if it's dormant. Keeps each project a fully isolated tenant.
+  const openProject = async (p: WsProject) => {
+    if (p.current) return;
+    setBusy(p.root);
+    try {
+      const r = await api.openWorkspaceProject(p.root);
+      window.open(r.url, "_blank");
+      setOpen(false);
+    } catch {
+      // leave the menu open; the row stays clickable to retry
+    } finally {
+      setBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -606,32 +624,41 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
             </div>
           ) : (
             <ul className="max-h-[320px] overflow-y-auto">
-              {projects.map((p) => {
-                const reachable = !p.current && p.lastPort;
-                return (
-                  <li key={p.root}>
-                    <button
-                      type="button"
-                      disabled={p.current || !p.lastPort}
-                      onClick={() => {
-                        if (reachable) window.open(`http://localhost:${p.lastPort}/`, "_blank");
-                        setOpen(false);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-white/[0.05] disabled:hover:bg-transparent"
-                    >
-                      <Folder className="h-3.5 w-3.5 shrink-0 text-fog-400" strokeWidth={1.7} />
-                      <span className="flex-1 truncate text-[12.5px] text-fog-100">{p.label}</span>
-                      {p.current ? (
-                        <span className="text-[10px] text-emerald-300">current</span>
-                      ) : p.lastPort ? (
-                        <span className="mono text-[10px] text-fog-500">:{p.lastPort} ↗</span>
-                      ) : (
-                        <span className="text-[10px] text-fog-600">not running</span>
+              {projects.map((p) => (
+                <li key={p.root}>
+                  <button
+                    type="button"
+                    disabled={p.current || busy === p.root}
+                    onClick={() => void openProject(p)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-white/[0.05] disabled:hover:bg-transparent"
+                    title={
+                      p.current
+                        ? "Current project"
+                        : p.live
+                          ? "Open in a new tab"
+                          : "Start this project and open it"
+                    }
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full shrink-0",
+                        p.current || p.live ? "bg-emerald-400" : "bg-fog-600",
                       )}
-                    </button>
-                  </li>
-                );
-              })}
+                    />
+                    <Folder className="h-3.5 w-3.5 shrink-0 text-fog-400" strokeWidth={1.7} />
+                    <span className="flex-1 truncate text-[12.5px] text-fog-100">{p.label}</span>
+                    {p.current ? (
+                      <span className="text-[10px] text-emerald-300">current</span>
+                    ) : busy === p.root ? (
+                      <span className="text-[10px] text-fog-500">starting…</span>
+                    ) : p.live ? (
+                      <span className="mono text-[10px] text-fog-500">:{p.lastPort} ↗</span>
+                    ) : (
+                      <span className="text-[10px] text-fog-600">launch ↗</span>
+                    )}
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
         </div>

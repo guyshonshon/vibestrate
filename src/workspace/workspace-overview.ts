@@ -52,6 +52,10 @@ export type ProjectRunsSummary = {
   lastOpenedAt: string | null;
   /** `.vibestrate/` exists here (the project was `vibe init`-ed). */
   initialized: boolean;
+  /** Whether a dashboard is currently answering for this project. The pure
+   *  builder can't know this (it's a network probe), so it defaults to false;
+   *  callers (server route / CLI) fill it after `probeLiveness`. */
+  live: boolean;
   /** Reading this project's runs dir failed (kept distinct from "no runs"). */
   unreadable: boolean;
   /** All-time counts (not windowed) — answer "what's live right now". */
@@ -163,6 +167,7 @@ export function summarizeProjectRuns(input: {
     lastPort: entry.lastPort,
     lastOpenedAt: entry.lastOpenedAt,
     initialized: input.initialized,
+    live: false,
     unreadable: input.unreadable,
     totalRuns: runs.length,
     activeRuns,

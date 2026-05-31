@@ -6,23 +6,22 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
-- **Multi-project — cross-project actions + scheduler (slices b · c-board · d · f):**
-  act on other registered projects without leaving the current dashboard. New
-  **coordinator** (`src/workspace/workspace-coordinator.ts`) launches/aborts runs
-  in any registered project through the existing audited detached core entry
-  (cwd pinned per root; each run re-enters that project's own broker/policies) —
-  resolving the **(b)** question as "coordinator, not a shared multi-root
-  server." A **workspace dispatch queue** (`workspace-queue.ts`, slice d) stages
-  cross-project runs and drains them under code-enforced **global + per-project
-  concurrency caps** (capacity read from real on-disk runs; pull-drain, not a
-  daemon). Every cross-root action funnels through one fail-closed **safety gate**
-  (`workspace-safety.ts`, slice f: target must be registered + initialized) and is
-  appended to `~/.vibestrate/workspace-dispatch.ndjson`. Surfaced as
-  `POST /api/workspace/runs|runs/abort`, `GET /api/workspace/active`,
-  `/api/workspace/queue(+/drain)`; `vibe workspace run|abort|queue …`; and Run /
-  abort / queue controls on the All-projects page. Design:
-  `docs/design/multi-project-coordinator.md`. (Refactor: the detached-run
-  launcher moved to `src/core/detached-run.ts`, shared by the runs route.)
+- **Multi-project — navigator over isolated tenants (slices b · d · f; replaces
+  the cross-project control plane):** redirected to a *multi-tenant + navigator*
+  model — each project is its own `vibe ui` (server + scheduler) processing its
+  own queue, knowing nothing about the others. **Open** any project in a new tab
+  (overview cards, the TopBar switcher, or `vibe workspace open <label>` / `--all`):
+  if it's dormant, its own `vibe ui` is started on a free port and you're handed
+  the URL; if live, it's reused. `POST /api/workspace/open`, a `live` flag on the
+  overview + switcher (● live / ○ dormant). The **(b)** decision: a navigator, *not*
+  a shared multi-root server and *not* a cross-project control plane. **Reverted**
+  the previously-merged cross-project launch/abort + workspace dispatch queue —
+  the right way to run work in another project is to open it and let its own
+  scheduler process it. Kept the read-only overview, the `src/core/detached-run.ts`
+  refactor, and the fail-closed safety gate (f, now guarding `open`). Also fixed:
+  registry roots are canonicalized (symlink-resolved) so a project never doubles
+  (e.g. macOS `/var` vs `/private/var`). Design:
+  `docs/design/multi-project-navigator.md`.
 - **Multi-project — cross-project "All projects" overview (slice c):** a
   read-only rollup over every registered project's runs —
   `vibe workspace overview [--range 24h|7d|30d|90d] [--json]`,
