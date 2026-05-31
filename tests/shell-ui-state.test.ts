@@ -194,3 +194,46 @@ describe("pageIdFromHotkey", () => {
     expect(pageIdFromHotkey("z")).toBeNull();
   });
 });
+
+describe("reduceShellUi — session context + prompt + picker", () => {
+  it("cycles the safety mode write → read-only → write", () => {
+    const a = reduceShellUi(initialUiState, { type: "session.mode.cycle" });
+    expect(a.session.mode).toBe("read-only");
+    const b = reduceShellUi(a, { type: "session.mode.cycle" });
+    expect(b.session.mode).toBe("write");
+  });
+
+  it("sets the session crew and flow", () => {
+    const a = reduceShellUi(initialUiState, { type: "session.crew.set", crewId: "core" });
+    const b = reduceShellUi(a, { type: "session.flow.set", flowId: "pickup" });
+    expect(b.session.crewId).toBe("core");
+    expect(b.session.flowId).toBe("pickup");
+  });
+
+  it("focusing the prompt closes other modal layers", () => {
+    const opened = reduceShellUi(initialUiState, { type: "palette.open" });
+    const focused = reduceShellUi(opened, { type: "prompt.focus" });
+    expect(focused.promptFocused).toBe(true);
+    expect(focused.paletteOpen).toBe(false);
+    expect(reduceShellUi(focused, { type: "prompt.blur" }).promptFocused).toBe(false);
+  });
+
+  it("opens, wraps, and closes the crew/flow picker", () => {
+    const items = [
+      { id: "a", label: "A" },
+      { id: "b", label: "B" },
+    ];
+    const open = reduceShellUi(initialUiState, {
+      type: "picker.open",
+      kind: "crew",
+      items,
+      index: 0,
+    });
+    expect(open.picker?.kind).toBe("crew");
+    const down = reduceShellUi(open, { type: "picker.move", delta: 1 });
+    expect(down.picker?.index).toBe(1);
+    // wraps past the end
+    expect(reduceShellUi(down, { type: "picker.move", delta: 1 }).picker?.index).toBe(0);
+    expect(reduceShellUi(open, { type: "picker.close" }).picker).toBeNull();
+  });
+});

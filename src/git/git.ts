@@ -39,6 +39,36 @@ export async function getCurrentBranch(cwd: string): Promise<string | null> {
   }
 }
 
+/**
+ * Branch + linked-worktree status for the status bar. A linked worktree
+ * (created by `git worktree add`) has a `--git-dir` under the main repo's
+ * `worktrees/` while `--git-common-dir` points at the shared `.git`; in the
+ * primary worktree the two resolve to the same path. Best-effort: returns
+ * nulls/false when git isn't available rather than throwing.
+ */
+export async function getWorktreeContext(
+  cwd: string,
+): Promise<{ branch: string | null; isLinkedWorktree: boolean }> {
+  const branch = await getCurrentBranch(cwd);
+  try {
+    const [gitDir, commonDir] = await Promise.all([
+      execa("git", ["rev-parse", "--absolute-git-dir"], { cwd, reject: false }),
+      execa("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], {
+        cwd,
+        reject: false,
+      }),
+    ]);
+    if (gitDir.exitCode !== 0 || commonDir.exitCode !== 0) {
+      return { branch, isLinkedWorktree: false };
+    }
+    const g = path.resolve(gitDir.stdout.trim());
+    const c = path.resolve(commonDir.stdout.trim());
+    return { branch, isLinkedWorktree: g !== c };
+  } catch {
+    return { branch, isLinkedWorktree: false };
+  }
+}
+
 export async function branchExists(cwd: string, branch: string): Promise<boolean> {
   const result = await execa(
     "git",

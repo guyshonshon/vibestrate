@@ -8,13 +8,18 @@ import {
   paletteMatches,
 } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
-import { CommandRunner } from "./components/CommandRunner.js";
+import { PromptBar } from "./components/PromptBar.js";
+import { StatusBar } from "./components/StatusBar.js";
+import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
 import {
   parseArgs,
   runVibestrateCommand,
   spawnVibestrateDetached,
   openInBrowser,
 } from "./runner/command-runner.js";
+import { discoverFlows } from "../../flows/catalog/flow-discovery.js";
+import { buildStatusModel } from "./status-model.js";
+import { applySessionDefaults } from "./session-defaults.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
@@ -46,6 +51,7 @@ import {
   type PageId,
 } from "./ui-state.js";
 import { useSnapshot } from "./hooks/useSnapshot.js";
+import { useGitContext } from "./hooks/useGitContext.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
 import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";
@@ -97,11 +103,65 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     error: doctorError,
     refresh: refreshDoctor,
   } = useDoctor(projectRoot);
+  const { git } = useGitContext(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
   const selectedRun =
     ui.page === "runs" ? runs[ui.selection.runs] ?? null : null;
+
+  const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
+  const statusModel = buildStatusModel({
+    projectName,
+    git,
+    session: ui.session,
+    defaultCrewId: config?.defaultCrew ?? null,
+    aggregates: snapshot?.aggregates ?? null,
+    runs: runs.map((r) => ({
+      status: r.status,
+      task: r.task,
+      updatedAt: r.updatedAt,
+    })),
+  });
+
+  const openCrewPicker = (): void => {
+    const ids = config ? Object.keys(config.crews) : [];
+    if (ids.length === 0) {
+      dispatch({ type: "toast.push", kind: "err", message: "No crews configured." });
+      return;
+    }
+    const items = ids.map((id) => ({ id, label: config!.crews[id]?.label ?? id }));
+    const cur = ui.session.crewId ?? config?.defaultCrew ?? null;
+    const index = Math.max(0, items.findIndex((it) => it.id === cur));
+    dispatch({ type: "picker.open", kind: "crew", items, index });
+  };
+
+  const openFlowPicker = async (): Promise<void> => {
+    const flows = await discoverFlows(projectRoot);
+    const items = flows.map((f) => ({ id: f.id, label: f.label || f.id }));
+    if (items.length === 0) {
+      dispatch({ type: "toast.push", kind: "err", message: "No flows available." });
+      return;
+    }
+    const cur = ui.session.flowId ?? "default";
+    const index = Math.max(0, items.findIndex((it) => it.id === cur));
+    dispatch({ type: "picker.open", kind: "flow", items, index });
+  };
+
+  const submitPrompt = (): void => {
+    const argv0 = parseArgs(ui.runner.input);
+    if (argv0.length === 0) return;
+    const argv = applySessionDefaults(argv0, ui.session);
+    dispatch({ type: "runner.started" });
+    void runVibestrateCommand({
+      projectRoot,
+      argv,
+      onChunk: (chunk) => dispatch({ type: "runner.append", chunk }),
+    }).then((r) => {
+      dispatch({ type: "runner.finished", exitCode: r.exitCode });
+      void refresh();
+    });
+  };
 
   // Toast auto-dismiss.
   useEffect(() => {
@@ -186,7 +246,10 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         });
         return;
       case "open-runner":
-        dispatch({ type: "runner.open", seed: cmd.action.seed });
+        if (cmd.action.seed !== undefined) {
+          dispatch({ type: "runner.input", value: cmd.action.seed });
+        }
+        dispatch({ type: "prompt.focus" });
         return;
       case "spawn-detached": {
         const { pid } = spawnVibestrateDetached({
@@ -228,12 +291,45 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       if (input === "?" || key.escape) dispatch({ type: "help.toggle" });
       return;
     }
-    if (ui.runner.open) {
-      // Esc closes (even while running — output stays so the user
-      // can reopen and see it). ↑/↓ walks command history. Enter
-      // is handled by ink-text-input via onSubmit.
+    if (ui.picker) {
+      // Crew/Flow selector owns input while open.
       if (key.escape) {
-        dispatch({ type: "runner.close" });
+        dispatch({ type: "picker.close" });
+        return;
+      }
+      if (key.upArrow || input === "k") {
+        dispatch({ type: "picker.move", delta: -1 });
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        dispatch({ type: "picker.move", delta: 1 });
+        return;
+      }
+      if (key.return) {
+        const sel = ui.picker.items[ui.picker.index];
+        const kind = ui.picker.kind;
+        dispatch({ type: "picker.close" });
+        if (sel) {
+          dispatch(
+            kind === "crew"
+              ? { type: "session.crew.set", crewId: sel.id }
+              : { type: "session.flow.set", flowId: sel.id },
+          );
+          dispatch({
+            type: "toast.push",
+            kind: "ok",
+            message: `${kind} → ${sel.id} (seeds the next run)`,
+          });
+        }
+        return;
+      }
+      return;
+    }
+    if (ui.promptFocused) {
+      // The bottom prompt owns input. Esc returns to navigation; ↑/↓ walk
+      // command history. Typing + Enter are handled by ink-text-input.
+      if (key.escape) {
+        dispatch({ type: "prompt.blur" });
         return;
       }
       if (key.upArrow) {
@@ -309,12 +405,29 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       dispatch({ type: "palette.open" });
       return;
     }
-    if (input === "!") {
-      dispatch({ type: "runner.open" });
+    // Focus the persistent bottom prompt. `i` (vim-insert) is the primary
+    // key; `!` is kept as a familiar alias for the old command runner.
+    if (input === "i" || input === "!") {
+      dispatch({ type: "prompt.focus" });
       return;
     }
     if (input === "?") {
       dispatch({ type: "help.toggle" });
+      return;
+    }
+    // Session context controls: cycle safety mode, pick Crew / Flow. `c` and
+    // `f` are gated off the pages that already bind them (Roadmap `c`,
+    // Doctor `f`) so there's no double-handling.
+    if (input === "m") {
+      dispatch({ type: "session.mode.cycle" });
+      return;
+    }
+    if (input === "c" && ui.page !== "roadmap") {
+      openCrewPicker();
+      return;
+    }
+    if (input === "f" && ui.page !== "doctor") {
+      void openFlowPicker();
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
@@ -406,9 +519,10 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   // are. The page-specific list lives in `keymaps.ts`.
   const hintGroups = [...keymapForPage(ui.page), PAGES_GROUP];
 
-  const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
   return (
     <Frame subtitle={projectName}>
+      <StatusBar model={statusModel} />
+      <Rule />
       <TabBar current={ui.page} />
       <PageTitleBar pageId={ui.page} />
       <Rule />
@@ -547,14 +661,29 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         )}
       </Box>
       <Rule />
+      <PromptBar
+        input={ui.runner.input}
+        output={ui.runner.output}
+        running={ui.runner.running}
+        exitCode={ui.runner.exitCode}
+        focused={ui.promptFocused}
+        onChange={(v) => dispatch({ type: "runner.input", value: v })}
+        onSubmit={submitPrompt}
+      />
       <Footer
         ui={ui}
         groups={hintGroups}
         capturedAt={snapshot?.capturedAt ?? null}
       />
-      {/* The Rule above + Footer below get no marginTop so the footer
-          stays anchored to the bottom of the visible viewport on
-          shorter terminals (e.g. VS Code panel). */}
+      {ui.picker ? (
+        <Box marginTop={1}>
+          <CrewFlowPicker
+            kind={ui.picker.kind}
+            items={ui.picker.items}
+            index={ui.picker.index}
+          />
+        </Box>
+      ) : null}
       {ui.paletteOpen ? (
         <Box marginTop={1}>
           <CommandPalette
@@ -569,33 +698,6 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       {ui.helpOpen ? (
         <Box marginTop={1}>
           <HelpOverlay currentPage={ui.page} />
-        </Box>
-      ) : null}
-      {ui.runner.open ? (
-        <Box marginTop={1}>
-          <CommandRunner
-            input={ui.runner.input}
-            output={ui.runner.output}
-            running={ui.runner.running}
-            exitCode={ui.runner.exitCode}
-            onChange={(v) => dispatch({ type: "runner.input", value: v })}
-            onSubmit={() => {
-              const argv = parseArgs(ui.runner.input);
-              if (argv.length === 0) return;
-              dispatch({ type: "runner.started" });
-              void runVibestrateCommand({
-                projectRoot,
-                argv,
-                onChunk: (chunk) =>
-                  dispatch({ type: "runner.append", chunk }),
-              }).then((r) => {
-                dispatch({ type: "runner.finished", exitCode: r.exitCode });
-                // Snapshot may have changed (e.g. vibe queue add) — refresh
-                // so the rest of the panel sees the new state.
-                void refresh();
-              });
-            }}
-          />
         </Box>
       ) : null}
     </Frame>

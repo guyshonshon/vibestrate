@@ -1,0 +1,45 @@
+---
+title: Interactive shell
+description: The terminal panel `vibe` opens with no arguments — a live status bar, tabbed pages, and an always-on command prompt.
+section: cli
+slug: cli/shell
+---
+
+Running `vibe` with no arguments opens the **interactive shell** — a terminal panel (built on Ink) that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard. It needs an interactive terminal; in a pipe or CI it prints a notice and exits.
+
+```bash
+vibe
+```
+
+## The status bar
+
+A persistent context strip sits at the top, so you always know *where you are* and *what the next run will do*:
+
+- **project** + **branch** — the project name and current git branch. A `⑂ worktree` badge appears when you're inside a linked git worktree (e.g. a run's isolated worktree) rather than the primary checkout.
+- **mode** — the safety posture the next run will use: `write` (normal) or `read-only` (investigation only — adds `--read-only`). Press **`m`** to toggle.
+- **activity** — live from the snapshot: `idle`, `running · N active`, and a `· N queued` suffix when the scheduler has work waiting.
+- **crew** / **flow** — the session's selected Crew and Flow. These seed the next run you launch from the prompt. Press **`c`** to pick a Crew, **`f`** to pick a Flow (a `↑↓ / Enter` selector). They default to the project's default crew and the `default` flow until you choose.
+- **task** — the task text of the most-recently-active run, when one is running.
+
+## The prompt
+
+The bottom line is an always-visible prompt. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and **Enter** to run it — the output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
+
+When you run a `run …` command from the prompt, the shell seeds it with your session selections — it appends `--crew`, `--flow`, and `--read-only` to match the status bar (anything you type explicitly always wins).
+
+```text
+▸ vibe run "add dark mode"
+        → launches with the selected crew + flow + mode
+```
+
+## Navigation
+
+Single-key, when the prompt isn't focused:
+
+- **`1`–`9`, `0`** — switch tabs (Dashboard, Roadmap, Queue, Runs, Approvals, Suggestions, Notifs, Crew, Skills, Doctor).
+- **`:`** — command palette (fuzzy search every action).
+- **`Esc`** — back to the previous page.
+- **`B`** — open Mission Control (the web dashboard) in your browser.
+- **`?`** — context-sensitive help. **`q`** — quit.
+
+The pages mirror the same data the [Mission Control](/docs/cli/dashboard) web dashboard shows, read live from `.vibestrate/`. The shell spawns no shell commands itself — the prompt runs the `vibe` binary argv-only (no shell expansion), and it never reads secret-shaped files.
