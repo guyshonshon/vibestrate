@@ -39,6 +39,7 @@
       "label": "Using the CLI",
       "items": [
         { "slug": "cli/overview", "label": "CLI overview" },
+        { "slug": "cli/shell", "label": "Interactive shell" },
         { "slug": "cli/dashboard", "label": "Mission Control" }
       ]
     },

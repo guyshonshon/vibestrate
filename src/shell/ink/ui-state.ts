@@ -40,6 +40,34 @@ export const RUN_INSPECTOR_TABS: RunInspectorTab[] = [
   "validation",
 ];
 
+/**
+ * The safety posture the next run launched from the prompt will use.
+ * `write` = normal; `read-only` = investigation only (adds `--read-only`).
+ * Cycled with the `m` key. (Strict-apply is a project-level policy, not a
+ * per-run flag, so it's not part of this toggle.)
+ */
+export type SafetyMode = "write" | "read-only";
+export const SAFETY_MODES: SafetyMode[] = ["write", "read-only"];
+
+/** A pickable item in the in-shell Crew/Flow selector. */
+export type PickerItem = { id: string; label: string };
+export type PickerState = {
+  kind: "crew" | "flow";
+  items: PickerItem[];
+  index: number;
+} | null;
+
+/**
+ * Session context shown in the status bar and used to seed the next run
+ * the user launches from the prompt. `crewId`/`flowId` are null until the
+ * user picks one (null = the project default crew / the default flow).
+ */
+export type SessionState = {
+  mode: SafetyMode;
+  crewId: string | null;
+  flowId: string | null;
+};
+
 export type ShellUiStateV2 = {
   page: PageId;
   /**
@@ -67,7 +95,6 @@ export type ShellUiStateV2 = {
    * streams the output back into `runner.output`.
    */
   runner: {
-    open: boolean;
     input: string;
     output: string;
     running: boolean;
@@ -75,6 +102,12 @@ export type ShellUiStateV2 = {
     history: string[];
     historyIndex: number;
   };
+  /** Session context (status bar + seeds the next prompt-launched run). */
+  session: SessionState;
+  /** True while the persistent bottom prompt owns keyboard input. */
+  promptFocused: boolean;
+  /** Open Crew/Flow selector overlay, or null. */
+  picker: PickerState;
   toasts: Toast[];
   pendingConfirm: PendingConfirm;
   /** Runs page state: which inspector sub-tab + event filter query. */
@@ -107,7 +140,6 @@ export const initialUiState: ShellUiStateV2 = {
   paletteSelectedIndex: 0,
   helpOpen: false,
   runner: {
-    open: false,
     input: "",
     output: "",
     running: false,
@@ -115,6 +147,13 @@ export const initialUiState: ShellUiStateV2 = {
     history: [],
     historyIndex: -1,
   },
+  session: {
+    mode: "write",
+    crewId: null,
+    flowId: null,
+  },
+  promptFocused: false,
+  picker: null,
   toasts: [],
   pendingConfirm: null,
   runs: {
@@ -139,14 +178,20 @@ export type ShellUiAction =
   | { type: "palette.query"; value: string }
   | { type: "palette.cursor.move"; delta: number; max: number }
   | { type: "palette.cursor.set"; index: number }
-  | { type: "runner.open"; seed?: string }
-  | { type: "runner.close" }
   | { type: "runner.input"; value: string }
   | { type: "runner.started" }
   | { type: "runner.append"; chunk: string }
   | { type: "runner.finished"; exitCode: number | null }
   | { type: "runner.history.prev" }
   | { type: "runner.history.next" }
+  | { type: "session.mode.cycle" }
+  | { type: "session.crew.set"; crewId: string | null }
+  | { type: "session.flow.set"; flowId: string | null }
+  | { type: "prompt.focus" }
+  | { type: "prompt.blur" }
+  | { type: "picker.open"; kind: "crew" | "flow"; items: PickerItem[]; index: number }
+  | { type: "picker.move"; delta: number }
+  | { type: "picker.close" }
   | { type: "help.toggle" }
   | { type: "toast.push"; kind: ToastKind; message: string }
   | { type: "toast.dismiss"; id: number }
@@ -251,21 +296,6 @@ export function reduceShellUi(
     }
     case "palette.cursor.set":
       return { ...state, paletteSelectedIndex: Math.max(0, action.index) };
-    case "runner.open":
-      return {
-        ...state,
-        runner: {
-          ...state.runner,
-          open: true,
-          input: action.seed ?? state.runner.input,
-          historyIndex: -1,
-        },
-      };
-    case "runner.close":
-      return {
-        ...state,
-        runner: { ...state.runner, open: false, historyIndex: -1 },
-      };
     case "runner.input":
       return {
         ...state,
@@ -336,6 +366,41 @@ export function reduceShellUi(
         },
       };
     }
+    case "session.mode.cycle": {
+      const idx = SAFETY_MODES.indexOf(state.session.mode);
+      const next = SAFETY_MODES[(idx + 1) % SAFETY_MODES.length] ?? "write";
+      return { ...state, session: { ...state.session, mode: next } };
+    }
+    case "session.crew.set":
+      return { ...state, session: { ...state.session, crewId: action.crewId } };
+    case "session.flow.set":
+      return { ...state, session: { ...state.session, flowId: action.flowId } };
+    case "prompt.focus":
+      // Focusing the prompt closes other modal layers so input isn't split.
+      return {
+        ...state,
+        promptFocused: true,
+        paletteOpen: false,
+        helpOpen: false,
+        picker: null,
+      };
+    case "prompt.blur":
+      return { ...state, promptFocused: false };
+    case "picker.open":
+      return {
+        ...state,
+        picker: { kind: action.kind, items: action.items, index: action.index },
+        promptFocused: false,
+      };
+    case "picker.move": {
+      if (!state.picker) return state;
+      const len = state.picker.items.length;
+      if (len === 0) return state;
+      const next = (state.picker.index + action.delta + len) % len;
+      return { ...state, picker: { ...state.picker, index: next } };
+    }
+    case "picker.close":
+      return { ...state, picker: null };
     case "help.toggle":
       return { ...state, helpOpen: !state.helpOpen };
     case "toast.push":

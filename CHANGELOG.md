@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — status bar + persistent command prompt.** Bare `vibe`
+  now opens with a Claude-Code-style context strip (project · git branch +
+  `⑂ worktree` badge · safety mode · live activity · selected Crew/Flow · running
+  task) and an always-visible bottom prompt: press `i` to type a `vibe …`
+  command, Enter to run, Esc to navigate. New session controls — `m` cycles
+  safety mode (write/read-only), `c`/`f` open in-shell Crew/Flow pickers — and
+  the selections seed the next `run` launched from the prompt (`--crew`/`--flow`/
+  `--read-only`). New `getWorktreeContext` git helper; pure `buildStatusModel` +
+  `applySessionDefaults` (tested). Replaces the press-`!` command-runner overlay.
 - **Rewind safety guard + issue log.** The (destructive) snapshot restore now
   refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
   defense in depth on top of the existing per-run-worktree isolation. Documented

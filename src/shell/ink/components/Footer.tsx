@@ -79,9 +79,11 @@ export const PAGES_GROUP: HintGroup = {
   hints: [
     { key: "1-9/0", label: "switch" },
     { key: "Esc", label: "back" },
+    { key: "i", label: "prompt" },
     { key: ":", label: "palette" },
-    { key: "!", label: "run vibestrate" },
-    { key: "B", label: "open in browser" },
+    { key: "m", label: "mode" },
+    { key: "c/f", label: "crew/flow" },
+    { key: "B", label: "browser" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },
   ],
