@@ -8,6 +8,7 @@ import {
   readPhaseSnapshots,
   pickSnapshotForResume,
   restorePhaseSnapshot,
+  isSafeRestoreTarget,
 } from "../src/core/phase-snapshots.js";
 
 async function git(cwd: string, args: string[]) {
@@ -78,13 +79,24 @@ describe("phase-snapshots", () => {
       .catch(() => null);
     expect(beforeRestore).toBeNull(); // fresh worktree has none of A's files
 
-    const okExec = await restorePhaseSnapshot(wtB, execSnap!.treeSha);
+    const okExec = await restorePhaseSnapshot(wtB, execSnap!.treeSha, root);
     expect(okExec).toBe(true);
     expect(await fs.readFile(path.join(wtB, "feature.ts"), "utf8")).toBe("export const v = 1;\n");
 
-    const okFix = await restorePhaseSnapshot(wtB, fixSnap!.treeSha);
+    const okFix = await restorePhaseSnapshot(wtB, fixSnap!.treeSha, root);
     expect(okFix).toBe(true);
     expect(await fs.readFile(path.join(wtB, "feature.ts"), "utf8")).toBe("export const v = 2;\n");
+  });
+
+  it("refuses a destructive restore onto the project root (safety guard)", async () => {
+    const root = await mkRepo();
+    expect(isSafeRestoreTarget(root, root)).toBe(false);
+    expect(isSafeRestoreTarget(path.join(root, ".worktrees", "x"), root)).toBe(true);
+    // restorePhaseSnapshot refuses (returns false) without touching the root.
+    const refused = await restorePhaseSnapshot(root, "deadbeef", root);
+    expect(refused).toBe(false);
+    // base.txt is untouched.
+    expect(await fs.readFile(path.join(root, "base.txt"), "utf8")).toBe("base\n");
   });
 
   it("pickSnapshotForResume restores the right code per stage", async () => {

@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Rewind safety guard + issue log.** The (destructive) snapshot restore now
+  refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
+  defense in depth on top of the existing per-run-worktree isolation. Documented
+  the full safety posture, limitations, and follow-up work (snapshot pruning,
+  assurance integration, restore preview) in `docs/ISSUES.md` (ISSUE-001).
 - **Rewind phase 2 — resume at review / verify / fix.** A run now captures a
   durable per-phase **worktree snapshot** after each code-producing step (after
   executing + after each fixing): `git write-tree` → `commit-tree` → a ref under

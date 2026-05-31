@@ -149,11 +149,30 @@ export function pickSnapshotForResume(
   return eligible.reduce((a, b) => (b.seq > a.seq ? b : a));
 }
 
-/** Materialize a snapshot tree into a (resumed) run's worktree. */
+/**
+ * True when `worktree` is a safe destructive-restore target: a real path that is
+ * NOT the project root itself. Restore runs `checkout-index -f` + `clean -fd`, so
+ * it must only ever touch a dedicated, throwaway run worktree — never the user's
+ * checked-out project. `resolveWorktreePath` already guarantees a per-run subdir;
+ * this is defense in depth at the destructive boundary.
+ */
+export function isSafeRestoreTarget(worktree: string, projectRoot: string): boolean {
+  const wt = path.resolve(worktree);
+  const root = path.resolve(projectRoot);
+  return wt !== root;
+}
+
+/**
+ * Materialize a snapshot tree into a (resumed) run's worktree. Refuses (returns
+ * false) when the target would be the project root — a destructive restore must
+ * never run against the user's checkout.
+ */
 export async function restorePhaseSnapshot(
   worktree: string,
   treeSha: string,
+  projectRoot: string,
 ): Promise<boolean> {
+  if (!isSafeRestoreTarget(worktree, projectRoot)) return false;
   return restoreWorktree(worktree, treeSha);
 }
 
