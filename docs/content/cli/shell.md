@@ -11,6 +11,14 @@ Running `vibe` with no arguments opens the **interactive shell** — a terminal 
 vibe
 ```
 
+## Layout
+
+The panel is split into three bordered regions:
+
+1. **Header** — the brand, a "where am I" line (project · branch · activity), the numbered tab menu, and the current page's subtitle.
+2. **Body** — the active page. The Dashboard shows two columns separated by a divider: an **interactive** side (active runs) and an **informative** side (recent activity).
+3. **Context + prompt** — the mode · crew · flow line and the command prompt; its border brightens to cyan while the prompt has focus.
+
 ## The status bar
 
 A persistent context strip sits at the top, so you always know *where you are* and *what the next run will do*:

@@ -3,53 +3,56 @@ import { Box, Text } from "ink";
 import type { StatusModel } from "../status-model.js";
 
 /**
- * Persistent context strip under the Frame header — the Claude-Code-style
- * "where am I" line: project + git branch/worktree, safety mode + live
- * activity, the selected Crew + Flow, and the running task (if any).
+ * The context line above the prompt: the safety mode + selected Crew / Flow
+ * that seed the next run (with their hotkeys), and the running task if any.
+ * Project / branch / activity live in the header; this line is about *what
+ * the next run will do*.
  */
-function Field({ label, value, color }: { label: string; value: string; color?: string }) {
+function Field({
+  label,
+  value,
+  color,
+  hotkey,
+}: {
+  label: string;
+  value: string;
+  color?: string;
+  hotkey?: string;
+}) {
   return (
     <Text>
       <Text dimColor>{label} </Text>
-      <Text color={color}>{value}</Text>
+      <Text color={color} bold>
+        {value}
+      </Text>
+      {hotkey ? <Text dimColor> ({hotkey})</Text> : null}
     </Text>
   );
 }
 
 function Sep() {
-  return <Text dimColor>{"   ·   "}</Text>;
+  return <Text dimColor>{"     "}</Text>;
 }
 
-export function StatusBar({ model }: { model: StatusModel }) {
+export function ContextLine({ model }: { model: StatusModel }) {
   return (
-    <Box flexDirection="column">
-      <Box flexWrap="wrap">
-        <Field label="project" value={model.project} color="cyan" />
-        <Sep />
-        <Field label="branch" value={model.branch} color="white" />
-        {model.worktree ? <Text color="magenta"> ⑂ worktree</Text> : null}
-        <Sep />
-        <Field
-          label="mode"
-          value={model.mode}
-          color={model.mode === "read-only" ? "yellow" : "green"}
-        />
-        <Sep />
-        <Text color={model.busy ? "cyan" : "gray"}>{model.activity}</Text>
-      </Box>
-      <Box flexWrap="wrap">
-        <Field label="crew" value={model.crew} color="blue" />
-        <Text dimColor> (c)</Text>
-        <Sep />
-        <Field label="flow" value={model.flow} color="blue" />
-        <Text dimColor> (f)</Text>
-        {model.runningTask ? (
-          <>
-            <Sep />
-            <Field label="task" value={model.runningTask} color="white" />
-          </>
-        ) : null}
-      </Box>
+    <Box flexWrap="wrap">
+      <Field
+        label="mode"
+        value={model.mode}
+        color={model.mode === "read-only" ? "yellow" : "green"}
+        hotkey="m"
+      />
+      <Sep />
+      <Field label="crew" value={model.crew} color="blue" hotkey="c" />
+      <Sep />
+      <Field label="flow" value={model.flow} color="blue" hotkey="f" />
+      {model.runningTask ? (
+        <>
+          <Sep />
+          <Field label="task" value={model.runningTask} color="white" />
+        </>
+      ) : null}
     </Box>
   );
 }

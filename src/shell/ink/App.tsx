@@ -1,6 +1,5 @@
 import React, { useEffect, useReducer } from "react";
 import { Box, Text, useApp, useInput } from "ink";
-import { TabBar } from "./components/TabBar.js";
 import { Footer, PAGES_GROUP } from "./components/Footer.js";
 import { keymapForPage } from "./keymaps.js";
 import {
@@ -9,7 +8,9 @@ import {
 } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
 import { PromptBar } from "./components/PromptBar.js";
-import { StatusBar } from "./components/StatusBar.js";
+import { ContextLine } from "./components/StatusBar.js";
+import { HeaderBar } from "./components/HeaderBar.js";
+import { Panel } from "./components/Panel.js";
 import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
 import {
   parseArgs,
@@ -40,8 +41,7 @@ import { NotificationsPage } from "./pages/NotificationsPage.js";
 import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
-import { Frame, Rule } from "./components/Frame.js";
-import { PageTitleBar } from "./components/PageTitleBar.js";
+import { Rule } from "./components/Frame.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -520,13 +520,13 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   const hintGroups = [...keymapForPage(ui.page), PAGES_GROUP];
 
   return (
-    <Frame subtitle={projectName}>
-      <StatusBar model={statusModel} />
-      <Rule />
-      <TabBar current={ui.page} />
-      <PageTitleBar pageId={ui.page} />
-      <Rule />
-      <Box flexDirection="column">
+    <Box flexDirection="column">
+      {/* Region 1 — header: brand + context + menu. */}
+      <Panel borderColor="cyan">
+        <HeaderBar model={statusModel} page={ui.page} />
+      </Panel>
+      {/* Region 2 — body: the active page (interactive · informative). */}
+      <Panel borderColor="gray" flexGrow={1}>
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
@@ -659,22 +659,27 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         ) : (
           <LoadingScreen projectRoot={projectRoot} />
         )}
-      </Box>
-      <Rule />
-      <PromptBar
-        input={ui.runner.input}
-        output={ui.runner.output}
-        running={ui.runner.running}
-        exitCode={ui.runner.exitCode}
-        focused={ui.promptFocused}
-        onChange={(v) => dispatch({ type: "runner.input", value: v })}
-        onSubmit={submitPrompt}
-      />
-      <Footer
-        ui={ui}
-        groups={hintGroups}
-        capturedAt={snapshot?.capturedAt ?? null}
-      />
+      </Panel>
+      {/* Region 3 — context line + prompt + key hints. Border brightens
+          to cyan while the prompt owns input. */}
+      <Panel borderColor={ui.promptFocused ? "cyan" : "gray"}>
+        <ContextLine model={statusModel} />
+        <Rule />
+        <PromptBar
+          input={ui.runner.input}
+          output={ui.runner.output}
+          running={ui.runner.running}
+          exitCode={ui.runner.exitCode}
+          focused={ui.promptFocused}
+          onChange={(v) => dispatch({ type: "runner.input", value: v })}
+          onSubmit={submitPrompt}
+        />
+        <Footer
+          ui={ui}
+          groups={hintGroups}
+          capturedAt={snapshot?.capturedAt ?? null}
+        />
+      </Panel>
       {ui.picker ? (
         <Box marginTop={1}>
           <CrewFlowPicker
@@ -700,7 +705,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           <HelpOverlay currentPage={ui.page} />
         </Box>
       ) : null}
-    </Frame>
+    </Box>
   );
 }
 
