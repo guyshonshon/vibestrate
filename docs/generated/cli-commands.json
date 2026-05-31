@@ -4452,8 +4452,8 @@
           "negated": false
         },
         {
-          "flags": "--interactive",
-          "description": "open terminal Flow setup for task, brief, participants, and optional steps. Requires --flow.",
+          "flags": "-i, --interactive",
+          "description": "interactively pick the Flow and Crew you didn't pass (horizontal selector), then run. With --flow, opens that flow's detailed setup instead.",
           "required": false,
           "optional": false,
           "negated": false
