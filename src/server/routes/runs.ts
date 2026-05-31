@@ -113,7 +113,13 @@ const spawnRunBody = z.object({
         .min(1)
         .max(200)
         .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
-      fromStage: z.enum(["architecting", "executing"]),
+      fromStage: z.enum([
+        "architecting",
+        "executing",
+        "reviewing",
+        "fixing",
+        "verifying",
+      ]),
     })
     .strict()
     .optional(),

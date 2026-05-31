@@ -162,7 +162,14 @@ export const runStateSchema = z.object({
   resumedFrom: z
     .object({
       sourceRunId: z.string(),
-      fromStage: z.enum(["planning", "architecting", "executing"]),
+      fromStage: z.enum([
+        "planning",
+        "architecting",
+        "executing",
+        "reviewing",
+        "fixing",
+        "verifying",
+      ]),
     })
     .nullable()
     .default(null),

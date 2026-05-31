@@ -68,7 +68,14 @@ export const runSpecSchema = z.object({
   resumeFrom: z
     .object({
       sourceRunId: z.string().min(1).max(200),
-      fromStage: z.enum(["planning", "architecting", "executing"]),
+      fromStage: z.enum([
+        "planning",
+        "architecting",
+        "executing",
+        "reviewing",
+        "fixing",
+        "verifying",
+      ]),
     })
     .nullable()
     .optional(),
@@ -108,6 +115,28 @@ export async function resolveResumeFrom(
       "resume_source_missing",
       `Source run "${input.sourceRunId}" not found (no artifacts to reuse).`,
     );
+  }
+  // Downstream stages (review/fix/verify) need the source run's code, restored
+  // from a per-phase worktree snapshot. Fail fast with a clear message when the
+  // source run captured none (e.g. an older run, or a read-only run with no
+  // code), rather than resuming into an empty worktree.
+  const downstream = new Set<ResumeStage>(["reviewing", "fixing", "verifying"]);
+  if (downstream.has(input.fromStage)) {
+    const { readPhaseSnapshots, pickSnapshotForResume } = await import(
+      "./phase-snapshots.js"
+    );
+    const snaps = await readPhaseSnapshots(projectRoot, input.sourceRunId);
+    const pick = pickSnapshotForResume(
+      snaps,
+      input.fromStage as "reviewing" | "fixing" | "verifying",
+    );
+    if (!pick) {
+      throw new RunLaunchError(
+        "resume_no_snapshot",
+        `Cannot rewind run "${input.sourceRunId}" to "${input.fromStage}": it has no worktree snapshot ` +
+          `for that stage (only runs that produced code after Rewind phase 2 can be resumed downstream).`,
+      );
+    }
   }
   return { sourceRunId: input.sourceRunId, fromStage: input.fromStage };
 }

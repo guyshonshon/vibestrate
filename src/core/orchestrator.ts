@@ -44,6 +44,14 @@ import {
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import {
+  capturePhaseSnapshot,
+  readPhaseSnapshots,
+  pickSnapshotForResume,
+  restorePhaseSnapshot,
+  type SnapshotStage,
+  type DownstreamResumeStage,
+} from "./phase-snapshots.js";
+import {
   snapshotWorktree,
   restoreWorktree,
   evaluateTurnDiff,
@@ -155,11 +163,24 @@ import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js
 /** Stages a run can be rewound to. The flow runner seeds the outputs of every
  *  step before the first step at this stage from the source run, then starts
  *  there. `planning` is the flow's first stage, so resuming there is just a
- *  normal from-scratch run. review/verify aren't resumable: they need the
- *  executor's code present (a per-step worktree snapshot we don't capture yet),
- *  and the executing stages regenerate the downstream code from a fresh
- *  worktree off main. */
-export type ResumeStage = "planning" | "architecting" | "executing";
+ *  normal from-scratch run; the executing stages regenerate the downstream code
+ *  from a fresh worktree. The DOWNSTREAM stages (reviewing/fixing/verifying)
+ *  operate on existing code, so they additionally restore the source run's
+ *  per-phase worktree snapshot (Rewind phase 2). */
+export type ResumeStage =
+  | "planning"
+  | "architecting"
+  | "executing"
+  | "reviewing"
+  | "fixing"
+  | "verifying";
+
+/** The subset that needs the source run's code restored before running. */
+const DOWNSTREAM_RESUME_STAGES = new Set<ResumeStage>([
+  "reviewing",
+  "fixing",
+  "verifying",
+]);
 
 export type ResumeFromInput = {
   /** The run whose upstream step outputs are reused (seeded) by the runner. */
@@ -1114,6 +1135,58 @@ export class Orchestrator {
     );
   }
 
+  /** Capture a per-phase worktree snapshot after a code-producing step, so a
+   *  later run can rewind to review/verify/fix with this code. Best-effort. */
+  private async maybeCapturePhaseSnapshot(input: {
+    step: { kind: string; stage: string | null };
+    worktreePath: string | null;
+    runId: string;
+    eventLog: EventLog;
+  }): Promise<void> {
+    if (!input.worktreePath) return;
+    const { step } = input;
+    let stage: SnapshotStage | null = null;
+    if (step.kind === "agent-turn" && step.stage === "executing") stage = "executing";
+    else if (step.kind === "response-turn") stage = "fixing";
+    if (!stage) return;
+    const snap = await capturePhaseSnapshot({
+      projectRoot: this.projectRoot,
+      runId: input.runId,
+      worktree: input.worktreePath,
+      stage,
+    });
+    if (snap) {
+      await input.eventLog.append({
+        type: "run.snapshot.captured",
+        message: `Captured ${stage} worktree snapshot (#${snap.seq}) for rewind.`,
+        data: { seq: snap.seq, stage, treeSha: snap.treeSha },
+      });
+    }
+  }
+
+  /** Resolve the step index to resume at. Upstream stages match the step's
+   *  declared `stage`; the downstream `fixing` resume targets the fixer step by
+   *  KIND (the fix step is declared stage "executing", not "fixing"). */
+  private resolveResumeIndex(
+    snapshot: ResolvedFlowSnapshot,
+    fromStage: ResumeStage,
+  ): number {
+    if (fromStage === "fixing") {
+      return snapshot.steps.findIndex((s) => s.kind === "response-turn");
+    }
+    if (fromStage === "reviewing") {
+      return snapshot.steps.findIndex(
+        (s) => s.stage === "reviewing" || s.kind === "review-turn",
+      );
+    }
+    if (fromStage === "verifying") {
+      return snapshot.steps.findIndex(
+        (s) => s.stage === "verifying" || s.kind === "summary-turn",
+      );
+    }
+    return snapshot.steps.findIndex((s) => s.stage === fromStage);
+  }
+
   /** Seed the outputs of every step before the resume stage from the source
    *  run and mark them skipped. Returns the index to start the walk at, the
    *  updated state, and seeded plan/execution artifacts (for the report). */
@@ -1121,6 +1194,7 @@ export class Orchestrator {
     snapshot: ResolvedFlowSnapshot;
     resumeFrom: ResumeFromInput;
     state: RunState;
+    worktreePath: string | null;
     outputs: Map<string, FlowContextOutput>;
     targetStore: ArtifactStore;
     stateStore: RunStateStore;
@@ -1132,13 +1206,40 @@ export class Orchestrator {
     executionArtifact: RoleRunResult | null;
   }> {
     const { snapshot, resumeFrom } = input;
-    const resumeStartIndex = snapshot.steps.findIndex(
-      (s) => s.stage === resumeFrom.fromStage,
-    );
+    const resumeStartIndex = this.resolveResumeIndex(snapshot, resumeFrom.fromStage);
     if (resumeStartIndex < 0) {
       throw new Error(
         `Cannot resume from stage "${resumeFrom.fromStage}": flow "${snapshot.flowId}" has no step at that stage.`,
       );
+    }
+
+    // Downstream stages (review/fix/verify) operate on existing code — restore
+    // the source run's per-phase worktree snapshot into this run's worktree.
+    if (DOWNSTREAM_RESUME_STAGES.has(resumeFrom.fromStage) && input.worktreePath) {
+      const sourceSnaps = await readPhaseSnapshots(
+        this.projectRoot,
+        resumeFrom.sourceRunId,
+      );
+      const pick = pickSnapshotForResume(
+        sourceSnaps,
+        resumeFrom.fromStage as DownstreamResumeStage,
+      );
+      if (pick) {
+        const ok = await restorePhaseSnapshot(input.worktreePath, pick.treeSha);
+        await input.eventLog.append({
+          type: "run.rewound.restored",
+          message: ok
+            ? `Restored ${pick.stage} worktree snapshot (#${pick.seq}) from run ${resumeFrom.sourceRunId}.`
+            : `Failed to restore worktree snapshot from run ${resumeFrom.sourceRunId}; the resumed stage may see no code.`,
+          data: { sourceRunId: resumeFrom.sourceRunId, seq: pick.seq, stage: pick.stage, ok },
+        });
+      } else {
+        await input.eventLog.append({
+          type: "run.rewound.restored",
+          message: `Source run ${resumeFrom.sourceRunId} has no worktree snapshot to restore for stage "${resumeFrom.fromStage}".`,
+          data: { sourceRunId: resumeFrom.sourceRunId, ok: false },
+        });
+      }
     }
     let state = input.state;
     let planArtifact: RoleRunResult | null = null;
@@ -1148,6 +1249,12 @@ export class Orchestrator {
       resumeFrom.sourceRunId,
     );
 
+    // Downstream resumes (review/fix/verify) seed everything before the resume
+    // step — which can include non-agent steps (validation) whose outputs aren't
+    // artifact files. A missing output there is fine (the code itself is restored
+    // from the worktree snapshot), so tolerate it; upstream resumes keep the
+    // strict contract (a missing plan/architecture is a real error).
+    const tolerateMissing = DOWNSTREAM_RESUME_STAGES.has(resumeFrom.fromStage);
     for (let i = 0; i < resumeStartIndex; i += 1) {
       const upstream = snapshot.steps[i]!;
       for (const token of upstream.outputs) {
@@ -1156,7 +1263,9 @@ export class Orchestrator {
           step: upstream,
           sourceStore,
           targetStore: input.targetStore,
+          tolerateMissing,
         });
+        if (!seeded) continue; // missing non-essential output — skip
         input.outputs.set(token, seeded);
         if (token === "plan") planArtifact = this.seededFlowResult(upstream, seeded);
         if (token === "execution")
@@ -1201,7 +1310,9 @@ export class Orchestrator {
     step: ResolvedFlowStep;
     sourceStore: ArtifactStore;
     targetStore: ArtifactStore;
-  }): Promise<FlowContextOutput> {
+    /** When true, a missing source output returns null instead of throwing. */
+    tolerateMissing?: boolean;
+  }): Promise<FlowContextOutput | null> {
     const isDiff = input.token === "diff";
     const rel = path.posix.join(
       "flows",
@@ -1209,6 +1320,7 @@ export class Orchestrator {
       isDiff ? "diff-snapshot.json" : "output.md",
     );
     if (!(await input.sourceStore.exists(rel))) {
+      if (input.tolerateMissing) return null;
       throw new Error(
         `Cannot resume: source run is missing "${rel}" (output "${input.token}" of step "${input.step.id}").`,
       );
@@ -1441,6 +1553,7 @@ export class Orchestrator {
           snapshot: input.snapshot,
           resumeFrom: this.resumeFrom,
           state,
+          worktreePath: input.worktreePath,
           outputs,
           targetStore: input.artifactStore,
           stateStore: input.stateStore,
@@ -1896,6 +2009,15 @@ export class Orchestrator {
           });
         };
         await runStep();
+        // ── Rewind phase 2: snapshot the worktree after code-producing steps ──
+        // (implement → "executing", fix → "fixing") so a later run can rewind to
+        // review/verify/fix with this exact code. Best-effort; never blocks.
+        await this.maybeCapturePhaseSnapshot({
+          step,
+          worktreePath: input.worktreePath,
+          runId: input.runId,
+          eventLog: input.eventLog,
+        });
         // ── Per-item band exit (Phase 3): commit, summarize, carry, gate ──
         // Runs at the segment tail (disjoint from the adaptive loop by schema).
         // Commit this item's work tagged with its id, record a compact summary

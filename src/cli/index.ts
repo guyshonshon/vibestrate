@@ -226,7 +226,7 @@ export function buildVibestrateProgram(): Command {
     )
     .option(
       "--resume-stage <stage>",
-      "stage to resume at with --resume-from: planning | architecting (reuse plan) | executing (reuse plan + architecture). Default: executing.",
+      "stage to resume at with --resume-from: planning | architecting | executing (regenerate code) | reviewing | fixing | verifying (restore the source run's code snapshot). Default: executing.",
     )
     .option(
       "--checklist <mode>",
@@ -291,22 +291,23 @@ export function buildVibestrateProgram(): Command {
           }
           checklistMode = opts.checklist;
         }
-        let resumeStage: "planning" | "architecting" | "executing" | undefined;
+        const RESUME_STAGES = [
+          "planning",
+          "architecting",
+          "executing",
+          "reviewing",
+          "fixing",
+          "verifying",
+        ] as const;
+        let resumeStage: (typeof RESUME_STAGES)[number] | undefined;
         if (opts.resumeStage) {
-          if (
-            opts.resumeStage !== "planning" &&
-            opts.resumeStage !== "architecting" &&
-            opts.resumeStage !== "executing"
-          ) {
+          if (!RESUME_STAGES.includes(opts.resumeStage as (typeof RESUME_STAGES)[number])) {
             console.error(
-              `--resume-stage must be one of planning|architecting|executing (got "${opts.resumeStage}").` +
-                (opts.resumeStage === "reviewing" || opts.resumeStage === "verifying"
-                  ? " Resuming at reviewing/verifying isn't supported yet — it needs the executor's code, which Vibestrate doesn't snapshot per step."
-                  : ""),
+              `--resume-stage must be one of ${RESUME_STAGES.join("|")} (got "${opts.resumeStage}").`,
             );
             process.exit(2);
           }
-          resumeStage = opts.resumeStage;
+          resumeStage = opts.resumeStage as (typeof RESUME_STAGES)[number];
         }
         if (opts.resumeStage && !opts.resumeFrom) {
           console.error("--resume-stage requires --resume-from <runId>.");
