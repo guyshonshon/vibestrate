@@ -15,7 +15,7 @@ import {
   ensureProjectServer,
   closeProjectServer,
   readProjectBusyStatus,
-  probeLiveness,
+  readWorkspaceRuntimes,
 } from "../../workspace/workspace-runtime.js";
 import { resolveTargetProject } from "../../workspace/workspace-safety.js";
 import { pathExists } from "../../utils/fs.js";
@@ -59,18 +59,17 @@ async function cmdList(opts: { json?: boolean }): Promise<number> {
     console.log(indent(color.dim("Run `vibe ui` in a project, or `vibe workspace add`.")));
     return 0;
   }
-  const liveness = await probeLiveness(projects);
+  const runtimes = await readWorkspaceRuntimes(projects.map((p) => p.root));
   console.log(header(`Workspace projects (${projects.length})`));
   console.log("");
   for (const p of projects) {
-    const live = liveness[p.root];
+    const rt = runtimes[p.root];
+    const live = rt?.running ?? false;
     const dot = live ? color.green("●") : color.dim("○");
     console.log(`${dot} ${color.bold(p.label)} ${color.dim(p.root)}`);
     const where = live
-      ? `live at http://localhost:${p.lastPort}`
-      : p.lastPort
-        ? `last at http://localhost:${p.lastPort} (dormant)`
-        : "not yet started";
+      ? `live at http://localhost:${rt?.port}`
+      : "dormant";
     console.log(indent(color.dim(`${where} · opened ${p.lastOpenedAt}`)));
   }
   return 0;
@@ -212,8 +211,8 @@ async function cmdClose(
 /** Close every live registered project. */
 async function cmdCloseAll(opts: { force?: boolean }): Promise<number> {
   const projects = await new WorkspaceStore().list();
-  const liveness = await probeLiveness(projects);
-  const live = projects.filter((p) => liveness[p.root]);
+  const runtimes = await readWorkspaceRuntimes(projects.map((p) => p.root));
+  const live = projects.filter((p) => runtimes[p.root]?.running);
   if (live.length === 0) {
     console.log("No live projects to close.");
     return 0;
@@ -229,14 +228,16 @@ async function cmdCloseAll(opts: { force?: boolean }): Promise<number> {
 const RANGES = new Set<OverviewRange>(["24h", "7d", "30d", "90d"]);
 
 /** Registered projects + the current directory (marked current), like the API. */
-async function overviewEntries(): Promise<ProjectRegistryEntry[]> {
+async function overviewEntries(
+  runtimes: Record<string, { port: number | null }>,
+): Promise<ProjectRegistryEntry[]> {
   const current = canonicalRoot(process.cwd());
   const projects = await new WorkspaceStore().list();
   const entries: ProjectRegistryEntry[] = projects.map((p) => ({
     root: p.root,
     label: p.label,
     current: p.root === current,
-    lastPort: p.lastPort,
+    lastPort: runtimes[p.root]?.port ?? null,
     lastOpenedAt: p.lastOpenedAt,
   }));
   if (!entries.some((e) => e.root === current)) {
@@ -244,7 +245,7 @@ async function overviewEntries(): Promise<ProjectRegistryEntry[]> {
       root: current,
       label: path.basename(current) || current,
       current: true,
-      lastPort: null,
+      lastPort: runtimes[current]?.port ?? null,
       lastOpenedAt: null,
     });
   }
@@ -260,13 +261,15 @@ async function cmdOverview(opts: {
     console.error(`${symbol.fail()} Invalid range "${opts.range}" (use 24h|7d|30d|90d).`);
     return 1;
   }
-  const entries = await overviewEntries();
+  const current = canonicalRoot(process.cwd());
+  const projects = await new WorkspaceStore().list();
+  const roots = projects.map((p) => p.root);
+  if (!roots.includes(current)) roots.push(current);
+  const runtimes = await readWorkspaceRuntimes(roots);
+  const entries = await overviewEntries(runtimes);
   const overview = await buildWorkspaceOverview({ projects: entries, range });
-  const liveness = await probeLiveness(
-    entries.map((e) => ({ root: e.root, lastPort: e.lastPort })),
-  );
   for (const p of overview.projects) {
-    p.live = p.current ? true : (liveness[p.root] ?? false);
+    p.live = p.current ? true : (runtimes[p.root]?.running ?? false);
   }
   if (opts.json) {
     console.log(JSON.stringify(overview, null, 2));

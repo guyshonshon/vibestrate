@@ -9,8 +9,9 @@
 import os from "node:os";
 import path from "node:path";
 import { realpathSync } from "node:fs";
+import { rename, rm } from "node:fs/promises";
 import { z } from "zod";
-import { readText, writeText, pathExists } from "../utils/fs.js";
+import { readText, writeText, pathExists, ensureDir } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
 
 /**
@@ -28,19 +29,19 @@ export function canonicalRoot(p: string): string {
   }
 }
 
-export const workspaceProjectSchema = z.object({
-  /** Absolute, normalized project root. The dedup key. */
-  root: z.string().min(1),
-  label: z.string().min(1).max(120),
-  addedAt: z.string(),
-  lastOpenedAt: z.string(),
-  /** Port the most recent `vibe ui` bound for this project (best-effort). */
-  lastPort: z.number().int().positive().nullable().default(null),
-  /** PID of the most recent `vibe ui` server process — lets the navigator
-   *  force-kill a hung instance when a cooperative shutdown doesn't take.
-   *  Best-effort; may be stale (the probe + isProcessAlive confirm reality). */
-  pid: z.number().int().positive().nullable().default(null),
-});
+export const workspaceProjectSchema = z
+  .object({
+    /** Absolute, normalized project root. The dedup key. */
+    root: z.string().min(1),
+    label: z.string().min(1).max(120),
+    addedAt: z.string(),
+    lastOpenedAt: z.string(),
+    // NOTE: runtime state (port / pid of a running `vibe ui`) deliberately does
+    // NOT live here anymore — it's per-project in `<root>/.vibestrate/ui.lock`
+    // (see ui-lock.ts). The registry is durable intent only. `.strip()` drops
+    // any legacy `lastPort` / `pid` keys from older files on read.
+  })
+  .strip();
 export type WorkspaceProject = z.infer<typeof workspaceProjectSchema>;
 
 export const workspaceFileSchema = z.object({
@@ -81,7 +82,21 @@ export class WorkspaceStore {
   }
 
   private async write(file: WorkspaceFile): Promise<void> {
-    await writeText(this.filePath, `${JSON.stringify(workspaceFileSchema.parse(file), null, 2)}\n`);
+    // Atomic write: serialize to a unique temp file, then rename over the
+    // target. rename(2) is atomic on the same filesystem, so a concurrent
+    // reader never sees a half-written registry and two near-simultaneous
+    // writers can't interleave a partial file (last rename wins cleanly).
+    const body = `${JSON.stringify(workspaceFileSchema.parse(file), null, 2)}\n`;
+    const tmp = `${this.filePath}.tmp-${process.pid}-${nowIso().replace(/[:.]/g, "-")}`;
+    await ensureDir(path.dirname(this.filePath));
+    await writeText(tmp, body);
+    try {
+      await rename(tmp, this.filePath);
+    } catch {
+      // Fall back to a direct write if rename isn't available (rare).
+      await writeText(this.filePath, body);
+      await rm(tmp, { force: true }).catch(() => undefined);
+    }
   }
 
   /** Known projects, most-recently-opened first. */
@@ -97,8 +112,6 @@ export class WorkspaceStore {
   async register(input: {
     root: string;
     label?: string;
-    port?: number | null;
-    pid?: number | null;
   }): Promise<WorkspaceProject> {
     const root = canonicalRoot(input.root);
     const file = await this.read();
@@ -110,8 +123,6 @@ export class WorkspaceStore {
         ...existing,
         label: input.label ?? existing.label,
         lastOpenedAt: ts,
-        lastPort: input.port ?? existing.lastPort,
-        pid: input.pid ?? existing.pid,
       };
       file.projects = file.projects.map((p) => (p.root === root ? entry : p));
     } else {
@@ -120,8 +131,6 @@ export class WorkspaceStore {
         label: input.label ?? (path.basename(root) || root),
         addedAt: ts,
         lastOpenedAt: ts,
-        lastPort: input.port ?? null,
-        pid: input.pid ?? null,
       };
       file.projects.push(entry);
     }

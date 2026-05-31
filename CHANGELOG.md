@@ -6,6 +6,17 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Multi-project — runtime state moved out of the shared registry into
+  per-project locks.** The shared `~/.vibestrate/workspace.json` now holds only
+  *durable intent* (which projects exist + labels); a running dashboard's
+  *runtime* (pid + port) lives in its own `<root>/.vibestrate/ui.lock`, mirroring
+  the scheduler lock. Single writer per file ⇒ no shared-file races; liveness
+  self-heals (a `kill -9`'d server leaves a stale lock that `isProcessAlive`
+  reads as dormant and the next start reclaims). Registry writes are now atomic
+  (temp+rename). `vibe ui` writes its lock on start and releases it on shutdown;
+  Open/Close/overview/switcher/list read the lock instead of the registry.
+  Legacy `lastPort`/`pid` keys in old registries are dropped on read. (Chosen
+  over a workspace supervisor daemon — same no-daemon, isolated-tenant model.)
 - **Multi-project — Close force-kill fallback:** if a confirmed-live project
   doesn't exit on the cooperative shutdown, Close escalates to SIGTERM then
   SIGKILL on its registered PID (now recorded in the registry by every

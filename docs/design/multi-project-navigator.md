@@ -115,6 +115,36 @@ Running` auto-spawns one the moment work is queued. The navigator simply ensures
 that machinery is *up* for any project you open. There is no workspace-level
 queue or daemon — and we don't claim one.
 
+## Where runtime state lives: per-project lock, not the shared file
+
+The user-level registry (`~/.vibestrate/workspace.json`) holds **durable intent
+only** — which projects exist and their labels. A running dashboard's
+**runtime** state (pid + port) lives in that project's own
+`<root>/.vibestrate/ui.lock` (`ui-lock.ts`), exactly mirroring the scheduler's
+lock. This split is deliberate:
+
+- **No shared-file runtime races.** Each running `vibe ui` is the *single writer*
+  of its own lock; the shared file is only touched on `add`/`remove`/first-run
+  (and those writes are now atomic via temp+rename).
+- **Self-healing liveness.** A project is "running" iff its lock names a live PID
+  on this host (`isProcessAlive`). A crash (`kill -9`) leaves a stale lock that
+  reads as dormant and is reclaimed on the next start — the file never lies for
+  long, and nothing has to actively reconcile it.
+- **Right lifecycles in the right place.** Durable intent persists across reboots
+  in one file; ephemeral runtime is born and dies with each process, in a file
+  that process owns.
+
+### Why not a supervisor daemon
+
+We considered a long-running `vibe workspace` process that spawns and tracks
+every project (real `exit` events, auto-restart, tree-kill). Rejected: it's a new
+always-on lifecycle and a single point of failure (if it dies, children orphan or
+all die), needs cross-platform IPC, and **still** needs a file to be discovered —
+all to centralize what per-project locks already give us without a daemon. It
+also contradicts the isolated-tenant model. The lock approach is the same pattern
+the scheduler has used successfully, so the runtime question reuses proven code
+rather than introducing a new moving part.
+
 ## What stays out of scope (honest limits)
 
 - No shared multi-root HTTP server; no hosted relay; no cross-project control
