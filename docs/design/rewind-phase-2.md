@@ -58,6 +58,15 @@ so the resumed downstream stages see both the code and the plan/review context.
 - CLI `--resume-stage`, `POST /api/runs` `resumeFrom.fromStage`, and the run
   state `resumedFrom.fromStage` all accept the new stages.
 
+## Safety & known issues
+
+The restore is destructive (`checkout-index -f` + `clean -fd`), so it is confined
+to the run's dedicated throwaway worktree (`resolveWorktreePath` always yields a
+per-run subdir, never the project root) and guarded by `isSafeRestoreTarget`
+(refuses the project root). Snapshot ref/object accumulation, partial-restore
+handling in assurance, and a restore preview are tracked as
+**[ISSUE-001](../ISSUES.md#issue-001--rewind-restore-is-destructive--bound-its-blast-radius-)**.
+
 ## Out of scope / honest limits
 
 - Snapshots are git objects in the shared repo; a `git gc --prune=now` between
