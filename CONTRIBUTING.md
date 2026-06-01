@@ -58,7 +58,7 @@ Good PRs tend to:
 
 The documentation system lives in this repo (`docs/content/` for prose,
 `docs/generated/` for the source‑aware reference) and renders at
-[vibestrate.shonshon.com/docs](https://vibestrate.shonshon.com/docs). Prose edits are
+[vibestrate.com/docs](https://vibestrate.com/docs). Prose edits are
 markdown; reference data is generated - never hand‑edit `docs/generated/`.
 
 ## Code of conduct

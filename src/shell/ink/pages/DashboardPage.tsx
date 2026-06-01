@@ -2,12 +2,15 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { ShellSnapshot } from "../../shell-snapshot.js";
 import {
-  clip,
+  ACCENT,
+  ACCENT_BRIGHT,
+  ACCENT_DIM,
   eventTypeColor,
   runStatusToken,
   timeAgo,
 } from "../theme.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
+import { pageHotkey } from "../ui-state.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -25,10 +28,10 @@ export function DashboardPage({ snapshot }: Props) {
     .slice(0, 3);
 
   const { cols, rows } = useTerminalSize();
-  // Vertical budget: terminal rows minus chrome (frame border 2, header
-  // 1, tab + rule 2, footer + rule 3 ≈ 8). Divide what's left between
-  // the two lists. Each row in a list is one terminal row.
-  const contentRows = Math.max(6, rows - 11);
+  // Vertical budget: terminal rows minus chrome. The shell now has three
+  // bordered panels (header ≈ 6, body borders 2, prompt panel ≈ 7), so
+  // reserve ~16 rows and split the rest between the two lists.
+  const contentRows = Math.max(6, rows - 16);
   const perList = Math.max(2, Math.floor((contentRows - 4) / 2));
   const stackedBody = cols < 110;
   const compact = rows < 26;
@@ -49,8 +52,8 @@ export function DashboardPage({ snapshot }: Props) {
           <SectionCard title="ACTIVE RUNS" count={activeRuns.length}>
             {activeRuns.length === 0 ? (
               <Text dimColor>
-                press <Text color="cyan">2</Text> to open Runs ·{" "}
-                <Text color="cyan">:</Text> for commands
+                press <Text color={ACCENT}>{pageHotkey("runs")}</Text> to open
+                Runs · <Text color={ACCENT}>:</Text> for commands
               </Text>
             ) : (
               <Box flexDirection="column">
@@ -58,17 +61,18 @@ export function DashboardPage({ snapshot }: Props) {
                   const tok = runStatusToken(r.status);
                   return (
                     <Box key={r.runId}>
-                      <Text>
+                      <Text wrap="truncate-end">
                         <Text color={tok.color}>{tok.glyph}</Text>
                         {"  "}
-                        <Text>{clip(r.task, 36).padEnd(36)}</Text>
-                        {"  "}
-                        <Text dimColor>{clip(r.currentRole ?? "—", 10)}</Text>
+                        <Text>{r.task}</Text>
+                        {r.currentRole ? (
+                          <Text dimColor>{"  · "}{r.currentRole}</Text>
+                        ) : null}
                         {r.pendingApprovals > 0 ? (
-                          <Text color="yellow">  ⏳{r.pendingApprovals}</Text>
+                          <Text color="yellow">{"  ⏳"}{r.pendingApprovals}</Text>
                         ) : null}
                         {r.pendingSuggestions > 0 ? (
-                          <Text color="yellow">  ✎{r.pendingSuggestions}</Text>
+                          <Text color="yellow">{"  ✎"}{r.pendingSuggestions}</Text>
                         ) : null}
                       </Text>
                     </Box>
@@ -81,6 +85,15 @@ export function DashboardPage({ snapshot }: Props) {
             )}
           </SectionCard>
         </Box>
+        {!stackedBody ? (
+          <Box
+            borderStyle="single"
+            borderColor={ACCENT_DIM}
+            borderTop={false}
+            borderRight={false}
+            borderBottom={false}
+          />
+        ) : null}
         <Box flexBasis={0} flexGrow={1} flexDirection="column">
           <SectionCard
             title="RECENT ACTIVITY"
@@ -92,13 +105,10 @@ export function DashboardPage({ snapshot }: Props) {
               <Box flexDirection="column">
                 {snapshot.recentActivity.slice(0, perList).map((a, i) => (
                   <Box key={`${a.runId}-${i}`}>
-                    <Text>
-                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(7)}</Text>
-                      <Text color={eventTypeColor(a.event.type)}>
-                        {clip(a.event.type, 18).padEnd(18)}
-                      </Text>
-                      <Text dimColor>{"  "}</Text>
-                      <Text>{clip(a.event.message, 32)}</Text>
+                    <Text wrap="truncate-end">
+                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(8)}</Text>
+                      <Text color={eventTypeColor(a.event.type)}>{"● "}</Text>
+                      <Text>{a.event.message || a.event.type}</Text>
                     </Text>
                   </Box>
                 ))}
@@ -121,11 +131,11 @@ export function DashboardPage({ snapshot }: Props) {
                 const tok = runStatusToken(r.status);
                 return (
                   <Box key={r.runId}>
-                    <Text>
+                    <Text wrap="truncate-end">
                       <Text color={tok.color}>{tok.glyph}</Text>
-                      <Text dimColor>  {tok.label.padEnd(14)}</Text>
-                      <Text>{clip(r.task, 60)}</Text>
-                      <Text dimColor>   {timeAgo(r.updatedAt)}</Text>
+                      <Text dimColor>{"  "}{tok.label.padEnd(14)}</Text>
+                      <Text>{r.task}</Text>
+                      <Text dimColor>{"   "}{timeAgo(r.updatedAt)}</Text>
                     </Text>
                   </Box>
                 );
@@ -157,10 +167,10 @@ function StatStrip({
   };
   sched: { queuePolicy: string; paused: boolean } | null;
 }) {
-  type ChipColor = "cyan" | "yellow" | "gray";
+  type ChipColor = string;
   type Chip = { label: string; value: string; color: ChipColor };
   const chips: Chip[] = [
-    { label: "active", value: String(agg.activeRuns), color: "cyan" },
+    { label: "active", value: String(agg.activeRuns), color: ACCENT },
     {
       label: "queue",
       value: `${agg.queueRunning}/${agg.queueWaiting}`,
@@ -212,7 +222,7 @@ function SectionCard({
   return (
     <Box flexDirection="column">
       <Box>
-        <Text bold color="cyan">
+        <Text bold color={ACCENT_BRIGHT}>
           {title}
         </Text>
         {typeof count === "number" ? (

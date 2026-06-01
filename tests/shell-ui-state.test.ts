@@ -194,3 +194,82 @@ describe("pageIdFromHotkey", () => {
     expect(pageIdFromHotkey("z")).toBeNull();
   });
 });
+
+describe("reduceShellUi — session context + prompt + picker", () => {
+  it("cycles the safety mode write → read-only → write", () => {
+    const a = reduceShellUi(initialUiState, { type: "session.mode.cycle" });
+    expect(a.session.mode).toBe("read-only");
+    const b = reduceShellUi(a, { type: "session.mode.cycle" });
+    expect(b.session.mode).toBe("write");
+  });
+
+  it("sets the session crew and flow", () => {
+    const a = reduceShellUi(initialUiState, { type: "session.crew.set", crewId: "core" });
+    const b = reduceShellUi(a, { type: "session.flow.set", flowId: "pickup" });
+    expect(b.session.crewId).toBe("core");
+    expect(b.session.flowId).toBe("pickup");
+  });
+
+  it("focusing the prompt closes other modal layers", () => {
+    const opened = reduceShellUi(initialUiState, { type: "palette.open" });
+    const focused = reduceShellUi(opened, { type: "prompt.focus" });
+    expect(focused.promptFocused).toBe(true);
+    expect(focused.paletteOpen).toBe(false);
+    expect(reduceShellUi(focused, { type: "prompt.blur" }).promptFocused).toBe(false);
+  });
+
+  it("scrolls the output pane and clamps at the bottom", () => {
+    const up = reduceShellUi(initialUiState, { type: "runner.scroll", delta: 5 });
+    expect(up.runner.scroll).toBe(5);
+    const down = reduceShellUi(up, { type: "runner.scroll", delta: -10 });
+    expect(down.runner.scroll).toBe(0);
+  });
+
+  it("running a command resets the output scroll", () => {
+    const scrolled = reduceShellUi(initialUiState, { type: "runner.scroll", delta: 9 });
+    const started = reduceShellUi(scrolled, { type: "runner.started" });
+    expect(started.runner.scroll).toBe(0);
+  });
+
+  it("drives the docs browser open → loaded → select → content → scroll → close", () => {
+    const open = reduceShellUi(initialUiState, { type: "docs.open" });
+    expect(open.docs.open).toBe(true);
+    const loaded = reduceShellUi(open, {
+      type: "docs.loaded",
+      topics: [
+        { slug: "a", label: "A", section: "S" },
+        { slug: "b", label: "B", section: "S" },
+      ],
+    });
+    const sel = reduceShellUi(loaded, { type: "docs.select", index: 1 });
+    expect(sel.docs.index).toBe(1);
+    expect(sel.docs.loadingContent).toBe(true);
+    // index wraps
+    expect(reduceShellUi(loaded, { type: "docs.select", index: -1 }).docs.index).toBe(1);
+    const content = reduceShellUi(sel, { type: "docs.content", lines: [[{ text: "x" }]] });
+    expect(content.docs.loadingContent).toBe(false);
+    expect(content.docs.lines).toHaveLength(1);
+    const scrolled = reduceShellUi(content, { type: "docs.scroll", delta: 5 });
+    expect(scrolled.docs.scroll).toBe(5);
+    expect(reduceShellUi(scrolled, { type: "docs.close" }).docs.open).toBe(false);
+  });
+
+  it("opens, wraps, and closes the crew/flow picker", () => {
+    const items = [
+      { id: "a", label: "A" },
+      { id: "b", label: "B" },
+    ];
+    const open = reduceShellUi(initialUiState, {
+      type: "picker.open",
+      kind: "crew",
+      items,
+      index: 0,
+    });
+    expect(open.picker?.kind).toBe("crew");
+    const down = reduceShellUi(open, { type: "picker.move", delta: 1 });
+    expect(down.picker?.index).toBe(1);
+    // wraps past the end
+    expect(reduceShellUi(down, { type: "picker.move", delta: 1 }).picker?.index).toBe(0);
+    expect(reduceShellUi(open, { type: "picker.close" }).picker).toBeNull();
+  });
+});

@@ -20,15 +20,19 @@ import {
   deleteTask,
   queueTask,
   markReady,
+  markBacklog,
 } from "../roadmap/task-actions.js";
-import { editInEditor } from "../roadmap/editor-handoff.js";
 import { spawnVibestrateDetached } from "../runner/command-runner.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
 import { AccentHeader, SelectionMark, StatusPill } from "../components/visuals.js";
 
+export type ProfileOption = { id: string; hint: string };
+
 type Props = {
   projectRoot: string;
   tasks: Task[];
+  /** Configured profiles for the form's profile picker. */
+  profiles: ProfileOption[];
   /** Surface scheduler-offline warnings on the Q (queue) toast. */
   schedulerLiveness: import("../../../scheduler/scheduler-liveness.js").SchedulerLiveness;
   refresh: () => Promise<void>;
@@ -49,6 +53,7 @@ type Props = {
 export function RoadmapPage({
   projectRoot,
   tasks,
+  profiles,
   schedulerLiveness,
   refresh,
   onToast,
@@ -74,9 +79,14 @@ export function RoadmapPage({
   const { exit } = useApp();
   void exit;
 
-  // When formOpen flips on, re-init the form for the current mode.
+  // Seed the form ONLY on the closed→open transition. Depending on `selected`
+  // (which gets a new reference on every 2s tasks-poll) re-ran this on every
+  // poll — wiping in-progress edits and snapping focus back to title.
+  const wasFormOpen = React.useRef(false);
   React.useEffect(() => {
-    if (!ui.formOpen) return;
+    const justOpened = ui.formOpen && !wasFormOpen.current;
+    wasFormOpen.current = ui.formOpen;
+    if (!justOpened) return;
     if (formMode === "edit" && selected) {
       dispatchForm({ type: "focus", field: "title" });
       const seeded = initTaskForm("edit", selected.id, {
@@ -112,7 +122,10 @@ export function RoadmapPage({
       dispatchForm({ type: "field", field: "readOnly", value: false });
       dispatchForm({ type: "focus", field: "title" });
     }
-  }, [ui.formOpen, formMode, selected]);
+    // `selected`/`formMode` are read at the open transition on purpose; adding
+    // them as deps would re-seed mid-edit (the bug above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.formOpen]);
 
   const submit = async (): Promise<void> => {
     const v = validateTaskForm(form);
@@ -128,18 +141,6 @@ export function RoadmapPage({
     if (r.ok) {
       closeForm();
       await refresh();
-    }
-  };
-
-  const handleEditDescription = async (): Promise<void> => {
-    try {
-      const next = await editInEditor(form.description);
-      dispatchForm({ type: "field", field: "description", value: next });
-    } catch (err) {
-      onToast(
-        "err",
-        `editor failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
     }
   };
 
@@ -179,10 +180,6 @@ export function RoadmapPage({
           }
           return;
         }
-        if (input === "D") {
-          void handleEditDescription();
-          return;
-        }
         // ←/→ on enum pickers
         if (key.leftArrow || key.rightArrow) {
           const delta = key.leftArrow ? -1 : 1;
@@ -193,11 +190,16 @@ export function RoadmapPage({
             dispatchForm({ type: "field", field: "priority", value: next });
             return;
           }
-          if (form.focused === "effort") {
-            const order = ["", "low", "medium", "high"];
-            const idx = order.indexOf(form.effort);
+          if (form.focused === "profileOverride") {
+            // "" = the crew's default profile, then each configured profile.
+            const order = ["", ...profiles.map((p) => p.id)];
+            const idx = Math.max(0, order.indexOf(form.profileOverride));
             const next = order[(idx + delta + order.length) % order.length]!;
-            dispatchForm({ type: "field", field: "effort", value: next });
+            dispatchForm({
+              type: "field",
+              field: "profileOverride",
+              value: next,
+            });
             return;
           }
         }
@@ -286,8 +288,16 @@ export function RoadmapPage({
         });
         return;
       }
-      if (input === "c" && selected && selected.status === "backlog") {
-        void markReady(projectRoot, selected.id).then(async (r) => {
+      // `c` toggles a card between backlog (unsorted) and ready (shortlisted),
+      // so triage is reversible.
+      if (
+        input === "c" &&
+        selected &&
+        (selected.status === "backlog" || selected.status === "ready")
+      ) {
+        const action =
+          selected.status === "backlog" ? markReady : markBacklog;
+        void action(projectRoot, selected.id).then(async (r) => {
           onToast(r.ok ? "ok" : "err", r.message);
           await refresh();
         });
@@ -420,9 +430,9 @@ export function RoadmapPage({
           <TaskForm
             form={form}
             dispatch={dispatchForm}
+            profiles={profiles}
             onSubmit={submit}
             onCancel={closeForm}
-            onEditDescription={handleEditDescription}
           />
         </Box>
       ) : null}

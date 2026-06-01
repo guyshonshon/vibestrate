@@ -102,7 +102,7 @@ export function buildVibestrateProgram(): Command {
   program
     .command("init")
     .description("Initialize Vibestrate in the current project (.vibestrate/ scaffold).")
-    .option("--force", "overwrite existing config files (runs are preserved)")
+    .option("-f, --force", "re-scaffold / overwrite existing config files to repair a broken project (runs are preserved)")
     .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
     .option("--interactive", "force the flowd wizard even when --yes would default to non-interactive")
     .action(async (opts: { force?: boolean; yes?: boolean; interactive?: boolean }) => {

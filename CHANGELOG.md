@@ -26,6 +26,119 @@ version. Update it in the same commit as the change it describes.
   `--flow` with `-i` still opens that flow's detailed setup. New
   `src/cli/ui/horizontal-select.ts` (a custom `@inquirer/core` prompt) +
   `src/cli/wizards/flow-crew-picker.ts`. Adds `@inquirer/core` as a direct dep.
+- **Chore: purge more local-only files from history** (`CLAUDE.md`,
+  `SEO_GEO_INDEXING_PLAN.md`, `CODEX_PLAN.md`, `TODO_NEWNEW*.md`, `docs/TODO-V3.md`,
+  `docs/TODO-v2`, `docs/smoke-tests-*.md`, `docs/ISSUES.md`, `.amaco/`) and
+  `.gitignore` them. Same `git filter-repo` + force-push across all branches/tags.
+- **Chore: purge local-only files from git tree + full history** (`.vibestrate/`,
+  `.claude/`, `.agents/`, `CLAUDE_CORE_MODEL_REWRITE.md`, `docs/TODO.md`) and
+  `.gitignore` them. Scrubbed via `git filter-repo` across all branches/tags and
+  force-pushed; files retained locally as ignored.
+- **Fix: big command output (e.g. `config show`) blew up the panel height.**
+  The output pane let long lines **wrap**, so a large dump ballooned the panel
+  past the screen and made the shell unusable. Lines are now **truncated** in the
+  narrow pane (strictly height-bounded), and **`O` expands** output to a
+  full-width, readable, scrollable view (Esc/`O` collapses). (TODO: a real Config
+  view instead of dumping raw `config show` YAML — it's not readable in a side
+  pane and should point at what's live-editable.)
+- **Shell — Flow page + workflow-ordered nav.** New `[2] Flow` page: lists
+  built-in + project flows, inspects the selected one (steps · seats ·
+  description), **forks** a built-in into the project (`f`), and **browses /
+  installs from the flows hub** (`h`). Hub machinery is ready (`fetchHubIndex` /
+  `installFlowFromHub`); the published index is empty for now (so the hub view
+  shows "unavailable" until `vibestrate-flows/index.json` exists). Tabs reordered
+  to the workflow: Dashboard → Flow → Crew → Queue → Runs → Approvals →
+  Suggestions → Skills → Roadmap → Doctor (Notifs rides last, palette-only).
+- **Shell task form — drop "effort", make Profile a picker.** Task "effort" was
+  only a planning hint and never set the model, so it's removed from the form
+  (the `--effort` CLI flag stays for the heuristic). "Profile override" is now a
+  ←/→ **picker** of configured profiles showing `provider · model · power` —
+  the real model/effort knob — instead of a free-text id. (TODO logged: surface
+  each provider's real power levels in Crew/Profiles, and a functional Flow page
+  + native in-shell editing.)
+- **Fix: editing a task kept snapping focus back to the title field.** The form
+  re-seeded itself on every 2-second tasks poll (its effect depended on the
+  selected card, whose reference changes each poll), wiping in-progress edits and
+  resetting focus. Now it seeds **only on the closed→open transition**.
+- **Roadmap `c` is now reversible (backlog ↔ ready).** It used to only promote
+  backlog→ready; pressing `c` on a `ready` card moves it back to `backlog`. (New
+  `markBacklog` action; `ready`/`backlog` are both "not started" buckets —
+  `ready` is the triaged shortlist that suggest-next ranks first.)
+- **Fix: task-form `D`/$EDITOR corrupted the terminal.** Launching `$EDITOR` from
+  inside the Ink shell never actually suspended Ink, so the editor and the panel
+  fought over the terminal (and pressing `D` also typed "D" into the focused
+  field). Removed the `$EDITOR` handoff entirely; the task **description is now
+  edited inline** in the form like the other fields. Deleted the unused
+  `editor-handoff`. (If a prior session left your terminal garbled, run `reset`.)
+- **Interactive shell — clearer "run a new task".** The roadmap's `↵`/`r` runs
+  the *selected* card (help now says so); to launch a *new* arbitrary task, the
+  idle prompt now reads `press i to run a new task — e.g. run "add dark mode"`.
+- **Interactive shell — per-page command panel + queue policy + tab-hint fix.**
+  The right side of the body now shows a **COMMANDS** panel listing the current
+  page's actions (run pause/resume/abort/re-run, roadmap edit/new/delete/queue,
+  skills toggle, etc.) plus the global keys — so every window says what you can
+  do without opening `?`. (Command output still takes that pane while present.)
+  New: Queue page `t` cycles the dispatch policy (fifo → priority → fair, written
+  to `scheduler.queuePolicy`). Fixed the Dashboard's stale "press 2 to open Runs"
+  hint (Runs is tab 4 — now derived from the hotkey). The COMMANDS/OUTPUT pane is
+  narrower (24–26%), and the Dashboard's run/activity rows are single-line
+  truncated (no more time-runs-into-type or two-line wraps) so the columns breathe.
+- **Interactive shell — scroll without PgUp.** PgUp/PgDn aren't on every keyboard
+  (Mac laptops). Output pane now scrolls with **Tab / Shift+Tab** while the prompt
+  is focused (the only keys `ink-text-input` leaves free); the docs browser scrolls
+  with **↑↓ / j k**, pages with **Space / b**, and switches topic with **[ / ]**.
+  Hints updated to match.
+- **Fix: `vibe init` crashed ("Could not locate default-prompts directory").**
+  The role prompts moved to `src/roles/default-prompts` but the resolver still
+  looked under `src/agents/…` and only from layouts the bundled `dist/index.js`
+  doesn't match. Now resolved by walking up from the module (sibling → `src/
+  roles/default-prompts` → `dist/default-prompts`); `package.json files` ships
+  the correct dir; `vibe init` gains a `-f` alias for `--force` (re-scaffold to
+  repair). Regression-guarded by tests (bundle-layout resolution + a prompt for
+  every builtin role + the `files` entry).
+- **Interactive shell — decluttered header.** The full keymap wall is gone from
+  the header; it now shows just a minimal `: commands · ? help · q quit` hint
+  next to the page subtitle (the complete keymap stays in the `?` overlay). The
+  snapshot clock moved to the slim bottom strip. Removed the redundant bold page
+  label (the highlighted tab already says where you are).
+- **Domain → vibestrate.com.** Updated the product domain from
+  `vibestrate.shonshon.com` to `vibestrate.com` across docs, README, package
+  metadata, and the shell's docs link.
+- **Interactive shell — command banner moved to the header.** The keymap hint
+  line (and snapshot clock) now sits at the top by the brand, not the bottom;
+  the bottom region is just the context line + prompt (+ transient toasts).
+  Also fixed the docs browser's path resolution for the bundled single-file CLI
+  (walks up to find `docs/content`).
+- **Interactive shell — scrollable output pane + in-terminal docs browser.**
+  Prompt-command output now streams into a scrollable right-hand pane (~30%
+  width, PgUp/PgDn) instead of a truncated tail crammed into the prompt. New
+  **docs browser** (`d`, or palette "Browse docs"): a topic list + the selected
+  page rendered with a dependency-free terminal **Markdown** renderer (headings,
+  fenced code, lists, inline code, links), ↑↓ to pick, PgUp/PgDn to scroll, `o`
+  for the website. Docs (`docs/content`) are now bundled in the package and
+  resolved relative to the module. Pure, tested: `output-window`,
+  `markdown-render`, `docs-source`, + reducer state.
+- **Interactive shell — violet accent theme.** Recoloured the shell around a
+  violet/purple ramp (matching the web dashboard's `violet-soft`): panel borders,
+  brand, active tab, section titles, crew/flow, prompt marker, key hints, and
+  dividers. Hex ramp (`ACCENT*`) centralised in `theme.ts`.
+- **Interactive shell — three-region layout.** Reorganised the shell into three
+  bordered, color-accented panels for a calmer read: a **header** (brand +
+  project/branch/activity, a divider, the numbered tab menu, page subtitle), a
+  **body** (the active page; the Dashboard splits interactive vs informative with
+  a vertical divider), and a **context + prompt** panel (mode · crew · flow line,
+  then the prompt + key hints; its border brightens to cyan while the prompt has
+  focus). New `Panel` / `HeaderBar` components; `StatusBar` became the bottom
+  `ContextLine`; removed the now-unused `Frame` wrapper usage + `PageTitleBar`.
+- **Interactive shell — status bar + persistent command prompt.** Bare `vibe`
+  now opens with a Claude-Code-style context strip (project · git branch +
+  `⑂ worktree` badge · safety mode · live activity · selected Crew/Flow · running
+  task) and an always-visible bottom prompt: press `i` to type a `vibe …`
+  command, Enter to run, Esc to navigate. New session controls — `m` cycles
+  safety mode (write/read-only), `c`/`f` open in-shell Crew/Flow pickers — and
+  the selections seed the next `run` launched from the prompt (`--crew`/`--flow`/
+  `--read-only`). New `getWorktreeContext` git helper; pure `buildStatusModel` +
+  `applySessionDefaults` (tested). Replaces the press-`!` command-runner overlay.
 - **Rewind safety guard + issue log.** The (destructive) snapshot restore now
   refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
   defense in depth on top of the existing per-run-worktree isolation. Documented
@@ -797,7 +910,7 @@ version. Update it in the same commit as the change it describes.
   prompts; `doctor --fix` auto-applies any detected provider.
 - Add: Gemini, Qwen Code, Crush, Goose, Cursor, Amp providers.
 - Add: documentation system — handwritten content + source-aware generated
-  reference (`pnpm docs:generate`), rendered at vibestrate.shonshon.com/docs.
+  reference (`pnpm docs:generate`), rendered at vibestrate.com/docs.
 - Change: CLI version single-sourced from `package.json`.
 - Add: CI + tag-release GitHub workflows (OIDC trusted publishing); lean
   publish tarball (sourcemaps stripped); pinned `ws` (security advisory).

@@ -118,3 +118,18 @@ export async function markReady(
     return { ok: false, message: formatErrorLine(err) };
   }
 }
+
+/** Move a triaged `ready` card back to the unsorted `backlog`. The inverse of
+ *  markReady, so the `c` toggle is reversible. */
+export async function markBacklog(
+  projectRoot: string,
+  taskId: string,
+): Promise<TaskActionResult> {
+  try {
+    const svc = new RoadmapService(projectRoot);
+    await svc.updateTaskStatus(taskId, "backlog");
+    return { ok: true, message: `Moved ${taskId} back to backlog.` };
+  } catch (err) {
+    return { ok: false, message: formatErrorLine(err) };
+  }
+}

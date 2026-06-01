@@ -4,7 +4,7 @@
   "description": "Vibestrate — local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
   "license": "Apache-2.0",
   "author": "Guy Shonshon (https://shonshon.com)",
-  "homepage": "https://vibestrate.shonshon.com",
+  "homepage": "https://vibestrate.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/guyshonshon/vibestrate.git"
@@ -20,11 +20,12 @@
   },
   "files": [
     "dist",
-    "src/agents/default-prompts",
+    "src/roles/default-prompts",
     "src/ui/lib/types.ts",
     "README.md",
     "SECURITY.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/content"
   ],
   "engines": {
     "node": ">=18.17"

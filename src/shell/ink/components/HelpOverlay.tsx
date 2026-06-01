@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { FOCAL_CARD_PROPS } from "../theme.js";
+import { ACCENT, FOCAL_CARD_PROPS } from "../theme.js";
 import { pageLabel, type PageId } from "../ui-state.js";
 import { PAGE_META } from "../page-meta.js";
 
@@ -14,7 +14,11 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
-      ["!", "run any `vibe …` command and see the output"],
+      ["i  /  !", "focus the prompt — type a `vibe …` command, Enter to run"],
+      ["⇥ / ⇧⇥", "scroll command output (while the prompt is focused)"],
+      ["O", "expand command output to a full-width readable view"],
+      ["m", "cycle safety mode (write / read-only) for the next run"],
+      ["c  /  f", "pick the session Crew / Flow (seeds the next run)"],
       ["/", "filter the events list"],
       ["?", "toggle this help"],
     ],
@@ -31,13 +35,12 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
   {
     heading: "Roadmap actions",
     entries: [
-      ["↵  /  r", "run selected task in the background"],
+      ["↵  /  r", "run *this* selected card in the background"],
       ["n", "new task (form)"],
-      ["e", "edit selected task"],
+      ["e", "edit selected task (title/description/priority… inline)"],
       ["d", "delete selected task (asks y / N)"],
       ["Q", "queue selected task"],
-      ["c", "cycle a backlog task to ready"],
-      ["D", "open description in $EDITOR"],
+      ["c", "toggle a card between backlog ↔ ready (triage; reversible)"],
     ],
   },
 ];
@@ -55,7 +58,7 @@ export function HelpOverlay({ currentPage }: Props) {
 
       {/* Current-page context first — most likely what the user wants. */}
       <Box marginTop={1} flexDirection="column">
-        <Text color="cyan">Right now · {pageLabel(currentPage)}</Text>
+        <Text color={ACCENT}>Right now · {pageLabel(currentPage)}</Text>
         <Text>{meta.subtitle}</Text>
         <Box marginTop={1}>
           <Text dimColor>{meta.blurb}</Text>
@@ -66,7 +69,7 @@ export function HelpOverlay({ currentPage }: Props) {
             {meta.commonKeys.map(([k, label]) => (
               <Box key={k}>
                 <Text>
-                  <Text color="cyan">{k.padEnd(14)}</Text>
+                  <Text color={ACCENT}>{k.padEnd(14)}</Text>
                   <Text dimColor>{label}</Text>
                 </Text>
               </Box>
@@ -88,11 +91,11 @@ export function HelpOverlay({ currentPage }: Props) {
 
       {SECTIONS.map((section) => (
         <Box key={section.heading} flexDirection="column" marginTop={1}>
-          <Text color="cyan">{section.heading}</Text>
+          <Text color={ACCENT}>{section.heading}</Text>
           {section.entries.map(([key, label]) => (
             <Box key={key}>
               <Text>
-                <Text color="cyan">{key.padEnd(14)}</Text>
+                <Text color={ACCENT}>{key.padEnd(14)}</Text>
                 <Text dimColor>{label}</Text>
               </Text>
             </Box>
