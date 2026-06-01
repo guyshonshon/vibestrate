@@ -638,6 +638,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
             <RoadmapPage
               projectRoot={projectRoot}
               tasks={tasks}
+              profiles={Object.entries(config?.profiles ?? {}).map(
+                ([id, p]) => ({
+                  id,
+                  hint: [p.provider, p.model, p.power]
+                    .filter(Boolean)
+                    .join(" · "),
+                }),
+              )}
               schedulerLiveness={snapshot.schedulerLiveness}
               refresh={refreshTasks}
               onToast={(kind, message) =>
