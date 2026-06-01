@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Shell task form — drop "effort", make Profile a picker.** Task "effort" was
+  only a planning hint and never set the model, so it's removed from the form
+  (the `--effort` CLI flag stays for the heuristic). "Profile override" is now a
+  ←/→ **picker** of configured profiles showing `provider · model · power` —
+  the real model/effort knob — instead of a free-text id. (TODO logged: surface
+  each provider's real power levels in Crew/Profiles, and a functional Flow page
+  + native in-shell editing.)
 - **Fix: editing a task kept snapping focus back to the title field.** The form
   re-seeded itself on every 2-second tasks poll (its effect depended on the
   selected card, whose reference changes each poll), wiping in-progress edits and

@@ -9,9 +9,12 @@ import {
 } from "../roadmap/form.js";
 import { FOCAL_CARD_PROPS } from "../theme.js";
 
+export type ProfileOption = { id: string; hint: string };
+
 type Props = {
   form: TaskFormState;
   dispatch: React.Dispatch<TaskFormAction>;
+  profiles: ProfileOption[];
   onSubmit: () => void;
   onCancel: () => void;
 };
@@ -28,7 +31,7 @@ const FIELD_LABELS: Record<TaskFormField, string> = {
 const PRIORITY_VALUES = ["low", "medium", "high"] as const;
 const EFFORT_VALUES = ["", "low", "medium", "high"] as const;
 
-export function TaskForm({ form, dispatch, onSubmit, onCancel }: Props) {
+export function TaskForm({ form, dispatch, profiles, onSubmit, onCancel }: Props) {
   const isCreate = form.mode === "create";
   return (
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
@@ -48,6 +51,7 @@ export function TaskForm({ form, dispatch, onSubmit, onCancel }: Props) {
             label={FIELD_LABELS[field]}
             form={form}
             dispatch={dispatch}
+            profiles={profiles}
           />
         ))}
       </Box>
@@ -81,11 +85,13 @@ function FieldRow({
   label,
   form,
   dispatch,
+  profiles,
 }: {
   field: TaskFormField;
   label: string;
   form: TaskFormState;
   dispatch: React.Dispatch<TaskFormAction>;
+  profiles: ProfileOption[];
 }) {
   const focused = form.focused === field;
   const focusMark = focused ? (
@@ -140,19 +146,23 @@ function FieldRow({
           onChange={(v) => dispatch({ type: "field", field: "effort", value: v })}
         />
       ) : field === "profileOverride" ? (
-        focused ? (
-          <TextInput
+        <Box flexDirection="column">
+          <EnumPicker
+            values={["", ...profiles.map((p) => p.id)]}
             value={form.profileOverride}
+            focused={focused}
+            emptyLabel="(default)"
             onChange={(v) =>
               dispatch({ type: "field", field: "profileOverride", value: v })
             }
-            placeholder="(none)"
           />
-        ) : (
-          <Text>
-            {form.profileOverride || <Text dimColor>(none)</Text>}
-          </Text>
-        )
+          {focused && form.profileOverride ? (
+            <Text dimColor>
+              {"   "}
+              {profiles.find((p) => p.id === form.profileOverride)?.hint ?? ""}
+            </Text>
+          ) : null}
+        </Box>
       ) : (
         // readOnly toggle
         <Text>
@@ -175,11 +185,13 @@ function EnumPicker({
   values,
   value,
   focused,
+  emptyLabel = "(none)",
   onChange,
 }: {
   values: readonly string[];
   value: string;
   focused: boolean;
+  emptyLabel?: string;
   onChange: (v: string) => void;
 }) {
   return (
@@ -192,7 +204,7 @@ function EnumPicker({
             dimColor={!focused && v !== value}
             bold={v === value}
           >
-            {v === "" ? "(none)" : v}
+            {v === "" ? emptyLabel : v}
           </Text>
         </React.Fragment>
       ))}
