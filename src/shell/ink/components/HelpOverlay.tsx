@@ -15,6 +15,8 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
       ["i  /  !", "focus the prompt — type a `vibe …` command, Enter to run"],
+      ["⇥ / ⇧⇥", "scroll command output (while the prompt is focused)"],
+      ["O", "expand command output to a full-width readable view"],
       ["m", "cycle safety mode (write / read-only) for the next run"],
       ["c  /  f", "pick the session Crew / Flow (seeds the next run)"],
       ["/", "filter the events list"],

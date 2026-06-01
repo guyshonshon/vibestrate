@@ -3,32 +3,39 @@ import { Box, Text } from "ink";
 import Spinner from "ink-spinner";
 import { windowFromBottom } from "../output-window.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
-import { ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
+import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
 
 /**
- * The right-hand command-output pane (~30% width) — where a prompt command's
- * stdout lands instead of cramming the bottom prompt. Scrollable: it follows
- * the tail, and PgUp/PgDn walk back through earlier lines.
+ * Command-output pane. Two modes:
+ *  - compact (default): the ~26%-wide right column, lines **truncated** to one
+ *    row each so a big dump (e.g. `config show`) can't balloon the panel past
+ *    the screen height.
+ *  - full: a full-width readable view (`O`) where lines wrap, for actually
+ *    reading verbose output.
+ * Both follow the tail and scroll with Tab / Shift+Tab.
  */
 export function OutputPane({
   output,
   running,
   exitCode,
   scroll,
+  full = false,
 }: {
   output: string;
   running: boolean;
   exitCode: number | null;
   scroll: number;
+  full?: boolean;
 }) {
   const { rows } = useTerminalSize();
-  const height = Math.max(4, rows - 18);
+  // Strictly bound the height so the panel never exceeds the viewport.
+  const height = Math.max(4, rows - (full ? 9 : 18));
   const lines = output.split(/\r?\n/);
   const win = windowFromBottom(lines, scroll, height);
   return (
     <Box
       flexDirection="column"
-      width="26%"
+      width={full ? "100%" : "26%"}
       borderStyle="single"
       borderColor={ACCENT_DIM}
       borderTop={false}
@@ -54,12 +61,23 @@ export function OutputPane({
             exit {exitCode}
           </Text>
         ) : null}
+        <Box flexGrow={1} />
+        <Text dimColor>{full ? "O collapse · Esc" : "O expand"}</Text>
       </Box>
       {win.above > 0 ? <Text dimColor>↑ {win.above} more · ⇧⇥</Text> : null}
       {win.lines.map((line, i) => (
-        <Text key={i}>{line || " "}</Text>
+        // Truncate in the narrow pane (height-safe); wrap when full (readable).
+        <Text key={i} wrap={full ? "wrap" : "truncate-end"}>
+          {line || " "}
+        </Text>
       ))}
-      {win.below > 0 ? <Text dimColor>↓ {win.below} more · ⇥</Text> : null}
+      {win.below > 0 ? (
+        <Text dimColor>↓ {win.below} more · ⇥</Text>
+      ) : !full && lines.length > height ? (
+        <Text dimColor>
+          press <Text color={ACCENT}>O</Text> to read full
+        </Text>
+      ) : null}
     </Box>
   );
 }

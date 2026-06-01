@@ -6,6 +6,13 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Fix: big command output (e.g. `config show`) blew up the panel height.**
+  The output pane let long lines **wrap**, so a large dump ballooned the panel
+  past the screen and made the shell unusable. Lines are now **truncated** in the
+  narrow pane (strictly height-bounded), and **`O` expands** output to a
+  full-width, readable, scrollable view (Esc/`O` collapses). (TODO: a real Config
+  view instead of dumping raw `config show` YAML — it's not readable in a side
+  pane and should point at what's live-editable.)
 - **Shell — Flow page + workflow-ordered nav.** New `[2] Flow` page: lists
   built-in + project flows, inspects the selected one (steps · seats ·
   description), **forks** a built-in into the project (`f`), and **browses /
