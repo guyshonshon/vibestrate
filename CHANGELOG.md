@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- **Create a profile inline from Crew.** A role's profile picker gains "+ New" -
+  mint a preset (provider, model, power, budget) and assign it to the role in one
+  step, without leaving the Crew page.
+
 ## 0.3.1
 
 - **Profiles are now complete and reusable.** A profile (provider + model +
