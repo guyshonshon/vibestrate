@@ -1,13 +1,13 @@
 # Security Policy
 
 Vibestrate is a small, open‑source, local‑first project. There's no company behind
-it, no support team, and no SLA — but security reports are taken seriously and
+it, no support team, and no SLA - but security reports are taken seriously and
 handled privately. Use of the software is at your own risk under the
 [Apache-2.0 license](./LICENSE).
 
 ## Reporting a vulnerability
 
-**Private channel — preferred:**
+**Private channel - preferred:**
 [Open a GitHub Security Advisory](https://github.com/guyshonshon/vibestrate/security/advisories/new)
 
 This gives us a private tracker and a way to coordinate a fix before public
@@ -16,14 +16,14 @@ disclosure.
 **Please do _not_** open a public issue, post in discussions, or share working
 exploits on social media before a fix has landed.
 
-There is no security email address — all coordination happens through GitHub
+There is no security email address - all coordination happens through GitHub
 Security Advisories.
 
 ## What to include
 
 - The version (`vibestrate --version`) and how it's installed.
 - A clear description of the issue and its impact.
-- Minimal reproduction steps. Redact anything sensitive — never include real
+- Minimal reproduction steps. Redact anything sensitive - never include real
   secrets, tokens, or private source.
 
 ## Scope worth flagging
@@ -46,16 +46,16 @@ Automated supply‑chain scanners (e.g. Amazon Inspector) sometimes flag the
 published `dist/index.js` as a **Telegram exfiltration / C2** channel because
 the bundle contains `fetch` → POST → `api.telegram.org` alongside `process.env`
 access. **This is a false positive.** That code is the opt‑in **Telegram
-notification gateway** (`src/notifications/gateways/telegram-gateway.ts`) — one
+notification gateway** (`src/notifications/gateways/telegram-gateway.ts`) - one
 of several gateways (CLI, in‑app, webhook, Discord, Slack, Telegram) you wire up
 with `vibestrate gateways add`. Specifically:
 
-- There is **no hardcoded bot token** — the URL is `api.telegram.org/bot${token}/…`
+- There is **no hardcoded bot token** - the URL is `api.telegram.org/bot${token}/…`
   where `${token}` comes from *your* gateway config (a literal or `env:NAME`).
 - `process.env` is read **only** as `process.env[NAME]` for the single var *you*
   named via `env:NAME` (regex `^env:([A-Z][A-Z0-9_]*)$`). The bundle never
   enumerates or serializes `process.env`.
-- The POST body is *your* notification text sent to *your* chat — never host
+- The POST body is *your* notification text sent to *your* chat - never host
   data or environment variables. Tokens are actively `redact()`‑ed from logs.
 
 If you want to verify, diff a clean local build (`pnpm build`) against the
@@ -69,4 +69,4 @@ responsibly.
 
 ---
 
-Maintained by [Guy Shonshon](https://shonshon.com) — Shonshon, Evolving Technologies.
+Maintained by [Guy Shonshon](https://shonshon.com) - Shonshon, Evolving Technologies.

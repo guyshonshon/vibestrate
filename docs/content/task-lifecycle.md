@@ -42,12 +42,12 @@ If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator 
 
 ## Terminal statuses
 
-Four statuses are terminal — once reached, the run cannot transition out:
+Four statuses are terminal - once reached, the run cannot transition out:
 
-- **`merge_ready`** — Verifier passed. The diff is ready to ship.
-- **`blocked`** — Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`.
-- **`failed`** — Unrecoverable error during a stage. Read `events.jsonl` and the provider stream log.
-- **`aborted`** — User explicitly aborted. Worktree is preserved.
+- **`merge_ready`** - Verifier passed. The diff is ready to ship.
+- **`blocked`** - Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`.
+- **`failed`** - Unrecoverable error during a stage. Read `events.jsonl` and the provider stream log.
+- **`aborted`** - User explicitly aborted. Worktree is preserved.
 
 ## Where each status writes
 
@@ -65,5 +65,5 @@ All under `.vibestrate/runs/<runId>/`. The `events.jsonl` file logs every transi
 
 ## Related
 
-- [Run state](/docs/concepts/state) — what each status means in detail.
-- [Workflow](/docs/concepts/workflow) — the stage definitions.
+- [Run state](/docs/concepts/state) - what each status means in detail.
+- [Workflow](/docs/concepts/workflow) - the stage definitions.

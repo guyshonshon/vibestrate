@@ -5,7 +5,7 @@ section: extending
 slug: extending/add-provider
 ---
 
-Vibestrate's built-in detector knows about Claude Code, Codex, Aider, Ollama, and OpenCode. To use a CLI it doesn't know about — or to override the flags of one it does — declare it under `providers:` in `project.yml`.
+Vibestrate's built-in detector knows about Claude Code, Codex, Aider, Ollama, and OpenCode. To use a CLI it doesn't know about - or to override the flags of one it does - declare it under `providers:` in `project.yml`.
 
 ## A custom CLI provider
 
@@ -44,7 +44,7 @@ If the test fails, the most common causes are:
 
 - The CLI expects a flag you didn't pass.
 - The CLI exits non-zero when there's nothing to do (some won't even talk without a model selected).
-- `inputMode` is wrong — try the other one.
+- `inputMode` is wrong - try the other one.
 
 ## A `claude-code` provider
 
@@ -58,7 +58,7 @@ providers:
     args: [-p, --model, claude-sonnet-4-6]
 ```
 
-The `claude-code` type unlocks deeper integration — session id reporting, token usage, session resume.
+The `claude-code` type unlocks deeper integration - session id reporting, token usage, session resume.
 
 ## What providers can and can't do
 
@@ -72,11 +72,11 @@ Providers don't:
 
 - Decide which agent role they're being used for.
 - Manage the worktree.
-- Apply their output as a diff — that's the executor's job, mediated by the path guard.
+- Apply their output as a diff - that's the executor's job, mediated by the path guard.
 
 ## Common mistakes
 
-- **Pointing two providers at the same CLI with different flags but the same id.** Two distinct ids — `claude` and `claude-fast` — keep things clear.
+- **Pointing two providers at the same CLI with different flags but the same id.** Two distinct ids - `claude` and `claude-fast` - keep things clear.
 - **Hardcoding a working directory.** Let the orchestrator set it to the worktree path.
 - **Putting API keys in `args`.** Don't. Use whatever auth flow the CLI itself supports.
 

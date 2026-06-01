@@ -138,7 +138,7 @@ If the process ended: start it again (`vibe run` or `vibe ui`) and the durable s
 
 **Symptoms:** `vibe provider test` returns success, but real runs end with "could not parse provider output."
 
-**Likely cause:** The provider's prompt-flag preset is producing output Vibestrate can't parse — usually because the provider changed its output format between releases.
+**Likely cause:** The provider's prompt-flag preset is producing output Vibestrate can't parse - usually because the provider changed its output format between releases.
 
 **Fix:**
 

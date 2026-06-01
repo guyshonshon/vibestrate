@@ -6,16 +6,16 @@ The settled names for Vibestrate's core concepts (Epic D / Phase 0). The model i
 | Term | Means | Not |
 |---|---|---|
 | **Flow** | The recipe: ordered **Steps** + the **Seats** they need + gates/loop. The fixed plan→build→verify workflow is the built-in **default flow**. | ~~Guide~~ |
-| **Step** | One phase of a Flow. **Reserved** — do not reuse for the Phase-3 card "Checklist / items". | — |
+| **Step** | One phase of a Flow. **Reserved** - do not reuse for the Phase-3 card "Checklist / items". | - |
 | **Seat** | What a Step needs filled (e.g. `implementer`). A contract the Crew satisfies; the Flow never names local Role ids. | ~~Slot~~ (renamed) |
-| **Crew** | Your local team of Roles. A run picks one (default `defaultCrew`). | — |
+| **Crew** | Your local team of Roles. A run picks one (default `defaultCrew`). | - |
 | **Role** | One teammate in a Crew: prompt, permissions, skills, a **Profile**, and the **Seats** it can take (its `seats` list). | ~~Agent~~ |
 | **Profile** | How strong/expensive a Role runs: provider + model + power + budget + timeout. Power is **provider-specific**. | ~~effortMap~~ |
 | **Provider** | A local coding-agent CLI (Claude Code, Codex, Aider, Ollama, OpenCode). Backs Profiles. | ~~Engine~~ |
-| **Task** | The plain-language request the user submits. | — |
-| **Run** | One execution of a task (its own runId, worktree, artifacts, state). | — |
-| **Supervisor** | The product role Vibestrate plays — the review/verification layer over coding agents. | — |
-| **Orchestrator** | The internal engine that drives a run's stages. | — |
+| **Task** | The plain-language request the user submits. | - |
+| **Run** | One execution of a task (its own runId, worktree, artifacts, state). | - |
+| **Supervisor** | The product role Vibestrate plays - the review/verification layer over coding agents. | - |
+| **Orchestrator** | The internal engine that drives a run's stages. | - |
 
 The chain at run time: **Step → Seat → (Crew) Role → Profile → Provider.** A Flow
 declares Seats; the Crew's Roles fill them (via `seats`); each Role names a
@@ -27,11 +27,11 @@ Profile; each Profile names a Provider.
 keeps the rename honest:
 
 - **Only the internal seat concept is renamed.** The phrase *"coding-agent
-  CLI"* / *"AI coding agents"* refers to the external **provider** tools — the
+  CLI"* / *"AI coding agents"* refers to the external **provider** tools - the
   industry's term for Claude Code, Codex, etc. That prose stays; it is not the
   role concept.
 
-It is a **clean rename — no backward-compatibility shims.** Vibestrate is
+It is a **clean rename - no backward-compatibility shims.** Vibestrate is
 pre-release beta with no published-user config or run history to preserve, so
 the old names are simply replaced, not dual-read:
 

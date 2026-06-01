@@ -1,6 +1,6 @@
 # Maintaining Vibestrate
 
-Notes for the maintainer (you). Releases are maintainer-only — this file is the
+Notes for the maintainer (you). Releases are maintainer-only - this file is the
 playbook so the README doesn't have to instruct it.
 
 ## Release a new version
@@ -17,7 +17,7 @@ with origin), runs the full gate (typecheck → build → test → audit), then
 `.github/workflows/release.yml`, which re-runs the gate and publishes to npm.
 
 The version lives in `package.json` only and flows into `vibestrate --version` and
-the generated docs reference — no other place to bump.
+the generated docs reference - no other place to bump.
 
 ### One-time setup so CI can publish without a token
 
@@ -41,7 +41,7 @@ add yourself. Then even a tag push pauses for approval.
 ## Publish manually (no CI)
 
 GitHub Actions is currently billing-blocked (private repo). Until that's sorted
-— or any time you prefer — publish straight from your machine:
+- or any time you prefer - publish straight from your machine:
 
 ```bash
 npm publish --provenance --access public --otp=<your-2fa-code>
@@ -77,5 +77,5 @@ The output is deterministic; commit it. The marketing site renders these.
 
 The repo is currently **private**, which is why GitHub Actions is billing-
 blocked. Making it public unblocks Actions for free and matches the
-Apache-2.0 / open-source posture — a deliberate choice to make when you're
+Apache-2.0 / open-source posture - a deliberate choice to make when you're
 ready.

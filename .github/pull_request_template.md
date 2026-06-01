@@ -1,4 +1,4 @@
-<!-- Features and fixes are both welcome here. Keep PRs focused — one thing per PR. -->
+<!-- Features and fixes are both welcome here. Keep PRs focused - one thing per PR. -->
 
 ## What & why
 
@@ -22,4 +22,4 @@
 
 ## Notes for the reviewer
 
-<!-- Anything that helps the review — tradeoffs, things you're unsure about, screenshots for UI. -->
+<!-- Anything that helps the review - tradeoffs, things you're unsure about, screenshots for UI. -->

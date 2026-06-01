@@ -1,4 +1,4 @@
-# Runner unification (D2 phase B) — one runner
+# Runner unification (D2 phase B) - one runner
 
 > Companion to [`flows-unification.md`](./flows-unification.md) (the original A/B
 > decision). This is the current-state record. Process rules live in
@@ -21,7 +21,7 @@ Flow → Steps → Role (seat) → Provider
 
 The hardcoded `Orchestrator.run()` **runner body** (the plan→build→verify
 sequence) was deleted; `run()` remains only as the public entry point that
-delegates to the unified flow runner — preflight + worktree + state setup, then
+delegates to the unified flow runner - preflight + worktree + state setup, then
 it resolves the flow (explicit or `default`) and calls `runFlowSequence`. There
 is no second execution engine.
 
@@ -55,7 +55,7 @@ A flow declares its behavior **explicitly in the definition** rather than the
 runner hardcoding role names. Three first-class step fields:
 
 - **`loop`** (flow-level): the adaptive review→fix→re-validate cycle. `from`..`to`
-  is the body; `decisionStep` (a review-turn) gates re-entry — after it runs, the
+  is the body; `decisionStep` (a review-turn) gates re-entry - after it runs, the
   runner exits past `to` when the review isn't `CHANGES_REQUESTED` or the
   iteration budget is spent, else finishes the body and jumps back to `from`. A
   head-positioned gate lets an early `APPROVED` skip the rest of the body.
@@ -70,13 +70,13 @@ runner hardcoding role names. Three first-class step fields:
 ### Resume / rewind (native to the flow runner)
 
 `vibe run --resume-from <runId> [--resume-stage planning|architecting|executing]`
-is handled inside the flow runner — no delegation to a separate path:
+is handled inside the flow runner - no delegation to a separate path:
 
 1. Find the first step whose `stage` matches the resume stage (fails clearly if
    the flow has no step at that stage).
 2. Seed the **outputs** of every step before it from the source run's artifacts
    (copying them into the new run), and mark those steps **skipped (resume)** in
-   the ledger — visible, not invisible.
+   the ledger - visible, not invisible.
 3. Start the walk at the boundary step.
 
 `planning` seeds nothing (a normal from-scratch run). `--resume-from` may be
@@ -104,12 +104,12 @@ real bugs that never had coverage:
 
 ## Key files
 
-- `src/core/orchestrator.ts` — `run()` (entry), `runFlowSequence` (the runner),
+- `src/core/orchestrator.ts` - `run()` (entry), `runFlowSequence` (the runner),
   `seedResumedSteps` (resume), `resolveDefaultFlow`.
-- `src/flows/catalog/builtin-flows.ts` — the `default` flow (+ `quality-arbitration`).
-- `src/flows/schemas/flow-schema.ts` — `loop`, `skipWhenReadOnly`, `stage`.
-- `src/core/run-launcher.ts` — `resolveResumeFrom` (validates the source run).
-- `src/core/state-machine.ts` — phase transition table.
+- `src/flows/catalog/builtin-flows.ts` - the `default` flow (+ `quality-arbitration`).
+- `src/flows/schemas/flow-schema.ts` - `loop`, `skipWhenReadOnly`, `stage`.
+- `src/core/run-launcher.ts` - `resolveResumeFrom` (validates the source run).
+- `src/core/state-machine.ts` - phase transition table.
 
 ## Tests
 
@@ -132,7 +132,7 @@ validates that a source run exists. Old runs are treated as never having existed
 
 Resume targets the stages with a clean seed boundary: **`planning`,
 `architecting`, `executing`**. `reviewing` / `verifying` are intentionally **not**
-resumable — they need the executor's code present, and Vibestrate doesn't snapshot the
+resumable - they need the executor's code present, and Vibestrate doesn't snapshot the
 per-step worktree yet. The CLI and `--resume-stage` schema reject other values
 with a clear message.
 

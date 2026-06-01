@@ -5,7 +5,7 @@ section: extending
 slug: extending/add-flow
 ---
 
-A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's discovery picks it up. The schema is validated on load — malformed Flows fail loud at start, not silently mid-run.
+A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's discovery picks it up. The schema is validated on load - malformed Flows fail loud at start, not silently mid-run.
 
 ## Steps
 
@@ -81,7 +81,7 @@ A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's
 
 ## Slot vs agent
 
-A *slot* is a named participant — `builder`, `challenger`, `arbiter`, `prototyper`. The slot has a `defaultAgent` (a role name like `executor` or `reviewer`), and at run start the user can override which provider each slot uses.
+A *slot* is a named participant - `builder`, `challenger`, `arbiter`, `prototyper`. The slot has a `defaultAgent` (a role name like `executor` or `reviewer`), and at run start the user can override which provider each slot uses.
 
 ```bash
 vibe run "..." --flow spike-and-decide --flow-slot prototyper=claude

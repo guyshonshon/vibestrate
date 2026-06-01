@@ -6,16 +6,16 @@ Checklist item-by-item. Locked decisions live in
 
 ## Shape
 
-One run, one worktree. The flow declares a `checklistSegment` — a contiguous
+One run, one worktree. The flow declares a `checklistSegment` - a contiguous
 body of steps that repeats **once per checklist item**:
 
 ```
-ONCE      plan            (holistic — sees the card + every item via the brief)
+ONCE      plan            (holistic - sees the card + every item via the brief)
 PER ITEM  micro-plan      (planner, scoped to THIS item)
           implement       (executor, code_write, in the worktree)
           → commit (tagged Vibestrate-Checklist-Item: <id>) + compact summary
           → [between-item gate] continuous: go · step: pause
-ONCE      review          (holistic — over the accumulated work)
+ONCE      review          (holistic - over the accumulated work)
 ```
 
 The built-in `pickup` flow is exactly this. Any flow can become checklist-aware
@@ -23,7 +23,7 @@ by adding a `checklistSegment: { from, to }`.
 
 ## Where it lives
 
-It is **not** a parallel runner — it's woven into the one
+It is **not** a parallel runner - it's woven into the one
 `runFlowSequence` (orchestrator), reusing every existing guarantee (diff gate,
 Action Broker, validation, pause/resume). The per-item jump-back is the same
 mechanism as the adaptive review loop's jump-back; the schema keeps the two
@@ -33,14 +33,14 @@ collide in the traversal.
 ## Decisions
 
 - **Every run iterates a checklist; N=1 is the instant task.** With no linked
-  checklist (or no `checklistMode`), the segment runs once — today's behavior,
+  checklist (or no `checklistMode`), the segment runs once - today's behavior,
   unchanged. The loop is the general case, not a special path.
 - **Forward-carry summaries, not diffs.** After each item, a *compact* summary
   (status, commit, key files, the agent's trimmed implementation note) is written
   and the running ledger is injected into the next item's context as the
   `prior-items` token. Older items fold to one line when the carried ledger
   exceeds its char budget (`buildPriorItemsContext`). This is the make-or-break
-  for "item 5 knows what item 2 did" — built and tested first
+  for "item 5 knows what item 2 did" - built and tested first
   (`src/pickup/item-summary.ts`), before the loop.
 - **A commit per item, stamped with the item id.** Attribution, single-item
   revert, and per-item board status all fall out of git
@@ -51,7 +51,7 @@ collide in the traversal.
   holds until a human resumes. No separate code path.
 - **Stop-on-failure, linear.** A step that throws mid-item marks that item
   `blocked` and leaves the rest `pending`. (Per-item bounded retries and
-  continue-past-failure are deferred — they need a checklist DAG.)
+  continue-past-failure are deferred - they need a checklist DAG.)
 - **Status write-back is best-effort.** Per-item status/commit updates to the
   task never throw into the run's hot path.
 
@@ -70,4 +70,4 @@ collide in the traversal.
 
 Resume-from-item (a crashed run restarts at the last completed item); per-item
 bounded retries; mid-loop profile downgrade on budget pressure; parallel item
-execution (worktree-per-item then merge — that's the §3 parallel/merge work).
+execution (worktree-per-item then merge - that's the §3 parallel/merge work).

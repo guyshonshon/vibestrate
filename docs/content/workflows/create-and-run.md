@@ -13,7 +13,7 @@ Write the task description like a brief for a careful colleague. Name the file, 
 
 Good:
 
-> Add audit logging to the settings save handler at `src/server/routes/settings.ts`. Use the existing `auditLogger` from `src/lib/audit.ts`. Log the user id and the *keys* changed — never the values.
+> Add audit logging to the settings save handler at `src/server/routes/settings.ts`. Use the existing `auditLogger` from `src/lib/audit.ts`. Log the user id and the *keys* changed - never the values.
 
 Bad:
 
@@ -51,13 +51,13 @@ vibe run "..." --effort high
 
 ## 3. Watch (or don't)
 
-Vibestrate runs through plan → architect → execute → validate → review → fix → verify on its own. You can watch each phase in the terminal or the dashboard, or close the terminal and check back later — the run keeps going as long as Vibestrate's process is alive.
+Vibestrate runs through plan → architect → execute → validate → review → fix → verify on its own. You can watch each phase in the terminal or the dashboard, or close the terminal and check back later - the run keeps going as long as Vibestrate's process is alive.
 
 When the run finishes, it lands in one of:
 
-- `merge_ready` — diff is ready to ship.
-- `blocked` — reviewer or verifier flagged something a human should decide.
-- `failed` — unrecoverable error during a stage.
+- `merge_ready` - diff is ready to ship.
+- `blocked` - reviewer or verifier flagged something a human should decide.
+- `failed` - unrecoverable error during a stage.
 
 ## 4. Inspect the result
 
@@ -68,7 +68,7 @@ vibe replay <runId>          # full read-only inspector
 
 Or open the dashboard's **Git** tab to read the diff inline.
 
-## 5. Merge — by hand
+## 5. Merge - by hand
 
 Vibestrate does not push, does not merge. The run leaves the diff on its branch in the worktree. You decide:
 

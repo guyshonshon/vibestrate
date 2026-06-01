@@ -1,13 +1,13 @@
 # Design: Flows Hub
 
-Status: **planning — core decisions settled** · Tracking issue: #3 · Owner: maintainer
+Status: **planning - core decisions settled** · Tracking issue: #3 · Owner: maintainer
 
 Settled: flat unique names · separate `vibestrate-flows` repo · curated PR-based v1
 (Docker "Official Images" model) · GitHub OAuth if a service is added later ·
 free git-backed v1 with a hosted service deferred. See "Settled decisions".
 
 A place to **discover, share, and install Flows** other people publish, with
-**stars** and **download** metrics — npm / Docker Hub, but for Vibestrate Flows.
+**stars** and **download** metrics - npm / Docker Hub, but for Vibestrate Flows.
 
 ---
 
@@ -30,7 +30,7 @@ A Flow is the cleanest unit in Vibestrate to make portable:
 
 Vibestrate's invariant: *no cloud backend / no relay for your runs.* The hub does
 **not** violate it. It's an **opt‑in catalog** you explicitly publish to and
-pull from — like `npm install`. Your code, prompts, and runs never touch it.
+pull from - like `npm install`. Your code, prompts, and runs never touch it.
 The core tool stays fully functional offline; the hub is a separate, optional
 surface. This must remain true through every phase.
 
@@ -38,13 +38,13 @@ surface. This must remain true through every phase.
 
 ## Phasing
 
-### Phase 1 — git‑backed index (zero infra) ← build this first
+### Phase 1 - git‑backed index (zero infra) ← build this first
 
 A public GitHub repo (`guyshonshon/vibestrate-flows`) is the registry. No service
-to run, no database, no auth to build — GitHub provides hosting, identity (PRs),
+to run, no database, no auth to build - GitHub provides hosting, identity (PRs),
 and a coarse "stars" signal for free.
 
-**Layout of the index repo** — flat names, one immutable dir per version:
+**Layout of the index repo** - flat names, one immutable dir per version:
 
 ```
 vibestrate-flows/
@@ -73,9 +73,9 @@ vibestrate-flows/
 
 **CLI surface** (new `vibe flows` subcommands; the command tree already exists):
 
-- `vibe flows search <query>` — fetch `index.json`, fuzzy‑match locally, print
+- `vibe flows search <query>` - fetch `index.json`, fuzzy‑match locally, print
   matches with author + tags + `latest`.
-- `vibe flows install <name>[:<version>]` — Docker‑style ref resolution:
+- `vibe flows install <name>[:<version>]` - Docker‑style ref resolution:
   - `name` → `name:latest`
   - `name:1.2.0` → that exact version
   - `name:1` → highest `1.x`
@@ -85,10 +85,10 @@ vibestrate-flows/
   path). Record the resolved `{ name, version, hash }` in a sidecar
   (`.vibestrate/flows/<name>/.hub.json`) so we know what's installed. Refuse on
   invalid schema or a secret‑like hit.
-- `vibe flows update [<name>]` — re‑resolve `latest` (or a pinned range) and
+- `vibe flows update [<name>]` - re‑resolve `latest` (or a pinned range) and
   update; **warn on a major bump** before applying.
-- `vibe flows outdated` — list installed hub flows with a newer version.
-- `vibe flows publish [<name>]` — package the project flow + a `meta.json`
+- `vibe flows outdated` - list installed hub flows with a newer version.
+- `vibe flows publish [<name>]` - package the project flow + a `meta.json`
   (with the **semver** for this release) and open a **PR** to the index repo
   (via `gh`). Review happens in the PR.
 
@@ -106,24 +106,24 @@ vibestrate-flows/
 - Size + step caps (≤ 64 steps, ≤ N KB).
 - `meta.json` declares `author`, `license`, `tags`, and the release `version`
   (semver).
-- Flat unique `name`; a published `<name>/<version>/` is **immutable** — CI
+- Flat unique `name`; a published `<name>/<version>/` is **immutable** - CI
   rejects re‑publishing an existing version (new content → new version).
 
 **Acceptance:** `vibe flows search` / `install name[:version]` pull a community
 flow into `.vibestrate/flows/`, validated before it lands; `publish` produces an
 index PR.
 
-### Phase 2 — `vibestrate-hub` service (Docker‑Hub‑style)
+### Phase 2 - `vibestrate-hub` service (Docker‑Hub‑style)
 
 Graduate to a real registry when phase 1's limits bite (no real download
 counts, PR‑gated publishing, no per‑flow stars).
 
-**Stack — Cloudflare‑native** (we already deploy the marketing site there):
+**Stack - Cloudflare‑native** (we already deploy the marketing site there):
 
-- **Worker** — the API (search, get, publish, star, metrics).
-- **D1** (SQLite) — catalog rows, stars, download counters, ownership.
-- **R2** — the `flow.yml` payloads (and future larger bundles).
-- Optional **KV** — hot `index.json` cache.
+- **Worker** - the API (search, get, publish, star, metrics).
+- **D1** (SQLite) - catalog rows, stars, download counters, ownership.
+- **R2** - the `flow.yml` payloads (and future larger bundles).
+- Optional **KV** - hot `index.json` cache.
 
 **API sketch**
 
@@ -166,7 +166,7 @@ the public API; install still writes locally through the existing path).
 - **Names are flat + globally unique** (first-come), not namespaced. Simpler
   ids; we accept the land-grab/collision tradeoff and can add a reserved-prefix
   list if it bites.
-- **Separate `vibestrate-flows` repo** is the registry — its own repo with its own
+- **Separate `vibestrate-flows` repo** is the registry - its own repo with its own
   contributors who help review submissions (not in `vibestrate` or
   `vibestrate-marketing`).
 - **v1 publishing is curated, PR-based** (Docker "Official Images" model, not
@@ -174,9 +174,9 @@ the public API; install still writes locally through the existing path).
 - **Identity, if/when a service is added:** GitHub OAuth (login = identity).
 - **Cost:** v1 is free forever (git-backed, no infra). A hosted service is a
   *later, optional* step; the maintainer is fine covering ~$5/mo if it ever
-  grows — so the service is a "when demand justifies it" decision, not a
+  grows - so the service is a "when demand justifies it" decision, not a
   blocker.
-- **Versioned, Docker/npm-style** — see below.
+- **Versioned, Docker/npm-style** - see below.
 
 ## Versioning
 
@@ -189,7 +189,7 @@ Published flows are **versioned with semver**, referenced Docker/npm-style:
 Rules:
 
 - **A published version is immutable.** Re-publishing `1.2.0` with different
-  content is rejected by CI — new content means a new version. This is what
+  content is rejected by CI - new content means a new version. This is what
   makes an installed flow reproducible: it can't change under you.
 - **`latest` is auto = the highest published *stable* semver** (pre-releases
   like `1.3.0-beta` are excluded from `latest`). No manual dist-tag management
@@ -200,8 +200,8 @@ Rules:
 
 Relationship to the existing `flow.yml` `version` (integer): that field stays
 as the flow's **internal structural revision** (it's a `number` in the schema
-and in run-state snapshots — `flowRunState.flowVersion`). The **hub release
-version** is the **semver in `meta.json`** — a separate, registry-level concept
+and in run-state snapshots - `flowRunState.flowVersion`). The **hub release
+version** is the **semver in `meta.json`** - a separate, registry-level concept
 (like a package's internal `schemaVersion` vs its npm version). They're
 independent; we may unify later, but not as a breaking change now.
 
@@ -224,7 +224,7 @@ Modeled on Docker's **Official Images** curation, not its open push:
 
 ## Safety & quality assurance
 
-Flows are declarative (no embedded code), but they are **not inert** — they can
+Flows are declarative (no embedded code), but they are **not inert** - they can
 still be hostile by:
 
 - **Weakening supervision:** dropping the `validation`/review/approval steps so
@@ -243,21 +243,21 @@ Mitigations:
   approval text), unbounded repeats, and unknown agent ids. Produces a score +
   reasons.
 - **Human review** by the `vibestrate-flows` contributor team before listing.
-- **Install-time validation** still runs locally (schema + secret scan) — a
+- **Install-time validation** still runs locally (schema + secret scan) - a
   compromised index can't bypass the client checks.
 
 ## Disclaimers (must ship with the feature)
 
 State clearly, in **all three** places, that **using an external flow is the
-user's responsibility to validate before use** — "we do our best to review every
+user's responsibility to validate before use** - "we do our best to review every
 flow for safety, but you must be cautious; run untrusted flows `--read-only`
 first and watch the approval gates":
 
-1. **The app** — Mission Control shows a caution banner when browsing/installing
+1. **The app** - Mission Control shows a caution banner when browsing/installing
    a hub flow; the CLI `install` prints it.
-2. **The website docs** — a dedicated docs page (e.g. `/docs/flows-hub` +
+2. **The website docs** - a dedicated docs page (e.g. `/docs/flows-hub` +
    a safety note).
-3. **The repo** — the `vibestrate-flows` README + a `SECURITY.md`.
+3. **The repo** - the `vibestrate-flows` README + a `SECURITY.md`.
 
 ## Still open (later, with the service)
 
@@ -268,6 +268,6 @@ first and watch the approval gates":
 
 ## Non‑goals (for now)
 
-- Hosting runs, prompts, or any private data — ever. The hub is flows only.
+- Hosting runs, prompts, or any private data - ever. The hub is flows only.
 - Open self-serve publish in v1 (curated PR flow instead).
-- Arbitrary code execution — flows stay declarative; install never runs them.
+- Arbitrary code execution - flows stay declarative; install never runs them.

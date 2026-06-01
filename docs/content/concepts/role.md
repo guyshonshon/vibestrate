@@ -1,6 +1,6 @@
 ---
 title: Role
-description: One teammate inside a Crew — its instructions, permissions, skills, the Profile it runs on, and the Seats it can fill.
+description: One teammate inside a Crew - its instructions, permissions, skills, the Profile it runs on, and the Seats it can fill.
 section: concepts
 slug: concepts/role
 ---
@@ -31,7 +31,7 @@ crews:
 A Role is one row inside a [[crew]]. It carries instructions (a prompt file),
 a permission profile, attached skills, the **[[profile]]** it runs on, and a
 list of **[[seat]]s** it can fill in a [[flow]]. Roles live under
-`crews.<crewId>.roles` — there is no top-level `roles` map any more, and a Role
+`crews.<crewId>.roles` - there is no top-level `roles` map any more, and a Role
 points at a Profile (`profile:`), not directly at a provider.
 
 > **Role vs Profile vs Provider:** a *Role* is the behavior (Reviewer); a
@@ -41,7 +41,7 @@ points at a Profile (`profile:`), not directly at a provider.
 
 Splitting work into named Roles is what makes the loop inspectable: the planner
 only plans, the reviewer only reviews. Because each Role names a Profile, you
-can also mix models — a strong reasoning Profile for the planner, a cheap fast
+can also mix models - a strong reasoning Profile for the planner, a cheap fast
 one for the executor, a different vendor for the reviewer so it doesn't share
 the executor's blind spots.
 
@@ -75,8 +75,8 @@ the executor's blind spots.
 
 ## Related
 
-- [[crew]] — the roster a Role belongs to.
-- [[seat]] — what a Role fills in a Flow.
-- [[profile]] — how strong/expensive a Role runs.
-- [[provider]] — the CLI behind the Profile.
-- [[skill]] — what a Role reads as domain context.
+- [[crew]] - the roster a Role belongs to.
+- [[seat]] - what a Role fills in a Flow.
+- [[profile]] - how strong/expensive a Role runs.
+- [[provider]] - the CLI behind the Profile.
+- [[skill]] - what a Role reads as domain context.

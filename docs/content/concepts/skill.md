@@ -7,7 +7,7 @@ slug: concepts/skill
 
 **Professional explanation.** A skill is a markdown attachment discovered by filename under `.vibestrate/skills/` or `.claude/skills/`, identified by stem, and loaded into an agent's prompt as additional context. Skills may optionally declare MCP servers (Model Context Protocol) the agent should connect to during its turn.
 
-**Simple explanation.** A skill is a markdown file you write once and any agent can read. Use it for the things that should always be true about your codebase — conventions, security rules, "we don't do X here."
+**Simple explanation.** A skill is a markdown file you write once and any agent can read. Use it for the things that should always be true about your codebase - conventions, security rules, "we don't do X here."
 
 ## Why it matters
 
@@ -15,14 +15,14 @@ Most "the agent did the wrong thing" problems trace back to context the agent di
 
 ## Two roots
 
-- `.vibestrate/skills/` — committed with your project. Travels with the repo.
-- `.claude/skills/` — picked up if you're already using Claude Code's skill discovery.
+- `.vibestrate/skills/` - committed with your project. Travels with the repo.
+- `.claude/skills/` - picked up if you're already using Claude Code's skill discovery.
 
 The filename minus `.md` is the skill id. `auth-conventions.md` is the skill `auth-conventions`.
 
 ## What a skill looks like
 
-There's no required schema. It's markdown — write it like documentation for a careful colleague.
+There's no required schema. It's markdown - write it like documentation for a careful colleague.
 
 ```markdown
 # .vibestrate/skills/payments.md
@@ -31,7 +31,7 @@ This codebase handles real money. When touching `src/payments/`:
 
 - Always idempotent. Every external POST must include an idempotency key.
 - Currency is stored as integer cents. Never floats.
-- Refunds must go through `RefundService.process()` — never inline.
+- Refunds must go through `RefundService.process()` - never inline.
 - Log errors with `paymentLogger`, not the default logger (different sink).
 ```
 
@@ -61,7 +61,7 @@ vibe run "Refund a stuck transaction" --skills payments,oncall-runbook
 
 ## Common mistakes
 
-- **Putting everything in one skill.** A single 5000-word file is hard for any agent to weigh. Split by surface — auth, payments, errors, observability — and attach only the ones relevant to each agent.
+- **Putting everything in one skill.** A single 5000-word file is hard for any agent to weigh. Split by surface - auth, payments, errors, observability - and attach only the ones relevant to each agent.
 - **Writing skills like prompts.** Don't say "you are an expert at...". Say what the convention is. Agents read skills like docs.
 - **Using skills for ephemeral info.** "Fix the bug in PR #123" belongs in the task description, not in a skill.
 

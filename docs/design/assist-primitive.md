@@ -7,7 +7,7 @@ overview/suggest. Companion to `roadmap-and-sequencing.md` §1/§8.
 
 `runAssist` (`src/assist/assist-runner.ts`) is one **one-shot, read-only,
 structured-output** call: build a minimal prompt, spawn a provider once, parse
-and Zod-validate the JSON response. It deliberately skips the orchestrator —
+and Zod-validate the JSON response. It deliberately skips the orchestrator -
 no worktree, no run lifecycle, no validation/review/fix stages. The degenerate
 "ask the model one question, get typed data back" path.
 
@@ -28,13 +28,13 @@ const { parsed } = await runAssist({
   config. The only thing skipped is the multi-stage flow machinery.
 - **Profile resolution = the crew's read-only planner.** With no explicit
   `profileId`, the assist resolves the role filling the `planner` seat of the
-  (default) crew and uses its profile — planner is read-only and
+  (default) crew and uses its profile - planner is read-only and
   planning-shaped, the natural assist seat. Callers can override.
 - **Gated through the Action Broker.** The `provider.spawn` is decided and
   recorded like every other effect (the "one boundary" guarantee, S0/S2). A
   policy that denies/`require_approval`s provider spawns blocks the assist,
   fail-closed. Evidence lands in a stable audit bucket, `runs/assist/
-  actions.ndjson` — it has no `state.json`, so the runs listing ignores it
+  actions.ndjson` - it has no `state.json`, so the runs listing ignores it
   (it isn't a real run).
 - **Tolerant parse, bounded reprompt.** `extractJson` pulls the first balanced
   JSON value out of the response (tolerating markdown fences and surrounding
@@ -48,14 +48,14 @@ const { parsed } = await runAssist({
 
 `src/assist/enhance.ts` decomposes a card into a checklist.
 
-- `proposeChecklist` — runs the assist and returns cleaned, de-duplicated,
+- `proposeChecklist` - runs the assist and returns cleaned, de-duplicated,
   capped item texts. **Mutates nothing** (dry-run).
-- `enhanceChecklist` — propose, then append the items via the roadmap service.
+- `enhanceChecklist` - propose, then append the items via the roadmap service.
 
 The split keeps the gated "dry-run → explicit accept" shape: the API previews
 by default (`apply: false`) and the dashboard shows the proposal with an
 "Add all" button; nothing reaches the board until a human accepts. This mirrors
-how macro **proposals** already work (and stays distinct from them — proposals
+how macro **proposals** already work (and stays distinct from them - proposals
 create separate cards, enhance fills one card's checklist).
 
 ## Surfaces

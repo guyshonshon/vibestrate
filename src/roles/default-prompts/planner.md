@@ -57,7 +57,7 @@ If you believe Vibestrate should pause for an explicit human decision before
 implementation begins (because the task is unsafe, ambiguous in a way that
 materially changes the implementation, requires irreversible actions, or
 crosses security/privacy/auth/payment/migration boundaries), emit a
-structured approval request — each line on its own line:
+structured approval request - each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED

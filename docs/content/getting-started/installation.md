@@ -12,11 +12,11 @@ Vibestrate runs on macOS and Linux. Windows is not currently supported.
 - **Node.js 18.17 or newer.** Check with `node --version`.
 - **git 2.5+.** Vibestrate creates and tears down worktrees, which need a modern git.
 - **pnpm or npm.** Either is fine for installing the package.
-- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later — `vibe doctor` will tell you what's missing.
+- **At least one local coding-agent CLI** on your PATH (Claude Code, Codex, Aider, Ollama, or OpenCode). You can install one later - `vibe doctor` will tell you what's missing.
 
 ## Install globally
 
-One-liner (macOS / Linux) — installs the `vibe` CLI via the `vibestrate` npm package under the hood:
+One-liner (macOS / Linux) - installs the `vibe` CLI via the `vibestrate` npm package under the hood:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
@@ -52,7 +52,7 @@ After init, run the environment check:
 vibe doctor
 ```
 
-Doctor walks through everything that needs to be ready before your first run — git state, project config, available providers, validation commands, permissions. Anything red, it tells you how to fix.
+Doctor walks through everything that needs to be ready before your first run - git state, project config, available providers, validation commands, permissions. Anything red, it tells you how to fix.
 
 ## What got created
 
@@ -66,7 +66,7 @@ Doctor walks through everything that needs to be ready before your first run —
   runs/            run state, artifacts, metrics, events
 ```
 
-You can commit `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents/`, `.vibestrate/skills/`, and `.vibestrate/flows/`. The `runs/` directory holds per-run artifacts and is best left untracked — Vibestrate adds it to your `.gitignore` automatically.
+You can commit `.vibestrate/project.yml`, `.vibestrate/rules.md`, `.vibestrate/agents/`, `.vibestrate/skills/`, and `.vibestrate/flows/`. The `runs/` directory holds per-run artifacts and is best left untracked - Vibestrate adds it to your `.gitignore` automatically.
 
 ## Next
 

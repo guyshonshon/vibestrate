@@ -59,7 +59,7 @@ Vibestrate runs the coding-agent CLIs you already have through a visible **plan 
 
 ## ◆ Quick start
 
-Install Vibestrate — the command is `vibe`:
+Install Vibestrate - the command is `vibe`:
 
 ```bash
 # macOS / Linux

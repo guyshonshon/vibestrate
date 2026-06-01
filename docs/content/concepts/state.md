@@ -11,7 +11,7 @@ slug: concepts/state
 
 ## Why it matters
 
-The state machine is what makes runs replayable, pausable, and auditable. When a run says it's `verifying`, that's the truth — the verifier is running, the previous artifacts are committed, and there's no in-between fuzz. When it says `merge_ready`, the diff is real and the validation passed.
+The state machine is what makes runs replayable, pausable, and auditable. When a run says it's `verifying`, that's the truth - the verifier is running, the previous artifacts are committed, and there's no in-between fuzz. When it says `merge_ready`, the diff is real and the validation passed.
 
 ## The statuses
 
@@ -45,7 +45,7 @@ Both are durable across process restarts. The pause flag is persisted, so killin
 
 ## Terminal statuses are sticky
 
-`merge_ready`, `blocked`, `failed`, `aborted` — once a run lands here, it can't transition out. To start over, run the task again as a new run; the previous run's artifacts remain.
+`merge_ready`, `blocked`, `failed`, `aborted` - once a run lands here, it can't transition out. To start over, run the task again as a new run; the previous run's artifacts remain.
 
 ## Inspecting state
 
@@ -55,9 +55,9 @@ vibe status --json
 vibe replay <runId>
 ```
 
-`vibe replay` opens a read-only inspector for any persisted run — useful for after-the-fact debugging when something interesting happened and you want to retrace.
+`vibe replay` opens a read-only inspector for any persisted run - useful for after-the-fact debugging when something interesting happened and you want to retrace.
 
 ## Related
 
-- [Workflow](/docs/concepts/workflow) — the stages that drive transitions.
-- [Task lifecycle](/docs/task-lifecycle) — the same statuses, drawn as a transition diagram.
+- [Workflow](/docs/concepts/workflow) - the stages that drive transitions.
+- [Task lifecycle](/docs/task-lifecycle) - the same statuses, drawn as a transition diagram.
