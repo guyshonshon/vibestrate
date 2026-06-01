@@ -6,6 +6,7 @@ import { listConfiguredProviders } from "../../setup/provider-setup-service.js";
 import { runDoctor } from "../../setup/doctor-service.js";
 import { applySetup } from "../../setup/setup-service.js";
 import { configExists } from "../../project/config-loader.js";
+import { PROVIDER_CATALOG } from "../../providers/provider-catalog.js";
 
 export type SetupRoutesDeps = {
   projectRoot: string;
@@ -16,6 +17,11 @@ export async function registerSetupRoutes(
   deps: SetupRoutesDeps,
 ): Promise<void> {
   const { projectRoot } = deps;
+
+  // Per-provider model / power / budget suggestions for the Profile editor.
+  app.get("/api/providers/catalog", async () => {
+    return { catalog: PROVIDER_CATALOG };
+  });
 
   app.get("/api/setup/summary", async () => {
     const [project, providers, configured, doctor] = await Promise.all([

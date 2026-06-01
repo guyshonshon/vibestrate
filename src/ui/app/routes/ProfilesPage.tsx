@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Copy, Cpu, Plus, Save, SlidersHorizontal, Trash2 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { ProfileView } from "../../lib/types.js";
+import type { ProfileView, ProviderCatalog } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
+import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { cn } from "../../components/design/cn.js";
+
+const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
@@ -44,17 +47,20 @@ const numOrNull = (s: string): number | null => {
 export function ProfilesPage() {
   const [profiles, setProfiles] = useState<ProfileView[] | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
+  const [catalog, setCatalog] = useState<ProviderCatalog>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [creating, setCreating] = useState(false);
 
   async function load() {
     try {
-      const [profRes, meta] = await Promise.all([
+      const [profRes, meta, cat] = await Promise.all([
         api.getProfiles(),
         api.getProjectMetadata().catch(() => null),
+        api.getProviderCatalog().catch(() => ({ catalog: {} as ProviderCatalog })),
       ]);
       setProfiles(profRes.profiles);
+      setCatalog(cat.catalog);
       const fromMeta = meta?.providers.map((p) => p.id) ?? [];
       const fromProfiles = profRes.profiles.map((p) => p.provider);
       setProviders([...new Set([...fromMeta, ...fromProfiles])].sort());
@@ -118,6 +124,7 @@ export function ProfilesPage() {
       {creating ? (
         <CreateProfile
           providers={providers}
+          catalog={catalog}
           existingIds={new Set((profiles ?? []).map((p) => p.id))}
           onCancel={() => setCreating(false)}
           onCreated={() => {
@@ -166,6 +173,7 @@ export function ProfilesPage() {
                     key={p.id}
                     profile={p}
                     providers={providers}
+                    catalog={catalog}
                     onSaved={() => void load()}
                     onFlash={flash}
                   />
@@ -195,12 +203,14 @@ export function ProfilesPage() {
 
 function CreateProfile({
   providers,
+  catalog,
   existingIds,
   onCancel,
   onCreated,
   onFlash,
 }: {
   providers: string[];
+  catalog: ProviderCatalog;
   existingIds: Set<string>;
   onCancel: () => void;
   onCreated: () => void;
@@ -217,6 +227,7 @@ function CreateProfile({
     timeoutMs: "",
   });
   const [busy, setBusy] = useState(false);
+  const caps = catalog[draft.provider] ?? EMPTY_CAPS;
   const idTaken = existingIds.has(id.trim());
   const valid = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!draft.provider;
 
@@ -277,14 +288,14 @@ function CreateProfile({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={id || "optional"} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <input value={draft.model} onChange={(e) => set("model", e.target.value)} placeholder="provider default" className={INPUT_CLS} />
+          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder={caps.models[0] ?? "provider default"} className={INPUT_CLS} />
         </FormField>
-        <FormField label="Power" hint="provider-specific">
-          <input value={draft.power} onChange={(e) => set("power", e.target.value)} placeholder="none" className={INPUT_CLS} />
+        <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific" : "this provider has no effort levels"}>
+          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder={caps.powerLevels[0] ?? "none"} className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
-            {["", "low", "medium", "high"].map((b) => (
+            {["", ...caps.budgetLevels].map((b) => (
               <option key={b || "none"} value={b}>{b || "-"}</option>
             ))}
           </select>
@@ -303,11 +314,13 @@ function CreateProfile({
 function ProfileCard({
   profile,
   providers,
+  catalog,
   onSaved,
   onFlash,
 }: {
   profile: ProfileView;
   providers: string[];
+  catalog: ProviderCatalog;
   onSaved: () => void;
   onFlash: (t: Toast) => void;
 }) {
@@ -315,6 +328,7 @@ function ProfileCard({
   const [saving, setSaving] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(profile));
   const usedBy = profile.usedBy ?? [];
+  const caps = catalog[draft.provider] ?? EMPTY_CAPS;
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -404,17 +418,17 @@ function ProfileCard({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={profile.id} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <input value={draft.model} onChange={(e) => set("model", e.target.value)} placeholder="provider default" className={INPUT_CLS} />
+          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder={caps.models[0] ?? "provider default"} className={INPUT_CLS} />
         </FormField>
-        <FormField label="Power" hint="provider-specific (e.g. balanced / deep)">
-          <input value={draft.power} onChange={(e) => set("power", e.target.value)} placeholder="none" className={INPUT_CLS} />
+        <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific (e.g. balanced / deep)" : "this provider has no effort levels"}>
+          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder={caps.powerLevels[0] ?? "none"} className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
-            {["", "low", "medium", "high"].map((b) => (
+            {["", ...caps.budgetLevels].map((b) => (
               <option key={b || "none"} value={b}>{b || "-"}</option>
             ))}
-            {!["", "low", "medium", "high"].includes(draft.budget) ? (
+            {![...caps.budgetLevels, ""].includes(draft.budget) ? (
               <option value={draft.budget}>{draft.budget}</option>
             ) : null}
           </select>

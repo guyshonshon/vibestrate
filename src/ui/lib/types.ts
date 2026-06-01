@@ -281,6 +281,14 @@ export type ProfileView = {
   usedBy: { crewId: string; roleId: string }[];
 };
 
+export type ProviderCapabilities = {
+  models: string[];
+  powerLevels: string[];
+  budgetLevels: string[];
+};
+/** Per-provider suggestion lists for the Profile editor (keyed by provider id). */
+export type ProviderCatalog = Record<string, ProviderCapabilities>;
+
 export type FlowSuggestion = {
   flowId: string;
   label: string;

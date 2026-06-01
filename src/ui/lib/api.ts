@@ -10,6 +10,7 @@ import type {
   ConflictWarning,
   CrewView,
   ProfileView,
+  ProviderCatalog,
   DiffSnapshot,
   DiscoveredSkill,
   DiscoveredFlow,
@@ -827,6 +828,9 @@ export const api = {
   // ─── profiles ─────────────────────────────────────────────────────────
   async getProfiles(): Promise<{ profiles: ProfileView[] }> {
     return jsonGet("/api/profiles");
+  },
+  async getProviderCatalog(): Promise<{ catalog: ProviderCatalog }> {
+    return jsonGet("/api/providers/catalog");
   },
   async patchProfile(
     profileId: string,

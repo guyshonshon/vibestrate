@@ -13,10 +13,14 @@ import type {
   CrewView,
   CrewRoleView,
   ProfileView,
+  ProviderCatalog,
   DiscoveredFlow,
   DiscoveredSkill,
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
+import { SuggestInput } from "../../components/design/SuggestInput.js";
+
+const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
@@ -65,6 +69,7 @@ export function CrewPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileView[]>([]);
   const [providers, setProviders] = useState<string[]>([]);
+  const [catalog, setCatalog] = useState<ProviderCatalog>({});
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
   const [skills, setSkills] = useState<DiscoveredSkill[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +78,7 @@ export function CrewPage() {
 
   async function load() {
     try {
-      const [crewsRes, profilesRes, flowsRes, skillsRes, meta] = await Promise.all([
+      const [crewsRes, profilesRes, flowsRes, skillsRes, meta, cat] = await Promise.all([
         api.getCrews(),
         api.getProfiles().catch(() => ({ profiles: [] as ProfileView[] })),
         api
@@ -81,10 +86,12 @@ export function CrewPage() {
           .catch(() => ({ flows: [] as DiscoveredFlow[], invalid: [] })),
         api.listSkills().catch(() => ({ skills: [] as DiscoveredSkill[] })),
         api.getProjectMetadata().catch(() => null),
+        api.getProviderCatalog().catch(() => ({ catalog: {} as ProviderCatalog })),
       ]);
       setCrews(crewsRes.crews);
       setDefaultCrew(crewsRes.defaultCrew);
       setProfiles(profilesRes.profiles);
+      setCatalog(cat.catalog);
       setProviders(
         [
           ...new Set([
@@ -251,6 +258,7 @@ export function CrewPage() {
                 role={role}
                 profiles={profiles}
                 providers={providers}
+                catalog={catalog}
                 existingProfileIds={new Set(profiles.map((p) => p.id))}
                 knownSeats={knownSeats}
                 skills={skills}
@@ -378,6 +386,7 @@ function RoleCard({
   role,
   profiles,
   providers,
+  catalog,
   existingProfileIds,
   knownSeats,
   skills,
@@ -391,6 +400,7 @@ function RoleCard({
   role: CrewRoleView;
   profiles: ProfileView[];
   providers: string[];
+  catalog: ProviderCatalog;
   existingProfileIds: Set<string>;
   knownSeats: string[];
   skills: DiscoveredSkill[];
@@ -566,6 +576,7 @@ function RoleCard({
         {newProfileOpen ? (
           <NewProfileInline
             providers={providers}
+            catalog={catalog}
             existingProfileIds={existingProfileIds}
             saving={saving}
             onCancel={() => setNewProfileOpen(false)}
@@ -778,12 +789,14 @@ function PromptEditor({
 // where a role needs it.
 function NewProfileInline({
   providers,
+  catalog,
   existingProfileIds,
   saving,
   onCancel,
   onCreate,
 }: {
   providers: string[];
+  catalog: ProviderCatalog;
   existingProfileIds: Set<string>;
   saving: boolean;
   onCancel: () => void;
@@ -794,6 +807,7 @@ function NewProfileInline({
   const [model, setModel] = useState("");
   const [power, setPower] = useState("");
   const [budget, setBudget] = useState("");
+  const caps = catalog[provider] ?? EMPTY_CAPS;
   const idTaken = existingProfileIds.has(id.trim());
   const valid =
     /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!provider;
@@ -819,10 +833,10 @@ function NewProfileInline({
             </option>
           ))}
         </select>
-        <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="model" className={cn(inputCls, "w-[120px]")} />
-        <input value={power} onChange={(e) => setPower(e.target.value)} placeholder="power" className={cn(inputCls, "w-[100px]")} />
+        <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder={caps.models[0] ?? "model"} className={cn(inputCls, "w-[130px]")} />
+        <SuggestInput value={power} onChange={setPower} suggestions={caps.powerLevels} placeholder={caps.powerLevels[0] ?? "power"} className={cn(inputCls, "w-[110px]")} />
         <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
-          {["", "low", "medium", "high"].map((b) => (
+          {["", ...caps.budgetLevels].map((b) => (
             <option key={b || "none"} value={b}>
               {b || "budget"}
             </option>
