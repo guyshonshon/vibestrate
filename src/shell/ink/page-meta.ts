@@ -34,12 +34,14 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       "A Flow is the recipe a run follows (its ordered steps + the seats each fills). Inspect built-in and project flows, fork a built-in into your project to customise it, or fetch one from the flows hub.",
     commonKeys: [
       ["↑↓", "select a flow"],
+      ["↵", "use the selected flow as the project default"],
       ["f", "fork the selected built-in into the project"],
       ["h", "open the hub (then / to search, ↵ to install)"],
     ],
     commonCli: [
       "vibe flows list",
       "vibe flows show <id>",
+      "vibe flows use <id>",
       "vibe flows hub list [query]",
       "vibe flows hub install <ref>",
     ],

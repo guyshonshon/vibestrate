@@ -27,8 +27,9 @@ export function keymapForPage(page: PageId): HintGroup[] {
       return [
         { name: "Move", hints: [{ key: "↑↓", label: "flow" }] },
         { name: "Actions", hints: [
+          { key: "↵", label: "use as default" },
           { key: "f", label: "fork builtin → project" },
-          { key: "h", label: "hub browse/install" },
+          { key: "h", label: "hub search/install" },
         ]},
       ];
     case "runs":

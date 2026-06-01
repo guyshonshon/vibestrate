@@ -15,6 +15,8 @@ import { api } from "../../lib/api.js";
 import type {
   DiscoveredFlow,
   FlowStepDefinition,
+  FlowCoverage,
+  SeatCoverage,
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
@@ -68,6 +70,7 @@ function blankFlow(id: string) {
 export function FlowsPage({ onOpenInFlow }: Props) {
   const [flows, setFlows] = useState<DiscoveredFlow[] | null>(null);
   const [invalid, setInvalid] = useState<{ path: string; message: string }[]>([]);
+  const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
@@ -85,6 +88,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       const r = await api.listFlows();
       setFlows(r.flows);
       setInvalid(r.invalid ?? []);
+      setDefaultFlowId(r.defaultFlow ?? null);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -150,6 +154,16 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     }
   }
 
+  async function useAsDefault(flowId: string) {
+    try {
+      await api.setDefaultFlow(flowId);
+      setDefaultFlowId(flowId);
+      flash({ kind: "ok", text: `Default flow is now ${flowId} - runs use it when none is picked.` });
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   async function exportFlow(flowId: string) {
     setBusy({ id: flowId, action: "export" });
     try {
@@ -207,6 +221,8 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   // sourced from the real definition; the rest list below it.
   const defaultFlow = flows?.find((g) => g.id === "default") ?? null;
   const otherFlows = flows?.filter((g) => g.id !== "default") ?? [];
+  // With no persisted defaultFlow, the orchestrator runs the built-in "default".
+  const effectiveDefault = defaultFlowId ?? "default";
 
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
@@ -345,8 +361,10 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           <DefaultFlowCard
             flow={defaultFlow}
             busy={busy?.id === "default" ? busy.action : null}
+            isDefault={effectiveDefault === "default"}
             onForkEdit={() => void forkAndEdit("default")}
             onExport={() => void exportFlow("default")}
+            onUseAsDefault={() => void useAsDefault("default")}
           />
         ) : null}
         {!flows ? (
@@ -360,11 +378,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               flow={g}
               expanded={expanded === g.id}
               busy={busy?.id === g.id ? busy.action : null}
+              isDefault={effectiveDefault === g.id}
               onToggle={() => setExpanded((cur) => (cur === g.id ? null : g.id))}
               onOpenInFlow={() => onOpenInFlow(g.id)}
               onFork={() => void fork(g.id)}
               onDelete={() => void remove(g.id)}
               onExport={() => void exportFlow(g.id)}
+              onUseAsDefault={() => void useAsDefault(g.id)}
             />
           ))
         )}
@@ -400,13 +420,17 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 function DefaultFlowCard({
   flow,
   busy,
+  isDefault,
   onForkEdit,
   onExport,
+  onUseAsDefault,
 }: {
   flow: DiscoveredFlow;
   busy: "fork" | "delete" | "export" | null;
+  isDefault: boolean;
   onForkEdit: () => void;
   onExport: () => void;
+  onUseAsDefault: () => void;
 }) {
   const steps = flow.definition.steps;
   const loop = flow.definition.loop ?? null;
@@ -424,7 +448,19 @@ function DefaultFlowCard({
         <Chip tone={isProject ? "violet" : "neutral"}>
           {isProject ? "edited (project)" : "built-in"}
         </Chip>
-        <Chip tone="emerald">runs by default</Chip>
+        {isDefault ? (
+          <Chip tone="emerald">runs by default</Chip>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            iconLeft={<Flag size={13} />}
+            onClick={onUseAsDefault}
+            title="Make this the project's default flow"
+          >
+            Use as default
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -486,20 +522,24 @@ function FlowCard({
   flow: g,
   expanded,
   busy,
+  isDefault,
   onToggle,
   onOpenInFlow,
   onFork,
   onDelete,
   onExport,
+  onUseAsDefault,
 }: {
   flow: DiscoveredFlow;
   expanded: boolean;
   busy: "fork" | "delete" | "export" | null;
+  isDefault: boolean;
   onToggle: () => void;
   onOpenInFlow: () => void;
   onFork: () => void;
   onDelete: () => void;
   onExport: () => void;
+  onUseAsDefault: () => void;
 }) {
   const isProject = g.source.kind === "project";
   const steps = g.definition.steps;
@@ -529,6 +569,7 @@ function FlowCard({
               <Chip tone={isProject ? "violet" : "neutral"}>
                 {isProject ? "project" : g.source.kind}
               </Chip>
+              {isDefault ? <Chip tone="emerald">runs by default</Chip> : null}
               <span className="mono text-[10.5px] text-fog-500">v{g.version}</span>
             </div>
             <p className="mt-1 text-[12.5px] leading-snug text-fog-400 max-w-[75ch]">
@@ -552,6 +593,17 @@ function FlowCard({
         </button>
 
         <div className="flex shrink-0 items-center gap-2">
+          {!isDefault ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft={<Flag size={13} />}
+              onClick={onUseAsDefault}
+              title="Make this the project's default flow"
+            >
+              Use as default
+            </Button>
+          ) : null}
           {!isProject ? (
             <Button
               variant="primary"
@@ -616,6 +668,8 @@ function FlowCard({
             </div>
           ) : null}
 
+          <CoverageBadges flowId={g.id} />
+
           <div className="eyebrow mb-1.5">Flow</div>
           <ol className="space-y-1.5">
             {steps.map((step, i) => (
@@ -624,6 +678,68 @@ function FlowCard({
           </ol>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** Lazy per-seat coverage of a flow against the default crew: is it crewed and
+ *  runnable? Fetched when the card expands. */
+function CoverageBadges({ flowId }: { flowId: string }) {
+  const [cov, setCov] = useState<FlowCoverage | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void api
+      .flowCoverage(flowId)
+      .then((c) => alive && setCov(c))
+      .catch((e) => alive && setErr(e instanceof Error ? e.message : String(e)));
+    return () => {
+      alive = false;
+    };
+  }, [flowId]);
+
+  if (err) {
+    return (
+      <div className="mb-3 text-[11.5px] text-amber-200/80">
+        Coverage unavailable: {err}
+      </div>
+    );
+  }
+  if (!cov) {
+    return <div className="mb-3 text-[11.5px] text-fog-500">Checking crew coverage…</div>;
+  }
+  const tone = (s: SeatCoverage["status"]): ChipTone =>
+    s === "filled" ? "emerald" : s === "ambiguous" ? "amber" : "rose";
+  return (
+    <div className="mb-3">
+      <div className="eyebrow mb-1.5 flex items-center gap-2">
+        Crew coverage
+        <span className="text-fog-500 normal-case">crew: {cov.crewId}</span>
+        <Chip tone={cov.runnable ? "emerald" : "rose"}>
+          {cov.runnable ? "runnable" : "has gaps"}
+        </Chip>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {cov.seats.map((s) => (
+          <span
+            key={s.seatId}
+            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
+            title={
+              s.status === "filled"
+                ? `filled by ${s.resolvedRoleId}`
+                : s.status === "ambiguous"
+                  ? `ambiguous: ${s.candidateRoleIds.join(", ")}`
+                  : "no role fills this seat"
+            }
+          >
+            <span className="text-fog-200">{s.seatId}</span>
+            <Chip tone={tone(s.status)}>{s.status}</Chip>
+            {!s.usedByStep ? (
+              <span className="text-fog-600 text-[10px]">unused</span>
+            ) : null}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
