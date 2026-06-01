@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Domain → vibestrate.com.** Updated the product domain from
+  `vibestrate.shonshon.com` to `vibestrate.com` across docs, README, package
+  metadata, and the shell's docs link.
+- **Interactive shell — command banner moved to the header.** The keymap hint
+  line (and snapshot clock) now sits at the top by the brand, not the bottom;
+  the bottom region is just the context line + prompt (+ transient toasts).
+  Also fixed the docs browser's path resolution for the bundled single-file CLI
+  (walks up to find `docs/content`).
 - **Interactive shell — scrollable output pane + in-terminal docs browser.**
   Prompt-command output now streams into a scrollable right-hand pane (~30%
   width, PgUp/PgDn) instead of a truncated tail crammed into the prompt. New
@@ -807,7 +815,7 @@ version. Update it in the same commit as the change it describes.
   prompts; `doctor --fix` auto-applies any detected provider.
 - Add: Gemini, Qwen Code, Crush, Goose, Cursor, Amp providers.
 - Add: documentation system — handwritten content + source-aware generated
-  reference (`pnpm docs:generate`), rendered at vibestrate.shonshon.com/docs.
+  reference (`pnpm docs:generate`), rendered at vibestrate.com/docs.
 - Change: CLI version single-sourced from `package.json`.
 - Add: CI + tag-release GitHub workflows (OIDC trusted publishing); lean
   publish tarball (sourcemaps stripped); pinned `ws` (security advisory).
