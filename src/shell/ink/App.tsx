@@ -11,6 +11,7 @@ import { ContextLine } from "./components/StatusBar.js";
 import { HeaderBar } from "./components/HeaderBar.js";
 import { Panel } from "./components/Panel.js";
 import { OutputPane } from "./components/OutputPane.js";
+import { ActionsPanel } from "./components/ActionsPanel.js";
 import { DocsOverlay } from "./components/DocsOverlay.js";
 import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
 import { listDocs, readDoc, DOCS_WEBSITE } from "./docs-source.js";
@@ -772,7 +773,9 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
             exitCode={ui.runner.exitCode}
             scroll={ui.runner.scroll}
           />
-        ) : null}
+        ) : (
+          <ActionsPanel page={ui.page} />
+        )}
        </Box>
       </Panel>
       {/* Region 3 — context line + prompt + key hints. Border brightens

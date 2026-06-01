@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — per-page command panel + queue policy + tab-hint fix.**
+  The right side of the body now shows a **COMMANDS** panel listing the current
+  page's actions (run pause/resume/abort/re-run, roadmap edit/new/delete/queue,
+  skills toggle, etc.) plus the global keys — so every window says what you can
+  do without opening `?`. (Command output still takes that pane while present.)
+  New: Queue page `t` cycles the dispatch policy (fifo → priority → fair, written
+  to `scheduler.queuePolicy`). Fixed the Dashboard's stale "press 2 to open Runs"
+  hint (Runs is tab 4 — now derived from the hotkey).
 - **Interactive shell — scroll without PgUp.** PgUp/PgDn aren't on every keyboard
   (Mac laptops). Output pane now scrolls with **Tab / Shift+Tab** while the prompt
   is focused (the only keys `ink-text-input` leaves free); the docs browser scrolls

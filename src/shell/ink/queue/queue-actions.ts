@@ -3,10 +3,39 @@
 
 import { RunQueue } from "../../../scheduler/run-queue.js";
 import { RoadmapService } from "../../../roadmap/roadmap-service.js";
+import { setConfigValue } from "../../../setup/config-update-service.js";
 
 export type QueueActionResult =
   | { ok: true; message: string }
   | { ok: false; message: string };
+
+/** Scheduler dispatch order, in cycle order. */
+export const QUEUE_POLICIES = ["fifo", "priority", "fair"] as const;
+export type QueuePolicyName = (typeof QUEUE_POLICIES)[number];
+
+/** Next policy after `current`, wrapping. Pure — exported for tests. */
+export function nextQueuePolicy(current: string): QueuePolicyName {
+  const i = QUEUE_POLICIES.indexOf(current as QueuePolicyName);
+  return QUEUE_POLICIES[(i + 1) % QUEUE_POLICIES.length]!;
+}
+
+/** Cycle `scheduler.queuePolicy` in project.yml. Takes effect on the next
+ *  scheduler cycle (the running loop re-reads config). */
+export async function cycleQueuePolicy(
+  projectRoot: string,
+  current: string,
+): Promise<QueueActionResult> {
+  try {
+    const next = nextQueuePolicy(current);
+    await setConfigValue(projectRoot, "scheduler.queuePolicy", next);
+    return { ok: true, message: `Queue policy → ${next}.` };
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
 
 export async function pauseScheduler(
   projectRoot: string,
