@@ -15,7 +15,10 @@ import {
   buildProviderFromDetection,
   PROVIDER_PRESETS,
 } from "../../providers/provider-presets.js";
-import { cliProviderSchema } from "../../providers/provider-schema.js";
+import {
+  providerConfigSchema,
+  type ProviderConfig,
+} from "../../providers/provider-schema.js";
 import { HttpError } from "../security.js";
 import { z } from "zod";
 
@@ -43,6 +46,10 @@ export type ProviderRow = {
   /** True when the provider's destination is an external network service
    *  (cloud http-api). Local-proxy and CLI providers are not external. */
   external?: boolean;
+  /** Which editor shape this provider uses. Detected CLIs (incl. claude-code)
+   *  are "cli"; configured HTTP-backed providers report their real type so the
+   *  dashboard opens the matching advanced form. */
+  kind: "cli" | "http-api" | "localhost-proxy";
 };
 
 /**
@@ -105,6 +112,7 @@ export async function registerProvidersRoutes(
       configured: configuredIds.has(d.id),
       loginCommand: PROVIDER_PRESETS[d.id].loginCommand,
       loginNote: PROVIDER_PRESETS[d.id].loginNote,
+      kind: "cli" as const,
     }));
     // Surface configured non-CLI providers (http-api / localhost-proxy) that
     // aren't in the detected-CLI list, so the dashboard can show + manage them.
@@ -134,6 +142,7 @@ export async function registerProvidersRoutes(
           ? "Set the API key env var; egress goes to the destination above."
           : "Runs locally — no key, no egress. Start the server first.",
         external,
+        kind: cfg.type,
       });
     }
     cached = { at: now, rows };
@@ -155,6 +164,20 @@ export async function registerProvidersRoutes(
       const configured = await listConfiguredProviders(projectRoot);
       const existing = configured.find((c) => c.id === id);
       if (existing) {
+        // HTTP-backed providers (http-api / localhost-proxy) carry fields the
+        // cli-shaped summary can't represent — return their real typed config
+        // so the dashboard opens the matching advanced form. The API key is an
+        // env-ref (`env:NAME`), never a literal secret, so it's safe to return.
+        const loaded = await loadConfig(projectRoot).catch(() => null);
+        const raw = loaded?.config.providers[id];
+        if (raw && (raw.type === "http-api" || raw.type === "localhost-proxy")) {
+          return {
+            providerId: id,
+            configured: true,
+            config: raw,
+            profilesUsing: existing.profilesUsing,
+          };
+        }
         return {
           providerId: id,
           configured: true,
@@ -189,15 +212,20 @@ export async function registerProvidersRoutes(
    * Setup or update a provider. Accepts either:
    *   - empty body — uses the bundled preset (claude / codex / ollama
    *     only)
-   *   - { config: { command, args, input } } — writes the explicit
-   *     config the user composed in the Configure overlay
+   *   - { config: { … } } — the explicit config the user composed in the
+   *     editor. A config without a `type` is treated as a CLI provider (the
+   *     dashboard's legacy command/args/input shape). HTTP-backed configs
+   *     (`http-api` / `localhost-proxy`) carry their own fields and are
+   *     validated through `providerConfigSchema`, so the same https-only /
+   *     loopback-only / env-ref-key guards that protect the YAML loader also
+   *     guard this write path (fail-closed → 400 on any violation).
    * Either way, the optional `setAsDefault` flag assigns every agent
    * in project.yml to this provider.
    */
   const setupBody = z
     .object({
       setAsDefault: z.boolean().optional(),
-      config: cliProviderSchema.partial({ args: true, input: true }).optional(),
+      config: z.unknown().optional(),
     })
     .strict()
     .optional();
@@ -212,14 +240,20 @@ export async function registerProvidersRoutes(
     if (!parsed.success) throw new HttpError(400, parsed.error.message);
     const body = parsed.data ?? {};
 
-    let cfg;
-    if (body.config) {
-      cfg = {
-        type: "cli" as const,
-        command: body.config.command,
-        args: body.config.args ?? [],
-        input: body.config.input ?? "stdin",
-      };
+    let cfg: ProviderConfig;
+    if (body.config !== undefined) {
+      // Default a type-less config to "cli" so the legacy editor payload
+      // ({ command, args, input }) keeps working unchanged.
+      const raw =
+        body.config && typeof body.config === "object" && body.config !== null
+          ? (body.config as Record<string, unknown>)
+          : {};
+      const withType = "type" in raw ? raw : { ...raw, type: "cli" };
+      const validated = providerConfigSchema.safeParse(withType);
+      if (!validated.success) {
+        throw new HttpError(400, validated.error.issues[0]?.message ?? "Invalid provider config.");
+      }
+      cfg = validated.data;
     } else {
       const detected = await detectAllProviders();
       const d = detected.find((row) => row.id === id);
