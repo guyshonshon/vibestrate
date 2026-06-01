@@ -15,8 +15,8 @@
       "arguments": [],
       "options": [
         {
-          "flags": "--force",
-          "description": "overwrite existing config files (runs are preserved)",
+          "flags": "-f, --force",
+          "description": "re-scaffold / overwrite existing config files to repair a broken project (runs are preserved)",
           "required": false,
           "optional": false,
           "negated": false

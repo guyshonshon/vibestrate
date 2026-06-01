@@ -30,8 +30,8 @@ Vibestrate runs the coding-agent CLIs you already have through a visible **plan 
 
 <br />
 
-[![Website](https://img.shields.io/badge/Website-6951f0?style=for-the-badge&logo=safari&logoColor=white)](https://vibestrate.shonshon.com)
-[![Documentation](https://img.shields.io/badge/Docs-8b7cff?style=for-the-badge&logo=readthedocs&logoColor=white)](https://vibestrate.shonshon.com/docs)
+[![Website](https://img.shields.io/badge/Website-6951f0?style=for-the-badge&logo=safari&logoColor=white)](https://vibestrate.com)
+[![Documentation](https://img.shields.io/badge/Docs-8b7cff?style=for-the-badge&logo=readthedocs&logoColor=white)](https://vibestrate.com/docs)
 [![Quick Start](https://img.shields.io/badge/Quick_Start-a78bfa?style=for-the-badge&logo=gnubash&logoColor=white)](#-quick-start)
 [![GitHub](https://img.shields.io/badge/Source-2e3548?style=for-the-badge&logo=github&logoColor=white)](https://github.com/guyshonshon/vibestrate)
 
@@ -132,7 +132,7 @@ Green across the board means you're ready to run. Want the dashboard? Add `--ui`
 vibe run "Tighten retry handling" --ui    # opens Mission Control
 ```
 
-> Full walkthrough → **[vibestrate.shonshon.com/docs/getting-started/installation](https://vibestrate.shonshon.com/docs/getting-started/installation)**
+> Full walkthrough → **[vibestrate.com/docs/getting-started/installation](https://vibestrate.com/docs/getting-started/installation)**
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -176,7 +176,7 @@ Stuck mid-run? **Rewind** instead of restarting - fork a fresh run that reuses t
 vibe run "<same task>" --resume-from <runId> --resume-stage executing
 ```
 
-> [Concepts](https://vibestrate.shonshon.com/docs/concepts/task) · [Task lifecycle](https://vibestrate.shonshon.com/docs/task-lifecycle) · [CLI reference](https://vibestrate.shonshon.com/docs/reference/cli)
+> [Concepts](https://vibestrate.com/docs/concepts/task) · [Task lifecycle](https://vibestrate.com/docs/task-lifecycle) · [CLI reference](https://vibestrate.com/docs/reference/cli)
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -197,7 +197,7 @@ That's the category in one line: Vibestrate is a **supervisor**, not an autopilo
 
 ## ◆ Documentation
 
-Everything lives at **[vibestrate.shonshon.com/docs](https://vibestrate.shonshon.com/docs)** - getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Flow (generated straight from the code, so it never drifts).
+Everything lives at **[vibestrate.com/docs](https://vibestrate.com/docs)** - getting started, concepts, workflows, troubleshooting, and a source-aware reference for every command, config key, provider, and Flow (generated straight from the code, so it never drifts).
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 

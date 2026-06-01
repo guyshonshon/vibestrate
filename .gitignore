@@ -1,7 +1,6 @@
 node_modules/
 dist/
 coverage/
-.vibestrate/runs/
 .vibestrate-worktrees/
 *.log
 .DS_Store
@@ -11,27 +10,28 @@ coverage/
 .vitest-cache/
 .tsbuildinfo
 
-# Local agent operating protocol — kept out of the (public) repo.
+# Local agent operating protocol & internal notes — kept out of the (public) repo.
 CLAUDE.md
+CLAUDE_CORE_MODEL_REWRITE.md
 
-# Scheduler runtime state — changes on every run, not source.
-.vibestrate/scheduler/lock
-.vibestrate/scheduler/state.json
-.vibestrate/scheduler/*.ndjson
+# Local agent skills / config — personal, not product source.
+.claude/
+.agents/
 
-# Per-project dashboard runtime lock (pid + port) — runtime, not source.
-.vibestrate/ui.lock
+# Per-project Vibestrate state (config, roadmap, roles, rules, runtime). This
+# is local dogfooding state, not source — keep the whole dir out of the repo.
+.vibestrate/
 
-# Transient dashboard run-spec handoff files (deleted by run-entry on read).
-.vibestrate/.run-spec-*.json
+# Running, internal checklist — kept local only.
+docs/TODO.md
 
-# Notification runtime state — changes as runs emit/receipt notifications.
-.vibestrate/notifications/notifications.json
-.vibestrate/notifications/receipts.json
-
-# Issues failure-inbox — runtime diagnostics stream the app appends to on
-# every error/scheduler restart. Not source; was tracked by accident.
-.vibestrate/issues.ndjson
+# Internal scratch plans, smoke-test checklists, and issue log — not product
+# source. Kept local only.
+SEO_GEO_INDEXING_PLAN.md
+CODEX_PLAN.md
+docs/TODO-v2
+docs/smoke-tests-*.md
+docs/ISSUES.md
 
 # Legacy local state from before the Vibestrate rename. Do not publish stale
 # run history/config from an old checkout.

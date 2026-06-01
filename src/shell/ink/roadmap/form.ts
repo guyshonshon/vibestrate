@@ -16,11 +16,13 @@ export type TaskFormField =
   | "profileOverride"
   | "readOnly";
 
+// `effort` is intentionally NOT a form field: it's only a planning hint and
+// never sets the model (the Profile's `power` does). The model field is kept
+// for back-compat (defaults to null) but isn't shown or navigated.
 export const TASK_FORM_FIELDS: TaskFormField[] = [
   "title",
   "description",
   "priority",
-  "effort",
   "profileOverride",
   "readOnly",
 ];

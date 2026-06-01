@@ -45,10 +45,21 @@ export type PaletteCommand = {
     | { kind: "resume-scheduler" }
     | { kind: "open-runner"; seed?: string }
     | { kind: "spawn-detached"; argv: string[]; toast?: string }
+    | { kind: "open-docs" }
     | { kind: "open-url"; url: string };
 };
 
 export const DEFAULT_PALETTE: PaletteCommand[] = [
+  {
+    id: "docs.browse",
+    title: "Browse docs",
+    hint: "read the docs in-terminal (Markdown rendered)",
+    keywords: ["docs", "help", "guide", "manual", "reference"],
+    description:
+      "Open the in-shell docs browser: a topic list + the selected page rendered with terminal Markdown. Press o inside to open the docs website instead.",
+    cli: "(panel only — press d)",
+    action: { kind: "open-docs" },
+  },
   {
     id: "goto.dashboard",
     title: "Go to Dashboard",

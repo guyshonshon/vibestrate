@@ -1,24 +1,35 @@
 import React, { useEffect, useReducer } from "react";
 import { Box, Text, useApp, useInput } from "ink";
-import { TabBar } from "./components/TabBar.js";
-import { Footer, PAGES_GROUP } from "./components/Footer.js";
-import { keymapForPage } from "./keymaps.js";
+import { Footer } from "./components/Footer.js";
 import {
   CommandPalette,
   paletteMatches,
 } from "./components/CommandPalette.js";
 import { HelpOverlay } from "./components/HelpOverlay.js";
-import { CommandRunner } from "./components/CommandRunner.js";
+import { PromptBar } from "./components/PromptBar.js";
+import { ContextLine } from "./components/StatusBar.js";
+import { HeaderBar } from "./components/HeaderBar.js";
+import { Panel } from "./components/Panel.js";
+import { OutputPane } from "./components/OutputPane.js";
+import { ActionsPanel } from "./components/ActionsPanel.js";
+import { DocsOverlay } from "./components/DocsOverlay.js";
+import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
+import { listDocs, readDoc, DOCS_WEBSITE } from "./docs-source.js";
+import { renderMarkdown } from "./markdown-render.js";
 import {
   parseArgs,
   runVibestrateCommand,
   spawnVibestrateDetached,
   openInBrowser,
 } from "./runner/command-runner.js";
+import { discoverFlows } from "../../flows/catalog/flow-discovery.js";
+import { buildStatusModel } from "./status-model.js";
+import { applySessionDefaults } from "./session-defaults.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
+import { FlowsPage } from "./pages/FlowsPage.js";
 import { QueuePage } from "./pages/QueuePage.js";
 import { AgentsPage } from "./pages/AgentsPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
@@ -35,8 +46,8 @@ import { NotificationsPage } from "./pages/NotificationsPage.js";
 import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
-import { Frame, Rule } from "./components/Frame.js";
-import { PageTitleBar } from "./components/PageTitleBar.js";
+import { Rule } from "./components/Frame.js";
+import { ACCENT, ACCENT_DIM, ACCENT_DEEP } from "./theme.js";
 import { useTasks } from "./hooks/useTasks.js";
 import {
   initialUiState,
@@ -46,6 +57,8 @@ import {
   type PageId,
 } from "./ui-state.js";
 import { useSnapshot } from "./hooks/useSnapshot.js";
+import { useGitContext } from "./hooks/useGitContext.js";
+import { useFlows } from "./hooks/useFlows.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
 import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";
@@ -97,11 +110,66 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     error: doctorError,
     refresh: refreshDoctor,
   } = useDoctor(projectRoot);
+  const { git } = useGitContext(projectRoot);
+  const { flows: flowList, refresh: refreshFlows } = useFlows(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
   const selectedRun =
     ui.page === "runs" ? runs[ui.selection.runs] ?? null : null;
+
+  const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
+  const statusModel = buildStatusModel({
+    projectName,
+    git,
+    session: ui.session,
+    defaultCrewId: config?.defaultCrew ?? null,
+    aggregates: snapshot?.aggregates ?? null,
+    runs: runs.map((r) => ({
+      status: r.status,
+      task: r.task,
+      updatedAt: r.updatedAt,
+    })),
+  });
+
+  const openCrewPicker = (): void => {
+    const ids = config ? Object.keys(config.crews) : [];
+    if (ids.length === 0) {
+      dispatch({ type: "toast.push", kind: "err", message: "No crews configured." });
+      return;
+    }
+    const items = ids.map((id) => ({ id, label: config!.crews[id]?.label ?? id }));
+    const cur = ui.session.crewId ?? config?.defaultCrew ?? null;
+    const index = Math.max(0, items.findIndex((it) => it.id === cur));
+    dispatch({ type: "picker.open", kind: "crew", items, index });
+  };
+
+  const openFlowPicker = async (): Promise<void> => {
+    const flows = await discoverFlows(projectRoot);
+    const items = flows.map((f) => ({ id: f.id, label: f.label || f.id }));
+    if (items.length === 0) {
+      dispatch({ type: "toast.push", kind: "err", message: "No flows available." });
+      return;
+    }
+    const cur = ui.session.flowId ?? "default";
+    const index = Math.max(0, items.findIndex((it) => it.id === cur));
+    dispatch({ type: "picker.open", kind: "flow", items, index });
+  };
+
+  const submitPrompt = (): void => {
+    const argv0 = parseArgs(ui.runner.input);
+    if (argv0.length === 0) return;
+    const argv = applySessionDefaults(argv0, ui.session);
+    dispatch({ type: "runner.started" });
+    void runVibestrateCommand({
+      projectRoot,
+      argv,
+      onChunk: (chunk) => dispatch({ type: "runner.append", chunk }),
+    }).then((r) => {
+      dispatch({ type: "runner.finished", exitCode: r.exitCode });
+      void refresh();
+    });
+  };
 
   // Toast auto-dismiss.
   useEffect(() => {
@@ -112,6 +180,51 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }, 3000);
     return () => clearTimeout(t);
   }, [ui.toasts]);
+
+  // Docs: load the topic list when the browser opens, then select the first.
+  useEffect(() => {
+    if (!ui.docs.open || ui.docs.topics.length > 0) return;
+    let cancelled = false;
+    void listDocs()
+      .then((topics) => {
+        if (cancelled) return;
+        dispatch({ type: "docs.loaded", topics });
+        dispatch({ type: "docs.select", index: 0 });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        dispatch({
+          type: "docs.error",
+          message: `Docs aren't bundled here (${err instanceof Error ? err.message : String(err)}).`,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ui.docs.open, ui.docs.topics.length]);
+
+  // Docs: render the selected topic's markdown whenever it changes.
+  useEffect(() => {
+    if (!ui.docs.open || !ui.docs.loadingContent) return;
+    const topic = ui.docs.topics[ui.docs.index];
+    if (!topic) return;
+    let cancelled = false;
+    void readDoc(topic.slug)
+      .then((md) => {
+        if (cancelled) return;
+        dispatch({ type: "docs.content", lines: renderMarkdown(md) });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        dispatch({
+          type: "docs.error",
+          message: `Could not read ${topic.slug} (${err instanceof Error ? err.message : String(err)}).`,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ui.docs.open, ui.docs.loadingContent, ui.docs.index, ui.docs.topics]);
 
   const runAction = async (
     name: "pause" | "resume" | "abort",
@@ -186,7 +299,13 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         });
         return;
       case "open-runner":
-        dispatch({ type: "runner.open", seed: cmd.action.seed });
+        if (cmd.action.seed !== undefined) {
+          dispatch({ type: "runner.input", value: cmd.action.seed });
+        }
+        dispatch({ type: "prompt.focus" });
+        return;
+      case "open-docs":
+        dispatch({ type: "docs.open" });
         return;
       case "spawn-detached": {
         const { pid } = spawnVibestrateDetached({
@@ -228,12 +347,85 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       if (input === "?" || key.escape) dispatch({ type: "help.toggle" });
       return;
     }
-    if (ui.runner.open) {
-      // Esc closes (even while running — output stays so the user
-      // can reopen and see it). ↑/↓ walks command history. Enter
-      // is handled by ink-text-input via onSubmit.
+    if (ui.docs.open) {
       if (key.escape) {
-        dispatch({ type: "runner.close" });
+        dispatch({ type: "docs.close" });
+        return;
+      }
+      if (input === "o") {
+        openInBrowser(DOCS_WEBSITE);
+        dispatch({ type: "toast.push", kind: "info", message: `Opening ${DOCS_WEBSITE}…` });
+        return;
+      }
+      // Arrows / j-k scroll the page a line at a time; Space / b page; the
+      // bracket keys switch topic. (No PgUp/PgDn — not on every keyboard.)
+      if (key.upArrow || input === "k") {
+        dispatch({ type: "docs.scroll", delta: -1 });
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        dispatch({ type: "docs.scroll", delta: 1 });
+        return;
+      }
+      if (input === " " || (key.ctrl && input === "f") || key.pageDown) {
+        dispatch({ type: "docs.scroll", delta: 10 });
+        return;
+      }
+      if (input === "b" || (key.ctrl && input === "u") || key.pageUp) {
+        dispatch({ type: "docs.scroll", delta: -10 });
+        return;
+      }
+      if (input === "[") {
+        dispatch({ type: "docs.select", index: ui.docs.index - 1 });
+        return;
+      }
+      if (input === "]" || key.tab) {
+        dispatch({ type: "docs.select", index: ui.docs.index + 1 });
+        return;
+      }
+      return;
+    }
+    if (ui.picker) {
+      // Crew/Flow selector owns input while open.
+      if (key.escape) {
+        dispatch({ type: "picker.close" });
+        return;
+      }
+      if (key.upArrow || input === "k") {
+        dispatch({ type: "picker.move", delta: -1 });
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        dispatch({ type: "picker.move", delta: 1 });
+        return;
+      }
+      if (key.return) {
+        const sel = ui.picker.items[ui.picker.index];
+        const kind = ui.picker.kind;
+        dispatch({ type: "picker.close" });
+        if (sel) {
+          dispatch(
+            kind === "crew"
+              ? { type: "session.crew.set", crewId: sel.id }
+              : { type: "session.flow.set", flowId: sel.id },
+          );
+          dispatch({
+            type: "toast.push",
+            kind: "ok",
+            message: `${kind} → ${sel.id} (seeds the next run)`,
+          });
+        }
+        return;
+      }
+      return;
+    }
+    if (ui.promptFocused) {
+      // The bottom prompt owns input. Esc returns to navigation; ↑/↓ walk
+      // command history; Tab / Shift+Tab scroll the output pane (the only keys
+      // ink-text-input leaves alone while you're typing). Typing + Enter are
+      // handled by ink-text-input.
+      if (key.escape) {
+        dispatch({ type: "prompt.blur" });
         return;
       }
       if (key.upArrow) {
@@ -242,6 +434,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       }
       if (key.downArrow) {
         dispatch({ type: "runner.history.next" });
+        return;
+      }
+      if (key.tab && ui.runner.output.length > 0) {
+        // Shift+Tab → older (scroll up), Tab → newer (toward the tail).
+        dispatch({ type: "runner.scroll", delta: key.shift ? 5 : -5 });
         return;
       }
       return;
@@ -298,23 +495,60 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       exit();
       return;
     }
-    // Esc with no modal open goes "back" to the previously-visited
-    // page. No-op when the user is already at their first page so we
-    // don't accidentally rewind them to a stale tab.
+    // Esc collapses an expanded output view first, else goes "back" to the
+    // previously-visited page (no-op at the first page).
     if (key.escape) {
+      if (ui.outputExpanded) {
+        dispatch({ type: "output.collapse" });
+        return;
+      }
       dispatch({ type: "page.back" });
+      return;
+    }
+    // `O` expands/collapses command output to a full-width readable view
+    // (the narrow pane truncates; this wraps + scrolls).
+    if (input === "O" && ui.runner.output.length > 0) {
+      dispatch({ type: "output.expand.toggle" });
       return;
     }
     if (input === ":") {
       dispatch({ type: "palette.open" });
       return;
     }
-    if (input === "!") {
-      dispatch({ type: "runner.open" });
+    // Focus the persistent bottom prompt. `i` (vim-insert) is the primary
+    // key; `!` is kept as a familiar alias for the old command runner.
+    if (input === "i" || input === "!") {
+      dispatch({ type: "prompt.focus" });
       return;
     }
     if (input === "?") {
       dispatch({ type: "help.toggle" });
+      return;
+    }
+    // Session context controls: cycle safety mode, pick Crew / Flow. `c` and
+    // `f` are gated off the pages that already bind them (Roadmap `c`,
+    // Doctor `f`) so there's no double-handling.
+    if (input === "m") {
+      dispatch({ type: "session.mode.cycle" });
+      return;
+    }
+    if (input === "c" && ui.page !== "roadmap") {
+      openCrewPicker();
+      return;
+    }
+    if (input === "f" && ui.page !== "doctor") {
+      void openFlowPicker();
+      return;
+    }
+    // Docs browser. `d` is gated off Roadmap (which uses it to delete a task).
+    if (input === "d" && ui.page !== "roadmap") {
+      dispatch({ type: "docs.open" });
+      return;
+    }
+    // Scroll the command-output pane from navigation mode: Shift+Tab older,
+    // Tab newer (Tab is free here except on Runs, which cycles the inspector).
+    if (key.tab && ui.page !== "runs" && ui.runner.output.length > 0) {
+      dispatch({ type: "runner.scroll", delta: key.shift ? 5 : -5 });
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
@@ -401,23 +635,39 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }
   });
 
-  // Per-page hint groups + the universal Pages group last, so the
-  // user always sees the page-switch keymap regardless of where they
-  // are. The page-specific list lives in `keymaps.ts`.
-  const hintGroups = [...keymapForPage(ui.page), PAGES_GROUP];
-
-  const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
   return (
-    <Frame subtitle={projectName}>
-      <TabBar current={ui.page} />
-      <PageTitleBar pageId={ui.page} />
-      <Rule />
-      <Box flexDirection="column">
+    <Box flexDirection="column">
+      {/* Region 1 — header: brand + context + menu (minimal hint). */}
+      <Panel borderColor={ACCENT}>
+        <HeaderBar model={statusModel} page={ui.page} />
+      </Panel>
+      {/* Region 2 — body: the active page (left) + command output (right),
+          or full-width output when expanded with `O`. */}
+      <Panel borderColor={ACCENT_DIM} flexGrow={1}>
+       {ui.outputExpanded && ui.runner.output.length > 0 ? (
+        <OutputPane
+          output={ui.runner.output}
+          running={ui.runner.running}
+          exitCode={ui.runner.exitCode}
+          scroll={ui.runner.scroll}
+          full
+        />
+       ) : (
+       <Box flexDirection="row">
+        <Box flexGrow={1} flexDirection="column">
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
               projectRoot={projectRoot}
               tasks={tasks}
+              profiles={Object.entries(config?.profiles ?? {}).map(
+                ([id, p]) => ({
+                  id,
+                  hint: [p.provider, p.model, p.power]
+                    .filter(Boolean)
+                    .join(" · "),
+                }),
+              )}
               schedulerLiveness={snapshot.schedulerLiveness}
               refresh={refreshTasks}
               onToast={(kind, message) =>
@@ -431,6 +681,20 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               closeForm={() => dispatch({ type: "roadmap.form.close" })}
               setPendingDelete={(id) =>
                 dispatch({ type: "roadmap.confirm.delete", taskId: id })
+              }
+              active
+            />
+          ) : ui.page === "flows" ? (
+            <FlowsPage
+              projectRoot={projectRoot}
+              flows={flowList}
+              refresh={refreshFlows}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.flows ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "flows", index: i })
               }
               active
             />
@@ -545,16 +809,45 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         ) : (
           <LoadingScreen projectRoot={projectRoot} />
         )}
-      </Box>
-      <Rule />
-      <Footer
-        ui={ui}
-        groups={hintGroups}
-        capturedAt={snapshot?.capturedAt ?? null}
-      />
-      {/* The Rule above + Footer below get no marginTop so the footer
-          stays anchored to the bottom of the visible viewport on
-          shorter terminals (e.g. VS Code panel). */}
+        </Box>
+        {ui.runner.output.length > 0 ? (
+          <OutputPane
+            output={ui.runner.output}
+            running={ui.runner.running}
+            exitCode={ui.runner.exitCode}
+            scroll={ui.runner.scroll}
+          />
+        ) : (
+          <ActionsPanel page={ui.page} />
+        )}
+       </Box>
+       )}
+      </Panel>
+      {/* Region 3 — context line + prompt + key hints. Border brightens
+          to cyan while the prompt owns input. */}
+      <Panel borderColor={ui.promptFocused ? ACCENT_DEEP : ACCENT_DIM}>
+        <ContextLine model={statusModel} />
+        <Rule />
+        <PromptBar
+          input={ui.runner.input}
+          running={ui.runner.running}
+          exitCode={ui.runner.exitCode}
+          focused={ui.promptFocused}
+          hasOutput={ui.runner.output.length > 0}
+          onChange={(v) => dispatch({ type: "runner.input", value: v })}
+          onSubmit={submitPrompt}
+        />
+        <Footer ui={ui} capturedAt={snapshot?.capturedAt ?? null} />
+      </Panel>
+      {ui.picker ? (
+        <Box marginTop={1}>
+          <CrewFlowPicker
+            kind={ui.picker.kind}
+            items={ui.picker.items}
+            index={ui.picker.index}
+          />
+        </Box>
+      ) : null}
       {ui.paletteOpen ? (
         <Box marginTop={1}>
           <CommandPalette
@@ -571,34 +864,12 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           <HelpOverlay currentPage={ui.page} />
         </Box>
       ) : null}
-      {ui.runner.open ? (
+      {ui.docs.open ? (
         <Box marginTop={1}>
-          <CommandRunner
-            input={ui.runner.input}
-            output={ui.runner.output}
-            running={ui.runner.running}
-            exitCode={ui.runner.exitCode}
-            onChange={(v) => dispatch({ type: "runner.input", value: v })}
-            onSubmit={() => {
-              const argv = parseArgs(ui.runner.input);
-              if (argv.length === 0) return;
-              dispatch({ type: "runner.started" });
-              void runVibestrateCommand({
-                projectRoot,
-                argv,
-                onChunk: (chunk) =>
-                  dispatch({ type: "runner.append", chunk }),
-              }).then((r) => {
-                dispatch({ type: "runner.finished", exitCode: r.exitCode });
-                // Snapshot may have changed (e.g. vibe queue add) — refresh
-                // so the rest of the panel sees the new state.
-                void refresh();
-              });
-            }}
-          />
+          <DocsOverlay docs={ui.docs} />
         </Box>
       ) : null}
-    </Frame>
+    </Box>
   );
 }
 

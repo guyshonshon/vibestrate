@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text, useStdout } from "ink";
+import { ACCENT_DIM } from "../theme.js";
 
 type Props = {
   subtitle?: string | null;
@@ -40,7 +41,7 @@ export function Frame({ subtitle, children }: Props) {
 export function Rule() {
   const { stdout } = useStdout();
   const cols = Math.max(20, (stdout?.columns ?? 80) - 6);
-  return <Text dimColor>{"─".repeat(cols)}</Text>;
+  return <Text color={ACCENT_DIM}>{"─".repeat(cols)}</Text>;
 }
 
 /**

@@ -7,37 +7,19 @@ export type HintGroup = { name: string; hints: KeyHint[] };
 
 type Props = {
   ui: ShellUiStateV2;
-  groups: HintGroup[];
   capturedAt: string | null;
 };
 
 /**
- * Contextual footer organised into named groups so the user can
- * scan by intent (Pages / Move / Actions / Misc). Each group lists
- * `key label` pairs; the key is cyan, the label dim.
- *
- * Toasts and pending y/N confirmations render under the keymap.
+ * The slim bottom strip: transient toasts + pending y/N confirmations, and the
+ * snapshot clock right-aligned. (The command keymap now lives up in the header
+ * as a minimal hint; the full list is in the `?` overlay.)
  */
-export function Footer({ ui, groups, capturedAt }: Props) {
+export function Footer({ ui, capturedAt }: Props) {
   const toast = ui.toasts[ui.toasts.length - 1] ?? null;
   return (
     <Box flexDirection="column">
-      <Box flexWrap="wrap">
-        <Text>
-          {groups.map((g, gi) => (
-            <React.Fragment key={g.name}>
-              {gi > 0 ? <Text dimColor>   ·   </Text> : null}
-              <Text dimColor>{g.name}: </Text>
-              {g.hints.map((h, hi) => (
-                <React.Fragment key={`${g.name}-${h.key}`}>
-                  {hi > 0 ? <Text dimColor>  </Text> : null}
-                  <Text color="cyan">{h.key}</Text>
-                  <Text dimColor> {h.label}</Text>
-                </React.Fragment>
-              ))}
-            </React.Fragment>
-          ))}
-        </Text>
+      <Box>
         <Box flexGrow={1} />
         {capturedAt ? <Text dimColor>{capturedAt.slice(11, 19)}</Text> : null}
       </Box>
@@ -79,9 +61,12 @@ export const PAGES_GROUP: HintGroup = {
   hints: [
     { key: "1-9/0", label: "switch" },
     { key: "Esc", label: "back" },
+    { key: "i", label: "prompt" },
     { key: ":", label: "palette" },
-    { key: "!", label: "run vibestrate" },
-    { key: "B", label: "open in browser" },
+    { key: "m", label: "mode" },
+    { key: "c/f", label: "crew/flow" },
+    { key: "d", label: "docs" },
+    { key: "B", label: "browser" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },
   ],

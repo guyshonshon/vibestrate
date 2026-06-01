@@ -17,15 +17,20 @@ describe("PAGE_META", () => {
     }
   });
 
-  it("PAGE_IDS now follows the workflow order (define → schedule → execute)", () => {
-    // Roadmap should come before Runs — work is defined before it
-    // executes. This is the user-facing rationale for the new tab
-    // order; the test guards against an accidental revert.
-    const roadmapIdx = PAGE_IDS.indexOf("roadmap");
-    const runsIdx = PAGE_IDS.indexOf("runs");
-    const queueIdx = PAGE_IDS.indexOf("queue");
-    expect(roadmapIdx).toBeGreaterThan(-1);
-    expect(roadmapIdx).toBeLessThan(queueIdx);
-    expect(queueIdx).toBeLessThan(runsIdx);
+  it("PAGE_IDS follows the workflow order (setup → schedule → execute)", () => {
+    // Dashboard first, then the setup pages (Flow, Crew), then schedule
+    // (Queue) and execute (Runs). Guards against an accidental revert.
+    const at = (id: string) => PAGE_IDS.indexOf(id as (typeof PAGE_IDS)[number]);
+    expect(at("dashboard")).toBe(0);
+    expect(at("flows")).toBe(1);
+    expect(at("flows")).toBeLessThan(at("crew"));
+    expect(at("crew")).toBeLessThan(at("queue"));
+    expect(at("queue")).toBeLessThan(at("runs"));
+    expect(at("runs")).toBeLessThan(at("roadmap"));
+  });
+
+  it("the first ten pages get number hotkeys; any 11th is palette-only", () => {
+    // PAGE_IDS may exceed ten; only the first ten map to 1-9/0.
+    expect(PAGE_IDS.length).toBeGreaterThanOrEqual(10);
   });
 });

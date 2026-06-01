@@ -10,6 +10,14 @@ export function keymapForPage(page: PageId): HintGroup[] {
   switch (page) {
     case "dashboard":
       return [];
+    case "flows":
+      return [
+        { name: "Move", hints: [{ key: "↑↓", label: "flow" }] },
+        { name: "Actions", hints: [
+          { key: "f", label: "fork builtin → project" },
+          { key: "h", label: "hub browse/install" },
+        ]},
+      ];
     case "runs":
       return [
         { name: "Move", hints: [
@@ -36,7 +44,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "e", label: "edit" },
           { key: "d", label: "delete" },
           { key: "Q", label: "queue" },
-          { key: "c", label: "→ready" },
+          { key: "c", label: "ready ↔ backlog" },
         ]},
       ];
     case "queue":
@@ -45,6 +53,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
         { name: "Actions", hints: [
           { key: "s", label: "start scheduler" },
           { key: "p", label: "pause/resume" },
+          { key: "t", label: "cycle policy" },
           { key: "x", label: "remove selected" },
         ]},
       ];
