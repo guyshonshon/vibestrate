@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- **First-run onboarding.** Open the dashboard on a fresh project and you land on
+  a real setup screen instead of a half-broken dashboard: initialize in place
+  (parity with `vibe init`), see your detected providers, and step in. The shell
+  gets the same gate. Built to the brand - the wordmark, hard-edged slabs, violet
+  as the single active signal.
+
 ## 0.2.0
 
 The release that turns Vibestrate from a provider launcher into a real
