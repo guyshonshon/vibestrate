@@ -48,7 +48,7 @@ const SHUTDOWN_GRACE_MS = 3_000;
 
 export async function startManagedScheduler(input: {
   projectRoot: string;
-  /** When non-null, called once per spawned attempt — useful for tests. */
+  /** When non-null, called once per spawned attempt - useful for tests. */
   onSpawn?: (pid: number | null) => void;
 }): Promise<ManagedSchedulerHandle> {
   let currentChild: ChildProcess | null = null;
@@ -117,7 +117,7 @@ export async function startManagedScheduler(input: {
         NO_COLOR: "1",
       },
       stdio: ["ignore", logFd, logFd],
-      // Not detached — explicit child of the UI process so it dies
+      // Not detached - explicit child of the UI process so it dies
       // with the parent on a Ctrl+C / crash.
       detached: false,
     });
@@ -151,7 +151,7 @@ export async function startManagedScheduler(input: {
 
       if (stopped || !wasOurs) return;
 
-      // Unexpected exit — restart with exponential backoff. Non-zero
+      // Unexpected exit - restart with exponential backoff. Non-zero
       // also lights up the issues stream so the user sees it.
       if (code !== 0) {
         void recordIssue(input.projectRoot, {
@@ -170,7 +170,7 @@ export async function startManagedScheduler(input: {
       }, backoff);
     });
 
-    // Successful liveness — slowly reset backoff so a long-running
+    // Successful liveness - slowly reset backoff so a long-running
     // child doesn't keep "punishing" the next restart.
     setTimeout(() => {
       if (!stopped && currentChild === child) backoff = 1_000;

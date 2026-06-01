@@ -167,7 +167,7 @@ export async function detectFullProject(
     notes.push("Not inside a git repository. Run `git init` before `vibe run`.");
   }
   if (!pkg) {
-    notes.push("No package.json found — Vibestrate cannot suggest validation commands.");
+    notes.push("No package.json found - Vibestrate cannot suggest validation commands.");
   } else if (suggested.length === 0) {
     notes.push(
       "package.json has no recognized scripts (lint/typecheck/test). You can still run Vibestrate; reviews are stronger when validation is configured.",

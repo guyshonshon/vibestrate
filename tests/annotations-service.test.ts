@@ -26,7 +26,7 @@ describe("annotations service", () => {
   it("adds and lists a file-level annotation", async () => {
     const a = await addAnnotation(root, {
       path: "src/index.ts",
-      body: "Entry point — keep the bin shim in sync.",
+      body: "Entry point - keep the bin shim in sync.",
     });
     expect(a.line).toBeNull();
     expect(a.endLine).toBeNull();

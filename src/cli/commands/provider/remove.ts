@@ -10,7 +10,7 @@ import { confirm } from "@inquirer/prompts";
 import { isVibestrateError } from "../../../utils/errors.js";
 
 /**
- * `vibe provider remove <id>` — the CLI half of the dashboard's Remove
+ * `vibe provider remove <id>` - the CLI half of the dashboard's Remove
  * button. Deletes `providers.<id>` from project.yml, refusing if a role
  * still points at it (the user reassigns first). Same guard + messaging as
  * the `DELETE /api/providers/:id` route, so both platforms behave identically.

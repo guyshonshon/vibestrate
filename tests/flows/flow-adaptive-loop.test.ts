@@ -70,7 +70,7 @@ const loopingFlow = flowDefinitionSchema.parse({
 
 // A minimal flow with NO verify step: implement → review, looped. Exercises the
 // runner rule that a flow only needs a passing verification when it has a verify
-// step — so an APPROVED review alone reaches merge_ready.
+// step - so an APPROVED review alone reaches merge_ready.
 const noVerifyLoopFlow = flowDefinitionSchema.parse({
   id: "no-verify-loop",
   version: 1,

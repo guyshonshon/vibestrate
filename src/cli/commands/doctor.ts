@@ -57,7 +57,7 @@ export async function runDoctorCommand(opts: DoctorOptions = {}): Promise<number
     // Re-run report after fixes.
     report = await runDoctor({ cwd });
     if (!opts.json) {
-      console.log(header("Vibestrate Doctor — Fixes Applied"));
+      console.log(header("Vibestrate Doctor - Fixes Applied"));
       console.log("");
       if (fixOutcome.applied.length === 0) {
         console.log(`${symbol.warn()} No safe fixes were applicable.`);

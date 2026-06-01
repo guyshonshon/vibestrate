@@ -42,7 +42,7 @@ export const roleMetricsSchema = z.object({
   model: z.string().nullable().default(null),
   totalCostUsd: z.number().nullable().default(null),
   /** True when totalCostUsd was computed locally (tokens × list price) rather
-   *  than reported by the CLI — surfaced as an "est." label. */
+   *  than reported by the CLI - surfaced as an "est." label. */
   costEstimated: z.boolean().optional(),
   perModelCost: z.array(perModelCostSchema).default([]),
   tokenUsage: tokenUsageSchema.nullable().default(null),

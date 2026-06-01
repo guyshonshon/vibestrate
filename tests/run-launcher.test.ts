@@ -91,7 +91,7 @@ describe("run launcher (shared core run pipeline)", () => {
       { projectRoot: dir, task: "ship the thing" },
       { onProgress: () => {} },
     );
-    // The dashboard path reaches the same terminal states as the CLI — no
+    // The dashboard path reaches the same terminal states as the CLI - no
     // approval gate here, so the fake crew runs clean to merge_ready.
     expect(out.runId).toBeTruthy();
     expect(out.state.status).toBe("merge_ready");

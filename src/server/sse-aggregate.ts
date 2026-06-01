@@ -106,7 +106,7 @@ export async function streamAggregateRunEvents(
         void readNew(runId);
       });
     } catch {
-      // File doesn't exist yet — the dir watcher will retry on its
+      // File doesn't exist yet - the dir watcher will retry on its
       // next tick.
     }
   };
@@ -132,7 +132,7 @@ export async function streamAggregateRunEvents(
       }
     });
   } catch {
-    // runs dir may not exist yet — retry every 2s.
+    // runs dir may not exist yet - retry every 2s.
     const interval = setInterval(async () => {
       const ids = await fsp.readdir(runsDir).catch(() => []);
       for (const id of ids) ensureTail(id);

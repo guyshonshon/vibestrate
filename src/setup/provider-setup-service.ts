@@ -123,7 +123,7 @@ export type RemoveProviderResult =
 
 /**
  * Remove a configured provider from project.yml. Refuses (without writing)
- * if any role still points at it — removing it would leave a dangling
+ * if any role still points at it - removing it would leave a dangling
  * reference (and the config write would reject anyway). The caller reassigns
  * those roles first. Mirrors the `setDefaultProvider` ok/refusal shape.
  */
@@ -194,7 +194,7 @@ export async function runSafeProviderTest(input: {
   // Non-CLI providers have no command to spawn. Test them by type without a
   // surprise token spend: localhost-proxy makes a real (free) call; cloud
   // http-api just verifies the key env var is set (we don't call the paid API
-  // on a "test" click — it'll be exercised on the next real run).
+  // on a "test" click - it'll be exercised on the next real run).
   {
     const { loadConfig } = await import("../project/config-loader.js");
     const loaded = await loadConfig(input.projectRoot).catch(() => null);
@@ -315,7 +315,7 @@ export async function runSafeProviderTest(input: {
       hint = `The CLI exited with code ${exitCode}. Check that "${provider.command}" is installed and authenticated.`;
     } else if (/unexpected argument|unrecognized|unknown option|unknown flag|invalid option|invalid subcommand/i.test(`${stderr}\n${stdout}`)) {
       // The CLI rejected our args (e.g. a flag removed in a newer release).
-      hint = `"${provider.command}" rejected its arguments — a flag/subcommand it no longer accepts in this version. Run \`vibe provider setup\` to update the command/args.`;
+      hint = `"${provider.command}" rejected its arguments - a flag/subcommand it no longer accepts in this version. Run \`vibe provider setup\` to update the command/args.`;
     } else {
       hint = `The CLI ran but did not echo "${SAFE_TEST_MAGIC}". Your provider may need a different prompt-flag setup. Run \`vibe provider setup\` to adjust args/input mode.`;
     }
@@ -357,7 +357,7 @@ export function buildClaudeProviderFromDetection(
 
 /**
  * Starter preset for the OpenAI Codex CLI. Unlike the Claude preset,
- * Vibestrate does NOT auto-apply this in `doctor --fix` — Codex's flag matrix
+ * Vibestrate does NOT auto-apply this in `doctor --fix` - Codex's flag matrix
  * has moved across releases and we don't want to silently configure a
  * provider that might not work. The user opts in via `vibe provider
  * setup codex` (or the dashboard's setup wizard), and we recommend they

@@ -5,7 +5,7 @@
 //
 // One-shot providers (Claude Code -p, etc.) cannot accept interactive
 // commands mid-flight. These directives are deferred and surface in the
-// *next* agent's prompt — the UI labels them as such so the user
+// *next* agent's prompt - the UI labels them as such so the user
 // doesn't expect a live REPL.
 
 import path from "node:path";
@@ -81,14 +81,14 @@ export async function listControls(
     try {
       out.push(runControlDirectiveSchema.parse(JSON.parse(line)));
     } catch {
-      // skip malformed rows — the stream is best-effort
+      // skip malformed rows - the stream is best-effort
     }
   }
   return out;
 }
 
 /** Mark every pending directive as consumed by `roleId`. Rewrites the
- *  whole file once — append-only would leave us re-reading "pending"
+ *  whole file once - append-only would leave us re-reading "pending"
  *  rows forever. Safe because writes are serialized per-run by the
  *  orchestrator. */
 export async function markPendingConsumed(

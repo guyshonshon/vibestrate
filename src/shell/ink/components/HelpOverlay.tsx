@@ -14,7 +14,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["← →  /  h l", "switch column on the Roadmap board"],
       ["tab", "cycle inspector sections on the Runs page"],
       [":", "command palette"],
-      ["i  /  !", "focus the prompt — type a `vibe …` command, Enter to run"],
+      ["i  /  !", "focus the prompt - type a `vibe …` command, Enter to run"],
       ["⇥ / ⇧⇥", "scroll command output (while the prompt is focused)"],
       ["O", "expand command output to a full-width readable view"],
       ["m", "cycle safety mode (write / read-only) for the next run"],
@@ -56,7 +56,7 @@ export function HelpOverlay({ currentPage }: Props) {
       <Text bold>Keybindings · context</Text>
       <Text dimColor>vibestrate panel · press ? or Esc to close</Text>
 
-      {/* Current-page context first — most likely what the user wants. */}
+      {/* Current-page context first - most likely what the user wants. */}
       <Box marginTop={1} flexDirection="column">
         <Text color={ACCENT}>Right now · {pageLabel(currentPage)}</Text>
         <Text>{meta.subtitle}</Text>

@@ -50,7 +50,7 @@ describe("filterReplayEvents", () => {
   it("matches case-insensitively against ev.type", () => {
     // Searching for "APPROVAL" catches event types approval.requested /
     // approval.approved AND the notification with message "Approval
-    // resolved" — both type and message are concatenated for the search.
+    // resolved" - both type and message are concatenated for the search.
     const out = filterReplayEvents(FIXTURE, {
       search: "APPROVAL",
       phases: new Set(),
@@ -64,7 +64,7 @@ describe("filterReplayEvents", () => {
       phases: new Set(),
     });
     // sug-1 has the word "retry" in its message but its type is
-    // "suggestion.created" — it must still match.
+    // "suggestion.created" - it must still match.
     expect(out).toEqual([3]);
   });
 

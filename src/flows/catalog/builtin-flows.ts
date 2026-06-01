@@ -6,7 +6,7 @@ import {
 // The built-in **default flow**: the fixed plan → architect → implement →
 // validate → review → (fix → re-validate → review)* → verify workflow, expressed
 // as a real flow definition. This is the single source of truth for the default
-// workflow's shape — a plain `vibe run` resolves it and executes it through the
+// workflow's shape - a plain `vibe run` resolves it and executes it through the
 // one flow runner (see runner-unification.md). There is no separate code path.
 //
 // The review→fix loop is the adaptive-loop construct, not a fixed repeat: the
@@ -254,7 +254,7 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
 // `checklist-item` / `prior-items` context tokens; finally a holistic `review`
 // runs ONCE over the accumulated work. The runner commits + summarizes each item
 // at the segment tail. With no checklist (or an instant task) the segment just
-// runs once — the N=1 case.
+// runs once - the N=1 case.
 export const pickupFlow = flowDefinitionSchema.parse({
   id: "pickup",
   version: 1,

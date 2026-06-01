@@ -242,7 +242,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
     if (
       typeof window !== "undefined" &&
       !window.confirm(
-        `Revert review pass "${b.title}" — this runs git apply -R against the worktree only. Continue?`,
+        `Revert review pass "${b.title}" - this runs git apply -R against the worktree only. Continue?`,
       )
     ) {
       return;
@@ -331,7 +331,7 @@ export function ReviewPassPanel({ runId, suggestions, onChange }: Props) {
                 {b.sameFileWarnings.length > 0 ? (
                   <div className="mt-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-2 py-1 text-[11px] text-vibestrate-warn">
                     {b.sameFileWarnings.length} same-file warning
-                    {b.sameFileWarnings.length === 1 ? "" : "s"} — patches in
+                    {b.sameFileWarnings.length === 1 ? "" : "s"} - patches in
                     this pass touch overlapping files.
                   </div>
                 ) : null}
@@ -469,7 +469,7 @@ function PreflightBlock({ result }: { result: BundlePreflightResult }) {
       }`}
     >
       <div>
-        Preflight {result.ok ? "passed" : "failed"} —{" "}
+        Preflight {result.ok ? "passed" : "failed"} -{" "}
         {result.findings.length} suggestion
         {result.findings.length === 1 ? "" : "s"} checked.
       </div>
@@ -683,7 +683,7 @@ function SmartApplyResultBlock({
         {result.steps.map((step) => (
           <li key={step.suggestionId} className="vibestrate-mono text-[10.5px]">
             <span className="text-vibestrate-fg-dim">{titleFor(step.suggestionId)}</span>
-            {" — "}
+            {" - "}
             <span
               className={
                 step.applyStatus === "applied"

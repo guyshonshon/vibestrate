@@ -65,7 +65,7 @@ describe("Default flow definition (D2 phase B-2)", () => {
     const fromI = ids.indexOf("review");
     const toI = ids.indexOf("revalidation");
     // The gate sits at the head of the body so the loop can exit to `verify`
-    // before running `fix` when the review approves — mirrors run()'s loop.
+    // before running `fix` when the review approves - mirrors run()'s loop.
     expect(fromI).toBeLessThan(toI);
     expect(ids.indexOf("verify")).toBeGreaterThan(toI);
     const decision = defaultFlow.steps.find((s) => s.id === defaultFlow.loop!.decisionStep);
@@ -74,7 +74,7 @@ describe("Default flow definition (D2 phase B-2)", () => {
 
   it("is in the discoverable catalog (B-3b: runnable as --flow default)", () => {
     // B-3a taught the flow runner to iterate the loop, so the default flow is
-    // now a real catalog entry — runnable/forkable as `--flow default`.
+    // now a real catalog entry - runnable/forkable as `--flow default`.
     expect(builtinFlows.some((f) => f.id === "default")).toBe(true);
     expect(findBuiltinFlow("default")).not.toBeNull();
   });
@@ -111,7 +111,7 @@ describe("Default flow definition (D2 phase B-2)", () => {
       ["verifier", "verifier", "codex"],
     ]);
 
-    // No fixed repeats, so resolved step ids equal source ids — the loop refs
+    // No fixed repeats, so resolved step ids equal source ids - the loop refs
     // stay valid in the snapshot.
     const resolvedIds = snapshot.steps.map((s) => s.id);
     expect(resolvedIds).toEqual([

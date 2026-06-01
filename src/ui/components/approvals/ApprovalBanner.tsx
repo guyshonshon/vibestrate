@@ -28,7 +28,7 @@ function describeSource(approval: ApprovalRequest): string {
     return "Project policy requires approval at this stage.";
   }
   if (approval.alsoRequiredByPolicy) {
-    return `The ${approval.roleId} agent requested your approval — and project policy also requires it at this stage.`;
+    return `The ${approval.roleId} agent requested your approval - and project policy also requires it at this stage.`;
   }
   return `The ${approval.roleId} agent requested your approval.`;
 }

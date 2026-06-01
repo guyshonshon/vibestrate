@@ -22,9 +22,9 @@ import { cn } from "../../components/design/cn.js";
 const RANGES: OverviewRange[] = ["24h", "7d", "30d", "90d"];
 
 /**
- * "All projects" — the cross-project navigator. Each project is an isolated
+ * "All projects" - the cross-project navigator. Each project is an isolated
  * tenant (its own `vibe ui` server + scheduler); this page rolls up a read-only
- * glance across all of them and lets you OPEN any one in a new tab — starting it
+ * glance across all of them and lets you OPEN any one in a new tab - starting it
  * if it's dormant. It never reaches into another project's state.
  */
 export function WorkspacePage() {
@@ -74,7 +74,7 @@ export function WorkspacePage() {
             <em className="text-display italic text-violet-soft">projects</em>, one view
           </h1>
           <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-            A glance across every registered project — each runs on its own
+            A glance across every registered project - each runs on its own
             isolated dashboard + scheduler. Open any one in a new tab; dormant
             ones start on demand.
           </p>
@@ -244,7 +244,7 @@ function ProjectCard({
 }) {
   const { window: w } = project;
   const successPct =
-    w.successRate !== null ? `${Math.round(w.successRate * 100)}%` : "—";
+    w.successRate !== null ? `${Math.round(w.successRate * 100)}%` : "-";
 
   return (
     <div className="glass p-5 flex flex-col">
@@ -283,7 +283,7 @@ function ProjectCard({
         <div className="mt-3 text-[11.5px] text-amber-300/90">
           {project.unreadable
             ? "Could not read this project's runs."
-            : "Not initialized — run vibe init here."}
+            : "Not initialized - run vibe init here."}
         </div>
       ) : null}
 
@@ -393,7 +393,7 @@ function CloseDialog({
       if (r.method === "unreachable") {
         setErr(
           `${project.label} isn't responding and couldn't be confirmed${
-            r.pid ? ` — if it's stuck, kill PID ${r.pid} manually` : ""
+            r.pid ? ` - if it's stuck, kill PID ${r.pid} manually` : ""
           }.`,
         );
         setBusyAction(false);
@@ -460,7 +460,7 @@ function CloseDialog({
             </div>
           ) : (
             <div className="text-[12px] text-fog-400">
-              Idle — no active runs or queued tasks. Safe to close.
+              Idle - no active runs or queued tasks. Safe to close.
             </div>
           )}
         </div>
@@ -503,7 +503,7 @@ function LiveChip({ live }: { live: boolean }) {
   );
 }
 
-/** Open a project's own dashboard in a new tab — starting it if dormant. */
+/** Open a project's own dashboard in a new tab - starting it if dormant. */
 function OpenButton({ project }: { project: WorkspaceProjectSummary }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -581,7 +581,7 @@ function Stat({
 /** Compact relative time. Pure, no deps. */
 function relTime(iso: string): string {
   const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return "—";
+  if (!Number.isFinite(t)) return "-";
   const diff = Date.now() - t;
   const mins = Math.round(diff / 60000);
   if (mins < 1) return "just now";

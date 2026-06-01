@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for the report. The more concrete the repro, the faster the fix.
-        **Never paste secrets** — no `.env` contents, tokens, or private source.
+        **Never paste secrets** - no `.env` contents, tokens, or private source.
   - type: textarea
     id: command
     attributes:

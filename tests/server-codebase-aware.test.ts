@@ -155,7 +155,7 @@ describe("server: project / codebase / git / agent-work routes", () => {
       error: null,
     });
     await writeJson(runStatePath(project, runId), state);
-    // Empty metrics first — endpoint should return available=false.
+    // Empty metrics first - endpoint should return available=false.
     const empty = await fetch(
       `${server!.url}/api/runs/${runId}/agent-work`,
     ).then((r) => r.json()) as { report: { available: boolean } };

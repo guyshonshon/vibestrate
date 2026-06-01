@@ -345,7 +345,7 @@ function ActiveRolePanel({
   const agents = metrics?.roles ?? [];
   const agent =
     agents.find((a) => !a.endedAt) ?? agents.slice(-1)[0] ?? null;
-  // Live totals accumulate as each step finishes — unlike the running agent's
+  // Live totals accumulate as each step finishes - unlike the running agent's
   // own metrics, which only resolve when it exits (CLIs in -p mode buffer).
   const totalTokens = agents.reduce(
     (n, a) => n + (a.tokenUsage?.input ?? 0) + (a.tokenUsage?.output ?? 0),
@@ -382,7 +382,7 @@ function ActiveRolePanel({
               "auto"}
           </div>
           <div className="text-[11.5px] text-fog-400 truncate">
-            {agent?.flowSeat ?? agent?.stageId ?? "—"}
+            {agent?.flowSeat ?? agent?.stageId ?? "-"}
           </div>
         </div>
         <Chip tone={run.status === "executing" ? "violet" : "neutral"}>
@@ -395,7 +395,7 @@ function ActiveRolePanel({
           value={
             totalTokens > 0
               ? `${tokensEstimated ? "~" : ""}${fmtTokens(totalTokens)}`
-              : "—"
+              : "-"
           }
         />
         <Stat
@@ -403,12 +403,12 @@ function ActiveRolePanel({
           value={
             totalCost !== null
               ? `${costEstimated ? "~" : ""}$${totalCost.toFixed(4)}`
-              : "—"
+              : "-"
           }
         />
         <Stat
           label="Tool calls"
-          value={totalToolCalls > 0 ? String(totalToolCalls) : "—"}
+          value={totalToolCalls > 0 ? String(totalToolCalls) : "-"}
         />
         <Stat
           label="Provider calls"
@@ -593,10 +593,10 @@ function RerunDialog({
         </div>
         <p className="mt-2 text-[11.5px] text-fog-500">
           {startFrom === "scratch"
-            ? "Starts a fresh run (new worktree) with the task below and your adjusted settings — e.g. uncheck read-only so the executor can write. The original run is untouched."
+            ? "Starts a fresh run (new worktree) with the task below and your adjusted settings - e.g. uncheck read-only so the executor can write. The original run is untouched."
             : startFrom === "architecting"
-              ? "Forks a fresh run that reuses this run's plan and re-runs from architecture onward — no re-planning. The original run is untouched."
-              : "Forks a fresh run that reuses this run's plan + architecture and re-runs from implementation onward — no re-planning or re-architecting. The original run is untouched."}
+              ? "Forks a fresh run that reuses this run's plan and re-runs from architecture onward - no re-planning. The original run is untouched."
+              : "Forks a fresh run that reuses this run's plan + architecture and re-runs from implementation onward - no re-planning or re-architecting. The original run is untouched."}
         </p>
         <div className="mt-3">
           <div className="eyebrow mb-1">Start from</div>
@@ -605,19 +605,19 @@ function RerunDialog({
             onChange={(e) => setStartFrom(e.target.value as StartFrom)}
             className={`${selectCls} w-full`}
           >
-            <option value="scratch">Beginning — re-plan from scratch</option>
+            <option value="scratch">Beginning - re-plan from scratch</option>
             <option value="architecting" disabled={!canArchitecting}>
-              Architecture — reuse the plan{canArchitecting ? "" : " (unavailable)"}
+              Architecture - reuse the plan{canArchitecting ? "" : " (unavailable)"}
             </option>
             <option value="executing" disabled={!canExecuting}>
-              Implementation — reuse plan + architecture
+              Implementation - reuse plan + architecture
               {canExecuting ? "" : " (unavailable)"}
             </option>
           </select>
           {!canArchitecting && !canExecuting ? (
             <p className="mt-1 text-[11px] text-fog-500">
               This flow has no resumable stage (or the upstream artifacts
-              weren't captured) — re-runs start from the beginning.
+              weren't captured) - re-runs start from the beginning.
             </p>
           ) : null}
         </div>
@@ -632,7 +632,7 @@ function RerunDialog({
           />
           {startFrom !== "scratch" ? (
             <p className="mt-1 text-[11px] text-fog-500">
-              Locked — the reused plan was written for this task.
+              Locked - the reused plan was written for this task.
             </p>
           ) : null}
         </div>
@@ -751,7 +751,7 @@ function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
   );
 }
 
-// Unused — kept so we can quickly add an inline "needs review" indicator
+// Unused - kept so we can quickly add an inline "needs review" indicator
 // later without re-importing icons.
 void Bolt;
 void Scale;

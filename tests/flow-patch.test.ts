@@ -321,7 +321,7 @@ describe("replaceSteps / replaceSeats (structural edits)", () => {
   });
 });
 
-describe("mergeFlowPatch — loop, stage, read-only authoring", () => {
+describe("mergeFlowPatch - loop, stage, read-only authoring", () => {
   it("adds an adaptive loop to a flow that had none", () => {
     const base = findBuiltinFlow("quality-arbitration")!;
     expect(base.loop).toBeUndefined();

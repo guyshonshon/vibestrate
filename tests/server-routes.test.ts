@@ -112,7 +112,7 @@ describe("server routes", () => {
     const res = await fetch(
       `${server!.url}/api/runs/20260509-120000-fixture/artifacts/..%2F..%2Fpackage.json`,
     );
-    // Either 400 (rejected) or 404 (not found after sanitize) — never 200 with file contents.
+    // Either 400 (rejected) or 404 (not found after sanitize) - never 200 with file contents.
     expect([400, 404]).toContain(res.status);
   });
 
@@ -167,7 +167,7 @@ describe("server routes", () => {
       }),
     });
     // The spawn itself may fail (no dist on disk yet in the test
-    // sandbox) — either 200 with argv echoed back, or 500 if the
+    // sandbox) - either 200 with argv echoed back, or 500 if the
     // binary isn't reachable. Both prove the body shape passes the
     // schema; we just want to confirm the route exists and accepts
     // the body without "application/json"-style noise.
@@ -208,7 +208,7 @@ describe("server routes", () => {
   });
 
   it("POST /api/runs/:id/pause tolerates an empty JSON body", async () => {
-    // The spawn-empty-body bug we fixed earlier — make sure pause /
+    // The spawn-empty-body bug we fixed earlier - make sure pause /
     // resume / abort still work with `Content-Type: application/json`
     // and no body.
     const res = await fetch(

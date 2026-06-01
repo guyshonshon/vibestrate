@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "binary": "vibe",
-  "description": "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.1.1",
+  "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
+  "version": "0.2.0",
   "commands": [
     {
       "name": "init",
@@ -2225,7 +2225,7 @@
             "telemetry",
             "trace"
           ],
-          "description": "Print the OTLP trace JSON for a run (no network — inspect before exporting).",
+          "description": "Print the OTLP trace JSON for a run (no network - inspect before exporting).",
           "usage": "[options] <runId>",
           "arguments": [
             {
@@ -4004,7 +4004,7 @@
             "policies",
             "check"
           ],
-          "description": "Apply the loaded policy rules to a patch file (unified diff). Read-only — never applies, never executes.",
+          "description": "Apply the loaded policy rules to a patch file (unified diff). Read-only - never applies, never executes.",
           "usage": "[options] <patchFile>",
           "arguments": [
             {

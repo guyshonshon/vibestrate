@@ -5,7 +5,7 @@ import type { SessionState } from "./ui-state.js";
 /**
  * Seed a prompt-entered `vibe …` argv with the session's Crew / Flow / mode
  * so the status-bar selections actually shape the next run. Only `run`
- * commands are touched, and only for flags the user didn't already pass —
+ * commands are touched, and only for flags the user didn't already pass -
  * an explicit `--crew`/`--flow`/`--read-only` on the line always wins.
  */
 export function applySessionDefaults(

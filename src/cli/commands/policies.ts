@@ -97,7 +97,7 @@ export function buildPoliciesCommand(): Command {
   cmd
     .command("check <patchFile>")
     .description(
-      "Apply the loaded policy rules to a patch file (unified diff). Read-only — never applies, never executes.",
+      "Apply the loaded policy rules to a patch file (unified diff). Read-only - never applies, never executes.",
     )
     .option(
       "--surface <surface>",
@@ -194,7 +194,7 @@ export function buildPoliciesCommand(): Command {
         process.exit(malformed.length === 0 && dupes.length === 0 ? 0 : 1);
       }
 
-      console.log(`${color.bold("Vibestrate policies — doctor")}`);
+      console.log(`${color.bold("Vibestrate policies - doctor")}`);
       console.log("");
       console.log(
         `${symbol.ok()} ${fileCount} rule file(s), ${ruleCount} rule(s), ${actionCount} action policy(ies) loaded.`,
@@ -220,7 +220,7 @@ export function buildPoliciesCommand(): Command {
     });
 
   // ── Safety behavior toggles (the `policies.*` config block) ──────────────
-  // Mirrors the dashboard's Advanced — Safety panel (UI⇄CLI parity).
+  // Mirrors the dashboard's Advanced - Safety panel (UI⇄CLI parity).
   const boolOpt = (v: string): boolean => {
     if (v === "true" || v === "on" || v === "1") return true;
     if (v === "false" || v === "off" || v === "0") return false;

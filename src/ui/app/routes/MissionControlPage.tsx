@@ -82,7 +82,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Optimistic "starting…" cards so the UI changes the instant you send a
-  // brief — a dashboard run is spawned detached and takes ~1s to write its
+  // brief - a dashboard run is spawned detached and takes ~1s to write its
   // state.json, so without this you'd only see the toast. Cleared once the
   // real run appears in `runs` (or after a timeout).
   const [starting, setStarting] = useState<
@@ -125,7 +125,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
         setFlows(g.flows);
         setPresets(pr.presets);
       } catch {
-        /* swallow — server not ready yet */
+        /* swallow - server not ready yet */
       }
     };
     void load();
@@ -437,7 +437,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
         />
       </section>
 
-      {/* Live now — appears the instant a run is sent, so it's obvious the
+      {/* Live now - appears the instant a run is sent, so it's obvious the
        * task started. Multiple runs stack here (the composer above stays
        * usable, so you can launch more in parallel). */}
       {activeRuns.length > 0 || starting.length > 0 ? (

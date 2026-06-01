@@ -25,7 +25,7 @@ export function isTerminalStatus(status: RunStatus): boolean {
 
 /**
  * Explain a stopped, non-success run and what to do about it. Returns null for
- * runs that are still going or that ended at merge_ready — those don't need a
+ * runs that are still going or that ended at merge_ready - those don't need a
  * "what blocked it / what to do" banner.
  */
 export function describeRunOutcome(run: RunState): RunOutcome | null {
@@ -50,7 +50,7 @@ export function describeRunOutcome(run: RunState): RunOutcome | null {
     };
   }
 
-  // blocked — try to name the specific cause.
+  // blocked - try to name the specific cause.
   if (errLower.includes("spend cap")) {
     return {
       kind: "blocked",
@@ -64,7 +64,7 @@ export function describeRunOutcome(run: RunState): RunOutcome | null {
   if (errLower.includes("approval")) {
     return {
       kind: "blocked",
-      title: "Blocked — approval rejected",
+      title: "Blocked - approval rejected",
       reason:
         "An approval gate was rejected, so the run stopped before merge. Re-run with the change addressed, or adjust the gate.",
       actions: ["events", "rerun"],
@@ -75,7 +75,7 @@ export function describeRunOutcome(run: RunState): RunOutcome | null {
       kind: "blocked",
       title: "Blocked by review",
       reason:
-        "The reviewer blocked the change. Read the findings, then re-run with the fixes — or, if it was read-only, re-run with the executor given write access.",
+        "The reviewer blocked the change. Read the findings, then re-run with the fixes - or, if it was read-only, re-run with the executor given write access.",
       actions: ["review", "rerun"],
     };
   }

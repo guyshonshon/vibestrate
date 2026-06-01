@@ -84,7 +84,7 @@ export function MetricsPage() {
             ship this week?
           </h1>
           <p className="text-fog-300 text-[13px] mt-1.5 max-w-[640px]">
-            Runs, outcomes, spend, latency — rolled up across every model and
+            Runs, outcomes, spend, latency - rolled up across every model and
             flow.
           </p>
         </div>
@@ -208,7 +208,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
         value={
           totals?.successRate !== null && totals?.successRate !== undefined
             ? `${Math.round(totals.successRate * 100)}%`
-            : "—"
+            : "-"
         }
         sub="merged ÷ completed"
         tone="emerald"
@@ -217,7 +217,7 @@ function KpiStrip({ overview }: { overview: MetricsOverview | null }) {
       <BigKpi
         label="Duration"
         value={
-          totals?.avgDurationSeconds ? `${totals.avgDurationSeconds}s` : "—"
+          totals?.avgDurationSeconds ? `${totals.avgDurationSeconds}s` : "-"
         }
         sub={
           totals?.medianDurationSeconds
@@ -359,7 +359,7 @@ function RunsAreaChart({ overview }: { overview: MetricsOverview | null }) {
         </div>
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No runs yet — every completed run lands here." />
+        <EmptyState text="No runs yet - every completed run lands here." />
       ) : (
         <div className="w-full overflow-visible">
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto block">
@@ -613,7 +613,7 @@ function PerModelPanel({ overview }: { overview: MetricsOverview | null }) {
                 <td className="num-tabular py-1.5 text-right text-fog-300">{r.calls}</td>
                 <td className="num-tabular py-1.5 text-right text-fog-300">{fmtTokensShort(r.tokens)}</td>
                 <td className="num-tabular py-1.5 text-right text-fog-300">
-                  {r.costUsd > 0 ? `$${r.costUsd.toFixed(2)}` : "—"}
+                  {r.costUsd > 0 ? `$${r.costUsd.toFixed(2)}` : "-"}
                 </td>
               </tr>
             ))}
@@ -798,7 +798,7 @@ function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
         ) : null}
       </div>
       {data.length === 0 ? (
-        <EmptyState text="No agent spend recorded yet — once metrics land, they show up here." />
+        <EmptyState text="No agent spend recorded yet - once metrics land, they show up here." />
       ) : (
         <div className="space-y-3.5">
           {data.map((d) => {
@@ -1117,7 +1117,7 @@ function LeaderboardTable({
                         {row.label}
                       </div>
                       <div className="text-[10.5px] text-fog-500 mono">
-                        {row.vendor ?? "—"}
+                        {row.vendor ?? "-"}
                       </div>
                     </div>
                   </div>
@@ -1150,14 +1150,14 @@ function LeaderboardTable({
                       {Math.round(row.successRate * 100)}%
                     </span>
                   ) : (
-                    <span className="text-fog-500 text-[12px]">—</span>
+                    <span className="text-fog-500 text-[12px]">-</span>
                   )}
                 </td>
                 <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular">
-                  {row.avgDurSeconds !== null ? `${row.avgDurSeconds}s` : "—"}
+                  {row.avgDurSeconds !== null ? `${row.avgDurSeconds}s` : "-"}
                 </td>
                 <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular">
-                  {row.p95Seconds !== null ? `${row.p95Seconds}s` : "—"}
+                  {row.p95Seconds !== null ? `${row.p95Seconds}s` : "-"}
                 </td>
                 <td className="px-3 py-3 text-right mono text-[12px] text-fog-100 num-tabular">
                   ${row.costUsd.toFixed(2)}
@@ -1169,7 +1169,7 @@ function LeaderboardTable({
                   )}
                 >
                   {row.delta === 0
-                    ? "—"
+                    ? "-"
                     : `${row.delta > 0 ? "↑" : "↓"} ${Math.abs(row.delta)}`}
                 </td>
               </tr>

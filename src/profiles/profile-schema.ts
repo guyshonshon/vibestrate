@@ -20,7 +20,7 @@ export const profileConfigSchema = z
     model: z.string().min(1).nullable().default(null),
     /**
      * Provider-specific power/effort level (e.g. `balanced`, `deep`). Free
-     * string — the valid set comes from provider metadata, not a global enum.
+     * string - the valid set comes from provider metadata, not a global enum.
      * null = the provider exposes no effort control (UI hides the field).
      */
     power: z.string().min(1).nullable().default(null),

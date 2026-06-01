@@ -188,7 +188,7 @@ export function TaskDetailPage({
           {task.readOnly ? (
             <span
               className="vibestrate-mono rounded border border-vibestrate-warn/60 bg-vibestrate-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-vibestrate-warn"
-              title="Investigation-only — runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
+              title="Investigation-only - runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
             >
               read-only
             </span>
@@ -414,7 +414,7 @@ function DependenciesSection({
             Blocked by ({blockers.length + missingBlockers.length})
           </div>
           {blockers.length === 0 && missingBlockers.length === 0 ? (
-            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
+            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">-</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {blockers.map((b) => {
@@ -455,7 +455,7 @@ function DependenciesSection({
             Unlocks ({unlocks.length})
           </div>
           {unlocks.length === 0 ? (
-            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
+            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">-</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {unlocks.map((u) => (
@@ -513,7 +513,7 @@ function NeedsTestingBanner({
         />
         <div className="flex-1">
           <div className="text-[12.5px] font-medium text-vibestrate-warn">
-            Needs testing — a human should check this
+            Needs testing - a human should check this
           </div>
           <div className="mt-0.5 text-[12px] text-vibestrate-fg-dim">
             {task.needsTestingReason ||
@@ -782,7 +782,7 @@ function ChecklistSection({
           type="button"
           onClick={enhance}
           disabled={busy !== null}
-          title="Propose a checklist with an AI assist (read-only — you choose whether to add the items)"
+          title="Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
           className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
         >
           <Sparkles className="h-3 w-3" strokeWidth={1.5} />
@@ -794,7 +794,7 @@ function ChecklistSection({
         <div className="mt-2 rounded border border-vibestrate-accent/30 bg-vibestrate-accent-soft/10 p-2">
           <div className="flex items-center gap-2">
             <span className="vibestrate-mono text-[10px] uppercase tracking-[0.10em] text-vibestrate-accent">
-              proposed ({proposed.length}) — not added yet
+              proposed ({proposed.length}) - not added yet
             </span>
             <button
               type="button"
@@ -1206,7 +1206,7 @@ function FileLink({
           ? "text-vibestrate-warn opacity-80"
           : "text-vibestrate-fg-dim hover:border-vibestrate-accent/40 hover:text-vibestrate-fg"
       }`}
-      title={redacted ? "Secret file — contents redacted" : path}
+      title={redacted ? "Secret file - contents redacted" : path}
     >
       {redacted ? (
         <Lock className="h-3 w-3 shrink-0" strokeWidth={1.5} />
@@ -1273,7 +1273,7 @@ function TaskRunMode({
     setBusy(field);
     setError(null);
     try {
-      // Cast through the patch shape — the api method accepts a partial
+      // Cast through the patch shape - the api method accepts a partial
       // and we know `field` matches `value` by construction.
       const next = await api.patchTask(task.id, {
         [field]: value as never,
@@ -1358,7 +1358,7 @@ function TaskRunMode({
           }
           className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11.5px] text-vibestrate-fg focus:border-vibestrate-accent/60 focus:outline-none"
         >
-          <option value="">— none —</option>
+          <option value="">- none -</option>
           <option value="low">low</option>
           <option value="medium">medium</option>
           <option value="high">high</option>

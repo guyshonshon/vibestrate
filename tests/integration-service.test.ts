@@ -52,15 +52,15 @@ async function makeRepo(): Promise<string> {
   await branch("feat-a", async () => fs.writeFile(path.join(dir, "a.txt"), "A"));
   await branch("feat-b", async () => fs.writeFile(path.join(dir, "b.txt"), "B"));
   await branch("feat-c", async () =>
-    fs.writeFile(path.join(dir, "base.txt"), "line one — C\nline two\n"),
+    fs.writeFile(path.join(dir, "base.txt"), "line one - C\nline two\n"),
   );
   await branch("feat-c2", async () =>
-    fs.writeFile(path.join(dir, "base.txt"), "line one — C2\nline two\n"),
+    fs.writeFile(path.join(dir, "base.txt"), "line one - C2\nline two\n"),
   );
   return dir;
 }
 
-describe("integration — mergePreview", () => {
+describe("integration - mergePreview", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await makeRepo();
@@ -95,7 +95,7 @@ describe("integration — mergePreview", () => {
     expect(r.results[0]!.note).toMatch(/not found/);
   });
 
-  it("leaves the repo clean — no scratch branch or worktree lingers", async () => {
+  it("leaves the repo clean - no scratch branch or worktree lingers", async () => {
     await mergePreview({ projectRoot: dir, branches: [{ branch: "feat-a" }] });
     const branches = await execa("git", ["branch", "--list", "vibe-preview-*"], { cwd: dir });
     expect(branches.stdout.trim()).toBe("");
@@ -104,7 +104,7 @@ describe("integration — mergePreview", () => {
   });
 });
 
-describe("integration — integrate", () => {
+describe("integration - integrate", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await makeRepo();
@@ -163,7 +163,7 @@ describe("integration — integrate", () => {
   });
 });
 
-describe("integration — listMergeReadyRuns", () => {
+describe("integration - listMergeReadyRuns", () => {
   it("lists only merge_ready runs that have a branch", async () => {
     const dir = await makeRepo();
     const mk = async (runId: string, status: "merge_ready" | "blocked", branch: string | null) => {

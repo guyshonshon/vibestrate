@@ -35,7 +35,7 @@ export async function runValidationCommands(input: {
   cwd: string;
   store: ArtifactStore;
   prefix?: string;
-  /** S0 Action Broker — when provided, every command.run crosses the boundary
+  /** S0 Action Broker - when provided, every command.run crosses the boundary
    *  (fail-closed: a deny records the denial and skips the command). */
   broker?: ActionBroker;
   runId?: string;

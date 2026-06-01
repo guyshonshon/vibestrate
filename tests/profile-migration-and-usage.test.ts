@@ -374,7 +374,7 @@ describe("validation-profile-usage", () => {
     );
 
     // Now configure an empty default profile (commands.validate=[]) and validate
-    // again — should NOT increment.
+    // again - should NOT increment.
     const ymlPath = path.join(project, ".vibestrate/project.yml");
     const yml = await fs.readFile(ymlPath, "utf8");
     await fs.writeFile(ymlPath, yml.replace('"true"', "")); // breaks validate to []

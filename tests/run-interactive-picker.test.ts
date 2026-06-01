@@ -19,7 +19,7 @@ function flow(
     description,
     source: { kind, ref: id },
     definitionPath: kind === "project" ? `/p/${id}.yml` : null,
-    // The picker only reads id/label/description/source — a stub definition is fine.
+    // The picker only reads id/label/description/source - a stub definition is fine.
     definition: { id, version: 1, label, description, seats: {}, steps: [] } as DiscoveredFlow["definition"],
   };
 }

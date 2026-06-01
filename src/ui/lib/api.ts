@@ -80,7 +80,7 @@ async function jsonGet<T>(path: string): Promise<T> {
 
 async function readErrorMessage(res: Response): Promise<string> {
   // Server routes now return `{ error, kind, title, hint }` (see
-  // setErrorHandler in src/server/server.ts). Prefer `title — hint`
+  // setErrorHandler in src/server/server.ts). Prefer `title - hint`
   // when present so the user sees a sentence they can act on instead
   // of a raw exception message. Falls back to `error`, then to body
   // text, then to the status line.
@@ -91,7 +91,7 @@ async function readErrorMessage(res: Response): Promise<string> {
       hint?: string;
     };
     if (typeof body.title === "string" && body.title.length > 0) {
-      return body.hint ? `${body.title} — ${body.hint}` : body.title;
+      return body.hint ? `${body.title} - ${body.hint}` : body.title;
     }
     if (typeof body.error === "string" && body.error.length > 0) {
       return body.error;
@@ -400,7 +400,7 @@ export type FlowApprovalGatePatch = {
   riskLevel: FlowApprovalRiskLevel;
 };
 
-/** Per-step patch — `undefined` keeps the current value, `null` clears
+/** Per-step patch - `undefined` keeps the current value, `null` clears
  *  the optional field. */
 export type FlowStepPatch = {
   id: string;
@@ -411,7 +411,7 @@ export type FlowStepPatch = {
   approval?: FlowApprovalGatePatch | null;
 };
 
-/** Full step shape — accepted by `replaceSteps`. Mirrors the server's
+/** Full step shape - accepted by `replaceSteps`. Mirrors the server's
  *  `flowStepSchema`, but inputs/outputs default to []. */
 export type FlowStepFull = {
   id: string;

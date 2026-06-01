@@ -32,7 +32,7 @@ export type FlowStepKind = z.infer<typeof flowStepKindSchema>;
 // Coarse phase a step belongs to. Drives stage-based resume: `--resume-from
 // <stage>` seeds the outputs of every step before the first step at that stage
 // and starts the run there. The values mirror the run lifecycle so resume
-// targets are stable across flows. Optional — a flow only needs it on steps
+// targets are stable across flows. Optional - a flow only needs it on steps
 // that are valid resume boundaries (planning/architecting/executing).
 export const flowStageSchema = z.enum([
   "planning",
@@ -69,7 +69,7 @@ export const flowContextPolicySchema = z.enum([
 ]);
 export type FlowContextPolicy = z.infer<typeof flowContextPolicySchema>;
 
-// How heavy a Flow is — its "weight class" (Phase 3 C1). Used to warn when a
+// How heavy a Flow is - its "weight class" (Phase 3 C1). Used to warn when a
 // heavy flow is run against a light task ("this flow might be too much"). When
 // a Flow doesn't declare it, the runner infers it from the number of agent
 // turns (see flow-complexity.ts).
@@ -77,7 +77,7 @@ export const flowComplexitySchema = z.enum(["low", "medium", "high"]);
 export type FlowComplexity = z.infer<typeof flowComplexitySchema>;
 
 // A **Seat** is what a Flow step needs filled (e.g. an `implementer`). The Flow
-// declares its required seats; it does NOT name local Role ids — the run's Crew
+// declares its required seats; it does NOT name local Role ids - the run's Crew
 // supplies a Role whose `fills` includes the seat. Keeps Flows shareable.
 export const flowSeatSchema = z
   .object({
@@ -97,7 +97,7 @@ export const flowStepSchema = z
     outputs: z.array(flowTokenSchema).default([]),
     optional: z.boolean().default(false),
     // Skipped on a read-only (investigation-only) run. Marks steps that write
-    // code or only make sense once code changed — executor/fixer turns,
+    // code or only make sense once code changed - executor/fixer turns,
     // validation, verification. A read-only run does plan/architect/review-style
     // steps only, so the runner skips these and (see runner) disables looping.
     skipWhenReadOnly: z.boolean().default(false),
@@ -113,7 +113,7 @@ export type FlowStep = z.infer<typeof flowStepSchema>;
 // decision keeps requesting changes, up to a bound. This is the "decision
 // contract" the fixed `repeat` couldn't express (e.g. the default workflow's
 // review→fix loop). `from`..`to` is the loop body; `decisionStep` (a
-// review-turn inside the body) gates it — exit when it isn't CHANGES_REQUESTED.
+// review-turn inside the body) gates it - exit when it isn't CHANGES_REQUESTED.
 export const flowLoopSchema = z
   .object({
     from: flowTokenSchema,
@@ -236,7 +236,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           message: "Flow checklistSegment `from` must come at or before `to`.",
         });
       } else if (flow.loop) {
-        // The per-item band and the adaptive review loop must not overlap — the
+        // The per-item band and the adaptive review loop must not overlap - the
         // design puts review/verify/fix in the postlude, *after* the segment.
         const loopFromI = flow.steps.findIndex((s) => s.id === flow.loop!.from);
         if (loopFromI >= 0 && loopFromI <= segTo) {
@@ -283,7 +283,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
             message: "Flow loop `decisionStep` must be a review-turn (it gates the loop).",
           });
         }
-        // Steps inside an adaptive loop can't also carry a fixed repeat — the
+        // Steps inside an adaptive loop can't also carry a fixed repeat - the
         // loop owns their iteration.
         for (let i = fromI; i <= toI; i += 1) {
           if (flow.steps[i]!.repeat) {

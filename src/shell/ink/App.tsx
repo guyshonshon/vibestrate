@@ -68,7 +68,7 @@ type Props = {
   refreshMs?: number;
   /** Dashboard URL when launched alongside the shell (`vibe shell --ui`).
    *  When null we fall through to VIBESTRATE_UI_URL env, then a localhost
-   *  default — opening it just tries http://127.0.0.1:4317. */
+   *  default - opening it just tries http://127.0.0.1:4317. */
   uiUrl?: string | null;
 };
 
@@ -317,7 +317,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           kind: "ok",
           message:
             cmd.action.toast ??
-            `Started \`vibe ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "—"}).`,
+            `Started \`vibe ${cmd.action.argv.join(" ")}\` (pid ${pid ?? "-"}).`,
         });
         return;
       }
@@ -358,7 +358,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         return;
       }
       // Arrows / j-k scroll the page a line at a time; Space / b page; the
-      // bracket keys switch topic. (No PgUp/PgDn — not on every keyboard.)
+      // bracket keys switch topic. (No PgUp/PgDn - not on every keyboard.)
       if (key.upArrow || input === "k") {
         dispatch({ type: "docs.scroll", delta: -1 });
         return;
@@ -628,7 +628,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         dispatch({
           type: "toast.push",
           kind: "ok",
-          message: `Re-running ${selectedRun.runId} → spawned vibestrate ${formatArgv(argv)} (pid ${pid ?? "—"}).`,
+          message: `Re-running ${selectedRun.runId} → spawned vibestrate ${formatArgv(argv)} (pid ${pid ?? "-"}).`,
         });
         return;
       }
@@ -637,11 +637,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
 
   return (
     <Box flexDirection="column">
-      {/* Region 1 — header: brand + context + menu (minimal hint). */}
+      {/* Region 1 - header: brand + context + menu (minimal hint). */}
       <Panel borderColor={ACCENT}>
         <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
-      {/* Region 2 — body: the active page (left) + command output (right),
+      {/* Region 2 - body: the active page (left) + command output (right),
           or full-width output when expanded with `O`. */}
       <Panel borderColor={ACCENT_DIM} flexGrow={1}>
        {ui.outputExpanded && ui.runner.output.length > 0 ? (
@@ -823,7 +823,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
        </Box>
        )}
       </Panel>
-      {/* Region 3 — context line + prompt + key hints. Border brightens
+      {/* Region 3 - context line + prompt + key hints. Border brightens
           to cyan while the prompt owns input. */}
       <Panel borderColor={ui.promptFocused ? ACCENT_DEEP : ACCENT_DIM}>
         <ContextLine model={statusModel} />

@@ -46,7 +46,7 @@ export async function readLock(
 /**
  * On localhost, ask the kernel whether the pid is still alive.
  * `process.kill(pid, 0)` throws ESRCH when no such process exists,
- * EPERM when it exists but we lack permission to signal — both mean
+ * EPERM when it exists but we lack permission to signal - both mean
  * "exists somewhere". We treat ESRCH as dead, anything else as alive.
  */
 export function isProcessAlive(pid: number): boolean {

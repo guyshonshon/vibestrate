@@ -199,7 +199,7 @@ describe("terminal policy gate", () => {
 });
 
 describe("terminal create: CWD safety", () => {
-  it("uses the run's worktree as CWD — never project root or arbitrary path", async () => {
+  it("uses the run's worktree as CWD - never project root or arbitrary path", async () => {
     const { project, runId, worktree } = await makeProject({
       allowTerminal: true,
     });

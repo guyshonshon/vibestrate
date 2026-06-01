@@ -18,7 +18,7 @@ async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ctx-"));
 }
 
-describe("materializeContextSources — files", () => {
+describe("materializeContextSources - files", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await tempProject();
@@ -33,7 +33,7 @@ describe("materializeContextSources — files", () => {
       allowUrlFetch: false,
     });
     expect(r.artifacts).toHaveLength(1);
-    expect(r.artifacts[0]!.label).toBe("Context — spec");
+    expect(r.artifacts[0]!.label).toBe("Context - spec");
     expect(r.artifacts[0]!.content).toContain("The widget must spin.");
     expect(r.notes).toEqual([]);
   });
@@ -89,7 +89,7 @@ describe("materializeContextSources — files", () => {
   });
 });
 
-describe("materializeContextSources — urls", () => {
+describe("materializeContextSources - urls", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await tempProject();

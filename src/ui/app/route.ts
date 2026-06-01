@@ -8,7 +8,7 @@ import type { InspectorTabId } from "../components/layout/inspector-tabs.js";
 /**
  * Replay deep-link target. The run-detail page passes this down to the
  * Replay tab and the tab resolves it once the run's replay projection has
- * loaded. All three forms are read-only — they steer the selection, never
+ * loaded. All three forms are read-only - they steer the selection, never
  * mutate the run.
  */
 export type ReplayFocus =

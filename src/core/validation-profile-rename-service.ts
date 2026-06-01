@@ -103,7 +103,7 @@ function validateRenameInputs(
 }
 
 /**
- * Pure preview — validates the inputs, lists references that would be
+ * Pure preview - validates the inputs, lists references that would be
  * migrated, and reports what would be preserved on the renamed profile.
  * Writes nothing. Tolerant of malformed records via the inner migration
  * preview.

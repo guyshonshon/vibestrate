@@ -53,7 +53,7 @@ export function ProfileSelect({
       ) : found ? (
         <span className="vibestrate-mono truncate text-vibestrate-fg-muted">
           {found.commands.length === 0
-            ? "(no commands — validation will report no_commands_configured)"
+            ? "(no commands - validation will report no_commands_configured)"
             : `→ ${found.commands.join("  ·  ")}`}
         </span>
       ) : null}

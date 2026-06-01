@@ -2,7 +2,7 @@
 //
 // Reads each registered project's persisted runs and rolls them up into one
 // at-a-glance view: per-project activity + a combined total. Pure read,
-// local-first — nothing leaves the machine and nothing is written.
+// local-first - nothing leaves the machine and nothing is written.
 //
 // Safety: the project roots come ONLY from the user-owned workspace registry
 // (`~/.vibestrate/workspace.json`), never from a request. Reads are bounded to
@@ -47,7 +47,7 @@ export type ProjectRunsSummary = {
   label: string;
   /** True for the project this dashboard/CLI is itself serving. */
   current: boolean;
-  /** Last `vibe ui` port (best-effort) — lets the UI deep-link the dashboard. */
+  /** Last `vibe ui` port (best-effort) - lets the UI deep-link the dashboard. */
   lastPort: number | null;
   lastOpenedAt: string | null;
   /** `.vibestrate/` exists here (the project was `vibe init`-ed). */
@@ -58,7 +58,7 @@ export type ProjectRunsSummary = {
   live: boolean;
   /** Reading this project's runs dir failed (kept distinct from "no runs"). */
   unreadable: boolean;
-  /** All-time counts (not windowed) — answer "what's live right now". */
+  /** All-time counts (not windowed) - answer "what's live right now". */
   totalRuns: number;
   activeRuns: number;
   needsTesting: number;
@@ -128,7 +128,7 @@ export function summarizeProjectRuns(input: {
   let activeRuns = 0;
   let needsTesting = 0;
   let lastActivityMs = 0;
-  // Count every run touching the window (incl. in-progress) — the metrics
+  // Count every run touching the window (incl. in-progress) - the metrics
   // aggregator's `totals.runs` only counts terminal *outcomes*, which would
   // hide live runs on a cross-project board.
   let windowRunCount = 0;

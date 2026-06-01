@@ -1,8 +1,8 @@
 // ── Run Assurance artifact (Epic S / S5) ────────────────────────────────────
 //
-// At a run's terminal state, derive a single honest verdict from *evidence* —
+// At a run's terminal state, derive a single honest verdict from *evidence* -
 // the Action Broker log (`actions.ndjson`) plus the run's review/verification
-// decisions — never from a model's self-assessment. The verdict is one of five
+// decisions - never from a model's self-assessment. The verdict is one of five
 // discrete levels (no fake confidence %); the artifact records each sub-check
 // and the caps (missing checks) that held the verdict below "verified".
 //
@@ -45,7 +45,7 @@ export type RunAssurance = {
   caps: string[];
 };
 
-/** Pure derivation — testable without disk. */
+/** Pure derivation - testable without disk. */
 export function deriveRunAssurance(input: {
   runId: string;
   runStatus: string;
@@ -79,7 +79,7 @@ export function deriveRunAssurance(input: {
     reason: "reason" in r.decision ? r.decision.reason : "denied",
   }));
 
-  // ── Validation (from command.run evidence — broker truth, not model claims).
+  // ── Validation (from command.run evidence - broker truth, not model claims).
   // Only commands that actually RAN count: a denied command.run is recorded
   // with a deny decision + null evidence and belongs to policy.violations, not
   // the validation tally (otherwise it would silently inflate `total`).
@@ -203,7 +203,7 @@ function summarize(
     case "verified":
       return "Policy passed, review approved, validation and verification passed.";
     case "partially_verified":
-      return `Some evidence passed but checks are missing — review: ${d.reviewStatus}, validation: ${d.validationStatus}, verification: ${d.verificationStatus}.`;
+      return `Some evidence passed but checks are missing - review: ${d.reviewStatus}, validation: ${d.validationStatus}, verification: ${d.verificationStatus}.`;
   }
 }
 

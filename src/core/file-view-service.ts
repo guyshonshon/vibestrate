@@ -128,7 +128,7 @@ export async function viewFile(input: ViewFileInput): Promise<FileView> {
     return {
       ...baseView,
       isTruncated: true,
-      notice: `File is ${(stat.size / 1024).toFixed(1)} KB — larger than the ${(
+      notice: `File is ${(stat.size / 1024).toFixed(1)} KB - larger than the ${(
         DEFAULT_FILE_VIEW_LIMITS.MAX_BYTES / 1024
       ).toFixed(0)} KB inline preview limit. Use the editor or open it from the CLI.`,
     };
@@ -145,7 +145,7 @@ export async function viewFile(input: ViewFileInput): Promise<FileView> {
 
   const text = buf.toString("utf8");
   const allLines = text.split(/\r?\n/);
-  // If the file ends with a newline, split() leaves a trailing empty element —
+  // If the file ends with a newline, split() leaves a trailing empty element -
   // keep it so totals reflect the file as the user sees it on disk, but trim
   // it from the response window for nicer rendering.
   const totalLines = allLines.length;

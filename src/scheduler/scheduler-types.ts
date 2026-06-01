@@ -5,7 +5,7 @@ import { prioritySchema, safeIdSchema } from "../roadmap/roadmap-types.js";
  * Free-form origin label for a queued task. Used by `queuePolicy: "fair"`
  * and `sourceQuotas` to keep one origin (a cron, an agent, a user spam
  * session) from starving the others. Defaults to "user" so anything
- * enqueued before this field existed reads back as a single source —
+ * enqueued before this field existed reads back as a single source -
  * which preserves FIFO/priority behaviour for older queues.
  */
 export const querySourceSchema = z

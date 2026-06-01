@@ -32,7 +32,7 @@ export function RunWorktreeBlock({
         const s = await api.getRunGitStatus(runId);
         if (!cancelled) setStatus(s);
       } catch {
-        // ignore — worktree may already be cleaned up
+        // ignore - worktree may already be cleaned up
       }
     };
     void load();

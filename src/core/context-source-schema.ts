@@ -6,7 +6,7 @@ import { z } from "zod";
 //           refused; secret-shaped content redacted).
 //   - url:  an opt-in, SSRF-guarded, bounded fetch; content secret-redacted
 //           before it enters a prompt.
-// (pdf is reserved for a follow-up — it needs a local parser.) Zod-only module
+// (pdf is reserved for a follow-up - it needs a local parser.) Zod-only module
 // so the Task + RunSpec schemas can import it without pulling in the
 // materializer's fs/network deps.
 

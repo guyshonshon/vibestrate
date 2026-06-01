@@ -1,6 +1,6 @@
 // Pause / resume primitive shared by the orchestrator, the CLI, and the
 // server routes. Lives next to the state machine because pause is a state
-// concern, not a workflow concern — every stage transition in the
+// concern, not a workflow concern - every stage transition in the
 // orchestrator passes through this guard exactly once before continuing.
 
 import { EventLog } from "./event-log.js";
@@ -51,7 +51,7 @@ export function canRequestResume(state: RunState): boolean {
 
 /**
  * Write-side: set pauseRequested=true. Used by `vibe pause` and the
- * dashboard's Pause button. Does NOT itself transition status — the
+ * dashboard's Pause button. Does NOT itself transition status - the
  * orchestrator will do that at the next stage boundary via
  * `applyPauseIfRequested`.
  */
@@ -128,7 +128,7 @@ export async function requestResume(
  * The orchestrator calls this between stages. If the on-disk state has
  * pauseRequested=true, we transition into `paused`, persist, emit
  * `run.paused`, and poll until the flag is cleared (or the run is
- * aborted externally — which writes a terminal status that we detect
+ * aborted externally - which writes a terminal status that we detect
  * here and surface back to the caller).
  *
  * Returns the latest in-memory state for the orchestrator to continue
@@ -141,7 +141,7 @@ export async function applyPauseIfRequested(input: {
   store: RunStateStore;
   events: EventLog;
   pollMs?: number;
-  /** Optional cancellation hook — used by tests so the poll loop can be
+  /** Optional cancellation hook - used by tests so the poll loop can be
    * unstuck without writing a real terminal status. */
   shouldStop?: () => boolean;
 }): Promise<RunState> {

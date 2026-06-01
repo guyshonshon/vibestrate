@@ -173,7 +173,7 @@ describe("buildWorkspaceOverview (on disk)", () => {
     });
 
     expect(overview.totals.projects).toBe(3);
-    expect(overview.totals.runs).toBe(3); // a1,a2,b1 — missing contributes 0
+    expect(overview.totals.runs).toBe(3); // a1,a2,b1 - missing contributes 0
     expect(overview.totals.activeRuns).toBe(1); // a2
     expect(overview.totals.merged).toBe(1);
     expect(overview.totals.failed).toBe(1);

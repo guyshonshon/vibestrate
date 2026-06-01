@@ -10,7 +10,7 @@ export async function runSkillsList(opts: { json?: boolean }): Promise<number> {
   try {
     assignments = await listRoleSkillAssignments(detected.projectRoot);
   } catch {
-    // ignore — config may not exist yet
+    // ignore - config may not exist yet
   }
 
   if (opts.json) {

@@ -38,7 +38,7 @@ const baseState = {
   contextSources: [],
 };
 
-describe("final report — approval section", () => {
+describe("final report - approval section", () => {
   it("includes a placeholder line when there are no approvals", () => {
     const r = renderFinalReport({
       state: baseState,

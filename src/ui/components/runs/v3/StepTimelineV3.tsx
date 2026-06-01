@@ -94,7 +94,7 @@ function StepDuration({
 }: {
   step: FlowRunState["steps"][number];
 }) {
-  if (!step.startedAt) return <span className="mono text-[11.5px] text-fog-500">—</span>;
+  if (!step.startedAt) return <span className="mono text-[11.5px] text-fog-500">-</span>;
   const end = step.endedAt ? new Date(step.endedAt).getTime() : Date.now();
   const ms = Math.max(0, end - new Date(step.startedAt).getTime());
   const s = Math.round(ms / 1000);

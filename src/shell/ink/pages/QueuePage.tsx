@@ -98,7 +98,7 @@ export function QueuePage({
         });
         onToast(
           "ok",
-          `Started \`vibe queue run\` (pid ${pid ?? "—"}). Snapshot should refresh within ~2s.`,
+          `Started \`vibe queue run\` (pid ${pid ?? "-"}). Snapshot should refresh within ~2s.`,
         );
         return;
       }
@@ -121,7 +121,7 @@ export function QueuePage({
         <Box flexDirection="column">
           {entries.length === 0 ? (
             <Text dimColor>
-              queue is empty — add a task with{" "}
+              queue is empty - add a task with{" "}
               <Text color="cyan">vibe queue add &lt;taskId&gt;</Text> or from
               the Roadmap (Q on a selected task)
             </Text>

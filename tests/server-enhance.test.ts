@@ -16,7 +16,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 });
 
 // A fake CLI provider that reads the prompt on stdin and prints a JSON
-// checklist — exercising the real runProvider path without a model.
+// checklist - exercising the real runProvider path without a model.
 const FAKE_SCRIPT = `#!/usr/bin/env node
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   console.log('Here is your checklist:');
@@ -62,7 +62,7 @@ describe("POST /api/tasks/:id/enhance", () => {
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
     const url = `${server.url}/api/tasks/${task.id}/enhance`;
 
-    // Preview (apply: false) — proposes but does not mutate.
+    // Preview (apply: false) - proposes but does not mutate.
     const preview = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -81,7 +81,7 @@ describe("POST /api/tasks/:id/enhance", () => {
     ]);
     expect((await svc.getTask(task.id))!.checklist).toHaveLength(0);
 
-    // Apply — appends the items.
+    // Apply - appends the items.
     const applied = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },

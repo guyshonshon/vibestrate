@@ -134,7 +134,7 @@ describe("prompt builder", () => {
       branchName: "b",
       projectName: "demo",
       humanAnnotations:
-        "# Human Annotations\n\n- **src/a.ts:12** — don't touch this fn",
+        "# Human Annotations\n\n- **src/a.ts:12** - don't touch this fn",
     });
     expect(out).toContain("# Human Annotations");
     expect(out).toContain("src/a.ts:12");

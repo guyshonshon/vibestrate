@@ -21,7 +21,7 @@ export type TerminalRoutesDeps = {
  *   - No HTTP endpoint accepts a shell command string. Browser keystrokes
  *     ride a WebSocket to an already-created PTY's stdin only.
  *   - CWD is always the run's worktree, resolved server-side from the run's
- *     state.json — never user-supplied.
+ *     state.json - never user-supplied.
  *   - Project root is never an allowed CWD in V0.
  *   - All endpoints refuse with 403 when policies.allowInteractiveTerminal
  *     is false or node-pty is not loadable in this environment.
@@ -116,7 +116,7 @@ export async function registerTerminalRoutes(
     },
   );
 
-  // Register the WebSocket plugin lazily — it pulls in `ws`, which we don't
+  // Register the WebSocket plugin lazily - it pulls in `ws`, which we don't
   // want to load on test runs that never touch terminal I/O. The plugin
   // installs `.get(... , { websocket: true }, handler)` support.
   let websocketReady = false;
@@ -132,7 +132,7 @@ export async function registerTerminalRoutes(
   // ─── PTY I/O channel ─────────────────────────────────────────────────────
   // The ONLY job of this socket is to ferry bytes between the browser and an
   // already-created PTY. There is no command-execution payload, no eval,
-  // no shell-out from the server — Fastify hands us text frames, we
+  // no shell-out from the server - Fastify hands us text frames, we
   // `write()` them to a live PTY's stdin, and PTY output (text) is sent
   // back. JSON frames are recognized for resize/ping only.
   app.get<{ Params: { id: string } }>(
@@ -176,7 +176,7 @@ export async function registerTerminalRoutes(
       socket.on("message", (data: Buffer | string) => {
         const text = typeof data === "string" ? data : data.toString("utf8");
         // Recognise JSON control frames. Plain text is forwarded as
-        // keystrokes — the shell decides what to do with them.
+        // keystrokes - the shell decides what to do with them.
         if (text.length > 1 && (text[0] === "{" || text[0] === "[")) {
           try {
             const parsed = JSON.parse(text) as {
@@ -195,11 +195,11 @@ export async function registerTerminalRoutes(
               return;
             }
             if (parsed && parsed.type === "ping") return;
-            // Unknown JSON payload — drop, do NOT pass to the PTY as a
+            // Unknown JSON payload - drop, do NOT pass to the PTY as a
             // command. This is the line the spec is most worried about.
             return;
           } catch {
-            // Not JSON — fall through and treat as keystrokes.
+            // Not JSON - fall through and treat as keystrokes.
           }
         }
         try {

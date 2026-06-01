@@ -57,7 +57,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["docs", "help", "guide", "manual", "reference"],
     description:
       "Open the in-shell docs browser: a topic list + the selected page rendered with terminal Markdown. Press o inside to open the docs website instead.",
-    cli: "(panel only — press d)",
+    cli: "(panel only - press d)",
     action: { kind: "open-docs" },
   },
   {
@@ -67,7 +67,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     keywords: ["home", "overview"],
     description:
       "At-a-glance project view: active runs, queue depth, pending approvals + suggestions, recent activity across all runs.",
-    cli: "(panel only — no CLI equivalent yet)",
+    cli: "(panel only - no CLI equivalent yet)",
     action: { kind: "goto", page: "dashboard" },
   },
   {
@@ -120,7 +120,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "agents + provider + MCP servers",
     description:
       "Configured agents (planner, architect, executor, …) with their provider, prompt path, permissions, and attached MCP servers.",
-    cli: "(panel only — managed via .vibestrate/project.yml)",
+    cli: "(panel only - managed via .vibestrate/project.yml)",
     action: { kind: "goto", page: "crew" },
   },
   {
@@ -223,13 +223,13 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "spawns `vibe queue run` in the background",
     keywords: ["queue", "start", "daemon", "poll"],
     description:
-      "Boots the scheduler loop so queued tasks actually get picked up. Without this running, queueing a task does nothing — items sit in queue.json forever.",
+      "Boots the scheduler loop so queued tasks actually get picked up. Without this running, queueing a task does nothing - items sit in queue.json forever.",
     cli: "vibe queue run",
     examples: ["vibe queue run --exit-when-drained   # script-friendly"],
     action: {
       kind: "spawn-detached",
       argv: ["queue", "run"],
-      toast: "Started `vibe queue run` — queued tasks will pick up within ~1s.",
+      toast: "Started `vibe queue run` - queued tasks will pick up within ~1s.",
     },
   },
   {
@@ -254,7 +254,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   {
     id: "run.pause",
     title: "Pause selected run",
-    hint: "graceful — stops at next stage boundary",
+    hint: "graceful - stops at next stage boundary",
     keywords: ["stop", "halt"],
     description:
       "Requests a pause on the selected run. The orchestrator finishes the current agent and transitions to `paused`. Resume re-enters from the same boundary.",
@@ -284,11 +284,11 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   {
     id: "runner.open",
     title: "Run any vibe command…",
-    hint: "shell-style command bar — `!` opens it directly",
+    hint: "shell-style command bar - `!` opens it directly",
     keywords: ["shell", "cli", "bang", "run"],
     description:
       "Opens a free-form command bar where you can type any `vibe …` invocation and see the output inside the panel. Argv-only, no shell expansion.",
-    cli: "(this surface — use ! to open directly)",
+    cli: "(this surface - use ! to open directly)",
     examples: [
       "status --json",
       "tasks list",
@@ -323,7 +323,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     hint: "vibe ui --open   (background)",
     keywords: ["ui", "browser", "web", "supervisor", "open", "launch"],
     description:
-      "Spawns `vibe ui --open` in the background — boots the Fastify dashboard on http://127.0.0.1:4317 and tells `vibe ui` to open your default browser at that URL.",
+      "Spawns `vibe ui --open` in the background - boots the Fastify dashboard on http://127.0.0.1:4317 and tells `vibe ui` to open your default browser at that URL.",
     cli: "vibe ui --open",
     examples: [
       "vibe ui --open --port 4318    # custom port + auto-open",
@@ -333,7 +333,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
       kind: "spawn-detached",
       argv: ["ui", "--open"],
       toast:
-        "Started `vibe ui --open` — http://127.0.0.1:4317 (your browser should open).",
+        "Started `vibe ui --open` - http://127.0.0.1:4317 (your browser should open).",
     },
   },
   {
@@ -382,7 +382,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
  * Score a command against a query. Returns null when there's no match
  * at all so callers can drop it from the list. Higher scores rank
  * first; ties fall back to declaration order. The scoring is small on
- * purpose — a TUI palette doesn't need full fuzzy fanciness, just
+ * purpose - a TUI palette doesn't need full fuzzy fanciness, just
  * "did the user's letters appear in order in the haystack".
  */
 export function scoreCommand(

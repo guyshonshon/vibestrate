@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 // Single source of truth for the version: package.json. The bundler
 // (tsup/esbuild) inlines this at build time, and `npm version patch`
-// updates it in one place — flowing into `vibe --version` and the
+// updates it in one place - flowing into `vibe --version` and the
 // generated docs reference automatically.
 import pkg from "../../package.json";
 import { renderBanner } from "./ui/banner.js";
@@ -90,7 +90,7 @@ export function buildVibestrateProgram(): Command {
   program
     .name("vibe")
     .description(
-      "Vibestrate — local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
+      "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
     )
     .version(pkg.version);
 

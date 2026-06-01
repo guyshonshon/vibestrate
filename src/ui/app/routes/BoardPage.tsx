@@ -1,7 +1,7 @@
-// Mission Control v3 board — compact layout.
+// Mission Control v3 board - compact layout.
 // Cards are still click-to-open + inline-renamable; drag-and-drop is
 // intentionally not wired because the server only exposes a handful
-// of named transitions (queue / cancel / terminate) — partial DnD
+// of named transitions (queue / cancel / terminate) - partial DnD
 // support was misleading, so we drop it entirely.
 
 import {
@@ -60,7 +60,7 @@ type ColumnDef = {
   accent: string;
 };
 
-// The board is a *coarse* human kanban (Phase 3) — not the orchestrator's fine
+// The board is a *coarse* human kanban (Phase 3) - not the orchestrator's fine
 // run stages, which live in Mission Control. A card's column is derived from its
 // status + the archived / needs-testing overlays (see coarseColumnOf).
 const COLUMNS: ColumnDef[] = [
@@ -289,7 +289,7 @@ export function BoardPage({
               <button
                 type="button"
                 onClick={() => onOpenTask(suggestions[0]!.taskId)}
-                title={`Suggested next — ${suggestions[0]!.reason}`}
+                title={`Suggested next - ${suggestions[0]!.reason}`}
                 className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-violet-soft/30 bg-violet-mid/15 px-2.5 py-0.5 text-[11px] text-fog-100 hover:bg-violet-mid/25 max-w-[280px]"
               >
                 <Sparkles className="h-3 w-3 text-violet-soft shrink-0" strokeWidth={1.7} />
@@ -324,7 +324,7 @@ export function BoardPage({
           </div>
         </div>
 
-        {/* Inline forms — keep the layout from jumping by sharing the
+        {/* Inline forms - keep the layout from jumping by sharing the
             same width as the header above. */}
         {showRoadmapForm ? (
           <form onSubmit={submitRoadmap} className="mt-3 flex gap-2 max-w-[640px]">
@@ -424,7 +424,7 @@ export function BoardPage({
         />
       </section>
 
-      {/* ── Kanban — fills the remaining viewport height ─────────── */}
+      {/* ── Kanban - fills the remaining viewport height ─────────── */}
       <section className="mt-4 flex-1 min-h-0 flex flex-col">
         {tasks.length === 0 ? (
           <div className="w-full px-6">
@@ -766,7 +766,7 @@ function BoardColumn({
       <ol className="flex-1 min-h-0 p-1.5 space-y-1.5 overflow-y-auto board-scroll">
         {tasks.length === 0 ? (
           <li className="text-center py-6 text-[10.5px] text-fog-500 mono select-none">
-            — empty —
+            - empty -
           </li>
         ) : (
           tasks.map((t) => {
@@ -955,7 +955,7 @@ function TaskCard({
             ? task.currentRunId.slice(0, 10)
             : task.runIds.length > 0
               ? `${task.runIds.length} run`
-              : "—"}
+              : "-"}
         </span>
       </div>
 

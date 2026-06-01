@@ -11,7 +11,7 @@ import type {
 
 /**
  * Per-run terminal panel. Renders an xterm.js view of a PTY spawned in the
- * run's worktree. Hard rules — these are the same ones the server enforces;
+ * run's worktree. Hard rules - these are the same ones the server enforces;
  * the UI is responsible only for never sending a command string over HTTP:
  *
  *   - The terminal does NOT exist until the user clicks "Open terminal".
@@ -20,7 +20,7 @@ import type {
  *   - The xterm instance does NOT prefill or auto-run anything.
  *   - No transcript is persisted; closing the panel kills the PTY.
  *   - When the policy is off or node-pty is missing, we render a disabled
- *     state with the reason the server gave us — no UI workaround.
+ *     state with the reason the server gave us - no UI workaround.
  */
 export function TerminalPanel({ runId }: { runId: string }) {
   const [availability, setAvailability] = useState<TerminalAvailability | null>(
@@ -81,7 +81,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
       if (typeof ev.data !== "string") return;
       // JSON control frames vs raw output. A safety guard: only parse
       // strings that look like JSON. PTY bytes never start with "{" + a
-      // matching keyword unless something weird is happening — and even
+      // matching keyword unless something weird is happening - and even
       // then we just ignore mis-parsed control frames.
       if (ev.data.length > 1 && ev.data[0] === "{") {
         try {
@@ -99,7 +99,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
             return;
           }
         } catch {
-          // not JSON — fall through
+          // not JSON - fall through
         }
       }
       term.write(ev.data);
@@ -199,7 +199,7 @@ export function TerminalPanel({ runId }: { runId: string }) {
     );
 
   if (!availability.policyEnabled || !availability.driverAvailable) {
-    // Calm info tone — this is the intended-off state, not an error.
+    // Calm info tone - this is the intended-off state, not an error.
     return (
       <div
         role="note"

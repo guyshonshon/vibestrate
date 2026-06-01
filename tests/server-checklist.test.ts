@@ -41,7 +41,7 @@ describe("checklist HTTP routes", () => {
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
     const base = `${server.url}/api/tasks/${task.id}/checklist`;
 
-    // Add two items — the second through the versioned /api/v1 alias.
+    // Add two items - the second through the versioned /api/v1 alias.
     const a = await fetch(base, {
       method: "POST",
       headers: { "content-type": "application/json" },

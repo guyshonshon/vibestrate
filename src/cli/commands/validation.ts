@@ -88,7 +88,7 @@ export function buildValidationCommand(): Command {
       for (const e of report.entries) {
         const src = e.source === "default" ? color.dim("default") : color.cyan("named");
         console.log(
-          `${color.bold(e.profileName)} ${src}  uses=${e.totalUses}  last=${color.dim(e.lastUsedAt ?? "—")}`,
+          `${color.bold(e.profileName)} ${src}  uses=${e.totalUses}  last=${color.dim(e.lastUsedAt ?? "-")}`,
         );
       }
     });
@@ -123,7 +123,7 @@ export function buildValidationCommand(): Command {
         if (resolved.commands.length === 0) {
           console.log(
             color.yellow(
-              '! No commands. The default profile is empty — set commands.validate \'["pnpm test"]\' or a named profile.',
+              '! No commands. The default profile is empty - set commands.validate \'["pnpm test"]\' or a named profile.',
             ),
           );
         } else {
@@ -343,7 +343,7 @@ function renderPreview(preview: MigrationPreview, dryRun: boolean): void {
   if (dryRun) {
     console.log(
       color.dim(
-        "Dry run — wrote nothing. Re-run without --dry-run to apply.",
+        "Dry run - wrote nothing. Re-run without --dry-run to apply.",
       ),
     );
   }
@@ -416,7 +416,7 @@ function renderRenamePreview(preview: RenamePreview, dryRun: boolean): void {
   if (dryRun) {
     console.log(
       color.dim(
-        "Dry run — wrote nothing. Re-run without --dry-run to apply.",
+        "Dry run - wrote nothing. Re-run without --dry-run to apply.",
       ),
     );
   }

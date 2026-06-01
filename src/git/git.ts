@@ -201,7 +201,7 @@ export type MergeAttempt = {
 };
 
 /** Attempt `git merge --no-ff --no-commit <branch>` in `cwd`. Does NOT commit.
- *  On conflict the working tree is left mid-merge — call {@link abortMerge}. */
+ *  On conflict the working tree is left mid-merge - call {@link abortMerge}. */
 export async function mergeNoCommit(
   cwd: string,
   branch: string,

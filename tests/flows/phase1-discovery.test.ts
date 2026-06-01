@@ -150,7 +150,7 @@ describe("Flow Phase 1 discovery", () => {
       path.join(projectRoot, ".vibestrate", "flows", "dup", "flow.yml"),
       PROJECT_FLOW, // id stays project-review → collides with the first
     );
-    // Resilient: the conflict is reported, not thrown — one wins, the rest are
+    // Resilient: the conflict is reported, not thrown - one wins, the rest are
     // flagged invalid so the catalog (and other flows) still load.
     const { flows, invalid } = await discoverFlowCatalog(projectRoot);
     expect(flows.filter((g) => g.id === "project-review")).toHaveLength(1);

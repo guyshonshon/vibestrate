@@ -186,7 +186,7 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
         </Box>
       ) : null}
       <Box marginTop={1} flexDirection="column">
-        <Text dimColor>seats: {seats.join(", ") || "—"}</Text>
+        <Text dimColor>seats: {seats.join(", ") || "-"}</Text>
         <Text dimColor>steps ({steps.length}):</Text>
         {steps.slice(0, 12).map((s, i) => (
           <Text key={s.id ?? i} wrap="truncate-end">

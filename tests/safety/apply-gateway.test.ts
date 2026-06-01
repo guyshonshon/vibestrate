@@ -82,7 +82,7 @@ describe("applyProposedPatchThroughGateway", () => {
     }
   });
 
-  it("no_patch when the agent proposed nothing — worktree untouched", async () => {
+  it("no_patch when the agent proposed nothing - worktree untouched", async () => {
     const wt = await tempRepo();
     try {
       const broker = new DefaultActionBroker(wt, "run-1");

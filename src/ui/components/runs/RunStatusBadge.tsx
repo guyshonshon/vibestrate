@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<RunStatus, { dot: string; text: string }> = {
   // Awaiting human approval is *attention-needed*, not failure.
   // Cyan accent matches in-flight stages so it never reads as "broken".
   waiting_for_approval: { dot: "bg-vibestrate-accent", text: "text-vibestrate-accent" },
-  // Paused is "intentional halt" — not an error, not in-flight. Use a
+  // Paused is "intentional halt" - not an error, not in-flight. Use a
   // dim warn tint so it reads as "the user did this" rather than "broken."
   paused: { dot: "bg-vibestrate-warn", text: "text-vibestrate-warn" },
   merge_ready: { dot: "bg-vibestrate-success", text: "text-vibestrate-success" },

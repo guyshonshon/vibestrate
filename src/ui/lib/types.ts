@@ -533,7 +533,7 @@ export type DiscoveredSkill = {
   frontmatter: Record<string, unknown>;
   /**
    * Names of MCP servers declared by a sibling `.mcp.json`. The full
-   * server config (command/args/env) is not echoed to the UI — it can
+   * server config (command/args/env) is not echoed to the UI - it can
    * carry tokens. The chip just signals "this skill brings N servers".
    */
   mcpServers: Record<string, { command: string }>;
@@ -1103,7 +1103,7 @@ export type ProfileMigrationAuditKind =
 
 export type ProfileMigrationAudit = {
   id: string;
-  /** Legacy audits written before the rename feature have no `kind` — readers should default them to "migrate_references". */
+  /** Legacy audits written before the rename feature have no `kind` - readers should default them to "migrate_references". */
   kind?: ProfileMigrationAuditKind;
   createdAt: string;
   appliedAt: string | null;
@@ -1327,7 +1327,7 @@ export type PolicyStoreSnapshot = {
   duplicateIds: string[];
 };
 
-/** The editable `policies.*` safety toggles (Advanced — Safety panel). */
+/** The editable `policies.*` safety toggles (Advanced - Safety panel). */
 export type SafetyPoliciesConfig = {
   strictApplyOnly: boolean;
   allowInteractiveTerminal: boolean;

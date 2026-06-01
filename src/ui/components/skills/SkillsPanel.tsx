@@ -103,7 +103,7 @@ export function SkillsPanel() {
     <div className="space-y-3">
       <p className="text-[11.5px] text-vibestrate-fg-muted">
         Skills are reusable instructions Vibestrate can attach to agents. They do
-        not train the model — Vibestrate loads them as run-time guidance and
+        not train the model - Vibestrate loads them as run-time guidance and
         records which agents had which skills attached.
       </p>
       <ol className="space-y-2">

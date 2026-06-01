@@ -58,8 +58,8 @@ export function buildStatusModel(input: StatusModelInput): StatusModel {
   if (queued > 0) parts.push(`${queued} queued`);
 
   return {
-    project: input.projectName || "—",
-    branch: input.git?.branch ?? "—",
+    project: input.projectName || "-",
+    branch: input.git?.branch ?? "-",
     worktree: input.git?.isLinkedWorktree ?? false,
     mode: input.session.mode,
     activity: parts.join(" · "),

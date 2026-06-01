@@ -36,7 +36,7 @@ type KnownProviderDef = {
   versionArgs: string[];
   // The popular, first-class set: auto-detected, auto-configured by
   // `doctor --fix`, and offered out of the box. The rest are still supported
-  // (presets exist) but stay opt-in — detected, never auto-bound.
+  // (presets exist) but stay opt-in - detected, never auto-bound.
   popular: boolean;
   // 'ready' (presetReady) means we auto-apply a verified preset (e.g. claude
   // -p with stdin). Optional providers ship a preset too but are not auto-

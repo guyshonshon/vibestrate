@@ -7,8 +7,8 @@ import type { RunSpec } from "./run-launcher.js";
 
 /**
  * Resolve the bundled core run entry (`dist/run-entry.js`). The dashboard and
- * the workspace coordinator both drive runs through this entry — never the
- * `vibe` CLI binary — so UI ⇄ CLI stay decoupled and every launch goes through
+ * the workspace coordinator both drive runs through this entry - never the
+ * `vibe` CLI binary - so UI ⇄ CLI stay decoupled and every launch goes through
  * one audited core path.
  */
 export function resolveRunEntry(): string {
@@ -24,14 +24,14 @@ export function resolveRunEntry(): string {
 }
 
 /**
- * Start a run as a DETACHED CORE process — `node dist/run-entry.js <specFile>`.
+ * Start a run as a DETACHED CORE process - `node dist/run-entry.js <specFile>`.
  * The spec is written to a transient file under the target project's
  * `.vibestrate/` (keeps argv short); the entry reads it, deletes it, and runs.
  * Detached + unref'd so the run outlives the request, exactly like a CLI run.
  *
  * `cwd` is pinned to `spec.projectRoot`, so the same primitive launches a run
  * in the served project OR (via the workspace coordinator) in any other
- * registered project root — each run still loads that project's own config,
+ * registered project root - each run still loads that project's own config,
  * policies, and Action Broker.
  */
 export async function startDetachedRun(input: {

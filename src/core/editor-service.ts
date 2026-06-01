@@ -136,7 +136,7 @@ export class EditorOpenError extends Error {
 
 /**
  * Launches the configured editor with safe placeholder substitution. The
- * command is fixed argv — no shell, no env-derived strings, no body-supplied
+ * command is fixed argv - no shell, no env-derived strings, no body-supplied
  * command. Path-guard enforcement is the caller's job; this function refuses
  * to open secret-like files defensively.
  */

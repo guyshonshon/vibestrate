@@ -3,7 +3,7 @@
 // One internal, one-shot, READ-ONLY, structured-output run: build a minimal
 // prompt, spawn a provider once (gated through the Action Broker like every
 // other effect), then parse + Zod-validate the JSON response. No worktree, no
-// run lifecycle, no fix loop — the degenerate "ask the model one question and
+// run lifecycle, no fix loop - the degenerate "ask the model one question and
 // get typed data back" path. Reused by "enhance" (decompose a card into a
 // checklist) and, later, overview / suggest. Design:
 // docs/design/roadmap-and-sequencing.md §1 + §8.
@@ -57,7 +57,7 @@ export type AssistRequest<T> = {
   /** Max provider attempts (a parse failure re-prompts once). Default 2. */
   maxAttempts?: number;
   signal?: AbortSignal;
-  /** Test seam — defaults to the real provider runner. */
+  /** Test seam - defaults to the real provider runner. */
   runner?: AssistProviderRunner;
 };
 
@@ -70,14 +70,14 @@ export type AssistResult<T> = {
   metrics: NormalizedMetrics | null;
 };
 
-/** Stable audit bucket — assist effects append to runs/assist/actions.ndjson.
+/** Stable audit bucket - assist effects append to runs/assist/actions.ndjson.
  *  It has no state.json, so the runs listing skips it (not a real run). */
 const ASSIST_RUN_ID = "assist";
 
 /**
  * Resolve which profile/provider an assist should use: an explicit `profileId`,
  * else the read-only **planner** of the (default) crew, else that crew's first
- * role. Planner is the natural assist seat — read-only, planning-shaped.
+ * role. Planner is the natural assist seat - read-only, planning-shaped.
  */
 export function resolveAssistTarget(
   loaded: LoadedConfig,
@@ -109,7 +109,7 @@ function buildAssistPrompt(req: {
   retryError?: string;
 }): string {
   const parts = [
-    `# Vibestrate Assist — ${req.label}`,
+    `# Vibestrate Assist - ${req.label}`,
     "You are a read-only planning assistant. Do not modify any files, run any commands, or take any action. Produce structured data only.",
   ];
   if (req.rules.trim()) {
@@ -118,7 +118,7 @@ function buildAssistPrompt(req: {
   parts.push("## Task\n" + req.instruction.trim());
   parts.push(
     "## Response format\n" +
-      "Respond with ONLY valid JSON matching this shape — no prose, no explanation, no markdown code fences:\n" +
+      "Respond with ONLY valid JSON matching this shape - no prose, no explanation, no markdown code fences:\n" +
       req.schemaHint.trim(),
   );
   if (req.retryError) {

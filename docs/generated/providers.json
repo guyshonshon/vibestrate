@@ -110,7 +110,7 @@
         "input": "arg"
       },
       "loginCommand": null,
-      "loginNote": "Aider authenticates via API keys — set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.",
+      "loginNote": "Aider authenticates via API keys - set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.",
       "notes": [
         "Preset: `aider --message` (one-shot, no auto-commits).",
         "Set OPENAI_API_KEY or ANTHROPIC_API_KEY, then verify with `vibe provider test aider`."
@@ -179,7 +179,7 @@
         "input": "arg"
       },
       "loginCommand": null,
-      "loginNote": "Crush uses your model provider's API key — set the relevant one (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY).",
+      "loginNote": "Crush uses your model provider's API key - set the relevant one (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY).",
       "notes": [
         "Preset: `crush run` with the prompt as an argument.",
         "Set your model provider's API key, then verify with `vibe provider test crush`."

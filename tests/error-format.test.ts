@@ -44,7 +44,7 @@ describe("formatError", () => {
     });
     const f = formatError(err);
     expect(f.kind).toBe("http-409");
-    // Server's own sentence wins — no more misleading generic "another
+    // Server's own sentence wins - no more misleading generic "another
     // action in flight" hint that was wrong for "worktree missing",
     // "approval state conflict", etc.
     expect(f.title).toMatch(/linked to active run/);

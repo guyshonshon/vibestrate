@@ -1,4 +1,4 @@
-// Single-flow import / export / create — the first slice of the Flows hub
+// Single-flow import / export / create - the first slice of the Flows hub
 // (design `docs/design/roadmap-and-sequencing.md` §5). A Flow is portable
 // *because* of the Phase-0 rewrite: it names Seats, not local Role / Provider
 // ids, so a YAML fetched from a URL or another project drops straight into
@@ -282,7 +282,7 @@ export async function importFlowFromFile(input: {
 
 /** True for IP literals that must never be the target of a server-side fetch:
  *  loopback, private, link-local, and unspecified ranges. Best-effort SSRF
- *  guard — the user-initiated CLI path trusts the user, but the HTTP API must
+ *  guard - the user-initiated CLI path trusts the user, but the HTTP API must
  *  not be turned into a probe for internal services. */
 export function isBlockedIp(ip: string): boolean {
   const v = net.isIP(ip);
@@ -358,7 +358,7 @@ export async function importFlowFromUrl(input: {
         ok: false,
         status: 400,
         reasons: [
-          `Refusing to fetch from "${hostname}" — it resolves to a private/loopback address (SSRF guard).`,
+          `Refusing to fetch from "${hostname}" - it resolves to a private/loopback address (SSRF guard).`,
         ],
       };
     }

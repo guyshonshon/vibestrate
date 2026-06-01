@@ -35,7 +35,7 @@ export function Frame({ subtitle, children }: Props) {
 
 /**
  * Horizontal separator sized to the inner terminal width. We use it
- * sparingly now — one rule between TabBar and content is enough; a
+ * sparingly now - one rule between TabBar and content is enough; a
  * second between content and footer just eats vertical space.
  */
 export function Rule() {

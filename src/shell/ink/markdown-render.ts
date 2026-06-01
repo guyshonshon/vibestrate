@@ -1,7 +1,7 @@
 // A tiny, dependency-free Markdown → styled-span renderer for the terminal
 // docs browser. Pure (import-free except the color ramp) so it's unit-tested;
 // the DocsOverlay maps the spans onto Ink <Text>. Not a full CommonMark
-// implementation — it covers the constructs our docs use: frontmatter,
+// implementation - it covers the constructs our docs use: frontmatter,
 // headings, fenced code, lists, blockquotes, rules, and inline
 // code/bold/italic/links.
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "./theme.js";
@@ -32,7 +32,7 @@ export function parseInline(text: string): MdSpan[] {
   let i = 0;
   while (i < text.length) {
     const rest = text.slice(i);
-    // inline code — wins over everything so `**x**` inside it stays literal
+    // inline code - wins over everything so `**x**` inside it stays literal
     if (text[i] === "`") {
       const end = text.indexOf("`", i + 1);
       if (end > i) {

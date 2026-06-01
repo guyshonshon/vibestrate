@@ -92,7 +92,7 @@ function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
         <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
         <Text dimColor>
           {"  "}
-          {clip(row.flow?.currentStepLabel ?? row.currentRole ?? "—", 10).padEnd(10)}
+          {clip(row.flow?.currentStepLabel ?? row.currentRole ?? "-", 10).padEnd(10)}
         </Text>
         <Text dimColor>  {timeAgo(row.updatedAt).padStart(6)}</Text>
         {row.pendingApprovals > 0 ? (
@@ -252,7 +252,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
               <Text>
                 <Text color="red">why    </Text>
                 <Text dimColor>
-                  no reason stamped on disk — open <Text color="cyan">e</Text>{" "}
+                  no reason stamped on disk - open <Text color="cyan">e</Text>{" "}
                   Events for the full timeline or run{" "}
                   <Text color="cyan">vibe replay {row.runId}</Text>
                 </Text>
@@ -273,11 +273,11 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           ) : null}
           <Text>
             <Text dimColor>agent  </Text>
-            <Text color="cyan">{row.lastRole ?? "—"}</Text>
+            <Text color="cyan">{row.lastRole ?? "-"}</Text>
             {row.lastRole ? <Text dimColor>   (last to run)</Text> : null}
             {!row.lastRole ? (
               <Text dimColor>
-                {"   "}(never started — preflight or policy stopped it)
+                {"   "}(never started - preflight or policy stopped it)
               </Text>
             ) : null}
           </Text>
@@ -288,7 +288,7 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
               {row.taskId ? (
                 <Text>(linked to {row.taskId})</Text>
               ) : (
-                <Text>(no task link — starts a new ad-hoc run)</Text>
+                <Text>(no task link - starts a new ad-hoc run)</Text>
               )}
             </Text>
           </Box>
@@ -368,7 +368,7 @@ function EventsSection({
               value={eventFilter}
               onChange={onFilterChange}
               onSubmit={onFilterSubmit}
-              placeholder="filter — Enter to commit · Esc to clear"
+              placeholder="filter - Enter to commit · Esc to clear"
             />
           </Box>
         ) : (
@@ -420,7 +420,7 @@ function ValidationSection({
   if (valEvents.length === 0) {
     return (
       <Text dimColor>
-        no validation events yet — they appear after{" "}
+        no validation events yet - they appear after{" "}
         <Text color="cyan">vibe validation run</Text> or a post-apply
         validate.
       </Text>
@@ -471,7 +471,7 @@ function Field({
 function EmptyRunsWalkthrough() {
   return (
     <Box flexDirection="column">
-      <Text color="cyan" bold>Welcome — here's the flow</Text>
+      <Text color="cyan" bold>Welcome - here's the flow</Text>
       <Box marginTop={1} flexDirection="column">
         <Text>
           <Text color="cyan">1.</Text>
@@ -499,7 +499,7 @@ function EmptyRunsWalkthrough() {
       </Box>
       <Box marginTop={1}>
         <Text dimColor>
-          shortcut: <Text color="cyan">!</Text> opens the runner —
+          shortcut: <Text color="cyan">!</Text> opens the runner -
           {' '}<Text>vibe run "describe the change"</Text>
         </Text>
       </Box>

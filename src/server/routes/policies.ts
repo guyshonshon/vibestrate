@@ -34,7 +34,7 @@ const safetyConfigSchema = z
 const MAX_PATCH_BYTES = 1_000_000;
 
 /**
- * Policy routes — all read-only with respect to the project.
+ * Policy routes - all read-only with respect to the project.
  *
  * Hard rules:
  *   - GET /api/policies returns the snapshot (rules + ruleFiles +
@@ -64,7 +64,7 @@ export async function registerPoliciesRoutes(
     return { config: loaded.config.policies };
   });
 
-  // Safety behavior config (write) — through the same path-guarded config-update
+  // Safety behavior config (write) - through the same path-guarded config-update
   // service the CLI uses. Only the boolean toggles are editable here;
   // requireApprovalAtStages stays file-edited.
   app.patch("/api/policies/config", async (req) => {

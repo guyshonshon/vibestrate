@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "rootKey": "project.yml",
-  "description": "Schema for .vibestrate/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
+  "description": "Schema for .vibestrate/project.yml - derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
   "fields": [
     {
       "key": "project",

@@ -1,6 +1,6 @@
 // ── Integration / merge-preview (Phase 5) ───────────────────────────────────
 //
-// Parallel runs already land on separate branches; this is the missing half —
+// Parallel runs already land on separate branches; this is the missing half -
 // a *gated* surface to preview real git merges and then sequentially integrate
 // selected branches into a dedicated integration branch. NEVER touches main,
 // never pushes, never auto-merges. Conflicts are surfaced from real
@@ -65,7 +65,7 @@ export type IntegrateResult = {
 
 const SAFE_BRANCH_RE = /^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,99}$/;
 
-/** Runs in `merge_ready` with a branch — the candidates for integration. */
+/** Runs in `merge_ready` with a branch - the candidates for integration. */
 export async function listMergeReadyRuns(
   projectRoot: string,
 ): Promise<MergeReadyRun[]> {
@@ -173,7 +173,7 @@ export async function integrate(input: {
   }
   if (target === loaded.config.git.mainBranch || target === baseBranch) {
     throw new IntegrationError(
-      "Refusing to integrate into the main/base branch — use a dedicated integration branch.",
+      "Refusing to integrate into the main/base branch - use a dedicated integration branch.",
     );
   }
   if (!(await refExists(input.projectRoot, baseBranch))) {
@@ -218,7 +218,7 @@ export async function integrate(input: {
         ...b,
         clean: false,
         conflictedFiles: attempt.conflictedFiles,
-        note: "stopped — conflicts (resolve in the integration worktree)",
+        note: "stopped - conflicts (resolve in the integration worktree)",
       });
       stoppedAt = b.branch;
       break;

@@ -40,7 +40,7 @@ async function readEvents(projectRoot: string, runId: string): Promise<Event[]> 
 
 /**
  * Derive per-stage micro-steps for a task's runs from existing on-disk
- * artifacts (events, metrics, approvals). Nothing is persisted separately —
+ * artifacts (events, metrics, approvals). Nothing is persisted separately -
  * micro-steps are a presentation view over the same audit data.
  */
 export async function deriveMicroStepsForRun(input: {

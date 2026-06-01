@@ -17,7 +17,7 @@ export function renderTaskReport(input: TaskReportInput): string {
   const others = input.allTasks ?? [];
 
   const lines: string[] = [];
-  lines.push(`# Task Report — ${task.title}`);
+  lines.push(`# Task Report - ${task.title}`);
   lines.push("");
   lines.push(`- Task ID: \`${task.id}\``);
   lines.push(`- Status: ${task.status}`);
@@ -52,7 +52,7 @@ export function renderTaskReport(input: TaskReportInput): string {
     lines.push(`_No runs yet._`);
   } else {
     for (const r of task.runIds) {
-      lines.push(`- \`${r}\` — see \`.vibestrate/runs/${r}/artifacts/12-final-report.md\``);
+      lines.push(`- \`${r}\` - see \`.vibestrate/runs/${r}/artifacts/12-final-report.md\``);
     }
     if (task.currentRunId) {
       lines.push(`- Current run: \`${task.currentRunId}\``);
@@ -79,7 +79,7 @@ export function renderTaskReport(input: TaskReportInput): string {
   }
 
   // Dependencies (blocked by + unlocks). Best-effort given the supplied tasks
-  // list — the CLI command always passes the full list.
+  // list - the CLI command always passes the full list.
   const titleStatus = (id: string): { title: string; status: string } | null => {
     const t = others.find((x) => x.id === id);
     if (!t) return null;
@@ -101,9 +101,9 @@ export function renderTaskReport(input: TaskReportInput): string {
       for (const id of blockers) {
         const ts = titleStatus(id);
         if (ts) {
-          lines.push(`- \`${id}\` — ${ts.title} _(${ts.status})_`);
+          lines.push(`- \`${id}\` - ${ts.title} _(${ts.status})_`);
         } else {
-          lines.push(`- \`${id}\` — _missing_`);
+          lines.push(`- \`${id}\` - _missing_`);
         }
       }
       lines.push("");
@@ -118,7 +118,7 @@ export function renderTaskReport(input: TaskReportInput): string {
       lines.push(`### Unlocks (${unlocks.length})`);
       lines.push("");
       for (const u of unlocks) {
-        lines.push(`- \`${u.id}\` — ${u.title} _(${u.status})_`);
+        lines.push(`- \`${u.id}\` - ${u.title} _(${u.status})_`);
       }
       lines.push("");
     }
@@ -133,7 +133,7 @@ export function renderTaskReport(input: TaskReportInput): string {
       lines.push(`### Open (${open.length})`);
       lines.push("");
       for (const c of open) {
-        lines.push(`- \`${c.target}\`${c.targetRef ? `:\`${c.targetRef}\`` : ""} — ${c.body}`);
+        lines.push(`- \`${c.target}\`${c.targetRef ? `:\`${c.targetRef}\`` : ""} - ${c.body}`);
       }
       lines.push("");
     }
@@ -141,7 +141,7 @@ export function renderTaskReport(input: TaskReportInput): string {
       lines.push(`### Resolved (${resolved.length})`);
       lines.push("");
       for (const c of resolved) {
-        lines.push(`- \`${c.target}\` — ${c.body} _(resolved ${c.resolvedAt ?? "?"})_`);
+        lines.push(`- \`${c.target}\` - ${c.body} _(resolved ${c.resolvedAt ?? "?"})_`);
       }
       lines.push("");
     }

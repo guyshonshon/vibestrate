@@ -3,7 +3,7 @@
 // scheduler-state liveness first and only spawns when offline /
 // never-started.
 //
-// Keeps the philosophy "queueing = work starts" — the user should
+// Keeps the philosophy "queueing = work starts" - the user should
 // never have to remember to run `vibe queue run` in another
 // terminal just to make their queued tasks move. Also: every spawn
 // is observable (`.vibestrate/scheduler/scheduler.log` for stdout/stderr,
@@ -51,7 +51,7 @@ function resolveVibestrateBin(): string {
 /**
  * If the scheduler isn't actively picking up work, spawn
  * `vibe queue run` detached. Returns what happened so the caller
- * can surface it (toast / response body) — never silent.
+ * can surface it (toast / response body) - never silent.
  *
  * Visibility:
  *   - stdout + stderr stream into `.vibestrate/scheduler/scheduler.log`
@@ -104,14 +104,14 @@ export async function ensureSchedulerRunning(input: {
     try {
       closeSync(logFd);
     } catch {
-      /* ignore — child already owns it */
+      /* ignore - child already owns it */
     }
     const pid = child.pid ?? null;
     await recordSpawn(input.projectRoot, { pid, source });
 
     // Watch for fast exits so we can flip them into the issues stream
     // *before* the user wonders why nothing is moving. A normal
-    // long-running scheduler will outlive this watcher; that's fine —
+    // long-running scheduler will outlive this watcher; that's fine -
     // we don't attach forever.
     const watchUntil = setTimeout(() => {
       child.removeAllListeners("exit");
@@ -146,7 +146,7 @@ export async function ensureSchedulerRunning(input: {
       action: "spawned",
       liveness,
       ...(pid !== null ? { pid } : {}),
-      message: `started \`vibe ${args.join(" ")}\` (pid ${pid ?? "—"}); logs at .vibestrate/scheduler/scheduler.log`,
+      message: `started \`vibe ${args.join(" ")}\` (pid ${pid ?? "-"}); logs at .vibestrate/scheduler/scheduler.log`,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

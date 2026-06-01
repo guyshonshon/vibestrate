@@ -63,7 +63,7 @@ export function TaskGitActivity({
           git activity
         </div>
         <div className="mt-1 text-[12px] text-vibestrate-fg-muted">
-          No runs yet — queue this task to see scoped git activity here.
+          No runs yet - queue this task to see scoped git activity here.
         </div>
       </section>
     );
@@ -75,7 +75,7 @@ export function TaskGitActivity({
         git activity ({runIds.length} run{runIds.length === 1 ? "" : "s"})
       </div>
       <div className="mt-1 text-[10.5px] text-vibestrate-fg-muted">
-        Scoped to this task's worktrees — nothing from the rest of the repo.
+        Scoped to this task's worktrees - nothing from the rest of the repo.
       </div>
       <ul className="mt-2 space-y-1.5">
         {runIds.map((rid) => {

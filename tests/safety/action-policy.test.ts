@@ -87,7 +87,7 @@ describe("actionPolicyMatches", () => {
 
   it("pathGlob with leading **/ also matches a repo-ROOT file (no bypass)", () => {
     const p = policy({ on: ["file.write"], match: { pathGlob: "**/*.env" } });
-    // Root-level secret — must still match (regression: **/ used to require a /).
+    // Root-level secret - must still match (regression: **/ used to require a /).
     expect(
       actionPolicyMatches(p, req({ kind: "file.write", subject: { path: ".env" } })),
     ).toBe(true);

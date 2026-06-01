@@ -7,7 +7,7 @@ import { cn } from "./cn.js";
  * `justify-between`.
  *
  * Pass the label as `children` (it gets the eyebrow style) and the trailing
- * content as `right` — `right` is rendered as-is so callers keep their own
+ * content as `right` - `right` is rendered as-is so callers keep their own
  * styling. Don't pass the label *and* trailing both as children: they'd land in
  * one span and run together (e.g. "…last commit5 files"). The `gap` guards
  * spacing even when both sides are wide.

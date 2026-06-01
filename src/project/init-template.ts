@@ -19,7 +19,7 @@ import type { SetupPlan } from "../setup/setup-service.js";
 const RULES_TEMPLATE = `# Project Instructions for Vibestrate
 
 These instructions are injected into every agent's prompt on every run. They
-are guidance, not guarantees — an agent may follow or ignore them, the same way
+are guidance, not guarantees - an agent may follow or ignore them, the same way
 a teammate reads a style guide. For gates that are enforced in code (and that a
 model cannot talk its way past), use policies in \`.vibestrate/policies/*.yml\`.
 
@@ -69,7 +69,7 @@ Add anything planner, architect, executor, reviewer, and verifier agents should 
 const POLICIES_README = `# Vibestrate Policies
 
 User-supplied rules that refuse a suggestion or bundle apply if they match.
-They never *permit* a patch — built-in safety (path-based + content-based
+They never *permit* a patch - built-in safety (path-based + content-based
 secret scanning) always runs first.
 
 Drop \`*.yml\` (or \`*.yaml\`) files into this directory. Example:
@@ -125,7 +125,7 @@ Examples:
 - performance.md
 - accessibility.md
 
-Skills are explicit only in V0 — they are loaded only when listed in config.
+Skills are explicit only in V0 - they are loaded only when listed in config.
 `;
 
 type ProjectYamlInput = {

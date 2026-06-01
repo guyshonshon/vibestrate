@@ -4,7 +4,7 @@ import { lazy, Suspense } from "react";
  * Lazy wrapper around TerminalPanel.
  *
  * The terminal pulls in @xterm/xterm, @xterm/addon-fit, and the xterm CSS
- * — together ~300 kB of JS that the user only needs if they actually open
+ * - together ~300 kB of JS that the user only needs if they actually open
  * the Terminal inspector tab on a run. Importing TerminalPanel through
  * React.lazy + dynamic import() tells the bundler to split those deps into
  * an async chunk; users who never open the tab never pay for them.

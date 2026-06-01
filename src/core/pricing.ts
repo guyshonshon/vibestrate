@@ -1,6 +1,6 @@
 import type { TokenUsage } from "./runtime-metrics.js";
 
-// Local, static list-price table. No network calls — cost is either what a CLI
+// Local, static list-price table. No network calls - cost is either what a CLI
 // self-reports (preferred) or computed on-device as `tokens × price` and
 // clearly labelled an ESTIMATE. These are approximate public list prices in
 // USD per 1,000,000 tokens; verify + update as vendors change them. Matched by
@@ -78,7 +78,7 @@ export function costFromTokens(
  * Resolve a turn's cost with the precedence the metrics ledger needs:
  *   1. a CLI-reported cost is authoritative (not an estimate);
  *   2. otherwise compute `tokens × list price` (an estimate);
- *   3. otherwise null (unknown — never fabricated).
+ *   3. otherwise null (unknown - never fabricated).
  */
 export function resolveCost(input: {
   reportedCostUsd: number | null | undefined;

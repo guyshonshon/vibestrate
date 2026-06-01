@@ -242,7 +242,7 @@ export function ProfileMaintenancePanel() {
                   {u ? (
                     <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
                       {u.totalUses} use{u.totalUses === 1 ? "" : "s"} ·{" "}
-                      last {u.lastUsedAt ?? "—"}
+                      last {u.lastUsedAt ?? "-"}
                     </span>
                   ) : (
                     <span className="vibestrate-mono ml-auto text-[10px] text-vibestrate-fg-muted">
@@ -348,7 +348,7 @@ export function ProfileMaintenancePanel() {
             {preview.affectedSuggestions.length === 0 &&
             preview.affectedBundles.length === 0 ? (
               <p className="text-vibestrate-fg-muted">
-                Nothing to migrate — no records reference “
+                Nothing to migrate - no records reference “
                 {preview.fromProfile}” in the scanned runs.
               </p>
             ) : (

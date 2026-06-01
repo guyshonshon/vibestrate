@@ -1,5 +1,5 @@
 /**
- * Format a duration in seconds as "1m 23s" — used by run cards and the
+ * Format a duration in seconds as "1m 23s" - used by run cards and the
  * Run Detail meta strip.
  */
 export function fmtElapsed(secs: number): string {

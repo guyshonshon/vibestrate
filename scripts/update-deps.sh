@@ -25,7 +25,7 @@ pnpm install
 
 echo "→ Audit (prod)…"
 if ! pnpm audit --prod; then
-  echo "⚠  Audit reported issues — review above. Pin a fix with a pnpm override if needed."
+  echo "⚠  Audit reported issues - review above. Pin a fix with a pnpm override if needed."
 fi
 
 echo "→ Typecheck…"; pnpm typecheck

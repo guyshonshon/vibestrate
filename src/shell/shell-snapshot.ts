@@ -41,7 +41,7 @@ export type ShellEvent = {
 
 /**
  * Per-run summary the TUI renders one row for. Everything past
- * `status` is derived from the event tail (best-effort — when the
+ * `status` is derived from the event tail (best-effort - when the
  * event log is missing or unparseable, the row still renders, just
  * without the live fields).
  */
@@ -78,7 +78,7 @@ export type ShellRunRow = {
    * from state.error first, then the last failed event's message.
    */
   error: string | null;
-  /** From the run's state.json — handy on the Overview for finished runs. */
+  /** From the run's state.json - handy on the Overview for finished runs. */
   finalDecision: string | null;
   verification: string | null;
   flow: {
@@ -369,7 +369,7 @@ async function readEventsTail(
         });
       }
     } catch {
-      // Tolerate a partial last line — common when the run is writing.
+      // Tolerate a partial last line - common when the run is writing.
     }
   }
   return out.reverse();

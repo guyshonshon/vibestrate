@@ -10,11 +10,11 @@ name: Release
 # Pushing the tag triggers this workflow, which re-runs the full gate
 # (typecheck + test) and then publishes.
 #
-# Publishing uses npm TRUSTED PUBLISHING (OIDC) + provenance — no
+# Publishing uses npm TRUSTED PUBLISHING (OIDC) + provenance - no
 # long-lived NPM_TOKEN is stored. One-time setup on npmjs.com:
 #   npm package → Settings → Trusted Publisher → GitHub Actions
 #   repo: guyshonshon/vibestrate · workflow: release.yml
-# (Until then, set an automation-token secret NPM_TOKEN as a fallback —
+# (Until then, set an automation-token secret NPM_TOKEN as a fallback -
 #  it's wired below and used automatically if present.)
 
 on:

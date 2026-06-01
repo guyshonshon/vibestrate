@@ -60,12 +60,12 @@ type NavSpec = {
  * Single-row at every desktop size. As the viewport narrows, secondary
  * pieces drop into responsive containers rather than wrapping:
  *
- *   ≥ xl (1280+) — full nav row (Mission / Flows / Agents / Metrics /
+ *   ≥ xl (1280+) - full nav row (Mission / Flows / Agents / Metrics /
  *                  Board / Codebase / More) + breadcrumb + Jump-to
- *   md – xl     — primary nav tabs collapse into a single "Menu"
+ *   md – xl     - primary nav tabs collapse into a single "Menu"
  *                  dropdown; branch chip hides; breadcrumb shows
  *                  brand + project only.
- *   < md         — Jump-to shrinks to icon, breadcrumb hides except
+ *   < md         - Jump-to shrinks to icon, breadcrumb hides except
  *                  brand.
  *
  * The whole header is `flex-nowrap` so nothing can wrap a second row.
@@ -549,7 +549,7 @@ type WsProject = {
 /**
  * Project switcher (multi-project v1): lists registered projects and hops to
  * another project's dashboard (its own `vibe ui` on its own port). Local-first
- * — each project is an independent dashboard; this just makes them switchable.
+ * - each project is an independent dashboard; this just makes them switchable.
  */
 function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
   const [open, setOpen] = useState(false);
@@ -565,7 +565,7 @@ function WorkspaceSwitcher({ onShowOverview }: { onShowOverview: () => void }) {
       .catch(() => setProjects([]));
   }, [open]);
 
-  // Open a project's own dashboard in a new tab — starting it (server +
+  // Open a project's own dashboard in a new tab - starting it (server +
   // scheduler) if it's dormant. Keeps each project a fully isolated tenant.
   const openProject = async (p: WsProject) => {
     if (p.current) return;

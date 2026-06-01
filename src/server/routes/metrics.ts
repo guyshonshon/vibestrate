@@ -29,7 +29,7 @@ const rangeSchema = z
 
 /**
  * Iterate every run state on disk. Mirrors the loader in
- * `/api/runs` — runs that fail schema validation are silently skipped
+ * `/api/runs` - runs that fail schema validation are silently skipped
  * so a single corrupt file can't take the whole overview down.
  */
 async function loadAllRuns(projectRoot: string) {
@@ -76,7 +76,7 @@ async function loadProviderLookup(
 }
 
 /**
- * Best-effort vendor classification — driven off the provider id slug
+ * Best-effort vendor classification - driven off the provider id slug
  * so the labels stay consistent with the design (Anthropic / OpenAI /
  * Google / Ollama).
  */
@@ -124,7 +124,7 @@ export async function registerMetricsRoutes(
   );
 
   /**
-   * Cross-run rollup for the Metrics page. Pure read — no writes, no
+   * Cross-run rollup for the Metrics page. Pure read - no writes, no
    * cache. Aggregation logic lives in `core/overview-aggregator.ts` and
    * is covered by unit tests; the route just stitches together the
    * inputs (runs on disk, per-run metrics, detected providers).

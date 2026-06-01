@@ -44,7 +44,7 @@ export type Priority = z.infer<typeof prioritySchema>;
 
 /**
  * "Effort" is a coarse task-difficulty hint (low/medium/high) used for
- * planning and heuristics. It no longer maps to a provider — runtime strength
+ * planning and heuristics. It no longer maps to a provider - runtime strength
  * is chosen by a Profile now (see `profiles/profile-schema.ts`).
  */
 export const effortSchema = z.enum(["low", "medium", "high"]);
@@ -170,10 +170,10 @@ export const taskSchema = z.object({
   commentsCount: z.number().int().min(0).default(0),
   lastEventAt: z.string().nullable().default(null),
   // ─── Per-task effort / profile override / read-only ──────────────────
-  // effort is a difficulty hint (it no longer maps to a provider — Profiles
+  // effort is a difficulty hint (it no longer maps to a provider - Profiles
   // own runtime now). profileOverride pins a run-wide Profile for every seated
   // step. readOnly forces every role to the readOnly permission profile and
-  // short-circuits the executor / fix loop — investigation only.
+  // short-circuits the executor / fix loop - investigation only.
   effort: effortSchema.nullable().default(null),
   profileOverride: z.string().nullable().default(null),
   readOnly: z.boolean().default(false),
@@ -189,7 +189,7 @@ export const taskSchema = z.object({
   needsTestingReason: z.string().nullable().default(null),
   // "Derived from" back-pointer (Phase 3 promote-item-to-card): set when this
   // card was promoted out of another card's checklist item. A *relation*, not a
-  // reparent — the origin item keeps its own status and points here via
+  // reparent - the origin item keeps its own status and points here via
   // `promotedTaskId`. null for normal cards.
   derivedFrom: z
     .object({ taskId: safeIdSchema, itemId: z.string().min(1) })
@@ -235,7 +235,7 @@ export const TASK_STATUSES_BOARD: readonly TaskStatus[] = [
 ] as const;
 
 // ── Coarse board columns (Phase 3) ──────────────────────────────────────────
-// The planning board shows a *coarse* human kanban — not the orchestrator's
+// The planning board shows a *coarse* human kanban - not the orchestrator's
 // fine run stages (those live in Mission Control). A card's column is derived
 // from its status plus the archived / needs-testing overlays. Auto-nudged: as
 // the run status changes (→ running, → done) and the advisory flag flips, the

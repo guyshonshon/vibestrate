@@ -8,7 +8,7 @@ async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-promote-"));
 }
 
-describe("RoadmapService — promote checklist item to card", () => {
+describe("RoadmapService - promote checklist item to card", () => {
   let dir: string;
   let svc: RoadmapService;
   beforeEach(async () => {

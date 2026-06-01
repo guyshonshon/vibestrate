@@ -44,7 +44,7 @@ export type ResolveFlowInput = {
 export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
   const { crewId, crew } = getCrew(input.config, input.crewId);
 
-  // Seats the Flow declares. A Seat is just a contract — no provider here; the
+  // Seats the Flow declares. A Seat is just a contract - no provider here; the
   // Role (resolved per step) supplies the Profile/Provider.
   const seats: ResolvedFlowSeat[] = Object.entries(input.flow.seats).map(
     ([id, seat]) => ({
@@ -176,7 +176,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     seats,
     steps,
     // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
-    // resolved ids equal their source ids — the loop refs carry over as-is.
+    // resolved ids equal their source ids - the loop refs carry over as-is.
     loop: input.flow.loop ?? null,
     // Same for the per-item band: its step ids are stable, so the from/to refs
     // carry over unchanged for the runner to map onto resolved step indices.

@@ -7,7 +7,7 @@
 //   rollback → a built-in safety check or a `deny` policy fired: restore the
 //              worktree to the pre-turn snapshot and block the run.
 //   approve  → a `require_approval` policy fired: block fail-closed (the changes
-//              are left in place for a human to inspect — not silently kept).
+//              are left in place for a human to inspect - not silently kept).
 //
 // The snapshot/restore uses git plumbing on the run's dedicated worktree:
 //   snapshot = `git add -A` + `git write-tree` (a tree object; non-destructive)
@@ -67,13 +67,13 @@ export async function captureWorktreePatch(
   return { patch, files };
 }
 
-/** Restore the worktree to an earlier snapshot tree (destructive — used only on
+/** Restore the worktree to an earlier snapshot tree (destructive - used only on
  *  a deny/unsafe verdict). Tracked files revert; untracked files added after the
  *  snapshot are removed. Returns false if any git step failed (the worktree may
- *  still be dirty — the caller records this so the run assurance verdict can
+ *  still be dirty - the caller records this so the run assurance verdict can
  *  flag it `unsafe`).
  *
- *  Note: `clean -fd` deliberately does NOT use `-x` — the snapshot (`add -A` +
+ *  Note: `clean -fd` deliberately does NOT use `-x` - the snapshot (`add -A` +
  *  `write-tree`) never includes gitignored files, so `-x` would delete
  *  PRE-EXISTING ignored files too (node_modules, dist, a local .env). A denied
  *  turn that wrote a *new* gitignored file leaves it behind; that's acceptable

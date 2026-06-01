@@ -3,7 +3,7 @@
 // panel's R-key handler and the `POST /api/runs/:id/retry` route so
 // both surfaces stay byte-identical.
 //
-// The original run state stays on disk untouched — the retry gets a
+// The original run state stays on disk untouched - the retry gets a
 // fresh runId so the failure trail is preserved for inspection.
 
 export type RerunInput = {

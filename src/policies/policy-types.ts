@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Hard limits to keep user-supplied regex / glob inputs bounded. These are
  * defensive caps, not a sandbox. A user who *intends* to write a slow rule
- * can still write one within these bounds — the goal is to make
+ * can still write one within these bounds - the goal is to make
  * accidentally-catastrophic patterns less common, not impossible.
  */
 export const POLICY_LIMITS = {
@@ -47,12 +47,12 @@ const matchTouchedFilesSchema = z.object({
 /**
  * One user-supplied rule. At least one of `matchAddedContent` /
  * `matchTouchedFiles` must be present, otherwise the rule would refuse
- * every patch (almost certainly a mistake — the engine treats a no-match
+ * every patch (almost certainly a mistake - the engine treats a no-match
  * rule as malformed and surfaces it via doctor).
  *
  * `appliesTo` declares which apply surfaces the rule runs against:
- * - "suggestion-apply" — individual suggestion patch
- * - "bundle-apply"     — review-pass bundle of suggestion patches
+ * - "suggestion-apply" - individual suggestion patch
+ * - "bundle-apply"     - review-pass bundle of suggestion patches
  */
 export const policyRuleSchema = z
   .object({
@@ -77,7 +77,7 @@ export const policyRuleSchema = z
 export type PolicyRule = z.infer<typeof policyRuleSchema>;
 
 /**
- * S2 — Action policies. Where `rules` gate *patch content* at the apply
+ * S2 - Action policies. Where `rules` gate *patch content* at the apply
  * surfaces, `actions` gate the Action Broker's effect kinds (provider spawn,
  * command run, file write, terminal create, run completion) with a `deny` or
  * `require_approval` effect. An action policy with no `match` applies to every
@@ -156,7 +156,7 @@ export type PolicyViolation = {
   ruleId: string;
   message: string;
   /** Where it matched (best-effort, may be null if both matchers were
-   *  absent — which shouldn't reach the engine since load-time validation
+   *  absent - which shouldn't reach the engine since load-time validation
    *  rejects such rules). */
   matchedFile: string | null;
 };
@@ -178,7 +178,7 @@ export type MalformedPolicyFile = {
  */
 export type PolicyStoreSnapshot = {
   rules: PolicyRule[];
-  /** S2 — broker action policies (deny / require_approval on effect kinds). */
+  /** S2 - broker action policies (deny / require_approval on effect kinds). */
   actions: ActionPolicy[];
   /** Files keyed by absolute path, with the rule + action ids parsed from them. */
   ruleFiles: { file: string; ruleIds: string[]; actionIds: string[] }[];

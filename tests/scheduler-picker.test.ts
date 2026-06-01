@@ -65,7 +65,7 @@ describe("pickNextEntry", () => {
     expect(v.kind).toBe("at-capacity");
   });
 
-  it("respects per-source quotas — picks a different source when one is at quota", () => {
+  it("respects per-source quotas - picks a different source when one is at quota", () => {
     const queue = [
       entry("u1", "user", "t1"),
       entry("c1", "cron", "t2"),

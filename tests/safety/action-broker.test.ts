@@ -78,7 +78,7 @@ describe("DefaultActionBroker.decide", () => {
     const root = await tempProject();
     const broker = new DefaultActionBroker(root, "run-1");
     await broker.decide(spawnReq());
-    // Nothing recorded — decide is side-effect-free.
+    // Nothing recorded - decide is side-effect-free.
     expect(await readActionLog(root, "run-1")).toEqual([]);
   });
 });

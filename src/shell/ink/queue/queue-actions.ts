@@ -1,4 +1,4 @@
-// Thin {ok, message} wrappers for the panel — reuse the same on-disk
+// Thin {ok, message} wrappers for the panel - reuse the same on-disk
 // writes the `vibe queue …` CLI uses so the scheduler picks them up.
 
 import { RunQueue } from "../../../scheduler/run-queue.js";
@@ -13,7 +13,7 @@ export type QueueActionResult =
 export const QUEUE_POLICIES = ["fifo", "priority", "fair"] as const;
 export type QueuePolicyName = (typeof QUEUE_POLICIES)[number];
 
-/** Next policy after `current`, wrapping. Pure — exported for tests. */
+/** Next policy after `current`, wrapping. Pure - exported for tests. */
 export function nextQueuePolicy(current: string): QueuePolicyName {
   const i = QUEUE_POLICIES.indexOf(current as QueuePolicyName);
   return QUEUE_POLICIES[(i + 1) % QUEUE_POLICIES.length]!;

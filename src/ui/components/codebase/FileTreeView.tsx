@@ -43,7 +43,7 @@ export function FileTreeView({ data, selectedPath, onSelectFile, filter }: Props
       ))}
       {filtered.truncated ? (
         <li className="px-2 py-1 text-[10.5px] text-vibestrate-fg-muted">
-          tree truncated — increase ?depth or maxEntries
+          tree truncated - increase ?depth or maxEntries
         </li>
       ) : null}
     </ul>

@@ -3,7 +3,7 @@ import { Box, Text } from "ink";
 import { ACCENT_DIM } from "../theme.js";
 
 /**
- * A titled, rounded container — the building block for the shell's three
+ * A titled, rounded container - the building block for the shell's three
  * stacked regions (header · body · prompt). The border color is the region's
  * accent; an optional title sits on the first inner row. Colors accept Ink
  * names or hex (the violet ramp lives in theme.ts).

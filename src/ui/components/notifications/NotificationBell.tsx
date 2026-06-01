@@ -63,14 +63,14 @@ export function NotificationBell({
               tag: `vibestrate:${n.id}`,
             });
           } catch {
-            // ignore — browser may rate-limit
+            // ignore - browser may rate-limit
           }
         }
       } else {
         for (const n of r.notifications) seenIdsRef.current.add(n.id);
       }
     } catch {
-      // ignore — server may be busy
+      // ignore - server may be busy
     }
   }
 

@@ -1,15 +1,15 @@
 /**
- * Git page — consumer-friendly view of the project's git state plus
+ * Git page - consumer-friendly view of the project's git state plus
  * per-run worktrees. Written in plain language: "Changes since the
  * last commit", "What each run changed", "Recent activity". Avoids
  * git jargon (rebase / staged / etc.) and shows commits with a
  * one-line summary, author, and time-ago.
  *
  * Sections:
- *   1. Project header — branch + ahead/behind + dirty state at a glance
- *   2. Uncommitted changes — file list with insert/delete counts
- *   3. Recent commits — last 10 commits with short hash + subject
- *   4. Per-run worktrees — one card per active/recent run with its
+ *   1. Project header - branch + ahead/behind + dirty state at a glance
+ *   2. Uncommitted changes - file list with insert/delete counts
+ *   3. Recent commits - last 10 commits with short hash + subject
+ *   4. Per-run worktrees - one card per active/recent run with its
  *      branch + diff stats; click to inspect in Codebase
  */
 import { useEffect, useMemo, useState } from "react";
@@ -248,7 +248,7 @@ export function GitPage({ onSelectRun }: Props) {
         </div>
         {activeWorktrees.length === 0 ? (
           <div className="glass px-6 py-10 text-center text-[12.5px] text-fog-400">
-            No active worktrees right now. Each run gets its own branch — they
+            No active worktrees right now. Each run gets its own branch - they
             show up here while the run is in flight.
           </div>
         ) : (

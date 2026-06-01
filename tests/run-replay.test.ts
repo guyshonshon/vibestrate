@@ -102,7 +102,7 @@ async function makeRunFixture(opts: {
     "# Plan\n\nDo the thing.\n",
   );
 
-  // events.ndjson — covers stage transitions + agent + validation + review
+  // events.ndjson - covers stage transitions + agent + validation + review
   if (opts.withEvents !== false) {
     const lines: string[] = [];
     const push = (timestamp: string, type: string, message: string, data?: unknown) => {
@@ -387,7 +387,7 @@ async function makeRunFixture(opts: {
   return { project, runId };
 }
 
-describe("buildRunReplay — service", () => {
+describe("buildRunReplay - service", () => {
   it("rejects an unknown run with 404", async () => {
     const { project } = await makeRunFixture();
     await expect(buildRunReplay(project, "no-such-run")).rejects.toBeInstanceOf(
@@ -517,7 +517,7 @@ describe("buildRunReplay — service", () => {
     expect(r.truncation.totalEventCount).toBe(10_500);
     expect(r.truncation.keptEventCount).toBe(10_000);
     expect(r.truncation.note).toMatch(/Showing the most recent 10000/);
-    // The kept window is the latest — the very first "run.created" should
+    // The kept window is the latest - the very first "run.created" should
     // have been dropped.
     expect(r.events[0]!.type).not.toBe("run.created");
   });

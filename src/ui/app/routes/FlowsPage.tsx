@@ -43,14 +43,14 @@ function downloadText(filename: string, text: string): void {
   URL.revokeObjectURL(url);
 }
 
-/** Minimal valid flow used by "New blank flow" — a single seat + one step,
+/** Minimal valid flow used by "New blank flow" - a single seat + one step,
  *  which the user then shapes in the Flow Builder. */
 function blankFlow(id: string) {
   return {
     id,
     version: 1,
     label: "New flow",
-    description: "A new flow — customize its seats and steps.",
+    description: "A new flow - customize its seats and steps.",
     seats: { worker: { label: "Worker" } },
     steps: [
       { id: "do", label: "Do the work", kind: "agent-turn", seat: "worker" },
@@ -59,10 +59,10 @@ function blankFlow(id: string) {
 }
 
 /**
- * Flows — the dashboard catalog of run recipes, independent of the Flow
+ * Flows - the dashboard catalog of run recipes, independent of the Flow
  * Builder. Discover builtin + project flows, inspect each one's flow (slots,
  * ordered steps, approval gates), fork a builtin into the project to customize
- * it, or delete a project flow. All over the audited `/api/flows` routes —
+ * it, or delete a project flow. All over the audited `/api/flows` routes -
  * the browser never shells out. Groundwork for the Flows Hub (#3).
  */
 export function FlowsPage({ onOpenInFlow }: Props) {
@@ -110,7 +110,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         kind: "ok",
         text: r.alreadyForked
           ? `${flowId} is already a project flow.`
-          : `Forked ${flowId} into .vibestrate/flows/ — customize it in the Flow Builder.`,
+          : `Forked ${flowId} into .vibestrate/flows/ - customize it in the Flow Builder.`,
       });
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
@@ -121,7 +121,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 
   // Fork a builtin (e.g. the default flow) into the project and jump straight
   // into the Flow Builder to edit it. The project copy then shadows the builtin
-  // everywhere — including plain `vibe run` for the default flow.
+  // everywhere - including plain `vibe run` for the default flow.
   async function forkAndEdit(flowId: string) {
     setBusy({ id: flowId, action: "fork" });
     try {
@@ -219,7 +219,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           </span>
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
-          A flow is the recipe your crew follows — ordered steps, the roles that
+          A flow is the recipe your crew follows - ordered steps, the roles that
           run them, approval gates. The <strong className="text-fog-100">Default
           flow</strong> runs unless you pick another. Fork a builtin to edit it.
         </p>
@@ -333,7 +333,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
             {invalid.map((bad) => (
               <li key={bad.path} className="text-[11.5px]">
                 <span className="mono text-amber-300/90">{bad.path}</span>
-                <span className="text-amber-200/80"> — {bad.message}</span>
+                <span className="text-amber-200/80"> - {bad.message}</span>
               </li>
             ))}
           </ul>
@@ -395,7 +395,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
 // The built-in Default flow, sourced from its real definition (single source of
 // truth). It runs as the implicit default via the orchestrator's standard path,
 // and is also runnable explicitly as `--flow default`. Shown as a distinct
-// "runs by default" card — not forked/deleted here. Loop-body steps (the
+// "runs by default" card - not forked/deleted here. Loop-body steps (the
 // adaptive review→fix loop) are marked with ↺.
 function DefaultFlowCard({
   flow,

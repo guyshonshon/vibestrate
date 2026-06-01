@@ -126,8 +126,8 @@ function escapeHtml(text: string): string {
  * Highlight a block of code and return one string of HTML per source line.
  *
  * highlight.js can return spans that cross newlines (for example a
- * multi-line string literal). Returning HTML per line — to pair with line
- * numbers — requires re-balancing those spans at every newline. The
+ * multi-line string literal). Returning HTML per line - to pair with line
+ * numbers - requires re-balancing those spans at every newline. The
  * algorithm is the classic "close stack at \n, re-open on the next line":
  *
  *   1. Walk the highlighted HTML token-by-token (open tag, close tag,
@@ -143,7 +143,7 @@ export function highlightLines(text: string, language: string): string[] {
   ensureRegistered();
   const grammar = pickGrammar(language);
   if (!grammar) {
-    // No grammar — escape and split.
+    // No grammar - escape and split.
     return text.split("\n").map(escapeHtml);
   }
   let html: string;

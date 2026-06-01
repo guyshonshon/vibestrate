@@ -423,7 +423,7 @@ describe("integration: smart apply rejects unsafe preflight", () => {
     const ok = await svc.addManual({ title: "ok", proposedPatch: PATCH_A });
     const bad = await svc.addManual({
       title: "bad",
-      // Targets .env — secret-file rejection.
+      // Targets .env - secret-file rejection.
       proposedPatch:
         "diff --git a/.env b/.env\n--- a/.env\n+++ b/.env\n@@\n-A=1\n+A=2\n",
     });

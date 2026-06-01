@@ -20,7 +20,7 @@ function tone(
 
 /**
  * Global "jump to run" quick switcher (Cmd/Ctrl-K). Lists recent runs and lets
- * you filter by task, runId, or status and jump straight to one — so reaching a
+ * you filter by task, runId, or status and jump straight to one - so reaching a
  * run never requires going through the full "all runs" page. (Epic B / B2.)
  */
 export function RunSwitcher({
@@ -94,7 +94,7 @@ export function RunSwitcher({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Jump to a run — task, id, or status…"
+            placeholder="Jump to a run - task, id, or status…"
             className="w-full bg-transparent text-[14px] text-fog-100 outline-none placeholder:text-fog-500"
           />
           <span className="text-[10.5px] text-fog-500">esc</span>

@@ -14,16 +14,16 @@ export async function runProviderDetect(opts: { json?: boolean }): Promise<numbe
   for (const d of detections) {
     if (d.confidence === "ready") {
       console.log(
-        `${symbol.ok()} ${color.bold(d.label)} — ready`,
+        `${symbol.ok()} ${color.bold(d.label)} - ready`,
       );
       console.log(indent(`Command: ${d.command}${d.version ? ` (v${d.version})` : ""}`));
       for (const note of d.notes) console.log(indent(color.dim(note)));
     } else if (d.confidence === "detected-needs-setup") {
-      console.log(`${symbol.warn()} ${color.bold(d.label)} — detected, needs setup`);
+      console.log(`${symbol.warn()} ${color.bold(d.label)} - detected, needs setup`);
       console.log(indent(`Command: ${d.command}${d.version ? ` (v${d.version})` : ""}`));
       for (const note of d.notes) console.log(indent(color.dim(note)));
     } else {
-      console.log(`${color.dim("○")} ${d.label} — not found`);
+      console.log(`${color.dim("○")} ${d.label} - not found`);
       console.log(indent(color.dim(`Command tried: ${d.command}`)));
       for (const note of d.notes) console.log(indent(color.dim(note)));
     }

@@ -141,7 +141,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
 
   // Auth posture. A token (explicit or `VIBESTRATE_API_TOKEN`) turns on bearer
   // auth for every `/api/*` request. Binding a non-loopback host *without* a
-  // token is a footgun — refuse to start so we never expose an unauthenticated
+  // token is a footgun - refuse to start so we never expose an unauthenticated
   // API on a real interface.
   const envToken = process.env.VIBESTRATE_API_TOKEN;
   const apiToken =
@@ -174,7 +174,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // Fastify 5 rejects empty `application/json` bodies by default with
   // "Body cannot be empty when content-type is set to 'application/json'".
   // Several of our action routes (POST /api/runs/:id/pause, /resume,
-  // /api/queue/run, etc.) are body-less by design — let those work
+  // /api/queue/run, etc.) are body-less by design - let those work
   // without forcing every caller to send `"{}"`.
   app.addContentTypeParser(
     "application/json",
@@ -215,7 +215,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // Optional bearer-token gate. Off by default (loopback, no token) so the
   // local-first single-user flow stays friction-free. When a token is
   // configured, every `/api/*` request must present it (constant-time
-  // compared). Static UI assets and the favicon stay open — they carry no
+  // compared). Static UI assets and the favicon stay open - they carry no
   // secrets and the UI needs them before it can attach a token. The url here
   // is already de-versioned (rewriteUrl ran before routing), so `/api/v1/*`
   // is covered by the same `/api/` check.
@@ -292,7 +292,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   // runs without a managed scheduler (tests / `--no-scheduler`).
   let schedulerHandle: { stop: () => Promise<void>; pid: () => number | null } | null = null;
 
-  // Self-shutdown — the inverse of the navigator's "Open". Stops this project's
+  // Self-shutdown - the inverse of the navigator's "Open". Stops this project's
   // scheduler, closes the HTTP server, then hands off to the process owner (the
   // `vibe ui` CLI calls `process.exit`). Loopback-gated like every `/api/*`
   // route; a non-loopback bind requires the bearer token. Idempotent.
@@ -322,7 +322,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     return reply;
   });
 
-  // Inline favicon — kills the noisy `/favicon.ico 404` log line that
+  // Inline favicon - kills the noisy `/favicon.ico 404` log line that
   // every browser fires by default. Tiny accent-cyan terminal glyph
   // matching the dashboard chrome. Long-cache since it's static.
   const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#0b0e13"/><path d="M8 11l5 5-5 5" fill="none" stroke="#3dd6f5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="15" y1="22" x2="24" y2="22" stroke="#3dd6f5" stroke-width="2.5" stroke-linecap="round"/></svg>`;

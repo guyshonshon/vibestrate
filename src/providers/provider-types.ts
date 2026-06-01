@@ -60,7 +60,7 @@ export type ProviderRunInput = {
   /**
    * Optional hook fired as the provider's CLI writes output. Each
    * call carries a small chunk that has *not* been parsed or trimmed
-   * — callers can use it to materialize a live log file or stream
+   * - callers can use it to materialize a live log file or stream
    * the bytes to a connected UI in real time.
    *
    * The provider runner still returns the full buffered stdout/stderr
@@ -68,7 +68,7 @@ export type ProviderRunInput = {
    */
   onChunk?: (chunk: ProviderStreamChunk) => void;
   /**
-   * Optional AbortSignal — when it fires, the provider CLI subprocess
+   * Optional AbortSignal - when it fires, the provider CLI subprocess
    * is killed (SIGTERM). Used by the orchestrator to honor "vibe abort"
    * mid-stage instead of waiting for the current provider call to
    * finish on its own.

@@ -95,7 +95,7 @@ describe("orchestrator rewind phase 2 (resume at review)", () => {
     expect(snaps.some((s) => s.stage === "executing")).toBe(true);
 
     // Rewind to reviewing: planner/architect/executor are skipped, but the
-    // reviewer + verifier re-run — and the executor's file is restored from the
+    // reviewer + verifier re-run - and the executor's file is restored from the
     // snapshot (the only way it can be present, since the executor didn't run).
     const rewound = await runFlow(dir, "phase2 rewind", {
       sourceRunId: source.runId,

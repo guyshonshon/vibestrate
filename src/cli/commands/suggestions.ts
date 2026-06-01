@@ -34,7 +34,7 @@ export function buildSuggestionsCommand(): Command {
         const tag = renderStatus(s.status);
         const target = s.file
           ? `${s.file}${s.lineStart ? `:${s.lineStart}${s.lineEnd ? `-${s.lineEnd}` : ""}` : ""}`
-          : "—";
+          : "-";
         console.log(`${tag}  ${color.bold(s.title)}`);
         console.log(`    ${color.dim(`${s.id} · ${s.source} · ${target}`)}`);
         if (s.errorMessage) {

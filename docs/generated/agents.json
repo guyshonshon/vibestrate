@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Built-in agent roles. Each is a configured row under `agents:` in project.yml — provider, prompt template, permission profile, and any skills.",
+  "description": "Built-in agent roles. Each is a configured row under `agents:` in project.yml - provider, prompt template, permission profile, and any skills.",
   "agents": [
     {
       "id": "planner",

@@ -1,7 +1,7 @@
 // Pure mapping from the active dashboard Route to a "teach the CLI"
 // hint card: a short title, one or more equivalent `vibe …` commands,
 // and a one-line explanation. The point is to make the CLI surface
-// discoverable from the UI — every dashboard action should be doable
+// discoverable from the UI - every dashboard action should be doable
 // from the terminal, and this surface tells the user how.
 //
 // Kept import-free (no React, no browser APIs) so it can be exercised
@@ -124,7 +124,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "All projects",
         blurb:
-          "Cross-project rollup — runs, outcomes, and spend across every registered project. The CLI exposes the same data.",
+          "Cross-project rollup - runs, outcomes, and spend across every registered project. The CLI exposes the same data.",
         commands: [
           { cmd: "vibe workspace overview", note: "rollup across registered projects" },
           { cmd: "vibe workspace list", note: "registered projects (live ● / dormant ○)" },
@@ -255,7 +255,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Crew",
         blurb:
-          "Your local team of roles — the seats each fills and the profile each runs on. Edit roles in `.vibestrate/project.yml` or here.",
+          "Your local team of roles - the seats each fills and the profile each runs on. Edit roles in `.vibestrate/project.yml` or here.",
         commands: [
           { cmd: "vibe config show", note: "crews + roles in project.yml" },
           {
@@ -268,7 +268,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Profiles",
         blurb:
-          "Runtime profiles — provider + model + power + budget. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
+          "Runtime profiles - provider + model + power + budget. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
         commands: [
           { cmd: "vibe config show", note: "profiles in project.yml" },
           {
@@ -281,7 +281,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Providers",
         blurb:
-          "Detect, configure, set, and test the local CLIs Vibestrate drives — the same actions as the `vibe provider` commands.",
+          "Detect, configure, set, and test the local CLIs Vibestrate drives - the same actions as the `vibe provider` commands.",
         commands: [
           { cmd: "vibe provider detect", note: "what's installed + confidence" },
           { cmd: "vibe provider setup", note: "apply a preset / wire flags" },

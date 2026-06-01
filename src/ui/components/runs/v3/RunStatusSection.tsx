@@ -34,7 +34,7 @@ function phaseIndex(status: RunStatus): number {
 
 /**
  * Every run is a flow run, so the rail follows the flow's actual ordered steps
- * (the fixed phase rail would contradict the crew strip — e.g. a "challenger"
+ * (the fixed phase rail would contradict the crew strip - e.g. a "challenger"
  * step while the rail says "Review"). The phase fallback only applies to a run
  * whose flow state hasn't been written yet.
  */

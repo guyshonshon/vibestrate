@@ -478,7 +478,7 @@ describe("bundle revert", () => {
   });
 });
 
-describe("final report — bundles section", () => {
+describe("final report - bundles section", () => {
   it("renders an empty notice when no bundles exist", () => {
     const ts = "2026-05-10T00:00:00.000Z";
     const md = renderFinalReport({

@@ -97,7 +97,7 @@ export function QueuePage({
             value={
               typeof state.defaultSourceConcurrency === "number"
                 ? String(state.defaultSourceConcurrency)
-                : "—"
+                : "-"
             }
           />
         </div>

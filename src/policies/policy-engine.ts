@@ -25,7 +25,7 @@ import {
  *   - Returns the FIRST violation per rule (a single hit is enough to
  *     refuse). Multiple distinct rules can each contribute one.
  *
- * No regex flags or pattern strings are re-validated here — that happens
+ * No regex flags or pattern strings are re-validated here - that happens
  * at load time. The engine trusts what the store gave it.
  */
 export function evaluatePatchAgainstPolicies(

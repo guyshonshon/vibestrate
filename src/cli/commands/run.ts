@@ -48,7 +48,7 @@ function rewriteFriendly(message: string): string {
     return [
       "Vibestrate wanted to create a new branch but one with that name already exists.",
       `${symbol.arrow()} Delete the old branch with: ${color.bold("git branch -D <branch>")}`,
-      `${symbol.arrow()} Or run again — Vibestrate generates a fresh run-id each time.`,
+      `${symbol.arrow()} Or run again - Vibestrate generates a fresh run-id each time.`,
     ].join("\n");
   }
   if (message.includes("not configured")) {
@@ -301,7 +301,7 @@ export async function runRunCommand(
       });
       console.log(
         `${symbol.ok()} Supervisor: ${color.bold(server.url)}${
-          server.uiAvailable ? "" : color.dim(" (API only — UI bundle missing)")
+          server.uiAvailable ? "" : color.dim(" (API only - UI bundle missing)")
         }`,
       );
     } catch (err) {
@@ -374,7 +374,7 @@ export async function runRunCommand(
       ? `${symbol.bullet()} effort ${color.bold(effort)} (matches suggestion @ ${heuristic.confidence})`
       : effort
         ? `${symbol.bullet()} effort ${color.bold(effort)} ${color.dim(`(suggested ${heuristic.effort} @ ${heuristic.confidence})`)}`
-        : `${symbol.bullet()} effort ${color.dim("(none)")} ${color.dim(`— suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
+        : `${symbol.bullet()} effort ${color.dim("(none)")} ${color.dim(`- suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
   console.log(verdictLine);
   for (const r of heuristic.reasons.slice(0, 3)) {
     console.log(indent(color.dim(`· ${r}`)));
@@ -403,7 +403,7 @@ export async function runRunCommand(
   process.on("SIGTERM", onSigterm);
 
   // Rewind: fork from a prior run, reusing its upstream step outputs. The flow
-  // runner seeds them — works with the default flow and an explicit --flow.
+  // runner seeds them - works with the default flow and an explicit --flow.
   let resumeFrom: ResumeFromInput | null = null;
   if (options.resumeFromRunId) {
     try {
@@ -418,7 +418,7 @@ export async function runRunCommand(
       return 1;
     }
     console.log(
-      `${symbol.bullet()} Rewinding from ${color.bold(resumeFrom.sourceRunId)} at stage ${color.bold(resumeFrom.fromStage)} — seeding the upstream steps from that run.`,
+      `${symbol.bullet()} Rewinding from ${color.bold(resumeFrom.sourceRunId)} at stage ${color.bold(resumeFrom.fromStage)} - seeding the upstream steps from that run.`,
     );
   }
 
@@ -645,11 +645,11 @@ function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {
   console.log(`${symbol.bullet()} Crew ${color.bold(snapshot.crewId)}`);
   console.log(`${symbol.bullet()} Steps`);
   for (const [index, step] of snapshot.steps.entries()) {
-    const seat = step.seat ? `${step.seat}` : color.dim("—");
-    const role = step.resolvedRoleLabel ?? step.resolvedRoleId ?? color.dim("—");
+    const seat = step.seat ? `${step.seat}` : color.dim("-");
+    const role = step.resolvedRoleLabel ?? step.resolvedRoleId ?? color.dim("-");
     const profile = step.profileId
       ? `${step.profileId}${step.providerId ? color.dim(` (${step.providerId})`) : ""}`
-      : color.dim("—");
+      : color.dim("-");
     const state = step.enabled ? "" : color.dim(" skipped");
     console.log(
       indent(

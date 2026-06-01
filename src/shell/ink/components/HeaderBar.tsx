@@ -8,7 +8,7 @@ import { ACCENT, ACCENT_BRIGHT, PINK } from "../theme.js";
 import type { StatusModel } from "../status-model.js";
 
 /**
- * The top region — deliberately light: brand + "where am I" (project · branch ·
+ * The top region - deliberately light: brand + "where am I" (project · branch ·
  * activity), a divider, the numbered tab menu, then the page subtitle with a
  * minimal command hint. The full keymap lives in the `?` help overlay rather
  * than a persistent wall of keys.

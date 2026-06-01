@@ -102,7 +102,7 @@ export type ShellUiStateV2 = {
   selection: Record<PageId, number>;
   paletteOpen: boolean;
   paletteQuery: string;
-  /** Cursor inside the filtered palette list — clamped by the view. */
+  /** Cursor inside the filtered palette list - clamped by the view. */
   paletteSelectedIndex: number;
   helpOpen: boolean;
   /**
@@ -596,7 +596,7 @@ export function pageLabel(id: PageId): string {
 export function pageHotkey(id: PageId): string {
   const idx = PAGE_IDS.indexOf(id);
   // Hotkeys 1..9 then 0 for the tenth tab. Any page past the tenth has no
-  // number key (reachable via the `:` palette) — returns "".
+  // number key (reachable via the `:` palette) - returns "".
   if (idx < 9) return String(idx + 1);
   if (idx === 9) return "0";
   return "";

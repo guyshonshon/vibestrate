@@ -14,7 +14,7 @@
 # Pushing the tag triggers .github/workflows/release.yml, which republishes
 # the gate and publishes to npm via OIDC trusted publishing.
 #
-# If GitHub Actions is unavailable (e.g. billing), publish locally instead —
+# If GitHub Actions is unavailable (e.g. billing), publish locally instead -
 # the script prints the exact command at the end.
 set -euo pipefail
 

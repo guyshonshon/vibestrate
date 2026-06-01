@@ -2,8 +2,8 @@
 //
 // A user-level registry of known projects so the dashboard can switch between
 // them and so several projects can run side-by-side. Each `vibe ui` registers
-// its project (and the port it bound) here. This is metadata only — project
-// *paths*, labels, and last-seen ports — never project contents; nothing leaves
+// its project (and the port it bound) here. This is metadata only - project
+// *paths*, labels, and last-seen ports - never project contents; nothing leaves
 // the machine. Stays local-first: the registry is just a JSON file you own.
 
 import os from "node:os";
@@ -37,7 +37,7 @@ export const workspaceProjectSchema = z
     addedAt: z.string(),
     lastOpenedAt: z.string(),
     // NOTE: runtime state (port / pid of a running `vibe ui`) deliberately does
-    // NOT live here anymore — it's per-project in `<root>/.vibestrate/ui.lock`
+    // NOT live here anymore - it's per-project in `<root>/.vibestrate/ui.lock`
     // (see ui-lock.ts). The registry is durable intent only. `.strip()` drops
     // any legacy `lastPort` / `pid` keys from older files on read.
   })
@@ -63,7 +63,7 @@ export function workspaceDir(): string {
   return path.dirname(defaultWorkspaceFile());
 }
 
-/** A fresh empty file — new arrays each call, never a shared mutable default. */
+/** A fresh empty file - new arrays each call, never a shared mutable default. */
 function emptyFile(): WorkspaceFile {
   return { version: 1, projects: [] };
 }

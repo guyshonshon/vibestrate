@@ -39,7 +39,7 @@ export type SuggestionValidationResult = {
     | "suggestion"
     | "bundle"
     | "override";
-  /** Resolved command list — what actually ran (or would have run). */
+  /** Resolved command list - what actually ran (or would have run). */
   profileCommands: string[];
 };
 
@@ -87,7 +87,7 @@ export type RunValidationInput = {
  * Run the project's configured `commands.validate` array inside the run's
  * worktree. Persists a structured result file under the run dir and returns
  * a typed summary. Refuses gracefully when the worktree is missing or no
- * commands are configured — never invents validation success.
+ * commands are configured - never invents validation success.
  */
 export async function runSuggestionValidation(
   input: RunValidationInput,

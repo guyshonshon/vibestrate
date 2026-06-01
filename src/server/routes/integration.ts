@@ -50,7 +50,7 @@ export async function registerIntegrationRoutes(
     return { preview };
   });
 
-  // Gated, explicit write — creates a NEW integration branch, never main, never
+  // Gated, explicit write - creates a NEW integration branch, never main, never
   // pushes. Refusals (main branch, existing branch) → 409.
   app.post<{ Body: unknown }>("/api/integration/apply", async (req) => {
     const parsed = applyBody.safeParse(req.body);

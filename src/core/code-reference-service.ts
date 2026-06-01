@@ -26,7 +26,7 @@ export type ParseInput = {
   runId?: string | null;
 };
 
-// Allowed extensions — keep this list strict so prose words like "src" or
+// Allowed extensions - keep this list strict so prose words like "src" or
 // "components" don't get matched as bare files. Add to this list rather than
 // loosening the regex.
 const FILE_EXT = [
@@ -133,7 +133,7 @@ const PATTERNS: Array<{
       endIndex: m.index + m[0].length,
     }),
   },
-  // bare path (lowest priority — only after specific forms)
+  // bare path (lowest priority - only after specific forms)
   {
     re: new RegExp(`(?<![:/])(${FILE_PATH_FRAGMENT})`, "g"),
     build: (m) => ({

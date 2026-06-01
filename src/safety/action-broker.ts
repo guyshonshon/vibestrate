@@ -4,7 +4,7 @@
 // command run, file patch/write, network/MCP, terminal create, run completion.
 // A request is *decided* (allow / deny / require_approval) by a chain of pure
 // evaluators, then *recorded* to an append-only per-run evidence log
-// (`runs/<id>/actions.ndjson`) — the audit trail the Run Assurance artifact
+// (`runs/<id>/actions.ndjson`) - the audit trail the Run Assurance artifact
 // (S5) and replay read from.
 //
 // S0 is the boundary + the decision/evidence records. Default policy is
@@ -33,7 +33,7 @@ export type ActionRequest = {
   roleId?: string;
   kind: ActionKind;
   /** Kind-specific details (provider id, command, target path, …). Must not
-   *  carry secrets — callers pass references/ids, never credential material. */
+   *  carry secrets - callers pass references/ids, never credential material. */
   subject: Record<string, unknown>;
   proposedBy: "provider" | "ui" | "cli" | "system";
 };
@@ -146,7 +146,7 @@ export class DefaultActionBroker implements ActionBroker {
  * Single construction point for a run's broker. Both the orchestrator and the
  * effect-site services (suggestion/bundle apply, …) build their broker here so
  * the Policy Engine V2 (S2) can wire the evaluator chain in ONE place and every
- * effect kind inherits it — the "one boundary" guarantee. They all append to
+ * effect kind inherits it - the "one boundary" guarantee. They all append to
  * the same per-run `runs/<id>/actions.ndjson`.
  */
 export function createActionBroker(

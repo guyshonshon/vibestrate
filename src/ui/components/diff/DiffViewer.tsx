@@ -122,7 +122,7 @@ export function DiffViewer({
                 .openInEditor({ path: diff.path, runId })
                 .catch((err) => {
                   if (err instanceof ApiError && err.status === 409) {
-                    // Editor not configured — silent. The file viewer surfaces the same hint.
+                    // Editor not configured - silent. The file viewer surfaces the same hint.
                   }
                 });
             }}

@@ -107,7 +107,7 @@ export function createFlowParticipantLedger(input: {
   // One participant per Seat that an enabled, seated step resolves a provider
   // for. The provider/label come from the seat's resolved Role/Profile (the
   // first resolved step using that seat). Steps that share a seat reuse the
-  // participant — that's what lets a Role keep a session across steps.
+  // participant - that's what lets a Role keep a session across steps.
   const bySeat = new Map<string, { providerId: string; label: string }>();
   for (const step of input.snapshot.steps) {
     if (!step.seat || !step.providerId) continue;

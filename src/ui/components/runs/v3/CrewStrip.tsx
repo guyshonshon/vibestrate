@@ -102,7 +102,7 @@ function Card({ s }: { s: Slot }) {
             {s.label || s.role}
           </div>
           <div className="text-[12.5px] text-fog-100 font-medium truncate leading-tight mt-1">
-            {s.agent ?? "—"}
+            {s.agent ?? "-"}
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ export type GitStatusSummary = {
 
 /**
  * Lightweight polling watcher for a single git worktree (project root or run
- * worktree). Emits diffs only — never raw file contents — and never spawns
+ * worktree). Emits diffs only - never raw file contents - and never spawns
  * file-system watchers on huge trees. The poll cadence is intentionally low
  * (default 4 s) so it stays cheap on idle projects.
  */

@@ -42,7 +42,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
 
   // `mountedRef` gates every async setState. The previous crash on
   // "go to codebase, then leave" was the burst of in-flight fetches
-  // resolving onto an unmounted component — combined with the SSE
+  // resolving onto an unmounted component - combined with the SSE
   // reconnect loop still holding queued setTimeouts. The flag plus
   // explicit cleanup of pending timers and SSE in useCodebaseEvents
   // makes the page safe to abandon at any moment.
@@ -140,7 +140,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   }, [reloadFile]);
 
   // When the SSE channel reports a change, force-reload the tree +
-  // file view — debounced 400ms so a burst of git/filetree events
+  // file view - debounced 400ms so a burst of git/filetree events
   // collapses to one fetch. Bails out if the component already
   // unmounted while the timer was pending.
   useEffect(() => {
@@ -157,7 +157,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   // Push URL changes back so deep-links survive a refresh.
   useEffect(() => {
     onUrlChange({ path, line, runId: source === "worktree" ? runId : null });
-    // `onUrlChange` is intentionally excluded — if the parent gives
+    // `onUrlChange` is intentionally excluded - if the parent gives
     // us a non-stable callback, the effect re-fires on every render
     // and stomps the URL back to `#/codebase`, trapping the user on
     // this page. The effect only needs to run when the displayed
@@ -193,7 +193,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
                 }}
                 className="ml-auto max-w-[150px] truncate rounded-md border border-white/10 bg-ink-200/70 px-1.5 py-0.5 text-[11px] text-fog-300"
               >
-                <option value="">— choose run —</option>
+                <option value="">- choose run -</option>
                 {runs.map((r) => (
                   <option key={r.runId} value={r.runId}>
                     {r.runId}
@@ -430,7 +430,7 @@ function AnnotationsPanel(props: {
           <KV label="Path">
             <span className="mono">{view.path}</span>
           </KV>
-          <KV label="Lines">{view.totalLines === null ? "—" : view.totalLines}</KV>
+          <KV label="Lines">{view.totalLines === null ? "-" : view.totalLines}</KV>
           <KV label="Bytes">{view.size}</KV>
           {view.isSecretLike ? (
             <KV label="Status">
@@ -449,7 +449,7 @@ function AnnotationsPanel(props: {
       <p className="mb-3 text-[11px] leading-snug text-fog-500">
         Notes pinned to this file. Ones marked{" "}
         <span className="text-fog-300">visible to agents</span> are added to every
-        agent's prompt during runs — your guidance, acknowledged by the crew.
+        agent's prompt during runs - your guidance, acknowledged by the crew.
       </p>
 
       {err ? (
@@ -461,7 +461,7 @@ function AnnotationsPanel(props: {
       {source !== "project" ? (
         <div className="rounded-md border border-white/10 bg-ink-200/40 px-2.5 py-2 text-[11.5px] text-fog-400">
           Switch to <span className="text-fog-200">Project</span> to read or add
-          annotations — they're pinned to the project codebase.
+          annotations - they're pinned to the project codebase.
         </div>
       ) : !path ? (
         <div className="rounded-md border border-white/10 bg-ink-200/40 px-2.5 py-2 text-[11.5px] text-fog-400">
@@ -502,7 +502,7 @@ function AnnotationsPanel(props: {
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="e.g. don't refactor this — it's load-bearing for the migration."
+                placeholder="e.g. don't refactor this - it's load-bearing for the migration."
                 rows={3}
                 className="w-full resize-y rounded-md border border-white/10 bg-ink-300/60 px-2 py-1.5 text-[12px] text-fog-100 placeholder-fog-600 outline-none focus:border-violet-soft/40"
               />
@@ -587,7 +587,7 @@ function AnnotationCard({
           type="button"
           onClick={onToggleShare}
           disabled={busy}
-          title={a.shareWithRoles ? "Shared with agents — click to make private" : "Private — click to share with agents"}
+          title={a.shareWithRoles ? "Shared with agents - click to make private" : "Private - click to share with agents"}
           className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
             a.shareWithRoles
               ? "border-violet-soft/40 bg-violet-soft/10 text-violet-soft"

@@ -5,7 +5,7 @@
 //           secret-shaped *paths* refused, secret-shaped *content* redacted,
 //           size-bounded.
 //   - url:  opt-in only; SSRF-guarded + bounded fetch; content redacted.
-// Every failure is non-fatal — it becomes a `note` and the source is skipped,
+// Every failure is non-fatal - it becomes a `note` and the source is skipped,
 // so a bad attachment never blocks a run.
 
 import fs from "node:fs/promises";
@@ -24,7 +24,7 @@ export type MaterializeContextInput = {
   worktreePath: string | null;
   /** URL sources are skipped unless this is true (opt-in egress). */
   allowUrlFetch: boolean;
-  /** Skip the SSRF host check for URLs (CLI only — user typed the URL). */
+  /** Skip the SSRF host check for URLs (CLI only - user typed the URL). */
   allowPrivateHosts?: boolean;
   fetchImpl?: FetchImpl;
   maxBytes?: number;
@@ -57,18 +57,18 @@ export async function materializeContextSources(
           buildProjectRoots({ projectRoot: input.projectRoot, worktreePath: input.worktreePath }),
         );
         if (resolved.isSecretLike || isSecretLikePath(resolved.relativePath)) {
-          notes.push(`Refused context file "${source.ref}" — looks secret-like.`);
+          notes.push(`Refused context file "${source.ref}" - looks secret-like.`);
           continue;
         }
         const raw = await fs.readFile(resolved.absolutePath, "utf8").catch(() => null);
         if (raw === null) {
-          notes.push(`Context file "${source.ref}" not found or unreadable — skipped.`);
+          notes.push(`Context file "${source.ref}" not found or unreadable - skipped.`);
           continue;
         }
         const { redacted, count } = redactSecretsInText(raw);
         const { text, truncated } = clamp(redacted, maxBytes);
         artifacts.push({
-          label: `Context — ${label}`,
+          label: `Context - ${label}`,
           content:
             `Source: file ${resolved.relativePath}` +
             (count > 0 ? ` (${count} secret token(s) redacted)` : "") +
@@ -87,7 +87,7 @@ export async function materializeContextSources(
 
     // url
     if (!input.allowUrlFetch) {
-      notes.push(`Skipped URL context "${source.ref}" — URL fetch is opt-in (not enabled for this run).`);
+      notes.push(`Skipped URL context "${source.ref}" - URL fetch is opt-in (not enabled for this run).`);
       continue;
     }
     const got = await fetchGuardedText({
@@ -103,7 +103,7 @@ export async function materializeContextSources(
     const { redacted, count } = redactSecretsInText(got.text);
     const { text, truncated } = clamp(redacted, maxBytes);
     artifacts.push({
-      label: `Context — ${label}`,
+      label: `Context - ${label}`,
       content:
         `Source: url ${source.ref}` +
         (count > 0 ? ` (${count} secret token(s) redacted)` : "") +

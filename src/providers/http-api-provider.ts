@@ -4,7 +4,7 @@
 // or a localhost model server (Ollama / LM Studio / vLLM, OpenAI-compatible).
 // One non-streaming request per turn; the real token usage from the response is
 // mapped to NormalizedMetrics (so cloud/proxy runs report real tokens, not
-// estimates — Phase 4 A7 for these providers).
+// estimates - Phase 4 A7 for these providers).
 //
 // Safety: the API key is an env-ref resolved at call time (never read from
 // config literals), never logged, and redacted from any error surfaced.

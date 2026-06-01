@@ -292,7 +292,7 @@ function generateConfigSchema() {
     schemaVersion: 1,
     rootKey: "project.yml",
     description:
-      "Schema for .vibestrate/project.yml — derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
+      "Schema for .vibestrate/project.yml - derived from Zod schemas in src/project/config-schema.ts. Defaults shown here are the values Vibestrate fills in when the key is missing.",
     fields,
   });
 }
@@ -373,7 +373,7 @@ const STAGE_DESCRIPTIONS: Record<string, { simple: string; what: string }> = {
   },
   executing: {
     simple: "Apply the changes in an isolated git worktree.",
-    what: "Executor agent edits files inside the run's worktree. Edits are real — never touches the project root.",
+    what: "Executor agent edits files inside the run's worktree. Edits are real - never touches the project root.",
   },
   validating: {
     simple: "Run the project's validation commands.",
@@ -389,7 +389,7 @@ const STAGE_DESCRIPTIONS: Record<string, { simple: string; what: string }> = {
   },
   verifying: {
     simple: "Confirm the run is ready to merge.",
-    what: "Verifier agent does a final pass — checks for unresolved findings, missing tests, or untouched validation gates. Emits PASSED / FAILED / NEEDS_HUMAN.",
+    what: "Verifier agent does a final pass - checks for unresolved findings, missing tests, or untouched validation gates. Emits PASSED / FAILED / NEEDS_HUMAN.",
   },
 };
 
@@ -495,7 +495,7 @@ function generateAgents() {
   writeJson("agents.json", {
     schemaVersion: 1,
     description:
-      "Built-in agent roles. Each is a configured row under `agents:` in project.yml — provider, prompt template, permission profile, and any skills.",
+      "Built-in agent roles. Each is a configured row under `agents:` in project.yml - provider, prompt template, permission profile, and any skills.",
     agents,
   });
 }

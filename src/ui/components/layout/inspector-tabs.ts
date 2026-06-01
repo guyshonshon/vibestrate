@@ -1,4 +1,4 @@
-// Pure type module — no React imports — so non-UI tsconfig roots (and the
+// Pure type module - no React imports - so non-UI tsconfig roots (and the
 // node-environment Vitest tests) can import the tab union without pulling
 // in JSX.
 

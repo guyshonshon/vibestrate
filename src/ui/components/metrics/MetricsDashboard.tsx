@@ -1,16 +1,16 @@
 import type { RuntimeMetrics } from "../../lib/types.js";
 
 function fmtCost(usd: number | null): string {
-  if (usd === null || usd === undefined) return "—";
+  if (usd === null || usd === undefined) return "-";
   return `$${usd.toFixed(4)}`;
 }
 
 function fmtTokens(t: RuntimeMetrics["roles"][number]["tokenUsage"]): string {
-  if (!t) return "—";
+  if (!t) return "-";
   const parts: string[] = [];
   if (t.input !== undefined) parts.push(`in ${t.input}`);
   if (t.output !== undefined) parts.push(`out ${t.output}`);
-  return parts.length > 0 ? parts.join(" / ") : "—";
+  return parts.length > 0 ? parts.join(" / ") : "-";
 }
 
 export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }) {
@@ -22,8 +22,8 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
     );
   }
 
-  // Only show totals the run actually produced — empty cells like
-  // "duration 0ms" or "cost —" add noise without information.
+  // Only show totals the run actually produced - empty cells like
+  // "duration 0ms" or "cost -" add noise without information.
   const totals: { label: string; value: string }[] = [];
   if (metrics.totalDurationMs > 0)
     totals.push({ label: "duration", value: `${metrics.totalDurationMs}ms` });
@@ -55,7 +55,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
       </header>
       {totals.length === 0 ? (
         <div className="px-3 py-2 text-[11.5px] text-vibestrate-fg-muted">
-          No totals reported yet — the provider hasn't returned cost or
+          No totals reported yet - the provider hasn't returned cost or
           token usage for this run.
         </div>
       ) : (
@@ -118,7 +118,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                       ? `${a.flowSeat ?? "flow"}:${a.flowContextMode}`
                       : a.sessionId
                         ? "session"
-                        : "—"}
+                        : "-"}
                   </td>
                   <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg">
                     {a.durationMs}ms
@@ -133,12 +133,12 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                   <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {a.diffInsertionsAfter !== null && a.diffDeletionsAfter !== null
                       ? `+${a.diffInsertionsAfter} −${a.diffDeletionsAfter}`
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {a.totalCostUsd !== null
                       ? `$${a.totalCostUsd.toFixed(4)}`
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="vibestrate-mono px-3 py-1.5 text-right text-vibestrate-fg-dim">
                     {fmtTokens(a.tokenUsage)}
@@ -146,10 +146,10 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
                   <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
                     {a.skillsAttached.length > 0
                       ? a.skillsAttached.join(", ")
-                      : "—"}
+                      : "-"}
                   </td>
                   <td className="vibestrate-mono px-3 py-1.5 text-vibestrate-fg-dim">
-                    {a.reviewDecision ?? a.verificationDecision ?? "—"}
+                    {a.reviewDecision ?? a.verificationDecision ?? "-"}
                   </td>
                 </tr>
               ))
@@ -159,7 +159,7 @@ export function MetricsDashboard({ metrics }: { metrics: RuntimeMetrics | null }
       </div>
       <footer className="border-t border-vibestrate-border-soft px-3 py-2 text-[11px] text-vibestrate-fg-muted">
         Tokens and cost are reported only when the provider exposes them.
-        Generic CLIs show "—".
+        Generic CLIs show "-".
       </footer>
     </div>
   );

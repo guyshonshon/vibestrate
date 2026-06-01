@@ -1,6 +1,6 @@
 // Pure validator + writer for project-local Flow edits triggered by
 // the dashboard Flow Builder. Builtin / fixture flows are *immutable*
-// from the API surface — editing them would silently fork the recipe
+// from the API surface - editing them would silently fork the recipe
 // out of project source control, which is exactly the trap the
 // builtin/project distinction exists to avoid.
 
@@ -27,7 +27,7 @@ import {
 
 /**
  * Editable subset surfaced to the Flow Builder. Only fields that the
- * UI actually edits today are accepted — the orchestration topology
+ * UI actually edits today are accepted - the orchestration topology
  * (kinds, slots, repeats, approval gates) round-trips read-only.
  *
  * Future fields land here as the UI grows; everything else must be
@@ -59,7 +59,7 @@ export const flowPatchInputSchema = z
     steps: z.array(stepPatchSchema).max(64).optional(),
     /**
      * Replace the entire ordered step list. Used by the UI whenever
-     * structural operations (add / remove / reorder) happen — the
+     * structural operations (add / remove / reorder) happen - the
      * dashboard composes the next array client-side and ships it whole
      * so the merge is unambiguous.
      */
@@ -210,7 +210,7 @@ export async function forkFlowToProject(input: {
     return { ok: false, status: 404, reasons: [`Flow "${flowId}" not found.`] };
   }
   if (flow.source.kind === "project" && flow.definitionPath) {
-    // Already project-local — no-op, return existing path.
+    // Already project-local - no-op, return existing path.
     const rel = path.relative(projectRoot, flow.definitionPath);
     return { ok: true, flowId, definitionPath: rel, alreadyForked: true };
   }
@@ -333,7 +333,7 @@ export async function applyFlowPatch(input: {
     };
   }
   // Flows are always editable. A project flow is patched in place; a builtin /
-  // fixture is transparently forked — the patched result is written to a project
+  // fixture is transparently forked - the patched result is written to a project
   // copy (`.vibestrate/flows/<id>/flow.yml`) that shadows the builtin everywhere.
   const rootDir = projectFlowsDir(projectRoot);
   const targetPath =

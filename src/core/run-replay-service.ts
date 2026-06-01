@@ -17,7 +17,7 @@ import {
 const MAX_EVENTS = 10_000;
 
 /** Re-stated locally so the projection types don't depend on the event-log
- *  enum — older event logs may carry types newer Vibestrate versions removed.
+ *  enum - older event logs may carry types newer Vibestrate versions removed.
  *  The projection is forgiving: unknown event types still appear in the
  *  timeline, just classified into the "other" phase. */
 export type ReplayPhaseKey =
@@ -206,7 +206,7 @@ export type ReplayTruncation = {
   truncated: boolean;
   totalEventCount: number;
   keptEventCount: number;
-  /** Always "latest" in V0 — when the log is over MAX_EVENTS we keep the
+  /** Always "latest" in V0 - when the log is over MAX_EVENTS we keep the
    *  most recent rows, since the head is more likely to be reviewed
    *  against the actual final state of the run. */
   keptKind: "latest";
@@ -865,7 +865,7 @@ async function safeReadJson(
 ): Promise<unknown> {
   if (!(await pathExists(file))) {
     // Optional files: surfaced as missing only if they parse-error on
-    // load. Pure absence is not noteworthy — many runs predate the
+    // load. Pure absence is not noteworthy - many runs predate the
     // feature that writes a given file.
     return null;
   }

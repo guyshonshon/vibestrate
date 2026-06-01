@@ -101,7 +101,7 @@ describe("buildShellSnapshot", () => {
     });
     const snap = await buildShellSnapshot(root);
     expect(snap.runs[0]!.currentRole).toBeNull();
-    // lastRole is sticky — terminal/between-agent runs still surface
+    // lastRole is sticky - terminal/between-agent runs still surface
     // "who was here last".
     expect(snap.runs[0]!.lastRole).toBe("executor");
   });
@@ -109,7 +109,7 @@ describe("buildShellSnapshot", () => {
   it("derives `why` from policy.warning when state.error is null (blocked-by-preflight)", async () => {
     // Real-world case: the orchestrator gets blocked by a preflight
     // policy *before* any agent starts. state.error isn't stamped
-    // and there are no role.failed events — but the policy.warning
+    // and there are no role.failed events - but the policy.warning
     // carries the actual reason.
     await writeRun(root, "run-1", { status: "blocked", error: null });
     await appendEvent(root, "run-1", {
@@ -128,7 +128,7 @@ describe("buildShellSnapshot", () => {
     const snap = await buildShellSnapshot(root);
     const row = snap.runs[0]!;
     expect(row.lastRole).toBeNull();
-    // policy.warning has the most useful "why" — should win over
+    // policy.warning has the most useful "why" - should win over
     // the generic state-change message.
     expect(row.error).toBe(
       "forbidMainBranchWrites: project main is dirty",

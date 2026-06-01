@@ -1,7 +1,7 @@
 /**
  * Compute the new id order when a dragged item is dropped onto the slot
  * currently occupied by `targetId`. Pure so it can be unit-tested without a
- * DOM — the drag event wiring in the component is the only untested glue.
+ * DOM - the drag event wiring in the component is the only untested glue.
  *
  * Returns a new array (never mutates `ids`). If either id is absent or the
  * drag lands on itself, returns a copy of the original order unchanged.

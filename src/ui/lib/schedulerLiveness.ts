@@ -1,5 +1,5 @@
 // Mirror of `src/scheduler/scheduler-liveness.ts` for the browser
-// bundle — same logic, same thresholds, structurally compatible
+// bundle - same logic, same thresholds, structurally compatible
 // SchedulerState shape. Kept here so the UI doesn't have to pull in
 // server-only deps.
 

@@ -60,7 +60,7 @@ describe("requestPause", () => {
   it("sets pauseRequested=true on a pausable run and emits run.pause_requested", async () => {
     const next = await requestPause(store, events);
     expect(next.pauseRequested).toBe(true);
-    // Status itself is unchanged — pause is observed by the orchestrator
+    // Status itself is unchanged - pause is observed by the orchestrator
     // at the next stage boundary, not synchronously here.
     expect(next.status).toBe("created");
     const log = await fs.readFile(
@@ -70,7 +70,7 @@ describe("requestPause", () => {
     expect(log).toContain('"type":"run.pause_requested"');
   });
 
-  it("is idempotent — calling twice doesn't double-emit", async () => {
+  it("is idempotent - calling twice doesn't double-emit", async () => {
     await requestPause(store, events);
     const second = await requestPause(store, events);
     expect(second.pauseRequested).toBe(true);
@@ -110,7 +110,7 @@ describe("requestResume", () => {
     await store.write(s);
     const next = await requestResume(store, events);
     expect(next.pauseRequested).toBe(false);
-    // Status is still paused — applyPauseIfRequested round-trips back to
+    // Status is still paused - applyPauseIfRequested round-trips back to
     // pausedAtStatus, not requestResume.
     expect(next.status).toBe("paused");
     const log = await fs.readFile(
@@ -154,7 +154,7 @@ describe("applyPauseIfRequested", () => {
     await store.write(s);
     await requestPause(store, events);
 
-    // Stage a deferred resume — by the time applyPauseIfRequested polls
+    // Stage a deferred resume - by the time applyPauseIfRequested polls
     // the second time, pauseRequested is false. Poll every 25ms for the
     // test loop to keep things snappy.
     setTimeout(() => {

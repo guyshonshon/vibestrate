@@ -201,7 +201,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
 
     // Walk the queue (in policy order) and pick the first entry that
     // is dependency-ready AND respects its source quota. Blocked
-    // entries stay queued and are reconsidered on the next tick —
+    // entries stay queued and are reconsidered on the next tick -
     // this is what makes "queue B before A" work: we skip B and try A
     // next.
     const allTasks = await roadmap.listTasks();
@@ -258,7 +258,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
     const candidateEntry = verdict.entry;
     const candidate = await roadmap.getTask(candidateEntry.taskId);
     if (!candidate) {
-      // Should not happen — we filtered missing tasks above.
+      // Should not happen - we filtered missing tasks above.
       await queue.remove(candidateEntry.taskId);
       return { launched: false, idle: false };
     }
@@ -352,7 +352,7 @@ export async function runSchedulerLoop(input: StartSchedulerInput): Promise<Sche
         }
         await sleepWithHeartbeat(idlePollMs);
       } else if (!launched) {
-        // Loop was at capacity — wait briefly to free a slot.
+        // Loop was at capacity - wait briefly to free a slot.
         await sleepWithHeartbeat(200);
       }
     }

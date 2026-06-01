@@ -48,7 +48,7 @@ function metricsFromResult(result: JsonObj): NormalizedMetrics {
   for (const [model, mu] of Object.entries(modelUsage)) {
     const cost = num(mu.costUSD) ?? 0;
     perModelCost.push({ model, costUsd: cost });
-    // The "primary" model is the costliest one — a background title/summary
+    // The "primary" model is the costliest one - a background title/summary
     // model (e.g. haiku) can emit more tokens than the main model.
     if (cost > primaryCost) {
       primaryCost = cost;
@@ -75,7 +75,7 @@ function deltaText(o: JsonObj): string {
   const ev = o.event as JsonObj | undefined;
   if (ev?.type !== "content_block_delta") return "";
   const delta = ev.delta as JsonObj | undefined;
-  // Only the assistant's visible text — skip thinking/signature/tool blocks.
+  // Only the assistant's visible text - skip thinking/signature/tool blocks.
   if (delta?.type === "text_delta" && typeof delta.text === "string") {
     return delta.text;
   }
@@ -90,7 +90,7 @@ export const claudeStreamJsonAdapter: ProviderOutputAdapter = {
     const result = [...events]
       .reverse()
       .find((e) => e.type === "result") as JsonObj | undefined;
-    // Fail loud: never guess the response from a stream we can't read — a
+    // Fail loud: never guess the response from a stream we can't read - a
     // missed result here would feed the control parsers garbage.
     if (!result || typeof result.result !== "string") {
       throw new OutputAdapterError(

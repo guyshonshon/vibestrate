@@ -29,7 +29,7 @@ type AppShellProps = {
 };
 
 /**
- * Mission Control v3 shell — no sidebar. The TopBar carries brand,
+ * Mission Control v3 shell - no sidebar. The TopBar carries brand,
  * project breadcrumb, primary navigation, and the user-controls
  * cluster. Pages render inside `<main>` which is the scroll
  * container; the page body is positioned above the backdrop wash
@@ -98,7 +98,7 @@ function ServerHealthBanner() {
       <span className="text-rose-300/80">
         The server at this origin stopped answering /api/health
         {" "}
-        — restart it with{" "}
+        - restart it with{" "}
         <code className="mono rounded bg-rose-500/15 px-1">vibe ui</code>
         {" "}from the project root and refresh.
       </span>

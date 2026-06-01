@@ -2,7 +2,7 @@
 // readOnly) combos surfaced by the Mission Control composer's "Save crew
 // as preset" and "Save as template" affordances.
 //
-// Stored under .vibestrate/composer-presets.json — one JSON file, one slot
+// Stored under .vibestrate/composer-presets.json - one JSON file, one slot
 // per preset name. Names are slugged so they're URL-safe and stable.
 // Path-guarded: the route never trusts a body-supplied path; everything
 // goes through this module's known on-disk location.
@@ -65,7 +65,7 @@ function presetsPath(projectRoot: string): string {
 }
 
 /**
- * Stable slug — drives uniqueness so renaming a preset replaces it
+ * Stable slug - drives uniqueness so renaming a preset replaces it
  * instead of creating a duplicate. Lower-cased, dashed, ASCII-only.
  */
 export function slugifyPresetName(raw: string): string {
@@ -88,7 +88,7 @@ export async function readComposerPresets(
   try {
     raw = JSON.parse(await fs.readFile(file, "utf8"));
   } catch {
-    // Corrupt file — surface as empty rather than throwing so the
+    // Corrupt file - surface as empty rather than throwing so the
     // dashboard keeps loading.
     return [];
   }

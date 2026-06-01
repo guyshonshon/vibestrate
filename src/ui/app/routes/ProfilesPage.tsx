@@ -76,7 +76,7 @@ export function ProfilesPage() {
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
           A <strong className="text-fog-100">Profile</strong> is how strong and
-          expensive a role runs — it picks a Provider plus model, power, and
+          expensive a role runs - it picks a Provider plus model, power, and
           budget. Crew roles point at a profile; reuse one across roles, or make
           a stronger one for heavier seats. Power is provider-specific.
         </p>
@@ -242,7 +242,7 @@ function ProfileCard({
           >
             {["", "low", "medium", "high"].map((b) => (
               <option key={b || "none"} value={b}>
-                {b || "—"}
+                {b || "-"}
               </option>
             ))}
             {!["", "low", "medium", "high"].includes(draft.budget) ? (
@@ -255,7 +255,7 @@ function ProfileCard({
             value={draft.maxTokens}
             onChange={(e) => set("maxTokens", e.target.value)}
             inputMode="numeric"
-            placeholder="—"
+            placeholder="-"
             className={INPUT_CLS}
           />
         </FormField>
@@ -264,7 +264,7 @@ function ProfileCard({
             value={draft.timeoutMs}
             onChange={(e) => set("timeoutMs", e.target.value)}
             inputMode="numeric"
-            placeholder="—"
+            placeholder="-"
             className={INPUT_CLS}
           />
         </FormField>

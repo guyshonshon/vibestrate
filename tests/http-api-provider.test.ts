@@ -34,7 +34,7 @@ afterEach(() => {
   delete process.env.TEST_API_KEY;
 });
 
-describe("runHttpApiProvider — anthropic", () => {
+describe("runHttpApiProvider - anthropic", () => {
   it("builds the messages request and maps usage to real metrics", async () => {
     process.env.TEST_API_KEY = "sk-secret-123456";
     const config = providerConfigSchema.parse({
@@ -95,7 +95,7 @@ describe("runHttpApiProvider — anthropic", () => {
   });
 });
 
-describe("runHttpApiProvider — openai + ollama", () => {
+describe("runHttpApiProvider - openai + ollama", () => {
   it("openai: chat/completions + usage → metrics", async () => {
     process.env.TEST_API_KEY = "sk-openai-123456";
     const config = providerConfigSchema.parse({

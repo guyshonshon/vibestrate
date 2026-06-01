@@ -9,7 +9,7 @@ import { Box, Text } from "ink";
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM, type Color, type StatusToken } from "../theme.js";
 
 /**
- * Compact pill — `▌ label`. The left bar is colored (status or
+ * Compact pill - `▌ label`. The left bar is colored (status or
  * accent), the label inherits dim/normal. Inverse variant gets a
  * filled background and is used for the currently-active element.
  */
@@ -107,7 +107,7 @@ export function AccentHeader({
 }
 
 /**
- * Left selection bar — `▌ ` in cyan when selected, two spaces
+ * Left selection bar - `▌ ` in cyan when selected, two spaces
  * otherwise. The bar produces a much stronger "this row is
  * active" cue than a small `›` glyph.
  */

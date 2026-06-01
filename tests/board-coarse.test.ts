@@ -60,7 +60,7 @@ async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-arch-"));
 }
 
-describe("RoadmapService — archive", () => {
+describe("RoadmapService - archive", () => {
   let svc: RoadmapService;
   beforeEach(async () => {
     svc = new RoadmapService(await tempProject());

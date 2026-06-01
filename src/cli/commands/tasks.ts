@@ -92,13 +92,13 @@ async function cmdAdd(
       console.log(indent(`roadmap item: ${task.roadmapItemId}`));
     }
     // Always surface the heuristic verdict so the user can see what the
-    // signals say — even when --effort or --auto-effort was used.
+    // signals say - even when --effort or --auto-effort was used.
     const verdictLine =
       task.effort === heuristic.effort
         ? `effort: ${color.bold(task.effort ?? "(none)")} ${color.dim(`(matches suggestion @ ${heuristic.confidence})`)}`
         : task.effort
           ? `effort: ${color.bold(task.effort)} ${color.dim(`(suggested ${heuristic.effort} @ ${heuristic.confidence})`)}`
-          : `effort: ${color.dim("(none)")} ${color.dim(`— suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
+          : `effort: ${color.dim("(none)")} ${color.dim(`- suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
     console.log(indent(verdictLine));
     for (const r of heuristic.reasons.slice(0, 3)) {
       console.log(indent(color.dim(`  · ${r}`)));
@@ -236,7 +236,7 @@ async function cmdChecklistList(taskId: string, opts: { json?: boolean }): Promi
     return 0;
   }
   const done = task.checklist.filter((c) => c.status === "done").length;
-  console.log(header(`Checklist — ${task.title}`));
+  console.log(header(`Checklist - ${task.title}`));
   console.log(color.dim(`${done}/${task.checklist.length} done`));
   console.log("");
   printChecklist(task.checklist);
@@ -403,7 +403,7 @@ async function cmdEnhance(
       header(`Proposed checklist (${proposal.items.length} items)`),
     );
     console.log(
-      color.dim(`via ${proposal.providerId} · not yet added — re-run with --apply to append`),
+      color.dim(`via ${proposal.providerId} · not yet added - re-run with --apply to append`),
     );
     console.log("");
     proposal.items.forEach((t, i) => {
@@ -562,7 +562,7 @@ async function cmdReport(taskId: string): Promise<number> {
         }
       }
     } catch {
-      // proposals dir absent — fine
+      // proposals dir absent - fine
     }
     const target = await writeTaskReport(root, {
       task: t,
@@ -634,7 +634,7 @@ async function cmdPickup(
   }
   const { fileURLToPath } = await import("node:url");
   const fs = await import("node:fs");
-  // Re-invoke the exact entrypoint this process was launched with — robust
+  // Re-invoke the exact entrypoint this process was launched with - robust
   // whether the CLI ships as a single bundle or a tsc-compiled tree.
   const here = path.dirname(fileURLToPath(import.meta.url));
   const bin =
@@ -651,7 +651,7 @@ async function cmdPickup(
   }
   const mode = opts.step ? "step" : "continuous";
   console.log(
-    `${symbol.arrow()} Picking up ${color.bold(task.title)} — ${task.checklist.length} item(s), ${mode} mode.`,
+    `${symbol.arrow()} Picking up ${color.bold(task.title)} - ${task.checklist.length} item(s), ${mode} mode.`,
   );
   return new Promise<number>((resolve) => {
     const child = spawn(

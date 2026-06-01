@@ -195,7 +195,7 @@ describe("pageIdFromHotkey", () => {
   });
 });
 
-describe("reduceShellUi — session context + prompt + picker", () => {
+describe("reduceShellUi - session context + prompt + picker", () => {
   it("cycles the safety mode write → read-only → write", () => {
     const a = reduceShellUi(initialUiState, { type: "session.mode.cycle" });
     expect(a.session.mode).toBe("read-only");

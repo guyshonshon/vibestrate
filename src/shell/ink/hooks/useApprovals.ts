@@ -7,7 +7,7 @@ export type ApprovalRow = ApprovalRequest & { runId: string };
 
 /**
  * Read every run's approvals.json and surface a flat list of
- * pending approvals across the whole project — the panel uses
+ * pending approvals across the whole project - the panel uses
  * this to render a single inbox-style view.
  */
 export function useApprovals(

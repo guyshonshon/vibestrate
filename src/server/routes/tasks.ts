@@ -97,7 +97,7 @@ export async function registerTasksRoutes(
     return { suggestions: await svc.suggestNext() };
   });
 
-  // Phase C: heuristic effort suggestion. Pure, free, deterministic —
+  // Phase C: heuristic effort suggestion. Pure, free, deterministic -
   // safe to expose without any rate limit. The dashboard's task-add /
   // task-detail surface a "Suggested: …" panel that calls this.
   app.post<{
@@ -286,7 +286,7 @@ export async function registerTasksRoutes(
   // Enhance: an AI assist (read-only, structured output) proposes a checklist
   // for the task. `apply: false` (default) is a dry-run preview that mutates
   // nothing; `apply: true` appends the proposed items. The model never writes
-  // to the board on its own — accepting is an explicit, separate step.
+  // to the board on its own - accepting is an explicit, separate step.
   app.post<{ Params: { taskId: string }; Body: unknown }>(
     "/api/tasks/:taskId/enhance",
     async (req) => {
@@ -428,7 +428,7 @@ export async function registerTasksRoutes(
   );
 
   // Force-terminate: abort the linked active run (if any), then
-  // cancel the task. Idempotent and best-effort — partial success
+  // cancel the task. Idempotent and best-effort - partial success
   // returns 200 with `aborted`/`cancelled` flags so the UI can show
   // an honest summary instead of an opaque error.
   app.post<{ Params: { taskId: string } }>(
@@ -484,7 +484,7 @@ export async function registerTasksRoutes(
         await svc.updateTaskStatus(task.id, "cancelled");
         cancelled = true;
       } catch (err) {
-        // If both pieces failed, surface a 400 — otherwise return
+        // If both pieces failed, surface a 400 - otherwise return
         // the partial-success summary so the user knows what happened.
         if (!aborted) {
           throw new HttpError(

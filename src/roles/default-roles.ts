@@ -15,7 +15,7 @@ const REL_CANDIDATES = [
 /**
  * Resolve the bundled default-prompts directory starting from `startDir`.
  * Works for every layout: tsx dev (sibling of this module), the bundled
- * single-file `dist/index.js`, and an installed package — by trying the
+ * single-file `dist/index.js`, and an installed package - by trying the
  * sibling first, then walking up looking for `src/roles/default-prompts`
  * (or a copied `dist/default-prompts`). Returns null + the tried paths so the
  * caller can raise a useful error. Exported for tests (the bundle layout is

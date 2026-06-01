@@ -47,7 +47,7 @@ export function RunControlPanel({
   }
 
   useEffect(() => {
-    // Skip polling entirely on terminal runs — nothing can change,
+    // Skip polling entirely on terminal runs - nothing can change,
     // and a stale runId would otherwise spam 404s into the console.
     if (disabled) {
       void refresh();
@@ -118,7 +118,7 @@ export function RunControlPanel({
       </header>
 
       <p className="mb-2 text-[11.5px] text-vibestrate-fg-muted">
-        These controls apply at the next stage boundary — providers like
+        These controls apply at the next stage boundary - providers like
         Claude Code <code className="vibestrate-mono">-p</code> don't have a
         live REPL we can pipe commands into mid-flight.
       </p>

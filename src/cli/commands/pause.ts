@@ -11,12 +11,12 @@ import { color } from "../ui/format.js";
 import { isVibestrateError } from "../../utils/errors.js";
 
 /**
- * `vibe pause <runId>` and `vibe resume <runId>` — write-side toggle on
+ * `vibe pause <runId>` and `vibe resume <runId>` - write-side toggle on
  * a run's pauseRequested flag. The actively-running orchestrator (if any)
  * picks up the flag at the next stage boundary; if the run is currently
  * idle on disk, the flag is just persisted for the next time the
  * orchestrator processes the run. Either way, no provider call, no shell
- * exec, no worktree write — only state.json + events.ndjson.
+ * exec, no worktree write - only state.json + events.ndjson.
  */
 export function buildPauseCommand(): Command {
   return new Command("pause")

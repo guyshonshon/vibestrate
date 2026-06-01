@@ -66,7 +66,7 @@ async function snapshot(label) {
   p.write("o");
   await snapshot("after o");
 
-  console.log("\n>>> press r (lowercase resume — should err-toast on blocked run)");
+  console.log("\n>>> press r (lowercase resume - should err-toast on blocked run)");
   p.write("r");
   await snapshot("after r");
 

@@ -142,10 +142,10 @@ export function RunsPage({
                     </Chip>
                   </td>
                   <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.finalDecision ?? "—"}
+                    {r.finalDecision ?? "-"}
                   </td>
                   <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.verification ?? "—"}
+                    {r.verification ?? "-"}
                   </td>
                   <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular whitespace-nowrap">
                     {fmtElapsed(
@@ -306,7 +306,7 @@ function IntegrationPanel() {
               setMsg(
                 res.stoppedAt
                   ? `Stopped at ${res.stoppedAt} (conflicts). Resolve in ${res.worktreePath}.`
-                  : `Integrated into ${res.integrationBranch}. Review it — main is untouched.`,
+                  : `Integrated into ${res.integrationBranch}. Review it - main is untouched.`,
               );
             })
           }

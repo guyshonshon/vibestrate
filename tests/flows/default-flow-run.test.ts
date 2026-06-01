@@ -239,16 +239,16 @@ describe("Default flow run through the unified runner (D2 phase B-3b)", () => {
     const { result } = await runDefaultFlow(projectRoot, true);
     expect(result.state.status).toBe("merge_ready");
     expect(result.state.flow?.flowId).toBe("default");
-    // Verification was skipped — no decision leaks, and the report says so
+    // Verification was skipped - no decision leaks, and the report says so
     // rather than showing the NEEDS_HUMAN default.
     expect(result.state.verification).toBeNull();
     const report = await fs.readFile(result.finalReportPath, "utf8");
-    expect(report).toContain("Skipped — read-only run");
+    expect(report).toContain("Skipped - read-only run");
     expect(report).not.toContain("NEEDS_HUMAN");
   });
 
   it("a plain run (no --flow) executes the built-in default flow", async () => {
-    // No flow passed to the orchestrator — it must resolve and run `default`
+    // No flow passed to the orchestrator - it must resolve and run `default`
     // through the same runner, and the report's loop count must be real (this
     // provider asks for changes once → one fix cycle).
     const projectRoot = await makeRepo();

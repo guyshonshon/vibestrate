@@ -1,12 +1,12 @@
 #!/bin/sh
-# Vibestrate installer — installs the `vibe` CLI (npm package `vibestrate`) globally.
+# Vibestrate installer - installs the `vibe` CLI (npm package `vibestrate`) globally.
 #
 #   curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 #
 # Pin a version with VIBESTRATE_VERSION before the pipe, e.g.
 #   curl -fsSL .../install.sh | VIBESTRATE_VERSION=0.1.1 sh
 #
-# This script only runs a global npm/pnpm install of a published package —
+# This script only runs a global npm/pnpm install of a published package -
 # nothing else. It is plain text you can read before running.
 set -eu
 

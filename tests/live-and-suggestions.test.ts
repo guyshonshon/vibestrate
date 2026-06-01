@@ -313,7 +313,7 @@ describe("checkPatchSafety", () => {
     );
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/AWS access key id/);
-    // Reason must redact — never leak the full token back at the caller.
+    // Reason must redact - never leak the full token back at the caller.
     expect(r.reason).not.toContain(fakeKey);
   });
 
@@ -351,7 +351,7 @@ describe("checkPatchSafety", () => {
       wt,
     );
     // The added line ("const kept = 1") is clean. The removed line carrying
-    // the key is fine — removing a secret is what we want, not what we
+    // the key is fine - removing a secret is what we want, not what we
     // block.
     expect(r.ok).toBe(true);
   });
@@ -545,7 +545,7 @@ describe("ReviewSuggestionService apply (gated)", () => {
   });
 });
 
-describe("renderFinalReport — suggestions section", () => {
+describe("renderFinalReport - suggestions section", () => {
   it("renders an empty notice when no suggestions", () => {
     const report = renderFinalReport({
       state: runStateSchema.parse({

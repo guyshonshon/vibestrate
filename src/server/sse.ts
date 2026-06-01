@@ -117,7 +117,7 @@ export async function streamRunEvents(opts: StreamEventsOptions): Promise<void> 
       void readNew();
     });
   } catch {
-    // File may not exist yet — fall back to polling once a second.
+    // File may not exist yet - fall back to polling once a second.
     const interval = setInterval(readNew, 1000);
     opts.request.raw.on("close", () => clearInterval(interval));
   }
@@ -143,7 +143,7 @@ export type StreamProviderOutputOptions = {
 /**
  * Tail .vibestrate/runs/<runId>/streams/<promptName>.ndjson and forward each
  * line as an SSE `chunk` event. Mirrors `streamRunEvents` but for the
- * raw provider stdout/stderr stream — used by the run-detail Live
+ * raw provider stdout/stderr stream - used by the run-detail Live
  * Output panel to show what the model's CLI is currently saying.
  */
 export async function streamProviderOutput(
@@ -152,7 +152,7 @@ export async function streamProviderOutput(
   const file = streamFilePath(opts.projectRoot, opts.runId, opts.promptName);
   const client = createSseClient(opts.reply);
 
-  // See streamRunEvents — same TDZ-avoidance pattern. A request that
+  // See streamRunEvents - same TDZ-avoidance pattern. A request that
   // disconnects between SSE-headers-sent and the heartbeat setInterval
   // would otherwise crash `cleanup` with "Cannot access 'heartbeat'
   // before initialization".

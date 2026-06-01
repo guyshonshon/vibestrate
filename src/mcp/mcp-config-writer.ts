@@ -13,16 +13,16 @@ import {
 /**
  * Materialize a resolved server set as a `<dir>/mcp.json` file and
  * return the absolute path. Returns `null` when the resolved set is
- * empty — callers don't pass --mcp-config in that case.
+ * empty - callers don't pass --mcp-config in that case.
  *
  * The directory is created if necessary. We write 0o600 so the file
- * is only readable by the run owner — MCP server `env` blocks
+ * is only readable by the run owner - MCP server `env` blocks
  * sometimes carry tokens.
  */
 export async function writeMcpConfigFile(input: {
   dir: string;
   servers: ReadonlyArray<ResolvedMcpServer>;
-  /** S0 Action Broker — when provided, this secret-bearing config write crosses
+  /** S0 Action Broker - when provided, this secret-bearing config write crosses
    *  the boundary (fail-closed: a deny throws). */
   broker?: ActionBroker;
   runId?: string;
@@ -35,7 +35,7 @@ export async function writeMcpConfigFile(input: {
     const action: ActionRequest = {
       runId: input.runId,
       kind: "file.write",
-      // Path only — never the body (it can carry MCP server tokens).
+      // Path only - never the body (it can carry MCP server tokens).
       subject: { path: file, purpose: "mcp.json", serverCount: input.servers.length },
       proposedBy: "system",
     };

@@ -28,7 +28,7 @@ describe("text output adapter (default)", () => {
 
 describe("adapter contract (what a structured adapter must honor)", () => {
   // A minimal stand-in for a real JSON adapter: extracts the assistant text
-  // from a fake event stream and FAILS LOUD on a malformed stream — never
+  // from a fake event stream and FAILS LOUD on a malformed stream - never
   // returns garbage that could hide an approval marker from the control parser.
   const fakeJsonAdapter: ProviderOutputAdapter = {
     id: "fake-json",

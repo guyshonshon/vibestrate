@@ -153,7 +153,7 @@ describe("resolveValidationProfile", () => {
     );
   });
 
-  it("returns commands=[] for an empty default — no_commands_configured semantics preserved", () => {
+  it("returns commands=[] for an empty default - no_commands_configured semantics preserved", () => {
     const empty = configFromYaml({ validate: [] });
     const r = resolveValidationProfile(empty, null);
     expect(r.commands).toEqual([]);

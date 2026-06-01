@@ -260,8 +260,8 @@ export async function getDiffSnapshot(input: {
 
   // `git diff --numstat HEAD` omits untracked files entirely, so a brand-new
   // file (status `??`) would show +0 in the summary even though it's all new
-  // lines. Count its added lines the same way getFileDiff renders it — diff
-  // the file against /dev/null with --no-index — so the changed-files list is
+  // lines. Count its added lines the same way getFileDiff renders it - diff
+  // the file against /dev/null with --no-index - so the changed-files list is
   // honest. (Untracked directory entries end in "/" and are skipped.)
   for (const [filePath, fileStatus] of statusByPath) {
     if (fileStatus !== "untracked") continue;

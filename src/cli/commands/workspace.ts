@@ -44,7 +44,7 @@ function openBrowser(url: string): void {
         ? `start "" ${JSON.stringify(url)}`
         : `xdg-open ${JSON.stringify(url)}`;
   exec(cmd, () => {
-    /* ignore — the URL is printed for copy/paste */
+    /* ignore - the URL is printed for copy/paste */
   });
 }
 
@@ -85,7 +85,7 @@ async function cmdAdd(target: string | undefined): Promise<number> {
   const initialized = await pathExists(vibestrateRoot(root));
   console.log(`${symbol.ok()} Registered ${color.bold(entry.label)} (${entry.root}).`);
   if (!initialized) {
-    console.log(indent(color.dim("Note: no .vibestrate/ here yet — run `vibe init` in it.")));
+    console.log(indent(color.dim("Note: no .vibestrate/ here yet - run `vibe init` in it.")));
   }
   return 0;
 }
@@ -105,7 +105,7 @@ async function cmdRemove(selector: string): Promise<number> {
 }
 
 /**
- * Open a project's dashboard — starting its own `vibe ui` (server + scheduler)
+ * Open a project's dashboard - starting its own `vibe ui` (server + scheduler)
  * if it isn't already live, then opening a browser tab. Each project stays a
  * fully isolated tenant; this just navigates to it.
  */
@@ -120,7 +120,7 @@ async function cmdOpen(
     );
     const how = r.started ? "started + opening" : "already live";
     console.log(
-      `${symbol.ok()} ${color.bold(r.label)} — ${color.bold(r.url)} ${color.dim(`(${how})`)}`,
+      `${symbol.ok()} ${color.bold(r.label)} - ${color.bold(r.url)} ${color.dim(`(${how})`)}`,
     );
     if (opts.open !== false) openBrowser(r.url);
     return 0;
@@ -189,7 +189,7 @@ async function cmdClose(
     } else if (r.method === "unreachable") {
       console.error(
         `${symbol.fail()} ${color.bold(r.label)} isn't responding and couldn't be confirmed${
-          r.pid ? ` — if it's stuck, kill PID ${r.pid} manually` : ""
+          r.pid ? ` - if it's stuck, kill PID ${r.pid} manually` : ""
         }.`,
       );
       return 1;

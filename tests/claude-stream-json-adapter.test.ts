@@ -33,7 +33,7 @@ const FULL_STREAM = [
   RESULT_EVENT,
 ].join("\n");
 
-describe("claude stream-json adapter — finalize", () => {
+describe("claude stream-json adapter - finalize", () => {
   it("extracts the response text from the terminal result event", () => {
     expect(claudeStreamJsonAdapter.finalize(FULL_STREAM).responseText).toBe("pong");
   });
@@ -77,7 +77,7 @@ describe("claude stream-json adapter — finalize", () => {
   });
 });
 
-describe("claude stream-json adapter — live filter", () => {
+describe("claude stream-json adapter - live filter", () => {
   it("emits only assistant text deltas, buffering across split chunks", () => {
     const filter = claudeStreamJsonAdapter.createLiveFilter!();
     // A thinking/signature delta → nothing displayed.
@@ -90,7 +90,7 @@ describe("claude stream-json adapter — live filter", () => {
       event: { type: "content_block_delta", index: 1, delta: { type: "text_delta", text: "hello world" } },
     });
     expect(filter(`${thinking}\n`)).toBe("");
-    // Feed the text-delta line split across two chunks — must still emit once
+    // Feed the text-delta line split across two chunks - must still emit once
     // the newline arrives.
     const mid = Math.floor(textDelta.length / 2);
     expect(filter(textDelta.slice(0, mid))).toBe("");

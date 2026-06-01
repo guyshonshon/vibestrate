@@ -9,7 +9,7 @@ import { Keyboard, X } from "lucide-react";
  *   - the `?` button surfaces sprinkled around the chrome
  *
  * Closes on Esc, outside click, or the X button. Self-contained, no
- * route, no portal — renders a fixed full-viewport scrim.
+ * route, no portal - renders a fixed full-viewport scrim.
  */
 export function HelpOverlay() {
   const [open, setOpen] = useState(false);
@@ -50,7 +50,7 @@ export function HelpOverlay() {
       aria-modal="true"
       aria-label="Keyboard shortcuts"
       onClick={(e) => {
-        // Close on backdrop click — but not on inner panel clicks.
+        // Close on backdrop click - but not on inner panel clicks.
         if (e.target === e.currentTarget) setOpen(false);
       }}
       className="fixed inset-0 z-[100] flex items-start justify-center bg-vibestrate-canvas/80 backdrop-blur-sm px-4 py-12 sm:py-20"

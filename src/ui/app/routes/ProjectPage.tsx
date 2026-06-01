@@ -158,10 +158,10 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             </span>
           </KV>
           <KV label="Main branch">
-            <span className="vibestrate-mono">{meta.git.mainBranch ?? "—"}</span>
+            <span className="vibestrate-mono">{meta.git.mainBranch ?? "-"}</span>
           </KV>
           <KV label="Current branch">
-            <span className="vibestrate-mono">{meta.git.currentBranch ?? "—"}</span>
+            <span className="vibestrate-mono">{meta.git.currentBranch ?? "-"}</span>
           </KV>
           <KV label="HEAD">
             {meta.git.headHash ? (
@@ -173,7 +173,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                 </span>
               </span>
             ) : (
-              "—"
+              "-"
             )}
           </KV>
           <KV label="Worktree dir">
@@ -236,7 +236,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
             null;
           const roles = crew?.roles ?? [];
           return (
-            <Section title={`Crew — ${crew?.label ?? "none"} (${roles.length})`}>
+            <Section title={`Crew - ${crew?.label ?? "none"} (${roles.length})`}>
               {roles.length === 0 ? (
                 <Empty>No roles configured.</Empty>
               ) : (
@@ -364,7 +364,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           </KV>
           <KV label="Forced approval stages">
             {meta.policies.requireApprovalAtStages.length === 0
-              ? "—"
+              ? "-"
               : meta.policies.requireApprovalAtStages.join(", ")}
           </KV>
         </Section>

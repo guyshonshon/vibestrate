@@ -29,7 +29,7 @@ export function buildFlowChoices(
     name: f.label || f.id,
     description: [f.description, `${f.source.kind} · ${f.id}`]
       .filter(Boolean)
-      .join(" — "),
+      .join(" - "),
   }));
 }
 

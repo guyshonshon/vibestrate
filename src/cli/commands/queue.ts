@@ -206,7 +206,7 @@ async function cmdStatus(opts: { json?: boolean }): Promise<number> {
   }
   console.log(header("Scheduler status"));
   console.log(indent(`paused: ${state.paused}`));
-  console.log(indent(`running: ${state.runningTaskIds.length} (${state.runningTaskIds.join(", ") || "—"})`));
+  console.log(indent(`running: ${state.runningTaskIds.length} (${state.runningTaskIds.join(", ") || "-"})`));
   console.log(indent(`queued: ${file.entries.length}`));
   console.log(
     indent(

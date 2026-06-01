@@ -183,7 +183,7 @@ export class ProposalService {
     const stillUnresolved: string[] = [];
     for (const u of parsed.unresolvedDependencies) {
       if (existingTitles.has(u.missingTitle)) {
-        // Resolvable against an existing task — patch it back into the
+        // Resolvable against an existing task - patch it back into the
         // proposal draft so accept can wire it up by id.
         const draft = parsed.tasks.find((t) => t.title === u.taskTitle);
         if (draft && !draft.dependencies.includes(u.missingTitle)) {
@@ -408,7 +408,7 @@ export class ProposalService {
           // ignore
         }
       }
-      // Rolling back roadmap items is harder — they live in roadmap.json.
+      // Rolling back roadmap items is harder - they live in roadmap.json.
       // For each id we just created, drop it from the file.
       if (createdRoadmapItemIds.length > 0) {
         const file = await this.store.readRoadmap();

@@ -50,7 +50,7 @@ async function readRaw(
 
 /**
  * Append/update a usage row for the (profileName, source) tuple. Counts only
- * **actual validation execution attempts** — callers pass either status
+ * **actual validation execution attempts** - callers pass either status
  * "passed" or "failed". The no_commands_configured case is documented to NOT
  * count (the caller skips us in that branch).
  *
@@ -98,7 +98,7 @@ export async function recordValidationProfileUsage(input: {
       `${JSON.stringify({ entries: all }, null, 2)}\n`,
     );
   } catch {
-    // Best-effort telemetry — never break validation because the usage file
+    // Best-effort telemetry - never break validation because the usage file
     // is unwritable.
   }
 }
