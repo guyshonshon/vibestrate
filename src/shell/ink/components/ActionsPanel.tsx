@@ -16,7 +16,7 @@ export function ActionsPanel({ page }: { page: PageId }) {
   return (
     <Box
       flexDirection="column"
-      width="34%"
+      width="24%"
       borderStyle="single"
       borderColor={ACCENT_DIM}
       borderTop={false}

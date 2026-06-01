@@ -5,7 +5,6 @@ import {
   ACCENT,
   ACCENT_BRIGHT,
   ACCENT_DIM,
-  clip,
   eventTypeColor,
   runStatusToken,
   timeAgo,
@@ -62,17 +61,18 @@ export function DashboardPage({ snapshot }: Props) {
                   const tok = runStatusToken(r.status);
                   return (
                     <Box key={r.runId}>
-                      <Text>
+                      <Text wrap="truncate-end">
                         <Text color={tok.color}>{tok.glyph}</Text>
                         {"  "}
-                        <Text>{clip(r.task, 36).padEnd(36)}</Text>
-                        {"  "}
-                        <Text dimColor>{clip(r.currentRole ?? "—", 10)}</Text>
+                        <Text>{r.task}</Text>
+                        {r.currentRole ? (
+                          <Text dimColor>{"  · "}{r.currentRole}</Text>
+                        ) : null}
                         {r.pendingApprovals > 0 ? (
-                          <Text color="yellow">  ⏳{r.pendingApprovals}</Text>
+                          <Text color="yellow">{"  ⏳"}{r.pendingApprovals}</Text>
                         ) : null}
                         {r.pendingSuggestions > 0 ? (
-                          <Text color="yellow">  ✎{r.pendingSuggestions}</Text>
+                          <Text color="yellow">{"  ✎"}{r.pendingSuggestions}</Text>
                         ) : null}
                       </Text>
                     </Box>
@@ -105,13 +105,10 @@ export function DashboardPage({ snapshot }: Props) {
               <Box flexDirection="column">
                 {snapshot.recentActivity.slice(0, perList).map((a, i) => (
                   <Box key={`${a.runId}-${i}`}>
-                    <Text>
-                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(7)}</Text>
-                      <Text color={eventTypeColor(a.event.type)}>
-                        {clip(a.event.type, 18).padEnd(18)}
-                      </Text>
-                      <Text dimColor>{"  "}</Text>
-                      <Text>{clip(a.event.message, 32)}</Text>
+                    <Text wrap="truncate-end">
+                      <Text dimColor>{timeAgo(a.event.timestamp).padEnd(8)}</Text>
+                      <Text color={eventTypeColor(a.event.type)}>{"● "}</Text>
+                      <Text>{a.event.message || a.event.type}</Text>
                     </Text>
                   </Box>
                 ))}
@@ -134,11 +131,11 @@ export function DashboardPage({ snapshot }: Props) {
                 const tok = runStatusToken(r.status);
                 return (
                   <Box key={r.runId}>
-                    <Text>
+                    <Text wrap="truncate-end">
                       <Text color={tok.color}>{tok.glyph}</Text>
-                      <Text dimColor>  {tok.label.padEnd(14)}</Text>
-                      <Text>{clip(r.task, 60)}</Text>
-                      <Text dimColor>   {timeAgo(r.updatedAt)}</Text>
+                      <Text dimColor>{"  "}{tok.label.padEnd(14)}</Text>
+                      <Text>{r.task}</Text>
+                      <Text dimColor>{"   "}{timeAgo(r.updatedAt)}</Text>
                     </Text>
                   </Box>
                 );

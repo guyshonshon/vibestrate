@@ -28,7 +28,7 @@ export function OutputPane({
   return (
     <Box
       flexDirection="column"
-      width="32%"
+      width="26%"
       borderStyle="single"
       borderColor={ACCENT_DIM}
       borderTop={false}
