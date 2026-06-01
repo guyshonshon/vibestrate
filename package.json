@@ -20,7 +20,7 @@
   },
   "files": [
     "dist",
-    "src/agents/default-prompts",
+    "src/roles/default-prompts",
     "src/ui/lib/types.ts",
     "README.md",
     "SECURITY.md",
