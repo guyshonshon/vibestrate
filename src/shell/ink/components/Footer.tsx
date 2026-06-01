@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { ACCENT } from "../theme.js";
 import type { ShellUiStateV2 } from "../ui-state.js";
 
 export type KeyHint = { key: string; label: string };
@@ -8,8 +7,6 @@ export type HintGroup = { name: string; hints: KeyHint[] };
 
 type Props = {
   ui: ShellUiStateV2;
-  groups: HintGroup[];
-  capturedAt: string | null;
 };
 
 /**
@@ -19,29 +16,10 @@ type Props = {
  *
  * Toasts and pending y/N confirmations render under the keymap.
  */
-export function Footer({ ui, groups, capturedAt }: Props) {
+export function Footer({ ui }: Props) {
   const toast = ui.toasts[ui.toasts.length - 1] ?? null;
   return (
     <Box flexDirection="column">
-      <Box flexWrap="wrap">
-        <Text>
-          {groups.map((g, gi) => (
-            <React.Fragment key={g.name}>
-              {gi > 0 ? <Text dimColor>   ·   </Text> : null}
-              <Text dimColor>{g.name}: </Text>
-              {g.hints.map((h, hi) => (
-                <React.Fragment key={`${g.name}-${h.key}`}>
-                  {hi > 0 ? <Text dimColor>  </Text> : null}
-                  <Text color={ACCENT}>{h.key}</Text>
-                  <Text dimColor> {h.label}</Text>
-                </React.Fragment>
-              ))}
-            </React.Fragment>
-          ))}
-        </Text>
-        <Box flexGrow={1} />
-        {capturedAt ? <Text dimColor>{capturedAt.slice(11, 19)}</Text> : null}
-      </Box>
       {ui.pendingConfirm?.action === "abort" ? (
         <Box marginTop={1}>
           <Text color="yellow">

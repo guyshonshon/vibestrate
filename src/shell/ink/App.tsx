@@ -625,9 +625,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
 
   return (
     <Box flexDirection="column">
-      {/* Region 1 — header: brand + context + menu. */}
+      {/* Region 1 — header: brand + context + menu + command banner. */}
       <Panel borderColor={ACCENT}>
-        <HeaderBar model={statusModel} page={ui.page} />
+        <HeaderBar
+          model={statusModel}
+          page={ui.page}
+          groups={hintGroups}
+          capturedAt={snapshot?.capturedAt ?? null}
+        />
       </Panel>
       {/* Region 2 — body: the active page (left) + command output (right). */}
       <Panel borderColor={ACCENT_DIM} flexGrow={1}>
@@ -789,11 +794,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           onChange={(v) => dispatch({ type: "runner.input", value: v })}
           onSubmit={submitPrompt}
         />
-        <Footer
-          ui={ui}
-          groups={hintGroups}
-          capturedAt={snapshot?.capturedAt ?? null}
-        />
+        <Footer ui={ui} />
       </Panel>
       {ui.picker ? (
         <Box marginTop={1}>
