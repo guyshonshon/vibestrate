@@ -705,6 +705,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               hubUi={ui.flows}
               dispatch={dispatch}
               sessionFlowId={ui.session.flowId}
+              config={config}
               active
             />
           ) : ui.page === "crew" ? (

@@ -62,6 +62,7 @@ import type {
   FlowSuggestion,
   FlowLoop,
   ResolvedFlowSnapshot,
+  FlowCoverage,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -671,6 +672,7 @@ export const api = {
   async listFlows(): Promise<{
     flows: DiscoveredFlow[];
     invalid: { path: string; message: string }[];
+    defaultFlow?: string | null;
   }> {
     return jsonGet("/api/flows");
   },
@@ -860,6 +862,19 @@ export const api = {
       input,
     );
     return r.snapshot;
+  },
+  async flowCoverage(
+    flowId: string,
+    input: { crewId?: string | null; seatRoleOverrides?: Record<string, string> } = {},
+  ): Promise<FlowCoverage> {
+    const r = await jsonPost<{ coverage: FlowCoverage }>(
+      `/api/flows/${encodeURIComponent(flowId)}/coverage`,
+      input,
+    );
+    return r.coverage;
+  },
+  async setDefaultFlow(flowId: string): Promise<{ ok: true; defaultFlow: string }> {
+    return jsonPost(`/api/flows/default`, { flowId });
   },
   async suggestFlows(input: {
     task: string;

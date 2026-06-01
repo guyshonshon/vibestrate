@@ -229,6 +229,23 @@ export type ResolvedFlowStep = {
   repeatCount: number;
 };
 
+export type SeatCoverageStatus = "filled" | "gap" | "ambiguous";
+
+export type SeatCoverage = {
+  seatId: string;
+  label: string;
+  status: SeatCoverageStatus;
+  candidateRoleIds: string[];
+  resolvedRoleId: string | null;
+  usedByStep: boolean;
+};
+
+export type FlowCoverage = {
+  crewId: string;
+  seats: SeatCoverage[];
+  runnable: boolean;
+};
+
 export type ResolvedFlowSnapshot = {
   schemaVersion: 1;
   flowId: string;
