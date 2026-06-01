@@ -14,7 +14,6 @@ type Props = {
   dispatch: React.Dispatch<TaskFormAction>;
   onSubmit: () => void;
   onCancel: () => void;
-  onEditDescription: () => void;
 };
 
 const FIELD_LABELS: Record<TaskFormField, string> = {
@@ -29,13 +28,7 @@ const FIELD_LABELS: Record<TaskFormField, string> = {
 const PRIORITY_VALUES = ["low", "medium", "high"] as const;
 const EFFORT_VALUES = ["", "low", "medium", "high"] as const;
 
-export function TaskForm({
-  form,
-  dispatch,
-  onSubmit,
-  onCancel,
-  onEditDescription,
-}: Props) {
+export function TaskForm({ form, dispatch, onSubmit, onCancel }: Props) {
   const isCreate = form.mode === "create";
   return (
     <Box {...FOCAL_CARD_PROPS} flexDirection="column">
@@ -45,8 +38,7 @@ export function TaskForm({
       <Text dimColor>
         <Text color="cyan">↑↓</Text> or <Text color="cyan">tab</Text> next field
         · <Text color="cyan">↵</Text> next/save · <Text color="cyan">←→</Text>
-        on enums · <Text color="cyan">space</Text> toggles flags ·{" "}
-        <Text color="cyan">D</Text> opens $EDITOR
+        on enums · <Text color="cyan">space</Text> toggles flags
       </Text>
       <Box marginTop={1} flexDirection="column">
         {TASK_FORM_FIELDS.map((field) => (
@@ -116,22 +108,23 @@ function FieldRow({
           <Text>{form.title || <Text dimColor>(required)</Text>}</Text>
         )
       ) : field === "description" ? (
-        <Box flexDirection="column">
+        focused ? (
+          <TextInput
+            value={form.description.replace(/\n/g, " ")}
+            onChange={(v) =>
+              dispatch({ type: "field", field: "description", value: v })
+            }
+            placeholder="one-line summary"
+          />
+        ) : (
           <Text>
             {form.description ? (
-              <Text>
-                {form.description.split("\n").length} line
-                {form.description.split("\n").length === 1 ? "" : "s"} ·{" "}
-                {form.description.length} chars
-              </Text>
+              <Text wrap="truncate-end">{form.description.replace(/\n/g, " ")}</Text>
             ) : (
               <Text dimColor>(empty)</Text>
             )}
           </Text>
-          {focused ? (
-            <Text dimColor>press D to edit in $EDITOR</Text>
-          ) : null}
-        </Box>
+        )
       ) : field === "priority" ? (
         <EnumPicker
           values={PRIORITY_VALUES as readonly string[]}

@@ -21,7 +21,6 @@ import {
   queueTask,
   markReady,
 } from "../roadmap/task-actions.js";
-import { editInEditor } from "../roadmap/editor-handoff.js";
 import { spawnVibestrateDetached } from "../runner/command-runner.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
 import { AccentHeader, SelectionMark, StatusPill } from "../components/visuals.js";
@@ -131,18 +130,6 @@ export function RoadmapPage({
     }
   };
 
-  const handleEditDescription = async (): Promise<void> => {
-    try {
-      const next = await editInEditor(form.description);
-      dispatchForm({ type: "field", field: "description", value: next });
-    } catch (err) {
-      onToast(
-        "err",
-        `editor failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  };
-
   useInput(
     (input, key) => {
       // Form modal owns input when open.
@@ -177,10 +164,6 @@ export function RoadmapPage({
           } else {
             dispatchForm({ type: "focus.cycle", direction: 1 });
           }
-          return;
-        }
-        if (input === "D") {
-          void handleEditDescription();
           return;
         }
         // ←/→ on enum pickers
@@ -422,7 +405,6 @@ export function RoadmapPage({
             dispatch={dispatchForm}
             onSubmit={submit}
             onCancel={closeForm}
-            onEditDescription={handleEditDescription}
           />
         </Box>
       ) : null}

@@ -33,13 +33,12 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
   {
     heading: "Roadmap actions",
     entries: [
-      ["↵  /  r", "run selected task in the background"],
+      ["↵  /  r", "run *this* selected card in the background"],
       ["n", "new task (form)"],
-      ["e", "edit selected task"],
+      ["e", "edit selected task (title/description/priority… inline)"],
       ["d", "delete selected task (asks y / N)"],
       ["Q", "queue selected task"],
       ["c", "cycle a backlog task to ready"],
-      ["D", "open description in $EDITOR"],
     ],
   },
 ];

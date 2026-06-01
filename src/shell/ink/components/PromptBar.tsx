@@ -45,7 +45,9 @@ export function PromptBar({
             placeholder='run "add dark mode"   ·   status   ·   tasks list'
           />
         ) : (
-          <Text dimColor>{input || "press i to type a command"}</Text>
+          <Text dimColor>
+            {input || 'press i to run a new task — e.g. run "add dark mode"'}
+          </Text>
         )}
       </Box>
       {running ? (
