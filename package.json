@@ -24,7 +24,8 @@
     "src/ui/lib/types.ts",
     "README.md",
     "SECURITY.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/content"
   ],
   "engines": {
     "node": ">=18.17"

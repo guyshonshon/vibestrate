@@ -40,6 +40,12 @@ When you run a `run …` command from the prompt, the shell seeds it with your s
         → launches with the selected crew + flow + mode
 ```
 
+Command **output streams into a scrollable pane on the right** (~30% of the width), not the prompt — so long `--help` text or a `status` dump stays readable. **PgUp / PgDn** scroll it; it follows the tail by default.
+
+## Docs browser
+
+Press **`d`** (or `:` → "Browse docs") to open the docs in-terminal: a topic list on the left, the selected page rendered with terminal **Markdown** (headings, code blocks, lists, inline code, links) on the right. **↑ / ↓** pick a topic, **PgUp / PgDn** scroll the page, **`o`** opens the docs website, **Esc** closes. The pages are the same ones published at the docs site, bundled with the CLI.
+
 ## Navigation
 
 Single-key, when the prompt isn't focused:
@@ -47,6 +53,7 @@ Single-key, when the prompt isn't focused:
 - **`1`–`9`, `0`** — switch tabs (Dashboard, Roadmap, Queue, Runs, Approvals, Suggestions, Notifs, Crew, Skills, Doctor).
 - **`:`** — command palette (fuzzy search every action).
 - **`Esc`** — back to the previous page.
+- **`d`** — open the in-terminal docs browser.
 - **`B`** — open Mission Control (the web dashboard) in your browser.
 - **`?`** — context-sensitive help. **`q`** — quit.
 
