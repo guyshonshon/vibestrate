@@ -38,7 +38,7 @@ const SECTIONS: Array<{ heading: string; entries: Array<[string, string]> }> = [
       ["e", "edit selected task (title/description/priority… inline)"],
       ["d", "delete selected task (asks y / N)"],
       ["Q", "queue selected task"],
-      ["c", "cycle a backlog task to ready"],
+      ["c", "toggle a card between backlog ↔ ready (triage; reversible)"],
     ],
   },
 ];
