@@ -288,10 +288,10 @@ function CreateProfile({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={id || "optional"} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder={caps.models[0] ?? "provider default"} className={INPUT_CLS} />
+          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
         <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific" : "this provider has no effort levels"}>
-          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder={caps.powerLevels[0] ?? "none"} className={INPUT_CLS} />
+          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
@@ -418,10 +418,10 @@ function ProfileCard({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={profile.id} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder={caps.models[0] ?? "provider default"} className={INPUT_CLS} />
+          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
         <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific (e.g. balanced / deep)" : "this provider has no effort levels"}>
-          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder={caps.powerLevels[0] ?? "none"} className={INPUT_CLS} />
+          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
