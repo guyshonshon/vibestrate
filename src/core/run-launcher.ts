@@ -193,14 +193,18 @@ export async function runFromSpec(
     resumeFrom = await resolveResumeFrom(detected.projectRoot, spec.resumeFrom);
   }
 
+  // No explicit flow: fall back to the project's default flow (set via
+  // `vibe flows use <id>`). With neither, the orchestrator runs the built-in
+  // default flow.
+  const effectiveFlowId = spec.flow?.id ?? loaded.config.defaultFlow ?? null;
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
-  if (spec.flow) {
-    const flow = await findFlowById(detected.projectRoot, spec.flow.id);
+  if (effectiveFlowId) {
+    const flow = await findFlowById(detected.projectRoot, effectiveFlowId);
     if (!flow) {
       const ids = (await discoverFlows(detected.projectRoot)).map((g) => g.id);
       throw new RunLaunchError(
         "flow_not_found",
-        `No Flow named "${spec.flow.id}". Found: ${ids.join(", ") || "(none)"}.`,
+        `No Flow named "${effectiveFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
     }
     resolvedFlow = resolveFlow({
@@ -211,10 +215,10 @@ export async function runFromSpec(
       crewId: spec.crewId ?? null,
       profileOverride,
       seatRoleOverrides: spec.seatRoleOverrides ?? {},
-      brief: spec.flow.brief ?? null,
-      contextPolicy: spec.flow.contextPolicy,
-      stepProfileOverrides: spec.flow.stepProfileOverrides ?? {},
-      skippedOptionalSteps: spec.flow.skippedOptionalSteps ?? [],
+      brief: spec.flow?.brief ?? null,
+      contextPolicy: spec.flow?.contextPolicy,
+      stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
+      skippedOptionalSteps: spec.flow?.skippedOptionalSteps ?? [],
     });
   }
 

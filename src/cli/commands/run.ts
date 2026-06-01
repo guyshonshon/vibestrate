@@ -183,6 +183,11 @@ export async function runRunCommand(
   // one crew. Anything passed on the CLI is respected and skips its prompt.
   let activeFlowId = options.flowId ?? null;
   let activeCrewId = options.crewId ?? null;
+  // No --flow on a non-interactive run: fall back to the project's default
+  // flow (set via `vibe flows use <id>`). `-i` still opens the picker.
+  if (!activeFlowId && !options.flowInteractive && loaded.config.defaultFlow) {
+    activeFlowId = loaded.config.defaultFlow;
+  }
   if (options.flowInteractive) {
     // Fail fast before any prompts so we never discard the user's picks.
     if (!resolvedTask) {

@@ -184,6 +184,10 @@ export const projectConfigBaseSchema = z.object({
   crews: crewsConfigSchema.default({}),
   /** Crew used when a run doesn't pick one. Must exist in `crews`. */
   defaultCrew: z.string().min(1).default("default"),
+  /** Flow used when a run doesn't pick one (the "active" flow). Optional; flows
+   *  live on disk (discovered), not in config, so existence is checked at run
+   *  time, not here. */
+  defaultFlow: z.string().min(1).optional(),
   budget: budgetConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z
