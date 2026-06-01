@@ -25,6 +25,14 @@ CLAUDE_CORE_MODEL_REWRITE.md
 # Running, internal checklist — kept local only.
 docs/TODO.md
 
+# Internal scratch plans, smoke-test checklists, and issue log — not product
+# source. Kept local only.
+SEO_GEO_INDEXING_PLAN.md
+CODEX_PLAN.md
+docs/TODO-v2
+docs/smoke-tests-*.md
+docs/ISSUES.md
+
 # Legacy local state from before the Vibestrate rename. Do not publish stale
 # run history/config from an old checkout.
 .amaco/
