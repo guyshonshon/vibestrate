@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Fix: task-form `D`/$EDITOR corrupted the terminal.** Launching `$EDITOR` from
+  inside the Ink shell never actually suspended Ink, so the editor and the panel
+  fought over the terminal (and pressing `D` also typed "D" into the focused
+  field). Removed the `$EDITOR` handoff entirely; the task **description is now
+  edited inline** in the form like the other fields. Deleted the unused
+  `editor-handoff`. (If a prior session left your terminal garbled, run `reset`.)
+- **Interactive shell — clearer "run a new task".** The roadmap's `↵`/`r` runs
+  the *selected* card (help now says so); to launch a *new* arbitrary task, the
+  idle prompt now reads `press i to run a new task — e.g. run "add dark mode"`.
 - **Interactive shell — per-page command panel + queue policy + tab-hint fix.**
   The right side of the body now shows a **COMMANDS** panel listing the current
   page's actions (run pause/resume/abort/re-run, roadmap edit/new/delete/queue,
