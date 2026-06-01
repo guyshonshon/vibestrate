@@ -495,11 +495,20 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       exit();
       return;
     }
-    // Esc with no modal open goes "back" to the previously-visited
-    // page. No-op when the user is already at their first page so we
-    // don't accidentally rewind them to a stale tab.
+    // Esc collapses an expanded output view first, else goes "back" to the
+    // previously-visited page (no-op at the first page).
     if (key.escape) {
+      if (ui.outputExpanded) {
+        dispatch({ type: "output.collapse" });
+        return;
+      }
       dispatch({ type: "page.back" });
+      return;
+    }
+    // `O` expands/collapses command output to a full-width readable view
+    // (the narrow pane truncates; this wraps + scrolls).
+    if (input === "O" && ui.runner.output.length > 0) {
+      dispatch({ type: "output.expand.toggle" });
       return;
     }
     if (input === ":") {
@@ -632,8 +641,18 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       <Panel borderColor={ACCENT}>
         <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
-      {/* Region 2 — body: the active page (left) + command output (right). */}
+      {/* Region 2 — body: the active page (left) + command output (right),
+          or full-width output when expanded with `O`. */}
       <Panel borderColor={ACCENT_DIM} flexGrow={1}>
+       {ui.outputExpanded && ui.runner.output.length > 0 ? (
+        <OutputPane
+          output={ui.runner.output}
+          running={ui.runner.running}
+          exitCode={ui.runner.exitCode}
+          scroll={ui.runner.scroll}
+          full
+        />
+       ) : (
        <Box flexDirection="row">
         <Box flexGrow={1} flexDirection="column">
         {snapshot ? (
@@ -802,6 +821,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           <ActionsPanel page={ui.page} />
         )}
        </Box>
+       )}
       </Panel>
       {/* Region 3 — context line + prompt + key hints. Border brightens
           to cyan while the prompt owns input. */}

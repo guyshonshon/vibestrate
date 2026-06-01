@@ -127,6 +127,9 @@ export type ShellUiStateV2 = {
   session: SessionState;
   /** True while the persistent bottom prompt owns keyboard input. */
   promptFocused: boolean;
+  /** When true, command output fills the body full-width (readable) instead of
+   *  the narrow right pane. Toggled with `O`. */
+  outputExpanded: boolean;
   /** Open Crew/Flow selector overlay, or null. */
   picker: PickerState;
   toasts: Toast[];
@@ -184,6 +187,7 @@ export const initialUiState: ShellUiStateV2 = {
     flowId: null,
   },
   promptFocused: false,
+  outputExpanded: false,
   picker: null,
   toasts: [],
   pendingConfirm: null,
@@ -228,6 +232,8 @@ export type ShellUiAction =
   | { type: "session.flow.set"; flowId: string | null }
   | { type: "prompt.focus" }
   | { type: "prompt.blur" }
+  | { type: "output.expand.toggle" }
+  | { type: "output.collapse" }
   | { type: "picker.open"; kind: "crew" | "flow"; items: PickerItem[]; index: number }
   | { type: "picker.move"; delta: number }
   | { type: "picker.close" }
@@ -426,6 +432,10 @@ export function reduceShellUi(
       };
     case "prompt.blur":
       return { ...state, promptFocused: false };
+    case "output.expand.toggle":
+      return { ...state, outputExpanded: !state.outputExpanded };
+    case "output.collapse":
+      return { ...state, outputExpanded: false };
     case "picker.open":
       return {
         ...state,
