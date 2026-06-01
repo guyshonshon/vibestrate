@@ -11,6 +11,7 @@ import {
   timeAgo,
 } from "../theme.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
+import { pageHotkey } from "../ui-state.js";
 
 type Props = {
   snapshot: ShellSnapshot;
@@ -52,8 +53,8 @@ export function DashboardPage({ snapshot }: Props) {
           <SectionCard title="ACTIVE RUNS" count={activeRuns.length}>
             {activeRuns.length === 0 ? (
               <Text dimColor>
-                press <Text color="cyan">2</Text> to open Runs ·{" "}
-                <Text color="cyan">:</Text> for commands
+                press <Text color={ACCENT}>{pageHotkey("runs")}</Text> to open
+                Runs · <Text color={ACCENT}>:</Text> for commands
               </Text>
             ) : (
               <Box flexDirection="column">

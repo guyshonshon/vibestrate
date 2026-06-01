@@ -16,7 +16,7 @@ vibe
 The panel is split into three bordered regions:
 
 1. **Header** — the brand, a "where am I" line (project · branch · activity), the numbered tab menu, and the current page's subtitle.
-2. **Body** — the active page. The Dashboard shows two columns separated by a divider: an **interactive** side (active runs) and an **informative** side (recent activity).
+2. **Body** — the active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page (e.g. on Runs: `p` pause · `r` resume · `a` abort · `R` re-run; on Roadmap: `e` edit · `n` new · `d` delete · `Q` queue; on Queue: `s` start · `p` pause/resume · `t` cycle policy · `x` remove) plus the global keys. When a prompt command produces output, it takes that pane instead.
 3. **Context + prompt** — the mode · crew · flow line and the command prompt; its border brightens to cyan while the prompt has focus.
 
 ## The status bar

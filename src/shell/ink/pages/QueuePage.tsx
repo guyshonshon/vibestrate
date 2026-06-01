@@ -8,6 +8,7 @@ import {
   pauseScheduler,
   removeQueueEntry,
   resumeScheduler,
+  cycleQueuePolicy,
 } from "../queue/queue-actions.js";
 import { spawnVibestrateDetached } from "../runner/command-runner.js";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
@@ -74,6 +75,16 @@ export function QueuePage({
           onToast(r.ok ? "ok" : "err", r.message);
           await refreshSnapshot();
         });
+        return;
+      }
+      // 't' cycles the dispatch policy (fifo → priority → fair).
+      if (input === "t") {
+        void cycleQueuePolicy(projectRoot, sched?.queuePolicy ?? "fifo").then(
+          async (r) => {
+            onToast(r.ok ? "ok" : "err", r.message);
+            await refreshSnapshot();
+          },
+        );
         return;
       }
       // 's' starts the scheduler loop in the background. Spawned

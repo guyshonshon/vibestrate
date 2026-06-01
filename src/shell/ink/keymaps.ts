@@ -45,6 +45,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
         { name: "Actions", hints: [
           { key: "s", label: "start scheduler" },
           { key: "p", label: "pause/resume" },
+          { key: "t", label: "cycle policy" },
           { key: "x", label: "remove selected" },
         ]},
       ];
