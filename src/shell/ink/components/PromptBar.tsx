@@ -9,6 +9,7 @@ type Props = {
   running: boolean;
   exitCode: number | null;
   focused: boolean;
+  hasOutput: boolean;
   onChange: (v: string) => void;
   onSubmit: () => void;
 };
@@ -25,6 +26,7 @@ export function PromptBar({
   running,
   exitCode,
   focused,
+  hasOutput,
   onChange,
   onSubmit,
 }: Props) {
@@ -59,12 +61,20 @@ export function PromptBar({
               {exitCode === 0 ? "✓" : "✗"}
             </Text>
             {"  "}exit {exitCode}
-            {focused ? <Text>{"   ↵ run · ↑↓ history · Esc done"}</Text> : null}
+            {focused ? (
+              <Text>
+                {"   ↵ run · ↑↓ history"}
+                {hasOutput ? " · ⇥/⇧⇥ scroll output" : ""} · Esc done
+              </Text>
+            ) : null}
           </Text>
         </Box>
       ) : focused ? (
         <Box>
-          <Text dimColor>↵ run · ↑↓ history · : palette · Esc done</Text>
+          <Text dimColor>
+            ↵ run · ↑↓ history{hasOutput ? " · ⇥/⇧⇥ scroll output" : ""} · :
+            palette · Esc done
+          </Text>
         </Box>
       ) : null}
     </Box>

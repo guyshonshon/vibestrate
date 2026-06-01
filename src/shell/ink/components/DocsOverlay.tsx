@@ -105,9 +105,9 @@ export function DocsOverlay({ docs }: { docs: DocsState }) {
       )}
       <Box marginTop={1}>
         <Text dimColor>
-          <Text color={ACCENT}>↑↓</Text> topic · <Text color={ACCENT}>PgUp/PgDn</Text>{" "}
-          scroll · <Text color={ACCENT}>o</Text> website · <Text color={ACCENT}>Esc</Text>{" "}
-          close
+          <Text color={ACCENT}>↑↓/jk</Text> scroll · <Text color={ACCENT}>Space/b</Text>{" "}
+          page · <Text color={ACCENT}>[ ]</Text> topic · <Text color={ACCENT}>o</Text>{" "}
+          website · <Text color={ACCENT}>Esc</Text> close
         </Text>
       </Box>
     </Box>

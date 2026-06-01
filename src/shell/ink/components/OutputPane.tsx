@@ -55,11 +55,11 @@ export function OutputPane({
           </Text>
         ) : null}
       </Box>
-      {win.above > 0 ? <Text dimColor>↑ {win.above} more · PgUp</Text> : null}
+      {win.above > 0 ? <Text dimColor>↑ {win.above} more · ⇧⇥</Text> : null}
       {win.lines.map((line, i) => (
         <Text key={i}>{line || " "}</Text>
       ))}
-      {win.below > 0 ? <Text dimColor>↓ {win.below} more · PgDn</Text> : null}
+      {win.below > 0 ? <Text dimColor>↓ {win.below} more · ⇥</Text> : null}
     </Box>
   );
 }

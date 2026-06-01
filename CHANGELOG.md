@@ -6,6 +6,11 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — scroll without PgUp.** PgUp/PgDn aren't on every keyboard
+  (Mac laptops). Output pane now scrolls with **Tab / Shift+Tab** while the prompt
+  is focused (the only keys `ink-text-input` leaves free); the docs browser scrolls
+  with **↑↓ / j k**, pages with **Space / b**, and switches topic with **[ / ]**.
+  Hints updated to match.
 - **Fix: `vibe init` crashed ("Could not locate default-prompts directory").**
   The role prompts moved to `src/roles/default-prompts` but the resolver still
   looked under `src/agents/…` and only from layouts the bundled `dist/index.js`
