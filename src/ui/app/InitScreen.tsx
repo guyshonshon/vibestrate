@@ -153,15 +153,22 @@ function ReadyCard({
         {working ? <div className="meter mt-3" /> : null}
       </div>
 
-      <div className="mt-8 divide-y divide-white/8 rounded-md border border-white/10 bg-ink-100">
+      {/* The brand's violet-ground component: flat violet, white over it. */}
+      <div className="mt-8 overflow-hidden rounded-md bg-violet-deep">
         {[
           [".vibestrate/", "config, crew, roles, and flows"],
           ["providers", "detects the AI CLIs installed on your machine"],
           ["a default crew + flow", "so you can run immediately"],
-        ].map(([k, v]) => (
-          <div key={k} className="flex items-baseline gap-3 px-4 py-3">
-            <span className="mono shrink-0 text-[12px] text-violet-soft">{k}</span>
-            <span className="text-[13px] leading-snug text-fog-400">{v}</span>
+        ].map(([k, v], i) => (
+          <div
+            key={k}
+            className={cn(
+              "flex items-baseline gap-3 px-4 py-3",
+              i > 0 && "border-t border-white/15",
+            )}
+          >
+            <span className="mono shrink-0 text-[12px] font-medium text-white">{k}</span>
+            <span className="text-[13px] leading-snug text-white/70">{v}</span>
           </div>
         ))}
       </div>
