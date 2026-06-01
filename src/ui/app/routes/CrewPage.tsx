@@ -64,6 +64,7 @@ export function CrewPage() {
   const [defaultCrew, setDefaultCrew] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileView[]>([]);
+  const [providers, setProviders] = useState<string[]>([]);
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
   const [skills, setSkills] = useState<DiscoveredSkill[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -72,17 +73,26 @@ export function CrewPage() {
 
   async function load() {
     try {
-      const [crewsRes, profilesRes, flowsRes, skillsRes] = await Promise.all([
+      const [crewsRes, profilesRes, flowsRes, skillsRes, meta] = await Promise.all([
         api.getCrews(),
         api.getProfiles().catch(() => ({ profiles: [] as ProfileView[] })),
         api
           .listFlows()
           .catch(() => ({ flows: [] as DiscoveredFlow[], invalid: [] })),
         api.listSkills().catch(() => ({ skills: [] as DiscoveredSkill[] })),
+        api.getProjectMetadata().catch(() => null),
       ]);
       setCrews(crewsRes.crews);
       setDefaultCrew(crewsRes.defaultCrew);
       setProfiles(profilesRes.profiles);
+      setProviders(
+        [
+          ...new Set([
+            ...(meta?.providers.map((p) => p.id) ?? []),
+            ...profilesRes.profiles.map((p) => p.provider),
+          ]),
+        ].sort(),
+      );
       setFlows(flowsRes.flows);
       setSkills(skillsRes.skills);
       setSelectedId((cur) =>
@@ -160,6 +170,26 @@ export function CrewPage() {
     }
   }
 
+  // Create a new profile inline and assign it to the role in one step - so you
+  // can mint "claude-cheap" right where a role needs it (the "connected" path).
+  async function createAndAssignProfile(
+    roleId: string,
+    input: Parameters<typeof api.createProfile>[0],
+  ) {
+    if (!crew) return;
+    setSavingRole(roleId);
+    try {
+      await api.createProfile(input);
+      await api.patchCrewRole(crew.id, roleId, { profile: input.id });
+      await load();
+      flash({ kind: "ok", text: `Created ${input.id} and assigned it.` });
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setSavingRole(null);
+    }
+  }
+
   return (
     <div className="relative z-10 mx-auto max-w-[1180px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1 flex items-end justify-between gap-4 flex-wrap">
@@ -220,12 +250,17 @@ export function CrewPage() {
                 crewId={crew.id}
                 role={role}
                 profiles={profiles}
+                providers={providers}
+                existingProfileIds={new Set(profiles.map((p) => p.id))}
                 knownSeats={knownSeats}
                 skills={skills}
                 coverage={coverage}
                 saving={savingRole === role.id}
                 onPatch={(patch, okText) =>
                   void patchRole(role.id, patch, okText)
+                }
+                onCreateProfile={(input) =>
+                  void createAndAssignProfile(role.id, input)
                 }
                 onFlash={flash}
               />
@@ -342,16 +377,21 @@ function RoleCard({
   crewId,
   role,
   profiles,
+  providers,
+  existingProfileIds,
   knownSeats,
   skills,
   coverage,
   saving,
   onPatch,
+  onCreateProfile,
   onFlash,
 }: {
   crewId: string;
   role: CrewRoleView;
   profiles: ProfileView[];
+  providers: string[];
+  existingProfileIds: Set<string>;
   knownSeats: string[];
   skills: DiscoveredSkill[];
   coverage: Map<string, SeatCoverageEntry>;
@@ -360,11 +400,13 @@ function RoleCard({
     patch: Parameters<typeof api.patchCrewRole>[2],
     okText: string,
   ) => void;
+  onCreateProfile: (input: Parameters<typeof api.createProfile>[0]) => void;
   onFlash: (t: Toast) => void;
 }) {
   const tone = toneFor(role.id);
   const profile = profiles.find((p) => p.id === role.profile) ?? null;
   const [promptOpen, setPromptOpen] = useState(false);
+  const [newProfileOpen, setNewProfileOpen] = useState(false);
 
   return (
     <div className="glass rounded-xl border border-white/[0.08] p-4 flex flex-col gap-3">
@@ -494,6 +536,15 @@ function RoleCard({
           ) : (
             <span className="text-[11px] text-rose-300">profile not found</span>
           )}
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => setNewProfileOpen((v) => !v)}
+            className="rounded-md border border-white/10 bg-ink-200/40 px-2 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
+            title="Create a new profile and assign it to this role"
+          >
+            + New
+          </button>
           <select
             value={role.permissions}
             disabled={saving}
@@ -512,6 +563,18 @@ function RoleCard({
             ))}
           </select>
         </div>
+        {newProfileOpen ? (
+          <NewProfileInline
+            providers={providers}
+            existingProfileIds={existingProfileIds}
+            saving={saving}
+            onCancel={() => setNewProfileOpen(false)}
+            onCreate={(input) => {
+              setNewProfileOpen(false);
+              onCreateProfile(input);
+            }}
+          />
+        ) : null}
       </div>
 
       {/* skills */}
@@ -704,6 +767,87 @@ function PromptEditor({
           iconLeft={<Save className="h-3 w-3" />}
         >
           {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Inline "create a profile and use it here" form, opened from a Role's profile
+// row - the connected path so you can mint a preset (e.g. claude-cheap) right
+// where a role needs it.
+function NewProfileInline({
+  providers,
+  existingProfileIds,
+  saving,
+  onCancel,
+  onCreate,
+}: {
+  providers: string[];
+  existingProfileIds: Set<string>;
+  saving: boolean;
+  onCancel: () => void;
+  onCreate: (input: Parameters<typeof api.createProfile>[0]) => void;
+}) {
+  const [id, setId] = useState("");
+  const [provider, setProvider] = useState(providers[0] ?? "");
+  const [model, setModel] = useState("");
+  const [power, setPower] = useState("");
+  const [budget, setBudget] = useState("");
+  const idTaken = existingProfileIds.has(id.trim());
+  const valid =
+    /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!provider;
+  const inputCls =
+    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
+
+  return (
+    <div className="mt-2.5 rounded-lg border border-violet-soft/25 bg-ink-200/40 p-3">
+      <div className="eyebrow mb-2">New profile for this role</div>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={id}
+          onChange={(e) => setId(e.target.value)}
+          placeholder="id (e.g. claude-cheap)"
+          className={cn(inputCls, "w-[160px]", idTaken && "border-rose-400/40")}
+          autoFocus
+        />
+        <select value={provider} onChange={(e) => setProvider(e.target.value)} className={inputCls}>
+          {providers.length === 0 ? <option value="">(no providers)</option> : null}
+          {providers.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="model" className={cn(inputCls, "w-[120px]")} />
+        <input value={power} onChange={(e) => setPower(e.target.value)} placeholder="power" className={cn(inputCls, "w-[100px]")} />
+        <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
+          {["", "low", "medium", "high"].map((b) => (
+            <option key={b || "none"} value={b}>
+              {b || "budget"}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="mt-2.5 flex items-center justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={!valid || saving}
+          onClick={() =>
+            onCreate({
+              id: id.trim(),
+              provider,
+              model: model.trim() || undefined,
+              power: power.trim() || undefined,
+              budget: budget.trim() || undefined,
+            })
+          }
+        >
+          Create & use
         </Button>
       </div>
     </div>
