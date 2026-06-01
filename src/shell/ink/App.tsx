@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from "react";
+import React, { useEffect, useReducer, useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { Footer } from "./components/Footer.js";
 import {
@@ -46,6 +46,7 @@ import { NotificationsPage } from "./pages/NotificationsPage.js";
 import { DoctorPage } from "./pages/DoctorPage.js";
 import { PlaceholderPage } from "./pages/PlaceholderPage.js";
 import { LoadingScreen } from "./components/LoadingScreen.js";
+import { InitView } from "./components/InitView.js";
 import { Rule } from "./components/Frame.js";
 import { ACCENT, ACCENT_DIM, ACCENT_DEEP } from "./theme.js";
 import { useTasks } from "./hooks/useTasks.js";
@@ -88,7 +89,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
   const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
   const { warnings, refresh: refreshWarnings } = useConflicts(projectRoot);
-  const { config, error: configError } = useProjectConfig(projectRoot);
+  const {
+    config,
+    error: configError,
+    refresh: refreshConfig,
+  } = useProjectConfig(projectRoot);
+  // First-run gate: no config loaded + a load error = not initialized.
+  const notInitialized = !config && !!configError;
+  const [initRunning, setInitRunning] = useState(false);
   const {
     skills,
     assignments,
@@ -154,6 +162,19 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     const cur = ui.session.flowId ?? "default";
     const index = Math.max(0, items.findIndex((it) => it.id === cur));
     dispatch({ type: "picker.open", kind: "flow", items, index });
+  };
+
+  const runInit = (): void => {
+    if (initRunning) return;
+    setInitRunning(true);
+    void runVibestrateCommand({
+      projectRoot,
+      argv: ["init"],
+      onChunk: () => {},
+    }).then(() => {
+      void refreshConfig();
+      setInitRunning(false);
+    });
   };
 
   const submitPrompt = (): void => {
@@ -342,6 +363,17 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
   };
 
   useInput((input, key) => {
+    // First-run gate owns all input until the project is initialized.
+    if (notInitialized) {
+      if (input === "q") {
+        exit();
+        return;
+      }
+      if (!initRunning && (input === "i" || key.return)) {
+        runInit();
+      }
+      return;
+    }
     // Modal layers consume input before the page does.
     if (ui.helpOpen) {
       if (input === "?" || key.escape) dispatch({ type: "help.toggle" });
@@ -634,6 +666,23 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       }
     }
   });
+
+  if (notInitialized) {
+    return (
+      <Box flexDirection="column">
+        <Panel borderColor={ACCENT}>
+          <HeaderBar model={statusModel} page={ui.page} />
+        </Panel>
+        <Panel borderColor={ACCENT_DIM} flexGrow={1}>
+          <InitView
+            projectName={projectName}
+            running={initRunning}
+            error={configError}
+          />
+        </Panel>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column">

@@ -1375,6 +1375,29 @@ export const api = {
     );
     return r.metadata;
   },
+  async getSetupStatus(): Promise<{
+    initialized: boolean;
+    isGitRepo: boolean;
+    projectName: string;
+    projectRoot: string;
+  }> {
+    return jsonGet("/api/setup/status");
+  },
+  async initProject(): Promise<{
+    ok: true;
+    created: string[];
+    detections: {
+      id: string;
+      label: string;
+      available: boolean;
+      confidence: "ready" | "detected-needs-setup" | "missing";
+      recommended: boolean;
+    }[];
+    recommendedProvider: string | null;
+    providerComplete: boolean;
+  }> {
+    return jsonPost("/api/setup/init", {});
+  },
   async getProjectTree(input?: {
     depth?: number;
     maxEntries?: number;

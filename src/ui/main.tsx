@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./app/App.js";
+import { InitGate } from "./app/InitGate.js";
 import "./index.css";
 
 const container = document.getElementById("root");
@@ -10,6 +10,6 @@ if (!container) {
 
 createRoot(container).render(
   <React.StrictMode>
-    <App />
+    <InitGate />
   </React.StrictMode>,
 );
