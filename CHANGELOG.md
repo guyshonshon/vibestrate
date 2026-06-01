@@ -6,6 +6,9 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Chore: upgrade Vitest 2 -> 4** (4.1.8). Full suite green (1166 tests),
+  typecheck and build pass; minimal config needed no changes. (Vite was already
+  on 8, so the related Dependabot bump was obsolete.)
 - **Rewind safety guard + issue log.** The (destructive) snapshot restore now
   refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
   defense in depth on top of the existing per-run-worktree isolation. Documented
