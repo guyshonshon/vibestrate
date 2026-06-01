@@ -60,7 +60,7 @@ VERIFICATION: PASSED | FAILED | NEEDS_HUMAN
 If the run is technically clean but a human should still sign off before it
 is labelled merge-ready (e.g. the change touches sensitive code, or the
 reviewer flagged something the verifier cannot independently confirm), emit
-a structured request — each line on its own line:
+a structured request - each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED
@@ -79,7 +79,7 @@ Make `HUMAN_APPROVAL_REQUEST` specific to the action being signed off
 ## Advisory: flag for human testing (non-blocking)
 
 When the result is acceptable but a human should *eyeball* something you cannot
-perceive — visual layout, animation, 3D, UX feel — add this non-blocking
+perceive - visual layout, animation, 3D, UX feel - add this non-blocking
 advisory. Unlike `HUMAN_APPROVAL` it does not pause the run; it flags the card
 for a human to pass or send back.
 

@@ -28,7 +28,7 @@ A Role points at one of these by id (`profile: opus-deep`).
 A Profile chooses the **Provider**, the **model**, the **power/effort** level,
 a token **budget**, and an optional **timeout**. Two Roles can share a Profile,
 and the same Role can be run on a stronger Profile for one Step via a step
-override — without duplicating the Role.
+override - without duplicating the Role.
 
 Power/effort is **provider-specific**. Different providers expose different
 reasoning/effort controls and some expose none, so `power` is just the level

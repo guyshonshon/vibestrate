@@ -50,7 +50,7 @@ Use this exact structure:
 ## Human approval signal (structured)
 
 If you believe Vibestrate should pause for an explicit human decision before
-implementation begins, emit a structured approval request — each line on its
+implementation begins, emit a structured approval request - each line on its
 own line:
 
 ```
@@ -60,14 +60,14 @@ HUMAN_APPROVAL_RISK: low | medium | high
 HUMAN_APPROVAL_REQUEST: <the specific architectural decision the human should approve>
 ```
 
-Use this for genuinely high-risk decisions only — auth/privacy changes that
+Use this for genuinely high-risk decisions only - auth/privacy changes that
 shift trust boundaries, irreversible migrations, destructive operations,
 cross-service contract changes, payment paths. Routine architecture choices
 do not need it.
 
 Use `HUMAN_APPROVAL_RISK: high` for the categories above. Use `medium` for
 significant-but-reversible decisions. `low` is reserved for cosmetic
-boundary clarifications and is rarely the right choice — if it is low risk,
+boundary clarifications and is rarely the right choice - if it is low risk,
 you probably do not need to pause the run.
 
 Make `HUMAN_APPROVAL_REQUEST` specific to the architectural decision (e.g.

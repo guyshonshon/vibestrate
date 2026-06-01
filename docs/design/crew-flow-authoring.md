@@ -1,4 +1,4 @@
-# Crew, providers & editable flows — design questions
+# Crew, providers & editable flows - design questions
 
 Status: **design / decision doc** (not yet built). Captures the answers to a
 round of "is our model right?" questions, grounded in the current code, with
@@ -12,16 +12,16 @@ recommendations and a phased plan. Companion to
   (planner/architect/executor/reviewer/fixer/verifier) names a `provider`,
   `prompt`, `permissions`, `skills`. The **Crew** page edits this.
 - **Providers are CLIs** (`type: cli | claude-code`, `command` + `args` +
-  `settings`). There is **no first-class `model`** — a model is encoded in a
+  `settings`). There is **no first-class `model`** - a model is encoded in a
   provider's args (e.g. a `claude-opus` provider with `--model opus`). **Effort**
   (`effortMap[low|medium|high] → providerId`) swaps the provider **run-wide**.
   So today "which model" == "which provider", by design.
 - **Flows are editable.** The Flow Builder already **reorders / adds / removes**
   steps (`moveStep`, `addStep`, `removeStep` → `replaceSteps` patch) and edits
-  slots. Any role sequence is buildable — there is **no forced planner-first**;
+  slots. Any role sequence is buildable - there is **no forced planner-first**;
   a "coder + reviewer" two-step flow is valid today.
 - **Loops exist in the model** (`loop: {from,to,decisionStep,maxIterations}`) and
-  express coder→reviewer→coder cycles — but **only in hand-authored builtins**.
+  express coder→reviewer→coder cycles - but **only in hand-authored builtins**.
 - **Per-slot provider override** exists at **run time** (`--flow-slot
   builder=codex`, `slotProviders`) but is **not persisted** in the flow and not a
   per-flow editable default.
@@ -38,19 +38,19 @@ recommendations and a phased plan. Companion to
    reviewer = opus" without defining a separate provider per model. Effort is
    run-wide, not per-role.
 4. **No persisted per-flow provider binding.** A flow can't say "in *this* flow,
-   the builder seat defaults to codex" — only a global role default + a
+   the builder seat defaults to codex" - only a global role default + a
    run-time override.
 5. **No model escalation/promotion.** Nothing can "promote the coder to a
    stronger model after it fails review N times."
 
 ## Recommendations
 
-### A. Provider vs. model vs. effort — make model a first-class, optional axis
+### A. Provider vs. model vs. effort - make model a first-class, optional axis
 Keep **provider = the CLI** (claude / codex / …). Add an **optional `model` and
 `effort`** to the role (and slot) binding, threaded to the provider at run time
 (claude-code already takes `--model`; cli providers via an arg template). This
 gives "planner = claude/sonnet/low, reviewer = claude/opus/high" without a
-provider per model — while staying backward-compatible (omit `model` → provider
+provider per model - while staying backward-compatible (omit `model` → provider
 default, exactly as now). Effort stays as a run-wide convenience that maps to a
 model tier. **Decision needed** (see below).
 
@@ -79,20 +79,20 @@ capability and depends on (A) existing.
 **Model axis:** do we (1) add an optional `model`/`effort` to role+slot bindings
 (provider stays the CLI), or (2) keep "model == provider" and just make it easy
 to define model-specific providers + pick them per role? Recommendation: **(1)**
-— it matches how users think ("Claude, on Opus, high effort") and is required
+- it matches how users think ("Claude, on Opus, high effort") and is required
 for escalation (D).
 
 ## Phased plan
 
-- **P1 — editable flows (no new runtime):** extend the patch + builder for
+- **P1 - editable flows (no new runtime):** extend the patch + builder for
   loop / stage / read-only-skip; default-flow "fork & edit"; starter templates.
   Pure authoring; the runner already executes all of it.
-- **P2 — model/effort axis:** add optional `model`/`effort` to role+slot
+- **P2 - model/effort axis:** add optional `model`/`effort` to role+slot
   bindings; thread to providers; surface in Crew + the builder. (Decision A.)
-- **P3 — per-flow provider/model bindings:** persist slot-level defaults.
-- **P4 — escalation:** loop `escalate` policy; runner swaps model tier on
+- **P3 - per-flow provider/model bindings:** persist slot-level defaults.
+- **P4 - escalation:** loop `escalate` policy; runner swaps model tier on
   repeated failure; surface in the builder + the run timeline.
 
 P1 is the highest-value, lowest-risk slice and directly answers "why can't I
-reorder / loop / build a coder+reviewer flow" — mostly UI + a schema/patch
+reorder / loop / build a coder+reviewer flow" - mostly UI + a schema/patch
 extension over capabilities the runner already has.

@@ -1,4 +1,4 @@
-# Design handoff — Crew page, roles display
+# Design handoff - Crew page, roles display
 
 **For claude.ai/design.** Redesign **only how the roles are displayed** on
 Vibestrate's **Crew** page. Keep the page's existing structure and the rest of its
@@ -16,16 +16,16 @@ planner → architect → executor → (validate) → reviewer → fixer → ver
 Each **role** is a seat in the workflow that runs on a **provider** (a local
 CLI like Claude Code / Codex / Ollama). One provider can power many roles.
 
-Today the roles are shown as a flat 3-column grid of identical cards — it
+Today the roles are shown as a flat 3-column grid of identical cards - it
 doesn't convey that they're an **ordered pipeline** with a review→fix loop, or
 the handoffs between them. Find a clearer, more characterful way to display
 them.
 
 ## Per-role data to surface
 
-- **Role name** + a one-line job blurb (e.g. planner — "drafts the change";
-  reviewer — "critiques the diff").
-- **Provider** it runs on — **editable** (a dropdown of *configured* providers
+- **Role name** + a one-line job blurb (e.g. planner - "drafts the change";
+  reviewer - "critiques the diff").
+- **Provider** it runs on - **editable** (a dropdown of *configured* providers
   only) with an online/offline dot.
 - **Permission** profile as a small chip (e.g. `read-only` vs a write profile;
   write-capable roles read warmer/amber).
@@ -33,7 +33,7 @@ them.
 
 ## Requirements
 
-- Keep roles **editable in place** — the provider picker per role must stay.
+- Keep roles **editable in place** - the provider picker per role must stay.
 - Convey the **workflow order + the review↔fix loop** (the crew is a sequence,
   not a set).
 - Don't touch the rest of the page: a tight hero above, and below the roles a
@@ -47,6 +47,6 @@ headings (`text-display`); glass / soft-bevel panels (`glass`, `bevel-violet`,
 `surface-ink-100-55`); flat chips; a subtle `pulse-dot` for live/active state.
 React + Tailwind, dark theme only.
 
-Deliver a layout concept (and component sketch) for the roles block — e.g. a
-pipeline/timeline, connected stations, or a stage rail — your call, as long as
+Deliver a layout concept (and component sketch) for the roles block - e.g. a
+pipeline/timeline, connected stations, or a stage rail - your call, as long as
 it reads as "an ordered crew" and stays editable.

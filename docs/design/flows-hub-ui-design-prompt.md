@@ -1,4 +1,4 @@
-# Hand-off prompt — claude.ai/design: Vibestrate "Flows Hub" UI
+# Hand-off prompt - claude.ai/design: Vibestrate "Flows Hub" UI
 
 > Paste everything under the line into claude.ai/design. It's written to be
 > self-contained. It targets a **dark, glassy, local-first developer tool**, and
@@ -12,7 +12,7 @@
 ### What Vibestrate is
 
 Vibestrate is a **local-first multi-agent orchestrator** for coding agents. It runs
-entirely on the developer's machine — no cloud backend, no hosted relay. It
+entirely on the developer's machine - no cloud backend, no hosted relay. It
 drives local coding-agent CLIs (Claude Code, Gemini, Codex, Ollama, Aider…) and
 coordinates them through declarative **Flows**. Its dashboard is called
 **Mission Control**: a dark, calm, high-density "command center," not a
@@ -21,19 +21,19 @@ consumer SaaS app.
 ### What a "Flow" is
 
 A Flow is a **declarative YAML recipe** (slots + steps) that defines how a team
-of agents collaborates on a task — e.g. *plan → implement → review → verify*,
+of agents collaborates on a task - e.g. *plan → implement → review → verify*,
 with human approval gates. Flows are small, reviewable data (no embedded code).
 Today users fork/customize them in a Flow Builder. They are the unit Vibestrate wants
 to make shareable.
 
 ### What the Flows Hub is (what you're designing)
 
-A **registry browser inside Mission Control** — "npm / Docker Hub, but for Vibestrate
+A **registry browser inside Mission Control** - "npm / Docker Hub, but for Vibestrate
 Flows." It lets a developer **discover, inspect, install, and publish** Flows
 that other people share. It is **opt-in and read-mostly**: browsing fetches a
 public catalog over HTTP; installing writes a flow file locally; nothing
 executes on install. Think Docker Hub's clarity, VS Code's extension gallery's
-density, and Vercel/Linear's restraint — on a near-black canvas.
+density, and Vercel/Linear's restraint - on a near-black canvas.
 
 ### Versioning model (must be visible in the UI)
 
@@ -53,7 +53,7 @@ Flows are versioned **semver, Docker-style**:
 ## Screens & states to design
 
 Design these as **pages/panels within an existing dark dashboard shell** (assume
-a left/utility nav already exists — don't redesign global chrome; design the Hub
+a left/utility nav already exists - don't redesign global chrome; design the Hub
 content area). Each screen needs: empty, loading, populated, and error states.
 
 1. **Browse / Search (the gallery)**
@@ -72,7 +72,7 @@ content area). Each screen needs: empty, loading, populated, and error states.
    - A **version selector / history** (list of semver versions, dates, "latest").
    - Readable summary of the flow's **flow**: the ordered steps and which
      **agent role** runs each, and which steps are **human-approval gates**
-     (this is the trust-building core — show the recipe at a glance, like a
+     (this is the trust-building core - show the recipe at a glance, like a
      pipeline diagram or a vertical step list).
    - Tabs or sections: Overview · Steps/Flow · Versions · Safety.
    - A **safety/caution panel** (see disclaimers).
@@ -91,13 +91,13 @@ content area). Each screen needs: empty, loading, populated, and error states.
 5. **Safety / disclaimer** (recurring component)
    - A persistent, non-alarmist **caution banner** when browsing/installing a
      community flow: *"Using an external flow is your responsibility to
-     validate. We review for safety, but be cautious — run untrusted flows
+     validate. We review for safety, but be cautious - run untrusted flows
      `--read-only` first and watch the approval gates."* Design a reusable
      callout for this (info tone, not error tone).
 
 ---
 
-## Design system — match these exactly
+## Design system - match these exactly
 
 Vibestrate's Mission Control is **dark-only**, near-black, with violet/cyan accents,
 glass surfaces, and a grotesque display typeface. Use these tokens verbatim.
@@ -115,7 +115,7 @@ glass surfaces, and a grotesque display typeface. Use these tokens verbatim.
 
 **Type:**
 - **Display / big titles & headings → "Bricolage Grotesque"** (variable), weight
-  ~500, tight tracking (`-0.02em`). Keep heros **compact** — Vibestrate recently
+  ~500, tight tracking (`-0.02em`). Keep heros **compact** - Vibestrate recently
   minimized oversized hero titles; favor a small mono **eyebrow** + a modest
   (~21–24px) title + a 13px subtitle, not giant marketing type.
 - **Body / UI → "Geist"** (sans). **Mono → "Geist Mono"** (code, version chips,
@@ -137,14 +137,14 @@ glass surfaces, and a grotesque display typeface. Use these tokens verbatim.
 
 **Feel:** calm, precise, trustworthy, "engineered." Closer to Linear / Vercel /
 Raycast than to a colorful marketplace. The accent violet is a highlight, not a
-fill — most of the screen is near-black + fog text + hairlines.
+fill - most of the screen is near-black + fog text + hairlines.
 
 ---
 
 ## Constraints & notes
 - **Local-first framing matters.** This is not a social network. Emphasize
   trust signals (author, version, immutability, safety review) over vanity.
-- **Nothing runs on install** — the UI should make "install = download a
+- **Nothing runs on install** - the UI should make "install = download a
   reviewable file" obvious; running is a separate, later, supervised action.
 - Don't design global app chrome (top bar / left nav already exist). Focus on
   the Hub content area, but show how it sits inside a dark shell.

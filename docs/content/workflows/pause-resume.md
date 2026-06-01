@@ -5,7 +5,7 @@ section: workflows
 slug: workflows/pause-resume
 ---
 
-Pausing is durable — the run state is persisted, so killing Vibestrate's process and restarting it preserves the pause.
+Pausing is durable - the run state is persisted, so killing Vibestrate's process and restarting it preserves the pause.
 
 ## Pause
 
@@ -13,7 +13,7 @@ Pausing is durable — the run state is persisted, so killing Vibestrate's proce
 vibe pause <runId>
 ```
 
-The orchestrator polls between stages. When it sees the pause flag, it transitions the run to `paused` and remembers the status it was about to enter. Nothing is interrupted mid-stage — pauses always land cleanly at a boundary.
+The orchestrator polls between stages. When it sees the pause flag, it transitions the run to `paused` and remembers the status it was about to enter. Nothing is interrupted mid-stage - pauses always land cleanly at a boundary.
 
 ## Resume
 
@@ -33,7 +33,7 @@ If you ran `vibe pause` and then changed your mind before the next stage boundar
 vibe abort <runId>
 ```
 
-Marks the run as `aborted`. The worktree is preserved on disk — you can still `cd` into it to read the partial work. To clean up the worktree:
+Marks the run as `aborted`. The worktree is preserved on disk - you can still `cd` into it to read the partial work. To clean up the worktree:
 
 ```bash
 cd your-project

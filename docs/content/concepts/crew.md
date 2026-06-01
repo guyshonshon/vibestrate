@@ -37,7 +37,7 @@ the same Seat, it's ambiguous and the run asks you to pick one.
 
 Schema (`src/crews/crew-schema.ts`, `src/roles/role-schema.ts`):
 
-- `crews.<crewId>.label?` and `crews.<crewId>.roles.<roleId>` — at least one role.
+- `crews.<crewId>.label?` and `crews.<crewId>.roles.<roleId>` - at least one role.
 - A Role has `seats: string[]`, `profile`, `prompt`, `permissions`, `skills`,
   and optional `mcpServers`. It runs on a [[profile]] (not a provider directly).
 - `defaultCrew` must name a crew that exists.

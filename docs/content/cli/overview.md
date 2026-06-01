@@ -36,7 +36,7 @@ vibe status                                # see active and recent runs
 vibe replay <runId>                        # inspect any past run
 ```
 
-Rewind a prior run instead of restarting — reuse its plan (and architecture) and resume from a later stage:
+Rewind a prior run instead of restarting - reuse its plan (and architecture) and resume from a later stage:
 
 ```bash
 vibe run "<same task>" --resume-from <runId>                        # reuse plan + architecture, redo implementation
@@ -54,7 +54,7 @@ vibe provider list                         # show the configured providers
 vibe provider remove <id>                  # remove one (refuses if a role uses it)
 ```
 
-Everything here is also doable in the dashboard's **Providers** page — detect,
+Everything here is also doable in the dashboard's **Providers** page - detect,
 set up, edit `command`/`args`/`input`, test, set default, and remove. Neither
 surface is more capable than the other.
 
@@ -92,8 +92,8 @@ vibe run -i "<task>"                       # pick the Flow + Crew interactively,
 `vibe run -i "<task>"` fills in whatever you didn't pass on the command line:
 it shows a **horizontal selector** to pick the Flow (when no `--flow`), then the
 Crew (when no `--crew` and the project has more than one), then starts the run.
-Move with `←` / `→` (or `h` / `l`), `Enter` to choose. Anything you do pass —
-`--flow`, `--crew` — is respected and skips that prompt. Passing `-i` together
+Move with `←` / `→` (or `h` / `l`), `Enter` to choose. Anything you do pass -
+`--flow`, `--crew` - is respected and skips that prompt. Passing `-i` together
 with `--flow <id>` instead opens that flow's detailed setup (brief, context
 policy, per-step Profiles, optional steps). Requires an interactive terminal.
 
@@ -116,4 +116,4 @@ vibe run "<task>" --ui                     # start a run with the dashboard alon
 
 ## Reference
 
-Every command, every option, every default — see the [CLI commands reference](/docs/reference/cli), generated from the commander program tree.
+Every command, every option, every default - see the [CLI commands reference](/docs/reference/cli), generated from the commander program tree.

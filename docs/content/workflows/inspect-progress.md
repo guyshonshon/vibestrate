@@ -15,7 +15,7 @@ The default `vibe run` command prints a header per stage with the current status
 
 `vibe run "..." --ui` starts Mission Control alongside the run. The **Board** view shows:
 
-- Phase rail — which stage is current.
+- Phase rail - which stage is current.
 - Agent name and provider for that stage.
 - Live token usage (where the provider reports it).
 - Approvals waiting (if any).
@@ -59,5 +59,5 @@ Replay is a read-only inspector for any persisted run. Use it for runs that fini
 
 ## Related
 
-- [Run state](/docs/concepts/state) — what the status field means.
+- [Run state](/docs/concepts/state) - what the status field means.
 - [Debug a failed run](/docs/workflows/debug-failed).

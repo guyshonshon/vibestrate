@@ -5,7 +5,7 @@ section: extending
 slug: extending/add-skill
 ---
 
-A skill is a markdown file. There's no scaffold to run, no metadata to fill in — write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up.
+A skill is a markdown file. There's no scaffold to run, no metadata to fill in - write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up.
 
 ## Steps
 
@@ -13,7 +13,7 @@ A skill is a markdown file. There's no scaffold to run, no metadata to fill in �
 2. Write the skill body as plain markdown. There's no required structure. Most useful skills follow:
 
    ```markdown
-   # Title — what this is about
+   # Title - what this is about
 
    ## When to use this
 
@@ -57,8 +57,8 @@ If your project already uses Claude Code's skill discovery, Vibestrate reads `.c
 ## What makes a skill *good*
 
 - **Names the surface.** "When touching `src/payments/...`" is much more useful than "for payment changes."
-- **States the rule, not the reasoning.** "Use `requireSession` from `src/server/auth.ts`" — not "we care a lot about security."
-- **Mentions the antipattern.** "Don't write session middleware inline" — explicitly.
+- **States the rule, not the reasoning.** "Use `requireSession` from `src/server/auth.ts`" - not "we care a lot about security."
+- **Mentions the antipattern.** "Don't write session middleware inline" - explicitly.
 - **Bounded length.** A 200-line skill loaded on every agent is expensive. If it's huge, split it.
 
 ## Optional: declaring MCP servers

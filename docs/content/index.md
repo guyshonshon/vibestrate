@@ -5,9 +5,9 @@ section: start
 slug: index
 ---
 
-Vibestrate runs software tasks through the coding-agent CLIs you already have on your machine — Claude Code, Codex, Aider, Ollama, OpenCode — and keeps every turn inspectable. It creates a git worktree, streams the agent's output, runs your project's validation commands, records artifacts, and stops at `merge_ready`, `blocked`, or `failed`. It does not push and does not merge for you.
+Vibestrate runs software tasks through the coding-agent CLIs you already have on your machine - Claude Code, Codex, Aider, Ollama, OpenCode - and keeps every turn inspectable. It creates a git worktree, streams the agent's output, runs your project's validation commands, records artifacts, and stops at `merge_ready`, `blocked`, or `failed`. It does not push and does not merge for you.
 
-Think of it as the missing supervisor for vibe-coding. You define the flow — plan with one model, implement with another, review with a third — and Vibestrate runs each phase under one visible, auditable process.
+Think of it as the missing supervisor for vibe-coding. You define the flow - plan with one model, implement with another, review with a third - and Vibestrate runs each phase under one visible, auditable process.
 
 ## Reading paths
 
@@ -17,10 +17,10 @@ Think of it as the missing supervisor for vibe-coding. You define the flow — p
 Install, configure a provider, run your first task.
 
 **[Understand the concepts](/docs/concepts/task)**
-Tasks, agents, providers, Flows, skills, worktrees — what each one is, and why it exists.
+Tasks, agents, providers, Flows, skills, worktrees - what each one is, and why it exists.
 
 **[Inspect the reference](/docs/reference/cli)**
-Every CLI command, every config key, every built-in Flow — generated from source.
+Every CLI command, every config key, every built-in Flow - generated from source.
 
 **[Extend Vibestrate](/docs/extending/add-skill)**
 Add skills, providers, or your own Flow.
@@ -29,11 +29,11 @@ Add skills, providers, or your own Flow.
 
 ## What Vibestrate is
 
-- **Local-first.** No cloud backend, no hosted relay. Vibestrate never sends your code to its own infrastructure — the only network calls are the ones your provider CLIs already make.
+- **Local-first.** No cloud backend, no hosted relay. Vibestrate never sends your code to its own infrastructure - the only network calls are the ones your provider CLIs already make.
 - **Provider-agnostic.** Any local CLI that can take a prompt on stdin and produce a diff can be wired in. Claude Code is preset-ready; Codex, Aider, Ollama, and OpenCode are detected and configurable.
 - **Worktree-isolated.** Every run gets its own git worktree. The orchestrator never edits your project root.
 - **Inspectable.** Every prompt, output, metric, event, and approval is recorded under `.vibestrate/runs/<runId>/`. You can read, replay, or audit any past run.
-- **Human-gated.** Reviews, approvals, merges — anything that affects shared state — is always explicit. No auto-push, no auto-merge.
+- **Human-gated.** Reviews, approvals, merges - anything that affects shared state - is always explicit. No auto-push, no auto-merge.
 
 ## What it is not
 

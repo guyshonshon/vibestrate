@@ -1,4 +1,4 @@
-# Design: Rewind phase 2 — resume at review / verify / fix
+# Design: Rewind phase 2 - resume at review / verify / fix
 
 Status: **in progress**. Extends Rewind phase 1 (`resumeFrom` at planning /
 architecting / executing) to the downstream stages.
@@ -8,11 +8,11 @@ architecting / executing) to the downstream stages.
 Phase 1 forks a fresh run from a prior run and resumes at an upstream stage by
 **seeding that run's upstream artifacts** (plan, architecture) and re-running
 from the chosen stage. That works for planning/architecting/executing because
-those stages *regenerate* the code from scratch — the new worktree starts empty
+those stages *regenerate* the code from scratch - the new worktree starts empty
 off the base branch and the executor fills it.
 
 Review / verify / fix are different: they operate on **code that already
-exists** — the executor's output. Seeding artifacts isn't enough; the resumed
+exists** - the executor's output. Seeding artifacts isn't enough; the resumed
 run's worktree must contain the same files the original run's executor produced.
 Today the run only ever has its *final* tree (in its own worktree, which is torn
 down), so there's nothing to restore a downstream stage from.
@@ -28,23 +28,23 @@ We already have the primitives in `diff-gate.ts`:
 - `restoreWorktree(wt, tree)` = `git read-tree` + `git checkout-index -fa` +
   `git clean -fd` → materialize that tree into a worktree.
 
-**Capture.** At each downstream phase boundary that changes code — after the
-**executing** stage, and after each **fixing** stage — capture the worktree
+**Capture.** At each downstream phase boundary that changes code - after the
+**executing** stage, and after each **fixing** stage - capture the worktree
 tree and make it durable so a *later* rewind can still find it:
 
 1. `tree = snapshotWorktree(wt)`
 2. `commit = git commit-tree <tree> -m "…"` (parentless; explicit author env so
    it never depends on the user's git config)
-3. `git update-ref refs/vibestrate/snapshots/<runId>/<seq> <commit>` — a ref out
+3. `git update-ref refs/vibestrate/snapshots/<runId>/<seq> <commit>` - a ref out
    of the way of branches keeps the tree + blobs reachable across `git gc`.
 
 The snapshots are recorded in `runs/<id>/phase-snapshots.json`
 (`{seq, stage, treeSha, commitSha, ref, at}`), the run's durable manifest.
 
 **Restore.** When a run resumes at `reviewing` / `fixing` / `verifying`, after
-its fresh worktree is prepared we restore the source run's relevant snapshot —
+its fresh worktree is prepared we restore the source run's relevant snapshot -
 the latest snapshot at-or-before the resume stage (review → the executing
-snapshot; verify → the last fixing snapshot) — into the new worktree via
+snapshot; verify → the last fixing snapshot) - into the new worktree via
 `restoreWorktree`. Upstream artifacts are still seeded exactly as phase 1 does,
 so the resumed downstream stages see both the code and the plan/review context.
 

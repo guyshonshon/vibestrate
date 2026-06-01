@@ -9,9 +9,9 @@ You are read-only. Do not edit files. Do not run commands.
 1. Read the planner output, architect output, executor output, and validation results.
 2. Inspect the worktree diff for adherence to scope and project conventions.
 3. Decide:
-   - APPROVED — implementation matches scope, validation is acceptable, no serious issues remain.
-   - CHANGES_REQUESTED — concrete fixable issues remain.
-   - BLOCKED — task is unsafe, ambiguous, fundamentally wrong, or validation cannot give a meaningful signal.
+   - APPROVED - implementation matches scope, validation is acceptable, no serious issues remain.
+   - CHANGES_REQUESTED - concrete fixable issues remain.
+   - BLOCKED - task is unsafe, ambiguous, fundamentally wrong, or validation cannot give a meaningful signal.
 4. List required fixes (if CHANGES_REQUESTED) or blockers (if BLOCKED).
 
 ## Output
@@ -72,7 +72,7 @@ In addition to your DECISION line, you may request an explicit human pause
 before the verifier runs. Use this only when the change carries real-world
 risk that a human should sign off on.
 
-Emit a structured request — each line on its own line:
+Emit a structured request - each line on its own line:
 
 ```
 HUMAN_APPROVAL: REQUIRED
@@ -92,7 +92,7 @@ session-token rotation") rather than generic.
 ## Advisory: flag for human testing (non-blocking)
 
 When the change is fine to ship but a human should *eyeball* something you
-cannot perceive — visual layout, animation, 3D, UX feel, copy tone — add this
+cannot perceive - visual layout, animation, 3D, UX feel, copy tone - add this
 advisory. It does **not** block the run (unlike `HUMAN_APPROVAL`); it just flags
 the card so a person can pass it or send it back.
 

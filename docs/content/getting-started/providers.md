@@ -15,9 +15,9 @@ vibe provider detect
 
 This walks each known provider and reports:
 
-- **ready** — Vibestrate ships a verified preset and can drive the CLI as-is.
-- **detected-needs-setup** — the binary is on your PATH but Vibestrate does not ship verified prompt flags for it. Run `vibe provider setup` to fill them in.
-- **missing** — the binary is not installed.
+- **ready** - Vibestrate ships a verified preset and can drive the CLI as-is.
+- **detected-needs-setup** - the binary is on your PATH but Vibestrate does not ship verified prompt flags for it. Run `vibe provider setup` to fill them in.
+- **missing** - the binary is not installed.
 
 ## Apply the right preset
 
@@ -34,7 +34,7 @@ vibe provider test claude
 vibe provider test ollama
 ```
 
-The test sends a one-shot prompt and prints the raw output. If your provider doesn't respond — or responds with an error about flags or auth — fix that before running a real task.
+The test sends a one-shot prompt and prints the raw output. If your provider doesn't respond - or responds with an error about flags or auth - fix that before running a real task.
 
 ## Pick the default
 
@@ -60,7 +60,7 @@ agents:
 vibe run "..." --provider codex
 ```
 
-This overrides the configured provider for every agent in that single run. Or use effort buckets — `low | medium | high` map to providers via `project.yml#effortMap`:
+This overrides the configured provider for every agent in that single run. Or use effort buckets - `low | medium | high` map to providers via `project.yml#effortMap`:
 
 ```yaml
 effortMap:
@@ -79,11 +79,11 @@ vibe run "..." --effort high
 
 Not every provider is a CLI. Vibestrate also drives a model over HTTP:
 
-- **`http-api`** — a hosted cloud API (Anthropic or OpenAI). It speaks `https`
-  only (never loopback), and the API key is an **env reference** (`env:NAME`) —
+- **`http-api`** - a hosted cloud API (Anthropic or OpenAI). It speaks `https`
+  only (never loopback), and the API key is an **env reference** (`env:NAME`) -
   the literal key never enters `project.yml`, logs, the UI, or any artifact.
   The destination is external, so egress goes to the `baseUrl` you name.
-- **`localhost-proxy`** — a model server on your own machine (Ollama, LM Studio,
+- **`localhost-proxy`** - a model server on your own machine (Ollama, LM Studio,
   vLLM). The `baseUrl` must point at `localhost` / `127.0.0.1` / `[::1]`, so
   there's no egress and no key is required.
 
@@ -94,7 +94,7 @@ providers:
     api: anthropic
     baseUrl: https://api.anthropic.com
     model: claude-sonnet-4-6
-    apiKey: env:ANTHROPIC_API_KEY   # env reference only — never a literal key
+    apiKey: env:ANTHROPIC_API_KEY   # env reference only - never a literal key
     maxTokens: 4096
   local:
     type: localhost-proxy
@@ -107,25 +107,25 @@ providers:
 `vibe provider setup` offers **Cloud API** and **Local model server** choices
 that prompt for these fields and validate them before writing. These same
 guards (https-only, loopback-only, env-ref key) are enforced on every write
-path — a violation is refused, never silently coerced.
+path - a violation is refused, never silently coerced.
 
 ## Install from the dashboard
 
-Mission Control's **Providers** page is the full management surface — nothing
+Mission Control's **Providers** page is the full management surface - nothing
 about a provider requires dropping to a terminal:
 
 - **Install** flow for the popular CLIs (Claude Code, Gemini, Codex, Ollama,
   Aider): the exact install + login commands, then a detection re-check.
-  Vibestrate never runs those for you — install and login happen in your own
+  Vibestrate never runs those for you - install and login happen in your own
   terminal, with your credentials.
-- **Set up / Edit** opens a type-aware editor for **every** provider type — CLI
+- **Set up / Edit** opens a type-aware editor for **every** provider type - CLI
   (command/args/input) and the HTTP-backed cloud + local providers above
   (api/baseUrl/model/key/maxTokens, plus optional headers for cloud APIs). It
   previews the exact YAML and offers **Save & test** in one place.
 - **Add cloud API** / **Add local server** / **Custom CLI** create a provider
-  from scratch — the dashboard can't auto-detect those, so you name and fill them.
+  from scratch - the dashboard can't auto-detect those, so you name and fill them.
 - **Test** runs a safe connectivity probe (a cloud-API test only checks the key
-  env var is set — no surprise spend), and **Set default** points every agent at it.
+  env var is set - no surprise spend), and **Set default** points every agent at it.
 
 ## Provider reference
 

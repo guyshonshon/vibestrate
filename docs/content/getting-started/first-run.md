@@ -9,7 +9,7 @@ This walks through one complete cycle from a fresh init to a `merge_ready` diff.
 
 ## Pick a small, well-scoped task
 
-Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a known surface, testable. Don't start with "refactor the whole auth flow" — start with something like "add structured logging to the settings save handler."
+Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a known surface, testable. Don't start with "refactor the whole auth flow" - start with something like "add structured logging to the settings save handler."
 
 ## Start the run
 
@@ -55,7 +55,7 @@ cd ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-h
 git diff main
 ```
 
-Or, from the dashboard, open the **Git** tab — it renders the same diff inline with file-by-file navigation.
+Or, from the dashboard, open the **Git** tab - it renders the same diff inline with file-by-file navigation.
 
 ## Merge it (or don't)
 
@@ -68,11 +68,11 @@ Vibestrate never merges for you. The diff sits on its branch in the worktree, re
 
 ## When it doesn't end at `merge_ready`
 
-- **`blocked`** — the reviewer or verifier found something that needs a human decision. Read `.vibestrate/runs/<runId>/review.md` and `verification.md`.
-- **`failed`** — an unrecoverable error during a stage. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
+- **`blocked`** - the reviewer or verifier found something that needs a human decision. Read `.vibestrate/runs/<runId>/review.md` and `verification.md`.
+- **`failed`** - an unrecoverable error during a stage. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
 
 See [Debug a failed run](/docs/workflows/debug-failed) for the practical playbook.
 
 ## Next
 
-[Set up a provider →](/docs/getting-started/providers) — Vibestrate picks a sensible default, but knowing how providers are wired up is worth the five minutes.
+[Set up a provider →](/docs/getting-started/providers) - Vibestrate picks a sensible default, but knowing how providers are wired up is worth the five minutes.

@@ -1111,7 +1111,7 @@ controlled execution + hard policy gates + visible evidence
 
 ## Implementation status
 
-### S4 — Strict apply-only mode ✅ shipped
+### S4 - Strict apply-only mode ✅ shipped
 
 `policies.strictApplyOnly` turns on a high-assurance mode where agents never
 touch the disk. In `runRole`, a write-capable role is forced to the `read_only`
@@ -1119,13 +1119,13 @@ permission profile (so the provider runs without write access) and a prompt note
 instructs it to emit its changes as a single ```diff block. After the turn,
 `applyProposedPatchThroughGateway` (`src/safety/apply-gateway.ts`) extracts the
 diff, runs `checkPatchSafety`, takes a `file.patch` (op `apply-only`) broker
-decision, and — only on allow — `git apply --check` then `git apply` in the
+decision, and - only on allow - `git apply --check` then `git apply` in the
 worktree, recording evidence. Any refusal (unsafe patch, denied policy, failed
 apply) blocks the run via `__ActionDeniedSignal`. Off by default → no behavior
 change. The gateway and its refusal paths are unit-tested; end-to-end efficacy
 depends on the agent emitting an applyable diff (prompt-guided).
 
-### S3 — Post-turn diff gate ✅ shipped
+### S3 - Post-turn diff gate ✅ shipped
 
 `src/safety/diff-gate.ts` wraps every write-capable agent turn in the
 orchestrator. Before the provider runs, `snapshotWorktree` stages everything and
@@ -1134,15 +1134,15 @@ records a `git write-tree` tree object (non-destructive). After it returns,
 built-in `checkPatchSafety` secret/forbidden-path guard and (2) the broker as a
 `file.patch` effect (subject `op: "agent.turn.diff"`), so action policies apply.
 Verdicts: `accept` (record evidence, continue); `rollback` for a deny/unsafe diff
-— `restoreWorktree` does `read-tree` + `checkout-index -fa` + `clean -fd` to
+- `restoreWorktree` does `read-tree` + `checkout-index -fa` + `clean -fd` to
 return tracked AND previously-untracked files to the snapshot, then the run is
-blocked via `__ActionDeniedSignal`; `approve` for `require_approval` — the run **pauses** via the standard approval
+blocked via `__ActionDeniedSignal`; `approve` for `require_approval` - the run **pauses** via the standard approval
 flow (`awaitApprovalRequest`): on approval the changes are kept and the turn
 continues; on rejection the worktree is rolled back and the run blocks.
 Snapshotting is best-effort: a git failure disables the gate for that turn rather
 than blocking. Default-allow → unchanged behavior.
 
-### S5 — Run Assurance artifact ✅ shipped
+### S5 - Run Assurance artifact ✅ shipped
 
 `src/safety/run-assurance.ts` derives a single `RunAssuranceVerdict`
 (`blocked` / `unsafe` / `unverified` / `partially_verified` / `verified`) from
@@ -1155,9 +1155,9 @@ passed → `verified`; otherwise `partially_verified`. `caps[]` lists the missin
 checks. The orchestrator writes `runs/<id>/assurance.json` (best-effort) at the
 finalize step for every terminal state; `GET /api/runs/:id/assurance` (derives
 on demand for older runs), `vibe assurance <runId>`, and a run-detail badge
-surface it. No score — a level capped by missing checks, per the design.
+surface it. No score - a level capped by missing checks, per the design.
 
-### S2 — Policy Engine V2 (action policies) ✅ shipped
+### S2 - Policy Engine V2 (action policies) ✅ shipped
 
 Policy files gained an `actions:` list alongside the patch-content `rules:`.
 Each action policy (`src/policies/policy-types.ts`) declares `on: ActionKind[]`,
@@ -1166,7 +1166,7 @@ exact run `status`), and an `effect` of `deny` / `require_approval`.
 `action-policy-engine.ts` compiles them to broker `ActionEvaluator`s
 (`actionPolicyToEvaluator`); `loadActionPolicyEvaluators(projectRoot)` reads the
 store and builds the chain. `createActionBroker` wires that loader as a lazy
-`evaluatorLoader` — construction stays synchronous, and the policies are read at
+`evaluatorLoader` - construction stays synchronous, and the policies are read at
 most once per broker on first `decide()`, fail-open on a loader error (malformed
 *files* are already skipped by the store). The same enum, store, and CLI/API/UI
 surfaces are reused, so action policies show up in `vibe policies list`/`doctor`,
@@ -1174,13 +1174,13 @@ surfaces are reused, so action policies show up in `vibe policies list`/`doctor`
 (`applyPolicyGate`) is unchanged; `run.preflight` / `agent.turn.diff` surfaces
 arrive with S3.
 
-### S0 — Action Broker boundary + decision/evidence records ✅ shipped
+### S0 - Action Broker boundary + decision/evidence records ✅ shipped
 
 The boundary and the audit record landed first (`src/safety/action-broker.ts`):
 
 - `ActionRequest` / `ActionDecision` / `ActionEvidence` / `ActionRecord` types
   and the `ActionBroker` interface, matching the model above.
-- `DefaultActionBroker` — deterministic, side-effect-free `decide()` running an
+- `DefaultActionBroker` - deterministic, side-effect-free `decide()` running an
   ordered `ActionEvaluator[]` chain (first `deny` wins, else first
   `require_approval`, else `allow`); `record()` appends one NDJSON line to the
   per-run evidence log.
@@ -1188,7 +1188,7 @@ The boundary and the audit record landed first (`src/safety/action-broker.ts`):
   `readActionLog()` (tolerates a torn final line).
 - Orchestrator wiring: every **`provider.spawn`** is decided before the child
   process starts and recorded with post-execution evidence (exit code,
-  duration) after. Fail-closed — a non-allow decision throws
+  duration) after. Fail-closed - a non-allow decision throws
   `__ActionDeniedSignal`, which blocks the run (status `blocked`, not `failed`)
   and emits `action.denied` / `action.approval_required` events.
 - Default policy is **allow** (no evaluators wired yet), so run behavior is
@@ -1200,7 +1200,7 @@ checks (`checkPatchSafety`) and the legacy `applyPolicyGate`, immediately before
 the first `git apply`. The two gates coexist deliberately: `applyPolicyGate` is
 the S1-era patch-policy path; the broker is the unifying boundary + evidence log.
 S2 folds the former into a broker evaluator so there is one decision path. A
-non-allow verdict marks the suggestion `failed` (it does **not** throw — the
+non-allow verdict marks the suggestion `failed` (it does **not** throw - the
 service returns structured results), leaving the worktree untouched; success and
 failure both append `file.patch` evidence. Construction is centralised in
 `createActionBroker` and the `gateAction` helper (decide → record-on-deny →
@@ -1208,7 +1208,7 @@ caller records outcome), so every later effect kind inherits the S2 evaluator
 chain from one place. The service takes an injectable `broker` for tests.
 
 The **bundle** apply/smartApply/revert (`SuggestionBundleService`) gate the same
-way — one `file.patch` decision per operation, taken after preflight clears and
+way - one `file.patch` decision per operation, taken after preflight clears and
 before the first `git apply`, with evidence recorded at each terminal outcome.
 The bundle service shares its broker with the inner `ReviewSuggestionService`, so
 smartApply's per-step reverts (which delegate to the single-suggestion path) are

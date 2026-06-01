@@ -1,11 +1,11 @@
 # Design: Provider structured output (live streaming + real token/cost control)
 
-Status: **design — endorsed direction, not yet built** · Owner: maintainer
+Status: **design - endorsed direction, not yet built** · Owner: maintainer
 
 Make a provider's output **structured** (JSON / streaming-JSON) rather than
 plain text, so vibestrate can (a) stream live execution token-by-token, (b) read
 **real** token/cost/tool-call metrics, and (c) keep doing all of that for *any*
-provider the user configures — not just Claude. Crucially, this must **not**
+provider the user configures - not just Claude. Crucially, this must **not**
 weaken vibestrate's supervisor control. This doc is the plan + the guarantees.
 
 ---
@@ -20,12 +20,12 @@ Today every provider runs **one-shot + headless** (`claude -p "<prompt>"`,
    exits, then dumps. Not "live."
 2. **No real token/cost.** Plain text carries no usage. So the token/cost
    *control* vibestrate advertises (budgets, per-step spend, "watch the cost") is
-   not actually delivered — the numbers are blank or guessed.
+   not actually delivered - the numbers are blank or guessed.
 
 Structured output fixes both: a JSON/stream-JSON event stream carries the text
 *and* `usage` (input/output/cache tokens, cost, tool-call counts) *and* arrives
 incrementally. **More data, native, live.** This is strictly more supervisor
-signal than a plain log — it's the format a supervisor should have wanted all
+signal than a plain log - it's the format a supervisor should have wanted all
 along.
 
 ## How vibestrate's control works (the load-bearing fact)
@@ -38,15 +38,15 @@ markers (`src/core/approval-types.ts`, `src/core/review-parser.ts`):
 - `DECISION: APPROVED | CHANGES_REQUESTED | BLOCKED` → review outcome.
 - `VERIFICATION: PASSED | FAILED | NEEDS_HUMAN` → verify outcome.
 
-So **the control layer rides on the model's response text** — independent of
+So **the control layer rides on the model's response text** - independent of
 the output *format*. Enforcement (permission profile, worktree cwd, allowed
 tools, between-turn gating) is set by the invocation, not the output shape.
 
-### What structured output changes — and what it must not
+### What structured output changes - and what it must not
 
 - **Unchanged:** still one-shot + headless; same `--permission-mode`,
   `--allowed-tools`, worktree; the CLI still exits when done. A structured
-  output format is **reporting**, not an interactive session — the model's
+  output format is **reporting**, not an interactive session - the model's
   *actions* are identical. Enforcement is byte-for-byte the same.
 - **Changes:** stdout is now JSON events. Vibestrate must **extract the assistant's
   response text** from the stream to feed the control parsers; the markers live
@@ -61,7 +61,7 @@ safe):
    structured format MUST equal what plain-text mode would have produced. A
    gated test asserts `parse(textMode) === parse(structuredMode)`, including a
    `HUMAN_APPROVAL` marker round-trip.
-2. **No silent fallback — fail loud.** If a stream is malformed or no terminal
+2. **No silent fallback - fail loud.** If a stream is malformed or no terminal
    result is found, the agent **turn fails** and the run pauses. Vibestrate must
    **never** feed raw/garbled JSON to the control regexes, because a missed
    `HUMAN_APPROVAL` = an executor running past a gate the human should have
@@ -84,7 +84,7 @@ turns**.
 > Nuance: vibestrate's gates are between-turn, not mid-turn. Streaming lets you
 > *watch* a turn live, but you still can't interrupt the CLI mid-tool-call (the
 > turn is one-shot). Per-tool live approval is a different, much larger
-> architecture (an interactive permission-prompt MCP server) — see Non-goals.
+> architecture (an interactive permission-prompt MCP server) - see Non-goals.
 
 ## Architecture: provider output adapters
 
@@ -94,7 +94,7 @@ and have vibestrate's control + display + metrics consume only the normalized sh
 
 ```ts
 type NormalizedTurn = {
-  /** The assistant's final response text — the ONLY thing control parsers
+  /** The assistant's final response text - the ONLY thing control parsers
    *  (approval / decision / verification) ever read. */
   responseText: string;
   /** Native metrics when the format carries them; null when text-only. */
@@ -116,7 +116,7 @@ interface ProviderOutputAdapter {
 ```
 
 - **`text` adapter (default):** `responseText = stdout`, `metrics = null`,
-  `liveText = passthrough`. This is exactly today's behavior — every existing
+  `liveText = passthrough`. This is exactly today's behavior - every existing
   provider keeps working unchanged.
 - **`claude-stream-json` adapter:** parses `--output-format stream-json`
   events → `responseText` from the terminal `result` event, `metrics` from
@@ -126,7 +126,7 @@ interface ProviderOutputAdapter {
 - **future adapters:** `codex-json`, `gemini-json`, … land incrementally. Until
   a provider has one, it uses `text` (correct, just not live/metered).
 
-Vibestrate's control, live panel, and metrics store consume `NormalizedTurn` only —
+Vibestrate's control, live panel, and metrics store consume `NormalizedTurn` only -
 so the **supervision contract stays uniform** even as formats diverge. The
 divergence is contained inside adapters; nothing supervision-critical is
 special-cased per provider.
@@ -156,8 +156,8 @@ plain-text baseline). The setup never silently changes a working provider.
 
 Once `metrics` is real and per-turn:
 
-- **Live token/cost** in the run view (no more `—`), accumulating per step.
-- **Budgets / guards:** stop or pause a run that exceeds a token/cost ceiling —
+- **Live token/cost** in the run view (no more `-`), accumulating per step.
+- **Budgets / guards:** stop or pause a run that exceeds a token/cost ceiling -
   a genuine supervisor control, impossible without structured usage.
 - **Honest reporting:** per-step + per-run spend in metrics, replay, and the
   final report, sourced from the provider instead of estimated.
@@ -182,20 +182,20 @@ Once `metrics` is real and per-turn:
 - **Parity (control-safety):** same prompt, `text` vs `stream-json` adapters →
   identical `responseText` and identical approval/decision parse. Include a
   `HUMAN_APPROVAL: REQUIRED` in the response and assert the gate fires under
-  both. (Fake provider emitting a realistic stream-json sequence — no real CLI
+  both. (Fake provider emitting a realistic stream-json sequence - no real CLI
   in tests.)
 - **Fail-loud:** a malformed stream → `finalize` throws → turn fails, run pauses
   → control parsers never run on garbage.
 - **Metrics:** `usage` events → tokens/cost populate.
 - **Live:** `content_block_delta` events → readable text reaches the panel.
 - **Real-CLI smoke (manual, off-CI):** verify the stream-json schema against an
-  installed `claude` once — can't be validated in unit tests.
+  installed `claude` once - can't be validated in unit tests.
 
 ## Pros / cons
 
 **Pros**
 - True live execution (token-by-token) and **real** token/cost/tool-call
-  metrics — the supervisor signal we were missing.
+  metrics - the supervisor signal we were missing.
 - Generalizes cleanly via the adapter contract; not a claude special-case.
 - Control stays uniform (everything consumes `NormalizedTurn`).
 - Unlocks budgets/guards that need real usage data.

@@ -1,4 +1,4 @@
-# Roadmap & Sequencing — debated decisions
+# Roadmap & Sequencing - debated decisions
 
 Status: proposed plan (debate doc). This is where the open ideas from the old
 scratch notes get *answered*, not just filed. Each item below states the open
@@ -13,7 +13,7 @@ here for the "why".
 
 ## The spine: the core model rewrite is Phase 0
 
-`CLAUDE_CORE_MODEL_REWRITE.md` is not just another feature — it's the data
+`CLAUDE_CORE_MODEL_REWRITE.md` is not just another feature - it's the data
 model everything else speaks. It replaces the vocabulary and run payload:
 
 ```
@@ -46,7 +46,7 @@ resolver → orchestrator → CLI/API → UI → docs → tests). Everything bel
 sequenced *after* it and assumes the new nouns.
 
 **Vocab note for Phase 0:** freeze **Step = a Flow phase** (Plan/Implement/
-Review). The Phase-2 Board introduces a card **Checklist** of **items** — a
+Review). The Phase-2 Board introduces a card **Checklist** of **items** - a
 *different* concept (the task breakdown). Don't reuse "Step" for checklist
 items; the whole point of the rewrite is to stop overloading nouns. See §1.
 
@@ -76,7 +76,7 @@ plan, and let the tool suggest the best next step.
   with dry-run + atomic accept + rollback.
 
 **Decision: Board (planning) and Mission/Runs (execution) are different parts
-of the system — keep them apart.** My earlier "one Board, two lenses" idea was
+of the system - keep them apart.** My earlier "one Board, two lenses" idea was
 wrong; it would drag the run lifecycle back onto the planning surface (the
 existing nav already separates **Board** from **Mission Control**, and that's
 correct). Concurrency of runs lives in Mission/Runs, not on the Board.
@@ -97,26 +97,26 @@ micro = *how to build this one piece in this codebase*. Different jobs.
 - **Checklist** = the ordered breakdown that lives *inside a card*; entries are
   **items** (todos). They stay in the card on purpose, so context isn't
   scattered across many cards.
-- **Step** stays reserved for **Flow phases** (Plan/Implement/Review) — see the
+- **Step** stays reserved for **Flow phases** (Plan/Implement/Review) - see the
   note in Phase 0. Never call a checklist item a "Step".
 
 ### "Enhance"
 
-Not "reword it" — it **decomposes** a card into a concrete Checklist
+Not "reword it" - it **decomposes** a card into a concrete Checklist
 (e.g. "Make health endpoint and test it" → `1. /health returns json`,
 `2. test the endpoint`). An **assist run** (§8) produces the items, appended
 into the card. (Distinct from macro proposals, which create *separate* cards.)
 
 ### Two execution doors
 
-1. **Mission Control instant task** — ad-hoc brief, run now. No checklist needed.
+1. **Mission Control instant task** - ad-hoc brief, run now. No checklist needed.
    (Exists today.)
-2. **Pick-up from the Board** — a card *with* a Checklist, run with a mode:
-   - **Continuous** — the orchestrator carries the *whole* checklist
+2. **Pick-up from the Board** - a card *with* a Checklist, run with a mode:
+   - **Continuous** - the orchestrator carries the *whole* checklist
      autonomously. This is the point of an orchestrator: its **role-scoped
      agents are designed to pick up each item** and keep going, where a chat
      assistant would stall after one step.
-   - **Step-by-step** — pause between items for the human. Reuses the existing
+   - **Step-by-step** - pause between items for the human. Reuses the existing
      pause/resume + control machinery.
 
 ### Board columns (coarse, *not* the run lifecycle)
@@ -125,29 +125,29 @@ into the card. (Distinct from macro proposals, which create *separate* cards.)
 **coarse human kanban**, not the orchestrator's nine fine stages. Status is
 auto-nudged (→ In-progress when a run starts; → Needs testing when it reaches
 merge_ready), but the *fine* live lifecycle stays in Mission/Runs. Board and
-Mission both show status, at different granularity — that's fine; mirroring the
+Mission both show status, at different granularity - that's fine; mirroring the
 *fine* stages onto the board is what we're avoiding.
 
 ### "Needs testing" = a non-blocking advisory state
 
 Not an approval gate (those block). It means *the agent did its part but a
-human should look* — e.g. a 3D/animation/UI task the model literally can't
+human should look* - e.g. a 3D/animation/UI task the model literally can't
 *see*, or anything needing human taste/UX judgment. The run is **not stuck
 waiting**; the card is flagged, and the human's verdict routes it to Completed
 or back to In-progress. Model it as an advisory status, distinct from approvals.
 
-### Promotion (Fork C) — link, don't move
+### Promotion (Fork C) - link, don't move
 
 A checklist item can be **promoted to its own card**; the new card keeps a
 **"derived from" pointer** back to the origin item (and the item shows "→ card
-X"). A relation, not a hard reparent — flexibility via linking.
+X"). A relation, not a hard reparent - flexibility via linking.
 
 ### Suggest-next
 
 A pure ranker over the *backlog* (not the queue), using priority +
-dependency-readiness — sibling to `pickNextEntry`.
+dependency-readiness - sibling to `pickNextEntry`.
 
-### Continuous-mode execution (RESOLVED — locked)
+### Continuous-mode execution (RESOLVED - locked)
 
 How the orchestrator walks a card's checklist autonomously. Two unlocks make
 this clean instead of a special-case mess:
@@ -164,10 +164,10 @@ this clean instead of a special-case mess:
 **Run shape:**
 
 ```
-ONCE      Plan / Architect (holistic) — sees the whole card + all items,
+ONCE      Plan / Architect (holistic) - sees the whole card + all items,
           sequences them, spots shared concerns.
 PER ITEM  for each item, in order, in the SAME worktree:
-            • micro-plan  (Planner role, scoped to THIS item — keeps the
+            • micro-plan  (Planner role, scoped to THIS item - keeps the
                            Planner useful; this is the micro altitude)
             • implement
             • optional per-item check
@@ -184,10 +184,10 @@ orchestrator runs the segment once per item, everything else once.
 
 - **One worktree, one run, context carried forward.** After each item write a
   *compact* summary (changes, key files, follow-ups) and feed it forward as a
-  prior-artifact — **not** full diffs (token blow-up). Reuses
+  prior-artifact - **not** full diffs (token blow-up). Reuses
   `flow-context-builder` budget logic; `compact` control directive folds old
   summaries when budget tightens. *This is the make-or-break for "the agent
-  doesn't get exhausted" — build and test it first (see §1 build order).*
+  doesn't get exhausted" - build and test it first (see §1 build order).*
 - **Per-item commits** tagged with the item id → attribution, single-item
   revert, and board per-item status all fall out of git.
 - **Failure = stop-on-failure, linear.** Item fails after bounded per-item
@@ -198,9 +198,9 @@ orchestrator runs the segment once per item, everything else once.
 - **"Needs testing" = non-blocking advisory marker** (`HUMAN_REVIEW: ADVISORY`,
   parsed like our decision markers but non-blocking). Run stays terminal/
   merge_ready; card → Needs testing; human verdict routes it (§1).
-- **Budget guardrail** — per-run cap pauses the loop into a "needs attention"
+- **Budget guardrail** - per-run cap pauses the loop into a "needs attention"
   state (optionally downgrades to a cheaper Profile), never silent overrun.
-- **Resumable** — per-item status + commits let a crashed/aborted run resume
+- **Resumable** - per-item status + commits let a crashed/aborted run resume
   from the last completed item (extends resume-from-stage). → v1.1.
 
 **v1 scope:** checklist on Task; unified loop (synthetic-1-item for instant);
@@ -210,18 +210,18 @@ stop-on-failure + bounded retries; continuous + step-by-step; advisory
 Needs-testing; budget pause.
 
 **Deferred (genuinely bigger):** checklist DAG (item deps) + continue-past-
-failure + **parallel item execution** (worktree-per-item then merge — this *is*
+failure + **parallel item execution** (worktree-per-item then merge - this *is*
 §3's parallel/merge work); resume-from-item; mid-loop profile downgrade.
 
 **Recommended first build step:** the per-item context-carry (compact summary →
 forward prior-artifact) on a 3-item card, *before* wiring the full loop. If the
-summaries are weak, item 5 won't know what item 2 did — that's the real risk,
+summaries are weak, item 5 won't know what item 2 did - that's the real risk,
 not the loop.
 
 **Sequence:** Board planning UI can start early; **enhance / pick-up execution
 land after the rewrite** (they spawn runs that resolve Crew+Flow). → Phase 2.
 
-**Safety:** unchanged — proposals/enhance are gated (dry-run + explicit accept);
+**Safety:** unchanged - proposals/enhance are gated (dry-run + explicit accept);
 checklist items don't auto-spawn runs.
 
 ---
@@ -234,7 +234,7 @@ optionally *enforce* web search.
 **Current reality:**
 - `buildRolePrompt` (`src/core/prompt-builder.ts`) composes rules + skills +
   prior artifacts + notes. `runtimeSkills` is the proven per-run attachment
-  point. `PriorArtifact[]` is the content channel — but today it's **flow-only**.
+  point. `PriorArtifact[]` is the content channel - but today it's **flow-only**.
 - Path guard (`src/core/path-guard.ts`) is solid: project root + worktree only,
   symlink-escape proof, secret-like redaction. **No URL/PDF ingestion exists.**
 
@@ -247,13 +247,13 @@ optionally *enforce* web search.
 - **Do scope via supplied sources.** Add a per-run/per-task `ContextSource[]`:
   `{ kind: "file" | "url" | "pdf", ref, label }`. Materialize each into
   `runs/<id>/context/` (files copied path-guarded; URLs fetched; PDFs parsed
-  locally to text), then inject through the existing `PriorArtifact` channel —
+  locally to text), then inject through the existing `PriorArtifact` channel -
   generalizing the flow-only mechanism to any run. Reuse the flow context
   **token budget** logic.
 
 **Safety:** URL fetch is the only *outbound* action here → opt-in, bounded, and
 fetched content runs through secret redaction *before* entering a prompt. PDF
-parsing is local. No silent network — consistent with the posture.
+parsing is local. No silent network - consistent with the posture.
 
 **Sequence:** rides on the *new* run payload + prompt-builder, so land it after
 the rewrite (add `contextSources` to the new payload, not the old one). →
@@ -279,9 +279,9 @@ not "parallel runs" (we have those):
   `git merge --no-commit --no-ff` dry-runs in a scratch worktree → surface
   conflicts (extends the existing file-overlap detector to real git results).
 - Let the user **sequentially integrate** selected branches into a dedicated
-  **integration branch** — never `main`, never auto-push, never auto-merge.
+  **integration branch** - never `main`, never auto-push, never auto-merge.
 - The fully-automatic "fan-out subtasks then fan-in" is the larger *custom
-  workflow DAG / parallel agents within one task* item — kept deferred (V1+).
+  workflow DAG / parallel agents within one task* item - kept deferred (V1+).
 
 **Safety:** stays inside the worktree-bounded, explicit-write model; integration
 branch is a new artifact, main is untouched, no push.
@@ -303,7 +303,7 @@ full route surface, and **`POST /api/runs` already takes a structured `RunSpec`
 UI-decoupled. Gaps: **no auth/token**, no version/contract, and the run payload
 is about to change in the rewrite.
 
-**Decision:** Don't build a new API layer — **harden and document the one we
+**Decision:** Don't build a new API layer - **harden and document the one we
 have**:
 - Freeze a versioned `/api/v1` contract **after** the rewrite stabilizes the
   payload (so we don't version a shape that's about to break).
@@ -330,7 +330,7 @@ fork/patch/delete exist; **no remote fetch**. Same for skills (all local
 discovery). The rewrite is precisely what makes a flow *portable* (seats, not
 local role/provider ids).
 
-**Decision:** You don't host a backend — the "hub" is the **npm-without-a-
+**Decision:** You don't host a backend - the "hub" is the **npm-without-a-
 registry** pattern:
 - A **curated index** (a JSON manifest in a community git repo) pointing at raw
   flow-YAML / skill-folder URLs. Fetch = download + **schema-validate** +
@@ -338,7 +338,7 @@ registry** pattern:
   (GitHub raw / any CDN) is enough; no server, stays local-first.
 - **This is unblocked *by* the rewrite:** a shared flow must not carry your
   local crew. Sharing flows full of `roleId`/`slotProviders` (today's shape)
-  wouldn't port. Seats fix that — so the hub comes *after* the rewrite.
+  wouldn't port. Seats fix that - so the hub comes *after* the rewrite.
 - **Skill AI-overview** ("is this helpful / already present / conflicting?") =
   a **read-only assist run** (§8) against the local crew + project context.
 
@@ -355,7 +355,7 @@ registry** pattern:
 
 **What "local-first" actually means here (corrected):** local-first is about
 **sovereignty, not egress**. The invariant is *there is no Vibestrate-operated
-backend or relay* — the user runs an independent tool they fully control, and
+backend or relay* - the user runs an independent tool they fully control, and
 nothing ever flows to a service **we** run. Whether the user's own machine
 calls `api.openai.com` with the user's own key is *their* sovereign choice; it
 does **not** violate local-first. A cloud API is simply **another provider type
@@ -377,7 +377,7 @@ The only *added responsibility* vs. a CLI (where the CLI owns the key + egress)
 is that Vibestrate now holds the key and builds the request, so:
 - **key via env-var ref only**, never written to YAML / artifacts / logs (reuse
   `secret-resolver` + redaction);
-- **transparency** — UI marks the provider's destination as external so egress
+- **transparency** - UI marks the provider's destination as external so egress
   is never a surprise;
 - defaults stay local (the spec's "no model APIs unless explicitly requested"
   is about *not auto-wiring* cloud, not about forbidding the user from choosing
@@ -401,7 +401,7 @@ resolved provider/profile**, which is exactly the missing dimension.
 **Decision:** keep it **local-first and opt-in**. Add an exporter that maps our
 existing events/metrics to **OpenTelemetry traces** (Langfuse ingests OTLP). No
 data leaves by default; the user configures an endpoint explicitly. It's an
-exporter over data we already have — not new instrumentation.
+exporter over data we already have - not new instrumentation.
 
 **Sequence:** after the rewrite (per-step provider in the trace is the valuable
 part). Low priority. → Phase 5.
@@ -414,7 +414,7 @@ Several features above need a small AI call: enhance-a-plan (§1), suggest-next
 (§1), skill AI-overview (§5). Rather than three bespoke paths, define **one
 internal primitive**: a **one-shot, read-only, structured-output run** against
 the default crew/profile. The notes' "AI integration helpers (claude -p)" is
-this primitive — not a standalone phase. Define it once in Phase 2, reuse it.
+this primitive - not a standalone phase. Define it once in Phase 2, reuse it.
 
 ---
 
@@ -422,30 +422,30 @@ this primitive — not a standalone phase. Define it once in Phase 2, reuse it.
 
 | Phase | Work | Depends on | Effort |
 |------|------|-----------|--------|
-| **0** | **Core model rewrite** (Flow/Step/Seat/Crew/Role/Profile/Provider) | — | Heavy, own branch |
+| **0** | **Core model rewrite** (Flow/Step/Seat/Crew/Role/Profile/Provider) | - | Heavy, own branch |
 | **1** | API hardening + `/api/v1` docs (§4) · single-flow import/export (§5) | 0 | Small |
 | **2** | Board (planning, separate from Mission) + card Checklist + enhance + pick-up exec (continuous/step-by-step) + suggest-next (§1) · **assist primitive** (§8) | 0 | Medium |
 | **3** | Context sources: files/URLs/PDFs (§2) · non-CLI providers: localhost proxy + cloud-API (§6) | 0 | Medium |
 | **4** | Integration / merge-preview surface (§3) · Guides hub browse + skill fetch + AI-overview (§5) | 1,2 | Medium |
 | **5** | Opt-in OTel/Langfuse exporter (§7) | 0 | Small |
-| **deferred** | Custom workflow DAGs & parallel agents in one task · Docker/cloud **execution** backends · GitHub/GitLab PR creation · real WhatsApp adapter | — | Large/optional |
+| **deferred** | Custom workflow DAGs & parallel agents in one task · Docker/cloud **execution** backends · GitHub/GitLab PR creation · real WhatsApp adapter | - | Large/optional |
 
 ---
 
 ## Decisions locked
 
-- **Sequencing** — Phase 0 (whole core rewrite) ships first on its own branch,
+- **Sequencing** - Phase 0 (whole core rewrite) ships first on its own branch,
   all internal steps end-to-end without stopping between them, per
   `CLAUDE_CORE_MODEL_REWRITE.md`. No interleaving with feature work.
-- **Local-first = sovereignty, not egress** (§6) — cloud-API providers are a
+- **Local-first = sovereignty, not egress** (§6) - cloud-API providers are a
   first-class provider type (user's own key, no Vibestrate-operated backend);
   built in Phase 3 with the Provider/Profile work, not deferred.
-- **Board ≠ lifecycle** (§1) — Board is planning only (Trello of cards +
+- **Board ≠ lifecycle** (§1) - Board is planning only (Trello of cards +
   in-card Checklists); execution lifecycle + concurrency stay in Mission/Runs.
   Three planning altitudes (macro/meso/micro). "Step" reserved for Flow phases;
   card breakdown is "Checklist / items". "Needs testing" is advisory, not
   blocking. Promotion is a link, not a reparent.
-- **Continuous-mode execution** (§1) — every run iterates a checklist (instant
+- **Continuous-mode execution** (§1) - every run iterates a checklist (instant
   task = synthetic 1 item); depth-per-item is the Flow's `checklistSegment`;
   holistic-plan → per-item band → holistic-review; one worktree with compact
   forward-carried summaries; per-item commits; linear stop-on-failure;
@@ -454,5 +454,5 @@ this primitive — not a standalone phase. Define it once in Phase 2, reuse it.
 
 ## Open questions for you (genuinely your call)
 
-_None outstanding — the board model, model-access line, and sequencing are all
+_None outstanding - the board model, model-access line, and sequencing are all
 settled above. Remaining unknowns are captured as the open spike (§1)._

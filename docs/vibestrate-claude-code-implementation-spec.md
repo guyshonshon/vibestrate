@@ -1,4 +1,4 @@
-# Vibestrate — Autonomous Multi-Agent Completion Orchestrator — Claude Code Implementation Spec
+# Vibestrate - Autonomous Multi-Agent Completion Orchestrator - Claude Code Implementation Spec
 
 ## Working Product Name
 
