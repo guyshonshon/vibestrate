@@ -20,6 +20,7 @@ import {
   deleteTask,
   queueTask,
   markReady,
+  markBacklog,
 } from "../roadmap/task-actions.js";
 import { spawnVibestrateDetached } from "../runner/command-runner.js";
 import { CARD_PROPS, FOCAL_CARD_PROPS, clip, taskStatusToken } from "../theme.js";
@@ -73,9 +74,14 @@ export function RoadmapPage({
   const { exit } = useApp();
   void exit;
 
-  // When formOpen flips on, re-init the form for the current mode.
+  // Seed the form ONLY on the closed→open transition. Depending on `selected`
+  // (which gets a new reference on every 2s tasks-poll) re-ran this on every
+  // poll — wiping in-progress edits and snapping focus back to title.
+  const wasFormOpen = React.useRef(false);
   React.useEffect(() => {
-    if (!ui.formOpen) return;
+    const justOpened = ui.formOpen && !wasFormOpen.current;
+    wasFormOpen.current = ui.formOpen;
+    if (!justOpened) return;
     if (formMode === "edit" && selected) {
       dispatchForm({ type: "focus", field: "title" });
       const seeded = initTaskForm("edit", selected.id, {
@@ -111,7 +117,10 @@ export function RoadmapPage({
       dispatchForm({ type: "field", field: "readOnly", value: false });
       dispatchForm({ type: "focus", field: "title" });
     }
-  }, [ui.formOpen, formMode, selected]);
+    // `selected`/`formMode` are read at the open transition on purpose; adding
+    // them as deps would re-seed mid-edit (the bug above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ui.formOpen]);
 
   const submit = async (): Promise<void> => {
     const v = validateTaskForm(form);
@@ -269,8 +278,16 @@ export function RoadmapPage({
         });
         return;
       }
-      if (input === "c" && selected && selected.status === "backlog") {
-        void markReady(projectRoot, selected.id).then(async (r) => {
+      // `c` toggles a card between backlog (unsorted) and ready (shortlisted),
+      // so triage is reversible.
+      if (
+        input === "c" &&
+        selected &&
+        (selected.status === "backlog" || selected.status === "ready")
+      ) {
+        const action =
+          selected.status === "backlog" ? markReady : markBacklog;
+        void action(projectRoot, selected.id).then(async (r) => {
           onToast(r.ok ? "ok" : "err", r.message);
           await refresh();
         });

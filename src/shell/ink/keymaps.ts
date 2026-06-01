@@ -36,7 +36,7 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "e", label: "edit" },
           { key: "d", label: "delete" },
           { key: "Q", label: "queue" },
-          { key: "c", label: "→ready" },
+          { key: "c", label: "ready ↔ backlog" },
         ]},
       ];
     case "queue":

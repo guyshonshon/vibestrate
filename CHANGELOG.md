@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Fix: editing a task kept snapping focus back to the title field.** The form
+  re-seeded itself on every 2-second tasks poll (its effect depended on the
+  selected card, whose reference changes each poll), wiping in-progress edits and
+  resetting focus. Now it seeds **only on the closed→open transition**.
+- **Roadmap `c` is now reversible (backlog ↔ ready).** It used to only promote
+  backlog→ready; pressing `c` on a `ready` card moves it back to `backlog`. (New
+  `markBacklog` action; `ready`/`backlog` are both "not started" buckets —
+  `ready` is the triaged shortlist that suggest-next ranks first.)
 - **Fix: task-form `D`/$EDITOR corrupted the terminal.** Launching `$EDITOR` from
   inside the Ink shell never actually suspended Ink, so the editor and the panel
   fought over the terminal (and pressing `D` also typed "D" into the focused
