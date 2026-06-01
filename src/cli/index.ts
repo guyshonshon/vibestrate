@@ -217,8 +217,8 @@ export function buildVibestrateProgram(): Command {
       [],
     )
     .option(
-      "--interactive",
-      "open terminal Flow setup for task, brief, participants, and optional steps. Requires --flow.",
+      "-i, --interactive",
+      "interactively pick the Flow and Crew you didn't pass (horizontal selector), then run. With --flow, opens that flow's detailed setup instead.",
     )
     .option(
       "--resume-from <runId>",
@@ -330,10 +330,9 @@ export function buildVibestrateProgram(): Command {
           ((opts.stepProfile?.length ?? 0) > 0 ||
             !!opts.flowBrief ||
             !!opts.flowContext ||
-            (opts.flowSkip?.length ?? 0) > 0 ||
-            opts.interactive === true)
+            (opts.flowSkip?.length ?? 0) > 0)
         ) {
-          console.error("--flow-*/--step-profile options and run --interactive require --flow <id>.");
+          console.error("--flow-*/--step-profile options require --flow <id>.");
           process.exit(2);
         }
         let flowContextPolicy:

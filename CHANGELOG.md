@@ -18,6 +18,14 @@ version. Update it in the same commit as the change it describes.
   choices (UI⇄CLI parity). The `/setup` route validates the full provider union
   (https-only / loopback-only / env-ref-key guards fire fail-closed → 400), and
   `/config` round-trips the real typed config.
+- **Interactive `vibe run -i` — pick Flow + Crew with a horizontal selector.**
+  `vibe run -i "task"` now fills in whatever you didn't pass: a chip-style
+  horizontal Flow picker (when no `--flow`), then a Crew picker (when no `--crew`
+  and >1 crew), then runs immediately. ← / → (or h/l) to move, Enter to choose;
+  any flag you pass skips its prompt. `-i` no longer requires `--flow`; passing
+  `--flow` with `-i` still opens that flow's detailed setup. New
+  `src/cli/ui/horizontal-select.ts` (a custom `@inquirer/core` prompt) +
+  `src/cli/wizards/flow-crew-picker.ts`. Adds `@inquirer/core` as a direct dep.
 - **Rewind safety guard + issue log.** The (destructive) snapshot restore now
   refuses any target that resolves to the project root (`isSafeRestoreTarget`) —
   defense in depth on top of the existing per-run-worktree isolation. Documented
