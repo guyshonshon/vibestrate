@@ -13,7 +13,9 @@ version. Update it in the same commit as the change it describes.
   do without opening `?`. (Command output still takes that pane while present.)
   New: Queue page `t` cycles the dispatch policy (fifo → priority → fair, written
   to `scheduler.queuePolicy`). Fixed the Dashboard's stale "press 2 to open Runs"
-  hint (Runs is tab 4 — now derived from the hotkey).
+  hint (Runs is tab 4 — now derived from the hotkey). The COMMANDS/OUTPUT pane is
+  narrower (24–26%), and the Dashboard's run/activity rows are single-line
+  truncated (no more time-runs-into-type or two-line wraps) so the columns breathe.
 - **Interactive shell — scroll without PgUp.** PgUp/PgDn aren't on every keyboard
   (Mac laptops). Output pane now scrolls with **Tab / Shift+Tab** while the prompt
   is focused (the only keys `ink-text-input` leaves free); the docs browser scrolls
