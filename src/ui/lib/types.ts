@@ -277,6 +277,8 @@ export type ProfileView = {
   budget: string | null;
   maxTokens: number | null;
   timeoutMs: number | null;
+  /** Crew roles that point at this profile (empty = unused). */
+  usedBy: { crewId: string; roleId: string }[];
 };
 
 export type FlowSuggestion = {

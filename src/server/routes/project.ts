@@ -17,10 +17,34 @@ import { configExists, loadConfig } from "../../project/config-loader.js";
 import {
   setCrewRoleFields,
   setProfileFields,
+  createProfile,
+  deleteProfile,
 } from "../../setup/config-update-service.js";
+import { profileUsage, rolesUsingProfile } from "../../profiles/profile-usage.js";
 import { assertSafeRunId, HttpError } from "../security.js";
+import { z } from "zod";
 
 const ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+
+const createProfileBody = z
+  .object({
+    id: z.string().min(1).max(80),
+    provider: z.string().min(1).max(120),
+    label: z.string().min(1).max(120).optional(),
+    model: z.string().min(1).max(120).optional(),
+    power: z.string().min(1).max(60).optional(),
+    budget: z.string().min(1).max(60).optional(),
+    maxTokens: z.number().int().positive().optional(),
+    timeoutMs: z.number().int().positive().optional(),
+  })
+  .strict();
+
+const duplicateProfileBody = z
+  .object({
+    newId: z.string().min(1).max(80),
+    label: z.string().min(1).max(120).optional(),
+  })
+  .strict();
 
 export type ProjectRoutesDeps = { projectRoot: string };
 
@@ -38,6 +62,7 @@ export async function registerProjectRoutes(
   app.get("/api/profiles", async () => {
     if (!(await configExists(projectRoot))) return { profiles: [] };
     const { config } = await loadConfig(projectRoot);
+    const usage = profileUsage(config);
     const profiles = Object.entries(config.profiles).map(([id, p]) => ({
       id,
       provider: p.provider,
@@ -48,9 +73,80 @@ export async function registerProjectRoutes(
       budget: p.budget,
       maxTokens: p.maxTokens,
       timeoutMs: p.timeoutMs,
+      usedBy: usage.get(id) ?? [],
     }));
     return { profiles };
   });
+
+  // Create a new Profile (a reusable preset a Role can point at).
+  app.post<{ Body: unknown }>("/api/profiles", async (req) => {
+    const parsed = createProfileBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    const { id, ...fields } = parsed.data;
+    if (!ID_RE.test(id)) throw new HttpError(400, "Invalid profile id.");
+    try {
+      await createProfile(projectRoot, id, fields);
+    } catch (err) {
+      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+    }
+    return { ok: true, profileId: id };
+  });
+
+  // Duplicate an existing Profile under a new id (e.g. "claude" -> "claude-cheap").
+  app.post<{ Params: { profileId: string }; Body: unknown }>(
+    "/api/profiles/:profileId/duplicate",
+    async (req) => {
+      const parsed = duplicateProfileBody.safeParse(req.body);
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const newId = parsed.data.newId;
+      if (!ID_RE.test(newId)) throw new HttpError(400, "Invalid profile id.");
+      const { config } = await loadConfig(projectRoot);
+      const src = config.profiles[req.params.profileId];
+      if (!src) throw new HttpError(404, `Profile "${req.params.profileId}" not found.`);
+      try {
+        await createProfile(projectRoot, newId, {
+          provider: src.provider,
+          label: parsed.data.label ?? newId,
+          model: src.model ?? undefined,
+          power: src.power ?? undefined,
+          budget: src.budget ?? undefined,
+          maxTokens: src.maxTokens ?? undefined,
+          timeoutMs: src.timeoutMs ?? undefined,
+        });
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+      return { ok: true, profileId: newId };
+    },
+  );
+
+  // Delete a Profile. Refuses while a Role still references it unless ?force=1.
+  app.delete<{ Params: { profileId: string }; Querystring: { force?: string } }>(
+    "/api/profiles/:profileId",
+    async (req) => {
+      const profileId = req.params.profileId;
+      const { config } = await loadConfig(projectRoot);
+      if (!config.profiles[profileId]) {
+        throw new HttpError(404, `Profile "${profileId}" not found.`);
+      }
+      const users = rolesUsingProfile(config, profileId);
+      const force = req.query.force === "1" || req.query.force === "true";
+      if (users.length > 0 && !force) {
+        throw new HttpError(
+          409,
+          `Profile "${profileId}" is used by ${users.length} role(s): ${users
+            .map((u) => `${u.crewId}/${u.roleId}`)
+            .join(", ")}. Reassign them or force-delete.`,
+        );
+      }
+      try {
+        await deleteProfile(projectRoot, profileId);
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+      return { ok: true, profileId, forced: force && users.length > 0 };
+    },
+  );
 
   // Edit a Profile (provider/model/power/budget/maxTokens/timeoutMs).
   app.patch<{ Params: { profileId: string }; Body: unknown }>(
