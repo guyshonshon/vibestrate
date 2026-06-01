@@ -7,19 +7,22 @@ export type HintGroup = { name: string; hints: KeyHint[] };
 
 type Props = {
   ui: ShellUiStateV2;
+  capturedAt: string | null;
 };
 
 /**
- * Contextual footer organised into named groups so the user can
- * scan by intent (Pages / Move / Actions / Misc). Each group lists
- * `key label` pairs; the key is cyan, the label dim.
- *
- * Toasts and pending y/N confirmations render under the keymap.
+ * The slim bottom strip: transient toasts + pending y/N confirmations, and the
+ * snapshot clock right-aligned. (The command keymap now lives up in the header
+ * as a minimal hint; the full list is in the `?` overlay.)
  */
-export function Footer({ ui }: Props) {
+export function Footer({ ui, capturedAt }: Props) {
   const toast = ui.toasts[ui.toasts.length - 1] ?? null;
   return (
     <Box flexDirection="column">
+      <Box>
+        <Box flexGrow={1} />
+        {capturedAt ? <Text dimColor>{capturedAt.slice(11, 19)}</Text> : null}
+      </Box>
       {ui.pendingConfirm?.action === "abort" ? (
         <Box marginTop={1}>
           <Text color="yellow">

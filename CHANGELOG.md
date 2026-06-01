@@ -6,6 +6,19 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Fix: `vibe init` crashed ("Could not locate default-prompts directory").**
+  The role prompts moved to `src/roles/default-prompts` but the resolver still
+  looked under `src/agents/…` and only from layouts the bundled `dist/index.js`
+  doesn't match. Now resolved by walking up from the module (sibling → `src/
+  roles/default-prompts` → `dist/default-prompts`); `package.json files` ships
+  the correct dir; `vibe init` gains a `-f` alias for `--force` (re-scaffold to
+  repair). Regression-guarded by tests (bundle-layout resolution + a prompt for
+  every builtin role + the `files` entry).
+- **Interactive shell — decluttered header.** The full keymap wall is gone from
+  the header; it now shows just a minimal `: commands · ? help · q quit` hint
+  next to the page subtitle (the complete keymap stays in the `?` overlay). The
+  snapshot clock moved to the slim bottom strip. Removed the redundant bold page
+  label (the highlighted tab already says where you are).
 - **Domain → vibestrate.com.** Updated the product domain from
   `vibestrate.shonshon.com` to `vibestrate.com` across docs, README, package
   metadata, and the shell's docs link.
