@@ -250,6 +250,44 @@ function defaultCrewIdOf(doc: YAML.Document.Parsed): string {
 
 /** Update a Profile's fields (provider, model, power, budget, etc.). Creates
  *  the profile if missing. Throws if the named provider isn't configured. */
+/** Create a new profile. Fails if the id exists or the provider isn't
+ *  configured. Reusable preset a Role can then point at. */
+export async function createProfile(
+  projectRoot: string,
+  profileId: string,
+  fields: Record<string, unknown>,
+): Promise<void> {
+  const { doc } = await readDocument(projectRoot);
+  if (doc.hasIn(["profiles", profileId])) {
+    throw new Error(`Profile "${profileId}" already exists.`);
+  }
+  const provider = fields.provider;
+  if (typeof provider !== "string" || provider.length === 0) {
+    throw new Error("A profile needs a provider.");
+  }
+  if (!doc.hasIn(["providers", provider])) {
+    throw new Error(`Provider "${provider}" is not configured.`);
+  }
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) doc.setIn(["profiles", profileId, key], value);
+  }
+  await writeDocument(projectRoot, doc);
+}
+
+/** Remove a profile. The caller is responsible for checking it isn't still
+ *  referenced by a Role (see `rolesUsingProfile`). */
+export async function deleteProfile(
+  projectRoot: string,
+  profileId: string,
+): Promise<void> {
+  const { doc } = await readDocument(projectRoot);
+  if (!doc.hasIn(["profiles", profileId])) {
+    throw new Error(`Profile "${profileId}" is not configured.`);
+  }
+  doc.deleteIn(["profiles", profileId]);
+  await writeDocument(projectRoot, doc);
+}
+
 export async function setProfileFields(
   projectRoot: string,
   profileId: string,

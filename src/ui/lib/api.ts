@@ -842,6 +842,34 @@ export const api = {
   ): Promise<{ ok: true; profileId: string }> {
     return jsonPatch(`/api/profiles/${encodeURIComponent(profileId)}`, patch);
   },
+  async createProfile(input: {
+    id: string;
+    provider: string;
+    label?: string;
+    model?: string;
+    power?: string;
+    budget?: string;
+    maxTokens?: number;
+    timeoutMs?: number;
+  }): Promise<{ ok: true; profileId: string }> {
+    return jsonPost("/api/profiles", input);
+  },
+  async duplicateProfile(
+    profileId: string,
+    input: { newId: string; label?: string },
+  ): Promise<{ ok: true; profileId: string }> {
+    return jsonPost(
+      `/api/profiles/${encodeURIComponent(profileId)}/duplicate`,
+      input,
+    );
+  },
+  async deleteProfile(
+    profileId: string,
+    opts: { force?: boolean } = {},
+  ): Promise<{ ok: true; profileId: string }> {
+    const q = opts.force ? "?force=1" : "";
+    return jsonDelete(`/api/profiles/${encodeURIComponent(profileId)}${q}`);
+  },
   async resolveFlow(
     flowId: string,
     input: {
