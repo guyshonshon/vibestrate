@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Check, FolderGit2, Sparkle } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Check } from "lucide-react";
 import { api } from "../lib/api.js";
-import { Button } from "../components/design/Button.js";
 import { cn } from "../components/design/cn.js";
 
 type Status = {
@@ -14,10 +13,10 @@ type Status = {
 type InitResult = Awaited<ReturnType<typeof api.initProject>>;
 
 /**
- * First-run onboarding. Shown by the gate when a project has no `.vibestrate/`.
- * It initializes the project in place (parity with `vibe init`) and hands the
- * user into the dashboard - the product's first impression, so it leans on the
- * editorial display type and a single, confident call to action.
+ * First-run onboarding - the product's first impression, so it follows the
+ * vibestrate-marketing brief: hard-edged slabs, hairline borders, the near-black
+ * ground, the real wordmark asset, and violet only as the single active signal
+ * (the CTA). No glass, glow, blooms, or font-rendered wordmark.
  */
 export function InitScreen({
   status,
@@ -46,39 +45,31 @@ export function InitScreen({
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-ink-0 text-fog-100">
-      <div className="vibestrate-backdrop" />
-      {/* a soft violet bloom behind the card for depth */}
-      <div
-        className="pointer-events-none fixed left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: 760,
-          height: 520,
-          background:
-            "radial-gradient(closest-side, rgba(139,124,255,0.16), transparent 70%)",
-        }}
-      />
-
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-[600px] flex-col items-center justify-center px-6 py-16">
-        <span className="relative mb-7 h-14 w-14 overflow-hidden rounded-2xl ring-1 ring-violet-soft/40 shadow-[0_10px_40px_-8px_rgba(139,124,255,0.6)] fade-up">
+    <div className="flex min-h-screen w-full items-center justify-center bg-ink-0 px-6 text-fog-100">
+      <div className="w-full max-w-[460px] fade-up">
+        {/* Brand lockup: the circuit mark + the official wordmark asset. */}
+        <div className="flex flex-col items-center">
           <img
-            src="./logo.png"
-            alt="Vibestrate"
-            className="block h-full w-full object-cover"
+            src="./logo-icon.png"
+            alt=""
+            className="h-11 w-11 rounded-[22%]"
+            decoding="async"
           />
-        </span>
+          <img
+            src="./logo-wordmark.png"
+            alt="Vibestrate"
+            className="mt-4 h-[26px] w-auto opacity-95"
+            decoding="async"
+          />
+        </div>
 
         {status.isGitRepo ? (
           phase === "done" && result ? (
-            <DoneCard
-              result={result}
-              projectName={status.projectName}
-              onEntered={onEntered}
-            />
+            <DoneCard result={result} projectName={status.projectName} onEntered={onEntered} />
           ) : (
             <ReadyCard
               projectName={status.projectName}
-              phase={phase}
+              working={phase === "working"}
               error={error}
               onInitialize={() => void initialize()}
             />
@@ -91,85 +82,92 @@ export function InitScreen({
   );
 }
 
-function Hero({
-  title,
+function Heading({ children }: { children: React.ReactNode }) {
+  return (
+    <h1 className="text-display mt-10 text-center text-[26px] leading-[1.12]">
+      {children}
+    </h1>
+  );
+}
+
+function Lead({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mx-auto mt-3 max-w-[40ch] text-center text-[14.5px] leading-relaxed text-fog-300">
+      {children}
+    </p>
+  );
+}
+
+/** The single active-signal CTA: a solid violet slab, hard edges, no glow. */
+function VioletCta({
   children,
+  disabled,
+  onClick,
 }: {
-  title: React.ReactNode;
   children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div className="text-center fade-up fade-up-delay-1">
-      <h1 className="text-display text-[34px] leading-[1.08] sm:text-[40px]">
-        {title}
-      </h1>
-      <p className="mx-auto mt-4 max-w-[42ch] text-[15.5px] leading-relaxed text-fog-300">
-        {children}
-      </p>
-    </div>
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-11 w-full items-center justify-center gap-2 rounded-md",
+        "bg-violet-deep text-[14px] font-medium text-white",
+        "border border-violet-soft/30 transition-[filter,background] hover:brightness-110",
+        "disabled:opacity-60 disabled:pointer-events-none",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 
 function ReadyCard({
   projectName,
-  phase,
+  working,
   error,
   onInitialize,
 }: {
   projectName: string;
-  phase: "idle" | "working" | "done" | "error";
+  working: boolean;
   error: string | null;
   onInitialize: () => void;
 }) {
-  const working = phase === "working";
   return (
     <>
-      <Hero
-        title={
-          <>
-            Welcome to{" "}
-            <span className="font-serif italic text-violet-soft">Vibestrate</span>
-          </>
-        }
-      >
-        The local-first way to supervise AI coding flows. Let's set up{" "}
-        <span className="text-fog-100">{projectName}</span> - it stays entirely on
-        your machine.
-      </Hero>
+      <Heading>Set up your project</Heading>
+      <Lead>
+        Vibestrate orchestrates AI coding runs on your machine. Initialize{" "}
+        <span className="text-fog-100">{projectName}</span> to create its config,
+        crew, and flows.
+      </Lead>
 
-      <div className="mt-9 w-full fade-up fade-up-delay-2">
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          iconRight={<ArrowRight size={16} />}
-          disabled={working}
-          onClick={onInitialize}
-        >
-          {working ? "Setting up your project…" : "Initialize project"}
-        </Button>
+      <div className="mt-8">
+        <VioletCta disabled={working} onClick={onInitialize}>
+          {working ? "Setting up your project" : "Initialize project"}
+          {!working ? <ArrowRight size={16} /> : null}
+        </VioletCta>
         {working ? <div className="meter mt-3" /> : null}
       </div>
 
-      <ul className="mt-8 w-full space-y-2.5 text-[14px] text-fog-300 fade-up fade-up-delay-3">
+      <div className="mt-8 divide-y divide-white/8 rounded-md border border-white/10 bg-ink-100">
         {[
-          "Scaffolds .vibestrate/ - your config, crew, roles, and flows",
-          "Detects the AI providers already installed on your machine",
-          "Writes a sensible default crew and flow so you can run immediately",
-        ].map((line) => (
-          <li key={line} className="flex items-start gap-2.5">
-            <Sparkle
-              size={15}
-              className="mt-0.5 shrink-0 text-violet-soft"
-              strokeWidth={1.75}
-            />
-            <span>{line}</span>
-          </li>
+          [".vibestrate/", "config, crew, roles, and flows"],
+          ["providers", "detects the AI CLIs installed on your machine"],
+          ["a default crew + flow", "so you can run immediately"],
+        ].map(([k, v]) => (
+          <div key={k} className="flex items-baseline gap-3 px-4 py-3">
+            <span className="mono shrink-0 text-[12px] text-violet-soft">{k}</span>
+            <span className="text-[13px] leading-snug text-fog-400">{v}</span>
+          </div>
         ))}
-      </ul>
+      </div>
 
       {error ? (
-        <p className="mt-6 w-full rounded-xl border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-[13px] text-rose-300">
+        <p className="mt-6 rounded-md border border-rose-400/30 bg-rose-500/5 px-4 py-3 text-[13px] text-rose-300">
           {error}
         </p>
       ) : null}
@@ -189,29 +187,27 @@ function DoneCard({
   const ready = result.detections.filter((d) => d.available);
   return (
     <>
-      <Hero title={<>You're all set</>}>
-        <span className="text-fog-100">{projectName}</span> is initialized.{" "}
+      <Heading>{projectName} is ready</Heading>
+      <Lead>
         {ready.length > 0
-          ? `${ready.length} provider${ready.length === 1 ? "" : "s"} ready to run.`
+          ? `${ready.length} provider${ready.length === 1 ? "" : "s"} detected and ready to run.`
           : "Add a provider in Crew when you're ready to run."}
-      </Hero>
+      </Lead>
 
       {result.detections.length > 0 ? (
-        <div className="mt-8 grid w-full grid-cols-2 gap-2 fade-up fade-up-delay-2">
+        <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-white/10 bg-white/8">
           {result.detections.map((d) => (
             <div
               key={d.id}
               className={cn(
-                "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[13px]",
-                d.available
-                  ? "border-violet-soft/25 bg-violet-soft/[0.06] text-fog-100"
-                  : "border-white/8 bg-white/[0.02] text-fog-400",
+                "flex items-center gap-2 px-3 py-2.5 text-[13px]",
+                d.available ? "bg-ink-100 text-fog-100" : "bg-ink-100 text-fog-500",
               )}
             >
               {d.available ? (
-                <Check size={15} className="shrink-0 text-emerald-400" strokeWidth={2} />
+                <Check size={14} className="shrink-0 text-emerald-400" strokeWidth={2.25} />
               ) : (
-                <span className="h-[6px] w-[6px] shrink-0 rounded-full bg-fog-500" />
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-fog-500" />
               )}
               <span className="truncate">{d.label}</span>
             </div>
@@ -219,16 +215,11 @@ function DoneCard({
         </div>
       ) : null}
 
-      <div className="mt-9 w-full fade-up fade-up-delay-3">
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          iconRight={<ArrowRight size={16} />}
-          onClick={onEntered}
-        >
+      <div className="mt-8">
+        <VioletCta onClick={onEntered}>
           Enter Vibestrate
-        </Button>
+          <ArrowRight size={16} />
+        </VioletCta>
       </div>
     </>
   );
@@ -237,30 +228,19 @@ function DoneCard({
 function NeedsGitCard({ status }: { status: Status }) {
   return (
     <>
-      <Hero
-        title={
-          <>
-            One step before{" "}
-            <span className="font-serif italic text-violet-soft">Vibestrate</span>
-          </>
-        }
-      >
-        Vibestrate runs on top of git - every run happens in an isolated worktree,
-        so this folder needs to be a repository first.
-      </Hero>
-
-      <div className="mt-8 w-full rounded-2xl glass px-5 py-4 fade-up fade-up-delay-2">
-        <div className="flex items-center gap-2.5 text-fog-200">
-          <FolderGit2 size={16} className="text-violet-soft" />
-          <span className="mono truncate text-[12.5px] text-fog-300">
-            {status.projectRoot}
-          </span>
+      <Heading>Add git first</Heading>
+      <Lead>
+        Vibestrate runs every task in an isolated git worktree, so this folder
+        needs to be a repository before setup.
+      </Lead>
+      <div className="mt-8 rounded-md border border-white/10 bg-ink-100 px-4 py-4">
+        <div className="mono truncate text-[12.5px] text-fog-300">
+          {status.projectRoot}
         </div>
-        <p className="mt-3 text-[14px] leading-relaxed text-fog-300">
-          Initialize git in this folder, then reload this page - the setup will
-          continue automatically.
+        <p className="mt-3 text-[13.5px] leading-relaxed text-fog-400">
+          Run this, then reload - setup continues automatically.
         </p>
-        <div className="mono mt-3 rounded-lg border border-white/10 bg-ink-200/60 px-3 py-2 text-[12.5px] text-fog-200">
+        <div className="mono mt-3 rounded border border-white/10 bg-ink-200 px-3 py-2 text-[12.5px] text-fog-100">
           git init
         </div>
       </div>
