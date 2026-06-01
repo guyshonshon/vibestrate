@@ -19,20 +19,21 @@ export type DocsState = {
 
 // Order matters: number hotkeys 1-0 follow this list left-to-right,
 // so the order is intentionally the natural workflow:
-//   Dashboard → Roadmap (define) → Queue (schedule) → Runs (execute)
-//   → Approvals + Suggestions (gates) → Notifs
-//   → Agents + Skills (config) → Doctor (diagnostics)
+//   Dashboard → Flow → Crew (the setup) → Queue → Runs (execution)
+//   → Approvals + Suggestions (gates) → Skills → Roadmap → Doctor.
+// The first ten get number hotkeys 1-9/0; Notifs rides last (palette-only).
 export const PAGE_IDS = [
   "dashboard",
-  "roadmap",
+  "flows",
+  "crew",
   "queue",
   "runs",
   "approvals",
   "suggestions",
-  "notifications",
-  "crew",
   "skills",
+  "roadmap",
   "doctor",
+  "notifications",
 ] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
@@ -559,6 +560,8 @@ export function pageLabel(id: PageId): string {
   switch (id) {
     case "dashboard":
       return "Dashboard";
+    case "flows":
+      return "Flow";
     case "runs":
       return "Runs";
     case "roadmap":
@@ -582,10 +585,11 @@ export function pageLabel(id: PageId): string {
 
 export function pageHotkey(id: PageId): string {
   const idx = PAGE_IDS.indexOf(id);
-  // Hotkeys 1..9 then 0 for the tenth tab — matches the user's mental
-  // model of a numbered tab strip.
+  // Hotkeys 1..9 then 0 for the tenth tab. Any page past the tenth has no
+  // number key (reachable via the `:` palette) — returns "".
   if (idx < 9) return String(idx + 1);
-  return "0";
+  if (idx === 9) return "0";
+  return "";
 }
 
 export function pageIdFromHotkey(key: string): PageId | null {

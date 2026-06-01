@@ -29,6 +29,7 @@ import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
 import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
+import { FlowsPage } from "./pages/FlowsPage.js";
 import { QueuePage } from "./pages/QueuePage.js";
 import { AgentsPage } from "./pages/AgentsPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
@@ -57,6 +58,7 @@ import {
 } from "./ui-state.js";
 import { useSnapshot } from "./hooks/useSnapshot.js";
 import { useGitContext } from "./hooks/useGitContext.js";
+import { useFlows } from "./hooks/useFlows.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
 import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";
@@ -109,6 +111,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     refresh: refreshDoctor,
   } = useDoctor(projectRoot);
   const { git } = useGitContext(projectRoot);
+  const { flows: flowList, refresh: refreshFlows } = useFlows(projectRoot);
   const { exit } = useApp();
 
   const runs = snapshot?.runs ?? [];
@@ -659,6 +662,20 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               closeForm={() => dispatch({ type: "roadmap.form.close" })}
               setPendingDelete={(id) =>
                 dispatch({ type: "roadmap.confirm.delete", taskId: id })
+              }
+              active
+            />
+          ) : ui.page === "flows" ? (
+            <FlowsPage
+              projectRoot={projectRoot}
+              flows={flowList}
+              refresh={refreshFlows}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.flows ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "flows", index: i })
               }
               active
             />
