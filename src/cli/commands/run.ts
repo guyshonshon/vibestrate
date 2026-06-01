@@ -32,6 +32,7 @@ import {
   formatFlowRunCommand,
   runFlowRunWizard,
 } from "../wizards/flow-run-wizard.js";
+import { pickFlow, pickCrew } from "../wizards/flow-crew-picker.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -118,15 +119,9 @@ export async function runRunCommand(
   options: RunCommandOptions = {},
 ): Promise<number> {
   let resolvedTask = task.trim();
-  if (options.flowInteractive && !options.flowId) {
-    console.error(
-      `${symbol.fail()} Interactive run setup currently requires ${color.bold("--flow <id>")}.`,
-    );
-    return 1;
-  }
   if (options.flowInteractive && !isInteractiveTTY()) {
     console.error(
-      `${symbol.fail()} ${color.bold("vibe run --flow <id> --interactive")} needs an interactive terminal.`,
+      `${symbol.fail()} ${color.bold("vibe run -i")} needs an interactive terminal.`,
     );
     return 1;
   }
@@ -183,13 +178,47 @@ export async function runRunCommand(
   // config schema at load time, so a successful loadConfig already guarantees
   // every Profile resolves to a configured Provider.
 
+  // `-i` fills in whatever the user didn't pass: a horizontal Flow picker when
+  // no --flow, then a Crew picker when no --crew and the project has more than
+  // one crew. Anything passed on the CLI is respected and skips its prompt.
+  let activeFlowId = options.flowId ?? null;
+  let activeCrewId = options.crewId ?? null;
+  if (options.flowInteractive) {
+    // Fail fast before any prompts so we never discard the user's picks.
+    if (!resolvedTask) {
+      console.error(`${symbol.fail()} A task description is required.`);
+      console.error(
+        `  ${symbol.arrow()} Try: ${color.bold('vibe run -i "Add dark mode to settings"')}`,
+      );
+      return 1;
+    }
+    if (!activeFlowId) {
+      const flows = await discoverFlows(detected.projectRoot);
+      if (flows.length === 0) {
+        console.error(`${symbol.fail()} No Flows available to pick from.`);
+        return 1;
+      }
+      activeFlowId = await pickFlow(flows, "default");
+    }
+    if (!activeCrewId) {
+      const crewIds = Object.keys(loaded.config.crews);
+      if (crewIds.length > 1) {
+        const crews = crewIds.map((id) => ({
+          id,
+          label: loaded.config.crews[id]?.label ?? id,
+        }));
+        activeCrewId = await pickCrew(crews, loaded.config.defaultCrew);
+      }
+    }
+  }
+
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
-  if (options.flowId) {
-    const flow = await findFlowById(detected.projectRoot, options.flowId);
+  if (activeFlowId) {
+    const flow = await findFlowById(detected.projectRoot, activeFlowId);
     if (!flow) {
       const ids = (await discoverFlows(detected.projectRoot)).map((item) => item.id);
       console.error(
-        `${symbol.fail()} No Flow named "${options.flowId}". Found: ${ids.join(", ") || "(none)"}.`,
+        `${symbol.fail()} No Flow named "${activeFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
       return 1;
     }
@@ -197,12 +226,15 @@ export async function runRunCommand(
     let flowContextPolicy = options.flowContextPolicy;
     let flowStepProfiles = options.flowStepProfiles ?? {};
     let flowSkippedOptionalSteps = options.flowSkippedOptionalSteps ?? [];
-    if (options.flowInteractive) {
+    // When the flow was named explicitly with --flow, -i still opens the
+    // detailed per-flow setup (brief / context / per-step profiles / optional
+    // steps). When the flow was chosen via the picker, we run immediately.
+    if (options.flowInteractive && options.flowId) {
       const setup = await runFlowRunWizard({
         task: resolvedTask,
         flow,
         config: loaded.config,
-        crewId: options.crewId ?? null,
+        crewId: activeCrewId,
         brief: flowBrief,
         contextPolicy: flowContextPolicy,
         stepProfiles: flowStepProfiles,
@@ -235,7 +267,7 @@ export async function runRunCommand(
         source: flow.source,
         config: loaded.config,
         task: resolvedTask,
-        crewId: options.crewId ?? null,
+        crewId: activeCrewId,
         profileOverride: options.profileOverride ?? null,
         seatRoleOverrides: options.seatRoleOverrides ?? {},
         brief: flowBrief,
@@ -418,7 +450,7 @@ export async function runRunCommand(
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
     effort,
-    crewId: options.crewId ?? null,
+    crewId: activeCrewId,
     profileOverride,
     stepProfileOverrides: options.flowStepProfiles ?? {},
     seatRoleOverrides: options.seatRoleOverrides ?? {},

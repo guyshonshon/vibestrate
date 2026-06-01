@@ -17,6 +17,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
+      '@inquirer/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@types/node@22.19.18)
       '@inquirer/prompts':
         specifier: ^8.4.2
         version: 8.4.2(@types/node@22.19.18)

@@ -84,7 +84,18 @@ vibe flows list                           # built-in + project Flows
 vibe flows show <id>                      # the resolved definition
 vibe flows suggest "<task>" --risk high   # advisory suggestion only
 vibe run "<task>" --flow <id>             # run with a Flow
+vibe run -i "<task>"                       # pick the Flow + Crew interactively, then run
 ```
+
+### Interactive run setup (`-i`)
+
+`vibe run -i "<task>"` fills in whatever you didn't pass on the command line:
+it shows a **horizontal selector** to pick the Flow (when no `--flow`), then the
+Crew (when no `--crew` and the project has more than one), then starts the run.
+Move with `←` / `→` (or `h` / `l`), `Enter` to choose. Anything you do pass —
+`--flow`, `--crew` — is respected and skips that prompt. Passing `-i` together
+with `--flow <id>` instead opens that flow's detailed setup (brief, context
+policy, per-step Profiles, optional steps). Requires an interactive terminal.
 
 ## Working with approvals
 

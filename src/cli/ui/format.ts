@@ -14,6 +14,7 @@ export const color = {
   red: (s: string) => wrap("31", "39", s),
   cyan: (s: string) => wrap("36", "39", s),
   gray: (s: string) => wrap("90", "39", s),
+  inverse: (s: string) => wrap("7", "27", s),
 };
 
 export const symbol = {
