@@ -35,13 +35,13 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     commonKeys: [
       ["↑↓", "select a flow"],
       ["f", "fork the selected built-in into the project"],
-      ["h", "browse / install from the hub"],
+      ["h", "open the hub (then / to search, ↵ to install)"],
     ],
     commonCli: [
       "vibe flows list",
       "vibe flows show <id>",
-      "vibe flows hub list",
-      "vibe flows hub install <name>",
+      "vibe flows hub list [query]",
+      "vibe flows hub install <ref>",
     ],
   },
   profiles: {

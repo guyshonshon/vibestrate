@@ -150,6 +150,13 @@ export type ShellUiStateV2 = {
     eventFilter: string;
     eventFilterOpen: boolean;
   };
+  /** Flow page hub view: whether it's open, whether the search box is focused,
+   *  and the query. Result entries + cursor are kept by the page (async). */
+  flows: {
+    hubOpen: boolean;
+    hubFilterOpen: boolean;
+    hubQuery: string;
+  };
   /**
    * Roadmap page state: kanban cursor (column + row inside column),
    * and whether the form modal is open (with its own form state stored
@@ -207,6 +214,11 @@ export const initialUiState: ShellUiStateV2 = {
     eventFilter: "",
     eventFilterOpen: false,
   },
+  flows: {
+    hubOpen: false,
+    hubFilterOpen: false,
+    hubQuery: "",
+  },
   roadmap: {
     cursor: { col: 0, row: 0 },
     formOpen: false,
@@ -259,6 +271,11 @@ export type ShellUiAction =
   | { type: "runs.filter.open" }
   | { type: "runs.filter.close" }
   | { type: "runs.filter.set"; value: string }
+  | { type: "flows.hub.open" }
+  | { type: "flows.hub.close" }
+  | { type: "flows.hubFilter.open" }
+  | { type: "flows.hubFilter.close" }
+  | { type: "flows.hubQuery.set"; value: string }
   | { type: "roadmap.cursor.set"; cursor: { col: number; row: number } }
   | { type: "roadmap.form.open" }
   | { type: "roadmap.form.close" }
@@ -580,6 +597,22 @@ export function reduceShellUi(
         ...state,
         runs: { ...state.runs, eventFilter: action.value },
       };
+    case "flows.hub.open":
+      return {
+        ...state,
+        flows: { ...state.flows, hubOpen: true, hubFilterOpen: false },
+      };
+    case "flows.hub.close":
+      return {
+        ...state,
+        flows: { ...state.flows, hubOpen: false, hubFilterOpen: false },
+      };
+    case "flows.hubFilter.open":
+      return { ...state, flows: { ...state.flows, hubFilterOpen: true } };
+    case "flows.hubFilter.close":
+      return { ...state, flows: { ...state.flows, hubFilterOpen: false } };
+    case "flows.hubQuery.set":
+      return { ...state, flows: { ...state.flows, hubQuery: action.value } };
     case "roadmap.cursor.set":
       return {
         ...state,

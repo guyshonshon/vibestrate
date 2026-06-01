@@ -79,8 +79,7 @@ const createFlowBody = z
   .strict();
 
 const hubInstallBody = z.object({
-  name: z.string().min(1).max(80),
-  version: z.string().min(1).max(40).optional(),
+  ref: z.string().min(1).max(200),
   baseUrl: z.string().url().max(2000).optional(),
   overwrite: z.boolean().optional(),
 });
@@ -105,25 +104,28 @@ export async function registerFlowsRoutes(
   // ─── hub (Phase 5) ────────────────────────────────────────────────────────
   // Browse + install community flows. The API never allows private hosts
   // (SSRF), and install goes through the same validated/guarded import writer.
-  app.get<{ Querystring: { baseUrl?: string; q?: string } }>(
+  app.get<{ Querystring: { baseUrl?: string; q?: string; tag?: string; author?: string } }>(
     "/api/flows/hub",
     async (req) => {
-      const { fetchHubIndex, searchHub } = await import("../../flows/hub/flow-hub.js");
-      const r = await fetchHubIndex({ baseUrl: req.query.baseUrl });
+      const { searchHubFlows } = await import("../../flows/hub/hub-client.js");
+      const r = await searchHubFlows({
+        q: req.query.q,
+        tag: req.query.tag,
+        author: req.query.author,
+        baseUrl: req.query.baseUrl,
+      });
       if (!r.ok) throw new HttpError(502, r.reason);
-      const flows = req.query.q ? searchHub(r.value, req.query.q) : r.value.flows;
-      return { flows };
+      return { flows: r.value };
     },
   );
 
   app.post<{ Body: unknown }>("/api/flows/hub/install", async (req) => {
     const parsed = hubInstallBody.safeParse(req.body);
     if (!parsed.success) throw new HttpError(400, parsed.error.message);
-    const { installFlowFromHub } = await import("../../flows/hub/flow-hub.js");
+    const { installFlowFromHub } = await import("../../flows/hub/hub-client.js");
     const r = await installFlowFromHub({
       projectRoot,
-      name: parsed.data.name,
-      version: parsed.data.version,
+      ref: parsed.data.ref,
       baseUrl: parsed.data.baseUrl,
       overwrite: parsed.data.overwrite,
     });
