@@ -10,6 +10,14 @@ export function keymapForPage(page: PageId): HintGroup[] {
   switch (page) {
     case "dashboard":
       return [];
+    case "flows":
+      return [
+        { name: "Move", hints: [{ key: "↑↓", label: "flow" }] },
+        { name: "Actions", hints: [
+          { key: "f", label: "fork builtin → project" },
+          { key: "h", label: "hub browse/install" },
+        ]},
+      ];
     case "runs":
       return [
         { name: "Move", hints: [

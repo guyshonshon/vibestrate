@@ -27,14 +27,17 @@ export function TabBar({ current }: Props) {
             {active ? (
               <Text color="black" backgroundColor={ACCENT} bold>
                 {" "}
-                [{hot}] {label}
+                {hot ? `[${hot}] ` : ""}
+                {label}
                 {" "}
               </Text>
-            ) : (
+            ) : hot ? (
               <Text>
                 <Text color={ACCENT_BRIGHT}>[{hot}]</Text>
                 <Text dimColor> {label}</Text>
               </Text>
+            ) : (
+              <Text dimColor> {label}</Text>
             )}
           </React.Fragment>
         );

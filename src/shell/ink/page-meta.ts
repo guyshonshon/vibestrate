@@ -23,10 +23,26 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     blurb:
       "Mission control. Active runs, queue depth, pending approvals + suggestions, recent activity across every run. Use this as your starting point.",
     commonKeys: [
-      ["2", "switch to Roadmap to define a task"],
-      ["4", "switch to Runs to inspect an execution"],
+      ["9", "switch to Roadmap to define a task"],
+      ["5", "switch to Runs to inspect an execution"],
     ],
     commonCli: ["vibe status", "vibe shell"],
+  },
+  flows: {
+    subtitle: "flow recipes · built-in + project · fork or fetch from the hub",
+    blurb:
+      "A Flow is the recipe a run follows (its ordered steps + the seats each fills). Inspect built-in and project flows, fork a built-in into your project to customise it, or fetch one from the flows hub.",
+    commonKeys: [
+      ["↑↓", "select a flow"],
+      ["f", "fork the selected built-in into the project"],
+      ["h", "browse / install from the hub"],
+    ],
+    commonCli: [
+      "vibe flows list",
+      "vibe flows show <id>",
+      "vibe flows hub list",
+      "vibe flows hub install <name>",
+    ],
   },
   roadmap: {
     subtitle:

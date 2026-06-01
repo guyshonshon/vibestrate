@@ -6,6 +6,14 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Shell — Flow page + workflow-ordered nav.** New `[2] Flow` page: lists
+  built-in + project flows, inspects the selected one (steps · seats ·
+  description), **forks** a built-in into the project (`f`), and **browses /
+  installs from the flows hub** (`h`). Hub machinery is ready (`fetchHubIndex` /
+  `installFlowFromHub`); the published index is empty for now (so the hub view
+  shows "unavailable" until `vibestrate-flows/index.json` exists). Tabs reordered
+  to the workflow: Dashboard → Flow → Crew → Queue → Runs → Approvals →
+  Suggestions → Skills → Roadmap → Doctor (Notifs rides last, palette-only).
 - **Shell task form — drop "effort", make Profile a picker.** Task "effort" was
   only a planning hint and never set the model, so it's removed from the form
   (the `--effort` CLI flag stays for the heuristic). "Profile override" is now a
