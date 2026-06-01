@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1
+
+- **Profiles are now complete and reusable.** A profile (provider + model +
+  power + budget) is a preset your crew's roles run on - keep several per
+  provider (`claude`, `claude-cheap`). Create, duplicate, and delete them from
+  the dashboard or `vibe profiles`; the page groups by provider and shows which
+  roles use each, and deleting one that's in use is guarded. Previously you could
+  only edit existing profiles by hand-editing `project.yml`.
+
 ## 0.3.0
 
 - **First-run onboarding.** Open the dashboard on a fresh project and you land on
