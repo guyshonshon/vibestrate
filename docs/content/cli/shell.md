@@ -40,11 +40,11 @@ When you run a `run …` command from the prompt, the shell seeds it with your s
         → launches with the selected crew + flow + mode
 ```
 
-Command **output streams into a scrollable pane on the right** (~30% of the width), not the prompt — so long `--help` text or a `status` dump stays readable. **PgUp / PgDn** scroll it; it follows the tail by default.
+Command **output streams into a scrollable pane on the right** (~30% of the width), not the prompt — so long `--help` text or a `status` dump stays readable. It follows the tail by default; while the prompt is focused, **Tab** / **Shift+Tab** scroll it (the only keys a text prompt leaves free — no PgUp needed).
 
 ## Docs browser
 
-Press **`d`** (or `:` → "Browse docs") to open the docs in-terminal: a topic list on the left, the selected page rendered with terminal **Markdown** (headings, code blocks, lists, inline code, links) on the right. **↑ / ↓** pick a topic, **PgUp / PgDn** scroll the page, **`o`** opens the docs website, **Esc** closes. The pages are the same ones published at the docs site, bundled with the CLI.
+Press **`d`** (or `:` → "Browse docs") to open the docs in-terminal: a topic list on the left, the selected page rendered with terminal **Markdown** (headings, code blocks, lists, inline code, links) on the right. **↑ / ↓** (or `j` / `k`) scroll the page, **Space** / **`b`** page down/up, **`[`** / **`]`** switch topic, **`o`** opens the docs website, **Esc** closes. The pages are the same ones published at the docs site, bundled with the CLI.
 
 ## Navigation
 

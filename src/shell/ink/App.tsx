@@ -353,20 +353,30 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         dispatch({ type: "toast.push", kind: "info", message: `Opening ${DOCS_WEBSITE}…` });
         return;
       }
-      if (key.upArrow) {
+      // Arrows / j-k scroll the page a line at a time; Space / b page; the
+      // bracket keys switch topic. (No PgUp/PgDn — not on every keyboard.)
+      if (key.upArrow || input === "k") {
+        dispatch({ type: "docs.scroll", delta: -1 });
+        return;
+      }
+      if (key.downArrow || input === "j") {
+        dispatch({ type: "docs.scroll", delta: 1 });
+        return;
+      }
+      if (input === " " || (key.ctrl && input === "f") || key.pageDown) {
+        dispatch({ type: "docs.scroll", delta: 10 });
+        return;
+      }
+      if (input === "b" || (key.ctrl && input === "u") || key.pageUp) {
+        dispatch({ type: "docs.scroll", delta: -10 });
+        return;
+      }
+      if (input === "[") {
         dispatch({ type: "docs.select", index: ui.docs.index - 1 });
         return;
       }
-      if (key.downArrow) {
+      if (input === "]" || key.tab) {
         dispatch({ type: "docs.select", index: ui.docs.index + 1 });
-        return;
-      }
-      if (key.pageUp || input === "k") {
-        dispatch({ type: "docs.scroll", delta: -5 });
-        return;
-      }
-      if (key.pageDown || input === "j" || input === " ") {
-        dispatch({ type: "docs.scroll", delta: 5 });
         return;
       }
       return;
@@ -407,7 +417,8 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }
     if (ui.promptFocused) {
       // The bottom prompt owns input. Esc returns to navigation; ↑/↓ walk
-      // command history; PgUp/PgDn scroll the output pane. Typing + Enter are
+      // command history; Tab / Shift+Tab scroll the output pane (the only keys
+      // ink-text-input leaves alone while you're typing). Typing + Enter are
       // handled by ink-text-input.
       if (key.escape) {
         dispatch({ type: "prompt.blur" });
@@ -421,12 +432,9 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         dispatch({ type: "runner.history.next" });
         return;
       }
-      if (key.pageUp) {
-        dispatch({ type: "runner.scroll", delta: 5 });
-        return;
-      }
-      if (key.pageDown) {
-        dispatch({ type: "runner.scroll", delta: -5 });
+      if (key.tab && ui.runner.output.length > 0) {
+        // Shift+Tab → older (scroll up), Tab → newer (toward the tail).
+        dispatch({ type: "runner.scroll", delta: key.shift ? 5 : -5 });
         return;
       }
       return;
@@ -524,13 +532,10 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       dispatch({ type: "docs.open" });
       return;
     }
-    // Scroll the command-output pane from navigation mode.
-    if (key.pageUp && ui.runner.output.length > 0) {
-      dispatch({ type: "runner.scroll", delta: 5 });
-      return;
-    }
-    if (key.pageDown && ui.runner.output.length > 0) {
-      dispatch({ type: "runner.scroll", delta: -5 });
+    // Scroll the command-output pane from navigation mode: Shift+Tab older,
+    // Tab newer (Tab is free here except on Runs, which cycles the inspector).
+    if (key.tab && ui.page !== "runs" && ui.runner.output.length > 0) {
+      dispatch({ type: "runner.scroll", delta: key.shift ? 5 : -5 });
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
@@ -780,6 +785,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           running={ui.runner.running}
           exitCode={ui.runner.exitCode}
           focused={ui.promptFocused}
+          hasOutput={ui.runner.output.length > 0}
           onChange={(v) => dispatch({ type: "runner.input", value: v })}
           onSubmit={submitPrompt}
         />
