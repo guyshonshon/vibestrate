@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { App } from "./App.js";
-import { InitScreen } from "./InitScreen.js";
+import { InitScreen, type InitVariant } from "./InitScreen.js";
 import { api } from "../lib/api.js";
+
+/** `?initv=1|2|3` forces an onboarding layout (for comparing variants). */
+function previewVariant(): InitVariant {
+  if (typeof window === "undefined") return 1;
+  const v = new URLSearchParams(window.location.search).get("initv");
+  return v === "2" ? 2 : v === "3" ? 3 : 1;
+}
 
 type Status = Awaited<ReturnType<typeof api.getSetupStatus>>;
 
@@ -41,7 +48,13 @@ export function InitGate() {
   }
 
   if (status && !status.initialized) {
-    return <InitScreen status={status} onEntered={() => void check()} />;
+    return (
+      <InitScreen
+        status={status}
+        variant={previewVariant()}
+        onEntered={() => void check()}
+      />
+    );
   }
 
   return <App />;
