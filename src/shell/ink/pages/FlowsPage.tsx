@@ -1,14 +1,18 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import TextInput from "ink-text-input";
 import type { DiscoveredFlow } from "../../../flows/catalog/flow-discovery.js";
 import { createProjectFlow } from "../../../flows/runtime/flow-portability.js";
 import {
-  fetchHubIndex,
+  searchHubFlows,
   installFlowFromHub,
-  type HubFlowEntry,
-} from "../../../flows/hub/flow-hub.js";
+  type HubFlowSummary,
+} from "../../../flows/hub/hub-client.js";
+import type { ShellUiAction } from "../ui-state.js";
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
+
+type HubUi = { hubOpen: boolean; hubFilterOpen: boolean; hubQuery: string };
 
 type Props = {
   projectRoot: string;
@@ -17,14 +21,24 @@ type Props = {
   onToast: (kind: "ok" | "err" | "info", message: string) => void;
   selectedIndex: number;
   setSelectedIndex: (i: number) => void;
+  hubUi: HubUi;
+  dispatch: (action: ShellUiAction) => void;
+  sessionFlowId: string | null;
   active: boolean;
 };
 
-type HubState =
-  | { phase: "closed" }
-  | { phase: "loading" }
-  | { phase: "error"; message: string }
-  | { phase: "list"; entries: HubFlowEntry[]; index: number };
+/** Best-effort one-line summary of the server-provided `diagnosis` blob. */
+function diagnosisLabel(d: unknown): string | null {
+  if (!d) return null;
+  if (typeof d === "string") return d;
+  if (typeof d === "object") {
+    const o = d as Record<string, unknown>;
+    for (const k of ["verdict", "status", "summary", "note"]) {
+      if (typeof o[k] === "string") return o[k] as string;
+    }
+  }
+  return null;
+}
 
 export function FlowsPage({
   projectRoot,
@@ -33,21 +47,41 @@ export function FlowsPage({
   onToast,
   selectedIndex,
   setSelectedIndex,
+  hubUi,
+  dispatch,
+  sessionFlowId,
   active,
 }: Props) {
   const idx = Math.max(0, Math.min(flows.length - 1, selectedIndex));
   const selected = flows[idx] ?? null;
-  const [hub, setHub] = useState<HubState>({ phase: "closed" });
 
-  const openHub = async (): Promise<void> => {
-    setHub({ phase: "loading" });
-    const r = await fetchHubIndex({});
+  const [hubEntries, setHubEntries] = useState<HubFlowSummary[]>([]);
+  const [hubLoading, setHubLoading] = useState(false);
+  const [hubError, setHubError] = useState<string | null>(null);
+  const [hubIndex, setHubIndex] = useState(0);
+
+  const runHubSearch = useCallback(async (query: string): Promise<void> => {
+    setHubLoading(true);
+    setHubError(null);
+    // The shell is a local, user-initiated context (like the CLI), so a
+    // custom/loopback hub base URL is allowed.
+    const r = await searchHubFlows({ q: query, allowPrivateHosts: true });
+    setHubLoading(false);
     if (!r.ok) {
-      setHub({ phase: "error", message: r.reason });
+      setHubError(r.reason);
+      setHubEntries([]);
       return;
     }
-    setHub({ phase: "list", entries: r.value.flows, index: 0 });
-  };
+    setHubEntries(r.value);
+    setHubIndex(0);
+  }, []);
+
+  // Search when the hub view opens (uses whatever query is set). Explicit
+  // searches call runHubSearch directly on submit.
+  useEffect(() => {
+    if (hubUi.hubOpen) void runHubSearch(hubUi.hubQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hubUi.hubOpen]);
 
   const fork = async (flow: DiscoveredFlow): Promise<void> => {
     const newId = `${flow.id}-copy`;
@@ -56,49 +90,61 @@ export function FlowsPage({
       definition: { ...flow.definition, id: newId },
     });
     if (r.ok) {
-      onToast("ok", `Forked → project flow "${r.flowId}".`);
+      onToast("ok", `Forked -> project flow "${r.flowId}".`);
       await refresh();
     } else {
-      onToast("err", r.reasons.join(" · "));
+      onToast("err", r.reasons.join(" - "));
     }
   };
 
-  const install = async (entry: HubFlowEntry): Promise<void> => {
-    onToast("info", `Installing ${entry.name}…`);
-    const r = await installFlowFromHub({ projectRoot, name: entry.name });
+  const install = async (entry: HubFlowSummary): Promise<void> => {
+    onToast("info", `Installing ${entry.ref}...`);
+    const r = await installFlowFromHub({
+      projectRoot,
+      ref: entry.ref,
+      allowPrivateHosts: true,
+    });
     if (r.ok) {
       onToast("ok", `Installed hub flow "${r.flowId}".`);
-      setHub({ phase: "closed" });
+      dispatch({ type: "flows.hub.close" });
       await refresh();
     } else {
-      onToast("err", r.reasons.join(" · "));
+      onToast("err", r.reasons.join(" - "));
     }
   };
 
   useInput(
     (input, key) => {
       if (!active) return;
-      if (hub.phase !== "closed") {
+
+      if (hubUi.hubOpen) {
+        // While the search box is focused, ink-text-input owns input (App
+        // closes it on Esc); don't double-handle here.
+        if (hubUi.hubFilterOpen) return;
         if (key.escape) {
-          setHub({ phase: "closed" });
+          dispatch({ type: "flows.hub.close" });
           return;
         }
-        if (hub.phase === "list") {
-          if (key.upArrow || input === "k") {
-            setHub({ ...hub, index: Math.max(0, hub.index - 1) });
-            return;
-          }
-          if (key.downArrow || input === "j") {
-            setHub({ ...hub, index: Math.min(hub.entries.length - 1, hub.index + 1) });
-            return;
-          }
-          if (key.return && hub.entries[hub.index]) {
-            void install(hub.entries[hub.index]!);
-            return;
-          }
+        if (input === "/") {
+          dispatch({ type: "flows.hubFilter.open" });
+          return;
+        }
+        if (key.upArrow || input === "k") {
+          setHubIndex((i) => Math.max(0, i - 1));
+          return;
+        }
+        if (key.downArrow || input === "j") {
+          setHubIndex((i) => Math.min(hubEntries.length - 1, i + 1));
+          return;
+        }
+        if (key.return && hubEntries[hubIndex]) {
+          void install(hubEntries[hubIndex]!);
+          return;
         }
         return;
       }
+
+      // Main flow list.
       if (key.upArrow || input === "k") {
         setSelectedIndex(Math.max(0, idx - 1));
         return;
@@ -109,21 +155,40 @@ export function FlowsPage({
       }
       if (input === "f" && selected) {
         if (selected.source.kind !== "builtin") {
-          onToast("info", "Only built-in flows are forked; project flows are already yours to edit.");
+          onToast(
+            "info",
+            "Only built-in flows are forked; project flows are already yours to edit.",
+          );
           return;
         }
         void fork(selected);
         return;
       }
       if (input === "h") {
-        void openHub();
+        dispatch({ type: "flows.hub.open" });
         return;
       }
     },
     { isActive: active },
   );
 
-  if (hub.phase !== "closed") return <HubView hub={hub} />;
+  if (hubUi.hubOpen) {
+    return (
+      <HubView
+        entries={hubEntries}
+        index={Math.max(0, Math.min(hubEntries.length - 1, hubIndex))}
+        loading={hubLoading}
+        error={hubError}
+        query={hubUi.hubQuery}
+        filtering={hubUi.hubFilterOpen}
+        onQueryChange={(v) => dispatch({ type: "flows.hubQuery.set", value: v })}
+        onQuerySubmit={() => {
+          dispatch({ type: "flows.hubFilter.close" });
+          void runHubSearch(hubUi.hubQuery);
+        }}
+      />
+    );
+  }
 
   return (
     <Box flexDirection="column">
@@ -143,6 +208,7 @@ export function FlowsPage({
               <Text dimColor>
                 {"  "}
                 {f.source.kind === "builtin" ? "built-in" : "project"}
+                {f.id === sessionFlowId ? " · active" : ""}
               </Text>
             </Text>
           ))}
@@ -203,45 +269,78 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
   );
 }
 
-function HubView({ hub }: { hub: HubState }) {
+function HubView({
+  entries,
+  index,
+  loading,
+  error,
+  query,
+  filtering,
+  onQueryChange,
+  onQuerySubmit,
+}: {
+  entries: HubFlowSummary[];
+  index: number;
+  loading: boolean;
+  error: string | null;
+  query: string;
+  filtering: boolean;
+  onQueryChange: (v: string) => void;
+  onQuerySubmit: () => void;
+}) {
   return (
     <Box flexDirection="column">
       <Text bold color={ACCENT_BRIGHT}>
         Flows hub
       </Text>
-      {hub.phase === "loading" ? (
-        <Text dimColor>fetching the hub index…</Text>
-      ) : hub.phase === "error" ? (
+      <Box>
+        <Text color={filtering ? ACCENT : undefined}>search </Text>
+        <TextInput
+          value={query}
+          focus={filtering}
+          placeholder={filtering ? "" : "press / to search"}
+          onChange={onQueryChange}
+          onSubmit={onQuerySubmit}
+        />
+      </Box>
+      {loading ? (
+        <Text dimColor>fetching the hub...</Text>
+      ) : error ? (
         <Box flexDirection="column" marginTop={1}>
-          <Text color="yellow">Hub unavailable: {hub.message}</Text>
-          <Text dimColor>
-            (No flows published yet, or offline.) Esc to go back.
-          </Text>
+          <Text color="yellow">Hub unavailable: {error}</Text>
+          <Text dimColor>(Not published yet, or offline.) Esc to go back.</Text>
         </Box>
-      ) : hub.phase === "list" ? (
+      ) : (
         <Box flexDirection="column" marginTop={1}>
-          {hub.entries.length === 0 ? (
-            <Text dimColor>The hub index is empty.</Text>
+          {entries.length === 0 ? (
+            <Text dimColor>No flows match.</Text>
           ) : (
-            hub.entries.map((e, i) => (
-              <Text key={e.name} wrap="truncate-end">
-                <SelectionMark selected={i === hub.index} />
-                <Text color={i === hub.index ? ACCENT : undefined}>{e.label || e.name}</Text>
-                <Text dimColor>
-                  {"  "}v{e.latest}
-                  {e.description ? `  ${e.description}` : ""}
+            entries.map((e, i) => {
+              const diag = diagnosisLabel(e.diagnosis);
+              return (
+                <Text key={e.ref} wrap="truncate-end">
+                  <SelectionMark selected={i === index} />
+                  <Text color={i === index ? ACCENT : undefined}>
+                    {e.label || e.name || e.ref}
+                  </Text>
+                  {e.verified ? <Text color="green">{"  "}verified</Text> : null}
+                  <Text dimColor>
+                    {e.version ? `  v${e.version}` : ""}
+                    {diag ? `  ${diag}` : ""}
+                  </Text>
                 </Text>
-              </Text>
-            ))
+              );
+            })
           )}
           <Box marginTop={1}>
             <Text dimColor>
-              <Text color={ACCENT}>↑↓</Text> select · <Text color={ACCENT}>↵</Text>{" "}
-              install · <Text color={ACCENT}>Esc</Text> back
+              <Text color={ACCENT}>/</Text> search · <Text color={ACCENT}>↑↓</Text>{" "}
+              select · <Text color={ACCENT}>↵</Text> install ·{" "}
+              <Text color={ACCENT}>Esc</Text> back
             </Text>
           </Box>
         </Box>
-      ) : null}
+      )}
     </Box>
   );
 }

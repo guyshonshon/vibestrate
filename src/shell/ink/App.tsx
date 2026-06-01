@@ -465,6 +465,12 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       if (key.escape) dispatch({ type: "runs.filter.close" });
       return;
     }
+    if (ui.page === "flows" && ui.flows.hubFilterOpen) {
+      // Hub search box focused: only Esc closes it (typing + Enter flow
+      // through ink-text-input); bail so digits don't switch tabs.
+      if (key.escape) dispatch({ type: "flows.hubFilter.close" });
+      return;
+    }
     if (
       ui.page === "roadmap" &&
       (ui.roadmap.formOpen || ui.roadmap.pendingDeleteTaskId)
@@ -696,6 +702,9 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               setSelectedIndex={(i) =>
                 dispatch({ type: "selection.set", page: "flows", index: i })
               }
+              hubUi={ui.flows}
+              dispatch={dispatch}
+              sessionFlowId={ui.session.flowId}
               active
             />
           ) : ui.page === "crew" ? (
