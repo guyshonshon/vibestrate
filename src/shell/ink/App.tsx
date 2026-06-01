@@ -1,7 +1,6 @@
 import React, { useEffect, useReducer } from "react";
 import { Box, Text, useApp, useInput } from "ink";
-import { Footer, PAGES_GROUP } from "./components/Footer.js";
-import { keymapForPage } from "./keymaps.js";
+import { Footer } from "./components/Footer.js";
 import {
   CommandPalette,
   paletteMatches,
@@ -618,21 +617,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }
   });
 
-  // Per-page hint groups + the universal Pages group last, so the
-  // user always sees the page-switch keymap regardless of where they
-  // are. The page-specific list lives in `keymaps.ts`.
-  const hintGroups = [...keymapForPage(ui.page), PAGES_GROUP];
-
   return (
     <Box flexDirection="column">
-      {/* Region 1 — header: brand + context + menu + command banner. */}
+      {/* Region 1 — header: brand + context + menu (minimal hint). */}
       <Panel borderColor={ACCENT}>
-        <HeaderBar
-          model={statusModel}
-          page={ui.page}
-          groups={hintGroups}
-          capturedAt={snapshot?.capturedAt ?? null}
-        />
+        <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
       {/* Region 2 — body: the active page (left) + command output (right). */}
       <Panel borderColor={ACCENT_DIM} flexGrow={1}>
@@ -794,7 +783,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           onChange={(v) => dispatch({ type: "runner.input", value: v })}
           onSubmit={submitPrompt}
         />
-        <Footer ui={ui} />
+        <Footer ui={ui} capturedAt={snapshot?.capturedAt ?? null} />
       </Panel>
       {ui.picker ? (
         <Box marginTop={1}>
