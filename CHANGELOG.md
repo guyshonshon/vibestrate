@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Chore: purge local-only files from git tree + full history** (`.vibestrate/`,
+  `.claude/`, `.agents/`, `CLAUDE_CORE_MODEL_REWRITE.md`, `docs/TODO.md`) and
+  `.gitignore` them. Scrubbed via `git filter-repo` across all branches/tags and
+  force-pushed; files retained locally as ignored.
 - **Fix: big command output (e.g. `config show`) blew up the panel height.**
   The output pane let long lines **wrap**, so a large dump ballooned the panel
   past the screen and made the shell unusable. Lines are now **truncated** in the
