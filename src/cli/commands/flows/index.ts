@@ -149,12 +149,12 @@ export function buildFlowsCommand(): Command {
     });
 
   const hub = new Command("hub").description(
-    "Browse + install Flows from the community hub (a curated git-backed index).",
+    "Browse + install Flows from the community hub (vibestrate.com/api/hub).",
   );
   hub
     .command("list [query...]")
-    .description("List (or search) Flows in the hub index.")
-    .option("--base-url <url>", "override the hub index base URL")
+    .description("List (or search) Flows in the hub.")
+    .option("--base-url <url>", "override the hub base URL")
     .option("--json", "emit JSON")
     .action(async (query: string[], opts: { baseUrl?: string; json?: boolean }) => {
       const { runHubList } = await import("./hub.js");
@@ -163,14 +163,13 @@ export function buildFlowsCommand(): Command {
       );
     });
   hub
-    .command("install <name>")
-    .description("Download + validate + install a hub Flow into .vibestrate/flows/.")
-    .option("--version <v>", "a specific published version (default: latest)")
-    .option("--base-url <url>", "override the hub index base URL")
+    .command("install <ref>")
+    .description("Pull + verify + install a hub Flow (by ref) into .vibestrate/flows/.")
+    .option("--base-url <url>", "override the hub base URL")
     .option("--overwrite", "replace an existing project flow with the same id")
-    .action(async (name: string, opts: { version?: string; baseUrl?: string; overwrite?: boolean }) => {
+    .action(async (ref: string, opts: { baseUrl?: string; overwrite?: boolean }) => {
       const { runHubInstall } = await import("./hub.js");
-      process.exit(await runHubInstall(name, opts));
+      process.exit(await runHubInstall(ref, opts));
     });
   cmd.addCommand(hub);
 
