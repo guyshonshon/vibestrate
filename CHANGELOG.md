@@ -6,6 +6,10 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Chore: purge more local-only files from history** (`CLAUDE.md`,
+  `SEO_GEO_INDEXING_PLAN.md`, `CODEX_PLAN.md`, `TODO_NEWNEW*.md`, `docs/TODO-V3.md`,
+  `docs/TODO-v2`, `docs/smoke-tests-*.md`, `docs/ISSUES.md`, `.amaco/`) and
+  `.gitignore` them. Same `git filter-repo` + force-push across all branches/tags.
 - **Chore: purge local-only files from git tree + full history** (`.vibestrate/`,
   `.claude/`, `.agents/`, `CLAUDE_CORE_MODEL_REWRITE.md`, `docs/TODO.md`) and
   `.gitignore` them. Scrubbed via `git filter-repo` across all branches/tags and
