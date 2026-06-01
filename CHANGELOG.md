@@ -6,6 +6,15 @@ version. Update it in the same commit as the change it describes.
 
 ## Unreleased
 
+- **Interactive shell — scrollable output pane + in-terminal docs browser.**
+  Prompt-command output now streams into a scrollable right-hand pane (~30%
+  width, PgUp/PgDn) instead of a truncated tail crammed into the prompt. New
+  **docs browser** (`d`, or palette "Browse docs"): a topic list + the selected
+  page rendered with a dependency-free terminal **Markdown** renderer (headings,
+  fenced code, lists, inline code, links), ↑↓ to pick, PgUp/PgDn to scroll, `o`
+  for the website. Docs (`docs/content`) are now bundled in the package and
+  resolved relative to the module. Pure, tested: `output-window`,
+  `markdown-render`, `docs-source`, + reducer state.
 - **Interactive shell — violet accent theme.** Recoloured the shell around a
   violet/purple ramp (matching the web dashboard's `violet-soft`): panel borders,
   brand, active tab, section titles, crew/flow, prompt marker, key hints, and

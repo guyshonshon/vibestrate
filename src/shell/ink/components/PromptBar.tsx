@@ -6,7 +6,6 @@ import { ACCENT } from "../theme.js";
 
 type Props = {
   input: string;
-  output: string;
   running: boolean;
   exitCode: number | null;
   focused: boolean;
@@ -18,35 +17,19 @@ type Props = {
  * The always-visible bottom prompt — the Claude-Code-style command line for
  * the shell. Type a `vibe …` command and Enter to run it; `:` opens the
  * palette. When unfocused it shows a hint and the hotkeys stay live; press
- * `/` (or `i`) to focus, Esc to return to navigation. The last command's
- * output tail is shown while focused or running.
+ * `i` to focus, Esc to return to navigation. Command output streams into the
+ * right-hand OutputPane, not here.
  */
 export function PromptBar({
   input,
-  output,
   running,
   exitCode,
   focused,
   onChange,
   onSubmit,
 }: Props) {
-  const lines = output.split(/\r?\n/);
-  const tail = lines.slice(-10);
-  const showOutput = (focused || running) && output.length > 0;
   return (
     <Box flexDirection="column">
-      {showOutput ? (
-        <Box flexDirection="column" marginBottom={1}>
-          {tail.map((line, i) => (
-            <Text key={i} dimColor>
-              {line || " "}
-            </Text>
-          ))}
-          {lines.length > tail.length ? (
-            <Text dimColor>… {lines.length - tail.length} earlier lines</Text>
-          ) : null}
-        </Box>
-      ) : null}
       <Box>
         <Text color={focused ? ACCENT : "gray"} bold>
           {"▸ vibe "}

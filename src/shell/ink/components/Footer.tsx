@@ -84,6 +84,7 @@ export const PAGES_GROUP: HintGroup = {
     { key: ":", label: "palette" },
     { key: "m", label: "mode" },
     { key: "c/f", label: "crew/flow" },
+    { key: "d", label: "docs" },
     { key: "B", label: "browser" },
     { key: "?", label: "help" },
     { key: "q", label: "quit" },

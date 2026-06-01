@@ -1,5 +1,21 @@
-// Pure UI state for the ink-based panel. Kept import-free so it can
-// be exercised under the node-only Vitest environment.
+// Pure UI state for the ink-based panel. Kept (runtime-)import-free so it can
+// be exercised under the node-only Vitest environment. The one import below is
+// type-only (erased at compile time).
+import type { MdLine } from "./markdown-render.js";
+
+/** A docs topic for the in-shell browser (mirrors docs-source's DocTopic,
+ *  duplicated here so this module pulls in no node-fs dependency). */
+export type DocTopicLite = { slug: string; label: string; section: string };
+
+export type DocsState = {
+  open: boolean;
+  topics: DocTopicLite[];
+  index: number;
+  lines: MdLine[];
+  scroll: number;
+  loadingContent: boolean;
+  error: string | null;
+};
 
 // Order matters: number hotkeys 1-0 follow this list left-to-right,
 // so the order is intentionally the natural workflow:
@@ -101,7 +117,11 @@ export type ShellUiStateV2 = {
     exitCode: number | null;
     history: string[];
     historyIndex: number;
+    /** Lines scrolled up from the bottom in the output pane (0 = tail). */
+    scroll: number;
   };
+  /** In-shell docs browser overlay. */
+  docs: DocsState;
   /** Session context (status bar + seeds the next prompt-launched run). */
   session: SessionState;
   /** True while the persistent bottom prompt owns keyboard input. */
@@ -146,6 +166,16 @@ export const initialUiState: ShellUiStateV2 = {
     exitCode: null,
     history: [],
     historyIndex: -1,
+    scroll: 0,
+  },
+  docs: {
+    open: false,
+    topics: [],
+    index: 0,
+    lines: [],
+    scroll: 0,
+    loadingContent: false,
+    error: null,
   },
   session: {
     mode: "write",
@@ -184,6 +214,14 @@ export type ShellUiAction =
   | { type: "runner.finished"; exitCode: number | null }
   | { type: "runner.history.prev" }
   | { type: "runner.history.next" }
+  | { type: "runner.scroll"; delta: number }
+  | { type: "docs.open" }
+  | { type: "docs.close" }
+  | { type: "docs.loaded"; topics: DocTopicLite[] }
+  | { type: "docs.error"; message: string }
+  | { type: "docs.select"; index: number }
+  | { type: "docs.content"; lines: MdLine[] }
+  | { type: "docs.scroll"; delta: number }
   | { type: "session.mode.cycle" }
   | { type: "session.crew.set"; crewId: string | null }
   | { type: "session.flow.set"; flowId: string | null }
@@ -309,6 +347,7 @@ export function reduceShellUi(
           running: true,
           output: "",
           exitCode: null,
+          scroll: 0,
           // Push to history (deduped against the most-recent entry,
           // capped at 50).
           history:
@@ -401,6 +440,45 @@ export function reduceShellUi(
     }
     case "picker.close":
       return { ...state, picker: null };
+    case "runner.scroll": {
+      const next = Math.max(0, state.runner.scroll + action.delta);
+      return { ...state, runner: { ...state.runner, scroll: next } };
+    }
+    case "docs.open":
+      return {
+        ...state,
+        docs: { ...state.docs, open: true, error: null },
+        promptFocused: false,
+        paletteOpen: false,
+        helpOpen: false,
+        picker: null,
+      };
+    case "docs.close":
+      return { ...state, docs: { ...state.docs, open: false } };
+    case "docs.loaded":
+      return {
+        ...state,
+        docs: { ...state.docs, topics: action.topics, error: null },
+      };
+    case "docs.error":
+      return { ...state, docs: { ...state.docs, error: action.message } };
+    case "docs.select": {
+      const len = state.docs.topics.length;
+      const index = len === 0 ? 0 : ((action.index % len) + len) % len;
+      return {
+        ...state,
+        docs: { ...state.docs, index, scroll: 0, lines: [], loadingContent: true },
+      };
+    }
+    case "docs.content":
+      return {
+        ...state,
+        docs: { ...state.docs, lines: action.lines, loadingContent: false, scroll: 0 },
+      };
+    case "docs.scroll": {
+      const next = Math.max(0, state.docs.scroll + action.delta);
+      return { ...state, docs: { ...state.docs, scroll: next } };
+    }
     case "help.toggle":
       return { ...state, helpOpen: !state.helpOpen };
     case "toast.push":

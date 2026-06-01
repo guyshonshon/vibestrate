@@ -11,7 +11,11 @@ import { PromptBar } from "./components/PromptBar.js";
 import { ContextLine } from "./components/StatusBar.js";
 import { HeaderBar } from "./components/HeaderBar.js";
 import { Panel } from "./components/Panel.js";
+import { OutputPane } from "./components/OutputPane.js";
+import { DocsOverlay } from "./components/DocsOverlay.js";
 import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
+import { listDocs, readDoc, DOCS_WEBSITE } from "./docs-source.js";
+import { renderMarkdown } from "./markdown-render.js";
 import {
   parseArgs,
   runVibestrateCommand,
@@ -174,6 +178,51 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     return () => clearTimeout(t);
   }, [ui.toasts]);
 
+  // Docs: load the topic list when the browser opens, then select the first.
+  useEffect(() => {
+    if (!ui.docs.open || ui.docs.topics.length > 0) return;
+    let cancelled = false;
+    void listDocs()
+      .then((topics) => {
+        if (cancelled) return;
+        dispatch({ type: "docs.loaded", topics });
+        dispatch({ type: "docs.select", index: 0 });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        dispatch({
+          type: "docs.error",
+          message: `Docs aren't bundled here (${err instanceof Error ? err.message : String(err)}).`,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ui.docs.open, ui.docs.topics.length]);
+
+  // Docs: render the selected topic's markdown whenever it changes.
+  useEffect(() => {
+    if (!ui.docs.open || !ui.docs.loadingContent) return;
+    const topic = ui.docs.topics[ui.docs.index];
+    if (!topic) return;
+    let cancelled = false;
+    void readDoc(topic.slug)
+      .then((md) => {
+        if (cancelled) return;
+        dispatch({ type: "docs.content", lines: renderMarkdown(md) });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        dispatch({
+          type: "docs.error",
+          message: `Could not read ${topic.slug} (${err instanceof Error ? err.message : String(err)}).`,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ui.docs.open, ui.docs.loadingContent, ui.docs.index, ui.docs.topics]);
+
   const runAction = async (
     name: "pause" | "resume" | "abort",
     runId: string,
@@ -252,6 +301,9 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         }
         dispatch({ type: "prompt.focus" });
         return;
+      case "open-docs":
+        dispatch({ type: "docs.open" });
+        return;
       case "spawn-detached": {
         const { pid } = spawnVibestrateDetached({
           projectRoot,
@@ -292,6 +344,34 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       if (input === "?" || key.escape) dispatch({ type: "help.toggle" });
       return;
     }
+    if (ui.docs.open) {
+      if (key.escape) {
+        dispatch({ type: "docs.close" });
+        return;
+      }
+      if (input === "o") {
+        openInBrowser(DOCS_WEBSITE);
+        dispatch({ type: "toast.push", kind: "info", message: `Opening ${DOCS_WEBSITE}…` });
+        return;
+      }
+      if (key.upArrow) {
+        dispatch({ type: "docs.select", index: ui.docs.index - 1 });
+        return;
+      }
+      if (key.downArrow) {
+        dispatch({ type: "docs.select", index: ui.docs.index + 1 });
+        return;
+      }
+      if (key.pageUp || input === "k") {
+        dispatch({ type: "docs.scroll", delta: -5 });
+        return;
+      }
+      if (key.pageDown || input === "j" || input === " ") {
+        dispatch({ type: "docs.scroll", delta: 5 });
+        return;
+      }
+      return;
+    }
     if (ui.picker) {
       // Crew/Flow selector owns input while open.
       if (key.escape) {
@@ -328,7 +408,8 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }
     if (ui.promptFocused) {
       // The bottom prompt owns input. Esc returns to navigation; ↑/↓ walk
-      // command history. Typing + Enter are handled by ink-text-input.
+      // command history; PgUp/PgDn scroll the output pane. Typing + Enter are
+      // handled by ink-text-input.
       if (key.escape) {
         dispatch({ type: "prompt.blur" });
         return;
@@ -339,6 +420,14 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       }
       if (key.downArrow) {
         dispatch({ type: "runner.history.next" });
+        return;
+      }
+      if (key.pageUp) {
+        dispatch({ type: "runner.scroll", delta: 5 });
+        return;
+      }
+      if (key.pageDown) {
+        dispatch({ type: "runner.scroll", delta: -5 });
         return;
       }
       return;
@@ -429,6 +518,20 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }
     if (input === "f" && ui.page !== "doctor") {
       void openFlowPicker();
+      return;
+    }
+    // Docs browser. `d` is gated off Roadmap (which uses it to delete a task).
+    if (input === "d" && ui.page !== "roadmap") {
+      dispatch({ type: "docs.open" });
+      return;
+    }
+    // Scroll the command-output pane from navigation mode.
+    if (key.pageUp && ui.runner.output.length > 0) {
+      dispatch({ type: "runner.scroll", delta: 5 });
+      return;
+    }
+    if (key.pageDown && ui.runner.output.length > 0) {
+      dispatch({ type: "runner.scroll", delta: -5 });
       return;
     }
     // Open the dashboard in the default browser. Uses the URL passed
@@ -526,8 +629,10 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       <Panel borderColor={ACCENT}>
         <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
-      {/* Region 2 — body: the active page (interactive · informative). */}
+      {/* Region 2 — body: the active page (left) + command output (right). */}
       <Panel borderColor={ACCENT_DIM} flexGrow={1}>
+       <Box flexDirection="row">
+        <Box flexGrow={1} flexDirection="column">
         {snapshot ? (
           ui.page === "roadmap" ? (
             <RoadmapPage
@@ -660,6 +765,16 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         ) : (
           <LoadingScreen projectRoot={projectRoot} />
         )}
+        </Box>
+        {ui.runner.output.length > 0 ? (
+          <OutputPane
+            output={ui.runner.output}
+            running={ui.runner.running}
+            exitCode={ui.runner.exitCode}
+            scroll={ui.runner.scroll}
+          />
+        ) : null}
+       </Box>
       </Panel>
       {/* Region 3 — context line + prompt + key hints. Border brightens
           to cyan while the prompt owns input. */}
@@ -668,7 +783,6 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
         <Rule />
         <PromptBar
           input={ui.runner.input}
-          output={ui.runner.output}
           running={ui.runner.running}
           exitCode={ui.runner.exitCode}
           focused={ui.promptFocused}
@@ -704,6 +818,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       {ui.helpOpen ? (
         <Box marginTop={1}>
           <HelpOverlay currentPage={ui.page} />
+        </Box>
+      ) : null}
+      {ui.docs.open ? (
+        <Box marginTop={1}>
+          <DocsOverlay docs={ui.docs} />
         </Box>
       ) : null}
     </Box>
