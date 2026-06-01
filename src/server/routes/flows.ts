@@ -24,6 +24,8 @@ import {
   importFlowFromUrl,
 } from "../../flows/runtime/flow-portability.js";
 import { flowDefinitionSchema } from "../../flows/schemas/flow-schema.js";
+import { computeFlowCoverageForConfig } from "../../flows/runtime/seat-coverage.js";
+import { setConfigValue } from "../../setup/config-update-service.js";
 import { HttpError } from "../security.js";
 
 const idOverridesSchema = z
@@ -45,6 +47,17 @@ const resolveFlowBody = z
     stepProfileOverrides: idOverridesSchema,
     skippedOptionalSteps: z.array(z.string().min(1).max(80)).max(64).optional(),
   })
+  .strict();
+
+const coverageBody = z
+  .object({
+    crewId: z.string().min(1).max(128).nullable().optional(),
+    seatRoleOverrides: idOverridesSchema,
+  })
+  .strict();
+
+const setDefaultFlowBody = z
+  .object({ flowId: z.string().min(1).max(80) })
   .strict();
 
 const suggestFlowsBody = z
@@ -98,7 +111,13 @@ export async function registerFlowsRoutes(
     // Resilient: builtins + valid project flows always load; a malformed
     // project flow is reported in `invalid` instead of failing the whole list.
     const catalog = await discoverFlowCatalog(projectRoot);
-    return { flows: catalog.flows, invalid: catalog.invalid };
+    let defaultFlow: string | null = null;
+    try {
+      defaultFlow = (await loadConfig(projectRoot)).config.defaultFlow ?? null;
+    } catch {
+      // config may be absent/invalid; the list still loads.
+    }
+    return { flows: catalog.flows, invalid: catalog.invalid, defaultFlow };
   });
 
   // ─── hub (Phase 5) ────────────────────────────────────────────────────────
@@ -324,6 +343,42 @@ export async function registerFlowsRoutes(
       }
     },
   );
+
+  // Per-seat coverage of a flow against a crew (filled / gap / ambiguous +
+  // runnable). Never throws on a gap - that's the point.
+  app.post<{ Params: { flowId: string }; Body: unknown }>(
+    "/api/flows/:flowId/coverage",
+    async (req) => {
+      const parsed = coverageBody.safeParse(req.body ?? {});
+      if (!parsed.success) throw new HttpError(400, parsed.error.message);
+      const [flow, loaded] = await Promise.all([
+        flowOr404(projectRoot, req.params.flowId),
+        loadConfig(projectRoot),
+      ]);
+      try {
+        return {
+          coverage: computeFlowCoverageForConfig({
+            config: loaded.config,
+            flow: flow.definition,
+            crewId: parsed.data.crewId ?? null,
+            seatRoleOverrides: parsed.data.seatRoleOverrides,
+          }),
+        };
+      } catch (err) {
+        // getCrew throws only on an unknown crew id.
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
+      }
+    },
+  );
+
+  // Set the project's default ("active") flow - runs with no flow use it.
+  app.post<{ Body: unknown }>("/api/flows/default", async (req) => {
+    const parsed = setDefaultFlowBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    await flowOr404(projectRoot, parsed.data.flowId);
+    await setConfigValue(projectRoot, "defaultFlow", parsed.data.flowId);
+    return { ok: true, defaultFlow: parsed.data.flowId };
+  });
 }
 
 async function flowOr404(projectRoot: string, flowId: string) {

@@ -29,10 +29,11 @@ export function buildFlowsCommand(): Command {
 
   cmd
     .command("show <id>")
-    .description("Print a Flow's participant slots and ordered steps.")
+    .description("Print a Flow's seats, ordered steps, and crew seat-coverage.")
     .option("--json", "emit JSON")
-    .action(async (id: string, opts: { json?: boolean }) => {
-      const code = await runFlowsShow(id, { json: opts.json });
+    .option("--crew <id>", "check coverage against this crew (default: project default)")
+    .action(async (id: string, opts: { json?: boolean; crew?: string }) => {
+      const code = await runFlowsShow(id, { json: opts.json, crew: opts.crew });
       process.exit(code);
     });
 

@@ -843,6 +843,7 @@ export function App({
               hubUi={ui.flows}
               dispatch={dispatch}
               sessionFlowId={ui.session.flowId}
+              config={config}
               active
             />
           ) : ui.page === "crew" ? (

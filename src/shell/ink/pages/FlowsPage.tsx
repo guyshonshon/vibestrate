@@ -13,6 +13,12 @@ import {
   layersOf,
   zonedLayersOf,
 } from "../../../flows/runtime/flow-graph-layout.js";
+import {
+  computeFlowCoverageForConfig,
+  type FlowCoverage,
+} from "../../../flows/runtime/seat-coverage.js";
+import { setConfigValue } from "../../../setup/config-update-service.js";
+import type { ProjectConfig } from "../../../project/config-schema.js";
 import type { ShellUiAction } from "../ui-state.js";
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
 
@@ -31,6 +37,7 @@ type Props = {
   hubUi: HubUi;
   dispatch: (action: ShellUiAction) => void;
   sessionFlowId: string | null;
+  config: ProjectConfig | null;
   active: boolean;
 };
 
@@ -57,10 +64,13 @@ export function FlowsPage({
   hubUi,
   dispatch,
   sessionFlowId,
+  config,
   active,
 }: Props) {
   const idx = Math.max(0, Math.min(flows.length - 1, selectedIndex));
   const selected = flows[idx] ?? null;
+  // With no persisted defaultFlow, the orchestrator runs the built-in "default".
+  const effectiveDefault = config?.defaultFlow ?? "default";
 
   const [hubEntries, setHubEntries] = useState<HubFlowSummary[]>([]);
   const [hubLoading, setHubLoading] = useState(false);
@@ -101,6 +111,16 @@ export function FlowsPage({
       await refresh();
     } else {
       onToast("err", r.reasons.join(" - "));
+    }
+  };
+
+  const useAsDefault = async (flow: DiscoveredFlow): Promise<void> => {
+    try {
+      await setConfigValue(projectRoot, "defaultFlow", flow.id);
+      dispatch({ type: "session.flow.set", flowId: flow.id });
+      onToast("ok", `Default flow is now "${flow.id}".`);
+    } catch (err) {
+      onToast("err", err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -175,6 +195,10 @@ export function FlowsPage({
         dispatch({ type: "flows.hub.open" });
         return;
       }
+      if (key.return && selected) {
+        void useAsDefault(selected);
+        return;
+      }
     },
     { isActive: active },
   );
@@ -201,8 +225,9 @@ export function FlowsPage({
     <Box flexDirection="column">
       <Box>
         <Text dimColor>
-          {flows.length} flow{flows.length === 1 ? "" : "s"} · press{" "}
-          <Text color={ACCENT}>h</Text> for the hub
+          {flows.length} flow{flows.length === 1 ? "" : "s"} ·{" "}
+          <Text color={ACCENT}>↵</Text> use as default ·{" "}
+          <Text color={ACCENT}>h</Text> hub
         </Text>
       </Box>
       <Box flexDirection="row" marginTop={1}>
@@ -215,7 +240,11 @@ export function FlowsPage({
               <Text dimColor>
                 {"  "}
                 {f.source.kind === "builtin" ? "built-in" : "project"}
-                {f.id === sessionFlowId ? " · active" : ""}
+                {f.id === effectiveDefault
+                  ? " · default"
+                  : f.id === sessionFlowId
+                    ? " · active"
+                    : ""}
               </Text>
             </Text>
           ))}
@@ -231,17 +260,35 @@ export function FlowsPage({
           borderBottom={false}
           paddingLeft={1}
         >
-          {selected ? <FlowDetail flow={selected} /> : <Text dimColor>No flow selected.</Text>}
+          {selected ? (
+            <FlowDetail flow={selected} config={config} />
+          ) : (
+            <Text dimColor>No flow selected.</Text>
+          )}
         </Box>
       </Box>
     </Box>
   );
 }
 
-function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
+function FlowDetail({
+  flow,
+  config,
+}: {
+  flow: DiscoveredFlow;
+  config: ProjectConfig | null;
+}) {
   const def = flow.definition;
   const steps = def.steps;
   const seats = Object.keys(def.seats);
+  let coverage: FlowCoverage | null = null;
+  if (config) {
+    try {
+      coverage = computeFlowCoverageForConfig({ config, flow: flow.definition });
+    } catch {
+      coverage = null;
+    }
+  }
   return (
     <Box flexDirection="column">
       <Text bold color={ACCENT_BRIGHT}>
@@ -253,6 +300,42 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
       {flow.description ? (
         <Box marginTop={1}>
           <Text wrap="wrap">{flow.description}</Text>
+        </Box>
+      ) : null}
+      {coverage ? (
+        <Box marginTop={1} flexDirection="column">
+          <Text>
+            <Text dimColor>coverage (crew {coverage.crewId}): </Text>
+            <Text color={coverage.runnable ? "green" : "yellow"}>
+              {coverage.runnable ? "runnable" : "has gaps"}
+            </Text>
+          </Text>
+          {coverage.seats.map((s) => (
+            <Text key={s.seatId} wrap="truncate-end">
+              {"  "}
+              <Text
+                color={
+                  s.status === "filled"
+                    ? "green"
+                    : s.status === "ambiguous"
+                      ? "yellow"
+                      : "red"
+                }
+              >
+                {s.status === "filled" ? "✓" : s.status === "ambiguous" ? "~" : "✗"}
+              </Text>{" "}
+              <Text>{s.seatId}</Text>
+              <Text dimColor>
+                {"  "}
+                {s.status === "filled"
+                  ? (s.resolvedRoleId ?? "")
+                  : s.status === "ambiguous"
+                    ? s.candidateRoleIds.join(", ")
+                    : "no role fills this seat"}
+                {s.usedByStep ? "" : " (unused)"}
+              </Text>
+            </Text>
+          ))}
         </Box>
       ) : null}
       <Box marginTop={1} flexDirection="column">

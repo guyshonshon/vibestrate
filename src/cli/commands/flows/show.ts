@@ -3,11 +3,13 @@ import {
   discoverFlows,
   findFlowById,
 } from "../../../flows/catalog/flow-discovery.js";
+import { loadConfig } from "../../../project/config-loader.js";
+import { computeFlowCoverageForConfig } from "../../../flows/runtime/seat-coverage.js";
 import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runFlowsShow(
   flowId: string,
-  opts: { json?: boolean } = {},
+  opts: { json?: boolean; crew?: string } = {},
 ): Promise<number> {
   if (!flowId) {
     console.error(
@@ -104,6 +106,41 @@ export async function runFlowsShow(
         console.log(indent(`- ${g.join(" · ")}`));
       }
     }
+  }
+
+  // Seat coverage against the project's default crew: is this flow crewed and
+  // runnable? (Filled / gap / ambiguous per seat.)
+  try {
+    const loaded = await loadConfig(detected.projectRoot);
+    const cov = computeFlowCoverageForConfig({
+      config: loaded.config,
+      flow: flow.definition,
+      crewId: opts.crew ?? null,
+    });
+    console.log("");
+    console.log(
+      `${color.bold("Coverage")} ${color.dim(`(crew: ${cov.crewId})`)} ${
+        cov.runnable ? color.dim("- runnable") : color.dim("- has gaps")
+      }`,
+    );
+    for (const s of cov.seats) {
+      const mark =
+        s.status === "filled"
+          ? symbol.ok()
+          : s.status === "gap"
+            ? symbol.fail()
+            : symbol.arrow();
+      const detail =
+        s.status === "filled"
+          ? color.dim(s.resolvedRoleId ?? "")
+          : s.status === "ambiguous"
+            ? color.dim(`ambiguous: ${s.candidateRoleIds.join(", ")}`)
+            : color.dim("no role fills this seat");
+      const unused = s.usedByStep ? "" : color.dim(" (unused)");
+      console.log(indent(`${mark} ${s.seatId}  ${detail}${unused}`));
+    }
+  } catch {
+    // Coverage is informational; never fail `show` over a config issue.
   }
   return 0;
 }
