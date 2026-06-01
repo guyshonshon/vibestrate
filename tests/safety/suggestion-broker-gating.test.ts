@@ -16,7 +16,7 @@ import { runStatePath, runDir } from "../../src/utils/paths.js";
 import { writeJson } from "../../src/utils/json.js";
 
 /**
- * S0 — Action Broker file.patch gating for single-suggestion apply/revert.
+ * S0 - Action Broker file.patch gating for single-suggestion apply/revert.
  *
  * Asserts the broker is the boundary every patch crosses:
  *   - a successful apply/revert appends `file.patch` evidence (allow + ok), and
@@ -124,7 +124,7 @@ const PATCH_B = [
   "",
 ].join("\n");
 
-describe("S0 file.patch gating — suggestion apply/revert", () => {
+describe("S0 file.patch gating - suggestion apply/revert", () => {
   it("records file.patch evidence for a successful apply and revert", async () => {
     const t = await tempProjectWithWorktree();
     try {
@@ -162,7 +162,7 @@ describe("S0 file.patch gating — suggestion apply/revert", () => {
     }
   });
 
-  it("fails closed when an evaluator denies the patch — worktree untouched, denial logged", async () => {
+  it("fails closed when an evaluator denies the patch - worktree untouched, denial logged", async () => {
     const t = await tempProjectWithWorktree();
     try {
       const denyPatches: ActionEvaluator = (req) =>
@@ -199,7 +199,7 @@ describe("S0 file.patch gating — suggestion apply/revert", () => {
   });
 });
 
-describe("S0 file.patch gating — bundle apply/smartApply/revert", () => {
+describe("S0 file.patch gating - bundle apply/smartApply/revert", () => {
   it("records file.patch evidence for bundle apply and revert", async () => {
     const t = await tempProjectWithWorktree();
     try {
@@ -273,7 +273,7 @@ describe("S0 file.patch gating — bundle apply/smartApply/revert", () => {
     }
   });
 
-  it("fails the bundle apply closed when an evaluator denies — worktree untouched", async () => {
+  it("fails the bundle apply closed when an evaluator denies - worktree untouched", async () => {
     const t = await tempProjectWithWorktree();
     try {
       const denyPatches: ActionEvaluator = (req) =>

@@ -13,7 +13,7 @@ type Props = {
 /**
  * Renders text with file/line references promoted to clickable buttons.
  *
- * The component never mutates the original text — it inserts <button> spans
+ * The component never mutates the original text - it inserts <button> spans
  * over the matched ranges and leaves everything else verbatim. Refs that do
  * not exist on disk render as a dim hint; refs that exist render in the
  * accent colour.

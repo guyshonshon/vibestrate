@@ -208,7 +208,7 @@ export type OrchestratorInput = {
   profileOverride?: string | null;
   /** Per-step Profile overrides (step id → profile id) applied at resolve time. */
   stepProfileOverrides?: Record<string, string>;
-  /** Pin a Role to a Seat (seat → roleId) — disambiguates a seat filled by
+  /** Pin a Role to a Seat (seat → roleId) - disambiguates a seat filled by
    *  more than one Crew role. Applied at resolve time. */
   seatRoleOverrides?: Record<string, string>;
   /** Investigation-only run: force readOnly permissions on every agent,
@@ -221,7 +221,7 @@ export type OrchestratorInput = {
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
   /** Immutable resolved flow recipe to run. When omitted, the orchestrator
-   * resolves the built-in `default` flow — every run executes a flow through
+   * resolves the built-in `default` flow - every run executes a flow through
    * the one runner. */
   flow?: ResolvedFlowSnapshot | null;
   /** Rewind: fork a fresh run that resumes at a chosen stage, reusing the
@@ -285,7 +285,7 @@ class __RunAbortedSignal extends Error {
 }
 
 /** Thrown when the daily spend cap is hit and the action is (or falls back to)
- *  "stop" — the run() loop catches it and blocks the run with this message. */
+ *  "stop" - the run() loop catches it and blocks the run with this message. */
 class __SpendCapStopSignal extends Error {
   constructor(message: string) {
     super(message);
@@ -295,7 +295,7 @@ class __SpendCapStopSignal extends Error {
 
 /** Thrown when the Action Broker denies (or requires unavailable approval for)
  *  a proposed effect. Fail-closed: the run() loop catches it and blocks the
- *  run rather than failing it — the decision is already recorded as evidence. */
+ *  run rather than failing it - the decision is already recorded as evidence. */
 class __ActionDeniedSignal extends Error {
   constructor(message: string) {
     super(message);
@@ -412,7 +412,7 @@ export class Orchestrator {
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
-   *  doesn't pick an explicit flow — a plain `vibe run` executes the default
+   *  doesn't pick an explicit flow - a plain `vibe run` executes the default
    *  flow through the same runner as every other flow. A project may fork + edit
    *  the default (`.vibestrate/flows/default`); that shadows the builtin here too, so
    *  editing the default actually takes effect for plain runs. Falls back to the
@@ -446,7 +446,7 @@ export class Orchestrator {
     // the `default` flow is resolved here. There is one runner.
     const flow = this.flow ?? (await this.resolveDefaultFlow());
     // runRole resolves the Role's config from the Crew the snapshot was built
-    // against — not necessarily this.crewId (a pre-resolved snapshot carries its
+    // against - not necessarily this.crewId (a pre-resolved snapshot carries its
     // own crew).
     this.activeCrewId = flow.crewId;
 
@@ -486,7 +486,7 @@ export class Orchestrator {
     });
     // Persist the run-level Crew/Profile choices. The exact per-step
     // profile/provider resolution lives in flow.json (the immutable snapshot).
-    // Read-only runs are stamped too — every subsequent enforcement (route
+    // Read-only runs are stamped too - every subsequent enforcement (route
     // guards, executor short-circuit) reads from state.readOnly.
     state = {
       ...state,
@@ -585,7 +585,7 @@ export class Orchestrator {
 
     // Materialize context sources once (path-guarded files / SSRF-guarded URLs,
     // secret-redacted). Merged into every role's prompt below. Failures are
-    // non-fatal notes — a bad attachment never blocks a run.
+    // non-fatal notes - a bad attachment never blocks a run.
     if (this.contextSources.length > 0) {
       const ctxResult = await materializeContextSources({
         sources: this.contextSources,
@@ -1214,7 +1214,7 @@ export class Orchestrator {
       );
     }
 
-    // Downstream stages (review/fix/verify) operate on existing code — restore
+    // Downstream stages (review/fix/verify) operate on existing code - restore
     // the source run's per-phase worktree snapshot into this run's worktree.
     if (DOWNSTREAM_RESUME_STAGES.has(resumeFrom.fromStage) && input.worktreePath) {
       const sourceSnaps = await readPhaseSnapshots(
@@ -1259,7 +1259,7 @@ export class Orchestrator {
     );
 
     // Downstream resumes (review/fix/verify) seed everything before the resume
-    // step — which can include non-agent steps (validation) whose outputs aren't
+    // step - which can include non-agent steps (validation) whose outputs aren't
     // artifact files. A missing output there is fine (the code itself is restored
     // from the worktree snapshot), so tolerate it; upstream resumes keep the
     // strict contract (a missing plan/architecture is a real error).
@@ -1274,7 +1274,7 @@ export class Orchestrator {
           targetStore: input.targetStore,
           tolerateMissing,
         });
-        if (!seeded) continue; // missing non-essential output — skip
+        if (!seeded) continue; // missing non-essential output - skip
         input.outputs.set(token, seeded);
         if (token === "plan") planArtifact = this.seededFlowResult(upstream, seeded);
         if (token === "execution")
@@ -1399,7 +1399,7 @@ export class Orchestrator {
   }): Promise<OrchestratorOutput> {
     let state = input.state;
     // Widened initializers (`as`): these are reassigned inside the per-step
-    // `runStep` closure below, which TS control-flow analysis can't see — a
+    // `runStep` closure below, which TS control-flow analysis can't see - a
     // plain literal initializer would pin them to the initial value and break
     // the post-loop comparisons. The `as` keeps the full union type.
     let lastValidation = null as ValidationResults | null;
@@ -1407,7 +1407,7 @@ export class Orchestrator {
     let verificationDecision = "NEEDS_HUMAN" as VerificationDecision;
     // Non-blocking "a human should look at this" advisory (Phase 3). Set if a
     // reviewer/verifier emits HUMAN_REVIEW: ADVISORY; surfaced at finalize.
-    // Widened initializer (`as`) — reassigned inside the runStep closure, which
+    // Widened initializer (`as`) - reassigned inside the runStep closure, which
     // TS control-flow can't see (same pattern as reviewDecision above).
     let needsTestingAdvisory = null as { reason: string | null } | null;
     let planArtifact: RoleRunResult | null = null;
@@ -1460,7 +1460,7 @@ export class Orchestrator {
     // When this run is bound to a task, the task has a Checklist, the flow
     // declares a checklistSegment, and a checklist mode was requested, the
     // segment band repeats once per item (in this one worktree, carrying
-    // compact summaries forward). Otherwise the segment runs once — the N=1
+    // compact summaries forward). Otherwise the segment runs once - the N=1
     // instant-task case, identical to today.
     const roadmap = new RoadmapService(this.projectRoot);
     let checklistItems: { id: string; text: string }[] = [];
@@ -1554,7 +1554,7 @@ export class Orchestrator {
 
       // Resume: rewind to a stage by seeding the outputs of every step before
       // the first step at that stage from the source run, marking them skipped,
-      // and starting the walk there. Native to the flow runner — driven by the
+      // and starting the walk there. Native to the flow runner - driven by the
       // step `stage` metadata, no run() delegation.
       let stepIndex = 0;
       if (this.resumeFrom) {
@@ -1580,7 +1580,7 @@ export class Orchestrator {
       // runs we exit past `to` when the review isn't CHANGES_REQUESTED or the
       // iteration budget is spent; otherwise we finish the body and jump back to
       // `from`. The gate can sit at the body head so an early APPROVED skips the
-      // remaining body (e.g. the default flow's fix) — mirroring run()'s loop.
+      // remaining body (e.g. the default flow's fix) - mirroring run()'s loop.
       while (stepIndex < steps.length) {
         const step = steps[stepIndex]!;
         if (loop && stepIndex === loopFrom) {
@@ -1656,7 +1656,7 @@ export class Orchestrator {
         }
         const runStep = async (): Promise<void> => {
           // Read-only runs skip write/validation/verify steps the same way
-          // run() does — investigation only. Disabled (skipped-optional) steps
+          // run() does - investigation only. Disabled (skipped-optional) steps
           // skip too.
           const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
           if (!step.enabled || readOnlySkip) {
@@ -1946,7 +1946,7 @@ export class Orchestrator {
             });
             // Non-blocking advisory: a reviewer/verifier can flag that a human
             // should eyeball the result (something the model can't perceive).
-            // It never changes the verdict — last writer wins.
+            // It never changes the verdict - last writer wins.
             const advisory = detectNeedsTesting(result.output);
             if (advisory.advisory) {
               needsTestingAdvisory = { reason: advisory.reason };
@@ -2134,7 +2134,7 @@ export class Orchestrator {
         if (loop && step.sourceStepId === loop.decisionStep) {
           const wantsChanges = reviewDecision === "CHANGES_REQUESTED";
           const budgetLeft = loopIteration < loop.maxIterations;
-          // Read-only runs never loop — the fix body is skipped, so re-running
+          // Read-only runs never loop - the fix body is skipped, so re-running
           // would just repeat the same review. They traverse the body once
           // (the write steps mark themselves skipped) and don't jump back.
           const continuing = !this.readOnly && wantsChanges && budgetLeft;
@@ -2165,7 +2165,7 @@ export class Orchestrator {
       }
 
       // Read-only runs skip the executor, validation, and verify steps, so no
-      // verification decision is produced — an APPROVED review is the bar for
+      // verification decision is produced - an APPROVED review is the bar for
       // merge_ready, mirroring run(). A read-only CHANGES_REQUESTED can't be
       // fixed, so record it as BLOCKED for an honest verdict.
       if (this.readOnly && reviewDecision === "CHANGES_REQUESTED") {
@@ -2178,7 +2178,7 @@ export class Orchestrator {
       // no verify) reach merge_ready on an APPROVED review + passing validation.
       const verified = verificationArtifact !== null;
       // Read-only runs skip verification entirely, so there's no decision to
-      // report — null keeps the report/events honest ("skipped") rather than
+      // report - null keeps the report/events honest ("skipped") rather than
       // leaking the NEEDS_HUMAN default as if a verifier had run.
       const finalVerification = this.readOnly || !verified ? null : verificationDecision;
       const mergeReady = this.readOnly
@@ -2188,7 +2188,7 @@ export class Orchestrator {
           (!verified || verificationDecision === "PASSED");
       // ── Action Broker boundary (S0): run.complete ─────────────────────
       // The run's terminal verdict crosses the broker. A non-allow decision
-      // cannot reach merge_ready — it downgrades to blocked (fail-closed). The
+      // cannot reach merge_ready - it downgrades to blocked (fail-closed). The
       // verdict + evidence anchor the S5 Run Assurance artifact.
       const completeReq: ActionRequest = {
         runId: input.runId,
@@ -2321,7 +2321,7 @@ export class Orchestrator {
           });
         }
         // Pick-up: an item that failed mid-band is marked blocked on the task
-        // (remaining items keep their pending status — stop-on-failure, linear).
+        // (remaining items keep their pending status - stop-on-failure, linear).
         if (currentChecklistItemId && this.taskId) {
           await roadmap
             .setChecklistItemStatus(this.taskId, currentChecklistItemId, "blocked")
@@ -2494,7 +2494,7 @@ export class Orchestrator {
         "| --- | --- | --- | --- | --- |",
         ...outcomes.map(
           (o) =>
-            `| ${o.index + 1} | ${o.text.replace(/\|/g, "\\|")} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "—"} | ${o.filesTouched.length} |`,
+            `| ${o.index + 1} | ${o.text.replace(/\|/g, "\\|")} | ${o.status} | ${o.commitSha ? o.commitSha.slice(0, 8) : "-"} | ${o.filesTouched.length} |`,
         ),
         "",
       ].join("\n");
@@ -2552,7 +2552,7 @@ export class Orchestrator {
         actionUrl: `#/runs/${input.runId}`,
       });
     } catch {
-      // Suggestion ingestion is best-effort — never fail a run because the
+      // Suggestion ingestion is best-effort - never fail a run because the
       // marker parser hiccupped.
     }
   }
@@ -2797,7 +2797,7 @@ export class Orchestrator {
     // configured. Using the builtin name guarantees resolution via
     // resolveProfile's builtin fallback even on a project that hasn't defined a
     // read-only profile of its own.
-    // S4 — strict apply-only: a write-capable role runs READ-ONLY (no direct
+    // S4 - strict apply-only: a write-capable role runs READ-ONLY (no direct
     // disk writes); it proposes a diff that Vibestrate applies through the
     // gateway after the turn. Detect write-capability from the role's own
     // profile, then force read_only execution.
@@ -2956,7 +2956,7 @@ export class Orchestrator {
         provider: effectiveProviderId,
         permissions: effectivePermissions,
         // Skills attached to this agent's prompt. The provider's
-        // underlying model decides whether to use them — we can only
+        // underlying model decides whether to use them - we can only
         // honestly report what we made available, not what it picked.
         skillsAttached: skills.map((s) => s.name),
         skillsConfigured: agent.skills.slice(),
@@ -3026,7 +3026,7 @@ export class Orchestrator {
     const stageStart = new Date();
     // Materialize a live stream file for this agent invocation so the
     // dashboard can tail what the provider's CLI is saying in real
-    // time — bridges the gap between "spawned" and "artifact written".
+    // time - bridges the gap between "spawned" and "artifact written".
     await ensureStreamsDir(this.projectRoot, ctx.runId).catch(() => undefined);
     const streamName = promptName;
 
@@ -3064,7 +3064,7 @@ export class Orchestrator {
             providerAbort.abort();
           }
         } catch {
-          /* ignore — state file may be mid-write */
+          /* ignore - state file may be mid-write */
         }
       })();
     }, 500);
@@ -3096,7 +3096,7 @@ export class Orchestrator {
       if (providerAbort.signal.aborted) {
         throw new __RunAbortedSignal();
       }
-      // Fallback flush — most providers buffer all output until exit, so the
+      // Fallback flush - most providers buffer all output until exit, so the
       // live panel would be empty mid-flight. Persist the *normalized* response
       // text (the clean answer, not raw JSON for structured providers) as one
       // chunk. Skip it when a structured stream already showed text live, so we
@@ -3195,7 +3195,7 @@ export class Orchestrator {
     // The turn ran with write access; evaluate what it wrote. `accept` →
     // continue; `rollback` (deny/unsafe) → restore the worktree to the pre-turn
     // snapshot and block; `approve` (require_approval) → pause for a human via
-    // the standard approval flow — on approval keep the changes, on rejection
+    // the standard approval flow - on approval keep the changes, on rejection
     // roll back and block. Default-allow (no policies) → no behavior change.
     if (preTurnTree && ctx.worktreePath) {
       const verdict = await evaluateTurnDiff({
@@ -3211,7 +3211,7 @@ export class Orchestrator {
           preTurnTree,
         ).catch(() => false);
         // Record the rollback outcome as broker evidence. A failed rollback
-        // leaves the worktree dirty — the "rollback failed" summary is what the
+        // leaves the worktree dirty - the "rollback failed" summary is what the
         // Run Assurance artifact (S5) keys on to render the verdict `unsafe`.
         await this.broker!.record(
           {
@@ -3226,7 +3226,7 @@ export class Orchestrator {
             ok: false,
             summary: restored
               ? `rolled back ${roleId}'s denied changes`
-              : `rollback failed for ${roleId} — worktree may be partially modified`,
+              : `rollback failed for ${roleId} - worktree may be partially modified`,
           },
         );
         await ctx.eventLog.append({
@@ -3492,7 +3492,7 @@ export class Orchestrator {
   /**
    * Enforce the daily spend cap before an agent turn. Warns once at the
    * threshold; at the cap, stops the run. NOTE: in the new Profile model the
-   * `reduce-effort` / `downgrade-model` cap actions are not yet implemented —
+   * `reduce-effort` / `downgrade-model` cap actions are not yet implemented -
    * mid-run Profile downgrade (switching every seated step to
    * `budget.fallbackProfile`) is a TODO. Until then every cap action stops the
    * run honestly rather than silently continuing at full cost. No cap
@@ -3525,7 +3525,7 @@ export class Orchestrator {
       // Honest TODO: Profile-based downgrade isn't wired up yet.
       await ctx.eventLog.append({
         type: "policy.warning",
-        message: `${at}; capAction="${budget.capAction}" is not yet supported in the Profile model — stopping instead.`,
+        message: `${at}; capAction="${budget.capAction}" is not yet supported in the Profile model - stopping instead.`,
         data: { kind: "spend-cap-downgrade-unsupported", capAction: budget.capAction },
       });
     }

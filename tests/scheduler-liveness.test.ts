@@ -55,7 +55,7 @@ describe("deriveSchedulerLiveness", () => {
       now,
     );
     expect(r.status).toBe("stale");
-    // Stale is still picking up — the scheduler is slow but alive.
+    // Stale is still picking up - the scheduler is slow but alive.
     expect(r.pickingUpWork).toBe(true);
   });
 

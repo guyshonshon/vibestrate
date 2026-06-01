@@ -7,7 +7,7 @@ import { pathExists } from "../utils/fs.js";
 import { isSecretLikePath, scanTextForSecrets } from "./diff-service.js";
 
 /**
- * Codebase annotations — external, human-authored notes pinned to a file (and
+ * Codebase annotations - external, human-authored notes pinned to a file (and
  * optionally a line or line range). They live in `.vibestrate/annotations.json`,
  * never inside the source files themselves. When `shareWithRoles` is true and
  * the note is open, the orchestrator injects it into every agent's prompt for a
@@ -251,7 +251,7 @@ export function renderAnnotationsForPrompt(
     "",
   ];
   for (const a of shared) {
-    lines.push(`- **${formatAnchor(a)}** — ${a.body.replace(/\s+/g, " ").trim()}`);
+    lines.push(`- **${formatAnchor(a)}** - ${a.body.replace(/\s+/g, " ").trim()}`);
   }
   return lines.join("\n");
 }

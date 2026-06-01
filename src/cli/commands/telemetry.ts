@@ -13,7 +13,7 @@ export function buildTelemetryCommand(): Command {
 
   cmd
     .command("trace <runId>")
-    .description("Print the OTLP trace JSON for a run (no network — inspect before exporting).")
+    .description("Print the OTLP trace JSON for a run (no network - inspect before exporting).")
     .action(async (runId: string) => {
       const projectRoot = await root();
       const { MetricsStore } = await import("../../core/metrics-store.js");
@@ -51,7 +51,7 @@ export function buildTelemetryCommand(): Command {
       console.log(
         `${symbol.ok()} Exported run ${color.bold(runId)} (${r.spanCount} spans) to ${opts.endpoint} (HTTP ${r.status}).`,
       );
-      console.log(indent(color.dim("Nothing else is sent — this was an explicit, one-off export.")));
+      console.log(indent(color.dim("Nothing else is sent - this was an explicit, one-off export.")));
       process.exit(0);
     });
 

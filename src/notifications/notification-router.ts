@@ -113,7 +113,7 @@ export function draftApprovalResolved(input: {
     title:
       input.decision === "approved"
         ? "Approval granted"
-        : "Approval rejected — run blocked",
+        : "Approval rejected - run blocked",
     message: `Approval ${input.approvalId} was ${input.decision}.`,
     runId: input.runId,
     approvalId: input.approvalId,

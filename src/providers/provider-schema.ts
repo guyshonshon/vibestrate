@@ -34,20 +34,20 @@ export type ClaudeCodeProviderSchemaConfig = z.infer<
 //   - localhost-proxy → a model server on this machine (Ollama / LM Studio /
 //                      vLLM). Loopback host only ⇒ no egress.
 // `local-first` is sovereignty, not egress: a cloud-API provider is the user's
-// own key calling their chosen destination — there is no Vibestrate backend.
+// own key calling their chosen destination - there is no Vibestrate backend.
 
-/** API key references must be env-vars (`env:NAME`) — never a literal secret. */
+/** API key references must be env-vars (`env:NAME`) - never a literal secret. */
 export const ENV_REF_RE = /^env:[A-Z][A-Z0-9_]*$/;
 const apiKeyRefSchema = z
   .string()
   .regex(
     ENV_REF_RE,
-    "API key must be an env reference like env:ANTHROPIC_API_KEY — never a literal key in config.",
+    "API key must be an env reference like env:ANTHROPIC_API_KEY - never a literal key in config.",
   );
 
 export const httpApiProviderSchema = z.object({
   type: z.literal("http-api"),
-  /** Wire protocol — picks the request/response shape. */
+  /** Wire protocol - picks the request/response shape. */
   api: z.enum(["anthropic", "openai"]),
   baseUrl: z.string().url(),
   model: z.string().min(1),
@@ -128,7 +128,7 @@ export type ProviderConfig = z.infer<typeof providerConfigSchema>;
 export const providersConfigSchema = z.record(z.string(), providerConfigSchema);
 export type ProvidersConfigMap = z.infer<typeof providersConfigSchema>;
 
-/** A human label for a provider's invocation target — the CLI command, or the
+/** A human label for a provider's invocation target - the CLI command, or the
  *  api/model for HTTP-backed providers. Safe to log (no secrets). */
 export function providerCommandLabel(config: ProviderConfig): string {
   if (config.type === "cli" || config.type === "claude-code") {

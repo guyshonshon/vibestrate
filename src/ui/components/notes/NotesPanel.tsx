@@ -76,7 +76,7 @@ function Section({
         {title}
       </div>
       {notes.length === 0 ? (
-        <div className="mt-1 text-[12px] text-vibestrate-fg-muted">—</div>
+        <div className="mt-1 text-[12px] text-vibestrate-fg-muted">-</div>
       ) : (
         <ul className="mt-1.5 space-y-1.5">
           {notes.map((n) => (

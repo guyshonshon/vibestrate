@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { detectApprovalRequest } from "../src/core/approval-types.js";
 
-describe("detectApprovalRequest — structured fields", () => {
+describe("detectApprovalRequest - structured fields", () => {
   it("required=false when no marker is present", () => {
     const r = detectApprovalRequest("Discussion of HUMAN_APPROVAL inline.");
     expect(r.required).toBe(false);

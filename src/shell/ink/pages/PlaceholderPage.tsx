@@ -16,7 +16,7 @@ export function PlaceholderPage({ title, upcomingPhase }: Props) {
           this page lands in <Text color="cyan">{upcomingPhase}</Text>
         </Text>
         <Text dimColor>
-          the foundation already wires the tab into the router — content is
+          the foundation already wires the tab into the router - content is
           coming.
         </Text>
       </Box>

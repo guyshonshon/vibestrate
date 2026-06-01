@@ -53,12 +53,12 @@ export class ValidationProfileAuditError extends Error {
  * caller.
  *
  * Scope semantics mirror MigrationScope:
- *  - `recent` (default, 50 runs) — fast feedback for `vibe doctor`
- *  - `all` — full scan, used by `vibe validation profile doctor --all`
- *  - `run` — single run, used for targeted inspection
+ *  - `recent` (default, 50 runs) - fast feedback for `vibe doctor`
+ *  - `all` - full scan, used by `vibe validation profile doctor --all`
+ *  - `run` - single run, used for targeted inspection
  *
  * The scan is purely read-only and bounded to the project's `.vibestrate/runs`
- * tree — never reads arbitrary paths.
+ * tree - never reads arbitrary paths.
  */
 export async function auditValidationProfileReferences(
   projectRoot: string,
@@ -123,12 +123,12 @@ async function listRunsForScope(
         `Unsafe runId: ${scope.runId}`,
       );
     }
-    // Only return the runId if it actually exists — otherwise the audit
+    // Only return the runId if it actually exists - otherwise the audit
     // reports scannedRuns:0 rather than throwing.
     const all = await readDirSafe(runsDir);
     return all.includes(scope.runId) ? [scope.runId] : [];
   }
-  // Sort lexicographically — run ids embed an ISO-ish timestamp prefix, so
+  // Sort lexicographically - run ids embed an ISO-ish timestamp prefix, so
   // the tail is the newest. `all` keeps everything; `recent` slices.
   const all = (await readDirSafe(runsDir)).sort();
   if (scope.kind === "all") return all;
@@ -154,7 +154,7 @@ async function scanSuggestions(
     return;
   }
   // Defensive: only walk records that look like suggestions. We don't run
-  // schema parsing here — old files with missing fields should still be
+  // schema parsing here - old files with missing fields should still be
   // scanned for staleness without throwing.
   const list = (parsed as { suggestions?: unknown[] })?.suggestions;
   if (!Array.isArray(list)) return;

@@ -2,7 +2,7 @@
 //
 // A flow has a "weight class" (low/medium/high). Compared against the task's
 // estimated effort, we can warn when a heavy flow is run against a light task
-// ("this flow might be too much — try a simpler one"). Pure + advisory: it
+// ("this flow might be too much - try a simpler one"). Pure + advisory: it
 // never blocks a run, it just nudges.
 
 import type { FlowComplexity } from "../schemas/flow-schema.js";
@@ -18,7 +18,7 @@ const TURN_KINDS = new Set([
 /**
  * A flow's weight class: its declared `complexity` if set, else inferred from
  * the number of agent turns (≤2 → low, 3–4 → medium, ≥5 → high). Validation /
- * approval-gate steps don't count — only model turns drive cost.
+ * approval-gate steps don't count - only model turns drive cost.
  */
 export function inferFlowComplexity(flow: {
   complexity?: FlowComplexity | null;
@@ -51,7 +51,7 @@ export function flowComplexityAdvice(input: {
   let message: string | null = null;
   if (gap >= 2) {
     level = "overkill";
-    message = `${label} is ${input.flowComplexity}-complexity but the task looks ${input.taskEffort}-effort — this flow might be too much. Try a simpler one.`;
+    message = `${label} is ${input.flowComplexity}-complexity but the task looks ${input.taskEffort}-effort - this flow might be too much. Try a simpler one.`;
   } else if (gap === 1) {
     level = "consider";
     message = `${label} (${input.flowComplexity}) is a bit heavier than the task looks (${input.taskEffort} effort). Fine, but a lighter flow may be quicker.`;

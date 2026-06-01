@@ -24,7 +24,7 @@ function tryOpenBrowser(url: string): void {
   else cmd = `xdg-open ${JSON.stringify(url)}`;
   exec(cmd, (err) => {
     if (err) {
-      // ignore — user can copy/paste the URL.
+      // ignore - user can copy/paste the URL.
     }
   });
 }
@@ -88,12 +88,12 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
       port: started.port,
     });
   } catch {
-    // registry is advisory — never block `vibe ui`.
+    // registry is advisory - never block `vibe ui`.
   }
 
   // One-line-per-component readout so the user can confirm the
   // "vibe ui = everything you need in one shot" at a glance.
-  console.log(`${symbol.ok()} ${header("Vibestrate — dashboard + scheduler")}`);
+  console.log(`${symbol.ok()} ${header("Vibestrate - dashboard + scheduler")}`);
   console.log(
     indent(`${symbol.bullet()} dashboard   ${color.bold(started.url)}`),
   );
@@ -126,14 +126,14 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
   } else if (opts.scheduler === false) {
     console.log(
       indent(
-        `${symbol.bullet()} scheduler   ${color.dim("disabled — run `vibe queue run` externally")}`,
+        `${symbol.bullet()} scheduler   ${color.dim("disabled - run `vibe queue run` externally")}`,
       ),
     );
   } else {
     console.log(
       indent(
         `${symbol.bullet()} scheduler   ${color.yellow("not started")} ${color.dim(
-          "(lock held by another process — see .vibestrate/scheduler/scheduler.log)",
+          "(lock held by another process - see .vibestrate/scheduler/scheduler.log)",
         )}`,
       ),
     );
@@ -151,7 +151,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     console.log(
       indent(
         color.yellow(
-          "  ! UI bundle not found — `pnpm build:ui` from the vibestrate source repo, then restart.",
+          "  ! UI bundle not found - `pnpm build:ui` from the vibestrate source repo, then restart.",
         ),
       ),
     );
@@ -168,7 +168,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
 
   // Release this server's runtime lock on the way out (best-effort) so the
   // project reads as dormant immediately rather than waiting for the stale-lock
-  // reclaim. A force-kill can't run this — the navigator clears it instead.
+  // reclaim. A force-kill can't run this - the navigator clears it instead.
   const releaseOwnUiLock = async () => {
     try {
       const { releaseUiLock } = await import("../../workspace/ui-lock.js");
@@ -180,7 +180,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
 
   // Track whether we're already shutting down. The first SIGINT/SIGTERM
   // triggers the graceful path with a hard cap; a *second* SIGINT
-  // means the user is impatient — bail out immediately so they're
+  // means the user is impatient - bail out immediately so they're
   // never stuck. Without this, the previous build silently hung
   // forever if started.close() got stuck draining the managed
   // scheduler or long-lived SSE clients.
@@ -189,7 +189,7 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
 
   const shutdown = async (code: number) => {
     if (shuttingDown) {
-      // Second Ctrl+C — force-exit. Console message so the user
+      // Second Ctrl+C - force-exit. Console message so the user
       // knows we heard them and chose to stop waiting.
       console.log("");
       console.log(color.dim("Force-exiting (second Ctrl+C)."));
@@ -207,14 +207,14 @@ export async function runUiCommand(opts: UiCommandOptions): Promise<number> {
     // syscall) blocks past this, we exit anyway so the user is
     // never trapped.
     const forceTimer = setTimeout(() => {
-      console.log(color.dim(`Shutdown took >${SHUTDOWN_TIMEOUT_MS}ms — force-exiting.`));
+      console.log(color.dim(`Shutdown took >${SHUTDOWN_TIMEOUT_MS}ms - force-exiting.`));
       process.exit(code === 0 ? 130 : code);
     }, SHUTDOWN_TIMEOUT_MS);
     forceTimer.unref?.();
     try {
       await started.close();
     } catch {
-      // ignore — we're exiting anyway
+      // ignore - we're exiting anyway
     }
     await releaseOwnUiLock();
     clearTimeout(forceTimer);

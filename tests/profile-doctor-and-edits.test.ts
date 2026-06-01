@@ -176,7 +176,7 @@ describe("validation-profile-audit-service", () => {
   it("recent scope (default) caps the scan at 50 runs", async () => {
     const t = await tempProjectWithProfiles({ validate: ["true"] });
     // Create 60 extra run dirs, each with a single stale suggestion. Lex
-    // sort puts the oldest first — so the most recent 50 should win.
+    // sort puts the oldest first - so the most recent 50 should win.
     for (let i = 1; i <= 60; i++) {
       const id = `run-${String(i + 100).padStart(4, "0")}`;
       await fs.mkdir(path.join(t.project, ".vibestrate/runs", id), {
@@ -195,7 +195,7 @@ describe("validation-profile-audit-service", () => {
     expect(r.scannedRuns).toBe(50);
     // The recent-50 window includes the harness-created run-1 (no
     // suggestions.json), so 49 of the 50 contribute stale refs. The point
-    // of the test is that the cap is observed — not the exact stale count.
+    // of the test is that the cap is observed - not the exact stale count.
     expect(r.staleSuggestionReferences.length).toBeLessThan(60);
     expect(r.staleSuggestionReferences.length).toBeGreaterThanOrEqual(49);
   });

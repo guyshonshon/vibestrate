@@ -76,7 +76,7 @@ async function cmdPreview(runIds: string[]): Promise<number> {
   console.log(
     preview.allClean
       ? `${symbol.ok()} All clean. Integrate with: ${color.bold("vibe integrate apply --into integration/<name>")}`
-      : `${symbol.warn()} Some branches conflict — integrate the clean ones, or resolve conflicts first.`,
+      : `${symbol.warn()} Some branches conflict - integrate the clean ones, or resolve conflicts first.`,
   );
   return 0;
 }
@@ -116,7 +116,7 @@ async function cmdApply(runIds: string[], opts: { into?: string }): Promise<numb
         `${symbol.warn()} Stopped at ${color.bold(result.stoppedAt)}. Resolve conflicts in the integration worktree, or re-run without it.`,
       );
     } else {
-      console.log(`${symbol.ok()} All selected branches merged. Review ${color.bold(result.integrationBranch)} — main is untouched, nothing was pushed.`);
+      console.log(`${symbol.ok()} All selected branches merged. Review ${color.bold(result.integrationBranch)} - main is untouched, nothing was pushed.`);
     }
     return result.stoppedAt ? 1 : 0;
   } catch (err) {

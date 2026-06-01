@@ -1,7 +1,7 @@
 // ── Per-item forward-carry (Phase 3 pick-up execution) ──────────────────────
 //
 // The make-or-break of continuous-mode execution (design §1): after each
-// checklist item, write a *compact* summary and feed it forward — NOT full
+// checklist item, write a *compact* summary and feed it forward - NOT full
 // diffs (token blow-up). Item 5 needs to know what item 2 did without
 // re-reading every line it wrote. These are pure renderers so the carry logic
 // is testable without a run.
@@ -16,7 +16,7 @@ export type ChecklistItemOutcome = {
   commitSha: string | null;
   /** Files the item touched (from the per-item commit), best-effort. */
   filesTouched: string[];
-  /** A compact note — the agent's implementation summary, trimmed. */
+  /** A compact note - the agent's implementation summary, trimmed. */
   summary: string;
   error: string | null;
 };
@@ -36,7 +36,7 @@ function oneLine(text: string, max = ONE_LINE_SUMMARY_CHARS): string {
 /** The per-item summary artifact stored under the run (one file per item). */
 export function renderItemSummaryArtifact(o: ChecklistItemOutcome): string {
   const lines = [
-    `# Item ${o.index + 1}/${o.total} — ${o.text}`,
+    `# Item ${o.index + 1}/${o.total} - ${o.text}`,
     "",
     `- status: ${o.status}`,
     `- commit: ${shortSha(o.commitSha)}`,
@@ -53,7 +53,7 @@ export function renderItemSummaryArtifact(o: ChecklistItemOutcome): string {
  * The carried-forward context handed to the *next* item: a compact running
  * ledger of completed items so the agent knows what's already done. When the
  * full ledger would exceed `budgetChars`, older items fold to a single line
- * (id + status + commit) and only the most recent keep their note — the
+ * (id + status + commit) and only the most recent keep their note - the
  * "compact folds old summaries when budget tightens" behavior.
  */
 export function buildPriorItemsContext(
@@ -63,7 +63,7 @@ export function buildPriorItemsContext(
   if (outcomes.length === 0) return "";
 
   const full = (o: ChecklistItemOutcome): string => {
-    const head = `${o.index + 1}. ${o.text} — ${o.status} (commit ${shortSha(o.commitSha)})`;
+    const head = `${o.index + 1}. ${o.text} - ${o.status} (commit ${shortSha(o.commitSha)})`;
     const note = o.summary.trim() ? `\n   ${oneLine(o.summary)}` : "";
     const files = o.filesTouched.length
       ? `\n   files: ${o.filesTouched.slice(0, 8).join(", ")}`
@@ -71,7 +71,7 @@ export function buildPriorItemsContext(
     return head + note + files;
   };
   const terse = (o: ChecklistItemOutcome): string =>
-    `${o.index + 1}. ${o.text} — ${o.status} (commit ${shortSha(o.commitSha)})`;
+    `${o.index + 1}. ${o.text} - ${o.status} (commit ${shortSha(o.commitSha)})`;
 
   // Start all-full; while over budget, fold the oldest items to terse form.
   const modes = outcomes.map(() => "full" as "full" | "terse");
@@ -86,7 +86,7 @@ export function buildPriorItemsContext(
 
   return [
     "# Completed checklist items (carried forward)",
-    "For context only — these are already done in this same worktree. Do NOT redo them.",
+    "For context only - these are already done in this same worktree. Do NOT redo them.",
     "",
     render(),
     "",
@@ -100,7 +100,7 @@ export function renderCurrentItemBrief(
   total: number,
 ): string {
   return [
-    `# Current checklist item — ${index + 1} of ${total}`,
+    `# Current checklist item - ${index + 1} of ${total}`,
     "",
     item.text,
     "",

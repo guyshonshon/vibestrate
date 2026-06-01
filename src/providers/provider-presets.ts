@@ -13,12 +13,12 @@ import { ollamaPreset } from "./presets/ollama.js";
 /**
  * One place that pairs every known provider with:
  *
- *   - `preset`      — the best-known non-interactive invocation (the command
+ *   - `preset`      - the best-known non-interactive invocation (the command
  *                     is overridden with the detected path when applied).
- *   - `loginCommand`— the command the user runs **outside Vibestrate** to
+ *   - `loginCommand`- the command the user runs **outside Vibestrate** to
  *                     authenticate, or `null` when the provider uses an API
  *                     key / needs no login.
- *   - `loginNote`   — a one-line, human explanation shown alongside it.
+ *   - `loginNote`   - a one-line, human explanation shown alongside it.
  *
  * The presets are "works out of the box" defaults so a detected provider can
  * be auto-configured (like Claude always has been). They are best-effort:
@@ -62,7 +62,7 @@ export const PROVIDER_PRESETS: Record<KnownProviderId, ProviderPreset> = {
     },
     loginCommand: null,
     loginNote:
-      "Aider authenticates via API keys — set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.",
+      "Aider authenticates via API keys - set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.",
   },
   ollama: {
     preset: ollamaPreset,
@@ -78,7 +78,7 @@ export const PROVIDER_PRESETS: Record<KnownProviderId, ProviderPreset> = {
     preset: { type: "cli", command: "crush", args: ["run"], input: "arg" },
     loginCommand: null,
     loginNote:
-      "Crush uses your model provider's API key — set the relevant one (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY).",
+      "Crush uses your model provider's API key - set the relevant one (e.g. ANTHROPIC_API_KEY / OPENAI_API_KEY).",
   },
   goose: {
     preset: { type: "cli", command: "goose", args: ["run", "-t"], input: "arg" },
@@ -154,7 +154,7 @@ const AUTH_SIGNALS = [
 ];
 
 // A CLI rejecting our args (a flag it no longer accepts, a renamed
-// subcommand) prints one of these and exits non-zero — usually exit 2.
+// subcommand) prints one of these and exits non-zero - usually exit 2.
 // We treat that as a "flags" problem, not a generic exit, so the hint can
 // point at `vibe provider setup` instead of "check it's installed".
 const USAGE_SIGNALS = [

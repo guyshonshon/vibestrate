@@ -17,7 +17,7 @@ import type { Task } from "../roadmap/roadmap-types.js";
  *   - already-running tasks' git-diff file lists from their worktrees
  *
  * The result lists overlapping path strings. Globs and prefixes are NOT
- * resolved — V0 does plain substring/equality matching to keep the policy
+ * resolved - V0 does plain substring/equality matching to keep the policy
  * predictable and explainable.
  */
 export async function detectConflicts(input: {

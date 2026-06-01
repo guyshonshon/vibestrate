@@ -108,7 +108,7 @@ function validateFromTo(
   if (from === "default") {
     throw new ValidationProfileMigrationError(
       400,
-      'fromProfile cannot be "default" — the implicit default cannot be renamed or cleared.',
+      'fromProfile cannot be "default" - the implicit default cannot be renamed or cleared.',
     );
   }
   if (toProfile === null) return;
@@ -197,7 +197,7 @@ async function collectAffectedFile(input: {
 /**
  * Build a preview of which suggestion + bundle records would change if we
  * migrated `fromProfile` → `toProfile` (or cleared to default when
- * `toProfile === null`). The preview writes **nothing** — callers must call
+ * `toProfile === null`). The preview writes **nothing** - callers must call
  * `applyMigration()` separately to persist.
  *
  * Malformed files are surfaced in the result rather than crashing the scan.
@@ -368,7 +368,7 @@ export async function listMigrations(
 }
 
 /**
- * Small case-insensitive Damerau-style edit distance — good enough to
+ * Small case-insensitive Damerau-style edit distance - good enough to
  * surface obvious typos ("quikc" → "quick") without pulling in a real
  * library. Returns Infinity when names differ in length by more than two,
  * so we never recommend wildly different names.

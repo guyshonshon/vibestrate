@@ -39,7 +39,7 @@ async function setup(url: string, id: string, config: unknown) {
   });
 }
 
-describe("POST /api/providers/:id/setup — HTTP-backed providers", () => {
+describe("POST /api/providers/:id/setup - HTTP-backed providers", () => {
   it("writes a valid http-api provider and round-trips its typed config", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
@@ -109,7 +109,7 @@ describe("POST /api/providers/:id/setup — HTTP-backed providers", () => {
   });
 });
 
-describe("POST /api/providers/:id/setup — fail-closed safety guards", () => {
+describe("POST /api/providers/:id/setup - fail-closed safety guards", () => {
   it("400s a literal (non-env-ref) cloud API key", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });

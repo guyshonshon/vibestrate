@@ -18,7 +18,7 @@ const VERDICT_COLOR: Record<RunAssuranceVerdict, (s: string) => string> = {
 };
 
 /**
- * `vibe assurance <runId>` — show the evidence-backed Run Assurance verdict.
+ * `vibe assurance <runId>` - show the evidence-backed Run Assurance verdict.
  * Read-only: prints the persisted artifact, deriving it on demand for older
  * runs that predate the artifact.
  */
@@ -47,7 +47,7 @@ export function buildAssuranceCommand(): Command {
 
       const paint = VERDICT_COLOR[assurance.verdict];
       console.log(
-        `${color.bold("Run assurance")} ${color.dim(runId)} — ${paint(
+        `${color.bold("Run assurance")} ${color.dim(runId)} - ${paint(
           color.bold(assurance.verdict),
         )}`,
       );

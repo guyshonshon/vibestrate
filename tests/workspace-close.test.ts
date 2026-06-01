@@ -64,7 +64,7 @@ describe("readProjectBusyStatus", () => {
   it("flags active runs and queued tasks as busy", async () => {
     const root = await mkProject("busy");
     await writeRun(root, "r1", "executing"); // non-terminal
-    await writeRun(root, "r2", "merge_ready"); // terminal — not counted
+    await writeRun(root, "r2", "merge_ready"); // terminal - not counted
     await fs.mkdir(path.join(root, ".vibestrate", "scheduler"), { recursive: true });
     await fs.writeFile(
       path.join(root, ".vibestrate", "scheduler", "queue.json"),
@@ -96,7 +96,7 @@ describe("closeProjectServer escalation safety", () => {
     expect(r.method).toBe("unreachable");
     expect(r.closed).toBe(false);
     expect(r.forced).toBe(false);
-    // We're obviously still running — the test continues past this line.
+    // We're obviously still running - the test continues past this line.
     expect(typeof process.pid).toBe("number");
   });
 
@@ -131,7 +131,7 @@ describe("POST /api/server/shutdown", () => {
     await new Promise((r) => setTimeout(r, 500));
     expect(handedOff).toBe(true);
 
-    // The server is closed now — a follow-up request should fail to connect.
+    // The server is closed now - a follow-up request should fail to connect.
     await expect(fetch(`${srv.url}/api/health`)).rejects.toBeTruthy();
   });
 });

@@ -549,7 +549,7 @@ async function cmdRoadmapPlan(
   }
 
   // Build the planner prompt by appending the user's goal to the
-  // roadmap-planner default prompt. This is intentionally a small wrapper —
+  // roadmap-planner default prompt. This is intentionally a small wrapper -
   // the agent does the heavy lifting from the canonical prompt.
   const here = path.dirname(fileURLToPath(import.meta.url));
   const candidates = [

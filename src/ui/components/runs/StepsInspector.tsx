@@ -2,7 +2,7 @@ import { Check, Coins, Cpu, FileDiff, Hash, Timer, X } from "lucide-react";
 import type { RoleMetrics, RuntimeMetrics } from "../../lib/types.js";
 
 /**
- * Per-step inspector — one card per agent invocation from the run's runtime
+ * Per-step inspector - one card per agent invocation from the run's runtime
  * metrics: what ran (stage / agent / provider+model), how it went (exit code,
  * review/verification decision), what it touched (files + lines), and the cost
  * (duration, tokens, dollars). Read-only; sourced from `.vibestrate/runs/<id>` via
@@ -13,7 +13,7 @@ export function StepsInspector({ metrics }: { metrics: RuntimeMetrics | null }) 
   if (agents.length === 0) {
     return (
       <div className="text-[12.5px] text-fog-400">
-        No steps recorded yet. Each agent invocation appears here as it runs —
+        No steps recorded yet. Each agent invocation appears here as it runs -
         with its files touched, tokens, time, and pass/fail.
       </div>
     );
@@ -68,7 +68,7 @@ function StepCard({ index, a }: { index: number; a: RoleMetrics }) {
             icon={<Hash className="h-3 w-3" />}
             title={
               a.tokensEstimated
-                ? "Tokens (input → output) — estimated from text"
+                ? "Tokens (input → output) - estimated from text"
                 : "Tokens (input → output)"
             }
           >
@@ -150,7 +150,7 @@ function Stat({
 }
 
 function fmtDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "—";
+  if (!Number.isFinite(ms) || ms < 0) return "-";
   if (ms < 1000) return `${ms}ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)}s`;
@@ -159,5 +159,5 @@ function fmtDuration(ms: number): string {
 }
 
 function fmtNum(n: number | null): string {
-  return n === null ? "—" : n.toLocaleString();
+  return n === null ? "-" : n.toLocaleString();
 }

@@ -4,7 +4,7 @@ import type { DoctorReport } from "../../../setup/doctor-service.js";
 
 /**
  * Doctor runs on demand (not on a poll) because it shells out to git
- * + provider detection — expensive. The hook fires once on mount,
+ * + provider detection - expensive. The hook fires once on mount,
  * then only when `refresh()` is called.
  */
 export function useDoctor(projectRoot: string) {

@@ -31,7 +31,7 @@ LIKELY_FILES: tests/setup-service.test.ts
 VALIDATION: pnpm test
 `;
 
-describe("parseProposal — happy path", () => {
+describe("parseProposal - happy path", () => {
   const r = parseProposal({
     proposalId: "demo",
     sourcePath: "/p.md",
@@ -76,7 +76,7 @@ describe("parseProposal — happy path", () => {
   });
 });
 
-describe("parseProposal — validation", () => {
+describe("parseProposal - validation", () => {
   it("missing TITLE on a task is a fatal error", () => {
     const r = parseProposal({
       proposalId: "x",

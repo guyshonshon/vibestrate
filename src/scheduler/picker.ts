@@ -1,6 +1,6 @@
 // Pure scheduling picker. Decides which queue entry the scheduler
 // should consider next, given the current in-flight set, the queue
-// policy, and any per-source quotas. No I/O — the service layer
+// policy, and any per-source quotas. No I/O - the service layer
 // supplies snapshots and acts on the verdict.
 
 import type { Priority } from "../roadmap/roadmap-types.js";
@@ -24,7 +24,7 @@ export type PickerInput = {
     defaultSourceConcurrency?: number;
   };
   /**
-   * Predicate returning true when the entry is *eligible* to start —
+   * Predicate returning true when the entry is *eligible* to start -
    * usually "dependencies are satisfied". The picker treats false as
    * "skip and try the next one"; it does not remove the entry.
    */

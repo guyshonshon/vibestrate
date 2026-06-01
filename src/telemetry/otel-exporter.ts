@@ -2,7 +2,7 @@
 //
 // Maps a finished run's persisted metrics into an OTLP/HTTP trace and POSTs it
 // to a user-configured collector (Langfuse, Grafana Tempo, Jaeger, …). This is
-// an exporter over data we ALREADY have — not new instrumentation. Off by
+// an exporter over data we ALREADY have - not new instrumentation. Off by
 // default and local-first: nothing is sent until the user runs the export with
 // an explicit endpoint. Dependency-free: we hand-build the OTLP JSON.
 
@@ -92,7 +92,7 @@ export function buildRunTraceOtlp(input: {
     spanId: spanIdFor(`${m.runId}:${r.stageId}:${r.roleId}:${i}`),
     parentSpanId: rootSpanId,
     name: `${r.stageId}:${r.roleId}`,
-    kind: 3, // CLIENT — an outbound model call
+    kind: 3, // CLIENT - an outbound model call
     startTimeUnixNano: nanos(r.startedAt),
     endTimeUnixNano: nanos(r.endedAt),
     attributes: attrs([
@@ -135,7 +135,7 @@ export type ExportResult =
 
 /**
  * Export one finished run's metrics to an OTLP/HTTP collector. The endpoint is
- * explicit (no default, no SSRF block — it's the user's own collector, like a
+ * explicit (no default, no SSRF block - it's the user's own collector, like a
  * configured cloud provider). An optional `authToken` env-ref → Bearer auth,
  * never logged.
  */

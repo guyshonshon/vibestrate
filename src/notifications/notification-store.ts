@@ -119,7 +119,7 @@ export class NotificationStore {
   }
 
   // ─── gateways.json (separate from project.yml so secrets stay out of git
-  //     — we still treat the file as ignored by adding a rule in init) ──────
+  //     - we still treat the file as ignored by adding a rule in init) ──────
 
   async readGateways(): Promise<GatewaysFile> {
     const file = notificationGatewaysFile(this.projectRoot);

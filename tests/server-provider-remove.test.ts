@@ -35,7 +35,7 @@ afterEach(async () => {
 describe("DELETE /api/providers/:id", () => {
   it("removes an unused provider and 409s one still used by a role", async () => {
     const project = await makeProject();
-    // An unused spare provider — removable.
+    // An unused spare provider - removable.
     await addProvider(project, {
       id: "spare",
       config: { type: "cli", command: "spare", args: [], input: "stdin" },

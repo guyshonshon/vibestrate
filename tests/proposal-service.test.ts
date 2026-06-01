@@ -27,7 +27,7 @@ async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-prop-"));
 }
 
-describe("ProposalService — dryRun", () => {
+describe("ProposalService - dryRun", () => {
   let projectRoot: string;
   beforeEach(async () => {
     projectRoot = await tempProject();
@@ -82,7 +82,7 @@ describe("ProposalService — dryRun", () => {
   });
 });
 
-describe("ProposalService — accept (atomic)", () => {
+describe("ProposalService - accept (atomic)", () => {
   let projectRoot: string;
   beforeEach(async () => {
     projectRoot = await tempProject();

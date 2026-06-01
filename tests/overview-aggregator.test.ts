@@ -13,7 +13,7 @@ import type { RuntimeMetrics } from "../src/core/runtime-metrics.js";
 const FIXED_NOW = new Date("2026-05-25T18:00:00Z").getTime();
 
 function run(over: Partial<RunState> & { resolvedProviderId?: string }): RunState {
-  // Minimal RunState that satisfies the zod schema's shape — we don't
+  // Minimal RunState that satisfies the zod schema's shape - we don't
   // .parse() here because the aggregator only consumes a subset of
   // fields. Casts are confined to this helper.
   // The aggregator now derives a run's provider from its flow steps, so the

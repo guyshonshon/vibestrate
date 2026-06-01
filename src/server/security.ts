@@ -13,7 +13,7 @@ export class HttpError extends Error {
  * A bind to a loopback host keeps the server's default "no-auth,
  * origin-allow-listed" posture. Any other host (including `0.0.0.0`, which
  * binds every interface) is treated as a real network exposure that must
- * carry a bearer token — see the auth hook in `startServer`.
+ * carry a bearer token - see the auth hook in `startServer`.
  */
 export function isLoopbackHost(host: string): boolean {
   const normalized = host.trim().toLowerCase();

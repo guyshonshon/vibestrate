@@ -110,7 +110,7 @@ export function FlowBuilderPage({
     text: string;
   } | null>(null);
   // Dry-run preview: resolve the saved flow into the snapshot a real run
-  // would instantiate (provider per slot, enabled steps, gates) — no run.
+  // would instantiate (provider per slot, enabled steps, gates) - no run.
   const [dryRun, setDryRun] = useState<ResolvedFlowSnapshot | null>(null);
   const [dryRunBusy, setDryRunBusy] = useState(false);
   const [dryRunErr, setDryRunErr] = useState<string | null>(null);
@@ -151,7 +151,7 @@ export function FlowBuilderPage({
     }
   }
 
-  // Reset the draft buffers any time the selected flow changes — the
+  // Reset the draft buffers any time the selected flow changes - the
   // draft mirrors the on-disk flow until the user actually edits a
   // field. We diff against `selected` on save to figure out which fields
   // changed.
@@ -184,7 +184,7 @@ export function FlowBuilderPage({
 
   const isProjectFlow = selected?.source.kind === "project";
 
-  // Patch we'd send for the *current* draft — also drives the dirty
+  // Patch we'd send for the *current* draft - also drives the dirty
   // indicator on the Save button. Pure derivation; recomputed on every
   // render (cheap, never touches state).
   const pendingPatch: FlowPatch | null = useMemo(() => {
@@ -192,7 +192,7 @@ export function FlowBuilderPage({
     const patch: FlowPatch = {};
     if (draftLabel !== selected.label) patch.label = draftLabel;
     if (draftStepList) {
-      // Structural changes were made — ship the entire list (folding
+      // Structural changes were made - ship the entire list (folding
       // any per-step field drafts into the right index) via
       // `replaceSteps`.
       patch.replaceSteps = draftStepList.map((s) => {
@@ -263,7 +263,7 @@ export function FlowBuilderPage({
         kind: "ok",
         text: result.alreadyForked
           ? `${result.flowId} already lives in .vibestrate/flows/`
-          : `Forked to ${result.definitionPath} — now editable`,
+          : `Forked to ${result.definitionPath} - now editable`,
       });
     } catch (err) {
       setToast({
@@ -383,7 +383,7 @@ export function FlowBuilderPage({
             disabled={!selected || dryRunBusy}
             iconLeft={<Eye className="h-3 w-3" strokeWidth={1.7} />}
             onClick={() => void runDryRun()}
-            title="Resolve this flow into the run it would create — no run starts"
+            title="Resolve this flow into the run it would create - no run starts"
           >
             {dryRunBusy ? "Resolving…" : "Dry-run preview"}
           </Button>
@@ -418,7 +418,7 @@ export function FlowBuilderPage({
             disabled={!dirty || saving || !isProjectFlow}
             title={
               !isProjectFlow
-                ? "Builtin flows are read-only — Fork to project first."
+                ? "Builtin flows are read-only - Fork to project first."
                 : !dirty
                   ? "No changes to save"
                   : "Save changes to .vibestrate/flows/"
@@ -512,7 +512,7 @@ export function FlowBuilderPage({
                     <span className="text-fog-200">{selected.source.kind}</span>
                     {!isProjectFlow ? (
                       <span className="ml-2 text-amber-300">
-                        read-only — fork into the project to edit
+                        read-only - fork into the project to edit
                       </span>
                     ) : null}
                   </div>
@@ -781,7 +781,7 @@ function StepRow({
         <div className="text-[11.5px] text-fog-400 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.7} />{" "}
-            {step.seat ?? "—"}
+            {step.seat ?? "-"}
           </span>
           {step.inputs.length > 0 ? (
             <>
@@ -947,7 +947,7 @@ function StepInspector({
               : "opacity-70 cursor-not-allowed",
           )}
         >
-          <option value="">— no seat —</option>
+          <option value="">- no seat -</option>
           {seatOptions.map(([id, def]) => (
             <option key={id} value={id}>
               {def.label} ({id})
@@ -960,7 +960,7 @@ function StepInspector({
           </div>
         ) : null}
         <div className="text-[11px] text-fog-500 mt-1">
-          Which Role fills this seat — and on which Profile — is decided by the
+          Which Role fills this seat - and on which Profile - is decided by the
           Crew at run time, not here. Flows stay shareable.
         </div>
       </Field>
@@ -1158,7 +1158,7 @@ function ApprovalEditor({
 }
 
 /**
- * Reduce a step draft to the minimal patch payload — fields that are
+ * Reduce a step draft to the minimal patch payload - fields that are
  * absent or match the current saved value get dropped, so the patch
  * surface only carries actual changes (cleaner network + clearer
  * server-side audit).
@@ -1295,7 +1295,7 @@ function Row({ label, items }: { label: string; items: string[] }) {
       </span>
       <div className="flex flex-wrap gap-1.5 min-w-0">
         {items.length === 0 ? (
-          <span className="text-fog-500 text-[11.5px]">—</span>
+          <span className="text-fog-500 text-[11.5px]">-</span>
         ) : (
           items.map((it) => (
             <span
@@ -1455,7 +1455,7 @@ function LoopCard({
       {!loop ? (
         <p className="text-[12px] text-fog-500">
           No loop. A loop repeats a contiguous range of steps while a review keeps
-          asking for changes — e.g. coder → reviewer → coder.
+          asking for changes - e.g. coder → reviewer → coder.
         </p>
       ) : (
         <div className="space-y-2.5">
@@ -1489,7 +1489,7 @@ function LoopCard({
               </select>
             </Field>
           </div>
-          <Field label="Decision step — a review in the range">
+          <Field label="Decision step - a review in the range">
             <select
               className={selectCls}
               disabled={!editable}

@@ -54,7 +54,7 @@ function routerFetch(routes: { match: string; body: string }[]): FetchImpl {
 
 const BASE = "http://hub.test";
 
-describe("flow hub — index", () => {
+describe("flow hub - index", () => {
   it("fetches + validates the index", async () => {
     const r = await fetchHubIndex({
       baseUrl: BASE,
@@ -93,7 +93,7 @@ describe("flow hub — index", () => {
   });
 });
 
-describe("flow hub — install", () => {
+describe("flow hub - install", () => {
   let dir: string;
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-hub-"));

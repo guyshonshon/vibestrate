@@ -105,7 +105,7 @@ export async function runVibestrateCommand(input: {
 }
 
 /**
- * Spawn `vibe <args>` in the background — detached, unref'd, with
+ * Spawn `vibe <args>` in the background - detached, unref'd, with
  * stdio redirected to /dev/null. Used for long-running invocations
  * like `vibe run …` and `vibe ui` where the user doesn't want
  * the panel to block waiting for output.

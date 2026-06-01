@@ -38,7 +38,7 @@ export function redact(input: unknown, secrets: Array<string | undefined>): stri
   let text = typeof input === "string" ? input : input instanceof Error ? input.message : String(input ?? "");
   for (const s of secrets) {
     if (!s) continue;
-    if (s.length < 4) continue; // never strip short literals — too risky
+    if (s.length < 4) continue; // never strip short literals - too risky
     const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(escaped, "g"), "[redacted]");
   }

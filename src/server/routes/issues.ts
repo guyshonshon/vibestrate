@@ -31,7 +31,7 @@ export async function registerIssuesRoutes(
     },
   );
 
-  // Manual record — lets the dashboard log a user-facing event into
+  // Manual record - lets the dashboard log a user-facing event into
   // the same stream (e.g. a UI action that failed client-side).
   app.post<{
     Body: {

@@ -11,7 +11,7 @@ import {
 import { color } from "./format.js";
 
 /**
- * A horizontal, chip-style single-select prompt — the answer options sit on
+ * A horizontal, chip-style single-select prompt - the answer options sit on
  * one line and you move between them with ← / → (or h / l), Enter to pick.
  * Built on `@inquirer/core` so it shares the same readline/raw-mode/Ctrl-C
  * handling as the other prompts. Used by the `vibe run` Flow/Crew picker.
@@ -33,7 +33,7 @@ export type HorizontalSelectConfig<Value> = {
 };
 
 /**
- * Pure navigation step — exported for tests. Wraps around both ends.
+ * Pure navigation step - exported for tests. Wraps around both ends.
  * `delta` is +1 (right) or -1 (left).
  */
 export function moveIndex(current: number, length: number, delta: number): number {
@@ -41,7 +41,7 @@ export function moveIndex(current: number, length: number, delta: number): numbe
   return (current + delta + length) % length;
 }
 
-/** Render the chip strip — active chip inverse-highlighted, others dimmed. */
+/** Render the chip strip - active chip inverse-highlighted, others dimmed. */
 function renderChips(names: readonly string[], active: number): string {
   return names
     .map((name, i) =>

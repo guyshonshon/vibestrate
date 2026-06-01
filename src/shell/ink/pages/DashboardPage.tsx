@@ -38,7 +38,7 @@ export function DashboardPage({ snapshot }: Props) {
 
   return (
     <Box flexDirection="column">
-      {/* Single-line stat strip — five chips separated by middle dots.
+      {/* Single-line stat strip - five chips separated by middle dots.
           Roughly 1 row, so the top nav stays visible even in short
           terminal panes. */}
       <StatStrip
@@ -188,7 +188,7 @@ function StatStrip({
     },
     {
       label: "scheduler",
-      value: sched ? (sched.paused ? "paused" : sched.queuePolicy) : "—",
+      value: sched ? (sched.paused ? "paused" : sched.queuePolicy) : "-",
       color: sched?.paused ? "yellow" : "gray",
     },
   ];

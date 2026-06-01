@@ -337,7 +337,7 @@ describe("validation-profile-rename: applyRename", () => {
 
   it("does not touch validation-results.json (historical results preserved)", async () => {
     // Seed a historical validation-results file that contains the old
-    // profile name. Rename should leave it alone — runs should keep the
+    // profile name. Rename should leave it alone - runs should keep the
     // profile metadata they ran with.
     const histPath = path.join(
       runDir(project, runId),

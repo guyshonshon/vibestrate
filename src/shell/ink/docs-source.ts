@@ -13,7 +13,7 @@ export type DocTopic = { slug: string; label: string; section: string };
  * Find the bundled `docs/content` by walking up from this module. The CLI ships
  * as a single bundled `dist/index.js` (docs at ../docs/content) but runs from
  * `src/shell/ink/…` under tsx (docs at ../../../docs/content), so a fixed
- * relative path can't cover both — we search ancestors instead.
+ * relative path can't cover both - we search ancestors instead.
  */
 let cachedDir: string | null = null;
 async function contentDir(): Promise<string> {

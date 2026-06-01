@@ -1,7 +1,7 @@
 // Append-only failure stream. Anything in the project that hits an
 // unexpected error path can call `recordIssue` and it lands in
 // `.vibestrate/issues.ndjson`. The dashboard + panel both read this so
-// failures are visible from anywhere — never silent.
+// failures are visible from anywhere - never silent.
 
 import path from "node:path";
 import { z } from "zod";
@@ -35,7 +35,7 @@ function issuesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), "issues.ndjson");
 }
 
-/** Append one issue. Best-effort — never throws to the caller. */
+/** Append one issue. Best-effort - never throws to the caller. */
 export async function recordIssue(
   projectRoot: string,
   input: {
@@ -59,7 +59,7 @@ export async function recordIssue(
   try {
     await appendLine(issuesPath(projectRoot), JSON.stringify(issue));
   } catch {
-    // never throw — recording an issue must not raise another one
+    // never throw - recording an issue must not raise another one
   }
   return issue;
 }

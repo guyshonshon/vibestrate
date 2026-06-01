@@ -14,7 +14,7 @@ function dayKey(d: Date): string {
 }
 
 /**
- * Today's spend (local day) summed across ALL runs — real where the CLI
+ * Today's spend (local day) summed across ALL runs - real where the CLI
  * reported it, estimated otherwise (see pricing.ts). Reads each run's
  * runtime-metrics; a run with no cost contributes 0.
  */

@@ -55,7 +55,7 @@ export type ProviderRow = {
 /**
  * Read-only discovery surface for the dashboard's composer. Returns the
  * known detected providers (Claude / Codex / OpenCode / Aider / Ollama) plus a
- * `configured` flag derived from the project's loaded config — so the
+ * `configured` flag derived from the project's loaded config - so the
  * UI can both let the user pick a *detected* provider and indicate
  * which ones are wired into project.yml already.
  *
@@ -140,7 +140,7 @@ export async function registerProvidersRoutes(
         loginCommand: null,
         loginNote: external
           ? "Set the API key env var; egress goes to the destination above."
-          : "Runs locally — no key, no egress. Start the server first.",
+          : "Runs locally - no key, no egress. Start the server first.",
         external,
         kind: cfg.type,
       });
@@ -165,7 +165,7 @@ export async function registerProvidersRoutes(
       const existing = configured.find((c) => c.id === id);
       if (existing) {
         // HTTP-backed providers (http-api / localhost-proxy) carry fields the
-        // cli-shaped summary can't represent — return their real typed config
+        // cli-shaped summary can't represent - return their real typed config
         // so the dashboard opens the matching advanced form. The API key is an
         // env-ref (`env:NAME`), never a literal secret, so it's safe to return.
         const loaded = await loadConfig(projectRoot).catch(() => null);
@@ -210,9 +210,9 @@ export async function registerProvidersRoutes(
 
   /**
    * Setup or update a provider. Accepts either:
-   *   - empty body — uses the bundled preset (claude / codex / ollama
+   *   - empty body - uses the bundled preset (claude / codex / ollama
    *     only)
-   *   - { config: { … } } — the explicit config the user composed in the
+   *   - { config: { … } } - the explicit config the user composed in the
    *     editor. A config without a `type` is treated as a CLI provider (the
    *     dashboard's legacy command/args/input shape). HTTP-backed configs
    *     (`http-api` / `localhost-proxy`) carry their own fields and are
@@ -276,7 +276,7 @@ export async function registerProvidersRoutes(
   });
 
   /**
-   * Assign every agent in project.yml to the chosen provider — the
+   * Assign every agent in project.yml to the chosen provider - the
    * "set as default" action. Refuses ids that aren't already configured.
    */
   app.post<{ Params: { providerId: string } }>(
@@ -315,7 +315,7 @@ export async function registerProvidersRoutes(
 
   /**
    * Remove a provider from project.yml. Refuses with 409 if a role still
-   * uses it (the user reassigns those roles first) — mirrors the CLI
+   * uses it (the user reassigns those roles first) - mirrors the CLI
    * `vibe provider remove`. Narrow + audited: deletes only `providers.<id>`.
    */
   app.delete<{ Params: { providerId: string } }>(

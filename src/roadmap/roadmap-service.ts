@@ -270,7 +270,7 @@ export class RoadmapService {
 
   /**
    * Delete a task. Refuses to delete a task that is currently linked
-   * to a non-terminal run — call abort first. Used by the interactive
+   * to a non-terminal run - call abort first. Used by the interactive
    * panel; the store already exposes the lower-level passthrough.
    */
   async deleteTask(id: string): Promise<void> {
@@ -520,7 +520,7 @@ export class RoadmapService {
   /**
    * Promote a checklist item to its own card. Creates a new Task whose
    * `derivedFrom` points back at the origin item, and stamps the item's
-   * `promotedTaskId` with the new card id (a relation — the item is NOT removed,
+   * `promotedTaskId` with the new card id (a relation - the item is NOT removed,
    * and the new card is independent). Idempotent-guarded: refuses to promote an
    * item that already points at a still-existing card.
    */
@@ -543,7 +543,7 @@ export class RoadmapService {
           `Checklist item "${itemId}" was already promoted to card "${item.promotedTaskId}".`,
         );
       }
-      // The previously-promoted card was deleted — allow re-promotion.
+      // The previously-promoted card was deleted - allow re-promotion.
     }
     // Create the new card, carrying the origin task's roadmap link so it stays
     // grouped under the same epic.

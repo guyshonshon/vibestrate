@@ -1,7 +1,7 @@
 // ── Per-project UI server runtime lock ──────────────────────────────────────
 //
-// Runtime state for a project's running `vibe ui` lives HERE — a per-project
-// lockfile at `<root>/.vibestrate/ui.lock` — not in the shared workspace
+// Runtime state for a project's running `vibe ui` lives HERE - a per-project
+// lockfile at `<root>/.vibestrate/ui.lock` - not in the shared workspace
 // registry. The registry holds durable intent (which projects exist + labels);
 // the lock holds the ephemeral fact "this project's dashboard is running, on
 // this port, as this pid." Each running server is the SINGLE writer of its own
@@ -9,7 +9,7 @@
 // process leaves a stale lock that `isProcessAlive` flags as not-running and the
 // next start reclaims.
 //
-// This mirrors the scheduler's own lock (`scheduler-lock.ts`) — the established
+// This mirrors the scheduler's own lock (`scheduler-lock.ts`) - the established
 // pattern in this codebase for "is that process still alive?" without a daemon.
 
 import path from "node:path";
@@ -81,7 +81,7 @@ export async function releaseUiLock(
       !owner.force &&
       (existing.pid !== owner.pid || existing.host !== os.hostname())
     ) {
-      return; // not ours — leave it
+      return; // not ours - leave it
     }
     await fs.unlink(uiLockPath(projectRoot));
   } catch {

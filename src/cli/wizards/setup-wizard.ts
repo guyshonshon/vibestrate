@@ -258,7 +258,7 @@ export async function runStandaloneSetupWizard(args: {
     }
     choices.push(
       { name: "Configure a custom CLI", value: "custom" },
-      { name: "Skip — I'll do it later", value: "skip" },
+      { name: "Skip - I'll do it later", value: "skip" },
     );
     providerChoice = await select({
       message: "No provider with a verified preset was detected. What now?",

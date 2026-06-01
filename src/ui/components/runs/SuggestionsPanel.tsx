@@ -33,7 +33,7 @@ type Props = {
     lineEnd: number | null;
   } | null;
   /** When true, write-side actions (approve/apply/validate/revert) are
-   * hidden — the server refuses them with 409 anyway, but hiding the
+   * hidden - the server refuses them with 409 anyway, but hiding the
    * controls keeps the surface honest about what's possible. */
   readOnly?: boolean;
 };
@@ -505,7 +505,7 @@ function Row({
 }) {
   // The row's "profile" mirrors what's persisted on the suggestion. Editing
   // PATCHes immediately (via onProfileChange) so this dropdown is the
-  // canonical edit affordance — the Validate / Apply buttons read from
+  // canonical edit affordance - the Validate / Apply buttons read from
   // s.validationProfile via props on the next render.
   const [profile, setProfile] = useState<string | null>(s.validationProfile);
   useEffect(() => {
@@ -611,7 +611,7 @@ function Row({
             className="inline-flex items-center gap-1 rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 px-1.5 py-0.5 text-[10.5px] text-vibestrate-warn"
             title="This run is read-only. Apply / Validate / Revert are disabled. Start a non-read-only run on the same task to act on this suggestion."
           >
-            read-only run — actions disabled
+            read-only run - actions disabled
           </span>
         ) : (
           <>

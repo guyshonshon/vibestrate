@@ -46,7 +46,7 @@ type Props = {
   openForm: () => void;
   closeForm: () => void;
   setPendingDelete: (taskId: string | null) => void;
-  /** When true, this page is the focused content — drive useInput. */
+  /** When true, this page is the focused content - drive useInput. */
   active: boolean;
 };
 
@@ -81,7 +81,7 @@ export function RoadmapPage({
 
   // Seed the form ONLY on the closed→open transition. Depending on `selected`
   // (which gets a new reference on every 2s tasks-poll) re-ran this on every
-  // poll — wiping in-progress edits and snapping focus back to title.
+  // poll - wiping in-progress edits and snapping focus back to title.
   const wasFormOpen = React.useRef(false);
   React.useEffect(() => {
     const justOpened = ui.formOpen && !wasFormOpen.current;
@@ -98,7 +98,7 @@ export function RoadmapPage({
         readOnly: selected.readOnly,
       });
       // Reset by issuing field actions for each value (the reducer
-      // doesn't have a single "init" action by design — the seed object
+      // doesn't have a single "init" action by design - the seed object
       // captures the same state).
       for (const k of Object.keys(seeded) as (keyof TaskFormState)[]) {
         if (
@@ -305,7 +305,7 @@ export function RoadmapPage({
       }
       // Enter or "r" runs the selected task in the background. We
       // spawn `vibe run --task <id> "<title>"` detached so the
-      // panel stays responsive — output streams into the per-run
+      // panel stays responsive - output streams into the per-run
       // event log + the Runs page.
       if ((key.return || input === "r" || input === "R") && selected) {
         if (selected.currentRunId) {
@@ -321,7 +321,7 @@ export function RoadmapPage({
         });
         onToast(
           "ok",
-          `Started \`vibe run --task ${selected.id}\` (pid ${pid ?? "—"}). Switch to [2] Runs to watch.`,
+          `Started \`vibe run --task ${selected.id}\` (pid ${pid ?? "-"}). Switch to [2] Runs to watch.`,
         );
         void refresh();
         return;
@@ -338,7 +338,7 @@ export function RoadmapPage({
 
       {boardEmpty ? (
         <Box marginTop={1} flexDirection="column">
-          <Text color="cyan" bold>Your roadmap is empty — start here</Text>
+          <Text color="cyan" bold>Your roadmap is empty - start here</Text>
           <Box marginTop={1} flexDirection="column">
             <Text>
               <Text color="cyan">1.</Text>
@@ -364,14 +364,14 @@ export function RoadmapPage({
           </Box>
           <Box marginTop={1}>
             <Text dimColor>
-              shortcut: <Text color="cyan">!</Text> opens the runner —{" "}
+              shortcut: <Text color="cyan">!</Text> opens the runner -{" "}
               <Text>vibe tasks add "title"</Text>
             </Text>
           </Box>
         </Box>
       ) : null}
 
-      {/* Status rail — colored status pills with the active state in
+      {/* Status rail - colored status pills with the active state in
           inverse-on-status-color so each workflow phase has its own
           visual identity. */}
       <Box marginTop={1}>
@@ -381,7 +381,7 @@ export function RoadmapPage({
       {/* Tasks for the active state, then the focal detail card. */}
       <Box marginTop={1} {...CARD_PROPS} flexDirection="column">
         <Text dimColor>
-          {activeColumn ? activeColumn.label.toLowerCase() : "—"} ·{" "}
+          {activeColumn ? activeColumn.label.toLowerCase() : "-"} ·{" "}
           {activeColumn?.tasks.length ?? 0} task
           {(activeColumn?.tasks.length ?? 0) === 1 ? "" : "s"}
         </Text>
@@ -396,7 +396,7 @@ export function RoadmapPage({
             ))
           ) : (
             <Text dimColor>
-              no tasks in this state — press <Text color="cyan">n</Text> to
+              no tasks in this state - press <Text color="cyan">n</Text> to
               create one
             </Text>
           )}
@@ -420,7 +420,7 @@ export function RoadmapPage({
       {ui.pendingDeleteTaskId ? (
         <Box marginTop={1}>
           <Text color="yellow">
-            confirm delete of {ui.pendingDeleteTaskId} — press{" "}
+            confirm delete of {ui.pendingDeleteTaskId} - press{" "}
             <Text bold>y</Text> to confirm · any other key to cancel
           </Text>
         </Box>
@@ -488,7 +488,7 @@ function TaskRow({ task, selected }: { task: Task; selected: boolean }) {
         <Text dimColor>  prio </Text>
         <Text>{task.priority.padEnd(6)}</Text>
         <Text dimColor>  effort </Text>
-        <Text>{(task.effort ?? "—").padEnd(6)}</Text>
+        <Text>{(task.effort ?? "-").padEnd(6)}</Text>
         {task.readOnly ? <Text color="yellow">  ◉ read-only</Text> : null}
         <Text dimColor>  {clip(task.id, 24)}</Text>
       </Text>
@@ -504,7 +504,7 @@ function TaskDetail({ task }: { task: Task }) {
         <DetailRow label="ID" value={task.id} mono />
         <DetailRow label="Status" value={task.status} />
         <DetailRow label="Priority" value={task.priority} />
-        <DetailRow label="Effort" value={task.effort ?? "—"} />
+        <DetailRow label="Effort" value={task.effort ?? "-"} />
         <DetailRow
           label="Mode"
           value={task.readOnly ? "read-only" : "writable"}

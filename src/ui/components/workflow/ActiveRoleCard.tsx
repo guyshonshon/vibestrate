@@ -43,7 +43,7 @@ export function ActiveRoleCard({
       </div>
       <div className="mt-2 flex flex-wrap items-baseline gap-3">
         <span className="text-[15px] font-medium text-vibestrate-fg">
-          {expectedRole ?? lastForRole?.roleId ?? "—"}
+          {expectedRole ?? lastForRole?.roleId ?? "-"}
         </span>
         {lastForRole ? (
           <>

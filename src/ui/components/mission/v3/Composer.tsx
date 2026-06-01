@@ -105,11 +105,11 @@ type AllocRow = {
 /**
  * Mission Control composer (v3 layout).
  *
- *   1 · The brief    — narrow auto-growing textarea
- *   2 · Flow         — full-shape chips with step pips
- *   3 · Crew         — pick a crew; the Step→Seat→Role→Profile allocation is
+ *   1 · The brief    - narrow auto-growing textarea
+ *   2 · Flow         - full-shape chips with step pips
+ *   3 · Crew         - pick a crew; the Step→Seat→Role→Profile allocation is
  *                      derived and shown, with per-step profile overrides
- *   4 · Run          — skills + read-only + presets + Send
+ *   4 · Run          - skills + read-only + presets + Send
  */
 export function ComposerV3({
   busy,
@@ -657,13 +657,13 @@ function AllocationTable({
                 className="text-rose-300 text-[11px] text-left hover:underline"
                 title="No role in this crew takes this seat."
               >
-                no role — fix crew
+                no role - fix crew
               </button>
             ) : (
               <select
                 value={seatRoles[r.seat] ?? ""}
                 onChange={(e) => onSetSeatRole(r.seat, e.target.value)}
-                title={`More than one role takes "${r.seat}" — pick which fills it for this run.`}
+                title={`More than one role takes "${r.seat}" - pick which fills it for this run.`}
                 className="min-w-0 rounded-md border border-amber-400/40 bg-amber-500/[0.06] px-1.5 py-1 text-[11.5px] text-amber-100 outline-none focus:border-amber-300"
               >
                 <option value="">pick role…</option>
@@ -696,11 +696,11 @@ function AllocationTable({
                 </select>
                 <span className="mono text-[10px] text-fog-500 shrink-0 inline-flex items-center gap-1">
                   <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
-                  {r.provider ?? "—"}
+                  {r.provider ?? "-"}
                 </span>
               </div>
             ) : (
-              <span className="text-fog-500 text-[11px]">—</span>
+              <span className="text-fog-500 text-[11px]">-</span>
             )}
           </div>
         );
@@ -747,7 +747,7 @@ function FlowChip({
         ) : null}
       </div>
       <div className="text-[11.5px] text-fog-400 line-clamp-2">
-        {flow.description || "—"}
+        {flow.description || "-"}
       </div>
       <div className="mt-2 flex items-center gap-1">
         {Array.from({ length: stepCount }).map((_, i) => (

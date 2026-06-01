@@ -54,7 +54,7 @@ export class ValidationProfileError extends Error {
  *
  * `sourceHint` lets callers tag the result with where the *intent* came from
  * (e.g. "suggestion" or "bundle") even when the resolved profile is the same
- * named one — useful for UI/persistence so we can distinguish "the user
+ * named one - useful for UI/persistence so we can distinguish "the user
  * picked quick" from "the suggestion declared quick".
  */
 export function resolveValidationProfile(
@@ -109,7 +109,7 @@ export function listValidationProfiles(
     description:
       config.commands.validate.length === 0
         ? "No commands.validate configured. Set one with `vibe config set commands.validate '[\"<cmd>\"]'`."
-        : "Implicit default — uses commands.validate.",
+        : "Implicit default - uses commands.validate.",
     hasCommands: config.commands.validate.length > 0,
   });
   const named = config.commands.validationProfiles ?? {};

@@ -157,7 +157,7 @@ describe("orchestrator rewind (resume the default flow from a stage)", () => {
     expect(source.state.status).toBe("merge_ready");
 
     // quality-arbitration declares no `stage` metadata, so no step maps to
-    // "architecting" — resume must fail with a clear message, not silently.
+    // "architecting" - resume must fail with a clear message, not silently.
     const loaded = await loadConfig(dir);
     const qa = await findFlowById(dir, "quality-arbitration");
     const snapshot = resolveFlow({

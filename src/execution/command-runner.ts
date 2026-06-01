@@ -58,7 +58,7 @@ export async function runArgvCommand(input: {
   timeoutMs?: number;
   /** Optional hook fired as the child writes output. The chunks are
    *  also collected and returned via stdout/stderr on the result, so
-   *  this is additive — useful for live tailing without changing the
+   *  this is additive - useful for live tailing without changing the
    *  end-of-run contract. */
   onChunk?: (chunk: StreamChunk) => void;
   /** When this signal aborts, the subprocess is killed (SIGTERM, then
@@ -71,7 +71,7 @@ export async function runArgvCommand(input: {
   // Use execa's process handle so we can subscribe to stream chunks
   // while *also* collecting the full buffered output for the
   // existing CommandResult contract. execa accepts AbortSignal for
-  // cooperative cancellation — SIGTERM is sent on abort.
+  // cooperative cancellation - SIGTERM is sent on abort.
   const subprocess = execa(input.command, input.args, {
     cwd: input.cwd,
     env: { ...process.env, ...(input.env ?? {}) },

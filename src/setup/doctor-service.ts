@@ -179,7 +179,7 @@ export async function runDoctor(input: {
   const providerIds = Object.keys(loaded.config.providers);
   for (const id of providerIds) {
     const cfg = loaded.config.providers[id]!;
-    // Non-CLI providers have no command on PATH — check readiness by type:
+    // Non-CLI providers have no command on PATH - check readiness by type:
     // http-api needs its env-var key set; localhost-proxy is just reported as
     // configured (we don't ping the local server here).
     if (cfg.type === "http-api") {
@@ -192,8 +192,8 @@ export async function runDoctor(input: {
         id: `provider-${id}`,
         severity: keySet ? "ok" : "warn",
         title: keySet
-          ? `Provider "${id}" (cloud ${cfg.api}) — key set, destination ${cfg.baseUrl}`
-          : `Provider "${id}" (cloud ${cfg.api}) — env var ${envName ?? "(unset)"} is not set`,
+          ? `Provider "${id}" (cloud ${cfg.api}) - key set, destination ${cfg.baseUrl}`
+          : `Provider "${id}" (cloud ${cfg.api}) - env var ${envName ?? "(unset)"} is not set`,
         detail: keySet
           ? undefined
           : `Set ${envName ?? "the API key env var"} to use this external provider.`,
@@ -206,7 +206,7 @@ export async function runDoctor(input: {
       findings.push({
         id: `provider-${id}`,
         severity: "ok",
-        title: `Provider "${id}" (local ${cfg.api}) — ${cfg.baseUrl}`,
+        title: `Provider "${id}" (local ${cfg.api}) - ${cfg.baseUrl}`,
         detail: `Make sure the local server is running at ${cfg.baseUrl}.`,
         fixable: false,
       });
@@ -656,7 +656,7 @@ export async function runDoctor(input: {
       }
     }
   } catch {
-    // best-effort — never let notification health checks break doctor.
+    // best-effort - never let notification health checks break doctor.
   }
 
   // Approvals health: scan recent runs for pending approval requests.
@@ -676,7 +676,7 @@ export async function runDoctor(input: {
             pendingRuns.push(id);
           }
         } catch {
-          // malformed approvals.json — surface as warn.
+          // malformed approvals.json - surface as warn.
           findings.push({
             id: `approvals-malformed-${id}`,
             severity: "warn",
@@ -699,7 +699,7 @@ export async function runDoctor(input: {
       }
     }
   } catch {
-    // best-effort — never fail doctor over approval scanning.
+    // best-effort - never fail doctor over approval scanning.
   }
 
   // Build next-step recommendations.
@@ -763,7 +763,7 @@ export async function applyDoctorFixes(input: {
     applied.push("Created .vibestrate/skills/README.md");
   }
 
-  // Restore missing default agent prompts only — never overwrite existing.
+  // Restore missing default agent prompts only - never overwrite existing.
   if (await pathExists(projectConfigPath(projectRoot))) {
     let loaded;
     try {

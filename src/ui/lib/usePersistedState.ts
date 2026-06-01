@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /**
  * Tiny localStorage-backed state hook. SSR-safe (falls back to the
  * initial value when `window` is unavailable). Swallows parse errors
- * so a corrupt or stale entry never breaks the UI — it just falls back
+ * so a corrupt or stale entry never breaks the UI - it just falls back
  * to the initial value.
  */
 export function usePersistedState<T>(
@@ -26,7 +26,7 @@ export function usePersistedState<T>(
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Quota exceeded / private mode — best-effort.
+      // Quota exceeded / private mode - best-effort.
     }
   }, [key, value]);
 

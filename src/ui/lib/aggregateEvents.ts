@@ -12,7 +12,7 @@ export type AggregateHandlers = {
 };
 
 /**
- * Subscribe to `/api/events/stream` — the aggregate SSE that fans
+ * Subscribe to `/api/events/stream` - the aggregate SSE that fans
  * every run's events.ndjson into one connection. Returns a
  * disconnect function the caller invokes on unmount.
  *

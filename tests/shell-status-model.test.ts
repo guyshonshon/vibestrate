@@ -56,7 +56,7 @@ describe("buildStatusModel", () => {
     });
     expect(m.busy).toBe(true);
     expect(m.activity).toBe("running · 1 active");
-    expect(m.branch).toBe("—");
+    expect(m.branch).toBe("-");
     expect(m.crew).toBe("default");
   });
 });

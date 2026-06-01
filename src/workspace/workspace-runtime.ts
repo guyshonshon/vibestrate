@@ -1,6 +1,6 @@
 // ── Workspace navigator runtime (Multi-project) ─────────────────────────────
 //
-// The workspace is a NAVIGATOR over isolated, multi-tenant projects — not a
+// The workspace is a NAVIGATOR over isolated, multi-tenant projects - not a
 // control plane. Each project is its own `vibe ui` process: its own server, its
 // own managed scheduler processing its own queue, knowing nothing about the
 // others. This module's only job is to *open* a project: if its dashboard is
@@ -8,7 +8,7 @@
 // (server + scheduler) on a free port and hand back the URL once it answers.
 //
 // Nothing here reaches into another project's state. Starting `vibe ui` for a
-// root is exactly what a user typing `vibe ui` there would do — the child
+// root is exactly what a user typing `vibe ui` there would do - the child
 // self-registers its port and owns its own lifecycle.
 
 import path from "node:path";
@@ -72,7 +72,7 @@ export async function findFreePort(): Promise<number> {
 /**
  * Is a live Vibestrate dashboard for `expectedRoot` answering on `port`?
  * Confirms BOTH that the port answers `/api/health` AND that it's serving the
- * expected root — so a stale port now owned by a different project reads as
+ * expected root - so a stale port now owned by a different project reads as
  * not-live (we never hand back the wrong dashboard).
  */
 export async function probeProjectLive(
@@ -117,7 +117,7 @@ export type ProjectRuntime = {
 
 /**
  * Read a project's runtime from its own `ui.lock` (pid / port / host) and decide
- * whether it's running — the lock exists, names a live PID, and was written on
+ * whether it's running - the lock exists, names a live PID, and was written on
  * THIS host. A crashed server leaves a stale lock that reads as not-running and
  * is reclaimed on the next start. No shared file, no network.
  */
@@ -153,7 +153,7 @@ export async function ensureProjectServer(
     };
   }
 
-  // Dormant — start its own full `vibe ui` (server + scheduler) on a free port.
+  // Dormant - start its own full `vibe ui` (server + scheduler) on a free port.
   const port = await findFreePort();
   const bin = resolveVibestrateBin();
   const child = spawn(process.execPath, [bin, "ui", "--port", String(port), "--no-open"], {
@@ -164,7 +164,7 @@ export async function ensureProjectServer(
   });
   child.unref();
 
-  // Poll until it answers (or give up and hand back the URL anyway — the user's
+  // Poll until it answers (or give up and hand back the URL anyway - the user's
   // tab will load once it's up). Bounded so we never hang a request.
   const deadline = Date.now() + (deps.waitMs ?? 12_000);
   while (Date.now() < deadline) {
@@ -196,7 +196,7 @@ export type ProjectBusyStatus = {
 };
 
 /**
- * Read what a project is currently doing — bounded reads under its own
+ * Read what a project is currently doing - bounded reads under its own
  * `.vibestrate` (runs + scheduler state/queue), never an HTTP call into it. The
  * "Close" confirmation uses this to warn when shutting down would interrupt
  * active runs or queued work.
@@ -220,7 +220,7 @@ export async function readProjectBusyStatus(root: string): Promise<ProjectBusySt
   }
 
   // Queue depth: an absent file means nothing queued (the RunQueue default
-  // would also synthesize an empty queue — but read the file directly so we
+  // would also synthesize an empty queue - but read the file directly so we
   // never confuse "no scheduler" with "live scheduler").
   let queueDepth = 0;
   try {
@@ -233,7 +233,7 @@ export async function readProjectBusyStatus(root: string): Promise<ProjectBusySt
   }
 
   // Scheduler liveness: read the state FILE. A missing file means the scheduler
-  // never started here — crucially distinct from RunQueue.readState()'s default,
+  // never started here - crucially distinct from RunQueue.readState()'s default,
   // which stamps `lastUpdatedAt=now` and would read back as "live".
   let runningTaskIds: string[] = [];
   let schedulerPickingUp = false;
@@ -252,7 +252,7 @@ export async function readProjectBusyStatus(root: string): Promise<ProjectBusySt
   }
 
   // "Busy" = real in-flight work. A merely-live (idle) scheduler loop is the
-  // normal state of any open project and must NOT block a clean close — only
+  // normal state of any open project and must NOT block a clean close - only
   // actual runs / queued / running tasks do. `schedulerPickingUp` is reported
   // for context but doesn't, by itself, count as busy.
   const busy = activeRuns > 0 || queueDepth > 0 || runningTaskIds.length > 0;
@@ -268,14 +268,14 @@ export async function readProjectBusyStatus(root: string): Promise<ProjectBusySt
 }
 
 /** How a close resolved.
- *  - `graceful`        — cooperative shutdown; the process exited on its own.
- *  - `graceful-unverified` — cooperative acked, but no PID on record to confirm exit.
- *  - `sigterm` / `sigkill` — the process didn't exit, so we escalated (only ever
+ *  - `graceful`        - cooperative shutdown; the process exited on its own.
+ *  - `graceful-unverified` - cooperative acked, but no PID on record to confirm exit.
+ *  - `sigterm` / `sigkill` - the process didn't exit, so we escalated (only ever
  *    done to a CONFIRMED-live server whose registered PID came from that same
- *    process — never an unconfirmed / possibly-reused PID).
- *  - `unreachable`     — not answering and we can't safely confirm the PID; the
+ *    process - never an unconfirmed / possibly-reused PID).
+ *  - `unreachable`     - not answering and we can't safely confirm the PID; the
  *    user may need to kill it manually.
- *  - `none`            — nothing live to close. */
+ *  - `none`            - nothing live to close. */
 export type CloseMethod =
   | "graceful"
   | "graceful-unverified"
@@ -325,7 +325,7 @@ async function postShutdown(port: number): Promise<void> {
       signal: ctrl.signal,
     });
   } catch {
-    // The server closes the socket as it exits — a dropped response is expected.
+    // The server closes the socket as it exits - a dropped response is expected.
   } finally {
     clearTimeout(timer);
   }
@@ -333,9 +333,9 @@ async function postShutdown(port: number): Promise<void> {
 
 /**
  * Close a project's dashboard. First asks its own server to shut down
- * (`POST /api/server/shutdown` — stop scheduler + close + exit). If the server
+ * (`POST /api/server/shutdown` - stop scheduler + close + exit). If the server
  * is confirmed live but doesn't exit, escalate to SIGTERM then SIGKILL on its
- * registered PID — but ONLY for a confirmed-live server (the PID was
+ * registered PID - but ONLY for a confirmed-live server (the PID was
  * self-registered by the same process that's answering on the port), so a stale
  * or reused PID is never signalled. Idempotent.
  */
@@ -351,13 +351,13 @@ export async function closeProjectServer(
 
   // `running` = the lock points at an alive pid on this host. Confirm it's
   // actually serving (port answers /api/health for this root) before treating
-  // the pid as kill-safe — that rules out a stale lock whose pid was reused.
+  // the pid as kill-safe - that rules out a stale lock whose pid was reused.
   const live = rt.running && port ? await probeProjectLive(port, target.root) : false;
 
   if (!live) {
     if (rt.running && pid) {
       // Process alive but not answering: hung, or a stale lock on a reused pid.
-      // We can't tell which, so we never signal it — report it for a manual kill.
+      // We can't tell which, so we never signal it - report it for a manual kill.
       return { ...base, closed: false, alreadyStopped: false, forced: false, method: "unreachable" };
     }
     // Nothing live. Clear any stale lock so the project reads dormant.
@@ -385,7 +385,7 @@ export async function closeProjectServer(
   }
   if (await waitForExit(pid, 3000)) return finish(true, false, "graceful");
 
-  // Confirmed-live but didn't exit — escalate on the confirmed PID.
+  // Confirmed-live but didn't exit - escalate on the confirmed PID.
   try {
     process.kill(pid, "SIGTERM");
   } catch {
@@ -404,7 +404,7 @@ export async function closeProjectServer(
 
 /**
  * Per-project runtime for a set of roots (pid / port / running), read from each
- * project's own `ui.lock`. No network, no shared file — used to badge the
+ * project's own `ui.lock`. No network, no shared file - used to badge the
  * overview / switcher and to resolve a project's current port.
  */
 export async function readWorkspaceRuntimes(

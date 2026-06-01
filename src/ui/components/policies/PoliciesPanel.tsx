@@ -18,7 +18,7 @@ import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
  *   - Mirrors `vibe policies doctor` so the user has the same signal
  *     they would on the CLI.
  *   - Provides a "Check patch" panel that calls the same engine the CLI
- *     and the apply flow call — paste a patch, see violations. Does NOT
+ *     and the apply flow call - paste a patch, see violations. Does NOT
  *     apply anything, does NOT execute anything.
  *
  * Editing rules from the browser is intentionally out of scope for V0.
@@ -140,7 +140,7 @@ export function PoliciesPanel() {
                   policies are loaded and apply
                 </span>
               ) : (
-                <span>policies are loaded but empty — no refusals will fire</span>
+                <span>policies are loaded but empty - no refusals will fire</span>
               )}
               .
             </div>
@@ -165,7 +165,7 @@ export function PoliciesPanel() {
           {snap.duplicateIds.length > 0 ? (
             <section className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 p-2 text-[10.5px] text-vibestrate-warn">
               <span className="font-medium">Duplicate ids:</span>{" "}
-              {snap.duplicateIds.join(", ")} — first occurrence wins; resolve by
+              {snap.duplicateIds.join(", ")} - first occurrence wins; resolve by
               renaming the rule(s).
             </section>
           ) : null}

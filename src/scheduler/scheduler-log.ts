@@ -4,7 +4,7 @@
 // of spawn / exit events so the dashboard can show "what happened
 // the last time we tried to start the scheduler".
 //
-// Append-only and best-effort: every helper swallows its own errors —
+// Append-only and best-effort: every helper swallows its own errors -
 // the scheduler must keep running even if we can't write a log line.
 
 import path from "node:path";
@@ -36,7 +36,7 @@ export function schedulerEventsPath(projectRoot: string): string {
  *  Uses the synchronous low-level open() so node's FileHandle GC
  *  doesn't race with the child stdio holding the fd. Caller passes
  *  the int to `spawn`'s stdio array and is responsible for
- *  `closeSync(fd)` in the parent once spawn returns — the OS
+ *  `closeSync(fd)` in the parent once spawn returns - the OS
  *  kernel-dups the fd into the child, so closing in the parent
  *  doesn't affect the child. */
 export function openLogForAppend(projectRoot: string): number {
@@ -90,7 +90,7 @@ export async function recordExit(
     .reverse()
     .findIndex((r) => r.pid === pid && r.exitedAt === null);
   if (idx === -1) {
-    // No matching open record — append a standalone exit row so we
+    // No matching open record - append a standalone exit row so we
     // never silently drop the signal.
     const orphan: SpawnRecord = {
       at: nowIso(),
@@ -148,7 +148,7 @@ async function trimEvents(projectRoot: string): Promise<void> {
   );
 }
 
-/** Read the tail of the scheduler log. Pure-ish — no truncation side
+/** Read the tail of the scheduler log. Pure-ish - no truncation side
  *  effect; returns last `bytes` of the file (default = MAX_LOG_BYTES). */
 export async function readLogTail(
   projectRoot: string,

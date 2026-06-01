@@ -34,7 +34,7 @@ export function yamlQuote(s: string): string {
   return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-/** The editor's working shape for one provider — a superset spanning every
+/** The editor's working shape for one provider - a superset spanning every
  *  provider type. `renderProviderYaml` emits only the fields the chosen
  *  `type` actually uses. */
 export type EditorProviderConfig =

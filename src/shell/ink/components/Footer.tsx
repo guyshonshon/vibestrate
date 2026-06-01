@@ -26,7 +26,7 @@ export function Footer({ ui, capturedAt }: Props) {
       {ui.pendingConfirm?.action === "abort" ? (
         <Box marginTop={1}>
           <Text color="yellow">
-            confirm abort of {ui.pendingConfirm.runId} — press{" "}
+            confirm abort of {ui.pendingConfirm.runId} - press{" "}
             <Text bold>y</Text> to confirm · any other key to cancel
           </Text>
         </Box>
@@ -53,7 +53,7 @@ export function Footer({ ui, capturedAt }: Props) {
 }
 
 /**
- * The Pages group is the same on every screen — kept here so the
+ * The Pages group is the same on every screen - kept here so the
  * App doesn't have to repeat it.
  */
 export const PAGES_GROUP: HintGroup = {

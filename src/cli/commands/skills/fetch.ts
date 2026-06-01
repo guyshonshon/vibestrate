@@ -12,7 +12,7 @@ export async function runSkillsFetch(
   const { projectRoot } = await detectProject(process.cwd());
 
   if (opts.assess) {
-    // Read-only AI overview before installing — fetch (guarded) then judge.
+    // Read-only AI overview before installing - fetch (guarded) then judge.
     const got = await installSkillFromUrl({
       projectRoot,
       url,
@@ -38,7 +38,7 @@ export async function runSkillsFetch(
       console.log(`${symbol.ok()} Installed ${color.bold(got.name)} (${got.relPath}).`);
       const tone =
         verdict.verdict === "conflicting" ? symbol.warn() : symbol.bullet();
-      console.log(`${tone} AI overview: ${color.bold(verdict.verdict)} — ${verdict.reason}`);
+      console.log(`${tone} AI overview: ${color.bold(verdict.verdict)} - ${verdict.reason}`);
       if (verdict.overlaps && verdict.overlaps.length) {
         console.log(indent(color.dim(`overlaps: ${verdict.overlaps.join(", ")}`)));
       }

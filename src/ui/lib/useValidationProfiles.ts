@@ -7,7 +7,7 @@ let inFlight: Promise<ValidationProfileSummary[]> | null = null;
 
 /**
  * Lazy, cached fetch of /api/validation/profiles. Profiles are static at the
- * project-config level, so a per-mount fetch is fine — but we share one
+ * project-config level, so a per-mount fetch is fine - but we share one
  * promise across components so a Suggestions tab + Review-pass panel mounted
  * together don't double-fetch.
  */

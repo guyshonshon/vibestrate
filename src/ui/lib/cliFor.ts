@@ -1,7 +1,7 @@
 // Pure mapper: every UI action that has a CLI equivalent declares it
 // here so the right-click "Copy CLI" item and the future help overlays
 // stay in sync with reality. If a UI action has *no* CLI equivalent
-// the helper returns null — callers should hide the menu entry rather
+// the helper returns null - callers should hide the menu entry rather
 // than copy a fake command.
 
 export type UiAction =

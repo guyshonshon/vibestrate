@@ -28,7 +28,7 @@ function outcome(
 describe("forward-carry: renderItemSummaryArtifact", () => {
   it("renders status, short commit, files and summary", () => {
     const md = renderItemSummaryArtifact(outcome(0));
-    expect(md).toContain("Item 1/5 — item 0");
+    expect(md).toContain("Item 1/5 - item 0");
     expect(md).toContain("status: done");
     expect(md).toContain("commit: abcdef12");
     expect(md).toContain("src/file0.ts");
@@ -53,10 +53,10 @@ describe("forward-carry: buildPriorItemsContext", () => {
   it("lists completed items with notes and files (full mode under budget)", () => {
     const ctx = buildPriorItemsContext([outcome(0), outcome(1)]);
     expect(ctx).toContain("Completed checklist items");
-    expect(ctx).toContain("1. item 0 — done");
+    expect(ctx).toContain("1. item 0 - done");
     expect(ctx).toContain("did the work for item 0");
     expect(ctx).toContain("files: src/file0.ts");
-    expect(ctx).toContain("2. item 1 — done");
+    expect(ctx).toContain("2. item 1 - done");
   });
 
   it("folds older items to one line when over the char budget", () => {
@@ -65,7 +65,7 @@ describe("forward-carry: buildPriorItemsContext", () => {
     );
     const tight = buildPriorItemsContext(many, 600);
     // Every item is still listed…
-    for (let i = 1; i <= 8; i++) expect(tight).toContain(`${i}. item ${i - 1} —`);
+    for (let i = 1; i <= 8; i++) expect(tight).toContain(`${i}. item ${i - 1} -`);
     // …but the oldest lost its long note (folded to terse).
     const firstBlock = tight.slice(tight.indexOf("1. item 0"), tight.indexOf("2. item 1"));
     expect(firstBlock).not.toContain("xxxxx");
@@ -86,7 +86,7 @@ describe("forward-carry: buildPriorItemsContext", () => {
 describe("forward-carry: misc renderers", () => {
   it("renderCurrentItemBrief scopes to the single item", () => {
     const brief = renderCurrentItemBrief({ text: "wire the handler" }, 2, 4);
-    expect(brief).toContain("Current checklist item — 3 of 4");
+    expect(brief).toContain("Current checklist item - 3 of 4");
     expect(brief).toContain("wire the handler");
     expect(brief).toContain("Focus ONLY on this item");
   });

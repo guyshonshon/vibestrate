@@ -8,7 +8,7 @@ import type { PolicySurface } from "./policy-types.js";
  * stay readable.
  *
  * Failure mode for malformed policy files: rules in well-formed files are
- * still applied; malformed files are skipped. This is intentional — a
+ * still applied; malformed files are skipped. This is intentional - a
  * typo in one rule file must not paralyze every apply.
  *
  * Refusal format follows the prompt:

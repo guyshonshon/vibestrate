@@ -1,4 +1,4 @@
-// ── "Enhance" — decompose a card into a checklist (Phase 3) ─────────────────
+// ── "Enhance" - decompose a card into a checklist (Phase 3) ─────────────────
 //
 // The meso-altitude planning move: take a task/card and break it into an
 // ordered Checklist of concrete items. An assist run (read-only, structured
@@ -31,7 +31,7 @@ export type EnhanceOptions = {
   profileId?: string | null;
   crewId?: string | null;
   loaded?: LoadedConfig;
-  /** Test seam — forwarded to the assist runner. */
+  /** Test seam - forwarded to the assist runner. */
   runner?: AssistProviderRunner;
   signal?: AbortSignal;
 };
@@ -52,7 +52,7 @@ function cleanItems(raw: string[], existing: string[]): string[] {
 }
 
 /**
- * Propose (but do NOT append) a checklist for a task. Read-only — the caller
+ * Propose (but do NOT append) a checklist for a task. Read-only - the caller
  * decides whether to apply the result.
  */
 export async function proposeChecklist(
@@ -77,7 +77,7 @@ export async function proposeChecklist(
     `Task title: ${task.title}`,
     task.description ? `Task description: ${task.description}` : "",
     existing.length
-      ? `It already has these items — do NOT repeat them, only propose what's missing:\n${existing.map((t) => `- ${t}`).join("\n")}`
+      ? `It already has these items - do NOT repeat them, only propose what's missing:\n${existing.map((t) => `- ${t}`).join("\n")}`
       : "",
   ]
     .filter(Boolean)

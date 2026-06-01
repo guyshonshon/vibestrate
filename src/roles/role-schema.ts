@@ -19,7 +19,7 @@ export const seatTokenSchema = z
 /**
  * A **Role** is one teammate inside a **Crew**: its instructions (prompt),
  * permissions, skills, the **Profile** it runs on, and the list of **Seats** it
- * can fill in a Flow. Roles live under `crews.<crewId>.roles` — there is no
+ * can fill in a Flow. Roles live under `crews.<crewId>.roles` - there is no
  * top-level roles map anymore.
  */
 export const crewRoleConfigSchema = z

@@ -243,7 +243,7 @@ export function GatewaySettings({ initialPermission }: Props) {
             {permission === "granted"
               ? "Attention/critical alerts will surface as system notifications."
               : permission === "denied"
-                ? "Browser denied — change permission in your browser settings."
+                ? "Browser denied - change permission in your browser settings."
                 : permission === "unsupported"
                   ? "Browser does not support the Notifications API."
                   : "Click to allow system notifications."}
@@ -366,7 +366,7 @@ export function GatewaySettings({ initialPermission }: Props) {
         </div>
         <p className="border-t border-vibestrate-border px-3 py-2 text-[10.5px] text-vibestrate-fg-muted">
           Secrets stay on your machine. The dashboard never receives token or
-          URL values — only whether they are set. Configure with{" "}
+          URL values - only whether they are set. Configure with{" "}
           <span className="vibestrate-mono">env:VAR_NAME</span> via the CLI or{" "}
           <span className="vibestrate-mono">.vibestrate/notifications/gateways.json</span>.
         </p>

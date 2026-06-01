@@ -4,7 +4,7 @@
 //
 //   kind     stable filter slug (ENOENT, fastify-http, spawn-enoent, …)
 //   title    one-line headline ("File not found", "Port already in use")
-//   detail   technical message (path, port, syscall) — safe to show
+//   detail   technical message (path, port, syscall) - safe to show
 //   hint     suggested next step the user can copy or follow
 //
 // No I/O, no logging. Callers decide what to do with the shape (print
@@ -37,7 +37,7 @@ function pickNumber(value: unknown): number | undefined {
 }
 
 export function formatError(err: unknown): FormattedError {
-  // Already-formatted — pass through unchanged so callers can layer.
+  // Already-formatted - pass through unchanged so callers can layer.
   if (
     err !== null &&
     typeof err === "object" &&
@@ -56,7 +56,7 @@ export function formatError(err: unknown): FormattedError {
 
   // --- Filesystem / spawn errors ---------------------------------------
   if (code === "ENOENT") {
-    // spawn ENOENT — argv0 missing from PATH (no PATH echo for security)
+    // spawn ENOENT - argv0 missing from PATH (no PATH echo for security)
     if (syscall === "spawn" || /spawn /i.test(message)) {
       const cmd = message.match(/spawn (\S+)/)?.[1] ?? "command";
       return {
@@ -104,7 +104,7 @@ export function formatError(err: unknown): FormattedError {
   if (statusCode !== undefined && statusCode >= 400) {
     // Title prefers the server's own message when it sent a meaningful
     // one (Fastify HttpError.message). 409 has many causes (worktree
-    // missing, approval state conflict, queue already held) — the
+    // missing, approval state conflict, queue already held) - the
     // original assumption "another action in flight" was misleading
     // for most of them. Only fall back to the generic title when the
     // server didn't bother to explain.
@@ -121,7 +121,7 @@ export function formatError(err: unknown): FormattedError {
         statusCode === 404
           ? "The resource no longer exists. It may have been deleted, cancelled, or never existed."
           : statusCode >= 500
-            ? "vibestrate logged this into .vibestrate/issues.ndjson — check the Issues panel for context."
+            ? "vibestrate logged this into .vibestrate/issues.ndjson - check the Issues panel for context."
             : undefined,
     };
   }
@@ -155,7 +155,7 @@ function firstLine(s: string): string {
  */
 export function formatErrorLine(err: unknown): string {
   const f = formatError(err);
-  return f.hint ? `${f.title} — ${f.hint}` : f.title;
+  return f.hint ? `${f.title} - ${f.hint}` : f.title;
 }
 
 /**

@@ -85,10 +85,10 @@ export function RunList({
                 <RunStatusBadge status={run.status} />
               </td>
               <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
-                {run.finalDecision ?? "—"}
+                {run.finalDecision ?? "-"}
               </td>
               <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
-                {run.verification ?? "—"}
+                {run.verification ?? "-"}
               </td>
               <td className="vibestrate-mono px-4 py-2 text-right text-vibestrate-fg-muted">
                 {new Date(run.updatedAt).toLocaleString()}

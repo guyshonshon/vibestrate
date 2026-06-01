@@ -86,7 +86,7 @@ describe("Flow Phase 0 contracts", () => {
 
     expect(resolvedFlowSnapshotSchema.parse(snapshot)).toEqual(snapshot);
     expect(snapshot.crewId).toBe("default");
-    // Seats are pure contracts — no provider on the seat itself.
+    // Seats are pure contracts - no provider on the seat itself.
     expect(snapshot.seats.map((s) => s.id)).toEqual(
       expect.arrayContaining(["builder", "challenger", "arbiter"]),
     );

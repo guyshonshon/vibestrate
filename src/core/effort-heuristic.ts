@@ -2,7 +2,7 @@
 //
 // Why heuristic and not LLM-based: we'd burn a provider call to *save* a
 // provider call. The signals here are coarse but free, deterministic,
-// and surface their reasoning to the user — so a wrong verdict is a
+// and surface their reasoning to the user - so a wrong verdict is a
 // click away from being overridden, not a quiet mistake.
 //
 // Lives in its own module so the CLI, server route, and dashboard all
@@ -11,7 +11,7 @@
 export type EffortClassification = {
   /** The bucket the heuristic picked. */
   effort: "low" | "medium" | "high";
-  /** 0..1 — how strongly the signals point at this bucket. */
+  /** 0..1 - how strongly the signals point at this bucket. */
   confidence: number;
   /**
    * Human-readable signals that drove the decision, ordered most-impactful
@@ -28,7 +28,7 @@ export type EffortClassifierInput = {
   files?: string[];
 };
 
-// Keyword lists — lower-cased, single-word patterns. Multi-word phrases
+// Keyword lists - lower-cased, single-word patterns. Multi-word phrases
 // are matched via includes() so "no-op" or "code review" still hit.
 const LOW_KEYWORDS = [
   "typo",
@@ -105,21 +105,21 @@ export function classifyEffort(
 
   // 1) Word count
   if (words.length === 0) {
-    reasons.push("Empty task — defaulting to medium.");
+    reasons.push("Empty task - defaulting to medium.");
     return { effort: "medium", confidence: 0.1, reasons };
   }
   if (words.length < 6) {
     score -= 2;
-    reasons.push(`Very short task (${words.length} words) — leans low.`);
+    reasons.push(`Very short task (${words.length} words) - leans low.`);
   } else if (words.length < 15) {
     score -= 1;
-    reasons.push(`Short task (${words.length} words) — leans low.`);
+    reasons.push(`Short task (${words.length} words) - leans low.`);
   } else if (words.length > 60) {
     score += 2;
-    reasons.push(`Long task (${words.length} words) — leans high.`);
+    reasons.push(`Long task (${words.length} words) - leans high.`);
   } else if (words.length > 30) {
     score += 1;
-    reasons.push(`Wordy task (${words.length} words) — leans high.`);
+    reasons.push(`Wordy task (${words.length} words) - leans high.`);
   }
 
   // 2) Keyword presence
@@ -151,10 +151,10 @@ export function classifyEffort(
   // 3) File count
   if (files.length === 1) {
     score -= 1;
-    reasons.push("Single file targeted — leans low.");
+    reasons.push("Single file targeted - leans low.");
   } else if (files.length >= 5) {
     score += 1;
-    reasons.push(`${files.length} files targeted — leans high.`);
+    reasons.push(`${files.length} files targeted - leans high.`);
   }
 
   // 4) File-type weighting
@@ -162,7 +162,7 @@ export function classifyEffort(
     const onlyDocs = files.every((f) => /\.(md|mdx|txt|rst)$/i.test(f));
     if (onlyDocs) {
       score -= 1;
-      reasons.push("All targeted files are docs — leans low.");
+      reasons.push("All targeted files are docs - leans low.");
     }
     const hasConfigOrInfra = files.some((f) =>
       /(\.config\.|\.yml$|\.yaml$|Dockerfile|tsconfig|vite\.config|package\.json|workflow|infra|terraform|helm)/i.test(
@@ -171,7 +171,7 @@ export function classifyEffort(
     );
     if (hasConfigOrInfra) {
       score += 1;
-      reasons.push("Touches config/infra — leans high.");
+      reasons.push("Touches config/infra - leans high.");
     }
   }
 
@@ -186,7 +186,7 @@ export function classifyEffort(
   const roundedConfidence = Math.round(confidence * 100) / 100;
 
   if (reasons.length === 0) {
-    reasons.push("No strong signals — defaulting to medium.");
+    reasons.push("No strong signals - defaulting to medium.");
   }
 
   return { effort, confidence: roundedConfidence, reasons };
@@ -195,7 +195,7 @@ export function classifyEffort(
 /**
  * Word-boundary substring check that treats hyphens / underscores as
  * non-word characters so "no-op" matches `containsWord(s, "no-op")`. We
- * don't use `\b` because we want "rewrite" to NOT hit "underwriter" — a
+ * don't use `\b` because we want "rewrite" to NOT hit "underwriter" - a
  * naive includes() check would. So we wrap the keyword in non-word
  * boundaries explicitly.
  */

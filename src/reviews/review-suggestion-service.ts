@@ -64,7 +64,7 @@ export class ReviewSuggestionService {
   readonly store: ReviewSuggestionStore;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
-  /** The S0 Action Broker boundary — every patch apply/revert is decided and
+  /** The S0 Action Broker boundary - every patch apply/revert is decided and
    *  recorded as evidence in `runs/<id>/actions.ndjson`. Injectable for tests
    *  (e.g. a deny evaluator); defaults to the run's shared broker. */
   private readonly broker: ActionBroker;
@@ -480,7 +480,7 @@ export class ReviewSuggestionService {
     const appliedPatchPath = path.join(dir, `${id}-applied.patch`);
     const reversePatchPath = path.join(dir, `${id}-reverse.patch`);
     await writeText(appliedPatchPath, current.proposedPatch);
-    // The "reverse" patch is the forward patch text — `git apply -R` reverses it
+    // The "reverse" patch is the forward patch text - `git apply -R` reverses it
     // at apply time. Storing it as a separate file makes the revert flow
     // self-describing in the run dir.
     await writeText(reversePatchPath, current.proposedPatch);
@@ -503,7 +503,7 @@ export class ReviewSuggestionService {
     // Optional follow-on: validate after apply, optionally auto-revert on
     // validation failure. autoRevertOnValidationFail is **ignored** if
     // validateAfterApply is false, and also ignored when validation itself
-    // is skipped (no_commands_configured) — we never auto-revert on empty
+    // is skipped (no_commands_configured) - we never auto-revert on empty
     // validation.
     if (!options.validateAfterApply) {
       return updated;
@@ -772,7 +772,7 @@ export class ReviewSuggestionService {
           }),
         )
         .catch(() => {
-          // Notifications are best-effort — never block the validation flow.
+          // Notifications are best-effort - never block the validation flow.
         });
     }
     return { suggestion: updated, result };
@@ -951,7 +951,7 @@ export class ReviewSuggestionService {
    * to clear back to default (suggestion will use commands.validate or
    * whatever the caller passes via --profile at validate time).
    *
-   * Pass "default" or "" interchangeably with null — both clear the profile.
+   * Pass "default" or "" interchangeably with null - both clear the profile.
    * Non-null profile names must exist in commands.validationProfiles.
    *
    * Never runs validation. Never changes apply/revert status. Never touches

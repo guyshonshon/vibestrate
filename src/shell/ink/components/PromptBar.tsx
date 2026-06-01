@@ -15,7 +15,7 @@ type Props = {
 };
 
 /**
- * The always-visible bottom prompt — the Claude-Code-style command line for
+ * The always-visible bottom prompt - the Claude-Code-style command line for
  * the shell. Type a `vibe …` command and Enter to run it; `:` opens the
  * palette. When unfocused it shows a hint and the hotkeys stay live; press
  * `i` to focus, Esc to return to navigation. Command output streams into the
@@ -46,7 +46,7 @@ export function PromptBar({
           />
         ) : (
           <Text dimColor>
-            {input || 'press i to run a new task — e.g. run "add dark mode"'}
+            {input || 'press i to run a new task - e.g. run "add dark mode"'}
           </Text>
         )}
       </Box>

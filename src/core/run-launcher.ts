@@ -21,7 +21,7 @@ import { contextSourceSchema } from "./context-source-schema.js";
  * dashboard reach a run through the core `Orchestrator`; this launcher is the
  * piece the **dashboard** uses so the server never has to shell out to the CLI
  * binary. It takes a fully-structured spec, loads config, resolves the Flow,
- * and drives the orchestrator — no terminal output, no prompts.
+ * and drives the orchestrator - no terminal output, no prompts.
  *
  * The CLI command keeps its own presentation layer (effort heuristic, wizard,
  * friendly errors) and constructs the orchestrator directly; the orchestrator
@@ -63,7 +63,7 @@ export const runSpecSchema = z.object({
     .nullable()
     .optional(),
   /** Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
-   *  reusing that run's upstream step outputs. May be combined with `flow` —
+   *  reusing that run's upstream step outputs. May be combined with `flow` -
    *  the flow runner seeds the upstream steps from the source run. */
   resumeFrom: z
     .object({
@@ -163,7 +163,7 @@ export async function runFromSpec(
   // Profile → provider integrity is enforced by the config schema at load time.
 
   // Inherit effort / profile override / read-only from a linked roadmap task
-  // when the spec didn't set them — same precedence as `vibe run --task`.
+  // when the spec didn't set them - same precedence as `vibe run --task`.
   let effort = spec.effort ?? null;
   let profileOverride = spec.profileOverride ?? null;
   let readOnly = spec.readOnly ?? false;

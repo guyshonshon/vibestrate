@@ -11,7 +11,7 @@ import {
 } from "./policy-types.js";
 
 /**
- * Disk-backed read of .vibestrate/policies/*.yml. Pure projection — no caching,
+ * Disk-backed read of .vibestrate/policies/*.yml. Pure projection - no caching,
  * no watchers; callers (CLI / server / engine) re-read whenever they want
  * a fresh view.
  *
@@ -21,7 +21,7 @@ import {
  *   - Only .yml / .yaml extensions are loaded. Other files are ignored
  *     silently (a README.md sitting next to rule files is fine).
  *   - A malformed file (parse error, schema rejection) is recorded under
- *     `malformedFiles` and skipped — never crashes the loader.
+ *     `malformedFiles` and skipped - never crashes the loader.
  *   - Duplicate rule ids across files are recorded under `duplicateIds`
  *     and only the *first* occurrence's rule is kept. Doctor surfaces
  *     duplicates so the user resolves them.
@@ -75,7 +75,7 @@ export async function loadPolicySnapshot(
       continue;
     }
     if (!text.trim()) {
-      // Empty file — record as a file with zero rules. Not malformed.
+      // Empty file - record as a file with zero rules. Not malformed.
       ruleFiles.push({ file, ruleIds: [], actionIds: [] });
       continue;
     }
@@ -139,7 +139,7 @@ export async function loadPolicySnapshot(
       fileIds.push(rule.id);
     }
 
-    // S2 — action policies share the rule id space (one namespace per project).
+    // S2 - action policies share the rule id space (one namespace per project).
     const actionIds: string[] = [];
     for (const action of result.data.actions) {
       if (action.match?.commandRegex) {
@@ -204,7 +204,7 @@ export function globToRegex(glob: string): RegExp {
         // `**/` matches any number of leading path segments INCLUDING zero, so
         // `**/*.pem` also matches a repo-root `c.pem` (gitignore/minimatch
         // semantics). Without this, root-level secrets escape `**/*.key`-style
-        // rules — a real policy bypass.
+        // rules - a real policy bypass.
         if (glob[i + 2] === "/") {
           out += "(?:.*/)?";
           i += 3;

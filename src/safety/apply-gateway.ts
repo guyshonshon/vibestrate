@@ -1,6 +1,6 @@
 // ── Apply-only gateway (Epic S / S4) ────────────────────────────────────────
 //
-// In strict apply-only mode, write-capable roles run READ-ONLY — they cannot
+// In strict apply-only mode, write-capable roles run READ-ONLY - they cannot
 // touch the disk. Instead they propose a unified diff, and Vibestrate applies
 // it on their behalf through this gateway: built-in secret/forbidden-path
 // safety → `file.patch` policy decision → audited `git apply` in the worktree →
@@ -21,7 +21,7 @@ import {
  * Returns null when no patch-shaped content is present.
  */
 /** True when text actually looks like a unified diff (has a hunk or a git/---
- *  header) — not just prose inside a ```diff fence. */
+ *  header) - not just prose inside a ```diff fence. */
 function looksLikePatch(text: string): boolean {
   return /(^|\n)(@@ |diff --git |--- )/.test(text);
 }
@@ -69,7 +69,7 @@ export async function applyProposedPatchThroughGateway(input: {
     return {
       status: "refused",
       reason:
-        "multiple diff blocks in the reply — emit a single unified diff in one ```diff block",
+        "multiple diff blocks in the reply - emit a single unified diff in one ```diff block",
     };
   }
   const patch = extractProposedPatch(input.output);

@@ -124,7 +124,7 @@ export async function registerProjectRoutes(
     },
   );
 
-  // Read a Role's context (its prompt — the "brain") for inline editing.
+  // Read a Role's context (its prompt - the "brain") for inline editing.
   app.get<{ Params: { crewId: string; roleId: string } }>(
     "/api/crews/:crewId/roles/:roleId/context",
     async (req) => {
@@ -152,7 +152,7 @@ export async function registerProjectRoutes(
       try {
         content = await fs.readFile(resolved.absolutePath, "utf8");
       } catch {
-        // No prompt file yet — treat as an empty context to author.
+        // No prompt file yet - treat as an empty context to author.
       }
       return {
         crewId,

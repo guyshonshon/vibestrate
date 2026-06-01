@@ -81,7 +81,7 @@ export function RunHeader({
     setError(null);
     try {
       const r = await api.retryRun(run.runId);
-      // Don't reload run state — the original record stays where it
+      // Don't reload run state - the original record stays where it
       // is; the retry got a fresh runId. Just flash a confirmation.
       setError(
         `Spawned retry: ${r.message}${r.pid !== null ? ` (pid ${r.pid})` : ""}`,
@@ -246,7 +246,7 @@ export function RunHeader({
           ) : null}
         </div>
       </div>
-      {/* Worktree / git context — collapsed by default so the title
+      {/* Worktree / git context - collapsed by default so the title
        * row stays tight. One-click reveal when the user actually
        * needs the branch + path + Codebase / Git affordances. */}
       {run.worktreePath ? (

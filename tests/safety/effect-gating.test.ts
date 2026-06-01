@@ -13,7 +13,7 @@ import {
 } from "../../src/safety/action-broker.js";
 
 /**
- * S0 — Action Broker gating for command.run, file.write, terminal.create.
+ * S0 - Action Broker gating for command.run, file.write, terminal.create.
  * Each: a successful effect records evidence; a deny evaluator fails it closed.
  */
 
@@ -127,7 +127,7 @@ describe("S0 file.write gating (mcp config)", () => {
 });
 
 describe("S0 terminal.create gating", () => {
-  // Minimal fake PTY driver — never actually spawns a shell.
+  // Minimal fake PTY driver - never actually spawns a shell.
   const fakeDriver = {
     available: true,
     unavailableReason: null,

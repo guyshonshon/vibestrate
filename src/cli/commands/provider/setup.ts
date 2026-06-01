@@ -56,7 +56,7 @@ export async function runProviderSetup(): Promise<number> {
   }
   if (codex) {
     choices.push({
-      name: `Codex CLI — starter preset (detected: ${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
+      name: `Codex CLI - starter preset (detected: ${codex.command}${codex.version ? ` v${codex.version}` : ""})`,
       value: "codex",
       description:
         "Applies `codex exec` with stdin prompt. Run `vibe provider test codex` after to verify the flags work in your version.",
@@ -64,20 +64,20 @@ export async function runProviderSetup(): Promise<number> {
   }
   if (ollama) {
     choices.push({
-      name: `Ollama — starter preset (detected: ${ollama.command}${ollama.version ? ` v${ollama.version}` : ""})`,
+      name: `Ollama - starter preset (detected: ${ollama.command}${ollama.version ? ` v${ollama.version}` : ""})`,
       value: "ollama",
       description:
         "Applies `ollama run qwen3.5` with stdin prompt. Pull that model first, or edit the model in project.yml after setup.",
     });
   }
   choices.push({
-    name: "Cloud API (http-api) — Anthropic / OpenAI with your own key",
+    name: "Cloud API (http-api) - Anthropic / OpenAI with your own key",
     value: "cloud",
     description:
-      "Drives a hosted model over https. The API key is an env reference (env:NAME) — never stored in config. Egress goes to the destination you name.",
+      "Drives a hosted model over https. The API key is an env reference (env:NAME) - never stored in config. Egress goes to the destination you name.",
   });
   choices.push({
-    name: "Local model server (localhost-proxy) — Ollama / LM Studio / vLLM",
+    name: "Local model server (localhost-proxy) - Ollama / LM Studio / vLLM",
     value: "local",
     description:
       "Drives a model server on localhost. No key, no egress. Start the server first.",
@@ -185,15 +185,15 @@ export async function runProviderSetup(): Promise<number> {
       });
       const apiKey = await askInput({
         message: isCloud
-          ? "API key — env reference only (e.g. env:ANTHROPIC_API_KEY):"
+          ? "API key - env reference only (e.g. env:ANTHROPIC_API_KEY):"
           : "API key env reference (optional, blank for none):",
         default: isCloud ? "env:ANTHROPIC_API_KEY" : "",
         validate: (v) => {
           const t = v.trim();
-          if (!t) return isCloud ? "Required — must be an env reference like env:NAME." : true;
+          if (!t) return isCloud ? "Required - must be an env reference like env:NAME." : true;
           return ENV_REF_RE.test(t)
             ? true
-            : "Must be an env reference like env:NAME — never a literal key.";
+            : "Must be an env reference like env:NAME - never a literal key.";
         },
       });
       const maxTokensRaw = await askInput({

@@ -5,7 +5,7 @@ export type GitContext = { branch: string | null; isLinkedWorktree: boolean };
 
 /**
  * Reads the current git branch + whether we're in a linked worktree, for the
- * status bar. Polls slowly (branch changes are rare) and never throws —
+ * status bar. Polls slowly (branch changes are rare) and never throws -
  * non-git dirs just yield nulls.
  */
 export function useGitContext(cwd: string, refreshMs = 5000) {

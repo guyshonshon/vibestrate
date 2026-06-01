@@ -110,7 +110,7 @@ export function getOpenBlockers(
   for (const id of graph.blockers.get(taskId) ?? new Set()) {
     const status = graph.taskById.get(id)?.status;
     if (!status) {
-      // Unknown dependency — counts as open (but visible).
+      // Unknown dependency - counts as open (but visible).
       out.push(id);
       continue;
     }

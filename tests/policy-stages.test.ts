@@ -24,7 +24,7 @@ async function tempProjectWithConfig(): Promise<string> {
   return dir;
 }
 
-describe("policies.requireApprovalAtStages — schema", () => {
+describe("policies.requireApprovalAtStages - schema", () => {
   it("defaults to empty array when policies block is omitted entirely", () => {
     const r = projectConfigSchema.safeParse({
       project: { name: "x" },
@@ -106,7 +106,7 @@ describe("policies.requireApprovalAtStages — schema", () => {
   });
 });
 
-describe("policies.requireApprovalAtStages — config get/set", () => {
+describe("policies.requireApprovalAtStages - config get/set", () => {
   let projectRoot: string;
   beforeEach(async () => {
     projectRoot = await tempProjectWithConfig();

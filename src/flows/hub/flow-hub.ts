@@ -2,7 +2,7 @@
 //
 // The "npm-without-a-registry" pattern (design §5 + flows-hub.md): a curated
 // `index.json` in a community git repo, served over raw static URLs. There is
-// NO Vibestrate backend — browse the index, then install a flow by downloading
+// NO Vibestrate backend - browse the index, then install a flow by downloading
 // its raw `flow.yml`, schema-validating it, and writing it into `.vibestrate/`
 // via the existing import path (secret/shell-guarded). Opt-in; nothing is
 // fetched until the user asks.

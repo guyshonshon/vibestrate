@@ -1,5 +1,5 @@
 /**
- * Brand mark — the rendered logo + wordmark used by the TopBar (and
+ * Brand mark - the rendered logo + wordmark used by the TopBar (and
  * any future surface that needs an Vibestrate lockup). Uses /logo.png from
  * Vite's public dir; the wordmark sits in Instrument Serif italic to
  * match the editorial accent ("brief" / "ideas" / etc.) the design

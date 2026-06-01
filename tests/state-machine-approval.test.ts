@@ -5,7 +5,7 @@ import {
   createInitialState,
 } from "../src/core/state-machine.js";
 
-describe("state machine — waiting_for_approval", () => {
+describe("state machine - waiting_for_approval", () => {
   it("allows planned → waiting_for_approval and back to planned", () => {
     expect(canTransition("planned", "waiting_for_approval")).toBe(true);
     expect(canTransition("waiting_for_approval", "planned")).toBe(true);

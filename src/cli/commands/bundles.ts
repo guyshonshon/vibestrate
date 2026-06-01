@@ -9,7 +9,7 @@ import { runStatePath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 
 /**
- * `vibe bundles ...` — internal name. UI copy says "review pass" but the CLI
+ * `vibe bundles ...` - internal name. UI copy says "review pass" but the CLI
  * uses the shorter convention to keep `vibe suggestion-bundles ...` from
  * sprawling. (Documented in the README.)
  */
@@ -482,7 +482,7 @@ function renderApplyResult(b: SuggestionBundle): void {
   if (b.status === "partially_applied") {
     console.error(
       color.red(
-        `${symbol.fail()} bundle partially applied — worktree may be modified. Reason: ${b.errorMessage}`,
+        `${symbol.fail()} bundle partially applied - worktree may be modified. Reason: ${b.errorMessage}`,
       ),
     );
     return;

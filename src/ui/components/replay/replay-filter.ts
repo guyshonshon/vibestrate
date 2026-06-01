@@ -9,7 +9,7 @@ export type ReplayFilter = {
   search: string;
   /**
    * Whitelist of phases to keep. An empty set means "no phase restriction"
-   * — events from every phase pass. We treat empty as wildcard rather than
+   * - events from every phase pass. We treat empty as wildcard rather than
    * "show nothing" so the filter bar's default state ("nothing selected")
    * doesn't accidentally hide every row.
    */

@@ -116,7 +116,7 @@ async function discoverProjectFlows(
 
     const filePath = await projectDefinitionPath(dirPath);
     if (!filePath || !isPathInside(rootDir, filePath)) continue;
-    // One malformed flow must not hide the rest — collect it and continue.
+    // One malformed flow must not hide the rest - collect it and continue.
     try {
       valid.push(await parseProjectFlow(filePath));
     } catch (err) {
@@ -133,11 +133,11 @@ async function discoverProjectFlows(
  * Combine builtins + project flows into the effective catalog:
  *
  *   - A **project** flow *shadows* a builtin of the same id. This is how
- *     `fork` works — copy a builtin into `.vibestrate/flows/<id>/` and edit it;
+ *     `fork` works - copy a builtin into `.vibestrate/flows/<id>/` and edit it;
  *     the project version then wins everywhere.
  *   - Two **project** flows claiming the same id is an unresolvable conflict
  *     (two files, no precedence rule) → the first wins, the rest are reported
- *     as invalid (not thrown — a conflict shouldn't hide every other flow).
+ *     as invalid (not thrown - a conflict shouldn't hide every other flow).
  *
  * Builtin order is preserved; a shadowed builtin keeps its slot but carries
  * the project definition. Project-only flows are appended.

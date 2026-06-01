@@ -16,7 +16,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
   stderr: "",
 });
 
-// Minimal fake claude-code provider — every seat gets a benign approval-shaped
+// Minimal fake claude-code provider - every seat gets a benign approval-shaped
 // reply so the default flow runs to completion.
 async function makeRepo(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-broker-int-"));

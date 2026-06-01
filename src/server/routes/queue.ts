@@ -31,7 +31,7 @@ export async function registerQueueRoutes(
 
   // Spawn `vibe queue run` in the background. Routes through
   // `ensureSchedulerRunning` so the dashboard, the auto-queue path,
-  // and the eventual UI-managed scheduler all share one code path —
+  // and the eventual UI-managed scheduler all share one code path -
   // and the same visibility (log file + spawn-event stream).
   app.post("/api/scheduler/start", async () => {
     const r = await ensureSchedulerRunning({

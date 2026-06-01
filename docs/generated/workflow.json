@@ -24,7 +24,7 @@
       "enteringStatus": "executing",
       "exitingStatus": "validating",
       "simple": "Apply the changes in an isolated git worktree.",
-      "what": "Executor agent edits files inside the run's worktree. Edits are real — never touches the project root."
+      "what": "Executor agent edits files inside the run's worktree. Edits are real - never touches the project root."
     },
     {
       "id": "validating",
@@ -56,7 +56,7 @@
       "enteringStatus": "verifying",
       "exitingStatus": "merge_ready",
       "simple": "Confirm the run is ready to merge.",
-      "what": "Verifier agent does a final pass — checks for unresolved findings, missing tests, or untouched validation gates. Emits PASSED / FAILED / NEEDS_HUMAN."
+      "what": "Verifier agent does a final pass - checks for unresolved findings, missing tests, or untouched validation gates. Emits PASSED / FAILED / NEEDS_HUMAN."
     }
   ]
 }

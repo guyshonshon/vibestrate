@@ -78,6 +78,6 @@ describe("context sources reach the agent prompt (e2e)", () => {
       "utf8",
     );
     expect(promptSeen).toContain("CONTEXT_MARKER_42: the button must be teal.");
-    expect(promptSeen).toContain("Context — spec");
+    expect(promptSeen).toContain("Context - spec");
   });
 });

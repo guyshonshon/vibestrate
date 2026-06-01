@@ -1,11 +1,11 @@
 // Append-only per-agent stream of raw provider stdout/stderr chunks.
 // Lives under `.vibestrate/runs/<runId>/streams/<promptName>.ndjson`.
 // Lets the dashboard tail what the provider's CLI is actually saying
-// in real time — bridges the gap between "I spawned the model" and
+// in real time - bridges the gap between "I spawned the model" and
 // "here's the final artifact 30 seconds later".
 //
 // Each line is JSON: `{ stream: "stdout"|"stderr", chunk: "...", at: "ISO" }`.
-// Best-effort: failures to write a chunk never bubble — the run keeps
+// Best-effort: failures to write a chunk never bubble - the run keeps
 // going even if the live tail breaks.
 
 import path from "node:path";

@@ -13,7 +13,7 @@ import { filterReplayEvents } from "./replay-filter.js";
 /**
  * Read-only Replay panel.
  *
- * Hard rules — this surface NEVER mutates anything:
+ * Hard rules - this surface NEVER mutates anything:
  *   - No "apply suggestion", "run validation", "approve", "abort", etc.
  *     buttons. The panel only renders what's already on disk.
  *   - No re-execution path. There is no "step forward" that re-runs an
@@ -41,7 +41,7 @@ export function ReplayPanel({
   const [focusUnresolved, setFocusUnresolved] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   // Empty set === wildcard (see replay-filter.ts). The chips at the top
-  // are additive — clicking one adds, clicking again removes.
+  // are additive - clicking one adds, clicking again removes.
   const [phaseFilter, setPhaseFilter] = useState<Set<ReplayPhaseKey>>(
     () => new Set(),
   );
@@ -75,12 +75,12 @@ export function ReplayPanel({
     };
   }, [runId]);
 
-  // Resolve a deep-link focus once the replay projection has loaded — or
+  // Resolve a deep-link focus once the replay projection has loaded - or
   // whenever the focus changes while we're already on this run. We expand
   // the phase containing the resolved event so the row is visible, and
   // imperatively scroll it into the viewport (selection alone is not enough
   // because the timeline can be hundreds of rows tall). A focus that
-  // doesn't match any row surfaces a small banner — silent miss would be
+  // doesn't match any row surfaces a small banner - silent miss would be
   // confusing when the user just clicked "Open in Replay".
   useEffect(() => {
     if (!replay || !focus) return;
@@ -273,7 +273,7 @@ export function ReplayPanel({
           <details className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[10.5px]">
             <summary className="cursor-pointer text-vibestrate-fg-muted">
               {replay.missingOrMalformed.length} file(s) skipped while building
-              replay — click for details
+              replay - click for details
             </summary>
             <ul className="mt-1 space-y-0.5 text-vibestrate-fg-muted">
               {replay.missingOrMalformed.map((m) => (
@@ -633,7 +633,7 @@ function SummaryCards({ replay }: { replay: RunReplay }) {
               </li>
             ) : null}
             <li>
-              agent stage order: {replay.metrics.roleStageOrder.join(" → ") || "—"}
+              agent stage order: {replay.metrics.roleStageOrder.join(" → ") || "-"}
             </li>
           </ul>
         </SummaryCard>
@@ -709,7 +709,7 @@ function CopyPermalinkButton({
     } catch {
       // Older browsers / restricted contexts (file://, missing user
       // gesture) can refuse the Clipboard API. Fall back to opening the
-      // URL in the location bar so the user can copy it manually — no
+      // URL in the location bar so the user can copy it manually - no
       // silent failure.
       window.prompt("Copy this link:", url);
     }

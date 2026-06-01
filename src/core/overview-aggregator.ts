@@ -44,7 +44,7 @@ export type LeaderboardEntry = {
   label: string;
   vendor: string | null;
   runs: number;
-  /** 0..1 — null when the agent had no completed runs. */
+  /** 0..1 - null when the agent had no completed runs. */
   successRate: number | null;
   avgDurSeconds: number | null;
   p95Seconds: number | null;
@@ -631,7 +631,7 @@ export type ProviderProfile = {
   successRate: number | null;
   /** Most recent run that used this provider, ISO timestamp. */
   lastSeenAt: string | null;
-  /** Hourly throughput sparkline — last 14 hours. */
+  /** Hourly throughput sparkline - last 14 hours. */
   throughputSpark: number[];
   /** Skills that have been attached in any agent invocation. */
   skills: string[];
@@ -702,7 +702,7 @@ export function buildProvidersOverview(input: {
     byProvider.set(id, entry);
   }
 
-  // Hourly throughput buckets — last 14 hours, oldest → newest.
+  // Hourly throughput buckets - last 14 hours, oldest → newest.
   function hourlySpark(runs: RunState[]): number[] {
     const buckets = Array.from({ length: 14 }, () => 0);
     const start = now - 14 * 60 * 60 * 1000;

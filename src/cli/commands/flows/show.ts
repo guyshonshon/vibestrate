@@ -45,7 +45,7 @@ export async function runFlowsShow(
   for (const [seatId, seat] of Object.entries(flow.definition.seats)) {
     console.log(
       indent(
-        `${seatId}: ${seat.label}${seat.description ? color.dim(` — ${seat.description}`) : ""}`,
+        `${seatId}: ${seat.label}${seat.description ? color.dim(` - ${seat.description}`) : ""}`,
       ),
     );
   }

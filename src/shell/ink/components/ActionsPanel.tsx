@@ -6,7 +6,7 @@ import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
 import type { PageId } from "../ui-state.js";
 
 /**
- * The right-hand command reference for the current page — so every window
+ * The right-hand command reference for the current page - so every window
  * shows what you can do without consulting `?`. Lists the page's own actions
  * (from keymaps.ts) plus the always-available global keys. Shown when there's
  * no command output occupying the pane.

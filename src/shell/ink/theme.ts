@@ -13,16 +13,16 @@ export type Color =
   | undefined;
 
 /**
- * Brand accent ramp — violet/purple, matching the web dashboard's
+ * Brand accent ramp - violet/purple, matching the web dashboard's
  * `violet-soft`. Ink renders hex via chalk, so these pass anywhere a
  * `color` / `borderColor` is accepted. `ACCENT` is the primary;
  * `ACCENT_BRIGHT` for titles/active; `ACCENT_DEEP`/`_DIM` for borders
  * (focused vs resting); `PINK` is a secondary highlight.
  */
-export const ACCENT = "#a78bfa"; // violet-400 — primary accent
-export const ACCENT_BRIGHT = "#c4b5fd"; // violet-300 — titles / active
-export const ACCENT_DEEP = "#8b5cf6"; // violet-500 — focused borders
-export const ACCENT_DIM = "#6d5b9e"; // muted violet — resting borders / dividers
+export const ACCENT = "#a78bfa"; // violet-400 - primary accent
+export const ACCENT_BRIGHT = "#c4b5fd"; // violet-300 - titles / active
+export const ACCENT_DEEP = "#8b5cf6"; // violet-500 - focused borders
+export const ACCENT_DIM = "#6d5b9e"; // muted violet - resting borders / dividers
 export const PINK = "#e879c9"; // secondary highlight (worktree, accents)
 
 export type StatusToken = {
@@ -125,7 +125,7 @@ export const CARD_PROPS = {
 /**
  * Used for the focal panel inside a page (e.g. the Runs inspector,
  * the Roadmap detail card). One thin border to draw the eye, no
- * background fill — keeps the panel calm.
+ * background fill - keeps the panel calm.
  */
 export const FOCAL_CARD_PROPS = {
   borderStyle: "round" as const,

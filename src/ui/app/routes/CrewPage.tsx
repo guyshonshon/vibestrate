@@ -110,7 +110,7 @@ export function CrewPage() {
     [crews, selectedId],
   );
 
-  // Every seat any flow asks for, plus seats already assigned in the crew —
+  // Every seat any flow asks for, plus seats already assigned in the crew -
   // the full set the user can allocate.
   const knownSeats = useMemo(() => {
     const set = new Set<string>();
@@ -293,9 +293,9 @@ function SeatCoverage({
               key={seat}
               title={
                 c.status === "uncovered"
-                  ? `No role takes the "${seat}" seat — a flow needing it will fail.`
+                  ? `No role takes the "${seat}" seat - a flow needing it will fail.`
                   : c.status === "ambiguous"
-                    ? `Two roles take "${seat}" (${roleLabels}) — a run must pick one.`
+                    ? `Two roles take "${seat}" (${roleLabels}) - a run must pick one.`
                     : `${roleLabels} takes the "${seat}" seat.`
               }
               className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
@@ -327,7 +327,7 @@ function SeatCoverage({
           {ambiguous.length > 0 ? (
             <>
               <span className="text-amber-300">{ambiguous.join(", ")}</span> are
-              filled by more than one role — a run will ask which.
+              filled by more than one role - a run will ask which.
             </>
           ) : null}
         </p>

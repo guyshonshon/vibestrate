@@ -25,7 +25,7 @@ const noProvider: ProviderDetectionRunner = async () => ({
 const FAKE = `#!/usr/bin/env node
 const fs = require('fs');
 let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
-  const m = i.match(/Current checklist item — (\\d+) of/);
+  const m = i.match(/Current checklist item - (\\d+) of/);
   const n = m ? m[1] : 'x';
   if (i.includes('Vibestrate Agent: executor')) {
     fs.writeFileSync('item' + n + '.txt', 'work for item ' + n + '\\n');

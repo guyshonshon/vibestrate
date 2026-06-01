@@ -54,7 +54,7 @@ export function LiveOutputPanel({
   const [routeMissing, setRouteMissing] = useState(false);
   const isTerminal = TERMINAL_STATUSES.has(status);
 
-  // Poll the list every 3s so newly spawned agents show up — but stop
+  // Poll the list every 3s so newly spawned agents show up - but stop
   // for terminal runs (no new streams), and back off entirely if the
   // streams endpoint 404s consistently (server hasn't been rebuilt).
   useEffect(() => {
@@ -124,7 +124,7 @@ export function LiveOutputPanel({
       es.onerror = () => {
         es?.close();
         es = null;
-        // Polling fallback — slow but reliable.
+        // Polling fallback - slow but reliable.
         poll = window.setInterval(async () => {
           try {
             const r = await api.readRunStream(runId, active);
@@ -135,7 +135,7 @@ export function LiveOutputPanel({
         }, 2000);
       };
     } catch {
-      // EventSource unsupported — same polling fallback.
+      // EventSource unsupported - same polling fallback.
       poll = window.setInterval(async () => {
         try {
           const r = await api.readRunStream(runId, active);

@@ -39,7 +39,7 @@ export type ResolvedProject = {
 };
 
 export type WorkspaceSafetyDeps = {
-  /** The root the server/CLI is serving — always allowed as a target. */
+  /** The root the server/CLI is serving - always allowed as a target. */
   currentRoot: string;
   /** Defaults to the real user-level registry; injectable for tests. */
   store?: WorkspaceStore;
@@ -76,7 +76,7 @@ export async function resolveTargetProject(
     root = byPath.root;
     label = byPath.label;
   } else if (asPath === currentRoot) {
-    // The served root may not be registered yet — still always allowed.
+    // The served root may not be registered yet - still always allowed.
     root = currentRoot;
     label = path.basename(currentRoot) || currentRoot;
   } else {
@@ -89,12 +89,12 @@ export async function resolveTargetProject(
   // removed or never initialized. Refuse rather than spawn into nothing.
   if (!(await pathExists(vibestrateRoot(root)))) {
     throw new WorkspaceSafetyError(
-      `Project "${label}" has no .vibestrate/ directory — run \`vibe init\` there first.`,
+      `Project "${label}" has no .vibestrate/ directory - run \`vibe init\` there first.`,
     );
   }
   if (!(await pathExists(projectConfigPath(root)))) {
     throw new WorkspaceSafetyError(
-      `Project "${label}" is not initialized (no project.yml) — run \`vibe init\` there first.`,
+      `Project "${label}" is not initialized (no project.yml) - run \`vibe init\` there first.`,
     );
   }
 

@@ -72,7 +72,7 @@ const spawnRunBody = z.object({
   // Pick-up execution: iterate the linked task's checklist through the flow's
   // checklistSegment (needs taskId + a checklist-aware flow like "pickup").
   checklistMode: z.enum(["continuous", "step"]).nullable().optional(),
-  // Per-run skill ids — merged into every agent's configured skills
+  // Per-run skill ids - merged into every agent's configured skills
   // for this single run. Each id is the slug `loadSkills` accepts.
   skills: z
     .array(z.string().min(1).max(128).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/))
@@ -153,7 +153,7 @@ export async function registerRunsRoutes(
   // Start a run through the shared core run launcher (NOT the `vibe`
   // CLI binary): a detached `dist/run-entry.js` reads a typed, length-
   // bounded spec and drives the orchestrator. cwd is pinned to the
-  // project root the server is serving. UI ⇄ CLI stay decoupled — both
+  // project root the server is serving. UI ⇄ CLI stay decoupled - both
   // reach a run only via core.
   app.post<{ Body: unknown }>("/api/runs", async (req) => {
     const parsed = spawnRunBody.safeParse(req.body);
@@ -229,7 +229,7 @@ export async function registerRunsRoutes(
           }
         }
       } catch {
-        // advisory only — never block a launch.
+        // advisory only - never block a launch.
       }
     }
     try {
@@ -340,7 +340,7 @@ export async function registerRunsRoutes(
 
   // ─── Per-agent provider stream (raw stdout/stderr) ──────────────
   // Lets the dashboard tail what the provider CLI is *currently
-  // saying* — the missing link between "spawned" and "artifact
+  // saying* - the missing link between "spawned" and "artifact
   // written". Listed first, then per-stream full read + SSE tail.
   const STREAM_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
   app.get<{ Params: { runId: string } }>(
@@ -412,7 +412,7 @@ export async function registerRunsRoutes(
     },
   );
 
-  // Pause / resume — write-side toggles on state.pauseRequested. The
+  // Pause / resume - write-side toggles on state.pauseRequested. The
   // orchestrator's pause gates (src/core/pause-service.ts) read this
   // flag at every stage boundary. No provider call, no worktree write.
   app.post<{ Params: { runId: string } }>(
@@ -439,7 +439,7 @@ export async function registerRunsRoutes(
 
   // ─── POST /api/runs/:runId/retry ─────────────────────────────────
   // Re-run the same task with the same flags. The original run state
-  // stays on disk untouched — the retry gets a fresh runId so the
+  // stays on disk untouched - the retry gets a fresh runId so the
   // failure trail is preserved. Only allowed for *terminal* runs
   // (failed / aborted / completed / blocked); rejects 409 otherwise
   // so the user can't fork an already-running run.
@@ -606,7 +606,7 @@ export async function registerRunsRoutes(
   /**
    * Read-only replay projection over a run's persisted files. Reuses the
    * existing runId path guard. The service tolerates missing optional
-   * files (older runs may not have all of them) and caps events at 10k —
+   * files (older runs may not have all of them) and caps events at 10k -
    * truncation is reported in the response, never silent.
    */
   app.get<{ Params: { runId: string } }>(

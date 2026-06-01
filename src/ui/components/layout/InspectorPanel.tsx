@@ -44,7 +44,7 @@ const TABS: { id: InspectorTabId; label: string; icon: LucideIcon }[] = [
 const DEFAULT_HEIGHT = 360; // px
 const MIN_HEIGHT = 140;
 const MAX_HEIGHT_VH = 0.85; // 85% viewport
-const COLLAPSED_HEIGHT = 36; // px — just the tab strip
+const COLLAPSED_HEIGHT = 36; // px - just the tab strip
 
 /**
  * Bottom drawer inspector. Sits across the full width of the run
@@ -74,7 +74,7 @@ export function InspectorPanel({
     const startHeight = height;
     const maxPx = Math.floor(window.innerHeight * MAX_HEIGHT_VH);
     const onMove = (e: MouseEvent) => {
-      // Drag up to grow, down to shrink — visual axis is inverted
+      // Drag up to grow, down to shrink - visual axis is inverted
       // from the math (smaller Y = larger drawer).
       const next = startHeight - (e.clientY - startY);
       setHeight(Math.max(MIN_HEIGHT, Math.min(maxPx, next)));
@@ -99,7 +99,7 @@ export function InspectorPanel({
       style={{ height: effectiveHeight }}
       className="relative flex shrink-0 flex-col border-t border-vibestrate-border bg-vibestrate-panel"
     >
-      {/* Drag-to-resize handle on the top edge. Hidden when collapsed —
+      {/* Drag-to-resize handle on the top edge. Hidden when collapsed -
        * the collapse button itself is the only affordance in that
        * state to avoid visual confusion. */}
       {!collapsed ? (
@@ -161,7 +161,7 @@ export function InspectorPanel({
               onClick={() => {
                 onChangeTab(t.id);
                 // Clicking a tab while collapsed should pop the drawer
-                // open — it's the universal "show me this" gesture.
+                // open - it's the universal "show me this" gesture.
                 if (collapsed) setCollapsed(false);
               }}
               className={`shrink-0 inline-flex items-center gap-1 rounded px-2 py-1 text-[11.5px] transition-colors ${

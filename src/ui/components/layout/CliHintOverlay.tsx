@@ -39,7 +39,7 @@ export function CliHintOverlay({ route }: Props) {
       window.setTimeout(() => setCopied((c) => (c === cmd ? null : c)), 1200);
     } catch {
       // Clipboard can be unavailable (no permissions, no secure context).
-      // Silently no-op — the command text is still visible.
+      // Silently no-op - the command text is still visible.
     }
   };
 

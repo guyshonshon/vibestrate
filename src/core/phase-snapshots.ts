@@ -9,7 +9,7 @@
 //   commit = git commit-tree <tree>                 (parentless; explicit author)
 //   ref    = git update-ref refs/vibestrate/snapshots/<runId>/<seq>  <commit>
 // The ref keeps the tree + blobs reachable across `git gc`. Restoring is just
-// `restoreWorktree(targetWorktree, treeSha)` — runs share the project's object
+// `restoreWorktree(targetWorktree, treeSha)` - runs share the project's object
 // DB, so a tree captured in one run materializes cleanly in another's worktree.
 
 import { execa } from "execa";
@@ -46,7 +46,7 @@ function manifestPath(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "phase-snapshots.json");
 }
 
-/** Pipeline rank — lets us pick "the latest code ≤ the resume stage". */
+/** Pipeline rank - lets us pick "the latest code ≤ the resume stage". */
 const STAGE_RANK: Record<string, number> = {
   executing: 0,
   reviewing: 1,
@@ -93,7 +93,7 @@ async function writePhaseSnapshots(
  * Capture the worktree as a durable, ref-anchored snapshot and append it to the
  * run's manifest. Best-effort: returns null on any git failure so a snapshot
  * problem never fails the run. Returns null too when there are no changes to
- * snapshot (an empty tree relative to base is still captured — callers decide).
+ * snapshot (an empty tree relative to base is still captured - callers decide).
  */
 export async function capturePhaseSnapshot(input: {
   projectRoot: string;
@@ -152,7 +152,7 @@ export function pickSnapshotForResume(
 /**
  * True when `worktree` is a safe destructive-restore target: a real path that is
  * NOT the project root itself. Restore runs `checkout-index -f` + `clean -fd`, so
- * it must only ever touch a dedicated, throwaway run worktree — never the user's
+ * it must only ever touch a dedicated, throwaway run worktree - never the user's
  * checked-out project. `resolveWorktreePath` already guarantees a per-run subdir;
  * this is defense in depth at the destructive boundary.
  */
@@ -164,7 +164,7 @@ export function isSafeRestoreTarget(worktree: string, projectRoot: string): bool
 
 /**
  * Materialize a snapshot tree into a (resumed) run's worktree. Refuses (returns
- * false) when the target would be the project root — a destructive restore must
+ * false) when the target would be the project root - a destructive restore must
  * never run against the user's checkout.
  */
 export async function restorePhaseSnapshot(

@@ -25,7 +25,7 @@ afterEach(async () => {
 /**
  * End-to-end S4: with strictApplyOnly on, the executor runs read-only and emits
  * a diff (here a bare unified diff). The orchestrator's apply gateway must apply
- * it through the broker — the worktree changes, an apply-only file.patch record
+ * it through the broker - the worktree changes, an apply-only file.patch record
  * lands, and the run still reaches merge_ready.
  */
 async function makeRepo(): Promise<string> {
@@ -40,7 +40,7 @@ async function makeRepo(): Promise<string> {
   await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
 
   // The executor emits a BARE unified diff (creating src/feature.ts). The apply
-  // gateway's bare-diff path extracts it — no fenced-block escaping needed here.
+  // gateway's bare-diff path extracts it - no fenced-block escaping needed here.
   const diff =
     "# Implementation\\n" +
     "diff --git a/src/feature.ts b/src/feature.ts\\n" +
@@ -83,7 +83,7 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   return dir;
 }
 
-describe("S4 strict apply-only — end to end", () => {
+describe("S4 strict apply-only - end to end", () => {
   it("applies the executor's proposed diff through the gateway and reaches merge_ready", async () => {
     const dir = await makeRepo();
     const loaded = await loadConfig(dir);

@@ -39,7 +39,7 @@ type Kind =
 
 /**
  * Project a backend NotificationRecord onto the design's "kind" axis.
- * Pure — no side effects. The backend uses `category` + `severity`;
+ * Pure - no side effects. The backend uses `category` + `severity`;
  * the design groups by audience-facing intent.
  */
 function classifyKind(n: NotificationRecord): Kind {
@@ -212,10 +212,10 @@ export function NotificationsSidebar({
       }
     };
     void load();
-    // Safety-net poll behind the SSE stream — the stream covers latency
+    // Safety-net poll behind the SSE stream - the stream covers latency
     // but a long-running tab can drop the connection.
     const id = window.setInterval(load, POLL_INTERVAL_MS);
-    // Wire the live event stream — push-driven refresh on every event
+    // Wire the live event stream - push-driven refresh on every event
     // type that could produce a notification on the server.
     const disconnect = streamAllEvents({
       onEvent: ({ event }) => {

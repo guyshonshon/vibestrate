@@ -121,7 +121,7 @@ describe("KNOWN_PROVIDERS hygiene", () => {
 
   it("optional providers are opt-in (detected, never auto-bound)", () => {
     // The rest ship a preset too, but stay opt-in: not popular, not
-    // auto-applied — so they detect as 'detected-needs-setup' until the
+    // auto-applied - so they detect as 'detected-needs-setup' until the
     // user explicitly applies the preset.
     const optional = KNOWN_PROVIDERS.filter((p) => !p.popular);
     expect(optional.map((p) => p.id).sort()).toEqual([

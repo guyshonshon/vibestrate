@@ -132,7 +132,7 @@ describe("upsertComposerPreset", () => {
 });
 
 describe("composer presets HTTP routes", () => {
-  it("POST creates, GET lists, DELETE removes — full round-trip", async () => {
+  it("POST creates, GET lists, DELETE removes - full round-trip", async () => {
     const root = await makeProject();
     server = await startServer({
       projectRoot: root,

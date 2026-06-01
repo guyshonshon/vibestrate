@@ -17,13 +17,13 @@ const distEntry = resolve(
  * SYMLINK. The "is this module the entrypoint?" check must compare realpaths,
  * or `process.argv[1]` (the symlink) won't match `import.meta.url` (the
  * resolved module) and the CLI silently does nothing. This test runs the
- * built bundle through a symlink — the exact shape of a global install.
+ * built bundle through a symlink - the exact shape of a global install.
  */
 describe("CLI bin entrypoint", () => {
   beforeAll(() => {
     if (!existsSync(distEntry)) {
       throw new Error(
-        `dist/index.js not found — run \`pnpm build\` before this test. Looked at ${distEntry}`,
+        `dist/index.js not found - run \`pnpm build\` before this test. Looked at ${distEntry}`,
       );
     }
   });

@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import { runFromSpec, runSpecSchema } from "./run-launcher.js";
 
 /**
- * Headless run entry. The dashboard server spawns THIS (a core module) — not
- * the `vibe` CLI binary — with a path to a JSON run-spec file, so the web UI
+ * Headless run entry. The dashboard server spawns THIS (a core module) - not
+ * the `vibe` CLI binary - with a path to a JSON run-spec file, so the web UI
  * never depends on the CLI command surface. Reads + validates the spec, deletes
  * the spec file, then drives the shared core run pipeline. Detached: it owns
  * its own process and outlives the request (and the dashboard) like a CLI run.
@@ -29,12 +29,12 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  // The spec file is a transient handoff artifact — remove it once read.
+  // The spec file is a transient handoff artifact - remove it once read.
   await fs.rm(specPath, { force: true }).catch(() => {});
 
   const parsed = runSpecSchema.safeParse(raw);
   if (!parsed.success) {
-    console.error(`run-entry: invalid spec — ${parsed.error.issues[0]?.message ?? "schema error"}`);
+    console.error(`run-entry: invalid spec - ${parsed.error.issues[0]?.message ?? "schema error"}`);
     process.exit(2);
   }
 
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     process.exit(result.state.status === "failed" ? 1 : 0);
   } catch (err) {
     console.error(
-      `run-entry: run failed — ${err instanceof Error ? err.message : String(err)}`,
+      `run-entry: run failed - ${err instanceof Error ? err.message : String(err)}`,
     );
     process.exit(1);
   }

@@ -21,7 +21,7 @@ function buildBody(notification: Notification): unknown {
   };
 }
 
-/** Used by Discord/Slack/Telegram gateways too — pure transport. */
+/** Used by Discord/Slack/Telegram gateways too - pure transport. */
 export async function postJsonWithTimeout(input: {
   url: string;
   body: unknown;

@@ -43,7 +43,7 @@ function renderValidation(v: ValidationResults | null): string {
 
 function renderWarnings(w: PolicyWarning[]): string {
   if (w.length === 0) return "_No policy warnings._";
-  return w.map((x) => `- **${x.code}** — ${x.message}`).join("\n");
+  return w.map((x) => `- **${x.code}** - ${x.message}`).join("\n");
 }
 
 function renderPath(p?: string): string {
@@ -101,14 +101,14 @@ function renderApprovalsSection(approvals: ApprovalRequest[]): string {
   const sep = `| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |`;
   const rows = approvals.map((a) => {
     const escape = (s: string | null | undefined) =>
-      s ? s.replace(/\|/g, "\\|") : "—";
+      s ? s.replace(/\|/g, "\\|") : "-";
     const sourceLabel =
       a.source === "policy"
         ? "policy"
         : a.alsoRequiredByPolicy
           ? "agent + policy"
           : "agent";
-    return `| \`${a.id}\` | ${a.stageId} | ${a.roleId} | ${sourceLabel} | ${a.riskLevel} | ${a.status} | ${escape(a.requestedAction)} | ${escape(a.reason)} | ${escape(a.decisionNote)} | ${a.createdAt} | ${a.resolvedAt ?? "—"} |`;
+    return `| \`${a.id}\` | ${a.stageId} | ${a.roleId} | ${sourceLabel} | ${a.riskLevel} | ${a.status} | ${escape(a.requestedAction)} | ${escape(a.reason)} | ${escape(a.decisionNote)} | ${a.createdAt} | ${a.resolvedAt ?? "-"} |`;
   });
   return [head, sep, ...rows].join("\n");
 }
@@ -120,17 +120,17 @@ function renderMetricsSection(metrics: RuntimeMetrics | null): string {
   const head = `| Stage | Agent | Provider | Duration | Exit | Skills | Diff (+/-) | Cost | Tokens | Decision |`;
   const sep = `| --- | --- | --- | ---: | ---: | --- | ---: | ---: | --- | --- |`;
   const rows = metrics.roles.map((a) => {
-    const skills = a.skillsAttached.length > 0 ? a.skillsAttached.join(", ") : "—";
+    const skills = a.skillsAttached.length > 0 ? a.skillsAttached.join(", ") : "-";
     const diff =
       a.diffInsertionsAfter !== null && a.diffDeletionsAfter !== null
         ? `${a.diffInsertionsAfter}/${a.diffDeletionsAfter}`
-        : "—";
-    const cost = a.totalCostUsd !== null ? `$${a.totalCostUsd.toFixed(4)}` : "—";
+        : "-";
+    const cost = a.totalCostUsd !== null ? `$${a.totalCostUsd.toFixed(4)}` : "-";
     const tokens =
       a.tokenUsage && (a.tokenUsage.input || a.tokenUsage.output)
         ? `${a.tokenUsage.input ?? 0}→${a.tokenUsage.output ?? 0}`
-        : "—";
-    const decision = a.reviewDecision ?? a.verificationDecision ?? "—";
+        : "-";
+    const decision = a.reviewDecision ?? a.verificationDecision ?? "-";
     return `| ${a.stageId} | ${a.roleId} | ${a.providerId} | ${a.durationMs}ms | ${a.exitCode} | ${skills} | ${diff} | ${cost} | ${tokens} | ${decision} |`;
   });
   const totals = [
@@ -158,13 +158,13 @@ function renderBundlesSection(items: SuggestionBundle[] | undefined): string {
     .map((b) => {
       const validation = b.validationResultPath
         ? `\`${b.validationResultPath}\``
-        : "—";
-      const reverted = b.revertedAt ?? "—";
+        : "-";
+      const reverted = b.revertedAt ?? "-";
       const titleCell = isSmartStatus(b.status)
         ? `${b.title.replace(/\|/g, "\\|")} _(smart apply)_`
         : b.title.replace(/\|/g, "\\|");
       const profileCell = b.validationProfile ? `\`${b.validationProfile}\`` : "default";
-      return `| ${b.status} | ${titleCell} | ${profileCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "—"} |`;
+      return `| ${b.status} | ${titleCell} | ${profileCell} | ${b.suggestionIds.length} | ${validation} | ${reverted} | ${b.approvalId ? `\`${b.approvalId}\`` : "-"} |`;
     })
     .join("\n");
   return [summary, "", head, rows].join("\n");
@@ -197,8 +197,8 @@ function renderSuggestionsSection(items: ReviewSuggestion[] | undefined): string
     .map((s) => {
       const target = s.file
         ? `${s.file}${s.lineStart ? `:${s.lineStart}${s.lineEnd ? `-${s.lineEnd}` : ""}` : ""}`
-        : "—";
-      return `| ${s.status} | ${s.source} | \`${target}\` | ${s.title.replace(/\|/g, "\\|")} | ${s.approvalId ? `\`${s.approvalId}\`` : "—"} |`;
+        : "-";
+      return `| ${s.status} | ${s.source} | \`${target}\` | ${s.title.replace(/\|/g, "\\|")} | ${s.approvalId ? `\`${s.approvalId}\`` : "-"} |`;
     })
     .join("\n");
   return [summary, "", head, rows].join("\n");
@@ -259,7 +259,7 @@ ${state.finalDecision ?? "_(no review decision)_"}
 ${
   state.verification ??
   (state.readOnly
-    ? "_Skipped — read-only run (nothing was changed to verify)._"
+    ? "_Skipped - read-only run (nothing was changed to verify)._"
     : "_(no verification)_")
 }
 

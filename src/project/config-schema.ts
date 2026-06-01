@@ -54,7 +54,7 @@ export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]),
   /**
    * Optional named validation profiles. The implicit *default* profile is the
-   * `validate` array above — it always exists and stays the fallback whenever
+   * `validate` array above - it always exists and stays the fallback whenever
    * a caller doesn't pick a named profile. If validationProfiles is absent or
    * empty, every existing flow keeps working exactly as before.
    *
@@ -129,7 +129,7 @@ export const policiesConfigSchema = z.object({
   // an already-created PTY over a WS channel; the server never executes
   // a shell command string supplied over HTTP.
   allowInteractiveTerminal: z.boolean().default(false),
-  // S4 — strict apply-only mode. When true, write-capable roles run read-only
+  // S4 - strict apply-only mode. When true, write-capable roles run read-only
   // (no direct disk writes); they propose a unified diff, which Vibestrate
   // applies through the Action Broker gateway (secret/path safety + file.patch
   // policy + audited git apply). High-assurance: every change crosses the gate.
@@ -151,7 +151,7 @@ export const budgetConfigSchema = z
      * Cheaper **Profile** id to switch every seated step to on
      * `downgrade-model`. When unset (or the profile is missing), the cap
      * action falls back to `stop`. Budget downgrade is best-effort in the
-     * new model — see the orchestrator's enforceSpendCap.
+     * new model - see the orchestrator's enforceSpendCap.
      */
     fallbackProfile: z.string().min(1).optional(),
   })

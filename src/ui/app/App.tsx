@@ -86,7 +86,7 @@ export function App() {
     return () => window.removeEventListener("hashchange", handler);
   }, []);
 
-  // Vim-style "g <key>" jump shortcuts — matches the design's app.jsx
+  // Vim-style "g <key>" jump shortcuts - matches the design's app.jsx
   // contract. `g n` opens the notifications drawer via the event that
   // NotificationBell subscribes to.
   useEffect(() => {
@@ -153,7 +153,7 @@ export function App() {
   // import() to the same modules that React.lazy() will request, so
   // the bundler de-dupes and the browser's HTTP cache supplies the
   // chunk synchronously when the user actually opens Terminal / Settings.
-  // Best-effort: failures are silent — a missed prefetch just means
+  // Best-effort: failures are silent - a missed prefetch just means
   // the user pays the normal latency cost on first open.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -178,7 +178,7 @@ export function App() {
       // the user is one nav click away from it.
       void import("./routes/SettingsPage.js").catch(() => undefined);
       // Terminal chunk is ~340 kB. Only warm it when the policy is on
-      // AND the driver is available — otherwise the chunk only ever
+      // AND the driver is available - otherwise the chunk only ever
       // renders a disabled state and the prefetch is wasted bytes.
       void fetch("/api/terminal/availability", { credentials: "same-origin" })
         .then((r) => (r.ok ? r.json() : null))
@@ -213,7 +213,7 @@ export function App() {
   // Stable URL-sync callback for CodebasePage. The previous inline
   // arrow created a new identity on every App render, which made
   // CodebasePage's `useEffect([..., onUrlChange])` re-fire on every
-  // render — slamming the hash back to `#/codebase` the moment any
+  // render - slamming the hash back to `#/codebase` the moment any
   // other navigation tried to set it elsewhere. That was the
   // "can't leave Codebase" bug. `navigate` is a module-scope export,
   // so the empty-deps useCallback is genuinely stable.

@@ -1,4 +1,4 @@
-// Provider output adapters — normalize any provider's stdout (plain text,
+// Provider output adapters - normalize any provider's stdout (plain text,
 // JSON, or streaming-JSON) down to one contract so vibestrate's supervision,
 // live panel, and metrics consume a single shape. See
 // docs/design/provider-structured-output.md.
@@ -6,7 +6,7 @@
 // The cardinal rule (it gates supervision): the control parsers
 // (HUMAN_APPROVAL / DECISION / VERIFICATION) read ONLY `responseText`. An
 // adapter must extract that losslessly, and a structured stream it can't parse
-// must THROW (the turn fails loud) — never silently hand back garbage, which
+// must THROW (the turn fails loud) - never silently hand back garbage, which
 // would let a missed approval marker slip an executor past a human gate.
 
 /** Native usage metrics when the format carries them; null for text-only. */
@@ -25,7 +25,7 @@ export type NormalizedMetrics = {
 };
 
 export type NormalizedTurn = {
-  /** The assistant's response text — the ONLY thing control parsers read. */
+  /** The assistant's response text - the ONLY thing control parsers read. */
   responseText: string;
   /** Native metrics, or null when the format doesn't carry them. */
   metrics: NormalizedMetrics | null;
@@ -46,7 +46,7 @@ export interface ProviderOutputAdapter {
   /**
    * Optional: build a stateful filter that turns raw stdout chunks into
    * human-readable text for the live panel (display only, never the control
-   * path). Stateful because chunks aren't line-aligned — a structured adapter
+   * path). Stateful because chunks aren't line-aligned - a structured adapter
    * buffers partial lines. Absent ⇒ the caller streams chunks verbatim.
    */
   createLiveFilter?(): (rawChunk: string) => string;

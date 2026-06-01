@@ -61,7 +61,7 @@ describe("classifyEffort", () => {
       text: "Tweak the comment formatting, fix a typo, and run prettier to address lint warnings.",
     });
     expect(r.effort).toBe("low");
-    // Should be high confidence — multiple keywords + short task.
+    // Should be high confidence - multiple keywords + short task.
     expect(r.confidence).toBeGreaterThan(0.7);
   });
 
@@ -75,7 +75,7 @@ describe("classifyEffort", () => {
     expect(r2.reasons.length).toBeGreaterThan(0);
   });
 
-  it("is deterministic — same input returns identical output", () => {
+  it("is deterministic - same input returns identical output", () => {
     const input = {
       text: "Migrate the build to vite 7 and rewrite the postcss pipeline.",
       files: ["vite.config.ts", "postcss.config.js"],
@@ -91,7 +91,7 @@ describe("classifyEffort", () => {
       files: ["tsconfig.json", "vite.config.ts"],
     });
     // 'Update tsconfig.' is very short (leans low), but config files
-    // nudge the score back up. Expect medium (signals cancel) — not low.
+    // nudge the score back up. Expect medium (signals cancel) - not low.
     expect(r.effort).not.toBe("high");
     expect(
       r.reasons.find((x) => /config\/infra/i.test(x)),

@@ -45,7 +45,7 @@ type LiveEntry = {
 export class TerminalService {
   private readonly store: TerminalSessionStore;
   private readonly live = new Map<string, LiveEntry>();
-  /** S0 Action Broker factory — one broker per run; injectable for tests. */
+  /** S0 Action Broker factory - one broker per run; injectable for tests. */
   private readonly brokerFor: (runId: string) => ActionBroker;
 
   constructor(
@@ -93,7 +93,7 @@ export class TerminalService {
   }
 
   /** Resolve the live process for an existing session. Returns null if the
-   *  session was created in a prior server process (server restart) — the
+   *  session was created in a prior server process (server restart) - the
    *  WS route maps that to a 410 Gone. */
   liveProcess(id: string): TerminalProcess | null {
     const entry = this.live.get(id);
@@ -281,7 +281,7 @@ export class TerminalService {
     }
     if (isPathInside(this.projectRoot, resolved)) {
       // Worktrees should live outside the project root (default
-      // ../.vibestrate-worktrees) — if a misconfigured project has them inside,
+      // ../.vibestrate-worktrees) - if a misconfigured project has them inside,
       // refuse rather than silently allow.
       throw new TerminalError(
         409,

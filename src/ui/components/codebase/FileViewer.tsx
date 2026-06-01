@@ -28,7 +28,7 @@ export function FileViewer({
   // Highlight the visible window of source as a single block, then map back
   // onto the per-line array. Memoised so re-renders (hover, selection,
   // openMsg toggles) don't re-tokenise the file. Skip highlighting on
-  // files over the threshold — highlight.js is synchronous and big
+  // files over the threshold - highlight.js is synchronous and big
   // files (eg a 4000-line .js bundle) were blocking the main thread
   // long enough that users couldn't even click the sidebar to leave.
   const HIGHLIGHT_LINE_CAP = 800;
@@ -46,12 +46,12 @@ export function FileViewer({
   // Soft-cap rendered lines. The server already caps at 4000
   // lines per response, but 4000 line-divs each with a hover state,
   // a copy button, and a syntax span amounted to ~120k React nodes
-  // — enough to make the browser feel locked. Render the first
+  // - enough to make the browser feel locked. Render the first
   // RENDER_LINE_CAP and let the user opt into the rest.
   const RENDER_LINE_CAP = 1500;
   const [showAllLines, setShowAllLines] = useState(false);
   // Reset the "show all" override whenever the displayed file
-  // changes — otherwise opening a different giant file inherits
+  // changes - otherwise opening a different giant file inherits
   // the previous override and freezes the page again.
   useEffect(() => {
     setShowAllLines(false);
@@ -162,7 +162,7 @@ export function FileViewer({
           {view.lines.length > RENDER_LINE_CAP && !showAllLines ? (
             <div className="border-b border-vibestrate-warn/40 bg-vibestrate-warn/5 px-3 py-1.5 text-[11px] text-vibestrate-warn">
               Showing first {RENDER_LINE_CAP.toLocaleString()} of{" "}
-              {view.lines.length.toLocaleString()} lines — rendering the
+              {view.lines.length.toLocaleString()} lines - rendering the
               rest can make the page sluggish.{" "}
               <button
                 type="button"

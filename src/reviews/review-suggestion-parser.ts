@@ -16,7 +16,7 @@ export type ParsedSuggestion = {
 
 /**
  * Parse explicit VIBESTRATE_SUGGESTION marker blocks out of a reviewer/verifier
- * artifact. We never invent suggestions from prose — only blocks that begin
+ * artifact. We never invent suggestions from prose - only blocks that begin
  * with an `VIBESTRATE_SUGGESTION:` marker line are recognised.
  *
  * Block grammar (case-sensitive header keys, body collected verbatim):
@@ -126,7 +126,7 @@ function parseBlock(block: string[]): ParsedSuggestion | null {
     lineStart,
     lineEnd,
     validationProfile,
-    // Unified diffs need to end on a newline — git apply rejects "corrupt
+    // Unified diffs need to end on a newline - git apply rejects "corrupt
     // patch" otherwise. Strip stray blank lines but keep exactly one
     // trailing newline so apply / -R --check accepts the captured text.
     proposedPatch:

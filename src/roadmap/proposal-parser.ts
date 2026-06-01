@@ -378,7 +378,7 @@ export function parseProposal(input: {
   const taskTitles = new Set(tasks.map((t) => t.title));
   const roadmapTitles = new Set(roadmapItems.map((r) => r.title));
 
-  // Resolve ROADMAP references — unknown ones become warnings (we don't
+  // Resolve ROADMAP references - unknown ones become warnings (we don't
   // synthesize phantom items).
   for (const t of tasks) {
     if (t.roadmapTitle && !roadmapTitles.has(t.roadmapTitle)) {

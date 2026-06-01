@@ -1,5 +1,5 @@
 // Pure task-form state. The form is shared by "create" and "edit"
-// modes — `existingId` differentiates them. The reducer handles
+// modes - `existingId` differentiates them. The reducer handles
 // field updates, focus cycling, and `validate()` returns either a
 // `Ready` shape the view can pass to the service, or a list of
 // human-readable errors.

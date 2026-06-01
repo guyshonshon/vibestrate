@@ -8,7 +8,7 @@ import {
 /**
  * Disk-backed registry of terminal sessions. Append-or-update by id; never
  * deletes rows so an audit of "what shells were opened against this project"
- * is preserved. Empty / malformed file is treated as empty — terminal is a
+ * is preserved. Empty / malformed file is treated as empty - terminal is a
  * best-effort feature, a corrupt store should not poison startup.
  *
  * Writes (`upsert`, `write`) are serialized through an in-memory queue per

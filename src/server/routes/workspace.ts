@@ -111,7 +111,7 @@ export async function registerWorkspaceRoutes(
 
   // ─── Navigator: open a project ────────────────────────────────────
   // Ensure a registered project has a live dashboard and return its URL. If
-  // dormant, this starts its OWN `vibe ui` (server + scheduler) on a free port —
+  // dormant, this starts its OWN `vibe ui` (server + scheduler) on a free port -
   // an isolated tenant. The browser then opens a new tab to the URL. Gated by
   // the workspace-safety guard (must be registered + initialized).
   app.post<{ Body: unknown }>("/api/workspace/open", async (req) => {
@@ -126,7 +126,7 @@ export async function registerWorkspaceRoutes(
     }
   });
 
-  // What a project is currently doing — powers the Close confirmation so the
+  // What a project is currently doing - powers the Close confirmation so the
   // user sees whether shutting down would interrupt active runs / queued work.
   app.get<{ Querystring: { project?: string } }>(
     "/api/workspace/status",
@@ -143,7 +143,7 @@ export async function registerWorkspaceRoutes(
     },
   );
 
-  // Close (shut down) a project's own dashboard + scheduler. Idempotent — a
+  // Close (shut down) a project's own dashboard + scheduler. Idempotent - a
   // project that isn't live reports `alreadyStopped`.
   app.post<{ Body: unknown }>("/api/workspace/close", async (req) => {
     const body = z.object({ project: z.string().min(1) }).safeParse(req.body);

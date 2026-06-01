@@ -73,7 +73,7 @@ describe("provider set / list", () => {
   });
 
   it("removeProvider refuses while a role still uses it, then succeeds once unused", async () => {
-    // Add an unused provider — it removes cleanly.
+    // Add an unused provider - it removes cleanly.
     await addProvider(projectRoot, {
       id: "spare",
       config: { type: "cli", command: "spare", args: [], input: "stdin" },

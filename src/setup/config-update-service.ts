@@ -207,7 +207,7 @@ export async function deleteProvider(
 }
 
 /** Point every configured Profile at a provider. This is the new "use this
- *  provider for everything" action — Roles run on Profiles, Profiles name the
+ *  provider for everything" action - Roles run on Profiles, Profiles name the
  *  provider. If no profiles exist yet, create a `<providerId>-balanced` one and
  *  point the default crew's roles at it. */
 export async function pointAllProfilesAtProvider(

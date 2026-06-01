@@ -84,7 +84,7 @@ function BehaviorPreview({
   if (safety.strictApplyOnly) {
     lines.push({
       tone: "on",
-      text: "Write roles run read-only — they propose a unified diff that Vibestrate applies through the Action Broker gateway (secret/path safety → policy → audited git apply). Nothing reaches disk un-gated.",
+      text: "Write roles run read-only - they propose a unified diff that Vibestrate applies through the Action Broker gateway (secret/path safety → policy → audited git apply). Nothing reaches disk un-gated.",
     });
   } else {
     lines.push({
@@ -97,8 +97,8 @@ function BehaviorPreview({
     tone: actionCount > 0 ? "on" : "info",
     text:
       actionCount > 0
-        ? `${actionCount} action policy(ies) loaded — matching effects are denied or held for approval.`
-        : "No action policies loaded — effects are recorded (default-allow). Add policies in .vibestrate/policies/*.yml.",
+        ? `${actionCount} action policy(ies) loaded - matching effects are denied or held for approval.`
+        : "No action policies loaded - effects are recorded (default-allow). Add policies in .vibestrate/policies/*.yml.",
   });
 
   const guards = [
@@ -149,7 +149,7 @@ function BehaviorPreview({
 }
 
 /**
- * Advanced — Safety behavior. The highlighted, editable surface for the
+ * Advanced - Safety behavior. The highlighted, editable surface for the
  * `policies.*` toggles, with a live preview of resulting run behavior. Mirrors
  * `vibe policies config` (UI⇄CLI parity).
  */

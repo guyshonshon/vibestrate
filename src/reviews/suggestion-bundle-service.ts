@@ -116,7 +116,7 @@ export class SuggestionBundleService {
   private readonly suggestionService: ReviewSuggestionService;
   private readonly approvals: ApprovalService;
   private readonly events: EventLog;
-  /** S0 Action Broker boundary — every bundle patch apply/revert is decided and
+  /** S0 Action Broker boundary - every bundle patch apply/revert is decided and
    *  recorded as evidence in `runs/<id>/actions.ndjson`. Shared with the inner
    *  ReviewSuggestionService so injected (test) brokers propagate. */
   private readonly broker: ActionBroker;
@@ -350,7 +350,7 @@ export class SuggestionBundleService {
   /**
    * Static-analysis preflight on every suggestion in the bundle. Reports
    * patch-safety failures, missing patches, and same-file overlaps. Does NOT
-   * touch the worktree on its own — call `apply()` for the full check + apply.
+   * touch the worktree on its own - call `apply()` for the full check + apply.
    */
   async preflight(bundleId: string): Promise<BundlePreflightResult> {
     const bundle = await this.requireBundle(bundleId);
@@ -422,7 +422,7 @@ export class SuggestionBundleService {
    *   1. Static preflight (patch safety, secret-file refusal, same-file warn).
    *   2. `git apply --check` for every patch in declared order. If ANY fails,
    *      apply nothing and return.
-   *   3. `git apply` each patch in order. On failure of patch N (rare —
+   *   3. `git apply` each patch in order. On failure of patch N (rare -
    *      --check passed), reverse-apply patches 1..N-1 to roll back, mark the
    *      bundle failed, and leave the worktree as it was when we started.
    *   4. Persist a combined applied + reverse patch under suggestion-bundles/
@@ -499,7 +499,7 @@ export class SuggestionBundleService {
     }
 
     // git apply --check every patch up-front. We don't actually apply yet,
-    // so a downstream conflict between patches is still possible — we catch
+    // so a downstream conflict between patches is still possible - we catch
     // that in the apply phase via rollback.
     for (const p of patches) {
       const r = await execa(
@@ -632,7 +632,7 @@ export class SuggestionBundleService {
 
     // Stamp every member suggestion as applied (with patch-capture pointing
     // back at the bundle's combined patches so per-suggestion revert remains
-    // structurally honest — but we recommend bundle revert for the whole pass).
+    // structurally honest - but we recommend bundle revert for the whole pass).
     for (const a of applied) {
       await this.markSuggestionApplied(a.id, bundle.id);
     }
@@ -748,7 +748,7 @@ export class SuggestionBundleService {
    * Smart apply: walk the bundle suggestion-by-suggestion, optionally
    * validating after each one, optionally reverting only the failing
    * suggestion. This is **NOT atomic**. Earlier suggestions that already
-   * applied stay applied even when a later step fails — that is the entire
+   * applied stay applied even when a later step fails - that is the entire
    * point of the mode and what the user opted into.
    *
    * Final bundle status:
@@ -1026,7 +1026,7 @@ export class SuggestionBundleService {
           worktreePath,
           commands: profile.commands,
           // Validate at suggestion-scope so the artifacts file naming stays
-          // honest — this is a per-step probe, not a bundle-level pass.
+          // honest - this is a per-step probe, not a bundle-level pass.
           scope: { kind: "suggestion", suggestionId: sid },
           profileName: profile.profileName,
           profileSource: profile.source,
@@ -1086,7 +1086,7 @@ export class SuggestionBundleService {
           stopReason = `validation failed at step ${i + 1}`;
           break;
         } else {
-          // no_commands_configured — we still consider the step passed
+          // no_commands_configured - we still consider the step passed
           // (the user opted into validateEachStep but nothing is wired up).
           // We do NOT pretend validation passed; we record it as the
           // honest no_commands_configured value and continue.

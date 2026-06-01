@@ -1,6 +1,6 @@
 // Tiny wrapper around the Web Notifications API. Permission must be
 // granted via a user gesture (button click), so call `requestPermission`
-// from an onClick handler — never from a useEffect, the browser will
+// from an onClick handler - never from a useEffect, the browser will
 // silently refuse.
 //
 // We never include secrets or run output in the notification body; only
@@ -34,7 +34,7 @@ export async function requestPermission(): Promise<NotificationPermission> {
 const RECENT_LIMIT = 200;
 const recentlySeen = new Map<string, number>();
 
-/** De-dupe key — the same approval id should never fire twice. */
+/** De-dupe key - the same approval id should never fire twice. */
 function alreadyFired(key: string): boolean {
   const now = Date.now();
   if (recentlySeen.has(key)) return true;

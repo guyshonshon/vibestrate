@@ -59,7 +59,7 @@ export async function fetchGuardedText(input: {
   if (!input.allowPrivateHosts && (await isBlockedHost(parsed.hostname))) {
     return {
       ok: false,
-      reason: `Refusing to fetch "${parsed.hostname}" — it resolves to a private/loopback address (SSRF guard).`,
+      reason: `Refusing to fetch "${parsed.hostname}" - it resolves to a private/loopback address (SSRF guard).`,
     };
   }
 

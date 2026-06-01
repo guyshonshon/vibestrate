@@ -22,7 +22,7 @@
   --color-sky-glow: #7cc5ff;
 
   /* ── Legacy vibestrate-* tokens (kept so non-redesigned routes don't
-   * break — the new screens use the ink/fog/violet tokens above) ── */
+   * break - the new screens use the ink/fog/violet tokens above) ── */
   --color-vibestrate-canvas: #06070b;
   --color-vibestrate-panel: #0e1118;
   --color-vibestrate-panel-2: #13171f;
@@ -77,7 +77,7 @@
 
 /* ── Popover/menu surface ───────────────────────────────────────────
  *
- * Mirrors the prototype's `.glass` rule — translucent dark base + a
+ * Mirrors the prototype's `.glass` rule - translucent dark base + a
  * subtle white sheen + a strong blur. Anything more solid (>0.7 base
  * opacity) reads as a slab and loses the "floating glass" feel the
  * design ships with. If a browser drops backdrop-filter the panel
@@ -386,14 +386,14 @@ button:active,
   animation: vibestrate-meter-shimmer 1.6s ease-in-out infinite;
 }
 
-/* ── Board card "done" strike — softer than browser default ─────── */
+/* ── Board card "done" strike - softer than browser default ─────── */
 .line-through-soft {
   text-decoration: line-through;
   text-decoration-color: rgba(255, 255, 255, 0.25);
   text-decoration-thickness: 1px;
 }
 
-/* ── Board / drawer horizontal scroll — slimmer track ──────────── */
+/* ── Board / drawer horizontal scroll - slimmer track ──────────── */
 .board-scroll::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -406,7 +406,7 @@ button:active,
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* ── Focus rings — keyboard-only ─────────────────────────────────── */
+/* ── Focus rings - keyboard-only ─────────────────────────────────── */
 :focus { outline: none; }
 :focus-visible {
   outline: 2px solid rgba(167, 139, 250, 0.6);

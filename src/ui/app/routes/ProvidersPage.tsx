@@ -28,7 +28,7 @@ type Busy = { id: string; action: "apply" | "default" | "test" } | null;
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
 /**
- * Providers page — the dashboard mirror of `vibe provider …`, and the
+ * Providers page - the dashboard mirror of `vibe provider …`, and the
  * complete provider-management surface: detect, set up, **edit
  * command/args/input**, test (with the edit→save→test loop in one place),
  * set-default, login guidance, and **remove**. Full parity with the CLI, so
@@ -171,7 +171,7 @@ export function ProvidersPage() {
                 Install
               </Button>
             ) : null}
-            {/* Set up (unconfigured) / Edit (configured) both open the editor —
+            {/* Set up (unconfigured) / Edit (configured) both open the editor -
                 the single place to compose command/args/input, test, save. */}
             <Button
               variant={p.configured ? "outline" : "primary"}
@@ -218,7 +218,7 @@ export function ProvidersPage() {
       <section className="mt-1">
         <div className="eyebrow mb-1.5">Providers · the CLIs Vibestrate drives</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          {rows ? `${availableCount} detected` : "—"}
+          {rows ? `${availableCount} detected` : "-"}
           <span className="text-fog-400">
             {rows ? ` · ${configuredCount} configured` : ""}
           </span>
@@ -226,11 +226,11 @@ export function ProvidersPage() {
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
           Detect installed coding-agent CLIs, set up and{" "}
           <span className="text-fog-100">edit their command/args</span>, run a
-          safe connectivity test, set a default, and remove — everything{" "}
+          safe connectivity test, set a default, and remove - everything{" "}
           <code className="text-violet-soft">vibe provider …</code> can do,
           here. When a provider isn't authenticated, Vibestrate shows the login
           command to run <span className="text-fog-100">in your own terminal</span>{" "}
-          — it never logs you in for you.
+          - it never logs you in for you.
         </p>
       </section>
 
@@ -271,7 +271,7 @@ export function ProvidersPage() {
                   <span className="text-fog-100">your own key</span> (an env
                   reference, never stored in config) over https; local servers
                   (Ollama, LM Studio, vLLM) stay on{" "}
-                  <span className="text-fog-100">localhost — no egress</span>.
+                  <span className="text-fog-100">localhost - no egress</span>.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -408,7 +408,7 @@ function parseHeaders(text: string): { value?: Record<string, string>; error?: s
 }
 
 /**
- * The complete create/edit/test/remove loop for one provider — the in-UI
+ * The complete create/edit/test/remove loop for one provider - the in-UI
  * equivalent of `vibe provider setup` + `vibe provider test` + `vibe provider
  * remove`, for **every** provider type: CLI (command/args/input), cloud
  * `http-api` (api/baseUrl/model/key), and `localhost-proxy` model servers.
@@ -416,7 +416,7 @@ function parseHeaders(text: string): { value?: Record<string, string>; error?: s
  * place.
  *
  * Secrets never enter config: a cloud API key is captured as an env reference
- * (`env:NAME`) only — never a literal. The browser still spawns nothing; the
+ * (`env:NAME`) only - never a literal. The browser still spawns nothing; the
  * safe-test runs against the *saved* config server-side.
  */
 function ProviderEditor({
@@ -527,7 +527,7 @@ function ProviderEditor({
     if (!model.trim()) return { error: "model is required." };
     if (kind === "http-api") {
       if (!ENV_REF_RE.test(apiKey.trim()))
-        return { error: "API key must be an env reference like env:ANTHROPIC_API_KEY — never a literal key." };
+        return { error: "API key must be an env reference like env:ANTHROPIC_API_KEY - never a literal key." };
       const headers = parseHeaders(headersText);
       if (headers.error) return { error: headers.error };
       const hasHeaders = headers.value && Object.keys(headers.value).length > 0;
@@ -800,7 +800,7 @@ function ProviderEditor({
                     />
                     <p className="text-[10.5px] text-fog-500 mt-1">
                       An <span className="text-fog-300">env reference</span> like{" "}
-                      <code className="text-violet-soft">env:NAME</code> — the key
+                      <code className="text-violet-soft">env:NAME</code> - the key
                       stays in your environment, never in config.
                     </p>
                   </FormField>
@@ -996,7 +996,7 @@ function extractCommands(hint: string | null): string[] {
 
 /**
  * Flowd install for a popular provider. Shows the exact install + login
- * commands to run locally and a re-check — it never runs anything itself
+ * commands to run locally and a re-check - it never runs anything itself
  * (the browser spawns no commands; everything happens in the user's own
  * terminal, on their machine, with their credentials).
  */
@@ -1081,7 +1081,7 @@ function InstallWizard({
         </ol>
 
         <p className="mt-4 text-[11px] text-fog-500">
-          Install and login run entirely on your machine — Vibestrate never runs them
+          Install and login run entirely on your machine - Vibestrate never runs them
           for you and never sees your credentials.
         </p>
       </div>

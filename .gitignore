@@ -10,22 +10,22 @@ coverage/
 .vitest-cache/
 .tsbuildinfo
 
-# Local agent operating protocol & internal notes — kept out of the (public) repo.
+# Local agent operating protocol & internal notes - kept out of the (public) repo.
 CLAUDE.md
 CLAUDE_CORE_MODEL_REWRITE.md
 
-# Local agent skills / config — personal, not product source.
+# Local agent skills / config - personal, not product source.
 .claude/
 .agents/
 
 # Per-project Vibestrate state (config, roadmap, roles, rules, runtime). This
-# is local dogfooding state, not source — keep the whole dir out of the repo.
+# is local dogfooding state, not source - keep the whole dir out of the repo.
 .vibestrate/
 
-# Running, internal checklist — kept local only.
+# Running, internal checklist - kept local only.
 docs/TODO.md
 
-# Internal scratch plans, smoke-test checklists, and issue log — not product
+# Internal scratch plans, smoke-test checklists, and issue log - not product
 # source. Kept local only.
 SEO_GEO_INDEXING_PLAN.md
 CODEX_PLAN.md

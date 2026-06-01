@@ -1,4 +1,4 @@
-// Per-page human-friendly meta — subtitle (one line under the title),
+// Per-page human-friendly meta - subtitle (one line under the title),
 // blurb (paragraph for the ? overlay), and a small set of common
 // keys / CLI commands the user can lean on while learning the panel.
 // Kept here so every page can pull from the same source of truth and
@@ -48,7 +48,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     subtitle:
       "tasks you've defined · this is where work begins (kanban backlog)",
     blurb:
-      "A task is a durable unit of work that lives on this board. Create one with n; queue or run it with Q / ↵. One task can produce many runs over time — see them under [4] Runs.",
+      "A task is a durable unit of work that lives on this board. Create one with n; queue or run it with Q / ↵. One task can produce many runs over time - see them under [4] Runs.",
     commonKeys: [
       ["n", "new task"],
       ["e / d", "edit / delete selected task"],
@@ -149,7 +149,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     subtitle:
       "knowledge bundles you can attach to agents (incl. MCP servers)",
     blurb:
-      "Skills live under .vibestrate/skills/ and .claude/skills/. Each can carry a sibling .mcp.json that declares MCP servers — attaching the skill to an agent attaches the servers too.",
+      "Skills live under .vibestrate/skills/ and .claude/skills/. Each can carry a sibling .mcp.json that declares MCP servers - attaching the skill to an agent attaches the servers too.",
     commonKeys: [
       ["↑↓", "select skill"],
       ["←→", "focus agent"],

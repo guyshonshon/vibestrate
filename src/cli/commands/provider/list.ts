@@ -47,7 +47,7 @@ export async function runProviderList(opts: { json?: boolean }): Promise<number>
         `Used by: ${
           p.profilesUsing.length > 0
             ? p.profilesUsing.join(", ")
-            : color.dim("(no agents — assign with `vibe provider set " + p.id + "`)")
+            : color.dim("(no agents - assign with `vibe provider set " + p.id + "`)")
         }`,
       ),
     );

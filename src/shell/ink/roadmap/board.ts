@@ -77,7 +77,7 @@ export function moveCursor(
   if (direction === "left" || direction === "right") {
     const delta = direction === "left" ? -1 : 1;
     // Skip over empty columns so left/right always lands on a real
-    // task — feels like the kanban app you're used to.
+    // task - feels like the kanban app you're used to.
     const total = board.columns.length;
     for (let step = 1; step <= total; step += 1) {
       const next = (clamped.col + delta * step + total) % total;

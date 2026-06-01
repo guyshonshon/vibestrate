@@ -7,7 +7,7 @@
 //   2. higher priority
 //   3. fewer open blockers     (closer to ready)
 //   4. older first, then id    (stable, deterministic)
-// No I/O — give it the task list, get an ordered list of suggestions back.
+// No I/O - give it the task list, get an ordered list of suggestions back.
 
 import type { Priority, Task, TaskStatus } from "./roadmap-types.js";
 import { buildDependencyGraph, getOpenBlockers } from "./dependency-graph.js";

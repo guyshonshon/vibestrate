@@ -30,7 +30,7 @@ export async function registerSuggestionRoutes(
   /**
    * Phase B guard: read-only runs refuse every write-side action on
    * suggestions (apply / validate / revert / approve). Reading them is
-   * allowed — the user can still inspect what the reviewer proposed,
+   * allowed - the user can still inspect what the reviewer proposed,
    * just not act on it. Returns 409 with a clear, actionable message.
    */
   async function refuseWritesOnReadOnlyRun(runId: string): Promise<void> {
@@ -46,7 +46,7 @@ export async function registerSuggestionRoutes(
     } catch (err) {
       if (err instanceof HttpError) throw err;
       // If state.json is unreadable we leave the original handler to
-      // surface its own error — failing open here would be silent.
+      // surface its own error - failing open here would be silent.
     }
   }
 

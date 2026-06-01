@@ -26,7 +26,7 @@ async function writeSnapshotManifest(root: string, runId: string) {
   );
 }
 
-describe("resolveResumeFrom — Rewind phase 2 snapshot gate", () => {
+describe("resolveResumeFrom - Rewind phase 2 snapshot gate", () => {
   it("allows upstream stages without a snapshot (back-compat)", async () => {
     const root = await mkProjectWithSourceRun("src");
     const r = await resolveResumeFrom(root, { sourceRunId: "src", fromStage: "executing" });

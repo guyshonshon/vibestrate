@@ -42,7 +42,7 @@ async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-nt-"));
 }
 
-describe("RoadmapService — needs-testing verdict", () => {
+describe("RoadmapService - needs-testing verdict", () => {
   let dir: string;
   let svc: RoadmapService;
   beforeEach(async () => {
@@ -76,7 +76,7 @@ describe("RoadmapService — needs-testing verdict", () => {
 
 const FAKE = `#!/usr/bin/env node
 const fs=require('fs');let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
-  const m=i.match(/Current checklist item — (\\d+) of/);const n=m?m[1]:'x';
+  const m=i.match(/Current checklist item - (\\d+) of/);const n=m?m[1]:'x';
   if(i.includes('Vibestrate Agent: executor')){fs.writeFileSync('f'+n+'.txt','x\\n');console.log('# Implementation Summary\\nAdded f'+n+'.txt');}
   else if(i.includes('Vibestrate Agent: reviewer')){console.log('# Review\\nDECISION: APPROVED\\nHUMAN_REVIEW: ADVISORY\\nHUMAN_REVIEW_REASON: eyeball the spacing');}
   else{console.log('# Plan\\nok');}
