@@ -299,6 +299,26 @@ export type ProviderCatalogResponse = {
   sources: Record<string, "overlay" | "built-in">;
 };
 
+/** Result of probing CLI providers' --help to gap-fill the overlay. */
+export type CatalogProbeFinding = {
+  providerId: string;
+  status:
+    | "added"
+    | "skipped-overlay"
+    | "skipped-builtin"
+    | "nothing-found"
+    | "probe-failed"
+    | "not-cli";
+  effort?: { flag: string; levels: string[] };
+  models?: string[];
+  detail?: string;
+};
+export type CatalogRefreshResult = {
+  findings: CatalogProbeFinding[];
+  wrote: boolean;
+  overlayPath: string;
+};
+
 export type FlowSuggestion = {
   flowId: string;
   label: string;

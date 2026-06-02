@@ -96,8 +96,11 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     error: configError,
     refresh: refreshConfig,
   } = useProjectConfig(projectRoot);
-  const { catalog: providerCatalog, overlay: providerOverlay } =
-    useProviderCatalog(projectRoot);
+  const {
+    catalog: providerCatalog,
+    overlay: providerOverlay,
+    refresh: reloadProviderCatalog,
+  } = useProviderCatalog(projectRoot);
   // First-run gate: no config loaded + a load error = not initialized.
   const notInitialized = !config && !!configError;
   const [initRunning, setInitRunning] = useState(false);
@@ -767,6 +770,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               config={config}
               catalog={providerCatalog}
               overlay={providerOverlay}
+              reloadCatalog={reloadProviderCatalog}
               refreshConfig={refreshConfig}
               onToast={(kind, message) =>
                 dispatch({ type: "toast.push", kind, message })

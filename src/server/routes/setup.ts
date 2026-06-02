@@ -16,6 +16,7 @@ import {
   mergeCatalog,
   providerOverlaySource,
 } from "../../providers/provider-catalog-overlay.js";
+import { refreshCatalog } from "../../providers/provider-probe.js";
 import { providerCatalogOverlayPath } from "../../utils/paths.js";
 import { pathExists } from "../../utils/fs.js";
 
@@ -58,6 +59,22 @@ export async function registerSetupRoutes(
     }
     return { catalog, overlay: { present: overlayPresent, path: overlayFile }, sources };
   });
+
+  // Probe configured CLI providers' --help and write discovered knobs into the
+  // overlay for review (parity with `vibe provider refresh`). Local only - it
+  // runs the provider's own --help, no egress, no keys. Gap-fill unless force.
+  app.post<{ Body: { providerId?: string; force?: boolean; dryRun?: boolean } | null }>(
+    "/api/providers/catalog/refresh",
+    async (req) => {
+      const body = req.body ?? {};
+      const result = await refreshCatalog(projectRoot, {
+        providerId: typeof body.providerId === "string" ? body.providerId : undefined,
+        force: body.force === true,
+        dryRun: body.dryRun === true,
+      });
+      return result;
+    },
+  );
 
   app.get("/api/setup/summary", async () => {
     const [project, providers, configured, doctor] = await Promise.all([

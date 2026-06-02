@@ -16,6 +16,7 @@ import {
   providerOverlaySource,
   type CatalogOverlay,
 } from "../../../providers/provider-catalog-overlay.js";
+import { refreshCatalog } from "../../../providers/provider-probe.js";
 import { ACCENT, ACCENT_BRIGHT } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 
@@ -26,6 +27,8 @@ type Props = {
   catalog?: ResolvedCatalog;
   /** Raw overlay - used to tag which provider knobs come from it. */
   overlay?: CatalogOverlay;
+  /** Re-read the catalog overlay after a refresh writes it. */
+  reloadCatalog?: () => Promise<void>;
   refreshConfig: () => Promise<void>;
   onToast: (kind: "ok" | "err" | "info", message: string) => void;
   selectedIndex: number;
@@ -57,6 +60,7 @@ export function ProfilesPage({
   config,
   catalog = BUILTIN_CATALOG,
   overlay = {},
+  reloadCatalog,
   refreshConfig,
   onToast,
   selectedIndex,
@@ -65,6 +69,23 @@ export function ProfilesPage({
 }: Props) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const overlayActive = !!(overlay.cli || overlay.http);
+
+  async function probeCatalog() {
+    onToast("info", "Probing providers' --help for model/effort…");
+    try {
+      const r = await refreshCatalog(projectRoot);
+      const added = r.findings.filter((f) => f.status === "added").length;
+      await reloadCatalog?.();
+      onToast(
+        "ok",
+        added > 0
+          ? `Catalog: added ${added} provider(s) to the overlay - review it.`
+          : "Catalog: no new knobs found (built-in + overlay already cover them).",
+      );
+    } catch (err) {
+      onToast("err", err instanceof Error ? err.message : String(err));
+    }
+  }
 
   const profiles = config
     ? Object.entries(config.profiles).map(([id, p]) => ({ id, ...p }))
@@ -179,6 +200,7 @@ export function ProfilesPage({
       if (input === "M") return void cycleModel(-1);
       if (input === "n") return void create();
       if (input === "d") return void duplicate();
+      if (input === "r") return void probeCatalog();
       if (input === "x" && selected) {
         setPendingDelete(selected.id);
         return;
@@ -269,7 +291,7 @@ export function ProfilesPage({
                 <Text dimColor>
                   <Text color={ACCENT}>e/E</Text> effort · <Text color={ACCENT}>m/M</Text> model ·{" "}
                   <Text color={ACCENT}>n</Text> new · <Text color={ACCENT}>d</Text> dup ·{" "}
-                  <Text color={ACCENT}>x</Text> del
+                  <Text color={ACCENT}>x</Text> del · <Text color={ACCENT}>r</Text> refresh
                 </Text>
               </Box>
             )}

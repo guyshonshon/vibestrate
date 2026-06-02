@@ -94,9 +94,31 @@ functions to load order. Threading a resolved value keeps them pure and testable
 
 **Still no advisory dials:** the overlay validates against the same `ArgApply`
 union (`flag` / `config`) - a user can't declare a mechanism the spawn can't
-honor. Auto-population by probing (`vibe providers refresh --probe`) is a separate
-opt-in step (TODO C.2), deliberately not in this slice: it shells out / hits
-`/models`, which is a different risk surface than reading a hand-authored file.
+honor.
+
+## 6. Auto-fill from `--help` (`vibe provider refresh`, local only)
+
+`provider-probe.ts` spawns a configured CLI provider's `--help`, heuristically
+parses model/effort knobs (`parseHelpForKnobs` / `extractChoices` handle the
+common `<a|b|c>` / `[a|b|c]` / `{a,b,c}` / commander `(choices: …)` forms), and
+writes them into the overlay. Design choices:
+
+- **Local only.** It runs the provider's own `--help` - the same binary
+  Vibestrate already drives - so no network egress and no API keys. Probing
+  cloud `/models` was explicitly **out** (it would hit a model API with the
+  user's key; the safety posture is "no model APIs unless requested").
+- **Gap-fill, never silent override.** A probe result is written only if neither
+  the built-in catalog nor a hand-authored overlay entry already covers it,
+  unless `--force`. So `refresh` can't clobber Vibestrate's verified specs or the
+  user's edits by accident.
+- **For review, not blind trust.** Help parsing is heuristic, so findings are
+  written with a header comment and surfaced as `overlay` in the catalog view;
+  `--dry-run` previews without writing.
+- **Injectable runner.** `refreshCatalog({ runner })` takes a `HelpRunner` so the
+  logic is unit-tested without spawning; the route/CLI use the real spawn.
+- **Parity.** CLI `vibe provider refresh`, `POST /api/providers/catalog/refresh`
+  (Providers page "Refresh from providers" button), and the shell Profiles `r`
+  key all call the same `refreshCatalog`.
 
 ## 6. Tests pinning the invariant
 
@@ -111,3 +133,7 @@ opt-in step (TODO C.2), deliberately not in this slice: it shells out / hits
   override, explicit-null clear, no built-in mutation).
 - `catalog-overlay-e2e.test.ts` - a user-declared provider's overlay apply-spec
   reaches the real spawn argv through the orchestrator.
+- `provider-probe.test.ts` - help parsing + `refreshCatalog` gap-fill / force /
+  dry-run / nothing-found (fake runner).
+- `server-catalog.test.ts` - `POST …/refresh` probes an executable fake CLI's
+  real `--help` and writes the overlay (the catalog then reflects it).

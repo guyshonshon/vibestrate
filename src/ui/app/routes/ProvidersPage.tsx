@@ -8,6 +8,7 @@ import {
   Play,
   Plug,
   Plus,
+  RefreshCw,
   Server,
   Star,
   Trash2,
@@ -382,6 +383,8 @@ function providerStatus(p: ProviderRow): { tone: ChipTone; label: string } {
  */
 function ProviderCatalogPanel() {
   const [data, setData] = useState<ProviderCatalogResponse | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -398,6 +401,25 @@ function ProviderCatalogPanel() {
     };
   }, []);
 
+  async function refresh() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await api.refreshProviderCatalog({});
+      const added = r.findings.filter((f) => f.status === "added").length;
+      setNote(
+        added > 0
+          ? `Probed --help and added ${added} provider(s) to the overlay - review below.`
+          : "Probed --help; no new machine-readable knobs found (built-in + your overlay already cover them).",
+      );
+      setData(await api.getProviderCatalog());
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!data) return null;
   // Only show providers that actually expose a knob (or are overlaid) - hides
   // the many CLIs with no model/effort spec, which would just be noise.
@@ -410,12 +432,33 @@ function ProviderCatalogPanel() {
 
   return (
     <section className="mt-9 space-y-3">
-      <div className="eyebrow">Capability catalog · models & effort per provider</div>
-      <p className="text-fog-400 text-[12.5px] -mt-1 max-w-[70ch]">
-        The model and effort knobs the Profile editor offers - built-in, plus
-        your overlay. <code className="text-violet-soft">vibe provider catalog</code>{" "}
-        shows the same.
-      </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <div className="eyebrow">Capability catalog · models & effort per provider</div>
+          <p className="text-fog-400 text-[12.5px] mt-0.5 max-w-[70ch]">
+            The model and effort knobs the Profile editor offers - built-in, plus
+            your overlay.{" "}
+            <code className="text-violet-soft">vibe provider catalog</code> shows
+            the same.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          iconLeft={<RefreshCw size={13} />}
+          disabled={busy}
+          title="Probe configured CLI providers' --help and gap-fill the overlay (local only)"
+          onClick={() => void refresh()}
+        >
+          {busy ? "Probing…" : "Refresh from providers"}
+        </Button>
+      </div>
+
+      {note ? (
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] text-fog-300">
+          {note}
+        </div>
+      ) : null}
 
       <div className="text-[12px]">
         {data.overlay.present ? (

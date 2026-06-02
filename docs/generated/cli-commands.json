@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "commands": [
     {
       "name": "init",
@@ -214,6 +214,41 @@
             {
               "flags": "--json",
               "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "refresh",
+          "path": [
+            "vibe",
+            "provider",
+            "refresh"
+          ],
+          "description": "Probe configured CLI providers' --help for model/effort knobs and write them to the catalog overlay for review (local only; gap-fill).",
+          "usage": "[options] [providerId]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--force",
+              "description": "replace existing overlay/built-in entries instead of gap-filling",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--dry-run",
+              "description": "show what would be written without writing",
               "required": false,
               "optional": false,
               "negated": false

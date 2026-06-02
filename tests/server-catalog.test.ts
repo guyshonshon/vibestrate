@@ -90,3 +90,42 @@ describe("GET /api/providers/catalog", () => {
     expect(body.sources.codex).toBe("built-in");
   });
 });
+
+describe("POST /api/providers/catalog/refresh", () => {
+  it("probes a CLI provider's --help and writes the overlay (parity with the CLI)", async () => {
+    const project = await makeProject();
+    // An executable fake CLI that prints help with a --effort flag.
+    const fakeCli = path.join(project, "fakecli.js");
+    await fs.writeFile(
+      fakeCli,
+      "#!/usr/bin/env node\nprocess.stdout.write('Options:\\n  --model <id>\\n  --effort <eco|turbo>\\n');\n",
+    );
+    await fs.chmod(fakeCli, 0o755);
+    await addProvider(project, {
+      id: "mycli",
+      config: { type: "cli", command: fakeCli, input: "stdin" } as never,
+    });
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/providers/catalog/refresh`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerId: "mycli" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      wrote: boolean;
+      findings: { providerId: string; status: string; effort?: { levels: string[] } }[];
+    };
+    expect(body.wrote).toBe(true);
+    const f = body.findings.find((x) => x.providerId === "mycli");
+    expect(f?.status).toBe("added");
+    expect(f?.effort?.levels).toEqual(["eco", "turbo"]);
+
+    // And the catalog now reflects it.
+    const cat = (await (
+      await fetch(`${server.url}/api/providers/catalog`)
+    ).json()) as { catalog: Record<string, ProviderCapabilities> };
+    expect(cat.catalog.mycli!.powerLevels).toEqual(["eco", "turbo"]);
+  });
+});

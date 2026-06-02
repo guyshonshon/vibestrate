@@ -6,6 +6,7 @@ import { runProviderSet } from "./set.js";
 import { runProviderSetup } from "./setup.js";
 import { runProviderRemove } from "./remove.js";
 import { runProviderCatalog } from "./catalog.js";
+import { runProviderRefresh } from "./refresh.js";
 
 export function buildProviderCommand(): Command {
   const cmd = new Command("provider").description(
@@ -77,6 +78,23 @@ export function buildProviderCommand(): Command {
       const code = await runProviderCatalog({ json: opts.json });
       process.exit(code);
     });
+
+  cmd
+    .command("refresh [providerId]")
+    .description(
+      "Probe configured CLI providers' --help for model/effort knobs and write them to the catalog overlay for review (local only; gap-fill).",
+    )
+    .option("--force", "replace existing overlay/built-in entries instead of gap-filling")
+    .option("--dry-run", "show what would be written without writing")
+    .action(
+      async (providerId: string | undefined, opts: { force?: boolean; dryRun?: boolean }) => {
+        const code = await runProviderRefresh(providerId, {
+          force: opts.force,
+          dryRun: opts.dryRun,
+        });
+        process.exit(code);
+      },
+    );
 
   return cmd;
 }
