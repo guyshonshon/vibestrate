@@ -47,8 +47,11 @@ function buildRequest(
   config: AnyHttpProvider,
   prompt: string,
   apiKey: string | undefined,
+  override?: { model?: string | null; maxTokens?: number | null },
 ): { url: string; headers: Record<string, string>; body: string } {
   const base = trimSlash(config.baseUrl);
+  const model = override?.model || config.model;
+  const maxTokens = override?.maxTokens ?? config.maxTokens;
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (config.type === "http-api" && config.headers) {
     Object.assign(headers, config.headers);
@@ -61,8 +64,8 @@ function buildRequest(
       url: `${base}/v1/messages`,
       headers,
       body: JSON.stringify({
-        model: config.model,
-        max_tokens: config.maxTokens,
+        model,
+        max_tokens: maxTokens,
         messages: [{ role: "user", content: prompt }],
       }),
     };
@@ -73,8 +76,8 @@ function buildRequest(
       url: `${base}/v1/chat/completions`,
       headers,
       body: JSON.stringify({
-        model: config.model,
-        max_tokens: config.maxTokens,
+        model,
+        max_tokens: maxTokens,
         messages: [{ role: "user", content: prompt }],
       }),
     };
@@ -85,7 +88,7 @@ function buildRequest(
     url: `${base}/api/chat`,
     headers,
     body: JSON.stringify({
-      model: config.model,
+      model,
       stream: false,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -186,7 +189,7 @@ export async function runHttpApiProvider(
     apiKey = resolveSecret(config.apiKey);
   }
 
-  const { url, headers, body } = buildRequest(config, input.prompt, apiKey);
+  const { url, headers, body } = buildRequest(config, input.prompt, apiKey, { model: input.model, maxTokens: input.maxTokens });
   const doFetch: FetchLike = fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
 
   // Combine the caller's abort signal with a timeout.
