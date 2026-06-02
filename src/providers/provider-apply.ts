@@ -3,8 +3,13 @@
 // Single source of truth for what a provider's model/effort knobs DO. A knob is
 // only ever exposed in the UI if it is wired here to a real CLI flag - no
 // advisory values. Verified against each CLI's `--help` + official docs:
-//   - claude: `--effort <low|medium|high|xhigh|max>`, `--model <id>`
-//     (confirmed via `claude --help`).
+//   - claude: `--effort <low|medium|high|xhigh|max>`, `--model <id>`. Verified
+//     against claude 2.1.160 `--help`, and confirmed honored in headless `-p`
+//     (print) mode - the mode Vibestrate uses (claudeCodePreset = `claude -p`).
+//     Note: claude *warns and falls back to default* on an unknown `--effort`
+//     value rather than erroring, so it never hard-fails; we keep the surfaced
+//     levels constrained to these five so a normal profile always sends a valid
+//     one.
 //   - codex:  `-c model_reasoning_effort=<minimal|low|medium|high|xhigh>`,
 //     `--model` (developers.openai.com/codex/config-reference; xhigh is
 //     model-dependent).

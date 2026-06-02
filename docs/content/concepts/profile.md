@@ -48,6 +48,11 @@ reasoning is a numeric budget rather than a level - Gemini's CLI thinking budget
 Anthropic's `budget_tokens` - no effort knob is shown. Vibestrate never forces one
 global scale onto every provider.
 
+If a Profile somehow sets an effort the provider won't honor (a level outside its
+real ones, or a provider with no effort knob - reachable by hand-editing
+`project.yml` or the overlay), the run **warns** (a `provider.effort_ignored`
+event) rather than silently sending a value the CLI drops.
+
 `budget` is a coarse spend-appetite field kept in config, but it isn't applied
 to a spawn yet - so, following the "only real knobs" rule, it's not shown as an
 editor dial in the dashboard (advisory for now; wire it before re-surfacing).
