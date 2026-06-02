@@ -100,7 +100,7 @@ export function ProfilesPage() {
           </h1>
           <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
             A <strong className="text-fog-100">Profile</strong> is a reusable preset
-            of how strong and expensive a run is - a provider plus model, power, and
+            of how strong and expensive a run is - a provider plus model, effort, and
             budget. Keep several per provider (say <span className="mono">claude</span>{" "}
             and <span className="mono">claude-cheap</span>); Crew roles point at one.
           </p>
@@ -290,7 +290,7 @@ function CreateProfile({
         <FormField label="Model">
           <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
-        <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific" : "this provider has no effort levels"}>
+        <FormField label="Effort" hint={caps.powerLevels.length ? "provider-specific" : "this provider has no effort levels"}>
           <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
@@ -420,7 +420,7 @@ function ProfileCard({
         <FormField label="Model">
           <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
-        <FormField label="Power" hint={caps.powerLevels.length ? "provider-specific (e.g. balanced / deep)" : "this provider has no effort levels"}>
+        <FormField label="Effort" hint={caps.powerLevels.length ? "provider-specific (e.g. medium / high)" : "this provider has no effort levels"}>
           <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
         </FormField>
         <FormField label="Budget">
