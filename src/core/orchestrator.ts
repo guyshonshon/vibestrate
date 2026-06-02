@@ -103,6 +103,7 @@ import {
   draftRunCompleted,
   draftValidationFailed,
   draftSpendCapHit,
+  draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
@@ -3152,6 +3153,15 @@ export class Orchestrator {
         message: `Agent ${roleId} failed.`,
         data: { roleId },
       });
+      // Surface the failed invocation as a notification tied to this phase, so a
+      // rejected flag / missing CLI is visible, not just an event-log line.
+      (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify?.(
+        draftProviderFailed({
+          runId: ctx.runId,
+          providerId: effectiveProviderId,
+          error: `${roleId} at "${input.stageId}": ${describeError(err)}`,
+        }),
+      );
       // Record a partial metric so the dashboard reflects the failure.
       const providerCfg = this.config.providers[effectiveProviderId];
       const failedMetric: RoleMetrics = {

@@ -2,10 +2,16 @@
 //
 // Single source of truth for what a provider's model/effort knobs DO. A knob is
 // only ever exposed in the UI if it is wired here to a real CLI flag - no
-// advisory values. Verified against each CLI's `--help`:
-//   - claude:  `--effort <low|medium|high|xhigh|max>`, `--model <id>`
-//   - codex:   `-c model_reasoning_effort=<minimal|low|medium|high>`, `--model`
-//   - gemini:  `--model <id>` (no effort flag -> effort hidden)
+// advisory values. Verified against each CLI's `--help` + official docs:
+//   - claude: `--effort <low|medium|high|xhigh|max>`, `--model <id>`
+//     (confirmed via `claude --help`).
+//   - codex:  `-c model_reasoning_effort=<minimal|low|medium|high|xhigh>`,
+//     `--model` (developers.openai.com/codex/config-reference; xhigh is
+//     model-dependent).
+//   - gemini: `--model <id>` only. Gemini's reasoning is a numeric *thinking
+//     budget* (ai.google.dev/gemini-api/docs/thinking), NOT a CLI effort flag -
+//     an interactive control is an open feature request (gemini-cli #25122) -
+//     so effort stays hidden for the CLI until there's a real flag.
 // (`ultracode` is a Vibestrate run-mode, not a claude `--effort` value, so it is
 // NOT an effort level here.)
 
@@ -34,17 +40,17 @@ const SPECS: Record<string, ProviderApplySpec> = {
     },
   },
   codex: {
-    models: ["gpt-5-codex", "gpt-5", "o4-mini", "o3"],
+    models: ["gpt-5.5", "gpt-5.1-codex-max", "gpt-5.1"],
     model: FLAG_MODEL,
     effort: {
-      levels: ["minimal", "low", "medium", "high"],
+      levels: ["minimal", "low", "medium", "high", "xhigh"],
       apply: { kind: "config", flag: "-c", key: "model_reasoning_effort" },
     },
   },
   gemini: {
-    models: ["gemini-2.5-pro", "gemini-2.5-flash"],
+    models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
     model: FLAG_MODEL,
-    effort: null,
+    effort: null, // CLI exposes no effort flag (thinking budget is numeric/API)
   },
   // Not wired (no verified flag) -> the UI hides model/effort for these.
   ollama: { models: [], model: null, effort: null },
