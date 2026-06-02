@@ -21,11 +21,16 @@ export function AgentsPage({
 }: Props) {
   const crewId = config?.defaultCrew ?? "default";
   const agents = config
-    ? Object.entries(config.crews[crewId]?.roles ?? {}).map(([id, a]) => ({
-        id,
-        ...a,
-        provider: config.profiles[a.profile]?.provider ?? "(unset)",
-      }))
+    ? Object.entries(config.crews[crewId]?.roles ?? {}).map(([id, a]) => {
+        const prof = config.profiles[a.profile];
+        return {
+          id,
+          ...a,
+          provider: prof?.provider ?? "(unset)",
+          model: prof?.model ?? "(default)",
+          effort: prof?.power ?? "(none)",
+        };
+      })
     : [];
   const idx = Math.max(0, Math.min(agents.length - 1, selectedIndex));
   const selected = agents[idx] ?? null;
@@ -87,6 +92,8 @@ export function AgentsPage({
             <Box marginTop={1} flexDirection="column">
               <KV label="profile" value={selected.profile} />
               <KV label="provider" value={selected.provider} />
+              <KV label="model" value={selected.model} />
+              <KV label="effort" value={selected.effort} />
               <KV label="seats" value={selected.seats.join(", ")} />
               <KV label="prompt" value={selected.prompt} mono />
               <KV label="permissions" value={selected.permissions} />
@@ -109,8 +116,7 @@ export function AgentsPage({
             </Box>
             <Box marginTop={1}>
               <Text dimColor>
-                edit via project.yml ·{" "}
-                <Text color="cyan">vibe config show</Text>
+                manage models/effort in <Text color="cyan">Profiles [4]</Text>
               </Text>
             </Box>
           </Box>
