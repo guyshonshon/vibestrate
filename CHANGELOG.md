@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.11
+
+- **Auto-fill the catalog from `--help`.** `vibe provider refresh` probes your
+  configured CLI providers' `--help`, parses their model/effort knobs, and writes
+  them into the overlay for review - so you don't have to hand-author every
+  entry. It's local only (runs the provider's own `--help`, no network, no API
+  keys) and gap-fills: it never overrides a built-in spec or your hand-authored
+  entries unless `--force`. `--dry-run` previews. Same action in the UI: a
+  "Refresh from providers" button on the Providers page, and `r` on the shell
+  Profiles page. (Probing cloud `/models` is intentionally out - that would mean
+  egress with your key.)
+
 ## 0.3.10
 
 - **Bring your own provider knobs.** A new `.vibestrate/providers-catalog.yml`

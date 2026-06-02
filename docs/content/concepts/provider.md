@@ -138,8 +138,26 @@ Same view in the UI (parity): the dashboard **Providers** page has a "Capability
 catalog" panel, and the shell **Profiles** page flags when an overlay is active
 plus each provider's source.
 
-Auto-populating the overlay by probing a provider (`--probe`) is a planned,
-opt-in step; for now the overlay is hand-authored.
+### Auto-filling from `--help`
+
+You don't have to hand-author every entry. `vibe provider refresh` probes your
+configured CLI providers' `--help`, heuristically parses their model/effort
+knobs, and writes them into the overlay **for review**:
+
+```bash
+vibe provider refresh             # probe all configured CLI providers
+vibe provider refresh mycli       # just one
+vibe provider refresh --dry-run   # show what it would add, write nothing
+vibe provider refresh --force     # also replace built-in / existing overlay entries
+```
+
+It's **local only** - it runs each provider's own `--help` (no network, no API
+keys) - and **gap-fills**: it never overrides a built-in spec or a hand-authored
+overlay entry unless `--force`. Parsing help text is heuristic, so it writes
+findings for you to confirm (the catalog view marks them `overlay`). Same action
+in the UI: the "Refresh from providers" button on the Providers page, or `r` on
+the shell Profiles page. (Probing cloud `/models` endpoints is intentionally not
+included - that would mean egress with your key.)
 
 ## Common mistakes
 

@@ -12,6 +12,7 @@ import type {
   ProfileView,
   ProviderCatalog,
   ProviderCatalogResponse,
+  CatalogRefreshResult,
   DiffSnapshot,
   DiscoveredSkill,
   DiscoveredFlow,
@@ -832,6 +833,11 @@ export const api = {
   },
   async getProviderCatalog(): Promise<ProviderCatalogResponse> {
     return jsonGet("/api/providers/catalog");
+  },
+  async refreshProviderCatalog(
+    body: { providerId?: string; force?: boolean; dryRun?: boolean } = {},
+  ): Promise<CatalogRefreshResult> {
+    return jsonPost("/api/providers/catalog/refresh", body);
   },
   async patchProfile(
     profileId: string,
