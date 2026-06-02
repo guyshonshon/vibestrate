@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.5
+
+- **Effort and model actually take effect now - and only when they're real.** A
+  profile's model/effort is applied to the spawn (claude `--model`/`--effort`,
+  codex `--model` + `-c model_reasoning_effort`), and a knob is shown only where
+  it maps to a real, doc-verified CLI flag. So Gemini (whose reasoning is a
+  numeric thinking budget, not a CLI flag) shows no effort, and Ollama shows no
+  model - no advisory dials that do nothing. Effort levels are the real ones
+  (claude low..max, codex minimal..xhigh).
+- **Failed runs are loud.** A failed provider invocation now raises a
+  notification (with the role + phase), instead of only landing in the event log.
+
 ## 0.3.4
 
 - **Effort is a real ladder, not a text box.** Profiles show effort as a
