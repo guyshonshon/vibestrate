@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.13
+
+- **A readable Config view, not a raw YAML dump.** `vibe config view` groups the
+  resolved project config (providers, profiles, crew, git, workflow, validation,
+  budget, policies, scheduler, editor, and more) into labelled sections and, for
+  each one, points at where it's editable - a dashboard page (Providers /
+  Profiles / Crew / Settings) when there's a live editor, or the exact
+  `vibe config set` path when there isn't. `--json` emits the structured view.
+  The same surface lands in the dashboard as a **Config** page (under **More**,
+  each live section deep-links to its editor) and in the shell as a **Config**
+  page - full UI/CLI parity. `vibe config show` still prints the raw YAML when you
+  want it; the in-shell command palette keeps both ("Go to Config" and "Show raw
+  config").
+
 ## 0.3.12
 
 - **Effort that won't take effect is now loud, not silent.** If a profile sets an

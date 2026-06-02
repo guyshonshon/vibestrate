@@ -33,6 +33,7 @@ import { FlowsPage } from "./pages/FlowsPage.js";
 import { QueuePage } from "./pages/QueuePage.js";
 import { AgentsPage } from "./pages/AgentsPage.js";
 import { ProfilesPage } from "./pages/ProfilesPage.js";
+import { ConfigPage } from "./pages/ConfigPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
 import { useProjectConfig } from "./hooks/useProjectConfig.js";
@@ -845,6 +846,15 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
                   page: "notifications",
                   index: i,
                 })
+              }
+              active
+            />
+          ) : ui.page === "config" ? (
+            <ConfigPage
+              config={config}
+              selectedIndex={ui.selection.config ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "config", index: i })
               }
               active
             />

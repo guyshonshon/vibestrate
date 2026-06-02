@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { runConfigShow } from "./show.js";
+import { runConfigView } from "./view.js";
 import { runConfigGet } from "./get.js";
 import { runConfigSet } from "./set.js";
 import { runConfigValidate } from "./validate.js";
@@ -10,8 +11,19 @@ export function buildConfigCommand(): Command {
   );
 
   cmd
+    .command("view")
+    .description(
+      "Readable, grouped view of the config - each section shows where it's editable.",
+    )
+    .option("--json", "emit the structured view as JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const code = await runConfigView({ json: opts.json });
+      process.exit(code);
+    });
+
+  cmd
     .command("show")
-    .description("Print the current config and validate it.")
+    .description("Print the raw config YAML and validate it.")
     .option("--json", "emit parsed JSON instead of YAML")
     .action(async (opts: { json?: boolean }) => {
       const code = await runConfigShow({ json: opts.json });

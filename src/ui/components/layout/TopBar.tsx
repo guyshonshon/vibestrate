@@ -14,6 +14,7 @@ import {
   Menu,
   Search,
   Settings as SettingsIcon,
+  Settings2,
   SlidersHorizontal,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -38,6 +39,7 @@ type Props = {
   onShowWorkspace: () => void;
   onShowProposals: () => void;
   onShowProject: () => void;
+  onShowConfig: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
   onShowSettings: () => void;
@@ -83,6 +85,7 @@ export function TopBar({
   onShowWorkspace,
   onShowProposals,
   onShowProject,
+  onShowConfig,
   onShowCodebase,
   onShowGit,
   onShowSettings,
@@ -257,7 +260,8 @@ export function TopBar({
             active={
               currentNav === "git" ||
               currentNav === "proposals" ||
-              currentNav === "project"
+              currentNav === "project" ||
+              currentNav === "config"
             }
             onClick={() => setMoreOpen((x) => !x)}
             icon={<Cpu className="h-3.5 w-3.5" strokeWidth={1.6} />}
@@ -296,6 +300,16 @@ export function TopBar({
                 icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Project
+              </DropItem>
+              <DropItem
+                active={currentNav === "config"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowConfig();
+                }}
+                icon={<Settings2 className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Config
               </DropItem>
               <DropItem
                 onClick={() => {
@@ -401,6 +415,16 @@ export function TopBar({
               icon={<Folder className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Project
+            </DropItem>
+            <DropItem
+              active={currentNav === "config"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowConfig();
+              }}
+              icon={<Settings2 className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Config
             </DropItem>
             <DropItem
               onClick={() => {

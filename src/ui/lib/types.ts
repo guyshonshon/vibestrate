@@ -299,6 +299,41 @@ export type ProviderCatalogResponse = {
   sources: Record<string, "overlay" | "built-in">;
 };
 
+// ─── Config view (readable, grouped projection of project.yml) ─────────────
+// Mirrors src/setup/config-view.ts. Kept self-contained here (types.ts ships
+// with zero cross-package imports); the server route builds the canonical
+// shape and this is the wire contract the dashboard reads.
+export type ConfigRowTone = "default" | "on" | "off" | "warn";
+export type ConfigRow = {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: ConfigRowTone;
+};
+export type ConfigSectionEditable = {
+  surface: string | null;
+  route: string | null;
+  cli: string[];
+  live: boolean;
+};
+export type ConfigSection = {
+  id: string;
+  title: string;
+  summary: string;
+  editable: ConfigSectionEditable;
+  rows: ConfigRow[];
+};
+export type ConfigView = {
+  project: { name: string; type: string };
+  sections: ConfigSection[];
+};
+export type ConfigViewResponse = {
+  configPath: string;
+  valid: boolean;
+  error: string | null;
+  view: ConfigView;
+};
+
 /** Result of probing CLI providers' --help to gap-fill the overlay. */
 export type CatalogProbeFinding = {
   providerId: string;

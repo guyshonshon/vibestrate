@@ -35,6 +35,7 @@ export const PAGE_IDS = [
   "roadmap",
   "doctor",
   "notifications",
+  "config",
 ] as const;
 export type PageId = (typeof PAGE_IDS)[number];
 
@@ -593,6 +594,8 @@ export function pageLabel(id: PageId): string {
       return "Notifs";
     case "doctor":
       return "Doctor";
+    case "config":
+      return "Config";
   }
 }
 

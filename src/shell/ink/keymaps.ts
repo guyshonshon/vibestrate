@@ -95,6 +95,8 @@ export function keymapForPage(page: PageId): HintGroup[] {
       ];
     case "notifications":
       return [{ name: "Move", hints: [{ key: "↑↓", label: "notification" }] }];
+    case "config":
+      return [{ name: "Move", hints: [{ key: "↑↓", label: "section" }] }];
     case "doctor":
       return [
         { name: "Actions", hints: [

@@ -12,6 +12,7 @@ import type {
   ProfileView,
   ProviderCatalog,
   ProviderCatalogResponse,
+  ConfigViewResponse,
   CatalogRefreshResult,
   DiffSnapshot,
   DiscoveredSkill,
@@ -1405,6 +1406,11 @@ export const api = {
   },
   async testGateway(id: string): Promise<{ ok: boolean; message: string }> {
     return jsonPost(`/api/gateways/${encodeURIComponent(id)}/test`);
+  },
+
+  // ─── config (read-only grouped view) ──────────────────────────────────────
+  async getConfigView(): Promise<ConfigViewResponse> {
+    return jsonGet("/api/config/view");
   },
 
   // ─── project / codebase / git / agent-work ────────────────────────────────

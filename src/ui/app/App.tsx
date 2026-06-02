@@ -17,6 +17,7 @@ import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
+import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
 import {
   ProposalsPage,
@@ -257,9 +258,11 @@ export function App() {
                             ? "profiles"
                             : route.kind === "crew" || route.kind === "providers"
                               ? "crew"
-                              : route.kind === "runs"
-                                ? "runs"
-                                : "home"
+                              : route.kind === "config"
+                                ? "config"
+                                : route.kind === "runs"
+                                  ? "runs"
+                                  : "home"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
@@ -274,6 +277,7 @@ export function App() {
       onShowProposals={() => navigate({ kind: "proposals" })}
       onShowSettings={() => navigate({ kind: "settings" })}
       onShowProject={() => navigate({ kind: "project" })}
+      onShowConfig={() => navigate({ kind: "config" })}
       onShowCodebase={() =>
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
@@ -363,6 +367,8 @@ export function App() {
         <ProfilesPage />
       ) : route.kind === "providers" ? (
         <ProvidersPage />
+      ) : route.kind === "config" ? (
+        <ConfigPage />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}

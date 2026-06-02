@@ -162,7 +162,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     blurb:
       "Configured agents from .vibestrate/project.yml. Each agent has a provider (claude-code / codex / ollama / aider), a prompt file, a permissions profile, attached skills, and optional MCP servers. Edit via project.yml.",
     commonKeys: [["↑↓", "select agent"]],
-    commonCli: ["vibe config show", "vibe provider list"],
+    commonCli: ["vibe config view", "vibe provider list"],
   },
   skills: {
     subtitle:
@@ -179,6 +179,13 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       "vibe skills show <id>",
       "vibe skills assign <id> <agent>",
     ],
+  },
+  config: {
+    subtitle: "readable project.yml · grouped, with where each part is editable",
+    blurb:
+      "A grouped, readable view of the resolved project config: providers, profiles, crew, git, workflow, validation, budget, policies, scheduler, and more. Each section says where it's live-editable (a page) or which `vibe config set` path changes it. The raw YAML is still `vibe config show`.",
+    commonKeys: [["↑↓", "select a section"]],
+    commonCli: ["vibe config view", "vibe config view --json", "vibe config show"],
   },
   doctor: {
     subtitle: "environment + config diagnostics · with safe auto-fixes",

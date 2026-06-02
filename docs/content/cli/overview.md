@@ -61,11 +61,20 @@ surface is more capable than the other.
 ## Working with config
 
 ```bash
-vibe config show                           # full project.yml as YAML
+vibe config view                           # grouped, readable view + where each part is editable
+vibe config view --json                    # the structured view as JSON
+vibe config show                           # full project.yml as raw YAML
 vibe config get commands.validate          # a single key
 vibe config set commands.validate '["pnpm typecheck","pnpm test"]'
 vibe config validate                       # check against the Zod schema
 ```
+
+`config view` is the readable surface: it groups the resolved config (providers,
+profiles, crew, git, workflow, validation, budget, policies, scheduler, and
+more) and, for each group, points at where it's editable - a dashboard page
+(Providers / Profiles / Crew / Settings) or the `vibe config set` path. Use
+`config show` when you want the raw YAML. The same grouped view is the
+dashboard's **Config** page (under **More**) and the in-shell **Config** page.
 
 The `config set` command accepts JSON for non-scalar values, and a plain string otherwise.
 

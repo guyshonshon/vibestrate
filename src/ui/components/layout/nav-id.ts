@@ -19,4 +19,5 @@ export type NavId =
   | "flows"
   | "metrics"
   | "crew"
-  | "profiles";
+  | "profiles"
+  | "config";
