@@ -18,14 +18,15 @@ export type ProviderCapabilities = {
 };
 
 const BUDGET = ["low", "medium", "high"];
-const EFFORT = ["low", "medium", "high"];
+// Claude Code's effort ladder, Faster -> Smarter. `ultracode` = xhigh + workflows.
+const CLAUDE_EFFORT = ["low", "medium", "high", "xhigh", "max", "ultracode"];
 
 /** Keyed by known provider id. Conservative on purpose - only models/levels we
  *  are reasonably confident about; everything else falls back to free text. */
 export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> = {
   claude: {
     models: ["opus", "sonnet", "haiku"],
-    powerLevels: EFFORT,
+    powerLevels: CLAUDE_EFFORT,
     budgetLevels: BUDGET,
   },
   codex: {
@@ -35,7 +36,7 @@ export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> = {
   },
   gemini: {
     models: ["gemini-2.5-pro", "gemini-2.5-flash"],
-    powerLevels: EFFORT,
+    powerLevels: ["low", "medium", "high"],
     budgetLevels: BUDGET,
   },
   // Local: models are whatever you've pulled, so suggestions stay free-text.

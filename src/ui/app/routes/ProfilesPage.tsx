@@ -5,7 +5,33 @@ import type { ProfileView, ProviderCatalog } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
+import { EffortScale } from "../../components/design/EffortScale.js";
 import { cn } from "../../components/design/cn.js";
+
+function EffortField({
+  levels,
+  value,
+  onChange,
+}: {
+  levels: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="mt-3">
+      <span className="eyebrow">Effort</span>
+      <div className="mt-1.5">
+        {levels.length ? (
+          <EffortScale levels={levels} value={value} onChange={onChange} />
+        ) : (
+          <span className="text-[11px] text-fog-500">
+            This provider exposes no effort control.
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 
@@ -290,9 +316,6 @@ function CreateProfile({
         <FormField label="Model">
           <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
-        <FormField label="Effort" hint={caps.powerLevels.length ? "provider-specific" : "this provider has no effort levels"}>
-          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
-        </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
             {["", ...caps.budgetLevels].map((b) => (
@@ -301,6 +324,7 @@ function CreateProfile({
           </select>
         </FormField>
       </div>
+      <EffortField levels={caps.powerLevels} value={draft.power} onChange={(v) => set("power", v)} />
       <div className="mt-3 flex justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
         <Button size="sm" variant="primary" disabled={!valid || busy} onClick={() => void create()} iconLeft={<Plus className="h-3 w-3" />}>
@@ -420,9 +444,6 @@ function ProfileCard({
         <FormField label="Model">
           <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
         </FormField>
-        <FormField label="Effort" hint={caps.powerLevels.length ? "provider-specific (e.g. medium / high)" : "this provider has no effort levels"}>
-          <SuggestInput value={draft.power} onChange={(v) => set("power", v)} suggestions={caps.powerLevels} placeholder="none" className={INPUT_CLS} />
-        </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
             {["", ...caps.budgetLevels].map((b) => (
@@ -440,6 +461,8 @@ function ProfileCard({
           <input value={draft.timeoutMs} onChange={(e) => set("timeoutMs", e.target.value)} inputMode="numeric" placeholder="-" className={INPUT_CLS} />
         </FormField>
       </div>
+
+      <EffortField levels={caps.powerLevels} value={draft.power} onChange={(v) => set("power", v)} />
 
       <div className="mt-3 flex items-center justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={() => void duplicate()} iconLeft={<Copy className="h-3 w-3" />}>

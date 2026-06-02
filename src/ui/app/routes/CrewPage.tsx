@@ -19,6 +19,7 @@ import type {
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
+import { EffortScale } from "../../components/design/EffortScale.js";
 
 const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
@@ -834,7 +835,6 @@ function NewProfileInline({
           ))}
         </select>
         <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder="model" className={cn(inputCls, "w-[130px]")} />
-        <SuggestInput value={power} onChange={setPower} suggestions={caps.powerLevels} placeholder="effort" className={cn(inputCls, "w-[110px]")} />
         <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
           {["", ...caps.budgetLevels].map((b) => (
             <option key={b || "none"} value={b}>
@@ -843,6 +843,12 @@ function NewProfileInline({
           ))}
         </select>
       </div>
+      {caps.powerLevels.length ? (
+        <div className="mt-3">
+          <div className="eyebrow mb-1.5">Effort</div>
+          <EffortScale levels={caps.powerLevels} value={power} onChange={setPower} />
+        </div>
+      ) : null}
       <div className="mt-2.5 flex items-center justify-end gap-2">
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Cancel
