@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.16
+
+- **Terminal-style line editing in the shell prompt.** The command prompt now
+  moves like your shell: **Option+←/→** jump by word, **Ctrl+→** (or End /
+  Ctrl+E) goes to the end of the line and **Ctrl+←** (or Home / Ctrl+A) to the
+  start, ←/→ move a character, and edits land at the cursor - not just the end.
+  (Replaces `ink-text-input` with a small controlled input we own; Up/Down,
+  Tab, and Esc still drive history, completion, and navigation.)
+
 ## 0.3.15
 
 - **Prompt autocomplete now completes values, not just commands and flags.**
