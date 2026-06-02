@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.8
+
+- **Profiles are now complete on every surface.** The shell gets a real `[4]
+  Profiles` page - browse presets and edit them with the keyboard (`e/E` cycle
+  effort through the provider's real levels, `m/M` model, `n` new, `d`
+  duplicate, `x` delete), driven by the same core that powers the web and CLI.
+  Web, CLI, and shell now all do the full create/edit/duplicate/delete loop, so
+  there's no surface where you're told to go hand-edit `project.yml`. The Crew
+  page shows each role's model/effort and points at Profiles.
+- **First TUI render test.** The Profiles page is mounted for real and a
+  keypress is proven to change config (effort medium -> high), establishing
+  `ink-testing-library` as the shell's render harness.
+
 ## 0.3.7
 
 - **Consolidation pass.** Only real knobs: the `budget` field (never applied to a
