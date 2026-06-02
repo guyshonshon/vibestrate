@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "commands": [
     {
       "name": "init",
@@ -270,13 +270,34 @@
       "options": [],
       "subcommands": [
         {
+          "name": "view",
+          "path": [
+            "vibe",
+            "config",
+            "view"
+          ],
+          "description": "Readable, grouped view of the config - each section shows where it's editable.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit the structured view as JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
           "name": "show",
           "path": [
             "vibe",
             "config",
             "show"
           ],
-          "description": "Print the current config and validate it.",
+          "description": "Print the raw config YAML and validate it.",
           "usage": "[options]",
           "arguments": [],
           "options": [

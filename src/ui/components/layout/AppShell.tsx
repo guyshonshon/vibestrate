@@ -23,6 +23,7 @@ type AppShellProps = {
   onShowProposals: () => void;
   onShowSettings: () => void;
   onShowProject: () => void;
+  onShowConfig: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
@@ -50,6 +51,7 @@ export function AppShell({
   onShowProposals,
   onShowSettings,
   onShowProject,
+  onShowConfig,
   onShowCodebase,
   onShowGit,
   onOpenNotification,
@@ -70,6 +72,7 @@ export function AppShell({
         onShowWorkspace={onShowWorkspace}
         onShowProposals={onShowProposals}
         onShowProject={onShowProject}
+        onShowConfig={onShowConfig}
         onShowCodebase={onShowCodebase}
         onShowGit={onShowGit}
         onShowSettings={onShowSettings}

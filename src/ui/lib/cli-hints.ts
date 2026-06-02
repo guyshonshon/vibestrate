@@ -292,5 +292,17 @@ export function hintForRoute(route: Route): CliHint {
           "If a test says a provider isn't logged in, run its login command in your own terminal (e.g. `codex login`, `gemini`, `goose configure`).",
         ],
       };
+    case "config":
+      return {
+        title: "Config",
+        blurb:
+          "A readable, grouped view of project.yml - what each section controls and where it's editable. The raw YAML is one command away.",
+        commands: [
+          { cmd: "vibe config view", note: "grouped, readable view (this page)" },
+          { cmd: "vibe config view --json", note: "the structured view, scriptable" },
+          { cmd: "vibe config show", note: "raw project.yml dump" },
+          { cmd: "vibe config set <path> <value>", note: "edit one value (e.g. git.mainBranch)" },
+        ],
+      };
   }
 }

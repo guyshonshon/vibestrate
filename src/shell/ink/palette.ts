@@ -298,12 +298,26 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
     action: { kind: "open-runner" },
   },
   {
-    id: "runner.config-show",
-    title: "Show config.json",
-    hint: "vibe config show",
-    keywords: ["config", "yaml", "json"],
+    id: "goto.config",
+    title: "Go to Config",
+    hint: "grouped, readable view of project.yml",
+    keywords: ["config", "settings", "yaml", "project.yml", "view"],
     description:
-      "Runs `vibe config show` and dumps the resolved project config into the runner output pane.",
+      "Readable, grouped view of the resolved project config - what each section controls and where it's editable (a page, or a `vibe config set` path). The raw YAML is still one command away (config show).",
+    cli: "vibe config view",
+    examples: [
+      "vibe config view --json            # the structured view as JSON",
+      "vibe config show                   # raw YAML dump",
+    ],
+    action: { kind: "goto", page: "config" },
+  },
+  {
+    id: "runner.config-raw",
+    title: "Show raw config (YAML)",
+    hint: "vibe config show",
+    keywords: ["config", "yaml", "raw", "dump"],
+    description:
+      "Runs `vibe config show` and dumps the raw project.yml into the runner output pane. For the readable grouped view, open Config instead.",
     cli: "vibe config show",
     action: { kind: "open-runner", seed: "config show" },
   },
