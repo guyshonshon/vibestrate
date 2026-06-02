@@ -21,7 +21,7 @@ import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 
-const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
+const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
@@ -834,7 +834,9 @@ function NewProfileInline({
             </option>
           ))}
         </select>
-        <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder="model" className={cn(inputCls, "w-[130px]")} />
+        {caps.modelEnabled ? (
+          <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder="model" className={cn(inputCls, "w-[130px]")} />
+        ) : null}
         <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
           {["", ...caps.budgetLevels].map((b) => (
             <option key={b || "none"} value={b}>

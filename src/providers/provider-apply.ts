@@ -1,62 +1,92 @@
 // ── Applying a profile's model + effort to the actual spawn ──────────────────
 //
-// A profile's `model`/`power` (effort) only matter if they reach the provider's
-// CLI. Each provider accepts them differently, so this maps the resolved knobs
-// to concrete CLI args per provider. Conservative: only providers whose flag we
-// are confident about are wired; everything else returns [] (the value stays
-// advisory rather than risk injecting a flag the CLI rejects). User-overridable
-// catalog comes later (Phase C).
+// Single source of truth for what a provider's model/effort knobs DO. A knob is
+// only ever exposed in the UI if it is wired here to a real CLI flag - no
+// advisory values. Verified against each CLI's `--help`:
+//   - claude:  `--effort <low|medium|high|xhigh|max>`, `--model <id>`
+//   - codex:   `-c model_reasoning_effort=<minimal|low|medium|high>`, `--model`
+//   - gemini:  `--model <id>` (no effort flag -> effort hidden)
+// (`ultracode` is a Vibestrate run-mode, not a claude `--effort` value, so it is
+// NOT an effort level here.)
 
 type ArgApply =
-  | { kind: "none" }
   | { kind: "flag"; flag: string } // -> [flag, value]
   | { kind: "config"; flag: string; key: string }; // -> [flag, `${key}=${value}`]
 
-type ApplySpec = { model: ArgApply; effort: ArgApply };
-
-const NONE: ArgApply = { kind: "none" };
-
-const APPLY: Record<string, ApplySpec> = {
-  // OpenAI Codex CLI: `--model <id>`, reasoning effort via `-c
-  // model_reasoning_effort=<level>`.
-  codex: {
-    model: { kind: "flag", flag: "--model" },
-    effort: { kind: "config", flag: "-c", key: "model_reasoning_effort" },
-  },
-  // Gemini CLI: `--model <id>`. No confirmed discrete effort flag -> advisory.
-  gemini: { model: { kind: "flag", flag: "--model" }, effort: NONE },
-  // Claude Code: `--model <id>` (applied in claude-code-provider). Headless
-  // effort mechanism not confirmed yet, so effort stays advisory.
-  claude: { model: { kind: "flag", flag: "--model" }, effort: NONE },
+type ProviderApplySpec = {
+  /** Curated model suggestions (model is applied via `model` below). */
+  models: string[];
+  /** How `--model` is passed. null = model selection not wired -> hidden. */
+  model: ArgApply | null;
+  /** Effort: the real levels + how each is applied. null = no effort -> hidden. */
+  effort: { levels: string[]; apply: ArgApply } | null;
 };
 
-function oneArg(a: ArgApply, value?: string | null): string[] {
-  if (!value || a.kind === "none") return [];
-  if (a.kind === "flag") return [a.flag, value];
-  return [a.flag, `${a.key}=${value}`];
+const FLAG_MODEL: ArgApply = { kind: "flag", flag: "--model" };
+
+const SPECS: Record<string, ProviderApplySpec> = {
+  claude: {
+    models: ["opus", "sonnet", "haiku"],
+    model: FLAG_MODEL,
+    effort: {
+      levels: ["low", "medium", "high", "xhigh", "max"],
+      apply: { kind: "flag", flag: "--effort" },
+    },
+  },
+  codex: {
+    models: ["gpt-5-codex", "gpt-5", "o4-mini", "o3"],
+    model: FLAG_MODEL,
+    effort: {
+      levels: ["minimal", "low", "medium", "high"],
+      apply: { kind: "config", flag: "-c", key: "model_reasoning_effort" },
+    },
+  },
+  gemini: {
+    models: ["gemini-2.5-pro", "gemini-2.5-flash"],
+    model: FLAG_MODEL,
+    effort: null,
+  },
+  // Not wired (no verified flag) -> the UI hides model/effort for these.
+  ollama: { models: [], model: null, effort: null },
+  qwen: { models: [], model: null, effort: null },
+  opencode: { models: [], model: null, effort: null },
+  aider: { models: [], model: null, effort: null },
+  crush: { models: [], model: null, effort: null },
+  goose: { models: [], model: null, effort: null },
+  cursor: { models: [], model: null, effort: null },
+  amp: { models: [], model: null, effort: null },
+};
+
+function oneArg(a: ArgApply, value: string): string[] {
+  return a.kind === "flag" ? [a.flag, value] : [a.flag, `${a.key}=${value}`];
 }
 
-export type ProfileKnobs = {
-  model?: string | null;
-  effort?: string | null;
-};
+/** Model suggestions for a provider (empty = model not wired). */
+export function modelSuggestions(providerId: string): string[] {
+  const s = SPECS[providerId];
+  return s?.model ? s.models : [];
+}
 
-/** Extra CLI args that apply a profile's model + effort for `providerId`.
- *  [] when the provider's mechanism is unknown (value remains advisory). */
+/** Whether model selection is actually applied for this provider. */
+export function modelIsWired(providerId: string): boolean {
+  return !!SPECS[providerId]?.model;
+}
+
+/** Real, wired effort levels for a provider ([] = effort not wired -> hidden). */
+export function effortLevels(providerId: string): string[] {
+  return SPECS[providerId]?.effort?.levels ?? [];
+}
+
+/** Extra CLI args applying model + effort for a generic-CLI provider (codex,
+ *  gemini, ...). Claude is type `claude-code` and applies in its own provider. */
 export function profileSpawnArgs(
   providerId: string,
-  knobs: ProfileKnobs,
+  knobs: { model?: string | null; effort?: string | null },
 ): string[] {
-  const spec = APPLY[providerId];
+  const spec = SPECS[providerId];
   if (!spec) return [];
-  return [
-    ...oneArg(spec.model, knobs.model),
-    ...oneArg(spec.effort, knobs.effort),
-  ];
-}
-
-/** Whether we know how to apply effort for this provider (for honest UI/labels). */
-export function effortIsWired(providerId: string): boolean {
-  return APPLY[providerId]?.effort.kind !== undefined &&
-    APPLY[providerId]?.effort.kind !== "none";
+  const out: string[] = [];
+  if (knobs.model && spec.model) out.push(...oneArg(spec.model, knobs.model));
+  if (knobs.effort && spec.effort) out.push(...oneArg(spec.effort.apply, knobs.effort));
+  return out;
 }

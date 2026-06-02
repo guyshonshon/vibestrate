@@ -1,60 +1,52 @@
-// ── Provider capability catalog ─────────────────────────────────────────────
+// ── Provider capability catalog (UI-facing) ─────────────────────────────────
 //
-// Best-effort, curated suggestions for a provider's models and power/effort
-// levels, so the Profile editor can offer real options instead of an empty
-// text box. These are SUGGESTIONS, not a closed set: the UI presents them via a
-// datalist and still accepts any typed value (CLIs add/rename models often, and
-// local providers like Ollama expose whatever you've pulled). Same spirit as
-// `provider-presets.ts` - known-good defaults, easy to extend, never a hard gate.
+// What the Profile editor offers per provider. Derived from the apply layer
+// (provider-apply.ts) so a knob is ONLY shown when it is actually wired to a
+// real CLI flag - no advisory options. Models/effort come straight from the
+// single source; budget is Vibestrate's own coarse knob.
+
+import {
+  modelSuggestions,
+  modelIsWired,
+  effortLevels,
+} from "./provider-apply.js";
 
 export type ProviderCapabilities = {
-  /** Suggested model ids. Empty = no curated suggestions (free text). */
+  /** Model suggestions; empty when model selection isn't wired for this provider. */
   models: string[];
-  /** Suggested provider-specific power/effort levels. Empty = the provider
-   *  exposes no discrete effort control (the field is just free text). */
+  /** Whether model selection actually takes effect (UI hides the field if not). */
+  modelEnabled: boolean;
+  /** Wired effort levels; empty = no effort control (UI hides the field). */
   powerLevels: string[];
-  /** Suggested coarse budget levels (Vibestrate's own spend-appetite knob). */
+  /** Coarse budget levels (Vibestrate spend-appetite knob). */
   budgetLevels: string[];
 };
 
 const BUDGET = ["low", "medium", "high"];
-// Claude Code's effort ladder, Faster -> Smarter. `ultracode` = xhigh + workflows.
-const CLAUDE_EFFORT = ["low", "medium", "high", "xhigh", "max", "ultracode"];
 
-/** Keyed by known provider id. Conservative on purpose - only models/levels we
- *  are reasonably confident about; everything else falls back to free text. */
-export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> = {
-  claude: {
-    models: ["opus", "sonnet", "haiku"],
-    powerLevels: CLAUDE_EFFORT,
-    budgetLevels: BUDGET,
-  },
-  codex: {
-    models: ["gpt-5-codex", "gpt-5", "o4-mini", "o3"],
-    powerLevels: ["minimal", "low", "medium", "high"],
-    budgetLevels: BUDGET,
-  },
-  gemini: {
-    models: ["gemini-2.5-pro", "gemini-2.5-flash"],
-    powerLevels: ["low", "medium", "high"],
-    budgetLevels: BUDGET,
-  },
-  // Local: models are whatever you've pulled, so suggestions stay free-text.
-  ollama: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  qwen: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  // CLIs whose model is configured on their own side / we can't pin reliably -
-  // free text, with the coarse budget knob.
-  opencode: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  aider: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  crush: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  goose: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  cursor: { models: [], powerLevels: [], budgetLevels: BUDGET },
-  amp: { models: [], powerLevels: [], budgetLevels: BUDGET },
-};
+const KNOWN = [
+  "claude",
+  "codex",
+  "gemini",
+  "opencode",
+  "aider",
+  "ollama",
+  "qwen",
+  "crush",
+  "goose",
+  "cursor",
+  "amp",
+];
 
-/** Capabilities for a provider id, with a safe default for unknown/custom ids. */
 export function providerCapabilities(id: string): ProviderCapabilities {
-  return (
-    PROVIDER_CATALOG[id] ?? { models: [], powerLevels: [], budgetLevels: BUDGET }
-  );
+  return {
+    models: modelSuggestions(id),
+    modelEnabled: modelIsWired(id),
+    powerLevels: effortLevels(id),
+    budgetLevels: BUDGET,
+  };
 }
+
+/** Full catalog (every known provider), built from the apply layer. */
+export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> =
+  Object.fromEntries(KNOWN.map((id) => [id, providerCapabilities(id)]));

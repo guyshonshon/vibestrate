@@ -19,10 +19,13 @@ export async function runClaudeCodeProvider(
   input: ProviderRunInput,
 ): Promise<ClaudeCodeProviderRunResult> {
   const args = buildClaudeCodeArgs(config.args ?? [], config.settings);
-  // Apply the resolved profile's model (`--model <id>`) when set. Effort for
-  // headless claude isn't a confirmed flag yet, so it stays advisory.
+  // Apply the resolved profile's model + effort - both real `claude` flags
+  // (`--model <id>`, `--effort <low|medium|high|xhigh|max>`).
   if (input.model) {
     args.push("--model", input.model);
+  }
+  if (input.effort) {
+    args.push("--effort", input.effort);
   }
   if (input.mcpConfigPath) {
     // `--mcp-config <path>` is the documented Claude Code flag for

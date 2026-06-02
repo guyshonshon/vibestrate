@@ -283,6 +283,8 @@ export type ProfileView = {
 
 export type ProviderCapabilities = {
   models: string[];
+  /** Whether model selection actually applies (UI hides the field if false). */
+  modelEnabled: boolean;
   powerLevels: string[];
   budgetLevels: string[];
 };
