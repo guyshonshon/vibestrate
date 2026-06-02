@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.2.0",
+  "version": "0.3.6",
   "commands": [
     {
       "name": "init",
@@ -752,6 +752,234 @@
               "subcommands": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "profiles",
+      "path": [
+        "vibe",
+        "profiles"
+      ],
+      "description": "Runtime presets (provider + model/power/budget) that Crew roles run on.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "profiles",
+            "list"
+          ],
+          "description": "List profiles, grouped by provider, with how many roles use each.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "add",
+          "path": [
+            "vibe",
+            "profiles",
+            "add"
+          ],
+          "description": "Create a new profile.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--provider <id>",
+              "description": "raw provider id this profile runs on",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--label <label>",
+              "description": "human label",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--model <model>",
+              "description": "provider model id (e.g. sonnet, opus)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--power <level>",
+              "description": "provider-specific power/effort (e.g. balanced)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--budget <level>",
+              "description": "spend appetite (low/medium/high)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-tokens <n>",
+              "description": "hard cap on output tokens per turn",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--timeout <ms>",
+              "description": "per-turn wall-clock timeout (ms)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "set",
+          "path": [
+            "vibe",
+            "profiles",
+            "set"
+          ],
+          "description": "Edit an existing profile's fields.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--label <label>",
+              "description": "human label",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--model <model>",
+              "description": "provider model id (e.g. sonnet, opus)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--power <level>",
+              "description": "provider-specific power/effort (e.g. balanced)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--budget <level>",
+              "description": "spend appetite (low/medium/high)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-tokens <n>",
+              "description": "hard cap on output tokens per turn",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--timeout <ms>",
+              "description": "per-turn wall-clock timeout (ms)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--provider <id>",
+              "description": "move the profile to a different provider",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "duplicate",
+          "path": [
+            "vibe",
+            "profiles",
+            "duplicate"
+          ],
+          "description": "Copy a profile under a new id (e.g. claude -> claude-cheap).",
+          "usage": "[options] <id> <newId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "remove",
+          "path": [
+            "vibe",
+            "profiles",
+            "remove"
+          ],
+          "description": "Delete a profile (refuses if a role uses it, unless --force).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--force",
+              "description": "delete even if roles still reference it",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },
