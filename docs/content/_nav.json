@@ -12,6 +12,7 @@
       "id": "getting-started",
       "label": "Getting started",
       "items": [
+        { "slug": "getting-started/big-picture", "label": "The big picture" },
         { "slug": "getting-started/installation", "label": "Installation" },
         { "slug": "getting-started/first-run", "label": "Your first run" },
         { "slug": "getting-started/providers", "label": "Set up a provider" },
