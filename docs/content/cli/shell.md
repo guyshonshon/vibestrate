@@ -33,14 +33,18 @@ A persistent context strip sits at the top, so you always know *where you are* a
 
 The bottom line is an always-visible prompt. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and **Enter** to run it - the output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
 
+**Autocomplete.** As you type, a **ghost list** opens under the prompt with the commands, subcommands, and flags that fit - read straight from the real CLI tree, so it never drifts. A word completes subcommands (`config ` -> `view` / `show` / `get` / `set` / `validate`); a dash completes flags (`config show -` -> `--json`). **Tab** accepts the highlighted candidate, **↑ / ↓** move the selection, **Esc** dismisses the list (and history stays on ↑ / ↓ while the prompt is empty).
+
 When you run a `run …` command from the prompt, the shell seeds it with your session selections - it appends `--crew`, `--flow`, and `--read-only` to match the status bar (anything you type explicitly always wins).
 
 ```text
-▸ vibe run "add dark mode"
-        → launches with the selected crew + flow + mode
+▸ vibe config sh▌
+    › show   raw project.yml dump
+      set    edit one value
+    ⇥ complete · ↑↓ select · esc dismiss
 ```
 
-Command **output streams into a scrollable pane on the right** (~30% of the width), not the prompt - so long `--help` text or a `status` dump stays readable. It follows the tail by default; while the prompt is focused, **Tab** / **Shift+Tab** scroll it (the only keys a text prompt leaves free - no PgUp needed).
+Command **output streams into a scrollable pane on the right** (~30% of the width), not the prompt - so long `--help` text or a `status` dump stays readable. It follows the tail by default; while the prompt is focused, **Tab** / **Shift+Tab** scroll it. When a command's output is **verbose** (many lines, or wide YAML / tables like `config show`), the shell automatically opens the **full-width readable view** so it isn't mangled by the narrow pane - press **`O`** or **Esc** to collapse back.
 
 ## Docs browser
 

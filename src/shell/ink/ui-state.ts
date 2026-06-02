@@ -1,7 +1,8 @@
-// Pure UI state for the ink-based panel. Kept (runtime-)import-free so it can
-// be exercised under the node-only Vitest environment. The one import below is
-// type-only (erased at compile time).
+// Pure UI state for the ink-based panel. Kept node-safe so it can be exercised
+// under the node-only Vitest environment - the imports below are either
+// type-only (erased) or pure, dependency-free helpers.
 import type { MdLine } from "./markdown-render.js";
+import { looksVerbose } from "./output-window.js";
 
 /** A docs topic for the in-shell browser (mirrors docs-source's DocTopic,
  *  duplicated here so this module pulls in no node-fs dependency). */
@@ -123,6 +124,13 @@ export type ShellUiStateV2 = {
     /** Lines scrolled up from the bottom in the output pane (0 = tail). */
     scroll: number;
   };
+  /**
+   * Prompt command-completion overlay. `index` is the selected candidate;
+   * `dismissed` hides the list until the input changes (Esc to dismiss). The
+   * candidate list itself is derived in the view from the input + command spec,
+   * not stored here.
+   */
+  completion: { index: number; dismissed: boolean };
   /** In-shell docs browser overlay. */
   docs: DocsState;
   /** Session context (status bar + seeds the next prompt-launched run). */
@@ -174,6 +182,7 @@ export const initialUiState: ShellUiStateV2 = {
     historyIndex: -1,
     scroll: 0,
   },
+  completion: { index: 0, dismissed: false },
   docs: {
     open: false,
     topics: [],
@@ -222,6 +231,8 @@ export type ShellUiAction =
   | { type: "runner.history.prev" }
   | { type: "runner.history.next" }
   | { type: "runner.scroll"; delta: number }
+  | { type: "completion.move"; delta: number; max: number }
+  | { type: "completion.dismiss" }
   | { type: "docs.open" }
   | { type: "docs.close" }
   | { type: "docs.loaded"; topics: DocTopicLite[] }
@@ -344,13 +355,19 @@ export function reduceShellUi(
     case "palette.cursor.set":
       return { ...state, paletteSelectedIndex: Math.max(0, action.index) };
     case "runner.input":
+      // Editing the input re-arms the completion overlay from the top.
       return {
         ...state,
         runner: { ...state.runner, input: action.value, historyIndex: -1 },
+        completion: { index: 0, dismissed: false },
       };
     case "runner.started":
       return {
         ...state,
+        // Each run starts in the narrow pane + dismisses the completion list;
+        // `runner.finished` re-opens the full-width view if the output is verbose.
+        outputExpanded: false,
+        completion: { index: 0, dismissed: true },
         runner: {
           ...state.runner,
           running: true,
@@ -376,8 +393,12 @@ export function reduceShellUi(
         },
       };
     case "runner.finished":
+      // Verbose output (YAML / tables) is unreadable truncated in the narrow
+      // pane, so auto-open the full-width readable view; the user collapses
+      // with O / Esc.
       return {
         ...state,
+        outputExpanded: state.outputExpanded || looksVerbose(state.runner.output),
         runner: { ...state.runner, running: false, exitCode: action.exitCode },
       };
     case "runner.history.prev": {
@@ -424,13 +445,15 @@ export function reduceShellUi(
     case "session.flow.set":
       return { ...state, session: { ...state.session, flowId: action.flowId } };
     case "prompt.focus":
-      // Focusing the prompt closes other modal layers so input isn't split.
+      // Focusing the prompt closes other modal layers so input isn't split,
+      // and re-arms the completion overlay.
       return {
         ...state,
         promptFocused: true,
         paletteOpen: false,
         helpOpen: false,
         picker: null,
+        completion: { index: 0, dismissed: false },
       };
     case "prompt.blur":
       return { ...state, promptFocused: false };
@@ -457,6 +480,18 @@ export function reduceShellUi(
       const next = Math.max(0, state.runner.scroll + action.delta);
       return { ...state, runner: { ...state.runner, scroll: next } };
     }
+    case "completion.move": {
+      const next = Math.max(
+        0,
+        Math.min(action.max, state.completion.index + action.delta),
+      );
+      return { ...state, completion: { ...state.completion, index: next } };
+    }
+    case "completion.dismiss":
+      return {
+        ...state,
+        completion: { ...state.completion, dismissed: true },
+      };
     case "docs.open":
       return {
         ...state,
