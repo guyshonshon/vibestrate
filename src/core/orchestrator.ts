@@ -3141,6 +3141,18 @@ export class Orchestrator {
           durationMs: Date.now() - stageStart.getTime(),
         },
       });
+      // A non-zero exit is an invocation failure (e.g. a rejected flag). The run
+      // continues, but surface it as a notification tied to this phase so it's
+      // not silent.
+      if (providerResult.exitCode !== 0) {
+        (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify?.(
+          draftProviderFailed({
+            runId: ctx.runId,
+            providerId: effectiveProviderId,
+            error: `${roleId} at "${input.stageId}" exited ${providerResult.exitCode}`,
+          }),
+        );
+      }
     } catch (err) {
       const stageEnd = new Date();
       await ctx.eventLog.append({
