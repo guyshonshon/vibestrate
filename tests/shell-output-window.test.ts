@@ -1,7 +1,30 @@
 import { describe, it, expect } from "vitest";
-import { windowFromBottom, windowFromTop } from "../src/shell/ink/output-window.js";
+import {
+  looksVerbose,
+  windowFromBottom,
+  windowFromTop,
+} from "../src/shell/ink/output-window.js";
 
 const lines = ["a", "b", "c", "d", "e"];
+
+describe("looksVerbose", () => {
+  it("is false for empty / short output", () => {
+    expect(looksVerbose("")).toBe(false);
+    expect(looksVerbose("   \n  ")).toBe(false);
+    expect(looksVerbose("ok\nexit 0")).toBe(false);
+  });
+  it("is true when there are many lines", () => {
+    const many = Array.from({ length: 20 }, (_, i) => `l${i}`).join("\n");
+    expect(looksVerbose(many)).toBe(true);
+  });
+  it("is true when any line is wide (truncates badly in the narrow pane)", () => {
+    expect(looksVerbose("x".repeat(80))).toBe(true);
+  });
+  it("respects custom thresholds", () => {
+    expect(looksVerbose("a\nb\nc", { maxLines: 2 })).toBe(true);
+    expect(looksVerbose("abcd", { maxWidth: 3 })).toBe(true);
+  });
+});
 
 describe("windowFromBottom", () => {
   it("returns everything when it fits", () => {

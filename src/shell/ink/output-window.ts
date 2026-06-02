@@ -33,6 +33,25 @@ export function windowFromBottom<T>(
   };
 }
 
+/**
+ * Heuristic: would this command output look mangled in the narrow (~26%)
+ * output column? True when it has many lines or any wide line - the cases
+ * where one-row-per-line truncation turns YAML / tables (e.g. `config show`,
+ * `status`) into noise. The shell uses this to auto-open the full-width
+ * readable view when a verbose command finishes.
+ */
+export function looksVerbose(
+  output: string,
+  opts: { maxWidth?: number; maxLines?: number } = {},
+): boolean {
+  if (output.trim().length === 0) return false;
+  const maxWidth = opts.maxWidth ?? 64;
+  const maxLines = opts.maxLines ?? 16;
+  const lines = output.split(/\r?\n/);
+  if (lines.length > maxLines) return true;
+  return lines.some((l) => l.length > maxWidth);
+}
+
 /** A `height`-tall window anchored to the top (for top-down docs scrolling). */
 export function windowFromTop<T>(
   lines: readonly T[],

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.14
+
+- **The shell prompt autocompletes.** As you type a `vibe …` command, a ghost
+  list opens under the prompt with the commands, subcommands, and flags that
+  fit - walked from the real CLI tree at launch, so it never drifts from what
+  the binary actually accepts. A word completes subcommands (`config ` ->
+  view / show / get / set / validate); a dash completes flags (`config show -`
+  -> `--json`). Tab accepts, arrows move, Esc dismisses; history still rides
+  the arrows while the prompt is empty.
+- **Verbose command output stops looking broken in the shell.** When a prompt
+  command finishes with many lines or wide YAML / tables (e.g. `config show`,
+  `status`), the shell now auto-opens the full-width readable view instead of
+  mangling it in the narrow output column - press `O` or `Esc` to collapse.
+
 ## 0.3.13
 
 - **A readable Config view, not a raw YAML dump.** `vibe config view` groups the

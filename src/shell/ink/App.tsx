@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { Footer } from "./components/Footer.js";
 import {
@@ -11,6 +11,13 @@ import { ContextLine } from "./components/StatusBar.js";
 import { HeaderBar } from "./components/HeaderBar.js";
 import { Panel } from "./components/Panel.js";
 import { OutputPane } from "./components/OutputPane.js";
+import { CompletionOverlay } from "./components/CompletionOverlay.js";
+import {
+  applyCompletion,
+  completeInput,
+  EMPTY_SPEC,
+  type CommandNode,
+} from "./completion.js";
 import { ActionsPanel } from "./components/ActionsPanel.js";
 import { DocsOverlay } from "./components/DocsOverlay.js";
 import { CrewFlowPicker } from "./components/CrewFlowPicker.js";
@@ -74,6 +81,9 @@ type Props = {
    *  When null we fall through to VIBESTRATE_UI_URL env, then a localhost
    *  default - opening it just tries http://127.0.0.1:4317. */
   uiUrl?: string | null;
+  /** CLI command tree for the prompt's autocomplete. Defaults to an empty
+   *  spec (no completions) so render-tests don't need the full program. */
+  completionSpec?: CommandNode;
 };
 
 const FUTURE_PHASES: Partial<Record<PageId, string>> = {};
@@ -87,7 +97,12 @@ function resolveUiUrl(propUrl: string | null | undefined): string {
   return DEFAULT_UI_URL;
 }
 
-export function App({ projectRoot, refreshMs, uiUrl }: Props) {
+export function App({
+  projectRoot,
+  refreshMs,
+  uiUrl,
+  completionSpec = EMPTY_SPEC,
+}: Props) {
   const [ui, dispatch] = useReducer(reduceShellUi, initialUiState);
   const { snapshot, refresh } = useSnapshot({ projectRoot, refreshMs });
   const { tasks, refresh: refreshTasks } = useTasks(projectRoot);
@@ -182,6 +197,32 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     }).then(() => {
       void refreshConfig();
       setInitRunning(false);
+    });
+  };
+
+  // Prompt autocomplete: candidates for the token at the cursor, derived from
+  // the command spec. The overlay shows only while the prompt owns input, the
+  // user has typed something, and the list hasn't been dismissed.
+  const completion = useMemo(
+    () => completeInput(ui.runner.input, completionSpec),
+    [ui.runner.input, completionSpec],
+  );
+  const completionIndex = Math.max(
+    0,
+    Math.min(completion.items.length - 1, ui.completion.index),
+  );
+  const completionOpen =
+    ui.promptFocused &&
+    !ui.completion.dismissed &&
+    ui.runner.input.trim().length > 0 &&
+    completion.items.length > 0;
+
+  const acceptCompletion = (): void => {
+    const item = completion.items[completionIndex];
+    if (!item) return;
+    dispatch({
+      type: "runner.input",
+      value: applyCompletion(ui.runner.input, completion.query, item.value),
     });
   };
 
@@ -460,12 +501,36 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
       return;
     }
     if (ui.promptFocused) {
-      // The bottom prompt owns input. Esc returns to navigation; ↑/↓ walk
-      // command history; Tab / Shift+Tab scroll the output pane (the only keys
-      // ink-text-input leaves alone while you're typing). Typing + Enter are
-      // handled by ink-text-input.
+      // The bottom prompt owns input. When the completion overlay is open it
+      // takes Tab (accept) + ↑/↓ (select) + Esc (dismiss); otherwise Esc
+      // returns to navigation, ↑/↓ walk command history, and Tab / Shift+Tab
+      // scroll the output pane. Typing + Enter are handled by ink-text-input.
       if (key.escape) {
+        if (completionOpen) {
+          dispatch({ type: "completion.dismiss" });
+          return;
+        }
         dispatch({ type: "prompt.blur" });
+        return;
+      }
+      if (completionOpen && key.tab) {
+        acceptCompletion();
+        return;
+      }
+      if (completionOpen && key.upArrow) {
+        dispatch({
+          type: "completion.move",
+          delta: -1,
+          max: completion.items.length - 1,
+        });
+        return;
+      }
+      if (completionOpen && key.downArrow) {
+        dispatch({
+          type: "completion.move",
+          delta: 1,
+          max: completion.items.length - 1,
+        });
         return;
       }
       if (key.upArrow) {
@@ -920,6 +985,12 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
           onChange={(v) => dispatch({ type: "runner.input", value: v })}
           onSubmit={submitPrompt}
         />
+        {completionOpen ? (
+          <CompletionOverlay
+            items={completion.items}
+            selectedIndex={completionIndex}
+          />
+        ) : null}
         <Footer ui={ui} capturedAt={snapshot?.capturedAt ?? null} />
       </Panel>
       {ui.picker ? (
