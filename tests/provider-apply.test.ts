@@ -8,7 +8,7 @@ import {
 describe("provider-apply: wired capabilities", () => {
   it("effort levels are the real CLI levels, or empty when not wired", () => {
     expect(effortLevels("claude")).toEqual(["low", "medium", "high", "xhigh", "max"]);
-    expect(effortLevels("codex")).toEqual(["minimal", "low", "medium", "high"]);
+    expect(effortLevels("codex")).toEqual(["minimal", "low", "medium", "high", "xhigh"]);
     expect(effortLevels("gemini")).toEqual([]); // no effort flag -> hidden
     expect(effortLevels("ollama")).toEqual([]);
     expect(effortLevels("unknown")).toEqual([]);
