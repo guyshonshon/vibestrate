@@ -60,4 +60,24 @@ describe("GET /api/providers/catalog", () => {
     expect(mine.modelEnabled).toBe(true);
     expect(mine.powerLevels).toEqual(["minimal", "low", "medium", "high"]);
   });
+
+  it("reflects the project's providers-catalog.yml overlay", async () => {
+    const project = await makeProject();
+    // built-in gemini has no effort; the overlay declares one.
+    await fs.writeFile(
+      path.join(project, ".vibestrate", "providers-catalog.yml"),
+      [
+        "cli:",
+        "  gemini:",
+        "    effort:",
+        "      levels: [think, deep]",
+        "      apply: { kind: flag, flag: --reason }",
+      ].join("\n"),
+    );
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/providers/catalog`);
+    const body = (await res.json()) as { catalog: Record<string, ProviderCapabilities> };
+    expect(body.catalog.gemini!.powerLevels).toEqual(["think", "deep"]);
+  });
 });

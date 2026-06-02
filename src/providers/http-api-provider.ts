@@ -11,7 +11,7 @@
 
 import { ProviderError } from "../utils/errors.js";
 import { resolveSecret, envVarName, redact } from "../notifications/gateways/secret-resolver.js";
-import { applyHttpEffort } from "./provider-apply.js";
+import { applyHttpEffort, type ResolvedCatalog } from "./provider-apply.js";
 import { nowIso } from "../utils/time.js";
 import type {
   HttpApiProviderConfig,
@@ -48,7 +48,12 @@ function buildRequest(
   config: AnyHttpProvider,
   prompt: string,
   apiKey: string | undefined,
-  override?: { model?: string | null; maxTokens?: number | null; effort?: string | null },
+  override?: {
+    model?: string | null;
+    maxTokens?: number | null;
+    effort?: string | null;
+    catalog?: ResolvedCatalog;
+  },
 ): { url: string; headers: Record<string, string>; body: string } {
   const base = trimSlash(config.baseUrl);
   const model = override?.model || config.model;
@@ -63,19 +68,19 @@ function buildRequest(
     if (apiKey) headers["x-api-key"] = apiKey;
     headers["anthropic-version"] = "2023-06-01";
     const body: Record<string, unknown> = { model, max_tokens: maxTokens, messages };
-    applyHttpEffort(config.api, body, override?.effort); // no-op for anthropic
+    applyHttpEffort(config.api, body, override?.effort, override?.catalog); // no-op for anthropic
     return { url: `${base}/v1/messages`, headers, body: JSON.stringify(body) };
   }
   if (config.api === "openai") {
     if (apiKey) headers["authorization"] = `Bearer ${apiKey}`;
     const body: Record<string, unknown> = { model, max_tokens: maxTokens, messages };
-    applyHttpEffort(config.api, body, override?.effort); // -> reasoning_effort
+    applyHttpEffort(config.api, body, override?.effort, override?.catalog); // -> reasoning_effort
     return { url: `${base}/v1/chat/completions`, headers, body: JSON.stringify(body) };
   }
   // ollama (localhost native)
   if (apiKey) headers["authorization"] = `Bearer ${apiKey}`;
   const body: Record<string, unknown> = { model, stream: false, messages };
-  applyHttpEffort(config.api, body, override?.effort); // no-op for ollama
+  applyHttpEffort(config.api, body, override?.effort, override?.catalog); // no-op for ollama
   return { url: `${base}/api/chat`, headers, body: JSON.stringify(body) };
 }
 
@@ -177,6 +182,7 @@ export async function runHttpApiProvider(
     model: input.model,
     maxTokens: input.maxTokens,
     effort: input.effort,
+    catalog: input.catalog,
   });
   const doFetch: FetchLike = fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
 

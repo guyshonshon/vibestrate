@@ -11,6 +11,8 @@ import {
   effortLevels,
   httpEffortLevels,
   httpModelSuggestions,
+  BUILTIN_CATALOG,
+  type ResolvedCatalog,
 } from "./provider-apply.js";
 import type { ProviderConfig } from "./provider-schema.js";
 
@@ -41,11 +43,14 @@ const KNOWN = [
   "amp",
 ];
 
-export function providerCapabilities(id: string): ProviderCapabilities {
+export function providerCapabilities(
+  id: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): ProviderCapabilities {
   return {
-    models: modelSuggestions(id),
-    modelEnabled: modelIsWired(id),
-    powerLevels: effortLevels(id),
+    models: modelSuggestions(id, catalog),
+    modelEnabled: modelIsWired(id, catalog),
+    powerLevels: effortLevels(id, catalog),
     budgetLevels: BUDGET,
   };
 }
@@ -62,15 +67,19 @@ export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> =
 export function capabilitiesForProvider(
   id: string,
   config: ProviderConfig,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
 ): ProviderCapabilities {
   if (config.type === "http-api" || config.type === "localhost-proxy") {
     return {
-      models: httpModelSuggestions(config.api),
+      models: httpModelSuggestions(config.api, catalog),
       modelEnabled: true, // every HTTP api takes a model id
-      powerLevels: httpEffortLevels(config.api),
+      powerLevels: httpEffortLevels(config.api, catalog),
       budgetLevels: BUDGET,
     };
   }
   // cli / claude-code: keyed by the well-known provider id.
-  return providerCapabilities(id === "claude" || config.type === "claude-code" ? "claude" : id);
+  return providerCapabilities(
+    id === "claude" || config.type === "claude-code" ? "claude" : id,
+    catalog,
+  );
 }

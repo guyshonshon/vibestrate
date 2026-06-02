@@ -1,3 +1,5 @@
+import type { ResolvedCatalog } from "./provider-apply.js";
+
 export type ProviderRunResult = {
   providerId: string;
   command: string;
@@ -52,6 +54,10 @@ export type ProviderRunInput = {
   model?: string | null;
   effort?: string | null;
   maxTokens?: number | null;
+  /** Resolved capability catalog (built-in merged with the project's
+   *  `.vibestrate/providers-catalog.yml` overlay). When set, the provider applies
+   *  model/effort from this instead of the built-in defaults. Omitted = built-in. */
+  catalog?: ResolvedCatalog;
   /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**

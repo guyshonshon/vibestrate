@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "commands": [
     {
       "name": "init",
@@ -193,6 +193,27 @@
             {
               "flags": "--yes",
               "description": "skip the confirmation prompt (non-interactive)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "catalog",
+          "path": [
+            "vibe",
+            "provider",
+            "catalog"
+          ],
+          "description": "Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
               "required": false,
               "optional": false,
               "negated": false

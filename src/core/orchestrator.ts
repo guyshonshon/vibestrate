@@ -37,6 +37,8 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
+import type { ResolvedCatalog } from "../providers/provider-apply.js";
 import {
   createActionBroker,
   type ActionBroker,
@@ -360,6 +362,8 @@ function flowFindingSuggestionTitle(
 export class Orchestrator {
   private readonly projectRoot: string;
   private readonly config: ProjectConfig;
+  /** Resolved capability catalog (built-in + project overlay), loaded once. */
+  private resolvedCatalog: ResolvedCatalog | null = null;
   private readonly rules: string;
   private readonly task: string;
   private readonly isGitRepo: boolean;
@@ -3076,6 +3080,12 @@ export class Orchestrator {
       // to the spawn where the provider supports it; advisory otherwise.
       const runtimeProfile =
         this.config.profiles[input.profileId ?? agent.profile];
+      // Resolve the capability catalog (built-in + project overlay) once; the
+      // provider applies model/effort from it so a user's custom catalog entry
+      // actually reaches the spawn.
+      if (!this.resolvedCatalog) {
+        this.resolvedCatalog = await resolveCatalog(this.projectRoot);
+      }
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
         prompt,
@@ -3083,6 +3093,7 @@ export class Orchestrator {
         model: runtimeProfile?.model ?? undefined,
         effort: runtimeProfile?.power ?? undefined,
         maxTokens: runtimeProfile?.maxTokens ?? undefined,
+        catalog: this.resolvedCatalog,
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
         onChunk: (c) => {
           if (liveFilter && c.stream === "stdout") {
