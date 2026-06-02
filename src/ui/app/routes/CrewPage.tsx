@@ -807,7 +807,6 @@ function NewProfileInline({
   const [provider, setProvider] = useState(providers[0] ?? "");
   const [model, setModel] = useState("");
   const [power, setPower] = useState("");
-  const [budget, setBudget] = useState("");
   const caps = catalog[provider] ?? EMPTY_CAPS;
   const idTaken = existingProfileIds.has(id.trim());
   const valid =
@@ -837,13 +836,6 @@ function NewProfileInline({
         {caps.modelEnabled ? (
           <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder="model" className={cn(inputCls, "w-[130px]")} />
         ) : null}
-        <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
-          {["", ...caps.budgetLevels].map((b) => (
-            <option key={b || "none"} value={b}>
-              {b || "budget"}
-            </option>
-          ))}
-        </select>
       </div>
       {caps.powerLevels.length ? (
         <div className="mt-3">
@@ -865,7 +857,6 @@ function NewProfileInline({
               provider,
               model: model.trim() || undefined,
               power: power.trim() || undefined,
-              budget: budget.trim() || undefined,
             })
           }
         >
