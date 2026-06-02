@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.3
+
+- **Provider-aware profiles.** Picking a provider now drives the Model and Effort
+  fields from that provider's real options (a capability catalog) - dropdowns you
+  select from, with a "Custom…" escape for anything not listed - instead of blank
+  text boxes. In both the Profiles page and the Crew inline create.
+- **Brand:** the dashboard TopBar uses the real Vibestrate wordmark.
+
 ## 0.3.2
 
 - **Create a profile inline from Crew.** A role's profile picker gains "+ New" -
