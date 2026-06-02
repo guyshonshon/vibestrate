@@ -9,7 +9,10 @@ import {
   modelSuggestions,
   modelIsWired,
   effortLevels,
+  httpEffortLevels,
+  httpModelSuggestions,
 } from "./provider-apply.js";
+import type { ProviderConfig } from "./provider-schema.js";
 
 export type ProviderCapabilities = {
   /** Model suggestions; empty when model selection isn't wired for this provider. */
@@ -50,3 +53,24 @@ export function providerCapabilities(id: string): ProviderCapabilities {
 /** Full catalog (every known provider), built from the apply layer. */
 export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> =
   Object.fromEntries(KNOWN.map((id) => [id, providerCapabilities(id)]));
+
+/** Capabilities for an actual configured provider - api-aware. HTTP providers
+ *  (any id) resolve their model/effort knobs from the api family; CLI and
+ *  claude-code resolve from the well-known provider id. This is what the
+ *  Profile editors (web + shell) should use so a user's http-api provider
+ *  surfaces real knobs (e.g. OpenAI effort), not an empty set. */
+export function capabilitiesForProvider(
+  id: string,
+  config: ProviderConfig,
+): ProviderCapabilities {
+  if (config.type === "http-api" || config.type === "localhost-proxy") {
+    return {
+      models: httpModelSuggestions(config.api),
+      modelEnabled: true, // every HTTP api takes a model id
+      powerLevels: httpEffortLevels(config.api),
+      budgetLevels: BUDGET,
+    };
+  }
+  // cli / claude-code: keyed by the well-known provider id.
+  return providerCapabilities(id === "claude" || config.type === "claude-code" ? "claude" : id);
+}

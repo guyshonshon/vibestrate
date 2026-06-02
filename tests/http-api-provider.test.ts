@@ -138,6 +138,65 @@ describe("runHttpApiProvider - openai + ollama", () => {
   });
 });
 
+describe("runHttpApiProvider - profile effort reaches the request body", () => {
+  it("openai: a profile's effort becomes reasoning_effort in the body", async () => {
+    process.env.TEST_API_KEY = "sk-openai-eff";
+    const config = providerConfigSchema.parse({
+      type: "http-api",
+      api: "openai",
+      baseUrl: "https://api.openai.com",
+      model: "gpt-5.5",
+      apiKey: "env:TEST_API_KEY",
+    });
+    const { fetch, calls } = fakeFetch({
+      model: "gpt-5.5",
+      choices: [{ message: { content: "ok" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    await runHttpApiProvider(config as never, { ...input, effort: "high" }, fetch);
+    expect(JSON.parse(calls[0]!.body)).toMatchObject({
+      model: "gpt-5.5",
+      reasoning_effort: "high",
+    });
+  });
+
+  it("openai: no effort set -> no reasoning_effort field", async () => {
+    process.env.TEST_API_KEY = "sk-openai-eff";
+    const config = providerConfigSchema.parse({
+      type: "http-api",
+      api: "openai",
+      baseUrl: "https://api.openai.com",
+      model: "gpt-5.5",
+      apiKey: "env:TEST_API_KEY",
+    });
+    const { fetch, calls } = fakeFetch({
+      model: "gpt-5.5",
+      choices: [{ message: { content: "ok" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 1 },
+    });
+    await runHttpApiProvider(config as never, input, fetch);
+    expect(JSON.parse(calls[0]!.body)).not.toHaveProperty("reasoning_effort");
+  });
+
+  it("anthropic: effort is NOT injected (no real effort field - thinking is a budget)", async () => {
+    process.env.TEST_API_KEY = "sk-anthropic-eff";
+    const config = providerConfigSchema.parse({
+      type: "http-api",
+      api: "anthropic",
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-4-5",
+      apiKey: "env:TEST_API_KEY",
+    });
+    const { fetch, calls } = fakeFetch({
+      model: "claude-sonnet-4-5",
+      content: [{ type: "text", text: "hi" }],
+      usage: { input_tokens: 1, output_tokens: 1 },
+    });
+    await runHttpApiProvider(config as never, { ...input, effort: "high" }, fetch);
+    expect(JSON.parse(calls[0]!.body)).not.toHaveProperty("reasoning_effort");
+  });
+});
+
 describe("provider schema safety", () => {
   it("rejects a literal API key (must be an env-ref)", () => {
     expect(

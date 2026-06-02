@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   PROVIDER_CATALOG,
   providerCapabilities,
+  capabilitiesForProvider,
 } from "../src/providers/provider-catalog.js";
+import { providerConfigSchema } from "../src/providers/provider-schema.js";
 
 // The provider ids the app knows about (mirrors KnownProviderId).
 const KNOWN = [
@@ -44,5 +46,42 @@ describe("provider catalog", () => {
     expect(caps.models).toEqual([]);
     expect(caps.powerLevels).toEqual([]);
     expect(caps.budgetLevels.length).toBeGreaterThan(0);
+  });
+});
+
+describe("capabilitiesForProvider (api-aware, from a configured provider)", () => {
+  it("an http-api openai provider (any id) surfaces real effort + model is settable", () => {
+    const config = providerConfigSchema.parse({
+      type: "http-api",
+      api: "openai",
+      baseUrl: "https://api.openai.com",
+      model: "gpt-5.5",
+      apiKey: "env:K",
+    });
+    const caps = capabilitiesForProvider("my-gpt", config as never);
+    expect(caps.modelEnabled).toBe(true); // http always takes a model id
+    expect(caps.powerLevels).toEqual(["minimal", "low", "medium", "high"]);
+  });
+
+  it("an anthropic http provider has no effort knob (thinking is a budget)", () => {
+    const config = providerConfigSchema.parse({
+      type: "http-api",
+      api: "anthropic",
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-4-5",
+      apiKey: "env:K",
+    });
+    const caps = capabilitiesForProvider("my-claude-api", config as never);
+    expect(caps.modelEnabled).toBe(true);
+    expect(caps.powerLevels).toEqual([]);
+  });
+
+  it("a cli provider resolves by its well-known id", () => {
+    const config = providerConfigSchema.parse({
+      type: "cli",
+      command: "codex",
+    });
+    const caps = capabilitiesForProvider("codex", config as never);
+    expect(caps.powerLevels).toContain("high");
   });
 });

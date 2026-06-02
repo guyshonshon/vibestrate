@@ -3,6 +3,9 @@ import {
   profileSpawnArgs,
   effortLevels,
   modelIsWired,
+  httpEffortLevels,
+  httpModelSuggestions,
+  applyHttpEffort,
 } from "../src/providers/provider-apply.js";
 
 describe("provider-apply: wired capabilities", () => {
@@ -43,5 +46,33 @@ describe("profileSpawnArgs (generic-CLI path)", () => {
   it("unwired provider / no knobs -> nothing", () => {
     expect(profileSpawnArgs("ollama", { model: "x", effort: "high" })).toEqual([]);
     expect(profileSpawnArgs("codex", {})).toEqual([]);
+  });
+});
+
+describe("http-api apply layer (request body, by api family)", () => {
+  it("effort levels: openai is real, anthropic/ollama have none", () => {
+    expect(httpEffortLevels("openai")).toEqual(["minimal", "low", "medium", "high"]);
+    expect(httpEffortLevels("anthropic")).toEqual([]); // thinking is a budget, not a level
+    expect(httpEffortLevels("ollama")).toEqual([]);
+    expect(httpEffortLevels("unknown")).toEqual([]);
+  });
+
+  it("model suggestions exist per api (model itself is always free-text)", () => {
+    expect(httpModelSuggestions("openai").length).toBeGreaterThan(0);
+    expect(httpModelSuggestions("ollama")).toEqual([]);
+  });
+
+  it("applyHttpEffort sets reasoning_effort only for openai + only when set", () => {
+    const body: Record<string, unknown> = { model: "gpt-5.5" };
+    applyHttpEffort("openai", body, "high");
+    expect(body.reasoning_effort).toBe("high");
+
+    const noEffort: Record<string, unknown> = { model: "gpt-5.5" };
+    applyHttpEffort("openai", noEffort, null);
+    expect(noEffort).not.toHaveProperty("reasoning_effort");
+
+    const anthropic: Record<string, unknown> = { model: "claude-sonnet-4-5" };
+    applyHttpEffort("anthropic", anthropic, "high");
+    expect(anthropic).not.toHaveProperty("reasoning_effort");
   });
 });

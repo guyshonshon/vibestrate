@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.9
+
+- **Effort now reaches HTTP providers too, not just CLIs.** A profile's effort on
+  an OpenAI (or OpenAI-compatible) provider is sent as `reasoning_effort` in the
+  request body - so the knob is real end to end, the same way claude `--effort`
+  and codex `model_reasoning_effort` already were. One declarative apply layer is
+  the single source for both what gets sent and the levels the editors show.
+- **Your own HTTP providers surface real knobs.** Capabilities are now api-aware:
+  a provider you configured (any id) pointing at OpenAI shows OpenAI's effort
+  levels in the Profile editor; an Anthropic one correctly shows none (its
+  thinking is a numeric budget, not an effort level). No advisory dials.
+
 ## 0.3.8
 
 - **Profiles are now complete on every surface.** The shell gets a real `[4]
