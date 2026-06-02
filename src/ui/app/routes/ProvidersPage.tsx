@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
+import type { ProviderCatalogResponse } from "../../lib/types.js";
 import {
   parseArgs,
   renderProviderYaml,
@@ -309,6 +310,8 @@ export function ProvidersPage() {
               </p>
             )}
           </section>
+
+          <ProviderCatalogPanel />
         </>
       )}
 
@@ -368,6 +371,106 @@ function providerStatus(p: ProviderRow): { tone: ChipTone; label: string } {
   if (p.configured) return { tone: "emerald", label: "configured" };
   if (!p.available) return { tone: "neutral", label: "not installed" };
   return { tone: "sky", label: "detected" };
+}
+
+/**
+ * Capability catalog - the in-UI mirror of `vibe provider catalog`. Shows the
+ * model/effort knobs the Profile editor offers per provider, where each came
+ * from (built-in vs your `.vibestrate/providers-catalog.yml` overlay), and the
+ * overlay's status. Read-only: the overlay is hand-authored (auto-probe is a
+ * planned, opt-in step), so this surfaces it rather than editing it.
+ */
+function ProviderCatalogPanel() {
+  const [data, setData] = useState<ProviderCatalogResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .getProviderCatalog()
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => {
+        /* non-critical panel; stay hidden on error */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!data) return null;
+  // Only show providers that actually expose a knob (or are overlaid) - hides
+  // the many CLIs with no model/effort spec, which would just be noise.
+  const ids = Object.keys(data.catalog)
+    .filter((id) => {
+      const c = data.catalog[id]!;
+      return c.models.length > 0 || c.powerLevels.length > 0 || data.sources[id] === "overlay";
+    })
+    .sort();
+
+  return (
+    <section className="mt-9 space-y-3">
+      <div className="eyebrow">Capability catalog · models & effort per provider</div>
+      <p className="text-fog-400 text-[12.5px] -mt-1 max-w-[70ch]">
+        The model and effort knobs the Profile editor offers - built-in, plus
+        your overlay. <code className="text-violet-soft">vibe provider catalog</code>{" "}
+        shows the same.
+      </p>
+
+      <div className="text-[12px]">
+        {data.overlay.present ? (
+          <span className="inline-flex items-center gap-2">
+            <Chip tone="violet">overlay active</Chip>
+            <code className="mono text-fog-400 text-[11.5px]">{data.overlay.path}</code>
+          </span>
+        ) : (
+          <span className="text-fog-500">
+            No overlay. Create{" "}
+            <code className="mono text-fog-300">{data.overlay.path}</code> to add or
+            refine a provider's models / effort.
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {ids.map((id) => {
+          const c = data.catalog[id]!;
+          const overlaid = data.sources[id] === "overlay";
+          return (
+            <div
+              key={id}
+              className="rounded-lg border border-white/[0.08] surface-ink-100-55 px-3.5 py-2.5"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-[13.5px] text-fog-100 font-medium mono">{id}</span>
+                <Chip tone={overlaid ? "violet" : "neutral"}>
+                  {overlaid ? "overlay" : "built-in"}
+                </Chip>
+              </div>
+              <div className="mt-1.5 text-[12px] text-fog-400 flex flex-wrap gap-x-6 gap-y-1">
+                <span>
+                  <span className="text-fog-500">models </span>
+                  {c.models.length ? (
+                    <span className="mono text-fog-200">{c.models.join(", ")}</span>
+                  ) : (
+                    <span className="text-fog-600">{c.modelEnabled ? "free-text" : "n/a"}</span>
+                  )}
+                </span>
+                <span>
+                  <span className="text-fog-500">effort </span>
+                  {c.powerLevels.length ? (
+                    <span className="mono text-fog-200">{c.powerLevels.join(" / ")}</span>
+                  ) : (
+                    <span className="text-fog-600">none</span>
+                  )}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 /** Local mirror of the server's env-ref rule (provider-schema.ts). Validated

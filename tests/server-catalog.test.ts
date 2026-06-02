@@ -77,7 +77,16 @@ describe("GET /api/providers/catalog", () => {
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
     const res = await fetch(`${server.url}/api/providers/catalog`);
-    const body = (await res.json()) as { catalog: Record<string, ProviderCapabilities> };
+    const body = (await res.json()) as {
+      catalog: Record<string, ProviderCapabilities>;
+      overlay: { present: boolean; path: string };
+      sources: Record<string, "overlay" | "built-in">;
+    };
     expect(body.catalog.gemini!.powerLevels).toEqual(["think", "deep"]);
+    // overlay status + per-provider source surface for the UI (parity with CLI)
+    expect(body.overlay.present).toBe(true);
+    expect(body.overlay.path).toMatch(/providers-catalog\.yml$/);
+    expect(body.sources.gemini).toBe("overlay");
+    expect(body.sources.codex).toBe("built-in");
   });
 });

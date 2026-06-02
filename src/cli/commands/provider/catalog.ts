@@ -12,28 +12,14 @@ import {
 import {
   loadCatalogOverlay,
   mergeCatalog,
+  providerOverlaySource,
   type CatalogOverlay,
 } from "../../../providers/provider-catalog-overlay.js";
-import type { ProviderConfig } from "../../../providers/provider-schema.js";
 
 function fmtCaps(models: string[], powerLevels: string[]): string {
   const m = models.length ? models.join(", ") : color.dim("(free-text)");
   const e = powerLevels.length ? powerLevels.join("/") : color.dim("(none)");
   return `models: ${m}   effort: ${e}`;
-}
-
-// Where the spec for a configured provider comes from (overlay clears/refines
-// per scope+key: cli by id, http by api family).
-function sourceOf(
-  overlay: CatalogOverlay,
-  id: string,
-  config: ProviderConfig,
-): "overlay" | "built-in" {
-  if (config.type === "http-api" || config.type === "localhost-proxy") {
-    return overlay.http?.[config.api] ? "overlay" : "built-in";
-  }
-  const key = config.type === "claude-code" ? "claude" : id;
-  return overlay.cli?.[key] ? "overlay" : "built-in";
 }
 
 export async function runProviderCatalog(opts: { json?: boolean }): Promise<number> {
@@ -70,7 +56,7 @@ export async function runProviderCatalog(opts: { json?: boolean }): Promise<numb
           : provider.type,
         models: caps.models,
         powerLevels: caps.powerLevels,
-        source: sourceOf(overlay, id, provider),
+        source: providerOverlaySource(overlay, id, provider),
       });
     }
   }

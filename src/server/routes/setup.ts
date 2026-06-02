@@ -11,7 +11,13 @@ import {
   providerCapabilities,
   capabilitiesForProvider,
 } from "../../providers/provider-catalog.js";
-import { resolveCatalog } from "../../providers/provider-catalog-overlay.js";
+import {
+  loadCatalogOverlay,
+  mergeCatalog,
+  providerOverlaySource,
+} from "../../providers/provider-catalog-overlay.js";
+import { providerCatalogOverlayPath } from "../../utils/paths.js";
+import { pathExists } from "../../utils/fs.js";
 
 export type SetupRoutesDeps = {
   projectRoot: string;
@@ -30,18 +36,27 @@ export async function registerSetupRoutes(
   app.get("/api/providers/catalog", async () => {
     // Built-in specs + the project's `.vibestrate/providers-catalog.yml` overlay
     // (empty when there's no file / no project), so user-declared knobs surface.
-    const resolved = await resolveCatalog(projectRoot);
+    // Also returns the overlay status + per-provider source so a UI can show the
+    // same "where did this come from" view as `vibe provider catalog`.
+    const overlay = await loadCatalogOverlay(projectRoot);
+    const resolved = mergeCatalog(overlay);
+    const overlayFile = providerCatalogOverlayPath(projectRoot);
+    const overlayPresent = await pathExists(overlayFile);
+
     const catalog: Record<string, unknown> = {};
+    const sources: Record<string, "overlay" | "built-in"> = {};
     for (const id of Object.keys(PROVIDER_CATALOG)) {
       catalog[id] = providerCapabilities(id, resolved);
+      sources[id] = overlay.cli?.[id] ? "overlay" : "built-in";
     }
     if (await configExists(projectRoot)) {
       const { config } = await loadConfig(projectRoot);
       for (const [id, provider] of Object.entries(config.providers)) {
         catalog[id] = capabilitiesForProvider(id, provider, resolved);
+        sources[id] = providerOverlaySource(overlay, id, provider);
       }
     }
-    return { catalog };
+    return { catalog, overlay: { present: overlayPresent, path: overlayFile }, sources };
   });
 
   app.get("/api/setup/summary", async () => {

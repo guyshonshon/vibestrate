@@ -134,6 +134,10 @@ vibe provider catalog          # human view (built-in + overlay, with sources)
 vibe provider catalog --json   # machine-readable
 ```
 
+Same view in the UI (parity): the dashboard **Providers** page has a "Capability
+catalog" panel, and the shell **Profiles** page flags when an overlay is active
+plus each provider's source.
+
 Auto-populating the overlay by probing a provider (`--probe`) is a planned,
 opt-in step; for now the overlay is hand-authored.
 
