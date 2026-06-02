@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.7
+
+- **Consolidation pass.** Only real knobs: the `budget` field (never applied to a
+  run) is no longer an editor dial, matching how model/effort are shown only
+  where wired. Refreshed the generated CLI reference and corrected the Profile
+  docs to reality. No behavior change beyond hiding the advisory budget input.
+
 ## 0.3.6
 
 - **Failure is loud on a bad exit too.** A provider that exits non-zero (e.g. a
