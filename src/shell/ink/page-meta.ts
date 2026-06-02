@@ -44,6 +44,25 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       "vibe flows hub install <name>",
     ],
   },
+  profiles: {
+    subtitle: "runtime presets · provider + model + effort, picked by crew roles",
+    blurb:
+      "A Profile is a reusable preset of how strong/expensive a run is - a provider plus model and effort. Keep several per provider (claude, claude-cheap). Model/effort are applied to the real CLI flags and shown only where the provider supports them. Crew roles point at a profile.",
+    commonKeys: [
+      ["↑↓", "select a profile"],
+      ["e / E", "cycle effort up / down"],
+      ["m / M", "cycle model"],
+      ["n", "new profile (for the selected provider)"],
+      ["d", "duplicate"],
+      ["x", "delete (with confirm)"],
+    ],
+    commonCli: [
+      "vibe profiles list",
+      "vibe profiles add <id> --provider <p> --model <m> --power <effort>",
+      "vibe profiles duplicate <id> <newId>",
+      "vibe profiles remove <id>",
+    ],
+  },
   roadmap: {
     subtitle:
       "tasks you've defined · this is where work begins (kanban backlog)",

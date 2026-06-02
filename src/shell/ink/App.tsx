@@ -32,6 +32,7 @@ import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { FlowsPage } from "./pages/FlowsPage.js";
 import { QueuePage } from "./pages/QueuePage.js";
 import { AgentsPage } from "./pages/AgentsPage.js";
+import { ProfilesPage } from "./pages/ProfilesPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
 import { useProjectConfig } from "./hooks/useProjectConfig.js";
@@ -754,6 +755,20 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
               selectedIndex={ui.selection.crew ?? 0}
               setSelectedIndex={(i) =>
                 dispatch({ type: "selection.set", page: "crew", index: i })
+              }
+              active
+            />
+          ) : ui.page === "profiles" ? (
+            <ProfilesPage
+              projectRoot={projectRoot}
+              config={config}
+              refreshConfig={refreshConfig}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.profiles ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "profiles", index: i })
               }
               active
             />
