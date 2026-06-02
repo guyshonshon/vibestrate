@@ -32,15 +32,21 @@ A Profile chooses the **Provider**, the **model**, the **effort** level (the
 share a Profile, and the same Role can run on a stronger Profile for one Step via
 a step override - without duplicating the Role.
 
-**Effort and model actually take effect.** They are applied to the provider's
-real CLI flag when it exists - `claude --effort <level> --model <id>`, codex
-`--model <id> -c model_reasoning_effort=<level>` - so a Profile changes what is
-spawned, not just what's recorded. Each is exposed **only where it is wired to a
-real flag** (the capability catalog): the dashboard offers just the levels/models
-that Provider supports and hides the field otherwise. Effort levels are the real
-ones - claude `low/medium/high/xhigh/max`, codex `minimal/low/medium/high/xhigh`;
-Gemini's reasoning is a numeric thinking budget (no CLI flag), so it shows no
-effort. Vibestrate never forces one global scale onto every provider.
+**Effort and model actually take effect** - on CLI **and** HTTP providers. For a
+CLI provider they become a real flag when one exists (`claude --effort <level>
+--model <id>`, codex `--model <id> -c model_reasoning_effort=<level>`); for an
+HTTP-API provider they go into the **request body** (OpenAI effort ->
+`reasoning_effort: <level>`). So a Profile changes what is actually spawned or
+sent, not just what's recorded. One declarative apply layer
+(`src/providers/provider-apply.ts`) is the single source for both the spawn/body
+mutation and the levels the editors show. Each knob is exposed **only where it is
+wired to a real flag/field** (the capability catalog): the editors offer just the
+levels/models that Provider supports and hide the field otherwise. Effort levels
+are the real ones - claude `low/medium/high/xhigh/max`, codex
+`minimal/low/medium/high/xhigh`, OpenAI HTTP `minimal/low/medium/high`. Where
+reasoning is a numeric budget rather than a level - Gemini's CLI thinking budget,
+Anthropic's `budget_tokens` - no effort knob is shown. Vibestrate never forces one
+global scale onto every provider.
 
 `budget` is a coarse spend-appetite field kept in config, but it isn't applied
 to a spawn yet - so, following the "only real knobs" rule, it's not shown as an

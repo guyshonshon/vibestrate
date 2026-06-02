@@ -11,6 +11,7 @@
 
 import { ProviderError } from "../utils/errors.js";
 import { resolveSecret, envVarName, redact } from "../notifications/gateways/secret-resolver.js";
+import { applyHttpEffort } from "./provider-apply.js";
 import { nowIso } from "../utils/time.js";
 import type {
   HttpApiProviderConfig,
@@ -47,7 +48,7 @@ function buildRequest(
   config: AnyHttpProvider,
   prompt: string,
   apiKey: string | undefined,
-  override?: { model?: string | null; maxTokens?: number | null },
+  override?: { model?: string | null; maxTokens?: number | null; effort?: string | null },
 ): { url: string; headers: Record<string, string>; body: string } {
   const base = trimSlash(config.baseUrl);
   const model = override?.model || config.model;
@@ -56,43 +57,26 @@ function buildRequest(
   if (config.type === "http-api" && config.headers) {
     Object.assign(headers, config.headers);
   }
+  const messages = [{ role: "user", content: prompt }];
 
   if (config.api === "anthropic") {
     if (apiKey) headers["x-api-key"] = apiKey;
     headers["anthropic-version"] = "2023-06-01";
-    return {
-      url: `${base}/v1/messages`,
-      headers,
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    };
+    const body: Record<string, unknown> = { model, max_tokens: maxTokens, messages };
+    applyHttpEffort(config.api, body, override?.effort); // no-op for anthropic
+    return { url: `${base}/v1/messages`, headers, body: JSON.stringify(body) };
   }
   if (config.api === "openai") {
     if (apiKey) headers["authorization"] = `Bearer ${apiKey}`;
-    return {
-      url: `${base}/v1/chat/completions`,
-      headers,
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    };
+    const body: Record<string, unknown> = { model, max_tokens: maxTokens, messages };
+    applyHttpEffort(config.api, body, override?.effort); // -> reasoning_effort
+    return { url: `${base}/v1/chat/completions`, headers, body: JSON.stringify(body) };
   }
   // ollama (localhost native)
   if (apiKey) headers["authorization"] = `Bearer ${apiKey}`;
-  return {
-    url: `${base}/api/chat`,
-    headers,
-    body: JSON.stringify({
-      model,
-      stream: false,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  };
+  const body: Record<string, unknown> = { model, stream: false, messages };
+  applyHttpEffort(config.api, body, override?.effort); // no-op for ollama
+  return { url: `${base}/api/chat`, headers, body: JSON.stringify(body) };
 }
 
 function parseResponse(
@@ -189,7 +173,11 @@ export async function runHttpApiProvider(
     apiKey = resolveSecret(config.apiKey);
   }
 
-  const { url, headers, body } = buildRequest(config, input.prompt, apiKey, { model: input.model, maxTokens: input.maxTokens });
+  const { url, headers, body } = buildRequest(config, input.prompt, apiKey, {
+    model: input.model,
+    maxTokens: input.maxTokens,
+    effort: input.effort,
+  });
   const doFetch: FetchLike = fetchImpl ?? (globalThis.fetch as unknown as FetchLike);
 
   // Combine the caller's abort signal with a timeout.

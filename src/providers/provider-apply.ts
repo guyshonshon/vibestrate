@@ -67,6 +67,63 @@ function oneArg(a: ArgApply, value: string): string[] {
   return a.kind === "flag" ? [a.flag, value] : [a.flag, `${a.key}=${value}`];
 }
 
+// ── HTTP-API providers: model/effort live in the request BODY, not argv ──────
+//
+// Same rule as the CLI side - a knob is exposed only when it maps to a real,
+// doc-verified request field. Keyed by the provider's `api` family (the schema
+// allows anthropic|openai for http-api and openai|ollama for localhost-proxy):
+//   - openai: `reasoning_effort` (minimal|low|medium|high) on chat/completions
+//     for reasoning models (platform.openai.com/docs api-reference; minimal is
+//     gpt-5-class). Applied only when the profile sets effort.
+//   - anthropic: extended thinking is a numeric `budget_tokens`, NOT an effort
+//     level (docs.anthropic.com extended-thinking) - so no effort knob here.
+//   - ollama: no effort field.
+// (Model is free-text for every API - you always pass a model id - so model is
+//  always "wired"; the lists below are just suggestions.)
+
+type HttpApplySpec = {
+  /** Curated model suggestions (model is always settable as free text). */
+  models: string[];
+  /** Effort: real levels + the request-body field they set. null = no effort. */
+  effort: { levels: string[]; field: string } | null;
+};
+
+const HTTP_SPECS: Record<string, HttpApplySpec> = {
+  openai: {
+    models: ["gpt-5.5", "gpt-5.1", "o4-mini"],
+    effort: {
+      levels: ["minimal", "low", "medium", "high"],
+      field: "reasoning_effort",
+    },
+  },
+  anthropic: {
+    models: ["claude-opus-4-1", "claude-sonnet-4-5", "claude-haiku-4-5"],
+    effort: null, // thinking is a numeric budget_tokens, not an effort level
+  },
+  ollama: { models: [], effort: null },
+};
+
+/** Real, wired effort levels for an HTTP api family ([] = no effort knob). */
+export function httpEffortLevels(api: string): string[] {
+  return HTTP_SPECS[api]?.effort?.levels ?? [];
+}
+
+/** Model suggestions for an HTTP api family (model itself is always settable). */
+export function httpModelSuggestions(api: string): string[] {
+  return HTTP_SPECS[api]?.models ?? [];
+}
+
+/** Apply a profile's effort onto an HTTP request body in place. No-op unless the
+ *  api has a real effort field and the profile set one. */
+export function applyHttpEffort(
+  api: string,
+  body: Record<string, unknown>,
+  effort?: string | null,
+): void {
+  const spec = HTTP_SPECS[api];
+  if (spec?.effort && effort) body[spec.effort.field] = effort;
+}
+
 /** Model suggestions for a provider (empty = model not wired). */
 export function modelSuggestions(providerId: string): string[] {
   const s = SPECS[providerId];

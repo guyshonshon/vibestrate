@@ -7,7 +7,7 @@ import {
   setProfileFields,
 } from "../../../setup/config-update-service.js";
 import { profileUsage } from "../../../profiles/profile-usage.js";
-import { effortLevels, modelSuggestions } from "../../../providers/provider-apply.js";
+import { capabilitiesForProvider } from "../../../providers/provider-catalog.js";
 import { ACCENT, ACCENT_BRIGHT } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 
@@ -26,6 +26,17 @@ function cycle<T>(arr: T[], current: T, dir: 1 | -1): T | undefined {
   const i = arr.indexOf(current);
   const start = i === -1 ? (dir === 1 ? -1 : 0) : i;
   return arr[(start + dir + arr.length) % arr.length];
+}
+
+/** Api-aware knobs for a configured provider (empty if unconfigured). */
+function capsFor(
+  config: ProjectConfig | null,
+  providerId: string | undefined,
+): { models: string[]; powerLevels: string[] } {
+  const cfg = providerId ? config?.providers[providerId] : undefined;
+  if (!providerId || !cfg) return { models: [], powerLevels: [] };
+  const caps = capabilitiesForProvider(providerId, cfg);
+  return { models: caps.models, powerLevels: caps.powerLevels };
 }
 
 export function ProfilesPage({
@@ -58,7 +69,7 @@ export function ProfilesPage({
 
   async function cycleEffort(dir: 1 | -1) {
     if (!selected) return;
-    const levels = effortLevels(selected.provider);
+    const levels = capsFor(config, selected.provider).powerLevels;
     if (levels.length === 0) {
       onToast("info", `${selected.provider} exposes no effort control.`);
       return;
@@ -72,9 +83,12 @@ export function ProfilesPage({
 
   async function cycleModel(dir: 1 | -1) {
     if (!selected) return;
-    const models = modelSuggestions(selected.provider);
+    const models = capsFor(config, selected.provider).models;
     if (models.length === 0) {
-      onToast("info", `${selected.provider} model isn't configurable here.`);
+      onToast(
+        "info",
+        `${selected.provider} has no preset models to cycle - set one in the web editor or 'vibe profiles set'.`,
+      );
       return;
     }
     const options = ["", ...models]; // "" = provider default
@@ -169,7 +183,7 @@ export function ProfilesPage({
     );
   }
 
-  const levels = selected ? effortLevels(selected.provider) : [];
+  const levels = selected ? capsFor(config, selected.provider).powerLevels : [];
   const usedBy = selected ? usage.get(selected.id) ?? [] : [];
 
   return (
