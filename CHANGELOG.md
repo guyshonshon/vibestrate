@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.18
+
+- **Concepts docs reorganized around Task, Flow, and Crew.** The flat Concepts
+  list is now grouped the way the model actually nests: **Task** (Task, Run
+  state), **Flow** (Flow, Seat, Workflow), **Crew** (Crew, Role, Profile,
+  Provider), **Runtime & safety**, and a new **Configuration** group. The
+  **Crew**, **Seat**, and **Profile** pages - previously written but never
+  rendered on the web - are now live, and cross-page `[[wiki-links]]` resolve to
+  real links.
+- **New "Configuration & settings" page.** What lives in `project.yml`
+  (providers, profiles, crews, flows, policies, validation commands), what sits
+  beside it (rules, skills, role prompts), how to view it (`vibe config view`,
+  the Config dashboard + shell pages), the UI/CLI-parity rule, and how secrets
+  stay out of config.
+- **Concept pages now read like prose.** Dropped the "Professional explanation /
+  Simple explanation" split across Task, Workflow, Run state, Safety, Provider,
+  Worktree, and Skill - each page now opens with the plain idea and deepens from
+  there. The Task page also explains how the orchestrator turns a task into a run
+  and how far a task's wording reaches into the result (it shapes *what* gets
+  built, but the Crew/Profile - not the task - picks the model).
+- **Flow concept page gains a hub -> seats -> crew diagram.**
+
 ## 0.3.17
 
 - **New "big picture" onboarding page.** Getting Started now opens with a single

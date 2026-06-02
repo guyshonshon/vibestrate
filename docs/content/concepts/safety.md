@@ -5,19 +5,19 @@ section: concepts
 slug: concepts/safety
 ---
 
-**Professional explanation.** Every side-effecting operation a run performs -
-spawning a provider, running a validation command, applying or reverting a
-patch, writing a config file, opening a terminal, completing a run - crosses a
-single Vibestrate-owned boundary, the **Action Broker** (`src/safety/action-broker.ts`).
-The broker `decide()`s an `ActionRequest` against an ordered evaluator chain
-(first `deny` wins, else first `require_approval`, else `allow`) and `record()`s
-the decision plus post-execution evidence as one NDJSON line in
-`.vibestrate/runs/<runId>/actions.ndjson`. Decisions are fail-closed: a non-allow
-verdict refuses the effect. **Policies** are how you supply evaluators.
+Nothing a run *does* to your machine happens without passing one checkpoint -
+and that checkpoint writes down what it decided and what actually happened. Every
+side-effecting operation a run performs - spawning a provider, running a
+validation command, applying or reverting a patch, writing a config file, opening
+a terminal, completing a run - crosses a single Vibestrate-owned boundary called
+the **Action Broker** (`src/safety/action-broker.ts`).
 
-**Simple explanation.** Nothing a run *does* to your machine happens without
-passing one checkpoint that writes down what it decided and what happened. You
-can add rules that block or pause specific actions.
+For each one, the broker `decide()`s the request against an ordered chain of
+evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise
+`allow`) and `record()`s the decision plus post-execution evidence as one line in
+`.vibestrate/runs/<runId>/actions.ndjson`. Decisions are **fail-closed**:
+anything short of an explicit `allow` refuses the effect. **Policies** are how you
+supply those evaluators - the rules that block or pause specific actions.
 
 ## Two kinds of policy
 

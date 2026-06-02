@@ -5,9 +5,15 @@ section: concepts
 slug: concepts/skill
 ---
 
-**Professional explanation.** A skill is a markdown attachment discovered by filename under `.vibestrate/skills/` or `.claude/skills/`, identified by stem, and loaded into an agent's prompt as additional context. Skills may optionally declare MCP servers (Model Context Protocol) the agent should connect to during its turn.
+A skill is a markdown file you write once and any agent can read. Use it for the
+things that should always be true about your codebase - conventions, security
+rules, "we don't do X here."
 
-**Simple explanation.** A skill is a markdown file you write once and any agent can read. Use it for the things that should always be true about your codebase - conventions, security rules, "we don't do X here."
+Vibestrate discovers skills by filename under `.vibestrate/skills/` or
+`.claude/skills/`, names each one by its file stem, and loads its contents into
+an agent's prompt as extra context. A skill can also declare MCP servers (Model
+Context Protocol) for the agent to connect to during its turn - for the times the
+context it needs is live rather than written down.
 
 ## Why it matters
 

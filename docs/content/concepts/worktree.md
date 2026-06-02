@@ -5,9 +5,16 @@ section: concepts
 slug: concepts/worktree
 ---
 
-**Professional explanation.** A run worktree is a separate git worktree linked to the project repository, created at run start under `git.worktreeDir` (default `../.vibestrate-worktrees/`), and bound to a fresh branch named `<git.branchPrefix><runId>-<slug>`. All write-side actions during the run are constrained to this directory by the path guard (`src/core/path-guard.ts`); any attempt to write outside it is refused. The worktree is preserved across `aborted` and `blocked` runs for inspection.
+Each run gets its own copy of your repo, on its own branch - your main checkout
+is never touched. That copy is a git **worktree**: a separate working directory
+linked to the same repository, created when the run starts under
+`git.worktreeDir` (default `../.vibestrate-worktrees/`) and bound to a fresh
+branch named `<git.branchPrefix><runId>-<slug>`.
 
-**Simple explanation.** Each run gets its own copy of your repo, on its own branch. Your main checkout is never touched.
+Every write the run makes is fenced into that directory by the path guard
+(`src/core/path-guard.ts`) - an attempt to write anywhere else is refused, not
+quietly redirected. And the worktree sticks around after a run ends in `aborted`
+or `blocked`, so there's always a copy on disk you can open and inspect.
 
 ## Why it matters
 

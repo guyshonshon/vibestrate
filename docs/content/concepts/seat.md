@@ -1,3 +1,10 @@
+---
+title: Seat
+description: What a Flow step needs filled - a labelled contract a Crew's Role fills, which is what keeps Flows shareable.
+section: concepts
+slug: concepts/seat
+---
+
 # Seat
 
 ## Basically
