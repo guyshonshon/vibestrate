@@ -42,8 +42,9 @@ ones - claude `low/medium/high/xhigh/max`, codex `minimal/low/medium/high/xhigh`
 Gemini's reasoning is a numeric thinking budget (no CLI flag), so it shows no
 effort. Vibestrate never forces one global scale onto every provider.
 
-`budget` is a coarse spend-appetite hint. It is recorded and shown but not yet
-applied to a spawn (advisory for now).
+`budget` is a coarse spend-appetite field kept in config, but it isn't applied
+to a spawn yet - so, following the "only real knobs" rule, it's not shown as an
+editor dial in the dashboard (advisory for now; wire it before re-surfacing).
 
 ## Advanced
 
@@ -55,7 +56,7 @@ Schema (`src/profiles/profile-schema.ts`):
 | `label` | string? | dashboard label (defaults to the profile id) |
 | `model` | string \| null | provider model id (e.g. `sonnet`, `opus`) |
 | `power` | string \| null | provider-specific effort level (applied via the provider's flag) |
-| `budget` | string \| null | coarse spend appetite (`low`/`medium`/`high`) - advisory |
+| `budget` | string \| null | coarse spend appetite - advisory, not shown in the editor |
 | `maxTokens` | number \| null | per-turn output cap when supported |
 | `timeoutMs` | number \| null | per-turn wall-clock timeout |
 | `providerOptions` | record | raw provider-specific escape hatch |

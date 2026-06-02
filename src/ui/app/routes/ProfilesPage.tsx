@@ -320,13 +320,6 @@ function CreateProfile({
             <span className="text-[11px] text-fog-500">set in the provider config</span>
           )}
         </FormField>
-        <FormField label="Budget">
-          <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
-            {["", ...caps.budgetLevels].map((b) => (
-              <option key={b || "none"} value={b}>{b || "-"}</option>
-            ))}
-          </select>
-        </FormField>
       </div>
       <EffortField levels={caps.powerLevels} value={draft.power} onChange={(v) => set("power", v)} />
       <div className="mt-3 flex justify-end gap-2">
@@ -451,16 +444,6 @@ function ProfileCard({
           ) : (
             <span className="text-[11px] text-fog-500">set in the provider config</span>
           )}
-        </FormField>
-        <FormField label="Budget">
-          <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
-            {["", ...caps.budgetLevels].map((b) => (
-              <option key={b || "none"} value={b}>{b || "-"}</option>
-            ))}
-            {![...caps.budgetLevels, ""].includes(draft.budget) ? (
-              <option value={draft.budget}>{draft.budget}</option>
-            ) : null}
-          </select>
         </FormField>
         <FormField label="Max tokens">
           <input value={draft.maxTokens} onChange={(e) => set("maxTokens", e.target.value)} inputMode="numeric" placeholder="-" className={INPUT_CLS} />
