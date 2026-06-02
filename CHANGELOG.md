@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.17
+
+- **New "big picture" onboarding page.** Getting Started now opens with a single
+  short read that makes the whole mental model click - Task, Flow, Crew, Seat,
+  Role, Profile, Provider - told as one plain-language story (you direct a small
+  production: the Flow is the script, Seats are the parts to cast, your Crew is
+  the cast, a Profile is how much star power you pay for). Includes simple
+  diagrams of the seat -> role -> profile -> provider chain, the
+  premium-builder / cheap-validator move spelled out, and a one-card cheat
+  sheet. Linked first from the docs Overview and the Getting Started nav.
+
 ## 0.3.16
 
 - **Terminal-style line editing in the shell prompt.** The command prompt now

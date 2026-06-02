@@ -13,6 +13,9 @@ Think of it as the missing supervisor for vibe-coding. You define the flow - pla
 
 <div class="docs-cards">
 
+**[Get the big picture first](/docs/getting-started/big-picture)**
+The one short read that makes everything click - Task, Flow, and Crew, told as a simple story. Start here.
+
 **[Get started in 5 minutes](/docs/getting-started/installation)**
 Install, configure a provider, run your first task.
 
