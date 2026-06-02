@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.6
+
+- **Failure is loud on a bad exit too.** A provider that exits non-zero (e.g. a
+  CLI rejecting a flag) now raises the `provider.failed` notification, not just
+  thrown errors. End-to-end tests prove a profile's effort/model reach the real
+  spawn and that a failed run notifies.
+
 ## 0.3.5
 
 - **Effort and model actually take effect now - and only when they're real.** A
