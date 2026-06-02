@@ -33,6 +33,8 @@ A persistent context strip sits at the top, so you always know *where you are* a
 
 The bottom line is an always-visible prompt. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and **Enter** to run it - the output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
 
+**Line editing.** The prompt moves like a terminal: **Option+← / Option+→** jump by word, **Ctrl+→** (or **End** / **Ctrl+E**) goes to the end of the line and **Ctrl+←** (or **Home** / **Ctrl+A**) to the start, plain **← / →** move one character, and backspace deletes before the cursor.
+
 **Autocomplete.** As you type, a **ghost list** opens under the prompt with what fits the token at the cursor - read straight from the real CLI tree (plus your project's live ids), so it never drifts. A word completes **subcommands** (`config ` -> `view` / `show` / `get` / `set` / `validate`); a dash completes **flags** (`config show -` -> `--json`); and after a value-taking flag it completes **values** - enums like `--effort low|medium|high`, and live ids for `--crew`, `--flow`, `--profile`, and `--task` (also `--effort=hi` -> `--effort=high`). Id-typed positional arguments complete too (`replay ` -> your run ids; `tasks show ` -> task ids; `flows show ` -> flow ids); free-text arguments like a `run "…"` description never do. **Tab** accepts the highlighted candidate, **↑ / ↓** move the selection, **Esc** dismisses the list (and history stays on ↑ / ↓ while the prompt is empty).
 
 When you run a `run …` command from the prompt, the shell seeds it with your session selections - it appends `--crew`, `--flow`, and `--read-only` to match the status bar (anything you type explicitly always wins).

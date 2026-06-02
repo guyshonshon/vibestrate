@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
 import Spinner from "ink-spinner";
+import { PromptInput } from "./PromptInput.js";
 import { ACCENT } from "../theme.js";
 
 type Props = {
@@ -37,7 +37,7 @@ export function PromptBar({
           {"▸ vibe "}
         </Text>
         {focused ? (
-          <TextInput
+          <PromptInput
             value={input}
             onChange={onChange}
             onSubmit={onSubmit}
