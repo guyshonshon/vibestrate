@@ -83,7 +83,9 @@ export function ProfilesPage() {
       const [profRes, meta, cat] = await Promise.all([
         api.getProfiles(),
         api.getProjectMetadata().catch(() => null),
-        api.getProviderCatalog().catch(() => ({ catalog: {} as ProviderCatalog })),
+        api
+          .getProviderCatalog()
+          .catch(() => ({ catalog: {} as ProviderCatalog, overlay: { present: false, path: "" }, sources: {} })),
       ]);
       setProfiles(profRes.profiles);
       setCatalog(cat.catalog);

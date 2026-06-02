@@ -23,6 +23,7 @@ import {
   type ProviderApplySpec,
   type HttpApplySpec,
 } from "./provider-apply.js";
+import type { ProviderConfig } from "./provider-schema.js";
 
 const argApplySchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("flag"), flag: z.string().min(1) }),
@@ -111,4 +112,19 @@ export function mergeCatalog(
 /** Load + merge in one step: the catalog the surfaces and the spawn should use. */
 export async function resolveCatalog(projectRoot: string): Promise<ResolvedCatalog> {
   return mergeCatalog(await loadCatalogOverlay(projectRoot));
+}
+
+/** Where a configured provider's spec comes from: the overlay (cli by id /
+ *  claude-code -> "claude"; http by api family) or the built-in catalog. Shared
+ *  by the CLI, the catalog endpoint, and the shell so all three agree. */
+export function providerOverlaySource(
+  overlay: CatalogOverlay,
+  id: string,
+  config: ProviderConfig,
+): "overlay" | "built-in" {
+  if (config.type === "http-api" || config.type === "localhost-proxy") {
+    return overlay.http?.[config.api] ? "overlay" : "built-in";
+  }
+  const key = config.type === "claude-code" ? "claude" : id;
+  return overlay.cli?.[key] ? "overlay" : "built-in";
 }

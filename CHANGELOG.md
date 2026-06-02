@@ -9,8 +9,11 @@
   feeds the actual spawn and every editor (web / shell / CLI) from one source, so
   a custom effort genuinely reaches the command line, not just the UI. Same rule
   as always: a knob only exists where it maps to a real flag/field.
-- **`vibe provider catalog`** shows the merged catalog and where each entry came
-  from (built-in vs your overlay); `--json` for scripts.
+- **See the catalog anywhere.** `vibe provider catalog` shows the merged catalog
+  and where each entry came from (built-in vs your overlay); `--json` for scripts.
+  The dashboard Providers page shows the same as a "Capability catalog" panel, and
+  the shell Profiles page flags when an overlay is active and each provider's
+  source - so the catalog view has full UI/CLI parity.
 
 ## 0.3.9
 

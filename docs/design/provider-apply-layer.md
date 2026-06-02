@@ -77,7 +77,11 @@ the *same* resolved object feeds both the spawn and the capability surfaces:
   (`resolveCatalog(projectRoot)`) and threads it on `ProviderRunInput.catalog`;
   `cli-provider` / `http-api-provider` apply from it.
 - **Surfaces:** `/api/providers/catalog` (web), the `useProviderCatalog` hook
-  (shell), and `vibe provider catalog` (CLI) all resolve the same overlay.
+  (shell), and `vibe provider catalog` (CLI) all resolve the same overlay. The
+  *view* of the merged catalog + per-provider source has UI/CLI parity: the
+  endpoint returns `{ catalog, overlay, sources }`; the Providers page renders a
+  "Capability catalog" panel and the shell Profiles page flags the overlay +
+  source. The shared `providerOverlaySource()` keeps all three in agreement.
 
 **Merge semantics:** per-field over the built-in entry. Omit a field to keep the
 built-in value; set it to `null` to clear a built-in knob; provide a new id/api

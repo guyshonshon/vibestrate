@@ -12,6 +12,10 @@ import {
   BUILTIN_CATALOG,
   type ResolvedCatalog,
 } from "../../../providers/provider-apply.js";
+import {
+  providerOverlaySource,
+  type CatalogOverlay,
+} from "../../../providers/provider-catalog-overlay.js";
 import { ACCENT, ACCENT_BRIGHT } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 
@@ -20,6 +24,8 @@ type Props = {
   config: ProjectConfig | null;
   /** Resolved catalog (built-in + overlay). Defaults to built-in if omitted. */
   catalog?: ResolvedCatalog;
+  /** Raw overlay - used to tag which provider knobs come from it. */
+  overlay?: CatalogOverlay;
   refreshConfig: () => Promise<void>;
   onToast: (kind: "ok" | "err" | "info", message: string) => void;
   selectedIndex: number;
@@ -50,6 +56,7 @@ export function ProfilesPage({
   projectRoot,
   config,
   catalog = BUILTIN_CATALOG,
+  overlay = {},
   refreshConfig,
   onToast,
   selectedIndex,
@@ -57,6 +64,7 @@ export function ProfilesPage({
   active,
 }: Props) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const overlayActive = !!(overlay.cli || overlay.http);
 
   const profiles = config
     ? Object.entries(config.profiles).map(([id, p]) => ({ id, ...p }))
@@ -193,12 +201,23 @@ export function ProfilesPage({
 
   const levels = selected ? capsFor(config, selected.provider, catalog).powerLevels : [];
   const usedBy = selected ? usage.get(selected.id) ?? [] : [];
+  const selectedProviderConfig = selected ? config.providers[selected.provider] : undefined;
+  const selectedSource =
+    selected && selectedProviderConfig
+      ? providerOverlaySource(overlay, selected.provider, selectedProviderConfig)
+      : "built-in";
 
   return (
     <Box flexDirection="column">
       <Text bold color={ACCENT_BRIGHT}>
         PROFILES <Text dimColor>  ({profiles.length})  presets your crew runs on</Text>
       </Text>
+      {overlayActive ? (
+        <Text dimColor>
+          catalog: <Text color={ACCENT}>overlay active</Text> · .vibestrate/providers-catalog.yml
+          {"  "}(vibe provider catalog)
+        </Text>
+      ) : null}
       <Box marginTop={1} flexDirection="row" gap={2}>
         <Box flexDirection="column" minWidth={30}>
           {profiles.map((p, i) => {
@@ -236,6 +255,7 @@ export function ProfilesPage({
                     : "unused"
                 }
               />
+              <KV label="catalog" value={selectedSource} />
             </Box>
             {pendingDelete === selected.id ? (
               <Box marginTop={1}>

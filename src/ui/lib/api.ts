@@ -11,6 +11,7 @@ import type {
   CrewView,
   ProfileView,
   ProviderCatalog,
+  ProviderCatalogResponse,
   DiffSnapshot,
   DiscoveredSkill,
   DiscoveredFlow,
@@ -829,7 +830,7 @@ export const api = {
   async getProfiles(): Promise<{ profiles: ProfileView[] }> {
     return jsonGet("/api/profiles");
   },
-  async getProviderCatalog(): Promise<{ catalog: ProviderCatalog }> {
+  async getProviderCatalog(): Promise<ProviderCatalogResponse> {
     return jsonGet("/api/providers/catalog");
   },
   async patchProfile(

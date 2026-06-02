@@ -291,6 +291,14 @@ export type ProviderCapabilities = {
 /** Per-provider suggestion lists for the Profile editor (keyed by provider id). */
 export type ProviderCatalog = Record<string, ProviderCapabilities>;
 
+/** Full catalog response: the merged capabilities, the overlay status, and where
+ *  each provider's spec came from (built-in vs the project overlay). */
+export type ProviderCatalogResponse = {
+  catalog: ProviderCatalog;
+  overlay: { present: boolean; path: string };
+  sources: Record<string, "overlay" | "built-in">;
+};
+
 export type FlowSuggestion = {
   flowId: string;
   label: string;
