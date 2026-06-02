@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.15
+
+- **Prompt autocomplete now completes values, not just commands and flags.**
+  After a value-taking flag, the ghost list fills in the right values: static
+  enums (`--effort low|medium|high`, `--priority`, `--flow-context`,
+  `--checklist`) and **live ids from your project** for `--crew`, `--flow`,
+  `--profile`, `--task` (the `--effort=hi` inline form works too). Id-typed
+  positionals complete the same way - `replay ` offers your run ids, `tasks
+  show ` your task ids, `flows show ` your flow ids - resolved from the command
+  itself, while free-text arguments (a `run "…"` description, a task title)
+  are correctly left alone.
+
 ## 0.3.14
 
 - **The shell prompt autocompletes.** As you type a `vibe …` command, a ghost
