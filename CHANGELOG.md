@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.4
+
+- **Effort is a real ladder, not a text box.** Profiles show effort as a
+  Faster -> Smarter scale (`low / medium / high / xhigh / max`, plus `ultracode`
+  = xhigh + workflows for Claude), driven per provider by the capability catalog
+  (codex: `minimal..high`). The field is labeled "Effort", and Claude ships at
+  `medium` by default. (Runtime wiring so effort actually changes the spawn is
+  planned next - today it's the selection surface.)
+
 ## 0.3.3
 
 - **Provider-aware profiles.** Picking a provider now drives the Model and Effort
