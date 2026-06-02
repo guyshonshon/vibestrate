@@ -68,8 +68,71 @@ describe("completion engine", () => {
   });
 });
 
+describe("value completion", () => {
+  function vals(input: string, ctx = {}): string[] {
+    return completeInput(input, spec, ctx).items.map((i) => i.value);
+  }
+
+  it("completes a flag's static enum after a space", () => {
+    const out = vals("run x --effort ");
+    expect(out).toEqual(["low", "medium", "high"]);
+  });
+
+  it("prefix-filters the flag enum", () => {
+    expect(vals("run x --effort hi")).toEqual(["high"]);
+    expect(completeInput("run x --effort hi", spec).query).toBe("hi");
+  });
+
+  it("completes the inline --flag=value form", () => {
+    expect(vals("run x --effort=me")).toEqual(["--effort=medium"]);
+  });
+
+  it("completes live ids for --crew / --flow / --profile from context", () => {
+    expect(vals("run x --crew ", { crew: ["alpha", "beta"] })).toEqual([
+      "alpha",
+      "beta",
+    ]);
+    expect(vals("run x --flow al", { flow: ["alpha", "alembic", "zeta"] })).toEqual([
+      "alpha",
+      "alembic",
+    ]);
+    expect(
+      vals("run x --profile cl", { profile: ["claude-balanced", "codex"] }),
+    ).toEqual(["claude-balanced"]);
+  });
+
+  it("completes a runId placeholder flag (--resume-from <runId>)", () => {
+    expect(vals("run x --resume-from ", { run: ["run-1", "run-2"] })).toEqual([
+      "run-1",
+      "run-2",
+    ]);
+  });
+
+  it("completes an explicit <runId> positional (replay <runId>)", () => {
+    expect(vals("replay ", { run: ["run-1", "run-2"] })).toEqual(["run-1", "run-2"]);
+  });
+
+  it("completes a generic <id> positional from the command domain", () => {
+    // tasks show <id> -> task ids; flows show <id> -> flow ids.
+    expect(vals("tasks show ", { task: ["task-7"], flow: ["f-1"] })).toEqual([
+      "task-7",
+    ]);
+    expect(vals("flows show ", { task: ["task-7"], flow: ["f-1"] })).toEqual(["f-1"]);
+  });
+
+  it("never completes a free-text positional (run's [task...], tasks add <title>)", () => {
+    expect(vals("run ", { task: ["task-7"] })).not.toContain("task-7");
+    expect(vals("tasks add ", { task: ["task-7"] })).not.toContain("task-7");
+  });
+});
+
 describe("completion + output reducer state", () => {
-  const emptySpec: CommandNode = { name: "vibe", subcommands: [], flags: [] };
+  const emptySpec: CommandNode = {
+    name: "vibe",
+    subcommands: [],
+    flags: [],
+    arguments: [],
+  };
   void emptySpec;
 
   it("editing the input re-arms the overlay (dismissed -> false)", () => {

@@ -17,6 +17,7 @@ import {
   completeInput,
   EMPTY_SPEC,
   type CommandNode,
+  type CompletionContext,
 } from "./completion.js";
 import { ActionsPanel } from "./components/ActionsPanel.js";
 import { DocsOverlay } from "./components/DocsOverlay.js";
@@ -200,12 +201,27 @@ export function App({
     });
   };
 
+  // Live value sources so the prompt can complete ids (profiles, crews, flows,
+  // runs, tasks, providers) and flag enums - read from the same project state
+  // the pages render.
+  const completionContext = useMemo<CompletionContext>(
+    () => ({
+      profile: config ? Object.keys(config.profiles) : [],
+      crew: config ? Object.keys(config.crews) : [],
+      provider: config ? Object.keys(config.providers) : [],
+      flow: flowList.map((f) => f.id),
+      run: runs.map((r) => r.runId),
+      task: tasks.map((t) => t.id),
+    }),
+    [config, flowList, runs, tasks],
+  );
+
   // Prompt autocomplete: candidates for the token at the cursor, derived from
-  // the command spec. The overlay shows only while the prompt owns input, the
-  // user has typed something, and the list hasn't been dismissed.
+  // the command spec + live values. The overlay shows only while the prompt
+  // owns input, the user has typed something, and it hasn't been dismissed.
   const completion = useMemo(
-    () => completeInput(ui.runner.input, completionSpec),
-    [ui.runner.input, completionSpec],
+    () => completeInput(ui.runner.input, completionSpec, completionContext),
+    [ui.runner.input, completionSpec, completionContext],
   );
   const completionIndex = Math.max(
     0,
