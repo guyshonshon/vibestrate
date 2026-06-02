@@ -5,9 +5,17 @@ section: concepts
 slug: concepts/provider
 ---
 
-**Professional explanation.** A provider is a configured invocation of a local CLI that takes a prompt and produces a textual response (and, for editing providers, file edits). Providers are declared under `providers:` in `project.yml` as either a `cli` invocation (command, args, input mode) or a `claude-code` integration (which Vibestrate understands more deeply). The orchestrator runs providers through a uniform interface - capabilities like session reuse, token reporting, or session id reporting are advertised per provider.
+A provider is the actual model you're using, wrapped so Vibestrate can talk to
+it. Claude Code, Codex, Ollama - Vibestrate doesn't care which, as long as it's
+installed locally.
 
-**Simple explanation.** A provider is the actual model you're using, wrapped so Vibestrate can talk to it. Claude Code, Codex, Ollama - Vibestrate doesn't care which, as long as it's installed locally.
+Under the hood, a provider is a configured way to invoke that tool: it takes a
+prompt and produces a textual response (and, for editing providers, file edits).
+Providers are declared under `providers:` in `project.yml`, either as a `cli`
+invocation (command, args, input mode) or as a `claude-code` integration, which
+Vibestrate understands more deeply. The orchestrator drives them all through one
+uniform interface, and each provider advertises its own capabilities - whether it
+can reuse a session, report token usage, or hand back a session id.
 
 > **Provider vs [[profile]] vs [[role]]:** a *Provider* is the installed **CLI**;
 > a *Profile* names a Provider plus how strong/expensive to run it; a *Role*

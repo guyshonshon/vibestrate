@@ -1,3 +1,10 @@
+---
+title: Crew
+description: Your local team of AI Roles. A run picks one Crew and matches the Flow's Seats to its Roles.
+section: concepts
+slug: concepts/crew
+---
+
 # Crew
 
 ## Basically

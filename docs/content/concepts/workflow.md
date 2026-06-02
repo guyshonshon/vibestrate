@@ -5,9 +5,14 @@ section: concepts
 slug: concepts/workflow
 ---
 
-**Professional explanation.** A workflow is the static, ordered description of stages a run progresses through. Each stage names an entering status, an exiting status, and (for stages that invoke a model) the agent role responsible. The orchestrator drives transitions; the state machine enforces which moves are legal.
+A workflow is the recipe for how a Task moves from "submitted" to "ready to
+merge" - the ordered list of stages a run passes through. Each stage names the
+status it enters at, the status it exits to, and (for the stages that call a
+model) the agent role responsible for it.
 
-**Simple explanation.** A workflow is the recipe for how a task moves from "submitted" to "ready to merge."
+The orchestrator drives the transitions; the [state machine](/docs/concepts/state)
+enforces which moves are even legal, so a run can't jump from "planning" straight
+to "merge_ready" without doing the work in between.
 
 ## Why it matters
 

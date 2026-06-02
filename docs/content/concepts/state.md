@@ -5,9 +5,16 @@ section: concepts
 slug: concepts/state
 ---
 
-**Professional explanation.** Every run has a `status` field drawn from a fixed enum, validated by a Zod schema, and persisted at `.vibestrate/runs/<runId>/state.json`. Transitions between statuses are checked against an explicit allowlist (`ALLOWED_TRANSITIONS` in `src/core/state-machine.ts`); attempting an illegal move raises `StateTransitionError`. Terminal statuses (`merge_ready`, `blocked`, `failed`, `aborted`) cannot transition out.
+Every run is in exactly one state at a time, and you can read that state at any
+moment to know precisely what the run is doing. The `status` comes from a fixed
+set of values, validated and saved to `.vibestrate/runs/<runId>/state.json`.
 
-**Simple explanation.** Every run is in exactly one state at a time, and Vibestrate enforces which moves between states are legal. You can read a run's state at any point and know exactly what it's doing.
+What makes the state trustworthy is that Vibestrate enforces the moves between
+states. Transitions are checked against an explicit allowlist
+(`ALLOWED_TRANSITIONS` in `src/core/state-machine.ts`); an illegal move raises
+`StateTransitionError` instead of quietly happening, and the terminal states
+(`merge_ready`, `blocked`, `failed`, `aborted`) have no way back out. So a status
+is a fact about the run, not a guess.
 
 ## Why it matters
 

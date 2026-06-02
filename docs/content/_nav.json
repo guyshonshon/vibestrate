@@ -20,19 +20,47 @@
       ]
     },
     {
-      "id": "concepts",
-      "label": "Concepts",
+      "id": "concept-task",
+      "label": "Task",
       "items": [
         { "slug": "concepts/task", "label": "Task" },
-        { "slug": "concepts/role", "label": "Role" },
-        { "slug": "concepts/provider", "label": "Provider" },
-        { "slug": "concepts/workflow", "label": "Workflow" },
+        { "slug": "concepts/state", "label": "Run state" }
+      ]
+    },
+    {
+      "id": "concept-flow",
+      "label": "Flow",
+      "items": [
         { "slug": "concepts/flow", "label": "Flow" },
-        { "slug": "concepts/skill", "label": "Skill" },
-        { "slug": "concepts/state", "label": "Run state" },
-        { "slug": "concepts/safety", "label": "Safety - Action Broker & policies" },
+        { "slug": "concepts/seat", "label": "Seat" },
+        { "slug": "concepts/workflow", "label": "Workflow" }
+      ]
+    },
+    {
+      "id": "concept-crew",
+      "label": "Crew",
+      "items": [
+        { "slug": "concepts/crew", "label": "Crew" },
+        { "slug": "concepts/role", "label": "Role" },
+        { "slug": "concepts/profile", "label": "Profile" },
+        { "slug": "concepts/provider", "label": "Provider" }
+      ]
+    },
+    {
+      "id": "concept-runtime",
+      "label": "Runtime & safety",
+      "items": [
         { "slug": "concepts/worktree", "label": "Worktree" },
+        { "slug": "concepts/safety", "label": "Safety - Action Broker & policies" },
+        { "slug": "concepts/skill", "label": "Skill" },
         { "slug": "concepts/annotation", "label": "Annotations" }
+      ]
+    },
+    {
+      "id": "concept-config",
+      "label": "Configuration",
+      "items": [
+        { "slug": "concepts/configuration", "label": "Configuration & settings" }
       ]
     },
     {

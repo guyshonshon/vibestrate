@@ -1,3 +1,10 @@
+---
+title: Profile
+description: How strong and expensive a Role runs - a reusable preset of a Provider plus its model and effort.
+section: concepts
+slug: concepts/profile
+---
+
 # Profile
 
 ## Basically
