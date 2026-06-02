@@ -33,7 +33,7 @@ function EffortField({
   );
 }
 
-const EMPTY_CAPS = { models: [], powerLevels: [], budgetLevels: ["low", "medium", "high"] };
+const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [], budgetLevels: ["low", "medium", "high"] };
 
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
@@ -314,7 +314,11 @@ function CreateProfile({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={id || "optional"} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+          {caps.modelEnabled ? (
+            <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+          ) : (
+            <span className="text-[11px] text-fog-500">set in the provider config</span>
+          )}
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>
@@ -442,7 +446,11 @@ function ProfileCard({
           <input value={draft.label} onChange={(e) => set("label", e.target.value)} placeholder={profile.id} className={INPUT_CLS} />
         </FormField>
         <FormField label="Model">
-          <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+          {caps.modelEnabled ? (
+            <SuggestInput value={draft.model} onChange={(v) => set("model", v)} suggestions={caps.models} placeholder="provider default" className={INPUT_CLS} />
+          ) : (
+            <span className="text-[11px] text-fog-500">set in the provider config</span>
+          )}
         </FormField>
         <FormField label="Budget">
           <select value={draft.budget} onChange={(e) => set("budget", e.target.value)} className={INPUT_CLS}>

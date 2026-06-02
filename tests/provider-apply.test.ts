@@ -1,34 +1,47 @@
 import { describe, it, expect } from "vitest";
-import { profileSpawnArgs } from "../src/providers/provider-apply.js";
+import {
+  profileSpawnArgs,
+  effortLevels,
+  modelIsWired,
+} from "../src/providers/provider-apply.js";
 
-describe("profileSpawnArgs", () => {
-  it("codex: model as --model, effort as -c model_reasoning_effort", () => {
-    expect(
-      profileSpawnArgs("codex", { model: "gpt-5-codex", effort: "high" }),
-    ).toEqual(["--model", "gpt-5-codex", "-c", "model_reasoning_effort=high"]);
+describe("provider-apply: wired capabilities", () => {
+  it("effort levels are the real CLI levels, or empty when not wired", () => {
+    expect(effortLevels("claude")).toEqual(["low", "medium", "high", "xhigh", "max"]);
+    expect(effortLevels("codex")).toEqual(["minimal", "low", "medium", "high"]);
+    expect(effortLevels("gemini")).toEqual([]); // no effort flag -> hidden
+    expect(effortLevels("ollama")).toEqual([]);
+    expect(effortLevels("unknown")).toEqual([]);
   });
 
-  it("codex: only the knobs that are set are applied", () => {
-    expect(profileSpawnArgs("codex", { effort: "medium" })).toEqual([
-      "-c",
-      "model_reasoning_effort=medium",
-    ]);
-    expect(profileSpawnArgs("codex", { model: "o3" })).toEqual(["--model", "o3"]);
+  it("model is wired only where there is a real --model flag", () => {
+    expect(modelIsWired("claude")).toBe(true);
+    expect(modelIsWired("codex")).toBe(true);
+    expect(modelIsWired("gemini")).toBe(true);
+    expect(modelIsWired("ollama")).toBe(false);
+    expect(modelIsWired("unknown")).toBe(false);
   });
+});
 
-  it("claude / gemini: model wired, effort advisory (no flag)", () => {
-    expect(profileSpawnArgs("claude", { model: "sonnet", effort: "high" })).toEqual([
+describe("profileSpawnArgs (generic-CLI path)", () => {
+  it("codex: --model + -c model_reasoning_effort", () => {
+    expect(profileSpawnArgs("codex", { model: "gpt-5-codex", effort: "high" })).toEqual([
       "--model",
-      "sonnet",
+      "gpt-5-codex",
+      "-c",
+      "model_reasoning_effort=high",
     ]);
-    expect(profileSpawnArgs("gemini", { model: "gemini-2.5-pro", effort: "x" })).toEqual([
+  });
+
+  it("gemini: model wired, effort not (no flag emitted)", () => {
+    expect(profileSpawnArgs("gemini", { model: "gemini-2.5-pro", effort: "high" })).toEqual([
       "--model",
       "gemini-2.5-pro",
     ]);
   });
 
-  it("unknown provider or no knobs -> nothing (value stays advisory)", () => {
-    expect(profileSpawnArgs("some-cli", { model: "x", effort: "high" })).toEqual([]);
+  it("unwired provider / no knobs -> nothing", () => {
+    expect(profileSpawnArgs("ollama", { model: "x", effort: "high" })).toEqual([]);
     expect(profileSpawnArgs("codex", {})).toEqual([]);
   });
 });
