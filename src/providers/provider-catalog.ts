@@ -23,15 +23,26 @@ const EFFORT = ["low", "medium", "high"];
 /** Keyed by known provider id. Conservative on purpose - only models/levels we
  *  are reasonably confident about; everything else falls back to free text. */
 export const PROVIDER_CATALOG: Record<string, ProviderCapabilities> = {
-  claude: { models: ["opus", "sonnet", "haiku"], powerLevels: EFFORT, budgetLevels: BUDGET },
-  codex: { models: [], powerLevels: EFFORT, budgetLevels: BUDGET },
+  claude: {
+    models: ["opus", "sonnet", "haiku"],
+    powerLevels: EFFORT,
+    budgetLevels: BUDGET,
+  },
+  codex: {
+    models: ["gpt-5-codex", "gpt-5", "o4-mini", "o3"],
+    powerLevels: ["minimal", "low", "medium", "high"],
+    budgetLevels: BUDGET,
+  },
   gemini: {
     models: ["gemini-2.5-pro", "gemini-2.5-flash"],
     powerLevels: EFFORT,
     budgetLevels: BUDGET,
   },
+  // Local: models are whatever you've pulled, so suggestions stay free-text.
   ollama: { models: [], powerLevels: [], budgetLevels: BUDGET },
   qwen: { models: [], powerLevels: [], budgetLevels: BUDGET },
+  // CLIs whose model is configured on their own side / we can't pin reliably -
+  // free text, with the coarse budget knob.
   opencode: { models: [], powerLevels: [], budgetLevels: BUDGET },
   aider: { models: [], powerLevels: [], budgetLevels: BUDGET },
   crush: { models: [], powerLevels: [], budgetLevels: BUDGET },
