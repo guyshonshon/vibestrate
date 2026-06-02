@@ -834,7 +834,7 @@ function NewProfileInline({
           ))}
         </select>
         <SuggestInput value={model} onChange={setModel} suggestions={caps.models} placeholder="model" className={cn(inputCls, "w-[130px]")} />
-        <SuggestInput value={power} onChange={setPower} suggestions={caps.powerLevels} placeholder="power" className={cn(inputCls, "w-[110px]")} />
+        <SuggestInput value={power} onChange={setPower} suggestions={caps.powerLevels} placeholder="effort" className={cn(inputCls, "w-[110px]")} />
         <select value={budget} onChange={(e) => setBudget(e.target.value)} className={inputCls}>
           {["", ...caps.budgetLevels].map((b) => (
             <option key={b || "none"} value={b}>
