@@ -8,12 +8,18 @@ import {
 } from "../../../setup/config-update-service.js";
 import { profileUsage } from "../../../profiles/profile-usage.js";
 import { capabilitiesForProvider } from "../../../providers/provider-catalog.js";
+import {
+  BUILTIN_CATALOG,
+  type ResolvedCatalog,
+} from "../../../providers/provider-apply.js";
 import { ACCENT, ACCENT_BRIGHT } from "../theme.js";
 import { SelectionMark } from "../components/visuals.js";
 
 type Props = {
   projectRoot: string;
   config: ProjectConfig | null;
+  /** Resolved catalog (built-in + overlay). Defaults to built-in if omitted. */
+  catalog?: ResolvedCatalog;
   refreshConfig: () => Promise<void>;
   onToast: (kind: "ok" | "err" | "info", message: string) => void;
   selectedIndex: number;
@@ -32,16 +38,18 @@ function cycle<T>(arr: T[], current: T, dir: 1 | -1): T | undefined {
 function capsFor(
   config: ProjectConfig | null,
   providerId: string | undefined,
+  catalog: ResolvedCatalog,
 ): { models: string[]; powerLevels: string[] } {
   const cfg = providerId ? config?.providers[providerId] : undefined;
   if (!providerId || !cfg) return { models: [], powerLevels: [] };
-  const caps = capabilitiesForProvider(providerId, cfg);
+  const caps = capabilitiesForProvider(providerId, cfg, catalog);
   return { models: caps.models, powerLevels: caps.powerLevels };
 }
 
 export function ProfilesPage({
   projectRoot,
   config,
+  catalog = BUILTIN_CATALOG,
   refreshConfig,
   onToast,
   selectedIndex,
@@ -69,7 +77,7 @@ export function ProfilesPage({
 
   async function cycleEffort(dir: 1 | -1) {
     if (!selected) return;
-    const levels = capsFor(config, selected.provider).powerLevels;
+    const levels = capsFor(config, selected.provider, catalog).powerLevels;
     if (levels.length === 0) {
       onToast("info", `${selected.provider} exposes no effort control.`);
       return;
@@ -83,7 +91,7 @@ export function ProfilesPage({
 
   async function cycleModel(dir: 1 | -1) {
     if (!selected) return;
-    const models = capsFor(config, selected.provider).models;
+    const models = capsFor(config, selected.provider, catalog).models;
     if (models.length === 0) {
       onToast(
         "info",
@@ -183,7 +191,7 @@ export function ProfilesPage({
     );
   }
 
-  const levels = selected ? capsFor(config, selected.provider).powerLevels : [];
+  const levels = selected ? capsFor(config, selected.provider, catalog).powerLevels : [];
   const usedBy = selected ? usage.get(selected.id) ?? [] : [];
 
   return (

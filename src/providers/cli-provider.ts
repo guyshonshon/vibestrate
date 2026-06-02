@@ -12,7 +12,11 @@ export async function runCliProvider(
   // provider's mechanism (e.g. codex). Inserted before the prompt positional.
   const args = [
     ...(config.args ?? []),
-    ...profileSpawnArgs(input.providerId, { model: input.model, effort: input.effort }),
+    ...profileSpawnArgs(
+      input.providerId,
+      { model: input.model, effort: input.effort },
+      input.catalog,
+    ),
   ];
   let stdin: string | undefined;
 

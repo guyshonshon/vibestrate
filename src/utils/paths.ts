@@ -2,6 +2,7 @@ import path from "node:path";
 
 export const VIBESTRATE_DIR = ".vibestrate";
 export const CONFIG_FILENAME = "project.yml";
+export const PROVIDERS_CATALOG_FILENAME = "providers-catalog.yml";
 export const RULES_FILENAME = "rules.md";
 export const ROLES_DIRNAME = "roles";
 export const SKILLS_DIRNAME = "skills";
@@ -23,6 +24,12 @@ export function projectConfigPath(projectRoot: string): string {
 
 export function projectRulesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
+}
+
+/** `.vibestrate/providers-catalog.yml` - the user's provider-capability overlay
+ *  (models + effort levels + apply-spec), merged over the built-in catalog. */
+export function providerCatalogOverlayPath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), PROVIDERS_CATALOG_FILENAME);
 }
 
 export function projectRolesDir(projectRoot: string): string {

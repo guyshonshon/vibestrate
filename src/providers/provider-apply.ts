@@ -15,11 +15,11 @@
 // (`ultracode` is a Vibestrate run-mode, not a claude `--effort` value, so it is
 // NOT an effort level here.)
 
-type ArgApply =
+export type ArgApply =
   | { kind: "flag"; flag: string } // -> [flag, value]
   | { kind: "config"; flag: string; key: string }; // -> [flag, `${key}=${value}`]
 
-type ProviderApplySpec = {
+export type ProviderApplySpec = {
   /** Curated model suggestions (model is applied via `model` below). */
   models: string[];
   /** How `--model` is passed. null = model selection not wired -> hidden. */
@@ -67,6 +67,24 @@ function oneArg(a: ArgApply, value: string): string[] {
   return a.kind === "flag" ? [a.flag, value] : [a.flag, `${a.key}=${value}`];
 }
 
+// ── Resolved catalog (built-in, optionally overlaid by the user) ─────────────
+//
+// The functions below read from a ResolvedCatalog rather than the module consts
+// directly, so a project's `.vibestrate/providers-catalog.yml` overlay (loaded
+// by provider-catalog-overlay.ts, merged over BUILTIN_CATALOG) can add or refine
+// a provider's models / effort / apply-spec. Every function defaults to
+// BUILTIN_CATALOG, so call sites that don't (yet) thread an overlay are
+// unchanged. The overlay never relaxes the "real knobs only" rule - it just lets
+// a user declare the real knobs of a provider Vibestrate doesn't ship a spec for.
+// (BUILTIN_CATALOG itself is defined just after HTTP_SPECS below.)
+
+export type ResolvedCatalog = {
+  /** CLI / claude-code apply specs, keyed by provider id. */
+  cli: Record<string, ProviderApplySpec>;
+  /** HTTP-API apply specs, keyed by api family (openai/anthropic/ollama). */
+  http: Record<string, HttpApplySpec>;
+};
+
 // ── HTTP-API providers: model/effort live in the request BODY, not argv ──────
 //
 // Same rule as the CLI side - a knob is exposed only when it maps to a real,
@@ -81,7 +99,7 @@ function oneArg(a: ArgApply, value: string): string[] {
 // (Model is free-text for every API - you always pass a model id - so model is
 //  always "wired"; the lists below are just suggestions.)
 
-type HttpApplySpec = {
+export type HttpApplySpec = {
   /** Curated model suggestions (model is always settable as free text). */
   models: string[];
   /** Effort: real levels + the request-body field they set. null = no effort. */
@@ -103,14 +121,23 @@ const HTTP_SPECS: Record<string, HttpApplySpec> = {
   ollama: { models: [], effort: null },
 };
 
+/** The built-in catalog (no overlay). The default for every function below. */
+export const BUILTIN_CATALOG: ResolvedCatalog = { cli: SPECS, http: HTTP_SPECS };
+
 /** Real, wired effort levels for an HTTP api family ([] = no effort knob). */
-export function httpEffortLevels(api: string): string[] {
-  return HTTP_SPECS[api]?.effort?.levels ?? [];
+export function httpEffortLevels(
+  api: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string[] {
+  return catalog.http[api]?.effort?.levels ?? [];
 }
 
 /** Model suggestions for an HTTP api family (model itself is always settable). */
-export function httpModelSuggestions(api: string): string[] {
-  return HTTP_SPECS[api]?.models ?? [];
+export function httpModelSuggestions(
+  api: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string[] {
+  return catalog.http[api]?.models ?? [];
 }
 
 /** Apply a profile's effort onto an HTTP request body in place. No-op unless the
@@ -119,25 +146,35 @@ export function applyHttpEffort(
   api: string,
   body: Record<string, unknown>,
   effort?: string | null,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
 ): void {
-  const spec = HTTP_SPECS[api];
+  const spec = catalog.http[api];
   if (spec?.effort && effort) body[spec.effort.field] = effort;
 }
 
 /** Model suggestions for a provider (empty = model not wired). */
-export function modelSuggestions(providerId: string): string[] {
-  const s = SPECS[providerId];
+export function modelSuggestions(
+  providerId: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string[] {
+  const s = catalog.cli[providerId];
   return s?.model ? s.models : [];
 }
 
 /** Whether model selection is actually applied for this provider. */
-export function modelIsWired(providerId: string): boolean {
-  return !!SPECS[providerId]?.model;
+export function modelIsWired(
+  providerId: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): boolean {
+  return !!catalog.cli[providerId]?.model;
 }
 
 /** Real, wired effort levels for a provider ([] = effort not wired -> hidden). */
-export function effortLevels(providerId: string): string[] {
-  return SPECS[providerId]?.effort?.levels ?? [];
+export function effortLevels(
+  providerId: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string[] {
+  return catalog.cli[providerId]?.effort?.levels ?? [];
 }
 
 /** Extra CLI args applying model + effort for a generic-CLI provider (codex,
@@ -145,8 +182,9 @@ export function effortLevels(providerId: string): string[] {
 export function profileSpawnArgs(
   providerId: string,
   knobs: { model?: string | null; effort?: string | null },
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
 ): string[] {
-  const spec = SPECS[providerId];
+  const spec = catalog.cli[providerId];
   if (!spec) return [];
   const out: string[] = [];
   if (knobs.model && spec.model) out.push(...oneArg(spec.model, knobs.model));

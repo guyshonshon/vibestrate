@@ -97,6 +97,46 @@ vibe run "..." --flow default --step-profile implement=opus-deep   # one step
 (Provider commands - `vibe provider list/setup/test` - manage the raw tools
 only. Profiles and Crews are edited in `project.yml`, the dashboard, or the API.)
 
+## Capability catalog + your overlay
+
+Vibestrate ships a built-in **capability catalog**: per provider, the real models
+and effort levels and *how* each is applied (a CLI flag, a `-c key=value`, or an
+HTTP request-body field). The Profile editors only offer knobs that are in this
+catalog, so you never set an effort the runtime ignores.
+
+For a provider Vibestrate doesn't ship a spec for - your own CLI, a custom model -
+declare its real knobs in `.vibestrate/providers-catalog.yml`. The overlay is
+merged over the built-in catalog (your entry wins, per field), and it feeds the
+spawn AND every editor (web / shell / CLI) from the same source:
+
+```yaml
+# .vibestrate/providers-catalog.yml
+cli:
+  mycli:                         # a CLI provider with its own flags
+    models: [turbo, eco]
+    model: { kind: flag, flag: --model }          # -> --model turbo
+    effort:
+      levels: [eco, turbo]
+      apply: { kind: config, flag: --set, key: reasoning }  # -> --set reasoning=turbo
+  gemini:
+    effort: null                 # explicitly clear a built-in knob
+http:
+  openai:
+    models: [my-finetune]        # add a model suggestion to the openai api family
+```
+
+Rules: a knob still only exists where it maps to a real flag/field (no advisory
+dials); omit a field to keep the built-in value, set it to `null` to clear it.
+See the merged result and where each entry came from with:
+
+```bash
+vibe provider catalog          # human view (built-in + overlay, with sources)
+vibe provider catalog --json   # machine-readable
+```
+
+Auto-populating the overlay by probing a provider (`--probe`) is a planned,
+opt-in step; for now the overlay is hand-authored.
+
 ## Common mistakes
 
 - **Setting up the same provider twice.** If Claude Code is your `claude` id, don't create a `claude-pro` and `claude-haiku` row unless the flags differ. Use one provider and switch models inside the provider's own settings.

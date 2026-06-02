@@ -8,8 +8,10 @@ import { applySetup } from "../../setup/setup-service.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
 import {
   PROVIDER_CATALOG,
+  providerCapabilities,
   capabilitiesForProvider,
 } from "../../providers/provider-catalog.js";
+import { resolveCatalog } from "../../providers/provider-catalog-overlay.js";
 
 export type SetupRoutesDeps = {
   projectRoot: string;
@@ -26,11 +28,17 @@ export async function registerSetupRoutes(
   // actually-configured providers over it (api-aware) so a user's http-api
   // provider surfaces its real knobs (e.g. OpenAI effort) under its own id.
   app.get("/api/providers/catalog", async () => {
-    const catalog: Record<string, unknown> = { ...PROVIDER_CATALOG };
+    // Built-in specs + the project's `.vibestrate/providers-catalog.yml` overlay
+    // (empty when there's no file / no project), so user-declared knobs surface.
+    const resolved = await resolveCatalog(projectRoot);
+    const catalog: Record<string, unknown> = {};
+    for (const id of Object.keys(PROVIDER_CATALOG)) {
+      catalog[id] = providerCapabilities(id, resolved);
+    }
     if (await configExists(projectRoot)) {
       const { config } = await loadConfig(projectRoot);
       for (const [id, provider] of Object.entries(config.providers)) {
-        catalog[id] = capabilitiesForProvider(id, provider);
+        catalog[id] = capabilitiesForProvider(id, provider, resolved);
       }
     }
     return { catalog };

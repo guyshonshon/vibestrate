@@ -36,6 +36,7 @@ import { ProfilesPage } from "./pages/ProfilesPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
 import { useProjectConfig } from "./hooks/useProjectConfig.js";
+import { useProviderCatalog } from "./hooks/useProviderCatalog.js";
 import { useSkills } from "./hooks/useSkills.js";
 import { useApprovals } from "./hooks/useApprovals.js";
 import { useSuggestions } from "./hooks/useSuggestions.js";
@@ -95,6 +96,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
     error: configError,
     refresh: refreshConfig,
   } = useProjectConfig(projectRoot);
+  const { catalog: providerCatalog } = useProviderCatalog(projectRoot);
   // First-run gate: no config loaded + a load error = not initialized.
   const notInitialized = !config && !!configError;
   const [initRunning, setInitRunning] = useState(false);
@@ -762,6 +764,7 @@ export function App({ projectRoot, refreshMs, uiUrl }: Props) {
             <ProfilesPage
               projectRoot={projectRoot}
               config={config}
+              catalog={providerCatalog}
               refreshConfig={refreshConfig}
               onToast={(kind, message) =>
                 dispatch({ type: "toast.push", kind, message })

@@ -5,6 +5,7 @@ import { runProviderTest } from "./test.js";
 import { runProviderSet } from "./set.js";
 import { runProviderSetup } from "./setup.js";
 import { runProviderRemove } from "./remove.js";
+import { runProviderCatalog } from "./catalog.js";
 
 export function buildProviderCommand(): Command {
   const cmd = new Command("provider").description(
@@ -63,6 +64,17 @@ export function buildProviderCommand(): Command {
     .option("--yes", "skip the confirmation prompt (non-interactive)")
     .action(async (providerId: string, opts: { yes?: boolean }) => {
       const code = await runProviderRemove(providerId, { yes: opts.yes });
+      process.exit(code);
+    });
+
+  cmd
+    .command("catalog")
+    .description(
+      "Show the provider capability catalog (built-in + your .vibestrate/providers-catalog.yml overlay).",
+    )
+    .option("--json", "emit JSON")
+    .action(async (opts: { json?: boolean }) => {
+      const code = await runProviderCatalog({ json: opts.json });
       process.exit(code);
     });
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.10
+
+- **Bring your own provider knobs.** A new `.vibestrate/providers-catalog.yml`
+  overlay lets you declare the real models, effort levels, and how to apply them
+  for a provider Vibestrate doesn't ship a spec for - your own CLI, a custom
+  model. It is merged over the built-in catalog (your entry wins, per field) and
+  feeds the actual spawn and every editor (web / shell / CLI) from one source, so
+  a custom effort genuinely reaches the command line, not just the UI. Same rule
+  as always: a knob only exists where it maps to a real flag/field.
+- **`vibe provider catalog`** shows the merged catalog and where each entry came
+  from (built-in vs your overlay); `--json` for scripts.
+
 ## 0.3.9
 
 - **Effort now reaches HTTP providers too, not just CLIs.** A profile's effort on

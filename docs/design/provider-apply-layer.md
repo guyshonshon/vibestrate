@@ -62,7 +62,39 @@ Per the "only real knobs" rule, reasoning expressed as a numeric token budget is
 added until a real provider needs one - adding an untested code path for a knob
 nobody applies would itself be an advisory dial.
 
-## 5. Tests pinning the invariant
+## 5. User-extensible overlay (`.vibestrate/providers-catalog.yml`)
+
+The built-in specs cover the providers Vibestrate ships knowledge of. A user with
+their own CLI or a custom model needs to declare its real knobs without a code
+change - that's the overlay (`provider-catalog-overlay.ts`).
+
+**Decision:** the apply functions read from a `ResolvedCatalog` (`{ cli, http }`)
+rather than the module consts directly, defaulting to `BUILTIN_CATALOG`. The
+overlay is a validated YAML file merged over the built-in (`mergeCatalog`), and
+the *same* resolved object feeds both the spawn and the capability surfaces:
+
+- **Spawn:** the orchestrator resolves the catalog once per run
+  (`resolveCatalog(projectRoot)`) and threads it on `ProviderRunInput.catalog`;
+  `cli-provider` / `http-api-provider` apply from it.
+- **Surfaces:** `/api/providers/catalog` (web), the `useProviderCatalog` hook
+  (shell), and `vibe provider catalog` (CLI) all resolve the same overlay.
+
+**Merge semantics:** per-field over the built-in entry. Omit a field to keep the
+built-in value; set it to `null` to clear a built-in knob; provide a new id/api
+to add one. `mergeCatalog` never mutates `BUILTIN_CATALOG` (it spreads).
+
+**Why not a global mutable "current catalog":** a module-level singleton would be
+unviable for tests and any multi-project context, and would couple the pure apply
+functions to load order. Threading a resolved value keeps them pure and testable
+(every test can pass an explicit merged catalog).
+
+**Still no advisory dials:** the overlay validates against the same `ArgApply`
+union (`flag` / `config`) - a user can't declare a mechanism the spawn can't
+honor. Auto-population by probing (`vibe providers refresh --probe`) is a separate
+opt-in step (TODO C.2), deliberately not in this slice: it shells out / hits
+`/models`, which is a different risk surface than reading a hand-authored file.
+
+## 6. Tests pinning the invariant
 
 - `provider-apply.test.ts` - CLI flag/config emission + http effort levels and
   `applyHttpEffort` (openai only, only when set).
@@ -70,4 +102,8 @@ nobody applies would itself be an advisory dial.
   for OpenAI (`reasoning_effort: high`) and is absent for Anthropic.
 - `provider-catalog.test.ts` - `capabilitiesForProvider` is api-aware.
 - `server-catalog.test.ts` - the catalog endpoint surfaces a configured http-api
-  provider's knobs under its own id.
+  provider's knobs under its own id, and reflects the overlay.
+- `provider-catalog-overlay.test.ts` - load / validate / merge (add, per-field
+  override, explicit-null clear, no built-in mutation).
+- `catalog-overlay-e2e.test.ts` - a user-declared provider's overlay apply-spec
+  reaches the real spawn argv through the orchestrator.
