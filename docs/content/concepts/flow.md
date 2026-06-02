@@ -20,6 +20,41 @@ vibe run "Refactor provider permissions" --flow quality-arbitration --crew defau
 The Flow declares the **Seats** it needs; your **Crew** supplies the Roles that
 fill them.
 
+## At a glance
+
+A Flow is a recipe with empty, labelled chairs. It can come from the shared
+**hub**, or you can write your own. Either way it names *seats*, never your
+models - which is exactly what lets you download someone else's Flow and run it
+with your own crew:
+
+```text
+  FLOW HUB  (shareable recipes)
+     │  vibe flows hub install <ref>
+     ▼
+  ┌────────────────────────────────────────────────┐
+  │  FLOW  "quality-arbitration"                     │
+  │  the recipe your Task runs through, top to bottom │
+  │                                                  │
+  │   1. plan        →  seat: builder                │
+  │   2. plan-review →  seat: challenger             │
+  │   3. implement   →  seat: builder                │
+  │   4. validate       (no seat - runs your commands)│
+  │   5. decide      →  seat: arbiter                │
+  └────────────────────────────────────────────────┘
+     │  a seat is an empty chair: "this step needs a builder."
+     │  the Flow never names a model - your Crew does that.
+     ▼
+  YOUR CREW fills each seat with one of your Roles:
+     builder     ←  Executor   (Opus, max effort - it writes the code)
+     challenger  ←  Reviewer   (a different vendor, so it sees fresh)
+     arbiter     ←  Verifier   (cheap - it only writes the summary)
+```
+
+Read top to bottom: the Flow lays out the steps and the seats each one needs;
+your Crew decides who sits in them and how much each one costs to run. Swap the
+Flow and the steps change; swap the Crew and the cast changes; neither touches
+the other.
+
 ## More Detail
 
 A Flow is a structured run recipe - required **[[seat]]s**, step kinds
