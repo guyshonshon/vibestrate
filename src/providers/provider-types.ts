@@ -47,6 +47,11 @@ export type ProviderRunInput = {
   prompt: string;
   cwd: string;
   env?: Record<string, string>;
+  /** Resolved profile knobs for this turn, applied to the spawn where the
+   *  provider supports it (see provider-apply.ts). Advisory otherwise. */
+  model?: string | null;
+  effort?: string | null;
+  maxTokens?: number | null;
   /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**

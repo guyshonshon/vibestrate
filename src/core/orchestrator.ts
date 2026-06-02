@@ -1833,6 +1833,7 @@ export class Orchestrator {
           const result = await this.runRole({
             roleId: step.resolvedRoleId,
             providerId: step.providerId,
+            profileId: step.profileId,
             stageId: step.id,
             promptIndex: 0,
             promptName: path.posix.join("flows", step.id, "prompt.md"),
@@ -2763,6 +2764,7 @@ export class Orchestrator {
   private async runRole(input: {
     roleId: string;
     providerId?: string | null;
+    profileId?: string | null;
     stageId: string;
     promptIndex: number;
     outputName: string;
@@ -3069,10 +3071,17 @@ export class Orchestrator {
       })();
     }, 500);
     try {
+      // Resolved runtime profile for this turn (model + effort + caps). Applied
+      // to the spawn where the provider supports it; advisory otherwise.
+      const runtimeProfile =
+        this.config.profiles[input.profileId ?? agent.profile];
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
         prompt,
         cwd,
+        model: runtimeProfile?.model ?? undefined,
+        effort: runtimeProfile?.power ?? undefined,
+        maxTokens: runtimeProfile?.maxTokens ?? undefined,
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
         onChunk: (c) => {
           if (liveFilter && c.stream === "stdout") {

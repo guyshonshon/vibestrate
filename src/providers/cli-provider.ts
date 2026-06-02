@@ -2,12 +2,18 @@ import { runArgvCommand } from "../execution/command-runner.js";
 import { ProviderError } from "../utils/errors.js";
 import type { CliProviderConfig } from "./provider-schema.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
+import { profileSpawnArgs } from "./provider-apply.js";
 
 export async function runCliProvider(
   config: CliProviderConfig,
   input: ProviderRunInput,
 ): Promise<ProviderRunResult> {
-  const args = [...(config.args ?? [])];
+  // Apply the resolved profile's model/effort as CLI flags where we know the
+  // provider's mechanism (e.g. codex). Inserted before the prompt positional.
+  const args = [
+    ...(config.args ?? []),
+    ...profileSpawnArgs(input.providerId, { model: input.model, effort: input.effort }),
+  ];
   let stdin: string | undefined;
 
   if (config.input === "arg") {
