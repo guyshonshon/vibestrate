@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.12
+
+- **Effort that won't take effect is now loud, not silent.** If a profile sets an
+  effort level the provider would ignore - one outside its real levels, or a
+  provider with no effort knob at all - the run now warns (progress + a
+  `provider.effort_ignored` event) instead of quietly sending a value the CLI
+  drops. Closes the last "advisory dial" gap; verified against claude 2.1.160,
+  whose `-p` (headless) mode honors `--effort low/medium/high/xhigh/max` but
+  silently defaults on an unknown value.
+
 ## 0.3.11
 
 - **Auto-fill the catalog from `--help`.** `vibe provider refresh` probes your

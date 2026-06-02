@@ -38,6 +38,7 @@ import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
+import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import type { ResolvedCatalog } from "../providers/provider-apply.js";
 import {
   createActionBroker,
@@ -364,6 +365,8 @@ export class Orchestrator {
   private readonly config: ProjectConfig;
   /** Resolved capability catalog (built-in + project overlay), loaded once. */
   private resolvedCatalog: ResolvedCatalog | null = null;
+  /** Dedupe key set for the "effort won't take effect" warning (per provider+effort). */
+  private readonly warnedEffort = new Set<string>();
   private readonly rules: string;
   private readonly task: string;
   private readonly isGitRepo: boolean;
@@ -3085,6 +3088,38 @@ export class Orchestrator {
       // actually reaches the spawn.
       if (!this.resolvedCatalog) {
         this.resolvedCatalog = await resolveCatalog(this.projectRoot);
+      }
+      // Fail-loud (not silent): if the profile sets an effort the provider won't
+      // honor (no effort knob, or not one of its real levels), the provider would
+      // just ignore it - an advisory dial. Surface it once per provider+effort.
+      const profileEffort = runtimeProfile?.power;
+      if (profileEffort) {
+        const provCfg = this.config.providers[effectiveProviderId];
+        const levels = provCfg
+          ? capabilitiesForProvider(effectiveProviderId, provCfg, this.resolvedCatalog).powerLevels
+          : [];
+        if (!levels.includes(profileEffort)) {
+          const key = `${effectiveProviderId}:${profileEffort}`;
+          if (!this.warnedEffort.has(key)) {
+            this.warnedEffort.add(key);
+            const why =
+              levels.length === 0
+                ? `${effectiveProviderId} exposes no effort control`
+                : `valid: ${levels.join("/")}`;
+            const msg = `Effort "${profileEffort}" won't take effect on ${effectiveProviderId} (${why}) - the provider ignores it.`;
+            this.onProgress(msg);
+            await ctx.eventLog.append({
+              type: "provider.effort_ignored",
+              message: msg,
+              data: {
+                roleId,
+                provider: effectiveProviderId,
+                effort: profileEffort,
+                validLevels: levels,
+              },
+            });
+          }
+        }
       }
       providerResult = await runProvider(this.config.providers, {
         providerId: effectiveProviderId,
