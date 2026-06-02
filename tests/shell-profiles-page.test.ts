@@ -8,6 +8,7 @@ import { execa } from "execa";
 import { applySetup } from "../src/setup/setup-service.js";
 import { loadConfig } from "../src/project/config-loader.js";
 import type { ProjectConfig } from "../src/project/config-schema.js";
+import type { CatalogOverlay } from "../src/providers/provider-catalog-overlay.js";
 import { ProfilesPage } from "../src/shell/ink/pages/ProfilesPage.js";
 
 const noProvider = async () => ({ exitCode: 127, stdout: "", stderr: "" });
@@ -26,7 +27,15 @@ async function makeProject(): Promise<string> {
 }
 
 // Holds config state like the real App: refreshConfig reloads + re-renders.
-function Harness({ dir, initial }: { dir: string; initial: ProjectConfig }) {
+function Harness({
+  dir,
+  initial,
+  overlay,
+}: {
+  dir: string;
+  initial: ProjectConfig;
+  overlay?: CatalogOverlay;
+}) {
   const [config, setConfig] = React.useState<ProjectConfig>(initial);
   const refreshConfig = React.useCallback(async () => {
     setConfig((await loadConfig(dir)).config);
@@ -34,6 +43,7 @@ function Harness({ dir, initial }: { dir: string; initial: ProjectConfig }) {
   return React.createElement(ProfilesPage, {
     projectRoot: dir,
     config,
+    overlay,
     refreshConfig,
     onToast: () => {},
     selectedIndex: 0,
@@ -63,5 +73,25 @@ describe("shell Profiles page", () => {
     await delay(400);
     const after = (await loadConfig(dir)).config;
     expect(after.profiles["claude-balanced"]?.power).toBe("high");
+  }, 30_000);
+
+  it("flags an active overlay and the provider's catalog source (UI/CLI parity)", async () => {
+    const dir = await makeProject();
+    const initial = (await loadConfig(dir)).config;
+    const overlay: CatalogOverlay = {
+      cli: {
+        claude: {
+          effort: { levels: ["x", "y"], apply: { kind: "flag", flag: "--e" } },
+        },
+      },
+    };
+    const { lastFrame } = render(
+      React.createElement(Harness, { dir, initial, overlay }),
+    );
+    await delay(50);
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("overlay active"); // status line
+    expect(frame).toContain("catalog"); // the source KV label
+    expect(frame).toContain("overlay"); // selected provider's source value
   }, 30_000);
 });
