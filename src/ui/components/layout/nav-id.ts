@@ -20,4 +20,5 @@ export type NavId =
   | "metrics"
   | "crew"
   | "profiles"
-  | "config";
+  | "config"
+  | "consult";

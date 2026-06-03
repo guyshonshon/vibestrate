@@ -44,6 +44,7 @@ export type Route =
   | { kind: "providers" }
   | { kind: "profiles" }
   | { kind: "config" }
+  | { kind: "consult"; taskId: string | null }
   | {
       kind: "codebase";
       filePath: string | null;
@@ -184,6 +185,10 @@ export function parseHashRoute(hash: string): Route {
   if (parts[0] === "providers") return { kind: "providers" };
   if (parts[0] === "profiles") return { kind: "profiles" };
   if (parts[0] === "config") return { kind: "config" };
+  if (parts[0] === "consult") {
+    const taskId = query.get("task");
+    return { kind: "consult", taskId: taskId ?? null };
+  }
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -252,5 +257,9 @@ export function serializeRoute(route: Route): string {
       return "#/profiles";
     case "config":
       return "#/config";
+    case "consult":
+      return route.taskId
+        ? `#/consult?task=${encodeURIComponent(route.taskId)}`
+        : "#/consult";
   }
 }

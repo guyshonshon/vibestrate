@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0
+
+- **Consult - ask the project orchestrator (read-only).** A new project-aware
+  advisor you can ask anything: `vibe consult "should this use a heavier
+  review?"`, a **Consult** button in the dashboard top bar, and `POST
+  /api/consult`. It answers **only** from controlled project context -
+  `VIBESTRATE.md`, your config (providers/profiles/crews/policies), recent run
+  outcomes + validation evidence, agent-visible annotations, and optionally a
+  `--task`, `--run`, or `--file`. It is read-only (broker-gated through the
+  assist path, no worktree, no writes; audited under `runs/consult/`) and
+  **honest about its limits**: every answer states a confidence and lists the
+  caveats it could not verify, rather than presenting model confidence as fact.
+  It recommends actions and can *propose* a VIBESTRATE.md improvement, but
+  proposals are shown, not applied.
+- **`VIBESTRATE.md` - the orchestrator's operating manual.** A new, committed,
+  root-level manual the orchestrator reads (project model, dev commands,
+  orchestration preferences, risk rules). Distinct from `.vibestrate/rules.md`,
+  with explicit precedence: Policy (code-enforced) > VIBESTRATE.md (advisory) >
+  rules.md. Loaded read-only - path-guarded, secret-redacted, bounded.
+- First slice of the **responsible orchestrator** (design:
+  `docs/design/responsible-orchestrator.md`). Next: workflow selection and the
+  run brief.
+
 ## 0.3.19
 
 - **Removed the dead per-profile `budget` knob.** A Profile used to carry a

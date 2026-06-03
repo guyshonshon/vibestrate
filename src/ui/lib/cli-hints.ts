@@ -304,5 +304,17 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe config set <path> <value>", note: "edit one value (e.g. git.mainBranch)" },
         ],
       };
+    case "consult":
+      return {
+        title: "Consult",
+        blurb:
+          "Ask the project orchestrator a question, answered from controlled project context (VIBESTRATE.md + config + recent runs + annotations). Read-only - it recommends, never acts.",
+        commands: [
+          { cmd: 'vibe consult "should this use a heavier review?"', note: "ask a question" },
+          { cmd: "vibe consult \"...\" --task <id>", note: "scope to a task's context" },
+          { cmd: "vibe consult \"...\" --file src/x.ts", note: "include a file's content" },
+          { cmd: "vibe consult \"...\" --json", note: "structured result" },
+        ],
+      };
   }
 }

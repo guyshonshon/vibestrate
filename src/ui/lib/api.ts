@@ -5,6 +5,7 @@ import type {
   ApprovalRequest,
   ArtifactEntry,
   ChecklistItem,
+  ConsultResult,
   ChecklistItemStatus,
   CodeReference,
   ConflictWarning,
@@ -769,6 +770,14 @@ export const api = {
   },
   async getBudget(): Promise<{ budget: BudgetSettings; todaySpendUsd: number }> {
     return jsonGet("/api/budget");
+  },
+  async consult(input: {
+    question: string;
+    taskId?: string | null;
+    runId?: string | null;
+    files?: string[];
+  }): Promise<ConsultResult> {
+    return jsonPost("/api/consult", input);
   },
   async updateBudget(
     patch: Partial<BudgetSettings>,

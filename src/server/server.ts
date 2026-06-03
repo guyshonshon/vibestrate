@@ -25,6 +25,7 @@ import { registerProjectRoutes } from "./routes/project.js";
 import { registerConfigRoutes } from "./routes/config.js";
 import { registerAnnotationsRoutes } from "./routes/annotations.js";
 import { registerBudgetRoutes } from "./routes/budget.js";
+import { registerConsultRoutes } from "./routes/consult.js";
 import { registerGitRoutes } from "./routes/git.js";
 import { registerRoleWorkRoutes } from "./routes/agent-work.js";
 import { registerCodeReferenceRoutes } from "./routes/code-references.js";
@@ -362,6 +363,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerConfigRoutes(app, { projectRoot: opts.projectRoot });
   await registerAnnotationsRoutes(app, { projectRoot: opts.projectRoot });
   await registerBudgetRoutes(app, { projectRoot: opts.projectRoot });
+  await registerConsultRoutes(app, { projectRoot: opts.projectRoot });
   await registerGitRoutes(app, { projectRoot: opts.projectRoot });
   await registerRoleWorkRoutes(app, { projectRoot: opts.projectRoot });
   await registerCodeReferenceRoutes(app, { projectRoot: opts.projectRoot });

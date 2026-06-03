@@ -4,6 +4,9 @@ export const VIBESTRATE_DIR = ".vibestrate";
 export const CONFIG_FILENAME = "project.yml";
 export const PROVIDERS_CATALOG_FILENAME = "providers-catalog.yml";
 export const RULES_FILENAME = "rules.md";
+/** Root-level operating manual the responsible orchestrator reads (committed,
+ *  project-owned). NOT under `.vibestrate/` - it sits at the project root. */
+export const MANUAL_FILENAME = "VIBESTRATE.md";
 export const ROLES_DIRNAME = "roles";
 export const SKILLS_DIRNAME = "skills";
 export const FLOWS_DIRNAME = "flows";
@@ -24,6 +27,13 @@ export function projectConfigPath(projectRoot: string): string {
 
 export function projectRulesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
+}
+
+/** `VIBESTRATE.md` at the project root - the orchestrator's durable operating
+ *  manual (project model, dev commands, orchestration preferences, risk rules).
+ *  Distinct from `.vibestrate/rules.md` (per-turn prompt guidance). */
+export function vibestrateManualPath(projectRoot: string): string {
+  return path.join(projectRoot, MANUAL_FILENAME);
 }
 
 /** `.vibestrate/providers-catalog.yml` - the user's provider-capability overlay

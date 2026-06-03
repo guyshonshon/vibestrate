@@ -64,6 +64,13 @@
       ]
     },
     {
+      "id": "concept-orchestrator",
+      "label": "Orchestrator",
+      "items": [
+        { "slug": "concepts/vibestrate-md", "label": "VIBESTRATE.md & Consult" }
+      ]
+    },
+    {
       "id": "cli",
       "label": "Using the CLI",
       "items": [
