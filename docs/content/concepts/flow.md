@@ -151,9 +151,10 @@ before it starts, so the choice is never hidden. The precedence:
    Clear it with `vibe flows use --clear`.
 3. **Orchestrator selection** - opt in with `vibe run "..." --select` and the
    responsible orchestrator picks the Flow for the task (read-only, broker-gated;
-   it states a confidence + reasons + risks, and records `selection.json` + a
-   `workflow.selected` event on the run). Without `--select`, no model call is
-   made.
+   it states a confidence + reasons + risks, may recommend a **crew** and an
+   execution **posture**, and records `selection.json` + a `workflow.selected`
+   event on the run - surfaced as a **Flow &amp; why** card on run detail).
+   Without `--select`, no model call is made.
 4. Otherwise the built-in **`default`** Flow.
 
 ### Flow capabilities (selection metadata)

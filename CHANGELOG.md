@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.3
+
+- **Orchestrator selection now recommends a crew + posture, and shows its
+  reasoning on run detail.** With `--select`, the orchestrator can also pick a
+  **crew** (when the project has more than one; applied only if you didn't pass
+  `--crew`, and validated) and flag an execution **posture** (sandbox / approval)
+  as advice. Selected runs get a **Flow & why** card on the run-detail page -
+  flow, confidence, reasons, and risks - read from the run's `selection.json`.
+  Completes Slice 2. (Per-step profile auto-selection and applying the sandbox
+  posture stay deferred - the latter needs the OS-sandbox backend.)
+
 ## 0.5.2
 
 - **Consult page in the shell.** The interactive shell gains a **Consult** page:

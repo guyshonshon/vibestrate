@@ -7,6 +7,7 @@ import {
   runStatePath,
   runEventsPath,
   runDir,
+  runArtifactsDir,
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore } from "../../core/state-machine.js";
@@ -313,6 +314,23 @@ export async function registerRunsRoutes(
         req.params.runId,
       );
       return { assurance: derived };
+    },
+  );
+
+  // The orchestrator's flow-selection record (Slice 2), when the run's flow was
+  // selected. null for forced/default runs (their flow is in flow.json).
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/selection",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const file = path.join(runArtifactsDir(projectRoot, req.params.runId), "selection.json");
+      const raw = await readText(file).catch(() => null);
+      if (raw === null) return { selection: null };
+      try {
+        return { selection: JSON.parse(raw) };
+      } catch {
+        return { selection: null };
+      }
     },
   );
 

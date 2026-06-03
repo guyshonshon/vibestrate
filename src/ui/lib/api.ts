@@ -6,6 +6,7 @@ import type {
   ArtifactEntry,
   ChecklistItem,
   ConsultResult,
+  WorkflowSelectionView,
   ChecklistItemStatus,
   CodeReference,
   ConflictWarning,
@@ -569,6 +570,12 @@ export const api = {
       `/api/runs/${runId}/assurance`,
     );
     return r.assurance;
+  },
+  async getRunSelection(runId: string): Promise<WorkflowSelectionView | null> {
+    const r = await jsonGet<{ selection: WorkflowSelectionView | null }>(
+      `/api/runs/${runId}/selection`,
+    );
+    return r.selection;
   },
   async listEvents(runId: string): Promise<VibestrateEvent[]> {
     const r = await jsonGet<{ events: VibestrateEvent[] }>(

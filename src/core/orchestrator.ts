@@ -578,6 +578,7 @@ export class Orchestrator {
         message: `Flow "${this.selection.flowId}" (${this.selection.source})`,
         data: {
           flowId: this.selection.flowId,
+          crewId: this.selection.crewId,
           source: this.selection.source,
           confidence: this.selection.confidence,
           reasons: this.selection.reasons,

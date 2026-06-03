@@ -8,6 +8,7 @@ import type {
   RunAssurance,
   RunState,
   RuntimeMetrics,
+  WorkflowSelectionView,
 } from "../../lib/types.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
@@ -68,21 +69,24 @@ export function RunDetailPage({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
+  const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [r, m, a, d] = await Promise.all([
+        const [r, m, a, d, sel] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
           api.getDiff(runId).catch(() => null),
+          api.getRunSelection(runId).catch(() => null),
         ]);
         if (cancelled) return;
         setRun(r);
         setMetrics(m);
         setApprovals(a);
+        setSelection(sel);
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -212,6 +216,9 @@ export function RunDetailPage({
       />
 
       {assurance ? <AssuranceBadge assurance={assurance} /> : null}
+      {selection && selection.source === "selected" ? (
+        <FlowChoiceCard selection={selection} />
+      ) : null}
 
       {/* Terminal non-success runs: explain what stopped it + what to do. */}
       <RunOutcomeBanner
@@ -718,6 +725,38 @@ const ASSURANCE_TONE: Record<RunAssurance["verdict"], string> = {
   blocked: "border-rose-500/40 bg-rose-500/10 text-rose-200",
   unsafe: "border-rose-500/50 bg-rose-500/15 text-rose-200",
 };
+
+/** Why the orchestrator chose this Flow (Slice 2 - only for selected runs). */
+function FlowChoiceCard({ selection }: { selection: WorkflowSelectionView }) {
+  return (
+    <div className="rounded-xl border border-violet-soft/30 bg-violet-soft/[0.06] px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-[11px] uppercase tracking-[0.12em] text-fog-400">
+          Flow &amp; why
+        </span>
+        <span className="text-[13px] font-medium text-fog-100">{selection.flowId}</span>
+        <span className="text-[11px] text-fog-400">
+          orchestrator-selected · {selection.confidence} confidence
+        </span>
+      </div>
+      {selection.reasons.length ? (
+        <ul className="mt-1.5 space-y-0.5 text-[12px] text-fog-300">
+          {selection.reasons.map((r, i) => (
+            <li key={i}>· {r}</li>
+          ))}
+        </ul>
+      ) : null}
+      {selection.risks.length ? (
+        <p className="mt-1 text-[11.5px] text-amber-300">
+          risks: {selection.risks.join("; ")}
+        </p>
+      ) : null}
+      {selection.advisory ? (
+        <p className="mt-1 text-[11.5px] text-amber-200">{selection.advisory}</p>
+      ) : null}
+    </div>
+  );
+}
 
 /** Compact, evidence-backed run-assurance verdict (S5). */
 function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {

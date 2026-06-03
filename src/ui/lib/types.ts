@@ -267,6 +267,17 @@ export type CrewView = {
   roles: CrewRoleView[];
 };
 
+export type WorkflowSelectionView = {
+  flowId: string;
+  crewId: string | null;
+  source: "forced" | "default" | "selected" | "only-flow";
+  confidence: "low" | "medium" | "high";
+  reasons: string[];
+  risks: string[];
+  posture: "normal" | "sandbox-suggested" | "approval-suggested";
+  advisory: string | null;
+};
+
 export type ConsultActionKind =
   | "run"
   | "select_flow"

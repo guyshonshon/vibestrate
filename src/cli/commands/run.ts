@@ -229,6 +229,8 @@ export async function runRunCommand(
         loaded,
       });
       activeFlowId = selection.flowId;
+      // Apply a recommended crew only when the user didn't pick one.
+      if (selection.crewId && !activeCrewId) activeCrewId = selection.crewId;
     } catch (err) {
       console.error(
         `${symbol.warn()} Flow selection failed; falling back to the default flow. ${
@@ -701,6 +703,9 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
   );
   if (selection.source === "selected" && selection.reasons.length) {
     console.log(indent(color.dim(selection.reasons[0]!)));
+  }
+  if (selection.crewId) {
+    console.log(indent(color.dim(`crew: ${selection.crewId}`)));
   }
   for (const risk of selection.risks) {
     console.log(indent(`${symbol.warn()} ${color.dim(risk)}`));
