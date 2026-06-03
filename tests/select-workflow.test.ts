@@ -130,6 +130,30 @@ describe("selectWorkflow LLM branch", () => {
     expect(s.confidence).toBe("high");
   });
 
+  it("applies a recommended crew when it exists, ignores an unknown one", async () => {
+    const ok = await selectWorkflow({
+      projectRoot,
+      task: "x",
+      availableFlows: FLOWS,
+      availableCrews: [{ id: "default", label: "Default" }, { id: "review", label: "Review" }],
+      runner: pickRunner(
+        JSON.stringify({ flowId: "default", crewId: "review", confidence: "high", reasons: [], risks: [], posture: "normal" }),
+      ),
+    });
+    expect(ok.crewId).toBe("review");
+
+    const bad = await selectWorkflow({
+      projectRoot,
+      task: "x",
+      availableFlows: FLOWS,
+      availableCrews: [{ id: "default", label: "Default" }],
+      runner: pickRunner(
+        JSON.stringify({ flowId: "default", crewId: "ghost", confidence: "high", reasons: [], risks: [], posture: "normal" }),
+      ),
+    });
+    expect(bad.crewId).toBeNull();
+  });
+
   it("falls back and flags a risk when the model returns an unknown id", async () => {
     const s = await selectWorkflow({
       projectRoot,

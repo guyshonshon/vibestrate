@@ -26,6 +26,8 @@ export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggest
 
 export type WorkflowSelection = {
   flowId: string;
+  /** Recommended crew, when the orchestrator chose one (else null = config/default). */
+  crewId: string | null;
   source: WorkflowSelectionSource;
   confidence: "low" | "medium" | "high";
   reasons: string[];
@@ -55,6 +57,8 @@ export type SelectWorkflowRequest = {
   forceSelect?: boolean;
   /** Every flow the run could use (built-in + project). */
   availableFlows: AvailableFlow[];
+  /** The crews the run could use; the orchestrator may pick one when >1 exists. */
+  availableCrews?: { id: string; label: string }[];
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
   /** Test seam, forwarded to the assist primitive. */
@@ -64,6 +68,7 @@ export type SelectWorkflowRequest = {
 const selectionAnswerSchema = z
   .object({
     flowId: z.string().min(1),
+    crewId: z.string().min(1).nullable().default(null),
     confidence: z.enum(["low", "medium", "high"]),
     reasons: z.array(z.string()).default([]),
     risks: z.array(z.string()).default([]),
@@ -73,6 +78,7 @@ const selectionAnswerSchema = z
 
 const SELECTION_SCHEMA_HINT = `{
   "flowId": "string - the id of the chosen flow (MUST be one of the available ids)",
+  "crewId": "string|null - a crew id to recommend (MUST be available), or null to keep the default",
   "confidence": "low | medium | high",
   "reasons": ["string - why this flow, grounded in the task + flow capabilities"],
   "risks": ["string - risks you noticed (e.g. security-sensitive paths)"],
@@ -94,21 +100,35 @@ function describeFlow(f: AvailableFlow): string {
   return `- ${f.id} ("${f.label}")${bits.length ? ` - ${bits.join(", ")}` : ""}${f.description ? `: ${f.description}` : ""}`;
 }
 
-function buildInstruction(task: string, flows: AvailableFlow[]): string {
+function buildInstruction(
+  task: string,
+  flows: AvailableFlow[],
+  crews: { id: string; label: string }[],
+): string {
   const effort = classifyEffort({ text: task });
-  return [
+  const lines = [
     "You are Vibestrate's workflow selector. Choose the best Flow to run this task.",
     "Prefer the **lowest-cost** flow that adequately covers the task - do not over-spend. Choose a heavier flow (higher cost) only when the task is security-sensitive, broadly architectural, risky/irreversible, or the requirement is ambiguous.",
     `Task effort heuristic: ${effort.effort} (confidence ${effort.confidence}). ${effort.reasons.join("; ")}`,
     "",
     "Available flows:",
     flows.map(describeFlow).join("\n"),
+  ];
+  if (crews.length > 1) {
+    lines.push(
+      "",
+      "Available crews (set `crewId` only if one clearly fits better; else null):",
+      crews.map((c) => `- ${c.id} ("${c.label}")`).join("\n"),
+    );
+  }
+  lines.push(
     "",
     "# Task",
     task.trim(),
     "",
     "Pick exactly one `flowId` from the available ids. Give concise, evidence-based reasons; list any risks; suggest a posture (sandbox/approval) only when the task truly warrants it.",
-  ].join("\n");
+  );
+  return lines.join("\n");
 }
 
 /**
@@ -119,10 +139,14 @@ function buildInstruction(task: string, flows: AvailableFlow[]): string {
 export async function selectWorkflow(req: SelectWorkflowRequest): Promise<WorkflowSelection> {
   const ids = new Set(req.availableFlows.map((f) => f.id));
 
+  const crews = req.availableCrews ?? [];
+  const crewIds = new Set(crews.map((c) => c.id));
+
   // 1. Forced by the user.
   if (req.forcedFlowId) {
     return {
       flowId: req.forcedFlowId,
+      crewId: null,
       source: "forced",
       confidence: "high",
       reasons: ["Flow chosen explicitly with --flow."],
@@ -136,6 +160,7 @@ export async function selectWorkflow(req: SelectWorkflowRequest): Promise<Workfl
   if (req.defaultFlowId && !req.forceSelect) {
     return {
       flowId: req.defaultFlowId,
+      crewId: null,
       source: "default",
       confidence: "high",
       reasons: ["Project default flow (config.defaultFlow)."],
@@ -149,6 +174,7 @@ export async function selectWorkflow(req: SelectWorkflowRequest): Promise<Workfl
   if (req.availableFlows.length <= 1) {
     return {
       flowId: only(req.availableFlows),
+      crewId: null,
       source: "only-flow",
       confidence: "high",
       reasons: ["Only one flow is available."],
@@ -163,7 +189,7 @@ export async function selectWorkflow(req: SelectWorkflowRequest): Promise<Workfl
     projectRoot: req.projectRoot,
     label: "select-workflow",
     auditBucket: "selection",
-    instruction: buildInstruction(req.task, req.availableFlows),
+    instruction: buildInstruction(req.task, req.availableFlows, crews),
     schema: selectionAnswerSchema,
     schemaHint: SELECTION_SCHEMA_HINT,
     loaded: req.loaded ?? undefined,
@@ -179,6 +205,8 @@ export async function selectWorkflow(req: SelectWorkflowRequest): Promise<Workfl
     risks.push(`Selector returned an unknown flow "${picked.flowId}"; fell back to a known flow.`);
     flowId = req.defaultFlowId && ids.has(req.defaultFlowId) ? req.defaultFlowId : only(req.availableFlows);
   }
+  // Only accept a crew the project actually has; otherwise keep the default.
+  const crewId = picked.crewId && crewIds.has(picked.crewId) ? picked.crewId : null;
 
   const advisory =
     picked.posture === "sandbox-suggested"
@@ -189,6 +217,7 @@ export async function selectWorkflow(req: SelectWorkflowRequest): Promise<Workfl
 
   return {
     flowId,
+    crewId,
     source: "selected",
     confidence: picked.confidence,
     reasons: picked.reasons,
@@ -230,6 +259,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
   if (input.forcedFlowId) {
     return {
       flowId: input.forcedFlowId,
+      crewId: null,
       source: "forced",
       confidence: "high",
       reasons: ["Flow chosen explicitly with --flow."],
@@ -249,6 +279,10 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
       complexity: f.definition.complexity ?? null,
       capabilities: f.definition.capabilities ?? null,
     }));
+    const availableCrews = Object.entries(input.config.crews ?? {}).map(([id, c]) => ({
+      id,
+      label: (c as { label?: string }).label ?? id,
+    }));
     return selectWorkflow({
       projectRoot: input.projectRoot,
       task: input.task,
@@ -256,6 +290,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
       defaultFlowId,
       forceSelect: true,
       availableFlows,
+      availableCrews,
       loaded: input.loaded,
       signal: input.signal,
       runner: input.runner,
@@ -265,6 +300,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
   // 3. The default/session flow (or the built-in default) - applied + shown, no LLM.
   return {
     flowId: defaultFlowId ?? "default",
+    crewId: null,
     source: "default",
     confidence: "high",
     reasons: [defaultFlowId ? "Project default flow (config.defaultFlow)." : "Built-in default flow."],

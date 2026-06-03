@@ -216,6 +216,8 @@ export async function runFromSpec(
   }
 
   const effectiveFlowId = selection?.flowId ?? spec.flow?.id ?? null;
+  // Apply a recommended crew only when the request didn't specify one.
+  const effectiveCrewId = spec.crewId ?? selection?.crewId ?? null;
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
   if (effectiveFlowId) {
     const flow = await findFlowById(detected.projectRoot, effectiveFlowId);
@@ -231,7 +233,7 @@ export async function runFromSpec(
       source: flow.source,
       config: loaded.config,
       task: spec.task,
-      crewId: spec.crewId ?? null,
+      crewId: effectiveCrewId,
       profileOverride,
       seatRoleOverrides: spec.seatRoleOverrides ?? {},
       brief: spec.flow?.brief ?? null,
@@ -249,7 +251,7 @@ export async function runFromSpec(
     isGitRepo: detected.isGitRepo,
     taskId: spec.taskId ?? null,
     effort,
-    crewId: spec.crewId ?? null,
+    crewId: effectiveCrewId,
     profileOverride,
     stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
     seatRoleOverrides: spec.seatRoleOverrides ?? {},
