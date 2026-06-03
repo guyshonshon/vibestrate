@@ -152,6 +152,8 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         providerId,
         inputs: step.inputs,
         outputs: step.outputs,
+        needs: step.needs,
+        instructions: step.instructions ?? null,
         approval: step.approval ?? null,
         sourceStepId: step.id,
         repeatIteration,
