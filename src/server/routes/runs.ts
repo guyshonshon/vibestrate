@@ -214,14 +214,16 @@ export async function registerRunsRoutes(
     };
     // C1: best-effort flow-complexity advice (non-blocking, informational).
     let flowAdvice: { level: string; message: string | null } | null = null;
+    // Slice 4: fan-out cost warning for graph flows (also non-blocking).
+    let fanoutAdvice: { maxFanout: number; message: string | null } | null =
+      null;
     if (body.flow) {
       try {
         const { findFlowById } = await import(
           "../../flows/catalog/flow-discovery.js"
         );
-        const { inferFlowComplexity, flowComplexityAdvice } = await import(
-          "../../flows/runtime/flow-complexity.js"
-        );
+        const { inferFlowComplexity, flowComplexityAdvice, flowFanoutAdvice } =
+          await import("../../flows/runtime/flow-complexity.js");
         const { classifyEffort } = await import("../../core/effort-heuristic.js");
         const found = await findFlowById(projectRoot, body.flow.id);
         if (found) {
@@ -232,6 +234,10 @@ export async function registerRunsRoutes(
           });
           if (advice.message) {
             flowAdvice = { level: advice.level, message: advice.message };
+          }
+          const fanout = flowFanoutAdvice(found.definition);
+          if (fanout.message) {
+            fanoutAdvice = { maxFanout: fanout.maxFanout, message: fanout.message };
           }
         }
       } catch {
@@ -249,6 +255,7 @@ export async function registerRunsRoutes(
         argv,
         message: `started run (equivalent: vibe ${formatArgv(argv)})`,
         flowAdvice,
+        fanoutAdvice,
       };
     } catch (err) {
       throw new HttpError(

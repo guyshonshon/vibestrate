@@ -42,6 +42,7 @@ export async function runCliProvider(
       cwd: input.cwd,
       env,
       stdin,
+      ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.onChunk ? { onChunk: input.onChunk } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
     });

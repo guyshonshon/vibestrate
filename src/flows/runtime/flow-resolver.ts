@@ -1,19 +1,33 @@
 import type { ProjectConfig } from "../../project/config-schema.js";
+import type { CrewConfig } from "../../crews/crew-schema.js";
 import { nowIso } from "../../utils/time.js";
 import {
   getCrew,
+  getCrewRole,
   getProfile,
   roleLabel,
   rolesFillingSeat,
 } from "../../crews/crew-registry.js";
+import { resolveProfile } from "../../permissions/permission-profiles.js";
 import {
+  isGraphFlow,
+  parallelGroupsOf,
   resolvedFlowSnapshotSchema,
   type FlowContextPolicy,
   type FlowDefinition,
   type FlowSource,
+  type FlowStepKind,
   type ResolvedFlowSeat,
   type ResolvedFlowSnapshot,
+  type ResolvedFlowStep,
 } from "../schemas/flow-schema.js";
+
+const TURN_KINDS = new Set<FlowStepKind>([
+  "agent-turn",
+  "review-turn",
+  "response-turn",
+  "summary-turn",
+]);
 
 export class FlowResolutionError extends Error {
   constructor(message: string) {
@@ -162,6 +176,10 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     });
   });
   assertResolvedStepIds(steps);
+  // Read-only guarantee (custom-workflow-dags.md): the schema can't know who
+  // writes (flows are crew-agnostic), so the parallel-group read-only invariant
+  // is enforced HERE, once seats are bound to roles -> permission profiles.
+  assertParallelGroupsAreReadOnly({ steps, crew, config: input.config, crewId });
 
   return resolvedFlowSnapshotSchema.parse({
     schemaVersion: 1,
@@ -185,6 +203,41 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     checklistSegment: input.flow.checklistSegment ?? null,
     complexity: input.flow.complexity ?? null,
   });
+}
+
+/**
+ * Every member of a parallel group (>= 2 resolved steps sharing one `needs`
+ * set) must be a seated, read-only model turn. A panel of writers is rejected
+ * before the run starts - this upholds the one-writer-per-worktree invariant
+ * that read-only fan-out depends on. No-op for linear (non-graph) flows.
+ */
+function assertParallelGroupsAreReadOnly(input: {
+  steps: ResolvedFlowStep[];
+  crew: CrewConfig;
+  config: ProjectConfig;
+  crewId: string;
+}): void {
+  if (!isGraphFlow({ steps: input.steps })) return;
+  const groups = parallelGroupsOf(input.steps).filter((g) => g.length >= 2);
+  for (const group of groups) {
+    for (const step of group) {
+      if (!step.resolvedRoleId || !TURN_KINDS.has(step.kind)) {
+        throw new FlowResolutionError(
+          `Flow step "${step.id}" runs concurrently with its siblings but isn't a seated model turn (kind "${step.kind}"). Only read-only review/analysis turns may fan out in parallel; move validation/approval/write steps onto their own dependency.`,
+        );
+      }
+      const role = getCrewRole(input.crew, step.resolvedRoleId);
+      const permission = resolveProfile(
+        input.config.permissions.profiles,
+        role.permissions,
+      );
+      if (permission.allowWrite) {
+        throw new FlowResolutionError(
+          `Flow step "${step.id}" runs in a parallel group, but role "${step.resolvedRoleId}" (crew "${input.crewId}") can write (permission profile "${role.permissions}"). Parallel-group steps must be read-only - one writer per worktree.`,
+        );
+      }
+    }
+  }
 }
 
 function assertResolvedStepIds(steps: ResolvedFlowSnapshot["steps"]): void {

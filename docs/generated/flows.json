@@ -490,6 +490,201 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "panel-review",
+      "version": 1,
+      "label": "Late review panel",
+      "description": "Plan, architect, implement, and validate, then fan out a 3-lens read-only review panel (correctness, tests, security/risk) over the real diff and an arbiter join that renders one verdict. Heavier - selected only when evidence warrants it.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Turns the task into a plan."
+        },
+        {
+          "id": "architect",
+          "label": "Architect",
+          "description": "Designs the approach."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements the change."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff under one assigned lens."
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter",
+          "description": "Reads every reviewer's findings and renders one verdict."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "architecture",
+          "label": "Architecture",
+          "kind": "agent-turn",
+          "seat": "architect",
+          "inputs": [
+            "task-brief",
+            "plan"
+          ],
+          "outputs": [
+            "architecture"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "seat": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-correctness",
+          "label": "Review: correctness",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings-correctness"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-tests",
+          "label": "Review: tests",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings-tests"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-risk",
+          "label": "Review: security & risk",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings-risk"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter verdict",
+          "kind": "review-turn",
+          "seat": "arbiter",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "architecture",
+            "execution",
+            "validation",
+            "findings-correctness",
+            "findings-tests",
+            "findings-risk"
+          ],
+          "outputs": [
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }

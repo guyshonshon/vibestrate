@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.0
+
+- **Workflows can now fan out a late review panel - the first parallel flow.**
+  Flows gained a real dependency graph (DAG): a step can declare `needs`, and
+  steps that share the same dependencies run **concurrently**. The new built-in
+  **`panel-review`** flow puts it to work - after plan -> architect -> implement
+  -> validate, three read-only reviewers inspect the same real diff from distinct
+  lenses (correctness, tests, security/risk) **at the same time**, then an
+  arbiter reads all three findings and renders one verdict. The orchestrator can
+  select it when a task warrants heavier review (security-sensitive, broad or
+  architectural, low validation confidence, or you ask for it).
+  - **Read-only by construction.** Every step in a parallel group is
+    hard-enforced read-only at resolve time - a panel of writers is refused
+    before the run starts, so the one-writer-per-worktree invariant holds. The
+    linear path is byte-for-byte unchanged; only a flow that opts in (declares
+    `needs`) uses the new frontier scheduler.
+  - **Honest about cost.** A fan-out warning (printed by `vibe run`, returned by
+    `POST /api/runs`) says how many agents run in parallel and that each is an
+    opaque box that may itself parallelize - so real spend can exceed the
+    estimate; the run's event stream shows each fan-out wave.
+  - **Real wall-clock timeout.** A profile's `timeoutMs` is now wired end to end:
+    an overrunning turn has its **whole process group** tree-killed (not just the
+    direct child), so an internally-fanned-out turn can't hang unbounded. It was
+    advisory/dead in the spawn path before, like the old per-profile `budget`.
+
+  First DAG slice (Slice 4; custom-workflow-dags.md Phase A+B). Write-parallelism
+  and checklist-DAGs stay deferred and on paper.
+
 ## 0.6.0
 
 - **The orchestrator now carries a run brief between steps.** As a flow runs, the

@@ -5,7 +5,7 @@
 // ("this flow might be too much - try a simpler one"). Pure + advisory: it
 // never blocks a run, it just nudges.
 
-import type { FlowComplexity } from "../schemas/flow-schema.js";
+import { parallelGroupsOf, type FlowComplexity } from "../schemas/flow-schema.js";
 
 const RANK: Record<FlowComplexity, number> = { low: 0, medium: 1, high: 2 };
 const TURN_KINDS = new Set([
@@ -39,6 +39,32 @@ export type FlowComplexityAdvice = {
   level: "none" | "consider" | "overkill";
   message: string | null;
 };
+
+export type FlowFanoutAdvice = {
+  /** Widest parallel group in the flow (1 = no fan-out / linear). */
+  maxFanout: number;
+  message: string | null;
+};
+
+/**
+ * Fan-out cost warning (Slice 4): a graph flow that runs N agents in parallel
+ * multiplies spend, and each turn is an opaque box that may itself parallelize -
+ * so the real footprint can exceed the per-turn estimate. Say so loudly. Returns
+ * a null message for linear flows (no fan-out). See custom-workflow-dags.md.
+ */
+export function flowFanoutAdvice(flow: {
+  steps: ReadonlyArray<{ needs?: readonly string[] }>;
+}): FlowFanoutAdvice {
+  let maxFanout = 1;
+  for (const group of parallelGroupsOf(flow.steps)) {
+    if (group.length > maxFanout) maxFanout = group.length;
+  }
+  if (maxFanout < 2) return { maxFanout, message: null };
+  return {
+    maxFanout,
+    message: `This flow fans out up to ${maxFanout} agents in parallel (~${maxFanout}x the review spend), and each is an opaque box that may itself parallelize - so real spend can exceed the estimate. For CLI providers token spend is often unmeasured, so the cap there is wall-clock/turn-count bounded.`,
+  };
+}
 
 export function flowComplexityAdvice(input: {
   flowComplexity: FlowComplexity;

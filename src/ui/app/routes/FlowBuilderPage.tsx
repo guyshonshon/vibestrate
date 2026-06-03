@@ -792,6 +792,14 @@ function StepRow({
               </span>
             </>
           ) : null}
+          {step.needs && step.needs.length > 0 ? (
+            <>
+              <span>·</span>
+              <span className="mono whitespace-nowrap text-fog-500">
+                needs {step.needs.join(", ")}
+              </span>
+            </>
+          ) : null}
         </div>
       </div>
       {editable ? (

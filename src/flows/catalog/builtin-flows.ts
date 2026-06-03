@@ -346,10 +346,159 @@ export const pickupFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **late review panel**: the first graph (DAG) flow (Slice 4,
+// custom-workflow-dags.md Phase A+B). It runs the standard plan -> architect ->
+// implement -> validate spine, then fans out into THREE read-only reviewers
+// that inspect the *same* real diff + validation evidence from distinct lenses
+// (correctness, tests, security/risk), concurrently, and an arbiter join reads
+// all three and renders one verdict.
+//
+// Why a panel: late review over a concrete diff catches more than a single
+// reviewer, and the lenses are deliberately distinct (not the same prompt 3x).
+// The reviewers all sit in the read-only `reviewer` seat (one role, three
+// lenses via per-step `instructions`) and write DISTINCT output tokens, so the
+// frontier scheduler can run them in parallel with no worktree collision - the
+// read-only-ness is hard-enforced at resolve time. There is no fix loop or
+// second validation here: graph flows can't yet combine with the adaptive loop
+// (deferred to Phase D), so the panel SURFACES a verdict + findings; a
+// CHANGES_REQUESTED arbiter blocks the run honestly for a human/next run.
+//
+// The orchestrator selects this only when evidence warrants the extra spend
+// (security-sensitive, broad/architectural, low validation confidence, or the
+// user asks for heavier review) - see select-workflow + its capabilities.
+export const reviewPanelFlow = flowDefinitionSchema.parse({
+  id: "panel-review",
+  version: 1,
+  label: "Late review panel",
+  description:
+    "Plan, architect, implement, and validate, then fan out a 3-lens read-only review panel (correctness, tests, security/risk) over the real diff and an arbiter join that renders one verdict. Heavier - selected only when evidence warrants it.",
+  seats: {
+    planner: { label: "Planner", description: "Turns the task into a plan." },
+    architect: { label: "Architect", description: "Designs the approach." },
+    implementer: { label: "Implementer", description: "Implements the change." },
+    reviewer: {
+      label: "Reviewer",
+      description: "Reviews the diff under one assigned lens.",
+    },
+    arbiter: {
+      label: "Arbiter",
+      description: "Reads every reviewer's findings and renders one verdict.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "architecture",
+      label: "Architecture",
+      kind: "agent-turn",
+      seat: "architect",
+      stage: "architecting",
+      needs: ["plan"],
+      inputs: ["task-brief", "plan"],
+      outputs: ["architecture"],
+    },
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      needs: ["architecture"],
+      inputs: ["task-brief", "plan", "architecture"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      needs: ["implement"],
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review-correctness",
+      label: "Review: correctness",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      outputs: ["findings-correctness"],
+      instructions:
+        "Your lens is CORRECTNESS & LOGIC only. Hunt for real bugs: wrong behavior, broken edge cases, race conditions, mishandled errors, off-by-one, contract violations. Ignore style and test-coverage gaps (other reviewers own those). Cite file:line evidence; do not pad with low-severity nits.",
+    },
+    {
+      id: "review-tests",
+      label: "Review: tests",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      outputs: ["findings-tests"],
+      instructions:
+        "Your lens is TESTS & VERIFIABILITY only. Are the changes actually covered? Missing/weak assertions, untested branches, flaky patterns, or claims the validation evidence doesn't support. Ignore correctness bugs and security (other reviewers own those). Cite what is and isn't exercised.",
+    },
+    {
+      id: "review-risk",
+      label: "Review: security & risk",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      outputs: ["findings-risk"],
+      instructions:
+        "Your lens is SECURITY, RISK & ARCHITECTURE only. Look for injection/secret/path-traversal exposure, unsafe effects, broken boundaries, irreversible or hard-to-revert moves, and architectural drift. Ignore style and routine test gaps. Flag anything that warrants sandboxing or human sign-off.",
+    },
+    {
+      id: "arbiter",
+      label: "Arbiter verdict",
+      kind: "review-turn",
+      seat: "arbiter",
+      stage: "reviewing",
+      needs: ["review-correctness", "review-tests", "review-risk"],
+      inputs: [
+        "task-brief",
+        "plan",
+        "architecture",
+        "execution",
+        "validation",
+        "findings-correctness",
+        "findings-tests",
+        "findings-risk",
+      ],
+      outputs: ["review-decision"],
+      instructions:
+        "You are the arbiter. Read all three reviewers' findings (correctness, tests, security/risk) plus the diff and validation evidence. De-duplicate, weigh severity against the deterministic evidence (the validation results), and render ONE verdict. APPROVED only if no blocking issue survives scrutiny; otherwise CHANGES_REQUESTED with the consolidated must-fix list. Do not launder a reviewer's confidence - cite the evidence.",
+    },
+  ],
+  complexity: "high",
+  capabilities: {
+    taskKinds: ["feature", "refactor", "bugfix"],
+    strengths: ["security", "risk", "correctness", "tests", "architecture", "review"],
+    costClass: "high",
+    latencyClass: "high",
+    requires: { validation: true },
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   qualityArbitrationFlow,
   pickupFlow,
+  reviewPanelFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

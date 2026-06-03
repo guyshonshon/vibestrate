@@ -1,16 +1,34 @@
 # Custom workflow DAGs + parallel agents within a task
 
-Status: **design of record (pre-implementation).** The *product framing* here is
-superseded by `responsible-orchestrator.md`: DAGs are an execution primitive the
-orchestrator *chooses*, not the product identity. This doc remains the graph
-execution design. In that sequencing, the A+B slice below is **Slice 4** (the
-bounded late review panel the orchestrator selects when evidence warrants), not
-the first thing built - Slices 1-3 (VIBESTRATE.md + consult, workflow selection,
-run brief/handoff) come first.
+Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); Phase C + D on
+paper.** The *product framing* here is superseded by
+`responsible-orchestrator.md`: DAGs are an execution primitive the orchestrator
+*chooses*, not the product identity. This doc remains the graph execution design.
 
-Phase A + B (read-only fan-out/join) are approved as the first *DAG* slice; Phase
-C (write-parallelism) and Phase D (checklist-DAG / continue-past-failure) are
-deferred and kept on paper.
+What shipped in the A+B slice (Slice 4):
+
+- `FlowStep.needs` (DAG edges) + optional per-step `instructions`, with load-time
+  graph validation (acyclic, topological order, distinct outputs across a
+  parallel group, `MAX_PARALLEL_FANOUT` width cap, and rejection of `needs`
+  combined with loop / checklistSegment / fixed repeat). Helpers `isGraphFlow` /
+  `parallelGroupsOf`. (`src/flows/schemas/flow-schema.ts`)
+- Read-only guarantee enforced at **resolve** time: every member of a parallel
+  group must bind to a read-only permission profile, else `resolveFlow` throws.
+  (`src/flows/runtime/flow-resolver.ts`)
+- A bounded-concurrency **frontier scheduler** (`Orchestrator.runGraphFrontier`):
+  ready read-only groups run concurrently (parallel-compute / serial-commit,
+  stateless turns), everything else runs solo. The linear runner is byte-for-byte
+  unchanged for non-graph flows.
+- Built-in **`panel-review`** flow (3 lensed reviewers -> arbiter join).
+- Fan-out cost warning (`flowFanoutAdvice`, surfaced by `vibe run` +
+  `POST /api/runs`) and `flow.graph.started` / `flow.frontier.scheduled` /
+  `flow.graph.completed` events.
+- `timeoutMs` wired end to end: an overrunning turn's whole process group is
+  tree-killed (it was advisory/dead in the spawn path before). `MetricsStore`
+  mutators are serialized so concurrent turns can't lose updates.
+
+Phase C (write-parallelism) and Phase D (checklist-DAG / continue-past-failure)
+remain deferred and kept on paper below.
 This answers the TODO backlog item "Custom workflow DAGs + parallel agents within
 a single task (also the home for checklist-DAG + continue-past-failure + parallel
 item execution)." Companion docs: `flows-unification.md` (one runner),

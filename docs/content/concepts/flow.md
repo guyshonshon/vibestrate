@@ -100,6 +100,35 @@ The `quality-arbitration` Flow ships with Vibestrate. It runs:
 
 The canonical, generated definition (seats, steps, inputs, outputs) is in the [Flows reference](/docs/reference/flows).
 
+## A built-in graph flow: `panel-review`
+
+Most Flows are a linear list of steps. A Flow can also declare a **dependency
+graph**: a step lists the steps it `needs`, and steps that share the same
+`needs` run **concurrently**. `panel-review` is the first such flow:
+
+1. **plan -> architect -> implement -> validate** - the usual spine.
+2. **review-correctness · review-tests · review-risk** - three read-only
+   reviewers inspect the *same* diff and validation evidence from distinct lenses
+   (`needs: [validation]` on all three, so they fan out **in parallel**).
+3. **arbiter** - `needs` all three reviewers, reads their findings, and renders
+   one verdict (the join).
+
+Two rules keep fan-out safe, both enforced in code (not by prompt):
+
+- **Read-only only.** Every step in a parallel group must resolve to a read-only
+  role - a panel of writers is refused before the run starts (one writer per
+  worktree). The reviewers share the read-only `reviewer` seat.
+- **Bounded + costed.** Group width is capped, and `vibe run` / `POST /api/runs`
+  print a fan-out warning ("runs N agents in parallel; each may itself
+  parallelize, so real spend can exceed the estimate").
+
+The orchestrator picks `panel-review` only when a task warrants the extra spend
+(security-sensitive, broad/architectural, low validation confidence, or you ask).
+There's no fix loop here yet - the panel surfaces a verdict + findings; combining
+a graph with the adaptive review->fix loop is deferred. See the
+[custom workflow DAGs design](https://github.com/guyshonshon/vibestrate) note for
+the roadmap (write-parallelism and checklist-DAGs stay deferred).
+
 ## Project Flows
 
 Drop a `flow.yml` into `.vibestrate/flows/<id>/`:
