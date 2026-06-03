@@ -140,6 +140,36 @@ the **Flow Builder** to tune seats/steps before a run. It's the read/curate
 surface; the Flow Builder is the edit/run surface. (All of it runs over the
 local `/api/flows` routes - the browser never shells out.)
 
+## Which Flow a run uses (always shown)
+
+Every run resolves a Flow and **shows it** - the CLI prints `Flow: <name> · <source>`
+before it starts, so the choice is never hidden. The precedence:
+
+1. **`--flow <id>`** - forced for this one run.
+2. **The default/session Flow** - set it with `vibe flows use <id>` (stored as
+   `defaultFlow` in config). Applied to every run that doesn't pass `--flow`.
+   Clear it with `vibe flows use --clear`.
+3. **Orchestrator selection** - opt in with `vibe run "..." --select` and the
+   responsible orchestrator picks the Flow for the task (read-only, broker-gated;
+   it states a confidence + reasons + risks, and records `selection.json` + a
+   `workflow.selected` event on the run). Without `--select`, no model call is
+   made.
+4. Otherwise the built-in **`default`** Flow.
+
+### Flow capabilities (selection metadata)
+
+A Flow may declare a small `capabilities` block so the orchestrator can choose it
+well - it is selection metadata, not a second workflow language:
+
+```yaml
+capabilities:
+  taskKinds: [feature, refactor, bugfix]
+  strengths: [security, architecture, risk]
+  costClass: high      # relative spend weight
+  latencyClass: high
+  requires: { validation: true }
+```
+
 ## When to write a Flow
 
 - The same review choreography keeps repeating across tasks.

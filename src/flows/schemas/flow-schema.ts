@@ -76,6 +76,27 @@ export type FlowContextPolicy = z.infer<typeof flowContextPolicySchema>;
 export const flowComplexitySchema = z.enum(["low", "medium", "high"]);
 export type FlowComplexity = z.infer<typeof flowComplexitySchema>;
 
+// Selection metadata - what kind of task a Flow is good for. Deliberately small:
+// it steers the orchestrator's workflow selection, it is NOT a second workflow
+// language. All fields optional; a Flow without it is still fully valid.
+export const flowCapabilitiesSchema = z
+  .object({
+    /** Task kinds this flow suits, e.g. `feature`, `bugfix`, `refactor`, `docs`. */
+    taskKinds: z.array(z.string().min(1).max(40)).max(12).default([]),
+    /** What it is strong at, e.g. `security`, `architecture`, `tests`, `speed`. */
+    strengths: z.array(z.string().min(1).max(40)).max(16).default([]),
+    /** Relative spend weight (parallel/extra-review flows are higher). */
+    costClass: flowComplexitySchema.optional(),
+    /** Relative wall-clock weight. */
+    latencyClass: flowComplexitySchema.optional(),
+    /** Hard expectations, e.g. needs validation commands configured. */
+    requires: z.object({ validation: z.boolean().optional() }).strict().default({}),
+    /** When this flow is a poor fit, e.g. read-only investigation runs. */
+    avoids: z.object({ readOnly: z.boolean().optional() }).strict().default({}),
+  })
+  .strict();
+export type FlowCapabilities = z.infer<typeof flowCapabilitiesSchema>;
+
 // A **Seat** is what a Flow step needs filled (e.g. an `implementer`). The Flow
 // declares its required seats; it does NOT name local Role ids - the run's Crew
 // supplies a Role whose `fills` includes the seat. Keeps Flows shareable.
@@ -149,6 +170,7 @@ const flowDefinitionBaseSchema = z
     loop: flowLoopSchema.optional(),
     checklistSegment: flowChecklistSegmentSchema.optional(),
     complexity: flowComplexitySchema.optional(),
+    capabilities: flowCapabilitiesSchema.optional(),
   })
   .strict();
 

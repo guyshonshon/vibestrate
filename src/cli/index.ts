@@ -195,6 +195,10 @@ export function buildVibestrateProgram(): Command {
       "resolve and run a Flow recipe for this run.",
     )
     .option(
+      "--select",
+      "let the orchestrator pick the Flow even when a default flow is set.",
+    )
+    .option(
       "--step-profile <stepId=profileId>",
       "override the Profile for a Flow step (same Role, different runtime). Repeat for multiple steps.",
       collectStepProfile,
@@ -263,6 +267,7 @@ export function buildVibestrateProgram(): Command {
           skills?: string;
           concise?: boolean;
           flow?: string;
+          select?: boolean;
           stepProfile?: string[];
           seatRole?: string[];
           flowBrief?: string;
@@ -379,6 +384,7 @@ export function buildVibestrateProgram(): Command {
           runtimeSkills,
           concise: opts.concise ?? false,
           flowId: opts.flow ?? null,
+          select: opts.select === true,
           flowStepProfiles,
           flowBrief: opts.flowBrief ?? null,
           flowContextPolicy,

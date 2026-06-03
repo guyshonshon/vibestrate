@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.5.0
+
+- **The active Flow is always resolved and always shown.** Every run now prints
+  `Flow: <name> · <source>` before it starts, so which workflow you're running is
+  never hidden. Sources: `forced` (`--flow`), `default` (your session/default
+  flow), `selected` (orchestrator), or the built-in default.
+- **Set a default/session Flow.** `vibe flows use <id>` makes a Flow the default
+  for every run that doesn't pass `--flow` (stored as `defaultFlow` in config);
+  `vibe flows use --clear` removes it. Always applied, always shown.
+- **Orchestrator workflow selection (opt-in).** `vibe run "..." --select` lets the
+  responsible orchestrator pick the Flow for the task - it reads the task + each
+  Flow's new `capabilities` metadata, prefers the lowest-cost flow that fits, and
+  states a confidence + reasons + risks (read-only, broker-gated; records
+  `selection.json` + a `workflow.selected` event on the run). Off by default, so a
+  plain run costs nothing extra and behaves exactly as before.
+- **Flows declare `capabilities`** (taskKinds / strengths / costClass / requires)
+  - small selection metadata the orchestrator uses to choose well. Additive and
+  back-compat; the built-ins ship with sensible values.
+- Second slice of the **responsible orchestrator**
+  (`docs/design/responsible-orchestrator.md`).
+
 ## 0.4.0
 
 - **Consult - ask the project orchestrator (read-only).** A new project-aware

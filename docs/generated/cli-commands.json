@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.3.19",
+  "version": "0.4.0",
   "commands": [
     {
       "name": "init",
@@ -589,6 +589,34 @@
             {
               "flags": "--json",
               "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "use",
+          "path": [
+            "vibe",
+            "flows",
+            "use"
+          ],
+          "description": "Set the default Flow applied to runs without --flow (always shown), or --clear it.",
+          "usage": "[options] [id]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--clear",
+              "description": "clear the default flow so the orchestrator selects per task",
               "required": false,
               "optional": false,
               "negated": false
@@ -4750,6 +4778,13 @@
           "flags": "--flow <id>",
           "description": "resolve and run a Flow recipe for this run.",
           "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--select",
+          "description": "let the orchestrator pick the Flow even when a default flow is set.",
+          "required": false,
           "optional": false,
           "negated": false
         },

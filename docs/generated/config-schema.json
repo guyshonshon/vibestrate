@@ -188,6 +188,14 @@
       "itemType": null
     },
     {
+      "key": "defaultFlow",
+      "fullKey": "defaultFlow",
+      "type": "string | null",
+      "required": false,
+      "default": null,
+      "itemType": null
+    },
+    {
       "key": "budget",
       "fullKey": "budget",
       "type": "object",

@@ -13,6 +13,7 @@ import {
   findFlowById,
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
+import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";
 
@@ -42,6 +43,10 @@ export const runSpecSchema = z.object({
   readOnly: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
+  /** Orchestrator flow selection: true = force a selection even if a default is
+   *  set (--select); false = skip selection, use the default flow (--no-select);
+   *  omitted = the normal precedence (forced > default > select). */
+  select: z.boolean().nullable().optional(),
   /** Pick-up execution (Phase 3): iterate the linked task's checklist through
    *  the flow's checklistSegment. "continuous" runs items back-to-back; "step"
    *  pauses between items. Omitted = no checklist iteration. */
@@ -193,14 +198,32 @@ export async function runFromSpec(
     resumeFrom = await resolveResumeFrom(detected.projectRoot, spec.resumeFrom);
   }
 
+  // Choose the Flow transparently: forced (spec.flow) > default > orchestrator
+  // selection. Skipped for resume (flow fixed by the source run) and checklist
+  // runs (the pickup flow is implied). The chosen flow is always recorded.
+  let selection: WorkflowSelection | null = null;
+  if (!resumeFrom && !spec.checklistMode) {
+    selection = await chooseRunFlow({
+      projectRoot: detected.projectRoot,
+      task: spec.task,
+      config: loaded.config,
+      forcedFlowId: spec.flow?.id ?? null,
+      forceSelect: spec.select === true,
+      noSelect: spec.select === false,
+      loaded,
+      signal: opts.abortSignal,
+    });
+  }
+
+  const effectiveFlowId = selection?.flowId ?? spec.flow?.id ?? null;
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
-  if (spec.flow) {
-    const flow = await findFlowById(detected.projectRoot, spec.flow.id);
+  if (effectiveFlowId) {
+    const flow = await findFlowById(detected.projectRoot, effectiveFlowId);
     if (!flow) {
       const ids = (await discoverFlows(detected.projectRoot)).map((g) => g.id);
       throw new RunLaunchError(
         "flow_not_found",
-        `No Flow named "${spec.flow.id}". Found: ${ids.join(", ") || "(none)"}.`,
+        `No Flow named "${effectiveFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
     }
     resolvedFlow = resolveFlow({
@@ -211,10 +234,10 @@ export async function runFromSpec(
       crewId: spec.crewId ?? null,
       profileOverride,
       seatRoleOverrides: spec.seatRoleOverrides ?? {},
-      brief: spec.flow.brief ?? null,
-      contextPolicy: spec.flow.contextPolicy,
-      stepProfileOverrides: spec.flow.stepProfileOverrides ?? {},
-      skippedOptionalSteps: spec.flow.skippedOptionalSteps ?? [],
+      brief: spec.flow?.brief ?? null,
+      contextPolicy: spec.flow?.contextPolicy,
+      stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
+      skippedOptionalSteps: spec.flow?.skippedOptionalSteps ?? [],
     });
   }
 
@@ -234,6 +257,7 @@ export async function runFromSpec(
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,
     flow: resolvedFlow,
+    selection,
     resumeFrom,
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
