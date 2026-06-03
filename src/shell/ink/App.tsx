@@ -43,6 +43,7 @@ import { AgentsPage } from "./pages/AgentsPage.js";
 import { ProfilesPage } from "./pages/ProfilesPage.js";
 import { ConfigPage } from "./pages/ConfigPage.js";
 import { SkillsPage } from "./pages/SkillsPage.js";
+import { ConsultPage } from "./pages/ConsultPage.js";
 import { useConflicts } from "./hooks/useConflicts.js";
 import { useProjectConfig } from "./hooks/useProjectConfig.js";
 import { useProviderCatalog } from "./hooks/useProviderCatalog.js";
@@ -936,6 +937,18 @@ export function App({
               selectedIndex={ui.selection.config ?? 0}
               setSelectedIndex={(i) =>
                 dispatch({ type: "selection.set", page: "config", index: i })
+              }
+              active
+            />
+          ) : ui.page === "consult" ? (
+            <ConsultPage
+              projectRoot={projectRoot}
+              onToast={(kind, message) =>
+                dispatch({ type: "toast.push", kind, message })
+              }
+              selectedIndex={ui.selection.consult ?? 0}
+              setSelectedIndex={(i) =>
+                dispatch({ type: "selection.set", page: "consult", index: i })
               }
               active
             />
