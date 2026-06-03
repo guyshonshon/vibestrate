@@ -77,7 +77,7 @@ Both report **real token usage** from the API response (not estimates). They run
 
 ## Providers back Profiles, Profiles back Roles
 
-A Provider is a raw tool. A [[profile]] wraps it with model/power/budget, and a
+A Provider is a raw tool. A [[profile]] wraps it with model/power, and a
 [[role]] in your [[crew]] runs on a Profile:
 
 ```yaml

@@ -33,7 +33,7 @@ function EffortField({
   );
 }
 
-const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [], budgetLevels: ["low", "medium", "high"] };
+const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
@@ -46,7 +46,6 @@ type Draft = {
   label: string;
   model: string;
   power: string;
-  budget: string;
   maxTokens: string;
   timeoutMs: string;
 };
@@ -57,7 +56,6 @@ function toDraft(p: ProfileView): Draft {
     label: p.label,
     model: p.model ?? "",
     power: p.power ?? "",
-    budget: p.budget ?? "",
     maxTokens: p.maxTokens === null ? "" : String(p.maxTokens),
     timeoutMs: p.timeoutMs === null ? "" : String(p.timeoutMs),
   };
@@ -128,8 +126,8 @@ export function ProfilesPage() {
           </h1>
           <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
             A <strong className="text-fog-100">Profile</strong> is a reusable preset
-            of how strong and expensive a run is - a provider plus model, effort, and
-            budget. Keep several per provider (say <span className="mono">claude</span>{" "}
+            of how strong and expensive a run is - a provider plus model and effort.
+            Keep several per provider (say <span className="mono">claude</span>{" "}
             and <span className="mono">claude-cheap</span>); Crew roles point at one.
           </p>
         </div>
@@ -169,7 +167,7 @@ export function ProfilesPage() {
         <div className="mt-8 rounded-xl border border-white/10 bg-ink-100/50 px-5 py-8 text-center">
           <p className="text-[13.5px] text-fog-300">No profiles yet.</p>
           <p className="mx-auto mt-1 max-w-[48ch] text-[12.5px] text-fog-500">
-            Create one to give your crew's roles a provider, model, and budget to run
+            Create one to give your crew's roles a provider, model, and effort to run
             on.
           </p>
           <div className="mt-4 flex justify-center">
@@ -250,7 +248,6 @@ function CreateProfile({
     label: "",
     model: "",
     power: "",
-    budget: "",
     maxTokens: "",
     timeoutMs: "",
   });
@@ -272,7 +269,6 @@ function CreateProfile({
         label: draft.label.trim() || undefined,
         model: draft.model.trim() || undefined,
         power: draft.power.trim() || undefined,
-        budget: draft.budget.trim() || undefined,
         maxTokens: numOrNull(draft.maxTokens) ?? undefined,
         timeoutMs: numOrNull(draft.timeoutMs) ?? undefined,
       });
@@ -365,7 +361,6 @@ function ProfileCard({
         label: draft.label.trim() || profile.id,
         model: draft.model.trim() || null,
         power: draft.power.trim() || null,
-        budget: draft.budget.trim() || null,
         maxTokens: numOrNull(draft.maxTokens),
         timeoutMs: numOrNull(draft.timeoutMs),
       });

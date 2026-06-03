@@ -838,7 +838,7 @@
         "vibe",
         "profiles"
       ],
-      "description": "Runtime presets (provider + model/power/budget) that Crew roles run on.",
+      "description": "Runtime presets (provider + model/power) that Crew roles run on.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -911,13 +911,6 @@
               "negated": false
             },
             {
-              "flags": "--budget <level>",
-              "description": "spend appetite (low/medium/high)",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
               "flags": "--max-tokens <n>",
               "description": "hard cap on output tokens per turn",
               "required": true,
@@ -969,13 +962,6 @@
             {
               "flags": "--power <level>",
               "description": "provider-specific power/effort (e.g. balanced)",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--budget <level>",
-              "description": "spend appetite (low/medium/high)",
               "required": true,
               "optional": false,
               "negated": false

@@ -268,7 +268,7 @@ export function hintForRoute(route: Route): CliHint {
       return {
         title: "Profiles",
         blurb:
-          "Runtime profiles - provider + model + power + budget. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
+          "Runtime profiles - provider + model + power. Roles point at a profile; override per run with `--profile` or per step with `--step-profile`.",
         commands: [
           { cmd: "vibe config show", note: "profiles in project.yml" },
           {

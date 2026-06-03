@@ -274,7 +274,6 @@ export type ProfileView = {
   label: string;
   model: string | null;
   power: string | null;
-  budget: string | null;
   maxTokens: number | null;
   timeoutMs: number | null;
   /** Crew roles that point at this profile (empty = unused). */
@@ -286,7 +285,6 @@ export type ProviderCapabilities = {
   /** Whether model selection actually applies (UI hides the field if false). */
   modelEnabled: boolean;
   powerLevels: string[];
-  budgetLevels: string[];
 };
 /** Per-provider suggestion lists for the Profile editor (keyed by provider id). */
 export type ProviderCatalog = Record<string, ProviderCapabilities>;

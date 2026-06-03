@@ -30,7 +30,7 @@ export async function registerSetupRoutes(
 ): Promise<void> {
   const { projectRoot } = deps;
 
-  // Per-provider model / power / budget suggestions for the Profile editor.
+  // Per-provider model / power suggestions for the Profile editor.
   // The static catalog covers the well-known providers; we merge the project's
   // actually-configured providers over it (api-aware) so a user's http-api
   // provider surfaces its real knobs (e.g. OpenAI effort) under its own id.

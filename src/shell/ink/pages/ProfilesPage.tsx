@@ -149,7 +149,6 @@ export function ProfilesPage({
           label: newId,
           model: selected.model ?? undefined,
           power: selected.power ?? undefined,
-          budget: selected.budget ?? undefined,
         }),
       `Duplicated -> ${newId}.`,
     );

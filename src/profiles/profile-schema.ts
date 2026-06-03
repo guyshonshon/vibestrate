@@ -2,15 +2,20 @@ import { z } from "zod";
 
 /**
  * A **Profile** is how strong and expensive a Role should run. It chooses the
- * Provider plus its runtime knobs: model, power/effort, token budget, timeout.
+ * Provider plus its runtime knobs: model, power/effort, max-tokens, timeout.
  *
  * Power/effort is **provider-specific** on purpose. Different providers expose
  * different reasoning/effort controls and some expose none, so `power` is a free
  * string here (validated against the provider's known levels at the UI layer,
  * hidden entirely when the provider has none). We never force one global
  * low/medium/high enum onto every provider.
+ *
+ * (There is no per-profile spend knob: an output-token cap is `maxTokens` and
+ * actual spend control is the project-level daily cap, `config.budget`. A
+ * removed `budget` string is tolerated below for back-compat - it never had a
+ * runtime effect.)
  */
-export const profileConfigSchema = z
+const profileBaseSchema = z
   .object({
     /** Raw provider id this profile runs on. Must exist in `providers`. */
     provider: z.string().min(1),
@@ -24,11 +29,6 @@ export const profileConfigSchema = z
      * null = the provider exposes no effort control (UI hides the field).
      */
     power: z.string().min(1).nullable().default(null),
-    /**
-     * Coarse spend appetite. Conventionally `low`/`medium`/`high` but kept a
-     * free string so providers with their own budget vocabulary fit too.
-     */
-    budget: z.string().min(1).nullable().default(null),
     /** Hard cap on output tokens for a turn, when the provider supports it. */
     maxTokens: z.number().int().positive().nullable().default(null),
     /** Per-turn wall-clock timeout in milliseconds. null = provider default. */
@@ -37,6 +37,20 @@ export const profileConfigSchema = z
     providerOptions: z.record(z.string(), z.unknown()).default({}),
   })
   .strict();
+
+/**
+ * Strip a legacy per-profile `budget` key before the strict parse. Older
+ * configs (and the old `vibe init` template) wrote `budget: medium` onto every
+ * profile, but it was never read at runtime. Dropping it silently keeps those
+ * configs loading instead of failing the whole project on an unknown key.
+ */
+export const profileConfigSchema = z.preprocess((val) => {
+  if (val && typeof val === "object" && !Array.isArray(val) && "budget" in val) {
+    const { budget: _legacyBudget, ...rest } = val as Record<string, unknown>;
+    return rest;
+  }
+  return val;
+}, profileBaseSchema);
 
 export type ProfileConfig = z.infer<typeof profileConfigSchema>;
 

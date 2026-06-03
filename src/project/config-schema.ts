@@ -177,7 +177,7 @@ export const projectConfigBaseSchema = z.object({
   execution: executionConfigSchema.default({ backend: "local-worktree" }),
   // ─── Providers / Profiles / Crews ────────────────────────────────────
   // providers = raw local tools.
-  // profiles  = reusable runtime setups (provider + model/power/budget).
+  // profiles  = reusable runtime setups (provider + model/power).
   // crews     = local Role rosters; each Role runs on a Profile and fills Seats.
   providers: providersConfigSchema,
   profiles: profilesConfigSchema.default({}),
