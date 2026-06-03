@@ -453,9 +453,8 @@ export async function runRunCommand(
 
   // C1: warn (non-blocking) when the chosen flow looks heavier than the task.
   if (resolvedFlow) {
-    const { inferFlowComplexity, flowComplexityAdvice } = await import(
-      "../../flows/runtime/flow-complexity.js"
-    );
+    const { inferFlowComplexity, flowComplexityAdvice, flowFanoutAdvice } =
+      await import("../../flows/runtime/flow-complexity.js");
     const { classifyEffort } = await import("../../core/effort-heuristic.js");
     const taskEffort =
       effort ?? classifyEffort({ text: resolvedTask, files: [] }).effort;
@@ -468,6 +467,11 @@ export async function runRunCommand(
       console.log(
         `${advice.level === "overkill" ? symbol.warn() : symbol.bullet()} ${advice.message}`,
       );
+    }
+    // Slice 4: graph flows that fan out N parallel agents multiply spend loudly.
+    const fanout = flowFanoutAdvice(resolvedFlow);
+    if (fanout.message) {
+      console.log(`${symbol.warn()} ${fanout.message}`);
     }
   }
 

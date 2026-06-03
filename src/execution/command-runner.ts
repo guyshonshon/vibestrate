@@ -72,10 +72,15 @@ export async function runArgvCommand(input: {
   // while *also* collecting the full buffered output for the
   // existing CommandResult contract. execa accepts AbortSignal for
   // cooperative cancellation - SIGTERM is sent on abort.
+  // NOTE: we deliberately do NOT pass execa's own `timeout` here. execa's
+  // timeout sends SIGTERM to the *direct child only*; a provider CLI that spawns
+  // its own subagents (the "opaque box") would have those orphaned and left
+  // spending. Instead `timeoutMs` drives the same tree-wide terminate path as an
+  // abort (process-group kill on POSIX), so the whole box is reaped. See
+  // custom-workflow-dags.md ("timeoutMs must actually fire that abort").
   const subprocess = execa(input.command, input.args, {
     cwd: input.cwd,
     env: { ...process.env, ...(input.env ?? {}) },
-    timeout: input.timeoutMs,
     input: input.stdin,
     reject: false,
     detached,
@@ -86,6 +91,7 @@ export async function runArgvCommand(input: {
       : {}),
   });
   let forceKillTimer: NodeJS.Timeout | null = null;
+  let timedOut = false;
   const terminateSubprocess = (): void => {
     const pid = subprocess.pid;
     if (!pid) return;
@@ -122,6 +128,15 @@ export async function runArgvCommand(input: {
       });
     }
   }
+  // Wall-clock timeout: tree-kill the whole process group when it fires.
+  let timeoutTimer: NodeJS.Timeout | null = null;
+  if (input.timeoutMs && input.timeoutMs > 0) {
+    timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      terminateSubprocess();
+    }, input.timeoutMs);
+    timeoutTimer.unref?.();
+  }
   if (input.onChunk) {
     subprocess.stdout?.on("data", (b: Buffer | string) => {
       input.onChunk!({
@@ -146,6 +161,7 @@ export async function runArgvCommand(input: {
       input.signal.removeEventListener("abort", terminateSubprocess);
     }
     if (forceKillTimer) clearTimeout(forceKillTimer);
+    if (timeoutTimer) clearTimeout(timeoutTimer);
   }
   const endedAt = new Date();
   // Surface the abort path so callers don't see "exitCode = 0" for a
@@ -154,10 +170,13 @@ export async function runArgvCommand(input: {
   // trailing stderr marker so the live-stream log shows *why* the
   // output ends abruptly.
   const aborted =
+    timedOut ||
     (result as { isCanceled?: boolean }).isCanceled === true ||
     input.signal?.aborted === true;
   if (aborted) {
-    const note = `\n[aborted: provider CLI was killed by vibestrate]\n`;
+    const note = timedOut
+      ? `\n[timed out: provider CLI exceeded ${input.timeoutMs}ms and its process group was killed by vibestrate]\n`
+      : `\n[aborted: provider CLI was killed by vibestrate]\n`;
     if (input.onChunk) {
       input.onChunk({
         stream: "stderr",

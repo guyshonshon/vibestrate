@@ -85,4 +85,11 @@ export type ProviderRunInput = {
    * finish on its own.
    */
   signal?: AbortSignal;
+  /**
+   * Resolved wall-clock timeout for this turn (the profile's `timeoutMs`).
+   * When set, the provider CLI's whole process group is tree-killed if it
+   * exceeds this - so an internally-fanned-out turn ("opaque box") can't hang
+   * unbounded. Omitted = no wall-clock cap.
+   */
+  timeoutMs?: number | null;
 };

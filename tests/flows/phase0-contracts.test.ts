@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { projectConfigSchema } from "../../src/project/config-schema.js";
-import { qualityArbitrationFlow } from "../../src/flows/catalog/builtin-flows.js";
+import {
+  findBuiltinFlow,
+  qualityArbitrationFlow,
+} from "../../src/flows/catalog/builtin-flows.js";
 import {
   flowDefinitionSchema,
   resolvedFlowSnapshotSchema,
@@ -36,12 +39,12 @@ function flowTestConfig() {
     crews: {
       default: {
         roles: {
-          planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "readOnly" },
-          architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "readOnly" },
-          executor: { seats: ["implementer", "builder"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "codeWrite" },
-          fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "codeWrite" },
-          reviewer: { seats: ["reviewer", "challenger"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "readOnly" },
-          verifier: { seats: ["verifier", "arbiter"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "readOnly" },
+          planner: { seats: ["planner"], profile: "claude-balanced", prompt: ".vibestrate/roles/planner.md", permissions: "read_only" },
+          architect: { seats: ["architect"], profile: "claude-balanced", prompt: ".vibestrate/roles/architect.md", permissions: "read_only" },
+          executor: { seats: ["implementer", "builder"], profile: "claude-balanced", prompt: ".vibestrate/roles/executor.md", permissions: "code_write" },
+          fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: ".vibestrate/roles/fixer.md", permissions: "code_write" },
+          reviewer: { seats: ["reviewer", "challenger"], profile: "codex-balanced", prompt: ".vibestrate/roles/reviewer.md", permissions: "read_only" },
+          verifier: { seats: ["verifier", "arbiter"], profile: "codex-balanced", prompt: ".vibestrate/roles/verifier.md", permissions: "read_only" },
         },
       },
     },
@@ -153,7 +156,7 @@ describe("Flow Phase 0 contracts", () => {
       seats: ["builder"],
       profile: "claude-balanced",
       prompt: ".vibestrate/roles/executor.md",
-      permissions: "codeWrite",
+      permissions: "code_write",
       skills: [],
       mcpServers: {},
     };
@@ -173,7 +176,7 @@ describe("Flow Phase 0 contracts", () => {
       seats: ["builder"],
       profile: "opus-deep",
       prompt: ".vibestrate/roles/executor.md",
-      permissions: "codeWrite",
+      permissions: "code_write",
       skills: [],
       mcpServers: {},
     };
@@ -271,6 +274,72 @@ describe("Flow Phase 0 contracts", () => {
     // Linear steps keep an empty needs + null instructions (no behavior change).
     expect(snapshot.steps.find((s) => s.id === "plan")!.needs).toEqual([]);
     expect(snapshot.steps.find((s) => s.id === "plan")!.instructions).toBeNull();
+  });
+
+  it("rejects a parallel group whose members resolve to a write-capable role", () => {
+    // Two steps sharing needs=[plan] -> a parallel group. They sit on the
+    // `implementer` seat, which the default crew fills with the code_write
+    // `executor` role. Resolve must refuse it (one writer per worktree).
+    const writerPanel = flowDefinitionSchema.parse({
+      id: "writer-panel",
+      version: 1,
+      label: "Writer Panel",
+      description: "An (invalid) attempt to fan out two writers in parallel.",
+      seats: {
+        planner: { label: "Planner" },
+        implementer: { label: "Implementer" },
+      },
+      steps: [
+        { id: "plan", label: "Plan", kind: "agent-turn", seat: "planner", outputs: ["plan"] },
+        {
+          id: "build-a",
+          label: "Build A",
+          kind: "agent-turn",
+          seat: "implementer",
+          needs: ["plan"],
+          outputs: ["execution-a"],
+        },
+        {
+          id: "build-b",
+          label: "Build B",
+          kind: "agent-turn",
+          seat: "implementer",
+          needs: ["plan"],
+          outputs: ["execution-b"],
+        },
+      ],
+    });
+    expect(() =>
+      resolveFlow({
+        flow: writerPanel,
+        source: { kind: "fixture", ref: "writer-panel" },
+        config: flowTestConfig(),
+        task: "fan out two writers (should be refused)",
+      }),
+    ).toThrow(/parallel group.*read-only|can write/);
+  });
+
+  it("resolves the built-in panel-review flow (read-only reviewers pass)", () => {
+    const flow = findBuiltinFlow("panel-review")!;
+    const snapshot = resolveFlow({
+      flow,
+      source: { kind: "builtin", ref: "panel-review" },
+      config: flowTestConfig(),
+      task: "Exercise the late review panel.",
+    });
+    // The three reviewers share the read-only `reviewer` seat; the arbiter sits
+    // on the `arbiter` seat (the read-only verifier role).
+    const reviewers = snapshot.steps.filter((s) => s.seat === "reviewer");
+    expect(reviewers.map((s) => s.id).sort()).toEqual([
+      "review-correctness",
+      "review-risk",
+      "review-tests",
+    ]);
+    expect(snapshot.steps.find((s) => s.id === "arbiter")!.needs.sort()).toEqual([
+      "review-correctness",
+      "review-risk",
+      "review-tests",
+    ]);
   });
 
   it("parses deterministic Quality Arbitration JSON output fixtures", () => {

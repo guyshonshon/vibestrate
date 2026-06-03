@@ -161,6 +161,10 @@ export type FlowStepDefinition = {
   seat?: string;
   inputs: string[];
   outputs: string[];
+  /** DAG dependencies (Slice 4). Steps sharing a `needs` set can fan out. */
+  needs?: string[];
+  /** Step-specific prompt instruction (e.g. a reviewer's lens). */
+  instructions?: string;
   optional: boolean;
   skipWhenReadOnly?: boolean;
   stage?: "planning" | "architecting" | "executing" | "reviewing" | "verifying";
@@ -223,6 +227,10 @@ export type ResolvedFlowStep = {
   providerId: string | null;
   inputs: string[];
   outputs: string[];
+  /** DAG dependencies (Slice 4); empty for linear flows. */
+  needs?: string[];
+  /** Step-specific prompt instruction (e.g. a reviewer's lens), or null. */
+  instructions?: string | null;
   approval: FlowApprovalGate | null;
   sourceStepId: string;
   repeatIteration: number;

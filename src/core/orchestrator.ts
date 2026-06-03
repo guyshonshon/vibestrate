@@ -21,6 +21,7 @@ import {
   appendStepOutcome,
   updateRunBriefFacts,
   renderRunBrief,
+  type RunBriefState,
 } from "./run-brief.js";
 import {
   listAnnotations,
@@ -122,9 +123,12 @@ import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
 import { writeJson } from "../utils/json.js";
 import { runFlowSnapshotPath } from "../utils/paths.js";
-import type {
-  ResolvedFlowSnapshot,
-  ResolvedFlowStep,
+import {
+  isGraphFlow,
+  parallelGroupsOf,
+  MAX_PARALLEL_FANOUT,
+  type ResolvedFlowSnapshot,
+  type ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
 import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
@@ -1415,6 +1419,520 @@ export class Orchestrator {
     };
   }
 
+  /**
+   * The bounded read-only fan-out/join scheduler for graph (DAG) flows
+   * (custom-workflow-dags.md Phase B). Walks the dependency frontier: a step is
+   * ready once all its `needs` are done. Ready steps that belong to a parallel
+   * group (>= 2 steps sharing one `needs` set - guaranteed read-only at resolve
+   * time) run CONCURRENTLY; every other step runs one at a time, so a write turn
+   * or validation never overlaps anything (one writer per worktree).
+   *
+   * Concurrency is "parallel compute, serial commit": only the provider turns
+   * (the expensive part, with per-step-isolated artifacts) overlap; all
+   * shared-state bookkeeping (run state, outputs map, run brief, arbitration
+   * ledger, approval gates) is applied serially in flow order, so nothing races.
+   * Graph turns are stateless (no provider session reuse across parallel turns).
+   * The schema forbids loop/checklist/repeat in a graph flow, so this scheduler
+   * never has to reason about them.
+   */
+  private async runGraphFrontier(input: {
+    snapshot: ResolvedFlowSnapshot;
+    runId: string;
+    state: RunState;
+    worktreePath: string | null;
+    artifactStore: ArtifactStore;
+    stateStore: RunStateStore;
+    eventLog: EventLog;
+    metricsStore: MetricsStore;
+    approvalService: ApprovalService;
+    notify: (draft: NotificationDraft) => void;
+    policyStagesAlreadyForced: Set<string>;
+    outputs: Map<string, FlowContextOutput>;
+    arbitrationLedger: FlowArbitrationLedger;
+    arbitrationStore: FlowArbitrationStore;
+    runBriefState: RunBriefState;
+    ctx: {
+      runId: string;
+      worktreePath: string | null;
+      branchName: string | null;
+      artifactStore: ArtifactStore;
+      eventLog: EventLog;
+      stateStore: RunStateStore;
+      onProgress: (message: string) => void;
+    };
+  }): Promise<{
+    state: RunState;
+    lastValidation: ValidationResults | null;
+    reviewDecision: ReviewDecision;
+    verificationDecision: VerificationDecision;
+    needsTestingAdvisory: { reason: string | null } | null;
+    planArtifact: RoleRunResult | null;
+    executionArtifact: RoleRunResult | null;
+    reviewArtifact: RoleRunResult | null;
+    verificationArtifact: RoleRunResult | null;
+  }> {
+    const { snapshot } = input;
+    const steps = snapshot.steps;
+    let state = input.state;
+    let lastValidation: ValidationResults | null = null;
+    let reviewDecision: ReviewDecision = "BLOCKED";
+    let verificationDecision: VerificationDecision = "NEEDS_HUMAN";
+    let needsTestingAdvisory: { reason: string | null } | null = null;
+    let planArtifact: RoleRunResult | null = null;
+    let executionArtifact: RoleRunResult | null = null;
+    let reviewArtifact: RoleRunResult | null = null;
+    let verificationArtifact: RoleRunResult | null = null;
+    let arbitrationLedger = input.arbitrationLedger;
+
+    const TURN_KINDS = new Set([
+      "agent-turn",
+      "review-turn",
+      "response-turn",
+      "summary-turn",
+    ]);
+    const keyOf = (step: ResolvedFlowStep) => [...step.needs].sort().join(" ");
+    const groupSizeByKey = new Map<string, number>();
+    for (const group of parallelGroupsOf(steps)) {
+      groupSizeByKey.set(keyOf(group[0]!), group.length);
+    }
+    const maxFanout = Math.max(0, ...groupSizeByKey.values());
+    // A step may run concurrently only if it's a model turn AND belongs to a
+    // parallel group (>=2 steps share its `needs`). Resolve-time enforcement
+    // already guaranteed every such step is read-only.
+    const concurrencyEligible = (step: ResolvedFlowStep) =>
+      TURN_KINDS.has(step.kind) && (groupSizeByKey.get(keyOf(step)) ?? 0) >= 2;
+
+    await input.eventLog.append({
+      type: "flow.graph.started",
+      message: `Graph flow ${snapshot.flowId}: ${steps.length} steps, max fan-out ${maxFanout}.`,
+      data: { flowId: snapshot.flowId, steps: steps.length, maxFanout },
+    });
+
+    const done = new Set<string>();
+    const processed = new Set<string>();
+
+    // Serial: move the run to the step's status and build its context packet.
+    const prepareStep = async (step: ResolvedFlowStep) => {
+      state = await this.moveToFlowStepStatus({
+        state,
+        step,
+        stateStore: input.stateStore,
+      });
+      const context = await this.buildFlowContextPacket({
+        snapshot,
+        step,
+        outputs: input.outputs,
+        artifactStore: input.artifactStore,
+        contextMode: "stateless",
+      });
+      state = this.patchFlowStep(
+        state,
+        step.id,
+        {
+          status: "running",
+          startedAt: nowIso(),
+          contextPacketPath: context.contextPacketPath,
+          error: null,
+        },
+        step.id,
+      );
+      await input.stateStore.write(state);
+      await input.eventLog.append({
+        type: "flow.context.built",
+        message: `Flow context packet built for ${step.id}.`,
+        data: {
+          flowId: snapshot.flowId,
+          stepId: step.id,
+          contextPolicy: snapshot.contextPolicy,
+          contextMode: "stateless",
+          contextPacketPath: context.contextPacketPath,
+          budget: context.budget,
+        },
+      });
+      await input.eventLog.append({
+        type: "flow.step.started",
+        message: `Flow step ${step.id} starting.`,
+        data: {
+          flowId: snapshot.flowId,
+          stepId: step.id,
+          kind: step.kind,
+          seat: step.seat,
+          resolvedRoleId: step.resolvedRoleId,
+          profileId: step.profileId,
+          providerId: step.providerId,
+          contextPacketPath: context.contextPacketPath,
+        },
+      });
+      return context;
+    };
+    type StepContext = Awaited<ReturnType<typeof prepareStep>>;
+
+    // Concurrency-safe: only spawns the provider turn (no shared-state writes).
+    const runTurn = (step: ResolvedFlowStep, context: StepContext) => {
+      const baseNotes = this.renderFlowStepNotes({ snapshot, step });
+      const additionalNotes = step.instructions
+        ? `${baseNotes}\n\nStep lens / instructions:\n${step.instructions}`
+        : baseNotes;
+      return this.runRole({
+        roleId: step.resolvedRoleId!,
+        providerId: step.providerId,
+        profileId: step.profileId,
+        stageId: step.id,
+        promptIndex: 0,
+        promptName: path.posix.join("flows", step.id, "prompt.md"),
+        outputName: path.posix.join("flows", step.id, "output.md"),
+        priorArtifacts: context.priorArtifacts,
+        validationResults: lastValidation,
+        runBrief: renderRunBrief(input.runBriefState),
+        additionalNotes,
+        metricsStore: input.metricsStore,
+        ctx: input.ctx,
+      });
+    };
+
+    // Serial: record outputs/decisions, update the brief, run the approval gate.
+    const commitTurn = async (
+      step: ResolvedFlowStep,
+      result: RoleRunResult,
+    ): Promise<void> => {
+      await this.registerFlowRoleOutputs({
+        step,
+        result,
+        outputs: input.outputs,
+        artifactStore: input.artifactStore,
+        worktreePath: input.worktreePath,
+      });
+      arbitrationLedger = await this.recordFlowArbitrationOutputs({
+        step,
+        result,
+        outputs: input.outputs,
+        validation: lastValidation,
+        artifactStore: input.artifactStore,
+        eventLog: input.eventLog,
+        ledger: arbitrationLedger,
+        store: input.arbitrationStore,
+      });
+      if (step.outputs.includes("plan")) planArtifact = result;
+      if (step.outputs.includes("execution")) executionArtifact = result;
+      if (
+        step.kind === "review-turn" &&
+        (step.outputs.includes("review-decision") ||
+          step.outputs.includes("finding-resolutions"))
+      ) {
+        reviewArtifact = result;
+        reviewDecision = effectiveReviewDecision(result.output);
+        await input.eventLog.append({
+          type: "review.decision",
+          message: `Flow review decision at ${step.id}: ${reviewDecision}`,
+          data: { decision: reviewDecision, stepId: step.id },
+        });
+      }
+      if (step.kind === "summary-turn") {
+        verificationArtifact = result;
+        verificationDecision = effectiveVerificationDecision(result.output);
+        await input.eventLog.append({
+          type: "verification.decision",
+          message: `Flow summary decision at ${step.id}: ${verificationDecision}`,
+          data: { decision: verificationDecision, stepId: step.id },
+        });
+      }
+      if (step.kind === "review-turn" || step.kind === "summary-turn") {
+        await this.ingestSuggestionsFromArtifact({
+          runId: input.runId,
+          artifactRelPath: result.outputArtifactPath,
+          artifactBody: result.output,
+          source: step.kind === "summary-turn" ? "verifier" : "reviewer",
+          notify: input.notify,
+        });
+        const advisory = detectNeedsTesting(result.output);
+        if (advisory.advisory) {
+          needsTestingAdvisory = { reason: advisory.reason };
+          await input.eventLog.append({
+            type: "needs_testing.flagged",
+            message: `Flagged for human testing at ${step.id}${advisory.reason ? `: ${advisory.reason}` : "."}`,
+            data: { stepId: step.id, reason: advisory.reason },
+          });
+        }
+      }
+      appendStepOutcome(input.runBriefState, {
+        stepId: step.id,
+        label: step.label,
+        kind: step.kind,
+        output: result.output,
+        decision:
+          step.kind === "review-turn"
+            ? reviewDecision
+            : step.kind === "summary-turn"
+              ? verificationDecision
+              : null,
+      });
+      if (lastValidation) {
+        updateRunBriefFacts(input.runBriefState, {
+          validation: lastValidation.summary,
+        });
+      }
+      await input.artifactStore.write(
+        "flows/run-brief.md",
+        renderRunBrief(input.runBriefState),
+      );
+      const gate = await this.maybeAwaitApproval({
+        state,
+        fromStatus: state.status,
+        stageId: this.flowStatusForStep(step),
+        roleId: step.resolvedRoleId!,
+        roleArtifact: result,
+        approvalService: input.approvalService,
+        stateStore: input.stateStore,
+        eventLog: input.eventLog,
+        policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+      });
+      state = gate.state;
+      if (gate.rejected) {
+        state = this.patchFlowStep(
+          state,
+          step.id,
+          {
+            status: "blocked",
+            promptArtifactPath: result.promptArtifactPath,
+            outputArtifactPath: result.outputArtifactPath,
+            endedAt: nowIso(),
+          },
+          step.id,
+        );
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "flow.step.failed",
+          message: `Flow step ${step.id} blocked by approval decision.`,
+          data: { flowId: snapshot.flowId, stepId: step.id },
+        });
+        throw new __ApprovalRejectedSignal();
+      }
+      state = this.patchFlowStep(
+        state,
+        step.id,
+        {
+          status: "passed",
+          promptArtifactPath: result.promptArtifactPath,
+          outputArtifactPath: result.outputArtifactPath,
+          endedAt: nowIso(),
+        },
+        step.id,
+      );
+      await input.stateStore.write(state);
+      await input.eventLog.append({
+        type: "flow.step.completed",
+        message: `Flow step ${step.id} completed.`,
+        data: {
+          flowId: snapshot.flowId,
+          stepId: step.id,
+          promptArtifactPath: result.promptArtifactPath,
+          outputArtifactPath: result.outputArtifactPath,
+        },
+      });
+    };
+
+    // One non-parallel step: validation / approval-gate / a single seated turn.
+    const runSerialStep = async (step: ResolvedFlowStep): Promise<void> => {
+      if (step.kind === "validation") {
+        await prepareStep(step);
+        const out = await this.runFlowValidationStep({
+          step,
+          state,
+          outputs: input.outputs,
+          artifactStore: input.artifactStore,
+          stateStore: input.stateStore,
+          ctx: input.ctx,
+        });
+        state = out.state;
+        lastValidation = out.validation;
+        if (out.validation.summary.failed > 0) {
+          input.notify(
+            draftValidationFailed({
+              runId: input.runId,
+              taskId: this.taskId,
+              failedCount: out.validation.summary.failed,
+            }),
+          );
+        }
+        await input.eventLog.append({
+          type: "flow.step.completed",
+          message: `Flow step ${step.id} completed.`,
+          data: { flowId: snapshot.flowId, stepId: step.id },
+        });
+        return;
+      }
+      if (step.kind === "approval-gate") {
+        const context = await prepareStep(step);
+        if (!step.approval) {
+          throw new Error(`Flow approval gate "${step.id}" has no metadata.`);
+        }
+        const gate = await this.awaitApprovalRequest({
+          state,
+          fromStatus: state.status,
+          stageId: step.id,
+          roleId: "flow",
+          reason: step.approval.reason,
+          prompt: null,
+          sourceArtifactPath: context.contextPacketPath,
+          requestedAction: step.approval.requestedAction,
+          riskLevel: step.approval.riskLevel,
+          source: "policy",
+          userMessage: step.approval.userMessage ?? null,
+          progressMessage: `Pausing for Flow approval at ${step.id}...`,
+          requestedMessage: `Flow approval gate ${step.id} is waiting for a decision.`,
+          resumedMessage: `Run resumed after Flow approval gate ${step.id}.`,
+          approvalService: input.approvalService,
+          stateStore: input.stateStore,
+          eventLog: input.eventLog,
+        });
+        state = gate.state;
+        if (gate.rejected) {
+          state = this.patchFlowStep(
+            state,
+            step.id,
+            { status: "blocked", endedAt: nowIso() },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "flow.step.failed",
+            message: `Flow approval gate ${step.id} blocked the run.`,
+            data: { flowId: snapshot.flowId, stepId: step.id },
+          });
+          throw new __ApprovalRejectedSignal();
+        }
+        state = this.patchFlowStep(
+          state,
+          step.id,
+          { status: "passed", endedAt: nowIso() },
+          step.id,
+        );
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "flow.step.completed",
+          message: `Flow approval gate ${step.id} completed.`,
+          data: { flowId: snapshot.flowId, stepId: step.id },
+        });
+        return;
+      }
+      const context = await prepareStep(step);
+      if (!step.resolvedRoleId) {
+        throw new Error(`Flow step "${step.id}" needs a seated role.`);
+      }
+      const result = await runTurn(step, context);
+      await commitTurn(step, result);
+    };
+
+    // ── Frontier loop: advance the ready set until every step is processed ──
+    while (processed.size < steps.length) {
+      state = await applyPauseIfRequested({
+        state,
+        store: input.stateStore,
+        events: input.eventLog,
+      });
+      if (isTerminal(state.status)) throw new __ApprovalRejectedSignal();
+
+      const ready = steps.filter(
+        (s) => !processed.has(s.id) && s.needs.every((n) => done.has(n)),
+      );
+      if (ready.length === 0) {
+        throw new Error(
+          `Graph flow ${snapshot.flowId} stalled: no ready step (check the dependency graph).`,
+        );
+      }
+
+      // Skip disabled / read-only-skipped ready steps first, marking them done
+      // so their dependents can proceed.
+      const skips = ready.filter(
+        (s) => !s.enabled || (this.readOnly && s.skipWhenReadOnly),
+      );
+      if (skips.length > 0) {
+        for (const step of skips) {
+          const readOnlySkip = this.readOnly && step.skipWhenReadOnly;
+          state = this.patchFlowStep(
+            state,
+            step.id,
+            { status: "skipped", endedAt: nowIso() },
+            step.id,
+          );
+          await input.stateStore.write(state);
+          await input.eventLog.append({
+            type: "flow.step.skipped",
+            message: readOnlySkip
+              ? `Flow step ${step.id} skipped (read-only run).`
+              : `Flow step ${step.id} skipped.`,
+            data: {
+              flowId: snapshot.flowId,
+              stepId: step.id,
+              readOnly: readOnlySkip,
+            },
+          });
+          processed.add(step.id);
+          done.add(step.id);
+        }
+        continue;
+      }
+
+      const batch = ready.filter(concurrencyEligible);
+      if (batch.length >= 2) {
+        const wave = batch.slice(0, MAX_PARALLEL_FANOUT);
+        // Reserve frontier budget once before fanning out (each turn also
+        // re-checks). For CLI providers token spend is often unmeasured, so the
+        // cap there is wall-clock/turn-count bounded - the event says so.
+        await this.enforceSpendCap(input.ctx);
+        await input.eventLog.append({
+          type: "flow.frontier.scheduled",
+          message: `Fan-out: ${wave.length} read-only steps running concurrently (${wave
+            .map((s) => s.id)
+            .join(
+              ", ",
+            )}). Each turn is an opaque box that may itself parallelize, so real spend can exceed the per-turn estimate.`,
+          data: {
+            flowId: snapshot.flowId,
+            stepIds: wave.map((s) => s.id),
+            width: wave.length,
+          },
+        });
+        this.onProgress(`Review panel: ${wave.length} agents in parallel...`);
+        const contexts: StepContext[] = [];
+        for (const step of wave) contexts.push(await prepareStep(step));
+        const results = await Promise.all(
+          wave.map((step, i) => runTurn(step, contexts[i]!)),
+        );
+        for (let i = 0; i < wave.length; i += 1) {
+          await commitTurn(wave[i]!, results[i]!);
+          processed.add(wave[i]!.id);
+          done.add(wave[i]!.id);
+        }
+        continue;
+      }
+
+      // Otherwise run exactly one ready step (deterministic: flow order).
+      const step = ready[0]!;
+      await runSerialStep(step);
+      processed.add(step.id);
+      done.add(step.id);
+    }
+
+    await input.eventLog.append({
+      type: "flow.graph.completed",
+      message: `Graph flow ${snapshot.flowId} traversal complete.`,
+      data: { flowId: snapshot.flowId },
+    });
+
+    return {
+      state,
+      lastValidation,
+      reviewDecision,
+      verificationDecision,
+      needsTestingAdvisory,
+      planArtifact,
+      executionArtifact,
+      reviewArtifact,
+      verificationArtifact,
+    };
+  }
+
   private async runFlowSequence(input: {
     snapshot: ResolvedFlowSnapshot;
     runId: string;
@@ -1603,6 +2121,47 @@ export class Orchestrator {
       // and starting the walk there. Native to the flow runner - driven by the
       // step `stage` metadata, no run() delegation.
       let stepIndex = 0;
+      // ── Graph (DAG) flows: the bounded read-only fan-out/join scheduler ──
+      // A flow that declares step `needs` runs through the frontier scheduler
+      // instead of the linear walk (schema guarantees no loop/checklist/repeat
+      // here). It sets the same decision locals the finalize block reads, then
+      // we park the linear cursor at the end so the `while` below is a no-op -
+      // the linear path stays byte-for-byte unchanged for every other flow.
+      if (isGraphFlow(input.snapshot)) {
+        if (this.resumeFrom) {
+          throw new Error(
+            "Graph (DAG) flows don't support --resume-stage yet; rerun from the start.",
+          );
+        }
+        const gr = await this.runGraphFrontier({
+          snapshot: input.snapshot,
+          runId: input.runId,
+          state,
+          worktreePath: input.worktreePath,
+          artifactStore: input.artifactStore,
+          stateStore: input.stateStore,
+          eventLog: input.eventLog,
+          metricsStore: input.metricsStore,
+          approvalService: input.approvalService,
+          notify: input.notify,
+          policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+          outputs,
+          arbitrationLedger,
+          arbitrationStore,
+          runBriefState,
+          ctx: input.ctx,
+        });
+        state = gr.state;
+        lastValidation = gr.lastValidation;
+        reviewDecision = gr.reviewDecision;
+        verificationDecision = gr.verificationDecision;
+        needsTestingAdvisory = gr.needsTestingAdvisory;
+        planArtifact = gr.planArtifact;
+        executionArtifact = gr.executionArtifact;
+        reviewArtifact = gr.reviewArtifact;
+        verificationArtifact = gr.verificationArtifact;
+        stepIndex = steps.length; // frontier ran everything; linear walk is a no-op
+      }
       if (this.resumeFrom) {
         const seeded = await this.seedResumedSteps({
           snapshot: input.snapshot,
@@ -3189,6 +3748,9 @@ export class Orchestrator {
         model: runtimeProfile?.model ?? undefined,
         effort: runtimeProfile?.power ?? undefined,
         maxTokens: runtimeProfile?.maxTokens ?? undefined,
+        // Real wall-clock cap (no longer advisory): the provider tree-kills the
+        // whole turn if it overruns - matters most for fanned-out review turns.
+        timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
         catalog: this.resolvedCatalog,
         mcpConfigPath: mcpConfigAbsPath ?? undefined,
         onChunk: (c) => {

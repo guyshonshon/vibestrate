@@ -18,6 +18,21 @@ export class MetricsStore {
     private readonly runId: string,
   ) {}
 
+  // Serialize the read-modify-write mutators. A parallel review panel (Slice 4)
+  // runs several turns concurrently, each appending its own role metrics; an
+  // unguarded read-modify-write would lose updates (last writer wins). This
+  // promise-chain mutex makes appendRoleMetrics/update/write atomic per store.
+  private writeQueue: Promise<unknown> = Promise.resolve();
+  private serialize<T>(op: () => Promise<T>): Promise<T> {
+    const next = this.writeQueue.then(op, op);
+    // Keep the chain alive even if an op rejects (swallow here; caller still sees it).
+    this.writeQueue = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
+
   get filePath(): string {
     return path.join(runDir(this.projectRoot, this.runId), METRICS_FILE);
   }
@@ -42,7 +57,11 @@ export class MetricsStore {
     }
   }
 
-  async write(metrics: RuntimeMetrics): Promise<void> {
+  write(metrics: RuntimeMetrics): Promise<void> {
+    return this.serialize(() => this.writeNow(metrics));
+  }
+
+  private async writeNow(metrics: RuntimeMetrics): Promise<void> {
     const validated = runtimeMetricsSchema.parse({
       ...metrics,
       updatedAt: nowIso(),
@@ -51,7 +70,11 @@ export class MetricsStore {
     await writeText(this.filePath, `${JSON.stringify(validated, null, 2)}\n`);
   }
 
-  async appendRoleMetrics(agent: RoleMetrics): Promise<RuntimeMetrics> {
+  appendRoleMetrics(agent: RoleMetrics): Promise<RuntimeMetrics> {
+    return this.serialize(() => this.appendRoleMetricsNow(agent));
+  }
+
+  private async appendRoleMetricsNow(agent: RoleMetrics): Promise<RuntimeMetrics> {
     const current = (await this.read()) ?? null;
     if (!current) {
       throw new Error(
@@ -70,7 +93,7 @@ export class MetricsStore {
       ...current,
       roles: nextRoles,
     });
-    await this.write(recomputed);
+    await this.writeNow(recomputed);
 
     // Per-agent JSON for future UI deep-dives.
     await ensureDir(this.roleDir);
@@ -84,15 +107,17 @@ export class MetricsStore {
     return recomputed;
   }
 
-  async update(mutator: (current: RuntimeMetrics) => RuntimeMetrics): Promise<RuntimeMetrics> {
-    const current = (await this.read()) ?? null;
-    if (!current) {
-      throw new Error(
-        `MetricsStore: cannot update metrics before initial write. runId=${this.runId}`,
-      );
-    }
-    const next = mutator(current);
-    await this.write(next);
-    return next;
+  update(mutator: (current: RuntimeMetrics) => RuntimeMetrics): Promise<RuntimeMetrics> {
+    return this.serialize(async () => {
+      const current = (await this.read()) ?? null;
+      if (!current) {
+        throw new Error(
+          `MetricsStore: cannot update metrics before initial write. runId=${this.runId}`,
+        );
+      }
+      const next = mutator(current);
+      await this.writeNow(next);
+      return next;
+    });
   }
 }
