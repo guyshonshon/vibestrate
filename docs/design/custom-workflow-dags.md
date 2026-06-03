@@ -1,8 +1,16 @@
 # Custom workflow DAGs + parallel agents within a task
 
-Status: **design of record (pre-implementation).** Phase A + B (read-only
-fan-out/join) are approved for the first slice; Phase C (write-parallelism) and
-Phase D (checklist-DAG / continue-past-failure) are deferred and kept on paper.
+Status: **design of record (pre-implementation).** The *product framing* here is
+superseded by `responsible-orchestrator.md`: DAGs are an execution primitive the
+orchestrator *chooses*, not the product identity. This doc remains the graph
+execution design. In that sequencing, the A+B slice below is **Slice 4** (the
+bounded late review panel the orchestrator selects when evidence warrants), not
+the first thing built - Slices 1-3 (VIBESTRATE.md + consult, workflow selection,
+run brief/handoff) come first.
+
+Phase A + B (read-only fan-out/join) are approved as the first *DAG* slice; Phase
+C (write-parallelism) and Phase D (checklist-DAG / continue-past-failure) are
+deferred and kept on paper.
 This answers the TODO backlog item "Custom workflow DAGs + parallel agents within
 a single task (also the home for checklist-DAG + continue-past-failure + parallel
 item execution)." Companion docs: `flows-unification.md` (one runner),
