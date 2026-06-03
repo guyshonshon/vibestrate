@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0
+
+- **The orchestrator now carries a run brief between steps.** As a flow runs, the
+  orchestrator maintains a compact "story so far" - the chosen flow and why, each
+  step's outcome and decision, validation status, and open risks - and injects it
+  into every role's prompt (a **Run brief** section, after the prior artifacts) so
+  the crew builds on each other instead of re-reading the full history. It's
+  **deterministic** (no extra model call - assembled from facts the orchestrator
+  already has), budget-bounded (oldest entries fold to one line when it grows),
+  and written to `flows/run-brief.md` on the run so you can read it too. Additive:
+  normal runs are unchanged except for the new bounded section + artifact. Third
+  slice of the responsible orchestrator.
+
 ## 0.5.3
 
 - **Orchestrator selection now recommends a crew + posture, and shows its

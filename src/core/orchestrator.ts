@@ -17,6 +17,12 @@ import {
 import { runValidationCommands, type ValidationResults } from "./validation-runner.js";
 import { buildRolePrompt, type PriorArtifact } from "./prompt-builder.js";
 import {
+  initRunBrief,
+  appendStepOutcome,
+  updateRunBriefFacts,
+  renderRunBrief,
+} from "./run-brief.js";
+import {
   listAnnotations,
   renderAnnotationsForPrompt,
 } from "./annotations-service.js";
@@ -1454,6 +1460,10 @@ export class Orchestrator {
     // final report can derive the fix-cycle count even on the error path.
     let loopIteration = 0;
     const outputs = new Map<string, FlowContextOutput>();
+    // The run brief (story so far) - a compact, deterministic through-line the
+    // orchestrator carries across steps. Seeded from the task + flow selection;
+    // each completed step appends its outcome. Injected into every step's prompt.
+    const runBriefState = initRunBrief({ task: this.task, selection: this.selection });
     const participantStore = new FlowParticipantLedgerStore(
       this.projectRoot,
       input.runId,
@@ -1876,6 +1886,7 @@ export class Orchestrator {
             outputName: path.posix.join("flows", step.id, "output.md"),
             priorArtifacts: context.priorArtifacts,
             validationResults: lastValidation,
+            runBrief: renderRunBrief(runBriefState),
             additionalNotes: this.renderFlowStepNotes({
               snapshot: input.snapshot,
               step,
@@ -1994,6 +2005,25 @@ export class Orchestrator {
               });
             }
           }
+
+          // Update the run brief (story so far) with this step's outcome + facts,
+          // and refresh the inspectable artifact. The next step's prompt picks it up.
+          appendStepOutcome(runBriefState, {
+            stepId: step.id,
+            label: step.label,
+            kind: step.kind,
+            output: result.output,
+            decision:
+              step.kind === "review-turn"
+                ? reviewDecision
+                : step.kind === "summary-turn"
+                  ? verificationDecision
+                  : null,
+          });
+          if (lastValidation) {
+            updateRunBriefFacts(runBriefState, { validation: lastValidation.summary });
+          }
+          await input.artifactStore.write("flows/run-brief.md", renderRunBrief(runBriefState));
 
           const gate = await this.maybeAwaitApproval({
             state,
@@ -2808,6 +2838,8 @@ export class Orchestrator {
     priorArtifacts: PriorArtifact[];
     validationResults: ValidationResults | null;
     additionalNotes?: string;
+    /** The run brief (story so far), injected as a prompt section. */
+    runBrief?: string;
     flowTurn?: FlowRoleTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
@@ -2965,6 +2997,7 @@ export class Orchestrator {
       concise: this.concise,
       ...(additionalNotes ? { additionalNotes } : {}),
       ...(humanAnnotations ? { humanAnnotations } : {}),
+      ...(input.runBrief ? { runBrief: input.runBrief } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(

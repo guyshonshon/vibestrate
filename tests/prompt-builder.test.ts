@@ -37,6 +37,26 @@ describe("prompt builder", () => {
     expect(out).toContain("Vibestrate Agent: planner");
   });
 
+  it("includes the run brief section only when one is passed", () => {
+    const base = {
+      roleId: "reviewer",
+      task: "x",
+      rules: "rules",
+      rolePromptTemplate: "Review.",
+      skills: [],
+      priorArtifacts: [],
+      permission: readProfile,
+      permissionName: "read_only",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+    };
+    expect(buildRolePrompt(base)).not.toContain("Run brief");
+    const withBrief = buildRolePrompt({ ...base, runBrief: "# Run brief (the story so far)\n- Plan [APPROVED]" });
+    expect(withBrief).toContain("Run brief (the story so far)");
+    expect(withBrief).toContain("[APPROVED]");
+  });
+
   it("includes attached skills with names + content", () => {
     const out = buildRolePrompt({
       roleId: "reviewer",
