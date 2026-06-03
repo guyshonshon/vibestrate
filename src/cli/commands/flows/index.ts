@@ -37,6 +37,38 @@ export function buildFlowsCommand(): Command {
     });
 
   cmd
+    .command("use [id]")
+    .description(
+      "Set the default Flow applied to runs without --flow (always shown), or --clear it.",
+    )
+    .option("--clear", "clear the default flow so the orchestrator selects per task")
+    .action(async (id: string | undefined, opts: { clear?: boolean }) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      const { setConfigValue } = await import("../../../setup/config-update-service.js");
+      if (opts.clear) {
+        await setConfigValue(projectRoot, "defaultFlow", "null");
+        console.log(
+          `${symbol.ok()} Cleared the default Flow - the orchestrator will select one per task.`,
+        );
+        return;
+      }
+      if (!id) {
+        console.error(`${symbol.fail()} Provide a Flow id, or pass --clear.`);
+        process.exit(1);
+      }
+      const { findFlowById } = await import("../../../flows/catalog/flow-discovery.js");
+      const flow = await findFlowById(projectRoot, id);
+      if (!flow) {
+        console.error(`${symbol.fail()} No Flow named "${id}".`);
+        process.exit(1);
+      }
+      await setConfigValue(projectRoot, "defaultFlow", id);
+      console.log(
+        `${symbol.ok()} Default Flow set to ${color.bold(id)} - applied to runs without --flow.`,
+      );
+    });
+
+  cmd
     .command("suggest <task...>")
     .description("Suggest a Flow from task risk signals and local Flow outcomes.")
     .option("--file <path>", "known touched file path; repeat for more", collect, [])

@@ -121,6 +121,7 @@ import type {
   ResolvedFlowStep,
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
+import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
@@ -241,6 +242,11 @@ export type OrchestratorInput = {
    *  injected into every agent's prompt (path-guarded / SSRF-guarded + secret
    *  redacted). */
   contextSources?: ContextSource[];
+  /** How this run's Flow was chosen (forced / default / orchestrator-selected).
+   *  Recorded for transparency: persisted as `selection.json` + a
+   *  `workflow.selected` event at run start. Does not affect execution - the
+   *  launcher has already resolved `flow` from it. */
+  selection?: WorkflowSelection | null;
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -395,6 +401,7 @@ export class Orchestrator {
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
   private readonly abortSignal: AbortSignal | null;
+  private readonly selection: WorkflowSelection | null;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -417,6 +424,7 @@ export class Orchestrator {
     this.checklistMode = input.checklistMode ?? null;
     this.contextSources = input.contextSources ?? [];
     this.abortSignal = input.abortSignal ?? null;
+    this.selection = input.selection ?? null;
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
@@ -559,6 +567,25 @@ export class Orchestrator {
     }
 
     await artifactStore.write("00-idea.md", `# Task\n\n${this.task}\n`);
+
+    // Record how this run's Flow was chosen, but only for an actual orchestrator
+    // selection - a forced/default run's flow is already in flow.json, so we add
+    // no extra artifact/event there (keeps normal runs byte-for-byte unchanged).
+    if (this.selection && this.selection.source === "selected") {
+      await artifactStore.writeJson("selection.json", this.selection);
+      await eventLog.append({
+        type: "workflow.selected",
+        message: `Flow "${this.selection.flowId}" (${this.selection.source})`,
+        data: {
+          flowId: this.selection.flowId,
+          source: this.selection.source,
+          confidence: this.selection.confidence,
+          reasons: this.selection.reasons,
+          risks: this.selection.risks,
+          posture: this.selection.posture,
+        },
+      });
+    }
 
     let worktreePath: string | null = null;
     let branchName: string | null = null;

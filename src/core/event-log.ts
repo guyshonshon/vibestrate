@@ -73,6 +73,7 @@ export type VibestrateEventType =
   | "bundle.validation_profile_updated"
   | "mcp.attached"
   | "control.applied"
+  | "workflow.selected"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"

@@ -184,6 +184,13 @@ export const projectConfigBaseSchema = z.object({
   crews: crewsConfigSchema.default({}),
   /** Crew used when a run doesn't pick one. Must exist in `crews`. */
   defaultCrew: z.string().min(1).default("default"),
+  /**
+   * The session/default Flow applied to runs that don't pass `--flow`. When set,
+   * it is always applied and shown (`Flow: <name> · default`). When null, the
+   * orchestrator selects a Flow per task (see select-workflow). A flow id; must
+   * resolve to a built-in or project flow.
+   */
+  defaultFlow: z.string().min(1).nullable().default(null),
   budget: budgetConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z

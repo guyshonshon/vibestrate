@@ -79,6 +79,10 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
+  // Orchestrator flow selection: true = select even if a default is set;
+  // false = skip selection (use the default flow); omitted = normal precedence.
+  // The chosen flow is recorded on the run (selection.json + workflow.selected).
+  select: z.boolean().nullable().optional(),
   flow: z
     .object({
       id: z
@@ -203,6 +207,7 @@ export async function registerRunsRoutes(
       checklistMode: body.checklistMode ?? null,
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,
+      select: body.select ?? null,
       flow: body.flow ?? null,
       resumeFrom: body.resumeFrom ?? null,
     };

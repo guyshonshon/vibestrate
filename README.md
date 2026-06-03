@@ -190,6 +190,7 @@ Easy to start is only half of it. The trade Vibestrate makes is unusual: maximum
 - **Validation as referee.** Your own typecheck / tests / build run between "I wrote it" and "looks good," so review stands on ground truth - not vibes.
 - **Your call at every gate.** Approval gates pause for a human; nothing pushes, nothing merges. A run ends at `merge_ready`, `blocked`, or `failed` - you decide what lands.
 - **Ask the orchestrator.** `vibe consult "should this use a heavier review?"` (or the dashboard **Consult** button) answers from your project's real context - config, recent runs, validation evidence, and a committed `VIBESTRATE.md` manual - and is honest about what it could not verify. Read-only: it recommends, it never acts.
+- **The Flow is never hidden.** Every run shows `Flow: <name> · <source>`. Pin a default with `vibe flows use <id>`, force one with `--flow`, or let the orchestrator pick for the task with `--select` (it states a confidence + reasons and records why).
 - **Scriptable, on your terms.** The dashboard is backed by a stable HTTP API (versioned `/api/v1`, loopback by default). Drive it from scripts; bind it to the network only behind a bearer token. Share recipes with single-flow import/export (`vibe flows export`/`import`, or the dashboard) - portable because Flows name Seats, not your local crew.
 
 That's the category in one line: Vibestrate is a **supervisor**, not an autopilot.

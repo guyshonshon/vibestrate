@@ -148,6 +148,13 @@ export const defaultFlow = flowDefinitionSchema.parse({
     maxIterations: 3,
   },
   complexity: "high",
+  capabilities: {
+    taskKinds: ["feature", "bugfix", "refactor", "chore", "docs"],
+    strengths: ["general", "implementation"],
+    costClass: "medium",
+    latencyClass: "medium",
+    requires: { validation: true },
+  },
 });
 
 export const qualityArbitrationFlow = flowDefinitionSchema.parse({
@@ -244,6 +251,13 @@ export const qualityArbitrationFlow = flowDefinitionSchema.parse({
     },
   ],
   complexity: "high",
+  capabilities: {
+    taskKinds: ["feature", "refactor", "bugfix"],
+    strengths: ["security", "architecture", "risk", "correctness"],
+    costClass: "high",
+    latencyClass: "high",
+    requires: { validation: true },
+  },
 });
 
 // The built-in **pick-up flow**: the checklist-aware shape for executing a card
@@ -323,6 +337,13 @@ export const pickupFlow = flowDefinitionSchema.parse({
   ],
   checklistSegment: { from: "micro-plan", to: "implement" },
   complexity: "medium",
+  capabilities: {
+    taskKinds: ["checklist"],
+    strengths: ["multi-step", "checklist"],
+    costClass: "medium",
+    latencyClass: "medium",
+    avoids: { readOnly: true },
+  },
 });
 
 export const builtinFlows: readonly FlowDefinition[] = [

@@ -6,6 +6,7 @@ import {
   type ResumeFromInput,
 } from "../../core/orchestrator.js";
 import { resolveResumeFrom, RunLaunchError } from "../../core/run-launcher.js";
+import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
 import {
   color,
   header,
@@ -86,6 +87,8 @@ export type RunCommandOptions = {
   concise?: boolean;
   /** Flow id to resolve before start. */
   flowId?: string | null;
+  /** --select: force orchestrator flow selection even when a default flow is set. */
+  select?: boolean;
   /** Per-step Profile overrides (step id → profile id). */
   flowStepProfiles?: Record<string, string>;
   /** Extra run brief included in the Flow task packet. */
@@ -212,6 +215,29 @@ export async function runRunCommand(
     }
   }
 
+  // Choose the Flow transparently (forced > default > orchestrator selection),
+  // unless resuming or running a checklist (the flow is implied). Always shown.
+  let selection: WorkflowSelection | null = null;
+  if (!options.resumeFromRunId && !options.checklistMode) {
+    try {
+      selection = await chooseRunFlow({
+        projectRoot: detected.projectRoot,
+        task: resolvedTask,
+        config: loaded.config,
+        forcedFlowId: activeFlowId,
+        forceSelect: options.select === true,
+        loaded,
+      });
+      activeFlowId = selection.flowId;
+    } catch (err) {
+      console.error(
+        `${symbol.warn()} Flow selection failed; falling back to the default flow. ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
   if (activeFlowId) {
     const flow = await findFlowById(detected.projectRoot, activeFlowId);
@@ -276,6 +302,7 @@ export async function runRunCommand(
         skippedOptionalSteps: flowSkippedOptionalSteps,
       });
       printResolvedFlow(resolvedFlow);
+      if (selection) printFlowChoice(resolvedFlow.label, selection);
     } catch (err) {
       const message =
         err instanceof FlowResolutionError || isVibestrateError(err)
@@ -458,6 +485,7 @@ export async function runRunCommand(
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
     flow: resolvedFlow,
+    selection,
     resumeFrom,
     checklistMode: options.checklistMode ?? null,
     contextSources: options.contextSources ?? [],
@@ -656,5 +684,28 @@ function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {
         `${index + 1}. ${color.bold(step.label)} ${color.dim(`[${step.kind}]`)}  seat=${seat}  role=${role}  profile=${profile}${state}`,
       ),
     );
+  }
+}
+
+// Always show the active Flow and where the choice came from (Slice 2).
+function printFlowChoice(label: string, selection: WorkflowSelection): void {
+  const sourceLabel: Record<WorkflowSelection["source"], string> = {
+    forced: "forced",
+    default: "default",
+    selected: `selected · ${selection.confidence} confidence`,
+    "only-flow": "only flow",
+  };
+  console.log("");
+  console.log(
+    `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
+  );
+  if (selection.source === "selected" && selection.reasons.length) {
+    console.log(indent(color.dim(selection.reasons[0]!)));
+  }
+  for (const risk of selection.risks) {
+    console.log(indent(`${symbol.warn()} ${color.dim(risk)}`));
+  }
+  if (selection.advisory) {
+    console.log(indent(`${symbol.arrow()} ${color.yellow(selection.advisory)}`));
   }
 }
