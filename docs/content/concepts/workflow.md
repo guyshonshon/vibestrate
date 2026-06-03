@@ -71,6 +71,17 @@ vibe run "..." --flow quality-arbitration
 declares the matching stage: the runner seeds the upstream steps' outputs from
 the source run and starts there.
 
+## The run brief (the story so far)
+
+As a workflow runs, the orchestrator keeps a compact **run brief** - a
+deterministic, budget-bounded through-line of what's happened so far: the chosen
+flow and why, each step's outcome and decision, validation status, changed files,
+and open risks. It's injected into **every** role's prompt (as a "Run brief"
+section, after the prior artifacts), so the crew builds on each other without
+re-reading the full history - and it's written to `flows/run-brief.md` on the run
+so you can read it too. No model call: it's assembled from facts the orchestrator
+already has, and the oldest entries fold to one line when it gets long.
+
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.

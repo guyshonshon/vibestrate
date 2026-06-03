@@ -27,6 +27,12 @@ export type PromptBuildInput = {
    * so the whole crew acknowledges them. Empty/undefined → no section.
    */
   humanAnnotations?: string;
+  /**
+   * Pre-rendered "# Run brief (the story so far)" section (see run-brief.ts) -
+   * the compact through-line of the run so far. Injected verbatim so each role
+   * builds on what came before. Empty/undefined → no section.
+   */
+  runBrief?: string;
   /** Per-run brevity directive. Appends a short "be concise" section. */
   concise?: boolean;
 };
@@ -162,6 +168,11 @@ export function buildRolePrompt(input: PromptBuildInput): string {
   if (priors) {
     sections.push(``);
     sections.push(priors);
+  }
+
+  if (input.runBrief && input.runBrief.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.runBrief.trim());
   }
 
   const validation = renderValidation(input.validationResults);
