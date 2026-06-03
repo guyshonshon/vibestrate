@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.3.18",
+  "version": "0.3.19",
   "commands": [
     {
       "name": "init",
@@ -4430,6 +4430,55 @@
         {
           "flags": "--json",
           "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "consult",
+      "path": [
+        "vibe",
+        "consult"
+      ],
+      "description": "Ask the project orchestrator a question, answered from controlled project context (read-only).",
+      "usage": "[options] <question>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the question to ask about this project",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--task <id>",
+          "description": "include a task's context (title, status, checklist)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--run <id>",
+          "description": "focus a recent run by id",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--file <path>",
+          "description": "include a project file's content (repeatable)",
+          "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--json",
+          "description": "emit the full structured result as JSON",
           "required": false,
           "optional": false,
           "negated": false

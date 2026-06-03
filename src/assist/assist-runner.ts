@@ -44,8 +44,9 @@ export type AssistRequest<T> = {
   label: string;
   /** The instruction/question for the model. */
   instruction: string;
-  /** Zod schema the parsed JSON must satisfy. */
-  schema: z.ZodType<T>;
+  /** Zod schema the parsed JSON must satisfy. Input is `unknown` (we `safeParse`
+   *  raw model output), so schemas that use `.default()` fit cleanly. */
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>;
   /** Human-readable shape embedded in the prompt (a JSON sketch). */
   schemaHint: string;
   /** Explicit profile id; else resolved from the crew's read-only planner. */
@@ -56,6 +57,9 @@ export type AssistRequest<T> = {
   loaded?: LoadedConfig;
   /** Max provider attempts (a parse failure re-prompts once). Default 2. */
   maxAttempts?: number;
+  /** Audit bucket - effects log under `runs/<bucket>/`. Default "assist".
+   *  Consult passes "consult" so its evidence sits in its own bucket. */
+  auditBucket?: string;
   signal?: AbortSignal;
   /** Test seam - defaults to the real provider runner. */
   runner?: AssistProviderRunner;
@@ -176,9 +180,10 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
   const maxAttempts = Math.max(1, req.maxAttempts ?? 2);
 
   // Gate the spawn through the Action Broker (the "one boundary" guarantee).
-  const broker = createActionBroker(req.projectRoot, ASSIST_RUN_ID);
+  const bucket = req.auditBucket ?? ASSIST_RUN_ID;
+  const broker = createActionBroker(req.projectRoot, bucket);
   const request = {
-    runId: ASSIST_RUN_ID,
+    runId: bucket,
     kind: "provider.spawn" as const,
     subject: { providerId, cwd: req.projectRoot, label: req.label, assist: true },
     proposedBy: "system" as const,

@@ -16,6 +16,7 @@ import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
+import { ConsultPage } from "./routes/ConsultPage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
@@ -260,9 +261,11 @@ export function App() {
                               ? "crew"
                               : route.kind === "config"
                                 ? "config"
-                                : route.kind === "runs"
-                                  ? "runs"
-                                  : "home"
+                                : route.kind === "consult"
+                                  ? "consult"
+                                  : route.kind === "runs"
+                                    ? "runs"
+                                    : "home"
       }
       onSelectRun={(runId) => navigate({ kind: "run", runId })}
       onShowHome={() => navigate({ kind: "mission" })}
@@ -278,6 +281,7 @@ export function App() {
       onShowSettings={() => navigate({ kind: "settings" })}
       onShowProject={() => navigate({ kind: "project" })}
       onShowConfig={() => navigate({ kind: "config" })}
+      onShowConsult={() => navigate({ kind: "consult", taskId: null })}
       onShowCodebase={() =>
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
@@ -369,6 +373,11 @@ export function App() {
         <ProvidersPage />
       ) : route.kind === "config" ? (
         <ConfigPage />
+      ) : route.kind === "consult" ? (
+        <ConsultPage
+          taskId={route.taskId}
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
+        />
       ) : route.kind === "proposals" ? (
         <ProposalsPage
           onOpenProposal={(id) => navigate({ kind: "proposal", proposalId: id })}

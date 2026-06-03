@@ -267,6 +267,33 @@ export type CrewView = {
   roles: CrewRoleView[];
 };
 
+export type ConsultActionKind =
+  | "run"
+  | "select_flow"
+  | "annotate"
+  | "propose_config"
+  | "propose_vibestrate"
+  | "request_sandbox"
+  | "explain_block"
+  | "other";
+
+export type ConsultAnswer = {
+  answer: string;
+  confidence: "low" | "medium" | "high";
+  caveats: string[];
+  usedContext: string[];
+  recommendedActions: { kind: ConsultActionKind; detail: string }[];
+  proposedManualUpdate: { rationale: string; evidence: string; suggestedText: string } | null;
+};
+
+export type ConsultResult = {
+  answer: ConsultAnswer;
+  usedSources: string[];
+  notes: string[];
+  providerId: string;
+  profileId: string;
+};
+
 export type ProfileView = {
   id: string;
   provider: string;
