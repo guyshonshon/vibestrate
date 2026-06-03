@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "commands": [
     {
       "name": "init",
@@ -4513,6 +4513,128 @@
         }
       ],
       "subcommands": []
+    },
+    {
+      "name": "vibestrate",
+      "path": [
+        "vibe",
+        "vibestrate"
+      ],
+      "description": "Manage VIBESTRATE.md (the orchestrator's operating manual) and its proposals.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "show",
+          "path": [
+            "vibe",
+            "vibestrate",
+            "show"
+          ],
+          "description": "Print the project's VIBESTRATE.md (or note that there is none).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "init",
+          "path": [
+            "vibe",
+            "vibestrate",
+            "init"
+          ],
+          "description": "Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "proposals",
+          "path": [
+            "vibe",
+            "vibestrate",
+            "proposals"
+          ],
+          "description": "List open VIBESTRATE.md proposals (e.g. from consult).",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--all",
+              "description": "include applied/rejected proposals",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": [
+            {
+              "name": "show",
+              "path": [
+                "vibe",
+                "vibestrate",
+                "proposals",
+                "show"
+              ],
+              "description": "Show a proposal's full suggested text.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
+        },
+        {
+          "name": "apply",
+          "path": [
+            "vibe",
+            "vibestrate",
+            "apply"
+          ],
+          "description": "Apply a proposal - append its text to VIBESTRATE.md (guarded write).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "reject",
+          "path": [
+            "vibe",
+            "vibestrate",
+            "reject"
+          ],
+          "description": "Reject a proposal (keeps it on record, marked rejected).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "budget",

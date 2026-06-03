@@ -1,6 +1,18 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { runConsult, ConsultError } from "../../consult/consult.js";
+import { runConsult, persistConsultProposal, ConsultError } from "../../consult/consult.js";
+import {
+  loadProjectManual,
+  writeProjectManual,
+  STARTER_MANUAL,
+  ManualWriteError,
+} from "../../project/project-manual.js";
+import {
+  listManualProposals,
+  applyManualProposal,
+  rejectManualProposal,
+  ManualProposalError,
+} from "../../project/manual-proposals.js";
 import { HttpError } from "../security.js";
 
 export type ConsultRoutesDeps = { projectRoot: string };
@@ -40,12 +52,62 @@ export async function registerConsultRoutes(
         runId: runId ?? null,
         files: files ?? [],
       });
-      return result;
+      const proposalId = await persistConsultProposal(projectRoot, result).catch(() => null);
+      return { ...result, proposalId };
     } catch (err) {
       if (err instanceof ConsultError) {
         const notInit = /not initialized/i.test(err.message);
         throw new HttpError(notInit ? 409 : 400, err.message);
       }
+      throw err;
+    }
+  });
+
+  // ── VIBESTRATE.md: read, scaffold, and apply/reject reviewed proposals ──────
+  app.get("/api/vibestrate", async () => {
+    const manual = await loadProjectManual(projectRoot);
+    return { present: manual.present, path: manual.path, content: manual.content };
+  });
+
+  app.post("/api/vibestrate/init", async () => {
+    const manual = await loadProjectManual(projectRoot);
+    if (manual.present) throw new HttpError(409, "VIBESTRATE.md already exists.");
+    try {
+      const { path } = await writeProjectManual(projectRoot, STARTER_MANUAL, { reason: "init" });
+      return { ok: true, path };
+    } catch (err) {
+      if (err instanceof ManualWriteError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  app.get("/api/vibestrate/proposals", async (req) => {
+    const all = (req.query as { all?: string } | undefined)?.all;
+    const list = await listManualProposals(
+      projectRoot,
+      all === "1" || all === "true" ? undefined : { status: "open" },
+    );
+    return { proposals: list };
+  });
+
+  app.post<{ Params: { id: string } }>("/api/vibestrate/proposals/:id/apply", async (req) => {
+    try {
+      const { proposal, created } = await applyManualProposal(projectRoot, req.params.id);
+      return { ok: true, proposal, created };
+    } catch (err) {
+      if (err instanceof ManualProposalError || err instanceof ManualWriteError) {
+        throw new HttpError(400, err.message);
+      }
+      throw err;
+    }
+  });
+
+  app.post<{ Params: { id: string } }>("/api/vibestrate/proposals/:id/reject", async (req) => {
+    try {
+      const proposal = await rejectManualProposal(projectRoot, req.params.id);
+      return { ok: true, proposal };
+    } catch (err) {
+      if (err instanceof ManualProposalError) throw new HttpError(400, err.message);
       throw err;
     }
   });

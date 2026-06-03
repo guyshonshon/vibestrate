@@ -13,6 +13,7 @@ import { VibestrateError } from "../utils/errors.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
 import { assembleConsultContext } from "./consult-context.js";
+import { saveManualProposal } from "../project/manual-proposals.js";
 
 export class ConsultError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -159,4 +160,24 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     providerId: result.providerId,
     profileId: result.profileId,
   };
+}
+
+/**
+ * Surface-layer helper: if a consult answer proposed a VIBESTRATE.md update,
+ * persist it as a reviewable proposal (never applied) and return its id. Kept
+ * out of `runConsult` so the engine itself stays purely read-only.
+ */
+export async function persistConsultProposal(
+  projectRoot: string,
+  result: ConsultResult,
+): Promise<string | null> {
+  const p = result.answer.proposedManualUpdate;
+  if (!p) return null;
+  const saved = await saveManualProposal(projectRoot, {
+    rationale: p.rationale,
+    evidence: p.evidence,
+    suggestedText: p.suggestedText,
+    source: "consult",
+  });
+  return saved.id;
 }

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
-import { runConsult, type ConsultAnswer } from "../../consult/consult.js";
+import { runConsult, persistConsultProposal, type ConsultAnswer } from "../../consult/consult.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
 function collect(value: string, acc: string[]): string[] {
@@ -71,12 +71,19 @@ export function buildConsultCommand(): Command {
 
         if (answer.proposedManualUpdate) {
           const p = answer.proposedManualUpdate;
+          const proposalId = await persistConsultProposal(projectRoot, result).catch(() => null);
           console.log("");
           console.log(`${header("Proposed VIBESTRATE.md update")} ${color.dim("(proposal - not applied)")}`);
           console.log(indent(color.dim(`why: ${p.rationale}`)));
           console.log(indent(color.dim(`evidence: ${p.evidence}`)));
           console.log("");
           console.log(indent(p.suggestedText.trim()));
+          if (proposalId) {
+            console.log("");
+            console.log(
+              `${symbol.arrow()} Apply with ${color.bold(`vibe vibestrate apply ${proposalId}`)} (or reject it).`,
+            );
+          }
         }
 
         const grounding = answer.usedContext.length ? answer.usedContext : usedSources;

@@ -76,7 +76,12 @@ itself a model, an answer states a **confidence** and lists **caveats** - the
 things it could not verify from the evidence - instead of presenting model
 confidence as fact. It may recommend actions (start a run, pick a flow, request
 sandbox mode) and, when it has an evidence-backed improvement, **propose** a
-`VIBESTRATE.md` update - but a proposal is shown, not applied.
+`VIBESTRATE.md` update. A proposal is **never auto-applied** - it's saved for
+review, and a human applies it explicitly (`vibe vibestrate apply <id>`, or the
+**Apply** button on the consult card). Applying appends the reviewed text to the
+manual through a guarded writer (Action Broker `file.write`, path-guarded, and
+**refused** if the content carries secret-shaped tokens), so you review the diff
+before committing.
 
 Consult runs through the same read-only **assist** path as the rest of Vibestrate:
 broker-gated, no worktree, no writes. Its evidence is audited under
@@ -84,9 +89,11 @@ broker-gated, no worktree, no writes. Its evidence is audited under
 
 ## Surfaces
 
-- **CLI:** `vibe consult "<question>" [--task <id>] [--run <id>] [--file <path>] [--json]`.
+- **CLI:** `vibe consult "<question>" [--task <id>] [--run <id>] [--file <path>] [--json]`;
+  manage the manual with `vibe vibestrate init | show | proposals | apply <id> | reject <id>`.
 - **Shell:** type `consult "<question>"` at the command prompt.
-- **API:** `POST /api/consult` `{ question, taskId?, runId?, files? }`.
-- **Web:** the **Consult** top-bar button.
+- **API:** `POST /api/consult`; `GET /api/vibestrate`, `POST /api/vibestrate/init`,
+  `GET /api/vibestrate/proposals`, `POST /api/vibestrate/proposals/:id/apply|reject`.
+- **Web:** the **Consult** top-bar button, with Apply/Dismiss on a proposed update.
 
 Related: [[safety]], [[configuration]], [[crew]], [[profile]].
