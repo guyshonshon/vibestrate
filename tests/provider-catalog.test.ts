@@ -28,8 +28,6 @@ describe("provider catalog", () => {
       expect(caps, `missing catalog entry for ${id}`).toBeDefined();
       expect(Array.isArray(caps!.models)).toBe(true);
       expect(Array.isArray(caps!.powerLevels)).toBe(true);
-      // every provider gets the coarse budget knob
-      expect(caps!.budgetLevels.length).toBeGreaterThan(0);
     }
   });
 
@@ -45,7 +43,6 @@ describe("provider catalog", () => {
     const caps = providerCapabilities("some-custom-cli");
     expect(caps.models).toEqual([]);
     expect(caps.powerLevels).toEqual([]);
-    expect(caps.budgetLevels.length).toBeGreaterThan(0);
   });
 });
 

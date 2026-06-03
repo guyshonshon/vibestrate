@@ -227,7 +227,6 @@ export async function pointAllProfilesAtProvider(
       label: `${providerId} balanced`,
       model: null,
       power: null,
-      budget: "medium",
     });
     for (const roleId of builtinRoleIds) {
       const crewId = defaultCrewIdOf(doc);
@@ -248,7 +247,7 @@ function defaultCrewIdOf(doc: YAML.Document.Parsed): string {
   return typeof raw === "string" && raw.length > 0 ? raw : "default";
 }
 
-/** Update a Profile's fields (provider, model, power, budget, etc.). Creates
+/** Update a Profile's fields (provider, model, power, etc.). Creates
  *  the profile if missing. Throws if the named provider isn't configured. */
 /** Create a new profile. Fails if the id exists or the provider isn't
  *  configured. Reusable preset a Role can then point at. */

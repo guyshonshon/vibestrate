@@ -847,7 +847,6 @@ export const api = {
       label?: string;
       model?: string | null;
       power?: string | null;
-      budget?: string | null;
       maxTokens?: number | null;
       timeoutMs?: number | null;
     },
@@ -860,7 +859,6 @@ export const api = {
     label?: string;
     model?: string;
     power?: string;
-    budget?: string;
     maxTokens?: number;
     timeoutMs?: number;
   }): Promise<{ ok: true; profileId: string }> {

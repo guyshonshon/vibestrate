@@ -166,7 +166,7 @@
     {
       "key": "profiles",
       "fullKey": "profiles",
-      "type": "record<string, object>",
+      "type": "record<string, unknown>",
       "required": false,
       "default": {},
       "itemType": null

@@ -21,7 +21,7 @@ import { Button } from "../../components/design/Button.js";
 import { SuggestInput } from "../../components/design/SuggestInput.js";
 import { EffortScale } from "../../components/design/EffortScale.js";
 
-const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [], budgetLevels: ["low", "medium", "high"] };
+const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";

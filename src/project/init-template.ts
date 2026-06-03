@@ -205,7 +205,7 @@ execution:
 ${input.providerSection}
 
 # Profiles = reusable runtime setups. A Profile picks a provider plus how
-# strong/expensive to run (model, effort, budget). Effort (the "power" field) is
+# strong/expensive to run (model, effort). Effort (the "power" field) is
 # provider-specific; leave it null when the provider exposes no effort control.
 profiles:
   ${ref}-balanced:
@@ -213,7 +213,6 @@ profiles:
     label: ${ref} balanced
     model: null
     power: medium
-    budget: medium
 
 # Crews = your local team of Roles. Each Role runs on a Profile and lists the
 # Seats it can fill in a Flow (the same Role can fill several seats).

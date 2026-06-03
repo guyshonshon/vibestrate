@@ -33,7 +33,6 @@ const createProfileBody = z
     label: z.string().min(1).max(120).optional(),
     model: z.string().min(1).max(120).optional(),
     power: z.string().min(1).max(60).optional(),
-    budget: z.string().min(1).max(60).optional(),
     maxTokens: z.number().int().positive().optional(),
     timeoutMs: z.number().int().positive().optional(),
   })
@@ -58,7 +57,7 @@ export async function registerProjectRoutes(
     return { metadata: await getProjectMetadata(projectRoot) };
   });
 
-  // ─── Profiles: reusable runtime setups (provider + model/power/budget) ───
+  // ─── Profiles: reusable runtime setups (provider + model/power) ──────────
   app.get("/api/profiles", async () => {
     if (!(await configExists(projectRoot))) return { profiles: [] };
     const { config } = await loadConfig(projectRoot);
@@ -70,7 +69,6 @@ export async function registerProjectRoutes(
       label: p.label ?? id,
       model: p.model,
       power: p.power,
-      budget: p.budget,
       maxTokens: p.maxTokens,
       timeoutMs: p.timeoutMs,
       usedBy: usage.get(id) ?? [],
@@ -109,7 +107,6 @@ export async function registerProjectRoutes(
           label: parsed.data.label ?? newId,
           model: src.model ?? undefined,
           power: src.power ?? undefined,
-          budget: src.budget ?? undefined,
           maxTokens: src.maxTokens ?? undefined,
           timeoutMs: src.timeoutMs ?? undefined,
         });
@@ -148,14 +145,14 @@ export async function registerProjectRoutes(
     },
   );
 
-  // Edit a Profile (provider/model/power/budget/maxTokens/timeoutMs).
+  // Edit a Profile (provider/model/power/maxTokens/timeoutMs).
   app.patch<{ Params: { profileId: string }; Body: unknown }>(
     "/api/profiles/:profileId",
     async (req) => {
       const profileId = req.params.profileId;
       if (!ID_RE.test(profileId)) throw new HttpError(400, "Invalid profile id.");
       const body = (req.body ?? {}) as Record<string, unknown>;
-      const allowed = ["provider", "label", "model", "power", "budget", "maxTokens", "timeoutMs"];
+      const allowed = ["provider", "label", "model", "power", "maxTokens", "timeoutMs"];
       const patch: Record<string, unknown> = {};
       for (const key of allowed) {
         if (key in body) patch[key] = body[key];

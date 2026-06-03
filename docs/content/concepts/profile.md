@@ -21,13 +21,11 @@ profiles:
     label: Codex fast
     model: gpt-5.1
     power: low
-    budget: low
   claude-max:
     provider: claude
     label: Claude Opus, max effort
     model: opus
     power: max
-    budget: high
 ```
 
 A Role points at one of these by id (`profile: claude-max`).
@@ -35,9 +33,9 @@ A Role points at one of these by id (`profile: claude-max`).
 ## More Detail
 
 A Profile chooses the **Provider**, the **model**, the **effort** level (the
-`power` field), a coarse **budget**, and an optional **timeout**. Two Roles can
-share a Profile, and the same Role can run on a stronger Profile for one Step via
-a step override - without duplicating the Role.
+`power` field), an optional per-turn output cap (`maxTokens`), and a **timeout**.
+Two Roles can share a Profile, and the same Role can run on a stronger Profile
+for one Step via a step override - without duplicating the Role.
 
 **Effort and model actually take effect** - on CLI **and** HTTP providers. For a
 CLI provider they become a real flag when one exists (`claude --effort <level>
@@ -60,9 +58,14 @@ real ones, or a provider with no effort knob - reachable by hand-editing
 `project.yml` or the overlay), the run **warns** (a `provider.effort_ignored`
 event) rather than silently sending a value the CLI drops.
 
-`budget` is a coarse spend-appetite field kept in config, but it isn't applied
-to a spawn yet - so, following the "only real knobs" rule, it's not shown as an
-editor dial in the dashboard (advisory for now; wire it before re-surfacing).
+There is **no per-profile spend dial**. Earlier versions had a `budget`
+(low/medium/high) field on each Profile, but it was never read at runtime - it
+changed nothing - so it was removed (a legacy `budget:` key in an old
+`project.yml` is silently ignored on load). Spend is controlled where it
+actually bites: a per-turn output cap with `maxTokens`, and a real
+**project-level daily cap** (`config.budget`, the `vibe budget` command / Budget
+section) that stops or downgrades runs. Following the "only real knobs" rule, the
+editor shows a dial only where it's wired to a genuine effect.
 
 ## Advanced
 
@@ -74,7 +77,6 @@ Schema (`src/profiles/profile-schema.ts`):
 | `label` | string? | dashboard label (defaults to the profile id) |
 | `model` | string \| null | provider model id (e.g. `sonnet`, `opus`) |
 | `power` | string \| null | provider-specific effort level (applied via the provider's flag) |
-| `budget` | string \| null | coarse spend appetite - advisory, not shown in the editor |
 | `maxTokens` | number \| null | per-turn output cap when supported |
 | `timeoutMs` | number \| null | per-turn wall-clock timeout |
 | `providerOptions` | record | raw provider-specific escape hatch |

@@ -14,7 +14,6 @@ type FieldOpts = {
   label?: string;
   model?: string;
   power?: string;
-  budget?: string;
   maxTokens?: string;
   timeout?: string;
 };
@@ -25,7 +24,6 @@ function fieldsFromOpts(opts: FieldOpts): Record<string, unknown> {
   if (opts.label) f.label = opts.label;
   if (opts.model) f.model = opts.model;
   if (opts.power) f.power = opts.power;
-  if (opts.budget) f.budget = opts.budget;
   if (opts.maxTokens) f.maxTokens = Number(opts.maxTokens);
   if (opts.timeout) f.timeoutMs = Number(opts.timeout);
   return f;
@@ -36,14 +34,13 @@ function fieldOptions(cmd: Command): Command {
     .option("--label <label>", "human label")
     .option("--model <model>", "provider model id (e.g. sonnet, opus)")
     .option("--power <level>", "provider-specific power/effort (e.g. balanced)")
-    .option("--budget <level>", "spend appetite (low/medium/high)")
     .option("--max-tokens <n>", "hard cap on output tokens per turn")
     .option("--timeout <ms>", "per-turn wall-clock timeout (ms)");
 }
 
 export function buildProfilesCommand(): Command {
   const cmd = new Command("profiles").description(
-    "Runtime presets (provider + model/power/budget) that Crew roles run on.",
+    "Runtime presets (provider + model/power) that Crew roles run on.",
   );
 
   cmd
@@ -76,7 +73,7 @@ export function buildProfilesCommand(): Command {
       console.log("");
       for (const [id, p] of entries) {
         const used = rolesUsingProfile(config, id);
-        const bits = [p.model, p.power, p.budget].filter(Boolean).join(" · ");
+        const bits = [p.model, p.power].filter(Boolean).join(" · ");
         console.log(
           `${color.bold(id)} ${color.dim(`@${p.provider}`)}${bits ? `  ${color.dim(bits)}` : ""}`,
         );
@@ -145,7 +142,6 @@ export function buildProfilesCommand(): Command {
           label: newId,
           model: src.model ?? undefined,
           power: src.power ?? undefined,
-          budget: src.budget ?? undefined,
           maxTokens: src.maxTokens ?? undefined,
           timeoutMs: src.timeoutMs ?? undefined,
         });

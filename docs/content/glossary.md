@@ -15,7 +15,7 @@ Short definitions for the vocabulary Vibestrate's docs assume.
 
 **Seat.** What a Flow step needs filled (e.g. `implementer`). A contract the Crew satisfies with a Role whose `seats` includes the seat. See [Seat](/docs/concepts/seat).
 
-**Profile.** How strong and expensive a Role runs: provider + model + power + budget + timeout. Provider-specific power. See [Profile](/docs/concepts/profile).
+**Profile.** How strong and expensive a Role runs: provider + model + power + timeout. Provider-specific power. See [Profile](/docs/concepts/profile).
 
 **Approval gate.** A point in a workflow or Flow where the orchestrator pauses for explicit human approval. Configured via `policies.requireApprovalAtStages` or step `kind: approval-gate` in a Flow.
 

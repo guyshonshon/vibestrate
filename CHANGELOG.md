@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.19
+
+- **Removed the dead per-profile `budget` knob.** A Profile used to carry a
+  coarse `budget` (low/medium/high), but it was never read at runtime - it
+  changed no flag, no request body, nothing - so it violated the rule that a
+  knob is only exposed when it's wired to a real effect. It's gone from the
+  schema, every editor (web/CLI/shell), the API, and the capability catalog.
+  Spend is controlled where it actually bites: a per-turn output cap
+  (`maxTokens`) and the real project-level **daily cap** (`config.budget` /
+  `vibe budget`), both unchanged. Old `project.yml` files that still list
+  `budget:` on a profile keep loading - the legacy key is silently dropped, not
+  rejected.
+
 ## 0.3.18
 
 - **Concepts docs reorganized around Task, Flow, and Crew.** The flat Concepts

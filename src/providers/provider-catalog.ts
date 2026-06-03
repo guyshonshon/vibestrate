@@ -3,7 +3,7 @@
 // What the Profile editor offers per provider. Derived from the apply layer
 // (provider-apply.ts) so a knob is ONLY shown when it is actually wired to a
 // real CLI flag - no advisory options. Models/effort come straight from the
-// single source; budget is Vibestrate's own coarse knob.
+// single source.
 
 import {
   modelSuggestions,
@@ -23,11 +23,7 @@ export type ProviderCapabilities = {
   modelEnabled: boolean;
   /** Wired effort levels; empty = no effort control (UI hides the field). */
   powerLevels: string[];
-  /** Coarse budget levels (Vibestrate spend-appetite knob). */
-  budgetLevels: string[];
 };
-
-const BUDGET = ["low", "medium", "high"];
 
 const KNOWN = [
   "claude",
@@ -51,7 +47,6 @@ export function providerCapabilities(
     models: modelSuggestions(id, catalog),
     modelEnabled: modelIsWired(id, catalog),
     powerLevels: effortLevels(id, catalog),
-    budgetLevels: BUDGET,
   };
 }
 
@@ -74,7 +69,6 @@ export function capabilitiesForProvider(
       models: httpModelSuggestions(config.api, catalog),
       modelEnabled: true, // every HTTP api takes a model id
       powerLevels: httpEffortLevels(config.api, catalog),
-      budgetLevels: BUDGET,
     };
   }
   // cli / claude-code: keyed by the well-known provider id.
