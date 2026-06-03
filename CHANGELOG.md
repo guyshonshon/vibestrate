@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2
+
+- **Consult page in the shell.** The interactive shell gains a **Consult** page:
+  ask from the command prompt (`consult "..."`, with autocomplete + rendered
+  output), and review the VIBESTRATE.md proposals it produces right there -
+  `↑↓` to move, `a` to apply, `x` to reject, `r` to refresh. Full UI/CLI/shell
+  parity for the consult surface.
+
 ## 0.5.1
 
 - **Apply VIBESTRATE.md proposals (the write path).** A consult that proposes a

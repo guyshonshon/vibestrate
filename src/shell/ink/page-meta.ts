@@ -187,6 +187,18 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     commonKeys: [["↑↓", "select a section"]],
     commonCli: ["vibe config view", "vibe config view --json", "vibe config show"],
   },
+  consult: {
+    subtitle: "ask the orchestrator · review VIBESTRATE.md proposals",
+    blurb:
+      "Ask from the prompt: consult \"should this use a heavier review?\" - answered read-only from VIBESTRATE.md + config + recent runs. Proposed manual updates land here to apply or reject.",
+    commonKeys: [
+      ["↑↓", "select a proposal"],
+      ["a", "apply"],
+      ["x", "reject"],
+      ["r", "refresh"],
+    ],
+    commonCli: ['vibe consult "..."', "vibe vibestrate proposals", "vibe vibestrate apply <id>"],
+  },
   doctor: {
     subtitle: "environment + config diagnostics · with safe auto-fixes",
     blurb:
