@@ -22,12 +22,14 @@ export function ConsultPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultResult | null>(null);
+  const [proposalState, setProposalState] = useState<"open" | "applied" | "rejected" | "busy">("open");
 
   async function ask() {
     const q = question.trim();
     if (!q || busy) return;
     setBusy(true);
     setError(null);
+    setProposalState("open");
     try {
       const res = await api.consult({ question: q, taskId: taskId ?? undefined });
       setResult(res);
@@ -36,6 +38,20 @@ export function ConsultPage({
       setResult(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function decideProposal(action: "apply" | "reject") {
+    const id = result?.proposalId;
+    if (!id) return;
+    setProposalState("busy");
+    try {
+      if (action === "apply") await api.applyManualProposal(id);
+      else await api.rejectManualProposal(id);
+      setProposalState(action === "apply" ? "applied" : "rejected");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setProposalState("open");
     }
   }
 
@@ -163,6 +179,34 @@ export function ConsultPage({
               <pre className="mt-2 overflow-x-auto rounded-md border border-white/10 bg-ink-200/60 p-3 text-[12px] text-fog-200 whitespace-pre-wrap">
                 {answer.proposedManualUpdate.suggestedText.trim()}
               </pre>
+              {result.proposalId ? (
+                proposalState === "applied" ? (
+                  <p className="mt-3 text-[12px] text-emerald-300">
+                    Applied to VIBESTRATE.md - review the diff before committing.
+                  </p>
+                ) : proposalState === "rejected" ? (
+                  <p className="mt-3 text-[12px] text-fog-500">Dismissed.</p>
+                ) : (
+                  <div className="mt-3 flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={proposalState === "busy"}
+                      onClick={() => void decideProposal("reject")}
+                    >
+                      Dismiss
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      disabled={proposalState === "busy"}
+                      onClick={() => void decideProposal("apply")}
+                    >
+                      {proposalState === "busy" ? "Applying…" : "Apply to VIBESTRATE.md"}
+                    </Button>
+                  </div>
+                )
+              ) : null}
             </div>
           ) : null}
 

@@ -779,6 +779,12 @@ export const api = {
   }): Promise<ConsultResult> {
     return jsonPost("/api/consult", input);
   },
+  async applyManualProposal(id: string): Promise<{ ok: true; created: boolean }> {
+    return jsonPost(`/api/vibestrate/proposals/${encodeURIComponent(id)}/apply`);
+  },
+  async rejectManualProposal(id: string): Promise<{ ok: true }> {
+    return jsonPost(`/api/vibestrate/proposals/${encodeURIComponent(id)}/reject`);
+  },
   async updateBudget(
     patch: Partial<BudgetSettings>,
   ): Promise<{ ok: true; budget: BudgetSettings }> {

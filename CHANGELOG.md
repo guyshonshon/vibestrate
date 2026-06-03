@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.1
+
+- **Apply VIBESTRATE.md proposals (the write path).** A consult that proposes a
+  manual update now saves it as a reviewable proposal; a human applies it
+  explicitly - `vibe vibestrate apply <id>` or the **Apply** button on the consult
+  card - which appends the reviewed text to `VIBESTRATE.md` through a guarded
+  writer: Action Broker `file.write`, path-guarded to the project root, and
+  **refused** if the content carries secret-shaped tokens (a manual is committed,
+  so a leak there is the worst case). Never auto-applied.
+- **Manage the manual:** `vibe vibestrate init | show | proposals [--all] |
+  proposals show <id> | apply <id> | reject <id>`, plus `GET /api/vibestrate`,
+  `POST /api/vibestrate/init`, `GET /api/vibestrate/proposals`, and
+  `POST /api/vibestrate/proposals/:id/apply|reject`. Completes Slice 1.
+
 ## 0.5.0
 
 - **The active Flow is always resolved and always shown.** Every run now prints

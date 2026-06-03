@@ -176,6 +176,11 @@ export function policiesDir(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), POLICIES_DIRNAME);
 }
 
+/** Proposed VIBESTRATE.md updates awaiting human review (one JSON per proposal). */
+export function manualProposalsDir(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "manual-proposals");
+}
+
 export function isPathInside(parent: string, candidate: string): boolean {
   const rel = path.relative(parent, candidate);
   if (!rel) return true;

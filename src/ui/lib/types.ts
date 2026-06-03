@@ -292,6 +292,8 @@ export type ConsultResult = {
   notes: string[];
   providerId: string;
   profileId: string;
+  /** Id of the persisted VIBESTRATE.md proposal, when the answer proposed one. */
+  proposalId?: string | null;
 };
 
 export type ProfileView = {
