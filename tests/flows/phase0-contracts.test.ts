@@ -212,6 +212,67 @@ describe("Flow Phase 0 contracts", () => {
     ).toThrow(FlowResolutionError);
   });
 
+  it("carries graph `needs` + per-step `instructions` through resolve unchanged", () => {
+    const graphFlow = flowDefinitionSchema.parse({
+      id: "mini-panel",
+      version: 1,
+      label: "Mini Panel",
+      description: "A small DAG: plan -> two parallel reviewers -> arbiter join.",
+      seats: {
+        planner: { label: "Planner" },
+        challenger: { label: "Challenger" },
+        arbiter: { label: "Arbiter" },
+      },
+      steps: [
+        { id: "plan", label: "Plan", kind: "agent-turn", seat: "planner", outputs: ["plan"] },
+        {
+          id: "review-a",
+          label: "Correctness",
+          kind: "review-turn",
+          seat: "challenger",
+          needs: ["plan"],
+          outputs: ["findings-a"],
+          instructions: "Lens: correctness only.",
+        },
+        {
+          id: "review-b",
+          label: "Tests",
+          kind: "review-turn",
+          seat: "challenger",
+          needs: ["plan"],
+          outputs: ["findings-b"],
+          instructions: "Lens: test coverage only.",
+        },
+        {
+          id: "arbiter",
+          label: "Arbiter",
+          kind: "summary-turn",
+          seat: "arbiter",
+          needs: ["review-a", "review-b"],
+          outputs: ["verification"],
+        },
+      ],
+    });
+    const snapshot = resolveFlow({
+      flow: graphFlow,
+      source: { kind: "fixture", ref: "mini-panel" },
+      config: flowTestConfig(),
+      task: "Exercise a graph resolve.",
+    });
+    // Re-parsing the snapshot proves the new fields are schema-valid.
+    expect(resolvedFlowSnapshotSchema.parse(snapshot)).toEqual(snapshot);
+    expect(snapshot.steps.find((s) => s.id === "arbiter")!.needs).toEqual([
+      "review-a",
+      "review-b",
+    ]);
+    expect(snapshot.steps.find((s) => s.id === "review-a")!.instructions).toBe(
+      "Lens: correctness only.",
+    );
+    // Linear steps keep an empty needs + null instructions (no behavior change).
+    expect(snapshot.steps.find((s) => s.id === "plan")!.needs).toEqual([]);
+    expect(snapshot.steps.find((s) => s.id === "plan")!.instructions).toBeNull();
+  });
+
   it("parses deterministic Quality Arbitration JSON output fixtures", () => {
     expect(flowFindingsOutputSchema.parse(fakeFlowFindingsOutput)).toEqual(
       fakeFlowFindingsOutput,

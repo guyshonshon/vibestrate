@@ -4,6 +4,13 @@ import { approvalRiskSchema } from "../../core/approval-types.js";
 const FLOW_TOKEN_RE = /^[a-z][a-z0-9-]*$/;
 const FLOW_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
+// Hard ceiling on how many steps may share one `needs` set (a parallel group's
+// width). Deliberately conservative: each concurrent turn is an opaque box that
+// may itself spawn provider-internal subagents, so the real footprint is a
+// multiple of this. The built-in panel uses 3; this caps any project flow.
+// See custom-workflow-dags.md ("Conservative width cap", "the opaque box").
+export const MAX_PARALLEL_FANOUT = 4;
+
 export const flowTokenSchema = z
   .string()
   .min(1)
@@ -116,6 +123,19 @@ export const flowStepSchema = z
     seat: flowTokenSchema.optional(),
     inputs: z.array(flowTokenSchema).default([]),
     outputs: z.array(flowTokenSchema).default([]),
+    // Explicit DAG edges (Slice 4 / custom-workflow-dags.md Phase A): the step
+    // ids this step depends on. Empty (the default) means today's linear flow -
+    // a flow that declares ANY `needs` opts the whole flow into graph mode, and
+    // validation then requires the array order to be a valid topological sort
+    // (so existing linear flows are trivially valid and unchanged). Steps that
+    // share the same `needs` set may run concurrently (read-only only, enforced
+    // at resolve time) - a "parallel group"; a step listing them all in its
+    // `needs` is the join. See `isGraphFlow` / `parallelGroupsOf`.
+    needs: z.array(flowTokenSchema).default([]),
+    // A short, step-specific instruction injected into this step's prompt. Lets
+    // sibling steps that share one seat take distinct lenses (e.g. a review
+    // panel: correctness vs tests vs risk) without inventing new roles.
+    instructions: z.string().min(1).max(800).optional(),
     optional: z.boolean().default(false),
     // Skipped on a read-only (investigation-only) run. Marks steps that write
     // code or only make sense once code changed - executor/fixer turns,
@@ -318,9 +338,155 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
         }
       }
     }
+
+    // ── Graph (DAG) validation (Slice 4, custom-workflow-dags.md Phase A) ──
+    // A flow is in "graph mode" iff any step declares `needs`. The linear path
+    // is preserved byte-for-byte for non-graph flows, so this whole block is a
+    // no-op for them. For graph flows we validate structure only (acyclicity,
+    // topological order, distinct concurrent outputs, width cap) - who *writes*
+    // is crew-dependent and so is enforced at resolve time, not here.
+    const graphMode = flow.steps.some((s) => s.needs.length > 0);
+    if (graphMode) {
+      // First-slice restriction: a DAG may not also use the adaptive loop or the
+      // per-item band. Those crossings (a graph x the review loop / checklist)
+      // are Phase D - reject the combination now with a clear message.
+      if (flow.loop) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["loop"],
+          message:
+            "A flow that declares step `needs` (graph mode) can't also use an adaptive `loop` yet - that combination is deferred.",
+        });
+      }
+      if (flow.checklistSegment) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["checklistSegment"],
+          message:
+            "A flow that declares step `needs` (graph mode) can't also use a `checklistSegment` yet - that combination is deferred.",
+        });
+      }
+
+      const indexById = new Map<string, number>();
+      flow.steps.forEach((s, i) => indexById.set(s.id, i));
+
+      flow.steps.forEach((step, index) => {
+        // Fixed repeat expands a step into new ids (`<id>-repeat-N`), which can't
+        // be DAG targets cleanly; keep graph steps un-repeated for the first slice.
+        if (step.repeat) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["steps", index, "repeat"],
+            message: `Flow step "${step.id}" declares \`needs\` (graph mode) and can't also use a fixed \`repeat\`.`,
+          });
+        }
+        const seen = new Set<string>();
+        for (const need of step.needs) {
+          if (need === step.id) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", index, "needs"],
+              message: `Flow step "${step.id}" can't depend on itself.`,
+            });
+            continue;
+          }
+          if (seen.has(need)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", index, "needs"],
+              message: `Flow step "${step.id}" lists "${need}" in \`needs\` more than once.`,
+            });
+          }
+          seen.add(need);
+          const target = indexById.get(need);
+          if (target === undefined) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", index, "needs"],
+              message: `Flow step "${step.id}" needs unknown step "${need}".`,
+            });
+            continue;
+          }
+          // A valid topological order means every dependency appears earlier in
+          // the array. This both keeps the YAML readable and makes the graph
+          // acyclic by construction (all edges point backwards).
+          if (target >= index) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", index, "needs"],
+              message: `Flow step "${step.id}" needs "${need}", which must be declared earlier (steps must be in topological order; this would form a cycle).`,
+            });
+          }
+        }
+      });
+
+      // Parallel groups = steps sharing an identical `needs` set. Members may run
+      // concurrently, so they must (a) stay within the width cap and (b) never
+      // write the same output token (the join consumes each by name).
+      const groups = new Map<string, FlowStep[]>();
+      for (const step of flow.steps) {
+        const key = [...step.needs].sort().join(" ");
+        const bucket = groups.get(key);
+        if (bucket) bucket.push(step);
+        else groups.set(key, [step]);
+      }
+      for (const [, members] of groups) {
+        if (members.length < 2) continue;
+        if (members.length > MAX_PARALLEL_FANOUT) {
+          const memberIdx = flow.steps.findIndex((s) => s.id === members[0]!.id);
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["steps", memberIdx, "needs"],
+            message: `Parallel group ${members
+              .map((m) => `"${m.id}"`)
+              .join(", ")} has ${members.length} steps, over the max fan-out of ${MAX_PARALLEL_FANOUT}.`,
+          });
+        }
+        const outputOwner = new Map<string, string>();
+        for (const member of members) {
+          for (const out of member.outputs) {
+            const owner = outputOwner.get(out);
+            if (owner) {
+              const memberIdx = flow.steps.findIndex((s) => s.id === member.id);
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["steps", memberIdx, "outputs"],
+                message: `Concurrent steps "${owner}" and "${member.id}" both write output "${out}"; parallel-group steps must write distinct outputs.`,
+              });
+            } else {
+              outputOwner.set(out, member.id);
+            }
+          }
+        }
+      }
+    }
   },
 );
 export type FlowDefinition = z.infer<typeof flowDefinitionSchema>;
+
+/** True iff the flow opts into graph scheduling (any step declares `needs`). */
+export function isGraphFlow(flow: {
+  steps: ReadonlyArray<{ needs?: readonly string[] }>;
+}): boolean {
+  return flow.steps.some((s) => (s.needs?.length ?? 0) > 0);
+}
+
+/**
+ * Steps grouped by their identical `needs` set, keyed by a stable signature.
+ * Only groups with >= 2 members can actually run concurrently; callers filter.
+ */
+export function parallelGroupsOf<T extends { needs?: readonly string[] }>(
+  steps: readonly T[],
+): T[][] {
+  const groups = new Map<string, T[]>();
+  for (const step of steps) {
+    const key = [...(step.needs ?? [])].sort().join(" ");
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(step);
+    else groups.set(key, [step]);
+  }
+  return [...groups.values()];
+}
 
 export const flowSourceSchema = z
   .object({
@@ -358,6 +524,12 @@ export const resolvedFlowStepSchema = z
     providerId: z.string().min(1).nullable(),
     inputs: z.array(flowTokenSchema),
     outputs: z.array(flowTokenSchema),
+    // DAG dependencies (Slice 4). Source step ids - graph flows reject `repeat`
+    // and loop/checklist, so resolved ids equal source ids and these carry over
+    // unchanged. Empty for linear flows (the runner then uses the linear path).
+    needs: z.array(flowTokenSchema).default([]),
+    // Step-specific prompt instruction (e.g. a reviewer's lens). null when none.
+    instructions: z.string().min(1).max(800).nullable().default(null),
     approval: flowApprovalGateSchema.nullable(),
     sourceStepId: flowTokenSchema,
     repeatIteration: z.number().int().positive(),
