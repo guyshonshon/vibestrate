@@ -99,6 +99,17 @@ export const editorConfigSchema = z.object({
 });
 export type EditorConfig = z.infer<typeof editorConfigSchema>;
 
+// Commit attribution. When Vibestrate authors/assists a commit (per-item pickup
+// commits, integrator merges, future orchestrator-driven commits) it adds a
+// `Co-Authored-By` credit trailer. On by default, opt-out via `coAuthor: false`;
+// the identity is overridable. No emojis (repo rule); trailers are line-oriented.
+export const commitsConfigSchema = z.object({
+  coAuthor: z.boolean().default(true),
+  coAuthorName: z.string().min(1).max(120).default("Vibestrate"),
+  coAuthorEmail: z.string().min(1).max(254).default("noreply@vibestrate.com"),
+});
+export type CommitsConfig = z.infer<typeof commitsConfigSchema>;
+
 // Stage names a project may flag for forced human approval. These map to the
 // transition boundaries the orchestrator already exposes.
 export const policyApprovalStageSchema = z.enum([
@@ -218,6 +229,11 @@ export const projectConfigBaseSchema = z.object({
     enabled: false,
     command: "code",
     args: ["--goto", "{file}:{line}:{column}"],
+  }),
+  commits: commitsConfigSchema.default({
+    coAuthor: true,
+    coAuthorName: "Vibestrate",
+    coAuthorEmail: "noreply@vibestrate.com",
   }),
 });
 

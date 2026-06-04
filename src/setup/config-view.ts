@@ -178,6 +178,27 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
     ],
   });
 
+  // ── Commits ──────────────────────────────────────────────────────────────
+  sections.push({
+    id: "commits",
+    title: "Commits",
+    summary:
+      "Attribution Vibestrate stamps on commits it authors/assists (pick-up items, integrator merges).",
+    editable: {
+      surface: "project.yml / vibe config set",
+      route: null,
+      cli: ["vibe config set commits.coAuthor false"],
+      live: false,
+    },
+    rows: [
+      boolRow("co-author credit", config.commits.coAuthor, {
+        hint: config.commits.coAuthor
+          ? `Co-authored-by: ${config.commits.coAuthorName} <${config.commits.coAuthorEmail}>`
+          : "no credit trailer added",
+      }),
+    ],
+  });
+
   // ── Workflow ─────────────────────────────────────────────────────────────
   sections.push({
     id: "workflow",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.1
+
+- **Vibestrate credits the commits it makes.** When Vibestrate authors or assists
+  a commit - per-item pick-up commits, integrator merges - it now stamps a
+  `Co-authored-by: Vibestrate <noreply@vibestrate.com>` trailer. On by default,
+  opt out with `commits.coAuthor: false` (or override the name/email); shown in
+  `vibe config view` and the dashboard Config page.
+
 ## 0.7.0
 
 - **Workflows can now fan out a late review panel - the first parallel flow.**

@@ -117,6 +117,10 @@ describe("pick-up execution over a checklist", () => {
     for (const item of after!.checklist) {
       expect(log.stdout).toContain(`Vibestrate-Checklist-Item: ${item.id}`);
     }
+    // Commit credit is on by default - each per-item commit carries it.
+    expect(log.stdout).toContain(
+      "Co-authored-by: Vibestrate <noreply@vibestrate.com>",
+    );
 
     // Forward-carry: the context handed to item 2 names item 1's work.
     const runDir = path.join(dir, ".vibestrate", "runs", out.runId);
