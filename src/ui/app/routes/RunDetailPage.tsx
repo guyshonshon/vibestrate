@@ -14,6 +14,7 @@ import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
 import { StepTimelineV3 } from "../../components/runs/v3/StepTimelineV3.js";
+import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -266,6 +267,25 @@ export function RunDetailPage({
           </div>
         </aside>
       </section>
+
+      {run.flow && isGraphSteps(run.flow.steps) ? (
+        <section data-screen-label="04 Flow graph">
+          <div className="flex items-baseline justify-between mb-2.5">
+            <span className="eyebrow">Flow graph · live · parallel steps run together</span>
+          </div>
+          <FlowGraph
+            title={`${run.flow.label} · ${run.flow.steps.length} steps`}
+            steps={run.flow.steps.map((s) => ({
+              id: s.id,
+              label: s.label,
+              kind: s.kind,
+              seat: s.seat,
+              needs: s.needs,
+              status: s.status,
+            }))}
+          />
+        </section>
+      ) : null}
 
       <StepTimelineV3 flow={run.flow ?? null} />
 

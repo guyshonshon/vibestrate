@@ -40,6 +40,8 @@ export type FlowRunStepState = {
     | "reviewing"
     | "verifying"
     | null;
+  /** DAG dependencies (Slice 4); empty for linear flows. */
+  needs?: string[];
   seat: string | null;
   resolvedRoleId: string | null;
   resolvedRoleLabel: string | null;

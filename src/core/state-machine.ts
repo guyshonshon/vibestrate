@@ -66,6 +66,10 @@ export const flowRunStepStateSchema = z
       .nullable()
       .default(null),
     seat: z.string().nullable().default(null),
+    // DAG dependencies (Slice 4): the step ids this step waits on. Empty for
+    // linear flows. Carried on the run state so the dashboard can draw the graph
+    // (concurrent review-panel branches + their join) with live per-step status.
+    needs: z.array(z.string()).default([]),
     resolvedRoleId: z.string().nullable().default(null),
     resolvedRoleLabel: z.string().nullable().default(null),
     profileId: z.string().nullable().default(null),
