@@ -50,7 +50,8 @@ export async function runFlowsShow(
     );
   }
   console.log("");
-  console.log(color.bold("Steps"));
+  const isGraph = flow.definition.steps.some((s) => (s.needs?.length ?? 0) > 0);
+  console.log(color.bold(isGraph ? "Steps (graph)" : "Steps"));
   for (const [index, step] of flow.definition.steps.entries()) {
     const seat = step.seat ? ` seat ${step.seat}` : "";
     const optional = step.optional ? " optional" : "";
@@ -58,11 +59,31 @@ export async function runFlowsShow(
     const gate = step.approval
       ? ` gate ${step.approval.riskLevel}`
       : "";
+    const needs = step.needs?.length
+      ? ` ${color.dim(`needs ${step.needs.join(", ")}`)}`
+      : "";
     console.log(
       indent(
-        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${seat}${optional}${repeat}${gate})`)}`,
+        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${seat}${optional}${repeat}${gate})`)}${needs}`,
       ),
     );
+  }
+  // Surface the parallel groups + read-only fan-out explicitly so the graph
+  // shape (and its cost) is legible from the CLI, not just the dashboard.
+  if (isGraph) {
+    const groups = new Map<string, string[]>();
+    for (const step of flow.definition.steps) {
+      const key = [...(step.needs ?? [])].sort().join(" ");
+      groups.set(key, [...(groups.get(key) ?? []), step.id]);
+    }
+    const parallel = [...groups.values()].filter((g) => g.length >= 2);
+    if (parallel.length) {
+      console.log("");
+      console.log(color.bold("Parallel groups (run concurrently, read-only)"));
+      for (const g of parallel) {
+        console.log(indent(`- ${g.join(" · ")}`));
+      }
+    }
   }
   return 0;
 }

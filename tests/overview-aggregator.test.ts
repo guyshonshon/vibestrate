@@ -38,6 +38,7 @@ function run(over: Partial<RunState> & { resolvedProviderId?: string }): RunStat
           optional: false,
           stage: "executing",
           seat: "implementer",
+          needs: [],
           resolvedRoleId: "executor",
           resolvedRoleLabel: "Executor",
           profileId: "p",

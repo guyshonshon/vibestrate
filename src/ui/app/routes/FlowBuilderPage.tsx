@@ -34,6 +34,7 @@ import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
+import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import type {
   DiscoveredFlow,
   FlowStepDefinition,
@@ -657,6 +658,23 @@ function DryRunModal({
                 ))}
               </div>
             </div>
+            {isGraphSteps(snapshot.steps) ? (
+              <div className="mt-3">
+                <FlowGraph
+                  title="Graph · steps in a dashed box run in parallel"
+                  steps={snapshot.steps
+                    .filter((s) => s.enabled)
+                    .map((s) => ({
+                      id: s.id,
+                      label: s.label,
+                      kind: s.kind,
+                      seat: s.seat,
+                      needs: s.needs,
+                      instructions: s.instructions,
+                    }))}
+                />
+              </div>
+            ) : null}
             <div className="mt-3">
               <div className="eyebrow mb-1.5">
                 Steps · {snapshot.steps.filter((s) => s.enabled).length} enabled

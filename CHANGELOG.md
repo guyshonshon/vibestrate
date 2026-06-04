@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.2
+
+- **The review panel is now visible, not just running.** Graph flows render as a
+  top-down **graph** in the dashboard: steps sit in dependency layers, and steps
+  that run concurrently (a review panel's fan-out) are drawn side by side in a
+  dashed "parallel" box, with the arbiter join below them. It shows on the Flow
+  Builder (the flow's shape) and on Run detail (live, tinted by each step's
+  status), so you can watch the three reviewers light up at once and converge.
+  `vibe flows show` gained the same: a `needs` annotation per step and a
+  "Parallel groups" section. UI⇄CLI parity for seeing the DAG.
+
 ## 0.7.1
 
 - **Vibestrate credits the commits it makes.** When Vibestrate authors or assists

@@ -707,6 +707,7 @@ export class Orchestrator {
         optional: step.optional,
         stage: step.stage,
         seat: step.seat,
+        needs: step.needs,
         resolvedRoleId: step.resolvedRoleId,
         resolvedRoleLabel: step.resolvedRoleLabel,
         profileId: step.profileId,
