@@ -514,6 +514,44 @@
           }
         }
       ]
+    },
+    {
+      "key": "commits",
+      "fullKey": "commits",
+      "type": "object",
+      "required": false,
+      "default": {
+        "coAuthor": true,
+        "coAuthorName": "Vibestrate",
+        "coAuthorEmail": "noreply@vibestrate.com"
+      },
+      "itemType": null,
+      "children": [
+        {
+          "key": "coAuthor",
+          "fullKey": "commits.coAuthor",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "coAuthorName",
+          "fullKey": "commits.coAuthorName",
+          "type": "string",
+          "required": false,
+          "default": "Vibestrate",
+          "itemType": null
+        },
+        {
+          "key": "coAuthorEmail",
+          "fullKey": "commits.coAuthorEmail",
+          "type": "string",
+          "required": false,
+          "default": "noreply@vibestrate.com",
+          "itemType": null
+        }
+      ]
     }
   ]
 }

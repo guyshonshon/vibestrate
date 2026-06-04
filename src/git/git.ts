@@ -233,15 +233,18 @@ export async function abortMerge(cwd: string): Promise<void> {
   await execa("git", ["merge", "--abort"], { cwd, reject: false });
 }
 
-/** Commit a staged (no-commit) merge. Returns the new sha, or null. */
+/** Commit a staged (no-commit) merge. Returns the new sha, or null. `trailers`
+ *  are appended as `Key: value` lines (used to credit the integrator commit). */
 export async function commitMerge(
   cwd: string,
   message: string,
+  trailers?: Record<string, string>,
 ): Promise<{ sha: string } | null> {
-  const r = await execa("git", ["commit", "--no-edit", "-m", message], {
-    cwd,
-    reject: false,
-  });
+  const args = ["commit", "--no-edit", "-m", message];
+  for (const [key, value] of Object.entries(trailers ?? {})) {
+    args.push("--trailer", `${key}: ${value.replace(/\n/g, " ")}`);
+  }
+  const r = await execa("git", args, { cwd, reject: false });
   if (r.exitCode !== 0) return null;
   const sha = await currentHeadSha(cwd);
   return sha ? { sha } : null;

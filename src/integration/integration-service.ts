@@ -23,6 +23,7 @@ import {
   refExists,
   resolveWorktreePath,
 } from "../git/git.js";
+import { creditTrailers } from "../git/commit-credit.js";
 
 export class IntegrationError extends Error {
   constructor(message: string) {
@@ -210,7 +211,11 @@ export async function integrate(input: {
     }
     const attempt = await mergeNoCommit(worktreePath, b.branch);
     if (attempt.clean) {
-      await commitMerge(worktreePath, `integrate: merge ${b.branch}`);
+      await commitMerge(
+        worktreePath,
+        `integrate: merge ${b.branch}`,
+        creditTrailers(loaded.config.commits),
+      );
       integrated.push({ ...b, clean: true, conflictedFiles: [], note: "merged" });
     } else {
       await abortMerge(worktreePath);

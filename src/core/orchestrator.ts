@@ -81,6 +81,7 @@ import {
 } from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
+import { creditTrailers } from "../git/commit-credit.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { materializeContextSources } from "./context-sources.js";
 import type { ContextSource } from "./context-source-schema.js";
@@ -2669,6 +2670,7 @@ export class Orchestrator {
               trailers: {
                 "Vibestrate-Run": input.runId,
                 "Vibestrate-Checklist-Item": item.id,
+                ...creditTrailers(this.config.commits),
               },
             });
             commitSha = committed?.sha ?? null;

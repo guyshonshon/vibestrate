@@ -322,6 +322,14 @@ scheduler:
   # fifo     → run in enqueue order
   # priority → run high before medium before low (FIFO within a priority)
   queuePolicy: fifo
+
+commits:
+  # When Vibestrate authors/assists a commit (per-item pick-up commits,
+  # integrator merges), it adds a Co-authored-by credit trailer. Set
+  # coAuthor: false to opt out, or override the identity below.
+  coAuthor: true
+  coAuthorName: Vibestrate
+  coAuthorEmail: noreply@vibestrate.com
 `;
 }
 
