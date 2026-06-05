@@ -64,6 +64,11 @@ export function buildAssuranceCommand(): Command {
       );
       console.log(`  review:       ${assurance.review.status}`);
       console.log(`  verification: ${assurance.verification.status}`);
+      if (assurance.coverage.toleratedStepFailures > 0) {
+        console.log(
+          `  coverage:     ${assurance.coverage.toleratedStepFailures} tolerated step failure(s)`,
+        );
+      }
       if (assurance.caps.length > 0) {
         console.log("");
         console.log(color.dim(`  caps: ${assurance.caps.join(", ")}`));

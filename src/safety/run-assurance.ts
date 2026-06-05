@@ -41,6 +41,11 @@ export type RunAssurance = {
   };
   review: { status: "approved" | "changes_requested" | "missing" };
   verification: { status: "passed" | "failed" | "not_run" };
+  /** Coverage gaps from best-effort (continueOnError) steps that failed and were
+   *  tolerated - those steps gave no scrutiny, so coverage is degraded even on a
+   *  merge_ready run. On a merge_ready run a `failed` flow step is, by
+   *  construction, a tolerated one (a fatal failure aborts the run). */
+  coverage: { toleratedStepFailures: number };
   /** Why the verdict is below "verified" (missing or weak checks). */
   caps: string[];
 };
@@ -52,9 +57,13 @@ export function deriveRunAssurance(input: {
   finalDecision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null;
   verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null;
   actionLog: ActionRecord[];
+  /** Best-effort (continueOnError) steps that failed and were tolerated. On a
+   *  merge_ready run, the count of `failed` flow steps. Defaults to 0. */
+  toleratedStepFailures?: number;
   generatedAt: string;
 }): RunAssurance {
   const { actionLog } = input;
+  const toleratedStepFailures = input.toleratedStepFailures ?? 0;
 
   // ── Policy (from broker decisions) ──────────────────────────────────────
   const denies = actionLog.filter((r) => r.decision.effect === "deny");
@@ -117,6 +126,7 @@ export function deriveRunAssurance(input: {
   if (verificationStatus === "not_run") caps.push("verification_not_run");
   if (verificationStatus === "failed") caps.push("verification_failed");
   if (holds.length > 0) caps.push("approval_required");
+  if (toleratedStepFailures > 0) caps.push("steps_failed_tolerated");
 
   // ── Verdict ─────────────────────────────────────────────────────────────
   const verdict = pickVerdict({
@@ -126,6 +136,7 @@ export function deriveRunAssurance(input: {
     validationStatus,
     reviewStatus,
     verificationStatus,
+    toleratedStepFailures,
   });
 
   return {
@@ -138,6 +149,7 @@ export function deriveRunAssurance(input: {
       reviewStatus,
       verificationStatus,
       denies: denies.length,
+      toleratedStepFailures,
     }),
     generatedAt: input.generatedAt,
     policy: { status: policyStatus, rulesEvaluated, violations },
@@ -149,6 +161,7 @@ export function deriveRunAssurance(input: {
     },
     review: { status: reviewStatus },
     verification: { status: verificationStatus },
+    coverage: { toleratedStepFailures },
     caps,
   };
 }
@@ -160,6 +173,7 @@ function pickVerdict(s: {
   validationStatus: RunAssurance["validation"]["status"];
   reviewStatus: RunAssurance["review"]["status"];
   verificationStatus: RunAssurance["verification"]["status"];
+  toleratedStepFailures: number;
 }): RunAssuranceVerdict {
   // A hard policy violation or a failed rollback poisons trust in the worktree.
   if (s.policyStatus === "violated" || s.rollbackFailed) return "unsafe";
@@ -174,7 +188,10 @@ function pickVerdict(s: {
   if (
     s.reviewStatus === "approved" &&
     s.verificationStatus === "passed" &&
-    s.validationStatus === "passed"
+    s.validationStatus === "passed" &&
+    // A tolerated step failure means a best-effort step gave no scrutiny, so we
+    // cannot honestly claim full verification - cap at partially_verified.
+    s.toleratedStepFailures === 0
   ) {
     return "verified";
   }
@@ -189,6 +206,7 @@ function summarize(
     reviewStatus: string;
     verificationStatus: string;
     denies: number;
+    toleratedStepFailures: number;
   },
 ): string {
   switch (verdict) {
@@ -202,8 +220,13 @@ function summarize(
       return "No validation, review, or verification evidence exists for this run.";
     case "verified":
       return "Policy passed, review approved, validation and verification passed.";
-    case "partially_verified":
-      return `Some evidence passed but checks are missing - review: ${d.reviewStatus}, validation: ${d.validationStatus}, verification: ${d.verificationStatus}.`;
+    case "partially_verified": {
+      const tolerated =
+        d.toleratedStepFailures > 0
+          ? ` ${d.toleratedStepFailures} best-effort step(s) failed and were tolerated, so coverage is degraded.`
+          : "";
+      return `Some evidence passed but checks are missing - review: ${d.reviewStatus}, validation: ${d.validationStatus}, verification: ${d.verificationStatus}.${tolerated}`;
+    }
   }
 }
 
@@ -215,6 +238,7 @@ export async function buildAndWriteRunAssurance(
   let runStatus = "unknown";
   let verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null = null;
   let decision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null = null;
+  let toleratedStepFailures = 0;
   const statePath = runStatePath(projectRoot, runId);
   if (await pathExists(statePath)) {
     try {
@@ -222,6 +246,12 @@ export async function buildAndWriteRunAssurance(
       runStatus = state.status;
       decision = state.finalDecision;
       verification = state.verification;
+      // On a merge_ready run, a `failed` flow step is a tolerated failure (a
+      // fatal one would have aborted the run before merge_ready). Count them so
+      // the verdict reflects the degraded coverage honestly.
+      toleratedStepFailures = (state.flow?.steps ?? []).filter(
+        (s) => s.status === "failed",
+      ).length;
     } catch {
       // Fall through with defaults; an unreadable state is itself "blocked".
     }
@@ -233,6 +263,7 @@ export async function buildAndWriteRunAssurance(
     finalDecision: decision,
     verification,
     actionLog,
+    toleratedStepFailures,
     generatedAt: nowIso(),
   });
   await writeText(

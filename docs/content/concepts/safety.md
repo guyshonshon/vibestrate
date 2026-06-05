@@ -109,6 +109,12 @@ There is **no confidence score** - a verdict is a level capped by what's missing
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
 
+If a run used a **best-effort step** (a `continueOnError` reviewer, say) and that
+step failed but was tolerated, the run can still finish - but that step gave no
+scrutiny, so coverage is degraded. The verdict reflects this: a tolerated failure
+adds a `steps_failed_tolerated` cap and holds the verdict at `partially_verified`
+rather than `verified`. The count shows as `coverage.toleratedStepFailures`.
+
 ## Defense in depth
 
 Three gates sit on the path between an agent and your files, each independently

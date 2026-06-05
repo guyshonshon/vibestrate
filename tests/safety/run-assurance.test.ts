@@ -155,6 +155,35 @@ describe("deriveRunAssurance verdicts", () => {
     expect(a.validation.status).toBe("failed");
     expect(a.verdict).toBe("partially_verified");
   });
+
+  it("verified run with a tolerated step failure caps at partially_verified", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ evidence: { ok: true } })],
+      toleratedStepFailures: 1,
+    });
+    // Would be "verified" without the tolerated failure (see the first test).
+    expect(a.verdict).toBe("partially_verified");
+    expect(a.caps).toContain("steps_failed_tolerated");
+    expect(a.coverage.toleratedStepFailures).toBe(1);
+    expect(a.summary).toContain("best-effort");
+  });
+
+  it("reports zero tolerated failures by default (still verified)", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ evidence: { ok: true } })],
+    });
+    expect(a.verdict).toBe("verified");
+    expect(a.coverage.toleratedStepFailures).toBe(0);
+    expect(a.caps).not.toContain("steps_failed_tolerated");
+  });
 });
 
 describe("buildAndWriteRunAssurance", () => {
@@ -193,6 +222,55 @@ describe("buildAndWriteRunAssurance", () => {
       const read = await readRunAssurance(root, runId);
       expect(read?.verdict).toBe("verified");
       expect(read?.runId).toBe(runId);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("counts a failed flow step on a merge_ready run as a tolerated failure", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
+    try {
+      const runId = "run-tol";
+      await ensureDir(runDir(root, runId));
+      const ts = "2026-05-30T00:00:00.000Z";
+      await writeJson(
+        runStatePath(root, runId),
+        runStateSchema.parse({
+          runId,
+          task: "t",
+          status: "merge_ready",
+          projectRoot: root,
+          worktreePath: null,
+          branchName: null,
+          reviewLoopCount: 0,
+          maxReviewLoops: 2,
+          startedAt: ts,
+          updatedAt: ts,
+          finalDecision: "APPROVED",
+          verification: "PASSED",
+          error: null,
+          flow: {
+            flowId: "panel-review",
+            flowVersion: 1,
+            label: "Late review panel",
+            snapshotPath: "snapshot.json",
+            steps: [
+              { id: "review-correctness", label: "Review: correctness", kind: "review-turn", status: "passed" },
+              { id: "review-tests", label: "Review: tests", kind: "review-turn", status: "failed" },
+              { id: "arbiter", label: "Arbiter verdict", kind: "review-turn", status: "passed" },
+            ],
+          },
+        }),
+      );
+      await fs.writeFile(
+        runActionsPath(root, runId),
+        JSON.stringify(rec({ evidence: { ok: true } })) + "\n",
+      );
+
+      const built = await buildAndWriteRunAssurance(root, runId);
+      expect(built.coverage.toleratedStepFailures).toBe(1);
+      expect(built.verdict).toBe("partially_verified");
+      expect(built.caps).toContain("steps_failed_tolerated");
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

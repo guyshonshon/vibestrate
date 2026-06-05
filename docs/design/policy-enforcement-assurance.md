@@ -115,9 +115,19 @@ Meaning:
 | `unsafe` | A hard policy was violated or rollback failed. Do not trust the worktree. |
 | `unverified` | No meaningful validation/review evidence exists. |
 | `partially_verified` | Some evidence passed, but important checks are missing. |
-| `verified` | Required policies, approvals, validation, review, and verification all passed. |
+| `verified` | Required policies, approvals, validation, review, and verification all passed - and no best-effort step failed. |
 
 No score is needed for v1. If we later add score, it must be derived only from evidence and capped by missing checks.
+
+**Coverage cap (Slice 5).** Graph flows can run best-effort steps
+(`continueOnError`) and retried steps. When such a step fails and is *tolerated*
+(the run still reaches `merge_ready`), that step gave **no scrutiny** - coverage
+is degraded even though the run completed. The verdict reflects this honestly: a
+tolerated step failure adds the `steps_failed_tolerated` cap and holds the
+verdict at `partially_verified` (never `verified`). On a `merge_ready` run a
+`failed` flow step is, by construction, a tolerated one (a fatal failure aborts
+the run before `merge_ready`), so the count is read straight from the run state.
+The artifact carries `coverage.toleratedStepFailures`.
 
 ## Assurance Artifact
 
