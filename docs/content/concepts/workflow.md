@@ -106,6 +106,19 @@ continues. The built-in **panel-review** flow is the first to adopt the
 builder-side contracts; the default flow keeps free-form plan/architecture/
 execution, so nothing changes for it.
 
+## When a turn fails
+
+A model turn only counts as success if its provider exits cleanly **and** returns
+usable output. A non-zero provider exit (an invocation failure) or an empty
+response is treated as a real failure, not silently passed downstream as an empty
+result - the run **fails honestly** with the failing step named. In a graph flow,
+two opt-in policies soften this: a step with `retries: N` is re-tried before its
+outcome is final, and a `continueOnError` (best-effort) step records the failure
+and lets the run continue with reduced coverage (which the
+[run assurance](/docs/concepts/safety) verdict then reflects). Control signals (a
+user abort, an approval rejection, the spend cap) always stop the run and are
+never retried.
+
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.
