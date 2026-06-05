@@ -4,6 +4,7 @@ import {
   Cloud,
   Copy,
   Download,
+  GripVertical,
   Pencil,
   Play,
   Plug,
@@ -21,9 +22,16 @@ import {
   renderProviderYaml,
   type EditorProviderConfig,
 } from "../../lib/provider-yaml.js";
+import { applyOrder, reorderByDrop } from "../../lib/reorder.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
+import { setDragGhost } from "../../lib/drag-ghost.js";
 import { Button } from "../../components/design/Button.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
 import { cn } from "../../components/design/cn.js";
+import { LockToggle } from "../../components/providers/LockToggle.js";
+
+/** The CLI sections whose rows can be drag-reordered (a client-side preference). */
+type ReorderSection = "popular" | "optional";
 
 type TestResult = Awaited<ReturnType<typeof api.testProvider>>;
 type Busy = { id: string; action: "apply" | "default" | "test" } | null;
@@ -52,6 +60,32 @@ export function ProvidersPage() {
   // A from-scratch provider the dashboard can't auto-detect (cloud API, local
   // model server, or a hand-rolled CLI). The user names it and fills the form.
   const [createKind, setCreateKind] = useState<EditorProviderConfig["type"] | null>(null);
+
+  // Drag-to-reorder + lock are a purely local view preference (providers bind
+  // to runs via profiles, not list position), so they live in localStorage -
+  // no config write, no server round-trip. `order` holds the user's per-section
+  // sequence; `lockedIds` are rows pinned out of the drag (a locked row can't be
+  // picked up). `dragId`/`overId` are transient drag-in-flight state.
+  const [order, setOrder] = usePersistedState<Partial<Record<ReorderSection, string[]>>>(
+    "vibestrate.providers.order",
+    {},
+  );
+  const [lockedIds, setLockedIds] = usePersistedState<string[]>(
+    "vibestrate.providers.locked",
+    [],
+  );
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const isLocked = (id: string) => lockedIds.includes(id);
+  const toggleLock = (id: string) =>
+    setLockedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  const reorder = (section: ReorderSection, ids: string[], target: string) => {
+    if (!dragId) return;
+    setOrder((prev) => ({ ...prev, [section]: reorderByDrop(ids, dragId, target) }));
+  };
 
   async function load() {
     try {
@@ -117,20 +151,88 @@ export function ProvidersPage() {
   // HTTP-backed providers (cloud APIs + local model servers). They only appear
   // once configured, so this section also hosts the "add" controls.
   const httpRows = rows?.filter((r) => r.kind !== "cli") ?? [];
+  // Apply the saved drag preference to the two CLI sections (HTTP rows aren't
+  // reorderable - they're a small, config-driven set).
+  const orderedPopular = applyOrder(popularRows, order.popular ?? []);
+  const orderedOptional = applyOrder(optionalRows, order.optional ?? []);
+  const popularIds = orderedPopular.map((r) => r.id);
+  const optionalIds = orderedOptional.map((r) => r.id);
 
-  const renderRow = (p: ProviderRow) => {
+  const renderRow = (
+    p: ProviderRow,
+    dnd?: { section: ReorderSection; ids: string[] },
+  ) => {
     const t = tests[p.id];
     const statusChip = providerStatus(p);
     const isBusy = busy?.id === p.id;
     const Icon =
       p.kind === "http-api" ? Cloud : p.kind === "localhost-proxy" ? Server : Plug;
+    const locked = isLocked(p.id);
+    const isDragging = dragId === p.id;
+    const isDropTarget = dnd != null && overId === p.id && dragId !== p.id;
     return (
       <div
         key={p.id}
-        className="rounded-xl border border-white/10 surface-ink-100-55 px-4 py-3.5"
+        onDragOver={
+          dnd
+            ? (e) => {
+                if (!dragId || dragId === p.id) return;
+                e.preventDefault();
+                setOverId(p.id);
+              }
+            : undefined
+        }
+        onDragLeave={
+          dnd ? () => setOverId((o) => (o === p.id ? null : o)) : undefined
+        }
+        onDrop={
+          dnd
+            ? (e) => {
+                e.preventDefault();
+                reorder(dnd.section, dnd.ids, p.id);
+                setDragId(null);
+                setOverId(null);
+              }
+            : undefined
+        }
+        className={cn(
+          "rounded-xl border surface-ink-100-55 px-4 py-3.5 transition",
+          isDropTarget
+            ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
+            : "border-white/10",
+          isDragging && "opacity-50",
+        )}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+        <div className="flex items-start gap-3">
+          {dnd ? (
+            <span
+              draggable={!locked}
+              onDragStart={(e) => {
+                if (locked) {
+                  e.preventDefault();
+                  return;
+                }
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", p.id);
+                setDragGhost(e.dataTransfer, p.label);
+                setDragId(p.id);
+              }}
+              onDragEnd={() => {
+                setDragId(null);
+                setOverId(null);
+              }}
+              title={locked ? "Locked - unlock to reorder" : "Drag to reorder"}
+              className={cn(
+                "mt-1 grid h-6 w-5 shrink-0 place-items-center rounded text-fog-600",
+                locked
+                  ? "cursor-not-allowed opacity-30"
+                  : "cursor-grab hover:text-fog-300 active:cursor-grabbing",
+              )}
+            >
+              <GripVertical size={15} />
+            </span>
+          ) : null}
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5">
               <Icon size={15} className="text-violet-soft shrink-0" />
               <span className="text-[15px] text-fog-100 font-medium">
@@ -163,6 +265,9 @@ export function ProvidersPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {dnd ? (
+              <LockToggle locked={locked} onToggle={() => toggleLock(p.id)} />
+            ) : null}
             {p.popular && !p.available ? (
               <Button
                 variant="primary"
@@ -250,7 +355,9 @@ export function ProvidersPage() {
         <>
           <section className="mt-7 space-y-3">
             <div className="eyebrow">Popular · configured out of the box</div>
-            {popularRows.map(renderRow)}
+            {orderedPopular.map((p) =>
+              renderRow(p, { section: "popular", ids: popularIds }),
+            )}
           </section>
 
           {optionalRows.length > 0 ? (
@@ -258,9 +365,12 @@ export function ProvidersPage() {
               <div className="eyebrow">Optional · opt-in, not auto-configured</div>
               <p className="text-fog-400 text-[12.5px] -mt-1 max-w-[70ch]">
                 Detected but never auto-bound. Set one up to wire it into this
-                project, then test it like any other provider.
+                project, then test it like any other provider. Drag the handle to
+                reorder, or lock a row to pin it.
               </p>
-              {optionalRows.map(renderRow)}
+              {orderedOptional.map((p) =>
+                renderRow(p, { section: "optional", ids: optionalIds }),
+              )}
             </section>
           ) : null}
 
@@ -304,7 +414,7 @@ export function ProvidersPage() {
               </div>
             </div>
             {httpRows.length > 0 ? (
-              httpRows.map(renderRow)
+              httpRows.map((p) => renderRow(p))
             ) : (
               <p className="text-fog-500 text-[12px]">
                 None configured yet. Add a cloud API or a local model server above.

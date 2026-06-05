@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.4
+
+- **Reorder and lock providers, right on the page.** The Providers list now
+  takes a drag: grab a row by its handle to reorder it - with a clean little
+  drag preview instead of the browser's clumsy element snapshot - and click the
+  padlock to lock a row out of the shuffle (a satisfying open/close animation
+  included). It's a personal view preference kept in your browser; it doesn't
+  touch project config or how a run picks a provider (that's still the profile's
+  job).
+- **Quieter copy.** Trimmed two subtitles that read as generic "AI" boilerplate,
+  and the Crew page no longer prints a role's raw id under its name when the id
+  is just the lowercased label ("Fixer" over "fixer"); it shows only when the id
+  actually adds something, like "executor" under "Backend Implementer".
+
 ## 0.7.3
 
 - **The DAG now reads the same in the terminal shell.** The Ink TUI Flow page

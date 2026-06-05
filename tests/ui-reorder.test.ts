@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reorderByDrop } from "../src/ui/lib/reorder.js";
+import { applyOrder, reorderByDrop } from "../src/ui/lib/reorder.js";
 
 describe("reorderByDrop (checklist drag-and-drop math)", () => {
   const ids = ["a", "b", "c", "d"];
@@ -35,5 +35,50 @@ describe("reorderByDrop (checklist drag-and-drop math)", () => {
     const out = reorderByDrop(ids, "a", "d");
     expect([...out].sort()).toEqual([...ids].sort());
     expect(out).toHaveLength(ids.length);
+  });
+});
+
+describe("applyOrder (persisted provider drag preference)", () => {
+  const rows = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+
+  it("with no saved order, returns rows in their original order (a copy)", () => {
+    const out = applyOrder(rows, []);
+    expect(out.map((r) => r.id)).toEqual(["a", "b", "c", "d"]);
+    expect(out).not.toBe(rows);
+  });
+
+  it("reorders rows to match the saved id order", () => {
+    expect(applyOrder(rows, ["c", "a", "d", "b"]).map((r) => r.id)).toEqual([
+      "c",
+      "a",
+      "d",
+      "b",
+    ]);
+  });
+
+  it("ids missing from the saved order keep their position, after the placed ones", () => {
+    // User placed only c then a; b and d were detected later -> trail in their
+    // original relative order.
+    expect(applyOrder(rows, ["c", "a"]).map((r) => r.id)).toEqual([
+      "c",
+      "a",
+      "b",
+      "d",
+    ]);
+  });
+
+  it("ignores saved ids that no longer exist (uninstalled provider)", () => {
+    expect(applyOrder(rows, ["ghost", "b", "a"]).map((r) => r.id)).toEqual([
+      "b",
+      "a",
+      "c",
+      "d",
+    ]);
+  });
+
+  it("never mutates the input rows", () => {
+    const copy = rows.map((r) => ({ ...r }));
+    applyOrder(rows, ["d", "c", "b", "a"]);
+    expect(rows).toEqual(copy);
   });
 });
