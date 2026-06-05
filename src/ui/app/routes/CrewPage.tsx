@@ -214,7 +214,7 @@ export function CrewPage() {
             ) : null}
           </h1>
           <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-            Your local team of AI roles. Each role runs on a{" "}
+            Your local team of roles. Each role runs on a{" "}
             <strong className="text-fog-100">Profile</strong> and lists the{" "}
             <strong className="text-fog-100">Seats</strong> it can take. A run
             matches a Flow's seats to these roles.
@@ -437,9 +437,16 @@ function RoleCard({
             <div className="text-[14px] text-fog-100 font-medium truncate">
               {role.label}
             </div>
-            <div className="mono text-[10.5px] text-fog-500 truncate">
-              {role.id}
-            </div>
+            {/* The id is only worth showing when it adds something the label
+                doesn't - e.g. "executor" under "Backend Implementer". For the
+                common case where it's just the label's slug ("Fixer"/"fixer"),
+                the duplicate line is noise, so we drop it. */}
+            {role.id.toLowerCase() !==
+            role.label.toLowerCase().replace(/[^a-z0-9]+/g, "") ? (
+              <div className="mono text-[10.5px] text-fog-500 truncate">
+                {role.id}
+              </div>
+            ) : null}
           </div>
         </div>
         <span
