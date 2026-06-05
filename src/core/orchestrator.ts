@@ -174,6 +174,8 @@ import {
   flowFindingResolutionsOutputSchema,
   flowFindingResponsesOutputSchema,
   flowFindingsOutputSchema,
+  flowHandoffContracts,
+  isFlowHandoffToken,
 } from "../flows/schemas/flow-output-contracts.js";
 import { SuggestionBundleService } from "../reviews/suggestion-bundle-service.js";
 
@@ -1108,6 +1110,55 @@ export class Orchestrator {
     return ledger;
   }
 
+  // Builder-side structured handoffs (plan/architecture/execution). Mirrors the
+  // review-side contract handling but stateless: for each handoff token a step
+  // declares, parse the step output against its contract; on success replace the
+  // registered output with the canonical JSON (so the next step consumes clean
+  // structured data) and persist it as an artifact; on failure leave the raw
+  // text in place (already registered by registerFlowRoleOutputs) and record a
+  // parse issue. Either way emit `flow.handoff.parsed` so adoption is visible.
+  private async recordFlowHandoffOutputs(input: {
+    step: ResolvedFlowStep;
+    result: RoleRunResult;
+    outputs: Map<string, FlowContextOutput>;
+    artifactStore: ArtifactStore;
+    eventLog: EventLog;
+  }): Promise<void> {
+    for (const token of input.step.outputs) {
+      if (!isFlowHandoffToken(token)) continue;
+      const spec = flowHandoffContracts[token];
+      const parsed = parseFlowJsonContract({
+        text: input.result.output,
+        schema: spec.schema,
+        expectedStepId: input.step.id,
+      });
+      if (parsed.ok) {
+        const absPath = await input.artifactStore.writeJson(
+          path.posix.join("flows", input.step.id, `${token}.json`),
+          parsed.output,
+        );
+        input.outputs.set(token, {
+          token,
+          label: spec.label,
+          content: `${JSON.stringify(parsed.output, null, 2)}\n`,
+          artifactPath: input.artifactStore.relPath(absPath),
+        });
+      }
+      await input.eventLog.append({
+        type: "flow.handoff.parsed",
+        message: parsed.ok
+          ? `Structured ${token} parsed at ${input.step.id}.`
+          : `Structured ${token} at ${input.step.id} did not parse; kept raw output.`,
+        data: {
+          stepId: input.step.id,
+          token,
+          parsed: parsed.ok,
+          ...(parsed.ok ? {} : { message: parsed.message }),
+        },
+      });
+    }
+  }
+
   private async feedFlowAcceptedFindings(
     ledger: FlowArbitrationLedger,
   ): Promise<FlowArbitrationLedger> {
@@ -1324,8 +1375,9 @@ export class Orchestrator {
         });
         if (!seeded) continue; // missing non-essential output - skip
         input.outputs.set(token, seeded);
-        if (token === "plan") planArtifact = this.seededFlowResult(upstream, seeded);
-        if (token === "execution")
+        if (token === "plan" || token === "plan-handoff")
+          planArtifact = this.seededFlowResult(upstream, seeded);
+        if (token === "execution" || token === "execution-handoff")
           executionArtifact = this.seededFlowResult(upstream, seeded);
       }
       state = this.patchFlowStep(
@@ -1625,8 +1677,20 @@ export class Orchestrator {
         ledger: arbitrationLedger,
         store: input.arbitrationStore,
       });
-      if (step.outputs.includes("plan")) planArtifact = result;
-      if (step.outputs.includes("execution")) executionArtifact = result;
+      await this.recordFlowHandoffOutputs({
+        step,
+        result,
+        outputs: input.outputs,
+        artifactStore: input.artifactStore,
+        eventLog: input.eventLog,
+      });
+      if (step.outputs.includes("plan") || step.outputs.includes("plan-handoff"))
+        planArtifact = result;
+      if (
+        step.outputs.includes("execution") ||
+        step.outputs.includes("execution-handoff")
+      )
+        executionArtifact = result;
       if (
         step.kind === "review-turn" &&
         (step.outputs.includes("review-decision") ||
@@ -2548,9 +2612,21 @@ export class Orchestrator {
             ledger: arbitrationLedger,
             store: arbitrationStore,
           });
+          await this.recordFlowHandoffOutputs({
+            step,
+            result,
+            outputs,
+            artifactStore: input.artifactStore,
+            eventLog: input.eventLog,
+          });
 
-          if (step.outputs.includes("plan")) planArtifact = result;
-          if (step.outputs.includes("execution")) executionArtifact = result;
+          if (step.outputs.includes("plan") || step.outputs.includes("plan-handoff"))
+            planArtifact = result;
+          if (
+            step.outputs.includes("execution") ||
+            step.outputs.includes("execution-handoff")
+          )
+            executionArtifact = result;
           if (
             step.kind === "review-turn" &&
             (step.outputs.includes("review-decision") ||

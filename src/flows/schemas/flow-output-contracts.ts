@@ -155,9 +155,186 @@ export type FlowDecisionSummaryOutput = z.infer<
   typeof flowDecisionSummaryOutputSchema
 >;
 
+// ── Builder-side handoff contracts (Slice 3 deferred item) ──────────────────
+//
+// The review side above gives reviewers/arbiters a structured shape. These give
+// the *builder* phases (plan -> architecture -> execution) the same: a planner
+// emits an ordered plan, the architect a design with decisions, the implementer
+// an execution report that maps back to the plan. The point is a deterministic
+// through-line - the run brief, the next step, and the dashboard can read named
+// fields (open questions, risks, files, per-step coverage) instead of scraping
+// prose.
+//
+// OPT-IN by token name, exactly like the review contracts: a step only produces
+// a contract when it declares the matching output token (`plan-handoff` etc.).
+// Existing flows that emit free-form `plan`/`architecture`/`execution` are
+// untouched; panel-review is the first flow to adopt these. Parsing degrades
+// gracefully - a step whose JSON doesn't validate keeps its raw text output and
+// records a parse issue (see the orchestrator), so adoption is never fail-hard.
+
+export const FLOW_PLAN_HANDOFF_CONTRACT = "vibestrate.flow.plan-handoff.v1";
+export const FLOW_ARCHITECTURE_HANDOFF_CONTRACT =
+  "vibestrate.flow.architecture-handoff.v1";
+export const FLOW_EXECUTION_HANDOFF_CONTRACT =
+  "vibestrate.flow.execution-handoff.v1";
+
+export const flowPlanStepSchema = z
+  .object({
+    id: flowTokenSchema,
+    title: z.string().min(1).max(200),
+    detail: z.string().min(1).max(2000).optional(),
+  })
+  .strict();
+export type FlowPlanStep = z.infer<typeof flowPlanStepSchema>;
+
+export const flowPlanHandoffOutputSchema = z
+  .object({
+    contract: z.literal(FLOW_PLAN_HANDOFF_CONTRACT),
+    stepId: flowTokenSchema,
+    goal: z.string().min(1).max(2000),
+    steps: z.array(flowPlanStepSchema).min(1).max(40),
+    filesLikelyTouched: z.array(z.string().min(1).max(400)).max(60).default([]),
+    assumptions: z.array(z.string().min(1).max(1000)).max(20).default([]),
+    openQuestions: z.array(z.string().min(1).max(1000)).max(20).default([]),
+    risks: z.array(z.string().min(1).max(1000)).max(20).default([]),
+  })
+  .strict();
+export type FlowPlanHandoffOutput = z.infer<typeof flowPlanHandoffOutputSchema>;
+
+export const flowArchitectureDecisionSchema = z
+  .object({
+    id: flowTokenSchema,
+    decision: z.string().min(1).max(1000),
+    rationale: z.string().min(1).max(2000).optional(),
+    alternatives: z.array(z.string().min(1).max(1000)).max(10).default([]),
+  })
+  .strict();
+export type FlowArchitectureDecision = z.infer<
+  typeof flowArchitectureDecisionSchema
+>;
+
+export const flowArchitectureHandoffOutputSchema = z
+  .object({
+    contract: z.literal(FLOW_ARCHITECTURE_HANDOFF_CONTRACT),
+    stepId: flowTokenSchema,
+    approach: z.string().min(1).max(3000),
+    decisions: z.array(flowArchitectureDecisionSchema).max(30).default([]),
+    componentsTouched: z.array(z.string().min(1).max(400)).max(60).default([]),
+    interfaces: z.array(z.string().min(1).max(600)).max(30).default([]),
+    risks: z.array(z.string().min(1).max(1000)).max(20).default([]),
+    openQuestions: z.array(z.string().min(1).max(1000)).max(20).default([]),
+  })
+  .strict();
+export type FlowArchitectureHandoffOutput = z.infer<
+  typeof flowArchitectureHandoffOutputSchema
+>;
+
+export const flowExecutionStepStatusSchema = z.enum([
+  "done",
+  "partial",
+  "skipped",
+  "blocked",
+]);
+export type FlowExecutionStepStatus = z.infer<
+  typeof flowExecutionStepStatusSchema
+>;
+
+export const flowExecutionStepReportSchema = z
+  .object({
+    // Ties back to a `plan-handoff` step id when known, so coverage is checkable.
+    planStepId: flowTokenSchema.optional(),
+    title: z.string().min(1).max(200),
+    status: flowExecutionStepStatusSchema,
+    note: z.string().min(1).max(1000).optional(),
+  })
+  .strict();
+export type FlowExecutionStepReport = z.infer<
+  typeof flowExecutionStepReportSchema
+>;
+
+export const flowExecutionHandoffOutputSchema = z
+  .object({
+    contract: z.literal(FLOW_EXECUTION_HANDOFF_CONTRACT),
+    stepId: flowTokenSchema,
+    summary: z.string().min(1).max(3000),
+    steps: z.array(flowExecutionStepReportSchema).max(60).default([]),
+    filesChanged: z.array(z.string().min(1).max(400)).max(100).default([]),
+    commandsRun: z.array(z.string().min(1).max(400)).max(40).default([]),
+    followUps: z.array(z.string().min(1).max(1000)).max(20).default([]),
+    risks: z.array(z.string().min(1).max(1000)).max(20).default([]),
+  })
+  .strict();
+export type FlowExecutionHandoffOutput = z.infer<
+  typeof flowExecutionHandoffOutputSchema
+>;
+
+// Registry of builder-side handoff contracts, keyed by the output token a step
+// declares. One source of truth for both the prompt-side render (the JSON
+// example a step is asked to emit) and the orchestrator-side parse. `example`
+// is a minimal valid instance with a `__stepId__` placeholder the renderer
+// swaps for the real step id.
+export const flowHandoffContracts = {
+  "plan-handoff": {
+    contractId: FLOW_PLAN_HANDOFF_CONTRACT,
+    schema: flowPlanHandoffOutputSchema,
+    label: "Flow Plan Handoff",
+    example: {
+      contract: FLOW_PLAN_HANDOFF_CONTRACT,
+      stepId: "__stepId__",
+      goal: "...",
+      steps: [{ id: "step-1", title: "...", detail: "..." }],
+      filesLikelyTouched: ["src/..."],
+      assumptions: ["..."],
+      openQuestions: ["..."],
+      risks: ["..."],
+    },
+  },
+  "architecture-handoff": {
+    contractId: FLOW_ARCHITECTURE_HANDOFF_CONTRACT,
+    schema: flowArchitectureHandoffOutputSchema,
+    label: "Flow Architecture Handoff",
+    example: {
+      contract: FLOW_ARCHITECTURE_HANDOFF_CONTRACT,
+      stepId: "__stepId__",
+      approach: "...",
+      decisions: [
+        { id: "decision-1", decision: "...", rationale: "...", alternatives: ["..."] },
+      ],
+      componentsTouched: ["src/..."],
+      interfaces: ["fn signature or API shape"],
+      risks: ["..."],
+      openQuestions: ["..."],
+    },
+  },
+  "execution-handoff": {
+    contractId: FLOW_EXECUTION_HANDOFF_CONTRACT,
+    schema: flowExecutionHandoffOutputSchema,
+    label: "Flow Execution Handoff",
+    example: {
+      contract: FLOW_EXECUTION_HANDOFF_CONTRACT,
+      stepId: "__stepId__",
+      summary: "...",
+      steps: [{ planStepId: "step-1", title: "...", status: "done", note: "..." }],
+      filesChanged: ["src/..."],
+      commandsRun: ["pnpm test"],
+      followUps: ["..."],
+      risks: ["..."],
+    },
+  },
+} as const;
+export type FlowHandoffToken = keyof typeof flowHandoffContracts;
+
+/** True iff `token` names a builder-side handoff contract. */
+export function isFlowHandoffToken(token: string): token is FlowHandoffToken {
+  return Object.prototype.hasOwnProperty.call(flowHandoffContracts, token);
+}
+
 export const flowOutputContractSchemas = {
   findings: flowFindingsOutputSchema,
   findingResponses: flowFindingResponsesOutputSchema,
   findingResolutions: flowFindingResolutionsOutputSchema,
   decisionSummary: flowDecisionSummaryOutputSchema,
+  planHandoff: flowPlanHandoffOutputSchema,
+  architectureHandoff: flowArchitectureHandoffOutputSchema,
+  executionHandoff: flowExecutionHandoffOutputSchema,
 } as const;

@@ -83,6 +83,7 @@ export type VibestrateEventType =
   | "flow.context.built"
   | "flow.findings.updated"
   | "flow.decision.completed"
+  | "flow.handoff.parsed"
   | "flow.step.started"
   | "flow.step.completed"
   | "flow.step.failed"
