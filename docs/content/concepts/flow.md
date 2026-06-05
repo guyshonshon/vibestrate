@@ -129,6 +129,14 @@ a graph with the adaptive review->fix loop is deferred. See the
 [custom workflow DAGs design](https://github.com/guyshonshon/vibestrate) note for
 the roadmap (write-parallelism and checklist-DAGs stay deferred).
 
+**Seeing the graph.** A graph flow renders the same way on every surface: a
+top-down layout where dependency layers stack vertically and a concurrent
+fan-out is drawn as a boxed `parallel ×N` group with the join below it. You get
+it in the dashboard (the Flow Builder and, status-tinted, live on run detail),
+in the terminal shell's Flow page, and as a `needs` annotation plus a "Parallel
+groups" section from `vibe flows show`. One shared layout module backs all
+three, so they stay in lockstep.
+
 ## Project Flows
 
 Drop a `flow.yml` into `.vibestrate/flows/<id>/`:

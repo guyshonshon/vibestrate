@@ -7,7 +7,13 @@ import {
   installFlowFromHub,
   type HubFlowEntry,
 } from "../../../flows/hub/flow-hub.js";
+import {
+  isGraphSteps,
+  layersOf,
+} from "../../../flows/runtime/flow-graph-layout.js";
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
+
+type FlowDefStep = DiscoveredFlow["definition"]["steps"][number];
 import { SelectionMark } from "../components/visuals.js";
 
 type Props = {
@@ -166,12 +172,9 @@ export function FlowsPage({
 }
 
 function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
-  const def = flow.definition as {
-    steps?: Array<{ id?: string; kind?: string; seat?: string }>;
-    seats?: Record<string, unknown>;
-  };
-  const steps = def.steps ?? [];
-  const seats = Object.keys(def.seats ?? {});
+  const def = flow.definition;
+  const steps = def.steps;
+  const seats = Object.keys(def.seats);
   return (
     <Box flexDirection="column">
       <Text bold color={ACCENT_BRIGHT}>
@@ -187,18 +190,96 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
       ) : null}
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>seats: {seats.join(", ") || "-"}</Text>
-        <Text dimColor>steps ({steps.length}):</Text>
-        {steps.slice(0, 12).map((s, i) => (
-          <Text key={s.id ?? i} wrap="truncate-end">
-            {"  "}
-            <Text color={ACCENT}>{s.kind ?? "step"}</Text>
-            {s.seat ? <Text dimColor>{"  "}{s.seat}</Text> : null}
-          </Text>
-        ))}
-        {steps.length > 12 ? (
-          <Text dimColor>{"  "}+ {steps.length - 12} more</Text>
-        ) : null}
       </Box>
+      <Box marginTop={1} flexDirection="column">
+        {isGraphSteps(steps) ? (
+          <FlowGraphView steps={steps} />
+        ) : (
+          <FlowStepsList steps={steps} />
+        )}
+      </Box>
+    </Box>
+  );
+}
+
+/** One step line: accent label + dim `kind · seat`, with a connector prefix. */
+function GraphNode({ step, prefix }: { step: FlowDefStep; prefix: string }) {
+  return (
+    <Text wrap="truncate-end">
+      <Text color={ACCENT_DIM}>{prefix}</Text>
+      <Text color={ACCENT}>{step.label || step.id}</Text>
+      <Text dimColor>
+        {"  "}
+        {step.kind}
+        {step.seat ? ` · ${step.seat}` : ""}
+      </Text>
+    </Text>
+  );
+}
+
+/**
+ * Top-down layered render of a graph flow - mirrors the web FlowGraph and the
+ * `vibe flows show` CLI. Each layer is a row; a layer with more than one step
+ * is a parallel fan-out (read-only), boxed and labeled so its shape and the
+ * join below it read at a glance.
+ */
+function FlowGraphView({ steps }: { steps: FlowDefStep[] }) {
+  const layers = layersOf(steps);
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>
+        graph · {steps.length} step{steps.length === 1 ? "" : "s"}
+      </Text>
+      {layers.map((layer, li) => (
+        <Box key={li} flexDirection="column">
+          {li > 0 ? <Text color={ACCENT_DIM}>{"  │"}</Text> : null}
+          {layer.length > 1 ? (
+            <>
+              <Text color={ACCENT_DIM}>
+                {"  ┌ "}
+                <Text dimColor>parallel ×{layer.length}</Text>
+              </Text>
+              {layer.map((s) => (
+                <GraphNode key={s.id} step={s} prefix="  │ " />
+              ))}
+              <Text color={ACCENT_DIM}>{"  └─"}</Text>
+            </>
+          ) : (
+            layer.map((s) => <GraphNode key={s.id} step={s} prefix="  " />)
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+/** Plain numbered list for a linear flow (no `needs`). */
+function FlowStepsList({ steps }: { steps: FlowDefStep[] }) {
+  const shown = steps.slice(0, 12);
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>
+        steps · {steps.length}
+      </Text>
+      {shown.map((s, i) => (
+        <Text key={s.id ?? i} wrap="truncate-end">
+          <Text color={ACCENT_DIM}>
+            {"  "}
+            {i + 1}.{" "}
+          </Text>
+          <Text color={ACCENT}>{s.label || s.id}</Text>
+          <Text dimColor>
+            {"  "}
+            {s.kind}
+            {s.seat ? ` · ${s.seat}` : ""}
+          </Text>
+        </Text>
+      ))}
+      {steps.length > shown.length ? (
+        <Text dimColor>
+          {"  "}+ {steps.length - shown.length} more
+        </Text>
+      ) : null}
     </Box>
   );
 }

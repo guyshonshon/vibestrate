@@ -3,6 +3,13 @@
 // (or can run) concurrently and are drawn side by side - so a review panel's
 // fan-out and its arbiter join are legible at a glance. Reused for both the
 // static flow definition (no status) and a live run (per-step status tint).
+//
+// The layering itself (`layersOf` / `isGraphSteps`) lives in a dependency-free
+// module so the CLI and Ink TUI share the exact same layout. Re-exported here
+// so existing dashboard imports (and the unit test) keep their path.
+import { isGraphSteps, layersOf } from "../../../flows/runtime/flow-graph-layout.js";
+
+export { isGraphSteps, layersOf };
 
 export type FlowGraphStepStatus =
   | "pending"
@@ -30,36 +37,6 @@ const STATUS_DOT: Record<FlowGraphStepStatus, string> = {
   skipped: "bg-fog-600",
   pending: "bg-fog-600/50",
 };
-
-/** True when any step declares a dependency (i.e. the flow is a real graph). */
-export function isGraphSteps(steps: { needs?: string[] }[]): boolean {
-  return steps.some((s) => (s.needs?.length ?? 0) > 0);
-}
-
-// Longest-path layering: layer(step) = 1 + max(layer(need)), roots at 0. The
-// graph is validated acyclic upstream, so the memoized walk always terminates.
-// Exported for unit testing (the component has no DOM test harness).
-export function layersOf(steps: FlowGraphStep[]): FlowGraphStep[][] {
-  const byId = new Map(steps.map((s) => [s.id, s]));
-  const layer = new Map<string, number>();
-  const compute = (id: string, seen: Set<string>): number => {
-    const cached = layer.get(id);
-    if (cached !== undefined) return cached;
-    if (seen.has(id)) return 0;
-    seen.add(id);
-    const needs = byId.get(id)?.needs ?? [];
-    const lv = needs.length
-      ? 1 + Math.max(...needs.map((n) => (byId.has(n) ? compute(n, seen) : -1)))
-      : 0;
-    layer.set(id, lv);
-    return lv;
-  };
-  for (const s of steps) compute(s.id, new Set());
-  const maxLayer = Math.max(0, ...layer.values());
-  const out: FlowGraphStep[][] = Array.from({ length: maxLayer + 1 }, () => []);
-  for (const s of steps) out[layer.get(s.id) ?? 0]!.push(s); // flow order within a layer
-  return out;
-}
 
 export function FlowGraph({
   steps,

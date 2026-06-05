@@ -19,9 +19,10 @@ const PANEL: FlowGraphStep[] = [
 describe("FlowGraph layering", () => {
   it("isGraphSteps detects a graph vs a linear flow", () => {
     expect(isGraphSteps(PANEL)).toBe(true);
-    expect(
-      isGraphSteps([{ id: "a", label: "A", kind: "agent-turn" }]),
-    ).toBe(false);
+    const linear: FlowGraphStep[] = [
+      { id: "a", label: "A", kind: "agent-turn" },
+    ];
+    expect(isGraphSteps(linear)).toBe(false);
   });
 
   it("places the three reviewers on one layer (the parallel fan-out) and the arbiter alone after", () => {
