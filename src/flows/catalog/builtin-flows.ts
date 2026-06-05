@@ -358,7 +358,10 @@ export const pickupFlow = flowDefinitionSchema.parse({
 // The reviewers all sit in the read-only `reviewer` seat (one role, three
 // lenses via per-step `instructions`) and write DISTINCT output tokens, so the
 // frontier scheduler can run them in parallel with no worktree collision - the
-// read-only-ness is hard-enforced at resolve time. There is no fix loop or
+// read-only-ness is hard-enforced at resolve time. The reviewers are
+// `continueOnError` (Slice 5): if one lens's provider hard-fails, the run is not
+// sunk - that step is marked failed + recorded, and the arbiter still renders a
+// verdict from the surviving lenses (the brief tells it which lens is missing). There is no fix loop or
 // second validation here: graph flows can't yet combine with the adaptive loop
 // (deferred to Phase D), so the panel SURFACES a verdict + findings; a
 // CHANGES_REQUESTED arbiter blocks the run honestly for a human/next run.
@@ -448,6 +451,7 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
         "validation",
       ],
       outputs: ["findings-correctness"],
+      continueOnError: true,
       instructions:
         "Your lens is CORRECTNESS & LOGIC only. Hunt for real bugs: wrong behavior, broken edge cases, race conditions, mishandled errors, off-by-one, contract violations. Ignore style and test-coverage gaps (other reviewers own those). Cite file:line evidence; do not pad with low-severity nits.",
     },
@@ -466,6 +470,7 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
         "validation",
       ],
       outputs: ["findings-tests"],
+      continueOnError: true,
       instructions:
         "Your lens is TESTS & VERIFIABILITY only. Are the changes actually covered? Missing/weak assertions, untested branches, flaky patterns, or claims the validation evidence doesn't support. Ignore correctness bugs and security (other reviewers own those). Cite what is and isn't exercised.",
     },
@@ -484,6 +489,7 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
         "validation",
       ],
       outputs: ["findings-risk"],
+      continueOnError: true,
       instructions:
         "Your lens is SECURITY, RISK & ARCHITECTURE only. Look for injection/secret/path-traversal exposure, unsafe effects, broken boundaries, irreversible or hard-to-revert moves, and architectural drift. Ignore style and routine test gaps. Flag anything that warrants sandboxing or human sign-off.",
     },

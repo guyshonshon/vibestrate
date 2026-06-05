@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.7.8
+## 0.7.9
+
+- **Resilient review panels (continue-past-failure).** One flaky reviewer no
+  longer sinks the whole panel. A graph-flow step can be marked **best-effort**
+  (`continueOnError`): if its provider fails or errors out, that step is recorded
+  as `failed` (with an event and a line in the run brief) and the run carries on -
+  the arbiter still renders a verdict from the surviving lenses, and is told which
+  lens is missing. The built-in late review panel now runs its three reviewers
+  this way. A user abort, an approval rejection, the spend cap, and required
+  (non-best-effort) steps all still stop the run as before; the fan-out also no
+  longer cancels in-flight siblings when one fails.
 
 - **Structured handoffs between builder phases.** A step can now hand its work to
   the next as named JSON instead of free-form prose, so the through-line is

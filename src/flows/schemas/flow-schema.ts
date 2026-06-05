@@ -142,6 +142,16 @@ export const flowStepSchema = z
     // validation, verification. A read-only run does plan/architect/review-style
     // steps only, so the runner skips these and (see runner) disables looping.
     skipWhenReadOnly: z.boolean().default(false),
+    // Continue-past-failure (Slice 5): a best-effort turn. If it hard-fails at
+    // runtime (the provider throws - missing CLI, spawn/internal error), the run
+    // is NOT aborted; the step is marked `failed`, recorded, and the graph
+    // advances so a join (e.g. an arbiter) proceeds with the surviving siblings.
+    // Control signals (abort / approval / spend cap / denied) always propagate.
+    // Only honored by the graph scheduler, so it's restricted to graph flows and
+    // to turn kinds (see validation below). A non-zero provider *exit* already
+    // continues by design; this covers the hard-throw case the fan-out would
+    // otherwise let take the whole run down. See custom-workflow-dags.md.
+    continueOnError: z.boolean().default(false),
     // Coarse phase, used as a resume boundary (see flowStageSchema).
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
@@ -256,6 +266,22 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           code: z.ZodIssueCode.custom,
           path: ["steps", index, "repeat"],
           message: `Flow approval gate "${step.id}" cannot repeat.`,
+        });
+      }
+      // continueOnError (Slice 5) is honored only by the graph scheduler and only
+      // for model turns, so reject it elsewhere rather than let it silently no-op.
+      if (step.continueOnError && !TURN_STEP_KINDS.has(step.kind)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "continueOnError"],
+          message: `Flow step "${step.id}" of kind "${step.kind}" can't use continueOnError (turn steps only).`,
+        });
+      }
+      if (step.continueOnError && !flow.steps.some((s) => s.needs.length > 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "continueOnError"],
+          message: `Flow step "${step.id}" uses continueOnError, which is only supported in graph flows (declare step \`needs\`).`,
         });
       }
     });
@@ -513,6 +539,9 @@ export const resolvedFlowStepSchema = z
     enabled: z.boolean(),
     optional: z.boolean(),
     skipWhenReadOnly: z.boolean(),
+    // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the
+    // graph scheduler (mark failed + continue) instead of aborting the run.
+    continueOnError: z.boolean().default(false),
     stage: flowStageSchema.nullable(),
     // The Seat this step needs (null for validation / approval-gate steps).
     seat: flowTokenSchema.nullable(),

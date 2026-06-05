@@ -122,6 +122,15 @@ Two rules keep fan-out safe, both enforced in code (not by prompt):
   print a fan-out warning ("runs N agents in parallel; each may itself
   parallelize, so real spend can exceed the estimate").
 
+**Resilient fan-out (continue-past-failure).** The three reviewers are
+**best-effort** (`continueOnError`): if one lens's provider fails or errors out,
+that step is marked `failed` and recorded (an event + a FAILED line in the run
+brief), and the arbiter still renders a verdict from the surviving lenses - one
+flaky reviewer doesn't sink the whole panel. Control signals (a user abort, an
+approval rejection, the spend cap) and required (non-best-effort) steps still
+stop the run. `continueOnError` is a graph-flow, turn-step flag, validated at
+load time.
+
 The orchestrator picks `panel-review` only when a task warrants the extra spend
 (security-sensitive, broad/architectural, low validation confidence, or you ask).
 There's no fix loop here yet - the panel surfaces a verdict + findings; combining

@@ -326,6 +326,18 @@ class __ActionDeniedSignal extends Error {
   }
 }
 
+/** Control-flow signals that must ALWAYS propagate - they are not ordinary
+ *  step failures and must never be swallowed by continueOnError (Slice 5). An
+ *  aborted/approval-rejected/spend-capped/denied run has to unwind regardless. */
+function __isControlSignal(err: unknown): boolean {
+  return (
+    err instanceof __ApprovalRejectedSignal ||
+    err instanceof __RunAbortedSignal ||
+    err instanceof __SpendCapStopSignal ||
+    err instanceof __ActionDeniedSignal
+  );
+}
+
 function summarizeApprovals(
   approvals: import("./approval-types.js").ApprovalRequest[],
 ): {
@@ -1537,6 +1549,9 @@ export class Orchestrator {
     let reviewArtifact: RoleRunResult | null = null;
     let verificationArtifact: RoleRunResult | null = null;
     let arbitrationLedger = input.arbitrationLedger;
+    // Continue-past-failure (Slice 5): count of best-effort steps that hard-failed
+    // but were tolerated, for the graph-completed event (honest partial coverage).
+    let continuedFailures = 0;
 
     const TURN_KINDS = new Set([
       "agent-turn",
@@ -1808,6 +1823,46 @@ export class Orchestrator {
       });
     };
 
+    // Continue-past-failure (Slice 5): record a best-effort turn's hard failure
+    // without aborting the run, and let the graph advance - the step counts as
+    // "done" so a downstream join proceeds with the surviving siblings. The
+    // failure is on the record (a `flow.step.failed` event with `continued: true`
+    // and a FAILED line in the run brief), so the join can weigh the gap.
+    const markStepFailedContinue = async (
+      step: ResolvedFlowStep,
+      err: unknown,
+    ): Promise<void> => {
+      const reason = describeError(err);
+      state = this.patchFlowStep(
+        state,
+        step.id,
+        { status: "failed", endedAt: nowIso(), error: reason },
+        step.id,
+      );
+      await input.stateStore.write(state);
+      await input.eventLog.append({
+        type: "flow.step.failed",
+        message: `Flow step ${step.id} failed but was tolerated (continueOnError): ${reason}`,
+        data: {
+          flowId: snapshot.flowId,
+          stepId: step.id,
+          continued: true,
+          error: reason,
+        },
+      });
+      appendStepOutcome(input.runBriefState, {
+        stepId: step.id,
+        label: step.label,
+        kind: step.kind,
+        output: `(step failed and was skipped: ${reason})`,
+        decision: "FAILED",
+      });
+      await input.artifactStore.write(
+        "flows/run-brief.md",
+        renderRunBrief(input.runBriefState),
+      );
+    };
+
     // One non-parallel step: validation / approval-gate / a single seated turn.
     const runSerialStep = async (step: ResolvedFlowStep): Promise<void> => {
       if (step.kind === "validation") {
@@ -1896,8 +1951,22 @@ export class Orchestrator {
       if (!step.resolvedRoleId) {
         throw new Error(`Flow step "${step.id}" needs a seated role.`);
       }
-      const result = await runTurn(step, context);
-      await commitTurn(step, result);
+      try {
+        const result = await runTurn(step, context);
+        const exit = result.providerResult.exitCode;
+        if (step.continueOnError && exit !== 0) {
+          await markStepFailedContinue(step, new Error(`provider exited ${exit}`));
+          continuedFailures += 1;
+        } else {
+          await commitTurn(step, result);
+        }
+      } catch (err) {
+        // A best-effort step that hard-fails is tolerated; everything else
+        // (required failures, control signals) aborts the run as before.
+        if (__isControlSignal(err) || !step.continueOnError) throw err;
+        await markStepFailedContinue(step, err);
+        continuedFailures += 1;
+      }
     };
 
     // ── Frontier loop: advance the ready set until every step is processed ──
@@ -1973,13 +2042,40 @@ export class Orchestrator {
         this.onProgress(`Review panel: ${wave.length} agents in parallel...`);
         const contexts: StepContext[] = [];
         for (const step of wave) contexts.push(await prepareStep(step));
-        const results = await Promise.all(
+        // allSettled (not all): one reviewer's hard failure must not cancel its
+        // siblings' in-flight work. We then commit the survivors and, per step,
+        // either tolerate the failure (continueOnError) or abort the run.
+        const settled = await Promise.allSettled(
           wave.map((step, i) => runTurn(step, contexts[i]!)),
         );
         for (let i = 0; i < wave.length; i += 1) {
-          await commitTurn(wave[i]!, results[i]!);
-          processed.add(wave[i]!.id);
-          done.add(wave[i]!.id);
+          const step = wave[i]!;
+          const outcome = settled[i]!;
+          if (outcome.status === "fulfilled") {
+            const exit = outcome.value.providerResult.exitCode;
+            // A best-effort turn whose provider failed (non-zero exit) is recorded
+            // as FAILED rather than silently committed as empty output, so the
+            // join knows the lens is missing. A clean turn commits as usual.
+            if (step.continueOnError && exit !== 0) {
+              await markStepFailedContinue(
+                step,
+                new Error(`provider exited ${exit}`),
+              );
+              continuedFailures += 1;
+            } else {
+              await commitTurn(step, outcome.value);
+            }
+          } else {
+            // A control signal or a required (non-best-effort) failure aborts;
+            // survivors committed before this index keep their evidence.
+            if (__isControlSignal(outcome.reason) || !step.continueOnError) {
+              throw outcome.reason;
+            }
+            await markStepFailedContinue(step, outcome.reason);
+            continuedFailures += 1;
+          }
+          processed.add(step.id);
+          done.add(step.id);
         }
         continue;
       }
@@ -1993,8 +2089,11 @@ export class Orchestrator {
 
     await input.eventLog.append({
       type: "flow.graph.completed",
-      message: `Graph flow ${snapshot.flowId} traversal complete.`,
-      data: { flowId: snapshot.flowId },
+      message:
+        continuedFailures > 0
+          ? `Graph flow ${snapshot.flowId} traversal complete (${continuedFailures} best-effort step(s) failed and were tolerated).`
+          : `Graph flow ${snapshot.flowId} traversal complete.`,
+      data: { flowId: snapshot.flowId, continuedFailures },
     });
 
     return {
