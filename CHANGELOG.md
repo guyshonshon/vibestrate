@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.3
+
+- **The DAG now reads the same in the terminal shell.** The Ink TUI Flow page
+  detail renders graph flows as the same top-down graph you get on the web:
+  steps in dependency layers, a concurrent fan-out boxed as `parallel ×N`, and
+  the arbiter join below it - so `panel-review`'s three reviewers and their
+  verdict are legible without leaving the shell. The layering is now one
+  dependency-free module shared by the dashboard, `vibe flows show`, and the
+  shell, so the three surfaces can't drift. Closes the UI⇄CLI⇄shell parity gap
+  opened in 0.7.2.
+
 ## 0.7.2
 
 - **The review panel is now visible, not just running.** Graph flows render as a
