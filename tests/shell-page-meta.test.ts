@@ -17,15 +17,15 @@ describe("PAGE_META", () => {
     }
   });
 
-  it("PAGE_IDS follows the workflow order (setup → schedule → execute)", () => {
-    // Dashboard first, then the setup pages (Flow, Crew), then schedule
-    // (Queue) and execute (Runs). Guards against an accidental revert.
+  it("PAGE_IDS follows the workflow order (setup → execute)", () => {
+    // Dashboard first, then the setup pages (Flow, Crew), then execute (Runs,
+    // which now also hosts the scheduler queue). Guards against an accidental
+    // revert. (Queue was folded into Runs in 0.7.6.)
     const at = (id: string) => PAGE_IDS.indexOf(id as (typeof PAGE_IDS)[number]);
     expect(at("dashboard")).toBe(0);
     expect(at("flows")).toBe(1);
     expect(at("flows")).toBeLessThan(at("crew"));
-    expect(at("crew")).toBeLessThan(at("queue"));
-    expect(at("queue")).toBeLessThan(at("runs"));
+    expect(at("crew")).toBeLessThan(at("runs"));
     expect(at("runs")).toBeLessThan(at("roadmap"));
   });
 

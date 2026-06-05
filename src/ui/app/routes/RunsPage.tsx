@@ -5,6 +5,7 @@ import type { RunState, RunStatus } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { Chip } from "../../components/design/Chip.js";
 import { fmtElapsed, relTime } from "../../components/design/format.js";
+import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 
 function statusTone(
   s: RunStatus,
@@ -23,9 +24,11 @@ function statusTone(
 export function RunsPage({
   onSelect,
   onOpenReplay,
+  onOpenTask,
 }: {
   onSelect: (runId: string) => void;
   onOpenReplay?: (runId: string) => void;
+  onOpenTask?: (taskId: string) => void;
 }) {
   const [runs, setRuns] = useState<RunState[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +86,8 @@ export function RunsPage({
           {error}
         </div>
       ) : null}
+
+      {onOpenTask ? <SchedulerQueuePanel onOpenTask={onOpenTask} /> : null}
 
       <IntegrationPanel />
 

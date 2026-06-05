@@ -81,27 +81,11 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       "vibe tasks show <taskId>",
     ],
   },
-  queue: {
-    subtitle:
-      "tasks scheduled to run next · the scheduler picks them up here",
-    blurb:
-      "FIFO + priority + fair queue. Each entry has a `source` so per-source quotas can prevent one origin (cron, agent, you) from monopolizing the workers. Start the loop with `vibe queue run`.",
-    commonKeys: [
-      ["↑↓", "select queued entry"],
-      ["p", "pause / resume the scheduler"],
-      ["x", "remove the selected entry from the queue"],
-    ],
-    commonCli: [
-      "vibe queue list",
-      "vibe queue add <taskId> --source <name>",
-      "vibe queue run",
-    ],
-  },
   runs: {
     subtitle:
-      "executions of tasks · one task can have many runs · inspect + retry here",
+      "the scheduler queue + every run · queued, running, and finished in one place",
     blurb:
-      "A run is one execution of a task. Active runs show the current agent + MCP + skills; finished runs show why they ended + which agent ran last. Press R on a finished run to retry.",
+      "A run is one execution of a task. The scheduler queue (what's queued + running, policy + concurrency) sits at the top; below it, active runs show the current agent + MCP + skills and finished runs show why they ended. Press R on a finished run to retry; queue controls live in the : palette and `vibe queue`.",
     commonKeys: [
       ["↑↓", "select run"],
       ["tab / o e v", "switch inspector section"],
@@ -111,9 +95,9 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     ],
     commonCli: [
       "vibe status",
-      "vibe status <runId>",
       "vibe replay <runId>",
-      "vibe pause <runId>",
+      "vibe queue list",
+      "vibe queue run",
     ],
   },
   approvals: {

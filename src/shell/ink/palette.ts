@@ -102,17 +102,17 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
   {
     id: "goto.queue",
     title: "Go to Queue",
-    hint: "scheduler + fairness controls",
-    keywords: ["scheduler"],
+    hint: "queued + running, now on the Runs page",
+    keywords: ["scheduler", "queue"],
     description:
-      "FIFO + priority + fairness queue. Each entry carries a source tag for per-source quotas.",
+      "The scheduler queue lives at the top of the Runs page now: what's queued, what's running, policy + concurrency. Each entry carries a source tag for per-source quotas.",
     cli: "vibe queue list",
     examples: [
       "vibe queue add <taskId> --source cron",
       "vibe queue run                     # drain the queue",
       "vibe queue status                  # current scheduler state",
     ],
-    action: { kind: "goto", page: "queue" },
+    action: { kind: "goto", page: "runs" },
   },
   {
     id: "goto.roles",

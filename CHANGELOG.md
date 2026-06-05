@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.6
+
+- **The queue lives on the Runs page now.** The standalone Queue tab is gone -
+  queued and running work, plus scheduler state (policy, concurrency), sit
+  together at the top of Runs, on both the dashboard and the terminal shell.
+  One place to see what's waiting and what's in flight. Old `#/queue` links
+  redirect to Runs; scheduler controls stay on the shell command palette and
+  the `vibe queue` CLI.
+
 ## 0.7.5
 
 - **Graph flows can resume mid-run now.** Resuming from a stage

@@ -332,15 +332,6 @@ export function TopBar({
               >
                 All runs
               </DropItem>
-              <DropItem
-                onClick={() => {
-                  setMoreOpen(false);
-                  onShowQueue();
-                }}
-                icon={<Gauge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
-              >
-                Queue
-              </DropItem>
             </div>
           ) : null}
         </div>
@@ -446,15 +437,6 @@ export function TopBar({
               icon={<ListChecks className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               All runs
-            </DropItem>
-            <DropItem
-              onClick={() => {
-                setMenuOpen(false);
-                onShowQueue();
-              }}
-              icon={<Gauge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
-            >
-              Queue
             </DropItem>
           </div>
         ) : null}

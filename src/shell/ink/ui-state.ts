@@ -28,7 +28,6 @@ export const PAGE_IDS = [
   "flows",
   "crew",
   "profiles",
-  "queue",
   "runs",
   "approvals",
   "suggestions",
@@ -614,8 +613,6 @@ export function pageLabel(id: PageId): string {
       return "Runs";
     case "roadmap":
       return "Roadmap";
-    case "queue":
-      return "Queue";
     case "crew":
       return "Crew";
     case "profiles":
