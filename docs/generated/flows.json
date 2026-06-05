@@ -54,6 +54,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -73,6 +74,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "architecting",
           "approval": null,
           "repeat": null
@@ -94,6 +96,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -112,6 +115,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -135,6 +139,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -159,6 +164,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -177,6 +183,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -200,6 +207,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "verifying",
           "approval": null,
           "repeat": null
@@ -249,6 +257,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -268,6 +277,7 @@
           "optional": true,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -289,6 +299,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -307,6 +318,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -328,6 +340,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -349,6 +362,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -371,6 +385,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -394,6 +409,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -438,6 +454,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -459,6 +476,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -482,6 +500,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -504,6 +523,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -558,6 +578,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -577,6 +598,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "architecting",
           "approval": null,
           "repeat": null
@@ -598,6 +620,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -616,6 +639,7 @@
           "optional": false,
           "skipWhenReadOnly": true,
           "continueOnError": false,
+          "retries": 0,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -638,6 +662,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": true,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -660,6 +685,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": true,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -682,6 +708,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": true,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -707,6 +734,7 @@
           "optional": false,
           "skipWhenReadOnly": false,
           "continueOnError": false,
+          "retries": 0,
           "stage": "reviewing",
           "approval": null,
           "repeat": null

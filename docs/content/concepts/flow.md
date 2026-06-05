@@ -131,6 +131,14 @@ approval rejection, the spend cap) and required (non-best-effort) steps still
 stop the run. `continueOnError` is a graph-flow, turn-step flag, validated at
 load time.
 
+**Retries.** A graph-flow turn can also declare `retries: N` (0-5). A flaky
+turn that fails or errors is re-run up to N more times before its outcome is
+final - so a transient hiccup is recovered rather than recorded as a failure.
+Retries run *before* `continueOnError` decides, so the two compose (retry first,
+then tolerate-or-abort). Control signals are never retried, and each attempt is
+a real provider call, so its cost shows up in the metrics. Every retry emits a
+`flow.step.retried` event.
+
 The orchestrator picks `panel-review` only when a task warrants the extra spend
 (security-sensitive, broad/architectural, low validation confidence, or you ask).
 There's no fix loop here yet - the panel surfaces a verdict + findings; combining

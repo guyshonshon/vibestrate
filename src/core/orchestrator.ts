@@ -1670,6 +1670,51 @@ export class Orchestrator {
       });
     };
 
+    // Per-step retries (Slice 5): re-run a flaky turn up to `step.retries` extra
+    // times before its outcome is final. A non-zero exit or an ordinary throw on
+    // a non-final attempt triggers a retry; a control signal is never retried (it
+    // propagates immediately). The final attempt's result is returned (or its
+    // throw rethrown) unchanged, so the caller's continueOnError + commit logic is
+    // untouched - retries simply happen transparently first. Each attempt is a
+    // real provider invocation, so its metrics are recorded honestly.
+    const runTurnWithRetries = async (
+      step: ResolvedFlowStep,
+      context: StepContext,
+    ): Promise<RoleRunResult> => {
+      const maxAttempts = step.retries + 1;
+      for (let attempt = 1; ; attempt += 1) {
+        const last = attempt >= maxAttempts;
+        try {
+          const result = await runTurn(step, context);
+          if (result.providerResult.exitCode === 0 || last) return result;
+          await input.eventLog.append({
+            type: "flow.step.retried",
+            message: `Flow step ${step.id} attempt ${attempt}/${maxAttempts} failed (provider exited ${result.providerResult.exitCode}); retrying.`,
+            data: {
+              flowId: snapshot.flowId,
+              stepId: step.id,
+              attempt,
+              maxAttempts,
+              exitCode: result.providerResult.exitCode,
+            },
+          });
+        } catch (err) {
+          if (__isControlSignal(err) || last) throw err;
+          await input.eventLog.append({
+            type: "flow.step.retried",
+            message: `Flow step ${step.id} attempt ${attempt}/${maxAttempts} errored (${describeError(err)}); retrying.`,
+            data: {
+              flowId: snapshot.flowId,
+              stepId: step.id,
+              attempt,
+              maxAttempts,
+              error: describeError(err),
+            },
+          });
+        }
+      }
+    };
+
     // Serial: record outputs/decisions, update the brief, run the approval gate.
     const commitTurn = async (
       step: ResolvedFlowStep,
@@ -1952,7 +1997,7 @@ export class Orchestrator {
         throw new Error(`Flow step "${step.id}" needs a seated role.`);
       }
       try {
-        const result = await runTurn(step, context);
+        const result = await runTurnWithRetries(step, context);
         const exit = result.providerResult.exitCode;
         if (step.continueOnError && exit !== 0) {
           await markStepFailedContinue(step, new Error(`provider exited ${exit}`));
@@ -2046,7 +2091,7 @@ export class Orchestrator {
         // siblings' in-flight work. We then commit the survivors and, per step,
         // either tolerate the failure (continueOnError) or abort the run.
         const settled = await Promise.allSettled(
-          wave.map((step, i) => runTurn(step, contexts[i]!)),
+          wave.map((step, i) => runTurnWithRetries(step, contexts[i]!)),
         );
         for (let i = 0; i < wave.length; i += 1) {
           const step = wave[i]!;
