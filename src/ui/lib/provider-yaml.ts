@@ -2,6 +2,42 @@
 // dashboard's provider editors (Crew Configure modal + Providers page). One
 // source of truth so the two editors can't drift.
 
+import { parse as parseYaml } from "yaml";
+
+/**
+ * Pull one provider's config object out of a raw `providers:` YAML block (what
+ * the Providers page Advanced editor lets the user hand-edit). Returns the
+ * config under `providers.<id>` or a human error. The server re-validates the
+ * object against the full provider schema, so this only needs to find it.
+ */
+export function extractProviderConfigFromYaml(
+  yamlText: string,
+  id: string,
+): { config?: Record<string, unknown>; error?: string } {
+  let doc: unknown;
+  try {
+    doc = parseYaml(yamlText);
+  } catch (err) {
+    return {
+      error: `YAML parse error: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  const providers =
+    doc && typeof doc === "object"
+      ? (doc as Record<string, unknown>).providers
+      : undefined;
+  const cfg =
+    providers && typeof providers === "object"
+      ? (providers as Record<string, unknown>)[id]
+      : undefined;
+  if (!cfg || typeof cfg !== "object") {
+    return {
+      error: `The YAML needs a "providers:" block with an entry for "${id}".`,
+    };
+  }
+  return { config: cfg as Record<string, unknown> };
+}
+
 /**
  * Whitespace-split that respects double-quoted segments, so users can pass
  * args like `"--system" "be brief"`. Good enough for CLI provider arg lists;

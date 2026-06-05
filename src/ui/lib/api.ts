@@ -517,8 +517,13 @@ export const api = {
     providerId: string,
     opts: {
       setAsDefault?: boolean;
-      // A type-less config is treated as CLI by the server (legacy shape).
-      config?: EditorProviderConfig | { command: string; args?: string[]; input?: "stdin" | "arg" };
+      // A type-less config is treated as CLI by the server (legacy shape). The
+      // raw-YAML editor sends an arbitrary object (env, claude-code settings,
+      // extraArgs, ...) which the server validates against the full schema.
+      config?:
+        | EditorProviderConfig
+        | { command: string; args?: string[]; input?: "stdin" | "arg" }
+        | Record<string, unknown>;
     } = {},
   ): Promise<{ ok: true; providerId: string; configured: true }> {
     return jsonPost(
