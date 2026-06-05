@@ -20,3 +20,22 @@ export function reorderByDrop(
   next.splice(to, 0, dragId);
   return next;
 }
+
+/**
+ * Reorder `rows` to match a saved id order (a user's drag preference, persisted
+ * client-side). Ids missing from `order` - e.g. a provider detected after the
+ * preference was saved - keep their original relative position, sorted after
+ * the ones the user placed. Stable and non-mutating, so a newly-detected
+ * provider slots in predictably instead of jumping to the top.
+ */
+export function applyOrder<T extends { id: string }>(
+  rows: readonly T[],
+  order: readonly string[],
+): T[] {
+  if (order.length === 0) return [...rows];
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return rows
+    .map((row, i) => ({ row, i, rank: rank.get(row.id) ?? Number.POSITIVE_INFINITY }))
+    .sort((a, b) => (a.rank === b.rank ? a.i - b.i : a.rank - b.rank))
+    .map((entry) => entry.row);
+}

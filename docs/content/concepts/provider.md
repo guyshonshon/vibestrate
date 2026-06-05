@@ -46,6 +46,8 @@ Coding-agent CLIs disagree on flags - `--prompt` here, `-p` there, `exec` for so
 
 If a preset is wrong for your installed version (e.g. a flag the CLI removed), you can correct `command`/`args`/`input` directly - either with `vibe provider setup`, by hand-editing `.vibestrate/project.yml`, or in the dashboard's **Providers** page, which has an inline editor with a Save & test loop and a Remove action. The CLI and the dashboard can do exactly the same things.
 
+On the Providers page you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - it's purely how the list is arranged for you, and never changes project config or how a run picks a provider (a run binds providers through its [Profiles](./profile.md), not list position).
+
 ## Non-CLI providers (HTTP)
 
 Beyond local CLIs, two HTTP-backed provider types let you run a model over the network:
