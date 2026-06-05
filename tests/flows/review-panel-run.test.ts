@@ -4,7 +4,8 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import { execa } from "execa";
 import { ApprovalService } from "../../src/core/approval-service.js";
-import { Orchestrator } from "../../src/core/orchestrator.js";
+import { Orchestrator, type ResumeStage } from "../../src/core/orchestrator.js";
+import { resolveResumeFrom } from "../../src/core/run-launcher.js";
 import { findFlowById } from "../../src/flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../../src/flows/runtime/flow-resolver.js";
 import { loadConfig } from "../../src/project/config-loader.js";
@@ -75,6 +76,7 @@ type RunEvent = { type: string; data?: Record<string, unknown> };
 async function runPanel(
   projectRoot: string,
   readOnly: boolean,
+  resume?: { sourceRunId: string; fromStage: ResumeStage },
 ): Promise<{ result: Awaited<ReturnType<Orchestrator["run"]>>; events: RunEvent[] }> {
   const discovered = await findFlowById(projectRoot, "panel-review");
   const loaded = await loadConfig(projectRoot);
@@ -93,6 +95,7 @@ async function runPanel(
     isGitRepo: true,
     readOnly,
     onProgress: () => {},
+    ...(resume ? { resumeFrom: await resolveResumeFrom(projectRoot, resume) } : {}),
   });
   let approvedOnce = false;
   const interval = setInterval(async () => {
@@ -194,6 +197,61 @@ describe("panel-review graph flow (Slice 4 frontier scheduler)", () => {
     }
     expect(maxLive).toBeGreaterThanOrEqual(2);
   });
+
+  it("resumes a graph flow mid-DAG: seeds the upstream prefix, re-runs the rest incl. the fan-out", async () => {
+    const projectRoot = await makeRepo();
+
+    // Source run: the full panel to merge_ready.
+    const source = await runPanel(projectRoot, false);
+    expect(source.result.state.status).toBe("merge_ready");
+
+    // Resume into the SAME graph flow from "executing": plan + architecture are
+    // seeded (skipped), and the frontier re-runs implement -> validation ->
+    // 3-reviewer fan-out -> arbiter. (Upstream stage = no worktree snapshot
+    // needed, mirroring the linear rewind tests.)
+    const resumed = await runPanel(projectRoot, false, {
+      sourceRunId: source.result.runId,
+      fromStage: "executing",
+    });
+
+    expect(resumed.result.runId).not.toBe(source.result.runId);
+    expect(resumed.result.state.status).toBe("merge_ready");
+    expect(resumed.result.state.flow?.flowId).toBe("panel-review");
+    expect(resumed.result.state.resumedFrom).toEqual({
+      sourceRunId: source.result.runId,
+      fromStage: "executing",
+    });
+
+    // plan + architecture are seeded (skipped); the rest re-run.
+    const skipped = (resumed.result.state.flow?.steps ?? [])
+      .filter((s) => s.status === "skipped")
+      .map((s) => s.id);
+    expect(skipped).toEqual(expect.arrayContaining(["plan", "architecture"]));
+    expect(skipped).not.toContain("arbiter");
+
+    // The panel still fanned out all three reviewers on resume - proving the
+    // frontier honored the seeded prefix yet advanced the remaining steps.
+    const frontier = resumed.events.filter(
+      (e) => e.type === "flow.frontier.scheduled",
+    );
+    expect(frontier).toHaveLength(1);
+    expect(frontier[0]!.data?.width).toBe(3);
+
+    // The downstream steps completed; the seeded plan did not re-run this run.
+    const completedIds = resumed.events
+      .filter((e) => e.type === "flow.step.completed")
+      .map((e) => e.data?.stepId);
+    expect(completedIds).toEqual(
+      expect.arrayContaining([
+        "implement",
+        "review-correctness",
+        "review-tests",
+        "review-risk",
+        "arbiter",
+      ]),
+    );
+    expect(completedIds).not.toContain("plan");
+  }, 60_000);
 
   it("read-only run skips implement+validation but still fans out the read-only panel", async () => {
     const projectRoot = await makeRepo();
