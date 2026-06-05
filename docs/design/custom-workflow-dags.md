@@ -1,9 +1,28 @@
 # Custom workflow DAGs + parallel agents within a task
 
-Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); Phase C + D on
-paper.** The *product framing* here is superseded by
-`responsible-orchestrator.md`: DAGs are an execution primitive the orchestrator
-*chooses*, not the product identity. This doc remains the graph execution design.
+Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); continue-past-failure
+SHIPPED (0.7.9, Slice 5); Phase C (write-parallelism) + checklist-DAG on paper.**
+The *product framing* here is superseded by `responsible-orchestrator.md`: DAGs
+are an execution primitive the orchestrator *chooses*, not the product identity.
+This doc remains the graph execution design.
+
+What shipped in the continue-past-failure slice (Slice 5):
+
+- A per-step `continueOnError` flag (turn kinds, graph flows only - validated at
+  load time). A best-effort turn that **fails** (provider non-zero exit) or
+  **hard-throws** (internal error) is marked `failed` and recorded (a
+  `flow.step.failed` event with `continued: true` + a FAILED line in the run
+  brief) instead of silently committing empty output or sinking the whole run.
+- The frontier fan-out uses `Promise.allSettled`, so one reviewer's failure no
+  longer cancels its in-flight siblings; the join (arbiter) proceeds with the
+  survivors and is told via the brief which lens is missing.
+- **Control signals always propagate** (abort / approval-rejected / spend-cap /
+  denied are never swallowed); required (non-best-effort) failures still abort.
+- The built-in `panel-review` marks its three reviewer lenses `continueOnError`,
+  so a single failing lens degrades the panel honestly rather than failing it.
+- `flow.graph.completed` carries a `continuedFailures` count.
+- Still deferred: write-parallelism (Phase C, blocked on the execution backend)
+  and the checklist x DAG cross.
 
 What shipped in the A+B slice (Slice 4):
 
@@ -144,6 +163,11 @@ carry explicit deps and the runner is a scheduler (not a for-loop), these stop
 being special cases: "continue past a failed independent branch" is a graph
 policy, "retry item N times" is a per-node policy, and the checklist becomes a
 DAG of items (item B `needs` item A) instead of a linear list.
+
+**Continue-past-failure SHIPPED (0.7.9, Slice 5)** as the per-step
+`continueOnError` policy described in the status block above - "continue past a
+failed independent branch" is now a graph policy on best-effort turns. Per-item
+retries and the checklist-DAG cross remain on paper.
 
 ## Nested agency: the opaque box (bounds and restrictions)
 

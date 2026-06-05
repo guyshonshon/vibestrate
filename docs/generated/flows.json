@@ -53,6 +53,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -71,6 +72,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "architecting",
           "approval": null,
           "repeat": null
@@ -91,6 +93,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -108,6 +111,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -130,6 +134,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -153,6 +158,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -170,6 +176,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -192,6 +199,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "verifying",
           "approval": null,
           "repeat": null
@@ -240,6 +248,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -258,6 +267,7 @@
           ],
           "optional": true,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -278,6 +288,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -295,6 +306,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -315,6 +327,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -335,6 +348,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -356,6 +370,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -378,6 +393,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": null,
           "approval": null,
           "repeat": null
@@ -421,6 +437,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -441,6 +458,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -463,6 +481,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -484,6 +503,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -537,6 +557,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "planning",
           "approval": null,
           "repeat": null
@@ -555,6 +576,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "architecting",
           "approval": null,
           "repeat": null
@@ -575,6 +597,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -592,6 +615,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": true,
+          "continueOnError": false,
           "stage": "executing",
           "approval": null,
           "repeat": null
@@ -613,6 +637,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": true,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -634,6 +659,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": true,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -655,6 +681,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": true,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
@@ -679,6 +706,7 @@
           ],
           "optional": false,
           "skipWhenReadOnly": false,
+          "continueOnError": false,
           "stage": "reviewing",
           "approval": null,
           "repeat": null
