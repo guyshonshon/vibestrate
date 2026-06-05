@@ -136,7 +136,7 @@ function ReadyCard({
     <>
       <Heading>Set up your project</Heading>
       <Lead>
-        Vibestrate runs AI coding flows on your machine,
+        Vibestrate runs coding flows on your machine,
         <br />
         under your supervision.
       </Lead>
