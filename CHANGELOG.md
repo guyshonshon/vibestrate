@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.8
+
+- **Structured handoffs between builder phases.** A step can now hand its work to
+  the next as named JSON instead of free-form prose, so the through-line is
+  machine-checkable: a structured plan (ordered steps, files, assumptions, open
+  questions, risks), a design (decisions with rationale, components, interfaces),
+  and an execution report (per-step status mapped back to the plan, files
+  changed, follow-ups). These join the review-side contracts that already
+  existed. They are **opt-in by output token** (`plan-handoff` /
+  `architecture-handoff` / `execution-handoff`), so existing flows are unchanged;
+  the built-in **late review panel** adopts them first and now reviews against a
+  deterministic packet. Adoption is never fail-hard - a provider that emits
+  imperfect JSON keeps its raw output and the run continues, with a parse event
+  recorded for visibility.
+
 ## 0.7.7
 
 - **Fix any provider entirely in the dashboard - no trip to the CLI.** The

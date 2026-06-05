@@ -366,6 +366,13 @@ export const pickupFlow = flowDefinitionSchema.parse({
 // The orchestrator selects this only when evidence warrants the extra spend
 // (security-sensitive, broad/architectural, low validation confidence, or the
 // user asks for heavier review) - see select-workflow + its capabilities.
+//
+// This is also the first flow to adopt the **structured handoff contracts**
+// (flow-output-contracts.ts): the builder spine emits `plan-handoff` ->
+// `architecture-handoff` -> `execution-handoff` (structured JSON) instead of
+// free-form `plan`/`architecture`/`execution`, so the panel reviews against a
+// deterministic through-line. Parsing degrades gracefully, so a provider that
+// emits imperfect JSON still completes (raw text retained + a parse event).
 export const reviewPanelFlow = flowDefinitionSchema.parse({
   id: "panel-review",
   version: 1,
@@ -393,7 +400,7 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "planner",
       stage: "planning",
       inputs: ["task-brief"],
-      outputs: ["plan"],
+      outputs: ["plan-handoff"],
     },
     {
       id: "architecture",
@@ -402,8 +409,8 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "architect",
       stage: "architecting",
       needs: ["plan"],
-      inputs: ["task-brief", "plan"],
-      outputs: ["architecture"],
+      inputs: ["task-brief", "plan-handoff"],
+      outputs: ["architecture-handoff"],
     },
     {
       id: "implement",
@@ -412,8 +419,8 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "implementer",
       stage: "executing",
       needs: ["architecture"],
-      inputs: ["task-brief", "plan", "architecture"],
-      outputs: ["execution", "diff"],
+      inputs: ["task-brief", "plan-handoff", "architecture-handoff"],
+      outputs: ["execution-handoff", "diff"],
       skipWhenReadOnly: true,
     },
     {
@@ -433,7 +440,13 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "reviewer",
       stage: "reviewing",
       needs: ["validation"],
-      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
       outputs: ["findings-correctness"],
       instructions:
         "Your lens is CORRECTNESS & LOGIC only. Hunt for real bugs: wrong behavior, broken edge cases, race conditions, mishandled errors, off-by-one, contract violations. Ignore style and test-coverage gaps (other reviewers own those). Cite file:line evidence; do not pad with low-severity nits.",
@@ -445,7 +458,13 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "reviewer",
       stage: "reviewing",
       needs: ["validation"],
-      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
       outputs: ["findings-tests"],
       instructions:
         "Your lens is TESTS & VERIFIABILITY only. Are the changes actually covered? Missing/weak assertions, untested branches, flaky patterns, or claims the validation evidence doesn't support. Ignore correctness bugs and security (other reviewers own those). Cite what is and isn't exercised.",
@@ -457,7 +476,13 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       seat: "reviewer",
       stage: "reviewing",
       needs: ["validation"],
-      inputs: ["task-brief", "plan", "architecture", "execution", "validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
       outputs: ["findings-risk"],
       instructions:
         "Your lens is SECURITY, RISK & ARCHITECTURE only. Look for injection/secret/path-traversal exposure, unsafe effects, broken boundaries, irreversible or hard-to-revert moves, and architectural drift. Ignore style and routine test gaps. Flag anything that warrants sandboxing or human sign-off.",
@@ -471,9 +496,9 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
       needs: ["review-correctness", "review-tests", "review-risk"],
       inputs: [
         "task-brief",
-        "plan",
-        "architecture",
-        "execution",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
         "validation",
         "findings-correctness",
         "findings-tests",

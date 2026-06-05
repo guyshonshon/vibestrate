@@ -533,7 +533,7 @@
             "task-brief"
           ],
           "outputs": [
-            "plan"
+            "plan-handoff"
           ],
           "optional": false,
           "skipWhenReadOnly": false,
@@ -548,10 +548,10 @@
           "seat": "architect",
           "inputs": [
             "task-brief",
-            "plan"
+            "plan-handoff"
           ],
           "outputs": [
-            "architecture"
+            "architecture-handoff"
           ],
           "optional": false,
           "skipWhenReadOnly": false,
@@ -566,11 +566,11 @@
           "seat": "implementer",
           "inputs": [
             "task-brief",
-            "plan",
-            "architecture"
+            "plan-handoff",
+            "architecture-handoff"
           ],
           "outputs": [
-            "execution",
+            "execution-handoff",
             "diff"
           ],
           "optional": false,
@@ -603,9 +603,9 @@
           "seat": "reviewer",
           "inputs": [
             "task-brief",
-            "plan",
-            "architecture",
-            "execution",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
             "validation"
           ],
           "outputs": [
@@ -624,9 +624,9 @@
           "seat": "reviewer",
           "inputs": [
             "task-brief",
-            "plan",
-            "architecture",
-            "execution",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
             "validation"
           ],
           "outputs": [
@@ -645,9 +645,9 @@
           "seat": "reviewer",
           "inputs": [
             "task-brief",
-            "plan",
-            "architecture",
-            "execution",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
             "validation"
           ],
           "outputs": [
@@ -666,9 +666,9 @@
           "seat": "arbiter",
           "inputs": [
             "task-brief",
-            "plan",
-            "architecture",
-            "execution",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
             "validation",
             "findings-correctness",
             "findings-tests",

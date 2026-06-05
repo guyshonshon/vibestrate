@@ -82,6 +82,30 @@ re-reading the full history - and it's written to `flows/run-brief.md` on the ru
 so you can read it too. No model call: it's assembled from facts the orchestrator
 already has, and the oldest entries fold to one line when it gets long.
 
+## Structured handoffs
+
+The run brief is a *summary*; the **handoff contracts** are the *packet*. A step
+hands its output to the next as named JSON instead of free-form prose, so the
+through-line is machine-checkable - the next role, the run brief, and the
+dashboard can read specific fields (a plan's open questions, an execution's
+per-step coverage, a reviewer's severities) rather than scraping text.
+
+Two families exist, both **opt-in by output token** - a step only produces a
+contract when it declares the matching token:
+
+- **Review side** (already used by the quality flows): `findings`,
+  `finding-responses`, `finding-resolutions`, `decision-summary`.
+- **Builder side**: `plan-handoff`, `architecture-handoff`, `execution-handoff` -
+  a structured plan (ordered steps, files, assumptions, open questions, risks),
+  a design (decisions with rationale, components, interfaces), and an execution
+  report (per-step status mapped back to the plan, files changed, follow-ups).
+
+Adoption is never fail-hard: if a provider emits JSON that doesn't match the
+contract, the run keeps the raw text output and records a parse event, then
+continues. The built-in **panel-review** flow is the first to adopt the
+builder-side contracts; the default flow keeps free-form plan/architecture/
+execution, so nothing changes for it.
+
 ## Common mistakes
 
 - **Skipping validation.** A workflow without real validation is a workflow without ground truth.

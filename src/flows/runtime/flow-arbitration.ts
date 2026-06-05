@@ -13,6 +13,7 @@ import {
   FLOW_FINDING_RESOLUTIONS_CONTRACT,
   FLOW_FINDING_RESPONSES_CONTRACT,
   FLOW_FINDINGS_CONTRACT,
+  flowHandoffContracts,
   flowDecisionSummaryOutputSchema,
   flowFindingResolutionSchema,
   flowFindingResponseSchema,
@@ -367,6 +368,15 @@ export function renderFlowOutputContractNotes(step: ResolvedFlowStep): string {
     contracts.push(
       `- decision-summary: {"contract":"${FLOW_DECISION_SUMMARY_CONTRACT}","stepId":"${step.id}","recommendation":"merge-ready","summary":"...","validation":{"status":"passed","evidence":[]},"agreementFindingIds":[],"disagreementFindingIds":[],"residualRisks":[],"requiredHumanActions":[]}`,
     );
+  }
+  // Builder-side handoff contracts (plan/architecture/execution), registry-driven.
+  for (const [token, spec] of Object.entries(flowHandoffContracts)) {
+    if (!step.outputs.includes(token)) continue;
+    const example = JSON.stringify(spec.example).replace(
+      /"__stepId__"/g,
+      JSON.stringify(step.id),
+    );
+    contracts.push(`- ${token}: ${example}`);
   }
   if (contracts.length === 0) return "";
 
