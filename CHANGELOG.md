@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.7.10
+## 0.7.11
+
+- **Run assurance is honest about tolerated failures.** When a graph flow runs a
+  best-effort step (`continueOnError`, e.g. a review-panel lens) and that step
+  fails but is tolerated, the run can still finish - but that step gave no
+  scrutiny. The assurance verdict now reflects that: a tolerated step failure
+  holds the verdict at `partially_verified` (never `verified`), adds a
+  `steps_failed_tolerated` cap, and is counted as `coverage.toleratedStepFailures`.
+  Surfaced in `vibe assurance` and the run-detail badge. This keeps degraded
+  coverage from masquerading as a fully verified run.
 
 - **Retries for flaky steps.** A graph-flow step can now declare `retries: N`
   (up to 5): if its turn fails or errors out, it's re-run up to N more times

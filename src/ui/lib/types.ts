@@ -1487,6 +1487,7 @@ export type RunAssurance = {
   };
   review: { status: "approved" | "changes_requested" | "missing" };
   verification: { status: "passed" | "failed" | "not_run" };
+  coverage: { toleratedStepFailures: number };
   caps: string[];
 };
 
