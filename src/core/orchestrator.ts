@@ -1512,6 +1512,17 @@ export class Orchestrator {
 
     const done = new Set<string>();
     const processed = new Set<string>();
+    // Resume: a prior run's completed ("passed") or seeded ("skipped") steps are
+    // already in the persisted state. Treat them as done so the frontier only
+    // advances the steps that still need to run, and so a re-entered fan-out
+    // isn't re-spawned. On a fresh run every step is "pending", so this is a
+    // no-op and the normal traversal is unchanged.
+    for (const s of state.flow?.steps ?? []) {
+      if (s.status === "passed" || s.status === "skipped") {
+        done.add(s.id);
+        processed.add(s.id);
+      }
+    }
 
     // Serial: move the run to the step's status and build its context packet.
     const prepareStep = async (step: ResolvedFlowStep) => {
@@ -2130,10 +2141,26 @@ export class Orchestrator {
       // we park the linear cursor at the end so the `while` below is a no-op -
       // the linear path stays byte-for-byte unchanged for every other flow.
       if (isGraphFlow(input.snapshot)) {
+        // Resume works for graph flows too: seed the upstream prefix (mark it
+        // skipped, copy its artifacts, restore the worktree snapshot) exactly
+        // as the linear path does, then let the frontier scheduler treat those
+        // seeded steps as already-done (see runGraphFrontier) and advance only
+        // the remaining fan-out/join. The steps array is a valid topological
+        // sort, so seeding [0, resumeStartIndex) can never strand a dependency.
         if (this.resumeFrom) {
-          throw new Error(
-            "Graph (DAG) flows don't support --resume-stage yet; rerun from the start.",
-          );
+          const seeded = await this.seedResumedSteps({
+            snapshot: input.snapshot,
+            resumeFrom: this.resumeFrom,
+            state,
+            worktreePath: input.worktreePath,
+            outputs,
+            targetStore: input.artifactStore,
+            stateStore: input.stateStore,
+            eventLog: input.eventLog,
+          });
+          state = seeded.state;
+          if (seeded.planArtifact) planArtifact = seeded.planArtifact;
+          if (seeded.executionArtifact) executionArtifact = seeded.executionArtifact;
         }
         const gr = await this.runGraphFrontier({
           snapshot: input.snapshot,
@@ -2158,13 +2185,14 @@ export class Orchestrator {
         reviewDecision = gr.reviewDecision;
         verificationDecision = gr.verificationDecision;
         needsTestingAdvisory = gr.needsTestingAdvisory;
-        planArtifact = gr.planArtifact;
-        executionArtifact = gr.executionArtifact;
-        reviewArtifact = gr.reviewArtifact;
-        verificationArtifact = gr.verificationArtifact;
+        // On a resume the seeded prefix (plan/execution) wasn't re-run by the
+        // frontier, so keep the seeded artifact when the frontier produced none.
+        planArtifact = gr.planArtifact ?? planArtifact;
+        executionArtifact = gr.executionArtifact ?? executionArtifact;
+        reviewArtifact = gr.reviewArtifact ?? reviewArtifact;
+        verificationArtifact = gr.verificationArtifact ?? verificationArtifact;
         stepIndex = steps.length; // frontier ran everything; linear walk is a no-op
-      }
-      if (this.resumeFrom) {
+      } else if (this.resumeFrom) {
         const seeded = await this.seedResumedSteps({
           snapshot: input.snapshot,
           resumeFrom: this.resumeFrom,

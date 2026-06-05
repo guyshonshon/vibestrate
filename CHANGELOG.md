@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.5
+
+- **Graph flows can resume mid-run now.** Resuming from a stage
+  (`vibe run --flow <graph-flow> --resume-from <runId> --resume-stage <stage>`)
+  used to be refused for DAG flows like `panel-review` - you had to rerun from
+  the top. Now it works the same as linear flows: the upstream prefix is seeded
+  (marked skipped, its artifacts copied from the source run), and the frontier
+  scheduler treats already-completed and seeded steps as done, so it only
+  advances the remaining fan-out and join. Rerun just the review panel without
+  re-planning and re-implementing.
+
 ## 0.7.4
 
 - **Reorder and lock providers, right on the page.** The Providers list now

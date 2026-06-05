@@ -100,7 +100,9 @@ export type RunCommandOptions = {
   /** Open the terminal Flow setup flow before resolving the run. */
   flowInteractive?: boolean;
   /** Rewind: fork from a prior run, reusing its upstream artifacts and
-   *  resuming at `resumeStage`. Mutually exclusive with a Flow. */
+   *  resuming at `resumeStage`. Resume skips flow selection and reuses the
+   *  flow you name (default or --flow) - it works for graph (DAG) flows too:
+   *  the frontier scheduler treats the seeded upstream steps as done. */
   resumeFromRunId?: string | null;
   resumeStage?:
     | "planning"
