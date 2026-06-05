@@ -60,16 +60,6 @@ export function keymapForPage(page: PageId): HintGroup[] {
           { key: "c", label: "ready ↔ backlog" },
         ]},
       ];
-    case "queue":
-      return [
-        { name: "Move", hints: [{ key: "↑↓", label: "task" }] },
-        { name: "Actions", hints: [
-          { key: "s", label: "start scheduler" },
-          { key: "p", label: "pause/resume" },
-          { key: "t", label: "cycle policy" },
-          { key: "x", label: "remove selected" },
-        ]},
-      ];
     case "crew":
       return [
         { name: "Move", hints: [{ key: "↑↓", label: "agent" }] },

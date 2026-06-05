@@ -46,14 +46,16 @@ export function hintForRoute(route: Route): CliHint {
       };
     case "runs":
       return {
-        title: "Runs list",
+        title: "Runs & queue",
         blurb:
-          "Browse, start, and inspect runs. Everything you see here is also exposed on the CLI.",
+          "Browse, start, and inspect runs - plus the scheduler queue at the top. Everything you see here is also exposed on the CLI.",
         commands: [
           { cmd: "vibe shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
           { cmd: "vibe status", note: "one-shot run table" },
           { cmd: 'vibe run "describe the change"', note: "start a new run" },
           { cmd: "vibe replay <runId>", note: "open the run timeline in the terminal" },
+          { cmd: "vibe queue list", note: "what's enqueued, in order" },
+          { cmd: "vibe queue run", note: "drain the queue (one task at a time)" },
         ],
         tips: TIPS_RUN,
       };
@@ -103,22 +105,6 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: `vibe run --task ${route.taskId} "describe the slice"`, note: "run linked to this task" },
         ],
         tips: TIPS_RUN,
-      };
-    case "queue":
-      return {
-        title: "Queue",
-        blurb:
-          "FIFO + priority + dependency queue. `vibe queue` is the canonical surface.",
-        commands: [
-          { cmd: "vibe queue list", note: "what's enqueued, in order" },
-          { cmd: "vibe queue status", note: "runner state + active item" },
-          { cmd: "vibe queue add <taskId> --source <name>", note: "enqueue with an origin label for fairness/quotas" },
-          { cmd: "vibe queue run", note: "drain the queue (one task at a time)" },
-          { cmd: "vibe queue conflicts", note: "show predicted worktree conflicts" },
-        ],
-        tips: [
-          "Set `scheduler.queuePolicy: fair` + `sourceQuotas: { cron: 1, user: 3 }` in project.yml to stop one origin from starving others.",
-        ],
       };
     case "workspace":
       return {

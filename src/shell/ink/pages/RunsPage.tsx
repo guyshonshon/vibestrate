@@ -42,21 +42,79 @@ export function RunsPage({
   const cols = useTerminalWidth();
   const stacked = cols < 100;
   return (
-    <Box flexDirection={stacked ? "column" : "row"} gap={1}>
-      <Box flexBasis={0} flexGrow={stacked ? 0 : 2}>
-        <RunsList runs={runs} selectedIndex={selectedIndex} />
+    <Box flexDirection="column">
+      <SchedulerQueueStrip snapshot={snapshot} />
+      <Box flexDirection={stacked ? "column" : "row"} gap={1}>
+        <Box flexBasis={0} flexGrow={stacked ? 0 : 2}>
+          <RunsList runs={runs} selectedIndex={selectedIndex} />
+        </Box>
+        <Box flexBasis={0} flexGrow={stacked ? 0 : 3}>
+          <InspectorCard
+            snapshot={snapshot}
+            row={selected}
+            tab={ui.runs.inspectorTab}
+            eventFilter={ui.runs.eventFilter}
+            eventFilterOpen={ui.runs.eventFilterOpen}
+            onFilterChange={onFilterChange}
+            onFilterSubmit={onFilterSubmit}
+          />
+        </Box>
       </Box>
-      <Box flexBasis={0} flexGrow={stacked ? 0 : 3}>
-        <InspectorCard
-          snapshot={snapshot}
-          row={selected}
-          tab={ui.runs.inspectorTab}
-          eventFilter={ui.runs.eventFilter}
-          eventFilterOpen={ui.runs.eventFilterOpen}
-          onFilterChange={onFilterChange}
-          onFilterSubmit={onFilterSubmit}
-        />
-      </Box>
+    </Box>
+  );
+}
+
+/**
+ * Compact scheduler + queue summary, folded in from the old Queue tab so
+ * queued and running work read in one place. Read-only here: the scheduler
+ * controls (pause/resume/start/policy) live in the `:` command palette and the
+ * `vibe queue` CLI.
+ */
+function SchedulerQueueStrip({ snapshot }: { snapshot: ShellSnapshot }) {
+  const sched = snapshot.scheduler;
+  const queue = snapshot.queue;
+  const running = sched?.runningTaskIds ?? [];
+  if (!sched && queue.length === 0 && running.length === 0) return null;
+  const stateColor = !sched ? "red" : sched.paused ? "yellow" : "cyan";
+  const stateLabel = !sched ? "offline" : sched.paused ? "paused" : "running";
+  return (
+    <Box {...CARD_PROPS} flexDirection="column" marginBottom={1}>
+      <Text>
+        <Text color={stateColor}>▌ </Text>
+        <Text bold color={stateColor}>
+          scheduler {stateLabel}
+        </Text>
+        {sched ? (
+          <Text dimColor>
+            {"   "}policy {sched.queuePolicy} · max {sched.maxConcurrentRuns}
+          </Text>
+        ) : null}
+        <Text dimColor>
+          {"   "}queued {queue.length} · running {running.length}
+        </Text>
+      </Text>
+      {queue.length > 0 ? (
+        <Text dimColor wrap="truncate-end">
+          {"  queued: "}
+          {queue
+            .slice(0, 6)
+            .map((e) => e.taskId)
+            .join("  ·  ")}
+          {queue.length > 6 ? `  + ${queue.length - 6} more` : ""}
+        </Text>
+      ) : null}
+      {running.length > 0 ? (
+        <Text wrap="truncate-end">
+          <Text dimColor>{"  running: "}</Text>
+          <Text color="magenta">{running.slice(0, 6).join("  ")}</Text>
+        </Text>
+      ) : null}
+      <Text dimColor>
+        {"  queue actions: "}
+        <Text color="cyan">:</Text>
+        {" palette or "}
+        <Text color="cyan">vibe queue</Text>
+      </Text>
     </Box>
   );
 }

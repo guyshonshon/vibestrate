@@ -9,7 +9,6 @@ describe("hintForRoute", () => {
       { kind: "run", runId: "run-abc" },
       { kind: "board" },
       { kind: "task", taskId: "T-1" },
-      { kind: "queue" },
       { kind: "proposals" },
       { kind: "proposal", proposalId: "P-9" },
       { kind: "settings" },

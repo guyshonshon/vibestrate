@@ -135,7 +135,6 @@ describe("page history / back", () => {
     const targets: Array<typeof initialUiState.page> = [
       "runs",
       "roadmap",
-      "queue",
       "crew",
       "skills",
       "approvals",

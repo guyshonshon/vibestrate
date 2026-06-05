@@ -38,7 +38,6 @@ import { RunsPage } from "./pages/RunsPage.js";
 import { DashboardPage } from "./pages/DashboardPage.js";
 import { RoadmapPage } from "./pages/RoadmapPage.js";
 import { FlowsPage } from "./pages/FlowsPage.js";
-import { QueuePage } from "./pages/QueuePage.js";
 import { AgentsPage } from "./pages/AgentsPage.js";
 import { ProfilesPage } from "./pages/ProfilesPage.js";
 import { ConfigPage } from "./pages/ConfigPage.js";
@@ -961,22 +960,6 @@ export function App({
               refresh={refreshDoctor}
               onToast={(kind, message) =>
                 dispatch({ type: "toast.push", kind, message })
-              }
-              active
-            />
-          ) : ui.page === "queue" ? (
-            <QueuePage
-              projectRoot={projectRoot}
-              snapshot={snapshot}
-              warnings={warnings}
-              refreshSnapshot={refresh}
-              refreshWarnings={refreshWarnings}
-              onToast={(kind, message) =>
-                dispatch({ type: "toast.push", kind, message })
-              }
-              selectedIndex={ui.selection.queue ?? 0}
-              setSelectedIndex={(i) =>
-                dispatch({ type: "selection.set", page: "queue", index: i })
               }
               active
             />

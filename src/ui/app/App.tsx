@@ -6,7 +6,6 @@ import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
-import { QueuePage } from "./routes/QueuePage.js";
 import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
@@ -237,9 +236,7 @@ export function App() {
       currentNav={
         route.kind === "board" || route.kind === "task"
           ? "board"
-          : route.kind === "queue"
-            ? "queue"
-            : route.kind === "workspace"
+          : route.kind === "workspace"
             ? "workspace"
             : route.kind === "proposals" || route.kind === "proposal"
               ? "proposals"
@@ -275,7 +272,7 @@ export function App() {
       onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
-      onShowQueue={() => navigate({ kind: "queue" })}
+      onShowQueue={() => navigate({ kind: "runs" })}
       onShowWorkspace={() => navigate({ kind: "workspace" })}
       onShowProposals={() => navigate({ kind: "proposals" })}
       onShowSettings={() => navigate({ kind: "settings" })}
@@ -292,7 +289,7 @@ export function App() {
         <MissionControlPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
           onShowRoadmap={() => navigate({ kind: "board" })}
-          onShowQueue={() => navigate({ kind: "queue" })}
+          onShowQueue={() => navigate({ kind: "runs" })}
           onShowRunsList={() => navigate({ kind: "runs" })}
           onShowSettings={() => navigate({ kind: "settings" })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
@@ -306,6 +303,7 @@ export function App() {
           onOpenReplay={(runId) =>
             navigate({ kind: "run", runId, tab: "replay" })
           }
+          onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
         />
       ) : route.kind === "run" ? (
         <RunDetailPage
@@ -321,8 +319,6 @@ export function App() {
           onOpenRun={(runId) => navigate({ kind: "run", runId })}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
         />
-      ) : route.kind === "queue" ? (
-        <QueuePage onOpenTask={(taskId) => navigate({ kind: "task", taskId })} />
       ) : route.kind === "workspace" ? (
         <WorkspacePage />
       ) : route.kind === "settings" ? (
@@ -338,7 +334,7 @@ export function App() {
       ) : route.kind === "project" ? (
         <ProjectPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
-          onShowQueue={() => navigate({ kind: "queue" })}
+          onShowQueue={() => navigate({ kind: "runs" })}
         />
       ) : route.kind === "codebase" ? (
         <CodebasePage
