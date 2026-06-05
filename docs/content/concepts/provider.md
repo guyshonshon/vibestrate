@@ -48,6 +48,8 @@ If a preset is wrong for your installed version (e.g. a flag the CLI removed), y
 
 On the Providers page you can also drag the CLI rows by their handle to reorder them, and lock a row to pin it out of the shuffle. This is a personal view preference kept in your browser - it's purely how the list is arranged for you, and never changes project config or how a run picks a provider (a run binds providers through its [Profiles](./profile.md), not list position).
 
+For anything the form doesn't surface, the editor has an **Advanced - raw YAML** mode (the toggle on the YAML block). It opens the provider's full `project.yml` block for direct editing - environment variables (`env`), claude-code `settings`, `extraArgs`, custom headers - seeded from the real saved config and validated on save. So fixing or setting up a provider is always fully doable in the dashboard; you never have to drop to `vibe provider setup`. (Authentication is the one exception by design: when a provider isn't logged in, the UI shows the login command for you to run in your own terminal - Vibestrate never logs you in.)
+
 ## Non-CLI providers (HTTP)
 
 Beyond local CLIs, two HTTP-backed provider types let you run a model over the network:

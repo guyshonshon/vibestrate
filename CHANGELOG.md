@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.7
+
+- **Fix any provider entirely in the dashboard - no trip to the CLI.** The
+  Providers editor gained an **Advanced - raw YAML** mode: flip the YAML block
+  to editable and set anything the form doesn't surface - environment variables,
+  claude-code `settings` (output format, max turns, permission mode, ...),
+  `extraArgs`, custom headers. It's parsed and validated on save, seeded from the
+  provider's real config so nothing is dropped. The form stays the easy path;
+  the YAML is the escape hatch. (Authentication still shows a login command to
+  run in your own terminal - Vibestrate never logs you in for you.)
+
 ## 0.7.6
 
 - **The queue lives on the Runs page now.** The standalone Queue tab is gone -

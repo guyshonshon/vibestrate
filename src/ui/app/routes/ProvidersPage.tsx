@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import type { ProviderCatalogResponse } from "../../lib/types.js";
+import { stringify as stringifyYaml } from "yaml";
 import {
+  extractProviderConfigFromYaml,
   parseArgs,
   renderProviderYaml,
   type EditorProviderConfig,
@@ -717,6 +719,13 @@ function ProviderEditor({
   const [busy, setBusy] = useState<null | "save" | "saveTest" | "remove">(null);
   const [result, setResult] = useState<TestResult | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Advanced escape hatch: edit the provider's raw YAML directly, so anything
+  // the form doesn't model (env, claude-code settings, extraArgs, custom
+  // headers) is still editable in the UI - never a trip to the CLI. `rawConfig`
+  // is the full fetched config so seeding the editor doesn't drop those fields.
+  const [yamlMode, setYamlMode] = useState(false);
+  const [yamlText, setYamlText] = useState("");
+  const [rawConfig, setRawConfig] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -735,6 +744,7 @@ function ProviderEditor({
       .then((r) => {
         if (cancelled) return;
         const c = r.config;
+        setRawConfig(c as unknown as Record<string, unknown>);
         if (c.type === "http-api" || c.type === "localhost-proxy") {
           setApiName(c.api);
           setBaseUrl(c.baseUrl);
@@ -818,7 +828,22 @@ function ProviderEditor({
     : "# fill in the fields above to preview the YAML";
 
   const idValid = !isNew || /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(idForSave);
-  const canSubmit = !!built.config && idForSave.length > 0 && idValid;
+  const canSubmit =
+    idForSave.length > 0 &&
+    idValid &&
+    (yamlMode ? yamlText.trim().length > 0 : !!built.config);
+
+  // Seed the YAML editor from the real config (existing) or the form (new), so
+  // env / settings / extraArgs survive a round-trip through Advanced mode.
+  const toggleYamlMode = (): void => {
+    setYamlMode((on) => {
+      if (!on) {
+        const cfg = rawConfig ?? built.config ?? {};
+        setYamlText(stringifyYaml({ providers: { [idForSave || "provider"]: cfg } }));
+      }
+      return !on;
+    });
+  };
 
   async function save(): Promise<boolean> {
     if (isNew && !idValid) {
@@ -829,12 +854,23 @@ function ProviderEditor({
       onError(`A provider named "${idForSave}" already exists.`);
       return false;
     }
-    if (!built.config) {
-      onError(built.error ?? "Invalid provider config.");
-      return false;
+    let config: EditorProviderConfig | Record<string, unknown>;
+    if (yamlMode) {
+      const extracted = extractProviderConfigFromYaml(yamlText, idForSave);
+      if (!extracted.config) {
+        onError(extracted.error ?? "Invalid provider YAML.");
+        return false;
+      }
+      config = extracted.config;
+    } else {
+      if (!built.config) {
+        onError(built.error ?? "Invalid provider config.");
+        return false;
+      }
+      config = built.config;
     }
     try {
-      await api.setupProvider(idForSave, { config: built.config });
+      await api.setupProvider(idForSave, { config });
       return true;
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err));
@@ -1086,12 +1122,45 @@ function ProviderEditor({
             </div>
 
             <div className="mt-4">
-              <div className="eyebrow mb-2">
-                YAML written to .vibestrate/project.yml
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="eyebrow">
+                  {yamlMode ? "Advanced · raw provider YAML" : "YAML written to .vibestrate/project.yml"}
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleYamlMode}
+                  className="text-[11px] text-violet-soft hover:text-violet-300"
+                >
+                  {yamlMode ? "Back to form" : "Edit as YAML"}
+                </button>
               </div>
-              <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
-                {yamlPreview}
-              </pre>
+              {yamlMode ? (
+                <>
+                  <textarea
+                    value={yamlText}
+                    onChange={(e) => setYamlText(e.target.value)}
+                    spellCheck={false}
+                    rows={Math.min(22, Math.max(8, yamlText.split("\n").length + 1))}
+                    className="mono text-[11.5px] w-full resize-y text-fog-100 rounded-md border border-violet-soft/30 bg-black/40 px-3 py-2.5 focus:outline-none focus:border-violet-soft/60"
+                  />
+                  <div className="text-[11px] text-fog-500 mt-1.5 leading-relaxed">
+                    Edit the whole block, so anything the form doesn't surface is
+                    still yours to set here:{" "}
+                    <span className="mono text-fog-300">env</span>, claude-code{" "}
+                    <span className="mono text-fog-300">settings</span>,{" "}
+                    <span className="mono text-fog-300">extraArgs</span>, custom
+                    headers. Keep the{" "}
+                    <span className="mono text-fog-300">
+                      providers: {idForSave || "<id>"}:
+                    </span>{" "}
+                    shape - it's validated on save.
+                  </div>
+                </>
+              ) : (
+                <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
+                  {yamlPreview}
+                </pre>
+              )}
               {profilesUsing.length > 0 ? (
                 <div className="text-[11px] text-fog-500 mt-2">
                   Used by role{profilesUsing.length === 1 ? "" : "s"}:{" "}
