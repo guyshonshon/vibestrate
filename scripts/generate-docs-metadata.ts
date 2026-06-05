@@ -347,6 +347,7 @@ function generateFlows() {
       optional: s.optional,
       skipWhenReadOnly: s.skipWhenReadOnly,
       continueOnError: s.continueOnError,
+      retries: s.retries,
       stage: s.stage ?? null,
       approval: s.approval ?? null,
       repeat: s.repeat ?? null,

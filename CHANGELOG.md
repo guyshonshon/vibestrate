@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.10
+
+- **Retries for flaky steps.** A graph-flow step can now declare `retries: N`
+  (up to 5): if its turn fails or errors out, it's re-run up to N more times
+  before the outcome counts - so a transient provider hiccup is recovered instead
+  of recorded as a failure. Retries run before continue-past-failure decides, so
+  the two compose: retry first, then tolerate or stop. A user abort, an approval
+  rejection, and the spend cap are never retried, and every attempt is a real
+  provider call (its cost shows up in the metrics). Each retry is on the record
+  as a `flow.step.retried` event.
+
 ## 0.7.9
 
 - **Resilient review panels (continue-past-failure).** One flaky reviewer no

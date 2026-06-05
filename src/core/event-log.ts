@@ -87,6 +87,7 @@ export type VibestrateEventType =
   | "flow.step.started"
   | "flow.step.completed"
   | "flow.step.failed"
+  | "flow.step.retried"
   | "flow.step.skipped"
   | "flow.loop.iteration"
   | "flow.loop.decision"

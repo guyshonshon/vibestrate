@@ -152,6 +152,13 @@ export const flowStepSchema = z
     // continues by design; this covers the hard-throw case the fan-out would
     // otherwise let take the whole run down. See custom-workflow-dags.md.
     continueOnError: z.boolean().default(false),
+    // Per-step retries (Slice 5): extra attempts for a flaky turn. If the turn
+    // fails (provider non-zero exit) or throws (non-control) on an attempt, it's
+    // re-run up to `retries` more times before the outcome is final (then
+    // continueOnError / abort decide). Total attempts = retries + 1. Control
+    // signals (abort / approval / spend / denied) are never retried. Honored only
+    // by the graph scheduler, so restricted to graph flows + turn kinds (below).
+    retries: z.number().int().min(0).max(5).default(0),
     // Coarse phase, used as a resume boundary (see flowStageSchema).
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
@@ -282,6 +289,21 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           code: z.ZodIssueCode.custom,
           path: ["steps", index, "continueOnError"],
           message: `Flow step "${step.id}" uses continueOnError, which is only supported in graph flows (declare step \`needs\`).`,
+        });
+      }
+      // retries mirrors continueOnError: graph scheduler + turn kinds only.
+      if (step.retries > 0 && !TURN_STEP_KINDS.has(step.kind)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "retries"],
+          message: `Flow step "${step.id}" of kind "${step.kind}" can't use retries (turn steps only).`,
+        });
+      }
+      if (step.retries > 0 && !flow.steps.some((s) => s.needs.length > 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "retries"],
+          message: `Flow step "${step.id}" uses retries, which is only supported in graph flows (declare step \`needs\`).`,
         });
       }
     });
@@ -542,6 +564,8 @@ export const resolvedFlowStepSchema = z
     // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the
     // graph scheduler (mark failed + continue) instead of aborting the run.
     continueOnError: z.boolean().default(false),
+    // Extra attempts for a flaky turn (Slice 5); total attempts = retries + 1.
+    retries: z.number().int().min(0).max(5).default(0),
     stage: flowStageSchema.nullable(),
     // The Seat this step needs (null for validation / approval-gate steps).
     seat: flowTokenSchema.nullable(),

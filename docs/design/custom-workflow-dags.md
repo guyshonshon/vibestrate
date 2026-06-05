@@ -1,10 +1,21 @@
 # Custom workflow DAGs + parallel agents within a task
 
 Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); continue-past-failure
-SHIPPED (0.7.9, Slice 5); Phase C (write-parallelism) + checklist-DAG on paper.**
-The *product framing* here is superseded by `responsible-orchestrator.md`: DAGs
-are an execution primitive the orchestrator *chooses*, not the product identity.
-This doc remains the graph execution design.
++ per-step retries SHIPPED (0.7.9 / 0.7.10, Slice 5); Phase C (write-parallelism)
++ checklist-DAG on paper.** The *product framing* here is superseded by
+`responsible-orchestrator.md`: DAGs are an execution primitive the orchestrator
+*chooses*, not the product identity. This doc remains the graph execution design.
+
+What shipped in the per-step retries slice (Slice 5, 0.7.10):
+
+- A per-step `retries` policy (0-5 extra attempts; graph flows + turn kinds only,
+  load-validated). A flaky turn that fails (non-zero exit) or throws (non-control)
+  is re-run up to `retries` more times before its outcome is final; only then does
+  continueOnError / abort decide. Total attempts = retries + 1.
+- Control signals (abort / approval / spend / denied) are never retried. Each
+  attempt is a real provider invocation, so its metrics are recorded honestly.
+- A `flow.step.retried` event per retry (attempt / maxAttempts / reason).
+- Composes with continueOnError: retry first, then tolerate-or-abort.
 
 What shipped in the continue-past-failure slice (Slice 5):
 
@@ -165,9 +176,10 @@ policy, "retry item N times" is a per-node policy, and the checklist becomes a
 DAG of items (item B `needs` item A) instead of a linear list.
 
 **Continue-past-failure SHIPPED (0.7.9, Slice 5)** as the per-step
-`continueOnError` policy described in the status block above - "continue past a
-failed independent branch" is now a graph policy on best-effort turns. Per-item
-retries and the checklist-DAG cross remain on paper.
+`continueOnError` policy, and **per-step retries SHIPPED (0.7.10)** as the
+`retries` policy (both described in the status block above) - "continue past a
+failed independent branch" and "retry a flaky node N times" are now graph
+policies on turns. The checklist-DAG cross remains on paper.
 
 ## Nested agency: the opaque box (bounds and restrictions)
 

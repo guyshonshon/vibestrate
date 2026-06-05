@@ -159,6 +159,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         optional: step.optional,
         skipWhenReadOnly: step.skipWhenReadOnly,
         continueOnError: step.continueOnError,
+        retries: step.retries,
         stage: step.stage ?? null,
         seat: step.seat ?? null,
         resolvedRoleId,
