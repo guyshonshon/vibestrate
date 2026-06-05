@@ -878,6 +878,23 @@ export class Orchestrator {
     };
   }
 
+  // Honest turn outcome: a model turn "succeeded" only if its provider exited 0
+  // AND it produced usable output. A non-zero exit (an invocation failure the
+  // runner used to swallow) or empty/whitespace output (a silent no-op) is a
+  // real failure - the caller fails the run (or, for a continueOnError graph
+  // step, tolerates it) instead of registering empty output as success.
+  private assessTurnResult(result: RoleRunResult): {
+    ok: boolean;
+    reason: string;
+  } {
+    const exit = result.providerResult.exitCode;
+    if (exit !== 0) return { ok: false, reason: `provider exited ${exit}` };
+    if (result.output.trim().length === 0) {
+      return { ok: false, reason: "provider returned no output" };
+    }
+    return { ok: true, reason: "" };
+  }
+
   private async registerFlowRoleOutputs(input: {
     step: ResolvedFlowStep;
     result: RoleRunResult;
@@ -1908,6 +1925,23 @@ export class Orchestrator {
       );
     };
 
+    // A required (non-best-effort) turn that failed: mark the step failed, point
+    // currentStepId at it (so the run() catch targets the right step in a
+    // parallel wave), and throw to fail the run honestly.
+    const failStepFatal = async (
+      step: ResolvedFlowStep,
+      reason: string,
+    ): Promise<never> => {
+      state = this.patchFlowStep(
+        state,
+        step.id,
+        { status: "failed", endedAt: nowIso(), error: reason },
+        step.id,
+      );
+      await input.stateStore.write(state);
+      throw new Error(`Flow step "${step.id}" failed: ${reason}.`);
+    };
+
     // One non-parallel step: validation / approval-gate / a single seated turn.
     const runSerialStep = async (step: ResolvedFlowStep): Promise<void> => {
       if (step.kind === "validation") {
@@ -1996,21 +2030,26 @@ export class Orchestrator {
       if (!step.resolvedRoleId) {
         throw new Error(`Flow step "${step.id}" needs a seated role.`);
       }
+      let result: RoleRunResult;
       try {
-        const result = await runTurnWithRetries(step, context);
-        const exit = result.providerResult.exitCode;
-        if (step.continueOnError && exit !== 0) {
-          await markStepFailedContinue(step, new Error(`provider exited ${exit}`));
-          continuedFailures += 1;
-        } else {
-          await commitTurn(step, result);
-        }
+        result = await runTurnWithRetries(step, context);
       } catch (err) {
         // A best-effort step that hard-fails is tolerated; everything else
         // (required failures, control signals) aborts the run as before.
         if (__isControlSignal(err) || !step.continueOnError) throw err;
         await markStepFailedContinue(step, err);
         continuedFailures += 1;
+        return;
+      }
+      // The turn returned: a non-zero exit or empty output is still a failure.
+      const turn = this.assessTurnResult(result);
+      if (turn.ok) {
+        await commitTurn(step, result);
+      } else if (step.continueOnError) {
+        await markStepFailedContinue(step, new Error(turn.reason));
+        continuedFailures += 1;
+      } else {
+        await failStepFatal(step, turn.reason);
       }
     };
 
@@ -2097,27 +2136,30 @@ export class Orchestrator {
           const step = wave[i]!;
           const outcome = settled[i]!;
           if (outcome.status === "fulfilled") {
-            const exit = outcome.value.providerResult.exitCode;
-            // A best-effort turn whose provider failed (non-zero exit) is recorded
-            // as FAILED rather than silently committed as empty output, so the
-            // join knows the lens is missing. A clean turn commits as usual.
-            if (step.continueOnError && exit !== 0) {
-              await markStepFailedContinue(
-                step,
-                new Error(`provider exited ${exit}`),
-              );
+            // A turn whose provider failed (non-zero exit) or returned no output
+            // is a failure, not a silent empty commit. Best-effort steps record
+            // it and continue (the join knows the lens is missing); required
+            // steps fail the run.
+            const turn = this.assessTurnResult(outcome.value);
+            if (turn.ok) {
+              await commitTurn(step, outcome.value);
+            } else if (step.continueOnError) {
+              await markStepFailedContinue(step, new Error(turn.reason));
               continuedFailures += 1;
             } else {
-              await commitTurn(step, outcome.value);
+              await failStepFatal(step, turn.reason);
             }
           } else {
-            // A control signal or a required (non-best-effort) failure aborts;
-            // survivors committed before this index keep their evidence.
-            if (__isControlSignal(outcome.reason) || !step.continueOnError) {
-              throw outcome.reason;
+            // A control signal always aborts. A hard throw on a required step
+            // aborts; on a best-effort step it's tolerated. (Survivors committed
+            // before this index keep their evidence.)
+            if (__isControlSignal(outcome.reason)) throw outcome.reason;
+            if (step.continueOnError) {
+              await markStepFailedContinue(step, outcome.reason);
+              continuedFailures += 1;
+            } else {
+              await failStepFatal(step, describeError(outcome.reason));
             }
-            await markStepFailedContinue(step, outcome.reason);
-            continuedFailures += 1;
           }
           processed.add(step.id);
           done.add(step.id);
@@ -2370,24 +2412,34 @@ export class Orchestrator {
           if (seeded.planArtifact) planArtifact = seeded.planArtifact;
           if (seeded.executionArtifact) executionArtifact = seeded.executionArtifact;
         }
-        const gr = await this.runGraphFrontier({
-          snapshot: input.snapshot,
-          runId: input.runId,
-          state,
-          worktreePath: input.worktreePath,
-          artifactStore: input.artifactStore,
-          stateStore: input.stateStore,
-          eventLog: input.eventLog,
-          metricsStore: input.metricsStore,
-          approvalService: input.approvalService,
-          notify: input.notify,
-          policyStagesAlreadyForced: input.policyStagesAlreadyForced,
-          outputs,
-          arbitrationLedger,
-          arbitrationStore,
-          runBriefState,
-          ctx: input.ctx,
-        });
+        let gr: Awaited<ReturnType<typeof this.runGraphFrontier>>;
+        try {
+          gr = await this.runGraphFrontier({
+            snapshot: input.snapshot,
+            runId: input.runId,
+            state,
+            worktreePath: input.worktreePath,
+            artifactStore: input.artifactStore,
+            stateStore: input.stateStore,
+            eventLog: input.eventLog,
+            metricsStore: input.metricsStore,
+            approvalService: input.approvalService,
+            notify: input.notify,
+            policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+            outputs,
+            arbitrationLedger,
+            arbitrationStore,
+            runBriefState,
+            ctx: input.ctx,
+          });
+        } catch (err) {
+          // The frontier owns its own `state` and persists it directly. On a
+          // throw, re-sync from disk so the run()-level catch sees the frontier's
+          // final per-step statuses (e.g. the step it marked failed) instead of
+          // this method's now-stale copy, which it would otherwise clobber.
+          state = await input.stateStore.read().catch(() => state);
+          throw err;
+        }
         state = gr.state;
         lastValidation = gr.lastValidation;
         reviewDecision = gr.reviewDecision;
@@ -2738,6 +2790,14 @@ export class Orchestrator {
                 sessionId: result.providerResult.session?.sessionId ?? null,
               },
             });
+          }
+          // A failed turn (provider error or empty output) must not be
+          // registered as a successful step. Throw so the run fails honestly -
+          // the outer catch marks this step (currentStepId) failed. Linear steps
+          // are always required (continueOnError is graph-only).
+          const turn = this.assessTurnResult(result);
+          if (!turn.ok) {
+            throw new Error(`Flow step "${step.id}" failed: ${turn.reason}.`);
           }
           await this.registerFlowRoleOutputs({
             step,

@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.7.11
+## 0.7.12
+
+- **A failed turn fails the run, honestly.** A model turn used to be accepted
+  even when its provider exited non-zero (an invocation failure) or returned
+  nothing - the empty/suspect output just flowed downstream, and a run could even
+  reach `merge_ready` on the back of it. Now a non-zero provider exit or an empty
+  response is a real failure: the run stops with the failing step named, instead
+  of silently continuing. The graph escape hatches still apply - `retries: N`
+  re-tries a flaky turn first, and a `continueOnError` step records the failure
+  and continues with reduced coverage. Control signals (abort, approval rejection,
+  spend cap) are never retried.
 
 - **Run assurance is honest about tolerated failures.** When a graph flow runs a
   best-effort step (`continueOnError`, e.g. a review-panel lens) and that step

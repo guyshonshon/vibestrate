@@ -137,10 +137,12 @@ describe("effort/model reach the real spawn (end-to-end)", () => {
   }, 30_000);
 });
 
-describe("a failed invocation raises a notification", () => {
-  it("non-zero provider exit writes a provider.failed notification", async () => {
+describe("a failed invocation fails the run honestly", () => {
+  it("non-zero provider exit fails the run and writes a provider.failed notification", async () => {
     const { dir } = await makeProject({ fail: true });
-    await runMini(dir);
+    // The run now FAILS honestly instead of continuing with a suspect/empty
+    // output - a non-zero provider exit is a real failure, not swallowed.
+    await expect(runMini(dir)).rejects.toThrow(/provider exited 1/);
     const notifPath = path.join(dir, ".vibestrate", "notifications", "notifications.json");
     // notify is fire-and-forget; poll briefly for the persisted entry.
     let found = false;
