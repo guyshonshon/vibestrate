@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.17",
+  "version": "0.7.18",
   "commands": [
     {
       "name": "init",
@@ -4445,6 +4445,33 @@
         "assurance"
       ],
       "description": "Show a run's Run Assurance verdict (evidence-backed; from the Action Broker log + review/verification).",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the run id (see `vibe status`)",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "audit",
+      "path": [
+        "vibe",
+        "audit"
+      ],
+      "description": "Show a run's audit tree (flow steps, per-step attempts incl. retries/fallbacks, control events).",
       "usage": "[options] <runId>",
       "arguments": [
         {

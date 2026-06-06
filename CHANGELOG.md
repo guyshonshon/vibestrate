@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.7.17
+## 0.7.18
+
+- **See exactly what happened in a run - `vibe audit`.** A new audit view folds a
+  run into one tree: the flow's steps and, per step, what each turn did - succeeded,
+  got rate-limited then retried, fell back to another model, paused for you, or
+  failed-but-tolerated - with the model/cost/duration and the run-level
+  budget/spend/pause events, all rolled up with the assurance verdict. It's derived
+  from the recorded evidence (events + state + metrics), so it's an exact account of
+  vibestrate's own orchestration. Read it with `vibe audit <runId>` (`--json` for
+  the raw tree) or `GET /api/runs/:runId/audit`. (Inside-the-turn provider
+  sub-agents are a later phase, shown only when a provider streams that detail.)
 
 - **Pause-for-a-human at a limit (attended), or force never-pause (unattended).**
   For runs you're watching, a budget ceiling can now wait for you instead of just
