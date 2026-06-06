@@ -115,9 +115,12 @@ paused, or failed-but-tolerated), plus run-level budget/spend/pause events - use
 the **run audit**: the "Run audit · what happened" tree on the run detail page
 (each step's attempt chain, color-coded), or `vibe audit <runId>` (add `--json`),
 or `GET /api/runs/:runId/audit`. It's derived from the recorded evidence (events +
-state + metrics), so it's exact for vibestrate's own orchestration; what happens
-*inside* a provider turn (its own sub-agents) is only shown when the provider
-streams that detail.
+state + metrics), so it's exact for vibestrate's own orchestration. For providers
+that stream structured output (e.g. claude-code `stream-json`), each step also
+shows what happened *inside* the turn - the tool calls it made and any sub-agents
+it spawned; for providers that don't, the inside is honestly marked "opaque" (a
+spawned sub-agent's own internals always stay opaque - they run inside the tool,
+not in the parent stream).
 
 If a run used a **best-effort step** (a `continueOnError` reviewer, say) and that
 step failed but was tolerated, the run can still finish - but that step gave no

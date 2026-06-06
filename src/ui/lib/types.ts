@@ -1523,6 +1523,9 @@ export type AuditStep = {
   fellBack: boolean;
   decision: string | null;
   attempts: AuditAttempt[];
+  tools: { name: string; count: number }[];
+  subAgents: { name: string; description: string | null }[];
+  internalsOpaque: boolean;
 };
 
 export type RunAudit = {

@@ -57,6 +57,11 @@ export type AuditStep = {
   decision: string | null;
   /** Ordered "what happened" markers for this step. */
   attempts: AuditAttempt[];
+  // Inside-the-turn activity (Phase C), from stream-json providers. `opaque` is
+  // true when no provider streamed structured events (we can't see inside).
+  tools: { name: string; count: number }[];
+  subAgents: { name: string; description: string | null }[];
+  internalsOpaque: boolean;
 };
 
 export type AuditControlEvent = {
@@ -103,16 +108,36 @@ export function deriveRunAudit(input: {
   const metricFor = (stepId: string) => {
     const rs = roles.filter((r) => r.stageId === stepId);
     if (rs.length === 0) {
-      return { provider: null, model: null, costUsd: null, durationMs: null, toolCallCount: null };
+      return {
+        provider: null,
+        model: null,
+        costUsd: null,
+        durationMs: null,
+        toolCallCount: null,
+        tools: [] as { name: string; count: number }[],
+        subAgents: [] as { name: string; description: string | null }[],
+        internalsOpaque: false,
+      };
     }
     const costs = rs.map((r) => r.totalCostUsd).filter((c): c is number => c != null);
-    const tools = rs.map((r) => r.toolCallCount).filter((c): c is number => c != null);
+    const toolCalls = rs.map((r) => r.toolCallCount).filter((c): c is number => c != null);
+    // Merge tool-use counts across this step's turns; concat sub-agent spawns.
+    const toolCounts = new Map<string, number>();
+    const subAgents: { name: string; description: string | null }[] = [];
+    for (const r of rs) {
+      for (const t of r.tools ?? []) toolCounts.set(t.name, (toolCounts.get(t.name) ?? 0) + t.count);
+      for (const sa of r.subAgents ?? []) subAgents.push(sa);
+    }
     return {
       provider: rs[rs.length - 1]!.providerId ?? null,
       model: rs[rs.length - 1]!.model ?? null,
       costUsd: costs.length ? costs.reduce((a, b) => a + b, 0) : null,
       durationMs: rs.reduce((a, r) => a + (r.durationMs ?? 0), 0),
-      toolCallCount: tools.length ? tools.reduce((a, b) => a + b, 0) : null,
+      toolCallCount: toolCalls.length ? toolCalls.reduce((a, b) => a + b, 0) : null,
+      tools: [...toolCounts.entries()].map(([name, count]) => ({ name, count })),
+      subAgents,
+      // Opaque iff the step ran turns but none streamed structured internals.
+      internalsOpaque: rs.every((r) => !r.internalsAvailable),
     };
   };
 
@@ -200,6 +225,9 @@ export function deriveRunAudit(input: {
       fellBack,
       decision,
       attempts,
+      tools: m.tools,
+      subAgents: m.subAgents,
+      internalsOpaque: m.internalsOpaque,
     };
   });
 

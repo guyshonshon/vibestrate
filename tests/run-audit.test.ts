@@ -130,6 +130,43 @@ describe("deriveRunAudit", () => {
     expect(a.control.some((c) => c.type === "budget.limit")).toBe(true);
   });
 
+  it("surfaces turn internals (tools + sub-agents) and marks opaque turns", () => {
+    const state = stateWith([
+      { id: "impl", kind: "agent-turn", status: "passed" },
+      { id: "plain", kind: "agent-turn", status: "passed" },
+    ]);
+    const metrics = runtimeMetricsSchema.parse({
+      runId: "r1",
+      task: "t",
+      startedAt: ts,
+      updatedAt: ts,
+      roles: [
+        {
+          ...role("impl"),
+          internalsAvailable: true,
+          tools: [
+            { name: "Read", count: 2 },
+            { name: "Edit", count: 1 },
+          ],
+          subAgents: [{ name: "Agent", description: "explore" }],
+        },
+        { ...role("plain"), internalsAvailable: false },
+      ],
+    });
+    const a = deriveRunAudit({ runId: "r1", state, metrics, events: [], assuranceVerdict: null });
+
+    const impl = a.steps.find((s) => s.id === "impl")!;
+    expect(impl.tools).toEqual([
+      { name: "Read", count: 2 },
+      { name: "Edit", count: 1 },
+    ]);
+    expect(impl.subAgents).toEqual([{ name: "Agent", description: "explore" }]);
+    expect(impl.internalsOpaque).toBe(false);
+
+    // A turn that streamed nothing structured is honestly opaque.
+    expect(a.steps.find((s) => s.id === "plain")?.internalsOpaque).toBe(true);
+  });
+
   it("falls back to event-derived steps when there is no flow state", () => {
     const events: VibestrateEvent[] = [
       ev("flow.step.started", { stepId: "solo" }),
