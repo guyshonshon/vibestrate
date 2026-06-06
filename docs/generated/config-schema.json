@@ -439,6 +439,66 @@
               "itemType": null
             }
           ]
+        },
+        {
+          "key": "usageLimit",
+          "fullKey": "resilience.usageLimit",
+          "type": "object",
+          "required": false,
+          "default": {},
+          "itemType": null,
+          "children": [
+            {
+              "key": "action",
+              "fullKey": "resilience.usageLimit.action",
+              "type": "enum",
+              "required": false,
+              "default": "stop",
+              "enum": [
+                "stop",
+                "wait",
+                "fallback"
+              ],
+              "itemType": null
+            },
+            {
+              "key": "maxWaitMin",
+              "fullKey": "resilience.usageLimit.maxWaitMin",
+              "type": "number",
+              "required": false,
+              "default": 60,
+              "itemType": null
+            },
+            {
+              "key": "maxWaits",
+              "fullKey": "resilience.usageLimit.maxWaits",
+              "type": "number",
+              "required": false,
+              "default": 2,
+              "itemType": null
+            },
+            {
+              "key": "fallbackProfile",
+              "fullKey": "resilience.usageLimit.fallbackProfile",
+              "type": "string | null",
+              "required": false,
+              "default": null,
+              "itemType": null
+            },
+            {
+              "key": "patterns",
+              "fullKey": "resilience.usageLimit.patterns",
+              "type": "array<string>",
+              "required": false,
+              "default": [],
+              "itemType": {
+                "key": "[item]",
+                "fullKey": "[item]",
+                "type": "string",
+                "required": true
+              }
+            }
+          ]
         }
       ]
     },

@@ -9,17 +9,28 @@
 
 import type { ResilienceConfig } from "../project/config-schema.js";
 
-export type ProviderFailureClass = "rate-limit" | "transient" | "hard";
+export type ProviderFailureClass =
+  | "usage-limit"
+  | "rate-limit"
+  | "transient"
+  | "hard";
 
 // Built-in detection. CLI providers phrase errors differently, so these are a
-// floor; users add more via resilience.<class>.patterns. Order: rate-limit wins
-// over transient when both could match (a 429 is a rate limit, not a 5xx).
+// floor; users add more via resilience.<class>.patterns. Order: usage-limit
+// (a quota that resets in hours) wins over rate-limit (a per-minute throttle),
+// which wins over transient (a 5xx blip).
+const BUILTIN_USAGE_LIMIT = [
+  /usage limit/i,
+  /\bquota\b/i,
+  /plan limit/i,
+  /(monthly|daily|weekly)\s+(usage|limit|cap)/i,
+  /limit will reset/i,
+  /upgrade (your|to)\b/i,
+];
 const BUILTIN_RATE_LIMIT = [
   /\b429\b/,
   /rate[\s_-]?limit/i,
   /too many requests/i,
-  /\bquota\b/i,
-  /usage limit/i,
 ];
 const BUILTIN_TRANSIENT = [
   /\b5\d\d\b/, // any 5xx (500/502/503/504/529...)
@@ -65,8 +76,10 @@ export function classifyProviderFailure(
   text: string,
   cfg: ResilienceConfig,
 ): ProviderFailureClass {
+  const usage = [...BUILTIN_USAGE_LIMIT, ...compile(cfg.usageLimit.patterns)];
   const rate = [...BUILTIN_RATE_LIMIT, ...compile(cfg.rateLimit.patterns)];
   const transient = [...BUILTIN_TRANSIENT, ...compile(cfg.transient.patterns)];
+  if (anyMatch(text, usage)) return "usage-limit";
   if (anyMatch(text, rate)) return "rate-limit";
   if (anyMatch(text, transient)) return "transient";
   return "hard";

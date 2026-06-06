@@ -3,9 +3,9 @@
 Status: **U1-U5 SHIPPED (complete).** U1 (0.7.13) count/time ceilings; U2 (0.7.14)
 rate-limit/transient retries; U3 (0.7.15) resilience fallback; U4 (0.7.16) budget
 cap actions (downgrade-model / reduce-effort); U5 (0.7.17) attended `pause`
-(`onLimit` / `onExhausted`) + the `--unattended` no-pause override. **U6
-(usage-limit reset-aware waiting) + U7 (session-reuse lifetime cap) planned** -
-see phasing + the discussion section. Owner: maintainer. Decisions confirmed (see
+(`onLimit` / `onExhausted`) + the `--unattended` no-pause override; U6 (0.7.20)
+usage-limit reset-aware waiting. **U7 (session-reuse lifetime cap) planned** - see
+phasing + the discussion section. Owner: maintainer. Decisions confirmed (see
 "Decisions" below).
 
 **Note on "pause" (refined during U4):** pausing-for-a-human at a limit only
@@ -307,15 +307,18 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   web run-composer (it's CLI/API-settable today; `onExhausted` is config-file
   tunable like the rest of the `resilience` block).*
 
-- **U6 - Usage-limit class + reset-aware waiting (planned).** Most users run on a
-  subscription **usage limit** (a time-windowed, per-model quota that *resets*),
-  not a dollar budget - so "let it run until the window refills" is the real
-  intent. Classify **usage-limit / quota** distinctly from generic rate-limit
-  (it can reset hours out, not seconds), parse the reset/Retry-After hint, and add
-  a policy `resilience.usageLimit: wait-until-reset | fallback | stop` with a
-  `maxWaitMin` bound. `wait-until-reset` sleeps (abort-interruptible) until the
-  quota refills rather than burning the short rate-limit budget; `fallback` reuses
-  U3; `stop` ends honestly. Surfaced as a distinct event (e.g. `provider.usage_limit`).
+- **U6 - Usage-limit class + reset-aware waiting. SHIPPED (0.7.20).** Most users
+  run on a subscription **usage limit** (a time-windowed, per-model quota that
+  *resets*), not a dollar budget - so "let it run until the window refills" is the
+  real intent. `classifyProviderFailure` now returns a distinct **`usage-limit`**
+  class (quota / plan-limit / "usage limit" wording, checked before rate-limit),
+  handled by `resilience.usageLimit.action`: **`wait`** sleeps for the reset
+  window (parsed `Retry-After`/reset hint, capped at `maxWaitMin`, abort-interruptible)
+  then retries - up to `maxWaits` times; **`fallback`** switches to an alternate
+  Profile (reuses `tryProviderFallback`); **`stop`** (default) gives up immediately
+  rather than burning the seconds-scale rate-limit budget. Waiting is an automatic
+  timed sleep (not a human pause), so it's unattended-safe. Emits
+  `provider.usage_limit`. Waits use a separate budget from rate-limit/transient.
 - **U7 - Session-reuse lifetime cap (planned).** The real long-run context
   safeguard. vibestrate already avoids a giant growing chat (per-turn context is
   rebuilt from artifacts; brief is budget-bounded; context policies bound artifact

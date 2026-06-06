@@ -47,6 +47,7 @@ import { runProvider, type RichProviderRunResult } from "../providers/provider-r
 import {
   classifyProviderFailure,
   computeBackoffMs,
+  parseRetryAfterMs,
 } from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
@@ -4731,6 +4732,7 @@ export class Orchestrator {
     const providers = this.config.providers;
     if (!r || !r.enabled) return runProvider(providers, input.args);
 
+    let usageWaits = 0; // U6: reset-waits used for a usage-limit, separate budget.
     for (let attempt = 1; ; attempt += 1) {
       let result: RichProviderRunResult | null = null;
       let lastError: unknown = null;
@@ -4752,6 +4754,42 @@ export class Orchestrator {
       };
       const cls = classifyProviderFailure(failureText, r);
       if (cls === "hard") return giveUp();
+
+      // Usage limit / quota (U6): a windowed quota that resets (often hours out),
+      // handled separately from the seconds-scale rate-limit/transient backoff.
+      if (cls === "usage-limit") {
+        const ul = r.usageLimit;
+        if (ul.action === "wait" && usageWaits < ul.maxWaits) {
+          usageWaits += 1;
+          const hint = parseRetryAfterMs(failureText);
+          const waitMs = Math.min(ul.maxWaitMin * 60_000, hint ?? 5 * 60_000);
+          await input.ctx.eventLog.append({
+            type: "provider.usage_limit",
+            message: `Usage limit at ${input.stageId}; waiting ${Math.round(waitMs / 60000)}m for reset (wait ${usageWaits}/${ul.maxWaits}).`,
+            data: { stepId: input.stageId, action: "wait", waitMs, wait: usageWaits, maxWaits: ul.maxWaits },
+          });
+          await this.interruptibleSleep(waitMs, input.abortSignal);
+          continue; // retry the same provider after the reset window
+        }
+        if (ul.action === "fallback" || (ul.action === "wait" && usageWaits >= ul.maxWaits)) {
+          const fb = await this.tryProviderFallback({
+            baseArgs: input.args,
+            fallbackProfile: ul.fallbackProfile ?? r.rateLimit.fallbackProfile,
+            cls,
+            ctx: input.ctx,
+            stageId: input.stageId,
+            abortSignal: input.abortSignal,
+          });
+          if (fb) return fb;
+        }
+        await input.ctx.eventLog.append({
+          type: "provider.usage_limit",
+          message: `Usage limit at ${input.stageId}; giving up (action=${ul.action}).`,
+          data: { stepId: input.stageId, action: ul.action, resolved: "give-up" },
+        });
+        return giveUp();
+      }
+
       const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
       if (attempt > spec.maxRetries) {
         // Retries exhausted: try a configured alternate Profile once (a model

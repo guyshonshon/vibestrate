@@ -12,7 +12,6 @@ describe("classifyProviderFailure", () => {
   it("classifies rate limits", () => {
     expect(classifyProviderFailure("Error: 429 Too Many Requests", cfg)).toBe("rate-limit");
     expect(classifyProviderFailure("rate limit exceeded, slow down", cfg)).toBe("rate-limit");
-    expect(classifyProviderFailure("monthly quota reached", cfg)).toBe("rate-limit");
   });
 
   it("classifies transient blips", () => {
@@ -40,6 +39,19 @@ describe("classifyProviderFailure", () => {
 
   it("prefers rate-limit over transient when both could match", () => {
     expect(classifyProviderFailure("429 overloaded", cfg)).toBe("rate-limit");
+  });
+
+  it("classifies usage limits / quotas distinctly", () => {
+    expect(classifyProviderFailure("You've reached your usage limit", cfg)).toBe("usage-limit");
+    expect(classifyProviderFailure("monthly quota exceeded", cfg)).toBe("usage-limit");
+    expect(classifyProviderFailure("plan limit reached; upgrade your plan", cfg)).toBe("usage-limit");
+  });
+
+  it("prefers usage-limit over rate-limit when both could match", () => {
+    // A 429 that's actually a quota -> usage-limit (resets in hours, not seconds).
+    expect(classifyProviderFailure("429: usage limit reached", cfg)).toBe("usage-limit");
+    // ...but a plain 429 stays rate-limit.
+    expect(classifyProviderFailure("429 too many requests", cfg)).toBe("rate-limit");
   });
 });
 

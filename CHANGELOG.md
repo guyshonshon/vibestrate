@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.7.19
+## 0.7.20
+
+- **Usage limits are handled like the quotas they are.** A subscription usage
+  limit is a per-model quota that *resets* (often hours away), not a per-minute
+  throttle - so retrying it for a few seconds is pointless. Vibestrate now detects
+  usage-limit/quota errors as their own class, separate from rate limits, with
+  `resilience.usageLimit.action`: `wait` sleeps for the reset window (the parsed
+  reset hint, capped at `maxWaitMin`) and then continues - so an overnight run
+  "runs until the window refills"; `fallback` switches to another model; `stop`
+  (the default) ends honestly instead of burning a retry budget. The wait is an
+  automatic timed sleep, not a human pause, so it's safe to leave unattended.
+  Recorded as a `provider.usage_limit` event.
 
 - **The run audit, now visual.** The run detail page gains a "Run audit · what
   happened" tree: every flow step with its model/cost/duration and a color-coded

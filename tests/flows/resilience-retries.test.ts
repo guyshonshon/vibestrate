@@ -177,6 +177,74 @@ process.stdin.on("data", (c) => (p += c));
 process.stdin.on("end", () => { console.log("# Out\\n\\nok"); });
 `;
 
+// Usage limit (quota) that includes a "retry after 0 seconds" hint so the wait
+// is instant, then succeeds on the second call.
+const USAGE_THEN_OK = `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const counter = path.join(__dirname, "attempts.txt");
+let p = "";
+process.stdin.on("data", (c) => (p += c));
+process.stdin.on("end", () => {
+  let n = 0;
+  try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
+  n += 1;
+  fs.writeFileSync(counter, String(n));
+  if (n < 2) { process.stderr.write("Error: usage limit exceeded; retry after 0 seconds\\n"); process.exit(1); }
+  console.log("# Out\\n\\nok");
+});
+`;
+const USAGE_ALWAYS = `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const counter = path.join(__dirname, "attempts.txt");
+let p = "";
+process.stdin.on("data", (c) => (p += c));
+process.stdin.on("end", () => {
+  let n = 0;
+  try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
+  fs.writeFileSync(counter, String(n + 1));
+  process.stderr.write("usage limit reached\\n");
+  process.exit(1);
+});
+`;
+
+function withUsageLimit(config: ProjectConfig, over: Partial<ProjectConfig["resilience"]["usageLimit"]>): ProjectConfig {
+  return {
+    ...config,
+    resilience: {
+      ...config.resilience,
+      usageLimit: { ...config.resilience.usageLimit, ...over },
+    },
+  };
+}
+
+describe("usage-limit handling (unattended-resilience U6)", () => {
+  it("waits for the reset window then retries (action: wait)", async () => {
+    const projectRoot = await makeRepo(USAGE_THEN_OK);
+    const loaded = await loadConfig(projectRoot);
+    const config = withUsageLimit(loaded.config, { action: "wait", maxWaits: 2 });
+    const { events, attempts } = await run(projectRoot, config, loaded.rules);
+
+    expect(attempts).toBe(2); // failed once, waited (instant), succeeded
+    const ul = events.filter((e) => e.type === "provider.usage_limit");
+    expect(ul.some((e) => e.data?.action === "wait")).toBe(true);
+    expect(events.some((e) => e.type === "flow.step.completed" && e.data?.stepId === "do")).toBe(true);
+  }, 60_000);
+
+  it("stops on a usage limit by default - no pointless retries", async () => {
+    const projectRoot = await makeRepo(USAGE_ALWAYS);
+    const loaded = await loadConfig(projectRoot);
+    // default usageLimit.action is "stop"
+    const { events, attempts } = await run(projectRoot, loaded.config, loaded.rules);
+
+    expect(attempts).toBe(1); // called once, not retried for seconds
+    expect(events.some((e) => e.type === "provider.usage_limit")).toBe(true);
+    expect(events.some((e) => e.type === "flow.step.retried")).toBe(false);
+    expect(events.some((e) => e.type === "run.failed")).toBe(true);
+  }, 60_000);
+});
+
 describe("resilience fallback to an alternate profile (U3)", () => {
   it("falls back to the configured profile when retries are exhausted", async () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-fb-"));
