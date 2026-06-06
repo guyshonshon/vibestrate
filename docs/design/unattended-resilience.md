@@ -1,8 +1,8 @@
 # Design: Unattended-run resilience + budget control
 
-Status: **U1 SHIPPED (0.7.13) - count/time ceilings; U2 (resilience retries) + U3
-(fallback + cap actions) planned.** Owner: maintainer. Decisions confirmed (see
-"Decisions" below).
+Status: **U1 SHIPPED (0.7.13) - count/time ceilings; U2 SHIPPED (0.7.14) -
+rate-limit/transient retries; U3 (fallback + cap actions + --unattended) planned.**
+Owner: maintainer. Decisions confirmed (see "Decisions" below).
 
 The goal: make a run (or a continuous overnight queue of runs) safe and reliable
 to leave **unattended**. Two failure families block that today:
@@ -254,11 +254,19 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   Budget control (UI/CLI parity). `onLimit` ships as `stop` only; `pause` lands
   with the unattended-mode/approval work below. Under a parallel fan-out the
   per-run turn count can overshoot by up to (wave width - 1) - it still binds.
-- **U2 - Resilience retries.** Failure classification + class-aware backoff retry
-  (rate-limit honoring Retry-After; transient) + session reuse on retry, behind
-  the `resilience` config. Refactors the shipped `runTurnWithRetries` into a
-  class-aware resilient runner. Tested with fake providers that emit
-  429/"overloaded"/timeout then succeed.
+- **U2 - Resilience retries. SHIPPED (0.7.14).** `runProviderResilient` wraps the
+  provider invocation inside `runRole` (so both linear + graph turns benefit): a
+  failure is classified (`provider-resilience.ts`: rate-limit / transient / hard
+  from the result's stderr+stdout or the thrown error's message, built-in patterns
+  + user `resilience.<class>.patterns`) and, when rate-limit/transient, retried
+  with backoff (rate-limit honors a parsed Retry-After, capped; transient
+  exponential + jitter). Hard failures + exhausted retries surface the original
+  outcome to the existing handling (assessTurnResult / rethrow). The backoff sleep
+  is abort-interruptible. `resilience` config (on by default). **Context note:**
+  the retry re-sends the same artifact-rebuilt prompt, so context is preserved by
+  construction; provider-session delta-reuse is an optimization deferred (a failed
+  attempt has no usable session). **Cost note:** failed rate-limit/transient
+  attempts incur ~no tokens, so one role-metric for the final attempt is honest.
 - **U3 - Fallback + cap actions.** Profile fallback (resilience + budget
   triggers) + implement `downgrade-model` / `reduce-effort`.
 

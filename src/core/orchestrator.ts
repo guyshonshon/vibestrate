@@ -44,6 +44,10 @@ import { loadSkills } from "../skills/skill-loader.js";
 import { resolveMcpServers } from "../mcp/mcp-resolve.js";
 import { writeMcpConfigFile } from "../mcp/mcp-config-writer.js";
 import { runProvider, type RichProviderRunResult } from "../providers/provider-runner.js";
+import {
+  classifyProviderFailure,
+  computeBackoffMs,
+} from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import type { ResolvedCatalog } from "../providers/provider-apply.js";
@@ -4081,36 +4085,41 @@ export class Orchestrator {
           }
         }
       }
-      providerResult = await runProvider(this.config.providers, {
-        providerId: effectiveProviderId,
-        prompt,
-        cwd,
-        model: runtimeProfile?.model ?? undefined,
-        effort: runtimeProfile?.power ?? undefined,
-        maxTokens: runtimeProfile?.maxTokens ?? undefined,
-        // Real wall-clock cap (no longer advisory): the provider tree-kills the
-        // whole turn if it overruns - matters most for fanned-out review turns.
-        timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
-        catalog: this.resolvedCatalog,
-        mcpConfigPath: mcpConfigAbsPath ?? undefined,
-        onChunk: (c) => {
-          if (liveFilter && c.stream === "stdout") {
-            const text = liveFilter(c.chunk);
-            if (text) {
-              liveEmitted = true;
-              void appendStreamLine(this.projectRoot, ctx.runId, streamName, {
-                ...c,
-                chunk: text,
-              });
+      providerResult = await this.runProviderResilient({
+        args: {
+          providerId: effectiveProviderId,
+          prompt,
+          cwd,
+          model: runtimeProfile?.model ?? undefined,
+          effort: runtimeProfile?.power ?? undefined,
+          maxTokens: runtimeProfile?.maxTokens ?? undefined,
+          // Real wall-clock cap (no longer advisory): the provider tree-kills the
+          // whole turn if it overruns - matters most for fanned-out review turns.
+          timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
+          catalog: this.resolvedCatalog,
+          mcpConfigPath: mcpConfigAbsPath ?? undefined,
+          onChunk: (c) => {
+            if (liveFilter && c.stream === "stdout") {
+              const text = liveFilter(c.chunk);
+              if (text) {
+                liveEmitted = true;
+                void appendStreamLine(this.projectRoot, ctx.runId, streamName, {
+                  ...c,
+                  chunk: text,
+                });
+              }
+              return;
             }
-            return;
-          }
-          void appendStreamLine(this.projectRoot, ctx.runId, streamName, c);
+            void appendStreamLine(this.projectRoot, ctx.runId, streamName, c);
+          },
+          signal: providerAbort.signal,
+          ...(input.flowTurn?.sessionRequest
+            ? { session: input.flowTurn.sessionRequest }
+            : {}),
         },
-        signal: providerAbort.signal,
-        ...(input.flowTurn?.sessionRequest
-          ? { session: input.flowTurn.sessionRequest }
-          : {}),
+        ctx,
+        stageId: input.stageId,
+        abortSignal: providerAbort.signal,
       });
       if (providerAbort.signal.aborted) {
         throw new __RunAbortedSignal();
@@ -4604,6 +4613,89 @@ export class Orchestrator {
     const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
     notify?.(draftBudgetLimit({ runId: ctx.runId, taskId: this.taskId, detail }));
     throw new __BudgetLimitSignal(msg);
+  }
+
+  /**
+   * Provider resilience (unattended-resilience U2). Wraps a single provider
+   * invocation: a recoverable failure - rate limit (429/quota) or transient blip
+   * (5xx, "server temporarily unavailable", overloaded, timeout) - is retried
+   * with backoff (rate-limit honors a parsed Retry-After) before the turn's
+   * outcome is final, so an overnight run rides it out. Hard failures and
+   * exhausted retries surface the original outcome to runRole's existing handling
+   * (a non-zero result flows to assessTurnResult; a thrown error rethrows). The
+   * backoff sleep is interruptible - an abort during a wait stops immediately.
+   * Failed rate-limit/transient attempts typically incur no token cost, so the
+   * single role-metric for the final attempt is honest enough.
+   */
+  private async runProviderResilient(input: {
+    args: Parameters<typeof runProvider>[1];
+    ctx: { eventLog: EventLog; runId: string };
+    stageId: string;
+    abortSignal: AbortSignal;
+  }): Promise<RichProviderRunResult> {
+    const r = this.config.resilience;
+    const providers = this.config.providers;
+    if (!r || !r.enabled) return runProvider(providers, input.args);
+
+    for (let attempt = 1; ; attempt += 1) {
+      let result: RichProviderRunResult | null = null;
+      let lastError: unknown = null;
+      let failureText: string;
+      try {
+        result = await runProvider(providers, input.args);
+        if (result.exitCode === 0) return result; // success
+        failureText = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
+      } catch (err) {
+        if (err instanceof __RunAbortedSignal || input.abortSignal.aborted) {
+          throw err;
+        }
+        lastError = err;
+        failureText = err instanceof Error ? err.message : String(err);
+      }
+      const giveUp = (): RichProviderRunResult => {
+        if (result) return result;
+        throw lastError ?? new Error(failureText);
+      };
+      const cls = classifyProviderFailure(failureText, r);
+      if (cls === "hard") return giveUp();
+      const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
+      if (attempt > spec.maxRetries) return giveUp();
+
+      const delayMs = computeBackoffMs(cls, attempt, spec, failureText);
+      await input.ctx.eventLog.append({
+        type: "flow.step.retried",
+        message: `Provider ${cls} at ${input.stageId} (attempt ${attempt}/${spec.maxRetries + 1}); retrying in ${Math.round(delayMs / 1000)}s.`,
+        data: {
+          stepId: input.stageId,
+          attempt,
+          maxAttempts: spec.maxRetries + 1,
+          class: cls,
+          delayMs,
+        },
+      });
+      await this.interruptibleSleep(delayMs, input.abortSignal);
+    }
+  }
+
+  /** A timeout that rejects (with __RunAbortedSignal) the instant the signal
+   *  aborts, so a backoff wait never delays a user abort. */
+  private interruptibleSleep(ms: number, signal: AbortSignal): Promise<void> {
+    if (ms <= 0) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      if (signal.aborted) {
+        reject(new __RunAbortedSignal());
+        return;
+      }
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new __RunAbortedSignal());
+      };
+      const timer = setTimeout(() => {
+        signal.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
   }
 
   private async enforceSpendCap(ctx: { eventLog: EventLog; runId: string }): Promise<void> {
