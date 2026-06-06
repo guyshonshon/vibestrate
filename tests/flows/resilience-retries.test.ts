@@ -164,3 +164,67 @@ describe("provider resilience retries (unattended-resilience U2)", () => {
     expect(events.some((e) => e.type === "run.failed")).toBe(true);
   }, 60_000);
 });
+
+// Primary always rate-limits; fallback profile points at an OK provider.
+const ALWAYS_RATE_LIMITED = `#!/usr/bin/env node
+let p = "";
+process.stdin.on("data", (c) => (p += c));
+process.stdin.on("end", () => { process.stderr.write("429 rate limit\\n"); process.exit(1); });
+`;
+const OK = `#!/usr/bin/env node
+let p = "";
+process.stdin.on("data", (c) => (p += c));
+process.stdin.on("end", () => { console.log("# Out\\n\\nok"); });
+`;
+
+describe("resilience fallback to an alternate profile (U3)", () => {
+  it("falls back to the configured profile when retries are exhausted", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-fb-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+    await execa("git", ["config", "user.name", "x"], { cwd: dir });
+    await fs.writeFile(path.join(dir, "package.json"), '{"name":"fb"}');
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+    await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+
+    const primary = path.join(dir, "primary.js");
+    const ok = path.join(dir, "ok.js");
+    await fs.writeFile(primary, ALWAYS_RATE_LIMITED, { mode: 0o755 });
+    await fs.writeFile(ok, OK, { mode: 0o755 });
+    await fs.chmod(primary, 0o755);
+    await fs.chmod(ok, 0o755);
+    const cli = (cmd: string, args: string[]) =>
+      JSON.stringify({ type: "cli", command: cmd, args, input: "stdin" });
+    await setConfigValue(dir, "providers.primary", cli("node", [primary]));
+    await setConfigValue(dir, "providers.okprov", cli("node", [ok]));
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "primary");
+    await setConfigValue(dir, "profiles.cheap.provider", "okprov");
+
+    const loaded = await loadConfig(dir);
+    const config: ProjectConfig = {
+      ...loaded.config,
+      resilience: {
+        ...loaded.config.resilience,
+        rateLimit: {
+          ...loaded.config.resilience.rateLimit,
+          baseDelayMs: 1,
+          maxDelayMs: 3,
+          maxRetries: 2,
+          fallbackProfile: "cheap",
+        },
+      },
+    };
+    const { events } = await run(dir, config, loaded.rules);
+
+    // It retried twice on the primary, then fell back to the cheap profile.
+    const retried = events.filter((e) => e.type === "flow.step.retried");
+    expect(retried).toHaveLength(2);
+    const fb = events.find((e) => e.type === "provider.fallback");
+    expect(fb).toBeTruthy();
+    expect(fb!.data?.ok).toBe(true);
+    expect(fb!.data?.fallbackProfile).toBe("cheap");
+    // The fallback succeeded, so the turn completed.
+    expect(events.some((e) => e.type === "flow.step.completed" && e.data?.stepId === "do")).toBe(true);
+  }, 60_000);
+});

@@ -4659,7 +4659,20 @@ export class Orchestrator {
       const cls = classifyProviderFailure(failureText, r);
       if (cls === "hard") return giveUp();
       const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
-      if (attempt > spec.maxRetries) return giveUp();
+      if (attempt > spec.maxRetries) {
+        // Retries exhausted: try a configured alternate Profile once (a model
+        // that may not be limited/down), then give up with the original outcome.
+        const fb = await this.tryProviderFallback({
+          baseArgs: input.args,
+          fallbackProfile: spec.fallbackProfile,
+          cls,
+          ctx: input.ctx,
+          stageId: input.stageId,
+          abortSignal: input.abortSignal,
+        });
+        if (fb) return fb;
+        return giveUp();
+      }
 
       const delayMs = computeBackoffMs(cls, attempt, spec, failureText);
       await input.ctx.eventLog.append({
@@ -4674,6 +4687,57 @@ export class Orchestrator {
         },
       });
       await this.interruptibleSleep(delayMs, input.abortSignal);
+    }
+  }
+
+  /**
+   * Resilience fallback (U3): after retries for a recoverable class are
+   * exhausted, run the turn once on an alternate Profile (a different model that
+   * may not be limited/down). Returns the result only on a clean success;
+   * otherwise null (the caller gives up with the original outcome). The fallback
+   * is a DIFFERENT provider, so any session is dropped and it is not itself
+   * retried. Recorded as a `provider.fallback` event so the model swap is never
+   * silent.
+   */
+  private async tryProviderFallback(input: {
+    baseArgs: Parameters<typeof runProvider>[1];
+    fallbackProfile: string | null;
+    cls: string;
+    ctx: { eventLog: EventLog; runId: string };
+    stageId: string;
+    abortSignal: AbortSignal;
+  }): Promise<RichProviderRunResult | null> {
+    const fbId = input.fallbackProfile;
+    if (!fbId) return null;
+    const profile = this.config.profiles[fbId];
+    if (!profile || !this.config.providers[profile.provider]) {
+      await input.ctx.eventLog.append({
+        type: "provider.fallback",
+        message: `No usable fallback profile "${fbId}" for ${input.stageId} (${input.cls}); giving up.`,
+        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false },
+      });
+      return null;
+    }
+    const fbArgs: Parameters<typeof runProvider>[1] = {
+      ...input.baseArgs,
+      providerId: profile.provider,
+      model: profile.model ?? undefined,
+      effort: profile.power ?? undefined,
+      maxTokens: profile.maxTokens ?? undefined,
+      timeoutMs: profile.timeoutMs ?? undefined,
+      session: undefined,
+    };
+    await input.ctx.eventLog.append({
+      type: "provider.fallback",
+      message: `Falling back to profile "${fbId}" (provider ${profile.provider}) at ${input.stageId} after ${input.cls} retries.`,
+      data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, provider: profile.provider, ok: true },
+    });
+    try {
+      const result = await runProvider(this.config.providers, fbArgs);
+      return result.exitCode === 0 ? result : null;
+    } catch (err) {
+      if (err instanceof __RunAbortedSignal || input.abortSignal.aborted) throw err;
+      return null;
     }
   }
 

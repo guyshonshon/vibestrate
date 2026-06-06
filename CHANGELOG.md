@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.15
+
+- **Fall back to another model when one is down.** When a provider keeps
+  rate-limiting or erroring after its retries are spent, Vibestrate can now run
+  that turn once on an alternate model instead of giving up - set
+  `resilience.rateLimit.fallbackProfile` / `resilience.transient.fallbackProfile`
+  to another Profile. Useful overnight when one provider is hard-down: the work
+  continues on the backup. The fallback uses a different provider (no shared
+  session), isn't itself retried, and is recorded as a `provider.fallback` event,
+  so the model swap is always visible - never silent.
+
 ## 0.7.14
 
 - **Runs ride out provider hiccups instead of dying.** A recoverable provider

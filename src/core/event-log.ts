@@ -16,6 +16,7 @@ export type VibestrateEventType =
   | "provider.completed"
   | "provider.failed"
   | "provider.effort_ignored"
+  | "provider.fallback"
   | "validation.started"
   | "validation.command.completed"
   | "review.decision"
