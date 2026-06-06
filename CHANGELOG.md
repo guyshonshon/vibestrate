@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.7.18
+## 0.7.19
+
+- **The run audit, now visual.** The run detail page gains a "Run audit · what
+  happened" tree: every flow step with its model/cost/duration and a color-coded
+  **attempt chain** - rate-limit → retry → fell-back → success, paused, or
+  failed-but-tolerated - plus the run-level budget/spend/pause events and a
+  totals/assurance header. It sits next to the live flow graph (which shows
+  topology); the audit tree shows the per-step story. Same data as `vibe audit`,
+  now at a glance in the dashboard.
 
 - **See exactly what happened in a run - `vibe audit`.** A new audit view folds a
   run into one tree: the flow's steps and, per step, what each turn did - succeeded,

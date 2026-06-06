@@ -112,10 +112,12 @@ not a guess at truth. Read it with `vibe assurance <runId>`,
 For the full step-by-step story - the flow's steps and, per step, what each turn
 did (succeeded, got **rate-limited then retried**, **fell back** to another model,
 paused, or failed-but-tolerated), plus run-level budget/spend/pause events - use
-the **run audit**: `vibe audit <runId>` (add `--json`) or `GET /api/runs/:runId/audit`.
-It's derived from the recorded evidence (events + state + metrics), so it's exact
-for vibestrate's own orchestration; what happens *inside* a provider turn (its own
-sub-agents) is only shown when the provider streams that detail.
+the **run audit**: the "Run audit · what happened" tree on the run detail page
+(each step's attempt chain, color-coded), or `vibe audit <runId>` (add `--json`),
+or `GET /api/runs/:runId/audit`. It's derived from the recorded evidence (events +
+state + metrics), so it's exact for vibestrate's own orchestration; what happens
+*inside* a provider turn (its own sub-agents) is only shown when the provider
+streams that detail.
 
 If a run used a **best-effort step** (a `continueOnError` reviewer, say) and that
 step failed but was tolerated, the run can still finish - but that step gave no
