@@ -250,6 +250,21 @@ export const resilienceConfigSchema = z
   .default({});
 export type ResilienceConfig = z.infer<typeof resilienceConfigSchema>;
 
+// Provider-session lifetime (U7). vibestrate already rebuilds bounded per-turn
+// context from artifacts, so context doesn't grow with run length - but a
+// *reused* provider session (claude --resume) can still balloon over a marathon.
+// `maxReuseTurns` caps consecutive reuses before re-opening a fresh session
+// (re-seeded from artifacts - "compaction by re-grounding", lossless). 0 =
+// unlimited (today's behavior). Only affects providers that support session
+// reuse. See design/unattended-resilience.md.
+export const sessionConfigSchema = z
+  .object({
+    maxReuseTurns: z.number().int().min(0).max(1000).default(0),
+  })
+  .strict()
+  .default({});
+export type SessionConfig = z.infer<typeof sessionConfigSchema>;
+
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
@@ -284,6 +299,7 @@ export const projectConfigBaseSchema = z.object({
   defaultFlow: z.string().min(1).nullable().default(null),
   budget: budgetConfigSchema,
   resilience: resilienceConfigSchema,
+  session: sessionConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z
     .object({

@@ -106,6 +106,18 @@ continues. The built-in **panel-review** flow is the first to adopt the
 builder-side contracts; the default flow keeps free-form plan/architecture/
 execution, so nothing changes for it.
 
+## Context on long runs
+
+Because each turn's context is rebuilt from artifacts (the run brief + the named
+prior artifacts), a run's prompt size doesn't grow with its length - vibestrate
+keeps no single ever-growing chat. Where a provider supports session reuse
+(e.g. `claude --resume`), Vibestrate reuses it across a participant's turns for
+speed/cost, sending a delta rather than replaying everything. To keep even a
+*reused* session from ballooning on a marathon run, `session.maxReuseTurns` caps
+how many turns a session lives before Vibestrate re-opens a fresh one and
+re-grounds it from the artifacts (0 = unlimited). That's lossless "compaction by
+re-grounding"; the provider's own auto-compaction stays the safety net.
+
 ## When a turn fails
 
 A model turn only counts as success if its provider exits cleanly **and** returns

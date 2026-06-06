@@ -503,6 +503,24 @@
       ]
     },
     {
+      "key": "session",
+      "fullKey": "session",
+      "type": "object",
+      "required": false,
+      "default": {},
+      "itemType": null,
+      "children": [
+        {
+          "key": "maxReuseTurns",
+          "fullKey": "session.maxReuseTurns",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "itemType": null
+        }
+      ]
+    },
+    {
       "key": "commands",
       "fullKey": "commands",
       "type": "object",
