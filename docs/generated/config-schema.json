@@ -289,6 +289,131 @@
       ]
     },
     {
+      "key": "resilience",
+      "fullKey": "resilience",
+      "type": "object",
+      "required": false,
+      "default": {},
+      "itemType": null,
+      "children": [
+        {
+          "key": "enabled",
+          "fullKey": "resilience.enabled",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
+          "key": "rateLimit",
+          "fullKey": "resilience.rateLimit",
+          "type": "object",
+          "required": false,
+          "default": {
+            "maxRetries": 5,
+            "baseDelayMs": 2000,
+            "maxDelayMs": 120000,
+            "respectRetryAfter": true,
+            "patterns": []
+          },
+          "itemType": null,
+          "children": [
+            {
+              "key": "maxRetries",
+              "fullKey": "resilience.rateLimit.maxRetries",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "baseDelayMs",
+              "fullKey": "resilience.rateLimit.baseDelayMs",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "maxDelayMs",
+              "fullKey": "resilience.rateLimit.maxDelayMs",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "patterns",
+              "fullKey": "resilience.rateLimit.patterns",
+              "type": "array<string>",
+              "required": false,
+              "default": [],
+              "itemType": {
+                "key": "[item]",
+                "fullKey": "[item]",
+                "type": "string",
+                "required": true
+              }
+            },
+            {
+              "key": "respectRetryAfter",
+              "fullKey": "resilience.rateLimit.respectRetryAfter",
+              "type": "boolean",
+              "required": false,
+              "default": true,
+              "itemType": null
+            }
+          ]
+        },
+        {
+          "key": "transient",
+          "fullKey": "resilience.transient",
+          "type": "object",
+          "required": false,
+          "default": {
+            "maxRetries": 4,
+            "baseDelayMs": 1000,
+            "maxDelayMs": 60000,
+            "patterns": []
+          },
+          "itemType": null,
+          "children": [
+            {
+              "key": "maxRetries",
+              "fullKey": "resilience.transient.maxRetries",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "baseDelayMs",
+              "fullKey": "resilience.transient.baseDelayMs",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "maxDelayMs",
+              "fullKey": "resilience.transient.maxDelayMs",
+              "type": "number",
+              "required": true,
+              "itemType": null
+            },
+            {
+              "key": "patterns",
+              "fullKey": "resilience.transient.patterns",
+              "type": "array<string>",
+              "required": false,
+              "default": [],
+              "itemType": {
+                "key": "[item]",
+                "fullKey": "[item]",
+                "type": "string",
+                "required": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "key": "commands",
       "fullKey": "commands",
       "type": "object",

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.14
+
+- **Runs ride out provider hiccups instead of dying.** A recoverable provider
+  failure - a rate limit (429/quota) or a transient blip (5xx, "server
+  temporarily unavailable", overloaded, timeout) - is now auto-retried with
+  backoff before the turn's outcome is final, so an overnight run survives a
+  momentary outage. Rate limits honor a `Retry-After` hint; transient errors back
+  off exponentially. Hard failures (bad flag, auth, empty output) are *not*
+  retried - retrying won't help. Context is preserved across a retry (the same
+  prompt is re-sent). On by default; tune `resilience` in config (`maxRetries`,
+  delays, and extra detection `patterns` for your provider's exact error wording).
+  The backoff wait is interruptible - a user abort still stops instantly.
+
 ## 0.7.13
 
 - **Budget ceilings that actually bind - safe to leave a run unattended.** The

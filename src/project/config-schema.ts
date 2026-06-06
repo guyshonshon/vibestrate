@@ -187,6 +187,39 @@ export const budgetConfigSchema = z
 
 export type BudgetConfig = z.infer<typeof budgetConfigSchema>;
 
+// Provider resilience (unattended-resilience U2). Recoverable provider failures
+// - rate limits (429/quota) and transient blips (5xx, "server temporarily
+// unavailable", overloaded, timeouts) - are auto-retried with backoff before the
+// turn's outcome is final, so an overnight run rides them out instead of dying.
+// On by default (pure robustness); hard failures (bad flag, auth, empty output)
+// are NOT retried here. `patterns` are extra user regexes merged with built-ins
+// (CLI providers phrase errors differently). See design/unattended-resilience.md.
+const resilienceClassSchema = z
+  .object({
+    maxRetries: z.number().int().min(0).max(10),
+    baseDelayMs: z.number().int().positive(),
+    maxDelayMs: z.number().int().positive(),
+    patterns: z.array(z.string().min(1).max(400)).max(40).default([]),
+  })
+  .strict();
+
+export const resilienceConfigSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    rateLimit: resilienceClassSchema
+      .extend({ respectRetryAfter: z.boolean().default(true) })
+      .default({ maxRetries: 5, baseDelayMs: 2000, maxDelayMs: 120000, respectRetryAfter: true, patterns: [] }),
+    transient: resilienceClassSchema.default({
+      maxRetries: 4,
+      baseDelayMs: 1000,
+      maxDelayMs: 60000,
+      patterns: [],
+    }),
+  })
+  .strict()
+  .default({});
+export type ResilienceConfig = z.infer<typeof resilienceConfigSchema>;
+
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
@@ -220,6 +253,7 @@ export const projectConfigBaseSchema = z.object({
    */
   defaultFlow: z.string().min(1).nullable().default(null),
   budget: budgetConfigSchema,
+  resilience: resilienceConfigSchema,
   commands: commandsConfigSchema.default({ validate: [] }),
   permissions: z
     .object({

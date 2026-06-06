@@ -144,6 +144,16 @@ providers:
 Checked before every agent turn; when one is hit the run **stops (blocked)**, logs
 a `budget.limit` event, and notifies you. All off by default. Set them with
 `vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear),
-`PATCH /api/budget`, or the dashboard's Budget control. Rate-limit/transient
-provider retries (so an overnight run rides out a 429 or a "server temporarily
-unavailable" instead of dying) are the next slice of this work.
+`PATCH /api/budget`, or the dashboard's Budget control.
+
+## Riding out provider hiccups (resilience)
+
+For unattended runs, a momentary provider problem shouldn't kill the work. A
+recoverable failure - a rate limit (429/quota) or a transient blip (5xx, "server
+temporarily unavailable", overloaded, timeout) - is **auto-retried with backoff**
+before the turn's outcome is final (rate limits honor a `Retry-After` hint;
+transient errors back off exponentially). Hard failures (a bad flag, an auth
+error, empty output) are **not** retried - retrying won't help. On by default;
+tune it under `resilience` in config (`maxRetries`, delays, and extra detection
+`patterns` for your provider's exact wording). Context is preserved across a retry
+(the same prompt is re-sent), so the model doesn't "lose its place."
