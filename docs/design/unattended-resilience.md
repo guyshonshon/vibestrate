@@ -3,8 +3,10 @@
 Status: **U1-U5 SHIPPED (complete).** U1 (0.7.13) count/time ceilings; U2 (0.7.14)
 rate-limit/transient retries; U3 (0.7.15) resilience fallback; U4 (0.7.16) budget
 cap actions (downgrade-model / reduce-effort); U5 (0.7.17) attended `pause`
-(`onLimit` / `onExhausted`) + the `--unattended` no-pause override. Owner:
-maintainer. Decisions confirmed (see "Decisions" below).
+(`onLimit` / `onExhausted`) + the `--unattended` no-pause override. **U6
+(usage-limit reset-aware waiting) + U7 (session-reuse lifetime cap) planned** -
+see phasing + the discussion section. Owner: maintainer. Decisions confirmed (see
+"Decisions" below).
 
 **Note on "pause" (refined during U4):** pausing-for-a-human at a limit only
 helps an *attended* run - an unattended overnight run with no one to resume would
@@ -305,7 +307,62 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   web run-composer (it's CLI/API-settable today; `onExhausted` is config-file
   tunable like the rest of the `resilience` block).*
 
+- **U6 - Usage-limit class + reset-aware waiting (planned).** Most users run on a
+  subscription **usage limit** (a time-windowed, per-model quota that *resets*),
+  not a dollar budget - so "let it run until the window refills" is the real
+  intent. Classify **usage-limit / quota** distinctly from generic rate-limit
+  (it can reset hours out, not seconds), parse the reset/Retry-After hint, and add
+  a policy `resilience.usageLimit: wait-until-reset | fallback | stop` with a
+  `maxWaitMin` bound. `wait-until-reset` sleeps (abort-interruptible) until the
+  quota refills rather than burning the short rate-limit budget; `fallback` reuses
+  U3; `stop` ends honestly. Surfaced as a distinct event (e.g. `provider.usage_limit`).
+- **U7 - Session-reuse lifetime cap (planned).** The real long-run context
+  safeguard. vibestrate already avoids a giant growing chat (per-turn context is
+  rebuilt from artifacts; brief is budget-bounded; context policies bound artifact
+  embedding; reused sessions send deltas). The remaining gap: a *reused* provider
+  session can still grow unbounded over a marathon run. Add `maxSessionTurns` (or
+  `sessionPolicy: stateless | short-lived`) so a reused session is **re-seeded
+  from artifacts** before it balloons - "compaction by re-grounding" (lossless,
+  vibestrate-controlled), with the provider's own auto-compaction as the safety
+  net. See the discussion below.
+
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
+
+---
+
+## Discussion: usage limits, long-run context, and compaction (2026-06)
+
+Captured from the design conversation so the *why* survives.
+
+**Usage limit != hard budget.** The shipped budget controls (dollar cap +
+count/time ceilings) assume you want a hard ceiling. But most users run on a
+provider **subscription usage limit** - a quota that's time-windowed and resets,
+per model. For those, the dollar amount is irrelevant ("I don't care about my
+Claude usage, let it run until it dies"). A usage limit manifests as a 429/quota
+error whose reset can be **hours** away - so treating it like a transient blip
+(seconds of backoff) is wrong. Hence U6: a distinct usage-limit class that can
+*wait for the reset window*, *fall back* to another model, or *stop* - the user's
+"run until the window refills" is `wait-until-reset`.
+
+**Long-run context is largely a non-problem here, by construction.** The worry:
+a long session accumulates huge context and needs compaction. But vibestrate
+**doesn't keep one growing chat** - it rebuilds a bounded context packet every
+turn from artifacts (the durable, lossless memory), with a budget-bounded run
+brief and context policies (`compact`/`balanced`/`artifact-heavy`) that bound how
+much of each artifact is embedded vs referenced; even a *reused* session sends a
+delta + reference, not a full replay. So runtime length doesn't grow the prompt.
+
+**How Claude Code (the driven CLI) fits.** Claude Code manages its own context
+window - it **auto-compacts** as the window fills (summarize earlier turns) and
+exposes `/compact` and `/clear`. But session compaction is *lossy* (a summary of
+the chat), whereas vibestrate's artifact-rebuild is *lossless and inspectable*.
+**Conclusion / opinionated stance:** don't keep a long chat with the provider at
+all. Default to stateless / short-lived sessions; the artifacts are the memory and
+re-ground the model each turn. Where session reuse helps (a tight chain of related
+turns), keep it short-lived and re-seed from artifacts (U7); let the provider's
+auto-compaction be the safety net, not the primary mechanism. This makes an
+indefinitely-long run's context size bounded and predictable rather than reliant
+on opaque, lossy provider-side compaction.
 
 ---
 
