@@ -37,6 +37,7 @@ export type VibestrateEventType =
   | "spend.warning"
   | "spend.action"
   | "spend.capped"
+  | "budget.limit"
   | "editor.opened"
   | "editor.open_failed"
   | "suggestion.created"

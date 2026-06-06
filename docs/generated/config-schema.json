@@ -242,6 +242,49 @@
           "type": "string",
           "required": false,
           "itemType": null
+        },
+        {
+          "key": "maxTurnsPerRun",
+          "fullKey": "budget.maxTurnsPerRun",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null
+        },
+        {
+          "key": "maxWallClockMinPerRun",
+          "fullKey": "budget.maxWallClockMinPerRun",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null
+        },
+        {
+          "key": "maxTurnsPerDay",
+          "fullKey": "budget.maxTurnsPerDay",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null
+        },
+        {
+          "key": "maxWallClockMinPerDay",
+          "fullKey": "budget.maxWallClockMinPerDay",
+          "type": "number | null",
+          "required": false,
+          "default": null,
+          "itemType": null
+        },
+        {
+          "key": "onLimit",
+          "fullKey": "budget.onLimit",
+          "type": "enum",
+          "required": false,
+          "default": "stop",
+          "enum": [
+            "stop"
+          ],
+          "itemType": null
         }
       ]
     },

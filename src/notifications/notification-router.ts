@@ -163,6 +163,25 @@ export function draftSpendCapHit(input: {
   };
 }
 
+export function draftBudgetLimit(input: {
+  runId: string;
+  taskId: string | null;
+  detail: string;
+}): NotificationDraft {
+  return {
+    severity: "attention",
+    category: "system",
+    title: "Budget ceiling reached",
+    message: `Run ${input.runId} was stopped: ${input.detail}`,
+    runId: input.runId,
+    taskId: input.taskId,
+    sourceEventType: "budget.limit",
+    actionRequired: false,
+    actionLabel: "Open run",
+    actionUrl: `#/runs/${input.runId}`,
+  };
+}
+
 export function draftSchedulerConflict(input: {
   taskId: string;
   conflictsWith: string[];

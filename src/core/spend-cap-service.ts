@@ -34,6 +34,36 @@ export async function computeDailySpendUsd(
   return total;
 }
 
+/**
+ * Today's usage (local day) summed across runs - **count/time**, not dollars,
+ * so it binds even when CLI cost is unmeasured (unattended-resilience U1).
+ * Excludes `exceptRunId` (the current run, whose in-flight turns the caller adds
+ * from memory to avoid double-counting its already-persisted turns).
+ */
+export async function computeDailyUsage(
+  projectRoot: string,
+  exceptRunId: string,
+  now: number = Date.now(),
+): Promise<{ turns: number; wallClockMs: number }> {
+  const ids = await readDirSafe(projectRunsDir(projectRoot));
+  const today = dayKey(new Date(now));
+  let turns = 0;
+  let wallClockMs = 0;
+  for (const id of ids) {
+    if (id === exceptRunId) continue;
+    const m = await new MetricsStore(projectRoot, id).read().catch(() => null);
+    if (!m) continue;
+    if (dayKey(new Date(m.updatedAt)) !== today) continue;
+    turns += m.roles.length;
+    const start = new Date(m.startedAt).getTime();
+    const end = new Date(m.updatedAt).getTime();
+    if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+      wallClockMs += end - start;
+    }
+  }
+  return { turns, wallClockMs };
+}
+
 export type SpendCapEvaluation = {
   state: SpendCapState;
   cap: number | null;

@@ -9,7 +9,17 @@ import {
 import type { BudgetConfig } from "../src/project/config-schema.js";
 
 function budget(over: Partial<BudgetConfig>): BudgetConfig {
-  return { spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8, ...over };
+  return {
+    spendCapDailyUsd: null,
+    capAction: "stop",
+    warnThresholdPct: 0.8,
+    maxTurnsPerRun: null,
+    maxWallClockMinPerRun: null,
+    maxTurnsPerDay: null,
+    maxWallClockMinPerDay: null,
+    onLimit: "stop",
+    ...over,
+  };
 }
 
 describe("evaluateSpendCap", () => {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.12",
+  "version": "0.7.13",
   "commands": [
     {
       "name": "init",
@@ -4695,6 +4695,34 @@
             {
               "flags": "--fallback <providerId>",
               "description": "cheaper Profile to switch to on downgrade-model",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-turns-run <n|off>",
+              "description": "max agent turns in one run (count ceiling)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-time-run <min|off>",
+              "description": "max wall-clock minutes for one run",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-turns-day <n|off>",
+              "description": "max agent turns across all runs today",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--max-time-day <min|off>",
+              "description": "max wall-clock minutes across all runs today",
               "required": true,
               "optional": false,
               "negated": false

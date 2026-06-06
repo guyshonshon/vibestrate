@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.7.12
+## 0.7.13
+
+- **Budget ceilings that actually bind - safe to leave a run unattended.** The
+  daily dollar cap is unreliable for local CLI providers (their token cost is
+  often unmeasured), so it could silently never trigger overnight. New count/time
+  ceilings bind regardless of measured cost: `maxTurnsPerRun`,
+  `maxWallClockMinPerRun`, `maxTurnsPerDay`, `maxWallClockMinPerDay`. They're
+  checked before every agent turn; hitting one stops the run (blocked), logs a
+  `budget.limit` event, and notifies you. All off by default. Set them with
+  `vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear),
+  `PATCH /api/budget`, or the dashboard's Budget control. This is the first slice
+  of the unattended-resilience plan; provider rate-limit/transient retries (ride
+  out a 429 or a "server temporarily unavailable" instead of failing) come next.
 
 - **A failed turn fails the run, honestly.** A model turn used to be accepted
   even when its provider exited non-zero (an invocation failure) or returned

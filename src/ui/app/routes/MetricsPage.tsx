@@ -498,6 +498,10 @@ function BudgetControl() {
   const [today, setToday] = useState(0);
   const [capInput, setCapInput] = useState("");
   const [action, setAction] = useState<BudgetSettings["capAction"]>("stop");
+  const [turnsRun, setTurnsRun] = useState("");
+  const [timeRun, setTimeRun] = useState("");
+  const [turnsDay, setTurnsDay] = useState("");
+  const [timeDay, setTimeDay] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -509,9 +513,16 @@ function BudgetControl() {
         setToday(r.todaySpendUsd);
         setCapInput(r.budget.spendCapDailyUsd != null ? String(r.budget.spendCapDailyUsd) : "");
         setAction(r.budget.capAction);
+        const s = (n: number | null | undefined) => (n != null ? String(n) : "");
+        setTurnsRun(s(r.budget.maxTurnsPerRun));
+        setTimeRun(s(r.budget.maxWallClockMinPerRun));
+        setTurnsDay(s(r.budget.maxTurnsPerDay));
+        setTimeDay(s(r.budget.maxWallClockMinPerDay));
       })
       .catch(() => {});
   }, []);
+
+  const numOrNull = (s: string) => (s.trim() === "" ? null : Number(s));
 
   async function save(patch: Partial<BudgetSettings>) {
     setSaving(true);
@@ -579,9 +590,49 @@ function BudgetControl() {
           {cap ? ` · ${pct}% of cap` : ""}
         </span>
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/5 pt-3">
+        <div className="eyebrow">Hard ceilings</div>
+        {(
+          [
+            ["turns/run", turnsRun, setTurnsRun],
+            ["min/run", timeRun, setTimeRun],
+            ["turns/day", turnsDay, setTurnsDay],
+            ["min/day", timeDay, setTimeDay],
+          ] as const
+        ).map(([label, val, set]) => (
+          <label key={label} className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+            <input
+              type="number"
+              min={0}
+              value={val}
+              onChange={(e) => set(e.target.value)}
+              placeholder="off"
+              className="w-16 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+            />
+            {label}
+          </label>
+        ))}
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={saving}
+          onClick={() =>
+            void save({
+              maxTurnsPerRun: numOrNull(turnsRun),
+              maxWallClockMinPerRun: numOrNull(timeRun),
+              maxTurnsPerDay: numOrNull(turnsDay),
+              maxWallClockMinPerDay: numOrNull(timeDay),
+            })
+          }
+        >
+          {saving ? "Saving…" : "Save ceilings"}
+        </Button>
+      </div>
       <p className="mt-2 text-[11px] text-fog-500">
         Checked before each agent turn. <b>stop</b> blocks the run; <b>downgrade-model</b> switches
         to the cheaper fallback/effortMap.low; <b>reduce-effort</b> drops the effort a notch.
+        Ceilings bind even when token cost is unmeasured (local CLI providers) - the reliable
+        backstop for unattended runs. Leave a field blank for no limit.
       </p>
     </section>
   );

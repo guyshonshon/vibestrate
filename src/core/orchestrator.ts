@@ -72,6 +72,7 @@ import { selectOutputAdapter } from "../providers/adapters/select.js";
 import { estimateTokensFromText, resolveCost } from "./pricing.js";
 import {
   computeDailySpendUsd,
+  computeDailyUsage,
   evaluateSpendCap,
 } from "./spend-cap-service.js";
 import { providerCapabilities } from "../providers/provider-capabilities.js";
@@ -114,6 +115,7 @@ import {
   draftRunCompleted,
   draftValidationFailed,
   draftSpendCapHit,
+  draftBudgetLimit,
   draftProviderFailed,
 } from "../notifications/notification-router.js";
 import type { NotificationDraft } from "../notifications/notification-router.js";
@@ -326,6 +328,16 @@ class __ActionDeniedSignal extends Error {
   }
 }
 
+/** Thrown when a count/time budget ceiling is hit (unattended-resilience U1).
+ *  Like the spend cap, the run() loop catches it and blocks the run (not fails)
+ *  - hitting a configured ceiling is an intentional stop, not an error. */
+class __BudgetLimitSignal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BudgetLimitSignal";
+  }
+}
+
 /** Control-flow signals that must ALWAYS propagate - they are not ordinary
  *  step failures and must never be swallowed by continueOnError (Slice 5). An
  *  aborted/approval-rejected/spend-capped/denied run has to unwind regardless. */
@@ -334,7 +346,8 @@ function __isControlSignal(err: unknown): boolean {
     err instanceof __ApprovalRejectedSignal ||
     err instanceof __RunAbortedSignal ||
     err instanceof __SpendCapStopSignal ||
-    err instanceof __ActionDeniedSignal
+    err instanceof __ActionDeniedSignal ||
+    err instanceof __BudgetLimitSignal
   );
 }
 
@@ -416,6 +429,10 @@ export class Orchestrator {
   private broker: ActionBroker | null = null;
   /** One-time guard so the spend warning fires once per run, not every turn. */
   private spendWarned = false;
+  // Count/time budget ceilings (U1): agent turns started in this run, and the
+  // run's wall-clock anchor (set lazily on the first turn).
+  private turnsStarted = 0;
+  private runStartMs: number | null = null;
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
@@ -3237,6 +3254,17 @@ export class Orchestrator {
         }
         state = { ...state, error: err.message };
         await input.stateStore.write(state);
+      } else if (err instanceof __BudgetLimitSignal) {
+        // Count/time budget ceiling hit → "blocked" (not "failed"); the
+        // budget.limit event was already logged. An intentional stop, like the
+        // spend cap. Falls through to finalize.
+        try {
+          state = applyTransition(state, "blocked");
+        } catch {
+          // already terminal
+        }
+        state = { ...state, error: err.message };
+        await input.stateStore.write(state);
       } else if (!(err instanceof __ApprovalRejectedSignal)) {
         const stepId = state.flow?.currentStepId;
         if (stepId) {
@@ -3725,9 +3753,10 @@ export class Orchestrator {
     };
   }): Promise<RoleRunResult> {
     const { roleId, ctx } = input;
-    // Budget gate: before spending on this turn, check today's spend against
-    // the daily cap and apply the configured action (warn / stop). Runs before
+    // Budget gates: before spending on this turn, check the count/time ceilings
+    // (which bind without measured cost) and the daily USD cap. Both run before
     // provider resolution.
+    await this.enforceBudgetCeilings(ctx);
     await this.enforceSpendCap(ctx);
     // Resolve the Role from the Crew the run's flow snapshot was built against.
     const { crew } = getCrew(this.config, this.activeCrewId);
@@ -4509,6 +4538,74 @@ export class Orchestrator {
    * run honestly rather than silently continuing at full cost. No cap
    * configured ⇒ no-op.
    */
+  /**
+   * Count/time budget ceilings (unattended-resilience U1). Checked before every
+   * agent turn. Unlike the dollar cap, these bind WITHOUT measured cost - the
+   * reliable backstop for unattended runs where CLI token cost is unmeasured.
+   * `onLimit: stop` blocks the run honestly (a __BudgetLimitSignal → "blocked").
+   * All ceilings null ⇒ no-op. Under a parallel fan-out the per-run turn count
+   * can overshoot by up to (wave width - 1); it still binds (stops at/just past
+   * the limit), which is the point.
+   */
+  private async enforceBudgetCeilings(ctx: {
+    eventLog: EventLog;
+    runId: string;
+  }): Promise<void> {
+    const budget = this.config.budget;
+    if (!budget) return;
+    const {
+      maxTurnsPerRun,
+      maxWallClockMinPerRun,
+      maxTurnsPerDay,
+      maxWallClockMinPerDay,
+    } = budget;
+    const anySet =
+      maxTurnsPerRun != null ||
+      maxWallClockMinPerRun != null ||
+      maxTurnsPerDay != null ||
+      maxWallClockMinPerDay != null;
+    if (!anySet) return;
+
+    if (this.runStartMs === null) this.runStartMs = Date.now();
+    // Count this turn as started up front (synchronous; safe under fan-out).
+    this.turnsStarted += 1;
+    const now = Date.now();
+    const runWallMs = now - this.runStartMs;
+
+    let daily = { turns: 0, wallClockMs: 0 };
+    if (maxTurnsPerDay != null || maxWallClockMinPerDay != null) {
+      daily = await computeDailyUsage(this.projectRoot, ctx.runId, now).catch(
+        () => ({ turns: 0, wallClockMs: 0 }),
+      );
+    }
+    const dailyTurns = daily.turns + this.turnsStarted;
+    const dailyWallMs = daily.wallClockMs + runWallMs;
+    const mins = (ms: number) => Math.round(ms / 60000);
+
+    const hit =
+      maxTurnsPerRun != null && this.turnsStarted > maxTurnsPerRun
+        ? { kind: "per-run turns", value: this.turnsStarted, limit: maxTurnsPerRun, unit: "turns" }
+        : maxWallClockMinPerRun != null && runWallMs > maxWallClockMinPerRun * 60000
+          ? { kind: "per-run wall-clock", value: mins(runWallMs), limit: maxWallClockMinPerRun, unit: "min" }
+          : maxTurnsPerDay != null && dailyTurns > maxTurnsPerDay
+            ? { kind: "daily turns", value: dailyTurns, limit: maxTurnsPerDay, unit: "turns" }
+            : maxWallClockMinPerDay != null && dailyWallMs > maxWallClockMinPerDay * 60000
+              ? { kind: "daily wall-clock", value: mins(dailyWallMs), limit: maxWallClockMinPerDay, unit: "min" }
+              : null;
+    if (!hit) return;
+
+    const detail = `${hit.kind} ${hit.value}/${hit.limit} ${hit.unit}`;
+    const msg = `Budget ceiling reached: ${detail}. Run stopped (budget.onLimit=stop).`;
+    await ctx.eventLog.append({
+      type: "budget.limit",
+      message: msg,
+      data: { kind: hit.kind, value: hit.value, limit: hit.limit, unit: hit.unit, onLimit: "stop" },
+    });
+    const notify = (this as unknown as { _notify?: (d: NotificationDraft) => void })._notify;
+    notify?.(draftBudgetLimit({ runId: ctx.runId, taskId: this.taskId, detail }));
+    throw new __BudgetLimitSignal(msg);
+  }
+
   private async enforceSpendCap(ctx: { eventLog: EventLog; runId: string }): Promise<void> {
     const budget = this.config.budget;
     const cap = budget?.spendCapDailyUsd;

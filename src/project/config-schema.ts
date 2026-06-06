@@ -165,6 +165,23 @@ export const budgetConfigSchema = z
      * new model - see the orchestrator's enforceSpendCap.
      */
     fallbackProfile: z.string().min(1).optional(),
+    // ── Count/time ceilings (unattended-resilience U1) ──────────────────────
+    // Hard caps that bind WITHOUT measured cost - the reliable backstop for
+    // unattended runs, since USD cost is often unmeasured for local CLI
+    // providers. Checked before every agent turn at the spend-cap checkpoint.
+    // All null = off (no behavior change). An agent turn is one model turn
+    // (validation/approval-gate steps don't count). See
+    // design/unattended-resilience.md.
+    /** Max agent turns in a single run. */
+    maxTurnsPerRun: z.number().int().positive().nullable().default(null),
+    /** Max wall-clock minutes for a single run (start to now; catches hangs). */
+    maxWallClockMinPerRun: z.number().positive().nullable().default(null),
+    /** Max agent turns across ALL runs today (binds even when USD is unmeasured). */
+    maxTurnsPerDay: z.number().int().positive().nullable().default(null),
+    /** Max wall-clock minutes across all runs today. */
+    maxWallClockMinPerDay: z.number().positive().nullable().default(null),
+    /** What to do when a ceiling is hit. `stop` blocks the run honestly. */
+    onLimit: z.enum(["stop"]).default("stop"),
   })
   .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
 
