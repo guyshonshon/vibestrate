@@ -157,3 +157,9 @@ error, empty output) are **not** retried - retrying won't help. On by default;
 tune it under `resilience` in config (`maxRetries`, delays, and extra detection
 `patterns` for your provider's exact wording). Context is preserved across a retry
 (the same prompt is re-sent), so the model doesn't "lose its place."
+
+If retries run out, an optional **fallback** kicks in: set
+`resilience.rateLimit.fallbackProfile` / `resilience.transient.fallbackProfile`
+to another Profile and Vibestrate runs the turn once on that model instead (handy
+when one provider is hard-down). The swap is recorded as a `provider.fallback`
+event - never silent.

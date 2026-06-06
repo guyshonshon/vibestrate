@@ -200,6 +200,9 @@ const resilienceClassSchema = z
     baseDelayMs: z.number().int().positive(),
     maxDelayMs: z.number().int().positive(),
     patterns: z.array(z.string().min(1).max(400)).max(40).default([]),
+    // After retries are exhausted, try the turn once on this alternate Profile
+    // (a different model that may not be limited/down). null/unset = no fallback.
+    fallbackProfile: z.string().min(1).nullable().default(null),
   })
   .strict();
 

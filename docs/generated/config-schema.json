@@ -353,6 +353,14 @@
               }
             },
             {
+              "key": "fallbackProfile",
+              "fullKey": "resilience.rateLimit.fallbackProfile",
+              "type": "string | null",
+              "required": false,
+              "default": null,
+              "itemType": null
+            },
+            {
               "key": "respectRetryAfter",
               "fullKey": "resilience.rateLimit.respectRetryAfter",
               "type": "boolean",
@@ -408,6 +416,14 @@
                 "type": "string",
                 "required": true
               }
+            },
+            {
+              "key": "fallbackProfile",
+              "fullKey": "resilience.transient.fallbackProfile",
+              "type": "string | null",
+              "required": false,
+              "default": null,
+              "itemType": null
             }
           ]
         }

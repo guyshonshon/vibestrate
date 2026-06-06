@@ -1,8 +1,9 @@
 # Design: Unattended-run resilience + budget control
 
 Status: **U1 SHIPPED (0.7.13) - count/time ceilings; U2 SHIPPED (0.7.14) -
-rate-limit/transient retries; U3 (fallback + cap actions + --unattended) planned.**
-Owner: maintainer. Decisions confirmed (see "Decisions" below).
+rate-limit/transient retries; U3 SHIPPED (0.7.15) - resilience fallback to an
+alternate profile; U4 (budget cap actions + --unattended/pause) planned.** Owner:
+maintainer. Decisions confirmed (see "Decisions" below).
 
 The goal: make a run (or a continuous overnight queue of runs) safe and reliable
 to leave **unattended**. Two failure families block that today:
@@ -267,8 +268,17 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   construction; provider-session delta-reuse is an optimization deferred (a failed
   attempt has no usable session). **Cost note:** failed rate-limit/transient
   attempts incur ~no tokens, so one role-metric for the final attempt is honest.
-- **U3 - Fallback + cap actions.** Profile fallback (resilience + budget
-  triggers) + implement `downgrade-model` / `reduce-effort`.
+- **U3 - Resilience fallback. SHIPPED (0.7.15).** Per-class
+  `resilience.<class>.fallbackProfile`: when rate-limit/transient retries are
+  exhausted, `tryProviderFallback` runs the turn once on an alternate Profile (a
+  model that may not be limited/down) - different provider, session dropped, not
+  itself retried, recorded as `provider.fallback`. Clean success -> proceed; else
+  the original outcome stands.
+- **U4 - Budget cap actions + `--unattended`/pause (planned).** Implement
+  `capAction: downgrade-model` (run-level switch to `budget.fallbackProfile`) /
+  `reduce-effort` (currently stop-only); `onLimit`/`onExhausted: pause` (wait for
+  a human via the approval flow) + a `--unattended` mode. Split from U3: it's
+  budget governance + approval/UX, not the rate-limit resilience path.
 
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
 
