@@ -130,3 +130,20 @@ honored:
   crossing the gate; a refused patch blocks the run.
 - **Run assurance** - the terminal verdict above summarizes what actually
   happened, from the evidence log.
+
+## Budget ceilings (don't lose control)
+
+Beyond the daily **dollar** cap (`budget.spendCapDailyUsd`), Vibestrate has
+**count/time ceilings** that bind *without* measured cost - the reliable backstop
+for leaving a run unattended, since token cost is often unmeasured for local CLI
+providers:
+
+- `budget.maxTurnsPerRun` / `budget.maxWallClockMinPerRun` - per run.
+- `budget.maxTurnsPerDay` / `budget.maxWallClockMinPerDay` - across all of today's runs.
+
+Checked before every agent turn; when one is hit the run **stops (blocked)**, logs
+a `budget.limit` event, and notifies you. All off by default. Set them with
+`vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear),
+`PATCH /api/budget`, or the dashboard's Budget control. Rate-limit/transient
+provider retries (so an overnight run rides out a 429 or a "server temporarily
+unavailable" instead of dying) are the next slice of this work.

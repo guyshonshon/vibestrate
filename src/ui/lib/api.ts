@@ -208,6 +208,11 @@ export type BudgetSettings = {
   capAction: "stop" | "downgrade-model" | "reduce-effort";
   warnThresholdPct: number;
   fallbackProvider?: string;
+  // Count/time ceilings (bind without measured cost). null = off.
+  maxTurnsPerRun?: number | null;
+  maxWallClockMinPerRun?: number | null;
+  maxTurnsPerDay?: number | null;
+  maxWallClockMinPerDay?: number | null;
 };
 
 export type MetricsOverview = {

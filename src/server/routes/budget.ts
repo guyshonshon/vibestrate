@@ -13,11 +13,23 @@ const updateSchema = z
     capAction: z.enum(["stop", "downgrade-model", "reduce-effort"]).optional(),
     warnThresholdPct: z.number().min(0).max(1).optional(),
     fallbackProvider: z.string().min(1).nullable().optional(),
+    // Count/time ceilings (unattended-resilience U1).
+    maxTurnsPerRun: z.number().int().positive().nullable().optional(),
+    maxWallClockMinPerRun: z.number().positive().nullable().optional(),
+    maxTurnsPerDay: z.number().int().positive().nullable().optional(),
+    maxWallClockMinPerDay: z.number().positive().nullable().optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, {
     message: "Provide at least one field to update.",
   });
+
+const CEILING_KEYS = [
+  "maxTurnsPerRun",
+  "maxWallClockMinPerRun",
+  "maxTurnsPerDay",
+  "maxWallClockMinPerDay",
+] as const;
 
 /**
  * Read / configure the daily spend cap. Writes go through the same
@@ -54,6 +66,12 @@ export async function registerBudgetRoutes(
     }
     if (b.fallbackProvider !== undefined) {
       await setConfigValue(projectRoot, "budget.fallbackProvider", b.fallbackProvider === null ? "null" : b.fallbackProvider);
+    }
+    for (const key of CEILING_KEYS) {
+      const v = b[key];
+      if (v !== undefined) {
+        await setConfigValue(projectRoot, `budget.${key}`, v === null ? "null" : String(v));
+      }
     }
     const loaded = await loadConfig(projectRoot);
     return { ok: true, budget: loaded.config.budget };
