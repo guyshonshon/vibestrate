@@ -53,6 +53,13 @@ function renderAuditText(a: RunAudit): string {
     lines.push(`  ${symbol.bullet()} ${color.bold(s.id)} ${color.dim(`(${s.kind})`)}${needs}  ${meta}`);
     if (s.attempts.length > 0) lines.push(`      ${attemptChain(s)}`);
     if (s.decision) lines.push(color.dim(`      decision: ${s.decision}`));
+    const inside: string[] = [];
+    if (s.tools.length > 0) inside.push(s.tools.map((t) => `${t.name}×${t.count}`).join(" "));
+    if (s.subAgents.length > 0) {
+      inside.push(`sub-agents: ${s.subAgents.map((a) => a.description ?? a.name).join("; ")}`);
+    }
+    if (inside.length > 0) lines.push(color.dim(`      inside: ${inside.join(" · ")}`));
+    else if (s.internalsOpaque) lines.push(color.dim(`      inside: opaque (provider internals not exposed)`));
   }
 
   if (a.control.length > 0) {

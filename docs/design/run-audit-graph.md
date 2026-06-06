@@ -1,8 +1,8 @@
 # Design: Run audit graph (a tree of everything that happened)
 
 Status: **Phase A SHIPPED (0.7.18) - derivation + `vibe audit` + API; Phase B
-SHIPPED (0.7.19) - web visual (audit tree on the run detail page); Phase C
-(inside-the-box) planned.** Owner: maintainer.
+SHIPPED (0.7.19) - web visual; Phase C SHIPPED (0.7.22) - inside-the-box (tool
+calls + sub-agent spawns from stream-json). Complete.** Owner: maintainer.
 
 A single, complete, visual hierarchy of what happened inside a task/run: the
 orchestrator -> the flow's steps (the DAG we already draw) -> each step's agent
@@ -120,9 +120,17 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
   Sits alongside the existing live Flow graph (topology) - the audit tree is the
   per-step *story*. *Follow-ups: a shell-TUI audit view (audit is CLI + web today)
   and enriching the live DAG nodes with audit badges inline.*
-- **Phase C - inside the box.** Surface provider-internal tool calls / sub-agents
-  from the stream for `stream-json` providers; honestly render "opaque" otherwise.
-  Optionally add a normalized "sub-agent" event other adapters can populate later.
+- **Phase C - inside the box. SHIPPED (0.7.22).** `src/core/turn-internals.ts`
+  `extractTurnInternals(rawStdout)` parses a turn's stream-json (grounded in real
+  captured `claude` output) into grouped tool calls + sub-agent spawns
+  (`tool_use` with name `Agent`/`Task` -> its `description`); `streamParsed=false`
+  for plain-text providers. Captured at metric-assembly time from the buffered raw
+  stdout (avoids the live-filter), carried on the role metric
+  (`tools`/`subAgents`/`internalsAvailable`), surfaced per step in the audit
+  (`tools`/`subAgents`/`internalsOpaque`) and rendered in `vibe audit` + the web
+  audit tree ("inside: Read×2 · Edit · ⤷ <sub-agent>", or "opaque" when the
+  provider streams no structured events). The sub-agent's OWN internals stay
+  opaque (they run inside the tool, not in the parent stream) - the honest boundary.
 
 Each phase is independently shippable; A is the foundation.
 

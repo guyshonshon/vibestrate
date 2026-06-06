@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.7.21
+## 0.7.22
+
+- **The audit now sees inside the turn.** For providers that stream structured
+  output (claude-code `stream-json`), each step in the run audit shows what the
+  turn did internally - the tool calls it made (e.g. `Read×2 · Edit`) and any
+  sub-agents it spawned (with their task description) - in `vibe audit` and the
+  web audit tree. Providers that don't stream that detail are honestly marked
+  "opaque," and a spawned sub-agent's own internals stay opaque too (they run
+  inside the tool, not in the parent stream). This completes the run audit graph
+  (derivation → web tree → inside-the-box).
 
 - **Bounded context on marathon runs.** Vibestrate already rebuilds each turn's
   context from artifacts, so a run's prompt doesn't grow with its length - but

@@ -49,6 +49,18 @@ export const roleMetricsSchema = z.object({
   /** True when tokenUsage was estimated from text (provider reported none). */
   tokensEstimated: z.boolean().optional(),
   toolCallCount: z.number().nullable().default(null),
+  // Turn internals (audit Phase C): tool calls grouped by name + sub-agent
+  // spawns, extracted from stream-json output. `internalsAvailable` is true when
+  // the provider streamed structured events (else the turn is opaque).
+  internalsAvailable: z.boolean().default(false),
+  tools: z
+    .array(z.object({ name: z.string(), count: z.number().int() }).strict())
+    .default([]),
+  subAgents: z
+    .array(
+      z.object({ name: z.string(), description: z.string().nullable() }).strict(),
+    )
+    .default([]),
   filesChangedBefore: z.number().nullable().default(null),
   filesChangedAfter: z.number().nullable().default(null),
   diffInsertionsAfter: z.number().nullable().default(null),

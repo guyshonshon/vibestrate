@@ -107,6 +107,7 @@ import type {
 } from "../providers/provider-types.js";
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
+import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { ApprovalService } from "./approval-service.js";
 import {
@@ -4252,6 +4253,9 @@ export class Orchestrator {
         tokenUsage: null,
         tokensEstimated: false,
         toolCallCount: null,
+        internalsAvailable: false,
+        tools: [],
+        subAgents: [],
         filesChangedBefore: null,
         filesChangedAfter: null,
         diffInsertionsAfter: null,
@@ -4467,6 +4471,9 @@ export class Orchestrator {
       model: metrics?.model ?? null,
       tokenUsage,
     });
+    // Turn internals (audit Phase C): what the provider did inside this turn,
+    // from its raw stream-json stdout (opaque for plain-text providers).
+    const internals = extractTurnInternals(providerResult.stdout ?? "");
     const metric: RoleMetrics = {
       roleId,
       stageId: input.stageId,
@@ -4493,6 +4500,9 @@ export class Orchestrator {
       tokenUsage,
       tokensEstimated,
       toolCallCount: metrics?.toolCallCount ?? null,
+      internalsAvailable: internals.streamParsed,
+      tools: internals.tools,
+      subAgents: internals.subAgents,
       filesChangedBefore: null,
       filesChangedAfter,
       diffInsertionsAfter,

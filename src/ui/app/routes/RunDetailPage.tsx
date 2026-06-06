@@ -934,7 +934,34 @@ function AuditStepRow({ step }: { step: AuditStep }) {
           ))}
         </div>
       ) : null}
+      <StepInternals step={step} />
     </li>
+  );
+}
+
+/** Inside-the-turn activity (Phase C): tool calls + sub-agent spawns from a
+ *  stream-json provider, or an honest "opaque" marker. */
+function StepInternals({ step }: { step: AuditStep }) {
+  const hasInside = step.tools.length > 0 || step.subAgents.length > 0;
+  if (!hasInside && !step.internalsOpaque) return null;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-4 text-[10.5px] text-fog-500">
+      <span className="text-fog-600">inside:</span>
+      {step.tools.map((t) => (
+        <span key={t.name} className="rounded bg-white/5 px-1.5 py-0.5">
+          {t.name}
+          {t.count > 1 ? <span className="opacity-60">×{t.count}</span> : null}
+        </span>
+      ))}
+      {step.subAgents.map((a, i) => (
+        <span key={`sa-${i}`} className="rounded border border-violet-soft/30 bg-violet-soft/10 px-1.5 py-0.5 text-violet-soft">
+          ⤷ {a.description ?? a.name}
+        </span>
+      ))}
+      {!hasInside && step.internalsOpaque ? (
+        <span className="italic opacity-60">opaque (provider internals not exposed)</span>
+      ) : null}
+    </div>
   );
 }
 
