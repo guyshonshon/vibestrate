@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.7.15
+## 0.7.16
+
+- **At the spending cap, keep going cheaper instead of always stopping.** The
+  daily dollar cap's action is now real (it was stop-only): `downgrade-model`
+  switches the rest of the run to the cheaper `budget.fallbackProfile`, and
+  `reduce-effort` continues at the provider's minimum effort - so an overnight run
+  can press on more cheaply rather than halting, with the count/time ceilings
+  still the ultimate stop. Each switch is recorded as a `spend.action` event. Set
+  it with `vibe budget set --action downgrade-model --fallback <profile>` or the
+  dashboard's Budget control (which now has a fallback-profile field; also fixed a
+  field-name mismatch that had made the fallback unsettable from the API/UI).
 
 - **Fall back to another model when one is down.** When a provider keeps
   rate-limiting or erroring after its retries are spent, Vibestrate can now run

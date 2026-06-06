@@ -207,7 +207,7 @@ export type BudgetSettings = {
   spendCapDailyUsd: number | null;
   capAction: "stop" | "downgrade-model" | "reduce-effort";
   warnThresholdPct: number;
-  fallbackProvider?: string;
+  fallbackProfile?: string | null;
   // Count/time ceilings (bind without measured cost). null = off.
   maxTurnsPerRun?: number | null;
   maxWallClockMinPerRun?: number | null;

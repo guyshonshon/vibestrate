@@ -12,7 +12,7 @@ const updateSchema = z
     spendCapDailyUsd: z.number().nonnegative().nullable().optional(),
     capAction: z.enum(["stop", "downgrade-model", "reduce-effort"]).optional(),
     warnThresholdPct: z.number().min(0).max(1).optional(),
-    fallbackProvider: z.string().min(1).nullable().optional(),
+    fallbackProfile: z.string().min(1).nullable().optional(),
     // Count/time ceilings (unattended-resilience U1).
     maxTurnsPerRun: z.number().int().positive().nullable().optional(),
     maxWallClockMinPerRun: z.number().positive().nullable().optional(),
@@ -64,8 +64,8 @@ export async function registerBudgetRoutes(
     if (b.warnThresholdPct !== undefined) {
       await setConfigValue(projectRoot, "budget.warnThresholdPct", String(b.warnThresholdPct));
     }
-    if (b.fallbackProvider !== undefined) {
-      await setConfigValue(projectRoot, "budget.fallbackProvider", b.fallbackProvider === null ? "null" : b.fallbackProvider);
+    if (b.fallbackProfile !== undefined) {
+      await setConfigValue(projectRoot, "budget.fallbackProfile", b.fallbackProfile === null ? "null" : b.fallbackProfile);
     }
     for (const key of CEILING_KEYS) {
       const v = b[key];
