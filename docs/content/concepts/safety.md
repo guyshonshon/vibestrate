@@ -109,6 +109,14 @@ There is **no confidence score** - a verdict is a level capped by what's missing
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
 
+For the full step-by-step story - the flow's steps and, per step, what each turn
+did (succeeded, got **rate-limited then retried**, **fell back** to another model,
+paused, or failed-but-tolerated), plus run-level budget/spend/pause events - use
+the **run audit**: `vibe audit <runId>` (add `--json`) or `GET /api/runs/:runId/audit`.
+It's derived from the recorded evidence (events + state + metrics), so it's exact
+for vibestrate's own orchestration; what happens *inside* a provider turn (its own
+sub-agents) is only shown when the provider streams that detail.
+
 If a run used a **best-effort step** (a `continueOnError` reviewer, say) and that
 step failed but was tolerated, the run can still finish - but that step gave no
 scrutiny, so coverage is degraded. The verdict reflects this: a tolerated failure

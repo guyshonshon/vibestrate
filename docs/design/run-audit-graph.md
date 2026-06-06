@@ -1,6 +1,7 @@
 # Design: Run audit graph (a tree of everything that happened)
 
-Status: **PROPOSED - design for review, not yet built.** Owner: maintainer.
+Status: **Phase A SHIPPED (0.7.18) - derivation + `vibe audit` + API; Phase B
+(visual) + Phase C (inside-the-box) planned.** Owner: maintainer.
 
 A single, complete, visual hierarchy of what happened inside a task/run: the
 orchestrator -> the flow's steps (the DAG we already draw) -> each step's agent
@@ -100,11 +101,16 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
 
 ## Phased plan
 
-- **Phase A - the derivation + text view.** `src/core/run-audit.ts`:
-  `buildRunAuditTree({ events, state, metrics })` -> typed tree (pure, testable
-  without UI). A `vibe audit <runId>` CLI that prints the tree (like
-  `vibe assurance`) and `GET /api/runs/:id/audit`. This alone is a big usability
-  win and is fully verifiable.
+- **Phase A - the derivation + text view. SHIPPED (0.7.18).** `src/core/run-audit.ts`:
+  `deriveRunAudit({ runId, state, metrics, events, assuranceVerdict })` -> typed
+  tree (pure, tested) + `buildRunAudit(projectRoot, runId)` (reads the evidence).
+  Each step carries its metric rollup (provider/model/cost/duration/tools), the
+  ordered **attempt chain** (rate-limit -> rate-limit -> fallback -> success,
+  derived from `flow.step.retried`/`provider.fallback`/terminal status), retry
+  count, fallback flag, and decision; run-level control events
+  (budget.limit/spend.action/approval/...) and the assurance verdict hang off the
+  root. Surfaced via `vibe audit <runId>` (text or `--json`) and
+  `GET /api/runs/:id/audit`. The "opaque box" (inside a turn) is Phase C.
 - **Phase B - the visual.** Render the tree on the run-detail page: extend the
   existing layered DAG (`flow-graph-layout.ts`) so step nodes are expandable to
   reveal attempts + outcomes (color-coded: retry/fallback/pause/tolerated-fail),

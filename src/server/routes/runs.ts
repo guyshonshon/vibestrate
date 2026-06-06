@@ -34,6 +34,7 @@ import {
   readRunAssurance,
   buildAndWriteRunAssurance,
 } from "../../safety/run-assurance.js";
+import { buildRunAudit } from "../../core/run-audit.js";
 import type { RunSpec } from "../../core/run-launcher.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
@@ -324,6 +325,20 @@ export async function registerRunsRoutes(
         req.params.runId,
       );
       return { assurance: derived };
+    },
+  );
+
+  // Run audit tree (flow steps + per-step attempts + control events). Derived on
+  // demand from the recorded evidence; read-only.
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/audit",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      return { audit: await buildRunAudit(projectRoot, req.params.runId) };
     },
   );
 
