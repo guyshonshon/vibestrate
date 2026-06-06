@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.7.20
+## 0.7.21
+
+- **Bounded context on marathon runs.** Vibestrate already rebuilds each turn's
+  context from artifacts, so a run's prompt doesn't grow with its length - but
+  when it reuses a provider session (e.g. `claude --resume`) across many turns,
+  that session can still balloon. `session.maxReuseTurns` now caps how many turns
+  a reused session lives before Vibestrate re-opens a fresh one and re-grounds it
+  from the artifacts (lossless "compaction by re-grounding"; 0 = unlimited, the
+  default). The provider's own auto-compaction stays the safety net. This
+  completes the unattended-resilience work (count/time ceilings, retries,
+  fallback, cap actions, pause/`--unattended`, usage-limit waiting, and now
+  session lifetime).
 
 - **Usage limits are handled like the quotas they are.** A subscription usage
   limit is a per-model quota that *resets* (often hours away), not a per-minute

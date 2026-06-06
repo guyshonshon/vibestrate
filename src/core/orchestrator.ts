@@ -2628,7 +2628,11 @@ export class Orchestrator {
           });
 
           const preparedTurn = step.seat && step.resolvedRoleId
-            ? prepareFlowParticipantTurn(participantLedger, step.seat)
+            ? prepareFlowParticipantTurn(
+                participantLedger,
+                step.seat,
+                this.config.session?.maxReuseTurns ?? 0,
+              )
             : null;
           const context = await this.buildFlowContextPacket({
             snapshot: input.snapshot,

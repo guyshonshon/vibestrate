@@ -138,10 +138,27 @@ export function createFlowParticipantLedger(input: {
 export function prepareFlowParticipantTurn(
   ledger: FlowParticipantLedger,
   seat: string,
+  // U7: cap consecutive reuses before re-opening a fresh session (re-seeded from
+  // artifacts). 0 = unlimited.
+  maxReuseTurns = 0,
 ): PreparedFlowParticipantTurn {
   const participant = requireParticipant(ledger, seat);
   if (participant.capabilities.sessionReuse === "resume") {
     if (participant.sessionId) {
+      const turnsOnSession = participant.turns.filter(
+        (t) => t.sessionId === participant.sessionId,
+      ).length;
+      if (maxReuseTurns > 0 && turnsOnSession >= maxReuseTurns) {
+        // Session lived long enough - re-open a fresh one and re-ground from
+        // artifacts ("opened" sends the full context, not a delta), so the
+        // provider-side context can't grow unbounded over a marathon run.
+        return {
+          seat,
+          contextMode: "opened",
+          fallbackReason: `Session reuse capped at ${maxReuseTurns} turns; re-seeding a fresh session from artifacts.`,
+          sessionRequest: { action: "open", sessionId: randomUUID() },
+        };
+      }
       return {
         seat,
         contextMode: "reused",

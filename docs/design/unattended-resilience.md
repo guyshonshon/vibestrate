@@ -4,9 +4,8 @@ Status: **U1-U5 SHIPPED (complete).** U1 (0.7.13) count/time ceilings; U2 (0.7.1
 rate-limit/transient retries; U3 (0.7.15) resilience fallback; U4 (0.7.16) budget
 cap actions (downgrade-model / reduce-effort); U5 (0.7.17) attended `pause`
 (`onLimit` / `onExhausted`) + the `--unattended` no-pause override; U6 (0.7.20)
-usage-limit reset-aware waiting. **U7 (session-reuse lifetime cap) planned** - see
-phasing + the discussion section. Owner: maintainer. Decisions confirmed (see
-"Decisions" below).
+usage-limit reset-aware waiting; U7 (0.7.21) session-reuse lifetime cap. **U1-U7
+complete.** Owner: maintainer. Decisions confirmed (see "Decisions" below).
 
 **Note on "pause" (refined during U4):** pausing-for-a-human at a limit only
 helps an *attended* run - an unattended overnight run with no one to resume would
@@ -319,15 +318,14 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   rather than burning the seconds-scale rate-limit budget. Waiting is an automatic
   timed sleep (not a human pause), so it's unattended-safe. Emits
   `provider.usage_limit`. Waits use a separate budget from rate-limit/transient.
-- **U7 - Session-reuse lifetime cap (planned).** The real long-run context
-  safeguard. vibestrate already avoids a giant growing chat (per-turn context is
-  rebuilt from artifacts; brief is budget-bounded; context policies bound artifact
-  embedding; reused sessions send deltas). The remaining gap: a *reused* provider
-  session can still grow unbounded over a marathon run. Add `maxSessionTurns` (or
-  `sessionPolicy: stateless | short-lived`) so a reused session is **re-seeded
-  from artifacts** before it balloons - "compaction by re-grounding" (lossless,
-  vibestrate-controlled), with the provider's own auto-compaction as the safety
-  net. See the discussion below.
+- **U7 - Session-reuse lifetime cap. SHIPPED (0.7.21).** `config.session.maxReuseTurns`
+  (0 = unlimited). `prepareFlowParticipantTurn` counts the turns on the current
+  provider session; once it reaches the cap it returns `opened` (a fresh session)
+  instead of `reused`, so the next turn re-grounds from artifacts (the `opened`
+  path sends the full context, not a delta) - "compaction by re-grounding"
+  (lossless, vibestrate-controlled), bounding provider-side context on a marathon
+  run. Only affects providers that support session reuse. The provider's own
+  auto-compaction remains the safety net.
 
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
 
