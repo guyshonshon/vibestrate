@@ -187,3 +187,11 @@ If retries run out, an optional **fallback** kicks in: set
 to another Profile and Vibestrate runs the turn once on that model instead (handy
 when one provider is hard-down). The swap is recorded as a `provider.fallback`
 event - never silent.
+
+A **subscription usage limit** (a per-model quota that resets, often hours out) is
+handled separately from a per-minute rate limit - retrying it for seconds is
+pointless. `resilience.usageLimit.action` controls it: `wait` sleeps for the reset
+window (the parsed hint, capped at `maxWaitMin`) then retries - so an overnight run
+"runs until the window refills"; `fallback` switches to another model; `stop`
+(default) ends honestly. The wait is an automatic timed sleep (not a human pause),
+so it's safe to leave unattended. Recorded as `provider.usage_limit`.

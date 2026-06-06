@@ -226,6 +226,25 @@ export const resilienceConfigSchema = z
       maxDelayMs: 60000,
       patterns: [],
     }),
+    // Subscription usage limits / quotas (U6): a time-windowed per-model quota
+    // that *resets* (often hours out), distinct from a per-minute rate limit. On
+    // `wait`, sleep for the reset window (the parsed hint, capped at `maxWaitMin`)
+    // then retry - "run until the window refills"; `fallback` switches model;
+    // `stop` ends honestly (default - waiting hours is opt-in). Waiting is an
+    // automatic timed sleep (not a human pause), so it's unattended-safe.
+    usageLimit: z
+      .object({
+        action: z.enum(["stop", "wait", "fallback"]).default("stop"),
+        /** Cap on how long to wait for a reset (minutes). */
+        maxWaitMin: z.number().int().positive().max(1440).default(60),
+        /** How many reset-waits to attempt before escalating. */
+        maxWaits: z.number().int().min(0).max(50).default(2),
+        /** Alternate Profile for `fallback` (or after waits exhausted). */
+        fallbackProfile: z.string().min(1).nullable().default(null),
+        patterns: z.array(z.string().min(1).max(400)).max(40).default([]),
+      })
+      .strict()
+      .default({}),
   })
   .strict()
   .default({});
