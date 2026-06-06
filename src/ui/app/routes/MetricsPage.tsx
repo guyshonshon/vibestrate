@@ -498,6 +498,7 @@ function BudgetControl() {
   const [today, setToday] = useState(0);
   const [capInput, setCapInput] = useState("");
   const [action, setAction] = useState<BudgetSettings["capAction"]>("stop");
+  const [fallback, setFallback] = useState("");
   const [turnsRun, setTurnsRun] = useState("");
   const [timeRun, setTimeRun] = useState("");
   const [turnsDay, setTurnsDay] = useState("");
@@ -513,6 +514,7 @@ function BudgetControl() {
         setToday(r.todaySpendUsd);
         setCapInput(r.budget.spendCapDailyUsd != null ? String(r.budget.spendCapDailyUsd) : "");
         setAction(r.budget.capAction);
+        setFallback(r.budget.fallbackProfile ?? "");
         const s = (n: number | null | undefined) => (n != null ? String(n) : "");
         setTurnsRun(s(r.budget.maxTurnsPerRun));
         setTimeRun(s(r.budget.maxWallClockMinPerRun));
@@ -571,6 +573,17 @@ function BudgetControl() {
             ))}
           </select>
         </label>
+        {action === "downgrade-model" ? (
+          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+            fallback profile:
+            <input
+              value={fallback}
+              onChange={(e) => setFallback(e.target.value)}
+              placeholder="profile id"
+              className="w-28 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+            />
+          </label>
+        ) : null}
         <Button
           variant="secondary"
           size="sm"
@@ -579,6 +592,7 @@ function BudgetControl() {
             void save({
               spendCapDailyUsd: capInput.trim() === "" ? null : Number(capInput),
               capAction: action,
+              fallbackProfile: fallback.trim() === "" ? null : fallback.trim(),
             })
           }
         >

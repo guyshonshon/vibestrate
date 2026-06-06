@@ -146,6 +146,12 @@ a `budget.limit` event, and notifies you. All off by default. Set them with
 `vibe budget set --max-turns-run 40 --max-time-day 120` (use `off` to clear),
 `PATCH /api/budget`, or the dashboard's Budget control.
 
+The **dollar** cap (`budget.spendCapDailyUsd`) has a configurable action when it's
+hit (`budget.capAction`): `stop` (default), `downgrade-model` (run the rest on
+the cheaper `budget.fallbackProfile` instead of stopping), or `reduce-effort`
+(continue at the provider's minimum effort). Downgrade/reduce keep the work going
+more cheaply; the count/time ceilings above are still the ultimate stop.
+
 ## Riding out provider hiccups (resilience)
 
 For unattended runs, a momentary provider problem shouldn't kill the work. A

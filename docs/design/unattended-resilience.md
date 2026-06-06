@@ -1,9 +1,16 @@
 # Design: Unattended-run resilience + budget control
 
-Status: **U1 SHIPPED (0.7.13) - count/time ceilings; U2 SHIPPED (0.7.14) -
-rate-limit/transient retries; U3 SHIPPED (0.7.15) - resilience fallback to an
-alternate profile; U4 (budget cap actions + --unattended/pause) planned.** Owner:
-maintainer. Decisions confirmed (see "Decisions" below).
+Status: **U1-U4 SHIPPED. U1 (0.7.13) count/time ceilings; U2 (0.7.14)
+rate-limit/transient retries; U3 (0.7.15) resilience fallback; U4 (0.7.16) budget
+cap actions (downgrade-model / reduce-effort).** The remaining `--unattended`
+preset + attended `pause` are optional polish (see U4 below). Owner: maintainer.
+Decisions confirmed (see "Decisions" below).
+
+**Note on "pause" (refined during U4):** pausing-for-a-human at a limit only
+helps an *attended* run - an unattended overnight run with no one to resume would
+just sit forever. So the genuinely-unattended behavior is **downgrade / stop +
+the hard ceilings**, which is what U1+U4 deliver. `onLimit/onExhausted: pause`
+is therefore an attended-run convenience, deprioritized below the shipped path.
 
 The goal: make a run (or a continuous overnight queue of runs) safe and reliable
 to leave **unattended**. Two failure families block that today:
@@ -274,11 +281,18 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   model that may not be limited/down) - different provider, session dropped, not
   itself retried, recorded as `provider.fallback`. Clean success -> proceed; else
   the original outcome stands.
-- **U4 - Budget cap actions + `--unattended`/pause (planned).** Implement
-  `capAction: downgrade-model` (run-level switch to `budget.fallbackProfile`) /
-  `reduce-effort` (currently stop-only); `onLimit`/`onExhausted: pause` (wait for
-  a human via the approval flow) + a `--unattended` mode. Split from U3: it's
-  budget governance + approval/UX, not the rate-limit resilience path.
+- **U4 - Budget cap actions. SHIPPED (0.7.16).** `enforceSpendCap` no longer
+  always stops: when the daily $ cap is hit it applies a run-level
+  `this.budgetOverride` once - `downgrade-model` switches the rest of the run to
+  `budget.fallbackProfile` (validated; else falls through to stop honestly),
+  `reduce-effort` drops to the provider's minimum effort. runRole applies the
+  override (provider/profile for downgrade; lowest power level for reduce-effort).
+  Recorded as `spend.action`; the hard count/time ceilings (U1) remain the
+  ultimate stop. Also fixed the API/UI field-name bug (`fallbackProvider` ->
+  `fallbackProfile`) so downgrade is configurable from the dashboard, and added a
+  fallback-profile input to the Budget control.
+  *Remaining polish (optional): `onLimit/onExhausted: pause` (attended only) + a
+  `--unattended` preset that sets sensible ceilings + downgrade.*
 
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
 

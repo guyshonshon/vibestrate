@@ -437,6 +437,14 @@ export class Orchestrator {
   // run's wall-clock anchor (set lazily on the first turn).
   private turnsStarted = 0;
   private runStartMs: number | null = null;
+  // Spend-cap action override (U4): set once when the daily $ cap is hit with a
+  // continue-action, then applied to every subsequent turn (downgrade -> switch
+  // to the cheaper fallback Profile; reduce-effort -> minimum effort). The hard
+  // count/time ceilings remain the ultimate stop.
+  private budgetOverride:
+    | { kind: "downgrade"; profileId: string }
+    | { kind: "reduce-effort" }
+    | null = null;
   private readonly readOnly: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
@@ -3788,8 +3796,15 @@ export class Orchestrator {
     // Effective provider id: the resolved snapshot already mapped this step's
     // Seat → Role → Profile → Provider, so input.providerId is authoritative.
     // Fall back to the role's Profile's provider if (defensively) absent.
-    const effectiveProviderId =
-      input.providerId ?? this.config.profiles[agent.profile]?.provider;
+    // Budget downgrade (U4): when the daily $ cap forced a downgrade, this turn
+    // runs on the cheaper fallback Profile instead of its resolved one.
+    const downgradeProfileId =
+      this.budgetOverride?.kind === "downgrade"
+        ? this.budgetOverride.profileId
+        : null;
+    const effectiveProviderId = downgradeProfileId
+      ? this.config.profiles[downgradeProfileId]?.provider
+      : input.providerId ?? this.config.profiles[agent.profile]?.provider;
     if (!effectiveProviderId) {
       throw new VibestrateError(
         "provider-unresolved",
@@ -4046,7 +4061,7 @@ export class Orchestrator {
       // Resolved runtime profile for this turn (model + effort + caps). Applied
       // to the spawn where the provider supports it; advisory otherwise.
       const runtimeProfile =
-        this.config.profiles[input.profileId ?? agent.profile];
+        this.config.profiles[downgradeProfileId ?? input.profileId ?? agent.profile];
       // Resolve the capability catalog (built-in + project overlay) once; the
       // provider applies model/effort from it so a user's custom catalog entry
       // actually reaches the spawn.
@@ -4091,7 +4106,11 @@ export class Orchestrator {
           prompt,
           cwd,
           model: runtimeProfile?.model ?? undefined,
-          effort: runtimeProfile?.power ?? undefined,
+          // reduce-effort (U4): drop to the provider's minimum effort if it has one.
+          effort:
+            this.budgetOverride?.kind === "reduce-effort"
+              ? this.lowestEffort(effectiveProviderId) ?? runtimeProfile?.power ?? undefined
+              : runtimeProfile?.power ?? undefined,
           maxTokens: runtimeProfile?.maxTokens ?? undefined,
           // Real wall-clock cap (no longer advisory): the provider tree-kills the
           // whole turn if it overruns - matters most for fanned-out review turns.
@@ -4785,14 +4804,47 @@ export class Orchestrator {
     if (evaluation.state !== "exceeded") return;
 
     const at = `Daily spend ~$${dailySpendUsd.toFixed(2)} reached the $${cap}/day cap`;
-    if (budget.capAction !== "stop") {
-      // Honest TODO: Profile-based downgrade isn't wired up yet.
+
+    // Already applied a continue-action this run? Keep going - the hard
+    // count/time ceilings (U1) are the ultimate stop, so we don't re-decide or
+    // re-notify every turn once downgraded.
+    if (this.budgetOverride) return;
+
+    // downgrade-model: run the rest of the run on the cheaper fallback Profile.
+    if (budget.capAction === "downgrade-model") {
+      const fb = budget.fallbackProfile;
+      const fbProfile = fb ? this.config.profiles[fb] : undefined;
+      if (fb && fbProfile && this.config.providers[fbProfile.provider]) {
+        this.budgetOverride = { kind: "downgrade", profileId: fb };
+        await ctx.eventLog.append({
+          type: "spend.action",
+          message: `${at}. Downgrading the rest of the run to profile "${fb}" (provider ${fbProfile.provider}).`,
+          data: { action: "downgrade-model", fallbackProfile: fb, dailySpendUsd, cap },
+        });
+        return;
+      }
       await ctx.eventLog.append({
         type: "policy.warning",
-        message: `${at}; capAction="${budget.capAction}" is not yet supported in the Profile model - stopping instead.`,
-        data: { kind: "spend-cap-downgrade-unsupported", capAction: budget.capAction },
+        message: `${at}; capAction="downgrade-model" but budget.fallbackProfile is unset/invalid - stopping instead.`,
+        data: { kind: "spend-cap-downgrade-no-fallback", fallbackProfile: fb ?? null },
       });
+      // fall through to stop.
     }
+
+    // reduce-effort: continue at the provider's minimum effort for the rest of
+    // the run (best-effort - a no-op for providers with no effort control, but
+    // the run still continues rather than stopping).
+    if (budget.capAction === "reduce-effort") {
+      this.budgetOverride = { kind: "reduce-effort" };
+      await ctx.eventLog.append({
+        type: "spend.action",
+        message: `${at}. Reducing effort to the minimum for the rest of the run.`,
+        data: { action: "reduce-effort", dailySpendUsd, cap },
+      });
+      return;
+    }
+
+    // stop (the default, or downgrade-model with no usable fallback).
     await ctx.eventLog.append({
       type: "spend.capped",
       message: `${at}. Stopping per budget policy (capAction=${budget.capAction}).`,
@@ -4811,6 +4863,19 @@ export class Orchestrator {
     throw new __SpendCapStopSignal(
       `${at}. Run stopped by the daily spend cap (capAction=${budget.capAction}).`,
     );
+  }
+
+  /** The provider's lowest effort/power level (for reduce-effort), or undefined
+   *  when the provider exposes no effort control. */
+  private lowestEffort(providerId: string): string | undefined {
+    const provCfg = this.config.providers[providerId];
+    if (!provCfg || !this.resolvedCatalog) return undefined;
+    const levels = capabilitiesForProvider(
+      providerId,
+      provCfg,
+      this.resolvedCatalog,
+    ).powerLevels;
+    return levels.length > 0 ? levels[0] : undefined;
   }
 
   private async writeFinalReport(input: {
