@@ -238,6 +238,10 @@ export type OrchestratorInput = {
   /** Investigation-only run: force readOnly permissions on every agent,
    * skip the executor / fix loop entirely, refuse write-side actions. */
   readOnly?: boolean;
+  /** Unattended run: never pause for a human. Forces budget `onLimit` to stop
+   * and resilience `onExhausted` to fail, so the run always reaches a terminal
+   * state on its own even if pause is configured. */
+  unattended?: boolean;
   /** Skill ids to attach to every agent for this single run, merged
    * (deduped) with the agent's configured skill list. Empty / omitted
    * means "use the agent's configured skills only". */
@@ -445,7 +449,11 @@ export class Orchestrator {
     | { kind: "downgrade"; profileId: string }
     | { kind: "reduce-effort" }
     | null = null;
+  // onLimit: pause (U5) - once a human approves continuing past a ceiling, don't
+  // re-pause every turn for the rest of the run.
+  private budgetCeilingAcknowledged = false;
   private readonly readOnly: boolean;
+  private readonly unattended: boolean;
   private readonly runtimeSkills: string[];
   private readonly concise: boolean;
   private readonly flow: ResolvedFlowSnapshot | null;
@@ -471,6 +479,7 @@ export class Orchestrator {
     this.stepProfileOverrides = input.stepProfileOverrides ?? {};
     this.seatRoleOverrides = input.seatRoleOverrides ?? {};
     this.readOnly = input.readOnly ?? false;
+    this.unattended = input.unattended ?? false;
     this.runtimeSkills = Array.from(new Set(input.runtimeSkills ?? []));
     this.concise = input.concise ?? false;
     this.flow = input.flow ?? null;
@@ -4567,6 +4576,42 @@ export class Orchestrator {
    * configured ⇒ no-op.
    */
   /**
+   * Pause the run for a human at a limit (U5), reusing the standard approval
+   * flow. Returns true if approved (continue), false if rejected (stop/give up).
+   * For ATTENDED runs only - the caller must already have checked `!unattended`.
+   */
+  private async pauseForApproval(input: {
+    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
+    stageId: string;
+    reason: string;
+    requestedAction: string;
+    requestedMessage: string;
+    resumedMessage: string;
+  }): Promise<boolean> {
+    const cur = await input.ctx.stateStore.read();
+    if (!cur) return false; // no state to pause on -> treat as reject (stop).
+    const res = await this.awaitApprovalRequest({
+      state: cur,
+      fromStatus: cur.status,
+      stageId: input.stageId,
+      roleId: "budget",
+      reason: input.reason,
+      prompt: null,
+      sourceArtifactPath: null,
+      requestedAction: input.requestedAction,
+      riskLevel: "medium",
+      source: "policy",
+      progressMessage: `Pausing: ${input.reason}`,
+      requestedMessage: input.requestedMessage,
+      resumedMessage: input.resumedMessage,
+      approvalService: new ApprovalService(this.projectRoot, input.ctx.runId),
+      stateStore: input.ctx.stateStore,
+      eventLog: input.ctx.eventLog,
+    });
+    return !res.rejected;
+  }
+
+  /**
    * Count/time budget ceilings (unattended-resilience U1). Checked before every
    * agent turn. Unlike the dollar cap, these bind WITHOUT measured cost - the
    * reliable backstop for unattended runs where CLI token cost is unmeasured.
@@ -4578,9 +4623,15 @@ export class Orchestrator {
   private async enforceBudgetCeilings(ctx: {
     eventLog: EventLog;
     runId: string;
+    stateStore: RunStateStore;
   }): Promise<void> {
     const budget = this.config.budget;
     if (!budget) return;
+    // A human already approved continuing past a ceiling this run - don't re-check.
+    if (this.budgetCeilingAcknowledged) {
+      this.turnsStarted += 1;
+      return;
+    }
     const {
       maxTurnsPerRun,
       maxWallClockMinPerRun,
@@ -4623,6 +4674,30 @@ export class Orchestrator {
     if (!hit) return;
 
     const detail = `${hit.kind} ${hit.value}/${hit.limit} ${hit.unit}`;
+
+    // onLimit: pause (attended) - ask a human to continue or stop. --unattended
+    // forces stop (an unattended run can't be resumed, so it must not hang).
+    if (budget.onLimit === "pause" && !this.unattended) {
+      const approved = await this.pauseForApproval({
+        ctx,
+        stageId: "budget-limit",
+        reason: `Budget ceiling reached: ${detail}`,
+        requestedAction: "budget.limit",
+        requestedMessage: `Budget ceiling reached (${detail}). Approve to continue this run past its budget, or reject to stop.`,
+        resumedMessage: `Approved continuing past the budget ceiling (${detail}).`,
+      });
+      if (approved) {
+        this.budgetCeilingAcknowledged = true;
+        await ctx.eventLog.append({
+          type: "budget.limit",
+          message: `Budget ceiling ${detail} reached; a human approved continuing.`,
+          data: { kind: hit.kind, value: hit.value, limit: hit.limit, unit: hit.unit, onLimit: "pause", resolved: "approved" },
+        });
+        return;
+      }
+      // rejected -> fall through to stop.
+    }
+
     const msg = `Budget ceiling reached: ${detail}. Run stopped (budget.onLimit=stop).`;
     await ctx.eventLog.append({
       type: "budget.limit",
@@ -4648,7 +4723,7 @@ export class Orchestrator {
    */
   private async runProviderResilient(input: {
     args: Parameters<typeof runProvider>[1];
-    ctx: { eventLog: EventLog; runId: string };
+    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
     stageId: string;
     abortSignal: AbortSignal;
   }): Promise<RichProviderRunResult> {
@@ -4690,6 +4765,22 @@ export class Orchestrator {
           abortSignal: input.abortSignal,
         });
         if (fb) return fb;
+        // onExhausted: pause (attended) - wait for a human to approve a fresh
+        // round of retries, or reject (give up). --unattended forces fail.
+        if (r.onExhausted === "pause" && !this.unattended) {
+          const approved = await this.pauseForApproval({
+            ctx: input.ctx,
+            stageId: input.stageId,
+            reason: `Provider ${cls} unrecovered at ${input.stageId} after ${spec.maxRetries} retries`,
+            requestedAction: "provider.exhausted",
+            requestedMessage: `Provider ${cls} hasn't recovered at ${input.stageId} after ${spec.maxRetries} retries. Approve to retry again, or reject to fail.`,
+            resumedMessage: `Retrying ${input.stageId} after approval.`,
+          });
+          if (approved) {
+            attempt = 0; // fresh retry budget after the human waited/fixed it
+            continue;
+          }
+        }
         return giveUp();
       }
 

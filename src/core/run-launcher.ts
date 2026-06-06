@@ -41,6 +41,9 @@ export const runSpecSchema = z.object({
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides: z.record(z.string(), z.string()).optional(),
   readOnly: z.boolean().optional(),
+  /** Unattended run: never pause for a human (forces budget onLimit->stop and
+   *  resilience onExhausted->fail), so the run always terminates on its own. */
+  unattended: z.boolean().optional(),
   runtimeSkills: z.array(z.string().min(1).max(128)).max(64).optional(),
   concise: z.boolean().optional(),
   /** Orchestrator flow selection: true = force a selection even if a default is
@@ -256,6 +259,7 @@ export async function runFromSpec(
     stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
     seatRoleOverrides: spec.seatRoleOverrides ?? {},
     readOnly,
+    unattended: spec.unattended ?? false,
     runtimeSkills: spec.runtimeSkills ?? [],
     concise: spec.concise ?? false,
     flow: resolvedFlow,

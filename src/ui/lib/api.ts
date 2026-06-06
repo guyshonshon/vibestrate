@@ -213,6 +213,7 @@ export type BudgetSettings = {
   maxWallClockMinPerRun?: number | null;
   maxTurnsPerDay?: number | null;
   maxWallClockMinPerDay?: number | null;
+  onLimit?: "stop" | "pause";
 };
 
 export type MetricsOverview = {

@@ -181,6 +181,10 @@ export function buildVibestrateProgram(): Command {
       "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every role.",
     )
     .option(
+      "--unattended",
+      "never pause for a human: forces budget onLimit->stop and resilience onExhausted->fail, so the run always terminates on its own.",
+    )
+    .option(
       "--auto-effort",
       "apply the heuristic effort suggestion when --effort isn't passed.",
     )
@@ -265,6 +269,7 @@ export function buildVibestrateProgram(): Command {
           crew?: string;
           profile?: string;
           readOnly?: boolean;
+          unattended?: boolean;
           autoEffort?: boolean;
           skills?: string;
           concise?: boolean;
@@ -382,6 +387,7 @@ export function buildVibestrateProgram(): Command {
           seatRoleOverrides,
           profileOverride: opts.profile ?? null,
           readOnly: opts.readOnly ?? false,
+          unattended: opts.unattended ?? false,
           autoEffort: opts.autoEffort ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,

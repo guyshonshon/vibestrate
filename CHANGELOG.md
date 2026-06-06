@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.7.16
+## 0.7.17
+
+- **Pause-for-a-human at a limit (attended), or force never-pause (unattended).**
+  For runs you're watching, a budget ceiling can now wait for you instead of just
+  stopping: `budget.onLimit: pause` asks you to approve continuing past the
+  ceiling (or reject to stop), and `resilience.onExhausted: pause` asks when a
+  provider's retries and fallback are exhausted (approve for a fresh round, reject
+  to fail). Defaults stay stop/fail, so nothing changes unless you opt in. For
+  genuinely unattended runs, launch with **`vibe run --unattended`** (or
+  `unattended` on `POST /api/runs`): it forces no-pause everywhere, so the run
+  always reaches a terminal state on its own and never sits waiting for someone
+  who isn't there. `onLimit` is settable via `vibe budget set --on-limit` and the
+  dashboard Budget control. This completes the unattended-resilience work.
 
 - **At the spending cap, keep going cheaper instead of always stopping.** The
   daily dollar cap's action is now real (it was stop-only): `downgrade-model`

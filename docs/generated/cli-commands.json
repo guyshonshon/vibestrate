@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.16",
+  "version": "0.7.17",
   "commands": [
     {
       "name": "init",
@@ -4726,6 +4726,13 @@
               "required": true,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--on-limit <stop|pause>",
+              "description": "what to do when a count/time ceiling is hit (pause = attended)",
+              "required": true,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []
@@ -4899,6 +4906,13 @@
         {
           "flags": "--read-only",
           "description": "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every role.",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--unattended",
+          "description": "never pause for a human: forces budget onLimit->stop and resilience onExhausted->fail, so the run always terminates on its own.",
           "required": false,
           "optional": false,
           "negated": false
