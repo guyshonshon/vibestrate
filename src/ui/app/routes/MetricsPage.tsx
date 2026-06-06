@@ -503,6 +503,7 @@ function BudgetControl() {
   const [timeRun, setTimeRun] = useState("");
   const [turnsDay, setTurnsDay] = useState("");
   const [timeDay, setTimeDay] = useState("");
+  const [onLimit, setOnLimit] = useState<"stop" | "pause">("stop");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -520,6 +521,7 @@ function BudgetControl() {
         setTimeRun(s(r.budget.maxWallClockMinPerRun));
         setTurnsDay(s(r.budget.maxTurnsPerDay));
         setTimeDay(s(r.budget.maxWallClockMinPerDay));
+        setOnLimit(r.budget.onLimit ?? "stop");
       })
       .catch(() => {});
   }, []);
@@ -626,6 +628,17 @@ function BudgetControl() {
             {label}
           </label>
         ))}
+        <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
+          on hit:
+          <select
+            value={onLimit}
+            onChange={(e) => setOnLimit(e.target.value as "stop" | "pause")}
+            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+          >
+            <option value="stop">stop</option>
+            <option value="pause">pause</option>
+          </select>
+        </label>
         <Button
           variant="secondary"
           size="sm"
@@ -636,6 +649,7 @@ function BudgetControl() {
               maxWallClockMinPerRun: numOrNull(timeRun),
               maxTurnsPerDay: numOrNull(turnsDay),
               maxWallClockMinPerDay: numOrNull(timeDay),
+              onLimit,
             })
           }
         >

@@ -282,7 +282,8 @@
           "required": false,
           "default": "stop",
           "enum": [
-            "stop"
+            "stop",
+            "pause"
           ],
           "itemType": null
         }
@@ -302,6 +303,18 @@
           "type": "boolean",
           "required": false,
           "default": true,
+          "itemType": null
+        },
+        {
+          "key": "onExhausted",
+          "fullKey": "resilience.onExhausted",
+          "type": "enum",
+          "required": false,
+          "default": "fail",
+          "enum": [
+            "fail",
+            "pause"
+          ],
           "itemType": null
         },
         {

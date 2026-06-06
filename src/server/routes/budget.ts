@@ -18,6 +18,7 @@ const updateSchema = z
     maxWallClockMinPerRun: z.number().positive().nullable().optional(),
     maxTurnsPerDay: z.number().int().positive().nullable().optional(),
     maxWallClockMinPerDay: z.number().positive().nullable().optional(),
+    onLimit: z.enum(["stop", "pause"]).optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, {
@@ -72,6 +73,9 @@ export async function registerBudgetRoutes(
       if (v !== undefined) {
         await setConfigValue(projectRoot, `budget.${key}`, v === null ? "null" : String(v));
       }
+    }
+    if (b.onLimit !== undefined) {
+      await setConfigValue(projectRoot, "budget.onLimit", b.onLimit);
     }
     const loaded = await loadConfig(projectRoot);
     return { ok: true, budget: loaded.config.budget };

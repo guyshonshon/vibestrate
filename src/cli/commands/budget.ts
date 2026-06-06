@@ -87,6 +87,7 @@ export function buildBudgetCommand(): Command {
     .option("--max-time-run <min|off>", "max wall-clock minutes for one run")
     .option("--max-turns-day <n|off>", "max agent turns across all runs today")
     .option("--max-time-day <min|off>", "max wall-clock minutes across all runs today")
+    .option("--on-limit <stop|pause>", "what to do when a count/time ceiling is hit (pause = attended)")
     .action(
       async (opts: {
         cap?: string;
@@ -97,6 +98,7 @@ export function buildBudgetCommand(): Command {
         maxTimeRun?: string;
         maxTurnsDay?: string;
         maxTimeDay?: string;
+        onLimit?: string;
       }) => {
         const cwd = process.cwd();
         const ceilingOpts = [
@@ -105,11 +107,16 @@ export function buildBudgetCommand(): Command {
           opts.maxTurnsDay,
           opts.maxTimeDay,
         ];
+        if (opts.onLimit !== undefined && !["stop", "pause"].includes(opts.onLimit)) {
+          console.error(`${symbol.fail()} --on-limit must be "stop" or "pause".`);
+          process.exit(2);
+        }
         if (
           opts.cap === undefined &&
           opts.action === undefined &&
           opts.warn === undefined &&
           opts.fallback === undefined &&
+          opts.onLimit === undefined &&
           ceilingOpts.every((v) => v === undefined)
         ) {
           console.error(
@@ -142,6 +149,9 @@ export function buildBudgetCommand(): Command {
         await setCeiling(cwd, "budget.maxWallClockMinPerRun", opts.maxTimeRun, false);
         await setCeiling(cwd, "budget.maxTurnsPerDay", opts.maxTurnsDay, true);
         await setCeiling(cwd, "budget.maxWallClockMinPerDay", opts.maxTimeDay, false);
+        if (opts.onLimit !== undefined) {
+          await setConfigValue(cwd, "budget.onLimit", opts.onLimit);
+        }
         console.log(`${symbol.ok()} Budget updated.`);
       },
     );

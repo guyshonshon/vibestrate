@@ -80,6 +80,8 @@ export type RunCommandOptions = {
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides?: Record<string, string>;
   readOnly?: boolean;
+  /** Never pause for a human (forces budget onLimit->stop, onExhausted->fail). */
+  unattended?: boolean;
   autoEffort?: boolean;
   /** Skill ids attached only for this run, merged into role skills. */
   runtimeSkills?: string[];
@@ -490,6 +492,7 @@ export async function runRunCommand(
     stepProfileOverrides: options.flowStepProfiles ?? {},
     seatRoleOverrides: options.seatRoleOverrides ?? {},
     readOnly,
+    unattended: options.unattended ?? false,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,
     flow: resolvedFlow,

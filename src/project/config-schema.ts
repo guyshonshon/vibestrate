@@ -180,8 +180,11 @@ export const budgetConfigSchema = z
     maxTurnsPerDay: z.number().int().positive().nullable().default(null),
     /** Max wall-clock minutes across all runs today. */
     maxWallClockMinPerDay: z.number().positive().nullable().default(null),
-    /** What to do when a ceiling is hit. `stop` blocks the run honestly. */
-    onLimit: z.enum(["stop"]).default("stop"),
+    /** What to do when a ceiling is hit. `stop` blocks the run honestly;
+     *  `pause` waits for a human to approve (continue) or reject (stop) - for
+     *  ATTENDED runs (an unattended run would just sit; default stays `stop`).
+     *  A run launched with `--unattended` forces `stop` regardless. */
+    onLimit: z.enum(["stop", "pause"]).default("stop"),
   })
   .default({ spendCapDailyUsd: null, capAction: "stop", warnThresholdPct: 0.8 });
 
@@ -209,6 +212,11 @@ const resilienceClassSchema = z
 export const resilienceConfigSchema = z
   .object({
     enabled: z.boolean().default(true),
+    /** When retries (+ fallback) are exhausted for a recoverable failure:
+     *  `fail` lets the run fail honestly; `pause` waits for a human to approve a
+     *  fresh round of retries or reject (give up) - ATTENDED only. Default
+     *  `fail`; `--unattended` forces `fail`. */
+    onExhausted: z.enum(["fail", "pause"]).default("fail"),
     rateLimit: resilienceClassSchema
       .extend({ respectRetryAfter: z.boolean().default(true) })
       .default({ maxRetries: 5, baseDelayMs: 2000, maxDelayMs: 120000, respectRetryAfter: true, patterns: [] }),

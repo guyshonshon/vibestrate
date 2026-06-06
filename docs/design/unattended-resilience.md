@@ -1,10 +1,10 @@
 # Design: Unattended-run resilience + budget control
 
-Status: **U1-U4 SHIPPED. U1 (0.7.13) count/time ceilings; U2 (0.7.14)
+Status: **U1-U5 SHIPPED (complete).** U1 (0.7.13) count/time ceilings; U2 (0.7.14)
 rate-limit/transient retries; U3 (0.7.15) resilience fallback; U4 (0.7.16) budget
-cap actions (downgrade-model / reduce-effort).** The remaining `--unattended`
-preset + attended `pause` are optional polish (see U4 below). Owner: maintainer.
-Decisions confirmed (see "Decisions" below).
+cap actions (downgrade-model / reduce-effort); U5 (0.7.17) attended `pause`
+(`onLimit` / `onExhausted`) + the `--unattended` no-pause override. Owner:
+maintainer. Decisions confirmed (see "Decisions" below).
 
 **Note on "pause" (refined during U4):** pausing-for-a-human at a limit only
 helps an *attended* run - an unattended overnight run with no one to resume would
@@ -291,8 +291,19 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   ultimate stop. Also fixed the API/UI field-name bug (`fallbackProvider` ->
   `fallbackProfile`) so downgrade is configurable from the dashboard, and added a
   fallback-profile input to the Budget control.
-  *Remaining polish (optional): `onLimit/onExhausted: pause` (attended only) + a
-  `--unattended` preset that sets sensible ceilings + downgrade.*
+- **U5 - Attended pause + `--unattended` override. SHIPPED (0.7.17).**
+  `budget.onLimit: pause` (a count/time ceiling waits for a human via the standard
+  approval flow - approve = continue past it for this run, reject = stop) and
+  `resilience.onExhausted: pause` (exhausted retries+fallback wait for a human;
+  approve = a fresh retry budget, reject = give up). Both reuse
+  `awaitApprovalRequest` (a shared `pauseForApproval`). Defaults stay `stop`/`fail`
+  (unattended-safe). A run launched with `--unattended` (Orchestrator option,
+  CLI flag, `POST /api/runs`, RunSpec) **forces no-pause** (onLimit->stop,
+  onExhausted->fail) so it can never hang waiting for an absent human. `onLimit`
+  is settable via `vibe budget set --on-limit`, `PATCH /api/budget`, and the
+  dashboard Budget control. *Minor follow-up: an `--unattended` checkbox in the
+  web run-composer (it's CLI/API-settable today; `onExhausted` is config-file
+  tunable like the rest of the `resilience` block).*
 
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
 

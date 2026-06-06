@@ -152,6 +152,14 @@ the cheaper `budget.fallbackProfile` instead of stopping), or `reduce-effort`
 (continue at the provider's minimum effort). Downgrade/reduce keep the work going
 more cheaply; the count/time ceilings above are still the ultimate stop.
 
+For **attended** runs you can ask to be consulted at a limit instead of just
+stopping: `budget.onLimit: pause` waits for you to approve continuing (or reject
+to stop) when a ceiling is hit, and `resilience.onExhausted: pause` waits when a
+provider's retries+fallback run out (approve for a fresh round, reject to fail).
+Defaults are `stop`/`fail` (unattended-safe). Launch a run with **`--unattended`**
+(`vibe run --unattended`, or `unattended` on `POST /api/runs`) to force no-pause
+regardless of config - so an overnight run can never sit waiting for a human.
+
 ## Riding out provider hiccups (resilience)
 
 For unattended runs, a momentary provider problem shouldn't kill the work. A
