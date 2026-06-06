@@ -1,7 +1,8 @@
 # Design: Run audit graph (a tree of everything that happened)
 
 Status: **Phase A SHIPPED (0.7.18) - derivation + `vibe audit` + API; Phase B
-(visual) + Phase C (inside-the-box) planned.** Owner: maintainer.
+SHIPPED (0.7.19) - web visual (audit tree on the run detail page); Phase C
+(inside-the-box) planned.** Owner: maintainer.
 
 A single, complete, visual hierarchy of what happened inside a task/run: the
 orchestrator -> the flow's steps (the DAG we already draw) -> each step's agent
@@ -111,11 +112,14 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
   (budget.limit/spend.action/approval/...) and the assurance verdict hang off the
   root. Surfaced via `vibe audit <runId>` (text or `--json`) and
   `GET /api/runs/:id/audit`. The "opaque box" (inside a turn) is Phase C.
-- **Phase B - the visual.** Render the tree on the run-detail page: extend the
-  existing layered DAG (`flow-graph-layout.ts`) so step nodes are expandable to
-  reveal attempts + outcomes (color-coded: retry/fallback/pause/tolerated-fail),
-  with the event timeline cross-linked. Shell-TUI parity (the shared layout
-  module already serves web + CLI + shell).
+- **Phase B - the visual. SHIPPED (0.7.19).** An "Run audit · what happened" tree
+  on the run-detail page (`AuditTree`/`AuditStepRow` in RunDetailPage): each flow
+  step with its metric rollup + the **color-coded attempt chain** (rate-limit ->
+  retry -> fallback -> success), plus run-level control events and the
+  totals/assurance header. Fetched from `GET /api/runs/:id/audit` (terminal runs).
+  Sits alongside the existing live Flow graph (topology) - the audit tree is the
+  per-step *story*. *Follow-ups: a shell-TUI audit view (audit is CLI + web today)
+  and enriching the live DAG nodes with audit badges inline.*
 - **Phase C - inside the box.** Surface provider-internal tool calls / sub-agents
   from the stream for `stream-json` providers; honestly render "opaque" otherwise.
   Optionally add a normalized "sub-agent" event other adapters can populate later.

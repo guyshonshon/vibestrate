@@ -1491,6 +1491,57 @@ export type RunAssurance = {
   caps: string[];
 };
 
+// Run audit tree (see src/core/run-audit.ts).
+export type AuditAttemptOutcome =
+  | "success"
+  | "rate-limit"
+  | "transient"
+  | "fallback"
+  | "paused"
+  | "tolerated-failure"
+  | "failed";
+
+export type AuditAttempt = {
+  index: number;
+  outcome: AuditAttemptOutcome;
+  detail: string | null;
+};
+
+export type AuditStep = {
+  id: string;
+  label: string;
+  kind: string;
+  seat: string | null;
+  status: string;
+  needs: string[];
+  provider: string | null;
+  model: string | null;
+  costUsd: number | null;
+  durationMs: number | null;
+  toolCallCount: number | null;
+  retries: number;
+  fellBack: boolean;
+  decision: string | null;
+  attempts: AuditAttempt[];
+};
+
+export type RunAudit = {
+  schemaVersion: 1;
+  runId: string;
+  task: string;
+  status: string;
+  flow: { id: string; label: string } | null;
+  assuranceVerdict: string | null;
+  steps: AuditStep[];
+  control: { type: string; message: string }[];
+  totals: {
+    turns: number;
+    retries: number;
+    fallbacks: number;
+    costUsd: number | null;
+  };
+};
+
 export type PolicyDoctorResult = {
   ruleCount: number;
   fileCount: number;

@@ -3,6 +3,9 @@ import { api, type ProviderRow } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
+  RunAudit,
+  AuditStep,
+  AuditAttemptOutcome,
   VibestrateEvent,
   ApprovalRequest,
   RunAssurance,
@@ -70,6 +73,7 @@ export function RunDetailPage({
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
+  const [audit, setAudit] = useState<RunAudit | null>(null);
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
 
   useEffect(() => {
@@ -89,12 +93,18 @@ export function RunDetailPage({
         setApprovals(a);
         setSelection(sel);
         setError(null);
-        // Assurance only exists once a run is terminal.
+        // Assurance + audit only exist once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
           api
             .getRunAssurance(runId)
             .then((as) => {
               if (!cancelled) setAssurance(as);
+            })
+            .catch(() => {});
+          api
+            .getRunAudit(runId)
+            .then((au) => {
+              if (!cancelled) setAudit(au);
             })
             .catch(() => {});
         }
@@ -286,6 +296,8 @@ export function RunDetailPage({
           />
         </section>
       ) : null}
+
+      {audit ? <AuditTree audit={audit} /> : null}
 
       <StepTimelineV3 flow={run.flow ?? null} />
 
@@ -813,6 +825,116 @@ function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+const OUTCOME_TONE: Record<AuditAttemptOutcome, string> = {
+  success: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+  "rate-limit": "border-amber-400/30 bg-amber-400/10 text-amber-200",
+  transient: "border-amber-400/30 bg-amber-400/10 text-amber-200",
+  fallback: "border-cyan-400/30 bg-cyan-400/10 text-cyan-200",
+  paused: "border-cyan-400/30 bg-cyan-400/10 text-cyan-200",
+  "tolerated-failure": "border-amber-400/30 bg-amber-400/10 text-amber-200",
+  failed: "border-rose-400/30 bg-rose-400/10 text-rose-200",
+};
+
+const STEP_STATUS_DOT: Record<string, string> = {
+  passed: "bg-emerald-400",
+  failed: "bg-rose-400",
+  blocked: "bg-rose-400",
+  skipped: "bg-fog-500",
+  running: "bg-violet-soft",
+  pending: "bg-fog-600",
+};
+
+/** The run audit tree: flow steps + per-step attempt chain (rate-limit → retry →
+ *  fallback → success), control events, and totals. Sourced from /audit. */
+function AuditTree({ audit }: { audit: RunAudit }) {
+  return (
+    <section data-screen-label="Run audit">
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="eyebrow">Run audit · what happened</span>
+        <span className="mono text-[11px] text-fog-400">
+          {audit.totals.turns} turns · {audit.totals.retries} retries ·{" "}
+          {audit.totals.fallbacks} fallbacks
+          {audit.totals.costUsd != null ? ` · $${audit.totals.costUsd.toFixed(3)}` : ""}
+        </span>
+      </div>
+      <div className="glass p-4">
+        <div className="flex flex-wrap items-baseline gap-x-3 text-sm">
+          <span className="font-semibold">{audit.status.replace(/_/g, " ")}</span>
+          {audit.flow ? (
+            <span className="text-fog-400 text-xs">
+              {audit.flow.label} <span className="text-fog-600">({audit.flow.id})</span>
+            </span>
+          ) : null}
+          {audit.assuranceVerdict ? (
+            <span className="text-fog-400 text-xs">
+              assurance: {audit.assuranceVerdict.replace(/_/g, " ")}
+            </span>
+          ) : null}
+        </div>
+
+        <ul className="mt-3 space-y-2">
+          {audit.steps.map((s) => (
+            <AuditStepRow key={s.id} step={s} />
+          ))}
+        </ul>
+
+        {audit.control.length > 0 ? (
+          <div className="mt-3 border-t border-white/5 pt-2">
+            <div className="eyebrow mb-1">Control</div>
+            <ul className="space-y-0.5 text-[11.5px] text-fog-400">
+              {audit.control.map((c, i) => (
+                <li key={i}>
+                  <span className="mono text-fog-500">{c.type}</span> {c.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function AuditStepRow({ step }: { step: AuditStep }) {
+  const meta = [
+    step.seat ? `${step.seat}${step.provider ? `→${step.provider}` : ""}` : step.provider,
+    step.model,
+    step.costUsd != null ? `$${step.costUsd.toFixed(3)}` : null,
+    step.durationMs != null ? `${(step.durationMs / 1000).toFixed(1)}s` : null,
+    step.toolCallCount != null ? `${step.toolCallCount} tools` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <li>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]">
+        <span className={`inline-block h-2 w-2 rounded-full ${STEP_STATUS_DOT[step.status] ?? "bg-fog-600"}`} />
+        <span className="font-medium text-fog-100">{step.id}</span>
+        <span className="text-fog-600 text-[11px]">{step.kind}</span>
+        {meta ? <span className="text-fog-500 text-[11px]">{meta}</span> : null}
+        {step.decision ? (
+          <span className="text-fog-400 text-[11px]">· {step.decision}</span>
+        ) : null}
+      </div>
+      {step.attempts.length > 0 ? (
+        <div className="mt-1 flex flex-wrap items-center gap-1 pl-4">
+          {step.attempts.map((a, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 ? <span className="text-fog-600 text-[10px]">→</span> : null}
+              <span
+                className={`rounded border px-1.5 py-0.5 text-[10.5px] ${OUTCOME_TONE[a.outcome]}`}
+              >
+                {a.outcome}
+                {a.detail ? <span className="opacity-70"> {a.detail}</span> : null}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </li>
   );
 }
 

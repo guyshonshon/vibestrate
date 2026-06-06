@@ -48,6 +48,7 @@ import type {
   QueueEntry,
   RoadmapItem,
   RunAssurance,
+  RunAudit,
   RunControlDirective,
   RunState,
   RuntimeMetrics,
@@ -581,6 +582,10 @@ export const api = {
       `/api/runs/${runId}/assurance`,
     );
     return r.assurance;
+  },
+  async getRunAudit(runId: string): Promise<RunAudit> {
+    const r = await jsonGet<{ audit: RunAudit }>(`/api/runs/${runId}/audit`);
+    return r.audit;
   },
   async getRunSelection(runId: string): Promise<WorkflowSelectionView | null> {
     const r = await jsonGet<{ selection: WorkflowSelectionView | null }>(
