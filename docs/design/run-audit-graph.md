@@ -112,14 +112,19 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
   (budget.limit/spend.action/approval/...) and the assurance verdict hang off the
   root. Surfaced via `vibe audit <runId>` (text or `--json`) and
   `GET /api/runs/:id/audit`. The "opaque box" (inside a turn) is Phase C.
-- **Phase B - the visual. SHIPPED (0.7.19).** An "Run audit · what happened" tree
-  on the run-detail page (`AuditTree`/`AuditStepRow` in RunDetailPage): each flow
-  step with its metric rollup + the **color-coded attempt chain** (rate-limit ->
-  retry -> fallback -> success), plus run-level control events and the
-  totals/assurance header. Fetched from `GET /api/runs/:id/audit` (terminal runs).
-  Sits alongside the existing live Flow graph (topology) - the audit tree is the
-  per-step *story*. *Follow-ups: a shell-TUI audit view (audit is CLI + web today)
-  and enriching the live DAG nodes with audit badges inline.*
+- **Phase B - the visual. SHIPPED (0.7.19), reworked into a node-graph (0.7.24).**
+  A "Run audit · what happened" view on the run-detail page
+  (`RunAuditGraph` in `src/ui/components/runs/RunAuditGraph.tsx`): a single
+  **vertical node-graph** rooted at the orchestrator and descending through each
+  step's agent node down one connected spine. Every step branches into its own
+  sub-streams - the **color-coded attempt chain** (rate-limit -> retry -> fallback
+  -> success) as a nested vertical mini-timeline, the inside-the-turn tool chips,
+  and any spawned sub-agents as deeper nested nodes - so the hierarchy reads top to
+  bottom (was a flat list: `AuditTree`/`AuditStepRow`). Fetched from
+  `GET /api/runs/:id/audit` (terminal runs). Sits alongside the existing live Flow
+  graph (topology) - the audit node-graph is the per-step *story*. *Follow-ups: a
+  shell-TUI audit view (audit is CLI + web today) and enriching the live DAG nodes
+  with audit badges inline.*
 - **Phase C - inside the box. SHIPPED (0.7.22).** `src/core/turn-internals.ts`
   `extractTurnInternals(rawStdout)` parses a turn's stream-json (grounded in real
   captured `claude` output) into grouped tool calls + sub-agent spawns
