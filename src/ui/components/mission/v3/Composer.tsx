@@ -63,6 +63,7 @@ export type ComposerSubmitInput = {
   seatRoleOverrides: Record<string, string>;
   skills: string[];
   readOnly: boolean;
+  unattended: boolean;
 };
 
 type Props = {
@@ -134,6 +135,7 @@ export function ComposerV3({
   const [seatRoles, setSeatRoles] = useState<Record<string, string>>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
+  const [unattended, setUnattended] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -267,6 +269,7 @@ export function ComposerV3({
       seatRoleOverrides: seatRoles,
       skills: selectedSkills,
       readOnly,
+      unattended,
     });
   }
 
@@ -504,6 +507,19 @@ export function ComposerV3({
           >
             <Lock className="h-3 w-3" strokeWidth={1.7} />
             {readOnly ? "Read-only on" : "Read-only off"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnattended((x) => !x)}
+            title="Never pause for a human (forces stop/fail at a limit) - so the run can't hang while you're away."
+            className={cn(
+              "h-7 px-2.5 rounded-full text-[11.5px] flex items-center gap-1.5 border transition whitespace-nowrap",
+              unattended
+                ? "border-cyan-400/30 bg-cyan-500/10 text-cyan-300"
+                : "border-white/[0.08] bg-white/[0.02] text-fog-300 hover:text-fog-100",
+            )}
+          >
+            {unattended ? "Unattended on" : "Unattended off"}
           </button>
           <span className="h-7 px-2.5 rounded-full text-[11.5px] flex items-center gap-1.5 border border-white/[0.08] bg-white/[0.02] text-fog-300 whitespace-nowrap">
             <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />

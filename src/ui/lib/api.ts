@@ -488,6 +488,7 @@ export const api = {
     profileOverride?: string;
     seatRoleOverrides?: Record<string, string>;
     readOnly?: boolean;
+    unattended?: boolean;
     checklistMode?: "continuous" | "step" | null;
     skills?: string[];
     concise?: boolean;

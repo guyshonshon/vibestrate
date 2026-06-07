@@ -295,6 +295,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
       const r = await api.spawnRun({
         task: input.brief,
         readOnly: input.readOnly || undefined,
+        unattended: input.unattended || undefined,
         crewId: input.crewId ?? undefined,
         seatRoleOverrides:
           Object.keys(input.seatRoleOverrides).length > 0
