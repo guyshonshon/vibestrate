@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.7.22
+## 0.7.23
+
+- **Unattended toggle in the dashboard composer.** Launching a run from the
+  dashboard now has an "Unattended" toggle next to "Read-only" - so the
+  never-pause behavior (forces budget/resilience limits to stop/fail rather than
+  wait for a human) is one click in the UI, matching the `vibe run --unattended`
+  flag. Closes the last UI/CLI parity gap from the resilience work.
 
 - **The audit now sees inside the turn.** For providers that stream structured
   output (claude-code `stream-json`), each step in the run audit shows what the

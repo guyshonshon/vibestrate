@@ -302,9 +302,10 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   CLI flag, `POST /api/runs`, RunSpec) **forces no-pause** (onLimit->stop,
   onExhausted->fail) so it can never hang waiting for an absent human. `onLimit`
   is settable via `vibe budget set --on-limit`, `PATCH /api/budget`, and the
-  dashboard Budget control. *Minor follow-up: an `--unattended` checkbox in the
-  web run-composer (it's CLI/API-settable today; `onExhausted` is config-file
-  tunable like the rest of the `resilience` block).*
+  dashboard Budget control. **Web parity (0.7.23):** an "Unattended" toggle in the
+  Mission Control composer (next to "Read-only"), so the flag is one click in the
+  UI too. (`onExhausted` is config-file tunable like the rest of the `resilience`
+  block.)
 
 - **U6 - Usage-limit class + reset-aware waiting. SHIPPED (0.7.20).** Most users
   run on a subscription **usage limit** (a time-windowed, per-model quota that
