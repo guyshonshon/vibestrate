@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.24
+
+- **The run audit is now a visual node-graph, not a list.** The "Run audit ·
+  what happened" view on the run-detail page is a single vertical graph rooted at
+  the orchestrator and descending through each step's agent node down one
+  connected spine. Each step branches into its own sub-streams: the color-coded
+  attempt chain (rate-limit -> retry -> fallback -> success) as a nested vertical
+  timeline, the inside-the-turn tool calls, and any spawned sub-agents as deeper
+  nested nodes - so the hierarchy of what actually happened reads top to bottom at
+  a glance. Same `/api/runs/:id/audit` data, finally rendered as the tree the
+  design always intended.
+
+- **`pnpm demo` - a runnable, no-API simulation.** A new
+  `scripts/demo-simulation.ts` builds a throwaway project wired to fake local
+  providers and runs one panel-review that exercises the resilience + audit work
+  end to end: a step that rate-limits, retries, and falls back to a backup model;
+  a step that streams tool calls and a sub-agent (so the audit sees inside the
+  turn); a tolerated reviewer failure; and an arbiter approval reaching
+  `merge_ready` with a `partially_verified` verdict. Prints the audit tree and the
+  `vibe ui` / `vibe audit` commands to view it in the dashboard.
+
 ## 0.7.23
 
 - **Unattended toggle in the dashboard composer.** Launching a run from the
