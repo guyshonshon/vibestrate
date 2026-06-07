@@ -2,15 +2,17 @@
 
 ## 0.7.24
 
-- **The run audit is now a visual node-graph, not a list.** The "Run audit ·
-  what happened" view on the run-detail page is a single vertical graph rooted at
-  the orchestrator and descending through each step's agent node down one
-  connected spine. Each step branches into its own sub-streams: the color-coded
-  attempt chain (rate-limit -> retry -> fallback -> success) as a nested vertical
-  timeline, the inside-the-turn tool calls, and any spawned sub-agents as deeper
-  nested nodes - so the hierarchy of what actually happened reads top to bottom at
-  a glance. Same `/api/runs/:id/audit` data, finally rendered as the tree the
-  design always intended.
+- **The run audit is now a top-to-bottom hierarchical graph, not a list.** The
+  "Run audit · what happened" view on the run-detail page lays the run's
+  dependency DAG out in longest-path layers (the same layout the Flow graph, CLI,
+  and TUI share): the orchestrator roots the top, each step descends below the
+  steps it needs, steps that ran concurrently sit side by side in a "parallel"
+  wave, and a join (e.g. the arbiter) converges the layer below it. Each step node
+  carries its own nested detail - the color-coded attempt chain (rate-limit ->
+  retry -> fallback -> success) as a mini-timeline, the inside-the-turn tool calls,
+  and any spawned sub-agents - so the full hierarchy of what actually happened
+  reads top to bottom at a glance. Same `/api/runs/:id/audit` data, finally
+  rendered as the tree the design always intended.
 
 - **`pnpm demo` - a runnable, no-API simulation.** A new
   `scripts/demo-simulation.ts` builds a throwaway project wired to fake local
