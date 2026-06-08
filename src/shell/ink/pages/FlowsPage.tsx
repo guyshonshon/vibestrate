@@ -10,6 +10,7 @@ import {
 import {
   isGraphSteps,
   layersOf,
+  zonedLayersOf,
 } from "../../../flows/runtime/flow-graph-layout.js";
 import { ACCENT, ACCENT_BRIGHT, ACCENT_DIM } from "../theme.js";
 
@@ -193,7 +194,7 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow }) {
       </Box>
       <Box marginTop={1} flexDirection="column">
         {isGraphSteps(steps) ? (
-          <FlowGraphView steps={steps} />
+          <FlowGraphView steps={steps} checklistSegment={def.checklistSegment ?? null} />
         ) : (
           <FlowStepsList steps={steps} />
         )}
@@ -223,13 +224,9 @@ function GraphNode({ step, prefix }: { step: FlowDefStep; prefix: string }) {
  * is a parallel fan-out (read-only), boxed and labeled so its shape and the
  * join below it read at a glance.
  */
-function FlowGraphView({ steps }: { steps: FlowDefStep[] }) {
-  const layers = layersOf(steps);
+function GraphLayers({ layers }: { layers: FlowDefStep[][] }) {
   return (
-    <Box flexDirection="column">
-      <Text dimColor>
-        graph · {steps.length} step{steps.length === 1 ? "" : "s"}
-      </Text>
+    <>
       {layers.map((layer, li) => (
         <Box key={li} flexDirection="column">
           {li > 0 ? <Text color={ACCENT_DIM}>{"  │"}</Text> : null}
@@ -249,6 +246,37 @@ function FlowGraphView({ steps }: { steps: FlowDefStep[] }) {
           )}
         </Box>
       ))}
+    </>
+  );
+}
+
+function FlowGraphView({
+  steps,
+  checklistSegment = null,
+}: {
+  steps: FlowDefStep[];
+  // Phase D: when set, zone the graph into prelude / per-item band / postlude so
+  // the band boundary + its per-item repeat are visible (mirrors the web).
+  checklistSegment?: { from: string; to: string } | null;
+}) {
+  return (
+    <Box flexDirection="column">
+      <Text dimColor>
+        graph · {steps.length} step{steps.length === 1 ? "" : "s"}
+      </Text>
+      {checklistSegment ? (
+        zonedLayersOf(steps, checklistSegment).map((zone, zi) => (
+          <Box key={zi} flexDirection="column">
+            {zi > 0 ? <Text color={ACCENT_DIM}>{"  │"}</Text> : null}
+            {zone.repeats ? (
+              <Text color={ACCENT}>{"  ── per checklist item (repeats) ──"}</Text>
+            ) : null}
+            <GraphLayers layers={zone.layers} />
+          </Box>
+        ))
+      ) : (
+        <GraphLayers layers={layersOf(steps)} />
+      )}
     </Box>
   );
 }

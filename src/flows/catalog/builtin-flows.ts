@@ -525,11 +525,137 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **per-item analysis pick-up**: the first checklist DAG (Slice 5,
+// custom-workflow-dags.md Phase D - "Shape A"). It is the pick-up flow with a
+// GRAPH inside the per-item band: for EACH checklist item, two read-only analysts
+// study the item in parallel from distinct lenses (risk/impact + test-surface),
+// then a single serial implementer writes the item informed by both. "Think in
+// parallel, then build", once per item, in one worktree (a commit per item).
+//
+// Why this shape first: the analysts are read-only `agent-turn`s (not
+// review-turns), so the band produces NO arbitration findings - it sidesteps the
+// run-global arbitration-ledger collision that a per-item REVIEW panel (Shape B)
+// would hit when the same step ids run N times. The analysts share `needs`
+// (a parallel group) and are hard-enforced read-only at resolve time, so the
+// frontier runs them concurrently with no worktree collision; the implementer is
+// the serial join (one writer per worktree). Analysts are `continueOnError`: if
+// one lens's provider hard-fails, the item still implements with the survivor.
+//
+// The band repeats once per checklist item (or runs ONCE for an instant/N=1 or
+// read-only run - the fan-out is valuable regardless). A holistic plan runs once
+// before the band and a holistic review once after.
+export const pickupAnalysisFlow = flowDefinitionSchema.parse({
+  id: "pickup-analysis",
+  version: 1,
+  label: "Pick-up (per-item analysis)",
+  description:
+    "Execute a card item-by-item with a per-item analysis fan-out: a holistic plan once, then for each checklist item two read-only analysts (risk/impact + tests) run in parallel and the implementer writes the item informed by both (a commit per item), then a holistic review.",
+  seats: {
+    planner: { label: "Planner", description: "Plans the card and each item." },
+    reviewer: {
+      label: "Analyst",
+      description: "Studies one item under an assigned lens before it is built.",
+    },
+    implementer: {
+      label: "Implementer",
+      description: "Implements one item, informed by the analysts.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "micro-plan",
+      label: "Micro-plan item",
+      kind: "agent-turn",
+      seat: "planner",
+      // The whole per-item band runs under "executing" (the run is executing the
+      // checklist), so the jump-back between items is a self-transition.
+      stage: "executing",
+      inputs: ["task-brief", "plan", "checklist-item", "prior-items"],
+      outputs: ["micro-plan"],
+    },
+    {
+      id: "analyze-risk",
+      label: "Analyze: risk & impact",
+      kind: "agent-turn",
+      seat: "reviewer",
+      stage: "executing",
+      needs: ["micro-plan"],
+      inputs: ["task-brief", "plan", "micro-plan", "checklist-item", "prior-items"],
+      outputs: ["analysis-risk"],
+      continueOnError: true,
+      instructions:
+        "Your lens is RISK & IMPACT for THIS checklist item only. Before any code is written, surface what could go wrong: blast radius, data/edge cases, ordering or concurrency hazards, things elsewhere in the codebase this item must not break, and anything that warrants caution. Be concrete and brief; this advice feeds the implementer.",
+    },
+    {
+      id: "analyze-tests",
+      label: "Analyze: test surface",
+      kind: "agent-turn",
+      seat: "reviewer",
+      stage: "executing",
+      needs: ["micro-plan"],
+      inputs: ["task-brief", "plan", "micro-plan", "checklist-item", "prior-items"],
+      outputs: ["analysis-tests"],
+      continueOnError: true,
+      instructions:
+        "Your lens is the TEST SURFACE for THIS checklist item only. Before any code is written, identify what should be verified: which behaviors and edge cases need coverage, existing tests that must keep passing, and the smallest checks that would prove the item works. Be concrete and brief; this advice feeds the implementer.",
+    },
+    {
+      id: "implement",
+      label: "Implement item",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      // The join: runs after both analysts, informed by both lenses. Single
+      // writer in the band - one writer per worktree.
+      needs: ["analyze-risk", "analyze-tests"],
+      inputs: [
+        "task-brief",
+        "plan",
+        "micro-plan",
+        "analysis-risk",
+        "analysis-tests",
+        "checklist-item",
+        "prior-items",
+      ],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan", "execution", "prior-items"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  checklistSegment: { from: "micro-plan", to: "implement" },
+  complexity: "medium",
+  capabilities: {
+    taskKinds: ["checklist"],
+    strengths: ["multi-step", "checklist", "analysis"],
+    costClass: "medium",
+    latencyClass: "medium",
+    avoids: { readOnly: true },
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   qualityArbitrationFlow,
   pickupFlow,
   reviewPanelFlow,
+  pickupAnalysisFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

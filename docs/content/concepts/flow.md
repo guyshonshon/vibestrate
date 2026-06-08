@@ -144,7 +144,20 @@ The orchestrator picks `panel-review` only when a task warrants the extra spend
 There's no fix loop here yet - the panel surfaces a verdict + findings; combining
 a graph with the adaptive review->fix loop is deferred. See the
 [custom workflow DAGs design](https://github.com/guyshonshon/vibestrate) note for
-the roadmap (write-parallelism and checklist-DAGs stay deferred).
+the roadmap (write-parallelism stays deferred).
+
+## A graph inside the per-item band: `pickup-analysis`
+
+A graph can also live **inside the per-item band** of a checklist pick-up, so
+each checklist item runs as a mini-DAG instead of a straight line. The built-in
+`pickup-analysis` works a card item-by-item, and for each item two read-only
+**analysts** (risk/impact + test-surface) study it **in parallel** before the
+implementer writes that item - "think in parallel, then build", a commit per
+item. The analysts are read-only (one writer per worktree) and best-effort (one
+failing lens doesn't sink the item); a read-only or instant (N=1) run still fans
+them out. The graph must stay confined to the band - the holistic plan (before)
+and review (after) run once and stay linear. (A per-item *review* panel is a
+planned follow-up.)
 
 **Seeing the graph.** A graph flow renders the same way on every surface: a
 top-down layout where dependency layers stack vertically and a concurrent

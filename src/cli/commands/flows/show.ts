@@ -71,8 +71,28 @@ export async function runFlowsShow(
   // Surface the parallel groups + read-only fan-out explicitly so the graph
   // shape (and its cost) is legible from the CLI, not just the dashboard.
   if (isGraph) {
+    // Phase D: when the graph lives in a per-item band, the band repeats once per
+    // checklist item and the prelude/postlude stay linear. Group over the band
+    // steps only - else the empty-`needs` prelude/postlude steps would be shown
+    // as one big (false) parallel group. Also surface the band boundary.
+    const seg = flow.definition.checklistSegment ?? null;
+    const segFrom = seg
+      ? flow.definition.steps.findIndex((s) => s.id === seg.from)
+      : -1;
+    const segTo = seg
+      ? flow.definition.steps.findIndex((s) => s.id === seg.to)
+      : -1;
+    const banded = seg !== null && segFrom >= 0 && segTo >= segFrom;
+    if (banded) {
+      console.log("");
+      console.log(color.bold("Per-item band (repeats once per checklist item)"));
+      console.log(indent(`- ${seg!.from} .. ${seg!.to}`));
+    }
+    const groupSteps = banded
+      ? flow.definition.steps.slice(segFrom, segTo + 1)
+      : flow.definition.steps;
     const groups = new Map<string, string[]>();
-    for (const step of flow.definition.steps) {
+    for (const step of groupSteps) {
       const key = [...(step.needs ?? [])].sort().join(" ");
       groups.set(key, [...(groups.get(key) ?? []), step.id]);
     }

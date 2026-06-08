@@ -1560,6 +1560,22 @@ export class Orchestrator {
    */
   private async runGraphFrontier(input: {
     snapshot: ResolvedFlowSnapshot;
+    // Phase D (checklist DAGs): run a SUBSET of the snapshot's steps - the
+    // per-item band - instead of the whole flow. Default = snapshot.steps (the
+    // whole-flow path, byte-for-byte unchanged). All frontier reasoning
+    // (parallel groups, readiness, the processed-count exit) is over this set.
+    stepsOverride?: ResolvedFlowStep[];
+    // Phase D: seed the done/processed sets explicitly instead of deriving them
+    // from persisted state. The band passes an EMPTY set so its steps re-run on
+    // every checklist item (their persisted "passed" status from the prior item
+    // must NOT make the frontier treat them as already-done and stall). The
+    // whole-flow path omits this and seeds from state for mid-DAG resume.
+    priorDoneOverride?: Set<string>;
+    // Phase D: gate the flow.graph.started / flow.graph.completed lifecycle
+    // events. The band runs once per item, so it suppresses them to avoid N
+    // duplicate pairs (the per-wave flow.frontier.scheduled events still fire,
+    // so the fan-out stays visible). Default true (the whole-flow path).
+    emitLifecycle?: boolean;
     runId: string;
     state: RunState;
     worktreePath: string | null;
@@ -1595,7 +1611,8 @@ export class Orchestrator {
     verificationArtifact: RoleRunResult | null;
   }> {
     const { snapshot } = input;
-    const steps = snapshot.steps;
+    const steps = input.stepsOverride ?? snapshot.steps;
+    const emitLifecycle = input.emitLifecycle ?? true;
     let state = input.state;
     let lastValidation: ValidationResults | null = null;
     let reviewDecision: ReviewDecision = "BLOCKED";
@@ -1628,23 +1645,36 @@ export class Orchestrator {
     const concurrencyEligible = (step: ResolvedFlowStep) =>
       TURN_KINDS.has(step.kind) && (groupSizeByKey.get(keyOf(step)) ?? 0) >= 2;
 
-    await input.eventLog.append({
-      type: "flow.graph.started",
-      message: `Graph flow ${snapshot.flowId}: ${steps.length} steps, max fan-out ${maxFanout}.`,
-      data: { flowId: snapshot.flowId, steps: steps.length, maxFanout },
-    });
+    if (emitLifecycle) {
+      await input.eventLog.append({
+        type: "flow.graph.started",
+        message: `Graph flow ${snapshot.flowId}: ${steps.length} steps, max fan-out ${maxFanout}.`,
+        data: { flowId: snapshot.flowId, steps: steps.length, maxFanout },
+      });
+    }
 
     const done = new Set<string>();
     const processed = new Set<string>();
-    // Resume: a prior run's completed ("passed") or seeded ("skipped") steps are
-    // already in the persisted state. Treat them as done so the frontier only
-    // advances the steps that still need to run, and so a re-entered fan-out
-    // isn't re-spawned. On a fresh run every step is "pending", so this is a
-    // no-op and the normal traversal is unchanged.
-    for (const s of state.flow?.steps ?? []) {
-      if (s.status === "passed" || s.status === "skipped") {
-        done.add(s.id);
-        processed.add(s.id);
+    if (input.priorDoneOverride) {
+      // Phase D: the caller owns what's already done (the per-item band passes an
+      // EMPTY set so every band step re-runs this item). We deliberately do NOT
+      // read persisted state here - the band steps carry "passed" status from the
+      // prior item, which would otherwise make them count as done and stall.
+      for (const id of input.priorDoneOverride) {
+        done.add(id);
+        processed.add(id);
+      }
+    } else {
+      // Resume: a prior run's completed ("passed") or seeded ("skipped") steps are
+      // already in the persisted state. Treat them as done so the frontier only
+      // advances the steps that still need to run, and so a re-entered fan-out
+      // isn't re-spawned. On a fresh run every step is "pending", so this is a
+      // no-op and the normal traversal is unchanged.
+      for (const s of state.flow?.steps ?? []) {
+        if (s.status === "passed" || s.status === "skipped") {
+          done.add(s.id);
+          processed.add(s.id);
+        }
       }
     }
 
@@ -2214,14 +2244,16 @@ export class Orchestrator {
       done.add(step.id);
     }
 
-    await input.eventLog.append({
-      type: "flow.graph.completed",
-      message:
-        continuedFailures > 0
-          ? `Graph flow ${snapshot.flowId} traversal complete (${continuedFailures} best-effort step(s) failed and were tolerated).`
-          : `Graph flow ${snapshot.flowId} traversal complete.`,
-      data: { flowId: snapshot.flowId, continuedFailures },
-    });
+    if (emitLifecycle) {
+      await input.eventLog.append({
+        type: "flow.graph.completed",
+        message:
+          continuedFailures > 0
+            ? `Graph flow ${snapshot.flowId} traversal complete (${continuedFailures} best-effort step(s) failed and were tolerated).`
+            : `Graph flow ${snapshot.flowId} traversal complete.`,
+        data: { flowId: snapshot.flowId, continuedFailures },
+      });
+    }
 
     return {
       state,
@@ -2379,6 +2411,18 @@ export class Orchestrator {
       const segTo = segment
         ? steps.findIndex((s) => s.sourceStepId === segment.to)
         : -1;
+      // Phase D (checklist DAGs): the per-item band itself declares `needs`, so
+      // each item runs the band as a mini-DAG through the frontier scheduler
+      // (read-only fan-out -> serial writer join) rather than the linear walk.
+      // The schema confines graph edges to the band, so this is true iff a band
+      // step has `needs`. Independent of `usingChecklist`: a read-only / N=1 run
+      // (no items) still runs the band ONCE through the frontier (the fan-out is
+      // valuable regardless) - see the band branch in the walk below.
+      const bandIsGraph =
+        segment !== null &&
+        segFrom >= 0 &&
+        segTo >= segFrom &&
+        steps.slice(segFrom, segTo + 1).some((s) => s.needs.length > 0);
       const usingChecklist =
         segment !== null &&
         segFrom >= 0 &&
@@ -2424,13 +2468,16 @@ export class Orchestrator {
       // and starting the walk there. Native to the flow runner - driven by the
       // step `stage` metadata, no run() delegation.
       let stepIndex = 0;
-      // ── Graph (DAG) flows: the bounded read-only fan-out/join scheduler ──
-      // A flow that declares step `needs` runs through the frontier scheduler
-      // instead of the linear walk (schema guarantees no loop/checklist/repeat
-      // here). It sets the same decision locals the finalize block reads, then
-      // we park the linear cursor at the end so the `while` below is a no-op -
-      // the linear path stays byte-for-byte unchanged for every other flow.
-      if (isGraphFlow(input.snapshot)) {
+      // ── Whole-flow graph (DAG) flows: the bounded fan-out/join scheduler ──
+      // A graph flow with NO checklist band runs the WHOLE flow through the
+      // frontier scheduler instead of the linear walk. It sets the same decision
+      // locals the finalize block reads, then we park the linear cursor at the
+      // end so the `while` below is a no-op - the linear path stays byte-for-byte
+      // unchanged for every other flow. A graph flow that DOES declare a
+      // checklistSegment (Phase D) takes the linear path below instead, which
+      // runs the per-item band through the frontier once per item (see the
+      // `bandIsGraph` branch in the walk) - so it is excluded here.
+      if (isGraphFlow(input.snapshot) && !input.snapshot.checklistSegment) {
         // Resume works for graph flows too: seed the upstream prefix (mark it
         // skipped, copy its artifacts, restore the worktree snapshot) exactly
         // as the linear path does, then let the frontier scheduler treat those
@@ -2507,6 +2554,16 @@ export class Orchestrator {
         stepIndex = seeded.resumeStartIndex;
         if (seeded.planArtifact) planArtifact = seeded.planArtifact;
         if (seeded.executionArtifact) executionArtifact = seeded.executionArtifact;
+        // Phase D: resuming INTO a per-item band DAG is out of scope this slice -
+        // the band is run as a unit (per item) by the frontier, so landing the
+        // cursor between segFrom and segTo would seed a partial band and stall
+        // (a band root's `needs` is unsatisfied). Resuming at/before segFrom
+        // (re-runs the not-yet-done items) or after segTo (postlude) is fine.
+        if (bandIsGraph && stepIndex > segFrom && stepIndex <= segTo) {
+          throw new Error(
+            `Cannot resume into the per-item band of a checklist + graph flow (stage lands inside ${segment!.from}..${segment!.to}). Resume at or before "${segment!.from}", or after "${segment!.to}".`,
+          );
+        }
       }
 
       // Adaptive-loop-aware traversal. Linear flows (loop === null) advance one
@@ -2516,6 +2573,159 @@ export class Orchestrator {
       // iteration budget is spent; otherwise we finish the body and jump back to
       // `from`. The gate can sit at the body head so an early APPROVED skips the
       // remaining body (e.g. the default flow's fix) - mirroring run()'s loop.
+
+      // ── Per-item band entry/exit, factored (Phase 3 + D) ──────────────────
+      // The side-effecting bodies of the per-item band entry (scope the segment
+      // to one item) and exit (commit/summarize/carry the item) are shared by
+      // BOTH the linear walk and the Phase-D graph band so there is one source of
+      // truth for per-item commit. Control flow (jump-back, itemIndex, the
+      // step-mode pause) stays inline at the call sites.
+      const enterChecklistItem = async (i: number): Promise<void> => {
+        const item = checklistItems[i]!;
+        const briefContent = renderCurrentItemBrief(item, i, checklistItems.length);
+        const briefAbs = await input.artifactStore.write(
+          path.posix.join("flows", "checklist", `item-${i + 1}-brief.md`),
+          briefContent,
+        );
+        outputs.set("checklist-item", {
+          token: "checklist-item",
+          label: `Checklist item ${i + 1}/${checklistItems.length}`,
+          content: briefContent,
+          artifactPath: input.artifactStore.relPath(briefAbs),
+        });
+        const priorContent = buildPriorItemsContext(itemOutcomes, 1400);
+        if (priorContent) {
+          const priorAbs = await input.artifactStore.write(
+            path.posix.join("flows", "checklist", `before-item-${i + 1}.md`),
+            priorContent,
+          );
+          outputs.set("prior-items", {
+            token: "prior-items",
+            label: "Completed checklist items",
+            content: priorContent,
+            artifactPath: input.artifactStore.relPath(priorAbs),
+          });
+        }
+        currentChecklistItemId = item.id;
+        await roadmap
+          .setChecklistItemStatus(this.taskId!, item.id, "in_progress")
+          .catch(() => {});
+        state = {
+          ...state,
+          checklistProgress: {
+            total: checklistItems.length,
+            completed: i,
+            currentItemId: item.id,
+            currentIndex: i,
+          },
+        };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "checklist.item.started",
+          message: `Checklist item ${i + 1}/${checklistItems.length}: ${item.text}`,
+          data: { itemId: item.id, index: i, text: item.text },
+        });
+        this.onProgress(`Item ${i + 1}/${checklistItems.length}: ${item.text}`);
+      };
+
+      // Commit + summarize this item; returns whether more items remain. The
+      // caller advances itemIndex / jumps back / pauses. "proceed" also means the
+      // full prior-items ledger has been rebuilt for the holistic postlude.
+      const commitChecklistItem = async (
+        i: number,
+      ): Promise<"repeat" | "proceed"> => {
+        const item = checklistItems[i]!;
+        let commitSha: string | null = null;
+        let filesTouched: string[] = [];
+        if (input.worktreePath) {
+          const committed = await stageAndCommitAll({
+            cwd: input.worktreePath,
+            message: `${item.text}\n\nChecklist item ${i + 1}/${checklistItems.length}.`,
+            trailers: {
+              "Vibestrate-Run": input.runId,
+              "Vibestrate-Checklist-Item": item.id,
+              ...creditTrailers(this.config.commits),
+            },
+          });
+          commitSha = committed?.sha ?? null;
+          if (commitSha) {
+            filesTouched = await filesInCommit(input.worktreePath, commitSha);
+          }
+        }
+        // Summarize the item by the writer's `execution` output when present
+        // (Phase D: the band tail `segTo` may be a read-only join/arbiter whose
+        // first output is a verdict, not the build) - fall back to segTo's output.
+        const implTok = outputs.has("execution")
+          ? "execution"
+          : steps[segTo]!.outputs[0];
+        const implOutput = implTok ? outputs.get(implTok)?.content ?? "" : "";
+        const outcome: ChecklistItemOutcome = {
+          itemId: item.id,
+          index: i,
+          total: checklistItems.length,
+          text: item.text,
+          status: "done",
+          commitSha,
+          filesTouched,
+          summary: compactImplementationSummary(implOutput),
+          error: null,
+        };
+        itemOutcomes.push(outcome);
+        currentChecklistItemId = null;
+        await input.artifactStore.write(
+          path.posix.join("flows", "checklist", `item-${i + 1}-summary.md`),
+          renderItemSummaryArtifact(outcome),
+        );
+        await roadmap
+          .updateChecklistItem(this.taskId!, item.id, { status: "done", commitSha })
+          .catch(() => {});
+        state = {
+          ...state,
+          checklistProgress: {
+            total: checklistItems.length,
+            completed: i + 1,
+            currentItemId: null,
+            currentIndex: i,
+          },
+        };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "checklist.item.completed",
+          message: `Checklist item ${i + 1}/${checklistItems.length} done${commitSha ? ` (${commitSha.slice(0, 8)})` : " (no file changes)"}.`,
+          data: { itemId: item.id, index: i, commitSha, files: filesTouched },
+        });
+        if (i < checklistItems.length - 1) return "repeat";
+        // Last item done -> rebuild prior-items with the FULL ledger so the
+        // holistic postlude (review/verify) sees every item.
+        const fullPrior = buildPriorItemsContext(itemOutcomes, 1400);
+        if (fullPrior) {
+          const fullAbs = await input.artifactStore.write(
+            path.posix.join("flows", "checklist", "all-items.md"),
+            fullPrior,
+          );
+          outputs.set("prior-items", {
+            token: "prior-items",
+            label: "All completed checklist items",
+            content: fullPrior,
+            artifactPath: input.artifactStore.relPath(fullAbs),
+          });
+        }
+        return "proceed";
+      };
+
+      // Step-by-step gate between items (shared by both paths): pause so the next
+      // item's first step (or the next band) holds until the human resumes.
+      const maybeStepModeGate = async (nextIndex: number): Promise<void> => {
+        if (this.checklistMode !== "step") return;
+        state = { ...state, pauseRequested: true };
+        await input.stateStore.write(state);
+        await input.eventLog.append({
+          type: "checklist.item.gate",
+          message: `Step-by-step: paused before item ${nextIndex + 1}/${checklistItems.length}.`,
+          data: { nextIndex },
+        });
+      };
+
       while (stepIndex < steps.length) {
         const step = steps[stepIndex]!;
         if (loop && stepIndex === loopFrom) {
@@ -2532,62 +2742,68 @@ export class Orchestrator {
             },
           });
         }
-        // ── Per-item band entry (Phase 3): scope the segment to this item ──
-        // Register the current-item brief + the carried compact summaries of
-        // completed items so the segment's steps (which declare them as inputs)
-        // see exactly what to do and what's already done.
-        if (usingChecklist && stepIndex === segFrom) {
-          const item = checklistItems[itemIndex]!;
-          const briefContent = renderCurrentItemBrief(
-            item,
-            itemIndex,
-            checklistItems.length,
-          );
-          const briefAbs = await input.artifactStore.write(
-            path.posix.join("flows", "checklist", `item-${itemIndex + 1}-brief.md`),
-            briefContent,
-          );
-          outputs.set("checklist-item", {
-            token: "checklist-item",
-            label: `Checklist item ${itemIndex + 1}/${checklistItems.length}`,
-            content: briefContent,
-            artifactPath: input.artifactStore.relPath(briefAbs),
-          });
-          const priorContent = buildPriorItemsContext(itemOutcomes, 1400);
-          if (priorContent) {
-            const priorAbs = await input.artifactStore.write(
-              path.posix.join("flows", "checklist", `before-item-${itemIndex + 1}.md`),
-              priorContent,
-            );
-            outputs.set("prior-items", {
-              token: "prior-items",
-              label: "Completed checklist items",
-              content: priorContent,
-              artifactPath: input.artifactStore.relPath(priorAbs),
+        // ── Per-item band as a DAG (Phase D): run the band via the frontier ──
+        // When the band declares `needs`, run [segFrom..segTo] through the
+        // frontier scheduler (read-only fan-out -> serial writer join) instead of
+        // the linear walk: once per checklist item, or ONCE for a read-only / N=1
+        // run (no items - the fan-out is valuable regardless). priorDoneOverride
+        // is EMPTY so the band steps re-run each item (their persisted "passed"
+        // status from the prior item must not make them count as done).
+        if (bandIsGraph && stepIndex === segFrom) {
+          if (usingChecklist) await enterChecklistItem(itemIndex);
+          const bandSteps = steps.slice(segFrom, segTo + 1);
+          let gr: Awaited<ReturnType<typeof this.runGraphFrontier>>;
+          try {
+            gr = await this.runGraphFrontier({
+              snapshot: input.snapshot,
+              stepsOverride: bandSteps,
+              priorDoneOverride: new Set<string>(),
+              emitLifecycle: false,
+              runId: input.runId,
+              state,
+              worktreePath: input.worktreePath,
+              artifactStore: input.artifactStore,
+              stateStore: input.stateStore,
+              eventLog: input.eventLog,
+              metricsStore: input.metricsStore,
+              approvalService: input.approvalService,
+              notify: input.notify,
+              policyStagesAlreadyForced: input.policyStagesAlreadyForced,
+              outputs,
+              arbitrationLedger,
+              arbitrationStore,
+              runBriefState,
+              ctx: input.ctx,
             });
+          } catch (err) {
+            // The frontier persists its own `state`; re-sync from disk on a throw
+            // so the run()-level catch sees the band's final per-step statuses.
+            state = await input.stateStore.read().catch(() => state);
+            throw err;
           }
-          currentChecklistItemId = item.id;
-          await roadmap
-            .setChecklistItemStatus(this.taskId!, item.id, "in_progress")
-            .catch(() => {});
-          state = {
-            ...state,
-            checklistProgress: {
-              total: checklistItems.length,
-              completed: itemIndex,
-              currentItemId: item.id,
-              currentIndex: itemIndex,
-            },
-          };
-          await input.stateStore.write(state);
-          await input.eventLog.append({
-            type: "checklist.item.started",
-            message: `Checklist item ${itemIndex + 1}/${checklistItems.length}: ${item.text}`,
-            data: { itemId: item.id, index: itemIndex, text: item.text },
-          });
-          this.onProgress(
-            `Item ${itemIndex + 1}/${checklistItems.length}: ${item.text}`,
-          );
+          // Adopt the frontier's state BEFORE the per-item commit, or the commit
+          // would write a stale copy over the band's per-step writes (P-HIGH-3).
+          state = gr.state;
+          // Carry the writer's artifacts forward (last item wins). The band's own
+          // review/verify decisions are per-item and deliberately NOT propagated:
+          // run-level verdicts come from the linear postlude (P4).
+          planArtifact = gr.planArtifact ?? planArtifact;
+          executionArtifact = gr.executionArtifact ?? executionArtifact;
+          if (usingChecklist) {
+            const dir = await commitChecklistItem(itemIndex);
+            if (dir === "repeat") {
+              itemIndex += 1;
+              await maybeStepModeGate(itemIndex);
+              stepIndex = segFrom;
+              continue;
+            }
+          }
+          stepIndex = segTo + 1;
+          continue;
+        }
+        // ── Per-item band entry (Phase 3, linear band): scope it to this item ──
+        if (usingChecklist && stepIndex === segFrom) {
+          await enterChecklistItem(itemIndex);
         }
         const runStep = async (): Promise<void> => {
           // Read-only runs skip write/validation/verify steps the same way
@@ -3007,106 +3223,20 @@ export class Orchestrator {
           runId: input.runId,
           eventLog: input.eventLog,
         });
-        // ── Per-item band exit (Phase 3): commit, summarize, carry, gate ──
+        // ── Per-item band exit (Phase 3, linear band): commit, summarize, carry ──
         // Runs at the segment tail (disjoint from the adaptive loop by schema).
-        // Commit this item's work tagged with its id, record a compact summary
-        // for forward-carry, write the status + sha back to the task, then jump
-        // back for the next item (pausing first in step-by-step mode).
+        // The graph band (above) commits via the same closure; only the linear
+        // band reaches this site (a graph band already `continue`d).
         if (usingChecklist && stepIndex === segTo) {
-          const item = checklistItems[itemIndex]!;
-          let commitSha: string | null = null;
-          let filesTouched: string[] = [];
-          if (input.worktreePath) {
-            const committed = await stageAndCommitAll({
-              cwd: input.worktreePath,
-              message: `${item.text}\n\nChecklist item ${itemIndex + 1}/${checklistItems.length}.`,
-              trailers: {
-                "Vibestrate-Run": input.runId,
-                "Vibestrate-Checklist-Item": item.id,
-                ...creditTrailers(this.config.commits),
-              },
-            });
-            commitSha = committed?.sha ?? null;
-            if (commitSha) {
-              filesTouched = await filesInCommit(input.worktreePath, commitSha);
-            }
-          }
-          const implTok = steps[segTo]!.outputs[0];
-          const implOutput = implTok ? outputs.get(implTok)?.content ?? "" : "";
-          const outcome: ChecklistItemOutcome = {
-            itemId: item.id,
-            index: itemIndex,
-            total: checklistItems.length,
-            text: item.text,
-            status: "done",
-            commitSha,
-            filesTouched,
-            summary: compactImplementationSummary(implOutput),
-            error: null,
-          };
-          itemOutcomes.push(outcome);
-          currentChecklistItemId = null;
-          await input.artifactStore.write(
-            path.posix.join(
-              "flows",
-              "checklist",
-              `item-${itemIndex + 1}-summary.md`,
-            ),
-            renderItemSummaryArtifact(outcome),
-          );
-          await roadmap
-            .updateChecklistItem(this.taskId!, item.id, {
-              status: "done",
-              commitSha,
-            })
-            .catch(() => {});
-          state = {
-            ...state,
-            checklistProgress: {
-              total: checklistItems.length,
-              completed: itemIndex + 1,
-              currentItemId: null,
-              currentIndex: itemIndex,
-            },
-          };
-          await input.stateStore.write(state);
-          await input.eventLog.append({
-            type: "checklist.item.completed",
-            message: `Checklist item ${itemIndex + 1}/${checklistItems.length} done${commitSha ? ` (${commitSha.slice(0, 8)})` : " (no file changes)"}.`,
-            data: { itemId: item.id, index: itemIndex, commitSha, files: filesTouched },
-          });
-          if (itemIndex < checklistItems.length - 1) {
+          const dir = await commitChecklistItem(itemIndex);
+          if (dir === "repeat") {
             itemIndex += 1;
-            if (this.checklistMode === "step") {
-              // Reuse the standard pause gate: the next segment step's
-              // applyPauseIfRequested holds until the human resumes.
-              state = { ...state, pauseRequested: true };
-              await input.stateStore.write(state);
-              await input.eventLog.append({
-                type: "checklist.item.gate",
-                message: `Step-by-step: paused before item ${itemIndex + 1}/${checklistItems.length}.`,
-                data: { nextIndex: itemIndex },
-              });
-            }
+            await maybeStepModeGate(itemIndex);
             stepIndex = segFrom;
             continue;
           }
-          // Last item done → rebuild prior-items with the FULL ledger so the
-          // holistic postlude (review/verify) sees every item, then fall
-          // through to it.
-          const fullPrior = buildPriorItemsContext(itemOutcomes, 1400);
-          if (fullPrior) {
-            const fullAbs = await input.artifactStore.write(
-              path.posix.join("flows", "checklist", "all-items.md"),
-              fullPrior,
-            );
-            outputs.set("prior-items", {
-              token: "prior-items",
-              label: "All completed checklist items",
-              content: fullPrior,
-              artifactPath: input.artifactStore.relPath(fullAbs),
-            });
-          }
+          // "proceed": last item done, full prior-items rebuilt - fall through to
+          // the holistic postlude (review/verify).
         }
         // Adaptive loop control (no-op for linear flows). The decisionStep
         // gates the loop; an early non-CHANGES_REQUESTED exit skips the rest of
