@@ -280,7 +280,16 @@ export async function readRunAssurance(
   const file = runAssurancePath(projectRoot, runId);
   if (!(await pathExists(file))) return null;
   try {
-    return JSON.parse(await readText(file)) as RunAssurance;
+    const raw = JSON.parse(await readText(file)) as RunAssurance;
+    // Backfill fields added after older artifacts were written so the function
+    // honors its RunAssurance return contract. `coverage` landed in 0.7.11;
+    // pre-0.7.11 assurance.json files lack it, which would otherwise surface as
+    // an undefined dereference in every consumer (CLI, API, dashboard).
+    return {
+      ...raw,
+      coverage: raw.coverage ?? { toleratedStepFailures: 0 },
+      caps: raw.caps ?? [],
+    };
   } catch {
     return null;
   }

@@ -9,7 +9,12 @@ import {
 } from "../../src/safety/run-assurance.js";
 import type { ActionRecord } from "../../src/safety/action-broker.js";
 import { ensureDir } from "../../src/utils/fs.js";
-import { runDir, runStatePath, runActionsPath } from "../../src/utils/paths.js";
+import {
+  runDir,
+  runStatePath,
+  runActionsPath,
+  runAssurancePath,
+} from "../../src/utils/paths.js";
 import { runStateSchema } from "../../src/core/state-machine.js";
 import { writeJson } from "../../src/utils/json.js";
 
@@ -271,6 +276,28 @@ describe("buildAndWriteRunAssurance", () => {
       expect(built.coverage.toleratedStepFailures).toBe(1);
       expect(built.verdict).toBe("partially_verified");
       expect(built.caps).toContain("steps_failed_tolerated");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("backfills fields missing from a pre-0.7.11 assurance.json (coverage/caps)", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
+    try {
+      const runId = "run-legacy";
+      await ensureDir(runDir(root, runId));
+      // A legacy artifact written before `coverage`/`caps` existed.
+      await fs.writeFile(
+        runAssurancePath(root, runId),
+        JSON.stringify({ schemaVersion: 1, runId, status: "merge_ready", verdict: "verified" }),
+      );
+
+      const read = await readRunAssurance(root, runId);
+      expect(read?.verdict).toBe("verified");
+      // The function honors its RunAssurance contract instead of returning
+      // undefined fields that crash every consumer.
+      expect(read?.coverage).toEqual({ toleratedStepFailures: 0 });
+      expect(read?.caps).toEqual([]);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

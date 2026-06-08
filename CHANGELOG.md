@@ -20,6 +20,18 @@
   rollup** (in -> out) alongside the existing provider / model / cost / duration.
   Surfaced identically in `vibe audit` (new classified "Orchestrator engaged"
   section + per-step phase / role / profile / tokens) for full CLI parity.
+- **Errors are now visible in the dashboard, not just the console.** A new
+  **ErrorBoundary** wraps each page: a render crash shows a readable panel (message
+  + stack + component stack, with Try again / Reload) instead of unmounting the app
+  to a blank screen - and the nav bar survives, so you can navigate away. A
+  **global overlay** surfaces what a boundary can't catch (async failures and
+  unhandled promise rejections) as a dismissible toast. Previously the only trace
+  of a UI crash was an uncaught error in F12.
+- **Fixed a blank-page crash opening older runs.** `readRunAssurance` returned
+  raw JSON typed as `RunAssurance`, so a pre-0.7.11 `assurance.json` (written
+  before the `coverage` field existed) flowed through with `coverage` undefined and
+  crashed the run-detail page on every consumer. It now backfills `coverage`/`caps`
+  at the read boundary, honoring its return contract.
 
 ## 0.7.24
 
