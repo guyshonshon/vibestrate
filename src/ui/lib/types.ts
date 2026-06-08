@@ -196,6 +196,8 @@ export type FlowDefinition = {
   seats: Record<string, FlowSeatDefinition>;
   steps: FlowStepDefinition[];
   loop?: FlowLoop;
+  // The per-item band (Phase 3 pick-up + Phase D checklist DAGs); from/to step ids.
+  checklistSegment?: { from: string; to: string };
 };
 
 export type DiscoveredFlow = {

@@ -165,7 +165,14 @@ fan-out is drawn as a boxed `parallel ×N` group with the join below it. You get
 it in the dashboard (the Flow Builder and, status-tinted, live on run detail),
 in the terminal shell's Flow page, and as a `needs` annotation plus a "Parallel
 groups" section from `vibe flows show`. One shared layout module backs all
-three, so they stay in lockstep.
+three, so they stay in lockstep. A checklist + graph flow is zoned into
+prelude -> per-item band (marked as repeating) -> postlude, so the iteration is
+visible alongside the fan-out.
+
+**Editing the source.** The Flow Builder has an "Edit as YAML" toggle: flip
+between the structured editor + architecture graph and the flow's raw YAML, then
+save (built-in flows are view-only until you fork them into the project). Saving
+runs the same validation + secret/size guards as importing a flow file.
 
 ## Project Flows
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.29
+
+- **Flow Builder: edit a flow's raw YAML, see its architecture.** The Flow
+  Builder gained an "Edit as YAML" toggle - flip between the structured editor +
+  architecture graph and the flow's raw YAML source, then save. Handy now that
+  flows carry richer shapes (parallel fan-out, per-item bands) that read clearest
+  as YAML. Saving goes through the existing import writer, so it gets the full
+  schema validation plus the secret / size / control-char guards and an atomic,
+  path-guarded write - no new write path. Built-in flows stay view-only (fork to
+  a project flow to edit); the toggle is blocked while you have unsaved structured
+  edits (so the two editors can't diverge), and a save whose YAML `id` doesn't
+  match the flow you're editing is refused (use Import to create a new flow).
+
 ## 0.7.28
 
 - **Checklist DAGs: parallel agents on every checklist item (Phase D, "Shape A").**

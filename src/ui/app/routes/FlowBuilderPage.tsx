@@ -7,6 +7,7 @@ import {
   Bug,
   ChevronLeft,
   ChevronRight,
+  Code,
   Copy,
   Cpu,
   Eye,
@@ -35,6 +36,7 @@ import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
+import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
 import type {
   DiscoveredFlow,
   FlowStepDefinition,
@@ -115,6 +117,13 @@ export function FlowBuilderPage({
   const [dryRun, setDryRun] = useState<ResolvedFlowSnapshot | null>(null);
   const [dryRunBusy, setDryRunBusy] = useState(false);
   const [dryRunErr, setDryRunErr] = useState<string | null>(null);
+  // Raw-YAML escape hatch: edit the flow's source directly (mirrors the
+  // Providers page). View-only for builtins; saving a project flow's YAML goes
+  // through the existing import writer (full schema + secret/size guards).
+  const [yamlMode, setYamlMode] = useState(false);
+  const [yamlText, setYamlText] = useState("");
+  const [yamlError, setYamlError] = useState<string | null>(null);
+  const [yamlSaving, setYamlSaving] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,6 +172,8 @@ export function FlowBuilderPage({
     setDraftStepList(null);
     setDraftLoop(selected.definition.loop ?? null);
     setActiveStepIdx(0);
+    setYamlMode(false);
+    setYamlError(null);
   }, [selected?.id]);
 
   useEffect(() => {
@@ -249,6 +260,64 @@ export function FlowBuilderPage({
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Flip into raw-YAML mode, seeding the editor from the saved definition. We
+  // refuse the flip when there are unsaved structured edits so the two editors
+  // can't silently diverge (the user saves or discards first).
+  function toggleYamlMode(): void {
+    if (!selected) return;
+    setYamlMode((on) => {
+      if (!on) {
+        setYamlText(renderFlowYaml(selected.definition));
+        setYamlError(null);
+      }
+      return !on;
+    });
+  }
+
+  async function handleSaveYaml(): Promise<void> {
+    if (!selected || !isProjectFlow) return;
+    setYamlError(null);
+    // Light client check first: valid YAML + an id that matches THIS flow
+    // (editing the id here would create a different flow, not edit this one).
+    const parsed = extractFlowFromYaml(yamlText);
+    if (parsed.error) {
+      setYamlError(parsed.error);
+      return;
+    }
+    if (parsed.id !== selected.id) {
+      setYamlError(
+        `The YAML \`id\` ("${parsed.id}") must match the flow being edited ("${selected.id}"). Use Flows -> Import to create a new flow.`,
+      );
+      return;
+    }
+    setYamlSaving(true);
+    try {
+      // The import writer re-validates the full schema and runs the size /
+      // control-char / secret guards server-side, then atomically overwrites
+      // .vibestrate/flows/<id>/flow.yml.
+      const result = await api.importFlow({ yaml: yamlText, overwrite: true });
+      setFlows((cur) =>
+        cur.map((g) => (g.id === result.flow.id ? result.flow : g)),
+      );
+      setYamlText(renderFlowYaml(result.flow.definition));
+      // A YAML save is a full replace; resync the structured drafts to the new
+      // definition (the reset effect keys on flow id, which didn't change) so
+      // flipping back to the form view doesn't show stale fields / spurious dirty.
+      setDraftLabel(result.flow.label);
+      setDraftSteps({});
+      setDraftStepList(null);
+      setDraftLoop(result.flow.definition.loop ?? null);
+      setToast({
+        kind: "ok",
+        text: `Saved ${result.flow.label} (${result.definitionPath})`,
+      });
+    } catch (err) {
+      setYamlError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setYamlSaving(false);
     }
   }
 
@@ -413,22 +482,57 @@ export function FlowBuilderPage({
               {deleting ? "Deleting…" : "Delete"}
             </Button>
           ) : null}
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!dirty || saving || !isProjectFlow}
-            title={
-              !isProjectFlow
-                ? "Builtin flows are read-only - Fork to project first."
-                : !dirty
-                  ? "No changes to save"
-                  : "Save changes to .vibestrate/flows/"
-            }
-            iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
-            onClick={() => void handleSave()}
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
+          {selected ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!yamlMode && dirty}
+              title={
+                yamlMode
+                  ? "Back to the structured editor"
+                  : dirty
+                    ? "Save or discard your structured edits first"
+                    : "Edit the flow's raw YAML"
+              }
+              iconLeft={<Code className="h-3 w-3" strokeWidth={1.7} />}
+              onClick={toggleYamlMode}
+            >
+              {yamlMode ? "Form view" : "Edit as YAML"}
+            </Button>
+          ) : null}
+          {yamlMode ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={yamlSaving || !isProjectFlow}
+              title={
+                !isProjectFlow
+                  ? "Builtin flows are read-only - Fork to project first."
+                  : "Validate + save this YAML to .vibestrate/flows/"
+              }
+              iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
+              onClick={() => void handleSaveYaml()}
+            >
+              {yamlSaving ? "Saving…" : "Save YAML"}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!dirty || saving || !isProjectFlow}
+              title={
+                !isProjectFlow
+                  ? "Builtin flows are read-only - Fork to project first."
+                  : !dirty
+                    ? "No changes to save"
+                    : "Save changes to .vibestrate/flows/"
+              }
+              iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
+              onClick={() => void handleSave()}
+            >
+              {saving ? "Saving…" : "Save changes"}
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"
@@ -485,7 +589,50 @@ export function FlowBuilderPage({
         </div>
       ) : null}
 
-      {selected ? (
+      {selected && yamlMode ? (
+        <section className="mt-8" data-screen-label="03 Raw YAML">
+          <div className="glass p-5 fade-up">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="eyebrow">Raw YAML</div>
+                <div className="mt-0.5 text-[12.5px] text-fog-400">
+                  The flow's source. Saving validates the full schema and runs the
+                  secret / size guards server-side.
+                  {!isProjectFlow ? (
+                    <span className="ml-2 text-amber-300">
+                      read-only - fork into the project to edit
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+              <Chip tone={isProjectFlow ? "violet" : "neutral"}>
+                {isProjectFlow ? "Editable" : "Read-only"}
+              </Chip>
+            </div>
+            <textarea
+              value={yamlText}
+              onChange={(e) => setYamlText(e.target.value)}
+              readOnly={!isProjectFlow}
+              spellCheck={false}
+              rows={Math.min(40, Math.max(14, yamlText.split("\n").length + 1))}
+              className={cn(
+                "mono w-full resize-y rounded-md border bg-black/40 px-3 py-2.5 text-[11.5px] text-fog-100 outline-none",
+                yamlError
+                  ? "border-rose-400/40 focus:border-rose-400/60"
+                  : "border-violet-soft/30 focus:border-violet-soft/50",
+                !isProjectFlow ? "opacity-80" : "",
+              )}
+            />
+            {yamlError ? (
+              <div className="mt-2 rounded-md border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12px] text-rose-300 whitespace-pre-wrap">
+                {yamlError}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {selected && !yamlMode ? (
         <section className="mt-8 grid grid-cols-12 gap-5" data-screen-label="03 Builder">
           <div className="col-span-12 xl:col-span-7">
             <div className="glass p-5 fade-up">
