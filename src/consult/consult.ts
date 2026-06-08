@@ -84,6 +84,12 @@ export type ConsultRequest = {
   /** Explicit profile; else the crew's read-only planner (cheap, read-only). */
   profileId?: string | null;
   crewId?: string | null;
+  /** Ad-hoc provider + model + effort for this inquiry only; wins over profileId.
+   *  Lets a user run a one-off consult on an exact provider/model/effort without
+   *  a saved profile. */
+  providerId?: string | null;
+  model?: string | null;
+  effort?: string | null;
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
   /** Test seam - forwarded to the assist primitive. */
@@ -98,6 +104,9 @@ export type ConsultResult = {
   notes: string[];
   providerId: string;
   profileId: string;
+  /** The model + effort actually used (null = the provider's own default). */
+  model: string | null;
+  effort: string | null;
 };
 
 function buildInstruction(question: string, contextText: string, usedSources: string[]): string {
@@ -149,6 +158,9 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     loaded: { ...loaded, rules: "" },
     profileId: req.profileId,
     crewId: req.crewId,
+    adHocProvider: req.providerId
+      ? { providerId: req.providerId, model: req.model ?? null, effort: req.effort ?? null }
+      : null,
     signal: req.signal,
     runner: req.runner,
   });
@@ -159,6 +171,8 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     notes: context.notes,
     providerId: result.providerId,
     profileId: result.profileId,
+    model: result.model,
+    effort: result.effort,
   };
 }
 

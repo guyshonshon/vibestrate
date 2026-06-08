@@ -86,6 +86,45 @@ describe("runAssist", () => {
     expect(target.profileId).toContain("balanced");
   });
 
+  it("resolveAssistTarget honors an ad-hoc provider/model/effort override", async () => {
+    const loaded = await loadConfig(projectRoot);
+    const providerId = resolveAssistTarget(loaded).providerId; // a real configured provider
+    const t = resolveAssistTarget(loaded, {
+      adHoc: { providerId, model: "sonnet", effort: "low" },
+    });
+    expect(t).toMatchObject({
+      profileId: "(ad-hoc)",
+      providerId,
+      model: "sonnet",
+      effort: "low",
+    });
+  });
+
+  it("applies the resolved model + effort at the spawn (not just the provider)", async () => {
+    const loaded = await loadConfig(projectRoot);
+    const providerId = resolveAssistTarget(loaded).providerId;
+    let captured: { model?: string | null; effort?: string | null } | null = null;
+    const capturing: AssistProviderRunner = async (_providers, input) => {
+      captured = { model: input.model, effort: input.effort };
+      return { exitCode: 0, normalized: { responseText: '{"items":["x"]}', metrics: null } };
+    };
+    const res = await runAssist({
+      projectRoot,
+      label: "test",
+      instruction: "x",
+      schema: itemsSchema,
+      schemaHint: "{}",
+      adHocProvider: { providerId, model: "opus", effort: "high" },
+      runner: capturing,
+    });
+    expect(res.providerId).toBe(providerId);
+    expect(res.profileId).toBe("(ad-hoc)");
+    expect(res.model).toBe("opus");
+    expect(res.effort).toBe("high");
+    // The bug this guards: the assist spawn used to drop model/effort entirely.
+    expect(captured).toEqual({ model: "opus", effort: "high" });
+  });
+
   it("returns validated structured output on the happy path", async () => {
     const res = await runAssist({
       projectRoot,

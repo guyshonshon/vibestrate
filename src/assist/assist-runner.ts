@@ -18,6 +18,7 @@ import {
 } from "../crews/crew-registry.js";
 import { createActionBroker, gateAction } from "../safety/action-broker.js";
 import { runProvider } from "../providers/provider-runner.js";
+import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import type { ProvidersConfigMap } from "../providers/provider-schema.js";
 import type { ProviderRunInput } from "../providers/provider-types.js";
 import type { NormalizedMetrics } from "../providers/output-adapter.js";
@@ -38,6 +39,17 @@ export type AssistProviderRunner = (
   normalized: { responseText: string; metrics: NormalizedMetrics | null };
 }>;
 
+/** An ad-hoc provider+knob choice that bypasses the saved-profile lookup -
+ *  "run this one inquiry on exactly this provider/model/effort". Precedence:
+ *  adHocProvider > profileId > crew planner. */
+export type AdHocProvider = {
+  providerId: string;
+  model?: string | null;
+  effort?: string | null;
+  maxTokens?: number | null;
+  timeoutMs?: number | null;
+};
+
 export type AssistRequest<T> = {
   projectRoot: string;
   /** Short audit/log label, e.g. "enhance:checklist". */
@@ -53,6 +65,8 @@ export type AssistRequest<T> = {
   profileId?: string | null;
   /** Crew to resolve the default profile from (default: project.defaultCrew). */
   crewId?: string | null;
+  /** Ad-hoc provider/model/effort override; wins over profileId/crew. */
+  adHocProvider?: AdHocProvider | null;
   /** Pre-loaded config to avoid re-reading from disk. */
   loaded?: LoadedConfig;
   /** Max provider attempts (a parse failure re-prompts once). Default 2. */
@@ -71,7 +85,20 @@ export type AssistResult<T> = {
   attempts: number;
   providerId: string;
   profileId: string;
+  /** The model + effort actually requested at spawn (null = provider default). */
+  model: string | null;
+  effort: string | null;
   metrics: NormalizedMetrics | null;
+};
+
+/** The resolved provider + runtime knobs for an assist spawn. */
+export type AssistTarget = {
+  profileId: string;
+  providerId: string;
+  model: string | null;
+  effort: string | null;
+  maxTokens: number | null;
+  timeoutMs: number | null;
 };
 
 /** Stable audit bucket - assist effects append to runs/assist/actions.ndjson.
@@ -85,9 +112,23 @@ const ASSIST_RUN_ID = "assist";
  */
 export function resolveAssistTarget(
   loaded: LoadedConfig,
-  opts: { profileId?: string | null; crewId?: string | null } = {},
-): { profileId: string; providerId: string } {
+  opts: { profileId?: string | null; crewId?: string | null; adHoc?: AdHocProvider | null } = {},
+): AssistTarget {
   const { config } = loaded;
+  // Ad-hoc wins: run exactly this provider/model/effort, no profile lookup.
+  if (opts.adHoc) {
+    if (!config.providers[opts.adHoc.providerId]) {
+      throw new AssistError(`Unknown provider "${opts.adHoc.providerId}".`);
+    }
+    return {
+      profileId: "(ad-hoc)",
+      providerId: opts.adHoc.providerId,
+      model: opts.adHoc.model ?? null,
+      effort: opts.adHoc.effort ?? null,
+      maxTokens: opts.adHoc.maxTokens ?? null,
+      timeoutMs: opts.adHoc.timeoutMs ?? null,
+    };
+  }
   let profileId = opts.profileId ?? null;
   if (!profileId) {
     const { crew } = getCrew(config, opts.crewId);
@@ -102,7 +143,14 @@ export function resolveAssistTarget(
     profileId = role.profile;
   }
   const profile = getProfile(config, profileId);
-  return { profileId, providerId: profile.provider };
+  return {
+    profileId,
+    providerId: profile.provider,
+    model: profile.model ?? null,
+    effort: profile.power ?? null,
+    maxTokens: profile.maxTokens ?? null,
+    timeoutMs: profile.timeoutMs ?? null,
+  };
 }
 
 function buildAssistPrompt(req: {
@@ -172,12 +220,19 @@ export function extractJson(text: string): string | null {
 
 export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<T>> {
   const loaded = req.loaded ?? (await loadConfig(req.projectRoot));
-  const { profileId, providerId } = resolveAssistTarget(loaded, {
-    profileId: req.profileId,
-    crewId: req.crewId,
-  });
+  const { profileId, providerId, model, effort, maxTokens, timeoutMs } = resolveAssistTarget(
+    loaded,
+    {
+      profileId: req.profileId,
+      crewId: req.crewId,
+      adHoc: req.adHocProvider,
+    },
+  );
   const runner = req.runner ?? runProvider;
   const maxAttempts = Math.max(1, req.maxAttempts ?? 2);
+  // Resolve the capability catalog so the provider actually applies model/effort
+  // (built-in + project overlay). Best-effort: a failure falls back to built-ins.
+  const catalog = await resolveCatalog(req.projectRoot).catch(() => undefined);
 
   // Gate the spawn through the Action Broker (the "one boundary" guarantee).
   const bucket = req.auditBucket ?? ASSIST_RUN_ID;
@@ -210,6 +265,13 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
       providerId,
       prompt,
       cwd: req.projectRoot,
+      // Apply the resolved knobs so the chosen model/effort actually take effect
+      // (provider-apply maps them to the right CLI flag / request-body field).
+      model: model ?? undefined,
+      effort: effort ?? undefined,
+      maxTokens: maxTokens ?? undefined,
+      timeoutMs: timeoutMs ?? undefined,
+      catalog,
       signal: req.signal,
     });
     metrics = result.normalized.metrics;
@@ -243,7 +305,7 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
     await broker.record(request, gate.decision, {
       ok: true,
       summary: `assist:${req.label} ok (attempt ${attempt})`,
-      data: { providerId, profileId, attempts: attempt },
+      data: { providerId, profileId, model, effort, attempts: attempt },
     });
     return {
       parsed: validated.data,
@@ -251,6 +313,8 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
       attempts: attempt,
       providerId,
       profileId,
+      model,
+      effort,
       metrics,
     };
   }

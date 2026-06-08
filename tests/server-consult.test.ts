@@ -86,6 +86,27 @@ describe("POST /api/consult", () => {
     expect(body.providerId).toBe("fake");
   });
 
+  it("answers ad-hoc with a chosen provider + model + effort (no saved profile)", async () => {
+    const project = await makeProjectWithFakeProvider();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+    const res = await fetch(`${server.url}/api/consult`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "Which flow?", providerId: "fake", model: "haiku", effort: "low" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      profileId: string;
+      providerId: string;
+      model: string | null;
+      effort: string | null;
+    };
+    expect(body.providerId).toBe("fake");
+    expect(body.profileId).toBe("(ad-hoc)");
+    expect(body.model).toBe("haiku");
+    expect(body.effort).toBe("low");
+  });
+
   it("rejects an empty question with 400", async () => {
     const project = await makeProjectWithFakeProvider();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
