@@ -66,8 +66,22 @@ type NodeData = {
   profileId: string | null;
   needs: string[];
   status: string;
+  error: string | null;
   audit: AuditStep | null;
 };
+
+/** Right-aligned metric summary shared by row + popover. */
+function metricSummary(a: AuditStep | null): string {
+  return [
+    a?.durationMs != null ? `${(a.durationMs / 1000).toFixed(1)}s` : null,
+    a?.costUsd != null ? `$${a.costUsd.toFixed(3)}` : null,
+    a?.tokensIn != null || a?.tokensOut != null
+      ? `${fmtTok(a?.tokensIn)}→${fmtTok(a?.tokensOut)}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 function statusOf(s: string) {
   return STATUS[s] ?? { dot: "bg-fog-600", tone: "text-fog-400" };
@@ -198,13 +212,7 @@ function Node({
         <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
         <span className="truncate text-[12.5px] font-medium text-fog-100">{node.label}</span>
         <span className="ml-auto flex shrink-0 items-center gap-1">
-          {a && a.retries > 0 ? (
-            <Badge tone="bg-amber-400/10 text-amber-300">{"↻"}{a.retries}</Badge>
-          ) : null}
-          {a?.fellBack ? <Badge tone="bg-cyan-400/10 text-cyan-300">{"⇄"}</Badge> : null}
-          {a && a.subAgents.length > 0 ? (
-            <Badge tone="bg-violet-soft/10 text-violet-soft">{"⤷"}{a.subAgents.length}</Badge>
-          ) : null}
+          <NodeBadges a={a} />
         </span>
       </div>
       <div className="mt-0.5 truncate text-[10px] text-fog-600">
@@ -212,6 +220,65 @@ function Node({
         {node.role ?? node.kind}
         {node.seat ? ` · ${node.seat}` : ""}
       </div>
+      <Popover node={node} />
+    </div>
+  );
+}
+
+/** The high-signal resilience badges, shared by the card + the row. */
+function NodeBadges({ a }: { a: AuditStep | null }) {
+  if (!a) return null;
+  return (
+    <>
+      {a.retries > 0 ? (
+        <Badge tone="bg-amber-400/10 text-amber-300">{"↻"}{a.retries}</Badge>
+      ) : null}
+      {a.fellBack ? <Badge tone="bg-cyan-400/10 text-cyan-300">{"⇄"}</Badge> : null}
+      {a.subAgents.length > 0 ? (
+        <Badge tone="bg-violet-soft/10 text-violet-soft">{"⤷"}{a.subAgents.length}</Badge>
+      ) : null}
+    </>
+  );
+}
+
+/** Full-width row used for serial steps (a linear flow, or a single step between
+ *  parallel waves). Fills the width instead of a lone centered card, and carries
+ *  the per-step detail inline so it subsumes the old Step timeline. */
+function Row({
+  node,
+  highlighted,
+  onHover,
+}: {
+  node: NodeData;
+  highlighted: boolean;
+  onHover: (id: string | null) => void;
+}) {
+  const st = statusOf(node.status);
+  const a = node.audit;
+  const right = metricSummary(a);
+  const sub = [node.stage, node.role ?? node.kind, node.seat].filter(Boolean).join(" · ");
+  return (
+    <div
+      tabIndex={0}
+      onMouseEnter={() => onHover(node.id)}
+      onMouseLeave={() => onHover(null)}
+      className={`group relative w-full rounded-lg border bg-ink-200/40 px-3.5 py-2.5 outline-none transition-colors hover:border-white/20 focus-visible:border-violet-soft/60 ${
+        highlighted ? "border-violet-soft/60 ring-1 ring-violet-soft/40" : "border-white/[0.07]"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
+        <span className="shrink-0 truncate text-[13px] font-medium text-fog-100">{node.label}</span>
+        {sub ? <span className="min-w-0 truncate text-[11px] text-fog-500">{sub}</span> : null}
+        <span className="ml-auto flex shrink-0 items-center gap-2">
+          {right ? <span className="mono text-[11px] text-fog-400">{right}</span> : null}
+          <NodeBadges a={a} />
+          <span className={`text-[11px] ${st.tone}`}>{node.status}</span>
+        </span>
+      </div>
+      {node.error ? (
+        <div className="mt-1 truncate text-[11.5px] text-rose-300/80">{node.error}</div>
+      ) : null}
       <Popover node={node} />
     </div>
   );
@@ -227,26 +294,24 @@ function Connector({ note }: { note?: string | null }) {
   );
 }
 
-function Layer({
+/** A parallel wave: concurrent steps as side-by-side cards in a bordered group.
+ *  (Serial steps render full-width via Row, not here.) */
+function ParallelLayer({
   nodes,
   hl,
   onHover,
+  note,
 }: {
   nodes: NodeData[];
   hl: string | null;
   onHover: (id: string | null) => void;
+  note?: string | null;
 }) {
-  if (nodes.length === 1) {
-    return (
-      <div className="flex justify-center">
-        <Node node={nodes[0]!} highlighted={hl === nodes[0]!.id} onHover={onHover} />
-      </div>
-    );
-  }
   return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-2">
-      <div className="mb-1.5 text-center text-[9px] uppercase tracking-[0.12em] text-fog-600">
+    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-2.5">
+      <div className="mb-2 text-center text-[9px] uppercase tracking-[0.12em] text-fog-600">
         parallel {"×"}{nodes.length}
+        {note ? <span className="ml-1 normal-case tracking-normal text-fog-500">· {note}</span> : null}
       </div>
       <div className="flex flex-wrap justify-center gap-3">
         {nodes.map((n) => (
@@ -307,15 +372,11 @@ function EngagementLane({
         ) : null}
       </div>
       <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] p-2">
-        {entries.length === 0 ? (
-          <p className="px-1 py-2 text-[11px] text-fog-600">No supervisory events yet.</p>
-        ) : (
-          <ol className="list-none space-y-0.5 p-0">
-            {entries.map((e) => (
-              <EngagementRow key={e.seq} e={e} active={!!e.stepId && hl === e.stepId} onHover={onHover} />
-            ))}
-          </ol>
-        )}
+        <ol className="list-none space-y-0.5 p-0">
+          {entries.map((e) => (
+            <EngagementRow key={e.seq} e={e} active={!!e.stepId && hl === e.stepId} onHover={onHover} />
+          ))}
+        </ol>
         <div className="mt-2 border-t border-white/5 px-1 pt-1.5 text-[9.5px] leading-relaxed text-fog-600">
           <span className="text-fog-400">◆</span> judgment (advisory){"   "}
           <span className="text-fog-300">◼</span> enforced (gate){"   "}
@@ -350,6 +411,7 @@ export function RunGraph({
           profileId: s.profileId ?? au?.profileId ?? null,
           needs: s.needs ?? [],
           status: s.status,
+          error: s.error ?? null,
           audit: au,
         };
       })
@@ -363,6 +425,10 @@ export function RunGraph({
         profileId: s.profileId,
         needs: s.needs,
         status: s.status,
+        error:
+          s.attempts.find(
+            (x) => x.outcome === "failed" || x.outcome === "tolerated-failure",
+          )?.detail ?? null,
         audit: s,
       }));
 
@@ -391,36 +457,47 @@ export function RunGraph({
         </span>
       </div>
       <div className="glass p-4">
-        <div className="flex flex-col gap-4 lg:flex-row">
+        <div className={engagement.length > 0 ? "flex flex-col gap-4 lg:flex-row" : ""}>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-col items-stretch">
-              {/* Root: the orchestrator. The whole DAG descends from it. */}
-              <div className="flex justify-center">
-                <div className="group relative w-56 rounded-lg border border-violet-soft/30 bg-violet-soft/[0.06] px-3 py-2 outline-none" tabIndex={0}>
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-violet-soft" />
-                    <span className="text-[12.5px] font-semibold text-fog-100">orchestrator</span>
-                    <span className="ml-auto text-[11px] text-fog-300">
-                      {(audit?.status ?? flow?.flowId ?? "").toString().replace(/_/g, " ")}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 truncate text-[10px] text-fog-600">
-                    {(audit?.flow?.label ?? flow?.label) ?? "flow"}
-                    {audit?.assuranceVerdict ? ` · ${audit.assuranceVerdict.replace(/_/g, " ")}` : ""}
-                  </div>
-                </div>
+            <div className="flex flex-col items-stretch gap-1">
+              {/* Root: the orchestrator. The whole run descends from it. */}
+              <div className="flex items-center gap-3 rounded-lg border border-violet-soft/30 bg-violet-soft/[0.06] px-3.5 py-2.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-violet-soft" />
+                <span className="shrink-0 text-[13px] font-semibold text-fog-100">orchestrator</span>
+                <span className="min-w-0 truncate text-[11px] text-fog-500">
+                  {(audit?.flow?.label ?? flow?.label) ?? "flow"}
+                  {audit?.assuranceVerdict ? ` · ${audit.assuranceVerdict.replace(/_/g, " ")}` : ""}
+                </span>
+                <span className="ml-auto shrink-0 text-[11px] text-fog-300">
+                  {(audit?.status ?? flow?.flowId ?? "").toString().replace(/_/g, " ")}
+                </span>
               </div>
 
               {layers.map((layerNodes, li) => (
-                <div key={li}>
-                  <Connector note={layerNodes.length > 1 && fanout ? fanout.title : null} />
-                  <Layer nodes={layerNodes} hl={hl} onHover={setHl} />
+                <div key={li} className="flex flex-col gap-1">
+                  <Connector />
+                  {layerNodes.length === 1 ? (
+                    <Row
+                      node={layerNodes[0]!}
+                      highlighted={hl === layerNodes[0]!.id}
+                      onHover={setHl}
+                    />
+                  ) : (
+                    <ParallelLayer
+                      nodes={layerNodes}
+                      hl={hl}
+                      onHover={setHl}
+                      note={fanout ? fanout.title : null}
+                    />
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
-          <EngagementLane entries={engagement} hl={hl} onHover={setHl} />
+          {engagement.length > 0 ? (
+            <EngagementLane entries={engagement} hl={hl} onHover={setHl} />
+          ) : null}
         </div>
       </div>
     </section>
