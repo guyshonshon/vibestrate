@@ -11,7 +11,7 @@ import {
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { applyTransition, isTerminal, RunStateStore } from "../../core/state-machine.js";
-import { EventLog } from "../../core/event-log.js";
+import { EventLog, type VibestrateEvent } from "../../core/event-log.js";
 import {
   PauseError,
   requestPause,
@@ -35,6 +35,7 @@ import {
   buildAndWriteRunAssurance,
 } from "../../safety/run-assurance.js";
 import { buildRunAudit } from "../../core/run-audit.js";
+import { deriveEngagement } from "../../core/run-engagement.js";
 import type { RunSpec } from "../../core/run-launcher.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
@@ -339,6 +340,29 @@ export async function registerRunsRoutes(
         throw new HttpError(404, `Run ${req.params.runId} not found.`);
       }
       return { audit: await buildRunAudit(projectRoot, req.params.runId) };
+    },
+  );
+
+  // The orchestrator-engagement lane: an ordered, classified list of the moments
+  // the orchestrator engaged (judgment vs code-enforced gate). Derived live from
+  // the append-only event log so it works during a run and after; read-only.
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/engagement",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const eventsFile = runEventsPath(projectRoot, req.params.runId);
+      if (!(await pathExists(eventsFile))) return { engagement: [] };
+      const text = await readText(eventsFile);
+      const events: VibestrateEvent[] = [];
+      for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        try {
+          events.push(JSON.parse(line) as VibestrateEvent);
+        } catch {
+          // skip a malformed line
+        }
+      }
+      return { engagement: deriveEngagement(events) };
     },
   );
 

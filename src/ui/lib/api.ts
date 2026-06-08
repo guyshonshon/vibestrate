@@ -47,6 +47,7 @@ import type {
   ProposalSummary,
   QueueEntry,
   RoadmapItem,
+  EngagementEntry,
   RunAssurance,
   RunAudit,
   RunControlDirective,
@@ -587,6 +588,12 @@ export const api = {
   async getRunAudit(runId: string): Promise<RunAudit> {
     const r = await jsonGet<{ audit: RunAudit }>(`/api/runs/${runId}/audit`);
     return r.audit;
+  },
+  async getRunEngagement(runId: string): Promise<EngagementEntry[]> {
+    const r = await jsonGet<{ engagement: EngagementEntry[] }>(
+      `/api/runs/${runId}/engagement`,
+    );
+    return r.engagement;
   },
   async getRunSelection(runId: string): Promise<WorkflowSelectionView | null> {
     const r = await jsonGet<{ selection: WorkflowSelectionView | null }>(

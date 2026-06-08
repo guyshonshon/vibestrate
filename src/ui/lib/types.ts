@@ -1513,11 +1513,17 @@ export type AuditStep = {
   kind: string;
   seat: string | null;
   status: string;
+  stage: string | null;
+  roleId: string | null;
+  roleLabel: string | null;
+  profileId: string | null;
   needs: string[];
   provider: string | null;
   model: string | null;
   costUsd: number | null;
   durationMs: number | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
   toolCallCount: number | null;
   retries: number;
   fellBack: boolean;
@@ -1526,6 +1532,22 @@ export type AuditStep = {
   tools: { name: string; count: number }[];
   subAgents: { name: string; description: string | null }[];
   internalsOpaque: boolean;
+};
+
+export type EngagementClass = "judgment" | "enforced" | "structural";
+export type EngagementTone = "ok" | "warn" | "bad" | "info";
+export type EngagementAnchor = "root" | "fanout" | "step" | "run";
+
+export type EngagementEntry = {
+  seq: number;
+  timestamp: string;
+  type: string;
+  cls: EngagementClass;
+  anchor: EngagementAnchor;
+  stepId: string | null;
+  title: string;
+  detail: string | null;
+  tone: EngagementTone;
 };
 
 export type RunAudit = {
@@ -1537,6 +1559,7 @@ export type RunAudit = {
   assuranceVerdict: string | null;
   steps: AuditStep[];
   control: { type: string; message: string }[];
+  engagement: EngagementEntry[];
   totals: {
     turns: number;
     retries: number;

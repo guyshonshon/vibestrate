@@ -4,6 +4,7 @@ import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
   RunAudit,
+  EngagementEntry,
   VibestrateEvent,
   ApprovalRequest,
   RunAssurance,
@@ -16,7 +17,6 @@ import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
 import { StepTimelineV3 } from "../../components/runs/v3/StepTimelineV3.js";
 import { RunGraph } from "../../components/runs/RunGraph.js";
-import { isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -73,24 +73,27 @@ export function RunDetailPage({
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
   const [audit, setAudit] = useState<RunAudit | null>(null);
+  const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel] = await Promise.all([
+        const [r, m, a, d, sel, eng] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
           api.getDiff(runId).catch(() => null),
           api.getRunSelection(runId).catch(() => null),
+          api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
         ]);
         if (cancelled) return;
         setRun(r);
         setMetrics(m);
         setApprovals(a);
         setSelection(sel);
+        setEngagement(eng);
         setError(null);
         // Assurance + audit only exist once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -277,8 +280,8 @@ export function RunDetailPage({
         </aside>
       </section>
 
-      {(run.flow && isGraphSteps(run.flow.steps)) || audit ? (
-        <RunGraph flow={run.flow ?? null} audit={audit} />
+      {run.flow || audit || engagement.length > 0 ? (
+        <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
       ) : null}
 
       <StepTimelineV3 flow={run.flow ?? null} />
