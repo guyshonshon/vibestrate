@@ -72,6 +72,20 @@ describe("POST /api/consult", () => {
     expect(body.usedSources).toContain("project config");
   });
 
+  it("answers with an explicitly selected profile and reports it back", async () => {
+    const project = await makeProjectWithFakeProvider();
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+    const res = await fetch(`${server.url}/api/consult`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question: "Which flow?", profileId: "claude-balanced" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { profileId: string; providerId: string };
+    expect(body.profileId).toBe("claude-balanced");
+    expect(body.providerId).toBe("fake");
+  });
+
   it("rejects an empty question with 400", async () => {
     const project = await makeProjectWithFakeProvider();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });

@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { AlertTriangle, ArrowRight, FileText, MessagesSquare, Send } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, ArrowRight, Cpu, FileText, MessagesSquare, Send } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type { ConsultResult } from "../../lib/types.js";
+import type { ConsultResult, ProfileView } from "../../lib/types.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
 import { cn } from "../../components/design/cn.js";
+
+function profileOptionLabel(p: ProfileView): string {
+  return [p.label, `${p.provider}${p.model ? `/${p.model}` : ""}`, p.power]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 const CONFIDENCE_TONE: Record<ConsultResult["answer"]["confidence"], string> = {
   high: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
@@ -23,6 +30,26 @@ export function ConsultPage({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ConsultResult | null>(null);
   const [proposalState, setProposalState] = useState<"open" | "applied" | "rejected" | "busy">("open");
+  const [profiles, setProfiles] = useState<ProfileView[]>([]);
+  // "" = let the orchestrator use the crew's read-only planner (the default).
+  const [profileId, setProfileId] = usePersistedState<string>("vibestrate.consult.profileId", "");
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getProfiles()
+      .then((r) => {
+        if (!cancelled) setProfiles(r.profiles);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // If the persisted profile no longer exists, fall back to the default.
+  const selectedProfile = profiles.find((p) => p.id === profileId) ?? null;
+  const usedProfile = result ? profiles.find((p) => p.id === result.profileId) ?? null : null;
 
   async function ask() {
     const q = question.trim();
@@ -31,7 +58,11 @@ export function ConsultPage({
     setError(null);
     setProposalState("open");
     try {
-      const res = await api.consult({ question: q, taskId: taskId ?? undefined });
+      const res = await api.consult({
+        question: q,
+        taskId: taskId ?? undefined,
+        profileId: profileId || undefined,
+      });
       setResult(res);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -94,17 +125,38 @@ export function ConsultPage({
           rows={3}
           className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
         />
-        <div className="mt-2.5 flex items-center justify-between gap-3">
-          <span className="text-[11px] text-fog-500">⌘/Ctrl + Enter to ask</span>
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={!question.trim() || busy}
-            onClick={() => void ask()}
-            iconLeft={<Send className="h-3 w-3" />}
-          >
-            {busy ? "Consulting…" : "Consult"}
-          </Button>
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-center gap-1.5 text-[11px] text-fog-400">
+            <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.9} />
+            <span>Profile</span>
+            <select
+              value={profileId}
+              onChange={(e) => setProfileId(e.target.value)}
+              className="max-w-[260px] rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[11.5px] text-fog-200 outline-none focus:border-violet-soft/40"
+            >
+              <option value="">Default · planner (cheap)</option>
+              {profiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {profileOptionLabel(p)}
+                </option>
+              ))}
+            </select>
+            {selectedProfile && !selectedProfile.providerConfigured ? (
+              <span className="text-[10.5px] text-amber-300">provider not configured</span>
+            ) : null}
+          </label>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-fog-500">⌘/Ctrl + Enter to ask</span>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!question.trim() || busy}
+              onClick={() => void ask()}
+              iconLeft={<Send className="h-3 w-3" />}
+            >
+              {busy ? "Consulting…" : "Consult"}
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -212,7 +264,11 @@ export function ConsultPage({
 
           <p className="text-[11px] text-fog-500">
             Grounded in: {(answer.usedContext.length ? answer.usedContext : result.usedSources).join(", ") || "no project context"}
-            {result.providerId ? ` · via ${result.providerId}` : ""}
+            {result.profileId
+              ? ` · answered by ${result.profileId} (${result.providerId}${usedProfile?.model ? `/${usedProfile.model}` : ""})`
+              : result.providerId
+                ? ` · via ${result.providerId}`
+                : ""}
           </p>
           {result.notes.length ? (
             <ul className="space-y-0.5 text-[11px] text-fog-600">

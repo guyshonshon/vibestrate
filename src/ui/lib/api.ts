@@ -807,6 +807,7 @@ export const api = {
     taskId?: string | null;
     runId?: string | null;
     files?: string[];
+    profileId?: string | null;
   }): Promise<ConsultResult> {
     return jsonPost("/api/consult", input);
   },

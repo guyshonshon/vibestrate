@@ -23,11 +23,12 @@ export function buildConsultCommand(): Command {
     .option("--task <id>", "include a task's context (title, status, checklist)")
     .option("--run <id>", "focus a recent run by id")
     .option("--file <path>", "include a project file's content (repeatable)", collect, [])
+    .option("--profile <id>", "answer with a specific profile (default: the crew's read-only planner)")
     .option("--json", "emit the full structured result as JSON")
     .action(
       async (
         question: string,
-        opts: { task?: string; run?: string; file: string[]; json?: boolean },
+        opts: { task?: string; run?: string; file: string[]; profile?: string; json?: boolean },
       ) => {
         const { projectRoot } = await detectProject(process.cwd());
         let result;
@@ -38,6 +39,7 @@ export function buildConsultCommand(): Command {
             taskId: opts.task ?? null,
             runId: opts.run ?? null,
             files: opts.file,
+            profileId: opts.profile ?? null,
           });
         } catch (err) {
           console.error(`${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`);
@@ -91,6 +93,7 @@ export function buildConsultCommand(): Command {
           console.log("");
           console.log(color.dim(`Grounded in: ${grounding.join(", ")}`));
         }
+        console.log(color.dim(`Answered by: ${result.profileId} (${result.providerId})`));
         for (const note of notes) console.log(color.dim(`${symbol.warn()} ${note}`));
       },
     );
