@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.25",
+  "version": "0.7.26",
   "commands": [
     {
       "name": "init",
@@ -4527,6 +4527,13 @@
           "flags": "--file <path>",
           "description": "include a project file's content (repeatable)",
           "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--profile <id>",
+          "description": "answer with a specific profile (default: the crew's read-only planner)",
           "required": true,
           "optional": false,
           "negated": false
