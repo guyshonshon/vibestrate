@@ -455,52 +455,45 @@ export function RunGraph({
   // A fan-out note for a parallel wave, if the orchestrator recorded one.
   const fanout = engagement.find((e) => e.anchor === "fanout");
 
-  return (
-    <section data-screen-label="Run graph">
-      <div className="mb-2.5 flex items-baseline justify-between">
-        <span className="eyebrow">
-          {live ? "Run graph · live" : "Run graph · what happened"}
-        </span>
-        <span className="mono text-[11px] text-fog-400">
-          {audit ? (
-            <>
-              {audit.totals.turns} turns {"·"} {audit.totals.retries} retries {"·"}{" "}
-              {audit.totals.fallbacks} fallbacks
-              {audit.totals.costUsd != null ? ` · $${audit.totals.costUsd.toFixed(3)}` : ""}
-            </>
-          ) : (
-            `${nodes.length} steps`
-          )}
-        </span>
-      </div>
-      <div className="glass p-4">
-        <div className={engagement.length > 0 ? "flex flex-col gap-4 lg:flex-row" : ""}>
-          {/* The tree: orchestrator root, then each depth level joined by drawn
-              edges. Centered with a max width so the spine reads as a diagram,
-              not a stretched bar; parallel waves branch within it. */}
-          <div className="min-w-0 flex-1 overflow-x-auto">
-            <div className="mx-auto w-full max-w-3xl">
-              <div className="flex justify-center">
-                <RootCard flow={flow} audit={audit} />
-              </div>
-              {layers.map((layerNodes, li) => (
-                <div key={li}>
-                  <ConnectorBand
-                    prev={li === 0 ? 1 : layers[li - 1]!.length}
-                    curr={layerNodes.length}
-                    note={layerNodes.length > 1 && fanout ? fanout.title : null}
-                  />
-                  <LayerRow nodes={layerNodes} hl={hl} onHover={setHl} />
-                </div>
-              ))}
-            </div>
-          </div>
+  const totals = audit
+    ? `${audit.totals.turns} turns · ${audit.totals.retries} retries · ${audit.totals.fallbacks} fallbacks${
+        audit.totals.costUsd != null ? ` · $${audit.totals.costUsd.toFixed(3)}` : ""
+      }`
+    : `${nodes.length} steps${live ? " · live" : ""}`;
 
-          {engagement.length > 0 ? (
-            <EngagementLane entries={engagement} hl={hl} onHover={setHl} />
-          ) : null}
-        </div>
+  // Bare content - the PanelBoard provides the card chrome, title, and resize.
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="eyebrow">Run graph</span>
+        <span className="mono text-[11px] text-fog-400">{totals}</span>
       </div>
-    </section>
+      <div className={engagement.length > 0 ? "flex flex-col gap-4 lg:flex-row" : ""}>
+        {/* The tree: orchestrator root, then each depth level joined by drawn
+            edges. Centered so the spine reads as a diagram; parallel waves
+            branch within it. */}
+        <div className="min-w-0 flex-1">
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="flex justify-center">
+              <RootCard flow={flow} audit={audit} />
+            </div>
+            {layers.map((layerNodes, li) => (
+              <div key={li}>
+                <ConnectorBand
+                  prev={li === 0 ? 1 : layers[li - 1]!.length}
+                  curr={layerNodes.length}
+                  note={layerNodes.length > 1 && fanout ? fanout.title : null}
+                />
+                <LayerRow nodes={layerNodes} hl={hl} onHover={setHl} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {engagement.length > 0 ? (
+          <EngagementLane entries={engagement} hl={hl} onHover={setHl} />
+        ) : null}
+      </div>
+    </div>
   );
 }

@@ -20,6 +20,15 @@
   rollup** (in -> out) alongside the existing provider / model / cost / duration.
   Surfaced identically in `vibe audit` (new classified "Orchestrator engaged"
   section + per-step phase / role / profile / tokens) for full CLI parity.
+- **The run detail page is a movable / resizable panel board.** Run graph, Live
+  metrics, Live execution, and Changed files are now panels you can rearrange:
+  drag a panel's grip onto another to reorder, collapse/expand it, and drag its
+  right edge (width, snapped to a 12-col grid) or bottom edge (height) to resize.
+  The arrangement persists per-browser with a "Reset layout" control. Bespoke - no
+  DnD library - reusing `usePersistedState` + the pure `reorder` helpers, matching
+  the rest of the app. The default arrangement fills the width (no more dead space
+  beside a half-empty CLI panel), and the graph no longer sits in a horizontal
+  scroll container.
 - **The run graph is a real top-down tree now, and the redundant Step timeline
   is gone.** Compact nodes are joined by drawn edge lines: serial steps form a
   centered vertical spine, and a parallel wave visibly branches out from its parent

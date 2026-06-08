@@ -16,6 +16,7 @@ import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
 import { RunGraph } from "../../components/runs/RunGraph.js";
+import { PanelBoard } from "../../components/layout/PanelBoard.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -255,33 +256,55 @@ export function RunDetailPage({
 
       <CrewStrip flow={run.flow ?? null} />
 
-      <section className="grid grid-cols-12 gap-5" data-screen-label="03 Live execution">
-        <div className="col-span-12 xl:col-span-8 min-h-0">
-          <div className="flex items-baseline justify-between mb-2.5">
-            <span className="eyebrow">Live execution · raw provider CLI output</span>
-          </div>
-          <div className="rounded-xl border border-white/[0.08] bg-black/55 overflow-hidden">
-            <LiveOutputPanel runId={runId} status={run.status} />
-          </div>
-        </div>
-
-        <aside className="col-span-12 xl:col-span-4 min-h-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-4">
-          <ActiveRolePanel run={run} metrics={metrics} />
-          <div className="glass p-4">
-            <ChangedFilesList
-              runId={runId}
-              selectedPath={null}
-              onSelect={(p) =>
-                navigate({ kind: "codebase", filePath: p, line: null, runId })
-              }
-            />
-          </div>
-        </aside>
-      </section>
-
-      {run.flow || audit || engagement.length > 0 ? (
-        <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
-      ) : null}
+      <PanelBoard
+        storageKey="vibestrate.rundetail.layout"
+        panels={[
+          ...(run.flow || audit || engagement.length > 0
+            ? [
+                {
+                  id: "graph",
+                  title: "Run graph",
+                  defaultSpan: 8,
+                  render: () => (
+                    <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
+                  ),
+                },
+              ]
+            : []),
+          {
+            id: "metrics",
+            title: "Live metrics",
+            defaultSpan: 4,
+            render: () => <ActiveRolePanel run={run} metrics={metrics} />,
+          },
+          {
+            id: "live",
+            title: "Live execution",
+            defaultSpan: 8,
+            defaultHeight: 320,
+            bare: true,
+            render: () => (
+              <div className="h-full overflow-hidden rounded-xl border border-white/[0.08] bg-black/55">
+                <LiveOutputPanel runId={runId} status={run.status} />
+              </div>
+            ),
+          },
+          {
+            id: "files",
+            title: "Changed files",
+            defaultSpan: 4,
+            render: () => (
+              <ChangedFilesList
+                runId={runId}
+                selectedPath={null}
+                onSelect={(p) =>
+                  navigate({ kind: "codebase", filePath: p, line: null, runId })
+                }
+              />
+            ),
+          },
+        ]}
+      />
 
       <section data-screen-label="05 Inspector">
         <div className="flex items-baseline justify-between mb-2.5">
@@ -381,7 +404,7 @@ function ActiveRolePanel({
   const tokensEstimated = agents.some((a) => a.tokensEstimated);
   const stepsDone = agents.filter((a) => a.endedAt).length;
   return (
-    <div className="glass p-4">
+    <div>
       <SectionEyebrow
         className="mb-3"
         right={
