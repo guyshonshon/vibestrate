@@ -112,23 +112,25 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
   (budget.limit/spend.action/approval/...) and the assurance verdict hang off the
   root. Surfaced via `vibe audit <runId>` (text or `--json`) and
   `GET /api/runs/:id/audit`. The "opaque box" (inside a turn) is Phase C.
-- **Phase B - the visual. SHIPPED (0.7.19), reworked into a hierarchical DAG (0.7.24).**
-  A "Run audit · what happened" view on the run-detail page
-  (`RunAuditGraph` in `src/ui/components/runs/RunAuditGraph.tsx`): a
-  **top-to-bottom hierarchical graph**. The run's dependency DAG is laid out in
-  longest-path layers (reusing `layersOf` from `flow-graph-layout`, the same layout
-  the Flow graph, `vibe flows show`, and the TUI share): the orchestrator roots the
-  top, each step descends below the steps it `needs`, concurrent steps sit side by
-  side in a dashed "parallel ×N" wave, and a join (e.g. the arbiter) converges the
-  layer below it. Each step node carries its own nested detail - the **color-coded
-  attempt chain** (rate-limit -> retry -> fallback -> success) as a vertical
-  mini-timeline, the inside-the-turn tool chips, and any spawned sub-agents as
-  deeper nested nodes (was a flat list: `AuditTree`/`AuditStepRow`). Linear flows
-  (no `needs`) fall back to a straight one-step-per-layer chain. Fetched from
-  `GET /api/runs/:id/audit` (terminal runs). Mirrors the live Flow graph's layout
-  (topology) but at the audit altitude - the per-step *story*. *Follow-ups: a
-  shell-TUI audit view (audit is CLI + web today) and enriching the live DAG nodes
-  with audit badges inline.*
+- **Phase B - the visual. SHIPPED (0.7.19); merged with the live flow graph into one
+  `RunGraph` (0.7.24).** The run-detail page no longer carries two boxes (a live
+  Flow graph + a verbose audit list). It is one component
+  (`RunGraph` in `src/ui/components/runs/RunGraph.tsx`): a **top-to-bottom
+  hierarchical graph** that renders live *and* as the audit. The run's dependency
+  DAG is laid out in longest-path layers (reusing `layersOf` from
+  `flow-graph-layout`, the same layout the Flow graph, `vibe flows show`, and the
+  TUI share): the orchestrator roots the top, each step descends below the steps it
+  `needs`, concurrent steps sit side by side in a "parallel ×N" wave, and a join
+  (e.g. the arbiter) converges the layer below it. Linear flows (no `needs`) fall
+  back to a straight one-step-per-layer chain. **Nodes are compact** (status dot,
+  label, and only the high-signal badges - retries `↻`, fell-back `⇄`, sub-agents
+  `⤷`); **hover/focus opens a popover** with the full detail: the color-coded
+  attempt chain (rate-limit -> retry -> fallback -> success), inside-the-turn tool
+  calls + spawned sub-agents, provider/model/cost/duration, and the decision. Live
+  it shows flow topology + per-step status (lighter hover); once terminal it merges
+  the per-step audit from `GET /api/runs/:id/audit` by step id (the old flat
+  `AuditTree`/`AuditStepRow` and the standalone `RunAuditGraph` are gone).
+  *Follow-ups: a shell-TUI audit view (audit is CLI + web today).*
 - **Phase C - inside the box. SHIPPED (0.7.22).** `src/core/turn-internals.ts`
   `extractTurnInternals(rawStdout)` parses a turn's stream-json (grounded in real
   captured `claude` output) into grouped tool calls + sub-agent spawns

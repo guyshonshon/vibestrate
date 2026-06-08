@@ -15,8 +15,8 @@ import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
 import { StepTimelineV3 } from "../../components/runs/v3/StepTimelineV3.js";
-import { RunAuditGraph } from "../../components/runs/RunAuditGraph.js";
-import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
+import { RunGraph } from "../../components/runs/RunGraph.js";
+import { isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
@@ -277,26 +277,9 @@ export function RunDetailPage({
         </aside>
       </section>
 
-      {run.flow && isGraphSteps(run.flow.steps) ? (
-        <section data-screen-label="04 Flow graph">
-          <div className="flex items-baseline justify-between mb-2.5">
-            <span className="eyebrow">Flow graph · live · parallel steps run together</span>
-          </div>
-          <FlowGraph
-            title={`${run.flow.label} · ${run.flow.steps.length} steps`}
-            steps={run.flow.steps.map((s) => ({
-              id: s.id,
-              label: s.label,
-              kind: s.kind,
-              seat: s.seat,
-              needs: s.needs,
-              status: s.status,
-            }))}
-          />
-        </section>
+      {(run.flow && isGraphSteps(run.flow.steps)) || audit ? (
+        <RunGraph flow={run.flow ?? null} audit={audit} />
       ) : null}
-
-      {audit ? <RunAuditGraph audit={audit} /> : null}
 
       <StepTimelineV3 flow={run.flow ?? null} />
 
