@@ -1,18 +1,34 @@
-// A movable / resizable panel board, bespoke (no DnD library), matching the
-// repo's existing patterns: usePersistedState for per-browser persistence and
-// reorder.ts for the pure reorder math (the same approach as the provider-row
-// drag and the resizable Inspector drawer).
+// A movable / resizable panel board built on dnd-kit, so dragging is reactive:
+// a DragOverlay ghost follows the cursor, the other panels animate out of the
+// way live (rectSortingStrategy), drop targets highlight, and the viewport
+// auto-scrolls near the edges. Drag starts only from the grip handle, so clicks,
+// collapse, and the edge resize handles are unaffected.
 //
-// Each panel can be: reordered (drag the grip onto another panel), collapsed,
-// resized in width (drag the right edge, snapped to a 12-col grid) and height
-// (drag the bottom edge). Layout persists per `storageKey`; "Reset layout"
-// clears it back to each panel's defaults. New panels not in the saved order
-// fall in at their declared position (applyOrder), so adding one never strands
-// the saved layout.
+// Persistence (order / width-span / height / collapsed) is per-browser via
+// usePersistedState; "Reset layout" clears it to each panel's defaults. New
+// panels absent from the saved order fall in at their declared position
+// (applyOrder), so adding one never strands the saved layout.
 import { useRef, useState } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { usePersistedState } from "../../lib/usePersistedState.js";
-import { reorderByDrop, applyOrder } from "../../lib/reorder.js";
+import { applyOrder } from "../../lib/reorder.js";
 
 export type PanelDef = {
   id: string;
@@ -45,10 +61,10 @@ export function PanelBoard({
 }) {
   const [layout, setLayout] = usePersistedState<Layout>(storageKey, EMPTY);
   const boardRef = useRef<HTMLDivElement>(null);
-  const dragId = useRef<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const ordered = applyOrder(panels, layout.order ?? []);
+  const orderedIds = ordered.map((p) => p.id);
   const spanOf = (p: PanelDef) => layout.span?.[p.id] ?? p.defaultSpan;
   const heightOf = (p: PanelDef) => layout.height?.[p.id] ?? p.defaultHeight ?? null;
   const isCollapsed = (id: string) => layout.collapsed?.[id] ?? false;
@@ -62,12 +78,19 @@ export function PanelBoard({
   const reset = () => setLayout(EMPTY);
   const toggle = (id: string) =>
     patch((l) => ({ ...l, collapsed: { ...l.collapsed, [id]: !isCollapsed(id) } }));
-  const onDrop = (targetId: string) => {
-    const id = dragId.current;
-    dragId.current = null;
-    setOverId(null);
-    if (!id) return;
-    patch((l) => ({ ...l, order: reorderByDrop(ordered.map((p) => p.id), id, targetId) }));
+
+  // A 4px activation distance keeps clicks on the grip from registering as drags.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const onDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
+  const onDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = orderedIds.indexOf(String(active.id));
+    const to = orderedIds.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    patch((l) => ({ ...l, order: arrayMove(orderedIds, from, to) }));
   };
 
   const startWidthResize = (e: React.PointerEvent, p: PanelDef) => {
@@ -110,6 +133,8 @@ export function PanelBoard({
     window.addEventListener("pointerup", up);
   };
 
+  const activePanel = activeId ? panels.find((p) => p.id === activeId) ?? null : null;
+
   return (
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
@@ -124,88 +149,132 @@ export function PanelBoard({
           </button>
         ) : null}
       </div>
-      <div ref={boardRef} className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {ordered.map((p) => {
-          const span = spanOf(p);
-          const h = heightOf(p);
-          const collapsed = isCollapsed(p.id);
-          return (
-            <div
-              key={p.id}
-              data-panel
-              style={{ gridColumn: `span ${span} / span ${span}` }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (overId !== p.id) setOverId(p.id);
-              }}
-              onDragLeave={() => setOverId((c) => (c === p.id ? null : c))}
-              onDrop={() => onDrop(p.id)}
-              className={`group/panel relative flex min-w-0 flex-col rounded-xl border transition-colors ${
-                overId === p.id ? "border-violet-soft/50" : "border-white/[0.06]"
-              } ${p.bare ? "" : "glass"}`}
-            >
-              {/* Title-less when open (content keeps its own header); the title
-                  shows only when collapsed, since the body is then hidden. */}
-              <div className="flex items-center gap-1.5 px-2 py-1">
-                <button
-                  type="button"
-                  draggable
-                  onDragStart={(e) => {
-                    dragId.current = p.id;
-                    e.dataTransfer.effectAllowed = "move";
-                    e.dataTransfer.setData("text/plain", p.id);
-                  }}
-                  onDragEnd={() => {
-                    dragId.current = null;
-                    setOverId(null);
-                  }}
-                  className="cursor-grab text-fog-700 transition-colors hover:text-fog-300 active:cursor-grabbing"
-                  aria-label={`Move ${p.title}`}
-                  title="Drag onto another panel to reorder"
-                >
-                  <GripVertical className="h-3.5 w-3.5" />
-                </button>
-                {collapsed ? <span className="eyebrow">{p.title}</span> : null}
-                <button
-                  type="button"
-                  onClick={() => toggle(p.id)}
-                  className="ml-auto text-fog-700 transition-colors hover:text-fog-300"
-                  aria-label={collapsed ? `Expand ${p.title}` : `Collapse ${p.title}`}
-                >
-                  {collapsed ? (
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  )}
-                </button>
-              </div>
-
-              {!collapsed ? (
-                <>
-                  <div
-                    data-panel-body
-                    className={`min-h-0 flex-1 ${p.bare ? "" : "px-3 pb-3"}`}
-                    style={h != null ? { height: h, overflow: "auto" } : undefined}
-                  >
-                    {p.render()}
-                  </div>
-                  {/* Right edge: width. Bottom edge: height. */}
-                  <span
-                    onPointerDown={(e) => startWidthResize(e, p)}
-                    className="absolute right-0 top-6 bottom-2 w-1.5 cursor-col-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
-                    aria-hidden
-                  />
-                  <span
-                    onPointerDown={(e) => startHeightResize(e, p)}
-                    className="absolute bottom-0 left-6 right-2 h-1.5 cursor-row-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
-                    aria-hidden
-                  />
-                </>
-              ) : null}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragCancel={() => setActiveId(null)}
+      >
+        <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
+          <div ref={boardRef} className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+            {ordered.map((p) => (
+              <SortablePanel
+                key={p.id}
+                panel={p}
+                span={spanOf(p)}
+                height={heightOf(p)}
+                collapsed={isCollapsed(p.id)}
+                dragging={activeId != null}
+                onToggle={() => toggle(p.id)}
+                onWidthResize={(e) => startWidthResize(e, p)}
+                onHeightResize={(e) => startHeightResize(e, p)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+        <DragOverlay dropAnimation={null}>
+          {activePanel ? (
+            <div className="flex items-center gap-1.5 rounded-xl border border-violet-soft/50 bg-[#11151d]/95 px-3 py-2 shadow-2xl">
+              <GripVertical className="h-3.5 w-3.5 text-fog-400" />
+              <span className="eyebrow">{activePanel.title}</span>
             </div>
-          );
-        })}
-      </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
     </section>
+  );
+}
+
+function SortablePanel({
+  panel,
+  span,
+  height,
+  collapsed,
+  dragging,
+  onToggle,
+  onWidthResize,
+  onHeightResize,
+}: {
+  panel: PanelDef;
+  span: number;
+  height: number | null;
+  collapsed: boolean;
+  dragging: boolean;
+  onToggle: () => void;
+  onWidthResize: (e: React.PointerEvent) => void;
+  onHeightResize: (e: React.PointerEvent) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: panel.id,
+  });
+  const style: React.CSSProperties = {
+    gridColumn: `span ${span} / span ${span}`,
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-panel
+      style={style}
+      className={`group/panel relative flex min-w-0 flex-col rounded-xl border transition-colors ${
+        isDragging
+          ? "border-dashed border-violet-soft/50 opacity-40"
+          : dragging
+            ? "border-white/10"
+            : "border-white/[0.06]"
+      } ${panel.bare ? "" : "glass"}`}
+    >
+      <div className="flex items-center gap-1.5 px-2 py-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="cursor-grab text-fog-700 transition-colors hover:text-fog-300 active:cursor-grabbing"
+          aria-label={`Move ${panel.title}`}
+          title="Drag onto another panel to reorder"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        {collapsed ? <span className="eyebrow">{panel.title}</span> : null}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="ml-auto text-fog-700 transition-colors hover:text-fog-300"
+          aria-label={collapsed ? `Expand ${panel.title}` : `Collapse ${panel.title}`}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+
+      {!collapsed ? (
+        <>
+          <div
+            data-panel-body
+            className={`min-h-0 flex-1 ${panel.bare ? "" : "px-3 pb-3"}`}
+            style={height != null ? { height, overflow: "auto" } : undefined}
+          >
+            {panel.render()}
+          </div>
+          {/* Right edge resizes width; bottom edge resizes height. */}
+          <span
+            onPointerDown={onWidthResize}
+            className="absolute right-0 top-6 bottom-2 w-1.5 cursor-col-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
+            aria-hidden
+          />
+          <span
+            onPointerDown={onHeightResize}
+            className="absolute bottom-0 left-6 right-2 h-1.5 cursor-row-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
+            aria-hidden
+          />
+        </>
+      ) : null}
+    </div>
   );
 }
