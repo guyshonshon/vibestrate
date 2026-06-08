@@ -797,14 +797,14 @@ function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
         </span>
         <span>review: {a.review.status}</span>
         <span>verification: {a.verification.status}</span>
-        {a.coverage.toleratedStepFailures > 0 ? (
+        {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
           <span>
             coverage: {a.coverage.toleratedStepFailures} tolerated failure
             {a.coverage.toleratedStepFailures === 1 ? "" : "s"}
           </span>
         ) : null}
       </div>
-      {a.caps.length > 0 ? (
+      {(a.caps?.length ?? 0) > 0 ? (
         <div className="mt-1 text-[11px] opacity-60">
           caps: {a.caps.join(", ")}
         </div>

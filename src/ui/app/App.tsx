@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { AppShell } from "../components/layout/AppShell.js";
 import { CliHintOverlay } from "../components/layout/CliHintOverlay.js";
+import { ErrorBoundary } from "../components/layout/ErrorBoundary.js";
+import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
 import { MissionControlPage } from "./routes/MissionControlPage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
@@ -80,6 +82,20 @@ function notificationRoute(n: NotificationRecord): Route {
 export function App() {
   const [route, setRoute] = useState<Route>(() => parseRoute());
   const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  // The page identity (kind + the entity it shows). When this changes, the
+  // ErrorBoundary clears a stuck error so navigating away from a broken view
+  // recovers - without remounting children on unrelated re-renders.
+  const pageKey =
+    route.kind === "run"
+      ? `run:${route.runId}`
+      : route.kind === "task"
+        ? `task:${route.taskId}`
+        : route.kind === "codebase"
+          ? `codebase:${route.filePath ?? ""}`
+          : route.kind === "proposal"
+            ? `proposal:${route.proposalId}`
+            : route.kind;
 
   useEffect(() => {
     const handler = () => setRoute(parseRoute());
@@ -285,6 +301,7 @@ export function App() {
       onShowGit={() => navigate({ kind: "git", runId: null })}
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
+      <ErrorBoundary resetKey={pageKey}>
       {route.kind === "mission" ? (
         <MissionControlPage
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
@@ -385,7 +402,9 @@ export function App() {
           onBack={() => navigate({ kind: "proposals" })}
         />
       )}
+      </ErrorBoundary>
       <CliHintOverlay route={route} />
+      <GlobalErrorOverlay />
       {switcherOpen ? (
         <RunSwitcher
           onClose={() => setSwitcherOpen(false)}
