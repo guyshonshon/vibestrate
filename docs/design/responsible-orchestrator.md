@@ -407,6 +407,21 @@ Postures:
 `VIBESTRATE.md` and policy can define when to suggest or require these postures.
 Policy wins over model judgment.
 
+## Supervisor personas (posture presets)
+
+The orchestrator's default *character* - the skeptical-staff-engineer supervisor
+posture (analyze the real decision, get an independent adversarial check before
+high-blast-radius work, cite deterministic evidence) - should ship by default,
+model-agnostic, and be selectable as a few **personas** (staff-engineer,
+design/architect, security) that aim the same machinery at a different lens. A
+persona is an **advisory preset** that resolves to existing mechanisms (workflow
+selection bias + a `panel-review` lens-set + sandbox postures + an instruction
+block), pinned at the `VIBESTRATE.md` tier - never a new execution engine and
+never able to soften a code-enforced gate or raise confidence past deterministic
+evidence. Ship one default; earn the rest. Full design (and the recorded
+adversarial review that scoped it down):
+[`orchestrator-personas.md`](./orchestrator-personas.md).
+
 ## Implementation slices
 
 ### Slice 1 - project memory and consult
