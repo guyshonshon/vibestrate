@@ -69,6 +69,11 @@ export function buildAssuranceCommand(): Command {
           `  coverage:     ${assurance.coverage.toleratedStepFailures} tolerated step failure(s)`,
         );
       }
+      if (assurance.supervisor?.persona) {
+        console.log(
+          `  supervisor:   ${assurance.supervisor.persona} (${assurance.supervisor.independence})`,
+        );
+      }
       if (assurance.caps.length > 0) {
         console.log("");
         console.log(color.dim(`  caps: ${assurance.caps.join(", ")}`));

@@ -77,6 +77,8 @@ export type VibestrateEventType =
   | "mcp.attached"
   | "control.applied"
   | "workflow.selected"
+  | "persona.selected"
+  | "persona.upgraded"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"

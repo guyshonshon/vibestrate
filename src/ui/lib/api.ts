@@ -49,6 +49,7 @@ import type {
   RoadmapItem,
   EngagementEntry,
   RunAssurance,
+  PersonasResponse,
   RunAudit,
   RunControlDirective,
   RunState,
@@ -493,6 +494,8 @@ export const api = {
     checklistMode?: "continuous" | "step" | null;
     skills?: string[];
     concise?: boolean;
+    /** Supervisor persona (judgment posture); default = project.defaultPersona. */
+    persona?: string;
     flow?: {
       id: string;
       brief?: string | null;
@@ -578,6 +581,9 @@ export const api = {
   async getRun(runId: string): Promise<RunState> {
     const r = await jsonGet<{ run: RunState }>(`/api/runs/${runId}`);
     return r.run;
+  },
+  async listPersonas(): Promise<PersonasResponse> {
+    return jsonGet<PersonasResponse>("/api/personas");
   },
   async getRunAssurance(runId: string): Promise<RunAssurance> {
     const r = await jsonGet<{ assurance: RunAssurance }>(

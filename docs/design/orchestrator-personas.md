@@ -1,6 +1,14 @@
 # Orchestrator personas (supervisor posture presets)
 
-Status: **On paper.** This extends `responsible-orchestrator.md` (the spine: the
+Status: **Slice 1 SHIPPED (0.7.30).** The built-in `staff-engineer` persona, the
+deterministic upgrade-only flow bias (the teeth - fires on the non-`--select`
+path), `--supervisor` / composer selector / `GET /api/personas` /
+`vibe supervisor list`, the `persona.selected` + `persona.upgraded` events, and
+the honest `independence` label on run-assurance all landed. Deferred (per the
+"Minimal first slice" + "Cut-list" below): persona reviewLens filtering of
+panel-review, mid-run auto-escalation / state changes, an authoring UI, and the
+design/security catalog entries (each earns its place with evidence). This
+extends `responsible-orchestrator.md` (the spine: the
 orchestrator owns judgment, bounded by deterministic evidence). It does not
 introduce a new execution engine; a "persona" resolves to mechanisms that
 already exist (workflow selection, the `panel-review` lens fan-out, sandbox
@@ -129,7 +137,7 @@ model" rule cannot survive V1 provider-neutrality, so it is reframed:
   escalates the review to it and labels the verdict `independence: cross-model`;
 - when only one model is available, it still runs a **fresh-context,
   adversarially-briefed** pass over the concrete diff + validation output, but
-  labels it `independence: same-model` and treats it as a self-check, not
+  labels it `independence: single-profile` (a same-model self-check), not
   independent verification (same model = shared blind spots).
 
 **Bounded by deterministic evidence (can / cannot).**
@@ -153,7 +161,7 @@ is genuinely new is a **verdict artifact + event + a read-only dashboard panel**
 {
   "persona": "staff-engineer",
   "reviewerProfile": "claude-balanced",
-  "independence": "cross-model",        // or "same-model"
+  "independence": "cross-model",        // or "single-profile" (same-model self-check)
   "trigger": "write touched src/auth/* + validation missing",
   "flags": [ { "claim": "...", "severity": "high", "evidence": "file:line" } ],
   "deterministicEvidence": { "validation": "2 failed", "diffGate": "passed" },

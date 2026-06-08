@@ -8,10 +8,17 @@
 //
 // Design: docs/design/policy-enforcement-assurance.md (§ Run Assurance).
 
+import path from "node:path";
 import { pathExists, readText, writeText } from "../utils/fs.js";
-import { runAssurancePath, runStatePath } from "../utils/paths.js";
+import {
+  runArtifactsDir,
+  runAssurancePath,
+  runEventsPath,
+  runStatePath,
+} from "../utils/paths.js";
 import { readActionLog, type ActionRecord } from "./action-broker.js";
 import { runStateSchema } from "../core/state-machine.js";
+import { MetricsStore } from "../core/metrics-store.js";
 import { nowIso } from "../utils/time.js";
 
 export type RunAssuranceVerdict =
@@ -48,6 +55,15 @@ export type RunAssurance = {
   coverage: { toleratedStepFailures: number };
   /** Why the verdict is below "verified" (missing or weak checks). */
   caps: string[];
+  /** The supervisor persona + how independent its review was (orchestrator-
+   *  personas.md). `independence` is honest, NOT a confidence source: it is
+   *  "cross-model" only when >= 2 distinct non-null models actually ran;
+   *  otherwise "single-profile" (a fresh-context self-check that, by the design's
+   *  non-negotiables, can only LOWER confidence, never raise this verdict). */
+  supervisor: {
+    persona: string | null;
+    independence: "cross-model" | "single-profile";
+  };
 };
 
 /** Pure derivation - testable without disk. */
@@ -60,10 +76,22 @@ export function deriveRunAssurance(input: {
   /** Best-effort (continueOnError) steps that failed and were tolerated. On a
    *  merge_ready run, the count of `failed` flow steps. Defaults to 0. */
   toleratedStepFailures?: number;
+  /** Active supervisor persona id (orchestrator-personas.md). */
+  persona?: string | null;
+  /** Models that actually ran (per seated step). >= 2 distinct non-null models
+   *  means the review was cross-model; else it's a single-profile self-check. */
+  modelsUsed?: (string | null | undefined)[];
   generatedAt: string;
 }): RunAssurance {
   const { actionLog } = input;
   const toleratedStepFailures = input.toleratedStepFailures ?? 0;
+  const distinctModels = new Set(
+    (input.modelsUsed ?? []).filter((m): m is string => !!m && m.trim().length > 0),
+  );
+  const supervisor: RunAssurance["supervisor"] = {
+    persona: input.persona ?? null,
+    independence: distinctModels.size >= 2 ? "cross-model" : "single-profile",
+  };
 
   // ── Policy (from broker decisions) ──────────────────────────────────────
   const denies = actionLog.filter((r) => r.decision.effect === "deny");
@@ -163,6 +191,7 @@ export function deriveRunAssurance(input: {
     verification: { status: verificationStatus },
     coverage: { toleratedStepFailures },
     caps,
+    supervisor,
   };
 }
 
@@ -257,6 +286,43 @@ export async function buildAndWriteRunAssurance(
     }
   }
   const actionLog = await readActionLog(projectRoot, runId);
+  // Persona (best-effort): the selection record when present, else the always-
+  // emitted persona.selected event (selection.json is only written for an
+  // orchestrator selection / supervisor upgrade, but the persona is recorded for
+  // every run, so the badge shows it on plain default runs too).
+  let persona: string | null = null;
+  try {
+    const selPath = path.join(runArtifactsDir(projectRoot, runId), "selection.json");
+    if (await pathExists(selPath)) {
+      const sel = JSON.parse(await readText(selPath)) as { personaId?: string | null };
+      persona = sel.personaId ?? null;
+    }
+  } catch {
+    // best-effort; fall through to the event log
+  }
+  if (!persona) {
+    try {
+      const eventsPath = runEventsPath(projectRoot, runId);
+      if (await pathExists(eventsPath)) {
+        for (const line of (await readText(eventsPath)).split(/\r?\n/)) {
+          if (!line.includes('"persona.selected"')) continue;
+          const ev = JSON.parse(line) as { data?: { personaId?: string | null } };
+          if (ev.data?.personaId) persona = ev.data.personaId;
+        }
+      }
+    } catch {
+      // best-effort; persona stays null
+    }
+  }
+  // The models that actually ran (per seated role), for the honest independence
+  // label. Best-effort - CLI providers often don't report a model string.
+  let modelsUsed: (string | null | undefined)[] = [];
+  try {
+    const metrics = await new MetricsStore(projectRoot, runId).read();
+    modelsUsed = (metrics?.roles ?? []).map((r) => r.model ?? null);
+  } catch {
+    // best-effort; independence falls back to "single-profile"
+  }
   const assurance = deriveRunAssurance({
     runId,
     runStatus,
@@ -264,6 +330,8 @@ export async function buildAndWriteRunAssurance(
     verification,
     actionLog,
     toleratedStepFailures,
+    persona,
+    modelsUsed,
     generatedAt: nowIso(),
   });
   await writeText(

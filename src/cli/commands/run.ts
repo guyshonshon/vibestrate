@@ -89,6 +89,8 @@ export type RunCommandOptions = {
   concise?: boolean;
   /** Flow id to resolve before start. */
   flowId?: string | null;
+  /** --supervisor: the active supervisor persona id (else project default). */
+  supervisorId?: string | null;
   /** --select: force orchestrator flow selection even when a default flow is set. */
   select?: boolean;
   /** Per-step Profile overrides (step id → profile id). */
@@ -230,6 +232,7 @@ export async function runRunCommand(
         config: loaded.config,
         forcedFlowId: activeFlowId,
         forceSelect: options.select === true,
+        personaOverride: options.supervisorId ?? null,
         loaded,
       });
       activeFlowId = selection.flowId;
@@ -705,13 +708,23 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     default: "default",
     selected: `selected · ${selection.confidence} confidence`,
     "only-flow": "only flow",
+    "supervisor-upgraded": "supervisor-upgraded",
   };
   console.log("");
+  // The active supervisor persona (orchestrator-personas.md) - shown like Flow.
+  if (selection.personaId) {
+    console.log(
+      `${header("Supervisor:")} ${color.bold(selection.personaId)}`,
+    );
+  }
   console.log(
     `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
   );
-  if (selection.source === "selected" && selection.reasons.length) {
-    console.log(indent(color.dim(selection.reasons[0]!)));
+  if (
+    (selection.source === "selected" || selection.source === "supervisor-upgraded") &&
+    selection.reasons.length
+  ) {
+    console.log(indent(color.dim(selection.reasons[selection.reasons.length - 1]!)));
   }
   if (selection.crewId) {
     console.log(indent(color.dim(`crew: ${selection.crewId}`)));

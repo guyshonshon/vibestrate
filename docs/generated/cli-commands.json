@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.29",
+  "version": "0.7.30",
   "commands": [
     {
       "name": "init",
@@ -857,6 +857,40 @@
               "subcommands": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "supervisor",
+      "path": [
+        "vibe",
+        "supervisor"
+      ],
+      "description": "Supervisor personas (the orchestrator's judgment posture). See orchestrator-personas.md.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "supervisor",
+            "list"
+          ],
+          "description": "List the resolved supervisor personas (built-ins + project).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
         }
       ]
     },
@@ -4996,6 +5030,13 @@
         {
           "flags": "--flow <id>",
           "description": "resolve and run a Flow recipe for this run.",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--supervisor <id>",
+          "description": "supervisor persona (judgment posture) for this run; default = project.defaultPersona.",
           "required": true,
           "optional": false,
           "negated": false

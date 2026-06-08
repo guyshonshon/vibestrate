@@ -17,12 +17,30 @@ import { z } from "zod";
 import { classifyEffort } from "../core/effort-heuristic.js";
 import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
 import { discoverFlows } from "../flows/catalog/flow-discovery.js";
+import {
+  classifyTaskRisk,
+  resolvePersona,
+  type ResolvedPersona,
+} from "./personas.js";
 import type { LoadedConfig } from "../project/config-loader.js";
 import type { ProjectConfig } from "../project/config-schema.js";
 import type { FlowCapabilities, FlowComplexity } from "../flows/schemas/flow-schema.js";
 
-export type WorkflowSelectionSource = "forced" | "default" | "selected" | "only-flow";
+export type WorkflowSelectionSource =
+  | "forced"
+  | "default"
+  | "selected"
+  | "only-flow"
+  | "supervisor-upgraded";
 export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggested";
+
+/** Record of a persona's upgrade-only flow bias (orchestrator-personas.md). */
+export type PersonaUpgrade = {
+  from: string;
+  to: string;
+  /** The matched risk signals that triggered the upgrade (deterministic). */
+  signals: string[];
+};
 
 export type WorkflowSelection = {
   flowId: string;
@@ -35,6 +53,10 @@ export type WorkflowSelection = {
   posture: WorkflowPosture;
   /** A short, human-facing note (e.g. why a heavier flow, or a posture nudge). */
   advisory: string | null;
+  /** The active supervisor persona id (always set by chooseRunFlow). */
+  personaId?: string | null;
+  /** Set when the persona upgraded the flow for a risk-tagged task. */
+  personaUpgrade?: PersonaUpgrade | null;
 };
 
 export type AvailableFlow = {
@@ -241,7 +263,60 @@ export type ChooseRunFlowInput = {
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
   runner?: AssistProviderRunner;
+  /** --supervisor / request persona id: the active supervisor persona override. */
+  personaOverride?: string | null;
 };
+
+/** Rank a flow's weight class so the persona bias can stay genuinely
+ *  upgrade-only. Unknown/undeclared complexity is treated as "medium". */
+const COMPLEXITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2 };
+const flowWeight = (complexity: FlowComplexity | null | undefined): number =>
+  COMPLEXITY_RANK[complexity ?? "medium"] ?? 1;
+
+/**
+ * The persona's one behavioral lever this slice (orchestrator-personas.md): for a
+ * NON-forced selection, if the task matches the persona's risk signals, UPGRADE
+ * the flow to a preferred review flow. Strictly UPGRADE-ONLY: the target must not
+ * be a LIGHTER weight class than the chosen flow (else a project persona could
+ * downgrade a heavy default while mislabeling it "upgraded"). Never overrides an
+ * explicit --flow; always logged.
+ */
+async function maybeUpgradeForPersona(input: {
+  base: WorkflowSelection;
+  persona: ResolvedPersona;
+  task: string;
+  projectRoot: string;
+}): Promise<WorkflowSelection> {
+  const { base, persona } = input;
+  const signals = persona.config.riskSignals ?? [];
+  const targets = persona.config.prefersFlows ?? [];
+  if (base.source === "forced" || signals.length === 0 || targets.length === 0) {
+    return base;
+  }
+  if (targets.includes(base.flowId)) return base; // already on a preferred flow
+  const matched = classifyTaskRisk(input.task, signals);
+  if (matched.length === 0) return base;
+  const discovered = await discoverFlows(input.projectRoot).catch(() => []);
+  const byId = new Map(discovered.map((f) => [f.id, f]));
+  const baseWeight = flowWeight(byId.get(base.flowId)?.definition.complexity ?? null);
+  // First available preferred flow that is NOT lighter than the current one.
+  const target = targets.find((t) => {
+    const f = byId.get(t);
+    return f !== undefined && t !== base.flowId && flowWeight(f.definition.complexity) >= baseWeight;
+  });
+  if (!target) return base;
+  return {
+    ...base,
+    flowId: target,
+    source: "supervisor-upgraded",
+    reasons: [
+      ...base.reasons,
+      `Supervisor "${persona.config.label}" upgraded ${base.flowId} -> ${target} for a risk-tagged task (signal: ${matched.join(", ")}).`,
+    ],
+    risks: [...base.risks, `Task matched risk signal(s): ${matched.join(", ")}.`],
+    personaUpgrade: { from: base.flowId, to: target, signals: matched },
+  };
+}
 
 /**
  * The single entry point both run launchers (CLI + API) use to choose a Flow,
@@ -254,10 +329,24 @@ export type ChooseRunFlowInput = {
  */
 export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<WorkflowSelection> {
   const defaultFlowId = input.config.defaultFlow ?? null;
+  const persona = resolvePersona(input.config, input.personaOverride);
+  const tag = (s: WorkflowSelection): WorkflowSelection => ({
+    ...s,
+    personaId: persona.id,
+    personaUpgrade: s.personaUpgrade ?? null,
+  });
+  const upgrade = (base: WorkflowSelection): Promise<WorkflowSelection> =>
+    maybeUpgradeForPersona({
+      base,
+      persona,
+      task: input.task,
+      projectRoot: input.projectRoot,
+    });
 
-  // 1. Forced by --flow (or the interactive picker).
+  // 1. Forced by --flow (or the interactive picker). The persona never overrides
+  //    an explicit user choice - it is only tagged for the record.
   if (input.forcedFlowId) {
-    return {
+    return tag({
       flowId: input.forcedFlowId,
       crewId: null,
       source: "forced",
@@ -266,7 +355,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
       risks: [],
       posture: "normal",
       advisory: null,
-    };
+    });
   }
 
   // 2. Orchestrator selection - opt-in only (--select), and never with --no-select.
@@ -283,7 +372,7 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
       id,
       label: (c as { label?: string }).label ?? id,
     }));
-    return selectWorkflow({
+    const selected = await selectWorkflow({
       projectRoot: input.projectRoot,
       task: input.task,
       files: input.files,
@@ -295,10 +384,18 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
       signal: input.signal,
       runner: input.runner,
     });
+    // No persona upgrade here: --select means the LLM already made a risk-aware
+    // choice (buildInstruction tells it to go heavier for risky tasks), and the
+    // persona's "move to prefersFlows[0]" isn't guaranteed heavier, so applying
+    // it over an LLM pick could downgrade it. The deterministic upgrade is the
+    // safety net for the NON-LLM default path below.
+    return tag(selected);
   }
 
   // 3. The default/session flow (or the built-in default) - applied + shown, no LLM.
-  return {
+  //    The persona may still UPGRADE this for a risk-tagged task (the teeth that
+  //    fires on the default path).
+  const base: WorkflowSelection = {
     flowId: defaultFlowId ?? "default",
     crewId: null,
     source: "default",
@@ -308,4 +405,5 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     posture: "normal",
     advisory: null,
   };
+  return tag(await upgrade(base));
 }

@@ -87,6 +87,8 @@ const spawnRunBody = z.object({
   // false = skip selection (use the default flow); omitted = normal precedence.
   // The chosen flow is recorded on the run (selection.json + workflow.selected).
   select: z.boolean().nullable().optional(),
+  // Supervisor persona (judgment posture) for this run; default = defaultPersona.
+  persona: z.string().min(1).max(40).optional(),
   flow: z
     .object({
       id: z
@@ -214,6 +216,7 @@ export async function registerRunsRoutes(
       runtimeSkills: body.skills ?? [],
       concise: body.concise ?? false,
       select: body.select ?? null,
+      persona: body.persona ?? null,
       flow: body.flow ?? null,
       resumeFrom: body.resumeFrom ?? null,
     };
