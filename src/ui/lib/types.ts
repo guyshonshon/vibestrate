@@ -253,6 +253,9 @@ export type ResolvedFlowSnapshot = {
   crewId: string;
   seats: ResolvedFlowSeat[];
   steps: ResolvedFlowStep[];
+  // The per-item band (Phase 3 pick-up + Phase D checklist DAGs): the runner
+  // repeats from..to once per checklist item. null when not checklist-aware.
+  checklistSegment?: { from: string; to: string } | null;
 };
 
 // ─── crews / profiles (the new run-composition model) ───────────────────────

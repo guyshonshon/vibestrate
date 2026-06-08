@@ -1,10 +1,45 @@
 # Custom workflow DAGs + parallel agents within a task
 
 Status: **Phase A + B SHIPPED (0.7.0, orchestrator Slice 4); continue-past-failure
-+ per-step retries SHIPPED (0.7.9 / 0.7.10, Slice 5); Phase C (write-parallelism)
-+ checklist-DAG on paper.** The *product framing* here is superseded by
-`responsible-orchestrator.md`: DAGs are an execution primitive the orchestrator
-*chooses*, not the product identity. This doc remains the graph execution design.
++ per-step retries SHIPPED (0.7.9 / 0.7.10, Slice 5); Phase D checklist-DAG
+"Shape A" SHIPPED (0.7.28, Slice 5); Phase C (write-parallelism) + Phase D
+"Shape B" (per-item review panel) on paper.** The *product framing* here is
+superseded by `responsible-orchestrator.md`: DAGs are an execution primitive the
+orchestrator *chooses*, not the product identity. This doc remains the graph
+execution design.
+
+What shipped in the checklist-DAG slice (Phase D "Shape A", 0.7.28, Slice 5):
+
+- A DAG **inside the per-item band**: a flow may now combine `needs` (graph mode)
+  with a `checklistSegment`, as long as the graph is **confined to the band**
+  (prelude/postlude stay linear; enforced in the schema and the resolver's
+  read-only grouping is band-scoped too). Each checklist item runs the band as a
+  mini-DAG through the frontier scheduler - read-only fan-out -> serial writer
+  join - repeated once per item in one worktree (a commit per item).
+- **"Shape A" first** (the safe slice): the built-in **`pickup-analysis`** flow
+  fans out two read-only analysts (risk/impact + test-surface) per item, then the
+  implementer writes the item informed by both. Analysts are `agent-turn`s, not
+  `review-turn`s, so the band produces **no** arbitration findings - this sidesteps
+  the run-global arbitration-ledger collision a per-item *review* panel ("Shape B")
+  would hit when the same step ids run N times.
+- Runner: `runGraphFrontier` gained `stepsOverride` / `priorDoneOverride` /
+  `emitLifecycle` so it runs a step SUBSET (the band) with an explicit (empty)
+  done-seed per item (so band steps re-run each item instead of being treated as
+  already-done from the prior item) and without duplicate lifecycle events; the
+  per-item entry/exit are factored into closures shared by the linear and graph
+  band paths; the frontier's returned `state` is adopted before the per-item
+  commit; the band's review/verify decisions are per-item and NOT propagated
+  (run-level verdicts come from the linear postlude). A read-only / N=1 run still
+  runs the band ONCE through the frontier (the fan-out is valuable regardless).
+- Band turns are **stateless** this slice (consistent with all graph turns); a
+  serial-band-step session-reuse option is a follow-up. **Mid-band resume** is
+  rejected with a clear message (out of scope this slice). The shared
+  `flow-graph-layout.ts` learned `zonedLayersOf` (prelude / per-item band /
+  postlude), so web + CLI + TUI all show the band boundary, its per-item repeat,
+  and the in-band fan-out (parity).
+- Still on paper: **Shape B** (per-item review panel + arbiter) needs a
+  per-item-scoped arbitration ledger + suggestion ingest; serial in-band session
+  reuse; Phase C write-parallelism.
 
 What shipped in the per-step retries slice (Slice 5, 0.7.10):
 

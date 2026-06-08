@@ -662,6 +662,7 @@ function DryRunModal({
               <div className="mt-3">
                 <FlowGraph
                   title="Graph · steps in a dashed box run in parallel"
+                  checklistSegment={snapshot.checklistSegment ?? null}
                   steps={snapshot.steps
                     .filter((s) => s.enabled)
                     .map((s) => ({

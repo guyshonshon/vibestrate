@@ -741,6 +741,168 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "pickup-analysis",
+      "version": 1,
+      "label": "Pick-up (per-item analysis)",
+      "description": "Execute a card item-by-item with a per-item analysis fan-out: a holistic plan once, then for each checklist item two read-only analysts (risk/impact + tests) run in parallel and the implementer writes the item informed by both (a commit per item), then a holistic review.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Plans the card and each item."
+        },
+        {
+          "id": "reviewer",
+          "label": "Analyst",
+          "description": "Studies one item under an assigned lens before it is built."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements one item, informed by the analysts."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "micro-plan",
+          "label": "Micro-plan item",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "micro-plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "analyze-risk",
+          "label": "Analyze: risk & impact",
+          "kind": "agent-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "analysis-risk"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "analyze-tests",
+          "label": "Analyze: test surface",
+          "kind": "agent-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "analysis-tests"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement item",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "micro-plan",
+            "analysis-risk",
+            "analysis-tests",
+            "checklist-item",
+            "prior-items"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan",
+            "execution",
+            "prior-items"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }

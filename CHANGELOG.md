@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.7.28
+
+- **Checklist DAGs: parallel agents on every checklist item (Phase D, "Shape A").**
+  A Flow can now put a dependency graph *inside* the per-item band, so a pick-up
+  run executes each checklist item as a mini-DAG instead of a straight line. The
+  new built-in **`pickup-analysis`** flow does exactly this: for each item, two
+  read-only analysts (risk/impact + test-surface) study it **in parallel**, then
+  the implementer writes the item informed by both - "think in parallel, then
+  build" - committing per item, once per item, in one worktree. The analysts are
+  read-only (one writer per worktree, hard-enforced at resolve time) and
+  best-effort (one failing lens doesn't sink the item). A read-only or instant
+  (N=1) run still fans the analysts out through the scheduler.
+- **The graph view now shows the band.** The Flow Builder graph, `vibe flows
+  show`, and the Ink TUI flow page all zone a checklist + graph flow into
+  prelude -> **per-item band (repeats)** -> postlude, so the parallel fan-out
+  *and* the per-item repetition are legible at a glance (a flat layout hid both).
+- **Guardrails:** the DAG must stay confined to the band (prelude/postlude stay
+  linear) - enforced in the schema and the resolver. Mid-band resume is refused
+  with a clear message. Per-item *review* panels ("Shape B") are deliberately
+  deferred (they need a per-item arbitration ledger first). Design:
+  [`design/custom-workflow-dags.md`](./docs/design/custom-workflow-dags.md).
+
 ## 0.7.27
 
 - **Consult: choose the actual provider + model + effort (and it finally takes

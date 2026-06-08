@@ -181,7 +181,13 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
   // Read-only guarantee (custom-workflow-dags.md): the schema can't know who
   // writes (flows are crew-agnostic), so the parallel-group read-only invariant
   // is enforced HERE, once seats are bound to roles -> permission profiles.
-  assertParallelGroupsAreReadOnly({ steps, crew, config: input.config, crewId });
+  assertParallelGroupsAreReadOnly({
+    steps,
+    crew,
+    config: input.config,
+    crewId,
+    checklistSegment: input.flow.checklistSegment ?? null,
+  });
 
   return resolvedFlowSnapshotSchema.parse({
     schemaVersion: 1,
@@ -212,15 +218,31 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
  * set) must be a seated, read-only model turn. A panel of writers is rejected
  * before the run starts - this upholds the one-writer-per-worktree invariant
  * that read-only fan-out depends on. No-op for linear (non-graph) flows.
+ *
+ * For a checklist + graph flow (Phase D) the DAG lives only in the per-item
+ * band, so the grouping is scoped to the band - else the empty-`needs` prelude
+ * and band root would share the "" signature and the prelude (often a writer)
+ * would be wrongly flagged as a parallel writer, falsely rejecting the flow.
  */
 function assertParallelGroupsAreReadOnly(input: {
   steps: ResolvedFlowStep[];
   crew: CrewConfig;
   config: ProjectConfig;
   crewId: string;
+  checklistSegment: { from: string; to: string } | null;
 }): void {
   if (!isGraphFlow({ steps: input.steps })) return;
-  const groups = parallelGroupsOf(input.steps).filter((g) => g.length >= 2);
+  let groupSteps = input.steps;
+  if (input.checklistSegment) {
+    const from = input.steps.findIndex(
+      (s) => s.sourceStepId === input.checklistSegment!.from,
+    );
+    const to = input.steps.findIndex(
+      (s) => s.sourceStepId === input.checklistSegment!.to,
+    );
+    if (from >= 0 && to >= from) groupSteps = input.steps.slice(from, to + 1);
+  }
+  const groups = parallelGroupsOf(groupSteps).filter((g) => g.length >= 2);
   for (const group of groups) {
     for (const step of group) {
       if (!step.resolvedRoleId || !TURN_KINDS.has(step.kind)) {

@@ -338,6 +338,39 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           });
         }
       }
+      // No arbitration inside the per-item band. The band repeats once per
+      // checklist item, reusing the same step ids; the arbitration ledger +
+      // suggestion ingest are run-global and keyed by model-supplied finding id,
+      // so a per-item review/summary step would silently overwrite the prior
+      // item's findings (the collision behind Phase D "Shape B"). Reject
+      // review/summary turns and arbitration-output tokens in the band until a
+      // per-item-scoped ledger exists; put review/verify in the postlude instead.
+      if (segFrom >= 0 && segTo >= segFrom) {
+        const ARBITRATION_TOKENS = new Set([
+          "findings",
+          "finding-responses",
+          "finding-resolutions",
+          "decision-summary",
+        ]);
+        for (let i = segFrom; i <= segTo; i += 1) {
+          const step = flow.steps[i]!;
+          if (step.kind === "review-turn" || step.kind === "summary-turn") {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", i, "kind"],
+              message: `Flow step "${step.id}" is a ${step.kind} inside the per-item band; per-item review/verify isn't supported yet (the arbitration ledger would collide across items). Move it to the postlude, after the band.`,
+            });
+          }
+          const arb = step.outputs.find((o) => ARBITRATION_TOKENS.has(o));
+          if (arb) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", i, "outputs"],
+              message: `Flow step "${step.id}" writes the arbitration token "${arb}" inside the per-item band; that ledger is run-global and would collide across items. Emit it from a postlude step instead.`,
+            });
+          }
+        }
+      }
     }
 
     if (flow.loop) {
@@ -387,7 +420,7 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
       }
     }
 
-    // ── Graph (DAG) validation (Slice 4, custom-workflow-dags.md Phase A) ──
+    // ── Graph (DAG) validation (Slice 4, custom-workflow-dags.md Phase A+D) ──
     // A flow is in "graph mode" iff any step declares `needs`. The linear path
     // is preserved byte-for-byte for non-graph flows, so this whole block is a
     // no-op for them. For graph flows we validate structure only (acyclicity,
@@ -395,9 +428,9 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
     // is crew-dependent and so is enforced at resolve time, not here.
     const graphMode = flow.steps.some((s) => s.needs.length > 0);
     if (graphMode) {
-      // First-slice restriction: a DAG may not also use the adaptive loop or the
-      // per-item band. Those crossings (a graph x the review loop / checklist)
-      // are Phase D - reject the combination now with a clear message.
+      // Loop x graph is still deferred (the adaptive review loop crossed with a
+      // DAG). The checklist x graph cross IS supported (Phase D): a DAG inside
+      // the per-item band, repeated once per checklist item - see below.
       if (flow.loop) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -406,17 +439,50 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
             "A flow that declares step `needs` (graph mode) can't also use an adaptive `loop` yet - that combination is deferred.",
         });
       }
-      if (flow.checklistSegment) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["checklistSegment"],
-          message:
-            "A flow that declares step `needs` (graph mode) can't also use a `checklistSegment` yet - that combination is deferred.",
-        });
-      }
 
       const indexById = new Map<string, number>();
       flow.steps.forEach((s, i) => indexById.set(s.id, i));
+
+      // Phase D - checklist DAGs (graph x per-item band): when a graph flow also
+      // declares a `checklistSegment`, the DAG must be CONFINED to the band. The
+      // band [from..to] repeats once per checklist item and runs through the
+      // frontier scheduler; the prelude (before `from`) and postlude (after `to`)
+      // stay on the untouched linear path, so they must remain linear (no
+      // `needs`). Confining edges to the band also keeps the needs-signature
+      // grouping honest: empty-`needs` prelude/postlude steps must not be
+      // conflated with the band's parallel roots. (The from/to existence + order
+      // is already validated in the checklistSegment block above.)
+      const bandFrom =
+        flow.checklistSegment
+          ? flow.steps.findIndex((s) => s.id === flow.checklistSegment!.from)
+          : -1;
+      const bandTo =
+        flow.checklistSegment
+          ? flow.steps.findIndex((s) => s.id === flow.checklistSegment!.to)
+          : -1;
+      const bandResolved = bandFrom >= 0 && bandTo >= bandFrom;
+      if (flow.checklistSegment && bandResolved) {
+        flow.steps.forEach((step, index) => {
+          const inBand = index >= bandFrom && index <= bandTo;
+          if (step.needs.length > 0 && !inBand) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["steps", index, "needs"],
+              message: `Flow step "${step.id}" declares \`needs\` outside the per-item band (${flow.checklistSegment!.from}..${flow.checklistSegment!.to}). In a checklist + graph flow only band steps may fan out; the prelude and postlude run linearly.`,
+            });
+          }
+          for (const need of step.needs) {
+            const t = indexById.get(need);
+            if (t !== undefined && (t < bandFrom || t > bandTo)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["steps", index, "needs"],
+                message: `Flow step "${step.id}" needs "${need}", which is outside the per-item band. Band steps may only depend on other band steps (prelude artifacts are carried via \`inputs\`, not \`needs\`).`,
+              });
+            }
+          }
+        });
+      }
 
       flow.steps.forEach((step, index) => {
         // Fixed repeat expands a step into new ids (`<id>-repeat-N`), which can't
@@ -470,9 +536,17 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
 
       // Parallel groups = steps sharing an identical `needs` set. Members may run
       // concurrently, so they must (a) stay within the width cap and (b) never
-      // write the same output token (the join consumes each by name).
+      // write the same output token (the join consumes each by name). For a
+      // checklist + graph flow the DAG lives only in the band (Phase D), so group
+      // over the band steps - else empty-`needs` prelude/postlude steps (linear,
+      // not concurrent) would be miscounted as one giant parallel group and
+      // falsely trip the width cap / distinct-output checks.
+      const groupSteps =
+        flow.checklistSegment && bandResolved
+          ? flow.steps.slice(bandFrom, bandTo + 1)
+          : flow.steps;
       const groups = new Map<string, FlowStep[]>();
-      for (const step of flow.steps) {
+      for (const step of groupSteps) {
         const key = [...step.needs].sort().join(" ");
         const bucket = groups.get(key);
         if (bucket) bucket.push(step);
