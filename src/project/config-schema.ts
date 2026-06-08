@@ -265,6 +265,56 @@ export const sessionConfigSchema = z
   .default({});
 export type SessionConfig = z.infer<typeof sessionConfigSchema>;
 
+// ─── Supervisor personas (orchestrator-personas.md) ──────────────────────────
+// A persona is the orchestrator's *judgment posture* - an ADVISORY preset that
+// biases supervision. It is NOT a crew/flow/profile. It never softens a
+// code-enforced gate and never raises confidence past deterministic evidence
+// (those rules live in the runtime, not here). One persona ships in code
+// ("staff-engineer") so a project with no `personas:` block still resolves.
+export const BUILTIN_PERSONA_IDS = ["staff-engineer"] as const;
+
+const personaNameSchema = z
+  .string()
+  .min(1)
+  .max(40)
+  .regex(
+    VALIDATION_PROFILE_NAME_RE,
+    "Persona names must use letters, digits, dashes, or underscores.",
+  )
+  .refine(
+    (v) => !RESERVED_PROFILE_NAMES.has(v),
+    'Persona names cannot be "default", "all", or "none".',
+  );
+
+export const personaConfigSchema = z
+  .object({
+    label: z.string().min(1).max(80),
+    description: z.string().max(280).optional(),
+    /** Path to the supervisor instruction block (diffable, reviewed like code). */
+    instructions: z.string().min(1).max(300).optional(),
+    /**
+     * Task-text signals that mark a task risky enough to warrant heavier review.
+     * Lowercased substring match (a deterministic mechanism; the POLICY - which
+     * signals - is data here, not hardcoded in core). Used only to UPGRADE the
+     * flow (more review), never to downgrade, so a false match only adds cost.
+     */
+    riskSignals: z.array(z.string().min(1).max(60)).default([]),
+    /**
+     * Flow(s) this persona favors for risky tasks. The first available one is the
+     * upgrade target when a riskSignal matches and the chosen flow is lighter.
+     */
+    prefersFlows: z.array(z.string().min(1).max(80)).default([]),
+    /** The reviewer's profile (provider-neutral); null = strongest available. */
+    reviewerProfile: z.string().min(1).nullable().default(null),
+    /**
+     * Descriptive lens-set shown in the UI (what this persona inspects). Not yet
+     * enforced as a panel-review filter this slice - that is a follow-up.
+     */
+    reviewLenses: z.array(z.string().min(1).max(40)).default([]),
+  })
+  .strict();
+export type PersonaConfig = z.infer<typeof personaConfigSchema>;
+
 export const projectConfigBaseSchema = z.object({
   project: projectMetaSchema,
   git: gitConfigSchema.default({
@@ -297,6 +347,17 @@ export const projectConfigBaseSchema = z.object({
    * resolve to a built-in or project flow.
    */
   defaultFlow: z.string().min(1).nullable().default(null),
+  /**
+   * Supervisor personas (orchestrator-personas.md). Project-defined personas; the
+   * built-in "staff-engineer" always resolves even when this is empty.
+   */
+  personas: z.record(personaNameSchema, personaConfigSchema).default({}),
+  /**
+   * The orchestrator's default judgment posture. Resolves to a built-in
+   * (BUILTIN_PERSONA_IDS) OR a key in `personas`. Unlike defaultCrew it does NOT
+   * require a config entry - the built-in default works out of the box.
+   */
+  defaultPersona: z.string().min(1).default("staff-engineer"),
   budget: budgetConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,
@@ -389,6 +450,30 @@ export const projectConfigSchema = projectConfigBaseSchema.superRefine(
         path: ["defaultCrew"],
         message: `defaultCrew "${cfg.defaultCrew}" is not defined in crews.`,
       });
+    }
+
+    // Personas: defaultPersona must resolve to a built-in OR a config entry
+    // (NOT defaultCrew's "must be in config" rule - the built-in works out of
+    // the box, so requiring a config entry would break every existing project).
+    const personaIds = new Set([
+      ...BUILTIN_PERSONA_IDS,
+      ...Object.keys(cfg.personas),
+    ]);
+    if (!personaIds.has(cfg.defaultPersona)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["defaultPersona"],
+        message: `defaultPersona "${cfg.defaultPersona}" is not a built-in (${BUILTIN_PERSONA_IDS.join(", ")}) or a key in personas.`,
+      });
+    }
+    for (const [personaId, persona] of Object.entries(cfg.personas)) {
+      if (persona.reviewerProfile && !cfg.profiles[persona.reviewerProfile]) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["personas", personaId, "reviewerProfile"],
+          message: `Persona "${personaId}" references unknown reviewerProfile "${persona.reviewerProfile}".`,
+        });
+      }
     }
   },
 );

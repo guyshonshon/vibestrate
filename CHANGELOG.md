@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.7.30
+
+- **Supervisor personas: the orchestrator gets a judgment posture (slice 1).** A
+  persona is the orchestrator's advisory supervisor character - it ships one
+  built-in **`staff-engineer`** (correctness/risk/blast-radius) out of the box, no
+  config required, and you can pick it per run (`vibe run --supervisor <id>`, a
+  Supervisor selector in the composer, `persona` on `POST /api/runs`) or set
+  `defaultPersona` in config. `vibe supervisor list` + `GET /api/personas` show
+  the catalog. The active persona is shown like the Flow line and recorded
+  (`persona.selected` event).
+- **It changes behavior, not just tone (the teeth).** On the normal (non-`--select`)
+  path, if a task matches the persona's `riskSignals` (auth, payment, migration,
+  secrets, ...), the persona deterministically **upgrades** the flow to its
+  preferred review flow (`panel-review`) and logs why (`persona.upgraded` + a
+  `supervisor-upgraded` selection). Upgrade-only: it can add review, never remove
+  it, and never overrides an explicit `--flow`.
+- **Honest, model-agnostic supervision.** Personas are advisory - pinned below
+  every code-enforced gate (policy/diff/validation/approval/budget), with no
+  evidence-weighting knob and no ability to raise confidence. The run-assurance
+  badge now records the persona + an honest `independence` label: `cross-model`
+  only when >=2 distinct models actually ran, else `single-profile` (a same-model
+  self-check that can only lower confidence). Design:
+  [`design/orchestrator-personas.md`](./docs/design/orchestrator-personas.md).
+
 ## 0.7.29
 
 - **Flow Builder: edit a flow's raw YAML, see its architecture.** The Flow

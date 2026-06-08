@@ -19,6 +19,7 @@ import { buildProviderCommand } from "./commands/provider/index.js";
 import { buildConfigCommand } from "./commands/config/index.js";
 import { buildSkillsCommand } from "./commands/skills/index.js";
 import { buildFlowsCommand } from "./commands/flows/index.js";
+import { buildSupervisorCommand } from "./commands/supervisor.js";
 import { buildProfilesCommand } from "./commands/profiles/index.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
@@ -130,6 +131,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildConfigCommand());
   program.addCommand(buildSkillsCommand());
   program.addCommand(buildFlowsCommand());
+  program.addCommand(buildSupervisorCommand());
   program.addCommand(buildProfilesCommand());
   program.addCommand(buildApprovalsCommand());
   program.addCommand(buildRoadmapCommand());
@@ -201,6 +203,10 @@ export function buildVibestrateProgram(): Command {
     .option(
       "--flow <id>",
       "resolve and run a Flow recipe for this run.",
+    )
+    .option(
+      "--supervisor <id>",
+      "supervisor persona (judgment posture) for this run; default = project.defaultPersona.",
     )
     .option(
       "--select",
@@ -276,6 +282,7 @@ export function buildVibestrateProgram(): Command {
           skills?: string;
           concise?: boolean;
           flow?: string;
+          supervisor?: string;
           select?: boolean;
           stepProfile?: string[];
           seatRole?: string[];
@@ -394,6 +401,7 @@ export function buildVibestrateProgram(): Command {
           runtimeSkills,
           concise: opts.concise ?? false,
           flowId: opts.flow ?? null,
+          supervisorId: opts.supervisor ?? null,
           select: opts.select === true,
           flowStepProfiles,
           flowBrief: opts.flowBrief ?? null,

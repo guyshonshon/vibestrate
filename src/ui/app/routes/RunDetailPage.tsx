@@ -779,9 +779,22 @@ function FlowChoiceCard({ selection }: { selection: WorkflowSelectionView }) {
         </span>
         <span className="text-[13px] font-medium text-fog-100">{selection.flowId}</span>
         <span className="text-[11px] text-fog-400">
-          orchestrator-selected · {selection.confidence} confidence
+          {selection.source === "supervisor-upgraded"
+            ? "supervisor-upgraded"
+            : `orchestrator-selected · ${selection.confidence} confidence`}
         </span>
+        {selection.personaId ? (
+          <span className="text-[11px] text-violet-300/80">
+            supervisor: {selection.personaId}
+          </span>
+        ) : null}
       </div>
+      {selection.personaUpgrade ? (
+        <p className="mt-1 text-[11.5px] text-violet-200">
+          upgraded {selection.personaUpgrade.from} → {selection.personaUpgrade.to}{" "}
+          (risk signal: {selection.personaUpgrade.signals.join(", ")})
+        </p>
+      ) : null}
       {selection.reasons.length ? (
         <ul className="mt-1.5 space-y-0.5 text-[12px] text-fog-300">
           {selection.reasons.map((r, i) => (
@@ -827,6 +840,11 @@ function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
           <span>
             coverage: {a.coverage.toleratedStepFailures} tolerated failure
             {a.coverage.toleratedStepFailures === 1 ? "" : "s"}
+          </span>
+        ) : null}
+        {a.supervisor?.persona ? (
+          <span title="The supervisor's review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence.">
+            supervisor: {a.supervisor.persona} ({a.supervisor.independence})
           </span>
         ) : null}
       </div>

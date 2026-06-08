@@ -16,6 +16,7 @@ import {
   Lock,
   Play,
   Save,
+  Scale,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -40,9 +41,10 @@ import type {
   CrewView,
   DiscoveredFlow,
   FlowContextPolicy,
+  PersonaSummary,
   ProfileView,
 } from "../../../lib/types.js";
-import type { ComposerPreset } from "../../../lib/api.js";
+import { api, type ComposerPreset } from "../../../lib/api.js";
 
 export type ComposerProvider = {
   id: string;
@@ -58,6 +60,8 @@ export type ComposerSubmitInput = {
   brief: string;
   flowId: string | null;
   crewId: string | null;
+  /** Supervisor persona (judgment posture); null = project default. */
+  persona: string | null;
   contextPolicy: FlowContextPolicy;
   stepProfileOverrides: Record<string, string>;
   seatRoleOverrides: Record<string, string>;
@@ -136,6 +140,9 @@ export function ComposerV3({
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
   const [unattended, setUnattended] = useState(false);
+  // Supervisor persona (orchestrator-personas.md): the run's judgment posture.
+  const [personas, setPersonas] = useState<PersonaSummary[]>([]);
+  const [personaId, setPersonaId] = useState<string | null>(null);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -144,6 +151,21 @@ export function ComposerV3({
   useEffect(() => {
     if (crewId === null && defaultCrewId) setCrewId(defaultCrewId);
   }, [defaultCrewId, crewId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void api
+      .listPersonas()
+      .then((r) => {
+        if (cancelled) return;
+        setPersonas(r.personas);
+        setPersonaId((cur) => cur ?? r.defaultPersona);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (flowId) return;
@@ -264,6 +286,7 @@ export function ComposerV3({
       brief: trimmed,
       flowId: flowId || null,
       crewId,
+      persona: personaId,
       contextPolicy: "balanced",
       stepProfileOverrides: stepProfiles,
       seatRoleOverrides: seatRoles,
@@ -495,6 +518,26 @@ export function ComposerV3({
             setOpen={setSkillsOpen}
             toggle={toggleSkill}
           />
+          {personas.length > 0 ? (
+            <label
+              className="h-7 pl-2.5 pr-1.5 rounded-full text-[11.5px] flex items-center gap-1.5 border border-white/[0.08] bg-white/[0.02] text-fog-300 whitespace-nowrap"
+              title="Supervisor persona - the orchestrator's judgment posture for this run (a risk-tagged task is upgraded to heavier review)."
+            >
+              <Scale className="h-3 w-3 text-violet-300" strokeWidth={1.7} />
+              <span>Supervisor</span>
+              <select
+                value={personaId ?? ""}
+                onChange={(e) => setPersonaId(e.target.value || null)}
+                className="bg-transparent text-fog-100 outline-none text-[11.5px] max-w-[140px]"
+              >
+                {personas.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-ink-200">
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button
             type="button"
             onClick={() => setReadOnly((x) => !x)}

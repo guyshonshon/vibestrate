@@ -285,12 +285,16 @@ export type CrewView = {
 export type WorkflowSelectionView = {
   flowId: string;
   crewId: string | null;
-  source: "forced" | "default" | "selected" | "only-flow";
+  source: "forced" | "default" | "selected" | "only-flow" | "supervisor-upgraded";
   confidence: "low" | "medium" | "high";
   reasons: string[];
   risks: string[];
   posture: "normal" | "sandbox-suggested" | "approval-suggested";
   advisory: string | null;
+  /** Active supervisor persona id (orchestrator-personas.md). */
+  personaId?: string | null;
+  /** Set when the persona upgraded the flow for a risk-tagged task. */
+  personaUpgrade?: { from: string; to: string; signals: string[] } | null;
 };
 
 export type ConsultActionKind =
@@ -1497,6 +1501,25 @@ export type RunAssurance = {
   verification: { status: "passed" | "failed" | "not_run" };
   coverage: { toleratedStepFailures: number };
   caps: string[];
+  // Supervisor persona + how independent its review was (orchestrator-personas.md).
+  // independence is honest, NOT a confidence source.
+  supervisor?: {
+    persona: string | null;
+    independence: "cross-model" | "single-profile";
+  };
+};
+
+// Supervisor personas (orchestrator-personas.md) - the run composer's selector.
+export type PersonaSummary = {
+  id: string;
+  label: string;
+  description?: string;
+  reviewLenses: string[];
+  builtin: boolean;
+};
+export type PersonasResponse = {
+  defaultPersona: string;
+  personas: PersonaSummary[];
 };
 
 // Run audit tree (see src/core/run-audit.ts).

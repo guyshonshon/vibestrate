@@ -50,6 +50,8 @@ export const runSpecSchema = z.object({
    *  set (--select); false = skip selection, use the default flow (--no-select);
    *  omitted = the normal precedence (forced > default > select). */
   select: z.boolean().nullable().optional(),
+  /** Supervisor persona (judgment posture) for this run; default = defaultPersona. */
+  persona: z.string().min(1).max(40).nullable().optional(),
   /** Pick-up execution (Phase 3): iterate the linked task's checklist through
    *  the flow's checklistSegment. "continuous" runs items back-to-back; "step"
    *  pauses between items. Omitted = no checklist iteration. */
@@ -213,6 +215,7 @@ export async function runFromSpec(
       forcedFlowId: spec.flow?.id ?? null,
       forceSelect: spec.select === true,
       noSelect: spec.select === false,
+      personaOverride: spec.persona ?? null,
       loaded,
       signal: opts.abortSignal,
     });

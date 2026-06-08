@@ -634,9 +634,14 @@ export class Orchestrator {
     await artifactStore.write("00-idea.md", `# Task\n\n${this.task}\n`);
 
     // Record how this run's Flow was chosen, but only for an actual orchestrator
-    // selection - a forced/default run's flow is already in flow.json, so we add
-    // no extra artifact/event there (keeps normal runs byte-for-byte unchanged).
-    if (this.selection && this.selection.source === "selected") {
+    // selection (LLM `selected` or a persona `supervisor-upgraded`) - a
+    // forced/default run's flow is already in flow.json, so we add no extra
+    // artifact/event there (keeps normal runs byte-for-byte unchanged).
+    if (
+      this.selection &&
+      (this.selection.source === "selected" ||
+        this.selection.source === "supervisor-upgraded")
+    ) {
       await artifactStore.writeJson("selection.json", this.selection);
       await eventLog.append({
         type: "workflow.selected",
@@ -649,6 +654,28 @@ export class Orchestrator {
           reasons: this.selection.reasons,
           risks: this.selection.risks,
           posture: this.selection.posture,
+        },
+      });
+    }
+    // The active supervisor persona (orchestrator-personas.md): always recorded
+    // for transparency, and the upgrade-only flow bias when it fired.
+    if (this.selection?.personaId) {
+      await eventLog.append({
+        type: "persona.selected",
+        message: `Supervisor persona "${this.selection.personaId}"`,
+        data: { personaId: this.selection.personaId },
+      });
+    }
+    if (this.selection?.personaUpgrade) {
+      const up = this.selection.personaUpgrade;
+      await eventLog.append({
+        type: "persona.upgraded",
+        message: `Supervisor upgraded ${up.from} -> ${up.to} (risk signal: ${up.signals.join(", ")})`,
+        data: {
+          personaId: this.selection.personaId ?? null,
+          from: up.from,
+          to: up.to,
+          signals: up.signals,
         },
       });
     }

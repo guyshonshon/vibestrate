@@ -196,6 +196,22 @@
       "itemType": null
     },
     {
+      "key": "personas",
+      "fullKey": "personas",
+      "type": "record<string, object>",
+      "required": false,
+      "default": {},
+      "itemType": null
+    },
+    {
+      "key": "defaultPersona",
+      "fullKey": "defaultPersona",
+      "type": "string",
+      "required": false,
+      "default": "staff-engineer",
+      "itemType": null
+    },
+    {
       "key": "budget",
       "fullKey": "budget",
       "type": "object",

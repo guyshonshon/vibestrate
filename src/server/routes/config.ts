@@ -1,9 +1,10 @@
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
-import { configExists } from "../../project/config-loader.js";
+import { configExists, loadConfig } from "../../project/config-loader.js";
 import { showConfig } from "../../setup/config-update-service.js";
 import { buildConfigView } from "../../setup/config-view.js";
 import { projectConfigPath } from "../../utils/paths.js";
+import { BUILTIN_PERSONAS } from "../../orchestrator/personas.js";
 
 export type ConfigRoutesDeps = {
   projectRoot: string;
@@ -44,6 +45,42 @@ export async function registerConfigRoutes(
       valid: r.error === null,
       error: r.error,
       view: buildConfigView(r.parsed),
+    };
+  });
+
+  // Supervisor personas (orchestrator-personas.md): the resolved catalog
+  // (built-ins + project) + the active default, for the run composer's selector
+  // and any read-only persona surface. Read-only.
+  app.get("/api/personas", async () => {
+    let defaultPersona = "staff-engineer";
+    let projectPersonas: Record<string, unknown> = {};
+    try {
+      const loaded = await loadConfig(projectRoot);
+      defaultPersona = loaded.config.defaultPersona;
+      projectPersonas = loaded.config.personas ?? {};
+    } catch {
+      // fall back to the built-in default
+    }
+    const merged: Record<string, { label: string; description?: string; reviewLenses: string[]; builtin: boolean }> = {};
+    for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
+      merged[id] = {
+        label: p.label,
+        description: p.description,
+        reviewLenses: p.reviewLenses,
+        builtin: true,
+      };
+    }
+    for (const [id, p] of Object.entries(projectPersonas as Record<string, { label: string; description?: string; reviewLenses?: string[] }>)) {
+      merged[id] = {
+        label: p.label,
+        description: p.description,
+        reviewLenses: p.reviewLenses ?? [],
+        builtin: false,
+      };
+    }
+    return {
+      defaultPersona,
+      personas: Object.entries(merged).map(([id, p]) => ({ id, ...p })),
     };
   });
 }

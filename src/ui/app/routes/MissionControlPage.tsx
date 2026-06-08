@@ -297,6 +297,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
         readOnly: input.readOnly || undefined,
         unattended: input.unattended || undefined,
         crewId: input.crewId ?? undefined,
+        persona: input.persona ?? undefined,
         seatRoleOverrides:
           Object.keys(input.seatRoleOverrides).length > 0
             ? input.seatRoleOverrides
