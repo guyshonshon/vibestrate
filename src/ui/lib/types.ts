@@ -313,6 +313,9 @@ export type ConsultResult = {
   notes: string[];
   providerId: string;
   profileId: string;
+  /** Model + effort actually used (null = the provider's own default). */
+  model: string | null;
+  effort: string | null;
   /** Id of the persisted VIBESTRATE.md proposal, when the answer proposed one. */
   proposalId?: string | null;
 };

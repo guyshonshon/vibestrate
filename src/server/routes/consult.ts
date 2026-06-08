@@ -25,6 +25,10 @@ const consultBody = z
     files: z.array(z.string().min(1).max(400)).max(20).optional(),
     /** Explicit profile to answer with; omitted = the crew's read-only planner. */
     profileId: z.string().min(1).max(200).optional(),
+    /** Ad-hoc provider + model + effort (wins over profileId). */
+    providerId: z.string().min(1).max(200).optional(),
+    model: z.string().min(1).max(200).optional(),
+    effort: z.string().min(1).max(60).optional(),
   })
   .strict();
 
@@ -45,7 +49,7 @@ export async function registerConsultRoutes(
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid consult request.");
     }
-    const { question, taskId, runId, files, profileId } = parsed.data;
+    const { question, taskId, runId, files, profileId, providerId, model, effort } = parsed.data;
     try {
       const result = await runConsult({
         projectRoot,
@@ -54,6 +58,9 @@ export async function registerConsultRoutes(
         runId: runId ?? null,
         files: files ?? [],
         profileId: profileId ?? null,
+        providerId: providerId ?? null,
+        model: model ?? null,
+        effort: effort ?? null,
       });
       const proposalId = await persistConsultProposal(projectRoot, result).catch(() => null);
       return { ...result, proposalId };

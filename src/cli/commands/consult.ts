@@ -24,11 +24,23 @@ export function buildConsultCommand(): Command {
     .option("--run <id>", "focus a recent run by id")
     .option("--file <path>", "include a project file's content (repeatable)", collect, [])
     .option("--profile <id>", "answer with a specific profile (default: the crew's read-only planner)")
+    .option("--provider <id>", "answer ad-hoc with this provider (overrides --profile)")
+    .option("--model <id>", "model for the ad-hoc provider (requires --provider)")
+    .option("--effort <level>", "effort/power for the ad-hoc provider (requires --provider)")
     .option("--json", "emit the full structured result as JSON")
     .action(
       async (
         question: string,
-        opts: { task?: string; run?: string; file: string[]; profile?: string; json?: boolean },
+        opts: {
+          task?: string;
+          run?: string;
+          file: string[];
+          profile?: string;
+          provider?: string;
+          model?: string;
+          effort?: string;
+          json?: boolean;
+        },
       ) => {
         const { projectRoot } = await detectProject(process.cwd());
         let result;
@@ -40,6 +52,9 @@ export function buildConsultCommand(): Command {
             runId: opts.run ?? null,
             files: opts.file,
             profileId: opts.profile ?? null,
+            providerId: opts.provider ?? null,
+            model: opts.model ?? null,
+            effort: opts.effort ?? null,
           });
         } catch (err) {
           console.error(`${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`);
@@ -93,7 +108,14 @@ export function buildConsultCommand(): Command {
           console.log("");
           console.log(color.dim(`Grounded in: ${grounding.join(", ")}`));
         }
-        console.log(color.dim(`Answered by: ${result.profileId} (${result.providerId})`));
+        const answeredBy = [
+          `${result.providerId}${result.model ? `/${result.model}` : ""}`,
+          result.effort ? `effort ${result.effort}` : null,
+          result.profileId && result.profileId !== "(ad-hoc)" ? result.profileId : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        console.log(color.dim(`Answered by: ${answeredBy}`));
         for (const note of notes) console.log(color.dim(`${symbol.warn()} ${note}`));
       },
     );

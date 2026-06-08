@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.27
+
+- **Consult: choose the actual provider + model + effort (and it finally takes
+  effect).** The Consult page's model control is now a real, separate selector -
+  pick a **provider**, then its **model** and **effort** straight from each
+  provider's capability catalog (so you see `opus` / `sonnet` etc., not a profile
+  alias), or leave it on "Default · planner". Selections are catalog-validated
+  (only what a provider actually supports) and the result footer reports exactly
+  what answered (`provider/model · effort`). CLI parity: `vibe consult --provider
+  <id> --model <id> --effort <level>`.
+- **Fix: the assist primitive ignored the chosen model/effort.** `runAssist`
+  (which powers consult, enhance, and suggest) spawned the provider with only its
+  id - it dropped the resolved `model`, `effort`, `maxTokens`, and the capability
+  catalog, so picking a profile only ever changed the *provider*, never the model.
+  It now threads those through to the spawn (via `provider-apply`), so a profile's
+  model/effort - and the new ad-hoc selection - actually apply. (`POST
+  /api/consult` accepts `providerId` / `model` / `effort`.)
+
 ## 0.7.26
 
 - **Consult: pick the model, and see which one answered.** The Consult page now

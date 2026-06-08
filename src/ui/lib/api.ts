@@ -808,6 +808,9 @@ export const api = {
     runId?: string | null;
     files?: string[];
     profileId?: string | null;
+    providerId?: string | null;
+    model?: string | null;
+    effort?: string | null;
   }): Promise<ConsultResult> {
     return jsonPost("/api/consult", input);
   },
