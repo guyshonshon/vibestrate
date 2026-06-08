@@ -4,10 +4,13 @@ Status: **Slice 1 SHIPPED (0.7.30).** The built-in `staff-engineer` persona, the
 deterministic upgrade-only flow bias (the teeth - fires on the non-`--select`
 path), `--supervisor` / composer selector / `GET /api/personas` /
 `vibe supervisor list`, the `persona.selected` + `persona.upgraded` events, and
-the honest `independence` label on run-assurance all landed. Deferred (per the
-"Minimal first slice" + "Cut-list" below): persona reviewLens filtering of
-panel-review, mid-run auto-escalation / state changes, an authoring UI, and the
-design/security catalog entries (each earns its place with evidence). This
+the honest `independence` label on run-assurance all landed. **A second persona
+`security` + its `security-review` panel shipped (0.7.31)** - it earns its place
+by routing risk-tagged tasks to authn/authz + secrets + injection lenses (a
+different review than `staff-engineer`), reusing the upgrade (no dynamic flow
+rewriting). Deferred (per the "Minimal first slice" + "Cut-list" below): persona
+reviewLens *filtering* of a single panel, mid-run auto-escalation / state changes,
+an authoring UI, and the design catalog entry (earns its place with evidence). This
 extends `responsible-orchestrator.md` (the spine: the
 orchestrator owns judgment, bounded by deterministic evidence). It does not
 introduce a new execution engine; a "persona" resolves to mechanisms that
@@ -210,9 +213,13 @@ fan-out, inheriting the existing fan-out cost warning.
   UX, accessibility. Lenses: ux-ia, accessibility, visual-consistency. Would
   favor frontend-shaped flows. Ships only once it demonstrably changes the
   lens-set + selection on real UI tasks (catches something the default missed).
-- **`security` (earn-it).** OWASP, secrets, authz, injection. Lenses: authz,
-  secrets-exposure, injection-traversal. Favors `approval-required` / sandbox on
-  risky paths. Ships only when it proves it changes behavior, not tone.
+- **`security` (SHIPPED, 0.7.31).** Authn/authz, secrets, injection. Prefers the
+  built-in `security-review` panel (three read-only lenses: authn/authz,
+  secrets & exposure, injection & web-request safety + an arbiter). It earns its
+  place by routing a risk-tagged task to a *different* review than `staff-engineer`
+  (behavioral, not tone) - via the shipped `prefersFlows` + upgrade, no dynamic
+  flow rewriting. Honest scope: three LLM reviewers over the diff, capped at
+  `partially_verified`, never a SAST/secret/dependency scanner.
 
 **Proliferation discipline (the DAG doc's rule, applied):** ship one default; a
 second persona ships only when real tasks show it changes lenses + selection in a

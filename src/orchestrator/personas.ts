@@ -42,6 +42,46 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     reviewerProfile: null,
     reviewLenses: ["correctness", "tests", "security-risk"],
   },
+  // A security-minded supervisor: it prefers the `security-review` panel (authz /
+  // secrets / injection lenses) instead of the generalist panel, so the SAME
+  // risk-tagged task routes to a different review under this persona. Its risk
+  // signals are deliberately broad (most code can have a security dimension), but
+  // still upgrade-only - a false match only adds review.
+  security: {
+    label: "Security",
+    description:
+      "Authorization, secrets, and injection first. Upgrades risky work to a security-lensed review panel.",
+    instructions: undefined,
+    riskSignals: [
+      "auth",
+      "login",
+      "password",
+      "secret",
+      "token",
+      "credential",
+      "session",
+      "cookie",
+      "permission",
+      "authorization",
+      "sql",
+      "query",
+      "injection",
+      "input",
+      "upload",
+      "deserialize",
+      "xss",
+      "csrf",
+      "cors",
+      "crypto",
+      "encrypt",
+      "api key",
+      "exec",
+      "shell",
+    ],
+    prefersFlows: ["security-review"],
+    reviewerProfile: null,
+    reviewLenses: ["authz", "secrets", "injection"],
+  },
 };
 
 export type ResolvedPersona = { id: string; config: PersonaConfig };

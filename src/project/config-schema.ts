@@ -271,7 +271,7 @@ export type SessionConfig = z.infer<typeof sessionConfigSchema>;
 // code-enforced gate and never raises confidence past deterministic evidence
 // (those rules live in the runtime, not here). One persona ships in code
 // ("staff-engineer") so a project with no `personas:` block still resolves.
-export const BUILTIN_PERSONA_IDS = ["staff-engineer"] as const;
+export const BUILTIN_PERSONA_IDS = ["staff-engineer", "security"] as const;
 
 const personaNameSchema = z
   .string()

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import os from "node:os";
 import {
   projectConfigSchema,
+  BUILTIN_PERSONA_IDS,
   type ProjectConfig,
 } from "../src/project/config-schema.js";
 import {
@@ -12,6 +13,8 @@ import {
 } from "../src/orchestrator/personas.js";
 import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
+import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
+import { securityReviewFlow } from "../src/flows/catalog/builtin-flows.js";
 
 function baseConfigRaw(extra: Record<string, unknown> = {}) {
   return {
@@ -22,8 +25,10 @@ function baseConfigRaw(extra: Record<string, unknown> = {}) {
       default: {
         roles: {
           planner: { seats: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          architect: { seats: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
           executor: { seats: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
           reviewer: { seats: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          verifier: { seats: ["verifier", "arbiter"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
         },
       },
     },
@@ -156,6 +161,54 @@ describe("supervisor personas - the upgrade-only flow bias (the teeth)", () => {
     expect(sel.source).toBe("forced");
     expect(sel.personaUpgrade).toBeNull();
     expect(sel.personaId).toBe("staff-engineer");
+  });
+});
+
+describe("supervisor personas - a second persona with distinct lenses (security)", () => {
+  const projectRoot = os.tmpdir();
+
+  it("BUILTIN_PERSONA_IDS (schema) and BUILTIN_PERSONAS (runtime) are in sync BOTH ways", () => {
+    // Forward: every runtime persona is an accepted default. Reverse (the
+    // dangerous one): every schema-accepted built-in id actually resolves to a
+    // persona - else defaultPersona validates but silently falls back.
+    for (const id of Object.keys(BUILTIN_PERSONAS)) {
+      expect(BUILTIN_PERSONA_IDS as readonly string[]).toContain(id);
+    }
+    for (const id of BUILTIN_PERSONA_IDS) {
+      expect(Object.keys(BUILTIN_PERSONAS)).toContain(id);
+    }
+  });
+
+  it("the security persona resolves and prefers the security-review panel", () => {
+    const cfg = baseConfig({ defaultPersona: "security" });
+    const r = resolvePersona(cfg);
+    expect(r.id).toBe("security");
+    expect(r.config.prefersFlows).toEqual(["security-review"]);
+  });
+
+  it("routes the SAME risky task to DIFFERENT panels per persona (behavioral, not tone)", async () => {
+    const task = "Refactor the auth login + token handling";
+    const sec = await chooseRunFlow({ projectRoot, task, config: baseConfig(), personaOverride: "security" });
+    const eng = await chooseRunFlow({ projectRoot, task, config: baseConfig(), personaOverride: "staff-engineer" });
+    expect(sec.flowId).toBe("security-review");
+    expect(eng.flowId).toBe("panel-review");
+    expect(sec.flowId).not.toBe(eng.flowId);
+  });
+
+  it("security-review resolves with all reviewer lenses read-only (one writer per worktree)", () => {
+    // Throws if any parallel-group member can write - so a clean resolve proves
+    // the 3 security lenses are read-only.
+    const snap = resolveFlow({
+      flow: securityReviewFlow,
+      source: { kind: "builtin", ref: "security-review" },
+      config: baseConfig(),
+      task: "x",
+    });
+    const lensIds = snap.steps
+      .filter((s) => s.id.startsWith("review-"))
+      .map((s) => s.id)
+      .sort();
+    expect(lensIds).toEqual(["review-authz", "review-injection", "review-secrets"]);
   });
 });
 
