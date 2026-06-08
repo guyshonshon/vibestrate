@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.26
+
+- **Consult: pick the model, and see which one answered.** The Consult page now
+  has a **Profile** selector next to the composer - leave it on "Default · planner"
+  (the cheap read-only planner) or choose any configured profile to answer the
+  inquiry with (it flags a profile whose provider isn't set up, and remembers your
+  last pick). The result footer says exactly which profile/model produced the
+  answer. Parity on the CLI: `vibe consult "..." --profile <id>`, with an
+  "Answered by" line in the output. (`POST /api/consult` now accepts `profileId`.)
+
 ## 0.7.25
 
 - **The run graph now shows where the orchestrator engaged.** Beside the run's
