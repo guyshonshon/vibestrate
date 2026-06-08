@@ -20,6 +20,11 @@ const OUTCOME_PAINT: Record<AuditAttemptOutcome, (s: string) => string> = {
   failed: color.red,
 };
 
+function fmtTok(n: number | null): string {
+  if (n == null) return "?";
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
 function attemptChain(step: AuditStep): string {
   return step.attempts
     .map((a) => {
@@ -40,11 +45,17 @@ function renderAuditText(a: RunAudit): string {
   lines.push("");
 
   for (const s of a.steps) {
-    const role = [s.seat, s.provider].filter(Boolean).join("→");
+    const role = [s.stage, s.roleLabel ?? s.seat, s.provider].filter(Boolean).join("→");
+    const tok =
+      s.tokensIn != null || s.tokensOut != null
+        ? `${fmtTok(s.tokensIn)}→${fmtTok(s.tokensOut)} tok`
+        : null;
     const meta = [
       role ? color.dim(`${role}${s.model ? `/${s.model}` : ""}`) : null,
+      s.profileId ? color.dim(`profile:${s.profileId}`) : null,
       s.costUsd != null ? color.dim(`$${s.costUsd.toFixed(3)}`) : null,
       s.durationMs != null ? color.dim(`${(s.durationMs / 1000).toFixed(1)}s`) : null,
+      tok ? color.dim(tok) : null,
       s.toolCallCount != null ? color.dim(`${s.toolCallCount} tools`) : null,
     ]
       .filter(Boolean)
@@ -62,10 +73,20 @@ function renderAuditText(a: RunAudit): string {
     else if (s.internalsOpaque) lines.push(color.dim(`      inside: opaque (provider internals not exposed)`));
   }
 
-  if (a.control.length > 0) {
+  if (a.engagement.length > 0) {
     lines.push("");
-    lines.push(color.bold("  Control:"));
-    for (const c of a.control) lines.push(color.dim(`  - ${c.type}: ${c.message}`));
+    lines.push(color.bold("  Orchestrator engaged:"));
+    for (const e of a.engagement) {
+      const tag =
+        e.cls === "judgment"
+          ? color.yellow("judgment")
+          : e.cls === "enforced"
+            ? color.red("enforced")
+            : color.dim("flow");
+      const where = e.stepId ? color.dim(` @${e.stepId}`) : "";
+      const detail = e.detail ? color.dim(` (${e.detail})`) : "";
+      lines.push(`  - [${tag}] ${e.title}${where}${detail}`);
+    }
   }
 
   lines.push("");

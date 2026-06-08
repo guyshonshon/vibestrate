@@ -167,6 +167,62 @@ describe("deriveRunAudit", () => {
     expect(a.steps.find((s) => s.id === "plain")?.internalsOpaque).toBe(true);
   });
 
+  it("carries the flow phase, crew role, profile, and token rollup per step + the engagement list", () => {
+    const state = runStateSchema.parse({
+      runId: "r1",
+      task: "t",
+      status: "merge_ready",
+      projectRoot: "/x",
+      worktreePath: null,
+      branchName: null,
+      startedAt: ts,
+      updatedAt: ts,
+      flow: {
+        flowId: "default",
+        flowVersion: 1,
+        label: "Default",
+        snapshotPath: "s.json",
+        steps: [
+          {
+            id: "impl",
+            label: "implement",
+            kind: "agent-turn",
+            status: "passed",
+            seat: "executor",
+            stage: "executing",
+            resolvedRoleId: "fixer",
+            resolvedRoleLabel: "Fixer",
+            profileId: "opus-xhigh",
+            needs: [],
+          },
+        ],
+      },
+    });
+    const metrics = runtimeMetricsSchema.parse({
+      runId: "r1",
+      task: "t",
+      startedAt: ts,
+      updatedAt: ts,
+      roles: [{ ...role("impl"), tokenUsage: { input: 8100, output: 1200 } }],
+    });
+    const events: VibestrateEvent[] = [
+      ev("workflow.selected", { flowId: "default", confidence: "high" }),
+      ev("review.decision", { stepId: "impl", decision: "APPROVED" }),
+    ];
+
+    const a = deriveRunAudit({ runId: "r1", state, metrics, events, assuranceVerdict: "verified" });
+    const impl = a.steps.find((s) => s.id === "impl")!;
+    expect(impl.stage).toBe("executing");
+    expect(impl.roleLabel).toBe("Fixer");
+    expect(impl.profileId).toBe("opus-xhigh");
+    expect(impl.tokensIn).toBe(8100);
+    expect(impl.tokensOut).toBe(1200);
+
+    expect(a.engagement.map((e) => e.type)).toEqual(["workflow.selected", "review.decision"]);
+    expect(a.engagement[0]!.anchor).toBe("root");
+    expect(a.engagement[1]!.stepId).toBe("impl");
+  });
+
   it("falls back to event-derived steps when there is no flow state", () => {
     const events: VibestrateEvent[] = [
       ev("flow.step.started", { stepId: "solo" }),

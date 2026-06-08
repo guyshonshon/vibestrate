@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.25
+
+- **The run graph now shows where the orchestrator engaged.** Beside the run's
+  DAG sits an **Orchestrator engaged** lane: an ordered, classified list of the
+  moments the supervisor actually did something - selected the flow (with
+  confidence + risks), fanned out a review panel, fell back to a backup model,
+  paused for approval, hit a budget ceiling, rolled a turn back at the diff gate,
+  or returned a review/verification verdict. Each entry is tagged **judgment**
+  (model-made, advisory) vs **enforced** (a code gate that fired) vs **flow**
+  (executing the chosen shape) - the honesty boundary from the responsible-
+  orchestrator design, made visible: a model verdict never reads as a hard
+  guarantee. Hovering a lane row highlights the step it touched, and vice versa.
+  It works **live** (derived from the append-only event log as the run executes)
+  and after, via `GET /api/runs/:id/engagement`.
+- **Every graph node now says which part of the flow it is, and who ran it.** The
+  compact node face carries the flow phase (planning / executing / reviewing / ...)
+  and the crew role; the hover popover adds the **profile** and the **token
+  rollup** (in -> out) alongside the existing provider / model / cost / duration.
+  Surfaced identically in `vibe audit` (new classified "Orchestrator engaged"
+  section + per-step phase / role / profile / tokens) for full CLI parity.
+
 ## 0.7.24
 
 - **The flow graph and run audit are now one graph.** The run-detail page used to

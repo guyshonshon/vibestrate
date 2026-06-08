@@ -17,6 +17,7 @@ import { runEventsPath, runStatePath } from "../utils/paths.js";
 import { runStateSchema } from "./state-machine.js";
 import { MetricsStore } from "./metrics-store.js";
 import { readRunAssurance } from "../safety/run-assurance.js";
+import { deriveEngagement, type EngagementEntry } from "./run-engagement.js";
 import type { VibestrateEvent } from "./event-log.js";
 import type { RuntimeMetrics } from "./runtime-metrics.js";
 import type { RunState } from "./state-machine.js";
@@ -43,12 +44,20 @@ export type AuditStep = {
   kind: string;
   seat: string | null;
   status: string;
+  /** Coarse flow phase (planning/architecting/executing/reviewing/verifying). */
+  stage: string | null;
+  /** The crew role that filled this step's seat, and its profile. */
+  roleId: string | null;
+  roleLabel: string | null;
+  profileId: string | null;
   /** DAG dependencies (the graph edges). */
   needs: string[];
   provider: string | null;
   model: string | null;
   costUsd: number | null;
   durationMs: number | null;
+  tokensIn: number | null;
+  tokensOut: number | null;
   toolCallCount: number | null;
   /** Resilience retries recorded for this step (rate-limit/transient). */
   retries: number;
@@ -79,6 +88,8 @@ export type RunAudit = {
   steps: AuditStep[];
   /** Run-level events not tied to a single step (budget/spend/approval). */
   control: AuditControlEvent[];
+  /** Ordered, classified moments the orchestrator engaged (judgment vs gate). */
+  engagement: EngagementEntry[];
   totals: {
     turns: number;
     retries: number;
@@ -113,6 +124,8 @@ export function deriveRunAudit(input: {
         model: null,
         costUsd: null,
         durationMs: null,
+        tokensIn: null,
+        tokensOut: null,
         toolCallCount: null,
         tools: [] as { name: string; count: number }[],
         subAgents: [] as { name: string; description: string | null }[],
@@ -120,6 +133,8 @@ export function deriveRunAudit(input: {
       };
     }
     const costs = rs.map((r) => r.totalCostUsd).filter((c): c is number => c != null);
+    const tokIn = rs.map((r) => r.tokenUsage?.input).filter((n): n is number => n != null);
+    const tokOut = rs.map((r) => r.tokenUsage?.output).filter((n): n is number => n != null);
     const toolCalls = rs.map((r) => r.toolCallCount).filter((c): c is number => c != null);
     // Merge tool-use counts across this step's turns; concat sub-agent spawns.
     const toolCounts = new Map<string, number>();
@@ -133,6 +148,8 @@ export function deriveRunAudit(input: {
       model: rs[rs.length - 1]!.model ?? null,
       costUsd: costs.length ? costs.reduce((a, b) => a + b, 0) : null,
       durationMs: rs.reduce((a, r) => a + (r.durationMs ?? 0), 0),
+      tokensIn: tokIn.length ? tokIn.reduce((a, b) => a + b, 0) : null,
+      tokensOut: tokOut.length ? tokOut.reduce((a, b) => a + b, 0) : null,
       toolCallCount: toolCalls.length ? toolCalls.reduce((a, b) => a + b, 0) : null,
       tools: [...toolCounts.entries()].map(([name, count]) => ({ name, count })),
       subAgents,
@@ -144,13 +161,29 @@ export function deriveRunAudit(input: {
   // Spine: the flow steps from run state (authoritative DAG + final status). When
   // there's no flow state, fall back to the steps the event stream mentions.
   const stateSteps = state?.flow?.steps ?? [];
-  const stepIds: { id: string; label: string; kind: string; seat: string | null; status: string; needs: string[] }[] =
+  type SpineStep = {
+    id: string;
+    label: string;
+    kind: string;
+    seat: string | null;
+    stage: string | null;
+    roleId: string | null;
+    roleLabel: string | null;
+    profileId: string | null;
+    status: string;
+    needs: string[];
+  };
+  const stepIds: SpineStep[] =
     stateSteps.length > 0
       ? stateSteps.map((s) => ({
           id: s.id,
           label: s.label,
           kind: s.kind,
           seat: s.seat ?? null,
+          stage: s.stage ?? null,
+          roleId: s.resolvedRoleId ?? null,
+          roleLabel: s.resolvedRoleLabel ?? null,
+          profileId: s.profileId ?? null,
           status: s.status,
           needs: s.needs ?? [],
         }))
@@ -159,6 +192,10 @@ export function deriveRunAudit(input: {
           label: id,
           kind: "agent-turn",
           seat: null,
+          stage: null,
+          roleId: null,
+          roleLabel: null,
+          profileId: null,
           status: "unknown",
           needs: [],
         }));
@@ -215,11 +252,17 @@ export function deriveRunAudit(input: {
       kind: s.kind,
       seat: s.seat,
       status: s.status,
+      stage: s.stage,
+      roleId: s.roleId,
+      roleLabel: s.roleLabel,
+      profileId: s.profileId,
       needs: s.needs,
       provider: m.provider,
       model: m.model,
       costUsd: m.costUsd,
       durationMs: m.durationMs,
+      tokensIn: m.tokensIn,
+      tokensOut: m.tokensOut,
       toolCallCount: m.toolCallCount,
       retries,
       fellBack,
@@ -254,6 +297,7 @@ export function deriveRunAudit(input: {
     assuranceVerdict: input.assuranceVerdict,
     steps,
     control,
+    engagement: deriveEngagement(events),
     totals: {
       turns: roles.length,
       retries: totalRetries,

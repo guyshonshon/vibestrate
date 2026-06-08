@@ -130,6 +130,27 @@ evidence (like `run-assurance.ts`). Layer 2 depends on provider stream richness.
   it shows flow topology + per-step status (lighter hover); once terminal it merges
   the per-step audit from `GET /api/runs/:id/audit` by step id (the old flat
   `AuditTree`/`AuditStepRow` and the standalone `RunAuditGraph` are gone).
+- **Orchestrator-engagement lane + per-node identity. SHIPPED (0.7.25).** Two
+  additions answer "where did the orchestrator engage, and which part of the flow
+  / who ran each step?":
+  - A **dedicated engagement lane** beside the graph (`deriveEngagement` in
+    `src/core/run-engagement.ts`, pure + tested) folds the event stream into an
+    ordered, classified list of supervisory moments: workflow selection,
+    fan-out (`flow.frontier.scheduled`), review/verification verdicts, resilience
+    fallbacks/usage-limits, diff-gate denials, approvals/pauses, budget/spend
+    actions, rewinds. Each entry is classed **judgment** (model, advisory) vs
+    **enforced** (code gate) vs **structural** (executing the chosen shape) - the
+    honesty boundary from `responsible-orchestrator.md` made visible (glyph =
+    class, colour = tone). Anchored in place: root for selection, the parallel
+    wave for fan-out, the owning step for the rest; hovering a row cross-highlights
+    the node. Per-attempt retries stay on the node (the `↻` badge / attempt chain)
+    to keep the lane to decisions and gates. Served live + terminal from
+    `GET /api/runs/:id/engagement`; mirrored in `vibe audit` (a classified
+    "Orchestrator engaged" section) for CLI parity.
+  - **Per-node identity:** `AuditStep` (and the live node) now carry the flow
+    `stage` (phase), the resolved crew `roleLabel`/`profileId`, and a token
+    rollup (`tokensIn`/`tokensOut`). The compact face shows phase + role; the
+    popover adds profile + tokens beside provider/model/cost/duration.
   *Follow-ups: a shell-TUI audit view (audit is CLI + web today).*
 - **Phase C - inside the box. SHIPPED (0.7.22).** `src/core/turn-internals.ts`
   `extractTurnInternals(rawStdout)` parses a turn's stream-json (grounded in real
