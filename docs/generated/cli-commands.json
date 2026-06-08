@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.26",
+  "version": "0.7.27",
   "commands": [
     {
       "name": "init",
@@ -4534,6 +4534,27 @@
         {
           "flags": "--profile <id>",
           "description": "answer with a specific profile (default: the crew's read-only planner)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--provider <id>",
+          "description": "answer ad-hoc with this provider (overrides --profile)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--model <id>",
+          "description": "model for the ad-hoc provider (requires --provider)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--effort <level>",
+          "description": "effort/power for the ad-hoc provider (requires --provider)",
           "required": true,
           "optional": false,
           "negated": false
