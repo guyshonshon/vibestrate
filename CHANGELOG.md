@@ -2,17 +2,19 @@
 
 ## 0.7.24
 
-- **The run audit is now a top-to-bottom hierarchical graph, not a list.** The
-  "Run audit · what happened" view on the run-detail page lays the run's
-  dependency DAG out in longest-path layers (the same layout the Flow graph, CLI,
-  and TUI share): the orchestrator roots the top, each step descends below the
-  steps it needs, steps that ran concurrently sit side by side in a "parallel"
-  wave, and a join (e.g. the arbiter) converges the layer below it. Each step node
-  carries its own nested detail - the color-coded attempt chain (rate-limit ->
-  retry -> fallback -> success) as a mini-timeline, the inside-the-turn tool calls,
-  and any spawned sub-agents - so the full hierarchy of what actually happened
-  reads top to bottom at a glance. Same `/api/runs/:id/audit` data, finally
-  rendered as the tree the design always intended.
+- **The flow graph and run audit are now one graph.** The run-detail page used to
+  carry two separate boxes - a live "Flow graph" and, once terminal, a verbose
+  "Run audit" list. They are now a single `RunGraph`: the run's dependency DAG laid
+  out top-to-bottom in longest-path layers (the layout the Flow graph, CLI, and TUI
+  share) - orchestrator at the root, each step below the steps it needs, concurrent
+  steps side by side in a "parallel" wave, joins converging below. It renders live
+  (topology + per-step status) and, once the run is terminal, enriches the same
+  nodes from `/api/runs/:id/audit`. Nodes are compact - status, name, and only the
+  high-signal badges (retries, fell-back, sub-agents) - and **hovering (or focusing)
+  a node reveals the detail** in a popover: the color-coded attempt chain
+  (rate-limit -> retry -> fallback -> success), inside-the-turn tool calls and
+  spawned sub-agents, provider/model/cost, and the decision. One entity, far less
+  visual noise, full depth on demand.
 
 - **`pnpm demo` - a runnable, no-API simulation.** A new
   `scripts/demo-simulation.ts` builds a throwaway project wired to fake local
