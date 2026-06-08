@@ -20,15 +20,14 @@
   rollup** (in -> out) alongside the existing provider / model / cost / duration.
   Surfaced identically in `vibe audit` (new classified "Orchestrator engaged"
   section + per-step phase / role / profile / tokens) for full CLI parity.
-- **The run detail page is a movable / resizable panel board.** Run graph, Live
-  metrics, Live execution, and Changed files are now panels you can rearrange:
-  grab a panel's grip and a ghost follows your cursor while the other panels
-  animate out of the way in real time, the drop slot highlights, and the viewport
-  auto-scrolls near the edges (powered by dnd-kit). Collapse/expand each panel, and
-  drag its right edge (width, snapped to a 12-col grid) or bottom edge (height) to
-  resize. The arrangement persists per-browser with a "Reset layout" control. The
-  default arrangement fills the width (no more dead space beside a half-empty CLI
-  panel), and the graph no longer sits in a horizontal scroll container.
+- **The run detail page is a movable / resizable dashboard.** Run graph, Live
+  metrics, Live execution, and Changed files are panels on a react-grid-layout
+  board (the same proven setup used elsewhere): hit **Edit layout** and you can
+  drag any panel by its grip, resize it from the corner, swap its width/height, or
+  hide it (and re-add hidden panels) - with a live dashed drop placeholder and the
+  other panels reflowing around it. In view mode the panels are plain interactive
+  cards at your saved positions. The arrangement persists per-browser with a Reset.
+  The default fills the width (no more dead space beside a half-empty CLI panel).
 - **The run graph is a real top-down tree now, and the redundant Step timeline
   is gone.** Compact nodes are joined by drawn edge lines: serial steps form a
   centered vertical spine, and a parallel wave visibly branches out from its parent

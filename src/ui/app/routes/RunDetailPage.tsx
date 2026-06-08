@@ -264,7 +264,9 @@ export function RunDetailPage({
                 {
                   id: "graph",
                   title: "Run graph",
-                  defaultSpan: 8,
+                  defaultLayout: { id: "graph", x: 0, y: 0, w: 8, h: 9 },
+                  minW: 4,
+                  minH: 5,
                   render: () => (
                     <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
                   ),
@@ -274,25 +276,17 @@ export function RunDetailPage({
           {
             id: "metrics",
             title: "Live metrics",
-            defaultSpan: 4,
+            defaultLayout: { id: "metrics", x: 8, y: 0, w: 4, h: 5 },
+            minW: 3,
+            minH: 4,
             render: () => <ActiveRolePanel run={run} metrics={metrics} />,
-          },
-          {
-            id: "live",
-            title: "Live execution",
-            defaultSpan: 8,
-            defaultHeight: 320,
-            bare: true,
-            render: () => (
-              <div className="h-full overflow-hidden rounded-xl border border-white/[0.08] bg-black/55">
-                <LiveOutputPanel runId={runId} status={run.status} />
-              </div>
-            ),
           },
           {
             id: "files",
             title: "Changed files",
-            defaultSpan: 4,
+            defaultLayout: { id: "files", x: 8, y: 5, w: 4, h: 4 },
+            minW: 3,
+            minH: 3,
             render: () => (
               <ChangedFilesList
                 runId={runId}
@@ -301,6 +295,18 @@ export function RunDetailPage({
                   navigate({ kind: "codebase", filePath: p, line: null, runId })
                 }
               />
+            ),
+          },
+          {
+            id: "live",
+            title: "Live execution",
+            defaultLayout: { id: "live", x: 0, y: 9, w: 8, h: 6 },
+            minW: 4,
+            minH: 4,
+            render: () => (
+              <div className="h-full overflow-hidden rounded-xl border border-white/[0.08] bg-black/55">
+                <LiveOutputPanel runId={runId} status={run.status} />
+              </div>
             ),
           },
         ]}
