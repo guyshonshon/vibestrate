@@ -62,6 +62,7 @@ export function PanelBoard({
   const [layout, setLayout] = usePersistedState<Layout>(storageKey, EMPTY);
   const boardRef = useRef<HTMLDivElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeRect, setActiveRect] = useState<{ w: number; h: number } | null>(null);
 
   const ordered = applyOrder(panels, layout.order ?? []);
   const orderedIds = ordered.map((p) => p.id);
@@ -82,9 +83,17 @@ export function PanelBoard({
   // A 4px activation distance keeps clicks on the grip from registering as drags.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-  const onDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
-  const onDragEnd = (e: DragEndEvent) => {
+  const onDragStart = (e: DragStartEvent) => {
+    setActiveId(String(e.active.id));
+    const r = e.active.rect.current.initial;
+    setActiveRect(r ? { w: r.width, h: r.height } : null);
+  };
+  const clearDrag = () => {
     setActiveId(null);
+    setActiveRect(null);
+  };
+  const onDragEnd = (e: DragEndEvent) => {
+    clearDrag();
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const from = orderedIds.indexOf(String(active.id));
@@ -154,7 +163,7 @@ export function PanelBoard({
         collisionDetection={closestCenter}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
-        onDragCancel={() => setActiveId(null)}
+        onDragCancel={clearDrag}
       >
         <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
           <div ref={boardRef} className="grid grid-cols-1 gap-4 lg:grid-cols-12">
@@ -175,9 +184,21 @@ export function PanelBoard({
         </SortableContext>
         <DragOverlay dropAnimation={null}>
           {activePanel ? (
-            <div className="flex items-center gap-1.5 rounded-xl border border-violet-soft/50 bg-[#11151d]/95 px-3 py-2 shadow-2xl">
-              <GripVertical className="h-3.5 w-3.5 text-fog-400" />
-              <span className="eyebrow">{activePanel.title}</span>
+            <div
+              style={{ width: activeRect?.w }}
+              className="rounded-xl border border-violet-soft/60 bg-[#11151d]/90 shadow-2xl"
+            >
+              <div className="flex items-center gap-1.5 px-2 py-1">
+                <GripVertical className="h-3.5 w-3.5 text-fog-400" />
+                <span className="eyebrow">{activePanel.title}</span>
+              </div>
+              {/* A translucent body the size of the lifted panel, so the ghost
+                  reads as the whole panel - not just a chip. Capped so a tall
+                  panel doesn't make a giant overlay. */}
+              <div
+                style={{ height: Math.min(Math.max((activeRect?.h ?? 80) - 28, 24), 360) }}
+                className="mx-2 mb-2 rounded-lg bg-violet-soft/[0.06]"
+              />
             </div>
           ) : null}
         </DragOverlay>
@@ -208,9 +229,12 @@ function SortablePanel({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: panel.id,
   });
+  // Translate, NOT Transform: with variable column spans, Transform adds a
+  // scaleX/scaleY to morph one panel's size into another's, which makes panels
+  // balloon as they reflow. Translation-only keeps each panel its own size.
   const style: React.CSSProperties = {
     gridColumn: `span ${span} / span ${span}`,
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 
