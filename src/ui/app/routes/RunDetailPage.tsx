@@ -15,7 +15,6 @@ import type {
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
-import { StepTimelineV3 } from "../../components/runs/v3/StepTimelineV3.js";
 import { RunGraph } from "../../components/runs/RunGraph.js";
 import {
   InspectorTabsV3,
@@ -283,8 +282,6 @@ export function RunDetailPage({
       {run.flow || audit || engagement.length > 0 ? (
         <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
       ) : null}
-
-      <StepTimelineV3 flow={run.flow ?? null} />
 
       <section data-screen-label="05 Inspector">
         <div className="flex items-baseline justify-between mb-2.5">
