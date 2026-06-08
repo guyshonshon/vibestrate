@@ -1,303 +1,306 @@
-// A movable / resizable panel board built on dnd-kit, so dragging is reactive:
-// a DragOverlay ghost follows the cursor, the other panels animate out of the
-// way live (rectSortingStrategy), drop targets highlight, and the viewport
-// auto-scrolls near the edges. Drag starts only from the grip handle, so clicks,
-// collapse, and the edge resize handles are unaffected.
+// A movable / resizable run dashboard, ported from guify's proven board:
+// react-grid-layout v2 with an edit-mode toggle. In view mode panels are plain
+// interactive cards laid out at their saved positions; in edit mode you get a
+// chrome bar (drag handle + title + swap/hide), corner resize, a dashed drop
+// placeholder, and content is click-blocked so drags are never swallowed. RGL is
+// purpose-built for this, so move/resize/placeholder/reflow come for free (no
+// scale-ballooning like a sortable-grid hack).
 //
-// Persistence (order / width-span / height / collapsed) is per-browser via
-// usePersistedState; "Reset layout" clears it to each panel's defaults. New
-// panels absent from the saved order fall in at their declared position
-// (applyOrder), so adding one never strands the saved layout.
-import { useRef, useState } from "react";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCenter,
-  type DragStartEvent,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  rectSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+// Persistence is per-browser via usePersistedState ({ layout, hidden }); "Reset
+// layout" clears it. Panels missing from the saved layout fall back to their
+// defaultLayout (resolveDashboardLayout), so adding one never strands the layout.
+import * as React from "react";
+import { useEffect, useRef, useState } from "react";
+import { ResponsiveGridLayout, type Layout, type LayoutItem } from "react-grid-layout";
+import { GripVertical, EyeOff, Rows3, RotateCcw, Plus, SlidersHorizontal, Check } from "lucide-react";
 import { usePersistedState } from "../../lib/usePersistedState.js";
-import { applyOrder } from "../../lib/reorder.js";
+import {
+  resolveDashboardLayout,
+  normalizeStoredLayout,
+  type WidgetLayout,
+} from "../../lib/dashboard-layout.js";
+import "react-grid-layout/css/styles.css";
+import "./grid.css";
 
-export type PanelDef = {
+const COLS = 12;
+const ROW_HEIGHT = 56;
+const GAP = 12;
+const BP = "lg" as const;
+
+export interface RegisteredPanel {
   id: string;
   title: string;
-  /** Default width in 12-col units. */
-  defaultSpan: number;
-  /** Fixed body height in px (scrolls past it). Omit for content-sized. */
-  defaultHeight?: number;
-  minHeight?: number;
-  /** Content brings its own card chrome - skip the glass body wrapper. */
-  bare?: boolean;
+  defaultLayout: WidgetLayout;
+  minW?: number;
+  minH?: number;
   render: () => React.ReactNode;
-};
+}
 
-type Layout = {
-  order: string[];
-  span: Record<string, number>;
-  height: Record<string, number>;
-  collapsed: Record<string, boolean>;
-};
+type BoardState = { layout: WidgetLayout[]; hidden: string[] };
+const EMPTY: BoardState = { layout: [], hidden: [] };
 
-const EMPTY: Layout = { order: [], span: {}, height: {}, collapsed: {} };
+function toGridLayout(layout: WidgetLayout[], panels: RegisteredPanel[]): LayoutItem[] {
+  const byId = new Map(panels.map((p) => [p.id, p]));
+  return layout.map((l) => {
+    const p = byId.get(l.id);
+    return { i: l.id, x: l.x, y: l.y, w: l.w, h: l.h, minW: p?.minW, minH: p?.minH };
+  });
+}
+function fromGridLayout(grid: Layout): WidgetLayout[] {
+  return grid.map((g) => ({ id: g.i, x: g.x, y: g.y, w: g.w, h: g.h }));
+}
 
 export function PanelBoard({
   storageKey,
   panels,
 }: {
   storageKey: string;
-  panels: PanelDef[];
+  panels: RegisteredPanel[];
 }) {
-  const [layout, setLayout] = usePersistedState<Layout>(storageKey, EMPTY);
-  const boardRef = useRef<HTMLDivElement>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [activeRect, setActiveRect] = useState<{ w: number; h: number } | null>(null);
+  const [state, setState] = usePersistedState<BoardState>(storageKey, EMPTY);
+  const [editMode, setEditMode] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [width, setWidth] = useState(0);
 
-  const ordered = applyOrder(panels, layout.order ?? []);
-  const orderedIds = ordered.map((p) => p.id);
-  const spanOf = (p: PanelDef) => layout.span?.[p.id] ?? p.defaultSpan;
-  const heightOf = (p: PanelDef) => layout.height?.[p.id] ?? p.defaultHeight ?? null;
-  const isCollapsed = (id: string) => layout.collapsed?.[id] ?? false;
-  const customized =
-    (layout.order?.length ?? 0) > 0 ||
-    Object.keys(layout.span ?? {}).length > 0 ||
-    Object.keys(layout.height ?? {}).length > 0 ||
-    Object.keys(layout.collapsed ?? {}).length > 0;
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (typeof ResizeObserver === "undefined") {
+      setWidth(el.getBoundingClientRect().width);
+      return;
+    }
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w > 0) setWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const mounted = width > 0;
 
-  const patch = (fn: (l: Layout) => Layout) => setLayout((l) => fn(l ?? EMPTY));
-  const reset = () => setLayout(EMPTY);
-  const toggle = (id: string) =>
-    patch((l) => ({ ...l, collapsed: { ...l.collapsed, [id]: !isCollapsed(id) } }));
+  const layout = state?.layout ?? [];
+  const hidden = state?.hidden ?? [];
+  const resolved = resolveDashboardLayout(panels, layout, hidden);
+  const visible = panels.filter((p) => !hidden.includes(p.id));
+  const gridLayout = toGridLayout(resolved, panels);
 
-  // A 4px activation distance keeps clicks on the grip from registering as drags.
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  const onDragStart = (e: DragStartEvent) => {
-    setActiveId(String(e.active.id));
-    const r = e.active.rect.current.initial;
-    setActiveRect(r ? { w: r.width, h: r.height } : null);
+  const onLayoutChange = (next: Layout) => {
+    if (!editMode) return;
+    const norm = normalizeStoredLayout(fromGridLayout(next), panels);
+    const same =
+      norm.length === layout.length &&
+      norm.every((n) => {
+        const prev = layout.find((l) => l.id === n.id);
+        return prev && prev.x === n.x && prev.y === n.y && prev.w === n.w && prev.h === n.h;
+      });
+    if (same) return;
+    setState((s) => ({ ...(s ?? EMPTY), layout: norm }));
   };
-  const clearDrag = () => {
-    setActiveId(null);
-    setActiveRect(null);
+  const hide = (id: string) =>
+    setState((s) => ({ ...(s ?? EMPTY), hidden: Array.from(new Set([...(s?.hidden ?? []), id])) }));
+  const show = (id: string) =>
+    setState((s) => ({ ...(s ?? EMPTY), hidden: (s?.hidden ?? []).filter((h) => h !== id) }));
+  const rotate = (id: string) => {
+    const next = resolved.map((l) => {
+      if (l.id !== id) return l;
+      const p = panels.find((x) => x.id === id);
+      const minW = p?.minW ?? 1;
+      const minH = p?.minH ?? 1;
+      return { ...l, w: Math.max(minW, Math.min(COLS, l.h)), h: Math.max(minH, l.w) };
+    });
+    setState((s) => ({ ...(s ?? EMPTY), layout: normalizeStoredLayout(next, panels) }));
   };
-  const onDragEnd = (e: DragEndEvent) => {
-    clearDrag();
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const from = orderedIds.indexOf(String(active.id));
-    const to = orderedIds.indexOf(String(over.id));
-    if (from < 0 || to < 0) return;
-    patch((l) => ({ ...l, order: arrayMove(orderedIds, from, to) }));
-  };
-
-  const startWidthResize = (e: React.PointerEvent, p: PanelDef) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const colW = (boardRef.current?.clientWidth ?? 1200) / 12;
-    const startX = e.clientX;
-    const startSpan = spanOf(p);
-    const move = (ev: PointerEvent) => {
-      const span = Math.max(1, Math.min(12, startSpan + Math.round((ev.clientX - startX) / colW)));
-      patch((l) => ({ ...l, span: { ...l.span, [p.id]: span } }));
-    };
-    endOnUp(move, "col-resize");
-  };
-
-  const startHeightResize = (e: React.PointerEvent, p: PanelDef) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const bodyEl = (e.currentTarget as HTMLElement)
-      .closest("[data-panel]")
-      ?.querySelector("[data-panel-body]") as HTMLElement | null;
-    const startY = e.clientY;
-    const startH = heightOf(p) ?? bodyEl?.getBoundingClientRect().height ?? 200;
-    const min = p.minHeight ?? 120;
-    const move = (ev: PointerEvent) => {
-      const h = Math.max(min, Math.round(startH + (ev.clientY - startY)));
-      patch((l) => ({ ...l, height: { ...l.height, [p.id]: h } }));
-    };
-    endOnUp(move, "row-resize");
+  const reset = () => {
+    setState(EMPTY);
+    setEditMode(false);
   };
 
-  const endOnUp = (move: (ev: PointerEvent) => void, cursor: string) => {
-    document.body.style.cursor = cursor;
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      document.body.style.cursor = "";
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  };
-
-  const activePanel = activeId ? panels.find((p) => p.id === activeId) ?? null : null;
+  const hiddenList = panels.filter((p) => hidden.includes(p.id));
 
   return (
     <section data-screen-label="Run dashboard">
       <div className="mb-2 flex items-center justify-between">
         <span className="eyebrow">Run dashboard</span>
-        {customized ? (
-          <button
-            type="button"
-            onClick={reset}
-            className="flex items-center gap-1 text-[10.5px] text-fog-500 transition-colors hover:text-fog-300"
-          >
-            <RotateCcw className="h-3 w-3" /> Reset layout
-          </button>
-        ) : null}
+        <BoardEditChrome
+          editMode={editMode}
+          onToggle={setEditMode}
+          onReset={reset}
+          hiddenList={hiddenList}
+          onShow={show}
+        />
       </div>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragCancel={clearDrag}
-      >
-        <SortableContext items={orderedIds} strategy={rectSortingStrategy}>
-          <div ref={boardRef} className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-            {ordered.map((p) => (
-              <SortablePanel
+      <div ref={containerRef}>
+        {!mounted ? (
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-hidden>
+            {visible.slice(0, 4).map((p) => (
+              <div
                 key={p.id}
-                panel={p}
-                span={spanOf(p)}
-                height={heightOf(p)}
-                collapsed={isCollapsed(p.id)}
-                dragging={activeId != null}
-                onToggle={() => toggle(p.id)}
-                onWidthResize={(e) => startWidthResize(e, p)}
-                onHeightResize={(e) => startHeightResize(e, p)}
+                className="h-32 animate-pulse rounded-xl border border-white/[0.06] bg-ink-200/40"
               />
             ))}
           </div>
-        </SortableContext>
-        <DragOverlay dropAnimation={null}>
-          {activePanel ? (
-            <div
-              style={{ width: activeRect?.w }}
-              className="rounded-xl border border-violet-soft/60 bg-[#11151d]/90 shadow-2xl"
-            >
-              <div className="flex items-center gap-1.5 px-2 py-1">
-                <GripVertical className="h-3.5 w-3.5 text-fog-400" />
-                <span className="eyebrow">{activePanel.title}</span>
+        ) : (
+          <ResponsiveGridLayout
+            className={`layout ${editMode ? "is-editing" : ""}`}
+            width={width}
+            layouts={{ [BP]: gridLayout }}
+            breakpoints={{ [BP]: 0 }}
+            cols={{ [BP]: COLS }}
+            rowHeight={ROW_HEIGHT}
+            margin={[GAP, GAP]}
+            containerPadding={[0, 0]}
+            dragConfig={{ enabled: editMode, handle: ".widget-drag-handle" }}
+            resizeConfig={{ enabled: editMode }}
+            onLayoutChange={onLayoutChange}
+          >
+            {visible.map((p) => (
+              <div key={p.id} className="widget-frame">
+                {editMode ? (
+                  <div className="widget-chrome" role="toolbar" aria-label={`${p.title} controls`}>
+                    <button
+                      type="button"
+                      className="widget-chrome-btn widget-drag-handle is-drag"
+                      aria-label={`Drag ${p.title}`}
+                      title="Drag"
+                    >
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="widget-chrome-title">{p.title}</span>
+                    <span className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => rotate(p.id)}
+                        className="widget-chrome-btn"
+                        aria-label={`Swap ${p.title} width and height`}
+                        title="Swap width / height"
+                      >
+                        <Rows3 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => hide(p.id)}
+                        className="widget-chrome-btn is-hide"
+                        aria-label={`Hide ${p.title}`}
+                        title="Hide"
+                      >
+                        <EyeOff className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
+                <div className="widget-body">{p.render()}</div>
               </div>
-              {/* A translucent body the size of the lifted panel, so the ghost
-                  reads as the whole panel - not just a chip. Capped so a tall
-                  panel doesn't make a giant overlay. */}
-              <div
-                style={{ height: Math.min(Math.max((activeRect?.h ?? 80) - 28, 24), 360) }}
-                className="mx-2 mb-2 rounded-lg bg-violet-soft/[0.06]"
-              />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            ))}
+          </ResponsiveGridLayout>
+        )}
+      </div>
     </section>
   );
 }
 
-function SortablePanel({
-  panel,
-  span,
-  height,
-  collapsed,
-  dragging,
+function BoardEditChrome({
+  editMode,
   onToggle,
-  onWidthResize,
-  onHeightResize,
+  onReset,
+  hiddenList,
+  onShow,
 }: {
-  panel: PanelDef;
-  span: number;
-  height: number | null;
-  collapsed: boolean;
-  dragging: boolean;
-  onToggle: () => void;
-  onWidthResize: (e: React.PointerEvent) => void;
-  onHeightResize: (e: React.PointerEvent) => void;
+  editMode: boolean;
+  onToggle: (next: boolean) => void;
+  onReset: () => void;
+  hiddenList: RegisteredPanel[];
+  onShow: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: panel.id,
-  });
-  // Translate, NOT Transform: with variable column spans, Transform adds a
-  // scaleX/scaleY to morph one panel's size into another's, which makes panels
-  // balloon as they reflow. Translation-only keeps each panel its own size.
-  const style: React.CSSProperties = {
-    gridColumn: `span ${span} / span ${span}`,
-    transform: CSS.Translate.toString(transform),
-    transition,
-  };
-
+  if (!editMode) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggle(true)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px] font-medium text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100"
+        aria-label="Edit layout"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" /> Edit layout
+      </button>
+    );
+  }
   return (
     <div
-      ref={setNodeRef}
-      data-panel
-      style={style}
-      className={`group/panel relative flex min-w-0 flex-col rounded-xl border transition-colors ${
-        isDragging
-          ? "border-dashed border-violet-soft/50 opacity-40"
-          : dragging
-            ? "border-white/10"
-            : "border-white/[0.06]"
-      } ${panel.bare ? "" : "glass"}`}
+      role="toolbar"
+      aria-label="Layout editor"
+      className="inline-flex h-7 items-center gap-0.5 rounded-lg bg-violet-soft/[0.06] p-0.5 ring-1 ring-violet-soft/30"
     >
-      <div className="flex items-center gap-1.5 px-2 py-1">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-fog-700 transition-colors hover:text-fog-300 active:cursor-grabbing"
-          aria-label={`Move ${panel.title}`}
-          title="Drag onto another panel to reorder"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-        {collapsed ? <span className="eyebrow">{panel.title}</span> : null}
-        <button
-          type="button"
-          onClick={onToggle}
-          className="ml-auto text-fog-700 transition-colors hover:text-fog-300"
-          aria-label={collapsed ? `Expand ${panel.title}` : `Collapse ${panel.title}`}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-      </div>
+      <AddPanelPicker hiddenList={hiddenList} onAdd={onShow} />
+      <button
+        type="button"
+        onClick={onReset}
+        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100"
+      >
+        <RotateCcw className="h-3 w-3" /> Reset
+      </button>
+      <span className="mx-0.5 h-4 w-px bg-white/10" aria-hidden />
+      <button
+        type="button"
+        onClick={() => onToggle(false)}
+        className="inline-flex h-6 items-center gap-1 rounded-md bg-violet-soft/15 px-2 text-[11px] font-medium text-violet-soft transition-colors hover:bg-violet-soft/25"
+      >
+        <Check className="h-3 w-3" /> Done
+      </button>
+    </div>
+  );
+}
 
-      {!collapsed ? (
-        <>
-          <div
-            data-panel-body
-            className={`min-h-0 flex-1 ${panel.bare ? "" : "px-3 pb-3"}`}
-            style={height != null ? { height, overflow: "auto" } : undefined}
-          >
-            {panel.render()}
+function AddPanelPicker({
+  hiddenList,
+  onAdd,
+}: {
+  hiddenList: RegisteredPanel[];
+  onAdd: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, [open]);
+  const disabled = hiddenList.length === 0;
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((v) => !v)}
+        className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-[11px] text-fog-400 transition-colors hover:bg-white/[0.06] hover:text-fog-100 disabled:opacity-40 disabled:hover:bg-transparent"
+      >
+        <Plus className="h-3 w-3" /> {disabled ? "No hidden panels" : "Add panel"}
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-white/10 bg-[#11151d]/95 p-1 shadow-xl"
+        >
+          <div className="px-2.5 py-1.5 text-[9.5px] font-semibold uppercase tracking-wider text-fog-600">
+            Hidden panels
           </div>
-          {/* Right edge resizes width; bottom edge resizes height. */}
-          <span
-            onPointerDown={onWidthResize}
-            className="absolute right-0 top-6 bottom-2 w-1.5 cursor-col-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
-            aria-hidden
-          />
-          <span
-            onPointerDown={onHeightResize}
-            className="absolute bottom-0 left-6 right-2 h-1.5 cursor-row-resize rounded-full opacity-0 transition-opacity hover:bg-violet-soft/40 group-hover/panel:opacity-100"
-            aria-hidden
-          />
-        </>
+          {hiddenList.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onAdd(p.id);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
+            >
+              <Plus className="h-3 w-3 text-fog-600" />
+              {p.title}
+            </button>
+          ))}
+        </div>
       ) : null}
     </div>
   );
