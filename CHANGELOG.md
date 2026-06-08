@@ -20,15 +20,14 @@
   rollup** (in -> out) alongside the existing provider / model / cost / duration.
   Surfaced identically in `vibe audit` (new classified "Orchestrator engaged"
   section + per-step phase / role / profile / tokens) for full CLI parity.
-- **The run graph fills the width, and the redundant Step timeline is gone.**
-  Serial steps now render as full-width rows (status · label · phase · role on the
-  left; duration / cost / tokens, resilience badges, status, and any error on the
-  right) instead of a lone centered card per line - so a linear flow reads as one
-  clean top-to-bottom pipeline that uses the whole panel. Parallel waves keep the
-  side-by-side cards (where the graph layout earns its keep). The separate "Step
-  timeline" box was duplicating exactly this and was removed; the engagement lane
-  only takes a column when there's something in it, otherwise the graph spans full
-  width.
+- **The run graph is a real top-down tree now, and the redundant Step timeline
+  is gone.** Compact nodes are joined by drawn edge lines: serial steps form a
+  centered vertical spine, and a parallel wave visibly branches out from its parent
+  and rejoins at the next step (fan-out / join lines, not a tiny arrow). Node detail
+  (phase, role, profile, tokens, cost, attempts, inside-the-turn) lives in the hover
+  popover to keep the tree clean. The separate "Step timeline" box was duplicating
+  the steps and was removed; the engagement lane only takes a column when it has
+  entries, otherwise the tree gets the space.
 - **Errors are now visible in the dashboard, not just the console.** A new
   **ErrorBoundary** wraps each page: a render crash shows a readable panel (message
   + stack + component stack, with Try again / Reload) instead of unmounting the app

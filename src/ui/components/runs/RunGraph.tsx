@@ -70,19 +70,6 @@ type NodeData = {
   audit: AuditStep | null;
 };
 
-/** Right-aligned metric summary shared by row + popover. */
-function metricSummary(a: AuditStep | null): string {
-  return [
-    a?.durationMs != null ? `${(a.durationMs / 1000).toFixed(1)}s` : null,
-    a?.costUsd != null ? `$${a.costUsd.toFixed(3)}` : null,
-    a?.tokensIn != null || a?.tokensOut != null
-      ? `${fmtTok(a?.tokensIn)}→${fmtTok(a?.tokensOut)}`
-      : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 function statusOf(s: string) {
   return STATUS[s] ?? { dot: "bg-fog-600", tone: "text-fog-400" };
 }
@@ -176,6 +163,9 @@ function Popover({ node }: { node: NodeData }) {
         {a?.decision ? (
           <div className="mt-2 text-[10.5px] text-fog-300">decision: {a.decision}</div>
         ) : null}
+        {node.error ? (
+          <div className="mt-2 text-[10.5px] text-rose-300/90">{node.error}</div>
+        ) : null}
       </div>
     </div>
   );
@@ -241,82 +231,109 @@ function NodeBadges({ a }: { a: AuditStep | null }) {
   );
 }
 
-/** Full-width row used for serial steps (a linear flow, or a single step between
- *  parallel waves). Fills the width instead of a lone centered card, and carries
- *  the per-step detail inline so it subsumes the old Step timeline. */
-function Row({
-  node,
-  highlighted,
-  onHover,
+// Center x (%) of node i of n, matching a flex row of n equal cells (each node
+// centered in its cell). For n=1 this is 50%, so a serial chain is a straight
+// centered spine and a fan-out/join lines up node-to-node.
+function centerXs(n: number): number[] {
+  return Array.from({ length: n }, (_, i) => ((i + 0.5) / n) * 100);
+}
+
+/** The drawn edges between two layers: a stub down from each parent, a stub up
+ *  to each child, joined by a horizontal bus. Handles 1->1 (a straight line),
+ *  1->N (fan-out), N->1 (join), and N->M (full bus) from the same geometry. */
+function ConnectorBand({
+  prev,
+  curr,
+  note,
 }: {
-  node: NodeData;
-  highlighted: boolean;
-  onHover: (id: string | null) => void;
+  prev: number;
+  curr: number;
+  note?: string | null;
 }) {
-  const st = statusOf(node.status);
-  const a = node.audit;
-  const right = metricSummary(a);
-  const sub = [node.stage, node.role ?? node.kind, node.seat].filter(Boolean).join(" · ");
+  const line = "bg-white/15";
+  const parents = centerXs(prev);
+  const children = centerXs(curr);
+  const all = [...parents, ...children];
+  const left = Math.min(...all);
+  const right = Math.max(...all);
   return (
-    <div
-      tabIndex={0}
-      onMouseEnter={() => onHover(node.id)}
-      onMouseLeave={() => onHover(null)}
-      className={`group relative w-full rounded-lg border bg-ink-200/40 px-3.5 py-2.5 outline-none transition-colors hover:border-white/20 focus-visible:border-violet-soft/60 ${
-        highlighted ? "border-violet-soft/60 ring-1 ring-violet-soft/40" : "border-white/[0.07]"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot}`} />
-        <span className="shrink-0 truncate text-[13px] font-medium text-fog-100">{node.label}</span>
-        {sub ? <span className="min-w-0 truncate text-[11px] text-fog-500">{sub}</span> : null}
-        <span className="ml-auto flex shrink-0 items-center gap-2">
-          {right ? <span className="mono text-[11px] text-fog-400">{right}</span> : null}
-          <NodeBadges a={a} />
-          <span className={`text-[11px] ${st.tone}`}>{node.status}</span>
-        </span>
-      </div>
-      {node.error ? (
-        <div className="mt-1 truncate text-[11.5px] text-rose-300/80">{node.error}</div>
+    <div className="relative h-7" aria-hidden>
+      {parents.map((x, i) => (
+        <span
+          key={`p${i}`}
+          className={`absolute top-0 h-1/2 w-px -translate-x-1/2 ${line}`}
+          style={{ left: `${x}%` }}
+        />
+      ))}
+      {right > left ? (
+        <span
+          className={`absolute top-1/2 h-px ${line}`}
+          style={{ left: `${left}%`, right: `${100 - right}%` }}
+        />
       ) : null}
-      <Popover node={node} />
+      {children.map((x, i) => (
+        <span
+          key={`c${i}`}
+          className={`absolute bottom-0 h-1/2 w-px -translate-x-1/2 ${line}`}
+          style={{ left: `${x}%` }}
+        />
+      ))}
+      {curr === 1 ? (
+        <span className="absolute bottom-[-3px] left-1/2 -translate-x-1/2 text-[8px] leading-none text-white/25">
+          {"▼"}
+        </span>
+      ) : null}
+      {note ? (
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-fog-600">
+          {note}
+        </span>
+      ) : null}
     </div>
   );
 }
 
-function Connector({ note }: { note?: string | null }) {
-  return (
-    <div className="flex flex-col items-center py-0.5" aria-hidden>
-      <span className="h-3.5 w-px bg-white/12" />
-      <span className="-mt-[3px] text-[8px] leading-none text-white/20">{"▼"}</span>
-      {note ? <span className="mt-0.5 text-[9px] text-fog-600">{note}</span> : null}
-    </div>
-  );
-}
-
-/** A parallel wave: concurrent steps as side-by-side cards in a bordered group.
- *  (Serial steps render full-width via Row, not here.) */
-function ParallelLayer({
+/** One depth level: its node(s) laid out as equal cells so each sits at the x the
+ *  ConnectorBand draws to. One node = a centered spine entry; many = a wave. */
+function LayerRow({
   nodes,
   hl,
   onHover,
-  note,
 }: {
   nodes: NodeData[];
   hl: string | null;
   onHover: (id: string | null) => void;
-  note?: string | null;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-2.5">
-      <div className="mb-2 text-center text-[9px] uppercase tracking-[0.12em] text-fog-600">
-        parallel {"×"}{nodes.length}
-        {note ? <span className="ml-1 normal-case tracking-normal text-fog-500">· {note}</span> : null}
+    <div className="flex items-start">
+      {nodes.map((n) => (
+        <div key={n.id} className="flex min-w-0 flex-1 justify-center px-1.5">
+          <Node node={n} highlighted={hl === n.id} onHover={onHover} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The orchestrator root - the node the whole tree descends from. */
+function RootCard({
+  flow,
+  audit,
+}: {
+  flow: FlowRunState | null;
+  audit: RunAudit | null;
+}) {
+  return (
+    <div className="w-64 rounded-lg border border-violet-soft/30 bg-violet-soft/[0.06] px-3 py-2">
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 shrink-0 rounded-full bg-violet-soft" />
+        <span className="text-[12.5px] font-semibold text-fog-100">orchestrator</span>
+        <span className="ml-auto truncate text-[11px] text-fog-300">
+          {(audit?.status ?? flow?.flowId ?? "").toString().replace(/_/g, " ")}
+        </span>
       </div>
-      <div className="flex flex-wrap justify-center gap-3">
-        {nodes.map((n) => (
-          <Node key={n.id} node={n} highlighted={hl === n.id} onHover={onHover} />
-        ))}
+      <div className="mt-0.5 truncate text-[10px] text-fog-600">
+        {(audit?.flow?.label ?? flow?.label) ?? "flow"}
+        {audit?.assuranceVerdict ? ` · ${audit.assuranceVerdict.replace(/_/g, " ")}` : ""}
       </div>
     </div>
   );
@@ -458,38 +475,22 @@ export function RunGraph({
       </div>
       <div className="glass p-4">
         <div className={engagement.length > 0 ? "flex flex-col gap-4 lg:flex-row" : ""}>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-col items-stretch gap-1">
-              {/* Root: the orchestrator. The whole run descends from it. */}
-              <div className="flex items-center gap-3 rounded-lg border border-violet-soft/30 bg-violet-soft/[0.06] px-3.5 py-2.5">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-violet-soft" />
-                <span className="shrink-0 text-[13px] font-semibold text-fog-100">orchestrator</span>
-                <span className="min-w-0 truncate text-[11px] text-fog-500">
-                  {(audit?.flow?.label ?? flow?.label) ?? "flow"}
-                  {audit?.assuranceVerdict ? ` · ${audit.assuranceVerdict.replace(/_/g, " ")}` : ""}
-                </span>
-                <span className="ml-auto shrink-0 text-[11px] text-fog-300">
-                  {(audit?.status ?? flow?.flowId ?? "").toString().replace(/_/g, " ")}
-                </span>
+          {/* The tree: orchestrator root, then each depth level joined by drawn
+              edges. Centered with a max width so the spine reads as a diagram,
+              not a stretched bar; parallel waves branch within it. */}
+          <div className="min-w-0 flex-1 overflow-x-auto">
+            <div className="mx-auto w-full max-w-3xl">
+              <div className="flex justify-center">
+                <RootCard flow={flow} audit={audit} />
               </div>
-
               {layers.map((layerNodes, li) => (
-                <div key={li} className="flex flex-col gap-1">
-                  <Connector />
-                  {layerNodes.length === 1 ? (
-                    <Row
-                      node={layerNodes[0]!}
-                      highlighted={hl === layerNodes[0]!.id}
-                      onHover={setHl}
-                    />
-                  ) : (
-                    <ParallelLayer
-                      nodes={layerNodes}
-                      hl={hl}
-                      onHover={setHl}
-                      note={fanout ? fanout.title : null}
-                    />
-                  )}
+                <div key={li}>
+                  <ConnectorBand
+                    prev={li === 0 ? 1 : layers[li - 1]!.length}
+                    curr={layerNodes.length}
+                    note={layerNodes.length > 1 && fanout ? fanout.title : null}
+                  />
+                  <LayerRow nodes={layerNodes} hl={hl} onHover={setHl} />
                 </div>
               ))}
             </div>
