@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.31
+
+- **A second supervisor persona: `security`.** Pick it with `--supervisor security`
+  or in the composer, and a risk-tagged task is upgraded to a new built-in
+  **`security-review`** panel - the `panel-review` shape aimed through three
+  read-only security lenses (authn/authz, secrets & exposure, injection & web-
+  request safety) with an arbiter join. So switching persona genuinely changes
+  *which review runs*: `staff-engineer` → `panel-review` (correctness/tests/risk),
+  `security` → `security-review` - reusing the shipped upgrade, no dynamic flow
+  rewriting. Honest framing: it is three LLM reviewers over the diff (capped at
+  `partially_verified`, never a SAST/secret/dependency scanner), and the arbiter
+  is told to say so when a class needs tooling it can't run.
+
 ## 0.7.30
 
 - **Supervisor personas: the orchestrator gets a judgment posture (slice 1).** A

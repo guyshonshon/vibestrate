@@ -903,6 +903,217 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "security-review",
+      "version": 1,
+      "label": "Security review panel",
+      "description": "Plan, architect, implement, and validate, then fan out a 3-lens read-only SECURITY panel (authorization, secrets/exposure, injection & unsafe input) over the real diff and an arbiter join that renders one verdict. The flow the `security` supervisor persona prefers.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Turns the task into a plan."
+        },
+        {
+          "id": "architect",
+          "label": "Architect",
+          "description": "Designs the approach."
+        },
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements the change."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff under one assigned security lens."
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter",
+          "description": "Reads every reviewer's findings and renders one verdict."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan-handoff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "architecture",
+          "label": "Architecture",
+          "kind": "agent-turn",
+          "seat": "architect",
+          "inputs": [
+            "task-brief",
+            "plan-handoff"
+          ],
+          "outputs": [
+            "architecture-handoff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief",
+            "plan-handoff",
+            "architecture-handoff"
+          ],
+          "outputs": [
+            "execution-handoff",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "seat": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-authz",
+          "label": "Review: authentication & authorization",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
+            "validation"
+          ],
+          "outputs": [
+            "findings-authz"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-secrets",
+          "label": "Review: secrets & exposure",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
+            "validation"
+          ],
+          "outputs": [
+            "findings-secrets"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review-injection",
+          "label": "Review: injection & unsafe input",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
+            "validation"
+          ],
+          "outputs": [
+            "findings-injection"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": true,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "arbiter",
+          "label": "Arbiter verdict",
+          "kind": "review-turn",
+          "seat": "arbiter",
+          "inputs": [
+            "task-brief",
+            "plan-handoff",
+            "architecture-handoff",
+            "execution-handoff",
+            "validation",
+            "findings-authz",
+            "findings-secrets",
+            "findings-injection"
+          ],
+          "outputs": [
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }

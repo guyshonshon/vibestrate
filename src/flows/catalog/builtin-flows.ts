@@ -525,6 +525,163 @@ export const reviewPanelFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **security review panel**: the `panel-review` shape aimed through
+// a SECURITY lens (orchestrator-personas.md). Same structure - plan -> architect
+// -> implement -> validate, then a 3-lens read-only fan-out + an arbiter join -
+// but the three reviewers inspect AUTHZ, SECRETS/EXPOSURE, and INJECTION/UNSAFE
+// INPUT instead of the generalist correctness/tests/risk lenses. It is the flow
+// the built-in `security` persona prefers, so a risk-tagged task under that
+// persona is upgraded here (different persona -> different review lenses) without
+// any dynamic flow rewriting - the lenses are declared by the flow, honestly.
+export const securityReviewFlow = flowDefinitionSchema.parse({
+  id: "security-review",
+  version: 1,
+  label: "Security review panel",
+  description:
+    "Plan, architect, implement, and validate, then fan out a 3-lens read-only SECURITY panel (authorization, secrets/exposure, injection & unsafe input) over the real diff and an arbiter join that renders one verdict. The flow the `security` supervisor persona prefers.",
+  seats: {
+    planner: { label: "Planner", description: "Turns the task into a plan." },
+    architect: { label: "Architect", description: "Designs the approach." },
+    implementer: { label: "Implementer", description: "Implements the change." },
+    reviewer: {
+      label: "Reviewer",
+      description: "Reviews the diff under one assigned security lens.",
+    },
+    arbiter: {
+      label: "Arbiter",
+      description: "Reads every reviewer's findings and renders one verdict.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan-handoff"],
+    },
+    {
+      id: "architecture",
+      label: "Architecture",
+      kind: "agent-turn",
+      seat: "architect",
+      stage: "architecting",
+      needs: ["plan"],
+      inputs: ["task-brief", "plan-handoff"],
+      outputs: ["architecture-handoff"],
+    },
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      needs: ["architecture"],
+      inputs: ["task-brief", "plan-handoff", "architecture-handoff"],
+      outputs: ["execution-handoff", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      needs: ["implement"],
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review-authz",
+      label: "Review: authentication & authorization",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
+      outputs: ["findings-authz"],
+      continueOnError: true,
+      instructions:
+        "Your lens is AUTHENTICATION & AUTHORIZATION only. Hunt for missing/wrong authz checks (unprotected endpoints, privilege escalation, IDOR/object-ownership gaps, tenant/role boundary leaks, open-by-default) AND broken authn (weak/missing login checks, session fixation/handling, insecure cookies/tokens, auth bypass). Ignore style and generic test gaps. Cite file:line evidence.",
+    },
+    {
+      id: "review-secrets",
+      label: "Review: secrets & exposure",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
+      outputs: ["findings-secrets"],
+      continueOnError: true,
+      instructions:
+        "Your lens is SECRETS & DATA EXPOSURE only. Look for hardcoded credentials/keys/tokens, secrets in logs/errors/artifacts, PII leakage, over-broad responses, missing redaction, insecure storage/transport, and secret-shaped strings added to the diff. Ignore correctness and test coverage. Cite what is exposed and where.",
+    },
+    {
+      id: "review-injection",
+      label: "Review: injection & unsafe input",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      needs: ["validation"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+      ],
+      outputs: ["findings-injection"],
+      continueOnError: true,
+      instructions:
+        "Your lens is INJECTION, UNSAFE INPUT & WEB-REQUEST SAFETY only. Hunt for SQL/command/path/template injection, SSRF, unsafe deserialization, XSS/output-encoding gaps, CSRF (missing anti-forgery on state-changing requests), CORS misconfiguration (over-broad origins/credentials), unvalidated/untrusted input reaching a sink, and unsafe shell/eval. Ignore style and routine test gaps. Cite the source->sink path with file:line.",
+    },
+    {
+      id: "arbiter",
+      label: "Arbiter verdict",
+      kind: "review-turn",
+      seat: "arbiter",
+      stage: "reviewing",
+      needs: ["review-authz", "review-secrets", "review-injection"],
+      inputs: [
+        "task-brief",
+        "plan-handoff",
+        "architecture-handoff",
+        "execution-handoff",
+        "validation",
+        "findings-authz",
+        "findings-secrets",
+        "findings-injection",
+      ],
+      outputs: ["review-decision"],
+      instructions:
+        "You are the security arbiter. Read all three reviewers' findings (authn/authz, secrets/exposure, injection & web-request safety) plus the diff and validation evidence. De-duplicate, weigh severity against the deterministic evidence, and render ONE verdict. APPROVED only if no exploitable issue survives scrutiny; otherwise CHANGES_REQUESTED with the consolidated must-fix list. Do not launder a reviewer's confidence - cite the evidence. This is a 3-lens review by reviewers, not a SAST/secret/dependency scanner - say so if a class needs tooling you can't run.",
+    },
+  ],
+  complexity: "high",
+  capabilities: {
+    taskKinds: ["feature", "bugfix", "refactor"],
+    strengths: ["security", "authz", "secrets", "injection", "risk", "review"],
+    costClass: "high",
+    latencyClass: "high",
+    requires: { validation: true },
+  },
+});
+
 // The built-in **per-item analysis pick-up**: the first checklist DAG (Slice 5,
 // custom-workflow-dags.md Phase D - "Shape A"). It is the pick-up flow with a
 // GRAPH inside the per-item band: for EACH checklist item, two read-only analysts
@@ -656,6 +813,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   pickupFlow,
   reviewPanelFlow,
   pickupAnalysisFlow,
+  securityReviewFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {
