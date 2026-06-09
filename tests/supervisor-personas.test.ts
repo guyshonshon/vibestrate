@@ -14,7 +14,7 @@ import {
 import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
 import { deriveRunAssurance } from "../src/safety/run-assurance.js";
 import { resolveFlow } from "../src/flows/runtime/flow-resolver.js";
-import { securityReviewFlow } from "../src/flows/catalog/builtin-flows.js";
+import { securityReviewFlow, reviewPanelFlow, defaultFlow } from "../src/flows/catalog/builtin-flows.js";
 
 function baseConfigRaw(extra: Record<string, unknown> = {}) {
   return {
@@ -231,5 +231,37 @@ describe("supervisor personas - assurance independence label (honest)", () => {
   it("labels cross-model only when >= 2 distinct non-null models ran", () => {
     const a = deriveRunAssurance({ ...common, persona: "staff-engineer", modelsUsed: ["opus", "sonnet"] });
     expect(a.supervisor.independence).toBe("cross-model");
+  });
+});
+
+describe("supervisor personas - the review panels are review-only (capped at partially_verified)", () => {
+  // Honesty claim (CHANGELOG 0.7.31 + orchestrator-personas.md): a run on
+  // `security-review` (and the generalist `panel-review` the staff-engineer
+  // persona prefers) can NEVER reach the `verified` assurance level, because the
+  // flow ends at the arbiter with NO verifying step - so the run produces
+  // verification = not_run. The assurance *consequence* (verification not_run ->
+  // partially_verified, even with validation + review passing) is already proven
+  // in tests/safety/run-assurance.test.ts ("partially_verified: approved but
+  // verification not run"). What was unguarded is the STRUCTURAL reason that holds
+  // that claim up - if someone adds a verify gate to these flows, the cap silently
+  // breaks and the changelog becomes a lie. These two assertions are that guard.
+
+  it("security-review and panel-review have no verifying-stage step (the default flow does)", () => {
+    const hasVerifyGate = (f: typeof defaultFlow) => f.steps.some((s) => s.stage === "verifying");
+    expect(hasVerifyGate(securityReviewFlow)).toBe(false);
+    expect(hasVerifyGate(reviewPanelFlow)).toBe(false);
+    // Anchor: the "verifying" discriminator is real - the default flow DOES verify,
+    // so the two `false`s above mean "no verify gate", not "wrong stage name".
+    expect(hasVerifyGate(defaultFlow)).toBe(true);
+  });
+
+  it("both panels' terminal scrutiny is a review-turn arbiter, not a verify gate", () => {
+    for (const f of [securityReviewFlow, reviewPanelFlow]) {
+      const arbiter = f.steps.find((s) => s.id === "arbiter");
+      expect(arbiter, `${f.id} must have an arbiter step`).toBeDefined();
+      expect(arbiter!.kind).toBe("review-turn");
+      // And nothing downstream re-verifies: no verifier seat anywhere in the flow.
+      expect(f.steps.some((s) => s.seat === "verifier")).toBe(false);
+    }
   });
 });
