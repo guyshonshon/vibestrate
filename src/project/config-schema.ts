@@ -53,6 +53,16 @@ const validationProfileEntrySchema = z.object({
 export const commandsConfigSchema = z.object({
   validate: z.array(z.string()).default([]),
   /**
+   * Proportional validation scoping (proportional-orchestration.md, slice 1).
+   * When true (default), a run whose entire diff is provably-inert (only
+   * docs/text/asset files - see validation-scope.ts) skips the configured
+   * `validate` commands, since running the project's code checks (tests,
+   * typecheck) on a `.md`/`.txt`/image change is pure waste. Fail-safe: any
+   * non-inert or unknown file (code, .json, .yaml, .sql, no-extension, ...)
+   * makes the whole run validate as configured. Set false to always validate.
+   */
+  scopeValidationByChange: z.boolean().default(true),
+  /**
    * Optional named validation profiles. The implicit *default* profile is the
    * `validate` array above - it always exists and stays the fallback whenever
    * a caller doesn't pick a named profile. If validationProfiles is absent or

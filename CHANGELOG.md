@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.33
+
+- **Validation is proportional to the change: a docs edit no longer runs your test
+  suite.** When a run's entire diff is only provably-inert files (`.md`/`.txt`/
+  `.rst`, images, fonts), Vibestrate now skips the configured `commands.validate`
+  (typecheck/test/lint) and records why (`validation.scoped` event) - so writing a
+  `.txt` no longer waits on `pnpm test`. The decision reads the *actual changed
+  files*, never the task text, and is fail-safe: it is an inert *allowlist*, so any
+  code, `.json`/`.yaml`/`.sql`/config, unknown extension, or extension-less file
+  makes the whole run validate as before. One non-inert file validates everything.
+  Toggle with `commands.scopeValidationByChange` (default on). First slice of
+  `docs/design/proportional-orchestration.md` (the orchestrator sizing the work);
+  the flow-sizing half is deferred behind a diff-aware protected-path floor.
+
 ## 0.7.32
 
 - **`code_write` seats can actually write now.** A write-capable seat

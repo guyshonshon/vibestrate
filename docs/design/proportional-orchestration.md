@@ -1,8 +1,9 @@
 # Proportional orchestration (the orchestrator sizes the work and the checks)
 
-Status: **Proposed (design only - nothing shipped). Revised after an independent
-adversarial review (recorded at the end); the review materially changed the
-design - read it.** This extends the spine
+Status: **Slice 1 SHIPPED (0.7.33): change-scoped validation (B3) - an inert-only
+diff skips the configured `commands.validate`. The rest is proposed.** Revised
+after an independent adversarial review (recorded at the end); the review
+materially changed the design - read it. This extends the spine
 ([`responsible-orchestrator.md`](./responsible-orchestrator.md)) and generalizes
 the shipped, upgrade-only persona flow bias
 ([`orchestrator-personas.md`](./orchestrator-personas.md)).
@@ -241,10 +242,11 @@ descent) sets the minimum; the sizer picks only the front within it.**
 
 ## Minimal first slice (reordered by the review: model-free + zero-execution-risk first)
 
-1. **B3 scoping over the existing `commands.validate`** - model-free, proposes no
-   new command. "No code files changed -> skip the configured test commands; run a
-   format/link check or nothing." The biggest latency win at near-zero risk;
-   it kills the `test.txt` validation cost immediately.
+1. **[SHIPPED 0.7.33] B3 scoping over the existing `commands.validate`** -
+   model-free, proposes no new command. An inert-only diff skips the configured
+   test commands (`validation.scoped` event); any non-inert/unknown file validates
+   as before. The biggest latency win at near-zero risk; it kills the `test.txt`
+   validation cost. Code: `src/core/validation-scope.ts` + `commands.scopeValidationByChange`.
 2. **`express` lean-front + the deterministic inert-extension fast-path** (no model
    call). Catches the obvious-trivial class for free. Back stays full until A2 ships.
 3. **The census as a read-only "languages" surface** (B1, no derivation).
