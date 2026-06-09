@@ -229,7 +229,8 @@ export function RunDetailPage({
       />
 
       {assurance ? <AssuranceBadge assurance={assurance} /> : null}
-      {selection && selection.source === "selected" ? (
+      {selection &&
+      (selection.source === "selected" || selection.source === "supervisor-upgraded") ? (
         <FlowChoiceCard selection={selection} />
       ) : null}
 
