@@ -58,6 +58,17 @@ export type ProviderRunInput = {
    *  `.vibestrate/providers-catalog.yml` overlay). When set, the provider applies
    *  model/effort from this instead of the built-in defaults. Omitted = built-in. */
   catalog?: ResolvedCatalog;
+  /**
+   * Whether this turn's resolved (post-override) permission profile allows
+   * writes (`profile.allowWrite`). Providers that gate file edits behind their
+   * own permission system translate this into the right CLI flag - e.g. the
+   * `claude-code` provider injects `--permission-mode acceptEdits` so a headless
+   * `claude -p` can apply edits without an interactive grant. Read-only,
+   * investigation, and strict-apply-only turns resolve to `false` here, so they
+   * get no write grant. Omitted = treat as not write-capable (no grant), which
+   * preserves behavior for non-orchestrator callers (assist, setup probe, etc.).
+   */
+  allowWrite?: boolean;
   /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**

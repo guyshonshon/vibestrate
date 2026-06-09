@@ -17,6 +17,16 @@ Vibestrate understands more deeply. The orchestrator drives them all through one
 uniform interface, and each provider advertises its own capabilities - whether it
 can reuse a session, report token usage, or hand back a session id.
 
+> **Use `claude-code`, not `cli`, for Claude.** The deeper integration is what
+> makes Vibestrate *permission-aware*: when a write-capable seat
+> (`permissions: code_write`) runs on a `claude-code` provider, Vibestrate
+> injects `--permission-mode acceptEdits` so the headless `claude -p` can
+> actually apply its edits in the worktree. A seat's `code_write` only governs
+> Vibestrate's own broker; the underlying CLI has its *own* permission gate, and
+> a generic `cli` provider can't be granted through it (the flag is
+> claude-specific). Read-only seats - and any read-only / strict-apply-only run -
+> get no grant. Set your own `settings.permissionMode` to override the default.
+
 > **Provider vs [[profile]] vs [[role]]:** a *Provider* is the installed **CLI**;
 > a *Profile* names a Provider plus how strong/expensive to run it; a *Role*
 > runs on a Profile. Roles never point at a Provider directly - they go through a

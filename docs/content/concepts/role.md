@@ -39,6 +39,13 @@ points at a Profile (`profile:`), not directly at a provider.
 > installed CLI behind the Profile (claude). One Profile can back many Roles;
 > one Provider can back many Profiles.
 
+A Role's `permissions` profile (`read_only` / `code_write`) gates Vibestrate's own
+action broker. For the agent to *actually* write, the underlying CLI must also
+allow it: on a `claude-code` [[provider]] Vibestrate derives that automatically -
+a `code_write` seat's turn gets `--permission-mode acceptEdits` so the headless
+CLI can apply edits, while read-only seats (and read-only / strict-apply-only
+runs) get no write grant. See [[provider]].
+
 Splitting work into named Roles is what makes the loop inspectable: the planner
 only plans, the reviewer only reviews. Because each Role names a Profile, you
 can also mix models - a strong reasoning Profile for the planner, a cheap fast

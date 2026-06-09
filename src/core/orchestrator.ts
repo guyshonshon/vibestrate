@@ -4277,6 +4277,13 @@ export class Orchestrator {
           providerId: effectiveProviderId,
           prompt,
           cwd,
+          // The resolved, POST-OVERRIDE write capability for this turn. read-only
+          // runs, strict-apply-only, and read-only seats already collapsed
+          // `effectivePermissions` to read_only above, so `profile.allowWrite` is
+          // false there and the provider grants no write. A write-capable seat on
+          // a claude provider gets `--permission-mode acceptEdits` (see
+          // claude-code-settings.ts) so it can actually write in the worktree.
+          allowWrite: profile.allowWrite,
           model: runtimeProfile?.model ?? undefined,
           // reduce-effort (U4): drop to the provider's minimum effort if it has one.
           effort:
