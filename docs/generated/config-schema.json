@@ -560,6 +560,14 @@
           }
         },
         {
+          "key": "scopeValidationByChange",
+          "fullKey": "commands.scopeValidationByChange",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "itemType": null
+        },
+        {
           "key": "validationProfiles",
           "fullKey": "commands.validationProfiles",
           "type": "record<string, object>",

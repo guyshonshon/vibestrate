@@ -27,6 +27,7 @@ coincidence (see [UI and CLI parity](#ui-and-cli-parity) below).
 | `crews` (and the Roles inside them) | Your teams of AI workers and what each one does. | [Crew](/docs/concepts/crew) / [Role](/docs/concepts/role) |
 | `defaultCrew` / `defaultFlow` | Which crew and flow a run uses when you don't pick one. | [Flow](/docs/concepts/flow) |
 | `commands.validate` | The typecheck / test / build / lint commands Vibestrate trusts as ground truth. | [Workflow](/docs/concepts/workflow) |
+| `commands.scopeValidationByChange` | When true (default), a run whose entire diff is only docs/text/asset files skips the `validate` commands (no point running the test suite for a `.md` edit). Any code/config/unknown file makes it validate as usual. Set false to always validate. | [Workflow](/docs/concepts/workflow) |
 | `policies` | Code-enforced rules that deny or pause specific actions. | [Safety](/docs/concepts/safety) |
 | `git` | Where worktrees live and how run branches are named. | [Worktree](/docs/concepts/worktree) |
 | `workflow` | Loop limits and other run-shaping knobs. | [Workflow](/docs/concepts/workflow) |

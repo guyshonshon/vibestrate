@@ -109,6 +109,7 @@ import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot } from "./diff-service.js";
+import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { ApprovalService } from "./approval-service.js";
 import {
   detectApprovalRequest,
@@ -4716,8 +4717,47 @@ export class Orchestrator {
       type: "validation.started",
       message: `Validation starting in ${ctx.worktreePath}.`,
     });
+
+    // Proportional validation scoping (proportional-orchestration.md, slice 1):
+    // when the run's entire diff is provably-inert (docs/text/assets) skip the
+    // configured code checks - running `pnpm test` for a `.md` change is pure
+    // waste. Keyed on the ACTUAL changed files (same uncommitted-vs-HEAD diff the
+    // orchestrator uses elsewhere), never the task text, and fail-safe: any
+    // non-inert/unknown file, an empty diff, or a diff error -> validate as
+    // configured. Off when `commands.scopeValidationByChange` is false.
+    const configured = this.config.commands.validate;
+    if (configured.length > 0 && this.config.commands.scopeValidationByChange) {
+      let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
+      try {
+        const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
+        decision = classifyChangedFilesForValidation(snap.files.map((f) => f.path));
+      } catch {
+        // Diff unavailable -> fail safe: fall through and validate as configured.
+        decision = null;
+      }
+      if (decision?.allInert) {
+        await ctx.eventLog.append({
+          type: "validation.scoped",
+          message: `Validation scoped: ${decision.changedFileCount} inert file(s) changed (docs/text/assets); skipped ${configured.length} configured command(s).`,
+          data: {
+            reason: "all-changed-files-inert",
+            changedFiles: decision.changedFileCount,
+            inert: decision.inert,
+            skippedCommands: [...configured],
+          },
+        });
+        const scoped: ValidationResults = {
+          commands: [],
+          summary: { total: 0, passed: 0, failed: 0 },
+          note: `Scoped: ${decision.inert.length} inert file(s) changed (docs/text/assets); ${configured.length} configured validation command(s) skipped.`,
+        };
+        await ctx.artifactStore.writeJson(input.artifactsName, scoped);
+        return scoped;
+      }
+    }
+
     const results = await runValidationCommands({
-      commands: this.config.commands.validate,
+      commands: configured,
       cwd: ctx.worktreePath,
       store: ctx.artifactStore,
       prefix: input.prefix,
