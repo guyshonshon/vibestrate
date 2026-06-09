@@ -3781,8 +3781,21 @@ export class Orchestrator {
       },
     });
 
+    // Unattended runs must not hang at a gate: no human is watching, so an
+    // unanswered approval would wedge a scheduler worker forever. Bound the wait
+    // so it `expires` -> the run goes `blocked` honestly. Attended runs keep the
+    // indefinite wait (a human is there). This NEVER approves; it only stops the
+    // hang. `forbidAutoMerge`/`forbidAutoPush` and every gate are untouched.
     const resolved = await input.approvalService.waitForResolution(req.id, {
       pollMs: 1500,
+      ...(this.unattended
+        ? {
+            timeoutMs: Math.max(
+              1,
+              this.config.policies.unattendedApprovalTimeoutMs,
+            ),
+          }
+        : {}),
     });
 
     if (resolved.status === "approved") {

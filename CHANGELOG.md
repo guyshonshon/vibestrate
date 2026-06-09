@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.34
+
+- **Unattended runs no longer hang forever at an approval gate.** A run launched
+  `--unattended` that hit any approval gate used to wait on a human who was never
+  coming - wedging a scheduler worker and showing as "in flight" indefinitely. It
+  now bounds the wait (`policies.unattendedApprovalTimeoutMs`, default block
+  promptly): the gate `expires` and the run stops honestly as `blocked`, ready to
+  re-launch when you decide. Attended runs are unchanged (they wait for you, a
+  human is there). This only bounds the wait - it never auto-approves, and every
+  gate, `forbidAutoMerge`, and `forbidAutoPush` are untouched. First slice of
+  `docs/design/always-on-execution.md`.
+
 ## 0.7.33
 
 - **Validation is proportional to the change: a docs edit no longer runs your test

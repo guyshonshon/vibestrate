@@ -690,6 +690,14 @@
           "required": false,
           "default": false,
           "itemType": null
+        },
+        {
+          "key": "unattendedApprovalTimeoutMs",
+          "fullKey": "policies.unattendedApprovalTimeoutMs",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "itemType": null
         }
       ]
     },

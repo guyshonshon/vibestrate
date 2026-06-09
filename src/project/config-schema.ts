@@ -155,6 +155,13 @@ export const policiesConfigSchema = z.object({
   // applies through the Action Broker gateway (secret/path safety + file.patch
   // policy + audited git apply). High-assurance: every change crosses the gate.
   strictApplyOnly: z.boolean().default(false),
+  // How long an UNATTENDED run waits at an approval gate before it stops honestly
+  // (the gate `expires` -> the run goes `blocked`) instead of hanging forever and
+  // wedging a scheduler worker. Attended runs always wait indefinitely (a human is
+  // there to answer). This NEVER approves anything - it only bounds the wait when
+  // no human is watching. Default 0 = block promptly (after one poll); set higher
+  // (ms) to give a delayed watcher a window. Applies only when a run is unattended.
+  unattendedApprovalTimeoutMs: z.number().int().nonnegative().default(0),
 });
 
 // Daily spend governance. When `spendCapDailyUsd` is set, the orchestrator
