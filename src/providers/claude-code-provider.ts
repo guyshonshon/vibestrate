@@ -18,7 +18,9 @@ export async function runClaudeCodeProvider(
   config: ClaudeCodeProviderConfig,
   input: ProviderRunInput,
 ): Promise<ClaudeCodeProviderRunResult> {
-  const args = buildClaudeCodeArgs(config.args ?? [], config.settings);
+  const args = buildClaudeCodeArgs(config.args ?? [], config.settings, {
+    writeCapable: input.allowWrite === true,
+  });
   // Apply the resolved profile's model + effort - both real `claude` flags
   // (`--model <id>`, `--effort <low|medium|high|xhigh|max>`).
   if (input.model) {

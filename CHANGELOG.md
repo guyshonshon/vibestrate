@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.32
+
+- **`code_write` seats can actually write now.** A write-capable seat
+  (`permissions: code_write`) running on a `claude-code` provider was silently
+  blocked: the seat's permission governed Vibestrate's own broker but never
+  reached the claude CLI, so the headless `claude -p` ran in its default
+  ask-for-approval mode and denied every file write. Vibestrate now derives the
+  CLI permission mode from the turn's resolved write capability and injects
+  `--permission-mode acceptEdits` for write-capable seats - so the executor can
+  apply its edits in the worktree. Read-only seats, investigation runs, and
+  strict-apply-only runs resolve to no write capability and get no grant; an
+  explicit `settings.permissionMode` always wins. The grant is claude-specific,
+  so it applies to `claude-code` providers only (a generic `cli` provider is left
+  untouched). If you hand-wrote a `type: cli` claude provider, switch it to
+  `type: claude-code` to get this. See `docs/design/provider-permission-mode.md`.
+
 ## 0.7.31
 
 - **A second supervisor persona: `security`.** Pick it with `--supervisor security`
