@@ -72,6 +72,7 @@ import type {
   FlowLoop,
   ResolvedFlowSnapshot,
   FlowCoverage,
+  HubFlowRow,
 } from "./types.js";
 
 export class ApiError extends Error {
@@ -758,25 +759,18 @@ export const api = {
   }> {
     return jsonPost("/api/flows/import", input);
   },
-  // ─── hub (Phase 5) ──────────────────────────────────────────────────────
-  async listHubFlows(q?: string): Promise<{
-    flows: {
-      name: string;
-      latest: string;
-      versions: string[];
-      label?: string;
-      description?: string;
-      tags: string[];
-      author?: string;
-    }[];
-  }> {
+  // ─── hub (real API, P3) ──────────────────────────────────────────────────
+  async listHubFlows(q?: string): Promise<{ flows: HubFlowRow[] }> {
     return jsonGet(`/api/flows/hub${q ? `?q=${encodeURIComponent(q)}` : ""}`);
   },
+  /** Errors surface as thrown ApiError (the route maps install refusals to
+   *  4xx/5xx with the reasons in the message). */
   async installHubFlow(input: {
-    name: string;
-    version?: string;
+    ref: string;
     overwrite?: boolean;
-  }): Promise<{ result: { ok: boolean } }> {
+  }): Promise<{
+    result: { ok: true; flowId: string; overwritten: boolean };
+  }> {
     return jsonPost("/api/flows/hub/install", input);
   },
   /** Create a project flow from a full definition (the flow-creator API). */

@@ -16,6 +16,7 @@ import type {
   DiscoveredFlow,
   FlowStepDefinition,
   FlowCoverage,
+  HubFlowRow,
   SeatCoverage,
 } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
@@ -390,10 +391,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         )}
       </section>
 
-      <p className="mt-8 text-[12px] text-fog-500">
-        Import/export shares one flow at a time. A browsable community Flows Hub
-        is on the roadmap.
-      </p>
+      <HubSection
+        onInstalled={(flowId) => {
+          setToast({ kind: "ok", text: `Installed hub flow "${flowId}".` });
+          void load();
+        }}
+        onError={(text) => setToast({ kind: "err", text })}
+      />
 
       {toast ? (
         <div
@@ -409,6 +413,201 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Best-effort one-liner for the hub's diagnosis blob (same logic as the
+ *  shell hub view). */
+function hubDiagnosisLabel(d: unknown): string | null {
+  if (!d) return null;
+  if (typeof d === "string") return d;
+  if (typeof d === "object") {
+    const o = d as Record<string, unknown>;
+    for (const k of ["verdict", "status", "summary", "note"]) {
+      if (typeof o[k] === "string") return o[k] as string;
+    }
+  }
+  return null;
+}
+
+/** Flows Hub browser (P3b): search the live hub, install by ref through the
+ *  validated + secret-guarded import writer. Badge honesty: the hub's
+ *  `verified` flag renders as "hub-curated" (a curation claim, not an
+ *  integrity guarantee); install always discloses that a flow is executable
+ *  configuration. Errors surface the hub client's reasons verbatim. */
+function HubSection({
+  onInstalled,
+  onError,
+}: {
+  onInstalled: (flowId: string) => void;
+  onError: (text: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<HubFlowRow[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hubError, setHubError] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+
+  // Debounced search whenever the section is open.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setLoading(true);
+    const t = window.setTimeout(async () => {
+      try {
+        const r = await api.listHubFlows(query.trim() || undefined);
+        if (!cancelled) {
+          setRows(r.flows);
+          setHubError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setRows([]);
+          setHubError(err instanceof Error ? err.message : String(err));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [open, query]);
+
+  async function install(row: HubFlowRow, overwrite = false): Promise<void> {
+    const name = row.label || row.name || row.ref;
+    if (
+      !overwrite &&
+      !window.confirm(
+        `Install "${name}" (${row.ref}) from the hub?\n\nA hub flow is executable configuration - it will drive agents and propose commands in this project. Review it before running.`,
+      )
+    ) {
+      return;
+    }
+    setInstalling(row.ref);
+    try {
+      const r = await api.installHubFlow({ ref: row.ref, overwrite });
+      onInstalled(r.result.flowId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!overwrite && /exist|overwrite|conflict/i.test(msg)) {
+        if (
+          window.confirm(
+            `A flow with this id already exists locally.\n\n${msg}\n\nOverwrite it with the hub version?`,
+          )
+        ) {
+          await install(row, true);
+          return;
+        }
+      } else {
+        onError(msg);
+      }
+    } finally {
+      setInstalling(null);
+    }
+  }
+
+  return (
+    <section className="mt-8">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 text-left"
+        >
+          {open ? (
+            <ChevronDown className="h-4 w-4 text-fog-400" strokeWidth={1.7} />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-fog-400" strokeWidth={1.7} />
+          )}
+          <Library className="h-4 w-4 text-fog-300" strokeWidth={1.7} />
+          <span className="text-display text-[15px] text-fog-100">Flows Hub</span>
+        </button>
+        <span className="text-[11.5px] text-fog-500">
+          community flows from vibestrate.com - installed through the validated,
+          secret-guarded import writer
+        </span>
+      </div>
+
+      {open ? (
+        <div className="mt-3 space-y-3">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the hub (name, tag, description)…"
+            className="w-full max-w-[420px] rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+          />
+          {hubError ? (
+            <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+              {hubError}
+            </div>
+          ) : loading && rows === null ? (
+            <div className="text-[13px] text-fog-400">Searching the hub…</div>
+          ) : rows && rows.length === 0 ? (
+            <div className="text-[13px] text-fog-400">No hub flows match.</div>
+          ) : rows ? (
+            <ul className="space-y-2">
+              {rows.map((row) => {
+                const diag = hubDiagnosisLabel(row.diagnosis);
+                return (
+                  <li
+                    key={row.ref}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3"
+                  >
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-[13.5px] font-medium text-fog-100">
+                        {row.label || row.name || row.ref}
+                      </span>
+                      <span className="mono text-[11px] text-fog-500">{row.ref}</span>
+                      {row.verified ? (
+                        <Chip tone="emerald">hub-curated</Chip>
+                      ) : null}
+                      {diag ? (
+                        <span className="text-[11px] text-fog-400">{diag}</span>
+                      ) : null}
+                      <span className="flex-1" />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={installing !== null}
+                        onClick={() => void install(row)}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" strokeWidth={1.7} />
+                        {installing === row.ref ? "Installing…" : "Install"}
+                      </Button>
+                    </div>
+                    {row.description ? (
+                      <p className="mt-1 text-[12.5px] text-fog-300">
+                        {row.description}
+                      </p>
+                    ) : null}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-fog-500">
+                      {row.author ? <span>by {row.author}</span> : null}
+                      {typeof row.steps === "number" ? (
+                        <span>{row.steps} steps</span>
+                      ) : null}
+                      {row.version ? <span>v{row.version}</span> : null}
+                      {(row.tags ?? []).map((t) => (
+                        <span key={t} className="mono">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <p className="text-[11.5px] text-fog-500">
+            Checksums verify transport integrity only; "hub-curated" is the
+            hub's curation claim, not an integrity guarantee. Review an
+            installed flow before running it.
+          </p>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

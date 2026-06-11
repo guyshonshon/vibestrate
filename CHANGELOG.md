@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.41
+
+- **The Flows Hub is browsable from the dashboard.** The web Flows page gained
+  a Hub section: search the live hub (debounced, errors shown verbatim),
+  result cards with description / author / steps / tags / diagnosis and an
+  honest "hub-curated" badge, and one-click install by ref - through the same
+  validated, secret-guarded import writer as everything else, with an
+  overwrite confirm when the id already exists locally and an explicit
+  disclosure that a hub flow is executable configuration. Hub browse/install
+  now exists on all three surfaces (web, shell, CLI).
+
 ## 0.7.40
 
 - **Trivial tasks now size themselves: "make a test.txt" runs one turn, not
