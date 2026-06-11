@@ -8,6 +8,9 @@
 // file-overlap detector), cumulatively, so branch-vs-branch conflicts show too.
 
 import { randomUUID } from "node:crypto";
+import path from "node:path";
+import { promises as fs } from "node:fs";
+import { execa } from "execa";
 import { readDirSafe, pathExists } from "../utils/fs.js";
 import { readJson } from "../utils/json.js";
 import { projectRunsDir, runStatePath } from "../utils/paths.js";
@@ -22,8 +25,13 @@ import {
   deleteBranch,
   refExists,
   resolveWorktreePath,
+  hasChanges,
 } from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
+import {
+  createActionBroker,
+  type ActionRequest,
+} from "../safety/action-broker.js";
 
 export class IntegrationError extends Error {
   constructor(message: string) {
@@ -230,5 +238,206 @@ export async function integrate(input: {
     }
   }
 
+  // Record what this integration contains (P7b completeness check): finish
+  // refuses to merge a PARTIAL integration branch - one whose apply stopped at
+  // a conflict - because the human reviewed a set of runs, not a prefix of it.
+  await writeIntegrationRecord(input.projectRoot, {
+    integrationBranch: target,
+    baseBranch,
+    branches: input.branches.map((b) => b.branch),
+    integrated: integrated.filter((b) => b.clean).map((b) => b.branch),
+    stoppedAt,
+    createdAt: new Date().toISOString(),
+  });
+
   return { integrationBranch: target, baseBranch, worktreePath, integrated, stoppedAt };
+}
+
+// ── P7b: guided merge-to-main ────────────────────────────────────────────────
+
+export type IntegrationRecord = {
+  integrationBranch: string;
+  baseBranch: string;
+  branches: string[];
+  integrated: string[];
+  stoppedAt: string | null;
+  createdAt: string;
+};
+
+function integrationDir(projectRoot: string): string {
+  return path.join(projectRoot, ".vibestrate", "integration");
+}
+
+function integrationRecordPath(projectRoot: string, branch: string): string {
+  return path.join(
+    integrationDir(projectRoot),
+    `${branch.replace(/[/]/g, "-")}.json`,
+  );
+}
+
+async function writeIntegrationRecord(
+  projectRoot: string,
+  record: IntegrationRecord,
+): Promise<void> {
+  await fs.mkdir(integrationDir(projectRoot), { recursive: true });
+  await fs.writeFile(
+    integrationRecordPath(projectRoot, record.integrationBranch),
+    JSON.stringify(record, null, 2),
+    "utf8",
+  );
+}
+
+export async function readIntegrationRecord(
+  projectRoot: string,
+  branch: string,
+): Promise<IntegrationRecord | null> {
+  try {
+    return JSON.parse(
+      await fs.readFile(integrationRecordPath(projectRoot, branch), "utf8"),
+    ) as IntegrationRecord;
+  } catch {
+    return null;
+  }
+}
+
+export type FinishIntegrationResult = {
+  mergedSha: string;
+  intoBranch: string;
+  integrationBranch: string;
+};
+
+/**
+ * Complete an integration: merge the (complete, clean) integration branch into
+ * main, locally. HUMAN-TRIGGERED ONLY - the `humanConfirmed` literal must come
+ * from an interactive surface (the CLI's typed confirmation or the dashboard's
+ * confirm modal); no scheduler or run-completion path calls this (tested
+ * invariant). The merge is gated by the Action Broker (`git.merge` - policies
+ * can deny / require_approval), preconditions are re-checked INSIDE a lock
+ * (TOCTOU), and nothing is ever pushed.
+ */
+export async function finishIntegration(input: {
+  projectRoot: string;
+  integrationBranch: string;
+  humanConfirmed: true;
+}): Promise<FinishIntegrationResult> {
+  if (input.humanConfirmed !== true) {
+    throw new IntegrationError(
+      "finishIntegration requires explicit human confirmation.",
+    );
+  }
+  const loaded = await loadConfig(input.projectRoot);
+  const mainBranch = loaded.config.git.mainBranch;
+  const target = input.integrationBranch.trim();
+  if (!SAFE_BRANCH_RE.test(target) || target === mainBranch) {
+    throw new IntegrationError(`Invalid integration branch "${target}".`);
+  }
+
+  // Serialize finishes + re-check everything inside the lock: a run checking
+  // out main between check and merge is exactly the race to close.
+  const lockDir = path.join(integrationDir(input.projectRoot), ".finish-lock");
+  await fs.mkdir(integrationDir(input.projectRoot), { recursive: true });
+  try {
+    await fs.mkdir(lockDir);
+  } catch {
+    throw new IntegrationError(
+      "Another merge-to-main is in progress (lock held). Retry when it finishes.",
+    );
+  }
+  try {
+    const record = await readIntegrationRecord(input.projectRoot, target);
+    if (!record) {
+      throw new IntegrationError(
+        `No integration record for "${target}" - re-run \`vibe integrate apply\` so finish can verify the branch is complete.`,
+      );
+    }
+    if (record.stoppedAt) {
+      throw new IntegrationError(
+        `Integration "${target}" is PARTIAL - apply stopped at "${record.stoppedAt}". Resolve and re-apply before merging to ${mainBranch}.`,
+      );
+    }
+    if (!(await refExists(input.projectRoot, target))) {
+      throw new IntegrationError(`Integration branch "${target}" does not exist.`);
+    }
+    if (!(await refExists(input.projectRoot, mainBranch))) {
+      throw new IntegrationError(`Main branch "${mainBranch}" does not exist.`);
+    }
+    if (await hasChanges(input.projectRoot)) {
+      throw new IntegrationError(
+        "The project working tree has uncommitted changes - commit or stash them first.",
+      );
+    }
+
+    // Broker gate: policies may deny or demand approval; either refuses here
+    // (this surface IS the human ack - a policy hold means 'not even with one').
+    const broker = createActionBroker(input.projectRoot, "integration");
+    const req: ActionRequest = {
+      runId: "integration",
+      kind: "git.merge",
+      subject: { from: target, into: mainBranch, branches: record.integrated },
+      proposedBy: "cli",
+    };
+    const decision = await broker.decide(req);
+    if (decision.effect !== "allow") {
+      await broker.record(req, decision, {
+        ok: false,
+        summary: `merge ${target} -> ${mainBranch} refused (${decision.effect})`,
+      });
+      throw new IntegrationError(
+        `Policy ${decision.effect === "deny" ? "denied" : "requires approval for"} this merge: ${
+          "reason" in decision ? decision.reason : "policy"
+        }`,
+      );
+    }
+
+    // Checkout main when needed (tree verified clean above), merge, never push.
+    const head = await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd: input.projectRoot,
+      reject: false,
+    });
+    if (head.stdout.trim() !== mainBranch) {
+      const co = await execa("git", ["checkout", mainBranch], {
+        cwd: input.projectRoot,
+        reject: false,
+      });
+      if (co.exitCode !== 0) {
+        throw new IntegrationError(
+          `Could not check out ${mainBranch}: ${co.stderr || co.stdout}`,
+        );
+      }
+    }
+    const merge = await execa("git", ["merge", "--no-edit", target], {
+      cwd: input.projectRoot,
+      reject: false,
+    });
+    if (merge.exitCode !== 0) {
+      await execa("git", ["merge", "--abort"], {
+        cwd: input.projectRoot,
+        reject: false,
+      });
+      await broker.record(req, decision, {
+        ok: false,
+        summary: `merge ${target} -> ${mainBranch} conflicted; aborted`,
+      });
+      throw new IntegrationError(
+        `Merge of "${target}" into ${mainBranch} did not apply cleanly (aborted): ${
+          merge.stderr || merge.stdout
+        }`,
+      );
+    }
+    const sha = await execa("git", ["rev-parse", "HEAD"], {
+      cwd: input.projectRoot,
+      reject: false,
+    });
+    await broker.record(req, decision, {
+      ok: true,
+      summary: `merged ${target} -> ${mainBranch} @ ${sha.stdout.trim().slice(0, 10)} (local only, not pushed)`,
+    });
+    return {
+      mergedSha: sha.stdout.trim(),
+      intoBranch: mainBranch,
+      integrationBranch: target,
+    };
+  } finally {
+    await fs.rmdir(lockDir).catch(() => {});
+  }
 }

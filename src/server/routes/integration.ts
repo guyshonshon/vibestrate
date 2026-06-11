@@ -5,6 +5,7 @@ import {
   listMergeReadyRuns,
   mergePreview,
   integrate,
+  finishIntegration,
   IntegrationError,
   type BranchTarget,
   type MergeReadyRun,
@@ -63,6 +64,39 @@ export async function registerIntegrationRoutes(
         projectRoot: deps.projectRoot,
         branches,
         integrationBranch: parsed.data.into,
+      });
+      return { result };
+    } catch (err) {
+      if (err instanceof IntegrationError) throw new HttpError(409, err.message);
+      throw new HttpError(500, err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  // P7b guided merge: merge a COMPLETE integration branch into main, locally.
+  // The body `confirm` token is an accident guard, NOT authorization (anything
+  // that can POST can include it) - the real gates are the broker (`git.merge`
+  // policies), the completeness record, the lock + re-checked preconditions,
+  // and the dashboard's human confirm modal in front of this call. Honest
+  // exposure note: on a tokenless loopback bind this route is reachable by
+  // local processes, like every write route - set VIBESTRATE_API_TOKEN to gate
+  // it (documented in the HTTP API page). Never pushes.
+  const finishBody = z.object({
+    integrationBranch: z.string().min(1).max(100),
+    confirm: z.literal("merge-to-main"),
+  });
+  app.post<{ Body: unknown }>("/api/integration/finish", async (req) => {
+    const parsed = finishBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(
+        400,
+        'finish requires { integrationBranch, confirm: "merge-to-main" }',
+      );
+    }
+    try {
+      const result = await finishIntegration({
+        projectRoot: deps.projectRoot,
+        integrationBranch: parsed.data.integrationBranch,
+        humanConfirmed: true,
       });
       return { result };
     } catch (err) {
