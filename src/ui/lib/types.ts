@@ -1514,7 +1514,9 @@ export type RunAssurance = {
     passed: number;
     failed: number;
   };
-  review: { status: "approved" | "changes_requested" | "missing" };
+  review: {
+    status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";
+  };
   verification: { status: "passed" | "failed" | "not_run" };
   coverage: { toleratedStepFailures: number };
   caps: string[];
