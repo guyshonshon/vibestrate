@@ -99,14 +99,34 @@ export async function initGitRepository(input: {
   }
 
   // What WOULD be staged (respects the .gitignore we just wrote).
-  const status = await execa("git", ["status", "--porcelain"], {
-    cwd: root,
-    reject: false,
-  });
-  const wouldStage = status.stdout
-    .split("\n")
-    .map((l) => l.slice(3).trim())
-    .filter(Boolean);
+  // Adversarial-review hardening, both load-bearing:
+  //   --untracked-files=all : default porcelain collapses an untracked dir to
+  //     one `dir/` entry, so a `secrets/id_rsa` INSIDE it was invisible to the
+  //     scan and `git add -A` then committed it. -uall lists every file.
+  //   -z (NUL records)      : git C-quotes paths with spaces/unicode
+  //     (`?? "my key.pem"`), which broke the $-anchored secret patterns; NUL
+  //     records arrive raw. Rename records carry a second NUL-separated path -
+  //     both are scanned.
+  const status = await execa(
+    "git",
+    ["status", "--porcelain", "--untracked-files=all", "-z"],
+    { cwd: root, reject: false },
+  );
+  const records = status.stdout.split("\0").filter(Boolean);
+  const wouldStage: string[] = [];
+  for (let i = 0; i < records.length; i++) {
+    const rec = records[i]!;
+    if (rec.length < 4) continue;
+    wouldStage.push(rec.slice(3));
+    // R/C records are followed by the original path as its own NUL field.
+    if (rec[0] === "R" || rec[0] === "C") {
+      const orig = records[i + 1];
+      if (orig) {
+        wouldStage.push(orig);
+        i += 1;
+      }
+    }
+  }
   const secretLike = wouldStage.filter((p) => isSecretLikePath(p));
   if (secretLike.length > 0) {
     return {
@@ -131,22 +151,35 @@ export async function initGitRepository(input: {
     };
   }
 
-  const add = await execa("git", ["add", "-A"], { cwd: root, reject: false });
-  const commit =
-    add.exitCode === 0
-      ? await execa(
-          "git",
-          ["commit", "-m", "chore: initial commit (vibe init)"],
-          { cwd: root, reject: false },
-        )
-      : add;
-  if (commit.exitCode !== 0) {
+  // Stage the VETTED list explicitly - never `git add -A`. A scanner miss then
+  // means an unstaged file, not a leaked commit (fail-closed by construction).
+  let stageError: string | null = null;
+  const CHUNK = 200;
+  for (let i = 0; i < wouldStage.length && !stageError; i += CHUNK) {
+    const add = await execa(
+      "git",
+      ["add", "--", ...wouldStage.slice(i, i + CHUNK)],
+      { cwd: root, reject: false },
+    );
+    if (add.exitCode !== 0) {
+      stageError = add.stderr || add.stdout || "git add failed";
+    }
+  }
+  const commit = stageError
+    ? null
+    : await execa("git", ["commit", "-m", "chore: initial commit (vibe init)"], {
+        cwd: root,
+        reject: false,
+      });
+  if (stageError || !commit || commit.exitCode !== 0) {
     return {
       ...none,
       ok: true,
       initialized: true,
       gitignoreWritten,
-      commitSkippedReason: `commit failed: ${commit.stderr || commit.stdout}`,
+      commitSkippedReason: `commit failed: ${
+        stageError ?? (commit ? commit.stderr || commit.stdout : "unknown")
+      }`,
       error: null,
     };
   }

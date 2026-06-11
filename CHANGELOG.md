@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.43
+
+- **Vibestrate can now create the git repository it needs - carefully.** In a
+  non-git folder, `vibe init` offers to initialize one (interactive confirm,
+  or the explicit `--git-init`; a generic `--yes` never implies it), and the
+  web onboarding gained the same one-click step instead of telling you to run
+  `git init` yourself. The initial commit is guarded, hard: a starter
+  `.gitignore` first, then every file that would be staged - including inside
+  untracked directories and quoted paths - is scanned for secret-like names
+  (`.env*`, keys, `credentials*`, `.npmrc`, `.netrc`, and more); any hit
+  means the repo is initialized *without* a commit and you're told why. The
+  commit stages only the vetted file list, never `git add -A`, so a scanner
+  miss can't leak. Adversarially reviewed pre-merge: the review caught (and
+  we fixed + test) an untracked-directory bypass that would have committed a
+  `secrets/id_rsa`.
+
 ## 0.7.42
 
 - **Control Center: watch a run the way you'd watch a team.** Run detail

@@ -48,6 +48,50 @@ describe("initGitRepository (P7a guarded onboarding)", () => {
     expect(show.stdout).not.toContain(".env");
   });
 
+  it("catches a secret INSIDE an untracked directory (porcelain -uall)", async () => {
+    const dir = await tmp();
+    await fs.writeFile(path.join(dir, "notes.md"), "hello\n");
+    await fs.mkdir(path.join(dir, "secrets"));
+    await fs.writeFile(path.join(dir, "secrets", "id_rsa"), "PRIVATE\n");
+    const r = await initGitRepository({ projectRoot: dir });
+    expect(r.commitSha).toBeNull();
+    expect(r.commitSkippedReason).toMatch(/secret-like/i);
+    const log = await execa("git", ["log", "--oneline"], { cwd: dir, reject: false });
+    expect(log.exitCode).not.toBe(0);
+  });
+
+  it("catches a secret two levels deep", async () => {
+    const dir = await tmp();
+    await fs.writeFile(path.join(dir, "notes.md"), "hello\n");
+    await fs.mkdir(path.join(dir, "a", "b"), { recursive: true });
+    await fs.writeFile(path.join(dir, "a", "b", "credentials.json"), "{}\n");
+    const r = await initGitRepository({ projectRoot: dir });
+    expect(r.commitSha).toBeNull();
+    expect(r.commitSkippedReason).toMatch(/secret-like/i);
+  });
+
+  it("catches a quoted secret path (space in the name)", async () => {
+    const dir = await tmp();
+    await fs.writeFile(path.join(dir, "notes.md"), "hello\n");
+    await fs.writeFile(path.join(dir, "prod creds.pem"), "x\n");
+    const r = await initGitRepository({ projectRoot: dir });
+    expect(r.commitSha).toBeNull();
+    expect(r.commitSkippedReason).toMatch(/secret-like/i);
+  });
+
+  it("stages only the vetted list (a clean commit includes nested files)", async () => {
+    const dir = await tmp();
+    await fs.mkdir(path.join(dir, "docs"));
+    await fs.writeFile(path.join(dir, "docs", "guide.md"), "g\n");
+    await fs.writeFile(path.join(dir, "notes.md"), "hello\n");
+    const r = await initGitRepository({ projectRoot: dir });
+    expect(r.commitSha).toBeTruthy();
+    const show = await execa("git", ["show", "--name-only", "--pretty=format:"], {
+      cwd: dir,
+    });
+    expect(show.stdout).toContain("docs/guide.md");
+  });
+
   it("refuses to nest inside an existing repository", async () => {
     const dir = await tmp();
     await execa("git", ["init", "-q"], { cwd: dir });

@@ -116,11 +116,26 @@ export async function registerSetupRoutes(
   app.post<{ Body: { gitInit?: boolean } | null }>("/api/setup/init", async (req) => {
     // P7a: create a git repo ONLY on the explicit flag - never inferred from
     // the init request itself (creating repo history is never a side effect).
+    // Idempotent for the web one-shot (review finding): if a previous attempt
+    // created the repo but the scaffold failed, a retry must not 409 on the
+    // nest-refusal - the git step becomes a no-op and setup continues.
     let git: import("../../git/git-init.js").GitInitResult | null = null;
     if (req.body?.gitInit === true) {
-      const { initGitRepository } = await import("../../git/git-init.js");
-      git = await initGitRepository({ projectRoot });
-      if (!git.ok) throw new HttpError(409, git.error ?? "git init failed");
+      const already = await detectFullProject(projectRoot).catch(() => null);
+      if (already?.isGitRepo) {
+        git = {
+          ok: true,
+          initialized: false,
+          gitignoreWritten: false,
+          commitSha: null,
+          commitSkippedReason: "already a git repository",
+          error: null,
+        };
+      } else {
+        const { initGitRepository } = await import("../../git/git-init.js");
+        git = await initGitRepository({ projectRoot });
+        if (!git.ok) throw new HttpError(409, git.error ?? "git init failed");
+      }
     }
     const { plan, init } = await applySetup({ options: { projectRoot } });
     return {
