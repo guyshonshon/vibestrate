@@ -1,0 +1,133 @@
+import { describe, it, expect } from "vitest";
+import {
+  classifyObviousTrivial,
+  SIZER_TARGET_FLOW,
+} from "../src/orchestrator/flow-sizing.js";
+import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
+import { loadConfig } from "../src/project/config-loader.js";
+import { applySetup } from "../src/setup/setup-service.js";
+import type { ProviderDetectionRunner } from "../src/providers/provider-detection.js";
+import os from "node:os";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { execa } from "execa";
+
+describe("classifyObviousTrivial (deterministic tier)", () => {
+  it("sizes a short prose-file task as trivial", () => {
+    expect(classifyObviousTrivial("make a simple test.txt file").trivial).toBe(true);
+    expect(classifyObviousTrivial("fix a typo in README.md").trivial).toBe(true);
+  });
+
+  it("never sizes a task naming code/config files", () => {
+    expect(classifyObviousTrivial("tweak src/auth/login.ts").trivial).toBe(false);
+    expect(
+      classifyObviousTrivial("update README.md and package.json").trivial,
+    ).toBe(false);
+    expect(classifyObviousTrivial("edit deploy.yml quickly").trivial).toBe(false);
+  });
+
+  it("never sizes without a concrete file (no task-text guessing)", () => {
+    expect(classifyObviousTrivial("refactor the scheduler").trivial).toBe(false);
+    expect(classifyObviousTrivial("").trivial).toBe(false);
+  });
+
+  it("never sizes long/wordy tasks", () => {
+    expect(classifyObviousTrivial(`update notes.md ${"and also ".repeat(40)}`).trivial).toBe(false);
+  });
+});
+
+const noProvider: ProviderDetectionRunner = async () => ({
+  exitCode: 127,
+  stdout: "",
+  stderr: "",
+});
+
+async function makeProject(extraYml?: (yml: string) => string): Promise<string> {
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-sizing-"));
+  await execa("git", ["init", "-q", "-b", "main"], { cwd: project });
+  await execa("git", ["config", "user.email", "x@x"], { cwd: project });
+  await execa("git", ["config", "user.name", "x"], { cwd: project });
+  await fs.writeFile(path.join(project, "package.json"), '{"name":"demo"}');
+  await execa("git", ["add", "."], { cwd: project });
+  await execa("git", ["commit", "-q", "-m", "init"], { cwd: project });
+  await applySetup({ options: { projectRoot: project }, detectionRunner: noProvider });
+  if (extraYml) {
+    const p = path.join(project, ".vibestrate/project.yml");
+    await fs.writeFile(p, extraYml(await fs.readFile(p, "utf8")));
+  }
+  return project;
+}
+
+describe("chooseRunFlow + sizing (A1)", () => {
+  it("routes an obvious-trivial task to express, recorded as sized", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "make a simple test.txt file",
+      config: loaded.config,
+      loaded,
+    });
+    expect(sel.flowId).toBe(SIZER_TARGET_FLOW);
+    expect(sel.source).toBe("sized");
+    expect(sel.reasons.join(" ")).toMatch(/diff-decided/);
+  });
+
+  it("a risk-tagged trivial-looking task gets persona-upgraded past express", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "update auth.md with the new authentication secret rotation steps",
+      config: loaded.config,
+      loaded,
+    });
+    // Either the persona upgraded it away from express, or sizing refused -
+    // both are acceptable; what's forbidden is landing on express via sizing.
+    if (sel.flowId === SIZER_TARGET_FLOW) {
+      expect(sel.source).not.toBe("sized");
+    } else {
+      expect(["supervisor-upgraded", "default"]).toContain(sel.source);
+    }
+  });
+
+  it("flowSizing: off reproduces the default path exactly", async () => {
+    const project = await makeProject((yml) => `${yml}\nflowSizing: off\n`);
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "make a simple test.txt file",
+      config: loaded.config,
+      loaded,
+    });
+    expect(sel.flowId).toBe("default");
+    expect(sel.source).toBe("default");
+  });
+
+  it("an explicit defaultFlow always beats sizing", async () => {
+    const project = await makeProject((yml) => `${yml}\ndefaultFlow: default\n`);
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "make a simple test.txt file",
+      config: loaded.config,
+      loaded,
+    });
+    expect(sel.flowId).toBe("default");
+    expect(sel.source).toBe("default");
+  });
+
+  it("a forced flow always beats sizing", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "make a simple test.txt file",
+      config: loaded.config,
+      forcedFlowId: "panel-review",
+      loaded,
+    });
+    expect(sel.flowId).toBe("panel-review");
+    expect(sel.source).toBe("forced");
+  });
+});

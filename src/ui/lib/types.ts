@@ -305,7 +305,13 @@ export type CrewView = {
 export type WorkflowSelectionView = {
   flowId: string;
   crewId: string | null;
-  source: "forced" | "default" | "selected" | "only-flow" | "supervisor-upgraded";
+  source:
+    | "forced"
+    | "default"
+    | "selected"
+    | "only-flow"
+    | "sized"
+    | "supervisor-upgraded";
   confidence: "low" | "medium" | "high";
   reasons: string[];
   risks: string[];

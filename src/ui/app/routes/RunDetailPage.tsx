@@ -258,7 +258,9 @@ export function RunDetailPage({
         />
       ) : null}
       {selection &&
-      (selection.source === "selected" || selection.source === "supervisor-upgraded") ? (
+      (selection.source === "selected" ||
+        selection.source === "supervisor-upgraded" ||
+        selection.source === "sized") ? (
         <FlowChoiceCard selection={selection} />
       ) : null}
 
@@ -837,7 +839,9 @@ function FlowChoiceCard({ selection }: { selection: WorkflowSelectionView }) {
         <span className="text-[11px] text-fog-400">
           {selection.source === "supervisor-upgraded"
             ? "supervisor-upgraded"
-            : `orchestrator-selected · ${selection.confidence} confidence`}
+            : selection.source === "sized"
+              ? "sized (trivial task; back gates stay diff-decided)"
+              : `orchestrator-selected · ${selection.confidence} confidence`}
         </span>
         {selection.personaId ? (
           <span className="text-[11px] text-violet-300/80">

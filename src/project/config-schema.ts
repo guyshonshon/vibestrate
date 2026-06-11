@@ -385,6 +385,14 @@ export const projectConfigBaseSchema = z.object({
    * require a config entry - the built-in default works out of the box.
    */
   defaultPersona: z.string().min(1).default("staff-engineer"),
+  /**
+   * A1 flow sizing (orchestrator/flow-sizing.ts): route obviously-trivial
+   * tasks to the diff-floored `express` flow. Applies ONLY when no --flow,
+   * no --select, and no defaultFlow. `deterministic` = structural classifier,
+   * zero model calls (default); `assisted` adds one cheap gray-zone assist
+   * call; `off` reproduces the pre-sizing behavior exactly.
+   */
+  flowSizing: z.enum(["off", "deterministic", "assisted"]).default("deterministic"),
   budget: budgetConfigSchema,
   resilience: resilienceConfigSchema,
   session: sessionConfigSchema,

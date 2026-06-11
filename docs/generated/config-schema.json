@@ -212,6 +212,19 @@
       "itemType": null
     },
     {
+      "key": "flowSizing",
+      "fullKey": "flowSizing",
+      "type": "enum",
+      "required": false,
+      "default": "deterministic",
+      "enum": [
+        "off",
+        "deterministic",
+        "assisted"
+      ],
+      "itemType": null
+    },
+    {
       "key": "budget",
       "fullKey": "budget",
       "type": "object",

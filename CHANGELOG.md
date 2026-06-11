@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.40
+
+- **Trivial tasks now size themselves: "make a test.txt" runs one turn, not
+  six.** When a run has no `--flow`, no `--select`, and no `defaultFlow`, a
+  conservative structural classifier (zero model calls) routes
+  obviously-trivial tasks - short, naming only prose files - to the
+  diff-floored `express` flow. The sizing is honest and bounded: its only
+  possible target is `express` (whose review is decided by the actual diff,
+  so a "trivial" task that edits code still gets reviewed), the supervisor
+  persona's risk upgrade runs after it and beats it, every sized run is
+  recorded (`selection.json`, `workflow.selected` event, a "sized" card on
+  run detail, the CLI flow line), and `flowSizing: off` restores the old
+  behavior exactly. Opt-in `assisted` mode adds one cheap gray-zone model
+  call. The A1 slice - proportional orchestration (A2+A3+A1) is complete.
+
 ## 0.7.39
 
 - **The live panel finally shows the model working - and it shows it for every
