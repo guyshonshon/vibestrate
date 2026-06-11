@@ -32,7 +32,9 @@ export async function runHubList(opts: {
   console.log(header(`Flows hub (${flows.length})`));
   console.log("");
   for (const f of flows) {
-    const verified = f.verified ? color.dim(" (verified)") : "";
+    // "hub-curated", not "verified": the flag is the hub's curation claim,
+    // not an integrity guarantee (run-experience batch P3, reviewer finding).
+    const verified = f.verified ? color.dim(" (hub-curated)") : "";
     console.log(`${color.bold(f.ref)}${verified}`);
     if (f.name && f.name !== f.ref) console.log(indent(color.dim(f.name)));
     if (f.description) console.log(indent(f.description));
@@ -65,7 +67,7 @@ export async function runHubInstall(
   console.log(
     indent(
       color.dim(
-        "sha256-verified, validated, and secret/shell-guarded on import. Review it before running.",
+        "Checksum matched (transport integrity only), schema-validated, and secret/shell-guarded on import. A hub flow is executable configuration - review it before running.",
       ),
     ),
   );
