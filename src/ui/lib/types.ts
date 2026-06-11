@@ -1499,6 +1499,25 @@ export type SafetyPoliciesConfig = {
   requireApprovalAtStages: string[];
 };
 
+/** A flow row from the live hub search (mirrors hub-client's normalized
+ *  HubFlowSummary - `description`/`author` are filled from their live-contract
+ *  synonyms server-side). */
+export type HubFlowRow = {
+  ref: string;
+  name?: string | null;
+  handle?: string | null;
+  /** The hub's curation claim - render as "hub-curated", never "verified". */
+  verified?: boolean | null;
+  version?: string | null;
+  label?: string | null;
+  description?: string | null;
+  tags?: string[] | null;
+  author?: string | null;
+  installs?: number | null;
+  steps?: number | null;
+  diagnosis?: unknown;
+};
+
 export type RunAssuranceVerdict =
   | "blocked"
   | "unsafe"
