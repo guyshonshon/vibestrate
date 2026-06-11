@@ -49,9 +49,12 @@ const TERMINAL_STATUSES = new Set<RunStatus>([
 export function LiveOutputPanel({
   runId,
   status,
+  focusStream,
 }: {
   runId: string;
   status: RunStatus;
+  /** Pin the panel to one stream (P5 seat board) instead of following latest. */
+  focusStream?: string | null;
 }) {
   const [streams, setStreams] = useState<StreamMeta[]>([]);
   const [active, setActive] = useState<string | null>(null);
@@ -80,6 +83,12 @@ export function LiveOutputPanel({
         setStreams(r.streams);
         setRouteMissing(false);
         setActive((cur) => {
+          // Pinned mode (seat board): always the focused stream when present.
+          if (focusStream) {
+            return r.streams.some((s) => s.promptName === focusStream)
+              ? focusStream
+              : null;
+          }
           const latest = r.streams[0]?.promptName ?? null;
           if (followLatest) return latest;
           if (!cur) return latest;
@@ -103,7 +112,7 @@ export function LiveOutputPanel({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [runId, isTerminal, followLatest]);
+  }, [runId, isTerminal, followLatest, focusStream]);
 
   // Open SSE for the selected stream. Falls back to a periodic poll
   // when SSE is blocked or the route 404s.
