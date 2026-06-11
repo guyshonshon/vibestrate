@@ -108,7 +108,7 @@ import type {
 import { MetricsStore } from "./metrics-store.js";
 import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { extractTurnInternals } from "./turn-internals.js";
-import { getDiffSnapshot } from "./diff-service.js";
+import { getDiffSnapshot, redactSecretsInText } from "./diff-service.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
 import {
@@ -4200,7 +4200,13 @@ export class Orchestrator {
     }
 
     const promptName = input.promptName ?? this.defaultPromptName(input.promptIndex, roleId);
-    const promptArtifactPathAbs = await ctx.artifactStore.write(promptName, prompt);
+    // The artifact is the RECORD copy (and feeds later steps' context + the
+    // P5 control center) - scrub high-precision token shapes before persisting.
+    // The prompt actually sent to the provider below is the unredacted local.
+    const promptArtifactPathAbs = await ctx.artifactStore.write(
+      promptName,
+      redactSecretsInText(prompt).redacted,
+    );
 
     await ctx.eventLog.append({
       type: "role.started",
@@ -4292,7 +4298,14 @@ export class Orchestrator {
     const outputAdapter = selectOutputAdapter(
       this.config.providers[effectiveProviderId]!,
     );
-    const liveFilter = outputAdapter.createLiveFilter?.();
+    // P2: prefer the typed transcript filter (text/thinking/tool/subagent)
+    // over the text-only live filter - it's what lets the live view show the
+    // model *working* (tools, thinking) instead of going silent between
+    // visible-text stretches. Both are display-only, never the control path.
+    const transcriptFilter = outputAdapter.createTranscriptFilter?.();
+    const liveFilter = transcriptFilter
+      ? null
+      : outputAdapter.createLiveFilter?.();
     let liveEmitted = false;
 
     // Honor `vibe abort` mid-stage: poll state.json every 500ms; when
@@ -4390,6 +4403,19 @@ export class Orchestrator {
           catalog: this.resolvedCatalog,
           mcpConfigPath: mcpConfigAbsPath ?? undefined,
           onChunk: (c) => {
+            if (transcriptFilter && c.stream === "stdout") {
+              for (const t of transcriptFilter(c.chunk)) {
+                // Only visible text counts as "the stream showed the answer" -
+                // tool/thinking activity alone still gets the final flush.
+                if (t.kind === "text") liveEmitted = true;
+                void appendStreamLine(this.projectRoot, ctx.runId, streamName, {
+                  ...c,
+                  kind: t.kind,
+                  chunk: t.text,
+                });
+              }
+              return;
+            }
             if (liveFilter && c.stream === "stdout") {
               const text = liveFilter(c.chunk);
               if (text) {
@@ -4634,9 +4660,10 @@ export class Orchestrator {
       ? `${stdout}\n\n---\n## stderr\n\n${stderr}`
       : stdout;
 
+    // Record copy only - control parsing reads the in-memory responseText.
     const outputArtifactPathAbs = await ctx.artifactStore.write(
       input.outputName,
-      outputBody,
+      redactSecretsInText(outputBody).redacted,
     );
 
     // ── Apply-only gateway (S4) ───────────────────────────────────────────

@@ -11,12 +11,15 @@
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import { appendLine, pathExists, readText } from "../utils/fs.js";
-import { runDir } from "../utils/paths.js";
+import { runDir, isPathInside } from "../utils/paths.js";
+import { redactSecretsInText } from "./diff-service.js";
 
 export type ProviderStreamLine = {
   stream: "stdout" | "stderr";
   chunk: string;
   at: string;
+  /** Transcript kind (P2). Absent on older lines / verbatim providers ⇒ text. */
+  kind?: "text" | "thinking" | "tool" | "subagent";
 };
 
 function streamsDir(projectRoot: string, runId: string): string {
@@ -29,9 +32,16 @@ export function streamFilePath(
   promptName: string,
 ): string {
   // Strip extension so the on-disk name matches the prompt artifact
-  // (e.g. "1_planner-prompt.md" → "1_planner-prompt.ndjson").
+  // (e.g. "flows/implement/prompt.md" → "flows/implement/prompt.ndjson").
   const base = promptName.replace(/\.[^./]+$/, "");
-  return path.join(streamsDir(projectRoot, runId), `${base}.ndjson`);
+  const dir = streamsDir(projectRoot, runId);
+  const target = path.resolve(dir, `${base}.ndjson`);
+  // Names carry slashes now (nested flow streams) - keep every read/write
+  // pinned inside the run's streams dir, whatever the caller passed.
+  if (!isPathInside(dir, target)) {
+    throw new Error(`Stream name escapes the streams directory: "${promptName}".`);
+  }
+  return target;
 }
 
 export async function ensureStreamsDir(
@@ -48,9 +58,14 @@ export async function appendStreamLine(
   line: ProviderStreamLine,
 ): Promise<void> {
   try {
+    // Redaction at the capture seam (P2, required deliverable): streams were
+    // unredacted, and the transcript view makes their content far more
+    // readable - so high-precision token shapes are scrubbed before anything
+    // is persisted. Raw view, transcript, and the SSE tail all inherit this.
+    const { redacted } = redactSecretsInText(line.chunk);
     await appendLine(
       streamFilePath(projectRoot, runId, promptName),
-      JSON.stringify(line),
+      JSON.stringify({ ...line, chunk: redacted }),
     );
   } catch {
     /* best-effort */
@@ -58,29 +73,46 @@ export async function appendStreamLine(
 }
 
 /** List the stream files recorded for a run, newest first. Each entry
- *  carries enough to render a tab without reading the body. */
+ *  carries enough to render a tab without reading the body.
+ *
+ *  Recursive (P2 root-cause fix): flow runs write their streams NESTED
+ *  (`streams/flows/<step>/prompt.ndjson` - the stream name mirrors the
+ *  prompt artifact path), and the old flat readdir missed every one of
+ *  them - so the live panel showed "no output" for every flow run, i.e.
+ *  for every run. promptName is the relative path without the extension
+ *  (e.g. `flows/implement/prompt`). */
 export async function listStreams(
   projectRoot: string,
   runId: string,
 ): Promise<{ promptName: string; bytes: number; updatedAt: string }[]> {
   const dir = streamsDir(projectRoot, runId);
   if (!(await pathExists(dir))) return [];
-  const names = await fs.readdir(dir).catch(() => []);
   const out: { promptName: string; bytes: number; updatedAt: string }[] = [];
-  for (const n of names) {
-    if (!n.endsWith(".ndjson")) continue;
-    const full = path.join(dir, n);
-    try {
-      const stat = await fs.stat(full);
-      out.push({
-        promptName: n.replace(/\.ndjson$/, ""),
-        bytes: stat.size,
-        updatedAt: stat.mtime.toISOString(),
-      });
-    } catch {
-      /* skip */
+  async function walk(current: string, rel: string): Promise<void> {
+    const entries = await fs
+      .readdir(current, { withFileTypes: true })
+      .catch(() => [] as import("node:fs").Dirent[]);
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      const next = rel ? path.posix.join(rel, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        await walk(full, next);
+        continue;
+      }
+      if (!entry.name.endsWith(".ndjson")) continue;
+      try {
+        const stat = await fs.stat(full);
+        out.push({
+          promptName: next.replace(/\.ndjson$/, ""),
+          bytes: stat.size,
+          updatedAt: stat.mtime.toISOString(),
+        });
+      } catch {
+        /* skip */
+      }
     }
   }
+  await walk(dir, "");
   out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return out;
 }
@@ -91,7 +123,12 @@ export async function readStream(
   runId: string,
   promptName: string,
 ): Promise<ProviderStreamLine[]> {
-  const file = streamFilePath(projectRoot, runId, promptName);
+  let file: string;
+  try {
+    file = streamFilePath(projectRoot, runId, promptName);
+  } catch {
+    return []; // escaping name -> nothing to read
+  }
   if (!(await pathExists(file))) return [];
   const text = await readText(file).catch(() => "");
   const out: ProviderStreamLine[] = [];

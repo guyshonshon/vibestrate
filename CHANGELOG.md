@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.39
+
+- **The live panel finally shows the model working - and it shows it for every
+  run.** Two real fixes behind "true CLI output is not showing": (1) flow runs
+  write their streams *nested* (`streams/flows/<step>/...`) and the stream
+  lister only read the top level, so the live panel listed nothing for any
+  flow run - i.e. for every run; now recursive (with path-guarded names).
+  (2) The live filter only ever emitted the assistant's visible text, so the
+  panel sat silent through long tool-using stretches; the claude stream now
+  produces a typed transcript - assistant text, tool calls ("Read ·
+  src/core/x.ts"), sub-agent spawns, and thinking (folded behind a toggle) -
+  rendered in a new Transcript view with the raw stream one tab away.
+- **Secrets are now scrubbed at the capture seams.** Stream chunks, prompt
+  artifacts, and response artifacts were persisted unredacted; high-precision
+  token shapes (AWS/GitHub/Slack/Stripe/Google/Anthropic keys, PEM blocks)
+  are now redacted before anything is written - the live tail, the SSE
+  stream, artifact viewers, and later steps' context all inherit it. What the
+  agent is *sent* is untouched; only the persisted record copies are scrubbed.
+
 ## 0.7.38
 
 - **The `express` flow: one implementer turn, honestly guarded.** For small,

@@ -14,6 +14,7 @@ import {
   type NormalizedMetrics,
   type ProviderOutputAdapter,
 } from "../output-adapter.js";
+import { createTranscriptFilter } from "./stream-transcript.js";
 
 type JsonObj = Record<string, unknown>;
 
@@ -99,6 +100,10 @@ export const claudeStreamJsonAdapter: ProviderOutputAdapter = {
     }
     return { responseText: result.result, metrics: metricsFromResult(result) };
   },
+
+  // Typed transcript chunks (text/thinking/tool/subagent) for the live view -
+  // preferred over createLiveFilter by the caller. Display-only.
+  createTranscriptFilter,
 
   // Chunks aren't line-aligned, so buffer until whole JSON lines are available,
   // then emit only assistant text deltas. Display-only; never the control path.

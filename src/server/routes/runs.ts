@@ -417,7 +417,12 @@ export async function registerRunsRoutes(
   // Lets the dashboard tail what the provider CLI is *currently
   // saying* - the missing link between "spawned" and "artifact
   // written". Listed first, then per-stream full read + SSE tail.
-  const STREAM_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+  // Stream names are slash-separated since the recursive lister (P2): nested
+  // flow streams report as e.g. `flows/implement/prompt`. Each segment must
+  // start alphanumeric (which rejects `.`/`..` traversal segments), and the
+  // store re-guards the resolved path against escapes (isPathInside).
+  const STREAM_NAME_RE =
+    /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}(\/[A-Za-z0-9][A-Za-z0-9._-]{0,127}){0,8}$/;
   app.get<{ Params: { runId: string } }>(
     "/api/runs/:runId/streams",
     async (req) => {

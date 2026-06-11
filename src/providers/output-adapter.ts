@@ -50,6 +50,15 @@ export interface ProviderOutputAdapter {
    * buffers partial lines. Absent ⇒ the caller streams chunks verbatim.
    */
   createLiveFilter?(): (rawChunk: string) => string;
+  /**
+   * Optional, richer than createLiveFilter (P2 live transcript): typed chunks
+   * (text / thinking / tool / subagent) for the transcript view. When present
+   * the caller prefers it over createLiveFilter. Display only, never the
+   * control path.
+   */
+  createTranscriptFilter?(): (
+    rawChunk: string,
+  ) => import("./adapters/stream-transcript.js").TranscriptChunk[];
 }
 
 /**
