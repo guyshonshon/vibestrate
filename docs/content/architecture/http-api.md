@@ -80,3 +80,20 @@ All three write to `.vibestrate/flows/<id>/flow.yml` through one guarded path:
 CLI equivalents: `vibe flows export <id> [--out file]` and
 `vibe flows import <file-or-url> [--overwrite]`. In the dashboard: the **Flows**
 page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
+
+## Integration: guided merge-to-main
+
+`POST /api/integration/finish` (`{ integrationBranch, confirm: "merge-to-main" }`)
+merges a **complete, clean** integration branch into your main branch -
+locally, never pushed. It refuses partial integrations (the apply stopped at a
+conflict), dirty working trees, merge conflicts (aborted cleanly), and any
+`git.merge` action policy that says `deny` / `require_approval`; preconditions
+are re-checked under a lock immediately before the merge.
+
+Honest exposure note: the `confirm` body token guards against *accidental*
+invocation - it is not authorization. Like every write route, on a tokenless
+loopback bind this endpoint is reachable by local processes; set
+`VIBESTRATE_API_TOKEN` to gate it, or add a `git.merge` policy with
+`require_approval`/`deny` to refuse merges from this surface entirely. The CLI
+equivalent (`vibe integrate finish <branch>`) requires the typed confirmation
+`merge-to-main`.

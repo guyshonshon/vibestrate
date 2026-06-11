@@ -1097,6 +1097,23 @@ export const api = {
     } }>("/api/integration/apply", { into, runIds });
     return r.result;
   },
+  /** P7b: merge a complete integration branch into main, locally (never
+   *  pushed). The confirm token guards against accidental invocation. */
+  async finishIntegration(integrationBranch: string): Promise<{
+    mergedSha: string;
+    intoBranch: string;
+    integrationBranch: string;
+  }> {
+    const r = await jsonPost<{ result: {
+      mergedSha: string;
+      intoBranch: string;
+      integrationBranch: string;
+    } }>("/api/integration/finish", {
+      integrationBranch,
+      confirm: "merge-to-main",
+    });
+    return r.result;
+  },
   async listWorkspace(): Promise<{
     current: string;
     projects: {

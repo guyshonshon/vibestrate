@@ -8,7 +8,7 @@ import {
   type BranchTarget,
   type MergeReadyRun,
 } from "../../integration/integration-service.js";
-import { color, header, indent, symbol } from "../ui/format.js";
+import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
 
 async function ctx() {
   const detected = await detectProject(process.cwd());
@@ -144,5 +144,64 @@ export function buildIntegrateCommand(): Command {
     .description("Integrate the selected (or all) merge-ready branches into --into <branch>.")
     .requiredOption("--into <branch>", "the integration branch to create (never main)")
     .action(async (runIds: string[], opts) => process.exit(await cmdApply(runIds ?? [], opts)));
+  cmd
+    .command("finish <integrationBranch>")
+    .description(
+      "Merge a complete, clean integration branch into main - locally, with explicit confirmation, never pushed. Refuses partial integrations, dirty trees, and conflicts.",
+    )
+    .option(
+      "--confirm <token>",
+      'non-interactive consent: must be exactly "merge-to-main"',
+    )
+    .action(async (branch: string, opts: { confirm?: string }) =>
+      process.exit(await cmdFinish(branch, opts)),
+    );
   return cmd;
+}
+
+async function cmdFinish(
+  branch: string,
+  opts: { confirm?: string },
+): Promise<number> {
+  const root = await ctx();
+  // Explicit human consent: a typed confirmation interactively, or the exact
+  // --confirm token. Nothing else proceeds.
+  let consent = opts.confirm === "merge-to-main";
+  if (!consent && opts.confirm !== undefined) {
+    console.error(`${symbol.fail()} --confirm must be exactly "merge-to-main".`);
+    return 2;
+  }
+  if (!consent && isInteractiveTTY()) {
+    const { input } = await import("@inquirer/prompts");
+    const typed = await input({
+      message: `Merge "${branch}" into main locally (nothing is pushed)? Type merge-to-main to confirm:`,
+    });
+    consent = typed.trim() === "merge-to-main";
+  }
+  if (!consent) {
+    console.error(
+      `${symbol.fail()} Not confirmed. Re-run with --confirm merge-to-main (or type it at the prompt).`,
+    );
+    return 1;
+  }
+  try {
+    const { finishIntegration } = await import(
+      "../../integration/integration-service.js"
+    );
+    const r = await finishIntegration({
+      projectRoot: root,
+      integrationBranch: branch,
+      humanConfirmed: true,
+    });
+    console.log(
+      `${symbol.ok()} Merged ${color.bold(r.integrationBranch)} into ${color.bold(r.intoBranch)} @ ${r.mergedSha.slice(0, 10)}.`,
+    );
+    console.log(color.dim("Local only - nothing was pushed."));
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
 }

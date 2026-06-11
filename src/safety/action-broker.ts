@@ -25,7 +25,11 @@ export type ActionKind =
   | "network.request"
   | "mcp.tool"
   | "terminal.create"
-  | "run.complete";
+  | "run.complete"
+  // P7b: the human-triggered integration->main merge (guided merge). Emitted
+  // ONLY by the guided-merge service - no scheduler / run-completion path may
+  // reach it (tested invariant in tests/guided-merge.test.ts).
+  | "git.merge";
 
 export type ActionRequest = {
   runId: string;

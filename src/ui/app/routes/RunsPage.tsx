@@ -209,6 +209,8 @@ function IntegrationPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** A clean, complete integration branch eligible for merge-to-main (P7b). */
+  const [finishable, setFinishable] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,12 +315,40 @@ function IntegrationPanel() {
                   ? `Stopped at ${res.stoppedAt} (conflicts). Resolve in ${res.worktreePath}.`
                   : `Integrated into ${res.integrationBranch}. Review it - main is untouched.`,
               );
+              setFinishable(res.stoppedAt ? null : res.integrationBranch);
             })
           }
           className="h-7 rounded-md border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
         >
           {busy === "apply" ? "Integrating…" : "Integrate selected"}
         </button>
+        {finishable ? (
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => {
+              // Explicit, spelled-out confirm: this is the only place the
+              // product touches main - locally, never pushed (P7b).
+              if (
+                !window.confirm(
+                  `Merge "${finishable}" into main now?\n\nThis runs a LOCAL git merge of the reviewed integration branch into main. Nothing is pushed. Refused if the tree is dirty, the integration is partial, or a policy objects.`,
+                )
+              ) {
+                return;
+              }
+              void run("finish", async () => {
+                const r = await api.finishIntegration(finishable);
+                setMsg(
+                  `Merged ${r.integrationBranch} into ${r.intoBranch} @ ${r.mergedSha.slice(0, 10)} (local only - not pushed).`,
+                );
+                setFinishable(null);
+              });
+            }}
+            className="h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+          >
+            {busy === "finish" ? "Merging…" : "Complete merge to main"}
+          </button>
+        ) : null}
         {msg ? <span className="text-[11px] text-emerald-300">{msg}</span> : null}
         {error ? <span className="text-[11px] text-rose-300">{error}</span> : null}
       </div>
