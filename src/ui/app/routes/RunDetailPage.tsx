@@ -22,6 +22,7 @@ import {
   type InspectorV3Tab,
 } from "../../components/runs/v3/InspectorTabs.js";
 import { LiveOutputPanel } from "../../components/runs/LiveOutputPanel.js";
+import { SeatBoard } from "../../components/runs/SeatBoard.js";
 import { StepsInspector } from "../../components/runs/StepsInspector.js";
 import { EventStream } from "../../components/workflow/EventStream.js";
 import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
@@ -341,10 +342,31 @@ export function RunDetailPage({
               />
             ),
           },
+          // Control Center (P5): seat cards + the selected seat's prompt /
+          // live transcript / response. Only meaningful once a flow exists.
+          ...(run.flow
+            ? [
+                {
+                  id: "seats",
+                  title: "Control center",
+                  defaultLayout: { id: "seats", x: 0, y: 9, w: 12, h: 7 },
+                  minW: 6,
+                  minH: 5,
+                  render: () => (
+                    <SeatBoard
+                      runId={runId}
+                      status={run.status}
+                      flow={run.flow}
+                      metrics={metrics}
+                    />
+                  ),
+                },
+              ]
+            : []),
           {
             id: "live",
             title: "Live execution",
-            defaultLayout: { id: "live", x: 0, y: 9, w: 8, h: 6 },
+            defaultLayout: { id: "live", x: 0, y: 16, w: 8, h: 6 },
             minW: 4,
             minH: 4,
             render: () => (

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.42
+
+- **Control Center: watch a run the way you'd watch a team.** Run detail
+  gained a seat board - one card per flow step showing the seated role, its
+  profile/provider, live state (the working seat pulses), and its token
+  rollup; parallel review panels render as one row of sibling cards.
+  Selecting a card opens that seat's pane: the exact prompt it received
+  (fetchable mid-run, redacted record copy), its live transcript while
+  working, and its response artifact when done. Selection follows the active
+  seat automatically until you pin one. The shell run view gained the same
+  strip in miniature (`seats plan ok · implement > · review`). All read-only,
+  derived from evidence the run already records.
+
 ## 0.7.41
 
 - **The Flows Hub is browsable from the dashboard.** The web Flows page gained

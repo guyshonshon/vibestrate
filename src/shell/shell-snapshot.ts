@@ -104,6 +104,8 @@ export type ShellRunRow = {
     completedSteps: number;
     totalSteps: number;
     participantContexts: string[];
+    /** Compact per-step seat strip (P5 Control Center parity). */
+    seatStrip: { label: string; role: string | null; status: string }[];
   } | null;
 };
 
@@ -293,6 +295,11 @@ function deriveFlowSummary(state: RunState): ShellRunRow["flow"] {
     participantContexts: state.flow.participants.map((participant) =>
       `${participant.label}:${participant.lastContextMode ?? participant.sessionReuse}`,
     ),
+    seatStrip: state.flow.steps.map((step) => ({
+      label: step.label,
+      role: step.resolvedRoleLabel ?? step.resolvedRoleId ?? step.seat,
+      status: step.status,
+    })),
   };
 }
 

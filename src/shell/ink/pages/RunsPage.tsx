@@ -289,6 +289,37 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
           ) : null}
         </Text>
       ) : null}
+      {row.flow?.seatStrip?.length ? (
+        <Text wrap="truncate-end">
+          <Text dimColor>seats  </Text>
+          {row.flow.seatStrip.map((s, i) => (
+            <Text key={i}>
+              {i > 0 ? <Text dimColor>{" · "}</Text> : null}
+              <Text
+                color={
+                  s.status === "running"
+                    ? "cyan"
+                    : s.status === "passed"
+                      ? "green"
+                      : s.status === "failed" || s.status === "blocked"
+                        ? "red"
+                        : undefined
+                }
+                dimColor={s.status === "pending" || s.status === "skipped"}
+              >
+                {s.label}
+                {s.status === "running"
+                  ? " >"
+                  : s.status === "passed"
+                    ? " ok"
+                    : s.status === "failed" || s.status === "blocked"
+                      ? " x"
+                      : ""}
+              </Text>
+            </Text>
+          ))}
+        </Text>
+      ) : null}
       {row.flow?.participantContexts.length ? (
         <Text>
           <Text dimColor>context</Text>
