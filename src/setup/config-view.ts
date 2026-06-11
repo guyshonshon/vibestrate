@@ -214,6 +214,11 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
       { label: "flow id", value: config.workflow.id },
       { label: "max review loops", value: String(config.workflow.maxReviewLoops) },
       boolRow("require human merge", config.workflow.requireHumanMerge),
+      {
+        label: "flow sizing",
+        value: config.flowSizing,
+        hint: "trivial tasks route to the diff-floored express flow; flowSizing: off disables",
+      },
     ],
   });
 

@@ -644,13 +644,14 @@ export class Orchestrator {
     await artifactStore.write("00-idea.md", `# Task\n\n${this.task}\n`);
 
     // Record how this run's Flow was chosen, but only for an actual orchestrator
-    // selection (LLM `selected` or a persona `supervisor-upgraded`) - a
-    // forced/default run's flow is already in flow.json, so we add no extra
-    // artifact/event there (keeps normal runs byte-for-byte unchanged).
+    // judgment (LLM `selected`, persona `supervisor-upgraded`, or the A1
+    // `sized` route) - a forced/default run's flow is already in flow.json, so
+    // we add no extra artifact/event there (keeps normal runs unchanged).
     if (
       this.selection &&
       (this.selection.source === "selected" ||
-        this.selection.source === "supervisor-upgraded")
+        this.selection.source === "supervisor-upgraded" ||
+        this.selection.source === "sized")
     ) {
       await artifactStore.writeJson("selection.json", this.selection);
       await eventLog.append({

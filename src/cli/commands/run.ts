@@ -713,6 +713,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     default: "default",
     selected: `selected · ${selection.confidence} confidence`,
     "only-flow": "only flow",
+    sized: "sized (trivial task; back gates stay diff-decided)",
     "supervisor-upgraded": "supervisor-upgraded",
   };
   console.log("");

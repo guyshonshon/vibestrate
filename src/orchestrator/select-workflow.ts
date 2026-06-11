@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { classifyEffort } from "../core/effort-heuristic.js";
 import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
+import { classifyObviousTrivial, SIZER_TARGET_FLOW } from "./flow-sizing.js";
 import { discoverFlows } from "../flows/catalog/flow-discovery.js";
 import {
   classifyTaskRisk,
@@ -31,6 +32,7 @@ export type WorkflowSelectionSource =
   | "default"
   | "selected"
   | "only-flow"
+  | "sized"
   | "supervisor-upgraded";
 export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggested";
 
@@ -392,9 +394,20 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     return tag(selected);
   }
 
-  // 3. The default/session flow (or the built-in default) - applied + shown, no LLM.
-  //    The persona may still UPGRADE this for a risk-tagged task (the teeth that
-  //    fires on the default path).
+  // 3a. A1 flow sizing (flow-sizing.ts) - ONLY when nothing explicit applies:
+  //     no --flow, no --select, and no config.defaultFlow (an explicit user
+  //     choice always wins). The sizer may pick FRONT leanness only - its sole
+  //     target is the diff-floored `express` flow, whose back gates are decided
+  //     by the actual diff at run time, never by this task-text read. The
+  //     persona upgrade below still runs and beats a downsize.
+  if (defaultFlowId === null && (input.config.flowSizing ?? "deterministic") !== "off") {
+    const sized = await maybeSizeToExpress(input);
+    if (sized) return tag(await upgrade(sized));
+  }
+
+  // 3b. The default/session flow (or the built-in default) - applied + shown,
+  //     no LLM. The persona may still UPGRADE this for a risk-tagged task (the
+  //     teeth that fires on the default path).
   const base: WorkflowSelection = {
     flowId: defaultFlowId ?? "default",
     crewId: null,
@@ -406,4 +419,81 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     advisory: null,
   };
   return tag(await upgrade(base));
+}
+
+const sizingAnswerSchema = z
+  .object({
+    size: z.enum(["trivial", "standard"]),
+    reasons: z.array(z.string()).default([]),
+  })
+  .strict();
+
+const SIZING_SCHEMA_HINT = `{
+  "size": "trivial | standard - trivial ONLY for a small, low-risk change (docs/text tweaks, one tiny file); anything touching code, config, CI, auth, or that you are unsure about is standard",
+  "reasons": ["string - what made it trivial/standard"]
+}`;
+
+/** A1: decide whether this run sizes down to `express`. Deterministic tier
+ *  first (free); gray-zone assist tier only on `flowSizing: "assisted"`. Any
+ *  failure/uncertainty -> null (the caller falls through to the default flow -
+ *  fail toward more checking). */
+async function maybeSizeToExpress(
+  input: ChooseRunFlowInput,
+): Promise<WorkflowSelection | null> {
+  // The target must actually exist (it's a builtin, but a project can shadow
+  // ids - resolve from discovery so we never route to a missing flow).
+  const discovered = await discoverFlows(input.projectRoot).catch(() => []);
+  if (!discovered.some((f) => f.id === SIZER_TARGET_FLOW)) return null;
+
+  const sizedSelection = (
+    tier: "deterministic" | "assisted",
+    reasons: string[],
+  ): WorkflowSelection => ({
+    flowId: SIZER_TARGET_FLOW,
+    crewId: null,
+    source: "sized",
+    confidence: tier === "deterministic" ? "high" : "medium",
+    reasons: [
+      `Sized to "${SIZER_TARGET_FLOW}" (${tier} tier): ${reasons.join("; ")}.`,
+      "Back gates stay diff-decided: a non-prose or protected change still gets a real review turn.",
+    ],
+    risks: [],
+    posture: "normal",
+    advisory:
+      "Trivial-task sizing - set flowSizing: off (or a defaultFlow) to disable.",
+  });
+
+  const det = classifyObviousTrivial(input.task);
+  if (det.trivial) return sizedSelection("deterministic", det.reasons);
+
+  if ((input.config.flowSizing ?? "deterministic") !== "assisted") return null;
+  try {
+    const result = await runAssist({
+      projectRoot: input.projectRoot,
+      label: "size-flow",
+      auditBucket: "selection",
+      instruction: [
+        "Size this task. Reply ONLY with the JSON.",
+        "",
+        `Task: ${input.task}`,
+        "",
+        "trivial = a small, low-risk change (docs/text tweaks, one tiny file).",
+        "standard = anything touching code, config, CI, auth/security, or that you're unsure about.",
+      ].join("\n"),
+      schema: sizingAnswerSchema,
+      schemaHint: SIZING_SCHEMA_HINT,
+      loaded: input.loaded ?? undefined,
+      signal: input.signal,
+      runner: input.runner,
+    });
+    if (result.parsed.size === "trivial") {
+      return sizedSelection(
+        "assisted",
+        result.parsed.reasons.length ? result.parsed.reasons : ["assist call sized it trivial"],
+      );
+    }
+    return null;
+  } catch {
+    return null; // assist failure -> default flow (more checking)
+  }
 }
