@@ -4,7 +4,13 @@ import { api } from "../../lib/api.js";
 import { ApiError } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
 
-type Line = { stream: "stdout" | "stderr"; chunk: string; at: string };
+type Line = {
+  stream: "stdout" | "stderr";
+  chunk: string;
+  at: string;
+  /** Transcript kind (P2). Absent on old lines / verbatim providers = text. */
+  kind?: "text" | "thinking" | "tool" | "subagent";
+};
 type StreamMeta = {
   promptName: string;
   bytes: number;
@@ -52,7 +58,13 @@ export function LiveOutputPanel({
   const [lines, setLines] = useState<Line[]>([]);
   const [followLatest, setFollowLatest] = useState(true);
   const [routeMissing, setRouteMissing] = useState(false);
+  const [view, setView] = useState<"transcript" | "raw">("transcript");
+  const [showThinking, setShowThinking] = useState(false);
   const isTerminal = TERMINAL_STATUSES.has(status);
+  const hasKinds = useMemo(
+    () => lines.some((l) => l.kind && l.kind !== "text"),
+    [lines],
+  );
 
   // Poll the list every 3s so newly spawned agents show up - but stop
   // for terminal runs (no new streams), and back off entirely if the
@@ -211,6 +223,24 @@ export function LiveOutputPanel({
             follow latest
           </button>
         ) : null}
+        {hasKinds ? (
+          <span className="flex items-center gap-1">
+            {(["transcript", "raw"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10px] ${
+                  view === v
+                    ? "border-vibestrate-accent/50 text-vibestrate-accent"
+                    : "border-vibestrate-border text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </span>
+        ) : null}
         <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
           {lines.length} chunk{lines.length === 1 ? "" : "s"} ·{" "}
           {totalChars.toLocaleString()} char
@@ -249,22 +279,120 @@ export function LiveOutputPanel({
             <span className="vibestrate-mono truncate">
               {activeStream?.promptName ?? active}
             </span>
+            {hasKinds && view === "transcript" ? (
+              <button
+                type="button"
+                onClick={() => setShowThinking((v) => !v)}
+                className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
+              >
+                {showThinking ? "hide thinking" : "show thinking"}
+              </button>
+            ) : null}
             <span className="vibestrate-mono ml-auto shrink-0">
-              stdout/stderr
+              {hasKinds && view === "transcript" ? "transcript" : "stdout/stderr"}
             </span>
           </div>
-          <Suspense
-            fallback={
-              <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
-                Opening terminal view…
-              </div>
-            }
-          >
-            <ProviderCliTerminal lines={lines} streamName={active} />
-          </Suspense>
+          {hasKinds && view === "transcript" ? (
+            <TranscriptView lines={lines} showThinking={showThinking} />
+          ) : (
+            <Suspense
+              fallback={
+                <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
+                  Opening terminal view…
+                </div>
+              }
+            >
+              <ProviderCliTerminal lines={lines} streamName={active} />
+            </Suspense>
+          )}
         </div>
       )}
     </section>
+  );
+}
+
+/** Transcript rendering (P2): consecutive text chunks merge into prose
+ *  blocks; tool/sub-agent chunks render as one-line activity rows; thinking
+ *  is folded behind the header toggle. Pure display over the same lines the
+ *  raw view shows. */
+function TranscriptView({
+  lines,
+  showThinking,
+}: {
+  lines: Line[];
+  showThinking: boolean;
+}) {
+  type Block =
+    | { kind: "text" | "thinking"; text: string }
+    | { kind: "tool" | "subagent"; text: string };
+  const blocks = useMemo(() => {
+    const out: Block[] = [];
+    for (const l of lines) {
+      if (l.stream === "stderr") continue; // raw view owns stderr
+      const kind = l.kind ?? "text";
+      const last = out[out.length - 1];
+      if ((kind === "text" || kind === "thinking") && last?.kind === kind) {
+        last.text += l.chunk;
+      } else if (kind === "text" || kind === "thinking") {
+        out.push({ kind, text: l.chunk });
+      } else {
+        out.push({ kind, text: l.chunk });
+      }
+    }
+    return out;
+  }, [lines]);
+  const thinkingChars = useMemo(
+    () =>
+      blocks.reduce(
+        (n, b) => n + (b.kind === "thinking" ? b.text.length : 0),
+        0,
+      ),
+    [blocks],
+  );
+  return (
+    <div className="max-h-[420px] min-h-[220px] overflow-auto border-t border-vibestrate-border-soft px-3 py-2">
+      {blocks.map((b, i) =>
+        b.kind === "tool" || b.kind === "subagent" ? (
+          <div
+            key={i}
+            className="vibestrate-mono my-0.5 flex items-center gap-1.5 text-[11px] text-vibestrate-fg-muted"
+          >
+            <span
+              className={`rounded border px-1 py-px text-[9.5px] uppercase tracking-[0.08em] ${
+                b.kind === "subagent"
+                  ? "border-vibestrate-accent/40 text-vibestrate-accent"
+                  : "border-vibestrate-border"
+              }`}
+            >
+              {b.kind === "subagent" ? "agent" : "tool"}
+            </span>
+            <span className="truncate">{b.text}</span>
+          </div>
+        ) : b.kind === "thinking" ? (
+          showThinking ? (
+            <pre
+              key={i}
+              className="vibestrate-mono my-1 whitespace-pre-wrap border-l-2 border-vibestrate-border pl-2 text-[11px] italic leading-relaxed text-vibestrate-fg-muted"
+            >
+              {b.text}
+            </pre>
+          ) : null
+        ) : (
+          <pre
+            key={i}
+            className="vibestrate-mono my-1 whitespace-pre-wrap text-[11.5px] leading-relaxed text-vibestrate-fg"
+          >
+            {b.text}
+          </pre>
+        ),
+      )}
+      {!showThinking && thinkingChars > 0 ? (
+        <p className="vibestrate-mono mt-1 text-[10.5px] text-vibestrate-fg-muted">
+          {thinkingChars.toLocaleString()} chars of thinking hidden - use
+          "show thinking" above.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
