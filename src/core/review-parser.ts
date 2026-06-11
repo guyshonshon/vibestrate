@@ -1,6 +1,7 @@
 import type { ReviewDecision, VerificationDecision } from "./state-machine.js";
-
-const REVIEW_LINE_RE = /^\s*DECISION\s*:\s*(APPROVED|CHANGES_REQUESTED|BLOCKED)\s*$/m;
+// Single source for the DECISION line shape - shared with the UI/shell review
+// panel parser so display and enforcement can't drift.
+import { REVIEW_DECISION_RE as REVIEW_LINE_RE } from "../flows/runtime/review-findings.js";
 const VERIFY_LINE_RE = /^\s*VERIFICATION\s*:\s*(PASSED|FAILED|NEEDS_HUMAN)\s*$/m;
 
 // Advisory "a human should look at this" marker (Phase 3). Non-blocking - the

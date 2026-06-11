@@ -11,9 +11,12 @@ import {
   projectRunsDir,
   runStatePath,
   runEventsPath,
+  runArtifactsDir,
+  isPathInside,
   schedulerQueueFile,
   schedulerStateFile,
 } from "../utils/paths.js";
+import { parseReviewOutput } from "../flows/runtime/review-findings.js";
 import {
   runStateSchema,
   isTerminal,
@@ -81,6 +84,17 @@ export type ShellRunRow = {
   /** From the run's state.json - handy on the Overview for finished runs. */
   finalDecision: string | null;
   verification: string | null;
+  /**
+   * Parsed review output for terminal runs whose review asked for changes /
+   * blocked (P1, run-experience batch). Best-effort: null when the artifact
+   * is missing or unparseable - the decision line above still renders.
+   */
+  reviewSummary: {
+    decision: string | null;
+    findingCount: number;
+    /** Up to the first three finding titles. */
+    headlines: string[];
+  } | null;
   flow: {
     label: string;
     flowId: string;
@@ -130,6 +144,46 @@ type LoadOptions = {
 
 const DEFAULT_MAX_ROWS = 20;
 const DEFAULT_EVENT_TAIL = 60;
+
+/** Cap on how much of a review artifact we parse for the summary. */
+const REVIEW_READ_CAP = 400_000;
+
+/**
+ * Best-effort parsed review summary for a run whose reviewer asked for
+ * changes / blocked. Reads the latest review step's output artifact (path
+ * comes from our own state.json, but stays guarded to the artifacts dir per
+ * the read-guard posture). Any failure -> null; the row renders without it.
+ */
+async function readReviewSummary(
+  projectRoot: string,
+  s: RunState,
+): Promise<ShellRunRow["reviewSummary"]> {
+  if (s.finalDecision !== "CHANGES_REQUESTED" && s.finalDecision !== "BLOCKED") {
+    return null;
+  }
+  const steps = s.flow?.steps ?? [];
+  const review = [...steps]
+    .reverse()
+    .find((st) => st.stage === "reviewing" && st.outputArtifactPath);
+  if (!review?.outputArtifactPath) return null;
+  const root = runArtifactsDir(projectRoot, s.runId);
+  const abs = path.resolve(root, review.outputArtifactPath);
+  if (!isPathInside(root, abs)) return null;
+  try {
+    if (!(await pathExists(abs))) return null;
+    const text = await readText(abs);
+    const parsed = parseReviewOutput(
+      text.length > REVIEW_READ_CAP ? text.slice(0, REVIEW_READ_CAP) : text,
+    );
+    return {
+      decision: parsed.decision,
+      findingCount: parsed.findings.length,
+      headlines: parsed.findings.slice(0, 3).map((f) => f.title),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export async function buildShellSnapshot(
   projectRoot: string,
@@ -194,6 +248,7 @@ export async function buildShellSnapshot(
       error: s.error ?? live.errorFromEvents,
       finalDecision: s.finalDecision ?? null,
       verification: s.verification ?? null,
+      reviewSummary: await readReviewSummary(projectRoot, s),
       flow: deriveFlowSummary(s),
     });
     recentEvents[s.runId] = events;

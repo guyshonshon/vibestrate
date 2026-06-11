@@ -28,6 +28,7 @@ import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
 import { ArtifactList } from "../../components/artifacts/ArtifactList.js";
 import { ArtifactViewer } from "../../components/artifacts/ArtifactViewer.js";
 import { ValidationSummary } from "../../components/validation/ValidationSummary.js";
+import { ReviewFindingsPanel } from "../../components/runs/ReviewFindingsPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
 import { AlertTriangle, Bolt, Cpu, Scale } from "lucide-react";
@@ -60,6 +61,9 @@ export function RunDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [rerunOpen, setRerunOpen] = useState(false);
+  // Pre-seeded rewind stage for "Re-run with fixes" (null = start from scratch).
+  const [rerunStart, setRerunStart] = useState<"executing" | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [tab, setTab] = useState<InspectorV3Tab>(() =>
     initialTab === "artifact"
       ? "artifacts"
@@ -196,12 +200,16 @@ export function RunDetailPage({
         onBack={() => navigate({ kind: "mission" })}
         onOpenDiff={() => setTab("artifacts")}
         onOpenGit={() => navigate({ kind: "git", runId })}
-        onRerun={() => setRerunOpen(true)}
+        onRerun={() => {
+          setRerunStart(null);
+          setRerunOpen(true);
+        }}
       />
 
       {rerunOpen ? (
         <RerunDialog
           run={run}
+          initialStartFrom={rerunStart ?? undefined}
           hasPlan={(metrics?.roles ?? []).some(
             (a) => a.stageId === "planning" || a.roleId === "planner",
           )}
@@ -228,7 +236,27 @@ export function RunDetailPage({
         onReject={() => void handleReject()}
       />
 
-      {assurance ? <AssuranceBadge assurance={assurance} /> : null}
+      {assurance ? (
+        <AssuranceBadge
+          assurance={assurance}
+          onViewReview={
+            assurance.review.status === "changes_requested" ||
+            run.finalDecision === "CHANGES_REQUESTED" ||
+            run.finalDecision === "BLOCKED"
+              ? () => setReviewOpen(true)
+              : undefined
+          }
+          onRerunWithFixes={() => {
+            setRerunStart("executing");
+            setRerunOpen(true);
+          }}
+          onViewValidation={
+            assurance.validation.status === "failed"
+              ? () => setTab("validation")
+              : undefined
+          }
+        />
+      ) : null}
       {selection &&
       (selection.source === "selected" || selection.source === "supervisor-upgraded") ? (
         <FlowChoiceCard selection={selection} />
@@ -238,8 +266,21 @@ export function RunDetailPage({
       <RunOutcomeBanner
         run={run}
         onRerun={() => setRerunOpen(true)}
+        onOpenReview={() => setReviewOpen(true)}
         onOpenTab={(t) => setTab(t)}
       />
+
+      {reviewOpen ? (
+        <ReviewFindingsPanel
+          runId={runId}
+          flow={run.flow}
+          onClose={() => setReviewOpen(false)}
+          onRerunWithFixes={() => {
+            setRerunStart("executing");
+            setRerunOpen(true);
+          }}
+        />
+      ) : null}
 
       {/* When the orchestrator is waiting on the user, surface the
        * approval banner inline (same UI used elsewhere in the app). */}
@@ -484,10 +525,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 function RunOutcomeBanner({
   run,
   onRerun,
+  onOpenReview,
   onOpenTab,
 }: {
   run: RunState;
   onRerun: () => void;
+  onOpenReview: () => void;
   onOpenTab: (t: InspectorV3Tab) => void;
 }) {
   const outcome = describeRunOutcome(run);
@@ -505,7 +548,8 @@ function RunOutcomeBanner({
   const run_ = (a: RunOutcomeAction) => {
     if (a === "rerun") onRerun();
     else if (a === "events") onOpenTab("events");
-    else onOpenTab("artifacts"); // review + diff both live under Artifacts
+    else if (a === "review") onOpenReview();
+    else onOpenTab("artifacts"); // diff lives under Artifacts
   };
   return (
     <section
@@ -552,12 +596,15 @@ function RerunDialog({
   run,
   hasPlan,
   hasArchitecture,
+  initialStartFrom,
   onClose,
   onSubmitted,
 }: {
   run: RunState;
   hasPlan: boolean;
   hasArchitecture: boolean;
+  /** Pre-seed the rewind stage (e.g. "Re-run with fixes" lands on executing). */
+  initialStartFrom?: StartFrom;
   onClose: () => void;
   onSubmitted: () => void;
 }) {
@@ -576,7 +623,15 @@ function RerunDialog({
     (run.flow?.steps ?? []).some((s) => s.stage === stage);
   const canArchitecting = flowHasStage("architecting") && hasPlan;
   const canExecuting = flowHasStage("executing") && hasPlan && hasArchitecture;
-  const [startFrom, setStartFrom] = useState<StartFrom>("scratch");
+  // Honor the pre-seed only when that stage is actually resumable; otherwise
+  // fall back to scratch rather than presenting a disabled selection.
+  const [startFrom, setStartFrom] = useState<StartFrom>(() =>
+    initialStartFrom === "executing" && canExecuting
+      ? "executing"
+      : initialStartFrom === "architecting" && canArchitecting
+        ? "architecting"
+        : "scratch",
+  );
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -816,8 +871,20 @@ function FlowChoiceCard({ selection }: { selection: WorkflowSelectionView }) {
 }
 
 /** Compact, evidence-backed run-assurance verdict (S5). */
-function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
+function AssuranceBadge({
+  assurance,
+  onViewReview,
+  onRerunWithFixes,
+  onViewValidation,
+}: {
+  assurance: RunAssurance;
+  onViewReview?: () => void;
+  onRerunWithFixes?: () => void;
+  onViewValidation?: () => void;
+}) {
   const a = assurance;
+  const actionCls =
+    "h-7 rounded-lg border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]";
   return (
     <div className={`rounded-xl border px-4 py-3 ${ASSURANCE_TONE[a.verdict]}`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -828,6 +895,33 @@ function AssuranceBadge({ assurance }: { assurance: RunAssurance }) {
           {a.verdict.replace(/_/g, " ")}
         </span>
         <span className="text-xs opacity-80">{a.summary}</span>
+        {onViewReview || onViewValidation ? (
+          <span className="ml-auto flex items-center gap-2">
+            {onViewReview ? (
+              <button type="button" onClick={onViewReview} className={actionCls}>
+                View review
+              </button>
+            ) : null}
+            {onViewReview && onRerunWithFixes ? (
+              <button
+                type="button"
+                onClick={onRerunWithFixes}
+                className={actionCls}
+              >
+                Re-run with fixes
+              </button>
+            ) : null}
+            {onViewValidation ? (
+              <button
+                type="button"
+                onClick={onViewValidation}
+                className={actionCls}
+              >
+                View validation
+              </button>
+            ) : null}
+          </span>
+        ) : null}
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] opacity-80">
         <span>policy: {a.policy.status}</span>

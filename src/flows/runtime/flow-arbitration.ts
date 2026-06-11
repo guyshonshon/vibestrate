@@ -28,8 +28,13 @@ import {
   type FlowFindingsOutput,
 } from "../schemas/flow-output-contracts.js";
 
-export const FLOW_OUTPUT_MARKER = "VIBESTRATE_FLOW_OUTPUT:";
-export const FLOW_OUTPUT_END_MARKER = "VIBESTRATE_FLOW_OUTPUT_END";
+// Marker strings live in the dependency-free review-findings module (shared
+// with the browser bundle); re-exported here for existing runtime importers.
+export {
+  FLOW_OUTPUT_MARKER,
+  FLOW_OUTPUT_END_MARKER,
+} from "./review-findings.js";
+import { FLOW_OUTPUT_MARKER, FLOW_OUTPUT_END_MARKER } from "./review-findings.js";
 
 export const flowArbitrationFindingRecordSchema = z
   .object({
