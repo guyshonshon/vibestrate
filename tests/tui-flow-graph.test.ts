@@ -33,6 +33,10 @@ function frameFor(definition: FlowDefinition): string {
       onToast: () => {},
       selectedIndex: 0,
       setSelectedIndex: () => {},
+      hubUi: { hubOpen: false, hubFilterOpen: false, hubQuery: "" },
+      dispatch: () => {},
+      sessionFlowId: null,
+      config: null,
       active: false,
     }),
   );

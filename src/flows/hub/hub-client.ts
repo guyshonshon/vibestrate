@@ -24,22 +24,39 @@ import {
 export const DEFAULT_HUB_BASE_URL = "https://vibestrate.com";
 
 /** A flow row from search. Permissive (the server may add fields); we only
- *  depend on `ref`. `diagnosis` shape is open, surfaced best-effort. */
+ *  depend on `ref`. `diagnosis` shape is open, surfaced best-effort.
+ *  Live-contract notes (verified against vibestrate.com 2026-06-11): nullable
+ *  fields arrive as `null` (not absent), the one-liner is `summary` and the
+ *  publisher is `publishedBy` - normalized below into `description`/`author`
+ *  so the surfaces stay contract-agnostic. */
 export const hubFlowSummarySchema = z
   .object({
     ref: z.string().min(1).max(200),
-    name: z.string().max(120).optional(),
-    handle: z.string().max(120).optional(),
-    verified: z.boolean().optional(),
-    version: z.string().max(40).optional(),
-    label: z.string().max(200).optional(),
-    description: z.string().max(2000).optional(),
-    tags: z.array(z.string().max(40)).max(40).optional(),
-    author: z.string().max(120).optional(),
+    name: z.string().max(120).nullish(),
+    handle: z.string().max(120).nullish(),
+    verified: z.boolean().nullish(),
+    version: z.string().max(40).nullish(),
+    label: z.string().max(200).nullish(),
+    description: z.string().max(2000).nullish(),
+    summary: z.string().max(2000).nullish(),
+    tags: z.array(z.string().max(40)).max(40).nullish(),
+    author: z.string().max(120).nullish(),
+    publishedBy: z.string().max(120).nullish(),
+    installs: z.number().nullish(),
+    steps: z.number().nullish(),
     diagnosis: z.unknown().optional(),
   })
   .passthrough();
 export type HubFlowSummary = z.infer<typeof hubFlowSummarySchema>;
+
+/** Fill the canonical display fields from their live-contract synonyms. */
+function normalizeSummaryRow(row: HubFlowSummary): HubFlowSummary {
+  return {
+    ...row,
+    description: row.description ?? row.summary ?? null,
+    author: row.author ?? row.publishedBy ?? null,
+  };
+}
 
 export const hubSearchResponseSchema = z.object({
   flows: z.array(hubFlowSummarySchema).max(5000),
@@ -49,17 +66,17 @@ export const hubSearchResponseSchema = z.object({
 export const hubPulledFlowSchema = z
   .object({
     ref: z.string().min(1).max(200),
-    name: z.string().max(120).optional(),
-    handle: z.string().max(120).optional(),
-    verified: z.boolean().optional(),
-    version: z.string().max(40).optional(),
+    name: z.string().max(120).nullish(),
+    handle: z.string().max(120).nullish(),
+    verified: z.boolean().nullish(),
+    version: z.string().max(40).nullish(),
     content: z.string().min(1).max(1024 * 1024),
     phases: z.unknown().optional(),
     sha256: z
       .string()
       .regex(/^[a-fA-F0-9]{64}$/)
-      .optional(),
-    sizeBytes: z.number().optional(),
+      .nullish(),
+    sizeBytes: z.number().nullish(),
     diagnosis: z.unknown().optional(),
   })
   .passthrough();
@@ -131,10 +148,13 @@ export async function searchHubFlows(input: {
       reason: `Hub search response failed validation: ${parsed.error.issues[0]?.message ?? "unknown"}`,
     };
   }
-  return { ok: true, value: parsed.data.flows };
+  return { ok: true, value: parsed.data.flows.map(normalizeSummaryRow) };
 }
 
-/** Pull a flow by ref. Verifies sha256(content) when the server provides it. */
+/** Pull a flow by ref. Verifies sha256(content) when the server provides it.
+ *  Honesty note: the sha256 arrives in the same response as the content, so
+ *  this is a transport-integrity check only - it is NOT protection against a
+ *  compromised hub. Surfaces must not present it as such. */
 export async function pullHubFlow(input: {
   ref: string;
   baseUrl?: string;

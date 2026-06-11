@@ -515,7 +515,7 @@ function HubView({
                   <Text color={i === index ? ACCENT : undefined}>
                     {e.label || e.name || e.ref}
                   </Text>
-                  {e.verified ? <Text color="green">{"  "}verified</Text> : null}
+                  {e.verified ? <Text color="green">{"  "}hub-curated</Text> : null}
                   <Text dimColor>
                     {e.version ? `  v${e.version}` : ""}
                     {diag ? `  ${diag}` : ""}
@@ -531,6 +531,9 @@ function HubView({
               <Text color={ACCENT}>Esc</Text> back
             </Text>
           </Box>
+          <Text dimColor>
+            a hub flow is executable configuration - review it before running
+          </Text>
         </Box>
       )}
     </Box>
