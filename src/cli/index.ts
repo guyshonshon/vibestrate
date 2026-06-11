@@ -110,11 +110,16 @@ export function buildVibestrateProgram(): Command {
     .option("-f, --force", "re-scaffold / overwrite existing config files to repair a broken project (runs are preserved)")
     .option("--yes", "non-interactive: use safe detected defaults, never wait for input")
     .option("--interactive", "force the flowd wizard even when --yes would default to non-interactive")
-    .action(async (opts: { force?: boolean; yes?: boolean; interactive?: boolean }) => {
+    .option(
+      "--git-init",
+      "if the directory isn't a git repo, create one (starter .gitignore; initial commit only when no secret-like files would be swept). Never implied by --yes.",
+    )
+    .action(async (opts: { force?: boolean; yes?: boolean; interactive?: boolean; gitInit?: boolean }) => {
       const code = await runInitCommand({
         force: opts.force,
         yes: opts.yes,
         interactive: opts.interactive,
+        gitInit: opts.gitInit,
       });
       process.exit(code);
     });

@@ -1491,8 +1491,17 @@ export const api = {
   }> {
     return jsonGet("/api/setup/status");
   },
-  async initProject(): Promise<{
+  async initProject(input?: { gitInit?: boolean }): Promise<{
     ok: true;
+    /** Set when gitInit was requested: what the guarded git-init did. */
+    git: {
+      ok: boolean;
+      initialized: boolean;
+      gitignoreWritten: boolean;
+      commitSha: string | null;
+      commitSkippedReason: string | null;
+      error: string | null;
+    } | null;
     created: string[];
     detections: {
       id: string;
@@ -1504,7 +1513,7 @@ export const api = {
     recommendedProvider: string | null;
     providerComplete: boolean;
   }> {
-    return jsonPost("/api/setup/init", {});
+    return jsonPost("/api/setup/init", input ?? {});
   },
   async getProjectTree(input?: {
     depth?: number;

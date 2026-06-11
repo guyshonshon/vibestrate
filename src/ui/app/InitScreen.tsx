@@ -31,11 +31,11 @@ export function InitScreen({
   const [result, setResult] = useState<InitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function initialize() {
+  async function initialize(gitInit = false) {
     setPhase("working");
     setError(null);
     try {
-      const r = await api.initProject();
+      const r = await api.initProject(gitInit ? { gitInit: true } : undefined);
       setResult(r);
       setPhase("done");
     } catch (err) {
@@ -58,8 +58,15 @@ export function InitScreen({
               onInitialize={() => void initialize()}
             />
           )
+        ) : phase === "done" && result ? (
+          <DoneCard result={result} projectName={status.projectName} onEntered={onEntered} />
         ) : (
-          <NeedsGitCard status={status} />
+          <NeedsGitCard
+            status={status}
+            working={phase === "working"}
+            error={error}
+            onGitInit={() => void initialize(true)}
+          />
         )}
       </div>
     </div>
@@ -213,7 +220,17 @@ function DoneCard({
   );
 }
 
-function NeedsGitCard({ status }: { status: Status }) {
+function NeedsGitCard({
+  status,
+  working,
+  error,
+  onGitInit,
+}: {
+  status: Status;
+  working: boolean;
+  error: string | null;
+  onGitInit: () => void;
+}) {
   return (
     <>
       <Heading>Add git first</Heading>
@@ -224,11 +241,23 @@ function NeedsGitCard({ status }: { status: Status }) {
       <div className="mt-8 rounded-md border border-white/10 bg-ink-100 px-4 py-4">
         <div className="mono truncate text-[12.5px] text-fog-300">{status.projectRoot}</div>
         <p className="mt-3 text-[13.5px] leading-relaxed text-fog-400">
-          Run this, then reload - setup continues automatically.
+          Vibestrate can create the repository for you: it writes a starter{" "}
+          <span className="mono text-fog-300">.gitignore</span> and makes an
+          initial commit only when no secret-like files (such as{" "}
+          <span className="mono text-fog-300">.env</span>) would be swept in -
+          otherwise it initializes without committing and tells you why.
         </p>
-        <div className="mono mt-3 rounded border border-white/10 bg-ink-200 px-3 py-2 text-[12.5px] text-fog-100">
-          git init
+        <div className="mt-4">
+          <VioletCta disabled={working} onClick={onGitInit}>
+            {working ? "Initializing repository" : "Initialize git + set up project"}
+            {!working ? <ArrowRight size={16} /> : null}
+          </VioletCta>
         </div>
+        {error ? (
+          <p className="mt-4 rounded-md border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+            {error}
+          </p>
+        ) : null}
       </div>
     </>
   );
