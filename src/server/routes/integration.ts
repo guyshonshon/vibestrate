@@ -85,6 +85,17 @@ export async function registerIntegrationRoutes(
     confirm: z.literal("merge-to-main"),
   });
   app.post<{ Body: unknown }>("/api/integration/finish", async (req) => {
+    // Fail-closed surface gate (adversarial-review fix): on a tokenless bind
+    // any local process can POST here, and the broker has no seeded git.merge
+    // policy - so the HTTP surface itself refuses unless the API is
+    // token-gated. The CLI (a real human terminal with typed confirmation)
+    // is the default path.
+    if (!process.env.VIBESTRATE_API_TOKEN) {
+      throw new HttpError(
+        403,
+        "Merge-to-main from the dashboard requires VIBESTRATE_API_TOKEN to be set (a tokenless local API is reachable by any local process). Use `vibe integrate finish <branch>` instead, or set a token and restart vibe ui.",
+      );
+    }
     const parsed = finishBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.44
+
+- **Guided merge-to-main: the last step of integration, with a human at the
+  wheel.** `vibe integrate finish <branch>` (typed `merge-to-main`
+  confirmation) merges a complete, clean integration branch into main -
+  locally, never pushed. It refuses partial integrations (apply stopped at a
+  conflict), a branch whose tip changed since you reviewed it (recorded at
+  apply time), dirty trees, conflicts (aborted cleanly), and it never moves
+  your HEAD (you must already be on main). The merge crosses the Action
+  Broker as a new `git.merge` effect kind - policies can deny or demand
+  approval, and every attempt (including refused ones) is evidence-logged.
+  The dashboard button is fail-closed: it requires `VIBESTRATE_API_TOKEN`,
+  because a tokenless local API is reachable by any local process.
+  Adversarially reviewed pre-merge; the no-automated-caller rule is a tested
+  invariant. Auto-merge and auto-push remain impossible.
+
 ## 0.7.43
 
 - **Vibestrate can now create the git repository it needs - carefully.** In a
