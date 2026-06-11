@@ -6,6 +6,7 @@ import { listConfiguredProviders } from "../../setup/provider-setup-service.js";
 import { runDoctor } from "../../setup/doctor-service.js";
 import { applySetup } from "../../setup/setup-service.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
+import { HttpError } from "../security.js";
 import {
   PROVIDER_CATALOG,
   providerCapabilities,
@@ -112,10 +113,19 @@ export async function registerSetupRoutes(
   // `.vibestrate/`, detect providers, write the default config. Returns a summary
   // the onboarding screen renders. Idempotent-ish: re-running without force won't
   // clobber an existing config (init skips what's present).
-  app.post("/api/setup/init", async () => {
+  app.post<{ Body: { gitInit?: boolean } | null }>("/api/setup/init", async (req) => {
+    // P7a: create a git repo ONLY on the explicit flag - never inferred from
+    // the init request itself (creating repo history is never a side effect).
+    let git: import("../../git/git-init.js").GitInitResult | null = null;
+    if (req.body?.gitInit === true) {
+      const { initGitRepository } = await import("../../git/git-init.js");
+      git = await initGitRepository({ projectRoot });
+      if (!git.ok) throw new HttpError(409, git.error ?? "git init failed");
+    }
     const { plan, init } = await applySetup({ options: { projectRoot } });
     return {
       ok: true,
+      git,
       created: init.created,
       detections: plan.detections.map((d) => ({
         id: d.id,

@@ -12,20 +12,48 @@ export type InitCommandOptions = {
   force?: boolean;
   yes?: boolean;
   interactive?: boolean;
+  /** Explicit consent to create a git repo when none exists (P7a). A generic
+   *  --yes never implies this - creating repo history is never a side effect. */
+  gitInit?: boolean;
 };
 
 export async function runInitCommand(opts: InitCommandOptions): Promise<number> {
   const cwd = process.cwd();
-  const detected = await detectProject(cwd);
+  let detected = await detectProject(cwd);
 
   if (!detected.isGitRepo) {
-    console.error(
-      `${symbol.fail()} ${cwd} is not inside a git repository.`,
+    // Offer to initialize one - explicit consent only (interactive confirm or
+    // --git-init; never via --yes). Default answer: No.
+    let consent = opts.gitInit === true;
+    if (!consent && isInteractiveTTY() && !opts.yes) {
+      const { confirm } = await import("@inquirer/prompts");
+      consent = await confirm({
+        message: `${cwd} is not a git repository. Initialize one now? (writes a starter .gitignore; commits only if no secret-like files would be swept)`,
+        default: false,
+      });
+    }
+    if (!consent) {
+      console.error(`${symbol.fail()} ${cwd} is not inside a git repository.`);
+      console.error(
+        `  ${symbol.arrow()} Run ${color.bold("git init")} (or re-run with ${color.bold("--git-init")}), then ${color.bold("vibe init")}.`,
+      );
+      return 1;
+    }
+    const { initGitRepository } = await import("../../git/git-init.js");
+    const git = await initGitRepository({ projectRoot: cwd });
+    if (!git.ok) {
+      console.error(`${symbol.fail()} ${git.error}`);
+      return 1;
+    }
+    console.log(
+      `${symbol.ok()} Initialized a git repository${git.gitignoreWritten ? " + starter .gitignore" : ""}.`,
     );
-    console.error(
-      `  ${symbol.arrow()} Run ${color.bold("git init")} in your project, then re-run ${color.bold("vibe init")}.`,
-    );
-    return 1;
+    if (git.commitSha) {
+      console.log(indent(`Initial commit: ${git.commitSha.slice(0, 10)}`));
+    } else if (git.commitSkippedReason) {
+      console.log(indent(`No initial commit: ${git.commitSkippedReason}`));
+    }
+    detected = await detectProject(cwd);
   }
 
   const useInteractive =
