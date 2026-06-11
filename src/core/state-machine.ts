@@ -111,6 +111,18 @@ export const runStateSchema = z.object({
   startedAt: z.string(),
   updatedAt: z.string(),
   finalDecision: reviewDecisionSchema.nullable().default(null),
+  // A3 express: set ONLY by the deterministic inert-diff evaluator when a
+  // `skipWhen: "inert_diff"` review-turn was skipped on recorded diff evidence
+  // (strict-prose, unprotected files). Feeds assurance `review:
+  // skipped_inert_diff` + the merge-readiness predicate. Null everywhere else.
+  reviewSkipped: z
+    .object({
+      reason: z.literal("inert_diff"),
+      stepId: z.string().min(1),
+      files: z.array(z.string()).max(500),
+    })
+    .nullable()
+    .default(null),
   verification: verificationDecisionSchema.nullable().default(null),
   error: z.string().nullable().default(null),
   pendingApprovalId: z.string().nullable().default(null),
@@ -391,6 +403,7 @@ export function createInitialState(input: {
     startedAt: ts,
     updatedAt: ts,
     finalDecision: null,
+    reviewSkipped: null,
     verification: null,
     error: null,
     pendingApprovalId: null,

@@ -111,6 +111,14 @@ import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
 import { protectedPathMatch } from "../orchestrator/protected-paths.js";
+import {
+  evaluateReviewDescent,
+  type ReviewDescentDecision,
+} from "./review-descent.js";
+import {
+  computeMergeReady,
+  type ReviewSkipEvidence,
+} from "./merge-readiness.js";
 import { ApprovalService } from "./approval-service.js";
 import {
   detectApprovalRequest,
@@ -2328,6 +2336,11 @@ export class Orchestrator {
     // the post-loop comparisons. The `as` keeps the full union type.
     let lastValidation = null as ValidationResults | null;
     let reviewDecision = "BLOCKED" as ReviewDecision;
+    // A3 express: skip evidence is set ONLY by the deterministic inert-diff
+    // evaluator; reviewTurnRan is true once ANY review-turn executed (a review
+    // that ran always beats evidence). Widened (`as`) - assigned in runStep.
+    let reviewSkipEvidence = null as ReviewSkipEvidence | null;
+    let reviewTurnRan = false as boolean;
     let verificationDecision = "NEEDS_HUMAN" as VerificationDecision;
     // Non-blocking "a human should look at this" advisory (Phase 3). Set if a
     // reviewer/verifier emits HUMAN_REVIEW: ADVISORY; surfaced at finalize.
@@ -2861,6 +2874,51 @@ export class Orchestrator {
             return;
           }
 
+          // A3 (express): deterministic review descent. A review-turn marked
+          // `skipWhen: "inert_diff"` is skipped ONLY on recorded diff evidence -
+          // every changed file strict-prose AND unprotected (review-descent.ts).
+          // Model judgment and task text play no part. Read-only runs always
+          // review (their diff is empty, so "evidence" there would be vacuous).
+          // Any uncertainty (no worktree, diff error) -> the review runs.
+          if (
+            step.kind === "review-turn" &&
+            step.skipWhen === "inert_diff" &&
+            !this.readOnly
+          ) {
+            const descent = await this.evaluateReviewDescentForWorktree(
+              input.worktreePath,
+            );
+            if (descent?.skip) {
+              reviewSkipEvidence = { stepId: step.id, files: descent.files };
+              state = this.patchFlowStep(
+                state,
+                step.id,
+                { status: "skipped", endedAt: nowIso() },
+                step.id,
+              );
+              state = {
+                ...state,
+                reviewSkipped: {
+                  reason: "inert_diff",
+                  stepId: step.id,
+                  files: descent.files,
+                },
+              };
+              await input.stateStore.write(state);
+              await input.eventLog.append({
+                type: "flow.step.skipped",
+                message: `Flow review ${step.id} skipped on diff evidence: ${descent.files.length} strict-prose, unprotected file(s) changed.`,
+                data: {
+                  flowId: input.snapshot.flowId,
+                  stepId: step.id,
+                  reason: "inert_diff",
+                  files: descent.files,
+                },
+              });
+              return;
+            }
+          }
+
           state = await applyPauseIfRequested({
             state,
             store: input.stateStore,
@@ -3088,6 +3146,9 @@ export class Orchestrator {
           if (!turn.ok) {
             throw new Error(`Flow step "${step.id}" failed: ${turn.reason}.`);
           }
+          // Any executed review-turn invalidates skip evidence at finalize -
+          // a review that ran always wins over the deterministic descent.
+          if (step.kind === "review-turn") reviewTurnRan = true;
           await this.registerFlowRoleOutputs({
             step,
             result,
@@ -3321,11 +3382,21 @@ export class Orchestrator {
       // report - null keeps the report/events honest ("skipped") rather than
       // leaking the NEEDS_HUMAN default as if a verifier had run.
       const finalVerification = this.readOnly || !verified ? null : verificationDecision;
-      const mergeReady = this.readOnly
-        ? reviewDecision === "APPROVED"
-        : reviewDecision === "APPROVED" &&
-          validationPassed &&
-          (!verified || verificationDecision === "PASSED");
+      // Extracted predicate (merge-readiness.ts) so the express skip semantics
+      // are a tested invariant: skip evidence satisfies review ONLY when no
+      // review turn ran; it never substitutes for validation/verification.
+      const mergeReadinessInput = {
+        readOnly: this.readOnly,
+        reviewDecision,
+        reviewTurnRan,
+        reviewSkipEvidence,
+        validationPassed,
+        verified,
+        verificationDecision,
+      };
+      const reviewSatisfiedByEvidence =
+        !reviewTurnRan && reviewSkipEvidence !== null && !this.readOnly;
+      const mergeReady = computeMergeReady(mergeReadinessInput);
       // ── Action Broker boundary (S0): run.complete ─────────────────────
       // The run's terminal verdict crosses the broker. A non-allow decision
       // cannot reach merge_ready - it downgrades to blocked (fail-closed). The
@@ -3335,7 +3406,11 @@ export class Orchestrator {
         kind: "run.complete",
         subject: {
           status: mergeReady ? "merge_ready" : "blocked",
-          decision: reviewDecision,
+          // A skip-evidence run reports its decision honestly as null (no
+          // reviewer spoke) - the skip evidence rides alongside, never as a
+          // fake APPROVED.
+          decision: reviewSatisfiedByEvidence ? null : reviewDecision,
+          reviewSkipped: reviewSatisfiedByEvidence,
           verification: finalVerification,
           validationPassed,
         },
@@ -3363,7 +3438,9 @@ export class Orchestrator {
       }
       state = {
         ...state,
-        finalDecision: reviewDecision,
+        // No reviewer spoke on a skip-evidence run - finalDecision stays null
+        // (assurance reports `skipped_inert_diff` from state.reviewSkipped).
+        finalDecision: reviewSatisfiedByEvidence ? null : reviewDecision,
         verification: finalVerification,
         needsTesting: needsTestingAdvisory,
       };
@@ -3391,7 +3468,8 @@ export class Orchestrator {
         message: `Flow run ${input.runId} ${state.status}.`,
         data: {
           flowId: input.snapshot.flowId,
-          decision: reviewDecision,
+          decision: reviewSatisfiedByEvidence ? null : reviewDecision,
+          reviewSkipped: reviewSatisfiedByEvidence,
           verification: finalVerification,
           validationPassed,
         },
@@ -4712,6 +4790,24 @@ export class Orchestrator {
       promptArtifactPath: ctx.artifactStore.relPath(promptArtifactPathAbs),
       providerResult,
     };
+  }
+
+  /** A3 express: evaluate the deterministic review descent against the run's
+   *  actual diff. Null on any uncertainty (no worktree, diff error) - the
+   *  caller then runs the review (fail toward more checking). */
+  private async evaluateReviewDescentForWorktree(
+    worktreePath: string | null | undefined,
+  ): Promise<ReviewDescentDecision | null> {
+    if (!worktreePath) return null;
+    try {
+      const snap = await getDiffSnapshot({ worktreePath });
+      return evaluateReviewDescent(
+        snap.files.map((f) => f.path),
+        this.config.policies,
+      );
+    } catch {
+      return null;
+    }
   }
 
   private async runValidation(input: {

@@ -163,6 +163,15 @@ export const flowStepSchema = z
     stage: flowStageSchema.optional(),
     approval: flowApprovalGateSchema.optional(),
     repeat: flowStepRepeatSchema.optional(),
+    // A3 express (proportional-orchestration.md / run-experience batch P4b):
+    // deterministic review descent. A review-turn marked `skipWhen:
+    // "inert_diff"` is skipped at runtime ONLY when the run's ACTUAL diff is
+    // strict-prose (.md/.markdown/.txt/.rst) AND touches no protected path
+    // (orchestrator/protected-paths.ts) - recorded evidence, never model
+    // judgment or task text. Restricted by validation below: review-turn only,
+    // linear flows only, never inside an adaptive loop body (the loop's
+    // decision contract needs a real decision).
+    skipWhen: z.enum(["inert_diff"]).optional(),
   })
   .strict();
 export type FlowStep = z.infer<typeof flowStepSchema>;
@@ -290,6 +299,35 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           path: ["steps", index, "continueOnError"],
           message: `Flow step "${step.id}" uses continueOnError, which is only supported in graph flows (declare step \`needs\`).`,
         });
+      }
+      // skipWhen (A3 express): review-turn only, linear flows only, and never
+      // inside the adaptive loop body - a skipped decision step would leave the
+      // loop's exit contract undefined.
+      if (step.skipWhen && step.kind !== "review-turn") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "skipWhen"],
+          message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn steps only).`,
+        });
+      }
+      if (step.skipWhen && flow.steps.some((s) => s.needs.length > 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "skipWhen"],
+          message: `Flow step "${step.id}" uses skipWhen, which is only supported in linear flows (no \`needs\`).`,
+        });
+      }
+      if (step.skipWhen && flow.loop) {
+        const idxOf = (id: string) => flow.steps.findIndex((s) => s.id === id);
+        const from = idxOf(flow.loop.from);
+        const to = idxOf(flow.loop.to);
+        if (from >= 0 && to >= from && index >= from && index <= to) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["steps", index, "skipWhen"],
+            message: `Flow step "${step.id}" can't use skipWhen inside the adaptive loop body.`,
+          });
+        }
       }
       // retries mirrors continueOnError: graph scheduler + turn kinds only.
       if (step.retries > 0 && !TURN_STEP_KINDS.has(step.kind)) {
@@ -635,6 +673,8 @@ export const resolvedFlowStepSchema = z
     enabled: z.boolean(),
     optional: z.boolean(),
     skipWhenReadOnly: z.boolean(),
+    // A3 express deterministic review descent (see flowStepSchema.skipWhen).
+    skipWhen: z.enum(["inert_diff"]).nullable().default(null),
     // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the
     // graph scheduler (mark failed + continue) instead of aborting the run.
     continueOnError: z.boolean().default(false),

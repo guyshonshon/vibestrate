@@ -807,6 +807,71 @@ export const pickupAnalysisFlow = flowDefinitionSchema.parse({
   },
 });
 
+// The built-in **express flow** (A3, proportional-orchestration.md / batch
+// P4b): one implementer turn with a diff-floored safety net. Validation is
+// change-scoped (B3) and the review step is `skipWhen: "inert_diff"` - it runs
+// UNLESS the run's actual diff is strict-prose (.md/.markdown/.txt/.rst) and
+// touches no protected path (A2). The skip is recorded evidence; assurance
+// then reports `review: skipped_inert_diff` and caps at partially_verified.
+// A gate-free "solo" variant was explicitly rejected (adversarial review):
+// the back gate must be decided by the diff, never by task text.
+export const expressFlow = flowDefinitionSchema.parse({
+  id: "express",
+  version: 1,
+  label: "Express",
+  description:
+    "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review runs only when the diff demands it - any non-prose or protected file gets a real review turn.",
+  seats: {
+    implementer: {
+      label: "Implementer",
+      description: "Implements the task directly (no separate plan/architect).",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description:
+        "Reviews the diff when the deterministic descent requires it.",
+    },
+  },
+  steps: [
+    {
+      id: "implement",
+      label: "Implement",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      inputs: ["task-brief"],
+      outputs: ["execution", "diff"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+      skipWhenReadOnly: true,
+    },
+    {
+      id: "review",
+      label: "Review (diff-floored)",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "execution", "validation"],
+      outputs: ["findings", "review-decision"],
+      skipWhen: "inert_diff",
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: ["docs", "chore", "tweak", "bugfix"],
+    strengths: ["speed", "small-changes"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   qualityArbitrationFlow,
@@ -814,6 +879,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   reviewPanelFlow,
   pickupAnalysisFlow,
   securityReviewFlow,
+  expressFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

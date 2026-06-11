@@ -46,7 +46,9 @@ export type RunAssurance = {
     passed: number;
     failed: number;
   };
-  review: { status: "approved" | "changes_requested" | "missing" };
+  review: {
+    status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";
+  };
   verification: { status: "passed" | "failed" | "not_run" };
   /** Coverage gaps from best-effort (continueOnError) steps that failed and were
    *  tolerated - those steps gave no scrutiny, so coverage is degraded even on a
@@ -71,6 +73,9 @@ export function deriveRunAssurance(input: {
   runId: string;
   runStatus: string;
   finalDecision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null;
+  /** A3 express: the review-turn was skipped on recorded inert-diff evidence
+   *  (state.reviewSkipped). Only meaningful when finalDecision is null. */
+  reviewSkipped?: boolean;
   verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null;
   actionLog: ActionRecord[];
   /** Best-effort (continueOnError) steps that failed and were tolerated. On a
@@ -132,11 +137,16 @@ export function deriveRunAssurance(input: {
     cmds.length === 0 ? "missing" : cmdFailed > 0 ? "failed" : "passed";
 
   // ── Review + verification (from the run's recorded decisions) ────────────
+  // A skip-evidence run (A3 express, deterministic inert-diff descent) reports
+  // `skipped_inert_diff` - distinct from `missing` (the skip is recorded
+  // evidence, not absence) and never `approved` (no reviewer spoke).
   const reviewStatus: RunAssurance["review"]["status"] =
     input.finalDecision === "APPROVED"
       ? "approved"
       : input.finalDecision === null
-        ? "missing"
+        ? input.reviewSkipped
+          ? "skipped_inert_diff"
+          : "missing"
         : "changes_requested";
   const verificationStatus: RunAssurance["verification"]["status"] =
     input.verification === "PASSED"
@@ -150,6 +160,7 @@ export function deriveRunAssurance(input: {
   if (validationStatus === "missing") caps.push("validation_missing");
   if (validationStatus === "failed") caps.push("validation_failed");
   if (reviewStatus === "missing") caps.push("review_missing");
+  if (reviewStatus === "skipped_inert_diff") caps.push("review_skipped_inert_diff");
   if (reviewStatus === "changes_requested") caps.push("review_not_approved");
   if (verificationStatus === "not_run") caps.push("verification_not_run");
   if (verificationStatus === "failed") caps.push("verification_failed");
@@ -268,6 +279,7 @@ export async function buildAndWriteRunAssurance(
   let verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null = null;
   let decision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null = null;
   let toleratedStepFailures = 0;
+  let reviewSkipped = false;
   const statePath = runStatePath(projectRoot, runId);
   if (await pathExists(statePath)) {
     try {
@@ -275,6 +287,7 @@ export async function buildAndWriteRunAssurance(
       runStatus = state.status;
       decision = state.finalDecision;
       verification = state.verification;
+      reviewSkipped = state.reviewSkipped !== null;
       // On a merge_ready run, a `failed` flow step is a tolerated failure (a
       // fatal one would have aborted the run before merge_ready). Count them so
       // the verdict reflects the degraded coverage honestly.
@@ -327,6 +340,7 @@ export async function buildAndWriteRunAssurance(
     runId,
     runStatus,
     finalDecision: decision,
+    reviewSkipped,
     verification,
     actionLog,
     toleratedStepFailures,
