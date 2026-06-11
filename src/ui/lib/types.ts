@@ -233,6 +233,9 @@ export type ResolvedFlowStep = {
   outputs: string[];
   /** DAG dependencies (Slice 4); empty for linear flows. */
   needs?: string[];
+  /** A3 express deterministic review descent (P4b). NOTE: this type is a
+   *  hand-maintained mirror of resolvedFlowStepSchema - keep them tracking. */
+  skipWhen?: "inert_diff" | null;
   /** Step-specific prompt instruction (e.g. a reviewer's lens), or null. */
   instructions?: string | null;
   approval: FlowApprovalGate | null;

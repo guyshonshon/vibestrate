@@ -1114,6 +1114,88 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "express",
+      "version": 1,
+      "label": "Express",
+      "description": "One implementer turn for small, low-risk tasks. Validation is scoped to the actual change, and review runs only when the diff demands it - any non-prose or protected file gets a real review turn.",
+      "seats": [
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Implements the task directly (no separate plan/architect)."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Reviews the diff when the deterministic descent requires it."
+        }
+      ],
+      "steps": [
+        {
+          "id": "implement",
+          "label": "Implement",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "seat": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": true,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "review",
+          "label": "Review (diff-floored)",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "execution",
+            "validation"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }
