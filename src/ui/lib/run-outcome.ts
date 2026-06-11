@@ -79,6 +79,15 @@ export function describeRunOutcome(run: RunState): RunOutcome | null {
       actions: ["review", "rerun"],
     };
   }
+  if (run.finalDecision === "CHANGES_REQUESTED") {
+    return {
+      kind: "blocked",
+      title: "Blocked - reviewer requested changes",
+      reason:
+        "The reviewer asked for changes and the fix loop didn't resolve them. Read the findings, then re-run with fixes (reuses this run's plan + architecture).",
+      actions: ["review", "rerun"],
+    };
+  }
   if (run.verification === "FAILED" || run.verification === "NEEDS_HUMAN") {
     return {
       kind: "blocked",

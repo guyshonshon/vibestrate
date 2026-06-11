@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.35
+
+- **A run blocked by review is now actionable from the page it blocks on.** The
+  run-assurance panel and the outcome banner gained **See review** - the
+  reviewer's verdict and findings, parsed from the review artifact (structured
+  findings block when present, full reviewer output otherwise) - and **Re-run
+  with fixes**, which opens the re-run dialog pre-set to reuse the run's plan +
+  architecture and re-implement. A `CHANGES_REQUESTED` verdict also gets its own
+  honest outcome banner (it previously fell through to a generic "Run blocked").
+  The shell run view shows the parsed finding headlines under its `review` line.
+  One shared, dependency-free parser (`flows/runtime/review-findings.ts`) feeds
+  web + shell and is the same source the runtime's decision-line enforcement
+  imports - display and enforcement can't drift. First slice (P1) of
+  `docs/design/run-experience-and-usability-batch.md`.
+
 ## 0.7.34
 
 - **Unattended runs no longer hang forever at an approval gate.** A run launched

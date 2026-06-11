@@ -321,8 +321,20 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
             <Text>
               <Text dimColor>review </Text>
               <Text>{row.finalDecision}</Text>
+              {row.reviewSummary && row.reviewSummary.findingCount > 0 ? (
+                <Text dimColor>
+                  {"   "}{row.reviewSummary.findingCount} finding
+                  {row.reviewSummary.findingCount === 1 ? "" : "s"}
+                </Text>
+              ) : null}
             </Text>
           ) : null}
+          {row.reviewSummary?.headlines.map((h, i) => (
+            <Text key={i}>
+              <Text dimColor>{"       · "}</Text>
+              <Text color="yellow">{clip(h, 90)}</Text>
+            </Text>
+          ))}
           {row.verification ? (
             <Text>
               <Text dimColor>verify </Text>

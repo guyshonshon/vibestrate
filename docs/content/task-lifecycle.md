@@ -45,7 +45,7 @@ If a stage is listed under `policies.requireApprovalAtStages`, the orchestrator 
 Four statuses are terminal - once reached, the run cannot transition out:
 
 - **`merge_ready`** - Verifier passed. The diff is ready to ship.
-- **`blocked`** - Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`.
+- **`blocked`** - Reviewer or verifier said the run should not continue. Read `review.md` and `verification.md`. On the dashboard, a run blocked by review offers **See review** (the reviewer's decision + findings, parsed from the review artifact) and **Re-run with fixes** (forks a new run that reuses this run's plan + architecture and re-implements); the shell run view lists the finding headlines under the `review` line.
 - **`failed`** - Unrecoverable error during a stage. Read `events.jsonl` and the provider stream log.
 - **`aborted`** - User explicitly aborted. Worktree is preserved.
 

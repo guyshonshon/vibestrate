@@ -59,6 +59,15 @@ describe("describeRunOutcome", () => {
     expect(o?.actions).toContain("review");
   });
 
+  it("explains CHANGES_REQUESTED and offers the review first (P1)", () => {
+    const o = describeRunOutcome(
+      mk({ status: "blocked", finalDecision: "CHANGES_REQUESTED" }),
+    );
+    expect(o?.title).toMatch(/requested changes/i);
+    expect(o?.actions[0]).toBe("review");
+    expect(o?.actions).toContain("rerun");
+  });
+
   it("explains a failed run with its error and a generic blocked fallback", () => {
     const failed = describeRunOutcome(
       mk({ status: "failed", error: "worktree prep exploded" }),
