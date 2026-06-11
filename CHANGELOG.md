@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.38
+
+- **The `express` flow: one implementer turn, honestly guarded.** For small,
+  low-risk tasks (`vibe run --flow express`): a single implementer turn,
+  change-scoped validation (0.7.33), and a review step that is decided by the
+  **actual diff** - if every changed file is strict prose (`.md`/`.txt`/`.rst`)
+  and touches no protected path, the review is skipped on recorded evidence;
+  one code file, protected path, or any uncertainty and a real review turn
+  runs. A skipped review is never laundered: the run's assurance reports
+  `review: skipped_inert_diff`, caps at `partially_verified`, and the
+  merge-readiness rule is a tested invariant (a review that ran and objected
+  always wins; evidence never substitutes for validation or verification).
+  Adversarially reviewed before merge; a gate-free "solo" variant was
+  rejected outright. The A3 slice of
+  `docs/design/proportional-orchestration.md`.
+
 ## 0.7.37
 
 - **Protected paths: a deterministic floor under every "do less checking"

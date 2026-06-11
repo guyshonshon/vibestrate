@@ -317,6 +317,17 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           message: `Flow step "${step.id}" uses skipWhen, which is only supported in linear flows (no \`needs\`).`,
         });
       }
+      // Checklist flows commit per item, so at a band review the diff is only
+      // the CURRENT item's slice - skip evidence there would silently narrow to
+      // a per-item view of the change (adversarial-review finding). Forbid the
+      // combination outright; the whole-run descent is a linear-flow concept.
+      if (step.skipWhen && flow.checklistSegment) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "skipWhen"],
+          message: `Flow step "${step.id}" can't use skipWhen in a checklist flow (per-item commits make the diff a per-item slice).`,
+        });
+      }
       if (step.skipWhen && flow.loop) {
         const idxOf = (id: string) => flow.steps.findIndex((s) => s.id === id);
         const from = idxOf(flow.loop.from);

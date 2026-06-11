@@ -223,6 +223,24 @@ describe("skipWhen schema validation", () => {
     expect(r.success).toBe(false);
   });
 
+  it("rejects skipWhen in a checklist flow (per-item commits narrow the diff)", () => {
+    const r = flowDefinitionSchema.safeParse({
+      ...okBase,
+      steps: [
+        { id: "impl", label: "I", kind: "agent-turn", seat: "implementer" },
+        {
+          id: "review",
+          label: "R",
+          kind: "review-turn",
+          seat: "reviewer",
+          skipWhen: "inert_diff",
+        },
+      ],
+      checklistSegment: { from: "impl", to: "review" },
+    });
+    expect(r.success).toBe(false);
+  });
+
   it("rejects skipWhen in a graph flow", () => {
     const r = flowDefinitionSchema.safeParse({
       ...okBase,
