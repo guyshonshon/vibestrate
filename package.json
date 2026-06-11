@@ -1,7 +1,7 @@
 {
   "name": "vibestrate",
   "version": "0.7.34",
-  "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator for software tasks. Runs your existing local agent CLIs through a controlled plan → architect → implement → validate → review → fix → verify loop in isolated git worktrees.",
+  "description": "Vibestrate is an open-source AI CTO for supervised coding flows: swap Claude Code, Codex, Gemini, or local models across shared crews with approval gates and local run logs.",
   "license": "Apache-2.0",
   "author": "Guy Shonshon (https://shonshon.com)",
   "homepage": "https://vibestrate.com",
@@ -88,14 +88,18 @@
     "vitest": "^4.1.8"
   },
   "keywords": [
-    "agent",
-    "orchestrator",
+    "ai-cto",
+    "supervised-ai",
+    "model-independence",
+    "agent-orchestration",
+    "shared-flows",
     "claude-code",
     "codex",
+    "gemini",
     "aider",
     "opencode",
     "multi-agent",
-    "autonomous",
+    "orchestrator",
     "git-worktree",
     "local-first"
   ],
