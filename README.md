@@ -10,13 +10,13 @@
 
 <br />
 
-<sub><b>a local-first supervisor for the coding agents already on your machine</b></sub>
+<sub><b>your AI CTO for swappable coding crews and shared flows</b></sub>
 
 <br />
 
 One chat with one model is great for sketches.
-Real work - refactors, migrations, whole features - wants a *supervised* crew.
-Vibestrate runs the coding-agent CLIs you already have through a visible **plan → build → review → verify** loop, in an isolated git worktree, **entirely on your machine.** It finds those CLIs for you, wires them up in one command, and never asks for a key.
+Real work - refactors, migrations, whole features - wants a supervised flow you can stay inside.
+Vibestrate gives AI coding an open-source CTO layer: choose or share a flow, fill the crew with Claude Code, Codex, Gemini, Aider, OpenCode, or local models, approve the risky gates yourself, and keep the run ledger on your machine. If one model becomes unavailable, unreliable, or overpriced, swap the crew without changing the flow.
 
 <br />
 
