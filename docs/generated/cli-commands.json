@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.42",
+  "version": "0.7.43",
   "commands": [
     {
       "name": "init",
@@ -31,6 +31,13 @@
         {
           "flags": "--interactive",
           "description": "force the flowd wizard even when --yes would default to non-interactive",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--git-init",
+          "description": "if the directory isn't a git repo, create one (starter .gitignore; initial commit only when no secret-like files would be swept). Never implied by --yes.",
           "required": false,
           "optional": false,
           "negated": false
