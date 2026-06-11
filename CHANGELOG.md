@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.36
+
+- **The Flows Hub is live - search and install community flows from the real
+  API.** The long-stranded hub branch landed: `vibe flows hub list|install`,
+  the shell's hub browser (`h` on the Flows page), and `GET/POST
+  /api/flows/hub*` now talk to `vibestrate.com/api/hub` (search with
+  q/tag/author, ref-based pull, checksum-checked install through the existing
+  validated + secret-guarded import writer). The client was aligned to the
+  live contract and smoke-tested against production (opt-in
+  `VIBESTRATE_HUB_LIVE=1` suite). Honesty rules baked in: curated flows show
+  as "hub-curated" (a curation claim, not an integrity guarantee), the
+  checksum is labeled transport-integrity only, and install reminds you a hub
+  flow is executable configuration. The old static-index hub client is gone.
+- **Seat coverage everywhere.** `vibe flows show` and the shell Flow page now
+  show per-seat coverage against your crew (filled / gap / ambiguous, with
+  the resolving role), powered by a shared `computeFlowSeatCoverage` helper -
+  so "can my crew run this flow?" is answered before you launch.
+
 ## 0.7.35
 
 - **A run blocked by review is now actionable from the page it blocks on.** The
