@@ -1,6 +1,6 @@
 {
   "generator": "scripts/generate-docs-metadata.ts",
   "schemaVersion": 1,
-  "sourceRev": "1fe87ec9420c42589af60051311e556575a5be2e",
-  "vibestrateVersion": "0.7.36"
+  "sourceRev": "95371cf7220f9321aa5017bf04eb5fdca9cdeb91",
+  "vibestrateVersion": "0.7.37"
 }

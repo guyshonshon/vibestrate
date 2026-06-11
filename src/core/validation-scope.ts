@@ -62,6 +62,16 @@ export type ValidationScopeDecision = {
   allInert: boolean;
 };
 
+export type ValidationScopeOptions = {
+  /**
+   * A2 floor (protected-paths.ts): when provided, a path this returns true for
+   * is NEVER inert, whatever its extension - a protected `.md` (e.g. under
+   * `.github/workflows/` or a user-protected dir) still validates. Optional so
+   * the classifier stays pure and the caller owns the config.
+   */
+  isProtected?: (path: string) => boolean;
+};
+
 /** Lowercased extension (including the dot) of a path's basename, or null when
  *  the basename has no real extension (no dot, or a leading-dot dotfile like
  *  `.gitignore`). A null extension is treated as non-inert (fail-safe). */
@@ -84,11 +94,12 @@ export function isInertPath(filePath: string): boolean {
  */
 export function classifyChangedFilesForValidation(
   paths: readonly string[],
+  opts?: ValidationScopeOptions,
 ): ValidationScopeDecision {
   const inert: string[] = [];
   const nonInert: string[] = [];
   for (const p of paths) {
-    if (isInertPath(p)) inert.push(p);
+    if (isInertPath(p) && !opts?.isProtected?.(p)) inert.push(p);
     else nonInert.push(p);
   }
   return {

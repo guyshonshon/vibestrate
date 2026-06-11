@@ -162,6 +162,16 @@ export const policiesConfigSchema = z.object({
   // no human is watching. Default 0 = block promptly (after one poll); set higher
   // (ms) to give a delayed watcher a window. Applies only when a run is unattended.
   unattendedApprovalTimeoutMs: z.number().int().nonnegative().default(0),
+  // A2 - protected paths (proportional-orchestration.md). Globs whose changed
+  // files always demand the full check descent: never inert for validation
+  // scoping, and (future slices) always reviewed. ADDITIVE: these extend the
+  // built-in set in orchestrator/protected-paths.ts; they cannot remove it.
+  protectedPaths: z.array(z.string().min(1).max(300)).max(200).default([]),
+  // Explicit opt-out from the BUILT-IN protected set only (e.g. a repo whose
+  // "auth/" directory is sample fixtures). User-added protectedPaths are not
+  // affected - remove the entry instead. Fail-safe stays the default: an empty
+  // list opts out of nothing.
+  unprotectedPaths: z.array(z.string().min(1).max(300)).max(200).default([]),
 });
 
 // Daily spend governance. When `spendCapDailyUsd` is set, the orchestrator

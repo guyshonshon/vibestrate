@@ -315,6 +315,13 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
           ? config.policies.requireApprovalAtStages.join(", ")
           : "(none)",
       },
+      {
+        label: "protected paths",
+        value: config.policies.protectedPaths.length
+          ? `built-ins + ${config.policies.protectedPaths.length} project glob(s)`
+          : "built-ins (auth/payments/migrations/CI/lockfiles/.vibestrate)",
+        hint: "policies.protectedPaths (additive); opt out of built-ins via policies.unprotectedPaths",
+      },
     ],
   });
 

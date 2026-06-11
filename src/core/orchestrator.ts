@@ -110,6 +110,7 @@ import { makeEmptyMetrics, type RoleMetrics } from "./runtime-metrics.js";
 import { extractTurnInternals } from "./turn-internals.js";
 import { getDiffSnapshot } from "./diff-service.js";
 import { classifyChangedFilesForValidation } from "./validation-scope.js";
+import { protectedPathMatch } from "../orchestrator/protected-paths.js";
 import { ApprovalService } from "./approval-service.js";
 import {
   detectApprovalRequest,
@@ -4743,7 +4744,16 @@ export class Orchestrator {
       let decision: ReturnType<typeof classifyChangedFilesForValidation> | null = null;
       try {
         const snap = await getDiffSnapshot({ worktreePath: ctx.worktreePath });
-        decision = classifyChangedFilesForValidation(snap.files.map((f) => f.path));
+        // A2 floor: a protected path (built-in globs + policies.protectedPaths)
+        // is never inert - a workflow .yml or a user-protected .md still
+        // validates in full. See orchestrator/protected-paths.ts.
+        decision = classifyChangedFilesForValidation(
+          snap.files.map((f) => f.path),
+          {
+            isProtected: (p) =>
+              protectedPathMatch(p, this.config.policies) !== null,
+          },
+        );
       } catch {
         // Diff unavailable -> fail safe: fall through and validate as configured.
         decision = null;

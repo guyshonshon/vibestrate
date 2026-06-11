@@ -698,6 +698,32 @@
           "required": false,
           "default": 0,
           "itemType": null
+        },
+        {
+          "key": "protectedPaths",
+          "fullKey": "policies.protectedPaths",
+          "type": "array<string>",
+          "required": false,
+          "default": [],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "string",
+            "required": true
+          }
+        },
+        {
+          "key": "unprotectedPaths",
+          "fullKey": "policies.unprotectedPaths",
+          "type": "array<string>",
+          "required": false,
+          "default": [],
+          "itemType": {
+            "key": "[item]",
+            "fullKey": "[item]",
+            "type": "string",
+            "required": true
+          }
         }
       ]
     },

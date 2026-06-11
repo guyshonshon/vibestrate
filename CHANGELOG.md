@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.37
+
+- **Protected paths: a deterministic floor under every "do less checking"
+  decision.** A built-in glob set (auth/payments/migrations, CI workflows,
+  lockfiles, `.env*`, `.vibestrate/`) plus your own `policies.protectedPaths`
+  (additive - user globs extend protection, never shrink it; opting out of a
+  built-in requires the explicit `policies.unprotectedPaths`). First consumer:
+  validation scoping - a protected file is never "inert", so a changed
+  workflow `.yml` or a protected `.md` validates in full even though its
+  extension looks harmless. This is the A2 slice of
+  `docs/design/proportional-orchestration.md` and the prerequisite for the
+  upcoming `express` flow + flow sizer. Visible in `vibe config view` and the
+  Config page.
+
 ## 0.7.36
 
 - **The Flows Hub is live - search and install community flows from the real
