@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.43",
+  "version": "0.7.44",
   "commands": [
     {
       "name": "init",
@@ -2374,6 +2374,34 @@
             {
               "flags": "--into <branch>",
               "description": "the integration branch to create (never main)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "finish",
+          "path": [
+            "vibe",
+            "integrate",
+            "finish"
+          ],
+          "description": "Merge a complete, clean integration branch into main - locally, with explicit confirmation, never pushed. Refuses partial integrations, dirty trees, and conflicts.",
+          "usage": "[options] <integrationBranch>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--confirm <token>",
+              "description": "non-interactive consent: must be exactly \"merge-to-main\"",
               "required": true,
               "optional": false,
               "negated": false

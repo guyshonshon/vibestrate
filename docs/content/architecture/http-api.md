@@ -90,10 +90,13 @@ conflict), dirty working trees, merge conflicts (aborted cleanly), and any
 `git.merge` action policy that says `deny` / `require_approval`; preconditions
 are re-checked under a lock immediately before the merge.
 
-Honest exposure note: the `confirm` body token guards against *accidental*
-invocation - it is not authorization. Like every write route, on a tokenless
-loopback bind this endpoint is reachable by local processes; set
-`VIBESTRATE_API_TOKEN` to gate it, or add a `git.merge` policy with
-`require_approval`/`deny` to refuse merges from this surface entirely. The CLI
-equivalent (`vibe integrate finish <branch>`) requires the typed confirmation
-`merge-to-main`.
+This endpoint is **fail-closed**: it refuses outright (`403`) unless
+`VIBESTRATE_API_TOKEN` is set, because a tokenless local API is reachable by
+any local process and the `confirm` body token only guards against
+*accidental* invocation - it is not authorization. The default human path is
+the CLI: `vibe integrate finish <branch>`, which requires the typed
+confirmation `merge-to-main`, runs only from your terminal, and refuses to
+move your HEAD (you must already be on main). A `git.merge` action policy
+(`deny` / `require_approval`) can additionally refuse merges from any
+surface. The merge also refuses when the integration branch tip changed
+since `apply` recorded it - you merge exactly what you reviewed.

@@ -241,12 +241,17 @@ export async function integrate(input: {
   // Record what this integration contains (P7b completeness check): finish
   // refuses to merge a PARTIAL integration branch - one whose apply stopped at
   // a conflict - because the human reviewed a set of runs, not a prefix of it.
+  const tip = await execa("git", ["rev-parse", target], {
+    cwd: input.projectRoot,
+    reject: false,
+  });
   await writeIntegrationRecord(input.projectRoot, {
     integrationBranch: target,
     baseBranch,
     branches: input.branches.map((b) => b.branch),
     integrated: integrated.filter((b) => b.clean).map((b) => b.branch),
     stoppedAt,
+    tipSha: tip.exitCode === 0 ? tip.stdout.trim() : null,
     createdAt: new Date().toISOString(),
   });
 
@@ -261,6 +266,9 @@ export type IntegrationRecord = {
   branches: string[];
   integrated: string[];
   stoppedAt: string | null;
+  /** The integration branch tip at apply time - finish refuses on drift so
+   *  the human merges exactly what they reviewed (adversarial-review fix). */
+  tipSha: string | null;
   createdAt: string;
 };
 
@@ -335,13 +343,41 @@ export async function finishIntegration(input: {
   // Serialize finishes + re-check everything inside the lock: a run checking
   // out main between check and merge is exactly the race to close.
   const lockDir = path.join(integrationDir(input.projectRoot), ".finish-lock");
+  const lockPidFile = path.join(lockDir, "pid");
   await fs.mkdir(integrationDir(input.projectRoot), { recursive: true });
-  try {
-    await fs.mkdir(lockDir);
-  } catch {
-    throw new IntegrationError(
-      "Another merge-to-main is in progress (lock held). Retry when it finishes.",
-    );
+  const acquire = async (): Promise<boolean> => {
+    try {
+      await fs.mkdir(lockDir);
+      await fs.writeFile(lockPidFile, String(process.pid), "utf8");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (!(await acquire())) {
+    // Stale-lock recovery (adversarial-review fix): a SIGKILLed finish leaves
+    // the dir behind forever. If the recorded holder is dead, reclaim once.
+    let holderAlive = false;
+    try {
+      const pid = Number(await fs.readFile(lockPidFile, "utf8"));
+      if (Number.isFinite(pid) && pid > 0) {
+        process.kill(pid, 0); // throws when the process is gone
+        holderAlive = true;
+      }
+    } catch {
+      holderAlive = false;
+    }
+    if (holderAlive) {
+      throw new IntegrationError(
+        "Another merge-to-main is in progress (lock held by a live process). Retry when it finishes.",
+      );
+    }
+    await fs.rm(lockDir, { recursive: true, force: true });
+    if (!(await acquire())) {
+      throw new IntegrationError(
+        `Could not acquire the merge lock. If no merge is running, remove ${lockDir} and retry.`,
+      );
+    }
   }
   try {
     const record = await readIntegrationRecord(input.projectRoot, target);
@@ -358,10 +394,30 @@ export async function finishIntegration(input: {
     if (!(await refExists(input.projectRoot, target))) {
       throw new IntegrationError(`Integration branch "${target}" does not exist.`);
     }
+    if (record.tipSha) {
+      const tip = await execa("git", ["rev-parse", target], {
+        cwd: input.projectRoot,
+        reject: false,
+      });
+      const current = tip.exitCode === 0 ? tip.stdout.trim() : null;
+      if (current !== record.tipSha) {
+        throw new IntegrationError(
+          `Integration branch "${target}" changed since apply (reviewed ${record.tipSha.slice(0, 10)}, now ${current?.slice(0, 10) ?? "missing"}) - re-run 'vibe integrate apply' to re-record what you reviewed.`,
+        );
+      }
+    }
     if (!(await refExists(input.projectRoot, mainBranch))) {
       throw new IntegrationError(`Main branch "${mainBranch}" does not exist.`);
     }
-    if (await hasChanges(input.projectRoot)) {
+    // Dirty-tree check, excluding .vibestrate/integration: the lock + record
+    // this feature itself writes are operational metadata, not user work -
+    // without the exclusion the lock would make every finish self-refusing.
+    const dirty = await execa(
+      "git",
+      ["status", "--porcelain", "--", ":(exclude).vibestrate/integration"],
+      { cwd: input.projectRoot, reject: false },
+    );
+    if (dirty.stdout.trim().length > 0) {
       throw new IntegrationError(
         "The project working tree has uncommitted changes - commit or stash them first.",
       );
@@ -389,21 +445,17 @@ export async function finishIntegration(input: {
       );
     }
 
-    // Checkout main when needed (tree verified clean above), merge, never push.
+    // Never relocate the user's HEAD (adversarial-review fix): a silent
+    // checkout - especially on a FAILED merge - mutates state beyond the
+    // contract. The human checks out main themselves; we refuse otherwise.
     const head = await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
       cwd: input.projectRoot,
       reject: false,
     });
     if (head.stdout.trim() !== mainBranch) {
-      const co = await execa("git", ["checkout", mainBranch], {
-        cwd: input.projectRoot,
-        reject: false,
-      });
-      if (co.exitCode !== 0) {
-        throw new IntegrationError(
-          `Could not check out ${mainBranch}: ${co.stderr || co.stdout}`,
-        );
-      }
+      throw new IntegrationError(
+        `The project is on "${head.stdout.trim()}", not ${mainBranch}. Check out ${mainBranch} first - finish never moves your HEAD.`,
+      );
     }
     const merge = await execa("git", ["merge", "--no-edit", target], {
       cwd: input.projectRoot,

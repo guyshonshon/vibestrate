@@ -127,7 +127,10 @@ describe("finishIntegration (P7b guided merge)", () => {
       branches: [{ branch: "feat-a" }],
       integrationBranch: B_dirty,
     });
-    // Leave the integration record uncommitted -> dirty tree.
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record");
+    // Real uncommitted user work -> dirty tree.
+    await fs.writeFile(path.join(dir, "base.md"), "edited\n");
     await expect(
       finishIntegration({
         projectRoot: dir,
@@ -199,6 +202,133 @@ describe("finishIntegration (P7b guided merge)", () => {
     });
     const remotes = await git(dir, "remote");
     expect(remotes.trim()).toBe("");
+  });
+
+  it("a refused (denied) attempt is recorded to the integration action log", async () => {
+    const dir = await makeRepo();
+    const B = ib("audit");
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: B,
+    });
+    await fs.mkdir(path.join(dir, ".vibestrate", "policies"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".vibestrate", "policies", "no-merge.yml"),
+      [
+        "actions:",
+        "  - id: no-main-merge",
+        "    description: merges to main are disabled here",
+        "    on: [git.merge]",
+        "    effect: deny",
+        "    message: merges to main are disabled here",
+        "",
+      ].join("\n"),
+    );
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record+policy");
+    await expect(
+      finishIntegration({ projectRoot: dir, integrationBranch: B, humanConfirmed: true }),
+    ).rejects.toThrow(/denied/i);
+    const log = await fs.readFile(
+      path.join(dir, ".vibestrate", "runs", "integration", "actions.ndjson"),
+      "utf8",
+    );
+    const records = log.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    const denied = records.find((r) => r.request.kind === "git.merge");
+    expect(denied?.decision.effect).toBe("deny");
+    expect(denied?.evidence?.ok).toBe(false);
+  });
+
+  it("refuses when the integration branch tip changed since apply (drift)", async () => {
+    const dir = await makeRepo();
+    const B = ib("drift");
+    const applied = await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: B,
+    });
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record");
+    // Mutate the integration branch after apply recorded its tip (the branch
+    // is checked out in its integration worktree - commit there).
+    await fs.writeFile(path.join(applied.worktreePath, "late.md"), "late\n");
+    await git(applied.worktreePath, "add", ".");
+    await git(applied.worktreePath, "commit", "-q", "-m", "late change");
+    await expect(
+      finishIntegration({ projectRoot: dir, integrationBranch: B, humanConfirmed: true }),
+    ).rejects.toThrow(/changed since apply/i);
+  });
+
+  it("refuses when HEAD is not main (never moves the user's HEAD)", async () => {
+    const dir = await makeRepo();
+    const B = ib("head");
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: B,
+    });
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record");
+    // Park on a branch cut from current main (it carries .vibestrate/).
+    await git(dir, "checkout", "-q", "-b", "parking");
+    await expect(
+      finishIntegration({ projectRoot: dir, integrationBranch: B, humanConfirmed: true }),
+    ).rejects.toThrow(/never moves your HEAD/i);
+    expect((await git(dir, "rev-parse", "--abbrev-ref", "HEAD")).trim()).toBe("parking");
+  });
+
+  it("refuses when the integration branch was deleted after apply", async () => {
+    const dir = await makeRepo();
+    const B = ib("gone");
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: B,
+    });
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record");
+    await git(dir, "worktree", "prune");
+    await execa("git", ["worktree", "remove", "--force",
+      (await readIntegrationRecord(dir, B)) ? path.join(os.tmpdir(), "x") : "x"],
+      { cwd: dir, reject: false });
+    // Remove the worktree that holds the branch, then delete the branch.
+    const wt = await git(dir, "worktree", "list", "--porcelain");
+    const line = wt.split("\n").find((l) => l.includes("integration-"));
+    if (line) {
+      await execa("git", ["worktree", "remove", "--force", line.replace("worktree ", "")], { cwd: dir, reject: false });
+    }
+    await execa("git", ["branch", "-D", B], { cwd: dir, reject: false });
+    await expect(
+      finishIntegration({ projectRoot: dir, integrationBranch: B, humanConfirmed: true }),
+    ).rejects.toThrow(/does not exist|changed since apply/i);
+  });
+
+  it("a held lock from a live process refuses; a dead holder is reclaimed", async () => {
+    const dir = await makeRepo();
+    const B = ib("lock");
+    await integrate({
+      projectRoot: dir,
+      branches: [{ branch: "feat-a" }],
+      integrationBranch: B,
+    });
+    await git(dir, "add", "-A");
+    await git(dir, "commit", "-q", "-m", "record");
+    const lockDir = path.join(dir, ".vibestrate", "integration", ".finish-lock");
+    // Live holder (this process) -> refuse.
+    await fs.mkdir(lockDir, { recursive: true });
+    await fs.writeFile(path.join(lockDir, "pid"), String(process.pid));
+    await expect(
+      finishIntegration({ projectRoot: dir, integrationBranch: B, humanConfirmed: true }),
+    ).rejects.toThrow(/in progress/i);
+    // Dead holder -> reclaimed, merge proceeds.
+    await fs.writeFile(path.join(lockDir, "pid"), "999999");
+    const r = await finishIntegration({
+      projectRoot: dir,
+      integrationBranch: B,
+      humanConfirmed: true,
+    });
+    expect(r.intoBranch).toBe("main");
   });
 
   it("static invariant: no scheduler/orchestrator path imports finishIntegration", async () => {
