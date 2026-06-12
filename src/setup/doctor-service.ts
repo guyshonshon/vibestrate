@@ -30,6 +30,10 @@ import {
   setValidationCommands,
 } from "./config-update-service.js";
 import { buildProviderFromDetection } from "../providers/provider-presets.js";
+import {
+  detectHostHooks,
+  IMPACTFUL_HOOK_EVENTS,
+} from "../providers/host-hook-detection.js";
 
 export type DoctorSeverity = "ok" | "warn" | "fail";
 
@@ -229,6 +233,68 @@ export async function runDoctor(input: {
           "Install the CLI, or run `vibe provider setup` to choose a different one.",
       fixable: false,
     });
+  }
+
+  // Host Claude Code hooks (T4): when a claude provider runs WITHOUT safeMode,
+  // the operator's own `~/.claude` + project `.claude` hooks fire inside every
+  // Vibestrate turn - a personal `UserPromptSubmit` "supervisor" directive then
+  // pollutes prompts and can skew reviewer verdicts. We don't isolate by default
+  // (the operator's environment is legitimate context), so we warn when leaky
+  // hooks are present and not isolated. Matches the claude-code provider AND a
+  // generic `cli` provider that runs the `claude` binary (both load the hooks).
+  const isClaudeProvider = (cfg: (typeof loaded.config.providers)[string]) =>
+    cfg.type === "claude-code" ||
+    (cfg.type === "cli" && path.basename(cfg.command) === "claude");
+  const claudeProviderIds = providerIds.filter((id) =>
+    isClaudeProvider(loaded.config.providers[id]!),
+  );
+  if (claudeProviderIds.length > 0) {
+    const hookSources = await detectHostHooks(projectRoot);
+    if (hookSources.length > 0) {
+      // Only a claude-code provider with safeMode actually isolates the hooks.
+      // A `cli`-typed claude has no safeMode lever, so it's always leaky.
+      const leakyProviders = claudeProviderIds.filter((id) => {
+        const cfg = loaded.config.providers[id]!;
+        return !(cfg.type === "claude-code" && cfg.settings?.safeMode === true);
+      });
+      const allEvents = [...new Set(hookSources.flatMap((s) => s.events))].sort();
+      const impactful = allEvents.filter((e) => IMPACTFUL_HOOK_EVENTS.has(e));
+      const where = hookSources.map((s) => s.path).join(", ");
+      if (leakyProviders.length > 0) {
+        // Prefer the safeMode fix when a claude-code provider is the leaky one;
+        // fall back to "remove the hooks / switch to the claude preset" for a
+        // generic cli-claude that has no safeMode lever.
+        const safeModeTarget = leakyProviders.find(
+          (id) => loaded.config.providers[id]!.type === "claude-code",
+        );
+        const fixHint = safeModeTarget
+          ? `Isolate them with \`vibe config set providers.${safeModeTarget}.settings.safeMode true\` (disables your CLAUDE.md/hooks/plugins inside runs; auth + permissions unaffected), or remove the hooks from ${where}.`
+          : `Your claude provider is a generic \`cli\` provider, which has no safeMode lever - re-add it via \`vibe provider setup\` (the claude-code preset supports \`settings.safeMode\`), or remove the hooks from ${where}.`;
+        findings.push({
+          id: "host-hooks-leak",
+          severity: "warn",
+          title: `Your Claude Code hooks will fire inside Vibestrate runs (${allEvents.join(", ")})`,
+          detail:
+            `Found hooks in ${where}. The claude provider(s) ${leakyProviders
+              .map((p) => `"${p}"`)
+              .join(", ")} run without safeMode, so these hooks load inside every turn` +
+            (impactful.length > 0
+              ? ` - ${impactful.join(", ")} can inject into prompts or wrap tool calls and skew reviewer verdicts`
+              : "") +
+            `. Vibestrate doesn't isolate them by default on purpose (your environment is legitimate context).`,
+          fixHint,
+          fixable: false,
+        });
+      } else {
+        findings.push({
+          id: "host-hooks-leak",
+          severity: "ok",
+          title: "Claude Code hooks present but isolated (safeMode on)",
+          detail: `Hooks in ${where} won't fire inside runs - every claude provider sets safeMode.`,
+          fixable: false,
+        });
+      }
+    }
   }
 
   // Flatten every Role across Crews. The `key` is the role id within the

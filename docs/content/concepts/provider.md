@@ -52,6 +52,15 @@ tuned is the model that works your runs. If you want hermetic turns instead
 attaches explicitly), set `settings.safeMode: true` on the provider - it adds
 `--safe-mode`, which disables personal customizations while auth and
 permissions keep working.
+
+Because hooks are the customization most likely to surprise you - a personal
+`UserPromptSubmit` "supervisor" hook fires inside *every* run turn, injecting
+into prompts and skewing reviewer verdicts - `vibe doctor` flags when your
+`~/.claude` or project `.claude` hooks will load inside runs and a claude
+provider isn't using `safeMode`. It reports only the hook event names and the
+settings file, never the hook commands. Acting on it is your call: keep the
+hooks (your environment is legitimate context) or set `safeMode` to isolate
+them.
 | `codex` | Detected, needs setup | Starter preset uses `codex exec` (prompt on stdin). Run `vibe provider setup`. |
 | `ollama` | Detected, needs setup | Starter preset runs `ollama run qwen3.5`. You probably want to edit the model. |
 | `opencode` | Detected, needs setup | No verified preset shipped. |
