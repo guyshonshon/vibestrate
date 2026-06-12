@@ -375,6 +375,27 @@ export async function registerRunsRoutes(
     },
   );
 
+  // The flow arbitration ledger (findings / responses / resolutions / decision
+  // summary), when the flow ran arbitration steps. The Supervisor panel reads
+  // it; null when the flow has no arbitration.
+  app.get<{ Params: { runId: string } }>(
+    "/api/runs/:runId/arbitration",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const file = path.join(
+        runDir(projectRoot, req.params.runId),
+        "arbitration.json",
+      );
+      const raw = await readText(file).catch(() => null);
+      if (raw === null) return { arbitration: null };
+      try {
+        return { arbitration: JSON.parse(raw) };
+      } catch {
+        return { arbitration: null };
+      }
+    },
+  );
+
   // The orchestrator's flow-selection record (Slice 2), when the run's flow was
   // selected. null for forced/default runs (their flow is in flow.json).
   app.get<{ Params: { runId: string } }>(

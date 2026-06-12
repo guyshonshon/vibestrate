@@ -603,6 +603,14 @@ export const api = {
     const r = await jsonGet<{ audit: RunAudit }>(`/api/runs/${runId}/audit`);
     return r.audit;
   },
+  async getRunArbitration(
+    runId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const r = await jsonGet<{ arbitration: Record<string, unknown> | null }>(
+      `/api/runs/${encodeURIComponent(runId)}/arbitration`,
+    );
+    return r.arbitration;
+  },
   async getRunEngagement(runId: string): Promise<EngagementEntry[]> {
     const r = await jsonGet<{ engagement: EngagementEntry[] }>(
       `/api/runs/${runId}/engagement`,

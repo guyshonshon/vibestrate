@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   Bolt,
-  Check,
   Clock,
   Cpu,
   Pause,
   Play,
   StopCircle,
-  X,
 } from "lucide-react";
 import { PhaseRail } from "../../design/PhaseRail.js";
 import { fmtElapsed } from "../../design/format.js";
@@ -65,9 +63,6 @@ export function RunStatusSection({
   paused,
   onPauseToggle,
   onAbort,
-  isApproval,
-  onApprove,
-  onReject,
 }: {
   run: RunState;
   diff: { insertions: number; deletions: number; files: number } | null;
@@ -75,9 +70,6 @@ export function RunStatusSection({
   paused: boolean;
   onPauseToggle: () => void;
   onAbort: () => void;
-  isApproval: boolean;
-  onApprove: () => void;
-  onReject: () => void;
 }) {
   const [elapsed, setElapsed] = useState(() =>
     Math.max(
@@ -86,8 +78,9 @@ export function RunStatusSection({
     ),
   );
   const terminal = isTerminalStatus(run.status);
+  const waitingForApproval = run.status === "waiting_for_approval";
   useEffect(() => {
-    if (paused || isApproval || terminal) return;
+    if (paused || waitingForApproval || terminal) return;
     const id = window.setInterval(
       () =>
         setElapsed(
@@ -101,7 +94,7 @@ export function RunStatusSection({
       1000,
     );
     return () => window.clearInterval(id);
-  }, [paused, isApproval, terminal, run.startedAt]);
+  }, [paused, waitingForApproval, terminal, run.startedAt]);
 
   const rail = railFor(run);
   const running = !terminal && run.status !== "waiting_for_approval";
@@ -117,29 +110,12 @@ export function RunStatusSection({
       <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl">
         {/* Eyebrow + controls */}
         <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-4 flex-wrap">
-          {/* Status itself lives in the breadcrumb chip right above - the
-           * eyebrow names the flow so the two lines never say the same thing. */}
-          <span className="eyebrow">{run.flow ? run.flow.label : "Status"}</span>
+          {/* Hierarchy: this block is the BRIEF (what you asked for). The
+           * flow is named at the rail below; status lives in the breadcrumb
+           * chip above - nothing here repeats either. */}
+          <span className="eyebrow">Brief</span>
+          {terminal ? null : (
           <div className="flex items-center gap-2">
-            {isApproval ? (
-              <>
-                <button
-                  type="button"
-                  onClick={onApprove}
-                  className="h-8 px-3 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep text-white text-[12.5px] flex items-center gap-1.5 ring-1 ring-violet-soft/35"
-                >
-                  <Check className="h-3 w-3" strokeWidth={1.7} /> Approve
-                </button>
-                <button
-                  type="button"
-                  onClick={onReject}
-                  className="h-8 px-3 rounded-lg border border-rose-400/30 bg-rose-500/10 text-rose-300 text-[12.5px] flex items-center gap-1.5"
-                >
-                  <X className="h-3 w-3" strokeWidth={1.7} /> Reject
-                </button>
-              </>
-            ) : (
-              <>
                 <button
                   type="button"
                   onClick={onPauseToggle}
@@ -159,9 +135,8 @@ export function RunStatusSection({
                 >
                   <StopCircle className="h-3 w-3" strokeWidth={1.7} /> Abort
                 </button>
-              </>
-            )}
           </div>
+          )}
         </div>
 
         <div className="px-5 pb-3">
@@ -181,6 +156,14 @@ export function RunStatusSection({
         </div>
 
         <div className="px-5 pb-3">
+          <div className="mb-1.5 flex items-baseline gap-2">
+            <span className="mono text-[10px] uppercase tracking-[0.14em] text-fog-500">
+              Flow
+            </span>
+            <span className="text-[11.5px] text-fog-300">
+              {run.flow ? run.flow.label : "stage pipeline"}
+            </span>
+          </div>
           <PhaseRail steps={rail.steps} active={rail.active} />
         </div>
 

@@ -1,0 +1,182 @@
+import { useState } from "react";
+import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
+import { Chip } from "../design/Chip.js";
+import { relTime } from "../design/format.js";
+import type {
+  EngagementEntry,
+  RunAssurance,
+  WorkflowSelectionView,
+} from "../../lib/types.js";
+
+// ── Supervisor panel (P9b) ───────────────────────────────────────────────────
+// Top of the run hierarchy: WHO is supervising (persona + review
+// independence), WHAT it decided about this task (flow selection / upgrade
+// story), the live decision feed (judgment vs enforced vs structural moments,
+// derived from the event log), and the arbitration verdict when the flow ran
+// one. Approvals render inside this section (the page passes the banner as
+// children) - approving/rejecting is supervisor business.
+
+/** Loose view of arbitration.json - the panel only reads the headline. */
+export type ArbitrationView = {
+  findings?: { finding?: { severity?: string } }[];
+  decision?: {
+    output?: {
+      recommendation?: string;
+      summary?: string;
+      residualRisks?: string[];
+      requiredHumanActions?: string[];
+      disagreementFindingIds?: string[];
+    };
+  } | null;
+} | null;
+
+const CLS_TONE: Record<string, "violet" | "amber" | "neutral"> = {
+  judgment: "violet",
+  enforced: "amber",
+  structural: "neutral",
+};
+
+const TONE_TEXT: Record<string, string> = {
+  ok: "text-emerald-300/90",
+  warn: "text-amber-300",
+  bad: "text-rose-300",
+  info: "text-fog-200",
+};
+
+function selectionStory(sel: WorkflowSelectionView | null): string | null {
+  if (!sel) return null;
+  const reason = sel.reasons[0] ?? null;
+  switch (sel.source) {
+    case "supervisor-upgraded": {
+      const up = sel.personaUpgrade;
+      return up
+        ? `upgraded ${up.from} to ${up.to} - matched ${up.signals.map((s) => `"${s}"`).join(", ")}`
+        : `upgraded to ${sel.flowId} on risk signals`;
+    }
+    case "sized":
+      return `sized this task to ${sel.flowId}${reason ? ` - ${reason}` : ""}`;
+    case "selected":
+      return `chose ${sel.flowId} (${sel.confidence} confidence)${reason ? ` - ${reason}` : ""}`;
+    case "forced":
+      return `flow ${sel.flowId} was forced for this run`;
+    case "default":
+      return `flow ${sel.flowId} is the project default`;
+    case "only-flow":
+      return `flow ${sel.flowId} is the only flow available`;
+    default:
+      return `flow ${sel.flowId}`;
+  }
+}
+
+export function SupervisorPanel({
+  selection,
+  assurance,
+  engagement,
+  arbitration,
+  children,
+}: {
+  selection: WorkflowSelectionView | null;
+  assurance: RunAssurance | null;
+  engagement: EngagementEntry[];
+  arbitration: ArbitrationView;
+  /** The pending-approval banner, when the run is waiting on a human. */
+  children?: React.ReactNode;
+}) {
+  const [feedOpen, setFeedOpen] = useState(true);
+  const persona =
+    selection?.personaId ?? assurance?.supervisor?.persona ?? "staff-engineer";
+  const independence = assurance?.supervisor?.independence ?? null;
+  const story = selectionStory(selection);
+  const decision = arbitration?.decision?.output ?? null;
+  const findings = arbitration?.findings ?? [];
+  const sevCount = (sev: string) =>
+    findings.filter((f) => f.finding?.severity === sev).length;
+  // Newest first - this is a glanceable feed, not the forensic Events tab.
+  const feed = [...engagement].reverse().slice(0, 30);
+
+  return (
+    <section
+      className="rounded-xl border border-white/[0.08] surface-ink-100-55 px-4 py-3"
+      data-screen-label="00 Supervisor"
+    >
+      <div className="flex flex-wrap items-center gap-2.5">
+        <ShieldCheck className="h-4 w-4 text-violet-soft" strokeWidth={1.7} />
+        <span className="eyebrow">Supervisor</span>
+        <span className="text-[12.5px] font-medium text-fog-100">{persona}</span>
+        {independence ? (
+          <span
+            className="mono text-[10.5px] text-fog-500"
+            title="Review independence is honest, not a confidence source - single-profile is a same-model self-check that can only lower confidence."
+          >
+            {independence}
+          </span>
+        ) : null}
+        {story ? (
+          <span className="text-[12px] text-fog-300 truncate min-w-0">
+            {story}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setFeedOpen((v) => !v)}
+          className="ml-auto flex shrink-0 items-center gap-1 text-[11.5px] text-fog-400 hover:text-fog-200"
+        >
+          {feedOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.7} />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" strokeWidth={1.7} />
+          )}
+          {engagement.length} decision{engagement.length === 1 ? "" : "s"}
+        </button>
+      </div>
+
+      {decision ? (
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[12px]">
+          <Chip tone={decision.recommendation === "merge-ready" ? "emerald" : "amber"}>
+            arbitration: {decision.recommendation ?? "needs-human"}
+          </Chip>
+          <span className="mono text-[10.5px] text-fog-400">
+            {findings.length} finding{findings.length === 1 ? "" : "s"}
+            {findings.length > 0
+              ? ` (${sevCount("high")}H/${sevCount("medium")}M/${sevCount("low")}L)`
+              : ""}
+            {(decision.disagreementFindingIds?.length ?? 0) > 0
+              ? ` · ${decision.disagreementFindingIds!.length} disagreement(s)`
+              : ""}
+          </span>
+          {decision.requiredHumanActions?.length ? (
+            <span className="text-amber-300/90">
+              needs you: {decision.requiredHumanActions.join("; ")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {children}
+
+      {feedOpen && feed.length > 0 ? (
+        <ul className="mt-2.5 space-y-1 border-t border-white/[0.05] pt-2">
+          {feed.map((e) => (
+            <li key={e.seq} className="flex items-baseline gap-2 text-[11.5px]">
+              <Chip tone={CLS_TONE[e.cls] ?? "neutral"}>{e.cls}</Chip>
+              <span className={`truncate ${TONE_TEXT[e.tone] ?? "text-fog-200"}`}>
+                {e.title}
+              </span>
+              {e.detail ? (
+                <span className="truncate text-fog-500">{e.detail}</span>
+              ) : null}
+              <span className="ml-auto shrink-0 mono text-[10px] text-fog-500">
+                {relTime(e.timestamp)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : feedOpen && engagement.length === 0 ? (
+        <p className="mt-2 text-[11.5px] text-fog-500">
+          No supervisor decisions recorded yet - they appear here the moment
+          the orchestrator selects, gates, or judges something.
+        </p>
+      ) : null}
+    </section>
+  );
+}
