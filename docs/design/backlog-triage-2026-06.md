@@ -26,23 +26,33 @@ that git worktree?"
 worktree 404 in the dashboard file viewer. (2) A discoverability gap: the
 run UI never tells you *where* the worktree is or how to get into it.
 
-**Current state:** The generic 404 copy is `src/core/error-format.ts:122`.
-File reads are path-guarded to approved roots (project root + run worktree).
-Worktrees live at `<git.worktreeDir>/<branchPrefix><flowId>-<runId>`
-(default `../.vibestrate-worktrees/<project>/...`), created in
-`src/git/git.ts` (`createWorktree`). Hypothesis (unverified): the viewer
-resolves new files against the project root instead of the worktree, or the
-worktree was already pruned for a terminal run.
+**Root cause (confirmed 2026-06-12):** `resolveSafePath`
+(`src/core/path-guard.ts:98-113`) picks, for a relative path, the *first
+root that geometrically contains* `resolve(root, rel)` - which is true of
+any traversal-free relative path - so the first root always wins.
+`buildProjectRoots` (`path-guard.ts:157`) puts **project before worktree**,
+so `/api/runs/:runId/file?path=super.md` (`src/server/routes/project.ts:378`)
+always resolves to `<projectRoot>/super.md`. A file *created* in the run
+worktree doesn't exist there -> `viewFile` ENOENT ->
+`FileViewError(404, "File not found.")` (`src/core/file-view-service.ts:94`)
+-> the generic 404 explainer (`src/core/error-format.ts:122`). Worse,
+silent variant: a *modified* file resolves to the project-root copy, so the
+viewer shows the **stale pre-run content** without error. Side-bug found in
+the same guard: paths containing a space are rejected outright
+(`path-guard.ts:74` includes `" "` in the invalid-character class).
 
 **Mini-plan:**
-1. Repro: start a run whose diff adds a brand-new file; open it in the
-   dashboard viewer; capture which route + path resolution fails.
-2. Fix the resolution (or, if the worktree was pruned, return an honest
-   "worktree cleaned up after merge - file lives in the diff" state instead
-   of a generic 404).
-3. Add a "Workspace" panel to run detail (UI + TUI): worktree path, branch
+1. Fix root precedence for the run-scoped route: worktree root first (or
+   prefer the root where the file exists, first-containing as fallback) -
+   the run file viewer must show the run's version of the file.
+2. Decide whether `/api/runs/:runId/tree` + file view should fall back
+   honestly when the worktree was pruned ("worktree cleaned up - see the
+   diff") instead of the generic 404.
+3. Fix the space-in-filename rejection (only NUL/newlines are invalid).
+4. Add a "Workspace" panel to run detail (UI + TUI): worktree path, branch
    name, copy-able `cd` line. UI/CLI parity: `vibe run path <runId>`.
-4. Route-level test: new-file read inside worktree, read after prune.
+5. Route-level tests: new file in worktree, modified file shows worktree
+   (not project) content, filename with space, read after prune.
 
 **Size:** S-M. **Depends on:** nothing. **Unblocks:** T13 (merge window
 needs the same "where is the work" surface).
@@ -59,16 +69,23 @@ evidence*. A run with zero configured validations (0/0), an inert diff
 "partially verified" - which trains the user to ignore the verdict, which
 poisons T13 (merge advisor) that must rely on it.
 
-**Current state:** Verdict derivation lives around `src/core/run-audit.ts`
-and the run's `finalDecision`/`verification` fields; caps like
-`validation_missing`, `review_skipped_inert_diff`, `verification_not_run`
-are emitted today regardless of whether the check was ever required.
+**Root cause (confirmed 2026-06-12):** Verdict derivation is
+`src/safety/run-assurance.ts`. `validationStatus` is computed purely from
+broker evidence: zero executed `command.run` actions is always classified
+`missing` (`run-assurance.ts:227-229`) - there is no
+"not configured / not applicable" state, and the builder receives no input
+about whether validation commands exist for the project/flow. `pickVerdict`
+(`run-assurance.ts:345-355`) only returns `verified` when validation,
+review, *and* verification all passed - so a run with review approved +
+verification passed but 0/0 validation can never do better than
+`partially_verified`, and `caps` always gains `validation_missing`
+(`run-assurance.ts:257`).
 
 **Mini-plan:**
-1. Introduce a three-way status per evidence lane: `passed` / `failed` /
-   `not-applicable` (replacing the binary present/missing), where
-   not-applicable = 0 checks configured, inert diff skip, flow has no
-   verification step.
+1. Thread "was validation configured/applicable?" into
+   `buildRunAssurance` input and introduce a `not_applicable` lane status
+   distinct from `missing` (= configured but never ran), same for
+   verification steps absent from the flow and inert-diff review skips.
 2. Headline verdict: all-lanes passed-or-n/a reads "verified (nothing
    skipped)" or "passed - no checks were required for this change"; reserve
    "partially verified" for *required-but-absent* evidence.
