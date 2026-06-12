@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.7.48
+
+- **The Supervisor is now visible - and it saves you money.** The run screen
+  reads top-down the way the system actually works: the Supervisor first
+  (who is judging, the flow-selection story in one sentence, a live feed of
+  every judgment and enforcement, the arbitration verdict, and any approval
+  waiting on you - approve or reject right there), then your brief, the
+  flow map, and the crew at work. The supervisor's decision ledger had been
+  computed since the personas slice but rendered nowhere. New cost lever:
+  a persona can pin review seats to a cheaper or different-vendor Profile
+  (`reviewerProfile`) - in the verification run the review cost $0.04 on
+  haiku while every other seat ran opus, and assurance honestly flipped to
+  cross-model independence. The arbiter and writer seats are never pinned
+  (the binding verdict keeps the crew's chosen model), explicit overrides
+  always win, the pin is itself a recorded supervisor decision, and the run
+  composer previews the exact profiles the run will use.
+- **Quieter inspection, untouched flexibility.** The artifacts tab groups by
+  step and hides the plumbing (context packets, prompts, diff snapshots)
+  behind one toggle. And a deliberate decision on instruction isolation:
+  runs keep loading your own Claude environment (CLAUDE.md, hooks, memory) -
+  the model you tuned is the model that works your runs. For hermetic turns,
+  `settings.safeMode: true` on a claude-code provider disables personal
+  customizations while auth keeps working.
+
 ## 0.7.47
 
 - **Run commits are clean now - a run's reviewer proved they weren't.** The
