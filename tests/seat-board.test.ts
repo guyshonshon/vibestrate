@@ -56,6 +56,24 @@ describe("deriveSeatBoard", () => {
     expect(cards[1]!.streamName).toBe("flows/s1/prompt");
   });
 
+  it("derives the stream name from the RUN-dir-relative stamped path", () => {
+    // The orchestrator stamps promptArtifactPath relative to the run dir
+    // ("artifacts/flows/<id>/prompt.md"); streams are recorded without the
+    // prefix ("flows/<id>/prompt"). The old derivation kept the prefix, so
+    // the seat transcript matched no stream, ever.
+    const cards = deriveSeatBoard(
+      mkFlow([
+        mkStep({
+          id: "implement",
+          status: "running",
+          promptArtifactPath: "artifacts/flows/implement/prompt.md",
+        }),
+      ]),
+      null,
+    );
+    expect(cards[0]!.streamName).toBe("flows/implement/prompt");
+  });
+
   it("rolls up step tokens from metrics by stageId", () => {
     const metrics = {
       roles: [
