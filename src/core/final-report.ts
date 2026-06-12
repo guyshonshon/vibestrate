@@ -38,7 +38,7 @@ function renderValidation(v: ValidationResults | null): string {
   const rows = v.commands
     .map((c) => `| \`${c.command}\` | ${c.exitCode} | ${c.status} | ${c.durationMs} |`)
     .join("\n");
-  return `${header}\n${rows}\n\n**Total:** ${v.summary.total} · **Passed:** ${v.summary.passed} · **Failed:** ${v.summary.failed}`;
+  return `${header}\n${rows}\n\n**Total:** ${v.summary.total} · **Passed:** ${v.summary.passed} · **Failed:** ${v.summary.failed}${(v.summary.environment ?? 0) > 0 ? ` · **Env-unavailable:** ${v.summary.environment}` : ""}`;
 }
 
 function renderWarnings(w: PolicyWarning[]): string {

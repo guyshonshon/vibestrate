@@ -168,6 +168,50 @@ describe("assurance for a skip-evidence run", () => {
     });
     expect(a.review.status).toBe("missing");
   });
+
+  it("environment-only validation reports 'environment', caps the verdict, never 'failed'", () => {
+    // P8c: a missing toolchain (command not found in a bare worktree) is an
+    // environment gap, not a failing change - but it can never read as
+    // verified either.
+    const cmd = (env: boolean) =>
+      ({
+        request: { runId: "r1", kind: "command.run", subject: {}, proposedBy: "system" },
+        decision: { effect: "allow", ruleIds: [] },
+        evidence: {
+          ok: false,
+          summary: "pnpm test -> environment unavailable (exit 1)",
+          data: { exitCode: 1, durationMs: 200, environment: env },
+        },
+        at: "2026-06-12T00:00:00.000Z",
+      }) as never;
+    const a = deriveRunAssurance({
+      runId: "r1",
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [cmd(true), cmd(true)],
+      generatedAt: "2026-06-12T00:00:00.000Z",
+    });
+    expect(a.validation.status).toBe("environment");
+    expect(a.validation.environment).toBe(2);
+    expect(a.validation.failed).toBe(0);
+    expect(a.caps).toContain("validation_environment");
+    expect(a.caps).not.toContain("validation_failed");
+    // Approved + verified but nothing validated: capped below verified.
+    expect(a.verdict).toBe("partially_verified");
+
+    // One REAL failure among env results stays a failure.
+    const b = deriveRunAssurance({
+      runId: "r1",
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [cmd(true), cmd(false)],
+      generatedAt: "2026-06-12T00:00:00.000Z",
+    });
+    expect(b.validation.status).toBe("failed");
+    expect(b.caps).toContain("validation_failed");
+  });
 });
 
 // ── Schema guards ───────────────────────────────────────────────────────────

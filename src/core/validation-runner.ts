@@ -32,12 +32,26 @@ export type ValidationSummary = {
 
 /** A command that never really ran: the shell couldn't find the tool. The
  *  observed shape from a worktree without node_modules is exit 1 with
- *  `sh: tsc: command not found` on stderr (the wrapper masks 127). */
+ *  `sh: tsc: command not found` on stderr (the wrapper masks 127).
+ *
+ *  Line-ANCHORED on purpose (adversarial review): the phrase must BE the
+ *  shell's error line, not appear inside test output - vitest prints failure
+ *  detail to stderr, and a real failing test that merely mentions "command
+ *  not found" must stay a real failure. */
 export function isEnvironmentFailure(exitCode: number, stderr: string): boolean {
   if (exitCode === 0) return false;
   if (exitCode === 127) return true;
-  return /(?:^|\n)[^\n]{0,200}(?:command not found|is not recognized as an internal or external command|env: [^\n]{1,80}: No such file or directory)/i.test(
-    stderr,
+  return (
+    // `sh: tsc: command not found` / `zsh:1: command not found: tsc`
+    /^(?:[\w./-]{1,40}:\s*)?(?:\d+:\s*)?(?:[\w./ -]{1,120}:\s*)?command not found(?::\s*[\w./-]{1,120})?\s*$/m.test(
+      stderr,
+    ) ||
+    // cmd.exe: `'tsc' is not recognized as an internal or external command...`
+    /^'[^'\n]{1,120}' is not recognized as an internal or external command/m.test(
+      stderr,
+    ) ||
+    // shebang/env failures: `env: node: No such file or directory`
+    /^env: [^\n]{1,80}: No such file or directory\s*$/m.test(stderr)
   );
 }
 

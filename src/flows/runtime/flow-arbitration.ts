@@ -474,7 +474,9 @@ export function renderFlowDecisionSummaryMarkdown(input: {
     (input.validation
       ? input.validation.summary.failed > 0
         ? "failed"
-        : "passed"
+        : (input.validation.summary.environment ?? 0) > 0
+          ? "environment"
+          : "passed"
       : "not-run");
   const findingRows =
     ledger.findings.length === 0
