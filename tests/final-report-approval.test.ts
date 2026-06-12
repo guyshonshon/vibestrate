@@ -6,6 +6,7 @@ import type { ApprovalRequest } from "../src/core/approval-types.js";
 const baseState = {
   runId: "r1",
   task: "t",
+  displayName: null,
   status: "merge_ready" as const,
   projectRoot: "/p",
   worktreePath: "/wt",

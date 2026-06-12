@@ -1,7 +1,7 @@
 import { ArrowRight, ChevronRight, Check, XCircle } from "lucide-react";
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
-import { fmtElapsed, relTime, shortRunId } from "../../design/format.js";
+import { fmtElapsed, relTime, runLabel, shortRunId } from "../../design/format.js";
 import type { RunState } from "../../../lib/types.js";
 
 export function RecentRunsSection({
@@ -57,8 +57,8 @@ export function RecentRunsSection({
                     {/* Task first - the full id was shrink-0 and starved the
                      * task title, the one column a human scans. */}
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[13px] text-fog-100 truncate max-w-[480px]">
-                        {r.task}
+                      <span className="text-[13px] text-fog-100 truncate max-w-[480px]" title={r.task}>
+                        {runLabel(r)}
                       </span>
                       <span
                         className="mono text-[11px] text-fog-500 shrink-0"

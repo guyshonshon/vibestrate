@@ -5,6 +5,7 @@ import { runStatePath } from "../utils/paths.js";
 import { writeJson, readJson } from "../utils/json.js";
 import { pathExists } from "../utils/fs.js";
 import { nowIso } from "../utils/time.js";
+import { defaultDisplayName } from "../utils/slug.js";
 import type { RunStatus } from "../workflow/workflow-types.js";
 import { TERMINAL_STATUSES } from "../workflow/workflow-types.js";
 import { flowRunParticipantStateSchema } from "../flows/runtime/flow-participant-ledger.js";
@@ -102,6 +103,11 @@ export type FlowRunState = z.infer<typeof flowRunStateSchema>;
 export const runStateSchema = z.object({
   runId: z.string().min(1),
   task: z.string().min(1),
+  /** A friendly, editable run label (T6). The runId stays the stable
+   *  identifier; this is just nicer to read in lists/headers. Defaults to the
+   *  first words of the task; `vibe rename` / the UI overrides it. Nullable +
+   *  defaulted so older run state files (which predate it) still parse. */
+  displayName: z.string().min(1).max(120).nullable().default(null),
   status: runStatusSchema,
   projectRoot: z.string().min(1),
   worktreePath: z.string().nullable(),
@@ -398,6 +404,7 @@ export function createInitialState(input: {
   return {
     runId: input.runId,
     task: input.task,
+    displayName: defaultDisplayName(input.task),
     status: "created",
     projectRoot: input.projectRoot,
     worktreePath: input.worktreePath,
@@ -452,4 +459,26 @@ export class RunStateStore {
     const validated = runStateSchema.parse(state);
     await writeJson(this.filePath, validated);
   }
+}
+
+/** Set a run's friendly display name (T6). Reads the freshest state immediately
+ *  before writing so a concurrent orchestrator write isn't reverted - the
+ *  display name is cosmetic, and terminal runs (the common rename target) have
+ *  no concurrent writer. Throws if the run doesn't exist or the name is empty. */
+export async function renameRun(
+  projectRoot: string,
+  runId: string,
+  displayName: string,
+): Promise<RunState> {
+  const trimmed = displayName.replace(/\s+/g, " ").trim();
+  if (!trimmed) throw new Error("A run display name cannot be empty.");
+  if (trimmed.length > 120) {
+    throw new Error("A run display name must be 120 characters or fewer.");
+  }
+  const store = new RunStateStore(projectRoot, runId);
+  if (!(await store.exists())) throw new Error(`Run ${runId} not found.`);
+  const state = await store.read();
+  const next: RunState = { ...state, displayName: trimmed, updatedAt: nowIso() };
+  await store.write(next);
+  return next;
 }

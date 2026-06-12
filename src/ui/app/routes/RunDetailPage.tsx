@@ -188,6 +188,14 @@ export function RunDetailPage({
       /* surface elsewhere */
     }
   };
+  const handleRename = async (name: string) => {
+    try {
+      const updated = await api.renameRun(runId, name);
+      setRun(updated);
+    } catch {
+      /* the input reverts on next poll */
+    }
+  };
 
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-12 flex flex-col gap-5">
@@ -200,6 +208,7 @@ export function RunDetailPage({
           setRerunStart(null);
           setRerunOpen(true);
         }}
+        onRename={handleRename}
       />
 
       {rerunOpen ? (

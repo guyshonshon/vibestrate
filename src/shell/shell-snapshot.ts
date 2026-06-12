@@ -51,6 +51,8 @@ export type ShellEvent = {
 export type ShellRunRow = {
   runId: string;
   task: string;
+  /** Friendly editable label (T6); falls back to the task when unset. */
+  displayName: string | null;
   taskId: string | null;
   status: RunStatus;
   effort: "low" | "medium" | "high" | null;
@@ -237,6 +239,7 @@ export async function buildShellSnapshot(
     rows.push({
       runId: s.runId,
       task: s.task,
+      displayName: s.displayName ?? null,
       taskId: s.taskId,
       status: s.status,
       effort: s.effort,

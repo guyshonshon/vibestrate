@@ -9,7 +9,7 @@ import {
 import { Chip } from "../../design/Chip.js";
 import { PhaseRail } from "../../design/PhaseRail.js";
 import { cn } from "../../design/cn.js";
-import { fmtElapsed, relTime } from "../../design/format.js";
+import { fmtElapsed, relTime, runLabel } from "../../design/format.js";
 import { MiniTerminal, type TerminalLine } from "../../design/Terminal.js";
 import type { VibestrateEvent, RunState, RunStatus } from "../../../lib/types.js";
 
@@ -219,8 +219,8 @@ function RunCard({
                 started {relTime(run.startedAt)}
               </span>
             </div>
-            <h3 className="text-[14.5px] text-fog-100 font-medium leading-snug line-clamp-2">
-              {run.task}
+            <h3 className="text-[14.5px] text-fog-100 font-medium leading-snug line-clamp-2" title={run.task}>
+              {runLabel(run)}
             </h3>
           </div>
           <div className="text-right shrink-0 whitespace-nowrap">

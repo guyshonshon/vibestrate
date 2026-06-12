@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { History } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { RunState } from "../../lib/types.js";
+import { runLabel } from "../design/format.js";
 import { RunStatusBadge } from "./RunStatusBadge.js";
 
 export function RunList({
@@ -80,7 +81,9 @@ export function RunList({
               <td className="vibestrate-mono px-4 py-2 text-vibestrate-fg-dim">
                 {run.runId}
               </td>
-              <td className="px-4 py-2 text-vibestrate-fg">{run.task}</td>
+              <td className="px-4 py-2 text-vibestrate-fg" title={run.task}>
+                {runLabel(run)}
+              </td>
               <td className="px-4 py-2">
                 <RunStatusBadge status={run.status} />
               </td>

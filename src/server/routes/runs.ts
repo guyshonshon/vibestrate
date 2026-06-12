@@ -10,7 +10,7 @@ import {
   runArtifactsDir,
 } from "../../utils/paths.js";
 import { runStateSchema } from "../../core/state-machine.js";
-import { applyTransition, isTerminal, RunStateStore } from "../../core/state-machine.js";
+import { applyTransition, isTerminal, RunStateStore, renameRun } from "../../core/state-machine.js";
 import { EventLog, type VibestrateEvent } from "../../core/event-log.js";
 import {
   PauseError,
@@ -540,6 +540,34 @@ export async function registerRunsRoutes(
           throw new HttpError(err.statusCode, err.message);
         }
         throw err;
+      }
+    },
+  );
+
+  // ─── POST /api/runs/:runId/rename ────────────────────────────────
+  // Give a run a friendly display name (T6). The runId stays the stable
+  // identifier; this only updates the cosmetic label.
+  app.post<{ Params: { runId: string }; Body: unknown }>(
+    "/api/runs/:runId/rename",
+    async (req) => {
+      assertSafeRunId(req.params.runId);
+      const stateFile = runStatePath(projectRoot, req.params.runId);
+      if (!(await pathExists(stateFile))) {
+        throw new HttpError(404, `Run ${req.params.runId} not found.`);
+      }
+      const body = (req.body ?? {}) as { displayName?: unknown };
+      if (typeof body.displayName !== "string") {
+        throw new HttpError(400, "Body must include a string `displayName`.");
+      }
+      try {
+        const next = await renameRun(
+          projectRoot,
+          req.params.runId,
+          body.displayName,
+        );
+        return { run: next };
+      } catch (err) {
+        throw new HttpError(400, err instanceof Error ? err.message : String(err));
       }
     },
   );

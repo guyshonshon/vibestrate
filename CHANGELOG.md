@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.54
+
+- **Runs have readable names now, not just timestamps.** Every run gets a
+  friendly display name derived from its task (the run ID stays the stable
+  identifier underneath). Rename one from the CLI (`vibe rename <runId> a better
+  name`), inline on the dashboard run header (the pencil), or via the API - and
+  it shows in the run lists, the TUI, and `vibe status`.
+
 ## 0.7.53
 
 - **Releases now verify the published artifact, not just the source tree.** A new

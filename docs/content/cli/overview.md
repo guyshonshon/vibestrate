@@ -35,6 +35,7 @@ vibe run "Your task description"          # start a run
 vibe status                                # see active and recent runs
 vibe replay <runId>                        # inspect any past run
 vibe path <runId>                          # where the run's git worktree is (cd into it)
+vibe rename <runId> a friendlier name      # give the run a readable display name
 ```
 
 Every run does its work in an isolated git worktree. `vibe path <runId>` prints
