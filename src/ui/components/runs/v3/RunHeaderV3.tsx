@@ -1,6 +1,7 @@
 import { ChevronLeft, Diff, GitBranch, RotateCcw } from "lucide-react";
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
+import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
 
 function tone(
@@ -77,8 +78,11 @@ export function RunHeaderV3({
           Mission
         </button>
         <span className="text-fog-500">/</span>
-        <span className="mono text-[12.5px] text-fog-300 whitespace-nowrap">
-          {run.runId}
+        <span
+          className="mono text-[12.5px] text-fog-300 whitespace-nowrap"
+          title={run.runId}
+        >
+          {shortRunId(run.runId)}
         </span>
         <span className="text-fog-500">/</span>
         <Chip tone={tone(run.status)}>
@@ -90,12 +94,15 @@ export function RunHeaderV3({
           <button
             type="button"
             onClick={onOpenGit}
+            title={run.branchName}
             className={cn(
               "h-8 px-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center gap-2 text-[12px] text-fog-200 whitespace-nowrap",
             )}
           >
-            <GitBranch className="h-3 w-3 text-fog-400" strokeWidth={1.7} />
-            <span className="mono text-[11.5px]">{run.branchName}</span>
+            <GitBranch className="h-3 w-3 text-fog-400 shrink-0" strokeWidth={1.7} />
+            <span className="mono text-[11.5px] max-w-[260px] truncate">
+              {run.branchName}
+            </span>
           </button>
         ) : null}
         <button

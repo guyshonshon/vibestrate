@@ -117,9 +117,9 @@ export function RunStatusSection({
       <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl">
         {/* Eyebrow + controls */}
         <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-4 flex-wrap">
-          <span className="eyebrow">
-            {run.flow ? `${run.flow.label} · ${run.status}` : `Status · ${run.status}`}
-          </span>
+          {/* Status itself lives in the breadcrumb chip right above - the
+           * eyebrow names the flow so the two lines never say the same thing. */}
+          <span className="eyebrow">{run.flow ? run.flow.label : "Status"}</span>
           <div className="flex items-center gap-2">
             {isApproval ? (
               <>
@@ -195,7 +195,19 @@ export function RunStatusSection({
           <span className="text-fog-500">·</span>
           <span className="flex items-center gap-1.5 whitespace-nowrap">
             <Clock className="h-3 w-3 text-fog-400" strokeWidth={1.7} />
-            <span className="mono num-tabular">{fmtElapsed(elapsed)}</span>{" "}
+            {/* A finished run reports its actual duration; only a live run
+             * counts wall-clock time since start. */}
+            <span className="mono num-tabular">
+              {fmtElapsed(
+                terminal
+                  ? Math.floor(
+                      (new Date(run.updatedAt).getTime() -
+                        new Date(run.startedAt).getTime()) /
+                        1000,
+                    )
+                  : elapsed,
+              )}
+            </span>{" "}
             elapsed
           </span>
           {diff ? (
@@ -208,13 +220,17 @@ export function RunStatusSection({
               </span>
             </>
           ) : null}
-          <span className="text-fog-500">·</span>
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />
-            <span>
-              {skillsCount} skill{skillsCount === 1 ? "" : "s"}
-            </span>
-          </span>
+          {skillsCount > 0 ? (
+            <>
+              <span className="text-fog-500">·</span>
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
+                <Bolt className="h-3 w-3 text-amber-300" strokeWidth={1.7} />
+                <span>
+                  {skillsCount} skill{skillsCount === 1 ? "" : "s"}
+                </span>
+              </span>
+            </>
+          ) : null}
           {run.reviewLoopCount > 0 ? (
             <>
               <span className="text-fog-500">·</span>

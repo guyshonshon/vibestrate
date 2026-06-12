@@ -20,9 +20,13 @@ export function PhaseRail({
             className="flex-1 flex flex-col gap-1.5 min-w-0"
           >
             <div className={cn("phase-segment", state)} />
+            {/* Step names are data (flow-defined), so they keep their case and
+             * skip the eyebrow tracking - wide tracking truncated real labels
+             * like "Review: correctness". */}
             <div
+              title={s}
               className={cn(
-                "mono text-[10px] uppercase tracking-[0.14em] truncate",
+                "mono text-[10.5px] truncate",
                 state === "done" && "text-emerald-300/80",
                 state === "active" && "text-violet-soft",
                 state === "todo" && "text-fog-500",

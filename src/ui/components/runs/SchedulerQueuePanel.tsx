@@ -7,7 +7,6 @@ import type {
   SchedulerState,
   Task,
 } from "../../lib/types.js";
-import { cn } from "../design/cn.js";
 import { Chip } from "../design/Chip.js";
 import { SectionEyebrow } from "../design/SectionEyebrow.js";
 
@@ -71,23 +70,26 @@ export function SchedulerQueuePanel({
                   "paused"
                 ) : (
                   <>
-                    <span className="pulse-dot" /> running
+                    <span className="pulse-dot" /> active
                   </>
                 )}
               </Chip>
             ) : null}
-            <span className="text-fog-500">·</span>
-            <span className="text-fog-400">
-              {running.length} running · {queue.length} queued
-            </span>
+            {idle ? null : (
+              <>
+                <span className="text-fog-500">·</span>
+                <span className="text-fog-400">
+                  {running.length} running · {queue.length} queued
+                </span>
+              </>
+            )}
           </span>
         </SectionEyebrow>
         {state ? (
-          <div className="flex items-center gap-2 flex-wrap text-[11px]">
-            <StateChip label="Max concurrent" value={String(state.maxConcurrentRuns)} />
-            <StateChip label="Policy" value={state.queuePolicy} />
-            <StateChip label="Conflict" value={state.conflictPolicy} />
-          </div>
+          <span className="mono text-[10.5px] text-fog-500 whitespace-nowrap">
+            max {state.maxConcurrentRuns} · {state.queuePolicy} · conflict:{" "}
+            {state.conflictPolicy}
+          </span>
         ) : null}
       </div>
 
@@ -205,13 +207,3 @@ function priorityTone(p: string): "violet" | "amber" | "rose" | "neutral" {
   return "neutral";
 }
 
-function StateChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={cn("rounded-md border border-white/[0.07] bg-white/[0.02] px-2.5 py-1")}>
-      <span className="mono text-[9px] uppercase tracking-[0.14em] text-fog-500">
-        {label}
-      </span>{" "}
-      <span className="text-[11.5px] text-fog-100 mono num-tabular">{value}</span>
-    </div>
-  );
-}

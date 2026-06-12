@@ -49,7 +49,7 @@ export function CrewStrip({ flow }: { flow: FlowRunState | null | undefined }) {
   return (
     <section>
       <div className="flex items-baseline justify-between mb-2.5">
-        <span className="eyebrow">Crew · current agent highlighted</span>
+        <span className="eyebrow">Crew</span>
         <span className="text-[11.5px] text-fog-400 whitespace-nowrap">
           {done}/{total} steps complete
         </span>
@@ -106,8 +106,8 @@ function Card({ s }: { s: Slot }) {
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-between text-[10.5px]">
-        <span className="text-fog-400 truncate">{s.role}</span>
+      {/* The header row already names the seat; this row only reports state. */}
+      <div className="flex items-center justify-end text-[10.5px]">
         {s.state === "active" ? (
           <span className="flex items-center gap-1 text-violet-soft">
             <span className="pulse-dot" />
