@@ -43,6 +43,7 @@ import { buildAssuranceCommand } from "./commands/assurance.js";
 import { buildAuditCommand } from "./commands/audit.js";
 import { buildPathCommand } from "./commands/path.js";
 import { buildRenameCommand } from "./commands/rename.js";
+import { buildLedgerCommand } from "./commands/ledger.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
 import { buildVibestrateCommand } from "./commands/vibestrate.js";
@@ -160,6 +161,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildAuditCommand());
   program.addCommand(buildPathCommand());
   program.addCommand(buildRenameCommand());
+  program.addCommand(buildLedgerCommand());
   program.addCommand(buildConsultCommand());
   program.addCommand(buildVibestrateCommand());
   program.addCommand(buildBudgetCommand());

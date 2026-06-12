@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.55",
+  "version": "0.7.56",
   "commands": [
     {
       "name": "init",
@@ -4638,6 +4638,33 @@
         }
       ],
       "options": [],
+      "subcommands": []
+    },
+    {
+      "name": "ledger",
+      "path": [
+        "vibe",
+        "ledger"
+      ],
+      "description": "Show the project continuity brief (what shipped, what's open).",
+      "usage": "[options]",
+      "arguments": [],
+      "options": [
+        {
+          "flags": "--json",
+          "description": "emit the structured ledger state as JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--limit <n>",
+          "description": "max entries per section (default 5)",
+          "required": true,
+          "optional": false,
+          "negated": false
+        }
+      ],
       "subcommands": []
     },
     {

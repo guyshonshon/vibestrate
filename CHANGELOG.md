@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.57
+
+- **A project continuity ledger so a new session knows where you left off.** When
+  a run reaches merge-ready, Vibestrate now records it in an append-only project
+  ledger under `.vibestrate/` - machine-written, human-editable. `vibe ledger`
+  prints a deterministic "here's where the project stands" brief (recently
+  shipped, open intents, follow-ups, decisions including decided-against), and
+  `GET /api/ledger` exposes the same. This is the foundation for stitching
+  context *across* runs (a finished run can't be "continued" in place - the
+  ledger is what carries the story forward). Write-back is idempotent (a re-run
+  or re-derive never double-records). Design: `docs/design/project-ledger.md`.
+
 ## 0.7.56
 
 - **The shell input + `vibe config set` got a lot less fiddly.** The prompt now

@@ -61,6 +61,7 @@ import {
   type ActionRequest,
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
+import { recordRunInLedger } from "./project-ledger.js";
 import {
   capturePhaseSnapshot,
   readPhaseSnapshots,
@@ -3763,6 +3764,20 @@ export class Orchestrator {
       await buildAndWriteRunAssurance(this.projectRoot, input.runId);
     } catch {
       // assurance is advisory; swallow.
+    }
+
+    // ── Project continuity ledger (T9) ────────────────────────────────────
+    // Record a merge_ready run so a future session can pick up "what shipped"
+    // across runs. Idempotent (keyed by runId) + best-effort - a ledger hiccup
+    // never masks the run's real outcome.
+    try {
+      await recordRunInLedger(this.projectRoot, input.runId, nowIso(), {
+        status: state.status,
+        displayName: state.displayName,
+        task: state.task,
+      });
+    } catch {
+      // ledger is advisory; swallow.
     }
 
     const finalReportPath = await this.writeFlowFinalReport({
