@@ -11,9 +11,9 @@ import {
   Copy,
   Cpu,
   Eye,
+  Flag,
   Layers,
   Lock,
-  Play,
   Plus,
   Rocket,
   Save,
@@ -124,6 +124,9 @@ export function FlowBuilderPage({
   const [yamlText, setYamlText] = useState("");
   const [yamlError, setYamlError] = useState<string | null>(null);
   const [yamlSaving, setYamlSaving] = useState(false);
+  // The project's persisted default flow (null = the built-in "default").
+  const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
+  const [settingDefault, setSettingDefault] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +135,7 @@ export function FlowBuilderPage({
       .then((r) => {
         if (cancelled) return;
         setFlows(r.flows);
+        setDefaultFlowId(r.defaultFlow ?? null);
         setSelectedId((cur) => cur ?? r.flows[0]?.id ?? null);
       })
       .catch((err) =>
@@ -500,16 +504,15 @@ export function FlowBuilderPage({
               {yamlMode ? "Form view" : "Edit as YAML"}
             </Button>
           ) : null}
-          {yamlMode ? (
+          {/* Read-only builtins get no Save button at all - a permanently
+           * disabled Save next to "Fork to project" just restated the card's
+           * own "read-only" note. */}
+          {!isProjectFlow ? null : yamlMode ? (
             <Button
               variant="secondary"
               size="sm"
-              disabled={yamlSaving || !isProjectFlow}
-              title={
-                !isProjectFlow
-                  ? "Builtin flows are read-only - Fork to project first."
-                  : "Validate + save this YAML to .vibestrate/flows/"
-              }
+              disabled={yamlSaving}
+              title="Validate + save this YAML to .vibestrate/flows/"
               iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
               onClick={() => void handleSaveYaml()}
             >
@@ -519,13 +522,9 @@ export function FlowBuilderPage({
             <Button
               variant="secondary"
               size="sm"
-              disabled={!dirty || saving || !isProjectFlow}
+              disabled={!dirty || saving}
               title={
-                !isProjectFlow
-                  ? "Builtin flows are read-only - Fork to project first."
-                  : !dirty
-                    ? "No changes to save"
-                    : "Save changes to .vibestrate/flows/"
+                !dirty ? "No changes to save" : "Save changes to .vibestrate/flows/"
               }
               iconLeft={<Save className="h-3 w-3" strokeWidth={1.7} />}
               onClick={() => void handleSave()}
@@ -533,19 +532,49 @@ export function FlowBuilderPage({
               {saving ? "Saving…" : "Save changes"}
             </Button>
           )}
-          <Button
-            variant="primary"
-            size="sm"
-            iconLeft={<Play className="h-3 w-3" strokeWidth={1.7} />}
-            onClick={onBack}
-          >
-            Use this flow
-          </Button>
+          {/* "Use this flow" used to be a primary button that only navigated
+           * back - it set nothing. This one performs the real action (same
+           * API as the Flows page) or honestly reports it's already done. */}
+          {selected && selected.id === (defaultFlowId ?? "default") ? (
+            <Chip tone="emerald">runs by default</Chip>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!selected || settingDefault}
+              iconLeft={<Flag className="h-3 w-3" strokeWidth={1.7} />}
+              title="Make this the project's default flow"
+              onClick={() => {
+                if (!selected) return;
+                setSettingDefault(true);
+                void api
+                  .setDefaultFlow(selected.id)
+                  .then(() => {
+                    setDefaultFlowId(selected.id);
+                    setToast({
+                      kind: "ok",
+                      text: `"${selected.label}" now runs by default.`,
+                    });
+                  })
+                  .catch((err) =>
+                    setToast({
+                      kind: "err",
+                      text: err instanceof Error ? err.message : String(err),
+                    }),
+                  )
+                  .finally(() => setSettingDefault(false));
+              }}
+            >
+              {settingDefault ? "Setting…" : "Use as default"}
+            </Button>
+          )}
         </div>
       </header>
 
       <section className="mt-5 flex flex-wrap items-center gap-3" data-screen-label="01 Flow">
-        <div className="eyebrow">Editing</div>
+        {/* Builtins open read-only - calling that "Editing" contradicted the
+         * card's own "fork to edit" note. */}
+        <div className="eyebrow">{isProjectFlow ? "Editing" : "Viewing"}</div>
         <select
           value={selected?.id ?? ""}
           onChange={(e) => {

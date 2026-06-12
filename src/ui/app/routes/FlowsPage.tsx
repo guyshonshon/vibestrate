@@ -221,6 +221,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   // The built-in default flow is rendered as its own "runs by default" card,
   // sourced from the real definition; the rest list below it.
   const defaultFlow = flows?.find((g) => g.id === "default") ?? null;
+  const defaultFlowCount = defaultFlow ? 1 : 0;
   const otherFlows = flows?.filter((g) => g.id !== "default") ?? [];
   // With no persisted defaultFlow, the orchestrator runs the built-in "default".
   const effectiveDefault = defaultFlowId ?? "default";
@@ -230,15 +231,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       <section className="mt-1">
         <div className="eyebrow mb-1.5">Flows</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-          The Default flow
-          <span className="text-fog-400">
-            {flows ? ` + ${otherFlows.length} more` : ""}
+          All flows{" "}
+          <span className="mono text-[15px] text-fog-500 num-tabular">
+            {flows ? defaultFlowCount + otherFlows.length : ""}
           </span>
         </h1>
         <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
           A flow is the recipe your crew follows - ordered steps, the roles that
           run them, approval gates. The <strong className="text-fog-100">Default
-          flow</strong> runs unless you pick another. Fork a builtin to edit it.
+          flow</strong> runs unless you pick another.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Button
@@ -803,9 +804,11 @@ function FlowCard({
               Use as default
             </Button>
           ) : null}
+          {/* Row actions stay quiet - a primary button on every row means no
+           * row stands out. The page-level "New flow" keeps the one accent. */}
           {!isProject ? (
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
               iconLeft={<GitFork size={13} />}
               disabled={busy !== null}
@@ -815,7 +818,7 @@ function FlowCard({
             </Button>
           ) : null}
           <Button
-            variant={isProject ? "primary" : "outline"}
+            variant="outline"
             size="sm"
             iconLeft={<PenLine size={13} />}
             onClick={onOpenInFlow}
