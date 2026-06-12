@@ -23,16 +23,16 @@ describe("linkWorktreeEnvironment", () => {
     // The linker only links dirs that are GITIGNORED in the worktree (an
     // un-ignored symlink would be staged by the run's git add -A).
     await execa("git", ["init", "-q"], { cwd: worktreePath });
-    // Dir-only patterns (trailing slash) on purpose: that's this repo's real
-    // shape, and check-ignore only matches them when the QUERY carries the
-    // slash too (the dir doesn't exist yet) - a live E2E run caught this.
+    // Dir-only patterns (trailing slash) on purpose: that's the real-world
+    // shape, and a dir-only pattern does NOT match a symlink - the linker
+    // must make the links ignorable itself (local exclude) and verify.
     await fs.writeFile(
       path.join(worktreePath, ".gitignore"),
       "node_modules/\n.venv/\nvenv/\n",
     );
   });
 
-  it("links node_modules when the lockfile is identical", async () => {
+  it("links node_modules when the lockfile is identical - and git ignores the LINK", async () => {
     await fs.mkdir(path.join(projectRoot, "node_modules", ".bin"), {
       recursive: true,
     });
@@ -45,6 +45,21 @@ describe("linkWorktreeEnvironment", () => {
     expect(st.isSymbolicLink()).toBe(true);
     const target = await fs.readlink(path.join(worktreePath, "node_modules"));
     expect(target).toBe(path.join(projectRoot, "node_modules"));
+
+    // The whole point of the local-exclude layer: a dir-only .gitignore
+    // pattern does not match a symlink, so without it `git add -A` STAGES the
+    // link (a real run's reviewer caught one). The link must be invisible to
+    // git status entirely.
+    const status = await execa("git", ["status", "--porcelain"], {
+      cwd: worktreePath,
+    });
+    const lines = status.stdout.split("\n").filter(Boolean);
+    expect(lines.some((l) => l.includes("node_modules"))).toBe(false);
+    const exclude = await fs.readFile(
+      path.join(worktreePath, ".git", "info", "exclude"),
+      "utf8",
+    );
+    expect(exclude).toContain("/node_modules");
   });
 
   it("refuses node_modules when the lockfile differs (deps would lie)", async () => {
@@ -115,14 +130,16 @@ describe("linkWorktreeEnvironment", () => {
     expect(st.isSymbolicLink()).toBe(false);
   });
 
-  it("refuses to link a dir that is NOT gitignored in the worktree", async () => {
+  it("rolls the link back when git refuses to ignore it (explicit negation)", async () => {
     await fs.mkdir(path.join(projectRoot, ".venv"), { recursive: true });
-    // Overwrite the ignore file so .venv is NOT ignored.
-    await fs.writeFile(path.join(worktreePath, ".gitignore"), "node_modules\n");
+    // A user-level negation overrides the local exclude (gitignore precedence:
+    // the checkout's .gitignore wins over info/exclude). The linker must not
+    // leave a link the run could stage.
+    await fs.writeFile(path.join(worktreePath, ".gitignore"), "!.venv\n");
     const r = await linkWorktreeEnvironment({ projectRoot, worktreePath });
     expect(r.linked.map((l) => l.dir)).not.toContain(".venv");
     expect(
-      r.skipped.some((s) => s.dir === ".venv" && /not gitignored/.test(s.reason)),
+      r.skipped.some((s) => s.dir === ".venv" && /does not ignore/.test(s.reason)),
     ).toBe(true);
     await expect(fs.lstat(path.join(worktreePath, ".venv"))).rejects.toThrow();
   });

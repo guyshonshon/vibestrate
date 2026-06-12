@@ -2719,6 +2719,15 @@ export class Orchestrator {
             },
           });
           commitSha = committed?.sha ?? null;
+          if (committed && committed.excludedSymlinks.length > 0) {
+            // Never silent: the commit refused to carry out-of-tree symlinks
+            // (worktree env links a dir-only ignore pattern missed).
+            await input.eventLog.append({
+              type: "git.commit.excluded-symlinks",
+              message: `Commit excluded out-of-tree symlink(s): ${committed.excludedSymlinks.join(", ")}.`,
+              data: { excludedSymlinks: committed.excludedSymlinks },
+            });
+          }
           if (commitSha) {
             filesTouched = await filesInCommit(input.worktreePath, commitSha);
           }

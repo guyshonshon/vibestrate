@@ -10,6 +10,7 @@ export type VibestrateEventType =
   | "state.changed"
   | "git.worktree.created"
   | "git.worktree.env"
+  | "git.commit.excluded-symlinks"
   | "role.started"
   | "role.completed"
   | "role.failed"

@@ -49,12 +49,59 @@ async function filesIdentical(a: string, b: string): Promise<boolean> {
  *  `git add -A` commit would stage the SYMLINK as a tracked entry and an
  *  out-of-tree link could ride a merge into main (adversarial review).
  *  Fail-closed: can't verify -> don't link. */
+const EXCLUDE_MARKER = "# vibestrate:worktree-env (managed)";
+
+/**
+ * Make the paths we are about to symlink ignorable AS SYMLINKS. The usual
+ * `.gitignore` pattern is dir-only (`node_modules/`) and a dir-only pattern
+ * does not match a symlink - a real run's reviewer caught `git add -A`
+ * staging the link. Git's local exclude file (`$GIT_COMMON_DIR/info/exclude`)
+ * exists exactly for clone-local ignores: never committed, never in a diff,
+ * shared by every worktree of the repo. Anchored patterns for precisely the
+ * paths we link - zero collateral on anything else. Idempotent.
+ */
+async function ensureLocalExclude(
+  worktreePath: string,
+  relDirs: readonly string[],
+): Promise<boolean> {
+  try {
+    const r = await execa("git", ["rev-parse", "--git-common-dir"], {
+      cwd: worktreePath,
+      reject: false,
+    });
+    if (r.exitCode !== 0) return false;
+    const commonDir = path.resolve(worktreePath, r.stdout.trim());
+    const excludePath = path.join(commonDir, "info", "exclude");
+    let existing = "";
+    try {
+      existing = await fs.readFile(excludePath, "utf8");
+    } catch {
+      /* no exclude file yet */
+    }
+    const have = new Set(existing.split("\n").map((l) => l.trim()));
+    const wanted = relDirs
+      .map((d) => `/${d.split(path.sep).join("/")}`)
+      .filter((p) => !have.has(p));
+    if (wanted.length === 0) return true;
+    const block = [
+      existing.endsWith("\n") || existing === "" ? "" : "\n",
+      have.has(EXCLUDE_MARKER) ? "" : `${EXCLUDE_MARKER}\n`,
+      `${wanted.join("\n")}\n`,
+    ].join("");
+    await fs.mkdir(path.dirname(excludePath), { recursive: true });
+    await fs.appendFile(excludePath, block);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Ignore check against the path AS IT EXISTS on disk (run AFTER creating
+ *  the link) - asking about a hypothetical `dir/` was how a dir-only pattern
+ *  fooled the old guard into linking something `git add -A` would stage. */
 async function isGitIgnored(worktreePath: string, relDir: string): Promise<boolean> {
   try {
-    // Trailing slash matters: `node_modules/` in .gitignore is a dir-only
-    // pattern, and the dir does not exist in the fresh worktree yet, so a
-    // bare-name query never matches it (found live in the E2E run).
-    const r = await execa("git", ["check-ignore", "-q", `${relDir}/`], {
+    const r = await execa("git", ["check-ignore", "-q", relDir], {
       cwd: worktreePath,
       reject: false,
     });
@@ -108,22 +155,28 @@ async function linkDir(
   if (await pathExists(linkPath)) {
     return { dir: relDir, reason: "already exists in worktree" };
   }
-  if (!(await isGitIgnored(worktreePath, relDir))) {
-    return {
-      dir: relDir,
-      reason: "not gitignored in the worktree - linking would risk committing the symlink",
-    };
-  }
   try {
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.symlink(target, linkPath, "dir");
-    return { dir: relDir, target };
   } catch (err) {
     return {
       dir: relDir,
       reason: err instanceof Error ? err.message : String(err),
     };
   }
+  // VERIFY against the link that now exists (not a hypothetical path shape):
+  // if git would still see it - e.g. a `!node_modules` negation overriding
+  // the exclude - remove it. A link the run could commit is worse than no
+  // link; validation's `environment` status stays the honest fallback.
+  if (!(await isGitIgnored(worktreePath, relDir))) {
+    await fs.unlink(linkPath).catch(() => undefined);
+    return {
+      dir: relDir,
+      reason:
+        "git does not ignore the created link even with the local exclude - removed it (a committable link is worse than no link)",
+    };
+  }
+  return { dir: relDir, target };
 }
 
 /**
@@ -162,6 +215,9 @@ export async function linkWorktreeEnvironment(input: {
     break;
   }
 
+  // Everything we may link, decided up front so the local exclude can be
+  // written once for exactly these paths.
+  const candidates: string[] = [];
   for (const dir of ROOT_CANDIDATES) {
     const isJs = dir === "node_modules";
     if (isJs && !jsGuardOk) {
@@ -170,18 +226,22 @@ export async function linkWorktreeEnvironment(input: {
       }
       continue;
     }
-    const r = await linkDir(projectRoot, worktreePath, dir);
+    if (await pathExists(path.join(projectRoot, dir))) candidates.push(dir);
+  }
+  if (jsGuardOk && (await pathExists(path.join(projectRoot, "node_modules")))) {
+    candidates.push(...(await nestedNodeModulesDirs(projectRoot, 3)));
+  }
+  if (candidates.length === 0) return { linked, skipped };
+
+  // Layer 1: local exclude (never committed) so the links are ignored AS
+  // SYMLINKS - the usual dir-only `.gitignore` pattern doesn't cover them.
+  // Failure here isn't fatal: layer 2 (post-link verify) decides per dir.
+  await ensureLocalExclude(worktreePath, candidates);
+
+  for (const rel of candidates) {
+    const r = await linkDir(projectRoot, worktreePath, rel);
     if ("target" in r) linked.push(r);
     else if (r.reason !== "not present in project root") skipped.push(r);
-  }
-
-  // Workspace packages (monorepos): nested node_modules under the same guard.
-  if (jsGuardOk && (await pathExists(path.join(projectRoot, "node_modules")))) {
-    for (const rel of await nestedNodeModulesDirs(projectRoot, 3)) {
-      const r = await linkDir(projectRoot, worktreePath, rel);
-      if ("target" in r) linked.push(r);
-      else if (r.reason !== "not present in project root") skipped.push(r);
-    }
   }
 
   return { linked, skipped };
