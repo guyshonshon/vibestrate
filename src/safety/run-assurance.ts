@@ -41,10 +41,13 @@ export type RunAssurance = {
     violations: { kind: string; ruleIds: string[]; reason: string }[];
   };
   validation: {
-    status: "passed" | "failed" | "missing";
+    /** "environment" = commands could not run (missing toolchain in the
+     *  worktree); nothing was validated, but nothing failed either. */
+    status: "passed" | "failed" | "environment" | "missing";
     total: number;
     passed: number;
     failed: number;
+    environment: number;
   };
   review: {
     status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";
@@ -132,9 +135,24 @@ export function deriveRunAssurance(input: {
       r.evidence !== null,
   );
   const cmdPassed = cmds.filter((r) => r.evidence?.ok === true).length;
-  const cmdFailed = cmds.filter((r) => r.evidence?.ok === false).length;
+  const isEnv = (r: (typeof cmds)[number]) =>
+    r.evidence?.ok === false &&
+    (r.evidence?.data as { environment?: unknown } | undefined)?.environment ===
+      true;
+  // A command whose toolchain was missing never validated anything - that is
+  // an environment gap, not a failing change (the P8c false-block fix).
+  const cmdEnvironment = cmds.filter(isEnv).length;
+  const cmdFailed = cmds.filter(
+    (r) => r.evidence?.ok === false && !isEnv(r),
+  ).length;
   const validationStatus: RunAssurance["validation"]["status"] =
-    cmds.length === 0 ? "missing" : cmdFailed > 0 ? "failed" : "passed";
+    cmds.length === 0
+      ? "missing"
+      : cmdFailed > 0
+        ? "failed"
+        : cmdEnvironment > 0
+          ? "environment"
+          : "passed";
 
   // ── Review + verification (from the run's recorded decisions) ────────────
   // A skip-evidence run (A3 express, deterministic inert-diff descent) reports
@@ -159,6 +177,7 @@ export function deriveRunAssurance(input: {
   const caps: string[] = [];
   if (validationStatus === "missing") caps.push("validation_missing");
   if (validationStatus === "failed") caps.push("validation_failed");
+  if (validationStatus === "environment") caps.push("validation_environment");
   if (reviewStatus === "missing") caps.push("review_missing");
   if (reviewStatus === "skipped_inert_diff") caps.push("review_skipped_inert_diff");
   if (reviewStatus === "changes_requested") caps.push("review_not_approved");
@@ -197,6 +216,7 @@ export function deriveRunAssurance(input: {
       total: cmds.length,
       passed: cmdPassed,
       failed: cmdFailed,
+      environment: cmdEnvironment,
     },
     review: { status: reviewStatus },
     verification: { status: verificationStatus },

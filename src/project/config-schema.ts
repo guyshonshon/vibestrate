@@ -18,6 +18,10 @@ export const gitConfigSchema = z.object({
   requireCleanMain: z.boolean().default(false),
   allowAutoMerge: z.boolean().default(false),
   allowAutoPush: z.boolean().default(false),
+  /** Link the project's gitignored env dirs (node_modules, .venv, venv) into
+   *  each new worktree so validation commands actually run there
+   *  (lockfile-guarded for JS). "off" restores bare worktrees. */
+  linkEnvironment: z.enum(["auto", "off"]).default("auto"),
 });
 
 /**

@@ -12,7 +12,10 @@ import {
 export type ValidationCommandResult = {
   command: string;
   exitCode: number;
-  status: "passed" | "failed";
+  /** "environment" = the command's toolchain wasn't there (command not
+   *  found / exit 127) - the change was never actually validated, which is
+   *  different from validation FAILING. It must not block a run. */
+  status: "passed" | "failed" | "environment";
   durationMs: number;
   stdoutPath: string;
   stderrPath: string;
@@ -21,8 +24,22 @@ export type ValidationCommandResult = {
 export type ValidationSummary = {
   total: number;
   passed: number;
+  /** Real failures only - environment problems are counted separately so a
+   *  missing toolchain can't masquerade as a failing change. */
   failed: number;
+  environment: number;
 };
+
+/** A command that never really ran: the shell couldn't find the tool. The
+ *  observed shape from a worktree without node_modules is exit 1 with
+ *  `sh: tsc: command not found` on stderr (the wrapper masks 127). */
+export function isEnvironmentFailure(exitCode: number, stderr: string): boolean {
+  if (exitCode === 0) return false;
+  if (exitCode === 127) return true;
+  return /(?:^|\n)[^\n]{0,200}(?:command not found|is not recognized as an internal or external command|env: [^\n]{1,80}: No such file or directory)/i.test(
+    stderr,
+  );
+}
 
 export type ValidationResults = {
   commands: ValidationCommandResult[];
@@ -47,7 +64,7 @@ export async function runValidationCommands(input: {
   if (commands.length === 0) {
     return {
       commands: [],
-      summary: { total: 0, passed: 0, failed: 0 },
+      summary: { total: 0, passed: 0, failed: 0, environment: 0 },
       note: "No validation commands configured.",
     };
   }
@@ -103,18 +120,27 @@ export async function runValidationCommands(input: {
     await writeText(stdoutAbs, result.stdout);
     await writeText(stderrAbs, result.stderr);
 
+    const environment = isEnvironmentFailure(result.exitCode, result.stderr);
+
     if (broker && action && allowDecision) {
       await broker.record(action, allowDecision, {
         ok: result.exitCode === 0,
-        summary: `${command} → exit ${result.exitCode}`,
-        data: { exitCode: result.exitCode, durationMs: result.durationMs },
+        summary: environment
+          ? `${command} → environment unavailable (exit ${result.exitCode})`
+          : `${command} → exit ${result.exitCode}`,
+        data: {
+          exitCode: result.exitCode,
+          durationMs: result.durationMs,
+          environment,
+        },
       });
     }
 
     results.push({
       command,
       exitCode: result.exitCode,
-      status: result.exitCode === 0 ? "passed" : "failed",
+      status:
+        result.exitCode === 0 ? "passed" : environment ? "environment" : "failed",
       durationMs: result.durationMs,
       stdoutPath: store.relPath(stdoutAbs),
       stderrPath: store.relPath(stderrAbs),
@@ -122,10 +148,16 @@ export async function runValidationCommands(input: {
   }
 
   const passed = results.filter((r) => r.status === "passed").length;
-  const failed = results.length - passed;
+  const environment = results.filter((r) => r.status === "environment").length;
+  const failed = results.length - passed - environment;
 
   return {
     commands: results,
-    summary: { total: results.length, passed, failed },
+    summary: { total: results.length, passed, failed, environment },
+    ...(environment > 0
+      ? {
+          note: `${environment} command(s) could not run: toolchain missing in the worktree (environment, not a code failure).`,
+        }
+      : {}),
   };
 }

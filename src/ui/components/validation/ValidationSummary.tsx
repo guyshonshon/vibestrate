@@ -5,7 +5,7 @@ import { ValidationCommandResult } from "./ValidationCommandResult.js";
 type Item = {
   command: string;
   exitCode: number;
-  status: "passed" | "failed";
+  status: "passed" | "failed" | "environment";
   durationMs: number;
   stdoutPath: string;
   stderrPath: string;
@@ -13,7 +13,12 @@ type Item = {
 
 type ValidationFile = {
   commands: Item[];
-  summary: { total: number; passed: number; failed: number };
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    environment?: number;
+  };
   note?: string;
 };
 
@@ -74,6 +79,9 @@ export function ValidationSummary({ runId }: { runId: string }) {
         {data ? (
           <span className="vibestrate-mono text-[11px] text-vibestrate-fg-dim">
             {data.summary.passed}/{data.summary.total} passed
+            {(data.summary.environment ?? 0) > 0
+              ? ` · ${data.summary.environment} env-unavailable`
+              : ""}
           </span>
         ) : null}
       </div>

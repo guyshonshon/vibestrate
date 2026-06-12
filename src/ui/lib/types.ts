@@ -1537,10 +1537,13 @@ export type RunAssurance = {
     violations: { kind: string; ruleIds: string[]; reason: string }[];
   };
   validation: {
-    status: "passed" | "failed" | "missing";
+    /** "environment" = commands could not run (toolchain missing in the
+     *  worktree); nothing was validated, but nothing failed either. */
+    status: "passed" | "failed" | "environment" | "missing";
     total: number;
     passed: number;
     failed: number;
+    environment: number;
   };
   review: {
     status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";

@@ -968,6 +968,9 @@ function AssuranceBadge({
         <span>
           validation: {a.validation.status} ({a.validation.passed}/
           {a.validation.total})
+          {a.validation.status === "environment"
+            ? " - toolchain missing in the worktree, nothing was actually checked"
+            : ""}
         </span>
         <span>review: {a.review.status}</span>
         <span>verification: {a.verification.status}</span>

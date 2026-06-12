@@ -3,7 +3,10 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
 import { ArtifactStore } from "../src/core/artifact-store.js";
-import { runValidationCommands } from "../src/core/validation-runner.js";
+import {
+  isEnvironmentFailure,
+  runValidationCommands,
+} from "../src/core/validation-runner.js";
 
 async function tempProject(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-validation-"));
@@ -54,5 +57,38 @@ describe("validation runner", () => {
       "utf8",
     );
     expect(stderr1).toMatch(/boom/);
+  });
+
+  it("classifies a missing toolchain as environment, not failed (the P8c false-block)", async () => {
+    const store = new ArtifactStore(projectRoot, "r");
+    await store.init();
+    const r = await runValidationCommands({
+      commands: [
+        "node -e \"console.log('ok')\"",
+        // The shell can't find this binary - exit 127 / "command not found".
+        "definitely-not-a-real-command-xyz --version",
+        // The observed real-run shape: a wrapper masks 127 as exit 1 but
+        // stderr still says command not found.
+        "sh -c 'echo \"sh: tsc: command not found\" 1>&2; exit 1'",
+      ],
+      cwd: workdir,
+      store,
+    });
+    expect(r.summary.total).toBe(3);
+    expect(r.summary.passed).toBe(1);
+    expect(r.summary.failed).toBe(0);
+    expect(r.summary.environment).toBe(2);
+    expect(r.commands[1]!.status).toBe("environment");
+    expect(r.commands[2]!.status).toBe("environment");
+    expect(r.note).toMatch(/environment, not a code failure/);
+  });
+
+  it("isEnvironmentFailure: real failures with noisy stderr stay failures", () => {
+    expect(isEnvironmentFailure(0, "command not found")).toBe(false);
+    expect(isEnvironmentFailure(127, "")).toBe(true);
+    expect(isEnvironmentFailure(1, "sh: tsc: command not found")).toBe(true);
+    expect(
+      isEnvironmentFailure(1, "AssertionError: expected 1 to be 2"),
+    ).toBe(false);
   });
 });

@@ -88,6 +88,7 @@ import {
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
 import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
+import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import { materializeContextSources } from "./context-sources.js";
 import type { ContextSource } from "./context-source-schema.js";
@@ -716,6 +717,28 @@ export class Orchestrator {
         message: `Worktree ${prep.worktreePath} on branch ${prep.branchName}.`,
         data: { worktreePath: prep.worktreePath, branchName: prep.branchName },
       });
+      // P8c: a bare worktree has no gitignored environment, so validation
+      // commands fail with "command not found" and a correct change gets
+      // blocked for an environmental reason. Link the project's env dirs in
+      // (lockfile-guarded for JS). Best-effort: skips are events, not errors.
+      if (this.config.git.linkEnvironment !== "off") {
+        const env = await linkWorktreeEnvironment({
+          projectRoot: this.projectRoot,
+          worktreePath: prep.worktreePath,
+        }).catch(() => ({ linked: [], skipped: [] }));
+        if (env.linked.length > 0 || env.skipped.length > 0) {
+          await eventLog.append({
+            type: "git.worktree.env",
+            message:
+              env.linked.length > 0
+                ? `Linked ${env.linked.map((l) => l.dir).join(", ")} into the worktree.`
+                : `No environment linked: ${env.skipped
+                    .map((s) => `${s.dir} (${s.reason})`)
+                    .join("; ")}.`,
+            data: env,
+          });
+        }
+      }
     } catch (err) {
       state = applyTransition(state, "failed");
       state = { ...state, error: describeError(err) };
@@ -4911,7 +4934,7 @@ export class Orchestrator {
         });
         const scoped: ValidationResults = {
           commands: [],
-          summary: { total: 0, passed: 0, failed: 0 },
+          summary: { total: 0, passed: 0, failed: 0, environment: 0 },
           note: `Scoped: ${decision.inert.length} inert file(s) changed (docs/text/assets); ${configured.length} configured validation command(s) skipped.`,
         };
         await ctx.artifactStore.writeJson(input.artifactsName, scoped);
