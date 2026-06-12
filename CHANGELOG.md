@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.47
+
+- **Run commits are clean now - a run's reviewer proved they weren't.** The
+  worktree environment links shipped in 0.7.46 had a subtle git trap: a
+  dir-only ignore pattern (`node_modules/`) does not match a *symlink*, so
+  the run's own diff capture staged the link and the reviewer rightly
+  refused to approve a change set carrying `node_modules`. Three layers fix
+  it for good: linked paths are registered in git's local exclude file
+  (never committed, shared by all worktrees, written per-link under a lock,
+  atomically, and removed again on rollback - the user-owned file never
+  accumulates); every link is verified against git's actual ignore answer
+  after creation and removed if git would still see it; and both staging
+  boundaries (commits and snapshot/diff capture) now refuse any newly
+  staged symlink that resolves outside the worktree. Adversarially reviewed
+  twice on the way in; proven by an end-to-end run whose staged set was
+  exactly the one file it created, finishing merge-ready.
+
 ## 0.7.46
 
 - **You can finally watch your crew work.** The first real dashboard run
