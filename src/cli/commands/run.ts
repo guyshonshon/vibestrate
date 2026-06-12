@@ -7,6 +7,7 @@ import {
 } from "../../core/orchestrator.js";
 import { resolveResumeFrom, RunLaunchError } from "../../core/run-launcher.js";
 import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
+import { resolvePersona } from "../../orchestrator/personas.js";
 import {
   color,
   header,
@@ -302,6 +303,10 @@ export async function runRunCommand(
       console.log("");
     }
     try {
+      const persona = resolvePersona(
+        loaded.config,
+        options.supervisorId ?? selection?.personaId ?? null,
+      );
       resolvedFlow = resolveFlow({
         flow: flow.definition,
         source: flow.source,
@@ -314,6 +319,7 @@ export async function runRunCommand(
         contextPolicy: flowContextPolicy,
         stepProfileOverrides: flowStepProfiles,
         skippedOptionalSteps: flowSkippedOptionalSteps,
+        reviewerProfile: persona.config.reviewerProfile ?? null,
       });
       printResolvedFlow(resolvedFlow);
       if (selection) printFlowChoice(resolvedFlow.label, selection);

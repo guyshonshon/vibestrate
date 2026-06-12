@@ -14,6 +14,7 @@ import {
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
+import { resolvePersona } from "../orchestrator/personas.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";
 
@@ -241,6 +242,10 @@ export async function runFromSpec(
         `No Flow named "${effectiveFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
     }
+    const persona = resolvePersona(
+      loaded.config,
+      spec.persona ?? selection?.personaId ?? null,
+    );
     resolvedFlow = resolveFlow({
       flow: flow.definition,
       source: flow.source,
@@ -253,6 +258,7 @@ export async function runFromSpec(
       contextPolicy: spec.flow?.contextPolicy,
       stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},
       skippedOptionalSteps: spec.flow?.skippedOptionalSteps ?? [],
+      reviewerProfile: persona.config.reviewerProfile ?? null,
     });
   }
 

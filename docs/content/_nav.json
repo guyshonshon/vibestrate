@@ -5,134 +5,280 @@
       "id": "start",
       "label": "Start here",
       "items": [
-        { "slug": "index", "label": "Overview" }
+        {
+          "slug": "index",
+          "label": "Overview"
+        }
       ]
     },
     {
       "id": "getting-started",
       "label": "Getting started",
       "items": [
-        { "slug": "getting-started/big-picture", "label": "The big picture" },
-        { "slug": "getting-started/installation", "label": "Installation" },
-        { "slug": "getting-started/first-run", "label": "Your first run" },
-        { "slug": "getting-started/providers", "label": "Set up a provider" },
-        { "slug": "getting-started/skills", "label": "Attach skills" }
+        {
+          "slug": "getting-started/big-picture",
+          "label": "The big picture"
+        },
+        {
+          "slug": "getting-started/installation",
+          "label": "Installation"
+        },
+        {
+          "slug": "getting-started/first-run",
+          "label": "Your first run"
+        },
+        {
+          "slug": "getting-started/providers",
+          "label": "Set up a provider"
+        },
+        {
+          "slug": "getting-started/skills",
+          "label": "Attach skills"
+        }
       ]
     },
     {
       "id": "concept-task",
       "label": "Task",
       "items": [
-        { "slug": "concepts/task", "label": "Task" },
-        { "slug": "concepts/state", "label": "Run state" }
+        {
+          "slug": "concepts/task",
+          "label": "Task"
+        },
+        {
+          "slug": "concepts/state",
+          "label": "Run state"
+        }
       ]
     },
     {
       "id": "concept-flow",
       "label": "Flow",
       "items": [
-        { "slug": "concepts/flow", "label": "Flow" },
-        { "slug": "concepts/seat", "label": "Seat" },
-        { "slug": "concepts/workflow", "label": "Workflow" }
+        {
+          "slug": "concepts/flow",
+          "label": "Flow"
+        },
+        {
+          "slug": "concepts/seat",
+          "label": "Seat"
+        },
+        {
+          "slug": "concepts/workflow",
+          "label": "Workflow"
+        }
       ]
     },
     {
       "id": "concept-crew",
       "label": "Crew",
       "items": [
-        { "slug": "concepts/crew", "label": "Crew" },
-        { "slug": "concepts/role", "label": "Role" },
-        { "slug": "concepts/profile", "label": "Profile" },
-        { "slug": "concepts/provider", "label": "Provider" }
+        {
+          "slug": "concepts/crew",
+          "label": "Crew"
+        },
+        {
+          "slug": "concepts/role",
+          "label": "Role"
+        },
+        {
+          "slug": "concepts/profile",
+          "label": "Profile"
+        },
+        {
+          "slug": "concepts/provider",
+          "label": "Provider"
+        }
       ]
     },
     {
       "id": "concept-runtime",
       "label": "Runtime & safety",
       "items": [
-        { "slug": "concepts/worktree", "label": "Worktree" },
-        { "slug": "concepts/safety", "label": "Safety - Action Broker & policies" },
-        { "slug": "concepts/skill", "label": "Skill" },
-        { "slug": "concepts/annotation", "label": "Annotations" }
+        {
+          "slug": "concepts/worktree",
+          "label": "Worktree"
+        },
+        {
+          "slug": "concepts/safety",
+          "label": "Safety - Action Broker & policies"
+        },
+        {
+          "slug": "concepts/skill",
+          "label": "Skill"
+        },
+        {
+          "slug": "concepts/annotation",
+          "label": "Annotations"
+        }
       ]
     },
     {
       "id": "concept-config",
       "label": "Configuration",
       "items": [
-        { "slug": "concepts/configuration", "label": "Configuration & settings" }
+        {
+          "slug": "concepts/configuration",
+          "label": "Configuration & settings"
+        }
       ]
     },
     {
       "id": "concept-orchestrator",
       "label": "Orchestrator",
       "items": [
-        { "slug": "concepts/vibestrate-md", "label": "VIBESTRATE.md & Consult" }
+        {
+          "slug": "concepts/vibestrate-md",
+          "label": "VIBESTRATE.md & Consult"
+        }
       ]
     },
     {
       "id": "cli",
       "label": "Using the CLI",
       "items": [
-        { "slug": "cli/overview", "label": "CLI overview" },
-        { "slug": "cli/shell", "label": "Interactive shell" },
-        { "slug": "cli/dashboard", "label": "Mission Control" }
+        {
+          "slug": "cli/overview",
+          "label": "CLI overview"
+        },
+        {
+          "slug": "cli/shell",
+          "label": "Interactive shell"
+        },
+        {
+          "slug": "cli/dashboard",
+          "label": "Mission Control"
+        }
       ]
     },
     {
       "id": "workflows",
       "label": "Workflows",
       "items": [
-        { "slug": "workflows/create-and-run", "label": "Create and run a task" },
-        { "slug": "workflows/inspect-progress", "label": "Inspect a run in flight" },
-        { "slug": "workflows/pause-resume", "label": "Pause, resume, abort" },
-        { "slug": "workflows/debug-failed", "label": "Debug a failed run" }
+        {
+          "slug": "workflows/create-and-run",
+          "label": "Create and run a task"
+        },
+        {
+          "slug": "workflows/inspect-progress",
+          "label": "Inspect a run in flight"
+        },
+        {
+          "slug": "workflows/pause-resume",
+          "label": "Pause, resume, abort"
+        },
+        {
+          "slug": "workflows/debug-failed",
+          "label": "Debug a failed run"
+        }
       ]
     },
     {
       "id": "lifecycle",
       "label": "Run lifecycle",
       "items": [
-        { "slug": "task-lifecycle", "label": "Task lifecycle" }
+        {
+          "slug": "task-lifecycle",
+          "label": "Task lifecycle"
+        }
       ]
     },
     {
       "id": "reference",
       "label": "Reference",
       "items": [
-        { "slug": "reference/cli", "label": "CLI commands", "generated": true, "source": "cli-commands.json" },
-        { "slug": "reference/config", "label": "project.yml schema", "generated": true, "source": "config-schema.json" },
-        { "slug": "reference/providers", "label": "Providers", "generated": true, "source": "providers.json" },
-        { "slug": "reference/flows", "label": "Built-in Flows", "generated": true, "source": "flows.json" },
-        { "slug": "reference/workflow", "label": "Workflow stages", "generated": true, "source": "workflow.json" },
-        { "slug": "reference/state-machine", "label": "Run states", "generated": true, "source": "state-machine.json" },
-        { "slug": "reference/agents", "label": "Agent roles", "generated": true, "source": "agents.json" }
+        {
+          "slug": "reference/cli",
+          "label": "CLI commands",
+          "generated": true,
+          "source": "cli-commands.json"
+        },
+        {
+          "slug": "reference/config",
+          "label": "project.yml schema",
+          "generated": true,
+          "source": "config-schema.json"
+        },
+        {
+          "slug": "reference/providers",
+          "label": "Providers",
+          "generated": true,
+          "source": "providers.json"
+        },
+        {
+          "slug": "reference/flows",
+          "label": "Built-in Flows",
+          "generated": true,
+          "source": "flows.json"
+        },
+        {
+          "slug": "reference/workflow",
+          "label": "Workflow stages",
+          "generated": true,
+          "source": "workflow.json"
+        },
+        {
+          "slug": "reference/state-machine",
+          "label": "Run states",
+          "generated": true,
+          "source": "state-machine.json"
+        },
+        {
+          "slug": "reference/agents",
+          "label": "Agent roles",
+          "generated": true,
+          "source": "agents.json"
+        }
       ]
     },
     {
       "id": "architecture",
       "label": "Architecture",
       "items": [
-        { "slug": "architecture/overview", "label": "High-level architecture" },
-        { "slug": "architecture/http-api", "label": "HTTP API" },
-        { "slug": "architecture/directory-map", "label": "Repository map" }
+        {
+          "slug": "architecture/overview",
+          "label": "High-level architecture"
+        },
+        {
+          "slug": "architecture/http-api",
+          "label": "HTTP API"
+        },
+        {
+          "slug": "architecture/directory-map",
+          "label": "Repository map"
+        }
       ]
     },
     {
       "id": "extending",
       "label": "Extending Vibestrate",
       "items": [
-        { "slug": "extending/add-skill", "label": "Add a skill" },
-        { "slug": "extending/add-flow", "label": "Add a Flow" },
-        { "slug": "extending/add-provider", "label": "Add a provider" }
+        {
+          "slug": "extending/add-skill",
+          "label": "Add a skill"
+        },
+        {
+          "slug": "extending/add-flow",
+          "label": "Add a Flow"
+        },
+        {
+          "slug": "extending/add-provider",
+          "label": "Add a provider"
+        }
       ]
     },
     {
       "id": "ops",
       "label": "Operations",
       "items": [
-        { "slug": "troubleshooting", "label": "Troubleshooting" },
-        { "slug": "glossary", "label": "Glossary" }
+        {
+          "slug": "troubleshooting",
+          "label": "Troubleshooting"
+        },
+        {
+          "slug": "glossary",
+          "label": "Glossary"
+        }
       ]
     }
   ]

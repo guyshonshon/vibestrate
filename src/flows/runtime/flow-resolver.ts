@@ -51,6 +51,11 @@ export type ResolveFlowInput = {
   profileOverride?: string | null;
   /** Per-step Profile override (step id → profile id). Wins over profileOverride. */
   stepProfileOverrides?: Record<string, string | undefined>;
+  /** Supervisor persona's reviewer profile: review-stage seats resolve to it
+   *  unless an EXPLICIT override (per-step or run-wide) says otherwise. The
+   *  cost lever: a persona can pin reviews to a cheaper - or deliberately
+   *  different-vendor - profile (cross-model independence becomes real). */
+  reviewerProfile?: string | null;
   skippedOptionalSteps?: string[];
   resolvedAt?: string;
 };
@@ -131,9 +136,15 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
 
       resolvedRoleId = chosen.roleId;
       resolvedRoleLabel = roleLabel(chosen.roleId, chosen.role);
+      // Precedence: explicit step override > explicit run-wide override >
+      // persona reviewerProfile (review steps only) > the role's default.
+      // Explicit user choices always beat persona configuration.
+      const isReviewStep =
+        step.kind === "review-turn" || step.stage === "reviewing";
       profileId =
         input.stepProfileOverrides?.[step.id] ??
         input.profileOverride ??
+        (isReviewStep ? input.reviewerProfile ?? null : null) ??
         chosen.role.profile;
       const profile = getProfile(input.config, profileId);
       providerId = profile.provider;
