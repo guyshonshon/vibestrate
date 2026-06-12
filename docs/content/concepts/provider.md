@@ -43,6 +43,15 @@ This is what makes the tool *local-first* - where local-first means **sovereignt
 | Id | Status | Notes |
 |---|---|---|
 | `claude` | Preset-ready | Default args: `-p` with prompt on stdin. Vibestrate configures Claude Code automatically, and a `claude-code` provider streams by default (`--output-format stream-json --verbose --include-partial-messages`) so the live transcript shows the model working token by token. Set `settings.outputFormat` (or a raw `--output-format` in `args`) to take manual control. |
+
+A note on what the model sees inside a run turn: by default, your own Claude
+Code environment applies - your global `CLAUDE.md`, hooks, and memory load
+exactly as they would in your terminal. That is deliberate: the model you
+tuned is the model that works your runs. If you want hermetic turns instead
+(only the prompt Vibestrate compiled, plus the skills and MCP servers it
+attaches explicitly), set `settings.safeMode: true` on the provider - it adds
+`--safe-mode`, which disables personal customizations while auth and
+permissions keep working.
 | `codex` | Detected, needs setup | Starter preset uses `codex exec` (prompt on stdin). Run `vibe provider setup`. |
 | `ollama` | Detected, needs setup | Starter preset runs `ollama run qwen3.5`. You probably want to edit the model. |
 | `opencode` | Detected, needs setup | No verified preset shipped. |
