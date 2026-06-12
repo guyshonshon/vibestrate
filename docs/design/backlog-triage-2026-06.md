@@ -198,7 +198,18 @@ prompt-format pollution, wasted tokens.
 **Size:** S investigation, M if isolation is implemented.
 **Depends on:** nothing.
 
-### T5 - Publish verification gate (npm pack smoke)
+### T5 - Publish verification gate (npm pack smoke) - SHIPPED
+
+**Status (shipped):** `scripts/verify-pack.sh` - builds + trims (mirrors
+prepublishOnly, since `npm pack` doesn't run it), packs the real tarball,
+asserts the manifest (require package.json/dist/index.js/README/LICENSE; forbid
+.map/node_modules/.env/test files), clean-room installs from the tarball into a
+fresh node_modules OUTSIDE the monorepo (so deps resolve from the registry - the
+whole point), and smoke-runs the bin (`vibe`/`vibestrate` --version/--help +
+`vibe init --yes --git-init`, asserting exit 0 and no ERR_MODULE_NOT_FOUND).
+Wired into release.sh (before the bump) + release.yml (before publish). Verified
+end-to-end locally (1.3M tarball, 68 entries, all smokes green). Fail-closed: the
+gate can only block or allow a release, never publish itself.
 
 **Raw ask:** "before publishing, make sure we test npm verify etc so
 telegram bot issues won't reoccur."
