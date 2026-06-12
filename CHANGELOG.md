@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.7.46
+
+- **You can finally watch your crew work.** The first real dashboard run
+  exposed a chain of breakage and this release fixes all of it, root cause
+  by root cause. Claude providers now stream by default (`stream-json` with
+  partial messages), so the run screen's new **Live timeline** - one row per
+  step with the seated role, ticking elapsed time, and a live tail of what
+  the model is producing right now - replaces the old run graph and seat
+  board, with the full per-seat transcript (text, thinking, tool calls) one
+  click away. Submitting a run takes you straight to its screen. Changed
+  files open inline, diff or full contents, read from the run's worktree.
+  Review findings open instead of 404ing (stamped artifact paths resolved
+  with a double prefix), and a blocked run no longer claims a fix loop ran
+  when none did.
+- **Worktrees now come with their environment - and validation stops
+  lying.** A fresh worktree had no `node_modules`, so validation failed with
+  "command not found" in milliseconds, the reviewer was told "validation
+  failed 0/3", and a correct one-line change got blocked. Worktrees now
+  link the project's gitignored env dirs (lockfile-guarded for JS,
+  gitignore-guarded against ever committing a link; `git.linkEnvironment:
+  off` opts out), so validation really runs. When a toolchain still isn't
+  there, commands report a distinct `environment` status - amber, not red -
+  that never blocks a run, caps assurance honestly at partially verified,
+  and tells the reviewer in plain words that nothing was validated and
+  nothing failed. Both core slices were adversarially reviewed pre-merge;
+  the reviewer's catches (a stream-parse throw that could brick runs on odd
+  claude binaries, an env regex that real test output could trigger, an
+  un-ignored symlink that could ride a commit to main) were all fixed
+  before merge, and an end-to-end real run caught two more.
+
 ## 0.7.45
 
 - **The dashboard says less and means more.** A clarity pass over the four

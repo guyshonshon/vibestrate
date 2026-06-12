@@ -89,6 +89,18 @@
           "required": false,
           "default": false,
           "itemType": null
+        },
+        {
+          "key": "linkEnvironment",
+          "fullKey": "git.linkEnvironment",
+          "type": "enum",
+          "required": false,
+          "default": "auto",
+          "enum": [
+            "auto",
+            "off"
+          ],
+          "itemType": null
         }
       ]
     },

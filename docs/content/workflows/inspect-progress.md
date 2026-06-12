@@ -13,16 +13,15 @@ The default `vibe run` command prints a header per stage with the current status
 
 ## The dashboard
 
-`vibe run "..." --ui` starts Mission Control alongside the run. The **Board** view shows:
+`vibe run "..." --ui` starts Mission Control alongside the run; submitting a brief from Mission Control takes you straight to the run screen. The run screen's **Live timeline** is the main surface: one row per flow step with its status, the seated role and profile, elapsed time ticking while it works, and a live tail of what the model is producing right now. Expand a row for the full picture of that seat - the prompt it received, its complete live transcript (text, thinking, and tool activity as they stream), and its response once done.
 
-- Phase rail - which stage is current.
-- Agent name and provider for that stage.
-- Live token usage (where the provider reports it).
-- Approvals waiting (if any).
+Around the timeline:
 
-The **Git** tab gives you the live diff against `main` as the executor and fixer work.
+- **Live metrics** - token usage and cost as the provider reports them.
+- **Changed files** - what the run has touched so far; click a file to see its diff or full contents inline, read from the run's worktree.
+- **Live execution** - a raw console over every recorded provider stream.
 
-The **Suggestions** tab populates as the reviewer files findings.
+The **Git** tab gives you the live diff against `main` as the run works.
 
 ## The on-disk artifacts
 
