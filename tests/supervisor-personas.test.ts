@@ -265,3 +265,86 @@ describe("supervisor personas - the review panels are review-only (capped at par
     }
   });
 });
+
+// ── persona.reviewerProfile (P9d): the supervisor's cost lever ──────────────
+
+describe("reviewerProfile resolution", () => {
+  const cfgWithCheapReviewer = () =>
+    baseConfig({
+      profiles: {
+        "claude-balanced": { provider: "claude" },
+        "cheap-reviewer": { provider: "claude", model: "claude-haiku-4-5-20251001" },
+      },
+      crews: {
+        default: {
+          roles: {
+            planner: { seats: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { seats: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { seats: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { seats: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            verifier: { seats: ["verifier", "arbiter"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
+      },
+    });
+
+  function resolveDefault(
+    cfg: ProjectConfig,
+    extra: Partial<Parameters<typeof resolveFlow>[0]> = {},
+  ) {
+    return resolveFlow({
+      flow: defaultFlow,
+      source: { kind: "builtin", ref: defaultFlow.id },
+      config: cfg,
+      task: "t",
+      ...extra,
+    });
+  }
+
+  it("review-stage seats resolve to the persona's reviewerProfile; others keep their default", () => {
+    const snap = resolveDefault(cfgWithCheapReviewer(), {
+      reviewerProfile: "cheap-reviewer",
+    });
+    const review = snap.steps.filter(
+      (s) => s.kind === "review-turn" || s.stage === "reviewing",
+    );
+    expect(review.length).toBeGreaterThan(0);
+    for (const s of review) expect(s.profileId).toBe("cheap-reviewer");
+    const exec = snap.steps.find((s) => s.stage === "executing" && s.seat);
+    expect(exec!.profileId).toBe("claude-balanced");
+  });
+
+  it("explicit overrides ALWAYS beat the persona reviewerProfile", () => {
+    const cfg = cfgWithCheapReviewer();
+    const reviewStepId = resolveDefault(cfg).steps.find(
+      (s) => s.kind === "review-turn" || s.stage === "reviewing",
+    )!.id;
+    // Per-step override wins.
+    const perStep = resolveDefault(cfg, {
+      reviewerProfile: "cheap-reviewer",
+      stepProfileOverrides: { [reviewStepId]: "claude-balanced" },
+    });
+    expect(
+      perStep.steps.find((s) => s.id === reviewStepId)!.profileId,
+    ).toBe("claude-balanced");
+    // Run-wide explicit override wins too.
+    const runWide = resolveDefault(cfg, {
+      reviewerProfile: "cheap-reviewer",
+      profileOverride: "claude-balanced",
+    });
+    for (const s of runWide.steps.filter((x) => x.seat)) {
+      expect(s.profileId).toBe("claude-balanced");
+    }
+  });
+
+  it("no reviewerProfile = byte-identical resolution to before", () => {
+    const cfg = cfgWithCheapReviewer();
+    const a = resolveDefault(cfg, { resolvedAt: "2026-06-12T00:00:00.000Z" });
+    const b = resolveDefault(cfg, {
+      reviewerProfile: null,
+      resolvedAt: "2026-06-12T00:00:00.000Z",
+    });
+    expect(b).toEqual(a);
+  });
+});

@@ -152,6 +152,7 @@ import {
 } from "../flows/schemas/flow-schema.js";
 import { defaultFlow } from "../flows/catalog/builtin-flows.js";
 import type { WorkflowSelection } from "../orchestrator/select-workflow.js";
+import { resolvePersona } from "../orchestrator/personas.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import {
@@ -516,6 +517,7 @@ export class Orchestrator {
    *  builtin. Throws if the configured roles/providers can't satisfy it. */
   private async resolveDefaultFlow(): Promise<ResolvedFlowSnapshot> {
     const discovered = await findFlowById(this.projectRoot, defaultFlow.id);
+    const persona = resolvePersona(this.config, this.selection?.personaId ?? null);
     return resolveFlow({
       flow: discovered?.definition ?? defaultFlow,
       source: discovered?.source ?? { kind: "builtin", ref: defaultFlow.id },
@@ -525,6 +527,7 @@ export class Orchestrator {
       profileOverride: this.profileOverride,
       stepProfileOverrides: this.stepProfileOverrides,
       seatRoleOverrides: this.seatRoleOverrides,
+      reviewerProfile: persona.config.reviewerProfile ?? null,
     });
   }
 
