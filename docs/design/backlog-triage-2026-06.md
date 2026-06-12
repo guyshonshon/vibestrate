@@ -395,7 +395,18 @@ shipped, what's still open, what was mentioned but never done" anywhere a
 **Size:** L (design doc + phased implementation).
 **Depends on:** nothing. **Unblocks:** T10, T13, T15, T18.
 
-### T10 - Deterministic consult
+### T10 - Deterministic consult - SHIPPED
+
+**Status (shipped):** `src/consult/consult-sections.ts` - pure
+`computeConsultSections({ ledger, roadmapTasks, recentRuns })` returns four
+deterministic sections (recent activity, open intents, mentioned-never-worked,
+suggested next steps); folded from the T9 ledger state + roadmap (open tasks) +
+recent runs, deduped. Injected at the TOP of the consult context as
+"authoritative - do not contradict", and returned in `ConsultResult.sections`
+(rendered verbatim in `vibe consult` + the dashboard Consult page). The model
+narrates/ranks; it never invents intents/next-steps. Same state => same
+sections (tested). Graphy stays a separate scope-first spike. Tests:
+`consult-sections.test.ts` (5, incl. determinism).
 
 **Raw ask:** "consult window should be more deterministic, it may suggest
 next steps and reasonable things to do on project, overviews, things we

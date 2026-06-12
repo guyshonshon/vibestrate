@@ -13,6 +13,7 @@ import { VibestrateError } from "../utils/errors.js";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
 import { assembleConsultContext } from "./consult-context.js";
+import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
 
 export class ConsultError extends VibestrateError {
@@ -102,6 +103,10 @@ export type ConsultResult = {
   usedSources: string[];
   /** Non-fatal context notes (e.g. a refused file, missing manual). */
   notes: string[];
+  /** Deterministic, code-computed project-state sections (T10). Rendered
+   *  verbatim alongside the model's narrated answer - same state => same
+   *  sections. */
+  sections: ConsultSections;
   providerId: string;
   profileId: string;
   /** The model + effort actually used (null = the provider's own default). */
@@ -114,6 +119,7 @@ function buildInstruction(question: string, contextText: string, usedSources: st
     "You are Vibestrate's project consult - a project-aware engineering advisor.",
     "Answer the user's question about THIS project using ONLY the project context below. You are READ-ONLY: recommend actions, never assume any were taken.",
     "Be honest about your verification boundary: only deterministic evidence (validation results, config, run outcomes, annotations) is reliable. Where the context is insufficient to be sure, say so in `caveats` and lower `confidence`. Never invent facts or fake authority.",
+    "If a `Project state (computed - authoritative...)` block is present, it was computed deterministically from the ledger + roadmap + run history. Narrate and rank those items - do NOT contradict them or invent open intents / next steps that aren't there.",
     "Cite which context you actually used in `usedContext`" +
       (usedSources.length ? ` (available: ${usedSources.join(", ")})` : "") +
       ".",
@@ -169,6 +175,7 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     answer: result.parsed,
     usedSources: context.usedSources,
     notes: context.notes,
+    sections: context.sections,
     providerId: result.providerId,
     profileId: result.profileId,
     model: result.model,

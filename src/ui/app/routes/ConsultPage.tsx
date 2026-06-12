@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ArrowRight, Cpu, FileText, MessagesSquare, Send } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
-import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
+import type { ConsultResult, ConsultSections, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
 import { cn } from "../../components/design/cn.js";
@@ -217,6 +217,8 @@ export function ConsultPage({
               {answer.answer.trim()}
             </p>
 
+            {result.sections ? <ComputedSections sections={result.sections} /> : null}
+
             {answer.caveats.length ? (
               <div className="mt-3.5 rounded-lg border border-amber-400/20 bg-amber-500/[0.05] p-3">
                 <div className="mb-1 flex items-center gap-1.5 text-[11.5px] text-amber-200">
@@ -312,6 +314,41 @@ export function ConsultPage({
           ) : null}
         </section>
       ) : null}
+    </div>
+  );
+}
+
+/** Deterministic, code-computed project-state sections (T10) - rendered verbatim
+ *  next to the model's narration so "what's open / next" is the same for the
+ *  same project state, not whatever the model volunteered. */
+function ComputedSections({ sections }: { sections: ConsultSections }) {
+  const groups: { title: string; items: string[] }[] = [
+    { title: "Recent activity", items: sections.recentActivity },
+    { title: "Open intents", items: sections.openIntents },
+    { title: "Mentioned, never worked on", items: sections.mentionedNeverWorked },
+    { title: "Suggested next steps", items: sections.suggestedNextSteps },
+  ].filter((g) => g.items.length > 0);
+  if (groups.length === 0) return null;
+  return (
+    <div className="mt-3.5 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+      <div className="mb-2 text-[11px] uppercase tracking-[0.12em] text-fog-500">
+        Project state · computed
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {groups.map((g) => (
+          <div key={g.title}>
+            <div className="mb-1 text-[12px] font-medium text-fog-200">{g.title}</div>
+            <ul className="space-y-0.5 text-[12.5px] text-fog-300">
+              {g.items.slice(0, 6).map((it, i) => (
+                <li key={i} className="flex gap-1.5">
+                  <span className="text-fog-500">·</span>
+                  <span className="truncate" title={it}>{it}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

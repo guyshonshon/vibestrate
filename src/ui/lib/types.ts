@@ -344,10 +344,20 @@ export type ConsultAnswer = {
   proposedManualUpdate: { rationale: string; evidence: string; suggestedText: string } | null;
 };
 
+/** Deterministic, code-computed consult sections (T10). */
+export type ConsultSections = {
+  recentActivity: string[];
+  openIntents: string[];
+  mentionedNeverWorked: string[];
+  suggestedNextSteps: string[];
+};
+
 export type ConsultResult = {
   answer: ConsultAnswer;
   usedSources: string[];
   notes: string[];
+  /** Deterministic project-state sections - same state => same sections (T10). */
+  sections?: ConsultSections;
   providerId: string;
   profileId: string;
   /** Model + effort actually used (null = the provider's own default). */
