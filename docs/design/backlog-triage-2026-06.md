@@ -240,7 +240,17 @@ through.
 
 ## Wave 1 - small UX wins
 
-### T6 - Run display names
+### T6 - Run display names - SHIPPED
+
+**Status (shipped):** `displayName` on RunState (nullable, defaulted via
+`defaultDisplayName(task)` - first ~6 words, sentence-cased, "..." past 6); the
+ID format stays locked. `vibe rename <runId> <name...>` + `POST
+/api/runs/:runId/rename` + inline pencil-edit on the dashboard run header
+(`RunHeaderV3`). Lists/board show the name with the short ID secondary (RunList,
+RecentRuns, LiveRuns, shell RunsPage + inspector, `vibe status` NAME column).
+Rename re-reads the freshest state right before writing so a concurrent
+orchestrator write isn't reverted (cosmetic field; terminal runs have no
+concurrent writer). Tests: `run-rename.test.ts` (8).
 
 **Raw ask:** "runs name better than just a random number."
 

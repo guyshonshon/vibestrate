@@ -699,6 +699,13 @@ export const api = {
     );
     return r.run;
   },
+  async renameRun(runId: string, displayName: string): Promise<RunState> {
+    const r = await jsonPost<{ run: RunState }>(
+      `/api/runs/${runId}/rename`,
+      { displayName },
+    );
+    return r.run;
+  },
   async listRunControl(runId: string): Promise<{
     directives: RunControlDirective[];
     pending: RunControlDirective[];

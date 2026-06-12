@@ -45,14 +45,15 @@ export async function runStatusCommand(opts: StatusOptions): Promise<number> {
   }
 
   console.log(
-    "RUN ID                                                   STATUS         REVIEW              VERIFICATION   TASK",
+    "RUN ID                                                   STATUS         REVIEW              VERIFICATION   NAME",
   );
   for (const s of states) {
     const review = s.finalDecision ?? "-";
     const verification = s.verification ?? "-";
-    const task = s.task.length > 60 ? `${s.task.slice(0, 57)}...` : s.task;
+    const name = s.displayName || s.task;
+    const label = name.length > 60 ? `${name.slice(0, 57)}...` : name;
     console.log(
-      `${s.runId.padEnd(56)} ${s.status.padEnd(14)} ${review.padEnd(19)} ${verification.padEnd(14)} ${task}`,
+      `${s.runId.padEnd(56)} ${s.status.padEnd(14)} ${review.padEnd(19)} ${verification.padEnd(14)} ${label}`,
     );
   }
 

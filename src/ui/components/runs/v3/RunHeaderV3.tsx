@@ -1,8 +1,71 @@
-import { ChevronLeft, Diff, GitBranch, RotateCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, Diff, GitBranch, Pencil, RotateCcw } from "lucide-react";
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
 import { shortRunId } from "../../design/format.js";
 import type { RunState, RunStatus } from "../../../lib/types.js";
+
+/** Inline-editable run display name (T6). Click the pencil to rename; Enter
+ *  saves, Escape cancels. Falls back to the task when no name is set. */
+function EditableRunName({
+  run,
+  onRename,
+}: {
+  run: RunState;
+  onRename?: (name: string) => void | Promise<void>;
+}) {
+  const label = run.displayName || run.task;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(label);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+  const commit = () => {
+    const next = draft.trim();
+    setEditing(false);
+    if (next && next !== label) void onRename?.(next);
+  };
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        maxLength={120}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          else if (e.key === "Escape") {
+            setDraft(label);
+            setEditing(false);
+          }
+        }}
+        className="bg-white/[0.06] border border-white/15 rounded px-1.5 py-0.5 text-[12.5px] text-fog-100 max-w-[320px]"
+      />
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5 min-w-0">
+      <span className="text-[12.5px] text-fog-100 font-medium truncate max-w-[320px]" title={run.task}>
+        {label}
+      </span>
+      {onRename ? (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(label);
+            setEditing(true);
+          }}
+          title="Rename this run"
+          className="text-fog-500 hover:text-fog-200 shrink-0"
+        >
+          <Pencil className="h-3 w-3" strokeWidth={1.7} />
+        </button>
+      ) : null}
+    </span>
+  );
+}
 
 function tone(
   status: RunStatus,
@@ -56,12 +119,14 @@ export function RunHeaderV3({
   onOpenDiff,
   onOpenGit,
   onRerun,
+  onRename,
 }: {
   run: RunState;
   onBack: () => void;
   onOpenDiff: () => void;
   onOpenGit: () => void;
   onRerun?: () => void;
+  onRename?: (name: string) => void | Promise<void>;
 }) {
   return (
     <header
@@ -78,8 +143,9 @@ export function RunHeaderV3({
           Mission
         </button>
         <span className="text-fog-500">/</span>
+        <EditableRunName run={run} onRename={onRename} />
         <span
-          className="mono text-[12.5px] text-fog-300 whitespace-nowrap"
+          className="mono text-[11px] text-fog-500 whitespace-nowrap"
           title={run.runId}
         >
           {shortRunId(run.runId)}

@@ -147,7 +147,7 @@ function RunRow({ row, selected }: { row: ShellRunRow; selected: boolean }) {
       <SelectionMark selected={selected} />
       <Text>
         <Text color={tok.color}>{tok.glyph}</Text>
-        <Text bold={selected}>  {clip(row.task, 30).padEnd(30)}</Text>
+        <Text bold={selected}>  {clip(row.displayName || row.task, 30).padEnd(30)}</Text>
         <Text dimColor>
           {"  "}
           {clip(row.flow?.currentStepLabel ?? row.currentRole ?? "-", 10).padEnd(10)}
@@ -217,7 +217,7 @@ function InspectorHeader({ row }: { row: ShellRunRow }) {
     <Box flexDirection="column">
       <Text>
         <Text color={tok.color}>{tok.glyph}</Text>
-        <Text bold>  {clip(row.task, 60)}</Text>
+        <Text bold>  {clip(row.displayName || row.task, 60)}</Text>
       </Text>
       <Text dimColor>
         {row.runId}   ·   {tok.label}

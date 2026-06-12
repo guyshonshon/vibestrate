@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.52",
+  "version": "0.7.54",
   "commands": [
     {
       "name": "init",
@@ -4593,6 +4593,31 @@
           "negated": false
         }
       ],
+      "subcommands": []
+    },
+    {
+      "name": "rename",
+      "path": [
+        "vibe",
+        "rename"
+      ],
+      "description": "Give a run a friendly display name (the run id stays the same).",
+      "usage": "[options] <runId> <name...>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the run id (see `vibe status`)",
+          "required": true,
+          "variadic": false
+        },
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the new display name",
+          "required": true,
+          "variadic": true
+        }
+      ],
+      "options": [],
       "subcommands": []
     },
     {

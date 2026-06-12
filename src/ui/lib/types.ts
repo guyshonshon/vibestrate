@@ -88,6 +88,8 @@ export type FlowRunParticipantState = {
 export type RunState = {
   runId: string;
   task: string;
+  /** Friendly, editable run label (T6). Falls back to the task when absent. */
+  displayName?: string | null;
   status: RunStatus;
   projectRoot: string;
   worktreePath: string | null;
