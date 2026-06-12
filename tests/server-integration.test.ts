@@ -92,4 +92,39 @@ describe("integration HTTP routes", () => {
     expect(body.result.stoppedAt).toBeNull();
     expect(body.result.integrationBranch).toBe("integration/x");
   });
+
+  it("serves read-only merge advice (T13)", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/integration/advice`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.advice).toHaveLength(1);
+    expect(body.missing).toEqual([]);
+    const a = body.advice[0];
+    expect(a.runId).toBe("r1");
+    expect(a.recommendation).toBe("finish-now");
+    // No assurance artifact in this fixture - the advisor must say so, not
+    // wave it through.
+    expect(a.assurance).toBeNull();
+    expect(a.flags.map((f: { id: string }) => f.id)).toContain("assurance_missing");
+    expect(typeof a.headline).toBe("string");
+
+    // Advice mutated nothing: main's tip is unchanged, no scratch debris.
+    const branches = await execa("git", ["branch", "--list", "vibe-preview-*"], { cwd: dir });
+    expect(branches.stdout.trim()).toBe("");
+
+    // Bad body -> 400.
+    const bad = await fetch(`${server.url}/api/integration/advice`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runIds: "not-an-array" }),
+    });
+    expect(bad.status).toBe(400);
+  });
 });

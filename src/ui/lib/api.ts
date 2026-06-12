@@ -479,6 +479,46 @@ export type ComposerPreset = {
   updatedAt?: string;
 };
 
+/** T13 merge advice (design/merge-advisor.md). Structural mirror of the
+ *  server's MergeAdvice - deterministic advisory data, no model output. */
+export type MergeAdviceDto = {
+  runId: string;
+  task: string;
+  topology: {
+    branchName: string;
+    aheadOfMain: number;
+    behindMain: number;
+    filesTouched: number;
+    protectedPathHits: string[];
+  };
+  preview: {
+    branch: string;
+    runId?: string;
+    clean: boolean;
+    conflictedFiles: string[];
+    note: string;
+  } | null;
+  assurance: {
+    verdict: string;
+    lanes: { validation: string; review: string; verification: string };
+    anyRealCheckPassed: boolean;
+    toleratedStepFailures: number;
+  } | null;
+  recommendation: "finish-now" | "stage-on-integration-branch" | "resolve-first";
+  recommendationReason: string;
+  predictedShape: "fast-forward" | "merge-commit-if-main-moves";
+  flags: {
+    id: string;
+    severity: "warning" | "caution";
+    summary: string;
+    detail: string;
+  }[];
+  headline: string;
+  detail: string;
+  personaId: string;
+  manualSteps: string[] | null;
+};
+
 export const api = {
   async listRuns(): Promise<RunState[]> {
     const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
@@ -1119,6 +1159,17 @@ export const api = {
       integrated: { branch: string; clean: boolean; note: string }[];
     } }>("/api/integration/apply", { into, runIds });
     return r.result;
+  },
+  /** T13: read-only merge advice (deterministic - no model output). Same
+   *  cost class as preview; call it on drill-in, not per hub-list row. */
+  async adviseIntegration(runIds?: string[]): Promise<{
+    advice: MergeAdviceDto[];
+    missing: string[];
+  }> {
+    return jsonPost<{ advice: MergeAdviceDto[]; missing: string[] }>(
+      "/api/integration/advice",
+      { runIds },
+    );
   },
   /** P7b: merge a complete integration branch into main, locally (never
    *  pushed). The confirm token guards against accidental invocation. */

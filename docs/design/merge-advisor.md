@@ -39,19 +39,27 @@ The user never merges a run branch into main directly. The path is:
 
 1. `integrate` forks an integration branch **from current main**
    (`startPoint: baseBranch`, `integration-service.ts:209`) and merges the
-   selected run branches into it.
+   selected run branches into it **with `--no-ff`** (`git.ts:286`) - one
+   merge commit per integrated run, recorded on the integration branch at
+   apply time.
 2. `finishIntegration` runs `git merge --no-edit <integrationBranch>` on
    main (`integration-service.ts:460`) - **no `--no-ff`**. Because the
    integration branch forked from main, this **fast-forwards** whenever
-   main has not moved between apply and finish. If main did move, git
-   creates a real merge commit, or the merge conflicts and is aborted.
+   main has not moved between apply and finish: main becomes the
+   integration tip and finish adds no commit of its own. If main did move,
+   finish adds a merge commit on top, or the merge conflicts and is
+   aborted. (Confirmed by the predicted-shape smoke test in
+   `tests/merge-advisor.test.ts`: a fast-forwarded main still shows apply's
+   per-run merge commits - "fast-forward" means finish added nothing extra,
+   not that history is linear.)
 
 So the commit shape is not a strategy the user picks; it is determined by
-whether main moved in the apply-to-finish window. The advisor's job is to
-predict and explain that, not to offer a choice the primitive does not
-have. Run-branch topology (ahead/behind main) is still computed and shown,
-but explicitly as "how far this change has drifted from main" - a conflict
-and staleness signal - never as the merge artifact's topology.
+whether main moved in the apply-to-finish window (plus apply's always-on
+per-run merge commits). The advisor's job is to predict and explain that,
+not to offer a choice the primitive does not have. Run-branch topology
+(ahead/behind main) is still computed and shown, but explicitly as "how far
+this change has drifted from main" - a conflict and staleness signal -
+never as the merge artifact's topology.
 
 ## Decisions
 
@@ -163,6 +171,9 @@ type MergeRiskFlag = {
     | "preview_conflict"
     | "validation_gap" | "review_gap" | "verification_gap"
     | "no_real_check"             // verdict verified but anyRealCheckPassed=false
+    | "assurance_missing"         // no assurance artifact exists for the run
+    | "branch_gone"               // merge-ready run whose branch was deleted
+    | "tolerated_failures"        // best-effort steps failed and were tolerated
     | "protected_paths"
     | "large_change"              // filesTouched > threshold
     | "diverged_main"             // run branch far behind main: stale change
@@ -192,7 +203,8 @@ type MergeAdvice = {
       verification: VerificationLaneStatus;
     };
     anyRealCheckPassed: boolean;
-  };
+    toleratedStepFailures: number;
+  } | null;                       // null = no artifact (assurance_missing flag)
   recommendation: MergeRecommendation;
   recommendationReason: string;
   predictedShape: "fast-forward" | "merge-commit-if-main-moves";
@@ -205,8 +217,10 @@ type MergeAdvice = {
 ```
 
 `computeMergeAdvice(input): MergeAdvice` is pure: it takes the topology
-facts, the preview result, the assurance projection, the ledger state, the
-persona id, and the `merge.advisor` config, and returns the advice. A thin
+facts, the preview result, the assurance projection, the persona id, and
+the `merge.advisor` thresholds, and returns the advice. (The ledger joins
+as an input in slice 2, where "analyze deeper" cross-references files other
+runs touched; slice 1 does not consume it.) A thin
 collector (`collectBranchTopology`) gathers git facts read-only
 (`rev-list`, `diff --name-only`); `mergePreview` is reused as-is for
 conflict facts (it already cleans up its scratch worktree).

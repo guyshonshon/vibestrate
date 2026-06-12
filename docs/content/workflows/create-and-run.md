@@ -70,7 +70,15 @@ Or open the dashboard's **Git** tab to read the diff inline.
 
 ## 5. Merge - by hand
 
-Vibestrate does not push, does not merge. The run leaves the diff on its branch in the worktree. You decide:
+Vibestrate does not push, does not merge. The run leaves the diff on its branch in the worktree. Before you decide, you can ask the merge advisor:
+
+```bash
+vibe integrate advise <runId>
+```
+
+It is read-only and deterministic: risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation - finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts.
+
+Then you decide:
 
 ```bash
 cd ../.vibestrate-worktrees/<runId>-<slug>

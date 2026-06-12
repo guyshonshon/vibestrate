@@ -81,7 +81,18 @@ CLI equivalents: `vibe flows export <id> [--out file]` and
 `vibe flows import <file-or-url> [--overwrite]`. In the dashboard: the **Flows**
 page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
 
-## Integration: guided merge-to-main
+## Integration: merge advice + guided merge-to-main
+
+`POST /api/integration/advice` (`{ runIds? }`) returns **read-only,
+deterministic** merge advice for the selected (or all) merge-ready runs:
+risk flags derived from the run's assurance lanes (including the honest
+"nothing was actually checked" case), the dry-run conflict report, the run
+branch's topology vs main, and a recommendation - `finish-now`,
+`stage-on-integration-branch`, or `resolve-first`. It contains no model
+output and mutates no branch. Gating and cost are the same as
+`/api/integration/preview`, which it wraps (a scratch-worktree dry run per
+call - call it on demand, not per list row). CLI equivalent:
+`vibe integrate advise [runIds...] [--json]`.
 
 `POST /api/integration/finish` (`{ integrationBranch, confirm: "merge-to-main" }`)
 merges a **complete, clean** integration branch into your main branch -

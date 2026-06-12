@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.60
+
+- **A merge advisor that tells you the truth before you merge.** New
+  `vibe integrate advise [runIds...]` (and `POST /api/integration/advice`):
+  read-only, deterministic advice per merge-ready run - risk flags first (did
+  any check actually run? does the change touch protected files? does it still
+  apply cleanly?), then the branch topology, the dry-run conflict report, and a
+  recommendation: finish now, stage on an integration branch, or resolve
+  conflicts first. The advice is computed by code from git facts plus the
+  honest assurance lanes - no model output anywhere in it - and a "verified"
+  run where nothing actually needed checking says exactly that instead of
+  reading as a green light. It also predicts the commit shape: finish
+  fast-forwards main onto the integration branch when main hasn't moved
+  (verified by test, not assumed). Merging itself is unchanged: explicit,
+  human-confirmed, local-only, never pushed. Design:
+  `docs/design/merge-advisor.md`.
+
 ## 0.7.59
 
 - **Flows can take parameters now.** A Flow can declare typed `params:` (string /

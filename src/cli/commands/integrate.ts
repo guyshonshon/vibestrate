@@ -9,6 +9,10 @@ import {
   type MergeReadyRun,
 } from "../../integration/integration-service.js";
 import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
+import {
+  adviseMergeReadyRuns,
+  type MergeAdvice,
+} from "../../integration/merge-advisor.js";
 
 async function ctx() {
   const detected = await detectProject(process.cwd());
@@ -127,6 +131,77 @@ async function cmdApply(runIds: string[], opts: { into?: string }): Promise<numb
   }
 }
 
+function renderAdvice(a: MergeAdvice): void {
+  console.log(`${color.bold(a.task)} ${color.dim(`(${a.runId})`)}`);
+  console.log(indent(a.headline));
+  for (const f of a.flags) {
+    const mark = f.severity === "warning" ? symbol.warn() : color.dim("·");
+    console.log(indent(`${mark} ${f.summary}`));
+    console.log(indent(indent(color.dim(f.detail))));
+  }
+  console.log(
+    indent(
+      color.dim(
+        `branch ${a.topology.branchName}: ${a.topology.aheadOfMain} ahead / ${a.topology.behindMain} behind; ${a.topology.filesTouched} file(s)`,
+      ),
+    ),
+  );
+  console.log(
+    indent(
+      color.dim(
+        a.assurance
+          ? `checks: validation ${a.assurance.lanes.validation} · review ${a.assurance.lanes.review} · verification ${a.assurance.lanes.verification} · real check passed: ${a.assurance.anyRealCheckPassed ? "yes" : "no"}`
+          : "checks: unknown (no assurance record)",
+      ),
+    ),
+  );
+  console.log(
+    indent(
+      `${color.bold(a.recommendation)} ${color.dim(`- ${a.recommendationReason}`)}`,
+    ),
+  );
+  console.log(indent(color.dim(`shape: ${a.predictedShape}`)));
+  if (a.manualSteps) {
+    for (const s of a.manualSteps) console.log(indent(color.dim(`step: ${s}`)));
+  }
+  console.log(indent(color.dim(`advisor persona: ${a.personaId}`)));
+}
+
+async function cmdAdvise(
+  runIds: string[],
+  opts: { json?: boolean },
+): Promise<number> {
+  const root = await ctx();
+  try {
+    const { advice, missing } = await adviseMergeReadyRuns({
+      projectRoot: root,
+      runIds,
+    });
+    if (opts.json) {
+      console.log(JSON.stringify({ advice, missing }, null, 2));
+      return missing.length ? 1 : 0;
+    }
+    for (const m of missing) console.error(`${symbol.warn()} No merge-ready run "${m}".`);
+    if (advice.length === 0) {
+      console.log("No merge-ready runs to advise on.");
+      return missing.length ? 1 : 0;
+    }
+    console.log(header(`Merge advice (${advice.length} run${advice.length > 1 ? "s" : ""})`));
+    console.log(color.dim("Read-only: nothing was merged, no branch was touched."));
+    console.log("");
+    for (const a of advice) {
+      renderAdvice(a);
+      console.log("");
+    }
+    return missing.length ? 1 : 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${err instanceof IntegrationError ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 export function buildIntegrateCommand(): Command {
   const cmd = new Command("integrate").description(
     "Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).",
@@ -139,6 +214,15 @@ export function buildIntegrateCommand(): Command {
     .command("preview [runIds...]")
     .description("Dry-run merge the selected (or all) merge-ready branches; show conflicts.")
     .action(async (runIds: string[]) => process.exit(await cmdPreview(runIds ?? [])));
+  cmd
+    .command("advise [runIds...]")
+    .description(
+      "Read-only merge advice for the selected (or all) merge-ready runs: risk flags, assurance lanes, topology, dry-run conflicts, and a deterministic recommendation. Mutates nothing.",
+    )
+    .option("--json", "emit the advice as JSON")
+    .action(async (runIds: string[], opts: { json?: boolean }) =>
+      process.exit(await cmdAdvise(runIds ?? [], opts)),
+    );
   cmd
     .command("apply [runIds...]")
     .description("Integrate the selected (or all) merge-ready branches into --into <branch>.")

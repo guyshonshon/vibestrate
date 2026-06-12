@@ -10,6 +10,7 @@ import {
   type BranchTarget,
   type MergeReadyRun,
 } from "../../integration/integration-service.js";
+import { adviseMergeReadyRuns } from "../../integration/merge-advisor.js";
 
 export type IntegrationRoutesDeps = { projectRoot: string };
 
@@ -49,6 +50,26 @@ export async function registerIntegrationRoutes(
     if (branches.length === 0) return { preview: { baseBranch: "", results: [], allClean: true } };
     const preview = await mergePreview({ projectRoot: deps.projectRoot, branches });
     return { preview };
+  });
+
+  // T13 slice 1a (design/merge-advisor.md): READ-ONLY merge advice. Same
+  // gating and cost class as /preview (it wraps mergePreview's scratch
+  // worktree + cheap rev-list/diff facts): open on a tokenless loopback bind,
+  // bearer-gated when a token is configured. Mutates no branch; the
+  // deterministic recommendation contains no model output.
+  app.post<{ Body: unknown }>("/api/integration/advice", async (req) => {
+    const parsed = previewBody.safeParse(req.body ?? {});
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    try {
+      const result = await adviseMergeReadyRuns({
+        projectRoot: deps.projectRoot,
+        runIds: parsed.data.runIds,
+      });
+      return { advice: result.advice, missing: result.missing };
+    } catch (err) {
+      if (err instanceof IntegrationError) throw new HttpError(409, err.message);
+      throw new HttpError(500, err instanceof Error ? err.message : String(err));
+    }
   });
 
   // Gated, explicit write - creates a NEW integration branch, never main, never
