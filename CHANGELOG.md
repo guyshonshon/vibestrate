@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.58
+
+- **Consult now leads with computed facts, not whatever the model volunteered.**
+  Ask the project consult and it shows a deterministic "Project state" block -
+  recent activity, open intents, what was mentioned but never worked on, and
+  suggested next steps - computed in code from the ledger (T9) + roadmap + run
+  history. Same project state, same sections every time; the model only narrates
+  and ranks them, and is told not to contradict or invent them. Shown in
+  `vibe consult` and on the dashboard Consult page.
+
 ## 0.7.57
 
 - **A project continuity ledger so a new session knows where you left off.** When

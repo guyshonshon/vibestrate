@@ -1,6 +1,10 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { runConsult, persistConsultProposal, type ConsultAnswer } from "../../consult/consult.js";
+import {
+  renderConsultSections,
+  consultSectionsEmpty,
+} from "../../consult/consult-sections.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
 function collect(value: string, acc: string[]): string[] {
@@ -66,11 +70,24 @@ export function buildConsultCommand(): Command {
           return;
         }
 
-        const { answer, usedSources, notes } = result;
+        const { answer, usedSources, notes, sections } = result;
         console.log("");
         console.log(`${header("Consult")}  ${color.dim(`· ${confidenceBadge(answer.confidence)}`)}`);
         console.log("");
         console.log(answer.answer.trim());
+
+        // Deterministic project-state sections (T10): computed in code, the same
+        // for the same project state - shown verbatim alongside the narration.
+        if (!consultSectionsEmpty(sections)) {
+          console.log("");
+          console.log(header("Project state (computed)"));
+          console.log(
+            renderConsultSections(sections)
+              .split("\n")
+              .map((l) => (l.startsWith("### ") ? color.dim(l.slice(4)) : indent(l)))
+              .join("\n"),
+          );
+        }
 
         if (answer.caveats.length) {
           console.log("");

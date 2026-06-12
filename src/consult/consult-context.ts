@@ -14,6 +14,13 @@ import { listAnnotations, renderAnnotationsForPrompt } from "../core/annotations
 import { materializeContextSources } from "../core/context-sources.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import type { RunState } from "../core/state-machine.js";
+import { LedgerStore } from "../core/project-ledger.js";
+import {
+  computeConsultSections,
+  renderConsultSections,
+  consultSectionsEmpty,
+  type ConsultSections,
+} from "./consult-sections.js";
 
 /** Keep the whole context block well-bounded; consult is a one-shot question. */
 const CONTEXT_MAX_BYTES = 96 * 1024;
@@ -36,6 +43,10 @@ export type ConsultContext = {
   usedSources: string[];
   /** Non-fatal skips (e.g. a refused file, an unknown task). */
   notes: string[];
+  /** Deterministic, code-computed project-state sections (T10): recent activity,
+   *  open intents, mentioned-never-worked, suggested next steps. Same project
+   *  state => same sections; the model only narrates them. */
+  sections: ConsultSections;
 };
 
 function truncate(s: string, max: number): string {
@@ -190,9 +201,36 @@ export async function assembleConsultContext(
     notes.push(...materialized.notes);
   }
 
+  // Deterministic computed project-state sections (T10): folded from the ledger
+  // + roadmap + recent runs, in code. Inserted at the TOP as authoritative
+  // context (the model narrates these facts, never invents them) AND returned
+  // structured so the CLI/UI render them verbatim.
+  const ledgerState = await new LedgerStore(projectRoot).state().catch(() => null);
+  const roadmapTasks = await new RoadmapService(projectRoot)
+    .listTasks()
+    .catch(() => []);
+  const computedSections = computeConsultSections({
+    ledger: ledgerState ?? {
+      shipped: [],
+      intents: [],
+      residuals: [],
+      mentions: [],
+      decisions: [],
+    },
+    roadmapTasks: roadmapTasks.map((t) => ({ title: t.title, status: t.status })),
+    recentRuns: meta?.recentRuns ?? [],
+  });
+  if (!consultSectionsEmpty(computedSections)) {
+    sections.unshift(
+      `## Project state (computed - authoritative, do not contradict)\n${renderConsultSections(computedSections)}`,
+    );
+    usedSources.unshift("computed project state");
+  }
+
   return {
     text: clampBytes(sections.join("\n\n"), CONTEXT_MAX_BYTES),
     usedSources,
     notes,
+    sections: computedSections,
   };
 }
