@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs/promises";
+import { execa } from "execa";
 import { linkWorktreeEnvironment } from "../src/git/worktree-env.js";
 
 // P8c: a bare `git worktree add` has no gitignored environment, so validation
@@ -19,6 +20,13 @@ describe("linkWorktreeEnvironment", () => {
   beforeEach(async () => {
     projectRoot = await mkTemp("vibestrate-envlink-root-");
     worktreePath = await mkTemp("vibestrate-envlink-wt-");
+    // The linker only links dirs that are GITIGNORED in the worktree (an
+    // un-ignored symlink would be staged by the run's git add -A).
+    await execa("git", ["init", "-q"], { cwd: worktreePath });
+    await fs.writeFile(
+      path.join(worktreePath, ".gitignore"),
+      "node_modules\n.venv\nvenv\n",
+    );
   });
 
   it("links node_modules when the lockfile is identical", async () => {
@@ -102,6 +110,18 @@ describe("linkWorktreeEnvironment", () => {
     );
     const st = await fs.lstat(path.join(worktreePath, ".venv"));
     expect(st.isSymbolicLink()).toBe(false);
+  });
+
+  it("refuses to link a dir that is NOT gitignored in the worktree", async () => {
+    await fs.mkdir(path.join(projectRoot, ".venv"), { recursive: true });
+    // Overwrite the ignore file so .venv is NOT ignored.
+    await fs.writeFile(path.join(worktreePath, ".gitignore"), "node_modules\n");
+    const r = await linkWorktreeEnvironment({ projectRoot, worktreePath });
+    expect(r.linked.map((l) => l.dir)).not.toContain(".venv");
+    expect(
+      r.skipped.some((s) => s.dir === ".venv" && /not gitignored/.test(s.reason)),
+    ).toBe(true);
+    await expect(fs.lstat(path.join(worktreePath, ".venv"))).rejects.toThrow();
   });
 
   it("reports nothing when the project has no env dirs", async () => {

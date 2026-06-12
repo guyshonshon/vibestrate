@@ -87,8 +87,20 @@ describe("validation runner", () => {
     expect(isEnvironmentFailure(0, "command not found")).toBe(false);
     expect(isEnvironmentFailure(127, "")).toBe(true);
     expect(isEnvironmentFailure(1, "sh: tsc: command not found")).toBe(true);
+    expect(isEnvironmentFailure(1, "zsh:1: command not found: tsc")).toBe(true);
     expect(
       isEnvironmentFailure(1, "AssertionError: expected 1 to be 2"),
+    ).toBe(false);
+    // Adversarial review: the phrase EMBEDDED in test output must not flip a
+    // real failure to environment - vitest writes failures to stderr.
+    expect(
+      isEnvironmentFailure(
+        1,
+        "FAIL src/x.test.ts > prints command not found when binary missing\nAssertionError: expected 'command not found' to contain 'tsc'",
+      ),
+    ).toBe(false);
+    expect(
+      isEnvironmentFailure(1, "Error: the string \"command not found\" was unexpected here"),
     ).toBe(false);
   });
 });

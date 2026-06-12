@@ -1,5 +1,6 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import { execa } from "execa";
 import { pathExists } from "../utils/fs.js";
 
 // ── Worktree environment linking (P8c) ──────────────────────────────────────
@@ -14,6 +15,15 @@ import { pathExists } from "../utils/fs.js";
 // machine. The JS guard: node_modules is only linked when the lockfile in the
 // worktree is byte-identical to the project's - a run that lands on a branch
 // with different deps must not validate against the wrong tree.
+//
+// HONEST BOUNDARY NOTE (documented exception to "writes are worktree-
+// bounded"): a write-capable agent in the worktree can write THROUGH a linked
+// dir into the project root's env dir (its own installed deps). git-apply
+// refuses paths beyond a symlink, so the apply gateway stays bounded; direct
+// writes by an acceptEdits seat are not. Blast radius = the host project's
+// gitignored env dirs only - never tracked sources - and the diff the human
+// reviews shows any package.json/script change that could exploit it.
+// `git.linkEnvironment: off` restores fully bare worktrees.
 
 const LOCKFILES = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock", "bun.lockb"];
 
@@ -30,6 +40,22 @@ async function filesIdentical(a: string, b: string): Promise<boolean> {
   try {
     const [ba, bb] = await Promise.all([fs.readFile(a), fs.readFile(b)]);
     return ba.equals(bb);
+  } catch {
+    return false;
+  }
+}
+
+/** A linked dir must be gitignored in the worktree - otherwise the run's
+ *  `git add -A` commit would stage the SYMLINK as a tracked entry and an
+ *  out-of-tree link could ride a merge into main (adversarial review).
+ *  Fail-closed: can't verify -> don't link. */
+async function isGitIgnored(worktreePath: string, relDir: string): Promise<boolean> {
+  try {
+    const r = await execa("git", ["check-ignore", "-q", relDir], {
+      cwd: worktreePath,
+      reject: false,
+    });
+    return r.exitCode === 0;
   } catch {
     return false;
   }
@@ -78,6 +104,12 @@ async function linkDir(
   }
   if (await pathExists(linkPath)) {
     return { dir: relDir, reason: "already exists in worktree" };
+  }
+  if (!(await isGitIgnored(worktreePath, relDir))) {
+    return {
+      dir: relDir,
+      reason: "not gitignored in the worktree - linking would risk committing the symlink",
+    };
   }
   try {
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
