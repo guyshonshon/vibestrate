@@ -6,6 +6,7 @@ import {
   runClaudeCodeProvider,
   type ClaudeCodeProviderRunResult,
 } from "./claude-code-provider.js";
+import { effectiveClaudeOutputFormat } from "./claude-code-settings.js";
 import type { ClaudeCodeRunMetrics } from "./claude-code-output-parser.js";
 import {
   textOutputAdapter,
@@ -62,10 +63,11 @@ export async function runProvider(
       provider,
       input,
     );
-    // stream-json: the adapter extracts the response text + usage from the
-    // event stream (fails loud if it can't). text/json: stdout is the answer,
-    // metrics from the existing claude parser.
-    if (provider.settings?.outputFormat === "stream-json") {
+    // stream-json (explicit OR the streaming default): the adapter extracts
+    // the response text + usage from the event stream (fails loud if it
+    // can't). Explicit text/json or manual --output-format args: stdout is
+    // the answer, metrics from the existing claude parser.
+    if (effectiveClaudeOutputFormat(provider) === "stream-json") {
       return { ...result, normalized: claudeStreamJsonAdapter.finalize(result.stdout) };
     }
     return {

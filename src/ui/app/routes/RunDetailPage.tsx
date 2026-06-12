@@ -3,8 +3,6 @@ import { api, ApiError, type ProviderRow } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
-  RunAudit,
-  EngagementEntry,
   VibestrateEvent,
   ApprovalRequest,
   RunAssurance,
@@ -15,14 +13,13 @@ import type {
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
-import { RunGraph } from "../../components/runs/RunGraph.js";
+import { LiveTimeline } from "../../components/runs/LiveTimeline.js";
 import { PanelBoard } from "../../components/layout/PanelBoard.js";
 import {
   InspectorTabsV3,
   type InspectorV3Tab,
 } from "../../components/runs/v3/InspectorTabs.js";
 import { LiveOutputPanel } from "../../components/runs/LiveOutputPanel.js";
-import { SeatBoard } from "../../components/runs/SeatBoard.js";
 import { StepsInspector } from "../../components/runs/StepsInspector.js";
 import { EventStream } from "../../components/workflow/EventStream.js";
 import { ChangedFilesList } from "../../components/diff/ChangedFilesList.js";
@@ -79,8 +76,6 @@ export function RunDetailPage({
   const [fileViewMode, setFileViewMode] = useState<"diff" | "file">("diff");
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
-  const [audit, setAudit] = useState<RunAudit | null>(null);
-  const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
 
   useEffect(() => {
@@ -88,13 +83,12 @@ export function RunDetailPage({
     let loadedOnce = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel, eng] = await Promise.all([
+        const [r, m, a, d, sel] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
           api.getDiff(runId).catch(() => null),
           api.getRunSelection(runId).catch(() => null),
-          api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -102,20 +96,13 @@ export function RunDetailPage({
         setMetrics(m);
         setApprovals(a);
         setSelection(sel);
-        setEngagement(eng);
         setError(null);
-        // Assurance + audit only exist once a run is terminal.
+        // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
           api
             .getRunAssurance(runId)
             .then((as) => {
               if (!cancelled) setAssurance(as);
-            })
-            .catch(() => {});
-          api
-            .getRunAudit(runId)
-            .then((au) => {
-              if (!cancelled) setAudit(au);
             })
             .catch(() => {});
         }
@@ -318,18 +305,25 @@ export function RunDetailPage({
       <CrewStrip flow={run.flow ?? null} />
 
       <PanelBoard
-        storageKey="vibestrate.rundetail.layout"
+        storageKey="vibestrate.rundetail.layout.v2"
         panels={[
-          ...(run.flow || audit || engagement.length > 0
+          // The live timeline (P8b): replaces the run graph + seat board pair
+          // with the one surface that answers "what is happening right now".
+          ...(run.flow
             ? [
                 {
-                  id: "graph",
-                  title: "Run graph",
-                  defaultLayout: { id: "graph", x: 0, y: 0, w: 8, h: 9 },
+                  id: "timeline",
+                  title: "Live timeline",
+                  defaultLayout: { id: "timeline", x: 0, y: 0, w: 8, h: 9 },
                   minW: 4,
                   minH: 5,
                   render: () => (
-                    <RunGraph flow={run.flow ?? null} audit={audit} engagement={engagement} />
+                    <LiveTimeline
+                      runId={runId}
+                      status={run.status}
+                      flow={run.flow}
+                      metrics={metrics}
+                    />
                   ),
                 },
               ]
@@ -364,31 +358,10 @@ export function RunDetailPage({
               />
             ),
           },
-          // Control Center (P5): seat cards + the selected seat's prompt /
-          // live transcript / response. Only meaningful once a flow exists.
-          ...(run.flow
-            ? [
-                {
-                  id: "seats",
-                  title: "Control center",
-                  defaultLayout: { id: "seats", x: 0, y: 9, w: 12, h: 7 },
-                  minW: 6,
-                  minH: 5,
-                  render: () => (
-                    <SeatBoard
-                      runId={runId}
-                      status={run.status}
-                      flow={run.flow}
-                      metrics={metrics}
-                    />
-                  ),
-                },
-              ]
-            : []),
           {
             id: "live",
             title: "Live execution",
-            defaultLayout: { id: "live", x: 0, y: 16, w: 8, h: 6 },
+            defaultLayout: { id: "live", x: 0, y: 9, w: 12, h: 6 },
             minW: 4,
             minH: 4,
             render: () => (

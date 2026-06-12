@@ -96,11 +96,15 @@ export function deriveSeatBoard(
     tokens: stepTokens(s.id, metrics),
     promptArtifactPath: s.promptArtifactPath,
     outputArtifactPath: s.outputArtifactPath,
-    // Stream names mirror the prompt artifact path without extension - the
-    // flow runner writes `flows/<stepId>/prompt.md`, the stream store strips
-    // the extension (see provider-stream-store.streamFilePath).
+    // Stream names mirror the prompt artifact name without extension - the
+    // stream store records `flows/<stepId>/prompt` (see
+    // provider-stream-store.streamFilePath). The stamped artifact path is
+    // RUN-dir-relative ("artifacts/flows/<id>/prompt.md"), so the prefix must
+    // go too - with it the seat transcript matched no stream, ever.
     streamName: s.promptArtifactPath
-      ? s.promptArtifactPath.replace(/\.[^./]+$/, "")
+      ? s.promptArtifactPath
+          .replace(/^artifacts\//, "")
+          .replace(/\.[^./]+$/, "")
       : `flows/${s.id}/prompt`,
     groupKey: isGraph ? [...(s.needs ?? [])].sort().join(" ") || `solo-${i}` : `lin-${i}`,
   }));
