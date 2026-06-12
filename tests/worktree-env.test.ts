@@ -23,9 +23,12 @@ describe("linkWorktreeEnvironment", () => {
     // The linker only links dirs that are GITIGNORED in the worktree (an
     // un-ignored symlink would be staged by the run's git add -A).
     await execa("git", ["init", "-q"], { cwd: worktreePath });
+    // Dir-only patterns (trailing slash) on purpose: that's this repo's real
+    // shape, and check-ignore only matches them when the QUERY carries the
+    // slash too (the dir doesn't exist yet) - a live E2E run caught this.
     await fs.writeFile(
       path.join(worktreePath, ".gitignore"),
-      "node_modules\n.venv\nvenv\n",
+      "node_modules/\n.venv/\nvenv/\n",
     );
   });
 

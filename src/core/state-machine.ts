@@ -288,6 +288,10 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
+    // Express (A3) skips review on recorded inert-diff evidence, so a run
+    // whose last executed step is validation goes terminal from here - the
+    // skip is evidence, not absence (assurance still caps the verdict).
+    "merge_ready",
     "failed",
     "aborted",
     "blocked",
