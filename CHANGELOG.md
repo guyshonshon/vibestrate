@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.45
+
+- **The dashboard says less and means more.** A clarity pass over the four
+  busiest screens, done against rendered pages, not blind: tables now lead
+  with the task you ran, demoting the 60-character run id to a short
+  timestamp (full id on hover); statuses, roles, and headings that repeated
+  themselves on one screen now appear once; flow step labels stopped
+  truncating. Two honesty fixes landed on the way: Mission Control's recent
+  runs called a merge-ready run "Merged" (nothing had been merged - it now
+  says "Merge ready"), and a finished run's elapsed time no longer keeps
+  counting wall-clock time forever. The flow builder's "Use this flow"
+  button, which only navigated away, is now "Use as default" and actually
+  sets the project default - or tells you it already is.
+
 ## 0.7.44
 
 - **Guided merge-to-main: the last step of integration, with a human at the
