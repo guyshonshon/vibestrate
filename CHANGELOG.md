@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.53
+
+- **Releases now verify the published artifact, not just the source tree.** A new
+  `scripts/verify-pack.sh` packs the real tarball, installs it into a clean-room
+  project from a fresh `node_modules`, asserts the file manifest (required files
+  present; no sourcemaps, `node_modules`, `.env`, or test files), and smoke-runs
+  the installed bin (`vibe --version`/`--help`, the `vibestrate` alias, and
+  `vibe init`). It catches a bad `files` whitelist, a missing runtime dependency
+  the monorepo was masking, or a broken ESM/shebang resolution - the failure
+  classes a typecheck/build/test gate can't see. Wired into `scripts/release.sh`
+  (before the version bump) and the release workflow (before `npm publish`).
+
 ## 0.7.52
 
 - **`vibe doctor` now warns when your Claude Code hooks will leak into runs.**

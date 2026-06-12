@@ -58,6 +58,12 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Verify the PUBLISHED artifact before we publish it: pack -> clean-room
+      # install from the tarball -> bin smoke. Catches a bad `files` whitelist or
+      # a missing runtime dep that the source-tree gate above can't see (T5).
+      - name: Verify packed artifact
+        run: bash scripts/verify-pack.sh
+
       # `npm publish` runs prepublishOnly (build + sourcemap trim).
       # --provenance attaches a signed build attestation; --access public
       # is explicit for an unscoped public package.

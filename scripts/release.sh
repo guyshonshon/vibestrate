@@ -53,6 +53,10 @@ echo "→ Typecheck…";  pnpm typecheck
 echo "→ Build…";      pnpm build
 echo "→ Test…";       pnpm test
 echo "→ Audit (prod)…"; pnpm audit --prod
+# Verify the PUBLISHED artifact, not just the source tree: pack → clean-room
+# install → bin smoke. Catches a bad `files` whitelist or a missing runtime dep
+# before we tag (T5).
+echo "→ Verify packed artifact…"; bash scripts/verify-pack.sh
 
 # ── Bump + tag ────────────────────────────────────────────────────────
 echo "→ Bumping version ($BUMP)…"
