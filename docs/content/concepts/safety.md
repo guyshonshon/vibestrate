@@ -99,8 +99,8 @@ decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:
 
 | Verdict | Meaning |
 | --- | --- |
-| `verified` | Policy passed, review approved, validation and verification all passed. |
-| `partially_verified` | Some evidence passed, but checks are missing (see `caps`). |
+| `verified` | Every applicable check passed - **or nothing needed checking** (see below). |
+| `partially_verified` | A check that *was* expected is missing, failed, or weak (see `caps`). |
 | `unverified` | The run reached merge_ready with no meaningful evidence. |
 | `blocked` | The run did not reach merge_ready. |
 | `unsafe` | A policy denied an action, or a rollback failed - don't trust the worktree. |
@@ -108,6 +108,18 @@ decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:
 There is **no confidence score** - a verdict is a level capped by what's missing,
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
+
+**Nothing-to-verify is not a gap.** Each lane (validation, review, verification)
+is reported as `passed`, `failed`, `not_applicable`, or `missing`/`not_run`. A
+lane is `not_applicable` when there was genuinely nothing to check - a docs-only
+change with no validation commands, a flow with no review or verify step, or an
+inert-diff review skip (strict prose touching no protected path). Those land in
+**`notes`** (informational), not `caps` (real gaps), and a run where every lane
+is passed-or-not-applicable reads `verified` with the honest summary "no checks
+were required for this change" - **not** the shaming `partially_verified`. The
+distinction is preserved in the lane statuses, so "verified, nothing required" is
+never confused with "review approved and tests passed". `partially_verified` is
+now reserved for a check that *was* expected and is missing, failed, or weak.
 
 A `blocked` or `unsafe` verdict also carries **`blockers`** - the root causes,
 derived from the run's failed steps and provider give-up events. The summary

@@ -86,6 +86,10 @@ export function buildAssuranceCommand(): Command {
         console.log("");
         console.log(color.dim(`  caps: ${assurance.caps.join(", ")}`));
       }
+      if (assurance.notes.length > 0) {
+        if (assurance.caps.length === 0) console.log("");
+        console.log(color.dim(`  notes: ${assurance.notes.join(", ")}`));
+      }
     });
   return cmd;
 }

@@ -57,7 +57,24 @@ the same guard: paths containing a space are rejected outright
 **Size:** S-M. **Depends on:** nothing. **Unblocks:** T13 (merge window
 needs the same "where is the work" surface).
 
-### T2 - Assurance verdict semantics: nothing-to-verify is not "partially verified"
+### T2 - Assurance verdict semantics: nothing-to-verify is not "partially verified" - SHIPPED
+
+**Status (shipped):** Lane statuses gained `not_applicable` (distinct from
+`missing`/`not_run`); a new `notes` array carries informational items (n/a lanes
++ inert-diff review skip) separate from verdict-capping `caps`; `pickVerdict`
+moved to a PASS/NA/GAP/FAIL lane model, so an all-passed-or-n/a `merge_ready` run
+reads `verified` ("no checks were required") instead of `partially_verified`.
+Applicability is computed run-locally in `buildAndWriteRunAssurance` (flow step
+kinds + `state.readOnly` + the `validation.scoped` event + `commands.validate`).
+This refines (not contradicts) the P4b express cap - see
+[`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) §
+Applicability for the reconciliation. A `verified` run with
+`anyRealCheckPassed: false` means "nothing required", never "checked + approved".
+Adversarially reviewed pre-merge (fresh-context Opus): no gate reads the verdict,
+real failures can't be masked (broker log is immutable + the applicability flag
+is dead on any lane with evidence), inert path is A2-floored. Two follow-ups
+logged for T13: persist applicability into run state (re-derive drift); require
+T13 to read lane statuses / `anyRealCheckPassed`, not the bare verdict.
 
 **Raw ask:** "why if there's no verifications needed it does: partially
 verified... validation: missing (0/0), review: skipped_inert_diff,
@@ -96,7 +113,16 @@ verification passed but 0/0 validation can never do better than
 
 **Size:** S-M. **Depends on:** nothing. **Unblocks:** T13.
 
-### T3 - Inspect artifacts spam
+### T3 - Inspect artifacts spam - SHIPPED
+
+**Status (shipped):** Widened `isInternal()` in `ArtifactList.tsx` to also hide
+run-level orchestration plumbing (`selection.json`, `flow.json`,
+`participants.json`, `context/*`, numbered `*-prompt.md` record copies) on top of
+the existing per-turn plumbing; deliverables (output/report/idea/outcomes) and
+evidence (validation-results, findings, finding-responses, decision-summary,
+diffs, patches) stay visible. Step groups are now collapsible (default expanded),
+and the internals toggle persists per browser (default off) via
+`usePersistedState`.
 
 **Raw ask:** "are these even supposed to be a part of the Inspect
 artifacts? It is quite spammy."

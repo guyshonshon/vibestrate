@@ -114,10 +114,39 @@ Meaning:
 | `blocked` | The run cannot continue because approval, budget, validation, or policy blocked it. |
 | `unsafe` | A hard policy was violated or rollback failed. Do not trust the worktree. |
 | `unverified` | No meaningful validation/review evidence exists. |
-| `partially_verified` | Some evidence passed, but important checks are missing. |
-| `verified` | Required policies, approvals, validation, review, and verification all passed - and no best-effort step failed. |
+| `partially_verified` | A check that *was expected* is missing, failed, or weak. |
+| `verified` | Every applicable check passed - or nothing needed checking. |
 
 No score is needed for v1. If we later add score, it must be derived only from evidence and capped by missing checks.
+
+**Applicability: nothing-to-verify is not a gap (T2).** Each lane (validation,
+review, verification) reports `passed` / `failed` / `not_applicable` /
+`missing`-or-`not_run`. A lane is `not_applicable` when there was genuinely
+nothing to check: the flow has no validation/review/verify step, no validate
+commands are configured, the run was read-only, or the change was inert and the
+review/validation was deterministically scope-skipped. Those land in `notes`
+(informational), not `caps` (real gaps). A `merge_ready` run where every lane is
+passed-or-not-applicable reads `verified` with the summary "no checks were
+required for this change" - it is **not** shamed as `partially_verified`.
+
+This deliberately refines the P4b express cap: P4b capped an inert-diff review
+skip at `partially_verified` so a *skipped* review could never read as
+`verified`. T2 keeps that honesty but moves the line: because the express skip is
+already gated on recorded strict-prose + protected-path-clear evidence (the A2
+floor), for such a change there is genuinely nothing to review, so the lane is
+`not_applicable` rather than a skipped gap. The honesty is preserved two ways:
+(1) the summary says "no checks were required", never "review approved"; (2) the
+artifact carries `anyRealCheckPassed` - `false` on a "nothing required" run - so
+a consumer (the T13 merge advisor) can tell a genuinely-checked `verified` run
+from a "nothing to check" one without re-deriving it from lane statuses.
+
+*Re-derivation caveat:* applicability is computed at run completion and stamped
+into the lane statuses, so a run's own `assurance.json` is correct. When the
+artifact is absent and re-derived on read (a legacy run), current
+`commands.validate` stands in for the run-time value, which can shift the
+evidence-less 0/0 case between `missing` and `not_applicable`. Real validation
+pass/fail is never affected (it comes from the immutable broker log). Persisting
+applicability into run state is a T13 follow-up.
 
 **Coverage cap (Slice 5).** Graph flows can run best-effort steps
 (`continueOnError`) and retried steps. When such a step fails and is *tolerated*

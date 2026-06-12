@@ -134,7 +134,10 @@ describe("computeMergeReady - express skip semantics", () => {
 // ── Assurance honesty: a skip run can never read as verified ───────────────
 
 describe("assurance for a skip-evidence run", () => {
-  it("reports skipped_inert_diff + caps at partially_verified", () => {
+  it("an inert-diff review skip is a NOTE, not a verdict-capping cap (T2)", () => {
+    // Mixed signal: validation ran + passed, but verification was still expected
+    // (applicable by default) and never ran -> that real gap, not the review
+    // skip, is what caps the verdict. The skip itself is recorded as context.
     const a = deriveRunAssurance({
       runId: "r1",
       runStatus: "merge_ready",
@@ -152,9 +155,40 @@ describe("assurance for a skip-evidence run", () => {
       generatedAt: "2026-06-11T00:00:00.000Z",
     });
     expect(a.review.status).toBe("skipped_inert_diff");
+    // The skip is informational - it never holds the verdict down.
+    expect(a.notes).toContain("review_skipped_inert_diff");
+    expect(a.caps).not.toContain("review_skipped_inert_diff");
+    // Still capped - but by the real verification gap, not the skip.
     expect(a.verdict).toBe("partially_verified");
+    expect(a.caps).toContain("verification_not_run");
     expect(a.verdict).not.toBe("verified");
-    expect(a.caps).toContain("review_skipped_inert_diff");
+  });
+
+  it("a fully inert run (nothing applicable) reads verified, not partially (T2)", () => {
+    // The real express case: inert diff -> review skipped, validation
+    // scope-skipped (0/0, not applicable), no verify step. Nothing was required,
+    // so the honest verdict is "verified" with a "nothing to verify" summary -
+    // NOT the shaming "partially verified".
+    const a = deriveRunAssurance({
+      runId: "r1",
+      runStatus: "merge_ready",
+      finalDecision: null,
+      reviewSkipped: true,
+      verification: null,
+      actionLog: [],
+      validationApplicable: false,
+      validationScopedInert: true,
+      verificationApplicable: false,
+      generatedAt: "2026-06-11T00:00:00.000Z",
+    });
+    expect(a.validation.status).toBe("not_applicable");
+    expect(a.review.status).toBe("skipped_inert_diff");
+    expect(a.verification.status).toBe("not_applicable");
+    expect(a.verdict).toBe("verified");
+    expect(a.summary).toMatch(/no checks were required/i);
+    // Not a single cap - everything is a note.
+    expect(a.caps).toHaveLength(0);
+    expect(a.notes).toContain("review_skipped_inert_diff");
   });
 
   it("without the skip flag a null decision stays 'missing'", () => {

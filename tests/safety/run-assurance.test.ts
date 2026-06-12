@@ -192,6 +192,81 @@ describe("deriveRunAssurance verdicts", () => {
   });
 });
 
+describe("T2: applicability - nothing-to-verify is not a gap", () => {
+  it("all lanes not-applicable reads 'verified', not partially_verified", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: null,
+      verification: null,
+      actionLog: [],
+      validationApplicable: false,
+      verificationApplicable: false,
+      reviewApplicable: false,
+    });
+    expect(a.validation.status).toBe("not_applicable");
+    expect(a.review.status).toBe("not_applicable");
+    expect(a.verification.status).toBe("not_applicable");
+    expect(a.verdict).toBe("verified");
+    expect(a.caps).toHaveLength(0);
+    expect(a.notes).toEqual(
+      expect.arrayContaining([
+        "validation_not_required",
+        "review_not_required",
+        "verification_not_required",
+      ]),
+    );
+    expect(a.summary).toMatch(/no checks were required/i);
+  });
+
+  it("scoped-inert validation notes the inert reason, still verified", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: null,
+      actionLog: [],
+      validationApplicable: false,
+      validationScopedInert: true,
+      verificationApplicable: false,
+    });
+    expect(a.validation.status).toBe("not_applicable");
+    expect(a.verdict).toBe("verified");
+    expect(a.notes).toContain("validation_skipped_inert");
+    // review approved is a real pass; summary leads with it, not "nothing".
+    expect(a.summary).toMatch(/review.*passed/i);
+  });
+
+  it("a real validation gap (applicable but 0/0) stays a cap + partial", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [], // applicable, but nothing ran -> a genuine gap
+      validationApplicable: true,
+    });
+    expect(a.validation.status).toBe("missing");
+    expect(a.caps).toContain("validation_missing");
+    expect(a.verdict).toBe("partially_verified");
+  });
+
+  it("mix of passed + not-applicable lanes is verified, not partial", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ evidence: { ok: true } })],
+      validationApplicable: false, // no validate commands, but cmds ran? no:
+    });
+    // cmds has one passing command, so validation reads "passed" regardless of
+    // the applicability flag (the flag only governs the 0/0 case).
+    expect(a.validation.status).toBe("passed");
+    expect(a.verdict).toBe("verified");
+  });
+});
+
 describe("blockers + caps on blocked runs", () => {
   const blocker = {
     stepId: "implement",
@@ -436,6 +511,9 @@ describe("buildAndWriteRunAssurance", () => {
       // undefined fields that crash every consumer.
       expect(read?.coverage).toEqual({ toleratedStepFailures: 0 });
       expect(read?.caps).toEqual([]);
+      expect(read?.notes).toEqual([]);
+      // Backfilled from the (absent) lane statuses -> no real check recorded.
+      expect(read?.anyRealCheckPassed).toBe(false);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

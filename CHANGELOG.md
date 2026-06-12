@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.50
+
+- **"Nothing to verify" no longer reads as a half-failure.** A docs-only change
+  with no validation commands, no review needed, and no verify step used to get
+  stamped `partially_verified` - the same yellow verdict as a run that genuinely
+  skipped checks. That trained people to ignore the verdict. Now each
+  check (validation, review, verification) is reported as passed, failed, or
+  *not applicable*, and a run where every applicable check passed - or where
+  nothing needed checking - reads `verified` with an honest summary ("no checks
+  were required for this change"). Genuinely-missing checks still cap the
+  verdict; they're just no longer confused with checks that were never required.
+  The assurance artifact gains a `notes` list (informational context, separate
+  from verdict-capping `caps`) and an `anyRealCheckPassed` flag so a
+  genuinely-checked run is always distinguishable from a "nothing to check" one.
+- **The Inspect panel stops drowning you in plumbing.** The artifact list now
+  hides the engine's own bookkeeping by default (the resolved-flow record,
+  selection + participant records, context packets, prompt copies) and keeps the
+  things you actually read - outputs, reports, decisions, findings, validation
+  results, diffs. Step groups collapse, and the "show internals" toggle is
+  remembered per browser.
+
 ## 0.7.49
 
 - **A dead run now tells you why - and tries to save itself first.** Born from
