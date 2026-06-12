@@ -51,7 +51,10 @@ async function filesIdentical(a: string, b: string): Promise<boolean> {
  *  Fail-closed: can't verify -> don't link. */
 async function isGitIgnored(worktreePath: string, relDir: string): Promise<boolean> {
   try {
-    const r = await execa("git", ["check-ignore", "-q", relDir], {
+    // Trailing slash matters: `node_modules/` in .gitignore is a dir-only
+    // pattern, and the dir does not exist in the fresh worktree yet, so a
+    // bare-name query never matches it (found live in the E2E run).
+    const r = await execa("git", ["check-ignore", "-q", `${relDir}/`], {
       cwd: worktreePath,
       reject: false,
     });
