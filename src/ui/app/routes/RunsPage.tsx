@@ -4,7 +4,11 @@ import { api } from "../../lib/api.js";
 import type { RunState, RunStatus } from "../../lib/types.js";
 import { cn } from "../../components/design/cn.js";
 import { Chip } from "../../components/design/Chip.js";
-import { fmtElapsed, relTime } from "../../components/design/format.js";
+import {
+  fmtElapsed,
+  relTime,
+  shortRunId,
+} from "../../components/design/format.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
 
 function statusTone(
@@ -69,9 +73,6 @@ export function RunsPage({
               {runs.length}
             </span>
           </h1>
-          <span className="text-[11.5px] text-fog-500 hidden md:inline">
-            click a row to open · polled every 4 s
-          </span>
         </div>
         <input
           value={query}
@@ -108,13 +109,13 @@ export function RunsPage({
           <table className="w-full">
             <thead>
               <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">
-                <th className="font-normal px-4 py-2.5">Run</th>
-                <th className="font-normal px-3 py-2.5">Task</th>
+                <th className="font-normal px-4 py-2.5">Task</th>
                 <th className="font-normal px-3 py-2.5">Status</th>
                 <th className="font-normal px-3 py-2.5">Review</th>
                 <th className="font-normal px-3 py-2.5">Verify</th>
                 <th className="font-normal px-3 py-2.5 text-right">Duration</th>
                 <th className="font-normal px-3 py-2.5 text-right">Updated</th>
+                <th className="font-normal px-3 py-2.5">Run</th>
                 <th className="font-normal px-3 py-2.5" />
               </tr>
             </thead>
@@ -128,10 +129,7 @@ export function RunsPage({
                     i !== 0 && "border-t border-white/[0.05]",
                   )}
                 >
-                  <td className="px-4 py-3 mono text-[11px] text-fog-500 whitespace-nowrap">
-                    {r.runId}
-                  </td>
-                  <td className="px-3 py-3 text-[13px] text-fog-100 truncate max-w-[420px]">
+                  <td className="px-4 py-3 text-[13px] text-fog-100 truncate max-w-[420px]">
                     {r.task}
                   </td>
                   <td className="px-3 py-3">
@@ -147,10 +145,14 @@ export function RunsPage({
                     </Chip>
                   </td>
                   <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.finalDecision ?? "-"}
+                    {r.finalDecision ?? (
+                      <span className="text-fog-500">-</span>
+                    )}
                   </td>
                   <td className="px-3 py-3 mono text-[11.5px] text-fog-300">
-                    {r.verification ?? "-"}
+                    {r.verification ?? (
+                      <span className="text-fog-500">-</span>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right mono text-[12px] text-fog-200 num-tabular whitespace-nowrap">
                     {fmtElapsed(
@@ -166,6 +168,12 @@ export function RunsPage({
                   </td>
                   <td className="px-3 py-3 text-right text-[11.5px] text-fog-400 whitespace-nowrap">
                     {relTime(r.updatedAt)}
+                  </td>
+                  <td
+                    className="px-3 py-3 mono text-[11px] text-fog-500 whitespace-nowrap"
+                    title={r.runId}
+                  >
+                    {shortRunId(r.runId)}
                   </td>
                   <td className="px-3 py-3 text-right">
                     {onOpenReplay ? (

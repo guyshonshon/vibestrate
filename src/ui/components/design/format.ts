@@ -10,6 +10,17 @@ export function fmtElapsed(secs: number): string {
   return `${m}m ${String(r).padStart(2, "0")}s`;
 }
 
+/**
+ * Run ids are `YYYYMMDD-HHMMSS-task-slug`; the slug repeats the task title,
+ * which the UI always shows next to the id. The timestamp prefix alone is
+ * unique locally and correlates with CLI output, so surfaces render this
+ * short form and keep the full id in a `title` attribute.
+ */
+export function shortRunId(runId: string): string {
+  const m = /^(\d{8}-\d{6})-/.exec(runId);
+  return m ? m[1]! : runId;
+}
+
 export function relTime(iso: string, now = Date.now()): string {
   const t = new Date(iso).getTime();
   if (!Number.isFinite(t)) return "";
