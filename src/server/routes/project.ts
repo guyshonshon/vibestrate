@@ -381,16 +381,30 @@ export async function registerProjectRoutes(
     if (!state.worktreePath) {
       throw new HttpError(409, "This run has no worktree yet.");
     }
+    // Honest fallback when the worktree was pruned after the run finished: the
+    // files are gone, but the change is preserved in the run's diff + bundle.
+    // Say so instead of letting every file 404 with a generic "not found".
+    if (!(await pathExists(state.worktreePath))) {
+      throw new HttpError(
+        410,
+        "This run's worktree has been cleaned up. The change is preserved in the run's diff and patch bundle.",
+      );
+    }
     const requested = (req.query.path ?? "").trim();
     if (!requested) throw new HttpError(400, "?path is required.");
+    // Worktree-first + prefer-existing so a file created or modified inside the
+    // run resolves to the run's own copy, never a stale/absent project one (T1).
     const roots = buildProjectRoots({
       projectRoot,
       worktreePath: state.worktreePath,
       worktreeLabel: `worktree:${req.params.runId}`,
+      worktreeFirst: true,
     });
     let resolved;
     try {
-      resolved = await resolveSafePath(requested, roots);
+      resolved = await resolveSafePath(requested, roots, {
+        preferExistingRoot: true,
+      });
     } catch (err) {
       if (err instanceof PathGuardError) {
         throw new HttpError(err.statusCode, err.message);

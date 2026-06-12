@@ -16,7 +16,23 @@ M (a few days), L (a week-plus or needs a design doc first).
 These come first because later features (merge advisor, continuity, welcome)
 consume the signals these bugs corrupt. All are small and independent.
 
-### T1 - Worktree file viewer: "File not found" for new files
+### T1 - Worktree file viewer: "File not found" for new files - SHIPPED
+
+**Status (shipped):** `resolveSafePath` gained an opt-in `preferExistingRoot`
+(among containing roots, choose the one where the file exists) and
+`buildProjectRoots` gained `worktreeFirst`; the run `/file` route uses both, so a
+file created or modified in the worktree resolves to the worktree copy, never a
+stale/absent project one. Pruned worktree now returns 410 with an honest message
+(not a generic 404). The space-in-filename "bug" was a phantom - the guard's
+reject class held a literal NUL byte (the design doc misread it as a space), and
+spaces were always allowed; cleaned up the embedded NUL (git was treating the
+file as binary). Workspace surface: dashboard run-detail panel + TUI inspector
+line + `vibe path <runId>` (`--cd`, `--json`). Tests: `tests/path-guard.test.ts`
+(7) + route block in `server-routes.test.ts` (worktree-first, new-file,
+spaced-name, prune-410). Security note: the precedence change only re-orders
+preference among ALREADY-validated containing roots; all traversal/NUL/symlink-
+escape checks are unchanged and still tested. Editor (write) route deliberately
+left on project-first precedence - out of scope for the read viewer.
 
 **Raw ask:** "File not found - The resource no longer exists... happens when
 we make a new file... how do I even approach this merging? how do I access

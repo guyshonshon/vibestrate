@@ -243,3 +243,90 @@ describe("server routes", () => {
     }
   });
 });
+
+// ── T1: the run file viewer shows the RUN's copy, not a stale/absent project one
+describe("GET /api/runs/:runId/file - worktree precedence (T1)", () => {
+  let proj: string;
+  let srv: StartedServer | null = null;
+  const runId = "20260612-100000-wt";
+  let wt: string;
+
+  beforeEach(async () => {
+    proj = await makeProject();
+    // A run whose worktree nests under the project root (the real layout).
+    const runDir = path.join(proj, ".vibestrate", "runs", runId);
+    wt = path.join(proj, ".vibestrate", "worktrees", runId);
+    await fs.mkdir(wt, { recursive: true });
+    await fs.mkdir(runDir, { recursive: true });
+    // A file modified in the worktree (exists in both, different content).
+    await fs.writeFile(path.join(proj, "README.md"), "STALE project copy\n");
+    await fs.writeFile(path.join(wt, "README.md"), "FRESH worktree copy\n");
+    // A file created only in the worktree.
+    await fs.writeFile(path.join(wt, "super.md"), "born in the worktree\n");
+    // A spaced filename.
+    await fs.writeFile(path.join(wt, "my file.md"), "has a space\n");
+    const ts = new Date().toISOString();
+    await fs.writeFile(
+      path.join(runDir, "state.json"),
+      JSON.stringify({
+        runId,
+        task: "wt",
+        status: "merge_ready",
+        projectRoot: proj,
+        worktreePath: wt,
+        branchName: `vibestrate/${runId}`,
+        reviewLoopCount: 0,
+        maxReviewLoops: 2,
+        startedAt: ts,
+        updatedAt: ts,
+        finalDecision: "APPROVED",
+        verification: "PASSED",
+        error: null,
+      }),
+    );
+    srv = await startOnFreePort(proj);
+  });
+  afterEach(async () => {
+    if (srv) await srv.close();
+    srv = null;
+  });
+
+  const fileText = async (p: string) => {
+    const res = await fetch(
+      `${srv!.url}/api/runs/${runId}/file?path=${encodeURIComponent(p)}`,
+    );
+    const body = (await res.json()) as {
+      file?: { lines: { text: string }[] };
+      error?: string;
+    };
+    return { status: res.status, body };
+  };
+
+  it("shows the worktree copy of a modified file, not the stale project one", async () => {
+    const { status, body } = await fileText("README.md");
+    expect(status).toBe(200);
+    expect(body.file?.lines.map((l) => l.text).join("\n")).toContain(
+      "FRESH worktree copy",
+    );
+  });
+
+  it("serves a file created only in the worktree (was a 404)", async () => {
+    const { status, body } = await fileText("super.md");
+    expect(status).toBe(200);
+    expect(body.file?.lines.map((l) => l.text).join("\n")).toContain(
+      "born in the worktree",
+    );
+  });
+
+  it("accepts a filename containing a space", async () => {
+    const { status } = await fileText("my file.md");
+    expect(status).toBe(200);
+  });
+
+  it("returns 410 (not a generic 404) once the worktree is pruned", async () => {
+    await fs.rm(wt, { recursive: true, force: true });
+    const { status, body } = await fileText("README.md");
+    expect(status).toBe(410);
+    expect(body.error ?? "").toMatch(/cleaned up/i);
+  });
+});

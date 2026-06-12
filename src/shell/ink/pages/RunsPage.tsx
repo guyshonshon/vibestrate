@@ -327,6 +327,16 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         </Text>
       ) : null}
 
+      {/* Workspace (T1): where the run's work lives. `vibe path <id>` prints
+          a copy-able cd line; here we just surface the location + branch. */}
+      {row.worktreePath ? (
+        <Text wrap="truncate-middle">
+          <Text dimColor>work   </Text>
+          <Text>{row.worktreePath}</Text>
+          {row.branchName ? <Text dimColor>{"   ⎇ "}{row.branchName}</Text> : null}
+        </Text>
+      ) : null}
+
       {/* Terminal runs answer "why" first, then who. Active runs lead
           with the current agent. */}
       {isTerminal ? (

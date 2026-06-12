@@ -34,7 +34,13 @@ vibe doctor                                # verify env + config
 vibe run "Your task description"          # start a run
 vibe status                                # see active and recent runs
 vibe replay <runId>                        # inspect any past run
+vibe path <runId>                          # where the run's git worktree is (cd into it)
 ```
+
+Every run does its work in an isolated git worktree. `vibe path <runId>` prints
+that worktree's path and branch plus a copy-able `cd` line; `vibe path <runId>
+--cd` prints just the path, so you can `cd "$(vibe path <runId> --cd)"`. The same
+"Workspace" panel appears on the dashboard run detail and in the TUI inspector.
 
 Rewind a prior run instead of restarting - reuse its plan (and architecture) and resume from a later stage:
 
