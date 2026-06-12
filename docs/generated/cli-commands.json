@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.50",
+  "version": "0.7.51",
   "commands": [
     {
       "name": "init",
@@ -4551,6 +4551,40 @@
         }
       ],
       "options": [
+        {
+          "flags": "--json",
+          "description": "emit JSON",
+          "required": false,
+          "optional": false,
+          "negated": false
+        }
+      ],
+      "subcommands": []
+    },
+    {
+      "name": "path",
+      "path": [
+        "vibe",
+        "path"
+      ],
+      "description": "Show a run's workspace (worktree path + branch) so you can cd into it.",
+      "usage": "[options] <runId>",
+      "arguments": [
+        {
+          "name": "name() {\n    return this._name;\n  }",
+          "description": "the run id (see `vibe status`)",
+          "required": true,
+          "variadic": false
+        }
+      ],
+      "options": [
+        {
+          "flags": "--cd",
+          "description": "print only the absolute worktree path (for `cd \"$(...)\"`)",
+          "required": false,
+          "optional": false,
+          "negated": false
+        },
         {
           "flags": "--json",
           "description": "emit JSON",

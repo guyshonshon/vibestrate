@@ -84,6 +84,11 @@ export type ShellRunRow = {
   /** From the run's state.json - handy on the Overview for finished runs. */
   finalDecision: string | null;
   verification: string | null;
+  /** The run's isolated git worktree + branch (T1) - so the Inspector can
+   *  answer "where is the work / how do I cd into it?". null before the
+   *  worktree is prepared. */
+  worktreePath: string | null;
+  branchName: string | null;
   /**
    * Parsed review output for terminal runs whose review asked for changes /
    * blocked (P1, run-experience batch). Best-effort: null when the artifact
@@ -250,6 +255,8 @@ export async function buildShellSnapshot(
       error: s.error ?? live.errorFromEvents,
       finalDecision: s.finalDecision ?? null,
       verification: s.verification ?? null,
+      worktreePath: s.worktreePath ?? null,
+      branchName: s.branchName ?? null,
       reviewSummary: await readReviewSummary(projectRoot, s),
       flow: deriveFlowSummary(s),
     });

@@ -286,6 +286,13 @@ export function RunDetailPage({
         />
       )}
 
+      {run.worktreePath ? (
+        <WorkspacePanel
+          worktreePath={run.worktreePath}
+          branchName={run.branchName}
+        />
+      ) : null}
+
       {reviewOpen ? (
         <ReviewFindingsPanel
           runId={runId}
@@ -858,6 +865,57 @@ const ASSURANCE_TONE: Record<RunAssurance["verdict"], string> = {
 };
 
 /** Why the orchestrator chose this Flow (Slice 2 - only for selected runs). */
+
+/** Where the run's work lives (T1). Answers "how do I get into that git
+ *  worktree?" - shows the worktree path + branch and a copy-able `cd` line.
+ *  Read-only; the worktree is bounded to the run and never edited from here. */
+function WorkspacePanel({
+  worktreePath,
+  branchName,
+}: {
+  worktreePath: string;
+  branchName: string | null;
+}) {
+  const [copied, setCopied] = useState(false);
+  const cdLine = `cd ${/[^A-Za-z0-9_./-]/.test(worktreePath) ? `'${worktreePath.replace(/'/g, `'\\''`)}'` : worktreePath}`;
+  const copy = () => {
+    void navigator.clipboard?.writeText(cdLine).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => {},
+    );
+  };
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-[11px] uppercase tracking-[0.12em] opacity-60">
+          Workspace
+        </span>
+        {branchName ? (
+          <span className="vibestrate-mono text-xs opacity-80">
+            branch {branchName}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          onClick={copy}
+          className="ml-auto h-7 rounded-lg border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]"
+          title="Copy a cd command for this run's git worktree"
+        >
+          {copied ? "copied" : "copy cd"}
+        </button>
+      </div>
+      <div className="vibestrate-mono mt-1.5 truncate text-[12px] opacity-80" title={worktreePath}>
+        {worktreePath}
+      </div>
+      <div className="mt-1 text-[11px] opacity-50">
+        The run's isolated git worktree. Run <span className="vibestrate-mono">vibe path</span> for the same from the CLI.
+      </div>
+    </div>
+  );
+}
 
 /** Compact, evidence-backed run-assurance verdict (S5). */
 function AssuranceBadge({

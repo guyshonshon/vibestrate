@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.51
+
+- **The run file viewer now shows the run's own copy of a file.** Opening a file
+  that a run created in its worktree used to 404 ("the resource no longer
+  exists"), and opening a file the run *modified* silently showed the stale
+  pre-run version from the project root. Root cause: the path guard always
+  resolved a relative path to the first allowed root, and the project root (which
+  geometrically contains the nested worktree) always won. The run viewer now
+  resolves worktree-first and prefers the root where the file actually exists, so
+  new and modified files both show the run's version. Filenames with spaces open
+  correctly, and once a worktree is cleaned up the viewer says so ("preserved in
+  the run's diff and patch bundle") instead of a bare 404.
+- **"Where is the work?" now has an answer.** A new Workspace surface shows each
+  run's isolated git worktree and branch - on the dashboard run detail, in the
+  TUI inspector, and via `vibe path <runId>` (with `--cd` to print just the path
+  for `cd "$(vibe path <id> --cd)"`).
+
 ## 0.7.50
 
 - **"Nothing to verify" no longer reads as a half-failure.** A docs-only change
