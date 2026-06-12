@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.56",
+  "version": "0.7.58",
   "commands": [
     {
       "name": "init",
@@ -5223,6 +5223,14 @@
           "flags": "--flow-skip <step>",
           "description": "skip an optional Flow step for this run. Repeat for multiple steps.",
           "defaultValue": "[]",
+          "required": true,
+          "optional": false,
+          "negated": false
+        },
+        {
+          "flags": "--param <key=value>",
+          "description": "set a flow parameter (for a flow that declares `params:`). Repeatable.",
+          "defaultValue": "{}",
           "required": true,
           "optional": false,
           "negated": false

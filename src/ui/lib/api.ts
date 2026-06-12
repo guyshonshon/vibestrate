@@ -496,6 +496,8 @@ export const api = {
     checklistMode?: "continuous" | "step" | null;
     skills?: string[];
     concise?: boolean;
+    /** Flow parameter values (T11), name -> raw string. */
+    params?: Record<string, string>;
     /** Supervisor persona (judgment posture); default = project.defaultPersona. */
     persona?: string;
     flow?: {

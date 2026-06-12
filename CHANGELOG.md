@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.59
+
+- **Flows can take parameters now.** A Flow can declare typed `params:` (string /
+  number / boolean / enum / path) that the caller fills at run start, so one Flow
+  covers many variations instead of cramming everything into the task text.
+  Reference them in step instructions with `{{params.name}}`. Fill them three
+  ways, all in parity: `vibe run --flow scaffold --param projectName=Acme`, an
+  interactive prompt for missing required params on a TTY, or the form the
+  dashboard renders when you pick a param-declaring Flow. A `secret: true` param
+  is recorded redacted and is never inlined into a prompt (Vibestrate doesn't
+  feed secrets to agents). Ships with a runnable `scaffold` example Flow.
+
 ## 0.7.58
 
 - **Consult now leads with computed facts, not whatever the model volunteered.**

@@ -7,6 +7,7 @@ const baseState = {
   runId: "r1",
   task: "t",
   displayName: null,
+  params: {},
   status: "merge_ready" as const,
   projectRoot: "/p",
   worktreePath: "/wt",

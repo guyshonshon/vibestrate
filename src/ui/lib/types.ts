@@ -190,6 +190,16 @@ export type FlowLoop = {
   maxIterations: number;
 };
 
+/** A declared flow parameter (T11). */
+export type FlowParam = {
+  type: "string" | "number" | "boolean" | "enum" | "path";
+  description?: string;
+  required?: boolean;
+  default?: string | number | boolean;
+  values?: string[];
+  secret?: boolean;
+};
+
 export type FlowDefinition = {
   id: string;
   version: number;
@@ -197,6 +207,8 @@ export type FlowDefinition = {
   description: string;
   seats: Record<string, FlowSeatDefinition>;
   steps: FlowStepDefinition[];
+  /** Caller-filled params (T11), keyed by name. */
+  params?: Record<string, FlowParam>;
   loop?: FlowLoop;
   // The per-item band (Phase 3 pick-up + Phase D checklist DAGs); from/to step ids.
   checklistSegment?: { from: string; to: string };

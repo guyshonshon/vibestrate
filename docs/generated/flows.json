@@ -1196,6 +1196,61 @@
         }
       ],
       "loop": null
+    },
+    {
+      "id": "scaffold",
+      "version": 1,
+      "label": "Scaffold (parameterized)",
+      "description": "A small parameterized example: scaffold a starter project from a name + framework. Shows how a flow declares `params:` and substitutes them into step instructions with {{params.x}}.",
+      "seats": [
+        {
+          "id": "implementer",
+          "label": "Implementer",
+          "description": "Scaffolds the starter project."
+        }
+      ],
+      "steps": [
+        {
+          "id": "scaffold",
+          "label": "Scaffold the project",
+          "kind": "agent-turn",
+          "seat": "implementer",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "execution",
+            "diff"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "validation",
+          "label": "Validate",
+          "kind": "validation",
+          "seat": null,
+          "inputs": [
+            "diff"
+          ],
+          "outputs": [
+            "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
     }
   ]
 }

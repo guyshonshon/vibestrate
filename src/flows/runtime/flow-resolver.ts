@@ -231,6 +231,9 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     // carry over unchanged for the runner to map onto resolved step indices.
     checklistSegment: input.flow.checklistSegment ?? null,
     complexity: input.flow.complexity ?? null,
+    // Declared flow params (T11) carry through for resolution + the dashboard
+    // form. null when the flow declares none.
+    params: input.flow.params ?? null,
   });
 }
 

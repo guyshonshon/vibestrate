@@ -162,6 +162,11 @@ export const runStateSchema = z.object({
   /** Seat → Role overrides used to disambiguate seats filled by >1 role. */
   seatRoleOverrides: z.record(z.string(), z.string()).default({}),
   readOnly: z.boolean().default(false),
+  /** Resolved flow parameter values (T11), name -> value. Secret params are
+   *  recorded as "[secret]" - the real value never lands on disk. */
+  params: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .default({}),
   // Per-run skill ids. Merged into every agent's configured skill list
   // before invocation, so the user can attach context to a single run
   // without editing project-level agent config. Empty / missing means
@@ -428,6 +433,7 @@ export function createInitialState(input: {
     stepProfileOverrides: {},
     seatRoleOverrides: {},
     readOnly: false,
+    params: {},
     runtimeSkills: [],
     concise: false,
     flow: null,

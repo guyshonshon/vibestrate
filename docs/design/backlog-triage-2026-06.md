@@ -430,7 +430,21 @@ line.
 
 **Size:** M. **Depends on:** T9.
 
-### T11 - Parameterized flows
+### T11 - Parameterized flows - SHIPPED
+
+**Status (shipped):** `params:` on flow.yml (string/number/boolean/enum/path,
+required/default/description/secret) + on the resolved snapshot. Pure
+`resolveFlowParams` (coerce/validate, fail-fast on missing-required/unknown/bad)
++ `substituteParams` (`{{params.x}}`, undeclared refs left intact). The
+orchestrator resolves at run start, substitutes into the task + step
+instructions, records values on run state (secrets -> "[secret]"). Three fill
+paths in parity: `vibe run --param k=v` (repeatable), interactive prompts for
+missing required (TTY, @inquirer), and the dashboard Composer form (rendered from
+the flow's param schema, threaded through the spawn API). Secret params are
+recorded redacted and NEVER inlined into prompts (a `{{params.<secret>}}` ->
+`[secret:<name>]`) - the deliberate fail-closed call vs inline-then-redact (which
+leaks via the response/stream). Builtin `scaffold` example flow + docs
+(concepts/flow.md). Tests: `flow-params.test.ts` (10).
 
 **Raw ask:** "A flow might be more than just a MD? It should be like `vibe
 flow xxxx` which lets you also fill up data... a make-a-website flow that

@@ -63,6 +63,10 @@ import {
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import { recordRunInLedger } from "./project-ledger.js";
 import {
+  resolveFlowParams,
+  substituteParams,
+} from "../flows/runtime/prompt-params.js";
+import {
   capturePhaseSnapshot,
   readPhaseSnapshots,
   pickSnapshotForResume,
@@ -238,6 +242,11 @@ export type OrchestratorInput = {
   task: string;
   isGitRepo: boolean;
   onProgress?: (message: string) => void;
+  /** Raw flow parameter values (T11), name -> string, from the caller (CLI
+   *  flags / dashboard form / interactive prompts). Resolved against the flow's
+   *  declared `params` at run start, substituted into the task + step
+   *  instructions, and recorded (secrets redacted). */
+  params?: Record<string, string>;
   /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
   taskId?: string | null;
   /** Pre-assigned run id (dashboard spawns compute it server-side so the UI
@@ -441,7 +450,10 @@ export class Orchestrator {
   /** Dedupe key set for the "effort won't take effect" warning (per provider+effort). */
   private readonly warnedEffort = new Set<string>();
   private readonly rules: string;
-  private readonly task: string;
+  private task: string;
+  private readonly rawParams: Record<string, string>;
+  /** Resolved param values to persist on state (secrets redacted). */
+  private recordedParams: Record<string, string | number | boolean> = {};
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
@@ -492,6 +504,7 @@ export class Orchestrator {
     this.config = input.config;
     this.rules = input.rules;
     this.task = input.task;
+    this.rawParams = input.params ?? {};
     this.isGitRepo = input.isGitRepo;
     this.onProgress = input.onProgress ?? (() => {});
     this.taskId = input.taskId ?? null;
@@ -548,7 +561,37 @@ export class Orchestrator {
 
     // Every run executes a flow. An explicit `--flow` snapshot wins; otherwise
     // the `default` flow is resolved here. There is one runner.
-    const flow = this.flow ?? (await this.resolveDefaultFlow());
+    let flow = this.flow ?? (await this.resolveDefaultFlow());
+
+    // ── Flow parameters (T11) ──────────────────────────────────────────────
+    // Resolve the caller's raw values against the flow's declared `params`, fail
+    // fast on missing-required / bad values, then substitute {{params.x}} into
+    // the task + each step's instructions (a secret renders a placeholder, never
+    // the value). Recorded values (secrets redacted) land on run state.
+    const resolvedParams = resolveFlowParams(flow.params, this.rawParams);
+    if (resolvedParams.errors.length > 0) {
+      throw new GitError(`Flow parameter error: ${resolvedParams.errors.join(" ")}`);
+    }
+    if (resolvedParams.missing.length > 0) {
+      throw new GitError(
+        `Missing required flow parameter(s): ${resolvedParams.missing.join(
+          ", ",
+        )}. Pass each as --param <name>=<value>.`,
+      );
+    }
+    if (Object.keys(resolvedParams.substitution).length > 0) {
+      this.task = substituteParams(this.task, resolvedParams.substitution);
+      flow = {
+        ...flow,
+        task: substituteParams(flow.task, resolvedParams.substitution),
+        steps: flow.steps.map((s) =>
+          s.instructions
+            ? { ...s, instructions: substituteParams(s.instructions, resolvedParams.substitution) }
+            : s,
+        ),
+      };
+    }
+    this.recordedParams = resolvedParams.recorded;
     // runRole resolves the Role's config from the Crew the snapshot was built
     // against - not necessarily this.crewId (a pre-resolved snapshot carries its
     // own crew).
@@ -603,6 +646,7 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
+      params: this.recordedParams,
       checklistMode: this.checklistMode,
       contextSources: this.contextSources,
       flow: this.createFlowRunState(flow, "flow.json"),

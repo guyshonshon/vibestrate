@@ -28,8 +28,10 @@ import {
 } from "../../flows/runtime/flow-resolver.js";
 import type {
   FlowContextPolicy,
+  FlowParam,
   ResolvedFlowSnapshot,
 } from "../../flows/schemas/flow-schema.js";
+import { input, password, select, confirm } from "@inquirer/prompts";
 import {
   formatFlowRunCommand,
   runFlowRunWizard,
@@ -88,6 +90,8 @@ export type RunCommandOptions = {
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
   concise?: boolean;
+  /** Flow parameter values (T11), name -> raw string, from `--param k=v`. */
+  params?: Record<string, string>;
   /** Flow id to resolve before start. */
   flowId?: string | null;
   /** --supervisor: the active supervisor persona id (else project default). */
@@ -493,11 +497,19 @@ export async function runRunCommand(
     }
   }
 
+  // Flow params (T11): fill missing required params interactively on a TTY;
+  // otherwise the orchestrator fails fast with the exact missing names.
+  let runParams = options.params ?? {};
+  if (resolvedFlow?.params) {
+    runParams = await promptMissingFlowParams(resolvedFlow.params, runParams);
+  }
+
   const orchestrator = new Orchestrator({
     projectRoot: detected.projectRoot,
     config: loaded.config,
     rules: loaded.rules,
     task: resolvedTask,
+    params: runParams,
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
     effort,
@@ -687,6 +699,36 @@ export async function runRunCommand(
     default:
       return 0;
   }
+}
+
+/** Fill any missing required flow params interactively (T11). Non-TTY runs skip
+ *  this - the orchestrator then fails fast naming the missing params. Secret
+ *  params use a masked prompt; the value is recorded redacted downstream. */
+async function promptMissingFlowParams(
+  defs: Record<string, FlowParam>,
+  provided: Record<string, string>,
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = { ...provided };
+  for (const [name, def] of Object.entries(defs)) {
+    if (out[name] !== undefined && out[name] !== "") continue;
+    if (def.default !== undefined) continue; // the resolver applies the default
+    if (!def.required) continue;
+    if (!isInteractiveTTY()) continue; // headless -> orchestrator fail-fast
+    const message = `${name}${def.description ? ` (${def.description})` : ""}`;
+    if (def.secret) {
+      out[name] = await password({ message: `${message} [secret]` });
+    } else if (def.type === "enum" && def.values?.length) {
+      out[name] = await select({
+        message,
+        choices: def.values.map((v) => ({ value: v })),
+      });
+    } else if (def.type === "boolean") {
+      out[name] = String(await confirm({ message }));
+    } else {
+      out[name] = await input({ message });
+    }
+  }
+  return out;
 }
 
 function printResolvedFlow(snapshot: ReturnType<typeof resolveFlow>): void {

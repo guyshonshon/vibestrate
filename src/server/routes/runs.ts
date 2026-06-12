@@ -84,6 +84,11 @@ const spawnRunBody = z.object({
     .max(64)
     .optional(),
   concise: z.boolean().optional(),
+  // Flow parameter values (T11), name -> raw string. Validated against the
+  // flow's declared `params` at run start; secrets recorded redacted.
+  params: z
+    .record(z.string().min(1).max(60), z.string().max(2000))
+    .optional(),
   // Orchestrator flow selection: true = select even if a default is set;
   // false = skip selection (use the default flow); omitted = normal precedence.
   // The chosen flow is recorded on the run (selection.json + workflow.selected).
@@ -187,6 +192,9 @@ export async function registerRunsRoutes(
       argv.push("--skills", body.skills.join(","));
     }
     if (body.concise) argv.push("--concise");
+    for (const [name, value] of Object.entries(body.params ?? {})) {
+      argv.push("--param", `${name}=${value}`);
+    }
     if (body.flow) {
       argv.push("--flow", body.flow.id);
       if (body.flow.brief) argv.push("--flow-brief", body.flow.brief);
