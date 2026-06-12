@@ -29,6 +29,11 @@ export function projectRulesPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), RULES_FILENAME);
 }
 
+/** Append-only project continuity ledger (T9): one JSON entry per line. */
+export function projectLedgerPath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "ledger.ndjson");
+}
+
 /** `VIBESTRATE.md` at the project root - the orchestrator's durable operating
  *  manual (project model, dev commands, orchestration preferences, risk rules).
  *  Distinct from `.vibestrate/rules.md` (per-turn prompt guidance). */

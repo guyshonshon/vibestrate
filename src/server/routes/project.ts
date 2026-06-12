@@ -57,6 +57,16 @@ export async function registerProjectRoutes(
     return { metadata: await getProjectMetadata(projectRoot) };
   });
 
+  // Project continuity ledger (T9): the computed "where the project stands"
+  // brief - read-only.
+  app.get("/api/ledger", async () => {
+    const { LedgerStore, renderLedgerBrief } = await import(
+      "../../core/project-ledger.js"
+    );
+    const state = await new LedgerStore(projectRoot).state();
+    return { state, brief: renderLedgerBrief(state) };
+  });
+
   // ─── Profiles: reusable runtime setups (provider + model/power) ──────────
   app.get("/api/profiles", async () => {
     if (!(await configExists(projectRoot))) return { profiles: [] };
