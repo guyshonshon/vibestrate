@@ -11,6 +11,7 @@
 // completions are predictable.
 
 import type { Command, Option } from "commander";
+import { configLeafKeys } from "../../project/config-introspection.js";
 
 /** Semantic value categories we can complete. Static enums are resolved from
  *  STATIC_VALUES; the rest come from the live CompletionContext. */
@@ -24,13 +25,17 @@ export type ValueKind =
   | "flow"
   | "run"
   | "task"
-  | "provider";
+  | "provider"
+  | "config-key";
 
 const STATIC_VALUES: Partial<Record<ValueKind, string[]>> = {
   effort: ["low", "medium", "high"],
   priority: ["low", "medium", "high"],
   "flow-context": ["balanced", "compact", "artifact-heavy"],
   checklist: ["continuous", "step"],
+  // Settable config keys, straight from the schema (T8) - the same source as
+  // `vibe config keys` / `config set --help`.
+  "config-key": configLeafKeys().map((k) => k.fullKey),
 };
 
 /** Live id lists from the open project, keyed by value kind. */
@@ -125,9 +130,17 @@ function domainKind(path: string[]): ValueKind | undefined {
  *  `newId` falls back to the command's domain; everything else (title, body,
  *  text, goal, path, ...) is free text and gets no completion. */
 function positionalKind(argName: string, path: string[]): ValueKind | undefined {
+  // `config set <path>` + `config get/keys <path>` complete the schema's keys.
+  const n = argName.toLowerCase();
+  if (
+    (n === "path" || n === "filter") &&
+    path.includes("config") &&
+    (path.includes("set") || path.includes("get") || path.includes("keys"))
+  ) {
+    return "config-key";
+  }
   const explicit = inferIdKind(argName);
   if (explicit) return explicit;
-  const n = argName.toLowerCase();
   if (n === "id" || n === "newid") return domainKind(path);
   return undefined;
 }

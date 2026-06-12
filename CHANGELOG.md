@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.56
+
+- **The shell input + `vibe config set` got a lot less fiddly.** The prompt now
+  does readline-style edits - Ctrl+W and Alt/Option+Backspace delete the
+  previous word, Ctrl+U clears to the line start, Ctrl+K to the end. `vibe config
+  set --help` and the new `vibe config keys [filter]` enumerate every settable
+  key with its type, allowed values, and default straight from the schema (no
+  hand-maintained list to drift), and shell completion now suggests those keys
+  after `config set`. Setting an unknown key - the classic `config set provider
+  claude` - now fails fast with "not a known config key. Did you mean:
+  providers?" instead of silently writing a broken config. The completion list
+  also stops letting one long candidate truncate the others.
+
 ## 0.7.55
 
 - **Starting a run shows staged progress instead of a blank screen.** The setup a

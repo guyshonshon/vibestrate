@@ -40,6 +40,15 @@ describe("completion engine", () => {
     }
   });
 
+  it("completes config keys from the schema after `config set ` (T8)", () => {
+    const out = values("config set ");
+    expect(out).toContain("workflow.maxReviewLoops");
+    expect(out).toContain("commands.validate");
+    // prefix-filtered
+    expect(values("config set git.")).toContain("git.mainBranch");
+    expect(values("config set git.")).not.toContain("workflow.maxReviewLoops");
+  });
+
   it("prefix-filters subcommands", () => {
     const out = values("config v");
     expect(out).toContain("view");

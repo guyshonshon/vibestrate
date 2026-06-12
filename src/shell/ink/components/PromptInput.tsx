@@ -80,6 +80,34 @@ export function PromptInput({
       const wordMod = key.meta; // Option/Alt
       const lineMod = key.ctrl;
 
+      // Delete the half-open range [from, to) and place the cursor at `from`.
+      const deleteRange = (from: number, to: number) => {
+        const a = Math.max(0, Math.min(from, to));
+        const b = Math.min(value.length, Math.max(from, to));
+        if (a === b) return;
+        const next = value.slice(0, a) + value.slice(b);
+        lastEmitted.current = next;
+        setCursor(a);
+        onChange(next);
+      };
+
+      // ── Word / line deletes (readline-style) ─────────────────────────────
+      // Ctrl+W and Alt/Option+Backspace delete the previous word; Ctrl+U clears
+      // to the line start; Ctrl+K kills to the end. (Cmd+Backspace maps to one
+      // of these in most terminals' key bindings.)
+      if (lineMod && input === "w") {
+        deleteRange(prevWordOffset(value, cursor), cursor);
+        return;
+      }
+      if (lineMod && input === "u") {
+        deleteRange(0, cursor);
+        return;
+      }
+      if (lineMod && input === "k") {
+        deleteRange(cursor, value.length);
+        return;
+      }
+
       // ── Cursor navigation (no value change) ──────────────────────────────
       if (key.rightArrow) {
         setCursor(
@@ -107,10 +135,9 @@ export function PromptInput({
       // ── Edits ────────────────────────────────────────────────────────────
       if (key.backspace || key.delete) {
         if (cursor > 0) {
-          const next = value.slice(0, cursor - 1) + value.slice(cursor);
-          lastEmitted.current = next;
-          setCursor(cursor - 1);
-          onChange(next);
+          // Alt/Option+Backspace deletes the previous word; plain backspace one
+          // character.
+          deleteRange(wordMod ? prevWordOffset(value, cursor) : cursor - 1, cursor);
         }
         return;
       }

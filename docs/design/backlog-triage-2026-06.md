@@ -298,7 +298,31 @@ at nothing.
 
 **Size:** S-M. **Depends on:** nothing.
 
-### T8 - CLI/TUI input layer fixes
+### T8 - CLI/TUI input layer fixes - SHIPPED (core); 2 residuals
+
+**Status (shipped):**
+- PromptInput word/line deletes: Ctrl+W + Alt/Option+Backspace (previous word),
+  Ctrl+U (to line start), Ctrl+K (to end). Tests in `shell-prompt-input.test.ts`.
+- Schema-driven config help: extracted the Zod walk into
+  `src/project/config-introspection.ts` (one source for the docs generator AND
+  the CLI - generator output byte-identical after the refactor).
+  `vibe config set --help` lists settable keys; new `vibe config keys [filter]`
+  shows type/enum/default; shell completion completes config keys after
+  `config set `. `setConfigValue` paths are now validated first
+  (`validateConfigPath`) - `config set provider claude` fails fast with a
+  did-you-mean instead of silently writing an invalid top-level key (the "config
+  set provider unclear" complaint). The "outside the vibe tui" message was a
+  phantom - no such string exists; the real issue was the unvalidated key.
+- Completion truncation: pad to the widest VISIBLE row (capped), not the whole
+  list, and a taller window (9). The list already paginated with scroll markers.
+- Tests: `config-introspection.test.ts` (8), `shell-completion.test.ts` (+1).
+
+**Residuals (logged, not done - each its own slice):**
+- [~] Ctrl+R incremental reverse history search - needs an App-level search mode
+  + overlay, not just a PromptInput key. Deferred.
+- [~] TUI config browser page (a `config` page listing every key with current
+  value + an edit affordance) - larger UI surface. Deferred. (Respect the
+  standing no-in-TUI-YAML-editor decision: it would edit discrete keys.)
 
 **Raw ask:** config set provider unclear; autocomplete truncates; `config
 set --help` doesn't enumerate keys/values; no Alt/Cmd+Backspace word delete;
