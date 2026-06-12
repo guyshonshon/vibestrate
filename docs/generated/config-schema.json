@@ -359,6 +359,19 @@
           "itemType": null
         },
         {
+          "key": "autoFallback",
+          "fullKey": "resilience.autoFallback",
+          "type": "enum",
+          "required": false,
+          "default": "crew",
+          "enum": [
+            "off",
+            "crew",
+            "any"
+          ],
+          "itemType": null
+        },
+        {
           "key": "rateLimit",
           "fullKey": "resilience.rateLimit",
           "type": "object",

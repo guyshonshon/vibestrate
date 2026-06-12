@@ -47,7 +47,10 @@ import { runProvider, type RichProviderRunResult } from "../providers/provider-r
 import {
   classifyProviderFailure,
   computeBackoffMs,
+  deriveAutoFallbackProfile,
+  failureExcerpt,
   parseRetryAfterMs,
+  type ProviderFailureClass,
 } from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
@@ -306,7 +309,7 @@ type RoleRunResult = {
   output: string;
   outputArtifactPath: string;
   promptArtifactPath: string;
-  providerResult: ProviderRunResult;
+  providerResult: RichProviderRunResult;
 };
 
 type FlowRoleTurn = {
@@ -1015,13 +1018,25 @@ export class Orchestrator {
   private assessTurnResult(result: RoleRunResult): {
     ok: boolean;
     reason: string;
+    failureClass: ProviderFailureClass | null;
   } {
     const exit = result.providerResult.exitCode;
-    if (exit !== 0) return { ok: false, reason: `provider exited ${exit}` };
-    if (result.output.trim().length === 0) {
-      return { ok: false, reason: "provider returned no output" };
+    if (exit !== 0) {
+      // Carry the resilience layer's diagnosis (class + redacted excerpt)
+      // instead of laundering every failure into "provider exited N".
+      const f = result.providerResult.failure;
+      return {
+        ok: false,
+        reason: f
+          ? `provider exited ${exit} (${f.class}: ${f.excerpt})`
+          : `provider exited ${exit}`,
+        failureClass: f?.class ?? null,
+      };
     }
-    return { ok: true, reason: "" };
+    if (result.output.trim().length === 0) {
+      return { ok: false, reason: "provider returned no output", failureClass: null };
+    }
+    return { ok: true, reason: "", failureClass: null };
   }
 
   private async registerFlowRoleOutputs(input: {
@@ -1627,6 +1642,7 @@ export class Orchestrator {
         startedAt: ts,
         endedAt: ts,
         session: null,
+        normalized: { responseText: output.content, metrics: null },
       },
     };
   }
@@ -1858,11 +1874,23 @@ export class Orchestrator {
       context: StepContext,
     ): Promise<RoleRunResult> => {
       const maxAttempts = step.retries + 1;
+      // A failure the resilience layer already retried to exhaustion
+      // (rate-limit/transient backoff, usage-limit waits, fallback attempt) is
+      // final for this step too - re-entering it from this outer loop would
+      // multiply the whole backoff schedule per step retry, burning wall-clock
+      // and quota on a provider we already know is limited/down. Hard failures
+      // keep the step-level retry semantics (they were never retried below).
+      const exhaustedBelow = (r: RoleRunResult): boolean => {
+        const cls = r.providerResult.failure?.class;
+        return cls !== undefined && cls !== "hard";
+      };
       for (let attempt = 1; ; attempt += 1) {
         const last = attempt >= maxAttempts;
         try {
           const result = await runTurn(step, context);
-          if (result.providerResult.exitCode === 0 || last) return result;
+          if (result.providerResult.exitCode === 0 || last || exhaustedBelow(result)) {
+            return result;
+          }
           await input.eventLog.append({
             type: "flow.step.retried",
             message: `Flow step ${step.id} attempt ${attempt}/${maxAttempts} failed (provider exited ${result.providerResult.exitCode}); retrying.`,
@@ -1875,7 +1903,8 @@ export class Orchestrator {
             },
           });
         } catch (err) {
-          if (__isControlSignal(err) || last) throw err;
+          const cls = (err as { failureClass?: ProviderFailureClass } | null)?.failureClass;
+          if (__isControlSignal(err) || last || (cls && cls !== "hard")) throw err;
           await input.eventLog.append({
             type: "flow.step.retried",
             message: `Flow step ${step.id} attempt ${attempt}/${maxAttempts} errored (${describeError(err)}); retrying.`,
@@ -2052,8 +2081,15 @@ export class Orchestrator {
     const markStepFailedContinue = async (
       step: ResolvedFlowStep,
       err: unknown,
+      failureClass: ProviderFailureClass | null = null,
     ): Promise<void> => {
       const reason = describeError(err);
+      // The class travels structured (not just inside the reason string) so
+      // Run Assurance blockers and the audit trail can read it without parsing.
+      const cls =
+        failureClass ??
+        (err as { failureClass?: ProviderFailureClass } | null)?.failureClass ??
+        null;
       state = this.patchFlowStep(
         state,
         step.id,
@@ -2069,6 +2105,7 @@ export class Orchestrator {
           stepId: step.id,
           continued: true,
           error: reason,
+          failureClass: cls,
         },
       });
       appendStepOutcome(input.runBriefState, {
@@ -2205,7 +2242,7 @@ export class Orchestrator {
       if (turn.ok) {
         await commitTurn(step, result);
       } else if (step.continueOnError) {
-        await markStepFailedContinue(step, new Error(turn.reason));
+        await markStepFailedContinue(step, new Error(turn.reason), turn.failureClass);
         continuedFailures += 1;
       } else {
         await failStepFatal(step, turn.reason);
@@ -2303,7 +2340,7 @@ export class Orchestrator {
             if (turn.ok) {
               await commitTurn(step, outcome.value);
             } else if (step.continueOnError) {
-              await markStepFailedContinue(step, new Error(turn.reason));
+              await markStepFailedContinue(step, new Error(turn.reason), turn.failureClass);
               continuedFailures += 1;
             } else {
               await failStepFatal(step, turn.reason);
@@ -5184,11 +5221,20 @@ export class Orchestrator {
         lastError = err;
         failureText = err instanceof Error ? err.message : String(err);
       }
-      const giveUp = (): RichProviderRunResult => {
-        if (result) return result;
-        throw lastError ?? new Error(failureText);
-      };
       const cls = classifyProviderFailure(failureText, r);
+      // Give up WITH the diagnosis: the classified class + a short redacted
+      // excerpt ride on the result (or the thrown error), so the step record
+      // and Run Assurance can say "rate-limit: This model is being rate
+      // limited..." instead of laundering it into "provider exited 1".
+      const excerpt = failureExcerpt(failureText);
+      const giveUp = (): RichProviderRunResult => {
+        if (result) return { ...result, failure: { class: cls, excerpt } };
+        const err = lastError ?? new Error(failureText);
+        if (err instanceof Error) {
+          (err as Error & { failureClass?: ProviderFailureClass }).failureClass = cls;
+        }
+        throw err;
+      };
       if (cls === "hard") return giveUp();
 
       // Usage limit / quota (U6): a windowed quota that resets (often hours out),
@@ -5207,10 +5253,20 @@ export class Orchestrator {
           await this.interruptibleSleep(waitMs, input.abortSignal);
           continue; // retry the same provider after the reset window
         }
-        if (ul.action === "fallback" || (ul.action === "wait" && usageWaits >= ul.maxWaits)) {
+        // Give-up point (action=stop, action=fallback, or waits exhausted):
+        // try to reseat the turn before failing. The EXPLICIT fallbackProfile
+        // only applies when the user opted into fallback semantics; the
+        // auto-derived one (resilience.autoFallback, trust-scoped) applies at
+        // every give-up - "stop" means "don't wait hours", not "don't use a
+        // provider the run already trusts".
+        const explicitFb =
+          ul.action === "fallback" || (ul.action === "wait" && usageWaits >= ul.maxWaits)
+            ? (ul.fallbackProfile ?? r.rateLimit.fallbackProfile)
+            : null;
+        if (explicitFb || r.autoFallback !== "off") {
           const fb = await this.tryProviderFallback({
             baseArgs: input.args,
-            fallbackProfile: ul.fallbackProfile ?? r.rateLimit.fallbackProfile,
+            fallbackProfile: explicitFb,
             cls,
             ctx: input.ctx,
             stageId: input.stageId,
@@ -5220,25 +5276,28 @@ export class Orchestrator {
         }
         await input.ctx.eventLog.append({
           type: "provider.usage_limit",
-          message: `Usage limit at ${input.stageId}; giving up (action=${ul.action}).`,
-          data: { stepId: input.stageId, action: ul.action, resolved: "give-up" },
+          message: `Usage limit at ${input.stageId}; giving up (action=${ul.action}): ${excerpt}`,
+          data: { stepId: input.stageId, action: ul.action, resolved: "give-up", detail: excerpt },
         });
         return giveUp();
       }
 
       const spec = cls === "rate-limit" ? r.rateLimit : r.transient;
       if (attempt > spec.maxRetries) {
-        // Retries exhausted: try a configured alternate Profile once (a model
+        // Retries exhausted: try an alternate Profile once (explicitly
+        // configured, else auto-derived per resilience.autoFallback - a model
         // that may not be limited/down), then give up with the original outcome.
-        const fb = await this.tryProviderFallback({
-          baseArgs: input.args,
-          fallbackProfile: spec.fallbackProfile,
-          cls,
-          ctx: input.ctx,
-          stageId: input.stageId,
-          abortSignal: input.abortSignal,
-        });
-        if (fb) return fb;
+        if (spec.fallbackProfile || r.autoFallback !== "off") {
+          const fb = await this.tryProviderFallback({
+            baseArgs: input.args,
+            fallbackProfile: spec.fallbackProfile,
+            cls,
+            ctx: input.ctx,
+            stageId: input.stageId,
+            abortSignal: input.abortSignal,
+          });
+          if (fb) return fb;
+        }
         // onExhausted: pause (attended) - wait for a human to approve a fresh
         // round of retries, or reject (give up). --unattended forces fail.
         if (r.onExhausted === "pause" && !this.unattended) {
@@ -5255,6 +5314,14 @@ export class Orchestrator {
             continue;
           }
         }
+        // The terminal moment used to be silent - the single worst gap when a
+        // run died overnight. Now it's on the record (and in the supervisor's
+        // engagement feed) before the failure surfaces to the step.
+        await input.ctx.eventLog.append({
+          type: "provider.retries_exhausted",
+          message: `Provider ${cls} at ${input.stageId} unrecovered after ${spec.maxRetries} retries; giving up: ${excerpt}`,
+          data: { stepId: input.stageId, class: cls, retries: spec.maxRetries, detail: excerpt },
+        });
         return giveUp();
       }
 
@@ -5275,24 +5342,59 @@ export class Orchestrator {
   }
 
   /**
-   * Resilience fallback (U3): after retries for a recoverable class are
+   * Resilience fallback (U3 + U8): after retries for a recoverable class are
    * exhausted, run the turn once on an alternate Profile (a different model that
-   * may not be limited/down). Returns the result only on a clean success;
+   * may not be limited/down). The profile is the explicitly configured
+   * fallbackProfile when set; otherwise one is auto-derived per
+   * resilience.autoFallback - trust-scoped to profiles already seated in this
+   * run's flow by default ("crew"), so no provider outside the run's trust set
+   * ever sees its context. Returns the result only on a clean success;
    * otherwise null (the caller gives up with the original outcome). The fallback
    * is a DIFFERENT provider, so any session is dropped and it is not itself
-   * retried. Recorded as a `provider.fallback` event so the model swap is never
-   * silent.
+   * retried. Every outcome - swap, no-candidate, failed attempt - is recorded
+   * as a `provider.fallback` event so the seat change is never silent. The
+   * turn's resolved allowWrite/permissions ride along unchanged from baseArgs
+   * (write capability is per-turn, never per-profile).
    */
   private async tryProviderFallback(input: {
     baseArgs: Parameters<typeof runProvider>[1];
     fallbackProfile: string | null;
     cls: string;
-    ctx: { eventLog: EventLog; runId: string };
+    ctx: { eventLog: EventLog; runId: string; stateStore: RunStateStore };
     stageId: string;
     abortSignal: AbortSignal;
   }): Promise<RichProviderRunResult | null> {
-    const fbId = input.fallbackProfile;
-    if (!fbId) return null;
+    let fbId = input.fallbackProfile;
+    let auto = false;
+    const scope = this.config.resilience?.autoFallback ?? "crew";
+    if (!fbId && scope !== "off") {
+      // The run's trust set: profiles actually seated in this run's flow steps.
+      let seated: string[] = [];
+      try {
+        const state = await input.ctx.stateStore.read();
+        seated = (state?.flow?.steps ?? [])
+          .map((s) => s.profileId)
+          .filter((p): p is string => !!p);
+      } catch {
+        // best-effort; an unreadable state just narrows the candidate set
+      }
+      fbId = deriveAutoFallbackProfile({
+        failingProviderId: input.baseArgs.providerId,
+        seatedProfileIds: seated,
+        profiles: this.config.profiles,
+        configuredProviderIds: new Set(Object.keys(this.config.providers)),
+        scope,
+      });
+      auto = fbId !== null;
+    }
+    if (!fbId) {
+      await input.ctx.eventLog.append({
+        type: "provider.fallback",
+        message: `No fallback for ${input.stageId} (${input.cls}): none configured and no alternate-provider profile in scope "${scope}".`,
+        data: { stepId: input.stageId, class: input.cls, fallbackProfile: null, ok: false },
+      });
+      return null;
+    }
     const profile = this.config.profiles[fbId];
     if (!profile || !this.config.providers[profile.provider]) {
       await input.ctx.eventLog.append({
@@ -5313,14 +5415,25 @@ export class Orchestrator {
     };
     await input.ctx.eventLog.append({
       type: "provider.fallback",
-      message: `Falling back to profile "${fbId}" (provider ${profile.provider}) at ${input.stageId} after ${input.cls} retries.`,
-      data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, provider: profile.provider, ok: true },
+      message: `${auto ? `Auto-falling back (scope ${scope})` : "Falling back"} to profile "${fbId}" (provider ${profile.provider}) at ${input.stageId} after ${input.cls}.`,
+      data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, provider: profile.provider, ok: true, auto },
     });
     try {
       const result = await runProvider(this.config.providers, fbArgs);
-      return result.exitCode === 0 ? result : null;
+      if (result.exitCode === 0) return result;
+      await input.ctx.eventLog.append({
+        type: "provider.fallback",
+        message: `Fallback profile "${fbId}" also failed at ${input.stageId} (exited ${result.exitCode}); giving up with the original outcome.`,
+        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false, failed: true },
+      });
+      return null;
     } catch (err) {
       if (err instanceof __RunAbortedSignal || input.abortSignal.aborted) throw err;
+      await input.ctx.eventLog.append({
+        type: "provider.fallback",
+        message: `Fallback profile "${fbId}" errored at ${input.stageId} (${describeError(err)}); giving up with the original outcome.`,
+        data: { stepId: input.stageId, class: input.cls, fallbackProfile: fbId, ok: false, failed: true },
+      });
       return null;
     }
   }

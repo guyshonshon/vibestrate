@@ -109,6 +109,16 @@ There is **no confidence score** - a verdict is a level capped by what's missing
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
 
+A `blocked` or `unsafe` verdict also carries **`blockers`** - the root causes,
+derived from the run's failed steps and provider give-up events. The summary
+leads with the first one ("Cause at 'implement': usage-limit: This model is
+being rate limited..."), so a dead overnight run tells you *why* at a glance
+instead of just "did not reach merge_ready". On a `blocked` run the
+trivially-implied caps (`validation_missing`, `review_missing`,
+`verification_not_run` - of course they're missing, the run never got there)
+are omitted as noise; caps that carry real information (an actual failed
+validation, a tolerated step failure) stay.
+
 For the full step-by-step story - the flow's steps and, per step, what each turn
 did (succeeded, got **rate-limited then retried**, **fell back** to another model,
 paused, or failed-but-tolerated), plus run-level budget/spend/pause events - use
@@ -185,16 +195,33 @@ tune it under `resilience` in config (`maxRetries`, delays, and extra detection
 `patterns` for your provider's exact wording). Context is preserved across a retry
 (the same prompt is re-sent), so the model doesn't "lose its place."
 
-If retries run out, an optional **fallback** kicks in: set
+If retries run out, a **fallback** kicks in: the turn runs once on another
+Profile instead (handy when one provider is hard-down or rate-limited). Set
 `resilience.rateLimit.fallbackProfile` / `resilience.transient.fallbackProfile`
-to another Profile and Vibestrate runs the turn once on that model instead (handy
-when one provider is hard-down). The swap is recorded as a `provider.fallback`
-event - never silent.
+to pick the model yourself - or let Vibestrate derive one:
+`resilience.autoFallback` (default `crew`) reseats the turn onto a profile
+**already seated in this run's flow** on a different provider, so no provider
+outside the run's trust set ever sees its context. `any` widens the candidates
+to every configured profile (explicit opt-in); `off` disables auto-derivation.
+The seat keeps its context (the same prompt and artifacts are re-sent) and its
+permissions (write capability is per-turn, never per-profile). Every outcome -
+the swap, "no candidate available", or a fallback that itself failed - is
+recorded as a `provider.fallback` event and shows in the Supervisor feed. Never
+silent.
 
 A **subscription usage limit** (a per-model quota that resets, often hours out) is
 handled separately from a per-minute rate limit - retrying it for seconds is
-pointless. `resilience.usageLimit.action` controls it: `wait` sleeps for the reset
-window (the parsed hint, capped at `maxWaitMin`) then retries - so an overnight run
-"runs until the window refills"; `fallback` switches to another model; `stop`
-(default) ends honestly. The wait is an automatic timed sleep (not a human pause),
-so it's safe to leave unattended. Recorded as `provider.usage_limit`.
+pointless (Claude Code's "being rate limited... switch over?" prompt is detected
+as this class). `resilience.usageLimit.action` controls it: `wait` sleeps for the
+reset window (the parsed hint, capped at `maxWaitMin`) then retries - so an
+overnight run "runs until the window refills"; `fallback` switches to another
+model; `stop` (default) ends honestly - after trying the auto-derived fallback
+first, since switching providers is instant ("stop" opts out of waiting hours,
+not of using a model the run already trusts). Recorded as
+`provider.usage_limit`.
+
+When a provider failure does end the run, it ends **loudly with its cause**: the
+classified failure and a redacted excerpt of the provider's actual error
+("usage-limit: This model is being rate limited...") travel into the step's
+error, the event log (`provider.retries_exhausted`), the Supervisor feed, and
+the Run Assurance verdict - not a bare "provider exited 1".
