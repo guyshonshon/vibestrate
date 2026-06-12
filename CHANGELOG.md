@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.55
+
+- **Starting a run shows staged progress instead of a blank screen.** The setup a
+  run does before the first agent turn - creating the git worktree, linking the
+  environment, materializing context, spawning the provider - now emits staged
+  events and renders as a live checklist on the dashboard run detail and in the
+  TUI inspector. If setup fails (a bad worktree, say), you see the failed stage
+  and its error instead of a run that just sits there blank.
+
 ## 0.7.54
 
 - **Runs have readable names now, not just timestamps.** Every run gets a

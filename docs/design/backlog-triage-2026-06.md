@@ -269,7 +269,17 @@ it.
 
 **Size:** S. **Depends on:** nothing.
 
-### T7 - "Starting up" progress UI
+### T7 - "Starting up" progress UI - SHIPPED
+
+**Status (shipped):** The orchestrator emits a `run.startup` event at each setup
+boundary - `workspace` (worktree create) -> `environment` (env link) ->
+`context` (materialize sources) -> `provider` (about to spawn) - each with
+active/done/skipped/failed + a detail. Pure `deriveStartupProgress`
+(`core/run-startup.ts`, mirrored in `ui/lib/run-startup.ts`) folds them to a
+per-stage checklist. Rendered as `StartupPanel` on the dashboard run detail
+(self-hides once provider starts, stays on failure) and as a staged checklist in
+the TUI inspector (`ShellRunRow.startup`). A worktree-prep failure now shows the
+failed stage + error instead of a blank run. Tests: `run-startup.test.ts` (5).
 
 **Raw ask:** "when starting a task, a nicer ui for 'starting up' should
 show."

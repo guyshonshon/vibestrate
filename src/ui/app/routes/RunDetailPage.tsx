@@ -28,6 +28,7 @@ import { ArtifactList } from "../../components/artifacts/ArtifactList.js";
 import { ArtifactViewer } from "../../components/artifacts/ArtifactViewer.js";
 import { ValidationSummary } from "../../components/validation/ValidationSummary.js";
 import { ReviewFindingsPanel } from "../../components/runs/ReviewFindingsPanel.js";
+import { StartupPanel } from "../../components/runs/StartupPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
 import { WorktreeFileView } from "../../components/diff/WorktreeFileView.js";
@@ -294,6 +295,10 @@ export function RunDetailPage({
           onOpenTab={(t) => setTab(t)}
         />
       )}
+
+      {/* Staged "starting up" checklist (T7): self-hides once the run is past
+          startup (or stays to show the failed stage). */}
+      <StartupPanel runId={runId} status={run.status} />
 
       {run.worktreePath ? (
         <WorkspacePanel
