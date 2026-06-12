@@ -19,10 +19,16 @@ import type { ProviderDetectionRunner } from "../src/providers/provider-detectio
 
 describe("buildClaudeCodeArgs - write capability -> claude permission mode", () => {
   it("injects --permission-mode acceptEdits when write-capable, even with no settings", () => {
+    // No explicit settings -> the streaming default kicks in too (P8b: live
+    // transcript works out of the box).
     expect(buildClaudeCodeArgs(["-p"], undefined, { writeCapable: true })).toEqual([
       "-p",
       "--permission-mode",
       "acceptEdits",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--include-partial-messages",
     ]);
   });
 
@@ -33,12 +39,30 @@ describe("buildClaudeCodeArgs - write capability -> claude permission mode", () 
   });
 
   it("does NOT inject for a read-only seat (writeCapable false OR omitted)", () => {
-    expect(buildClaudeCodeArgs(["-p"], undefined, { writeCapable: false })).toEqual(["-p"]);
+    expect(
+      buildClaudeCodeArgs(["-p"], undefined, { writeCapable: false }),
+    ).not.toContain("--permission-mode");
     // Omitted opts = treat as not write-capable (preserves non-orchestrator callers).
-    expect(buildClaudeCodeArgs(["-p"], undefined)).toEqual(["-p"]);
+    expect(buildClaudeCodeArgs(["-p"], undefined)).not.toContain(
+      "--permission-mode",
+    );
     expect(
       buildClaudeCodeArgs(["-p"], { outputFormat: "text" }, { writeCapable: false }),
     ).not.toContain("--permission-mode");
+  });
+
+  it("streaming default: explicit outputFormat or manual --output-format args win", () => {
+    // Explicit text: no stream flags at all.
+    const text = buildClaudeCodeArgs(["-p"], { outputFormat: "text" });
+    expect(text).toEqual(["-p", "--output-format", "text"]);
+    // Raw args already carry the flag: builder adds nothing.
+    const manual = buildClaudeCodeArgs(["-p", "--output-format", "json"], undefined);
+    expect(manual.filter((a) => a === "--output-format")).toHaveLength(1);
+    // Explicit stream-json WITHOUT includePartialMessages: no partials flag
+    // (explicit settings keep full control; only the default brings partials).
+    const explicitStream = buildClaudeCodeArgs(["-p"], { outputFormat: "stream-json" });
+    expect(explicitStream).toContain("--verbose");
+    expect(explicitStream).not.toContain("--include-partial-messages");
   });
 
   it("an explicit permissionMode always wins - no acceptEdits override, no duplicate flag", () => {
@@ -110,7 +134,15 @@ let i='';process.stdin.on('data',c=>i+=c);process.stdin.on('end',()=>{
   await setConfigValue(
     dir,
     "providers.claude",
-    JSON.stringify({ type: "claude-code", command: "node", args: [fakeJs], input: "stdin" }),
+    // The fake emits plain text, so it declares text output (otherwise the
+    // P8b streaming default would route it through the stream-json adapter).
+    JSON.stringify({
+      type: "claude-code",
+      command: "node",
+      args: [fakeJs],
+      input: "stdin",
+      settings: { outputFormat: "text" },
+    }),
   );
   await setConfigValue(dir, "profiles.claude-balanced.provider", "claude");
   if (opts.strictApplyOnly) {

@@ -31,6 +31,24 @@ export type ClaudeCodeProviderConfig = {
   settings?: ClaudeCodeSettings;
 };
 
+/**
+ * The output format a claude-code provider actually runs with. Streaming is
+ * the DEFAULT: without `--output-format stream-json` the claude CLI buffers
+ * its whole answer until exit, so the dashboard's live transcript shows
+ * nothing while a step works (the first real run reviewed for 3 minutes in
+ * total silence). Explicit `settings.outputFormat` always wins; a raw
+ * `--output-format` in the config's args/extraArgs means the user manages the
+ * format manually and we keep our hands off (returns null).
+ */
+export function effectiveClaudeOutputFormat(
+  config: Pick<ClaudeCodeProviderConfig, "args" | "settings">,
+): "text" | "json" | "stream-json" | null {
+  if (config.settings?.outputFormat) return config.settings.outputFormat;
+  if ((config.args ?? []).includes("--output-format")) return null;
+  if ((config.settings?.extraArgs ?? []).includes("--output-format")) return null;
+  return "stream-json";
+}
+
 export function buildClaudeCodeArgs(
   baseArgs: readonly string[],
   settings: ClaudeCodeSettings | undefined,
@@ -52,16 +70,30 @@ export function buildClaudeCodeArgs(
     out.push("--permission-mode", "acceptEdits");
   }
 
-  if (!settings) return out;
-
-  if (settings.outputFormat) {
-    out.push("--output-format", settings.outputFormat);
-    // `claude -p --output-format stream-json` REQUIRES --verbose (the CLI errors
-    // without it). Add it for stream-json so the preset is valid out of the box.
-    if (settings.outputFormat === "stream-json" && !out.includes("--verbose")) {
+  // Output format: explicit settings > manual args > the streaming default
+  // (see effectiveClaudeOutputFormat). null = the user's raw args carry
+  // --output-format themselves; add nothing.
+  const format = effectiveClaudeOutputFormat({ args: [...baseArgs], settings });
+  if (format) {
+    out.push("--output-format", format);
+    // `claude -p --output-format stream-json` REQUIRES --verbose (the CLI
+    // errors without it).
+    if (format === "stream-json" && !out.includes("--verbose")) {
       out.push("--verbose");
     }
+    // The streaming DEFAULT also turns on token-level partials - that's what
+    // makes the live view live. Explicit settings keep full control: an
+    // explicit outputFormat only gets partials via includePartialMessages.
+    if (
+      format === "stream-json" &&
+      !settings?.outputFormat &&
+      settings?.includePartialMessages === undefined
+    ) {
+      out.push("--include-partial-messages");
+    }
   }
+
+  if (!settings) return out;
   if (settings.maxTurns !== undefined) {
     out.push("--max-turns", String(settings.maxTurns));
   }
