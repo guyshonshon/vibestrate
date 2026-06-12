@@ -80,11 +80,16 @@ export function describeRunOutcome(run: RunState): RunOutcome | null {
     };
   }
   if (run.finalDecision === "CHANGES_REQUESTED") {
+    // Only claim a fix loop ran when one actually did - flows without a fix
+    // step (e.g. express) blocked here without any loop, and the old copy
+    // invented one.
+    const fixLoopRan = run.reviewLoopCount > 0;
     return {
       kind: "blocked",
       title: "Blocked - reviewer requested changes",
-      reason:
-        "The reviewer asked for changes and the fix loop didn't resolve them. Read the findings, then re-run with fixes (reuses this run's plan + architecture).",
+      reason: fixLoopRan
+        ? "The reviewer asked for changes and the fix loop didn't resolve them. Read the findings, then re-run with fixes (reuses this run's plan + architecture)."
+        : "The reviewer asked for changes. Read the findings, then re-run with fixes.",
       actions: ["review", "rerun"],
     };
   }

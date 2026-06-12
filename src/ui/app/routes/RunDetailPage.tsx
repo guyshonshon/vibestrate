@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type ProviderRow } from "../../lib/api.js";
+import { api, ApiError, type ProviderRow } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
@@ -32,6 +32,7 @@ import { ValidationSummary } from "../../components/validation/ValidationSummary
 import { ReviewFindingsPanel } from "../../components/runs/ReviewFindingsPanel.js";
 import { ApprovalBanner } from "../../components/approvals/ApprovalBanner.js";
 import { DiffViewer } from "../../components/diff/DiffViewer.js";
+import { WorktreeFileView } from "../../components/diff/WorktreeFileView.js";
 import { AlertTriangle, Bolt, Cpu, Scale } from "lucide-react";
 import {
   describeRunOutcome,
@@ -75,6 +76,7 @@ export function RunDetailPage({
           : "steps",
   );
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileViewMode, setFileViewMode] = useState<"diff" | "file">("diff");
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
   const [audit, setAudit] = useState<RunAudit | null>(null);
@@ -83,6 +85,7 @@ export function RunDetailPage({
 
   useEffect(() => {
     let cancelled = false;
+    let loadedOnce = false;
     const load = async () => {
       try {
         const [r, m, a, d, sel, eng] = await Promise.all([
@@ -94,6 +97,7 @@ export function RunDetailPage({
           api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
         ]);
         if (cancelled) return;
+        loadedOnce = true;
         setRun(r);
         setMetrics(m);
         setApprovals(a);
@@ -123,7 +127,12 @@ export function RunDetailPage({
           });
         }
       } catch (err) {
-        if (!cancelled)
+        // A dashboard-spawned run is navigated to BEFORE its detached process
+        // writes state.json - a 404 here just means "still starting", so keep
+        // polling quietly instead of flashing an error.
+        const starting =
+          err instanceof ApiError && err.status === 404 && !loadedOnce;
+        if (!cancelled && !starting)
           setError(err instanceof Error ? err.message : String(err));
       }
     };
@@ -150,8 +159,15 @@ export function RunDetailPage({
     );
   if (!run)
     return (
-      <div className="mx-auto max-w-[1480px] px-8 pt-6 text-fog-400">
-        Loading run…
+      <div className="mx-auto max-w-[1480px] px-8 pt-6 flex items-center gap-2.5 text-fog-400">
+        <span className="pulse-dot" />
+        <span>
+          Starting run
+          <span className="text-fog-500">
+            {" "}
+            - creating the worktree and launching the first step…
+          </span>
+        </span>
       </div>
     );
 
@@ -335,10 +351,16 @@ export function RunDetailPage({
             render: () => (
               <ChangedFilesList
                 runId={runId}
-                selectedPath={null}
-                onSelect={(p) =>
-                  navigate({ kind: "codebase", filePath: p, line: null, runId })
-                }
+                selectedPath={selectedFile}
+                // Stay on this screen: select the file into the inspector's
+                // artifacts tab (diff + worktree file view) instead of
+                // navigating away to the Codebase page.
+                onSelect={(p) => {
+                  setSelectedArtifact(null);
+                  setSelectedFile(p);
+                  setFileViewMode("file");
+                  setTab("artifacts");
+                }}
               />
             ),
           },
@@ -418,26 +440,39 @@ export function RunDetailPage({
                       selectedPath={selectedFile}
                       onSelect={setSelectedFile}
                     />
-                    <DiffViewer
-                      runId={runId}
-                      filePath={selectedFile}
-                      onOpenInProject={(p) =>
-                        navigate({
-                          kind: "codebase",
-                          filePath: p,
-                          line: null,
-                          runId: null,
-                        })
-                      }
-                      onOpenInWorktree={(p) =>
-                        navigate({
-                          kind: "codebase",
-                          filePath: p,
-                          line: null,
-                          runId,
-                        })
-                      }
-                    />
+                    {/* Diff and full file contents side by side as a toggle -
+                     * a generated file is viewable HERE, in the worktree it
+                     * actually lives in, without leaving the run screen. */}
+                    {selectedFile ? (
+                      <div className="inline-flex rounded-md border border-white/10 p-0.5 text-[11.5px]">
+                        {(["diff", "file"] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setFileViewMode(m)}
+                            className={cnFileTab(fileViewMode === m)}
+                          >
+                            {m === "diff" ? "Diff" : "File"}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    {fileViewMode === "file" && selectedFile ? (
+                      <WorktreeFileView runId={runId} filePath={selectedFile} />
+                    ) : (
+                      <DiffViewer
+                        runId={runId}
+                        filePath={selectedFile}
+                        onOpenInWorktree={(p) =>
+                          navigate({
+                            kind: "codebase",
+                            filePath: p,
+                            line: null,
+                            runId,
+                          })
+                        }
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -449,6 +484,12 @@ export function RunDetailPage({
       </section>
     </div>
   );
+}
+
+function cnFileTab(active: boolean): string {
+  return active
+    ? "rounded px-2 py-0.5 bg-white/[0.08] text-fog-100"
+    : "rounded px-2 py-0.5 text-fog-400 hover:text-fog-200";
 }
 
 function ActiveRolePanel({
