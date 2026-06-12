@@ -51,6 +51,18 @@ describe("buildClaudeCodeArgs - write capability -> claude permission mode", () 
     ).not.toContain("--permission-mode");
   });
 
+  it("safeMode is strictly opt-in: absent/false adds nothing, true adds the flag once", () => {
+    expect(buildClaudeCodeArgs(["-p"], undefined)).not.toContain("--safe-mode");
+    expect(buildClaudeCodeArgs(["-p"], { safeMode: false })).not.toContain(
+      "--safe-mode",
+    );
+    const on = buildClaudeCodeArgs(["-p"], { safeMode: true });
+    expect(on.filter((a) => a === "--safe-mode")).toHaveLength(1);
+    // Manual arg not duplicated.
+    const manual = buildClaudeCodeArgs(["-p", "--safe-mode"], { safeMode: true });
+    expect(manual.filter((a) => a === "--safe-mode")).toHaveLength(1);
+  });
+
   it("streaming default: explicit outputFormat or manual --output-format args win", () => {
     // Explicit text: no stream flags at all.
     const text = buildClaudeCodeArgs(["-p"], { outputFormat: "text" });

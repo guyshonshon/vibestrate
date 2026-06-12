@@ -14,6 +14,13 @@ export const claudeCodeSettingsSchema = z
       .optional(),
     allowedTools: z.array(z.string()).optional(),
     settingsFile: z.string().optional(),
+    /** OPT-IN hermetic turns: `--safe-mode` disables the operator's own
+     *  CLAUDE.md / hooks / plugins inside run turns (auth and permissions
+     *  unaffected). DEFAULT IS OFF on purpose - the user's environment is
+     *  legitimate context ("models should work as they naturally want to");
+     *  vibestrate-compiled prompts, skills, and explicit MCP are unaffected
+     *  either way. */
+    safeMode: z.boolean().optional(),
     includePartialMessages: z.boolean().optional(),
     includeHookEvents: z.boolean().optional(),
     extraArgs: z.array(z.string()).optional(),
@@ -105,6 +112,9 @@ export function buildClaudeCodeArgs(
   }
   if (settings.settingsFile) {
     out.push("--settings", settings.settingsFile);
+  }
+  if (settings.safeMode === true && !out.includes("--safe-mode")) {
+    out.push("--safe-mode");
   }
   if (settings.includePartialMessages) {
     out.push("--include-partial-messages");
