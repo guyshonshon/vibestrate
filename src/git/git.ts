@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs/promises";
 import { execa } from "execa";
 import { GitError } from "../utils/errors.js";
 import { pathExists } from "../utils/fs.js";
@@ -129,16 +130,80 @@ export async function currentHeadSha(cwd: string): Promise<string | null> {
  * was nothing to commit. `trailers` are appended as `Key: value` lines (used to
  * stamp the checklist item id onto a per-item commit for attribution/revert).
  */
+/**
+ * Newly staged symlinks whose target resolves OUTSIDE the working tree.
+ * A run worktree gets env dirs (node_modules, .venv) symlinked in from the
+ * project root; a dir-only ignore pattern (`node_modules/`) does not match a
+ * symlink, so `git add -A` happily stages it - a real run's reviewer caught
+ * one. The exclude-file layer prevents that for the dirs Vibestrate links;
+ * this is the boundary defense for the whole class: a run's commit must
+ * never carry a link out of its own tree, no matter how it appeared.
+ * In-repo symlinks (relative, resolving inside the tree) stay committable.
+ */
+async function stagedOutOfTreeSymlinks(cwd: string): Promise<string[]> {
+  const diff = await execa(
+    "git",
+    ["diff", "--cached", "--raw", "-z", "--no-renames"],
+    { cwd, reject: false },
+  );
+  if (diff.exitCode !== 0) return [];
+  // -z raw format: ":oldmode newmode oldsha newsha status\0path\0" repeated.
+  const parts = diff.stdout.split("\0").filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    const meta = parts[i]!;
+    const rel = parts[i + 1]!;
+    const newMode = meta.split(" ")[1] ?? "";
+    if (newMode !== "120000") continue;
+    try {
+      const target = await fs.readlink(path.join(cwd, rel));
+      // realpath BOTH sides - on macOS the tree may be reached via an alias
+      // (/var -> /private/var) and a one-sided realpath misclassifies every
+      // relative in-repo link as out-of-tree.
+      const realCwd = await fs.realpath(cwd);
+      const linkDirReal = await fs.realpath(path.dirname(path.join(cwd, rel)));
+      const resolved = path.resolve(linkDirReal, target);
+      const relToTree = path.relative(realCwd, resolved);
+      if (relToTree.startsWith("..") || path.isAbsolute(relToTree)) {
+        out.push(rel);
+      }
+    } catch {
+      // Unreadable link: fail closed - keep it out of the commit.
+      out.push(rel);
+    }
+  }
+  return out;
+}
+
 export async function stageAndCommitAll(input: {
   cwd: string;
   message: string;
   trailers?: Record<string, string>;
-}): Promise<{ sha: string } | null> {
+}): Promise<{ sha: string; excludedSymlinks: string[] } | null> {
   const { cwd, message, trailers } = input;
   if (!(await hasChanges(cwd))) return null;
   const add = await execa("git", ["add", "-A"], { cwd, reject: false });
   if (add.exitCode !== 0) {
     throw new GitError(`git add failed in ${cwd}: ${add.stderr || add.stdout}`);
+  }
+  const excludedSymlinks = await stagedOutOfTreeSymlinks(cwd);
+  if (excludedSymlinks.length > 0) {
+    const reset = await execa(
+      "git",
+      ["reset", "-q", "--", ...excludedSymlinks],
+      { cwd, reject: false },
+    );
+    if (reset.exitCode !== 0) {
+      throw new GitError(
+        `git reset of out-of-tree symlinks failed in ${cwd}: ${reset.stderr || reset.stdout}`,
+      );
+    }
+    // Nothing real left to commit? (the symlink was the only change)
+    const staged = await execa("git", ["diff", "--cached", "--quiet"], {
+      cwd,
+      reject: false,
+    });
+    if (staged.exitCode === 0) return null;
   }
   const args = ["commit", "-m", message];
   for (const [key, value] of Object.entries(trailers ?? {})) {
@@ -152,7 +217,7 @@ export async function stageAndCommitAll(input: {
     );
   }
   const sha = await currentHeadSha(cwd);
-  return sha ? { sha } : null;
+  return sha ? { sha, excludedSymlinks } : null;
 }
 
 /** Paths changed by a single commit (best-effort; empty on any error). */

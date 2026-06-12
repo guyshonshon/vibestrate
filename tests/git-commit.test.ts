@@ -47,6 +47,43 @@ describe("git commit helpers", () => {
     expect(res).toBeNull();
   });
 
+  it("never commits a symlink that resolves outside the tree (worktree env links)", async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-outside-"));
+    await fs.symlink(outside, path.join(dir, "node_modules"), "dir");
+    await fs.writeFile(path.join(dir, "real.txt"), "real change");
+    const res = await stageAndCommitAll({ cwd: dir, message: "change" });
+    expect(res).not.toBeNull();
+    expect(res!.excludedSymlinks).toEqual(["node_modules"]);
+    const show = await execa(
+      "git",
+      ["show", "--name-only", "--pretty=format:", res!.sha],
+      { cwd: dir },
+    );
+    const committed = show.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+    expect(committed).toEqual(["real.txt"]);
+  });
+
+  it("returns null when the out-of-tree symlink was the ONLY change", async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-outside-"));
+    await fs.symlink(outside, path.join(dir, "node_modules"), "dir");
+    const res = await stageAndCommitAll({ cwd: dir, message: "noop" });
+    expect(res).toBeNull();
+  });
+
+  it("keeps committing legitimate in-repo symlinks", async () => {
+    await fs.writeFile(path.join(dir, "target.txt"), "t");
+    await fs.symlink("target.txt", path.join(dir, "alias.txt"));
+    const res = await stageAndCommitAll({ cwd: dir, message: "link" });
+    expect(res).not.toBeNull();
+    expect(res!.excludedSymlinks).toEqual([]);
+    const show = await execa(
+      "git",
+      ["show", "--name-only", "--pretty=format:", res!.sha],
+      { cwd: dir },
+    );
+    expect(show.stdout).toContain("alias.txt");
+  });
+
   it("stamps trailers (e.g. the checklist item id) on the commit", async () => {
     await fs.writeFile(path.join(dir, "b.ts"), "export const b = 2;");
     const res = await stageAndCommitAll({
