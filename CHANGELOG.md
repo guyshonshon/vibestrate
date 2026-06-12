@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.61
+
+- **The Merge window is on the dashboard now.** A dedicated Merge page lists
+  every merge-ready run with its check lanes and branch drift at a glance
+  (cheap, no git churn per visit), and opening a run computes the full
+  advice: risk flags first, the dry-run conflict report, the recommendation,
+  and the predicted commit shape - then the same explicit integrate /
+  merge-to-main actions as always, gates unchanged. The Runs page links over,
+  and the page's CLI-parity hint maps every control to its `vibe integrate`
+  command.
+
 ## 0.7.60
 
 - **A merge advisor that tells you the truth before you merge.** New

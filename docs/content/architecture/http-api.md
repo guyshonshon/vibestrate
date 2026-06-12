@@ -83,6 +83,12 @@ page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
 
 ## Integration: merge advice + guided merge-to-main
 
+`GET /api/integration/overview` returns the **cheap** per-run projection the
+dashboard's Merge page lists: check lanes + branch topology per merge-ready
+run - no dry-run preview and deliberately **no recommendation** (a
+recommendation computed blind to conflicts would mislead). Fast read-only
+git ops; safe per page load.
+
 `POST /api/integration/advice` (`{ runIds? }`) returns **read-only,
 deterministic** merge advice for the selected (or all) merge-ready runs:
 risk flags derived from the run's assurance lanes (including the honest

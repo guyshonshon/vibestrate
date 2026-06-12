@@ -261,6 +261,12 @@ function IntegrationPanel() {
         <span className="ml-2 text-[10.5px] text-fog-500">
           never main · never push
         </span>
+        <a
+          href="#/merge"
+          className="ml-auto text-[11px] text-emerald-300 hover:text-emerald-200"
+        >
+          Merge window with advice
+        </a>
       </div>
       <ul className="mt-2 space-y-1">
         {ready.map((r) => (

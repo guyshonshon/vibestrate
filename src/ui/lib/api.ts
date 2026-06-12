@@ -481,6 +481,18 @@ export type ComposerPreset = {
 
 /** T13 merge advice (design/merge-advisor.md). Structural mirror of the
  *  server's MergeAdvice - deterministic advisory data, no model output. */
+/** T13 hub-list row: facts only (no preview, no recommendation - those come
+ *  from the full advice on drill-in). */
+export type MergeOverviewRowDto = {
+  runId: string;
+  task: string;
+  branchName: string;
+  taskId: string | null;
+  branchExists: boolean;
+  topology: MergeAdviceDto["topology"];
+  assurance: MergeAdviceDto["assurance"];
+};
+
 export type MergeAdviceDto = {
   runId: string;
   task: string;
@@ -1159,6 +1171,11 @@ export const api = {
       integrated: { branch: string; clean: boolean; note: string }[];
     } }>("/api/integration/apply", { into, runIds });
     return r.result;
+  },
+  /** T13: cheap hub-list projection - lanes + topology, no preview, no
+   *  recommendation. Safe per page load. */
+  async integrationOverview(): Promise<{ rows: MergeOverviewRowDto[] }> {
+    return jsonGet<{ rows: MergeOverviewRowDto[] }>("/api/integration/overview");
   },
   /** T13: read-only merge advice (deterministic - no model output). Same
    *  cost class as preview; call it on drill-in, not per hub-list row. */

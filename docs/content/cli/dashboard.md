@@ -30,6 +30,7 @@ vibe run "Add audit logging" --ui
 - **Providers** - the CLIs your roles run on: what's installed, what's configured, test each one.
 - **Approvals** - pending policy-gated decisions.
 - **Git** - inline diff viewer for the active run's worktree, with file-by-file navigation.
+- **Merge** - the merge window: every merge-ready run with its check lanes and branch drift, and per-run deterministic merge advice (risk flags, dry-run conflict report, recommendation) before the explicit integrate/finish actions. Advice is read-only; nothing merges without you.
 - **Suggestions** - review findings grouped into bundles you can apply, validate, and revert.
 - **Notifications** - local notifications, with gateway controls.
 

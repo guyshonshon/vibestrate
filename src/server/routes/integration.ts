@@ -10,7 +10,10 @@ import {
   type BranchTarget,
   type MergeReadyRun,
 } from "../../integration/integration-service.js";
-import { adviseMergeReadyRuns } from "../../integration/merge-advisor.js";
+import {
+  adviseMergeReadyRuns,
+  mergeReadyOverview,
+} from "../../integration/merge-advisor.js";
 
 export type IntegrationRoutesDeps = { projectRoot: string };
 
@@ -50,6 +53,14 @@ export async function registerIntegrationRoutes(
     if (branches.length === 0) return { preview: { baseBranch: "", results: [], allClean: true } };
     const preview = await mergePreview({ projectRoot: deps.projectRoot, branches });
     return { preview };
+  });
+
+  // T13 slice 1b: cheap read-only projection for the Merge page hub list -
+  // lanes + topology only (rev-list/diff counts; NO scratch-worktree preview,
+  // NO recommendation). Full advice is fetched on drill-in via /advice.
+  app.get("/api/integration/overview", async () => {
+    const rows = await mergeReadyOverview(deps.projectRoot);
+    return { rows };
   });
 
   // T13 slice 1a (design/merge-advisor.md): READ-ONLY merge advice. Same

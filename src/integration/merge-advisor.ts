@@ -505,6 +505,62 @@ export type AdviseResult = {
   missing: string[];
 };
 
+/** Cheap per-run facts for the Merge page hub list: lanes + topology only.
+ *  Deliberately NO preview and NO recommendation - a recommendation computed
+ *  blind to the dry-run conflict report would claim "finish-now" for a
+ *  conflicting change. Facts here, judgment on drill-in (full advice). */
+export type MergeReadyOverviewRow = {
+  runId: string;
+  task: string;
+  branchName: string;
+  taskId: string | null;
+  branchExists: boolean;
+  topology: BranchTopology;
+  assurance: AssuranceProjection | null;
+};
+
+/** Fast read-only projection over all merge-ready runs (rev-list/diff counts
+ *  + assurance artifact reads; no scratch worktree). Safe to call per page
+ *  load. */
+export async function mergeReadyOverview(
+  projectRoot: string,
+): Promise<MergeReadyOverviewRow[]> {
+  const loaded = await loadConfig(projectRoot);
+  const mainBranch = loaded.config.git.mainBranch;
+  const policies = loaded.config.policies;
+  const ready = await listMergeReadyRuns(projectRoot);
+  const rows: MergeReadyOverviewRow[] = [];
+  for (const run of ready) {
+    const branchExists = await refExists(projectRoot, run.branchName);
+    const topology = branchExists
+      ? await collectBranchTopology({
+          projectRoot,
+          branchName: run.branchName,
+          mainBranch,
+          protectedPaths: policies.protectedPaths,
+          unprotectedPaths: policies.unprotectedPaths,
+        })
+      : {
+          branchName: run.branchName,
+          aheadOfMain: 0,
+          behindMain: 0,
+          filesTouched: 0,
+          protectedPathHits: [],
+        };
+    const assuranceRaw = await readRunAssurance(projectRoot, run.runId);
+    rows.push({
+      runId: run.runId,
+      task: run.task,
+      branchName: run.branchName,
+      taskId: run.taskId,
+      branchExists,
+      topology,
+      assurance: assuranceRaw ? projectAssurance(assuranceRaw) : null,
+    });
+  }
+  return rows;
+}
+
 /** Advise the selected (or all) merge-ready runs. Runs ONE cumulative
  *  mergePreview over the selection - the same cost class as
  *  `vibe integrate preview` - then computes everything else from cheap

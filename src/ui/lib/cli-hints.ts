@@ -193,6 +193,22 @@ export function hintForRoute(route: Route): CliHint {
           { cmd: "vibe validation run", note: "execute the validation profile" },
         ],
       };
+    case "merge":
+      return {
+        title: "Merge window",
+        blurb:
+          "Read-only merge advice per merge-ready run, then the explicit integrate/finish actions. Full parity on the CLI.",
+        commands: [
+          { cmd: "vibe integrate advise", note: "deterministic advice for all merge-ready runs" },
+          { cmd: `vibe integrate advise ${route.runId ?? "<runId>"} --json`, note: "one run, machine-readable" },
+          { cmd: "vibe integrate preview", note: "dry-run merge conflict report" },
+          { cmd: "vibe integrate apply --into integration/<name>", note: "integrate into a dedicated branch (never main)" },
+          { cmd: "vibe integrate finish <branch>", note: "merge to main - typed confirmation, local only" },
+        ],
+        tips: [
+          "Advice is computed from git facts + check lanes - no model output; it never merges anything.",
+        ],
+      };
     case "flow":
       return {
         title: "Flow Builder",

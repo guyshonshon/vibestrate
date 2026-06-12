@@ -198,6 +198,21 @@ describe("round-trip", () => {
     }
   });
 
+  it("parses + round-trips the merge window route (T13 slice 1b)", () => {
+    expect(parseHashRoute("#/merge")).toEqual({ kind: "merge", runId: null });
+    expect(parseHashRoute("#/merge?run=r-9")).toEqual({
+      kind: "merge",
+      runId: "r-9",
+    });
+    expect(serializeRoute({ kind: "merge", runId: null })).toBe("#/merge");
+    expect(serializeRoute({ kind: "merge", runId: "r-9" })).toBe(
+      "#/merge?run=r-9",
+    );
+    expect(
+      parseHashRoute(serializeRoute({ kind: "merge", runId: "r-9" })),
+    ).toEqual({ kind: "merge", runId: "r-9" });
+  });
+
   it("round-trips the simple kind-only routes (incl. flows)", () => {
     const kinds: Route[] = [
       { kind: "flows" },

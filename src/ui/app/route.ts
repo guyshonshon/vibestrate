@@ -36,6 +36,7 @@ export type Route =
   | { kind: "settings" }
   | { kind: "project" }
   | { kind: "git"; runId: string | null }
+  | { kind: "merge"; runId: string | null }
   | { kind: "flow"; flowId: string | null }
   | { kind: "flows" }
   | { kind: "metrics" }
@@ -175,6 +176,10 @@ export function parseHashRoute(hash: string): Route {
     const runId = query.get("runId");
     return { kind: "git", runId: runId ?? null };
   }
+  if (parts[0] === "merge") {
+    const runId = query.get("run");
+    return { kind: "merge", runId: runId ?? null };
+  }
   // Builder is singular (#/flow[/id]); the catalog is plural (#/flows).
   if (parts[0] === "flow") {
     const flowId = parts[1] ?? query.get("flow");
@@ -240,6 +245,10 @@ export function serializeRoute(route: Route): string {
       const qs = q.toString();
       return `#/git${qs ? `?${qs}` : ""}`;
     }
+    case "merge":
+      return route.runId
+        ? `#/merge?run=${encodeURIComponent(route.runId)}`
+        : "#/merge";
     case "flow":
       return route.flowId
         ? `#/flow/${encodeURIComponent(route.flowId)}`

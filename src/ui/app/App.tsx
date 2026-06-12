@@ -12,6 +12,7 @@ import { WorkspacePage } from "./routes/WorkspacePage.js";
 import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
+import { MergePage } from "./routes/MergePage.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
@@ -264,6 +265,8 @@ export function App() {
                     ? "codebase"
                     : route.kind === "git"
                       ? "git"
+                      : route.kind === "merge"
+                        ? "merge"
                       : route.kind === "flow" || route.kind === "flows"
                         ? "flows"
                         : route.kind === "metrics"
@@ -299,6 +302,7 @@ export function App() {
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
       onShowGit={() => navigate({ kind: "git", runId: null })}
+      onShowMerge={() => navigate({ kind: "merge", runId: null })}
       onOpenNotification={(n) => navigate(notificationRoute(n))}
     >
       <ErrorBoundary resetKey={pageKey}>
@@ -366,6 +370,12 @@ export function App() {
         <GitPage
           initialRunId={route.runId}
           onSelectRun={(runId) => navigate({ kind: "run", runId })}
+        />
+      ) : route.kind === "merge" ? (
+        <MergePage
+          runId={route.runId}
+          onOpenMergeRun={(runId) => navigate({ kind: "merge", runId })}
+          onOpenRun={(runId) => navigate({ kind: "run", runId })}
         />
       ) : route.kind === "flow" ? (
         <FlowBuilderPage

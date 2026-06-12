@@ -93,6 +93,27 @@ describe("integration HTTP routes", () => {
     expect(body.result.integrationBranch).toBe("integration/x");
   });
 
+  it("serves the cheap merge overview (lanes + topology, no recommendation)", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    const res = await fetch(`${server.url}/api/integration/overview`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.rows).toHaveLength(1);
+    const row = body.rows[0];
+    expect(row.runId).toBe("r1");
+    expect(row.branchExists).toBe(true);
+    expect(row.topology.aheadOfMain).toBe(1);
+    expect(row.assurance).toBeNull(); // no artifact in this fixture - said honestly
+    // Deliberately NO recommendation/preview in the cheap projection.
+    expect(row.recommendation).toBeUndefined();
+    expect(row.preview).toBeUndefined();
+    // Cheap = no scratch-worktree debris.
+    const branches = await execa("git", ["branch", "--list", "vibe-preview-*"], { cwd: dir });
+    expect(branches.stdout.trim()).toBe("");
+  });
+
   it("serves read-only merge advice (T13)", async () => {
     const dir = await makeRepo();
     server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });

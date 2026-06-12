@@ -8,6 +8,7 @@ import {
   Gauge,
   GitBranch,
   GitCommit,
+  GitMerge,
   LayoutGrid,
   Library,
   ListChecks,
@@ -43,6 +44,7 @@ type Props = {
   onShowConfig: () => void;
   onShowCodebase: () => void;
   onShowGit: () => void;
+  onShowMerge: () => void;
   onShowConsult: () => void;
   onShowSettings: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
@@ -90,6 +92,7 @@ export function TopBar({
   onShowConfig,
   onShowCodebase,
   onShowGit,
+  onShowMerge,
   onShowConsult,
   onShowSettings,
   onOpenNotification,
@@ -262,6 +265,7 @@ export function TopBar({
           <NavTab
             active={
               currentNav === "git" ||
+              currentNav === "merge" ||
               currentNav === "proposals" ||
               currentNav === "project" ||
               currentNav === "config"
@@ -285,6 +289,16 @@ export function TopBar({
                 icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Git
+              </DropItem>
+              <DropItem
+                active={currentNav === "merge"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowMerge();
+                }}
+                icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Merge
               </DropItem>
               <DropItem
                 onClick={() => {
@@ -391,6 +405,16 @@ export function TopBar({
               icon={<GitCommit className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Git
+            </DropItem>
+            <DropItem
+              active={currentNav === "merge"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowMerge();
+              }}
+              icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Merge
             </DropItem>
             <DropItem
               onClick={() => {
