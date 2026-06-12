@@ -5,6 +5,7 @@ import { navigate, type ReplayFocus } from "../App.js";
 import type {
   VibestrateEvent,
   ApprovalRequest,
+  EngagementEntry,
   RunAssurance,
   RunState,
   RuntimeMetrics,
@@ -12,7 +13,7 @@ import type {
 } from "../../lib/types.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
-import { CrewStrip } from "../../components/runs/v3/CrewStrip.js";
+import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
 import { LiveTimeline } from "../../components/runs/LiveTimeline.js";
 import { PanelBoard } from "../../components/layout/PanelBoard.js";
 import {
@@ -76,6 +77,10 @@ export function RunDetailPage({
   const [fileViewMode, setFileViewMode] = useState<"diff" | "file">("diff");
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
+  const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
+  const [arbitration, setArbitration] = useState<Record<string, unknown> | null>(
+    null,
+  );
   const [selection, setSelection] = useState<WorkflowSelectionView | null>(null);
 
   useEffect(() => {
@@ -83,12 +88,14 @@ export function RunDetailPage({
     let loadedOnce = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel] = await Promise.all([
+        const [r, m, a, d, sel, eng, arb] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
           api.getDiff(runId).catch(() => null),
           api.getRunSelection(runId).catch(() => null),
+          api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
+          api.getRunArbitration(runId).catch(() => null),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -96,6 +103,8 @@ export function RunDetailPage({
         setMetrics(m);
         setApprovals(a);
         setSelection(sel);
+        setEngagement(eng);
+        setArbitration(arb);
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -135,7 +144,6 @@ export function RunDetailPage({
     () => approvals.find((a) => a.status === "pending") ?? null,
     [approvals],
   );
-  const isApproval = run?.status === "waiting_for_approval";
   const skillsCount = run?.runtimeSkills?.length ?? 0;
 
   if (error)
@@ -180,22 +188,6 @@ export function RunDetailPage({
       /* surface elsewhere */
     }
   };
-  const handleApprove = async () => {
-    if (!pending) return;
-    try {
-      await api.approveApproval({ runId, approvalId: pending.id });
-    } catch {
-      /* surface elsewhere */
-    }
-  };
-  const handleReject = async () => {
-    if (!pending) return;
-    try {
-      await api.rejectApproval({ runId, approvalId: pending.id });
-    } catch {
-      /* surface elsewhere */
-    }
-  };
 
   return (
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-12 flex flex-col gap-5">
@@ -228,6 +220,31 @@ export function RunDetailPage({
         />
       ) : null}
 
+      {/* 1 - THE SUPERVISOR frames everything below: who judges, what it
+       * decided about this task, its live decision feed, and any approval
+       * it is waiting on. */}
+      <SupervisorPanel
+        selection={selection}
+        assurance={assurance}
+        engagement={engagement}
+        arbitration={arbitration}
+      >
+        {pending ? (
+          <div className="mt-2">
+            <ApprovalBanner
+              runId={runId}
+              approval={pending}
+              onResolved={(updated) =>
+                setApprovals((prev) =>
+                  prev.map((p) => (p.id === updated.id ? updated : p)),
+                )
+              }
+            />
+          </div>
+        ) : null}
+      </SupervisorPanel>
+
+      {/* 2 - THE BRIEF: what you asked for, its live state, and the flow map. */}
       <RunStatusSection
         run={run}
         diff={diff}
@@ -235,11 +252,11 @@ export function RunDetailPage({
         paused={paused || run.status === "paused"}
         onPauseToggle={() => void handlePauseToggle()}
         onAbort={() => void handleAbort()}
-        isApproval={!!isApproval && !!pending}
-        onApprove={() => void handleApprove()}
-        onReject={() => void handleReject()}
       />
 
+      {/* Terminal verdict: ONE block. Assurance is the evidence-backed
+       * verdict; the outcome banner only fills the gap before assurance is
+       * written (the two stacked banners used to say the same thing twice). */}
       {assurance ? (
         <AssuranceBadge
           assurance={assurance}
@@ -260,21 +277,14 @@ export function RunDetailPage({
               : undefined
           }
         />
-      ) : null}
-      {selection &&
-      (selection.source === "selected" ||
-        selection.source === "supervisor-upgraded" ||
-        selection.source === "sized") ? (
-        <FlowChoiceCard selection={selection} />
-      ) : null}
-
-      {/* Terminal non-success runs: explain what stopped it + what to do. */}
-      <RunOutcomeBanner
-        run={run}
-        onRerun={() => setRerunOpen(true)}
-        onOpenReview={() => setReviewOpen(true)}
-        onOpenTab={(t) => setTab(t)}
-      />
+      ) : (
+        <RunOutcomeBanner
+          run={run}
+          onRerun={() => setRerunOpen(true)}
+          onOpenReview={() => setReviewOpen(true)}
+          onOpenTab={(t) => setTab(t)}
+        />
+      )}
 
       {reviewOpen ? (
         <ReviewFindingsPanel
@@ -287,22 +297,6 @@ export function RunDetailPage({
           }}
         />
       ) : null}
-
-      {/* When the orchestrator is waiting on the user, surface the
-       * approval banner inline (same UI used elsewhere in the app). */}
-      {pending ? (
-        <ApprovalBanner
-          runId={runId}
-          approval={pending}
-          onResolved={(updated) =>
-            setApprovals((prev) =>
-              prev.map((p) => (p.id === updated.id ? updated : p)),
-            )
-          }
-        />
-      ) : null}
-
-      <CrewStrip flow={run.flow ?? null} />
 
       <PanelBoard
         storageKey="vibestrate.rundetail.layout.v2"
@@ -864,51 +858,6 @@ const ASSURANCE_TONE: Record<RunAssurance["verdict"], string> = {
 };
 
 /** Why the orchestrator chose this Flow (Slice 2 - only for selected runs). */
-function FlowChoiceCard({ selection }: { selection: WorkflowSelectionView }) {
-  return (
-    <div className="rounded-xl border border-violet-soft/30 bg-violet-soft/[0.06] px-4 py-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-[11px] uppercase tracking-[0.12em] text-fog-400">
-          Flow &amp; why
-        </span>
-        <span className="text-[13px] font-medium text-fog-100">{selection.flowId}</span>
-        <span className="text-[11px] text-fog-400">
-          {selection.source === "supervisor-upgraded"
-            ? "supervisor-upgraded"
-            : selection.source === "sized"
-              ? "sized (trivial task; back gates stay diff-decided)"
-              : `orchestrator-selected · ${selection.confidence} confidence`}
-        </span>
-        {selection.personaId ? (
-          <span className="text-[11px] text-violet-300/80">
-            supervisor: {selection.personaId}
-          </span>
-        ) : null}
-      </div>
-      {selection.personaUpgrade ? (
-        <p className="mt-1 text-[11.5px] text-violet-200">
-          upgraded {selection.personaUpgrade.from} → {selection.personaUpgrade.to}{" "}
-          (risk signal: {selection.personaUpgrade.signals.join(", ")})
-        </p>
-      ) : null}
-      {selection.reasons.length ? (
-        <ul className="mt-1.5 space-y-0.5 text-[12px] text-fog-300">
-          {selection.reasons.map((r, i) => (
-            <li key={i}>· {r}</li>
-          ))}
-        </ul>
-      ) : null}
-      {selection.risks.length ? (
-        <p className="mt-1 text-[11.5px] text-amber-300">
-          risks: {selection.risks.join("; ")}
-        </p>
-      ) : null}
-      {selection.advisory ? (
-        <p className="mt-1 text-[11.5px] text-amber-200">{selection.advisory}</p>
-      ) : null}
-    </div>
-  );
-}
 
 /** Compact, evidence-backed run-assurance verdict (S5). */
 function AssuranceBadge({
