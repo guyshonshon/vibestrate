@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.7.49
+
+- **A dead run now tells you why - and tries to save itself first.** Born from
+  a real incident: a Claude usage limit killed a step, and everything
+  downstream reported "provider exited 1" plus noise caps. Now the classified
+  failure and a redacted excerpt of the provider's actual error ride the
+  give-up all the way through: the step error, the event log (new
+  `provider.retries_exhausted`; usage-limit give-ups carry the message), the
+  Supervisor feed, and Run Assurance - whose blocked verdict now leads with
+  the root cause ("Cause at 'implement': usage-limit: This model is being
+  rate limited...") via a new `blockers` field, and drops the
+  trivially-implied missing-caps noise. Claude Code's "being rate limited...
+  switch over?" prompt is now correctly detected as a usage-window quota, so
+  it fails fast toward a fallback instead of burning five useless retries.
+- **The supervisor can now reseat a limited provider - within the run's trust
+  set.** `resilience.autoFallback` (default `crew`): when retries run out and
+  no explicit `fallbackProfile` is set, the turn re-runs once on a profile
+  already seated in this run's flow on a different provider - same prompt and
+  artifacts (context preserved by construction), same per-turn permissions,
+  recorded as a `provider.fallback` event and visible in the Supervisor feed.
+  No provider outside the run ever sees its context; `any` widens candidates
+  to all configured profiles, `off` disables. Applies to usage-limit give-ups
+  too - "stop" means "don't wait hours", not "don't use a model the run
+  already trusts".
+
 ## 0.7.48
 
 - **The Supervisor is now visible - and it saves you money.** The run screen
