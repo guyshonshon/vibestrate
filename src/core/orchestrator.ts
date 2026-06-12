@@ -699,6 +699,26 @@ export class Orchestrator {
         },
       });
     }
+    // The cost lever is a recorded judgment, never silent (adversarial
+    // review): when the persona's reviewerProfile actually pinned review
+    // seats, say so - the panel feed and the audit both show it.
+    {
+      const personaForRun = resolvePersona(
+        this.config,
+        this.selection?.personaId ?? null,
+      );
+      const rp = personaForRun.config.reviewerProfile ?? null;
+      const pinned = rp
+        ? flow.steps.filter((st) => st.profileId === rp && st.seat).map((st) => st.id)
+        : [];
+      if (rp && pinned.length > 0) {
+        await eventLog.append({
+          type: "supervisor.reviewer_profile",
+          message: `Supervisor pinned review seat(s) to profile "${rp}" (${pinned.join(", ")}).`,
+          data: { personaId: personaForRun.id, reviewerProfile: rp, steps: pinned },
+        });
+      }
+    }
 
     let worktreePath: string | null = null;
     let branchName: string | null = null;
