@@ -39,7 +39,37 @@ You can change the location in `project.yml`:
 git:
   worktreeDir: ../.vibestrate-worktrees   # default
   branchPrefix: vibestrate/                # default
+  linkEnvironment: auto                    # default; "off" for bare worktrees
 ```
+
+## The environment comes along
+
+A bare `git worktree add` checks out tracked files only - no `node_modules`,
+no virtualenv - so validation commands would fail with "command not found"
+before they checked anything. With `linkEnvironment: auto` (the default),
+Vibestrate symlinks the project's gitignored environment dirs (`node_modules`,
+`.venv`, `venv`, plus workspace-package `node_modules`) into each new worktree,
+so the worktree behaves like the project it came from.
+
+Two guards keep it honest:
+
+- `node_modules` is linked only when the lockfile in the worktree's checkout
+  is byte-identical to the project root's - a branch with different deps must
+  not validate against the wrong tree.
+- A dir is linked only if it's gitignored in the worktree, so the run's commit
+  can never stage the symlink.
+
+One boundary note: the link is a real symlink, so a write-capable agent can
+write through it into those env dirs (and only those - never tracked source).
+The git-apply path refuses symlinked paths outright. If that trade isn't worth
+it for a project, `linkEnvironment: off` restores fully bare worktrees, and
+validation will honestly report `environment` instead of failing.
+
+When the environment can't be linked (different lockfile, nothing to link),
+validation commands that hit a missing toolchain are recorded with status
+`environment` - distinct from `failed`: nothing was validated, but nothing
+failed, and a run is never blocked over it. The reviewer is told explicitly
+that those commands could not run.
 
 ## What goes in (and out)
 
