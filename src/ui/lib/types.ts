@@ -1538,17 +1538,24 @@ export type RunAssurance = {
   };
   validation: {
     /** "environment" = commands could not run (toolchain missing in the
-     *  worktree); nothing was validated, but nothing failed either. */
-    status: "passed" | "failed" | "environment" | "missing";
+     *  worktree); nothing was validated, but nothing failed either.
+     *  "not_applicable" = no validation was required (no step / no commands /
+     *  inert-diff scope-skip) - distinct from "missing" (expected, no evidence). */
+    status: "passed" | "failed" | "environment" | "missing" | "not_applicable";
     total: number;
     passed: number;
     failed: number;
     environment: number;
   };
   review: {
-    status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";
+    status:
+      | "approved"
+      | "changes_requested"
+      | "missing"
+      | "skipped_inert_diff"
+      | "not_applicable";
   };
-  verification: { status: "passed" | "failed" | "not_run" };
+  verification: { status: "passed" | "failed" | "not_run" | "not_applicable" };
   coverage: { toleratedStepFailures: number };
   /** Root causes for a blocked/unsafe run (provider give-ups, failed steps).
    *  Optional: older assurance artifacts predate it. */
@@ -1559,6 +1566,13 @@ export type RunAssurance = {
     detail: string;
   }[];
   caps: string[];
+  /** Informational context that does NOT cap the verdict (not-applicable lanes,
+   *  inert-diff review skip). Optional: older artifacts predate it. */
+  notes?: string[];
+  /** True iff a real check ran and passed (vs "nothing was required"). Lets a
+   *  `verified` run be told apart from a "nothing to check" run. Optional:
+   *  older artifacts predate it. */
+  anyRealCheckPassed?: boolean;
   // Supervisor persona + how independent its review was (orchestrator-personas.md).
   // independence is honest, NOT a confidence source.
   supervisor?: {

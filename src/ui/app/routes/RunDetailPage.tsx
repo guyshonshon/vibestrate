@@ -915,14 +915,14 @@ function AssuranceBadge({
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] opacity-80">
         <span>policy: {a.policy.status}</span>
         <span>
-          validation: {a.validation.status} ({a.validation.passed}/
+          validation: {a.validation.status.replace(/_/g, " ")} ({a.validation.passed}/
           {a.validation.total})
           {a.validation.status === "environment"
             ? " - toolchain missing in the worktree, nothing was actually checked"
             : ""}
         </span>
-        <span>review: {a.review.status}</span>
-        <span>verification: {a.verification.status}</span>
+        <span>review: {a.review.status.replace(/_/g, " ")}</span>
+        <span>verification: {a.verification.status.replace(/_/g, " ")}</span>
         {(a.coverage?.toleratedStepFailures ?? 0) > 0 ? (
           <span>
             coverage: {a.coverage.toleratedStepFailures} tolerated failure
@@ -953,8 +953,32 @@ function AssuranceBadge({
           caps: {a.caps.join(", ")}
         </div>
       ) : null}
+      {(a.notes?.length ?? 0) > 0 ? (
+        <div className="mt-1 text-[11px] opacity-50">
+          notes: {a.notes!.map(humanizeAssuranceNote).join(", ")}
+        </div>
+      ) : null}
     </div>
   );
+}
+
+/** Turn an assurance note code into a short human phrase. Notes are
+ *  informational (a lane that wasn't required) - never a verdict-capping gap. */
+function humanizeAssuranceNote(code: string): string {
+  switch (code) {
+    case "validation_not_required":
+      return "validation not required";
+    case "validation_skipped_inert":
+      return "validation skipped (inert change)";
+    case "review_skipped_inert_diff":
+      return "review skipped (inert diff)";
+    case "review_not_required":
+      return "no review needed";
+    case "verification_not_required":
+      return "verification not required";
+    default:
+      return code.replace(/_/g, " ");
+  }
 }
 
 // Unused - kept so we can quickly add an inline "needs review" indicator

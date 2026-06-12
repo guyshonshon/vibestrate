@@ -19,6 +19,7 @@ import {
 import { readActionLog, type ActionRecord } from "./action-broker.js";
 import { runStateSchema } from "../core/state-machine.js";
 import { MetricsStore } from "../core/metrics-store.js";
+import { loadConfig } from "../project/config-loader.js";
 import { nowIso } from "../utils/time.js";
 
 export type RunAssuranceVerdict =
@@ -55,17 +56,33 @@ export type RunAssurance = {
   };
   validation: {
     /** "environment" = commands could not run (missing toolchain in the
-     *  worktree); nothing was validated, but nothing failed either. */
-    status: "passed" | "failed" | "environment" | "missing";
+     *  worktree); nothing was validated, but nothing failed either.
+     *  "not_applicable" = no validation was required for this run (the flow has
+     *  no validation step, no validate commands are configured, or the change
+     *  was inert and validation was scoped-skipped) - distinct from "missing"
+     *  (= validation WAS expected but produced no evidence). */
+    status: "passed" | "failed" | "environment" | "missing" | "not_applicable";
     total: number;
     passed: number;
     failed: number;
     environment: number;
   };
   review: {
-    status: "approved" | "changes_requested" | "missing" | "skipped_inert_diff";
+    /** "not_applicable" = the flow has no review step (nothing to approve);
+     *  distinct from "missing" (a review step existed but produced no decision)
+     *  and "skipped_inert_diff" (a review turn was deterministically skipped on
+     *  recorded inert-diff evidence). */
+    status:
+      | "approved"
+      | "changes_requested"
+      | "missing"
+      | "skipped_inert_diff"
+      | "not_applicable";
   };
-  verification: { status: "passed" | "failed" | "not_run" };
+  /** "not_applicable" = the flow has no verify (summary-turn) step, or the run
+   *  was read-only; distinct from "not_run" (verification WAS expected but never
+   *  produced a decision). */
+  verification: { status: "passed" | "failed" | "not_run" | "not_applicable" };
   /** Coverage gaps from best-effort (continueOnError) steps that failed and were
    *  tolerated - those steps gave no scrutiny, so coverage is degraded even on a
    *  merge_ready run. On a merge_ready run a `failed` flow step is, by
@@ -74,11 +91,25 @@ export type RunAssurance = {
   /** Root causes for a run that never reached merge_ready - the "WHY blocked"
    *  the caps cannot express. Empty on merge_ready runs. */
   blockers: RunAssuranceBlocker[];
-  /** Why the verdict is below "verified" (missing or weak checks). On a
+  /** Why the verdict is below "verified" - REAL gaps or weak checks (a check
+   *  was expected and is missing/failed/weak). A `not_applicable` lane or an
+   *  inert-diff review skip is NOT a cap; it lands in `notes` instead. On a
    *  `blocked` verdict the trivially-implied missing-trio (validation_missing,
    *  review_missing, verification_not_run) is omitted - a run that never got
    *  there tells you nothing through them; `blockers` carries the cause. */
   caps: string[];
+  /** Informational context that does NOT hold the verdict down: lanes that were
+   *  not required for this run (not_applicable) and the recorded inert-diff
+   *  review skip. Rendered muted, separate from `caps`, so "nothing to verify"
+   *  reads as a clean state instead of a missing-evidence gap (T2). */
+  notes: string[];
+  /** True iff at least one REAL check actually ran and passed (validation
+   *  passed, review approved, or verification passed). Lets a consumer (e.g. the
+   *  T13 merge advisor) distinguish a `verified` run that was genuinely checked
+   *  from one where nothing was required - WITHOUT re-deriving it from the lane
+   *  statuses. A `verified` run with `anyRealCheckPassed: false` means "nothing
+   *  needed checking", never "checked and approved". */
+  anyRealCheckPassed: boolean;
   /** The supervisor persona + how independent its review was (orchestrator-
    *  personas.md). `independence` is honest, NOT a confidence source: it is
    *  "cross-model" only when >= 2 distinct non-null models actually ran;
@@ -157,6 +188,19 @@ export function deriveRunAssurance(input: {
   reviewSkipped?: boolean;
   verification: "PASSED" | "FAILED" | "NEEDS_HUMAN" | null;
   actionLog: ActionRecord[];
+  // ── Applicability (T2): whether each lane's evidence was actually EXPECTED ──
+  // for this run. When a lane is not applicable, the absence of evidence reads
+  // as "nothing to verify" (a note), not "missing" (a verdict-capping gap).
+  // All default to `true` so direct callers keep the pre-T2 behavior; the real
+  // disk path (buildAndWriteRunAssurance) computes them from the run's flow +
+  // events. `validationApplicable` false ⇒ a 0/0 validation tally is n/a;
+  // `validationScopedInert` only refines the note (inert-diff skip vs no
+  // commands). `reviewApplicable`/`verificationApplicable` false ⇒ a null
+  // decision is n/a, not a gap.
+  validationApplicable?: boolean;
+  validationScopedInert?: boolean;
+  reviewApplicable?: boolean;
+  verificationApplicable?: boolean;
   /** Best-effort (continueOnError) steps that failed and were tolerated. On a
    *  merge_ready run, the count of `failed` flow steps. Defaults to 0. */
   toleratedStepFailures?: number;
@@ -224,9 +268,17 @@ export function deriveRunAssurance(input: {
   const cmdFailed = cmds.filter(
     (r) => r.evidence?.ok === false && !isEnv(r),
   ).length;
+  // T2: when validation isn't applicable (no validation step / no validate
+  // commands / inert-diff scope-skip), a 0/0 tally is "not_applicable" - there
+  // was nothing to verify - rather than "missing" (a check we expected and lost).
+  const validationApplicable = input.validationApplicable ?? true;
+  const verificationApplicable = input.verificationApplicable ?? true;
+  const reviewApplicable = input.reviewApplicable ?? true;
   const validationStatus: RunAssurance["validation"]["status"] =
     cmds.length === 0
-      ? "missing"
+      ? validationApplicable
+        ? "missing"
+        : "not_applicable"
       : cmdFailed > 0
         ? "failed"
         : cmdEnvironment > 0
@@ -236,32 +288,49 @@ export function deriveRunAssurance(input: {
   // ── Review + verification (from the run's recorded decisions) ────────────
   // A skip-evidence run (A3 express, deterministic inert-diff descent) reports
   // `skipped_inert_diff` - distinct from `missing` (the skip is recorded
-  // evidence, not absence) and never `approved` (no reviewer spoke).
+  // evidence, not absence) and never `approved` (no reviewer spoke). A flow with
+  // no review step at all reports `not_applicable` (nothing to approve).
   const reviewStatus: RunAssurance["review"]["status"] =
     input.finalDecision === "APPROVED"
       ? "approved"
       : input.finalDecision === null
         ? input.reviewSkipped
           ? "skipped_inert_diff"
-          : "missing"
+          : reviewApplicable
+            ? "missing"
+            : "not_applicable"
         : "changes_requested";
   const verificationStatus: RunAssurance["verification"]["status"] =
     input.verification === "PASSED"
       ? "passed"
       : input.verification === "FAILED"
         ? "failed"
-        : "not_run";
+        : verificationApplicable
+          ? "not_run"
+          : "not_applicable";
 
-  // ── Caps (what's missing / weak) ────────────────────────────────────────
+  // ── Caps (REAL gaps / weak checks) vs notes (informational, n/a) ─────────
+  // A cap holds the verdict below "verified"; a note never does. The split is
+  // the heart of T2: a `not_applicable` lane or an inert-diff review skip is
+  // honest context, not a missing-evidence gap.
   const caps: string[] = [];
+  const notes: string[] = [];
   if (validationStatus === "missing") caps.push("validation_missing");
   if (validationStatus === "failed") caps.push("validation_failed");
   if (validationStatus === "environment") caps.push("validation_environment");
+  if (validationStatus === "not_applicable")
+    notes.push(
+      input.validationScopedInert
+        ? "validation_skipped_inert"
+        : "validation_not_required",
+    );
   if (reviewStatus === "missing") caps.push("review_missing");
-  if (reviewStatus === "skipped_inert_diff") caps.push("review_skipped_inert_diff");
+  if (reviewStatus === "skipped_inert_diff") notes.push("review_skipped_inert_diff");
+  if (reviewStatus === "not_applicable") notes.push("review_not_required");
   if (reviewStatus === "changes_requested") caps.push("review_not_approved");
   if (verificationStatus === "not_run") caps.push("verification_not_run");
   if (verificationStatus === "failed") caps.push("verification_failed");
+  if (verificationStatus === "not_applicable") notes.push("verification_not_required");
   if (holds.length > 0) caps.push("approval_required");
   if (toleratedStepFailures > 0) caps.push("steps_failed_tolerated");
 
@@ -301,6 +370,7 @@ export function deriveRunAssurance(input: {
       validationStatus,
       reviewStatus,
       verificationStatus,
+      validationScopedInert: input.validationScopedInert ?? false,
       denies: denies.length,
       toleratedStepFailures,
       firstBlocker: blockers[0] ?? null,
@@ -319,6 +389,11 @@ export function deriveRunAssurance(input: {
     coverage: { toleratedStepFailures },
     blockers,
     caps: visibleCaps,
+    notes,
+    anyRealCheckPassed:
+      validationStatus === "passed" ||
+      reviewStatus === "approved" ||
+      verificationStatus === "passed",
     supervisor,
   };
 }
@@ -336,23 +411,60 @@ function pickVerdict(s: {
   if (s.policyStatus === "violated" || s.rollbackFailed) return "unsafe";
   // Anything that didn't reach merge_ready cannot continue.
   if (s.runStatus !== "merge_ready") return "blocked";
-  // merge_ready: weigh the evidence.
-  const noEvidence =
-    s.validationStatus === "missing" &&
-    s.reviewStatus === "missing" &&
-    s.verificationStatus === "not_run";
-  if (noEvidence) return "unverified";
-  if (
-    s.reviewStatus === "approved" &&
-    s.verificationStatus === "passed" &&
-    s.validationStatus === "passed" &&
-    // A tolerated step failure means a best-effort step gave no scrutiny, so we
-    // cannot honestly claim full verification - cap at partially_verified.
-    s.toleratedStepFailures === 0
-  ) {
-    return "verified";
+
+  // merge_ready: weigh the evidence per lane (T2). Each lane is one of:
+  //   PASS - a real check ran and passed
+  //   NA   - the lane wasn't applicable (nothing to check) or an inert-diff
+  //          review skip (recorded evidence that review wasn't needed)
+  //   GAP  - a check was EXPECTED but produced no evidence (missing / not_run),
+  //          or its toolchain was missing (environment)
+  //   FAIL - a check ran and failed (validation failed, review changed-requested)
+  const FAIL = "fail" as const;
+  const GAP = "gap" as const;
+  const NA = "na" as const;
+  const PASS = "pass" as const;
+  const validationLane =
+    s.validationStatus === "failed"
+      ? FAIL
+      : s.validationStatus === "missing" || s.validationStatus === "environment"
+        ? GAP
+        : s.validationStatus === "not_applicable"
+          ? NA
+          : PASS;
+  const reviewLane =
+    s.reviewStatus === "changes_requested"
+      ? FAIL
+      : s.reviewStatus === "missing"
+        ? GAP
+        : s.reviewStatus === "not_applicable" ||
+            s.reviewStatus === "skipped_inert_diff"
+          ? NA
+          : PASS;
+  const verificationLane =
+    s.verificationStatus === "failed"
+      ? FAIL
+      : s.verificationStatus === "not_run"
+        ? GAP
+        : s.verificationStatus === "not_applicable"
+          ? NA
+          : PASS;
+  const lanes = [validationLane, reviewLane, verificationLane];
+
+  // A failed check on a merge_ready run (tolerated/best-effort path) can never
+  // read as verified.
+  if (lanes.includes(FAIL)) return "partially_verified";
+  if (lanes.includes(GAP)) {
+    // Every lane is a gap with nothing passing and nothing n/a: genuinely no
+    // evidence at all (the old `noEvidence` case).
+    if (!lanes.includes(PASS) && !lanes.includes(NA)) return "unverified";
+    return "partially_verified";
   }
-  return "partially_verified";
+  // No fail, no gap: every lane PASSED or was NOT APPLICABLE. The run is as
+  // verified as it can be - including the "nothing was required" case (all NA),
+  // which T2 stops shaming as partially_verified. A tolerated step failure still
+  // degrades coverage, so it caps here.
+  if (s.toleratedStepFailures > 0) return "partially_verified";
+  return "verified";
 }
 
 function summarize(
@@ -362,6 +474,7 @@ function summarize(
     validationStatus: string;
     reviewStatus: string;
     verificationStatus: string;
+    validationScopedInert: boolean;
     denies: number;
     toleratedStepFailures: number;
     firstBlocker?: RunAssuranceBlocker | null;
@@ -380,14 +493,49 @@ function summarize(
     }
     case "unverified":
       return "No validation, review, or verification evidence exists for this run.";
-    case "verified":
-      return "Policy passed, review approved, validation and verification passed.";
+    case "verified": {
+      // Distinguish "real checks passed" from "nothing was required for this
+      // change" (T2). The lane statuses stay visible, so "verified + nothing
+      // required" is never confused with "review approved + tests passed".
+      const passed: string[] = [];
+      if (d.reviewStatus === "approved") passed.push("review");
+      if (d.validationStatus === "passed") passed.push("validation");
+      if (d.verificationStatus === "passed") passed.push("verification");
+      if (passed.length === 0) {
+        return d.validationScopedInert || d.reviewStatus === "skipped_inert_diff"
+          ? "No checks were required - the change was inert (docs/text) and touched no protected path."
+          : "No checks were required for this change.";
+      }
+      const naLanes: string[] = [];
+      if (
+        d.validationStatus === "not_applicable" &&
+        d.reviewStatus !== "skipped_inert_diff"
+      )
+        naLanes.push("validation");
+      if (d.verificationStatus === "not_applicable") naLanes.push("verification");
+      if (d.reviewStatus === "not_applicable") naLanes.push("review");
+      const naNote = naLanes.length
+        ? ` ${naLanes.join(", ")}: not required for this change.`
+        : "";
+      return `Policy passed; ${passed.join(", ")} passed.${naNote}`;
+    }
     case "partially_verified": {
-      const tolerated =
-        d.toleratedStepFailures > 0
-          ? ` ${d.toleratedStepFailures} best-effort step(s) failed and were tolerated, so coverage is degraded.`
-          : "";
-      return `Some evidence passed but checks are missing - review: ${d.reviewStatus}, validation: ${d.validationStatus}, verification: ${d.verificationStatus}.${tolerated}`;
+      const gaps: string[] = [];
+      if (d.validationStatus === "missing") gaps.push("validation never ran");
+      if (d.validationStatus === "failed") gaps.push("validation failed");
+      if (d.validationStatus === "environment")
+        gaps.push("validation toolchain missing");
+      if (d.reviewStatus === "missing") gaps.push("no review decision");
+      if (d.reviewStatus === "changes_requested")
+        gaps.push("review requested changes");
+      if (d.verificationStatus === "not_run") gaps.push("verification never ran");
+      if (d.verificationStatus === "failed") gaps.push("verification failed");
+      if (d.toleratedStepFailures > 0)
+        gaps.push(
+          `${d.toleratedStepFailures} best-effort step(s) failed and were tolerated`,
+        );
+      const detail = gaps.length ? gaps.join("; ") : "some checks are weak";
+      return `Reached merge-ready, but ${detail}.`;
     }
   }
 }
@@ -403,6 +551,13 @@ export async function buildAndWriteRunAssurance(
   let toleratedStepFailures = 0;
   let reviewSkipped = false;
   let stepStates: { id: string; status: string; error: string | null }[] = [];
+  // T2 applicability: which lanes the flow actually exercised. A step that ran
+  // (or would have) counts; a `skipped` step does not. Read-only runs skip
+  // validation + verification entirely, so those lanes are n/a regardless.
+  let flowHasValidationStep = false;
+  let flowHasReviewStep = false;
+  let flowHasVerifyStep = false;
+  let readOnly = false;
   const statePath = runStatePath(projectRoot, runId);
   if (await pathExists(statePath)) {
     try {
@@ -411,6 +566,7 @@ export async function buildAndWriteRunAssurance(
       decision = state.finalDecision;
       verification = state.verification;
       reviewSkipped = state.reviewSkipped !== null;
+      readOnly = state.readOnly === true;
       // On a merge_ready run, a `failed` flow step is a tolerated failure (a
       // fatal one would have aborted the run before merge_ready). Count them so
       // the verdict reflects the degraded coverage honestly.
@@ -422,6 +578,12 @@ export async function buildAndWriteRunAssurance(
         status: s.status,
         error: s.error,
       }));
+      const ranSteps = (state.flow?.steps ?? []).filter(
+        (s) => s.status !== "skipped",
+      );
+      flowHasValidationStep = ranSteps.some((s) => s.kind === "validation");
+      flowHasReviewStep = ranSteps.some((s) => s.kind === "review-turn");
+      flowHasVerifyStep = ranSteps.some((s) => s.kind === "summary-turn");
     } catch {
       // Fall through with defaults; an unreadable state is itself "blocked".
     }
@@ -484,6 +646,39 @@ export async function buildAndWriteRunAssurance(
   } catch {
     // best-effort; independence falls back to "single-profile"
   }
+  // ── T2 applicability: was each lane's evidence actually expected? ─────────
+  // validation: applicable only when the flow ran a validation step AND the
+  // project has validate commands AND the change wasn't inert-scoped AND the run
+  // wasn't read-only. Otherwise a 0/0 tally is "nothing to verify", not a gap.
+  //
+  // NOTE (re-derive drift): the artifact is normally written ONCE at run
+  // completion (the orchestrator's terminal step), so its lane statuses are
+  // stamped against the run's own config + flow. This `loadConfig` only matters
+  // when the artifact is absent and gets re-derived on read (a legacy run) - a
+  // narrow path where current `commands.validate` stands in for the run-time
+  // value. Real validation PASS/FAIL is never affected (it comes from the
+  // immutable broker log, not config); only the evidence-less 0/0 case can shift
+  // between `missing` and `not_applicable`. Persisting applicability into run
+  // state is a T13 follow-up (it needs the verdict for merge advice).
+  const validationScopedInert = events.some((e) => e.type === "validation.scoped");
+  let validateCommandsConfigured = false;
+  try {
+    const cfg = await loadConfig(projectRoot);
+    validateCommandsConfigured = (cfg.config.commands?.validate?.length ?? 0) > 0;
+  } catch {
+    // Config unreadable -> treat as "no validate commands"; a 0/0 then reads
+    // not_applicable instead of falsely shaming the run with a missing gap.
+  }
+  const validationApplicable =
+    flowHasValidationStep &&
+    validateCommandsConfigured &&
+    !validationScopedInert &&
+    !readOnly;
+  // verification: the flow must have a verify (summary-turn) step, and read-only
+  // runs skip verification entirely. review: a review step must exist (review
+  // runs even on read-only investigation runs).
+  const verificationApplicable = flowHasVerifyStep && !readOnly;
+  const reviewApplicable = flowHasReviewStep;
   const assurance = deriveRunAssurance({
     runId,
     runStatus,
@@ -492,6 +687,10 @@ export async function buildAndWriteRunAssurance(
     verification,
     actionLog,
     toleratedStepFailures,
+    validationApplicable,
+    validationScopedInert,
+    reviewApplicable,
+    verificationApplicable,
     blockers: deriveRunBlockers({ steps: stepStates, events }),
     persona,
     modelsUsed,
@@ -520,6 +719,13 @@ export async function readRunAssurance(
       ...raw,
       coverage: raw.coverage ?? { toleratedStepFailures: 0 },
       caps: raw.caps ?? [],
+      notes: raw.notes ?? [],
+      // Backfill from the persisted lane statuses (no re-derivation needed).
+      anyRealCheckPassed:
+        raw.anyRealCheckPassed ??
+        (raw.validation?.status === "passed" ||
+          raw.review?.status === "approved" ||
+          raw.verification?.status === "passed"),
       blockers: raw.blockers ?? [],
     };
   } catch {

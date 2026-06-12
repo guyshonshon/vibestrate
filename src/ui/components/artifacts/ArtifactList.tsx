@@ -1,19 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api.js";
+import { usePersistedState } from "../../lib/usePersistedState.js";
 import type { ArtifactEntry } from "../../lib/types.js";
 
-// ── Curated artifact browser (P9c) ───────────────────────────────────────────
+// ── Curated artifact browser (P9c, widened in T3) ────────────────────────────
 // A run writes a LOT of plumbing per step (context packets, prompt record
-// copies, diff snapshots, validation stdout) - listing it flat buried the few
-// artifacts a human actually reads (outputs, reports, decisions). Default
-// view: grouped by step, internals hidden behind one toggle.
+// copies, diff snapshots, the resolved-flow + selection + participant records,
+// validation stdout) - listing it flat buried the few artifacts a human
+// actually reads (outputs, reports, decisions, findings). Default view: grouped
+// by step (collapsible), internals hidden behind one persisted toggle.
 
-/** Plumbing a human rarely needs - hidden unless "internals" is on. */
+/** Plumbing a human rarely needs - hidden unless "internals" is on. Deliverables
+ *  (output.md, report.md, idea.md, outcomes.md) and evidence (validation
+ *  results, findings, finding-responses, decision-summary, diffs, patches) stay
+ *  visible. */
 function isInternal(p: string): boolean {
   return (
+    // Per-turn plumbing.
     /(^|\/)context-packet\.json$/.test(p) ||
     /(^|\/)prompt\.(md|txt)$/.test(p) ||
+    /-prompt\.(md|txt)$/.test(p) || // NN-role-prompt.md record copies
     /(^|\/)diff-snapshot\.json$/.test(p) ||
+    // Run-level orchestration records (the engine's own bookkeeping).
+    /(^|\/)selection\.json$/.test(p) ||
+    /(^|\/)flow\.json$/.test(p) ||
+    /(^|\/)participants\.json$/.test(p) ||
+    /(^|\/)context\//.test(p) || // context/sources.json and friends
+    // Raw validation streams (the rolled-up validation-results.json stays).
     /(^|\/)validation\/.+\.(stdout|stderr)\.txt$/.test(p) ||
     /(^|\/)mcp\//.test(p)
   );
@@ -37,7 +50,12 @@ export function ArtifactList({
 }) {
   const [items, setItems] = useState<ArtifactEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [showInternals, setShowInternals] = useState(false);
+  // Persisted per browser; default off (T3).
+  const [showInternals, setShowInternals] = usePersistedState(
+    "vibestrate.artifacts.showInternals",
+    false,
+  );
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -105,11 +123,29 @@ export function ArtifactList({
         </button>
       </div>
       <div className="space-y-2.5">
-        {groups.map(([group, entries]) => (
+        {groups.map(([group, entries]) => {
+          const isCollapsed = collapsed.has(group);
+          return (
           <div key={group}>
-            <div className="vibestrate-mono mb-0.5 text-[10.5px] text-vibestrate-fg-muted">
+            <button
+              type="button"
+              onClick={() =>
+                setCollapsed((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(group)) next.delete(group);
+                  else next.add(group);
+                  return next;
+                })
+              }
+              className="vibestrate-mono mb-0.5 flex w-full items-center gap-1 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-fg"
+            >
+              <span className="inline-block w-2 text-center">
+                {isCollapsed ? "›" : "⌄"}
+              </span>
               {group === "run" ? "run" : `step · ${group}`}
-            </div>
+              <span className="opacity-60">({entries.length})</span>
+            </button>
+            {isCollapsed ? null : (
             <ol className="space-y-px">
               {entries.map((entry) => (
                 <li key={entry.path}>
@@ -129,8 +165,10 @@ export function ArtifactList({
                 </li>
               ))}
             </ol>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
