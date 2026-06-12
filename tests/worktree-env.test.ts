@@ -142,6 +142,46 @@ describe("linkWorktreeEnvironment", () => {
       r.skipped.some((s) => s.dir === ".venv" && /does not ignore/.test(s.reason)),
     ).toBe(true);
     await expect(fs.lstat(path.join(worktreePath, ".venv"))).rejects.toThrow();
+    // Rollback also removes the exclude pattern - the user's main-repo file
+    // must not accumulate entries for links that don't exist.
+    const exclude = await fs
+      .readFile(path.join(worktreePath, ".git", "info", "exclude"), "utf8")
+      .catch(() => "");
+    expect(exclude).not.toContain("/.venv");
+  });
+
+  it("re-running is idempotent: one pattern, one marker, user lines untouched", async () => {
+    await fs.mkdir(path.join(worktreePath, ".git", "info"), { recursive: true });
+    await fs.writeFile(
+      path.join(worktreePath, ".git", "info", "exclude"),
+      "# my own stuff\nscratch.txt\n",
+    );
+    await fs.mkdir(path.join(projectRoot, ".venv"), { recursive: true });
+    await linkWorktreeEnvironment({ projectRoot, worktreePath });
+    // Second run: link already exists -> skip, but nothing should duplicate.
+    await linkWorktreeEnvironment({ projectRoot, worktreePath });
+    const exclude = await fs.readFile(
+      path.join(worktreePath, ".git", "info", "exclude"),
+      "utf8",
+    );
+    expect(exclude.match(/\/\.venv/g)).toHaveLength(1);
+    expect(exclude.match(/vibestrate:worktree-env/g)).toHaveLength(1);
+    expect(exclude).toContain("# my own stuff");
+    expect(exclude).toContain("scratch.txt");
+  });
+
+  it("writes NO exclude pattern for a candidate that ends up skipped (vendored deps)", async () => {
+    await fs.mkdir(path.join(projectRoot, "node_modules"), { recursive: true });
+    await fs.writeFile(path.join(projectRoot, "pnpm-lock.yaml"), "lock\n");
+    await fs.writeFile(path.join(worktreePath, "pnpm-lock.yaml"), "lock\n");
+    // The worktree already HAS node_modules (e.g. vendored/tracked) -> skip.
+    await fs.mkdir(path.join(worktreePath, "node_modules"), { recursive: true });
+    const r = await linkWorktreeEnvironment({ projectRoot, worktreePath });
+    expect(r.skipped.some((s) => s.dir === "node_modules")).toBe(true);
+    const exclude = await fs
+      .readFile(path.join(worktreePath, ".git", "info", "exclude"), "utf8")
+      .catch(() => "");
+    expect(exclude).not.toContain("/node_modules");
   });
 
   it("reports nothing when the project has no env dirs", async () => {

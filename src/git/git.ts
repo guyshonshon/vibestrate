@@ -136,9 +136,10 @@ export async function currentHeadSha(cwd: string): Promise<string | null> {
  * project root; a dir-only ignore pattern (`node_modules/`) does not match a
  * symlink, so `git add -A` happily stages it - a real run's reviewer caught
  * one. The exclude-file layer prevents that for the dirs Vibestrate links;
- * this is the boundary defense for the whole class: a run's commit must
- * never carry a link out of its own tree, no matter how it appeared.
- * In-repo symlinks (relative, resolving inside the tree) stay committable.
+ * this check backs every `git add -A` boundary (commits here, snapshot/diff
+ * capture in safety/diff-gate.ts) so an out-of-tree link can't enter a
+ * commit OR a snapshot tree no matter how it appeared. In-repo symlinks
+ * (relative, resolving inside the tree) stay committable.
  */
 async function stagedOutOfTreeSymlinks(cwd: string): Promise<string[]> {
   const diff = await execa(
@@ -175,6 +176,25 @@ async function stagedOutOfTreeSymlinks(cwd: string): Promise<string[]> {
   return out;
 }
 
+/** Unstage every newly staged out-of-tree symlink; returns what was reset.
+ *  Shared by the commit path and diff-gate's snapshot/patch staging. */
+export async function resetOutOfTreeStagedSymlinks(
+  cwd: string,
+): Promise<string[]> {
+  const links = await stagedOutOfTreeSymlinks(cwd);
+  if (links.length === 0) return [];
+  const reset = await execa("git", ["reset", "-q", "--", ...links], {
+    cwd,
+    reject: false,
+  });
+  if (reset.exitCode !== 0) {
+    throw new GitError(
+      `git reset of out-of-tree symlinks failed in ${cwd}: ${reset.stderr || reset.stdout}`,
+    );
+  }
+  return links;
+}
+
 export async function stageAndCommitAll(input: {
   cwd: string;
   message: string;
@@ -186,18 +206,8 @@ export async function stageAndCommitAll(input: {
   if (add.exitCode !== 0) {
     throw new GitError(`git add failed in ${cwd}: ${add.stderr || add.stdout}`);
   }
-  const excludedSymlinks = await stagedOutOfTreeSymlinks(cwd);
+  const excludedSymlinks = await resetOutOfTreeStagedSymlinks(cwd);
   if (excludedSymlinks.length > 0) {
-    const reset = await execa(
-      "git",
-      ["reset", "-q", "--", ...excludedSymlinks],
-      { cwd, reject: false },
-    );
-    if (reset.exitCode !== 0) {
-      throw new GitError(
-        `git reset of out-of-tree symlinks failed in ${cwd}: ${reset.stderr || reset.stdout}`,
-      );
-    }
     // Nothing real left to commit? (the symlink was the only change)
     const staged = await execa("git", ["diff", "--cached", "--quiet"], {
       cwd,

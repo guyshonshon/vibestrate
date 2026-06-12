@@ -51,48 +51,117 @@ async function filesIdentical(a: string, b: string): Promise<boolean> {
  *  Fail-closed: can't verify -> don't link. */
 const EXCLUDE_MARKER = "# vibestrate:worktree-env (managed)";
 
-/**
- * Make the paths we are about to symlink ignorable AS SYMLINKS. The usual
- * `.gitignore` pattern is dir-only (`node_modules/`) and a dir-only pattern
- * does not match a symlink - a real run's reviewer caught `git add -A`
- * staging the link. Git's local exclude file (`$GIT_COMMON_DIR/info/exclude`)
- * exists exactly for clone-local ignores: never committed, never in a diff,
- * shared by every worktree of the repo. Anchored patterns for precisely the
- * paths we link - zero collateral on anything else. Idempotent.
- */
-async function ensureLocalExclude(
-  worktreePath: string,
-  relDirs: readonly string[],
-): Promise<boolean> {
+function excludePattern(relDir: string): string {
+  return `/${relDir.split(path.sep).join("/")}`;
+}
+
+async function resolveExcludePath(worktreePath: string): Promise<string | null> {
   try {
     const r = await execa("git", ["rev-parse", "--git-common-dir"], {
       cwd: worktreePath,
       reject: false,
     });
-    if (r.exitCode !== 0) return false;
+    if (r.exitCode !== 0) return null;
     const commonDir = path.resolve(worktreePath, r.stdout.trim());
-    const excludePath = path.join(commonDir, "info", "exclude");
+    return path.join(commonDir, "info", "exclude");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Make ONE about-to-be-linked path ignorable AS A SYMLINK (or undo it on
+ * rollback). The usual `.gitignore` pattern is dir-only (`node_modules/`) and
+ * a dir-only pattern does not match a symlink - a real run's reviewer caught
+ * `git add -A` staging the link. Git's local exclude file
+ * (`$GIT_COMMON_DIR/info/exclude`) exists exactly for clone-local ignores:
+ * never committed, never in a diff, shared by every worktree of the repo.
+ *
+ * This file is USER-OWNED shared state in the MAIN repo, so the update is
+ * deliberately careful (adversarial review): per-dir (a pattern is written
+ * only at the moment its link is actually created, never for candidates that
+ * end up skipped), serialized by a lockfile (concurrent runs share one
+ * exclude), deduplicated, and atomic (temp file + rename). Removal on
+ * rollback keeps the managed block from accumulating stale entries.
+ */
+async function updateLocalExclude(
+  worktreePath: string,
+  change: { add?: string; remove?: string },
+): Promise<boolean> {
+  const excludePath = await resolveExcludePath(worktreePath);
+  if (!excludePath) return false;
+  const lockPath = `${excludePath}.vibestrate-lock`;
+  const deadline = Date.now() + 2_000;
+  let locked = false;
+  try {
+    while (!locked) {
+      try {
+        const fh = await fs.open(lockPath, "wx");
+        await fh.close();
+        locked = true;
+      } catch {
+        // Steal a stale lock (a crashed run must not disable linking forever).
+        try {
+          const st = await fs.stat(lockPath);
+          if (Date.now() - st.mtimeMs > 30_000) {
+            await fs.unlink(lockPath).catch(() => undefined);
+            continue;
+          }
+        } catch {
+          continue; // lock vanished - retry acquisition
+        }
+        if (Date.now() > deadline) return false;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
     let existing = "";
     try {
       existing = await fs.readFile(excludePath, "utf8");
     } catch {
       /* no exclude file yet */
     }
-    const have = new Set(existing.split("\n").map((l) => l.trim()));
-    const wanted = relDirs
-      .map((d) => `/${d.split(path.sep).join("/")}`)
-      .filter((p) => !have.has(p));
-    if (wanted.length === 0) return true;
-    const block = [
-      existing.endsWith("\n") || existing === "" ? "" : "\n",
-      have.has(EXCLUDE_MARKER) ? "" : `${EXCLUDE_MARKER}\n`,
-      `${wanted.join("\n")}\n`,
-    ].join("");
+    // Only the marker-delimited block is ours; every user line (even one that
+    // happens to equal a pattern we'd write) passes through untouched.
+    const lines = existing.split("\n");
+    const managed = new Set<string>();
+    const userLines: string[] = [];
+    let inBlock = false;
+    for (const line of lines) {
+      const t = line.trim();
+      if (t === EXCLUDE_MARKER) {
+        inBlock = true; // duplicate markers from older versions collapse
+        continue;
+      }
+      if (inBlock) {
+        if (t === "" || t.startsWith("#")) {
+          inBlock = false;
+          if (t !== "") userLines.push(line);
+          continue;
+        }
+        managed.add(t);
+        continue;
+      }
+      userLines.push(line);
+    }
+    if (change.add) managed.add(change.add);
+    if (change.remove) managed.delete(change.remove);
+    while (userLines.length > 0 && userLines[userLines.length - 1]!.trim() === "") {
+      userLines.pop();
+    }
+    const next = [
+      ...userLines,
+      ...(managed.size > 0 ? ["", EXCLUDE_MARKER, ...[...managed].sort()] : []),
+      "",
+    ].join("\n");
     await fs.mkdir(path.dirname(excludePath), { recursive: true });
-    await fs.appendFile(excludePath, block);
+    const tmp = `${excludePath}.vibestrate-tmp-${process.pid}`;
+    await fs.writeFile(tmp, next);
+    await fs.rename(tmp, excludePath);
     return true;
   } catch {
     return false;
+  } finally {
+    if (locked) await fs.unlink(lockPath).catch(() => undefined);
   }
 }
 
@@ -155,10 +224,16 @@ async function linkDir(
   if (await pathExists(linkPath)) {
     return { dir: relDir, reason: "already exists in worktree" };
   }
+  // The exclude pattern is written ONLY here, at the moment this dir is
+  // actually linked - never for skipped candidates (a vendored-node_modules
+  // repo must not get a main-checkout ignore for a dir we never touched).
+  const pattern = excludePattern(relDir);
+  await updateLocalExclude(worktreePath, { add: pattern });
   try {
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.symlink(target, linkPath, "dir");
   } catch (err) {
+    await updateLocalExclude(worktreePath, { remove: pattern });
     return {
       dir: relDir,
       reason: err instanceof Error ? err.message : String(err),
@@ -166,10 +241,12 @@ async function linkDir(
   }
   // VERIFY against the link that now exists (not a hypothetical path shape):
   // if git would still see it - e.g. a `!node_modules` negation overriding
-  // the exclude - remove it. A link the run could commit is worse than no
-  // link; validation's `environment` status stays the honest fallback.
+  // the exclude - remove both the link and the pattern. A link the run could
+  // commit is worse than no link; validation's `environment` status stays
+  // the honest fallback.
   if (!(await isGitIgnored(worktreePath, relDir))) {
     await fs.unlink(linkPath).catch(() => undefined);
+    await updateLocalExclude(worktreePath, { remove: pattern });
     return {
       dir: relDir,
       reason:
@@ -232,11 +309,6 @@ export async function linkWorktreeEnvironment(input: {
     candidates.push(...(await nestedNodeModulesDirs(projectRoot, 3)));
   }
   if (candidates.length === 0) return { linked, skipped };
-
-  // Layer 1: local exclude (never committed) so the links are ignored AS
-  // SYMLINKS - the usual dir-only `.gitignore` pattern doesn't cover them.
-  // Failure here isn't fatal: layer 2 (post-link verify) decides per dir.
-  await ensureLocalExclude(worktreePath, candidates);
 
   for (const rel of candidates) {
     const r = await linkDir(projectRoot, worktreePath, rel);

@@ -16,6 +16,7 @@
 // and removes anything introduced after it. Proven by round-trip tests.
 
 import { execa } from "execa";
+import { resetOutOfTreeStagedSymlinks } from "../git/git.js";
 import { checkPatchSafety } from "../reviews/review-suggestion-service.js";
 import {
   gateAction,
@@ -35,9 +36,13 @@ async function gitOk(cwd: string, args: string[]): Promise<boolean> {
 }
 
 /** Capture the current worktree as a tree object. Stages everything first so
- *  untracked files are part of the snapshot; non-destructive to the files. */
+ *  untracked files are part of the snapshot; non-destructive to the files.
+ *  Out-of-tree symlinks (worktree env links a dir-only ignore pattern
+ *  missed) are unstaged first - they must not enter snapshot trees that
+ *  rewind later restores. */
 export async function snapshotWorktree(worktree: string): Promise<string> {
   await git(worktree, ["add", "-A"]);
+  await resetOutOfTreeStagedSymlinks(worktree);
   const tree = (await git(worktree, ["write-tree"])).trim();
   return tree;
 }
@@ -48,6 +53,7 @@ export async function captureWorktreePatch(
   baseTree: string,
 ): Promise<{ patch: string; files: string[] }> {
   await git(worktree, ["add", "-A"]);
+  await resetOutOfTreeStagedSymlinks(worktree);
   const patch = await git(worktree, [
     "diff",
     "--no-color",
