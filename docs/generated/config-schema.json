@@ -923,6 +923,64 @@
           "itemType": null
         }
       ]
+    },
+    {
+      "key": "merge",
+      "fullKey": "merge",
+      "type": "object",
+      "required": false,
+      "default": {},
+      "itemType": null,
+      "children": [
+        {
+          "key": "advisor",
+          "fullKey": "merge.advisor",
+          "type": "object",
+          "required": false,
+          "default": {},
+          "itemType": null,
+          "children": [
+            {
+              "key": "suggestIntegrationBranchWhen",
+              "fullKey": "merge.advisor.suggestIntegrationBranchWhen",
+              "type": "object",
+              "required": false,
+              "default": {
+                "filesTouched": 25,
+                "protectedPaths": true,
+                "behindMain": 50
+              },
+              "itemType": null,
+              "children": [
+                {
+                  "key": "filesTouched",
+                  "fullKey": "merge.advisor.suggestIntegrationBranchWhen.filesTouched",
+                  "type": "number",
+                  "required": false,
+                  "default": 25,
+                  "itemType": null
+                },
+                {
+                  "key": "protectedPaths",
+                  "fullKey": "merge.advisor.suggestIntegrationBranchWhen.protectedPaths",
+                  "type": "boolean",
+                  "required": false,
+                  "default": true,
+                  "itemType": null
+                },
+                {
+                  "key": "behindMain",
+                  "fullKey": "merge.advisor.suggestIntegrationBranchWhen.behindMain",
+                  "type": "number",
+                  "required": false,
+                  "default": 50,
+                  "itemType": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

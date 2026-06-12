@@ -199,6 +199,40 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
     ],
   });
 
+  // ── Merge advisor (T13, design/merge-advisor.md) ─────────────────────────
+  sections.push({
+    id: "merge-advisor",
+    title: "Merge advisor",
+    summary:
+      "Suggestion-only thresholds: crossing one makes the advisor recommend staging on an integration branch instead of finishing straight to main. Never blocks an action.",
+    editable: {
+      surface: "project.yml / vibe config set",
+      route: "merge",
+      cli: [
+        "vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched <n>",
+      ],
+      live: false,
+    },
+    rows: [
+      {
+        label: "stage above files touched",
+        value: String(
+          config.merge.advisor.suggestIntegrationBranchWhen.filesTouched,
+        ),
+      },
+      boolRow(
+        "stage on protected paths",
+        config.merge.advisor.suggestIntegrationBranchWhen.protectedPaths,
+      ),
+      {
+        label: "stage when behind main by",
+        value: String(
+          config.merge.advisor.suggestIntegrationBranchWhen.behindMain,
+        ),
+      },
+    ],
+  });
+
   // ── Workflow ─────────────────────────────────────────────────────────────
   sections.push({
     id: "workflow",

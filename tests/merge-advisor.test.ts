@@ -445,6 +445,31 @@ describe("adviseMergeReadyRuns (git smoke)", () => {
     expect(broken.recommendation).toBe("resolve-first");
   });
 
+  it("merge.advisor config thresholds flip the recommendation (slice 3 round-trip)", async () => {
+    await mergeReadyRun(dir, "r1", "feat-a");
+    // Defaults: a small clean change finishes now.
+    let res = await adviseMergeReadyRuns({ projectRoot: dir });
+    expect(res.advice[0]!.recommendation).toBe("finish-now");
+
+    // Tighten the divergence threshold via the real `vibe config set` path,
+    // then move main past it.
+    await setConfigValue(
+      dir,
+      "merge.advisor.suggestIntegrationBranchWhen.behindMain",
+      "1",
+    );
+    await fs.writeFile(path.join(dir, "m1.txt"), "1");
+    await git(dir, "add", ".");
+    await git(dir, "commit", "-q", "-m", "m1");
+    await fs.writeFile(path.join(dir, "m2.txt"), "2");
+    await git(dir, "add", ".");
+    await git(dir, "commit", "-q", "-m", "m2");
+
+    res = await adviseMergeReadyRuns({ projectRoot: dir });
+    expect(res.advice[0]!.recommendation).toBe("stage-on-integration-branch");
+    expect(res.advice[0]!.flags.map((f) => f.id)).toContain("diverged_main");
+  });
+
   it("protected-path run gets staged + leaves no scratch debris", async () => {
     await mergeReadyRun(dir, "r2", "feat-auth");
     const { advice } = await adviseMergeReadyRuns({ projectRoot: dir });

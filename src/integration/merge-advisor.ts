@@ -114,9 +114,11 @@ export type MergeAdvice = {
   manualSteps: string[] | null;
 };
 
-/** Slice-1a defaults for the D6 thresholds; the `merge.advisor` config
- *  section (slice 3) will feed user values here. Crossing one only flips the
- *  recommendation to stage-on-integration-branch - never blocks anything. */
+/** D6 thresholds. User values come from project config
+ *  (`merge.advisor.suggestIntegrationBranchWhen`, schema in
+ *  config-schema.ts - its defaults mirror DEFAULT_ADVISOR_THRESHOLDS).
+ *  Crossing one only flips the recommendation to
+ *  stage-on-integration-branch - never blocks anything. */
 export type MergeAdvisorThresholds = {
   filesTouched: number;
   protectedPaths: boolean;
@@ -573,6 +575,10 @@ export async function adviseMergeReadyRuns(input: {
   const mainBranch = loaded.config.git.mainBranch;
   const personaDefault = loaded.config.defaultPersona;
   const policies = loaded.config.policies;
+  // D6 thresholds from project config (merge.advisor); schema defaults match
+  // DEFAULT_ADVISOR_THRESHOLDS. Suggestion-only - crossing one never blocks.
+  const thresholds: MergeAdvisorThresholds =
+    loaded.config.merge.advisor.suggestIntegrationBranchWhen;
 
   const ready = await listMergeReadyRuns(input.projectRoot);
   let selected: MergeReadyRun[];
@@ -637,7 +643,7 @@ export async function adviseMergeReadyRuns(input: {
         personaId,
         mainBranch,
         othersInFlight,
-        thresholds: DEFAULT_ADVISOR_THRESHOLDS,
+        thresholds,
       }),
     );
   }

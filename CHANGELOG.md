@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.62
+
+- **Merge-advisor thresholds are yours to set.** New `merge.advisor` config
+  section: `vibe config set merge.advisor.suggestIntegrationBranchWhen.
+  filesTouched 40` (plus `protectedPaths` and `behindMain`) tunes when the
+  advisor suggests staging on an integration branch instead of finishing
+  straight to main. Suggestion-only by design - crossing a threshold changes
+  the advice, never blocks an action - and it shows up in `vibe config view`
+  and the dashboard Config page like every other section.
+
 ## 0.7.61
 
 - **The Merge window is on the dashboard now.** A dedicated Merge page lists

@@ -124,6 +124,32 @@ export const commitsConfigSchema = z.object({
 });
 export type CommitsConfig = z.infer<typeof commitsConfigSchema>;
 
+// T13 slice 3 (design/merge-advisor.md D6): suggestion-only thresholds.
+// Crossing one flips the merge advisor's recommendation to
+// stage-on-integration-branch - it NEVER blocks an action. The hard merge
+// policies (forbidAutoMerge / forbidAutoPush / requireHumanMerge) live
+// elsewhere and are untouched by this section.
+export const mergeAdvisorThresholdsSchema = z.object({
+  /** Suggest staging above this many changed files (vs the merge-base). */
+  filesTouched: z.number().int().min(1).max(100000).default(25),
+  /** Suggest staging when the diff touches any protected path. */
+  protectedPaths: z.boolean().default(true),
+  /** Suggest staging when the run branch is this many commits behind main. */
+  behindMain: z.number().int().min(1).max(1000000).default(50),
+});
+export const mergeConfigSchema = z.object({
+  advisor: z
+    .object({
+      suggestIntegrationBranchWhen: mergeAdvisorThresholdsSchema.default({
+        filesTouched: 25,
+        protectedPaths: true,
+        behindMain: 50,
+      }),
+    })
+    .default({}),
+});
+export type MergeConfig = z.infer<typeof mergeConfigSchema>;
+
 // Stage names a project may flag for forced human approval. These map to the
 // transition boundaries the orchestrator already exposes.
 export const policyApprovalStageSchema = z.enum([
@@ -441,6 +467,7 @@ export const projectConfigBaseSchema = z.object({
     coAuthorName: "Vibestrate",
     coAuthorEmail: "noreply@vibestrate.com",
   }),
+  merge: mergeConfigSchema.default({}),
 });
 
 /**

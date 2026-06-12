@@ -76,7 +76,14 @@ Vibestrate does not push, does not merge. The run leaves the diff on its branch 
 vibe integrate advise <runId>
 ```
 
-It is read-only and deterministic: risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation - finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts.
+It is read-only and deterministic: risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation - finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts. The same window lives on the dashboard's **Merge** page.
+
+When the advisor suggests staging is configurable (suggestion-only - it never blocks):
+
+```bash
+vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
+# also: .protectedPaths (true/false), .behindMain <commits>
+```
 
 Then you decide:
 
