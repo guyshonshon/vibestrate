@@ -234,6 +234,9 @@ export type OrchestratorInput = {
   onProgress?: (message: string) => void;
   /** Optional roadmap task this run is bound to. Persisted on state.json + events. */
   taskId?: string | null;
+  /** Pre-assigned run id (dashboard spawns compute it server-side so the UI
+   * can navigate to the run immediately). Omitted = derive from the task. */
+  runId?: string | null;
   /** Task-difficulty hint carried from the roadmap. Recorded for audit; it no
    * longer maps to a provider (Profiles own runtime now). */
   effort?: "low" | "medium" | "high" | null;
@@ -436,6 +439,7 @@ export class Orchestrator {
   private readonly isGitRepo: boolean;
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
+  private readonly preassignedRunId: string | null;
   private readonly effort: "low" | "medium" | "high" | null;
   private readonly crewId: string | null;
   private readonly profileOverride: string | null;
@@ -485,6 +489,7 @@ export class Orchestrator {
     this.isGitRepo = input.isGitRepo;
     this.onProgress = input.onProgress ?? (() => {});
     this.taskId = input.taskId ?? null;
+    this.preassignedRunId = input.runId ?? null;
     this.effort = input.effort ?? null;
     this.crewId = input.crewId ?? null;
     this.profileOverride = input.profileOverride ?? null;
@@ -541,7 +546,7 @@ export class Orchestrator {
     // own crew).
     this.activeCrewId = flow.crewId;
 
-    const runId = makeRunId(this.task);
+    const runId = this.preassignedRunId ?? makeRunId(this.task);
 
     const artifactStore = new ArtifactStore(this.projectRoot, runId);
     const stateStore = new RunStateStore(this.projectRoot, runId);
@@ -4308,6 +4313,13 @@ export class Orchestrator {
       ? null
       : outputAdapter.createLiveFilter?.();
     let liveEmitted = false;
+    // Raw stdout already streamed verbatim (plain-text providers). The
+    // end-of-turn flush dedupes against it - a text-mode CLI that emits its
+    // whole answer as one final chunk used to get the same response appended
+    // twice (once raw, once as the normalized flush). Capped: past the cap we
+    // stop accumulating and accept a possible duplicate over losing output.
+    let rawStdout = "";
+    const RAW_DEDUP_CAP = 1_000_000;
 
     // Honor `vibe abort` mid-stage: poll state.json every 500ms; when
     // we see `aborted`, abort the controller to SIGTERM the provider
@@ -4428,6 +4440,9 @@ export class Orchestrator {
               }
               return;
             }
+            if (c.stream === "stdout" && rawStdout.length < RAW_DEDUP_CAP) {
+              rawStdout += c.chunk;
+            }
             void appendStreamLine(this.projectRoot, ctx.runId, streamName, c);
           },
           signal: providerAbort.signal,
@@ -4450,7 +4465,8 @@ export class Orchestrator {
       if (
         !liveEmitted &&
         providerResult.normalized.responseText &&
-        providerResult.normalized.responseText.length > 0
+        providerResult.normalized.responseText.length > 0 &&
+        !rawStdout.includes(providerResult.normalized.responseText.trim())
       ) {
         await appendStreamLine(this.projectRoot, ctx.runId, streamName, {
           stream: "stdout",

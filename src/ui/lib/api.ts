@@ -514,7 +514,13 @@ export const api = {
         | "fixing"
         | "verifying";
     };
-  }): Promise<{ ok: true; pid: number | null; argv: string[]; message: string }> {
+  }): Promise<{
+    ok: true;
+    pid: number | null;
+    runId: string;
+    argv: string[];
+    message: string;
+  }> {
     return jsonPost("/api/runs", input);
   },
   async getProviderConfig(providerId: string): Promise<{

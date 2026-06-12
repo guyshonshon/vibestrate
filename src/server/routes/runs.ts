@@ -37,6 +37,7 @@ import {
 import { buildRunAudit } from "../../core/run-audit.js";
 import { deriveEngagement } from "../../core/run-engagement.js";
 import type { RunSpec } from "../../core/run-launcher.js";
+import { makeRunId } from "../../core/orchestrator.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
   appendControl,
@@ -202,9 +203,13 @@ export async function registerRunsRoutes(
       }
     }
     if (body.resumeFrom) argv.push("# rewind from", body.resumeFrom.sourceRunId);
+    // Assign the run id here so the response can carry it - the UI navigates
+    // to the run screen immediately instead of toasting and waiting for polls.
+    const runId = makeRunId(body.task);
     const spec: RunSpec = {
       projectRoot,
       task: body.task,
+      runId,
       taskId: body.taskId ?? null,
       effort: body.effort ?? null,
       crewId: body.crewId ?? null,
@@ -260,6 +265,7 @@ export async function registerRunsRoutes(
       return {
         ok: true,
         pid,
+        runId,
         argv,
         message: `started run (equivalent: vibe ${formatArgv(argv)})`,
         flowAdvice,

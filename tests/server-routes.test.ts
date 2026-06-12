@@ -108,6 +108,21 @@ describe("server routes", () => {
     expect(json.run.task).toBe("fixture");
   });
 
+  it("serves an artifact via the run-dir-relative stamped path (artifacts/ prefix)", async () => {
+    // Flow snapshots stamp outputArtifactPath relative to the RUN dir
+    // ("artifacts/00-idea.md"); the route must accept that shape too - it
+    // used to 404 on the double prefix.
+    const direct = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/artifacts/00-idea.md`,
+    );
+    expect(direct.status).toBe(200);
+    const prefixed = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/artifacts/artifacts/00-idea.md`,
+    );
+    expect(prefixed.status).toBe(200);
+    expect(await prefixed.text()).toBe(await direct.text());
+  });
+
   it("rejects path traversal in artifact route", async () => {
     const res = await fetch(
       `${server!.url}/api/runs/20260509-120000-fixture/artifacts/..%2F..%2Fpackage.json`,

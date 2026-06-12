@@ -61,7 +61,11 @@ export async function registerArtifactRoutes(
     "/api/runs/:runId/artifacts/*",
     async (req, reply) => {
       assertSafeRunId(req.params.runId);
-      const rel = req.params["*"];
+      // Flow snapshots stamp artifact paths relative to the RUN dir
+      // ("artifacts/flows/<step>/output.md") while this route resolves
+      // relative to the artifacts dir itself - accept both shapes so every
+      // stamped path is fetchable (the double-prefix variant 404'd).
+      const rel = req.params["*"].replace(/^artifacts\//, "");
       assertSafeRelativePath(rel);
       const root = runArtifactsDir(projectRoot, req.params.runId);
       const target = path.resolve(root, rel);

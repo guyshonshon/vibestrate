@@ -32,6 +32,13 @@ export const runSpecSchema = z.object({
   /** Absolute project root the run executes in. */
   projectRoot: z.string().min(1),
   task: z.string().min(1).max(2000),
+  /** Pre-assigned run id (the dashboard computes it before spawning so the UI
+   *  can navigate immediately). Same shape makeRunId produces. */
+  runId: z
+    .string()
+    .regex(/^\d{8}-\d{6}-[a-z0-9-]{1,120}$/)
+    .nullable()
+    .optional(),
   taskId: z.string().min(1).max(128).nullable().optional(),
   effort: z.enum(["low", "medium", "high"]).nullable().optional(),
   /** Crew to resolve the flow against (default: project.defaultCrew). */
@@ -255,6 +262,7 @@ export async function runFromSpec(
     rules: loaded.rules,
     task: spec.task,
     isGitRepo: detected.isGitRepo,
+    runId: spec.runId ?? null,
     taskId: spec.taskId ?? null,
     effort,
     crewId: effectiveCrewId,
