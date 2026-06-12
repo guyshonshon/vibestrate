@@ -59,6 +59,18 @@ function collectFlowStep(value: string, previous: string[]): string[] {
   return [...previous, value];
 }
 
+/** `--param key=value` collector (T11): builds a name -> raw-string record. */
+function collectParam(
+  value: string,
+  previous: Record<string, string>,
+): Record<string, string> {
+  const eq = value.indexOf("=");
+  if (eq <= 0) {
+    throw new Error(`--param must be key=value (got "${value}").`);
+  }
+  return { ...previous, [value.slice(0, eq)]: value.slice(eq + 1) };
+}
+
 function parseStepProfiles(values: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of values) {
@@ -250,6 +262,12 @@ export function buildVibestrateProgram(): Command {
       [],
     )
     .option(
+      "--param <key=value>",
+      "set a flow parameter (for a flow that declares `params:`). Repeatable.",
+      collectParam,
+      {},
+    )
+    .option(
       "-i, --interactive",
       "interactively pick the Flow and Crew you didn't pass (horizontal selector), then run. With --flow, opens that flow's detailed setup instead.",
     )
@@ -300,6 +318,7 @@ export function buildVibestrateProgram(): Command {
           flowBrief?: string;
           flowContext?: string;
           flowSkip?: string[];
+          param?: Record<string, string>;
           interactive?: boolean;
           resumeFrom?: string;
           resumeStage?: string;
@@ -411,6 +430,7 @@ export function buildVibestrateProgram(): Command {
           autoEffort: opts.autoEffort ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,
+          params: opts.param ?? {},
           flowId: opts.flow ?? null,
           supervisorId: opts.supervisor ?? null,
           select: opts.select === true,

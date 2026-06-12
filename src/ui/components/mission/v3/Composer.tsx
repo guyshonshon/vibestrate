@@ -68,6 +68,8 @@ export type ComposerSubmitInput = {
   skills: string[];
   readOnly: boolean;
   unattended: boolean;
+  /** Flow parameter values (T11), name -> raw string. */
+  params: Record<string, string>;
 };
 
 type Props = {
@@ -135,6 +137,8 @@ export function ComposerV3({
   const [flowId, setFlowId] = useState<string>(() => flows[0]?.id ?? "");
   const [crewId, setCrewId] = useState<string | null>(defaultCrewId);
   const [stepProfiles, setStepProfiles] = useState<Record<string, string>>({});
+  // Flow parameter values (T11), name -> raw string. Reset when the flow changes.
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
   // seat → roleId, to disambiguate a seat filled by >1 crew role.
   const [seatRoles, setSeatRoles] = useState<Record<string, string>>({});
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -206,6 +210,12 @@ export function ComposerV3({
     () => flows.find((g) => g.id === flowId) ?? null,
     [flowId, flows],
   );
+  // Declared params for the selected flow (T11). Reset values when the flow
+  // changes so a stale param from another flow never rides along.
+  const flowParams = selectedFlow?.definition.params ?? null;
+  useEffect(() => {
+    setParamValues({});
+  }, [flowId]);
   const crew = useMemo(
     () => crews.find((c) => c.id === crewId) ?? null,
     [crews, crewId],
@@ -298,6 +308,7 @@ export function ComposerV3({
     void onSubmit({
       brief: trimmed,
       flowId: flowId || null,
+      params: paramValues,
       crewId,
       persona: personaId,
       contextPolicy: "balanced",
@@ -459,6 +470,47 @@ export function ComposerV3({
               ))}
             </div>
           )}
+          {/* Flow parameters (T11): a form rendered from the selected flow's
+              declared params. Parity with `vibe run --param k=v`. */}
+          {flowParams && Object.keys(flowParams).length > 0 ? (
+            <div className="mt-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+              <div className="mb-2 text-[11px] uppercase tracking-[0.12em] text-fog-500">
+                Parameters
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {Object.entries(flowParams).map(([name, def]) => (
+                  <label key={name} className="flex flex-col gap-1">
+                    <span className="text-[12px] text-fog-200">
+                      {name}
+                      {def.required ? <span className="text-rose-300"> *</span> : null}
+                      {def.description ? (
+                        <span className="text-fog-500"> · {def.description}</span>
+                      ) : null}
+                    </span>
+                    {def.type === "enum" && def.values?.length ? (
+                      <select
+                        value={paramValues[name] ?? (typeof def.default === "string" ? def.default : "")}
+                        onChange={(e) => setParamValues((c) => ({ ...c, [name]: e.target.value }))}
+                        className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+                      >
+                        {def.values.map((v) => (
+                          <option key={v} value={v}>{v}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type={def.secret ? "password" : def.type === "number" ? "number" : "text"}
+                        value={paramValues[name] ?? (def.default !== undefined && !def.secret ? String(def.default) : "")}
+                        placeholder={def.secret ? "secret · recorded redacted" : def.type}
+                        onChange={(e) => setParamValues((c) => ({ ...c, [name]: e.target.value }))}
+                        className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+                      />
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* 3 · Crew + allocation */}

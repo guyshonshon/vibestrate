@@ -872,6 +872,58 @@ export const expressFlow = flowDefinitionSchema.parse({
   },
 });
 
+// ── Parameterized example (T11) ──────────────────────────────────────────────
+// Demonstrates `params:` + `{{params.x}}` substitution. A "scaffold" flow that
+// takes a project name + framework and builds a starter. Real, runnable - and
+// the worked example the docs point at.
+export const scaffoldFlow = flowDefinitionSchema.parse({
+  id: "scaffold",
+  version: 1,
+  label: "Scaffold (parameterized)",
+  description:
+    "A small parameterized example: scaffold a starter project from a name + framework. Shows how a flow declares `params:` and substitutes them into step instructions with {{params.x}}.",
+  params: {
+    projectName: {
+      type: "string",
+      required: true,
+      description: "The name of the project to scaffold",
+    },
+    framework: {
+      type: "enum",
+      values: ["next", "astro", "sveltekit", "remix"],
+      default: "next",
+      description: "Which framework to scaffold",
+    },
+  },
+  seats: {
+    implementer: {
+      label: "Implementer",
+      description: "Scaffolds the starter project.",
+    },
+  },
+  steps: [
+    {
+      id: "scaffold",
+      label: "Scaffold the project",
+      kind: "agent-turn",
+      seat: "implementer",
+      stage: "executing",
+      instructions:
+        "Scaffold a starter {{params.framework}} project named \"{{params.projectName}}\". Create a minimal, runnable skeleton; do not over-build.",
+      inputs: ["task-brief"],
+      outputs: ["execution", "diff"],
+    },
+    {
+      id: "validation",
+      label: "Validate",
+      kind: "validation",
+      stage: "executing",
+      inputs: ["diff"],
+      outputs: ["validation"],
+    },
+  ],
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   qualityArbitrationFlow,
@@ -880,6 +932,7 @@ export const builtinFlows: readonly FlowDefinition[] = [
   pickupAnalysisFlow,
   securityReviewFlow,
   expressFlow,
+  scaffoldFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

@@ -174,6 +174,42 @@ between the structured editor + architecture graph and the flow's raw YAML, then
 save (built-in flows are view-only until you fork them into the project). Saving
 runs the same validation + secret/size guards as importing a flow file.
 
+## Parameters
+
+A Flow can declare typed `params:` the caller fills at run start, so one Flow
+covers many variations (a "scaffold a site" Flow that takes a name + framework,
+say) instead of relying on the task text. Reference them in step instructions
+with `{{params.<name>}}`.
+
+```yaml
+params:
+  projectName:
+    type: string
+    required: true
+    description: The name of the project to scaffold
+  framework:
+    type: enum
+    values: [next, astro, sveltekit, remix]
+    default: next
+steps:
+  - id: scaffold
+    label: Scaffold the project
+    kind: agent-turn
+    seat: implementer
+    instructions: 'Scaffold a {{params.framework}} project named "{{params.projectName}}".'
+```
+
+Param types are `string`, `number`, `boolean`, `enum` (needs `values`), and
+`path`. Fill them three ways (UI/CLI parity): `vibe run --flow scaffold --param
+projectName=Acme --param framework=astro`, an interactive prompt for any missing
+required param on a TTY, or the params form the dashboard renders when you pick a
+param-declaring Flow. Values are recorded on the run.
+
+A param marked `secret: true` is recorded redacted (`[secret]`) and is **not**
+inlined into prompts - a `{{params.<secret>}}` renders a `[secret:<name>]`
+placeholder. Vibestrate does not feed secrets to agents. The built-in `scaffold`
+Flow is a runnable worked example.
+
 ## Project Flows
 
 Drop a `flow.yml` into `.vibestrate/flows/<id>/`:

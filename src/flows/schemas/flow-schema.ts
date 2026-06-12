@@ -104,6 +104,65 @@ export const flowCapabilitiesSchema = z
   .strict();
 export type FlowCapabilities = z.infer<typeof flowCapabilitiesSchema>;
 
+// ── Flow parameters (T11) ────────────────────────────────────────────────────
+// A Flow can declare typed `params:` the caller fills at run start (flags /
+// interactive prompts / a dashboard form). They substitute into the task + step
+// instructions via `{{params.<name>}}`. A `secret: true` param is recorded
+// redacted and NOT inlined into prompts (the product's no-secrets-in-prompts
+// posture - see prompt-params.ts). Param names are `{{...}}`-safe identifiers.
+export const flowParamNameSchema = z
+  .string()
+  .min(1)
+  .max(60)
+  .regex(/^[a-z][a-zA-Z0-9_]*$/, "Param names must be a-z identifiers (snake/camel).");
+
+export const flowParamTypeSchema = z.enum([
+  "string",
+  "number",
+  "boolean",
+  "enum",
+  "path",
+]);
+export type FlowParamType = z.infer<typeof flowParamTypeSchema>;
+
+export const flowParamSchema = z
+  .object({
+    type: flowParamTypeSchema,
+    description: z.string().min(1).max(400).optional(),
+    required: z.boolean().default(false),
+    /** Default value (used when the caller doesn't supply one). */
+    default: z.union([z.string(), z.number(), z.boolean()]).optional(),
+    /** Allowed values for `type: enum`. */
+    values: z.array(z.string().min(1).max(120)).min(1).optional(),
+    /** Recorded redacted + never inlined into prompts. */
+    secret: z.boolean().default(false),
+  })
+  .strict()
+  .superRefine((p, ctx) => {
+    if (p.type === "enum" && (!p.values || p.values.length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["values"],
+        message: "An enum param must list its allowed `values`.",
+      });
+    }
+    if (p.type === "enum" && p.default !== undefined && typeof p.default === "string" && p.values && !p.values.includes(p.default)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["default"],
+        message: `The default "${p.default}" is not one of the enum values.`,
+      });
+    }
+    if (p.secret && p.default !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["default"],
+        message: "A secret param can't carry a default value in the flow file.",
+      });
+    }
+  });
+export type FlowParam = z.infer<typeof flowParamSchema>;
+
 // A **Seat** is what a Flow step needs filled (e.g. an `implementer`). The Flow
 // declares its required seats; it does NOT name local Role ids - the run's Crew
 // supplies a Role whose `fills` includes the seat. Keeps Flows shareable.
@@ -217,6 +276,8 @@ const flowDefinitionBaseSchema = z
     checklistSegment: flowChecklistSegmentSchema.optional(),
     complexity: flowComplexitySchema.optional(),
     capabilities: flowCapabilitiesSchema.optional(),
+    /** Typed parameters the caller fills at run start (T11), keyed by name. */
+    params: z.record(flowParamNameSchema, flowParamSchema).optional(),
   })
   .strict();
 
@@ -741,6 +802,9 @@ export const resolvedFlowSnapshotSchema = z
     checklistSegment: flowChecklistSegmentSchema.nullable().default(null),
     // Declared weight class (Phase 3 C1). null ⇒ infer from agent-turn count.
     complexity: flowComplexitySchema.nullable().default(null),
+    // The flow's declared param schema (T11), carried through for the dashboard
+    // form + re-resolution. null when the flow declares no params.
+    params: z.record(flowParamNameSchema, flowParamSchema).nullable().default(null),
   })
   .strict();
 export type ResolvedFlowSnapshot = z.infer<typeof resolvedFlowSnapshotSchema>;
