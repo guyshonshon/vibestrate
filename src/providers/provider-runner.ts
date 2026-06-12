@@ -64,11 +64,33 @@ export async function runProvider(
       input,
     );
     // stream-json (explicit OR the streaming default): the adapter extracts
-    // the response text + usage from the event stream (fails loud if it
-    // can't). Explicit text/json or manual --output-format args: stdout is
-    // the answer, metrics from the existing claude parser.
+    // the response text + usage from the event stream. NON-FATAL by design
+    // (adversarial review): a binary that rejects the flags or prints plain
+    // text must not brick the run before the orchestrator's exit-code
+    // handling can surface the real stderr.
     if (effectiveClaudeOutputFormat(provider) === "stream-json") {
-      return { ...result, normalized: claudeStreamJsonAdapter.finalize(result.stdout) };
+      const textFallback = (responseText: string) => ({
+        ...result,
+        normalized: {
+          responseText,
+          metrics: claudeMetricsToNormalized(result.claudeMetrics),
+        },
+      });
+      if (result.exitCode !== 0) {
+        // Failed invocation: never hand control parsers whatever landed on
+        // stdout - empty response, the orchestrator reports exit + stderr.
+        return textFallback("");
+      }
+      try {
+        return { ...result, normalized: claudeStreamJsonAdapter.finalize(result.stdout) };
+      } catch {
+        // Exit 0 but not a parseable event stream: a binary that ignored the
+        // format flag and printed plain text. Use it as text only when it
+        // doesn't look structured; a half-parsed event stream stays out of
+        // the control path (cardinal rule), so fail closed to empty.
+        const looksStructured = result.stdout.trimStart().startsWith("{");
+        return textFallback(looksStructured ? "" : result.stdout);
+      }
     }
     return {
       ...result,

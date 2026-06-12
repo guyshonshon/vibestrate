@@ -3,6 +3,7 @@ import { ProviderError } from "../utils/errors.js";
 import type { ProviderRunInput, ProviderRunResult } from "./provider-types.js";
 import {
   buildClaudeCodeArgs,
+  effectiveClaudeOutputFormat,
   type ClaudeCodeProviderConfig,
 } from "./claude-code-settings.js";
 import {
@@ -77,7 +78,9 @@ export async function runClaudeCodeProvider(
   }
 
   const claudeMetrics = parseClaudeCodeOutput({
-    outputFormat: config.settings?.outputFormat,
+    // The RESOLVED format (the streaming default included), not just the
+    // explicit setting - the args we actually ran carry this format.
+    outputFormat: effectiveClaudeOutputFormat(config) ?? undefined,
     stdout: result.stdout,
   });
 

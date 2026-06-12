@@ -619,7 +619,9 @@ async function cmdRoadmapPlan(
     .slice(0, 40);
   const id = (opts.id ?? `${ts}-${slug}`).replace(/^-+|-+$/g, "");
   try {
-    const target = await ps.writeProposalText(id, result.stdout);
+    // The normalized response, not raw stdout - a stream-json provider's
+    // stdout is event JSONL, not the plan text.
+    const target = await ps.writeProposalText(id, result.normalized.responseText);
     console.log(`${symbol.ok()} Saved proposal ${color.bold(id)}.`);
     console.log(indent(`path: ${path.relative(process.cwd(), target)}`));
     console.log("");

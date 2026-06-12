@@ -124,6 +124,9 @@ export function LiveOutputPanel({
     )}/stream`;
     let es: EventSource | null = null;
     let poll: number | null = null;
+    // onerror can fire AFTER unmount (closing the source triggers it); the
+    // flag keeps it from starting a poll the executed cleanup can't clear.
+    let disposed = false;
     try {
       es = new EventSource(url);
       es.addEventListener("chunk", (e: MessageEvent) => {
@@ -145,6 +148,7 @@ export function LiveOutputPanel({
       es.onerror = () => {
         es?.close();
         es = null;
+        if (disposed || poll !== null) return;
         // Polling fallback - slow but reliable.
         poll = window.setInterval(async () => {
           try {
@@ -167,6 +171,7 @@ export function LiveOutputPanel({
       }, 2000);
     }
     return () => {
+      disposed = true;
       if (es) es.close();
       if (poll !== null) window.clearInterval(poll);
     };

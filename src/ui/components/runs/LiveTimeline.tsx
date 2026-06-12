@@ -69,7 +69,11 @@ function useStreamTail(
     };
     let es: EventSource | null = null;
     let poll: number | null = null;
+    // onerror can fire after cleanup (closing triggers it) - never let it
+    // start a poll the executed cleanup can't clear.
+    let disposed = false;
     const startPolling = () => {
+      if (disposed || poll !== null) return;
       poll = window.setInterval(async () => {
         try {
           const r = await api.readRunStream(runId, streamName);
@@ -94,12 +98,13 @@ function useStreamTail(
       es.onerror = () => {
         es?.close();
         es = null;
-        if (poll === null) startPolling();
+        startPolling();
       };
     } catch {
       startPolling();
     }
     return () => {
+      disposed = true;
       if (es) es.close();
       if (poll !== null) window.clearInterval(poll);
       setTail(null);
