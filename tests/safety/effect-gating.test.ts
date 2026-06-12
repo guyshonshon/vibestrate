@@ -43,7 +43,7 @@ describe("S0 command.run gating (validation runner)", () => {
         broker: okBroker,
         runId: "run-1",
       });
-      expect(ok.summary).toEqual({ total: 1, passed: 1, failed: 0 });
+      expect(ok.summary).toEqual({ total: 1, passed: 1, failed: 0, environment: 0 });
       let log = await readActionLog(root, "run-1");
       const cmdRec = log.find((r) => r.request.kind === "command.run");
       expect(cmdRec?.evidence?.ok).toBe(true);
@@ -62,7 +62,7 @@ describe("S0 command.run gating (validation runner)", () => {
         runId: "run-2",
       });
       // Fail-closed: command counted as failed, never executed.
-      expect(denied.summary).toEqual({ total: 1, passed: 0, failed: 1 });
+      expect(denied.summary).toEqual({ total: 1, passed: 0, failed: 1, environment: 0 });
       expect(denied.commands[0]!.exitCode).toBe(126);
       await expect(
         fs.access(path.join(root, "SHOULD_NOT_EXIST")),

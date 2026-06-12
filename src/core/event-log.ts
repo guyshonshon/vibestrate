@@ -9,6 +9,7 @@ export type VibestrateEventType =
   | "run.snapshot.captured"
   | "state.changed"
   | "git.worktree.created"
+  | "git.worktree.env"
   | "role.started"
   | "role.completed"
   | "role.failed"

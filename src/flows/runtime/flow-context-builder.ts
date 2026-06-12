@@ -347,14 +347,28 @@ function summarizeJsonToken(token: string, content: string): string | null {
     const failed = commands.filter(
       (command) => isRecord(command) && command.status === "failed",
     );
+    // Environment results are spelled out as NOT-validation - the first real
+    // run's reviewer was told "failed 0/3" when the worktree simply had no
+    // toolchain, and it blocked a correct change over it.
+    const environment = commands.filter(
+      (command) => isRecord(command) && command.status === "environment",
+    );
     return [
       "Validation summary:",
       `Total: ${String(summary.total ?? commands.length)}`,
       `Passed: ${String(summary.passed ?? "unknown")}`,
       `Failed: ${String(summary.failed ?? failed.length)}`,
+      environment.length > 0
+        ? `Could not run - toolchain missing in the worktree (an environment gap, NOT a code failure; do not treat these as failing the change): ${environment.length}`
+        : "",
       ...failed.slice(0, 5).map((command) =>
         isRecord(command)
           ? `Failed command: ${String(command.command ?? "(unknown)")} -> exit ${String(command.exitCode ?? "unknown")}`
+          : "",
+      ),
+      ...environment.slice(0, 5).map((command) =>
+        isRecord(command)
+          ? `Environment-unavailable command: ${String(command.command ?? "(unknown)")}`
           : "",
       ),
       failed.length > 5 ? `Additional failed commands omitted: ${failed.length - 5}` : "",
