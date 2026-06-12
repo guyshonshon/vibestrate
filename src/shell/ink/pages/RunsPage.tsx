@@ -327,6 +327,43 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
         </Text>
       ) : null}
 
+      {/* Starting up (T7): a staged checklist while the run sets up, or the
+          failed stage. Hidden once the run is doing real work. */}
+      {row.startup && (!row.startup.complete || row.startup.failedStage) ? (
+        <Box flexDirection="column">
+          {row.startup.stages.map((st) => {
+            const glyph =
+              st.status === "done"
+                ? "ok"
+                : st.status === "active"
+                  ? ">"
+                  : st.status === "failed"
+                    ? "x"
+                    : st.status === "skipped"
+                      ? "-"
+                      : ".";
+            const col =
+              st.status === "failed"
+                ? "red"
+                : st.status === "active"
+                  ? "cyan"
+                  : st.status === "done"
+                    ? "green"
+                    : undefined;
+            return (
+              <Text key={st.stage}>
+                <Text dimColor>{"  "}</Text>
+                <Text color={col}>{glyph} </Text>
+                <Text dimColor={st.status === "pending" || st.status === "skipped"}>
+                  {st.label}
+                </Text>
+                {st.detail ? <Text dimColor>{`  ${st.detail}`}</Text> : null}
+              </Text>
+            );
+          })}
+        </Box>
+      ) : null}
+
       {/* Workspace (T1): where the run's work lives. `vibe path <id>` prints
           a copy-able cd line; here we just surface the location + branch. */}
       {row.worktreePath ? (

@@ -18,6 +18,10 @@ import {
 } from "../utils/paths.js";
 import { parseReviewOutput } from "../flows/runtime/review-findings.js";
 import {
+  deriveStartupProgress,
+  type StartupProgress,
+} from "../core/run-startup.js";
+import {
   runStateSchema,
   isTerminal,
   type RunState,
@@ -91,6 +95,9 @@ export type ShellRunRow = {
    *  worktree is prepared. */
   worktreePath: string | null;
   branchName: string | null;
+  /** Staged startup progress (T7), derived from `run.startup` events. null once
+   *  there are no startup events (older runs) or none in the event tail. */
+  startup: StartupProgress | null;
   /**
    * Parsed review output for terminal runs whose review asked for changes /
    * blocked (P1, run-experience batch). Best-effort: null when the artifact
@@ -260,6 +267,7 @@ export async function buildShellSnapshot(
       verification: s.verification ?? null,
       worktreePath: s.worktreePath ?? null,
       branchName: s.branchName ?? null,
+      startup: deriveStartupProgress(events),
       reviewSummary: await readReviewSummary(projectRoot, s),
       flow: deriveFlowSummary(s),
     });

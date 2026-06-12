@@ -726,7 +726,22 @@ export class Orchestrator {
     let worktreePath: string | null = null;
     let branchName: string | null = null;
 
+    // Staged startup progress (T7): emit a `run.startup` event at each setup
+    // boundary so the dashboard + TUI show a checklist instead of a blank screen.
+    const startup = async (
+      stage: "workspace" | "environment" | "context" | "provider",
+      status: "active" | "done" | "skipped" | "failed",
+      detail?: string,
+    ) => {
+      await eventLog.append({
+        type: "run.startup",
+        message: `Startup: ${stage} ${status}${detail ? ` (${detail})` : ""}.`,
+        data: { stage, status, ...(detail ? { detail } : {}) },
+      });
+    };
+
     try {
+      await startup("workspace", "active");
       const prep = await localWorktreeBackend.prepareRun({
         projectRoot: this.projectRoot,
         runId,
@@ -743,11 +758,13 @@ export class Orchestrator {
         message: `Worktree ${prep.worktreePath} on branch ${prep.branchName}.`,
         data: { worktreePath: prep.worktreePath, branchName: prep.branchName },
       });
+      await startup("workspace", "done");
       // P8c: a bare worktree has no gitignored environment, so validation
       // commands fail with "command not found" and a correct change gets
       // blocked for an environmental reason. Link the project's env dirs in
       // (lockfile-guarded for JS). Best-effort: skips are events, not errors.
       if (this.config.git.linkEnvironment !== "off") {
+        await startup("environment", "active");
         const env = await linkWorktreeEnvironment({
           projectRoot: this.projectRoot,
           worktreePath: prep.worktreePath,
@@ -764,8 +781,18 @@ export class Orchestrator {
             data: env,
           });
         }
+        await startup(
+          "environment",
+          "done",
+          env.linked.length > 0
+            ? `${env.linked.length} linked`
+            : "nothing to link",
+        );
+      } else {
+        await startup("environment", "skipped", "linkEnvironment off");
       }
     } catch (err) {
+      await startup("workspace", "failed", describeError(err));
       state = applyTransition(state, "failed");
       state = { ...state, error: describeError(err) };
       await stateStore.write(state);
@@ -780,6 +807,7 @@ export class Orchestrator {
     // secret-redacted). Merged into every role's prompt below. Failures are
     // non-fatal notes - a bad attachment never blocks a run.
     if (this.contextSources.length > 0) {
+      await startup("context", "active");
       const ctxResult = await materializeContextSources({
         sources: this.contextSources,
         projectRoot: this.projectRoot,
@@ -798,6 +826,13 @@ export class Orchestrator {
         message: `Context: ${ctxResult.artifacts.length} source(s) attached${ctxResult.notes.length ? `, ${ctxResult.notes.length} skipped` : ""}.`,
         data: { attached: ctxResult.artifacts.length, notes: ctxResult.notes },
       });
+      await startup(
+        "context",
+        "done",
+        `${ctxResult.artifacts.length} attached`,
+      );
+    } else {
+      await startup("context", "skipped", "no context sources");
     }
 
     const ctx = {
@@ -814,6 +849,10 @@ export class Orchestrator {
     // this run are tracked so the same stage re-running (e.g. review inside the
     // fix loop) doesn't re-prompt.
     const policyStagesAlreadyForced = new Set<string>();
+
+    // Last startup stage: the model is about to start. The live timeline takes
+    // over from here; the startup checklist steps aside once this fires.
+    await startup("provider", "active");
 
     return this.runFlowSequence({
       snapshot: flow,

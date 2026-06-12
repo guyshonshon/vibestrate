@@ -4,6 +4,7 @@ import { nowIso } from "../utils/time.js";
 
 export type VibestrateEventType =
   | "run.created"
+  | "run.startup"
   | "run.rewound"
   | "run.rewound.restored"
   | "run.snapshot.captured"
