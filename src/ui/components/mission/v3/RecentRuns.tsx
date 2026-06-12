@@ -1,7 +1,7 @@
-import { ArrowRight, ChevronRight, Check, Diff } from "lucide-react";
+import { ArrowRight, ChevronRight, Check, XCircle } from "lucide-react";
 import { Chip } from "../../design/Chip.js";
 import { cn } from "../../design/cn.js";
-import { fmtElapsed, relTime } from "../../design/format.js";
+import { fmtElapsed, relTime, shortRunId } from "../../design/format.js";
 import type { RunState } from "../../../lib/types.js";
 
 export function RecentRunsSection({
@@ -17,12 +17,9 @@ export function RecentRunsSection({
   return (
     <section>
       <div className="flex items-end justify-between mb-3">
-        <div>
-          <div className="eyebrow mb-1.5">Recently completed</div>
-          <h2 className="text-[18px] font-semibold tracking-tight">
-            Recent runs
-          </h2>
-        </div>
+        <h2 className="text-[18px] font-semibold tracking-tight">
+          Recent runs
+        </h2>
         <button
           type="button"
           onClick={onShowAll}
@@ -44,7 +41,7 @@ export function RecentRunsSection({
           </thead>
           <tbody>
             {runs.map((r, i) => {
-              const merged = r.status === "merge_ready";
+              const mergeReady = r.status === "merge_ready";
               const failed =
                 r.status === "failed" || r.status === "aborted";
               return (
@@ -57,23 +54,31 @@ export function RecentRunsSection({
                   )}
                 >
                   <td className="px-4 py-3">
+                    {/* Task first - the full id was shrink-0 and starved the
+                     * task title, the one column a human scans. */}
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="mono text-[11px] text-fog-500 shrink-0">
-                        {r.runId}
-                      </span>
                       <span className="text-[13px] text-fog-100 truncate max-w-[480px]">
                         {r.task}
+                      </span>
+                      <span
+                        className="mono text-[11px] text-fog-500 shrink-0"
+                        title={r.runId}
+                      >
+                        {shortRunId(r.runId)}
                       </span>
                     </div>
                   </td>
                   <td className="px-3 py-3">
-                    {merged ? (
+                    {/* merge_ready means ready for review, not merged - the
+                     * old "Merged" label claimed an action that never ran. */}
+                    {mergeReady ? (
                       <Chip tone="emerald">
-                        <Check className="h-3 w-3" strokeWidth={1.7} /> Merged
+                        <Check className="h-3 w-3" strokeWidth={1.7} /> Merge
+                        ready
                       </Chip>
                     ) : failed ? (
                       <Chip tone="rose">
-                        <Diff className="h-3 w-3" strokeWidth={1.7} />{" "}
+                        <XCircle className="h-3 w-3" strokeWidth={1.7} />{" "}
                         {r.status}
                       </Chip>
                     ) : (

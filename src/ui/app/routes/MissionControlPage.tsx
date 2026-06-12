@@ -383,9 +383,9 @@ export function MissionControlPage({ onSelectRun }: Props) {
       {/* Eyebrow row */}
       <section className="mt-2">
         <div className="flex items-baseline justify-between mb-3">
-          <div className="eyebrow">
-            Mission Control · local-first orchestration
-          </div>
+          {/* No tagline - marketing voice doesn't belong in working chrome,
+           * and the Brief/Flow/Crew/Run map on the right already orients. */}
+          <div className="eyebrow">Mission Control</div>
           <div className="text-[11.5px] text-fog-500">
             Brief → Flow → Crew → Run
           </div>

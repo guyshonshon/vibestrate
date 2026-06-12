@@ -399,30 +399,37 @@ export function BoardPage({
         <BoardKpiStrip counts={counts} />
       </section>
 
-      {/* ── Roadmap rail (wider chips, single row) ───────────────── */}
-      <section className="w-full px-6 mt-4 shrink-0">
-        <div className="eyebrow mb-2">
-          Roadmap · {items.length} initiatives
-        </div>
-        <RoadmapRail
-          items={items}
-          tasks={tasks}
-          active={roadmapFilter}
-          onSelect={setRoadmapFilter}
-        />
-      </section>
+      {/* ── Roadmap rail (wider chips, single row). With zero initiatives
+       * the rail is just an "All initiatives" filter over nothing - the
+       * "+ Roadmap item" button above is the way in. ────────────────── */}
+      {items.length > 0 ? (
+        <section className="w-full px-6 mt-4 shrink-0">
+          <div className="eyebrow mb-2">
+            Roadmap · {items.length} initiatives
+          </div>
+          <RoadmapRail
+            items={items}
+            tasks={tasks}
+            active={roadmapFilter}
+            onSelect={setRoadmapFilter}
+          />
+        </section>
+      ) : null}
 
-      {/* ── Toolbar: filter + count ──────────────────────────────── */}
-      <section className="w-full px-6 mt-3 shrink-0">
-        <BoardToolbar
-          query={query}
-          onQuery={setQuery}
-          priority={priorityFilter}
-          onPriority={setPriorityFilter}
-          tasksShown={filtered.length}
-          totalTasks={tasks.length}
-        />
-      </section>
+      {/* ── Toolbar: filter + count. Pointless with zero tasks - the empty
+       * state below already says what to do. ──────────────────────── */}
+      {tasks.length > 0 ? (
+        <section className="w-full px-6 mt-3 shrink-0">
+          <BoardToolbar
+            query={query}
+            onQuery={setQuery}
+            priority={priorityFilter}
+            onPriority={setPriorityFilter}
+            tasksShown={filtered.length}
+            totalTasks={tasks.length}
+          />
+        </section>
+      ) : null}
 
       {/* ── Kanban - fills the remaining viewport height ─────────── */}
       <section className="mt-4 flex-1 min-h-0 flex flex-col">
