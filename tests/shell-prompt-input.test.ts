@@ -56,6 +56,28 @@ describe("PromptInput", () => {
     expect(frame.includes("ab")).toBe(false);
   });
 
+  it("Ctrl+W deletes the previous word (T8)", async () => {
+    const { stdin, lastFrame } = render(
+      React.createElement(Harness, { initial: "foo bar" }),
+    );
+    await delay(20);
+    stdin.write("\x17"); // Ctrl+W
+    await delay(20);
+    const frame = lastFrame() ?? "";
+    expect(frame.includes("foo")).toBe(true);
+    expect(frame.includes("bar")).toBe(false);
+  });
+
+  it("Ctrl+U clears to the start of the line (T8)", async () => {
+    const { stdin, lastFrame } = render(
+      React.createElement(Harness, { initial: "delete me" }),
+    );
+    await delay(20);
+    stdin.write("\x15"); // Ctrl+U
+    await delay(20);
+    expect((lastFrame() ?? "").includes("delete me")).toBe(false);
+  });
+
   it("shows the placeholder when empty + focused", async () => {
     const { lastFrame } = render(
       React.createElement(PromptInput, {

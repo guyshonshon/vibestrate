@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.54",
+  "version": "0.7.55",
   "commands": [
     {
       "name": "init",
@@ -366,6 +366,26 @@
               "name": "name() {\n    return this._name;\n  }",
               "description": "",
               "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "keys",
+          "path": [
+            "vibe",
+            "config",
+            "keys"
+          ],
+          "description": "List every settable config key with its type, allowed values, and default (from the schema).",
+          "usage": "[options] [filter]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
               "variadic": false
             }
           ],

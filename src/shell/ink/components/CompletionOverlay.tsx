@@ -4,7 +4,7 @@ import type { CompletionItem } from "../completion.js";
 import { windowFromTop } from "../output-window.js";
 import { ACCENT, ACCENT_DIM } from "../theme.js";
 
-const MAX_VISIBLE = 6;
+const MAX_VISIBLE = 9;
 
 /**
  * Ghost completion list rendered directly under the prompt. Shows the
@@ -24,7 +24,13 @@ export function CompletionOverlay({
   // never grows the prompt panel past a few rows.
   const scroll = Math.max(0, Math.min(sel - Math.floor(MAX_VISIBLE / 2), items.length - MAX_VISIBLE));
   const win = windowFromTop(items, scroll, MAX_VISIBLE);
-  const width = items.reduce((m, it) => Math.max(m, it.value.length), 0);
+  // Pad to the widest VISIBLE row (capped), not the widest of the whole list -
+  // one long off-screen candidate shouldn't blow the layout wide and push every
+  // description off the right edge (T8: "autocomplete truncates").
+  const width = Math.min(
+    36,
+    win.lines.reduce((m, it) => Math.max(m, it.value.length), 0),
+  );
 
   return (
     <Box flexDirection="column" marginTop={0} marginLeft={2}>

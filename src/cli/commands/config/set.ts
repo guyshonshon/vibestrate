@@ -1,6 +1,7 @@
 import { detectProject } from "../../../project/project-detector.js";
 import { setConfigValue } from "../../../setup/config-update-service.js";
 import { configExists } from "../../../project/config-loader.js";
+import { validateConfigPath } from "../../../project/config-introspection.js";
 import { color, indent, symbol } from "../../ui/format.js";
 import { isVibestrateError } from "../../../utils/errors.js";
 
@@ -14,6 +15,20 @@ export async function runConfigSet(pathArg: string, value: string): Promise<numb
   if (value === undefined || value === null) {
     console.error(
       `${symbol.fail()} A value is required. Example: ${color.bold('vibe config set commands.validate "[\\"pnpm typecheck\\"]"')}`,
+    );
+    return 1;
+  }
+  // Fail fast on an unknown key (T8): setConfigValue auto-creates intermediate
+  // maps, so `config set provider claude` would silently write an invalid
+  // top-level key. Validate against the schema first and point to real keys.
+  const check = validateConfigPath(pathArg);
+  if (!check.ok) {
+    console.error(`${symbol.fail()} ${check.reason}`);
+    if (check.suggestions && check.suggestions.length > 0) {
+      console.error(indent(`Did you mean: ${check.suggestions.join(", ")}?`));
+    }
+    console.error(
+      indent(`Run ${color.bold("vibe config keys")} to list every settable key.`),
     );
     return 1;
   }

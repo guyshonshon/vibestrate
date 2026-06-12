@@ -23,10 +23,9 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { z, type ZodTypeAny } from "zod";
-
 // ─── Schema imports ──────────────────────────────────────────────────────
 import { buildVibestrateProgram } from "../src/cli/index.js";
+import { configFieldTree } from "../src/project/config-introspection.js";
 import { KNOWN_PROVIDERS } from "../src/providers/provider-detection.js";
 import { PROVIDER_PRESETS } from "../src/providers/provider-presets.js";
 import { defaultWorkflowStages } from "../src/workflow/default-workflow.js";
@@ -36,10 +35,7 @@ import {
   verificationDecisionSchema,
 } from "../src/core/state-machine.js";
 import { builtinFlows } from "../src/flows/catalog/builtin-flows.js";
-import {
-  projectConfigBaseSchema,
-  policyApprovalStageSchema,
-} from "../src/project/config-schema.js";
+import { policyApprovalStageSchema } from "../src/project/config-schema.js";
 import { builtinRoleIds } from "../src/roles/role-schema.js";
 import { TERMINAL_STATUSES } from "../src/workflow/workflow-types.js";
 
@@ -165,129 +161,10 @@ function generateCliMetadata() {
 
 // ─── Config schema ───────────────────────────────────────────────────────
 
-type ConfigField = {
-  key: string;
-  fullKey: string;
-  type: string;
-  description?: string;
-  required: boolean;
-  default?: unknown;
-  enum?: string[];
-  children?: ConfigField[];
-  itemType?: ConfigField | null;
-  notes?: string[];
-};
-
-function describeZod(schema: ZodTypeAny): { type: string; notes?: string[]; extra?: Partial<ConfigField> } {
-  if (schema instanceof z.ZodOptional) {
-    return describeZod(schema._def.innerType);
-  }
-  if (schema instanceof z.ZodDefault) {
-    return describeZod(schema._def.innerType);
-  }
-  if (schema instanceof z.ZodNullable) {
-    const inner = describeZod(schema._def.innerType);
-    return { ...inner, type: `${inner.type} | null` };
-  }
-  if (schema instanceof z.ZodString) return { type: "string" };
-  if (schema instanceof z.ZodNumber) return { type: "number" };
-  if (schema instanceof z.ZodBoolean) return { type: "boolean" };
-  if (schema instanceof z.ZodEnum) {
-    return { type: "enum", extra: { enum: [...schema._def.values] } };
-  }
-  if (schema instanceof z.ZodLiteral) {
-    return { type: `literal(${JSON.stringify(schema._def.value)})` };
-  }
-  if (schema instanceof z.ZodArray) {
-    const item = describeZod(schema._def.type);
-    return {
-      type: `array<${item.type}>`,
-      extra: {
-        itemType: {
-          key: "[item]",
-          fullKey: "[item]",
-          type: item.type,
-          required: true,
-          ...(item.extra ?? {}),
-        },
-      },
-    };
-  }
-  if (schema instanceof z.ZodRecord) {
-    const value = describeZod(schema._def.valueType);
-    return { type: `record<string, ${value.type}>` };
-  }
-  if (schema instanceof z.ZodObject) {
-    return { type: "object" };
-  }
-  if (schema instanceof z.ZodUnion || schema instanceof z.ZodDiscriminatedUnion) {
-    const opts = schema._def.options as ZodTypeAny[];
-    const types = opts.map((o) => describeZod(o).type);
-    return { type: types.join(" | ") };
-  }
-  return { type: "unknown", notes: ["docs generator does not yet handle this Zod shape"] };
-}
-
-function isOptional(schema: ZodTypeAny): boolean {
-  return schema instanceof z.ZodOptional || schema instanceof z.ZodNullable;
-}
-
-function getDefault(schema: ZodTypeAny): unknown {
-  if (schema instanceof z.ZodDefault) {
-    const def = schema._def.defaultValue;
-    return typeof def === "function" ? def() : def;
-  }
-  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
-    return getDefault(schema._def.innerType);
-  }
-  return undefined;
-}
-
-function unwrapToCore(schema: ZodTypeAny): ZodTypeAny {
-  if (schema instanceof z.ZodOptional) return unwrapToCore(schema._def.innerType);
-  if (schema instanceof z.ZodDefault) return unwrapToCore(schema._def.innerType);
-  if (schema instanceof z.ZodNullable) return unwrapToCore(schema._def.innerType);
-  return schema;
-}
-
-function walkObjectSchema(
-  schema: z.ZodObject<z.ZodRawShape>,
-  parentKey: string,
-): ConfigField[] {
-  const shape = schema.shape;
-  const fields: ConfigField[] = [];
-  for (const [key, raw] of Object.entries(shape)) {
-    const fullKey = parentKey ? `${parentKey}.${key}` : key;
-    const optional = isOptional(raw) || raw instanceof z.ZodDefault;
-    const defValue = getDefault(raw);
-    const core = unwrapToCore(raw);
-    const desc = describeZod(raw);
-
-    let children: ConfigField[] | undefined;
-    if (core instanceof z.ZodObject) {
-      children = walkObjectSchema(core, fullKey);
-    }
-
-    fields.push({
-      key,
-      fullKey,
-      type: desc.type,
-      required: !optional,
-      default: defValue,
-      enum: desc.extra?.enum,
-      itemType: desc.extra?.itemType ?? null,
-      children,
-      notes: desc.notes,
-    });
-  }
-  return fields;
-}
-
 function generateConfigSchema() {
-  // The exported `projectConfigSchema` is a ZodEffects (cross-record
-  // superRefine); the doc walker needs the underlying object shape.
-  const root = projectConfigBaseSchema;
-  const fields = walkObjectSchema(root as unknown as z.ZodObject<z.ZodRawShape>, "");
+  // The config schema walk lives in src/project/config-introspection.ts so the
+  // CLI (`vibe config set --help` + completion) shares this single source.
+  const fields = configFieldTree();
   writeJson("config-schema.json", {
     schemaVersion: 1,
     rootKey: "project.yml",
