@@ -28,6 +28,19 @@ export type RunAssuranceVerdict =
   | "partially_verified"
   | "verified";
 
+/** A root cause that kept the run from merge_ready. `provider` blockers come
+ *  from resilience events (usage-limit give-up, retries exhausted) and carry
+ *  the classified failure; `step` blockers are failed/blocked flow steps with
+ *  their recorded error. Details are already redacted at the source
+ *  (failureExcerpt) - never raw provider output. */
+export type RunAssuranceBlocker = {
+  stepId: string | null;
+  kind: "provider" | "step";
+  /** Provider failure class (usage-limit/rate-limit/transient/hard), if known. */
+  class: string | null;
+  detail: string;
+};
+
 export type RunAssurance = {
   schemaVersion: 1;
   runId: string;
@@ -58,7 +71,13 @@ export type RunAssurance = {
    *  merge_ready run. On a merge_ready run a `failed` flow step is, by
    *  construction, a tolerated one (a fatal failure aborts the run). */
   coverage: { toleratedStepFailures: number };
-  /** Why the verdict is below "verified" (missing or weak checks). */
+  /** Root causes for a run that never reached merge_ready - the "WHY blocked"
+   *  the caps cannot express. Empty on merge_ready runs. */
+  blockers: RunAssuranceBlocker[];
+  /** Why the verdict is below "verified" (missing or weak checks). On a
+   *  `blocked` verdict the trivially-implied missing-trio (validation_missing,
+   *  review_missing, verification_not_run) is omitted - a run that never got
+   *  there tells you nothing through them; `blockers` carries the cause. */
   caps: string[];
   /** The supervisor persona + how independent its review was (orchestrator-
    *  personas.md). `independence` is honest, NOT a confidence source: it is
@@ -70,6 +89,63 @@ export type RunAssurance = {
     independence: "cross-model" | "single-profile";
   };
 };
+
+/** Derive the root-cause blockers from the run's step states + event stream.
+ *  Pure - testable without disk. Provider-level signals (the resilience
+ *  layer's give-up events) win over the generic step error for the same step;
+ *  steps that failed without a provider signal still surface their recorded
+ *  error string. Capped at 5 - a blocked run has one or two causes, not a log. */
+export function deriveRunBlockers(input: {
+  steps: { id: string; status: string; error: string | null }[];
+  events: { type: string; data?: Record<string, unknown> }[];
+}): RunAssuranceBlocker[] {
+  const blockers: RunAssuranceBlocker[] = [];
+  const coveredSteps = new Set<string>();
+  const str = (d: Record<string, unknown> | undefined, k: string): string | null => {
+    const v = d?.[k];
+    return typeof v === "string" ? v : null;
+  };
+  for (const e of input.events) {
+    if (blockers.length >= 5) break;
+    if (e.type === "provider.retries_exhausted") {
+      const stepId = str(e.data, "stepId");
+      const cls = str(e.data, "class");
+      blockers.push({
+        stepId,
+        kind: "provider",
+        class: cls,
+        detail:
+          str(e.data, "detail") ??
+          `provider ${cls ?? "failure"} unrecovered after retries`,
+      });
+      if (stepId) coveredSteps.add(stepId);
+    } else if (
+      e.type === "provider.usage_limit" &&
+      str(e.data, "resolved") === "give-up"
+    ) {
+      const stepId = str(e.data, "stepId");
+      blockers.push({
+        stepId,
+        kind: "provider",
+        class: "usage-limit",
+        detail: str(e.data, "detail") ?? "provider usage limit; gave up",
+      });
+      if (stepId) coveredSteps.add(stepId);
+    }
+  }
+  for (const s of input.steps) {
+    if (blockers.length >= 5) break;
+    if (s.status !== "failed" && s.status !== "blocked") continue;
+    if (coveredSteps.has(s.id)) continue;
+    blockers.push({
+      stepId: s.id,
+      kind: "step",
+      class: null,
+      detail: s.error ?? `step ${s.status}`,
+    });
+  }
+  return blockers;
+}
 
 /** Pure derivation - testable without disk. */
 export function deriveRunAssurance(input: {
@@ -84,6 +160,9 @@ export function deriveRunAssurance(input: {
   /** Best-effort (continueOnError) steps that failed and were tolerated. On a
    *  merge_ready run, the count of `failed` flow steps. Defaults to 0. */
   toleratedStepFailures?: number;
+  /** Root causes (deriveRunBlockers). Only surfaced on blocked/unsafe verdicts
+   *  - a merge_ready run's coverage gaps are the caps' job. */
+  blockers?: RunAssuranceBlocker[];
   /** Active supervisor persona id (orchestrator-personas.md). */
   persona?: string | null;
   /** Models that actually ran (per seated step). >= 2 distinct non-null models
@@ -197,6 +276,22 @@ export function deriveRunAssurance(input: {
     toleratedStepFailures,
   });
 
+  // Blocked/unsafe runs lead with the root cause, not downstream absence.
+  const blockers =
+    verdict === "blocked" || verdict === "unsafe" ? (input.blockers ?? []) : [];
+  // On a `blocked` verdict the missing-trio is trivially implied (the run never
+  // got there) - pure noise next to the blockers. `unsafe` keeps every cap: a
+  // policy deny can land mid-run, so "what evidence exists" is still informative.
+  const visibleCaps =
+    verdict === "blocked"
+      ? caps.filter(
+          (c) =>
+            c !== "validation_missing" &&
+            c !== "review_missing" &&
+            c !== "verification_not_run",
+        )
+      : caps;
+
   return {
     schemaVersion: 1,
     runId: input.runId,
@@ -208,6 +303,7 @@ export function deriveRunAssurance(input: {
       verificationStatus,
       denies: denies.length,
       toleratedStepFailures,
+      firstBlocker: blockers[0] ?? null,
     }),
     generatedAt: input.generatedAt,
     policy: { status: policyStatus, rulesEvaluated, violations },
@@ -221,7 +317,8 @@ export function deriveRunAssurance(input: {
     review: { status: reviewStatus },
     verification: { status: verificationStatus },
     coverage: { toleratedStepFailures },
-    caps,
+    blockers,
+    caps: visibleCaps,
     supervisor,
   };
 }
@@ -267,6 +364,7 @@ function summarize(
     verificationStatus: string;
     denies: number;
     toleratedStepFailures: number;
+    firstBlocker?: RunAssuranceBlocker | null;
   },
 ): string {
   switch (verdict) {
@@ -274,8 +372,12 @@ function summarize(
       return d.denies > 0
         ? `A policy denied ${d.denies} action(s); the worktree is not trusted.`
         : "A rollback failed; the worktree may be partially modified.";
-    case "blocked":
-      return "The run did not reach merge_ready.";
+    case "blocked": {
+      const b = d.firstBlocker;
+      if (!b) return "The run did not reach merge_ready.";
+      const where = b.stepId ? ` at "${b.stepId}"` : "";
+      return `The run did not reach merge_ready. Cause${where}: ${b.detail}`;
+    }
     case "unverified":
       return "No validation, review, or verification evidence exists for this run.";
     case "verified":
@@ -300,6 +402,7 @@ export async function buildAndWriteRunAssurance(
   let decision: "APPROVED" | "CHANGES_REQUESTED" | "BLOCKED" | null = null;
   let toleratedStepFailures = 0;
   let reviewSkipped = false;
+  let stepStates: { id: string; status: string; error: string | null }[] = [];
   const statePath = runStatePath(projectRoot, runId);
   if (await pathExists(statePath)) {
     try {
@@ -314,11 +417,43 @@ export async function buildAndWriteRunAssurance(
       toleratedStepFailures = (state.flow?.steps ?? []).filter(
         (s) => s.status === "failed",
       ).length;
+      stepStates = (state.flow?.steps ?? []).map((s) => ({
+        id: s.id,
+        status: s.status,
+        error: s.error,
+      }));
     } catch {
       // Fall through with defaults; an unreadable state is itself "blocked".
     }
   }
   const actionLog = await readActionLog(projectRoot, runId);
+  // Event stream (best-effort, parsed once): feeds the persona badge and the
+  // root-cause blockers.
+  let events: { type: string; data?: Record<string, unknown> }[] = [];
+  try {
+    const eventsPath = runEventsPath(projectRoot, runId);
+    if (await pathExists(eventsPath)) {
+      for (const line of (await readText(eventsPath)).split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        try {
+          const ev = JSON.parse(line) as { type?: unknown; data?: unknown };
+          if (typeof ev.type === "string") {
+            events.push({
+              type: ev.type,
+              data:
+                ev.data && typeof ev.data === "object"
+                  ? (ev.data as Record<string, unknown>)
+                  : undefined,
+            });
+          }
+        } catch {
+          // a torn/corrupt line never blocks the verdict
+        }
+      }
+    }
+  } catch {
+    // best-effort; an unreadable event log just means fewer blockers/persona
+  }
   // Persona (best-effort): the selection record when present, else the always-
   // emitted persona.selected event (selection.json is only written for an
   // orchestrator selection / supervisor upgrade, but the persona is recorded for
@@ -334,17 +469,10 @@ export async function buildAndWriteRunAssurance(
     // best-effort; fall through to the event log
   }
   if (!persona) {
-    try {
-      const eventsPath = runEventsPath(projectRoot, runId);
-      if (await pathExists(eventsPath)) {
-        for (const line of (await readText(eventsPath)).split(/\r?\n/)) {
-          if (!line.includes('"persona.selected"')) continue;
-          const ev = JSON.parse(line) as { data?: { personaId?: string | null } };
-          if (ev.data?.personaId) persona = ev.data.personaId;
-        }
-      }
-    } catch {
-      // best-effort; persona stays null
+    for (const ev of events) {
+      if (ev.type !== "persona.selected") continue;
+      const id = ev.data?.personaId;
+      if (typeof id === "string" && id) persona = id;
     }
   }
   // The models that actually ran (per seated role), for the honest independence
@@ -364,6 +492,7 @@ export async function buildAndWriteRunAssurance(
     verification,
     actionLog,
     toleratedStepFailures,
+    blockers: deriveRunBlockers({ steps: stepStates, events }),
     persona,
     modelsUsed,
     generatedAt: nowIso(),
@@ -391,6 +520,7 @@ export async function readRunAssurance(
       ...raw,
       coverage: raw.coverage ?? { toleratedStepFailures: 0 },
       caps: raw.caps ?? [],
+      blockers: raw.blockers ?? [],
     };
   } catch {
     return null;

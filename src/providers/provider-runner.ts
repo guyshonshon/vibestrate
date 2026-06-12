@@ -21,6 +21,15 @@ export type RichProviderRunResult = ProviderRunResult & {
   /** Output normalized to the supervision/metrics contract (see
    *  output-adapter.ts). Control + metrics consume this, not the raw stdout. */
   normalized: NormalizedTurn;
+  /** Set by the resilience layer when it gives up on a failed turn: the
+   *  classified failure (core/provider-resilience.ts) plus a short redacted
+   *  excerpt of the provider's error text, so downstream records say WHY
+   *  ("rate-limit: This model is being rate limited...") instead of just
+   *  "provider exited 1". Absent on success and on non-resilient paths. */
+  failure?: {
+    class: "usage-limit" | "rate-limit" | "transient" | "hard";
+    excerpt: string;
+  };
 };
 
 function claudeMetricsToNormalized(m: ClaudeCodeRunMetrics): NormalizedMetrics {

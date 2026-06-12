@@ -53,6 +53,14 @@ export function buildAssuranceCommand(): Command {
       );
       console.log(color.dim(assurance.summary));
       console.log("");
+      if (assurance.blockers.length > 0) {
+        for (const b of assurance.blockers) {
+          const where = b.stepId ? ` at ${b.stepId}` : "";
+          const cls = b.class ? ` [${b.class}]` : "";
+          console.log(color.red(`  ✗ cause${where}${cls}: ${b.detail}`));
+        }
+        console.log("");
+      }
       console.log(`  policy:       ${assurance.policy.status}`);
       if (assurance.policy.violations.length > 0) {
         for (const v of assurance.policy.violations) {

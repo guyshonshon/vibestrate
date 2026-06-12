@@ -8,6 +8,7 @@
 // Design: docs/design/unattended-resilience.md.
 
 import type { ResilienceConfig } from "../project/config-schema.js";
+import { redactSecretsInText } from "./diff-service.js";
 
 export type ProviderFailureClass =
   | "usage-limit"
@@ -26,6 +27,11 @@ const BUILTIN_USAGE_LIMIT = [
   /(monthly|daily|weekly)\s+(usage|limit|cap)/i,
   /limit will reset/i,
   /upgrade (your|to)\b/i,
+  // Claude Code's usage-window prompt ("This model is being rate limited,
+  // Would you like to switch over?"). Despite the words "rate limited" it is a
+  // windowed quota, not a per-minute throttle - seconds-scale retries are
+  // useless, so it must classify as usage-limit (checked before rate-limit).
+  /rate limited[\s\S]{0,80}switch (?:over|model)/i,
 ];
 const BUILTIN_RATE_LIMIT = [
   /\b429\b/,
@@ -121,4 +127,67 @@ export function computeBackoffMs(
   const exp = spec.baseDelayMs * 2 ** Math.max(0, attempt - 1);
   const jitter = 1 + (rng() - 0.5) * 0.4; // +/-20%
   return Math.min(spec.maxDelayMs, Math.max(0, Math.round(exp * jitter)));
+}
+
+// Generic credential shapes on top of the high-precision vendor patterns in
+// redactSecretsInText: a provider's stderr is a prime place for auth errors
+// that echo the offending header/env var, and the excerpt lands in durable,
+// UI-surfaced artifacts (events.ndjson, assurance.json).
+const GENERIC_CREDENTIAL_RE =
+  /\b(bearer|token|key|secret|password|passwd|credential|authorization|api[-_]?key)\b([=:\s]+)(?:bearer\s+)?\S+/gi;
+
+/**
+ * A short, redacted excerpt of a provider failure's stderr/stdout - the line a
+ * human needs to see ("This model is being rate limited...") instead of
+ * "provider exited 1". First non-empty line(s), whitespace collapsed, vendor
+ * token shapes + generic credential assignments redacted, capped at `maxLen`.
+ */
+export function failureExcerpt(text: string, maxLen = 240): string {
+  const firstLines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .slice(0, 3)
+    .join(" ")
+    .replace(/\s+/g, " ");
+  const scrubbed = redactSecretsInText(firstLines).redacted.replace(
+    GENERIC_CREDENTIAL_RE,
+    (_m, kw: string, sep: string) => `${kw}${sep}[REDACTED]`,
+  );
+  return scrubbed.length > maxLen ? `${scrubbed.slice(0, maxLen - 1)}…` : scrubbed;
+}
+
+export type AutoFallbackScope = "off" | "crew" | "any";
+
+/**
+ * Derive a fallback Profile when none is configured (resilience.autoFallback).
+ * Deterministic and trust-scoped: `crew` only considers profiles already
+ * seated in THIS run's flow (no provider that wasn't part of the run's trust
+ * set ever sees its context); `any` extends to every configured profile, in
+ * declaration order. A candidate must live on a DIFFERENT provider than the
+ * failing one (same-provider profiles share the limit) and that provider must
+ * be configured. Returns null when nothing qualifies.
+ */
+export function deriveAutoFallbackProfile(input: {
+  failingProviderId: string;
+  /** Profile ids seated in this run's flow, in flow order. */
+  seatedProfileIds: readonly string[];
+  profiles: Readonly<Record<string, { provider: string }>>;
+  configuredProviderIds: ReadonlySet<string>;
+  scope: AutoFallbackScope;
+}): string | null {
+  if (input.scope === "off") return null;
+  const qualifies = (id: string): boolean => {
+    const profile = input.profiles[id];
+    return (
+      !!profile &&
+      profile.provider !== input.failingProviderId &&
+      input.configuredProviderIds.has(profile.provider)
+    );
+  };
+  const seated = [...new Set(input.seatedProfileIds)];
+  const inCrew = seated.find(qualifies);
+  if (inCrew) return inCrew;
+  if (input.scope !== "any") return null;
+  return Object.keys(input.profiles).find(qualifies) ?? null;
 }

@@ -935,6 +935,19 @@ function AssuranceBadge({
           </span>
         ) : null}
       </div>
+      {a.blockers && a.blockers.length > 0 ? (
+        <div className="mt-2 space-y-0.5">
+          {a.blockers.map((b, i) => (
+            <div key={i} className="text-[11.5px]">
+              <span className="font-semibold">
+                cause{b.stepId ? ` at ${b.stepId}` : ""}
+                {b.class ? ` · ${b.class}` : ""}:
+              </span>{" "}
+              <span className="opacity-90">{b.detail}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {(a.caps?.length ?? 0) > 0 ? (
         <div className="mt-1 text-[11px] opacity-60">
           caps: {a.caps.join(", ")}

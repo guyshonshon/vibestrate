@@ -204,8 +204,26 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: ok ? "info" : "bad",
       };
     }
-    case "provider.usage_limit":
-      return { cls: "enforced", anchor: onStep(), stepId: step, title: `usage limit · ${str(d, "action") ?? "hit"}`, detail: null, tone: "warn" };
+    case "provider.usage_limit": {
+      const gaveUp = str(d, "resolved") === "give-up";
+      return {
+        cls: "enforced",
+        anchor: onStep(),
+        stepId: step,
+        title: `usage limit · ${gaveUp ? "gave up" : (str(d, "action") ?? "hit")}`,
+        detail: str(d, "detail"),
+        tone: gaveUp ? "bad" : "warn",
+      };
+    }
+    case "provider.retries_exhausted":
+      return {
+        cls: "enforced",
+        anchor: onStep(),
+        stepId: step,
+        title: `provider exhausted · ${str(d, "class") ?? "failure"}`,
+        detail: str(d, "detail"),
+        tone: "bad",
+      };
     case "provider.effort_ignored":
       return { cls: "enforced", anchor: onStep(), stepId: step, title: "effort ignored", detail: str(d, "effort"), tone: "warn" };
 

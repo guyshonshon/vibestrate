@@ -90,4 +90,40 @@ describe("deriveEngagement", () => {
       deriveEngagement([ev("flow.step.started", { stepId: "x" }), ev("flow.step.completed", { stepId: "x" })]),
     ).toEqual([]);
   });
+
+  it("surfaces resilience terminal moments: retries exhausted and usage-limit give-up", () => {
+    const out = deriveEngagement([
+      ev("provider.retries_exhausted", {
+        stepId: "implement",
+        class: "rate-limit",
+        retries: 5,
+        detail: "429 too many requests",
+      }),
+      ev("provider.usage_limit", {
+        stepId: "implement",
+        action: "stop",
+        resolved: "give-up",
+        detail: "This model is being rate limited",
+      }),
+      // A wait is a warn, not a terminal failure.
+      ev("provider.usage_limit", { stepId: "implement", action: "wait", waitMs: 60000 }),
+    ]);
+    expect(out).toHaveLength(3);
+
+    const exhausted = out[0]!;
+    expect(exhausted.cls).toBe("enforced");
+    expect(exhausted.tone).toBe("bad");
+    expect(exhausted.stepId).toBe("implement");
+    expect(exhausted.title).toContain("rate-limit");
+    expect(exhausted.detail).toContain("429");
+
+    const gaveUp = out[1]!;
+    expect(gaveUp.tone).toBe("bad");
+    expect(gaveUp.title).toContain("gave up");
+    expect(gaveUp.detail).toContain("rate limited");
+
+    const waiting = out[2]!;
+    expect(waiting.tone).toBe("warn");
+    expect(waiting.title).toContain("wait");
+  });
 });

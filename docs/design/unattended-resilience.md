@@ -138,16 +138,27 @@ escalate. Same machinery handles "server temporarily unavailable" (transient).
 
 ## Fallback (alternate profile)
 
-When resilience retries for a class are exhausted and a `fallbackProfile` is
-configured (per class, or a global default), the turn re-runs **once** on the
-fallback profile (a different provider/model that may not be limited/down). This:
+When resilience retries for a class are exhausted, the turn re-runs **once** on
+a fallback profile (a different provider/model that may not be limited/down).
+The profile is the per-class `fallbackProfile` when configured; otherwise one is
+**auto-derived** per `resilience.autoFallback` (U8). The fallback:
 
-- is **explicit** (configured), never automatic model-swapping;
-- is **recorded** (`provider.fallback` event: "fell back claude-balanced ->
-  claude-fast: rate-limited after 5 retries");
+- is **trust-scoped**: `autoFallback: crew` (default) only reseats onto a
+  profile **already seated in this run's flow** - no provider outside the run's
+  trust set ever sees its context. `any` (explicit opt-in) extends to every
+  configured profile, in declaration order; `off` restores the U3 contract
+  (explicit `fallbackProfile` or nothing). Same-provider profiles never qualify
+  (they share the limit);
+- is **recorded** (`provider.fallback` event) for every outcome - the swap, the
+  "no candidate in scope", and a fallback attempt that itself failed. Never
+  silent;
 - preserves the flow contract (the fallback still fills the same Seat and emits
   the same output token), but the change in model is visible so quality shifts
   are never hidden;
+- **never changes write capability**: `allowWrite` is resolved per-turn from the
+  permission profile and rides along unchanged from the original turn's args -
+  the fallback swaps the model profile only (a different namespace). A future
+  refactor must not "helpfully" re-resolve permissions from the fallback profile;
 - if the fallback ALSO fails -> escalate (`onExhausted`).
 
 Distinct from `budget.fallbackProfile` (cost downgrade) - same mechanism, two
@@ -327,6 +338,31 @@ ceilings are off (opt-in), nothing changes for current users until they opt in.
   (lossless, vibestrate-controlled), bounding provider-side context on a marathon
   run. Only affects providers that support session reuse. The provider's own
   auto-compaction remains the safety net.
+- **U8 - Failure root-cause threading + trust-scoped auto-fallback. SHIPPED
+  (0.7.49).** Born from a real incident: a Claude usage limit died as a generic
+  "provider exited 1" + noise caps, with the fallback path silently inert.
+  Four fixes. (1) The classified failure + a redacted excerpt (`failureExcerpt`:
+  vendor token shapes + generic credential assignments scrubbed, 240 chars) ride
+  the give-up outcome (`RichProviderRunResult.failure` / `err.failureClass`)
+  into step errors, `flow.step.failed` events (structured `failureClass`), and
+  Run Assurance. The step-level retry loop treats a resilience-exhausted
+  recoverable class as final (no multiplying the whole backoff schedule per
+  step retry); hard failures keep step-retry semantics. (2) The formerly silent
+  terminal moments are events: `provider.retries_exhausted` (rate-limit/
+  transient give-up) and `provider.usage_limit` give-up now carry the excerpt;
+  both render in the supervisor engagement feed (enforced/bad). (3)
+  `resilience.autoFallback` (off/crew/any, default `crew`) - see § Fallback;
+  the usage-limit give-up path (including `action: stop`) tries the auto
+  candidate before failing ("stop" means "don't wait hours", not "don't use a
+  provider the run already trusts"); an explicit `fallbackProfile` still only
+  applies under fallback semantics. (4) Run Assurance gains `blockers` (root
+  causes derived from step states + resilience events): a blocked verdict's
+  summary names the cause ("Cause at 'implement': usage-limit: This model is
+  being rate limited...") and the trivially-implied missing-trio caps
+  (validation/review/verification missing) are suppressed on `blocked` only -
+  `unsafe` keeps every cap. Claude Code's switch-over prompt ("being rate
+  limited... switch over") classifies as usage-limit (a windowed quota), not
+  rate-limit, so it fails fast toward fallback instead of 5 useless retries.
 
 Each is its own branch, verified, with docs + changelog, per the repo workflow.
 

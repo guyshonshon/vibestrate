@@ -1550,6 +1550,14 @@ export type RunAssurance = {
   };
   verification: { status: "passed" | "failed" | "not_run" };
   coverage: { toleratedStepFailures: number };
+  /** Root causes for a blocked/unsafe run (provider give-ups, failed steps).
+   *  Optional: older assurance artifacts predate it. */
+  blockers?: {
+    stepId: string | null;
+    kind: "provider" | "step";
+    class: string | null;
+    detail: string;
+  }[];
   caps: string[];
   // Supervisor persona + how independent its review was (orchestrator-personas.md).
   // independence is honest, NOT a confidence source.

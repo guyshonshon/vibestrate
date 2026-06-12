@@ -4,6 +4,7 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import {
   deriveRunAssurance,
+  deriveRunBlockers,
   buildAndWriteRunAssurance,
   readRunAssurance,
 } from "../../src/safety/run-assurance.js";
@@ -188,6 +189,143 @@ describe("deriveRunAssurance verdicts", () => {
     expect(a.verdict).toBe("verified");
     expect(a.coverage.toleratedStepFailures).toBe(0);
     expect(a.caps).not.toContain("steps_failed_tolerated");
+  });
+});
+
+describe("blockers + caps on blocked runs", () => {
+  const blocker = {
+    stepId: "implement",
+    kind: "provider" as const,
+    class: "usage-limit",
+    detail: "This model is being rate limited, Would you like to switch over?",
+  };
+
+  it("a blocked run leads with the root cause, not downstream absence", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "blocked",
+      finalDecision: null,
+      verification: null,
+      actionLog: [],
+      toleratedStepFailures: 1,
+      blockers: [blocker],
+    });
+    expect(a.verdict).toBe("blocked");
+    expect(a.blockers).toEqual([blocker]);
+    expect(a.summary).toContain('Cause at "implement"');
+    expect(a.summary).toContain("rate limited");
+    // The missing-trio is trivially implied by "blocked" - pure noise.
+    expect(a.caps).not.toContain("validation_missing");
+    expect(a.caps).not.toContain("review_missing");
+    expect(a.caps).not.toContain("verification_not_run");
+    // Informative caps survive.
+    expect(a.caps).toContain("steps_failed_tolerated");
+  });
+
+  it("an unsafe run keeps every cap (a deny can land mid-run)", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: null,
+      actionLog: [
+        rec({
+          request: { runId: "r", kind: "file.patch", subject: {}, proposedBy: "system" },
+          decision: { effect: "deny", ruleIds: ["no-env"], reason: "blocked" },
+          evidence: null,
+        }),
+      ],
+    });
+    expect(a.verdict).toBe("unsafe");
+    expect(a.caps).toContain("validation_missing");
+    expect(a.caps).toContain("verification_not_run");
+  });
+
+  it("a merge_ready run never carries blockers", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ evidence: { ok: true } })],
+      blockers: [blocker],
+    });
+    expect(a.verdict).toBe("verified");
+    expect(a.blockers).toEqual([]);
+  });
+});
+
+describe("deriveRunBlockers", () => {
+  it("provider give-up events win over the generic step error for the same step", () => {
+    const blockers = deriveRunBlockers({
+      steps: [
+        { id: "plan", status: "passed", error: null },
+        { id: "implement", status: "failed", error: "provider exited 1 (usage-limit: rate limited)" },
+      ],
+      events: [
+        { type: "flow.step.started", data: { stepId: "implement" } },
+        {
+          type: "provider.usage_limit",
+          data: { stepId: "implement", resolved: "give-up", detail: "This model is being rate limited" },
+        },
+      ],
+    });
+    expect(blockers).toEqual([
+      {
+        stepId: "implement",
+        kind: "provider",
+        class: "usage-limit",
+        detail: "This model is being rate limited",
+      },
+    ]);
+  });
+
+  it("maps provider.retries_exhausted with its class and detail", () => {
+    const blockers = deriveRunBlockers({
+      steps: [],
+      events: [
+        {
+          type: "provider.retries_exhausted",
+          data: { stepId: "review", class: "rate-limit", retries: 5, detail: "429 too many requests" },
+        },
+      ],
+    });
+    expect(blockers).toEqual([
+      { stepId: "review", kind: "provider", class: "rate-limit", detail: "429 too many requests" },
+    ]);
+  });
+
+  it("falls back to failed/blocked step errors when no provider signal exists", () => {
+    const blockers = deriveRunBlockers({
+      steps: [
+        { id: "implement", status: "failed", error: "provider exited 1" },
+        { id: "gate", status: "blocked", error: null },
+      ],
+      events: [],
+    });
+    expect(blockers).toEqual([
+      { stepId: "implement", kind: "step", class: null, detail: "provider exited 1" },
+      { stepId: "gate", kind: "step", class: null, detail: "step blocked" },
+    ]);
+  });
+
+  it("a waiting usage-limit event (not give-up) is not a blocker", () => {
+    const blockers = deriveRunBlockers({
+      steps: [],
+      events: [
+        { type: "provider.usage_limit", data: { stepId: "implement", action: "wait", waitMs: 60000 } },
+      ],
+    });
+    expect(blockers).toEqual([]);
+  });
+
+  it("caps at 5 blockers", () => {
+    const steps = Array.from({ length: 9 }, (_, i) => ({
+      id: `s${i}`,
+      status: "failed",
+      error: "boom",
+    }));
+    expect(deriveRunBlockers({ steps, events: [] })).toHaveLength(5);
   });
 });
 

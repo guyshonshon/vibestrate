@@ -248,6 +248,15 @@ export const resilienceConfigSchema = z
      *  fresh round of retries or reject (give up) - ATTENDED only. Default
      *  `fail`; `--unattended` forces `fail`. */
     onExhausted: z.enum(["fail", "pause"]).default("fail"),
+    /** Auto-derive a fallback Profile when a recoverable failure exhausts its
+     *  retries and no explicit fallbackProfile is configured. Trust-scoped:
+     *  `crew` (default) only reseats onto a profile ALREADY SEATED in this
+     *  run's flow - no provider that wasn't part of the run ever sees its
+     *  context; `any` extends to every configured profile (explicit opt-in to
+     *  wider routing); `off` disables. The swap is never silent (a
+     *  provider.fallback event records it) and never changes the turn's write
+     *  permissions (allowWrite is resolved per-turn, not per-profile). */
+    autoFallback: z.enum(["off", "crew", "any"]).default("crew"),
     rateLimit: resilienceClassSchema
       .extend({ respectRetryAfter: z.boolean().default(true) })
       .default({ maxRetries: 5, baseDelayMs: 2000, maxDelayMs: 120000, respectRetryAfter: true, patterns: [] }),
