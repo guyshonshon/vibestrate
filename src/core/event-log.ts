@@ -82,6 +82,7 @@ export type VibestrateEventType =
   | "workflow.selected"
   | "persona.selected"
   | "persona.upgraded"
+  | "supervisor.reviewer_profile"
   | "flow.snapshot.written"
   | "flow.participant.capabilities"
   | "flow.session.opened"

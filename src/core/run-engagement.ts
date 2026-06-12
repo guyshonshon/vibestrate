@@ -84,6 +84,18 @@ function entryFor(e: VibestrateEvent): Partial | null {
         tone: "info",
       };
     }
+    case "supervisor.reviewer_profile": {
+      const profile = str(d, "reviewerProfile") ?? "reviewer profile";
+      const steps = len(d, "steps");
+      return {
+        cls: "judgment",
+        anchor: "root",
+        stepId: null,
+        title: `review seats pinned to ${profile}`,
+        detail: steps ? `${steps} step${steps > 1 ? "s" : ""}` : null,
+        tone: "info",
+      };
+    }
     case "review.decision": {
       const dec = str(d, "decision") ?? "decision";
       return {

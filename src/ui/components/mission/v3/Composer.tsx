@@ -213,8 +213,13 @@ export function ComposerV3({
 
   // Derive the full allocation client-side from the flow's seated steps +
   // the selected crew + profiles. The server re-validates on submit.
+  // Mirrors the resolver's reviewerProfile rule (UI/CLI parity): the
+  // supervisor's reviewer profile pins review seats unless explicitly
+  // overridden, and never the arbiter-shaped verdict seat.
   const allocation = useMemo<AllocRow[]>(() => {
     if (!selectedFlow) return [];
+    const reviewerProfile =
+      personas.find((p) => p.id === personaId)?.reviewerProfile ?? null;
     const rows: AllocRow[] = [];
     for (const step of selectedFlow.definition.steps) {
       const seat = step.seat;
@@ -235,7 +240,15 @@ export function ComposerV3({
       else if (candidates.length > 1 && !picked) status = "ambiguous";
       else if (picked) {
         roleLabel = picked.label;
-        profileId = stepProfiles[step.id] ?? picked.profile;
+        const isArbiterShaped =
+          seat === "arbiter" || (step.needs?.length ?? 0) >= 2;
+        const isReviewStep =
+          (step.kind === "review-turn" || step.stage === "reviewing") &&
+          !isArbiterShaped;
+        profileId =
+          stepProfiles[step.id] ??
+          (isReviewStep ? reviewerProfile ?? null : null) ??
+          picked.profile;
         provider = profiles.find((p) => p.id === profileId)?.provider ?? null;
       }
       rows.push({
@@ -250,7 +263,7 @@ export function ComposerV3({
       });
     }
     return rows;
-  }, [selectedFlow, crew, profiles, stepProfiles, seatRoles]);
+  }, [selectedFlow, crew, profiles, stepProfiles, seatRoles, personas, personaId]);
 
   const blockers = allocation.filter((r) => r.status !== "ok");
   const canSend = brief.trim().length > 0 && !busy && blockers.length === 0;

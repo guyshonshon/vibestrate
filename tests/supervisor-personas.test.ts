@@ -338,6 +338,56 @@ describe("reviewerProfile resolution", () => {
     }
   });
 
+  it("the panel ARBITER is never pinned - the binding verdict keeps its profile", () => {
+    // The arbiter weighs the reviewers; pinning it to the cheap reviewer
+    // model would partly undo the upgrade that picked the panel.
+    const cfg = baseConfig({
+      profiles: {
+        "claude-balanced": { provider: "claude" },
+        "cheap-reviewer": { provider: "claude" },
+      },
+      crews: {
+        default: {
+          roles: {
+            planner: { seats: ["planner"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            architect: { seats: ["architect"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            executor: { seats: ["implementer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            fixer: { seats: ["fixer"], profile: "claude-balanced", prompt: "p", permissions: "code_write" },
+            reviewer: { seats: ["reviewer"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+            arbiter: { seats: ["arbiter", "verifier"], profile: "claude-balanced", prompt: "p", permissions: "read_only" },
+          },
+        },
+      },
+    });
+    const snap = resolveFlow({
+      flow: reviewPanelFlow,
+      source: { kind: "builtin", ref: reviewPanelFlow.id },
+      config: cfg,
+      task: "t",
+      reviewerProfile: "cheap-reviewer",
+    });
+    const arbiter = snap.steps.find((s) => s.seat === "arbiter");
+    expect(arbiter).toBeDefined();
+    expect(arbiter!.profileId).toBe("claude-balanced");
+    const lenses = snap.steps.filter(
+      (s) => s.kind === "review-turn" && s.seat === "reviewer",
+    );
+    expect(lenses.length).toBeGreaterThanOrEqual(3);
+    for (const s of lenses) expect(s.profileId).toBe("cheap-reviewer");
+  });
+
+  it("the FIX step (a writer) and seatless steps are untouched", () => {
+    const snap = resolveDefault(cfgWithCheapReviewer(), {
+      reviewerProfile: "cheap-reviewer",
+    });
+    const fix = snap.steps.find((s) => s.id.startsWith("fix"));
+    expect(fix).toBeDefined();
+    expect(fix!.profileId).toBe("claude-balanced");
+    const seatless = snap.steps.filter((s) => !s.seat);
+    expect(seatless.length).toBeGreaterThan(0);
+    for (const s of seatless) expect(s.profileId).toBeNull();
+  });
+
   it("no reviewerProfile = byte-identical resolution to before", () => {
     const cfg = cfgWithCheapReviewer();
     const a = resolveDefault(cfg, { resolvedAt: "2026-06-12T00:00:00.000Z" });

@@ -1565,6 +1565,8 @@ export type PersonaSummary = {
   label: string;
   description?: string;
   reviewLenses: string[];
+  /** Review seats run this Profile when set (the supervisor's cost lever). */
+  reviewerProfile?: string | null;
   builtin: boolean;
 };
 export type PersonasResponse = {
