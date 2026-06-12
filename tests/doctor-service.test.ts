@@ -116,4 +116,64 @@ describe("doctor service", () => {
     expect(ids(r.findings)).toContain("git-repo");
     expect(ids(r.findings)).toContain("config-valid");
   });
+
+  it("warns when host Claude Code hooks will leak into runs (T4)", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-home-"));
+    const origHome = process.env.HOME;
+    process.env.HOME = home; // os.homedir() honors $HOME on POSIX
+    try {
+      await fs.mkdir(path.join(home, ".claude"), { recursive: true });
+      await fs.writeFile(
+        path.join(home, ".claude", "settings.json"),
+        JSON.stringify({
+          hooks: {
+            UserPromptSubmit: [{ hooks: [{ type: "command", command: "echo hi" }] }],
+          },
+        }),
+      );
+      await fs.writeFile(path.join(projectRoot, "package.json"), '{"name":"demo"}');
+      // Make `claude` the detected/recommended provider so a claude-code
+      // provider (default safeMode off) is configured.
+      const claudeAvailable: ProviderDetectionRunner = async (command) =>
+        path.basename(command) === "claude"
+          ? { exitCode: 0, stdout: "2.1.0 (Claude Code)", stderr: "" }
+          : { exitCode: 127, stdout: "", stderr: "" };
+      await applySetup({
+        options: { projectRoot },
+        detectionRunner: claudeAvailable,
+      });
+      const r = await runDoctor({ cwd: projectRoot });
+      const f = r.findings.find((x) => x.id === "host-hooks-leak");
+      expect(f?.severity).toBe("warn");
+      expect(f?.title).toContain("UserPromptSubmit");
+      expect(f?.fixHint).toMatch(/safeMode/);
+    } finally {
+      if (origHome === undefined) delete process.env.HOME;
+      else process.env.HOME = origHome;
+      await fs.rm(home, { recursive: true, force: true });
+    }
+  });
+
+  it("no host-hooks finding when there are no host hooks (T4)", async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-home-"));
+    const origHome = process.env.HOME;
+    process.env.HOME = home;
+    try {
+      await fs.writeFile(path.join(projectRoot, "package.json"), '{"name":"demo"}');
+      const claudeAvailable: ProviderDetectionRunner = async (command) =>
+        path.basename(command) === "claude"
+          ? { exitCode: 0, stdout: "2.1.0", stderr: "" }
+          : { exitCode: 127, stdout: "", stderr: "" };
+      await applySetup({
+        options: { projectRoot },
+        detectionRunner: claudeAvailable,
+      });
+      const r = await runDoctor({ cwd: projectRoot });
+      expect(ids(r.findings)).not.toContain("host-hooks-leak");
+    } finally {
+      if (origHome === undefined) delete process.env.HOME;
+      else process.env.HOME = origHome;
+      await fs.rm(home, { recursive: true, force: true });
+    }
+  });
 });

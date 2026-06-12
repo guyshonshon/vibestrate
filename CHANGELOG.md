@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.52
+
+- **`vibe doctor` now warns when your Claude Code hooks will leak into runs.**
+  The `claude-code` provider runs your own `claude` CLI, which (unless `safeMode`
+  is on) loads your `~/.claude` and project `.claude` hooks inside every turn - a
+  personal `UserPromptSubmit` "supervisor" hook then injects into prompts and can
+  skew reviewer verdicts. Doctor now detects those hooks and tells you they'll
+  fire, with the one-line fix (`settings.safeMode: true` to isolate, or remove
+  the hooks). It reports only the hook event names and the settings file, never
+  the hook commands. We still don't isolate by default on purpose - your
+  environment is legitimate context - so this is a heads-up, not a block.
+
 ## 0.7.51
 
 - **The run file viewer now shows the run's own copy of a file.** Opening a file

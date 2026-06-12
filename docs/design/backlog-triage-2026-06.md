@@ -156,7 +156,21 @@ internals toggle via `isInternal()`.
 
 **Size:** S. **Depends on:** nothing.
 
-### T4 - Host-environment hooks leaking into provider turns
+### T4 - Host-environment hooks leaking into provider turns - SHIPPED (warn)
+
+**Status (shipped):** Empirically confirmed - `claude` v2.1.175's `--safe-mode`
+help text lists hooks among the customizations it disables, and a live
+`vibe doctor` on this repo detected the operator's real `~/.claude/settings.json`
+hooks (Notification, Stop, UserPromptSubmit) firing into runs. Decision: keep the
+established detect-and-warn stance (safeMode already exists, default off on
+purpose - the operator's environment is legitimate context); do NOT isolate by
+default. Deliverable: a pure detector (`src/providers/host-hook-detection.ts`,
+reads ONLY hook event names + the file path, never command contents) + a
+`vibe doctor` finding (`host-hooks-leak`) that fires when a claude provider runs
+without safeMode and host hooks are present, with a per-provider safeMode
+fixHint. Handles both the `claude-code` provider and a generic `cli` provider
+running the `claude` binary. Documented in `concepts/provider.md`. Tests:
+`host-hook-detection.test.ts` (8) + doctor integration (2, HOME-overridden).
 
 **Raw ask:** "What happens when your model has its own hooks, like we have
 super-guy, does it interfere?"
