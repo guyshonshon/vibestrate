@@ -1610,6 +1610,15 @@ export type RunAssurance = {
     persona: string | null;
     independence: "cross-model" | "single-profile";
   };
+  /** How confined the run's agents actually were (from per-turn provider events,
+   *  not config). Informational - never caps the verdict; "none" is the default
+   *  baseline (worktree + diff gate). Optional: older artifacts predate it. */
+  isolation?: {
+    posture: "sandboxed" | "hardened" | "partial" | "none";
+    osSandboxedTurns: number;
+    hardenedTurns: number;
+    unconfinedRequestedTurns: number;
+  };
 };
 
 // Supervisor personas (orchestrator-personas.md) - the run composer's selector.

@@ -19,10 +19,19 @@ export async function runClaudeCodeProvider(
   config: ClaudeCodeProviderConfig,
   input: ProviderRunInput,
 ): Promise<ClaudeCodeProviderRunResult> {
+  const writeCapable = input.allowWrite === true;
   const args = buildClaudeCodeArgs(config.args ?? [], config.settings, {
-    writeCapable: input.allowWrite === true,
+    writeCapable,
     hardenReadOnly: input.hardenReadOnly === true,
   });
+  // What was ACTUALLY applied (mirrors buildClaudeCodeArgs' own condition): the
+  // hardening lands only on a non-write turn, with the toggle on, and no explicit
+  // permissionMode override. This is the evidence the assurance posture reads -
+  // never config alone.
+  const appliedReadOnlyHardening =
+    !writeCapable &&
+    input.hardenReadOnly === true &&
+    !config.settings?.permissionMode;
   // Apply the resolved profile's model + effort - both real `claude` flags
   // (`--model <id>`, `--effort <low|medium|high|xhigh|max>`).
   if (input.model) {
@@ -96,6 +105,7 @@ export async function runClaudeCodeProvider(
     durationMs: result.durationMs,
     startedAt: result.startedAt,
     endedAt: result.endedAt,
+    appliedReadOnlyHardening,
     session: input.session
       ? {
           action: input.session.action === "resume" ? "reused" : "opened",

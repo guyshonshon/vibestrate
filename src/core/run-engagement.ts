@@ -230,6 +230,8 @@ function entryFor(e: VibestrateEvent): Partial | null {
       return { cls: "enforced", anchor: onStep(), stepId: step, title: `sandboxed · ${str(d, "mode") ?? "os"}`, detail: str(d, "provider"), tone: "info" };
     case "provider.sandbox_unavailable":
       return { cls: "enforced", anchor: onStep(), stepId: step, title: "sandbox unavailable", detail: str(d, "provider"), tone: "warn" };
+    case "provider.hardened":
+      return { cls: "enforced", anchor: onStep(), stepId: step, title: "read-only hardened · plan", detail: str(d, "provider"), tone: "info" };
 
     // ── Structural: executing the chosen workflow shape ─────────────────────
     case "flow.frontier.scheduled": {

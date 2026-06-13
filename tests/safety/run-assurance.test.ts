@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import {
   deriveRunAssurance,
   deriveRunBlockers,
+  deriveRunIsolation,
   buildAndWriteRunAssurance,
   readRunAssurance,
 } from "../../src/safety/run-assurance.js";
@@ -15,6 +16,7 @@ import {
   runStatePath,
   runActionsPath,
   runAssurancePath,
+  runEventsPath,
 } from "../../src/utils/paths.js";
 import { runStateSchema } from "../../src/core/state-machine.js";
 import { writeJson } from "../../src/utils/json.js";
@@ -404,6 +406,76 @@ describe("deriveRunBlockers", () => {
   });
 });
 
+describe("deriveRunIsolation (posture from per-turn evidence, not config)", () => {
+  const ev = (type: string) => ({ type });
+
+  it("no confinement events -> none (the baseline default)", () => {
+    expect(deriveRunIsolation([])).toEqual({
+      posture: "none",
+      osSandboxedTurns: 0,
+      hardenedTurns: 0,
+      unconfinedRequestedTurns: 0,
+    });
+  });
+
+  it("OS-sandboxed turns -> sandboxed, counted", () => {
+    const iso = deriveRunIsolation([ev("provider.sandboxed"), ev("provider.sandboxed")]);
+    expect(iso.posture).toBe("sandboxed");
+    expect(iso.osSandboxedTurns).toBe(2);
+  });
+
+  it("only claude plan-mode hardening -> hardened", () => {
+    const iso = deriveRunIsolation([ev("provider.hardened")]);
+    expect(iso.posture).toBe("hardened");
+    expect(iso.hardenedTurns).toBe(1);
+  });
+
+  it("HONESTY: a requested-but-unconfined turn is partial, never sandboxed", () => {
+    // Even with a real OS-sandboxed turn, if another turn was requested but ran
+    // unconfined the headline must NOT claim full confinement.
+    const iso = deriveRunIsolation([
+      ev("provider.sandboxed"),
+      ev("provider.sandbox_unavailable"),
+    ]);
+    expect(iso.posture).toBe("partial");
+    expect(iso.osSandboxedTurns).toBe(1);
+    expect(iso.unconfinedRequestedTurns).toBe(1);
+  });
+
+  it("OS sandbox + hardening together (no unconfined) -> sandboxed headline, both counted", () => {
+    const iso = deriveRunIsolation([ev("provider.sandboxed"), ev("provider.hardened")]);
+    expect(iso.posture).toBe("sandboxed");
+    expect(iso.osSandboxedTurns).toBe(1);
+    expect(iso.hardenedTurns).toBe(1);
+  });
+});
+
+describe("isolation never affects the verdict (informational only)", () => {
+  it("defaults to none when not provided, and a 'partial'/'sandboxed' posture adds no cap", () => {
+    const plain = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ request: { runId: "r", kind: "command.run", subject: {}, proposedBy: "system" }, evidence: { ok: true } })],
+    });
+    expect(plain.isolation.posture).toBe("none");
+
+    const confined = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ request: { runId: "r", kind: "command.run", subject: {}, proposedBy: "system" }, evidence: { ok: true } })],
+      isolation: { posture: "partial", osSandboxedTurns: 1, hardenedTurns: 0, unconfinedRequestedTurns: 1 },
+    });
+    // Same verdict + same caps: isolation is informational, never a gap.
+    expect(confined.isolation.posture).toBe("partial");
+    expect(confined.verdict).toBe(plain.verdict);
+    expect(confined.caps).toEqual(plain.caps);
+  });
+});
+
 describe("buildAndWriteRunAssurance", () => {
   it("reads state + action log from disk and writes assurance.json", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
@@ -440,6 +512,57 @@ describe("buildAndWriteRunAssurance", () => {
       const read = await readRunAssurance(root, runId);
       expect(read?.verdict).toBe("verified");
       expect(read?.runId).toBe(runId);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("derives isolation posture from the run's provider events on disk", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
+    try {
+      const runId = "run-iso";
+      await ensureDir(runDir(root, runId));
+      const ts = "2026-05-30T00:00:00.000Z";
+      await writeJson(
+        runStatePath(root, runId),
+        runStateSchema.parse({
+          runId,
+          task: "t",
+          status: "merge_ready",
+          projectRoot: root,
+          worktreePath: null,
+          branchName: null,
+          reviewLoopCount: 0,
+          maxReviewLoops: 2,
+          startedAt: ts,
+          updatedAt: ts,
+          finalDecision: "APPROVED",
+          verification: "PASSED",
+          error: null,
+        }),
+      );
+      await fs.writeFile(
+        runActionsPath(root, runId),
+        JSON.stringify(rec({ evidence: { ok: true } })) + "\n",
+      );
+      // codex executor sandboxed + claude reviewer hardened, nothing unconfined.
+      await fs.writeFile(
+        runEventsPath(root, runId),
+        [
+          JSON.stringify({ type: "provider.sandboxed", data: { provider: "codex", mode: "workspace-write" } }),
+          JSON.stringify({ type: "provider.hardened", data: { provider: "claude", mode: "plan" } }),
+        ].join("\n") + "\n",
+      );
+
+      const built = await buildAndWriteRunAssurance(root, runId);
+      expect(built.isolation).toEqual({
+        posture: "sandboxed",
+        osSandboxedTurns: 1,
+        hardenedTurns: 1,
+        unconfinedRequestedTurns: 0,
+      });
+      // Posture is informational - it didn't drag a clean run off "verified".
+      expect(built.verdict).toBe("verified");
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

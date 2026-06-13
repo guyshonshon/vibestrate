@@ -1006,6 +1006,20 @@ function AssuranceBadge({
             supervisor: {a.supervisor.persona} ({a.supervisor.independence})
           </span>
         ) : null}
+        {a.isolation && a.isolation.posture !== "none" ? (
+          <span title="How confined the run's agents actually were, derived from per-turn provider evidence (not config). Informational - it never affects the verdict; the default is the worktree + diff gate.">
+            isolation: {a.isolation.posture}
+            {a.isolation.osSandboxedTurns > 0
+              ? ` · ${a.isolation.osSandboxedTurns} OS-sandboxed`
+              : ""}
+            {a.isolation.hardenedTurns > 0
+              ? ` · ${a.isolation.hardenedTurns} hardened`
+              : ""}
+            {a.isolation.unconfinedRequestedTurns > 0
+              ? ` · ${a.isolation.unconfinedRequestedTurns} unconfined`
+              : ""}
+          </span>
+        ) : null}
       </div>
       {a.blockers && a.blockers.length > 0 ? (
         <div className="mt-2 space-y-0.5">

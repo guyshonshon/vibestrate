@@ -119,6 +119,26 @@ export type RunAssurance = {
     persona: string | null;
     independence: "cross-model" | "single-profile";
   };
+  /** How confined the run's agents actually were, derived from per-turn provider
+   *  events (NOT config - what ran, not what was set). Informational: it never
+   *  caps the verdict (the worktree + diff gate are the baseline, so "none" is
+   *  the intended default, not a gap). `posture`:
+   *   - "sandboxed": >=1 turn under a real OS sandbox (codex Seatbelt/Landlock)
+   *     and nothing was requested-but-unconfined.
+   *   - "hardened": no OS sandbox, but >=1 claude turn under `--permission-mode
+   *     plan` (provider-enforced no-write).
+   *   - "partial": a sandbox was requested for a turn that ran unconfined (or a
+   *     mix that didn't fully cover) - honest "not everything got it".
+   *   - "none": no confinement signal (the default; baseline protection only). */
+  isolation: {
+    posture: "sandboxed" | "hardened" | "partial" | "none";
+    /** Turns that ran under a real OS filesystem sandbox (provider.sandboxed). */
+    osSandboxedTurns: number;
+    /** Turns under claude `--permission-mode plan` hardening (provider.hardened). */
+    hardenedTurns: number;
+    /** Turns where a sandbox was requested but ran unconfined (provider.sandbox_unavailable). */
+    unconfinedRequestedTurns: number;
+  };
 };
 
 /** Derive the root-cause blockers from the run's step states + event stream.
@@ -178,6 +198,32 @@ export function deriveRunBlockers(input: {
   return blockers;
 }
 
+/** Derive the run's isolation posture from its per-turn provider events. Pure -
+ *  testable without disk. Counts what ACTUALLY ran (provider.sandboxed /
+ *  provider.hardened / provider.sandbox_unavailable), never config. The posture
+ *  is informational and never caps the verdict. */
+export function deriveRunIsolation(
+  events: { type: string }[],
+): RunAssurance["isolation"] {
+  let osSandboxedTurns = 0;
+  let hardenedTurns = 0;
+  let unconfinedRequestedTurns = 0;
+  for (const e of events) {
+    if (e.type === "provider.sandboxed") osSandboxedTurns += 1;
+    else if (e.type === "provider.hardened") hardenedTurns += 1;
+    else if (e.type === "provider.sandbox_unavailable") unconfinedRequestedTurns += 1;
+  }
+  const posture: RunAssurance["isolation"]["posture"] =
+    osSandboxedTurns === 0 && hardenedTurns === 0 && unconfinedRequestedTurns === 0
+      ? "none"
+      : unconfinedRequestedTurns > 0
+        ? "partial" // a sandbox was asked for but a turn ran unconfined
+        : osSandboxedTurns > 0
+          ? "sandboxed" // real OS confinement present (hardening may also apply)
+          : "hardened"; // only the provider-enforced no-write hardening
+  return { posture, osSandboxedTurns, hardenedTurns, unconfinedRequestedTurns };
+}
+
 /** Pure derivation - testable without disk. */
 export function deriveRunAssurance(input: {
   runId: string;
@@ -212,6 +258,9 @@ export function deriveRunAssurance(input: {
   /** Models that actually ran (per seated step). >= 2 distinct non-null models
    *  means the review was cross-model; else it's a single-profile self-check. */
   modelsUsed?: (string | null | undefined)[];
+  /** Isolation posture (deriveRunIsolation). Defaults to "none" so direct
+   *  callers that don't compute it keep the baseline. Informational only. */
+  isolation?: RunAssurance["isolation"];
   generatedAt: string;
 }): RunAssurance {
   const { actionLog } = input;
@@ -395,6 +444,12 @@ export function deriveRunAssurance(input: {
       reviewStatus === "approved" ||
       verificationStatus === "passed",
     supervisor,
+    isolation: input.isolation ?? {
+      posture: "none",
+      osSandboxedTurns: 0,
+      hardenedTurns: 0,
+      unconfinedRequestedTurns: 0,
+    },
   };
 }
 
@@ -694,6 +749,7 @@ export async function buildAndWriteRunAssurance(
     blockers: deriveRunBlockers({ steps: stepStates, events }),
     persona,
     modelsUsed,
+    isolation: deriveRunIsolation(events),
     generatedAt: nowIso(),
   });
   await writeText(
@@ -727,6 +783,14 @@ export async function readRunAssurance(
           raw.review?.status === "approved" ||
           raw.verification?.status === "passed"),
       blockers: raw.blockers ?? [],
+      // isolation landed in 0.7.76; older artifacts predate the events it counts,
+      // so "none" is the honest backfill (no recorded confinement evidence).
+      isolation: raw.isolation ?? {
+        posture: "none",
+        osSandboxedTurns: 0,
+        hardenedTurns: 0,
+        unconfinedRequestedTurns: 0,
+      },
     };
   } catch {
     return null;

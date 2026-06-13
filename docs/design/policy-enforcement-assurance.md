@@ -1166,9 +1166,17 @@ flag (only `--permission-mode`, provider write-gating, already wired via
 gate still bound it. The run result records only `appliedSandbox` (what was
 actually enforced), so assurance never over-claims. This makes
 forbidden-read/-write OS-*prevented* for codex (Phase 6's "guarantees real at the
-process boundary") while staying honest that it's per-provider. **Still open:**
-clean-room/arch isolation and the T-cred/T-exfil credential proxy need the
-deferred Docker backend + host proxy (T14 slices 2-3).
+process boundary") while staying honest that it's per-provider.
+
+A follow-up (0.7.75) added the claude-side lever - `policies.hardenReadOnlySeats`
+runs read-only claude seats under `--permission-mode plan` (the CLI itself refuses
+writes) - and (0.7.76) surfaced the result in the assurance artifact: an
+`isolation` posture (`sandboxed` / `hardened` / `partial` / `none`) derived from
+per-turn provider **events** (`provider.sandboxed`, `provider.hardened`,
+`provider.sandbox_unavailable`), not config, so the badge reflects what actually
+ran. It is informational and never caps the verdict ("none" is the baseline).
+**Still open:** clean-room/arch isolation and the T-cred/T-exfil credential proxy
+need the deferred Docker backend + host proxy (T14 slices 2-3).
 
 ### S4 - Strict apply-only mode ✅ shipped
 

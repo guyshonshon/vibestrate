@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.76
+
+- **Run assurance now shows how confined the run actually was.** The
+  `assurance.json` artifact gained an **isolation posture** - `sandboxed` (a real
+  OS sandbox ran, codex), `hardened` (claude `--permission-mode plan`), `partial`
+  (a sandbox was requested for a turn that ran unconfined), or `none` (the
+  default: worktree + diff gate only). It's derived from per-turn provider
+  **evidence** (the `provider.sandboxed` / `provider.hardened` /
+  `provider.sandbox_unavailable` events), not from config, so it reflects what
+  actually ran - a turn that fell back to an unsandboxed provider can't be
+  reported as confined. It's **informational and never changes the verdict**
+  ("none" is the intended baseline, not a gap), and surfaces in `vibe assurance`,
+  the run-detail badge, the engagement feed, and `GET /api/runs/:id/assurance` -
+  so after an opted-in `execution.isolation` or `hardenReadOnlySeats` run you can
+  confirm the confinement you asked for is the confinement you got.
+
 ## 0.7.75
 
 - **Harden read-only seats (opt-in).** A new `policies.hardenReadOnlySeats`

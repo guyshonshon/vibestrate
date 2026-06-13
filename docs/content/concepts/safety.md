@@ -118,6 +118,16 @@ There is **no confidence score** - a verdict is a level capped by what's missing
 not a guess at truth. Read it with `vibe assurance <runId>`,
 `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
 
+The artifact also records the run's **isolation posture** - how confined the
+agents actually were, derived from per-turn provider evidence (not config):
+`sandboxed` (a real OS sandbox ran, codex), `hardened` (claude `--permission-mode
+plan`), `partial` (a sandbox was requested for a turn that ran unconfined), or
+`none` (the default - worktree + diff gate only). It is **informational and never
+changes the verdict** ("none" is the intended baseline, not a gap), and it's
+shown only when the run was actually confined. This is what lets you confirm,
+after the fact, that an opted-in `execution.isolation` / `hardenReadOnlySeats` run
+really got the confinement you asked for.
+
 **Nothing-to-verify is not a gap.** Each lane (validation, review, verification)
 is reported as `passed`, `failed`, `not_applicable`, or `missing`/`not_run`. A
 lane is `not_applicable` when there was genuinely nothing to check - a docs-only

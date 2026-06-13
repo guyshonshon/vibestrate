@@ -4813,6 +4813,16 @@ export class Orchestrator {
           });
         }
       }
+      // Read-only hardening that ACTUALLY applied (claude `--permission-mode
+      // plan` on a non-write turn). Sourced from the result, not config, so the
+      // assurance posture reflects what ran. One event per hardened turn.
+      if (providerResult.appliedReadOnlyHardening) {
+        await ctx.eventLog.append({
+          type: "provider.hardened",
+          message: `Provider ${providerResult.providerId} ran this read-only turn under --permission-mode plan (no-write enforced by the CLI).`,
+          data: { roleId, stageId: input.stageId, provider: providerResult.providerId, mode: "plan" },
+        });
+      }
       // Fallback flush - most providers buffer all output until exit, so the
       // live panel would be empty mid-flight. Persist the *normalized* response
       // text (the clean answer, not raw JSON for structured providers) as one

@@ -82,6 +82,20 @@ export function buildAssuranceCommand(): Command {
           `  supervisor:   ${assurance.supervisor.persona} (${assurance.supervisor.independence})`,
         );
       }
+      // Isolation posture - shown only when the run was confined (default "none"
+      // is the baseline worktree+diff-gate, not worth a line). Honest counts of
+      // what actually ran.
+      if (assurance.isolation && assurance.isolation.posture !== "none") {
+        const iso = assurance.isolation;
+        const parts: string[] = [];
+        if (iso.osSandboxedTurns > 0) parts.push(`${iso.osSandboxedTurns} OS-sandboxed`);
+        if (iso.hardenedTurns > 0) parts.push(`${iso.hardenedTurns} hardened`);
+        if (iso.unconfinedRequestedTurns > 0)
+          parts.push(`${iso.unconfinedRequestedTurns} ran unconfined`);
+        console.log(
+          `  isolation:    ${iso.posture}${parts.length ? ` (${parts.join(", ")})` : ""}`,
+        );
+      }
       if (assurance.caps.length > 0) {
         console.log("");
         console.log(color.dim(`  caps: ${assurance.caps.join(", ")}`));

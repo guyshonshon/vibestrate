@@ -24,6 +24,14 @@ export type ProviderRunResult = {
    * from this, so it can't over-claim confinement that didn't happen.
    */
   appliedSandbox?: SandboxMode | null;
+  /**
+   * True iff this turn ACTUALLY ran under the read-only hardening
+   * (`policies.hardenReadOnlySeats`): a non-write claude-code turn that the
+   * provider put in `--permission-mode plan`. Set only when the provider really
+   * applied it (not merely requested) - the honest, evidence-backed source for
+   * the run-assurance isolation posture. Absent/false otherwise.
+   */
+  appliedReadOnlyHardening?: boolean;
 };
 
 export type ProviderStreamChunk = {

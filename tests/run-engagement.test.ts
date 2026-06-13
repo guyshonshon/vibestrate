@@ -85,13 +85,14 @@ describe("deriveEngagement", () => {
     expect(out[1]!.title).toContain("policy");
   });
 
-  it("surfaces OS-sandbox posture honestly (applied vs requested-but-unavailable)", () => {
+  it("surfaces isolation posture honestly (sandboxed, hardened, requested-but-unavailable)", () => {
     const out = deriveEngagement([
       ev("provider.sandboxed", { stageId: "implement", provider: "codex", mode: "workspace-write" }),
       ev("provider.sandbox_unavailable", { stageId: "review", provider: "claude", requested: "read-only" }),
+      ev("provider.hardened", { stageId: "verify", provider: "claude", mode: "plan" }),
     ]);
-    expect(out).toHaveLength(2);
-    // Applied: positive, anchored on the step, names the real mode.
+    expect(out).toHaveLength(3);
+    // Applied OS sandbox: positive, anchored on the step, names the real mode.
     expect(out[0]!.cls).toBe("enforced");
     expect(out[0]!.tone).toBe("info");
     expect(out[0]!.stepId).toBe("implement");
@@ -101,6 +102,10 @@ describe("deriveEngagement", () => {
     expect(out[1]!.tone).toBe("warn");
     expect(out[1]!.title).toBe("sandbox unavailable");
     expect(out[1]!.detail).toBe("claude");
+    // claude plan-mode hardening: positive, distinct from the OS sandbox.
+    expect(out[2]!.tone).toBe("info");
+    expect(out[2]!.title).toContain("hardened");
+    expect(out[2]!.detail).toBe("claude");
   });
 
   it("returns an empty list when nothing supervisory happened", () => {
