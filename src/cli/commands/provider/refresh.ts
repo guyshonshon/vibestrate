@@ -69,7 +69,16 @@ export async function runProviderRefresh(
   for (const f of result.findings) console.log(indent(describe(f)));
   console.log("");
   if (result.wrote) {
-    console.log(`${symbol.ok()} Wrote ${color.bold(result.overlayPath)}. ${color.dim("Detected models now drive the model/effort pickers.")}`);
+    // Structured probes (codex) write the detected cache; --help findings write
+    // the overlay. Report whichever happened so the message is accurate.
+    const structured = result.findings.some((f) => f.status === "added" && f.source);
+    const heuristic = result.findings.some((f) => f.status === "added" && !f.source);
+    const where = structured && heuristic
+      ? "the detected cache + your catalog overlay"
+      : structured
+        ? "the detected models cache"
+        : color.bold(result.overlayPath);
+    console.log(`${symbol.ok()} Updated ${where}. ${color.dim("Detected models now drive the model/effort pickers (run-start auto-detect keeps them fresh).")}`);
   } else if (opts.dryRun) {
     console.log(color.dim("Dry run - nothing written."));
   } else {

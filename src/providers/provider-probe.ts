@@ -28,6 +28,11 @@ import {
   modelProbeFamily,
   CapabilityProbeError,
 } from "./provider-model-detection.js";
+import {
+  loadDetectedCache,
+  writeDetectedCache,
+  type DetectedCache,
+} from "./provider-detected-store.js";
 import { failureExcerpt } from "../core/provider-resilience.js";
 import type { ProviderDetectionRunner } from "./provider-detection.js";
 
@@ -163,6 +168,13 @@ export async function refreshCatalog(
   const { config } = await loadConfig(projectRoot);
   const overlay = await loadCatalogOverlay(projectRoot);
   const overlayPath = providerCatalogOverlayPath(projectRoot);
+  // Structured probes (codex) write the machine-managed detected CACHE (below
+  // the overlay), NOT the overlay - so an explicit refresh and the run-start
+  // auto-detect share ONE detected layer and never shadow each other. The
+  // overlay stays for hand-authored entries + the heuristic --help gap-fill.
+  const cache = await loadDetectedCache(projectRoot);
+  const nextCache: DetectedCache = { schemaVersion: 1, providers: { ...cache.providers } };
+  let cacheChanged = false;
 
   const findings: ProbeFinding[] = [];
   const nextCli: Record<string, NonNullable<CatalogOverlay["cli"]>[string]> = {
@@ -185,23 +197,15 @@ export async function refreshCatalog(
       continue;
     }
     const command = provider.type === "cli" ? provider.command : "claude";
-    const overlayKeyEarly = provider.type === "claude-code" ? "claude" : id;
 
     // ── Structured probe (authoritative): a real model catalog from the CLI
-    // itself (codex `debug models`). It refreshes the model/effort lists even
-    // over a built-in spec - the built-in is exactly what goes stale - keeping
-    // the built-in's APPLY mechanics, and still yielding to a hand-authored
-    // overlay unless --force.
+    // itself (codex `debug models`). Writes the detected CACHE (the one
+    // detected layer, shared with run-start auto-detect), single-sourcing the
+    // APPLY mechanics from the built-in spec. A hand-authored OVERLAY entry
+    // outranks the cache in resolveCatalog, so it always wins on top - no
+    // guard needed here; we just keep the cache fresh underneath.
     const family = provider.type === "cli" ? modelProbeFamily(id, provider) : null;
     if (family) {
-      if (overlay.cli?.[overlayKeyEarly] && !opts.force) {
-        findings.push({
-          providerId: id,
-          status: "skipped-overlay",
-          source: `${family} debug models`,
-        });
-        continue;
-      }
       try {
         const { catalog, source } = await detectProviderModels({
           providerId: id,
@@ -209,25 +213,26 @@ export async function refreshCatalog(
           family,
           runner: modelProbeRunner,
         });
-        const builtin = BUILTIN_CATALOG.cli[id];
-        const modelApply: ArgApply = builtin?.model ?? { kind: "flag", flag: "--model" };
-        const entry: NonNullable<CatalogOverlay["cli"]>[string] = {
-          model: modelApply,
-          models: catalog.models,
-        };
-        if (builtin?.effort && catalog.efforts.length > 0) {
-          entry.effort = { levels: catalog.efforts, apply: builtin.effort.apply };
-        }
-        const prevModels = overlay.cli?.[overlayKeyEarly]?.models ?? modelSuggestions(id);
+        // Delta vs the prior EFFECTIVE list (cache, else the built-in).
+        const prevModels = cache.providers[id]?.models ?? modelSuggestions(id);
         const prevSet = new Set(prevModels);
         const nextSet = new Set(catalog.models);
-        nextCli[overlayKeyEarly] = entry;
-        added++;
+        nextCache.providers[id] = {
+          models: catalog.models,
+          efforts: catalog.efforts,
+          detectedAt: new Date().toISOString(),
+          binaryVersion: cache.providers[id]?.binaryVersion ?? null,
+          source,
+        };
+        cacheChanged = true;
+        const builtinHasEffort = !!BUILTIN_CATALOG.cli[id]?.effort;
         findings.push({
           providerId: id,
           status: "added",
           models: catalog.models,
-          ...(entry.effort ? { effort: { flag: "model_reasoning_effort", levels: catalog.efforts } } : {}),
+          ...(builtinHasEffort && catalog.efforts.length > 0
+            ? { effort: { flag: "model_reasoning_effort", levels: catalog.efforts } }
+            : {}),
           added: catalog.models.filter((m) => !prevSet.has(m)),
           removed: prevModels.filter((m) => !nextSet.has(m)),
           source,
@@ -296,14 +301,22 @@ export async function refreshCatalog(
   }
 
   let wrote = false;
-  if (added > 0 && !opts.dryRun) {
-    const merged: CatalogOverlay = { ...overlay, cli: nextCli };
-    const header =
-      "# Provider capability overlay - merged over Vibestrate's built-in catalog.\n" +
-      "# Auto-updated by `vibe provider refresh`; review before relying on it.\n" +
-      "# A knob only applies where it maps to a real flag/field (no advisory dials).\n";
-    await writeText(overlayPath, `${header}${YAML.stringify(merged)}`);
-    wrote = true;
+  if (!opts.dryRun) {
+    if (added > 0) {
+      const merged: CatalogOverlay = { ...overlay, cli: nextCli };
+      const header =
+        "# Provider capability overlay - merged over Vibestrate's built-in catalog.\n" +
+        "# Auto-updated by `vibe provider refresh`; review before relying on it.\n" +
+        "# A knob only applies where it maps to a real flag/field (no advisory dials).\n";
+      await writeText(overlayPath, `${header}${YAML.stringify(merged)}`);
+      wrote = true;
+    }
+    // Structured-probe results land in the detected cache (one detected layer,
+    // shared with run-start auto-detect; the overlay outranks it).
+    if (cacheChanged) {
+      await writeDetectedCache(projectRoot, nextCache);
+      wrote = true;
+    }
   }
 
   return { findings, wrote, overlayPath };

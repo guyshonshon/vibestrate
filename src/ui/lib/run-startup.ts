@@ -7,6 +7,7 @@ export const STARTUP_STAGES = [
   "workspace",
   "environment",
   "context",
+  "models",
   "provider",
 ] as const;
 export type StartupStage = (typeof STARTUP_STAGES)[number];
@@ -21,6 +22,7 @@ export const STARTUP_STAGE_LABELS: Record<StartupStage, string> = {
   workspace: "Creating workspace",
   environment: "Linking environment",
   context: "Assembling context",
+  models: "Preparing models",
   provider: "Starting provider",
 };
 

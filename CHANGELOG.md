@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.67
+
+- **Models auto-detect at run start - a "Preparing models" stage.** Every run now
+  refreshes each codex provider's real model/effort catalog from its offline
+  bundled list (`codex debug models --bundled`, ~200ms, no network) as a startup
+  stage, so the pickers and the run itself stay on real models without you ever
+  running `vibe provider refresh`. It's best-effort - a missing binary or slow
+  spawn never blocks or fails a run - and only rewrites when something actually
+  changed. Detection now lives in one machine-managed layer
+  (`.vibestrate/providers-detected.json`) shared by both the run-start auto-detect
+  and the explicit refresh, so they never shadow each other; a hand-authored
+  `providers-catalog.yml` entry still wins on top. (Fixes a flaw in 0.7.66 where
+  running `vibe provider refresh` once could pin the model list and go stale
+  again.)
+
 ## 0.7.66
 
 - **Model/effort options are detected from your real CLI now, not guessed.** The

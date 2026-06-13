@@ -8,6 +8,7 @@ import { applySetup } from "../src/setup/setup-service.js";
 import { setConfigValue } from "../src/setup/config-update-service.js";
 import { loadCatalogOverlay } from "../src/providers/provider-catalog-overlay.js";
 import { resolveCatalog } from "../src/providers/provider-catalog-overlay.js";
+import { loadDetectedCache } from "../src/providers/provider-detected-store.js";
 import { modelSuggestions, effortLevels } from "../src/providers/provider-apply.js";
 import { refreshCatalog } from "../src/providers/provider-probe.js";
 import {
@@ -131,18 +132,22 @@ describe("refreshCatalog with the structured codex probe", () => {
     expect(f.removed).toContain("gpt-5.1");
     expect(r.wrote).toBe(true);
 
-    // The overlay now carries the real models + codex's apply mechanics.
-    const overlay = await loadCatalogOverlay(dir);
-    expect(overlay.cli?.codex?.models).toContain("gpt-5.5");
-    expect(overlay.cli?.codex?.model).toEqual({ kind: "flag", flag: "--model" });
-    expect(overlay.cli?.codex?.effort?.apply).toEqual({
+    // Detected models land in the CACHE, not the overlay (one detected layer,
+    // shared with run-start auto-detect - so they never shadow each other).
+    expect((await loadCatalogOverlay(dir)).cli?.codex).toBeUndefined();
+    const cache = await loadDetectedCache(dir);
+    expect(cache.providers.codex?.models).toContain("gpt-5.5");
+    expect(cache.providers.codex?.efforts).toEqual(["low", "medium", "high", "xhigh"]);
+
+    // And the resolved catalog (what the dropdowns read) reflects it, with
+    // codex's apply mechanics single-sourced from the built-in.
+    const resolved = await resolveCatalog(dir);
+    expect(resolved.cli.codex?.model).toEqual({ kind: "flag", flag: "--model" });
+    expect(resolved.cli.codex?.effort?.apply).toEqual({
       kind: "config",
       flag: "-c",
       key: "model_reasoning_effort",
     });
-
-    // And the resolved catalog (what the dropdowns read) reflects it.
-    const resolved = await resolveCatalog(dir);
     expect(resolved.cli.codex?.models).toEqual([
       "gpt-5.5",
       "gpt-5.4",
@@ -153,22 +158,55 @@ describe("refreshCatalog with the structured codex probe", () => {
     expect(effortLevels("codex", resolved)).toEqual(["low", "medium", "high", "xhigh"]);
   });
 
-  it("respects a hand-authored overlay entry unless --force", async () => {
+  it("a hand-authored overlay always wins over detection (which refreshes the cache underneath)", async () => {
     const dir = await makeProject();
     const json = await codexJson();
     const probe: ProviderDetectionRunner = async () => ({ exitCode: 0, stdout: json, stderr: "" });
-    // User pinned their own models.
-    await setConfigValue(dir, "providers.codex", JSON.stringify({ type: "cli", command: "codex", input: "stdin" }));
+    // User pinned their own model in the overlay (genuine hand authoring).
     const overlayPath = path.join(dir, ".vibestrate", "providers-catalog.yml");
     await fs.writeFile(overlayPath, "cli:\n  codex:\n    models: [my-pinned-model]\n");
 
-    const kept = await refreshCatalog(dir, { providerId: "codex", modelProbeRunner: probe });
-    expect(kept.findings[0]?.status).toBe("skipped-overlay");
+    const r = await refreshCatalog(dir, { providerId: "codex", modelProbeRunner: probe });
+    expect(r.findings[0]?.status).toBe("added"); // detection ran + cached
+    // The overlay is untouched and still wins in the resolved catalog...
     expect((await loadCatalogOverlay(dir)).cli?.codex?.models).toEqual(["my-pinned-model"]);
+    expect((await resolveCatalog(dir)).cli.codex?.models).toEqual(["my-pinned-model"]);
+    // ...but the cache underneath was refreshed, so removing the pin reveals it.
+    expect((await loadDetectedCache(dir)).providers.codex?.models).toContain("gpt-5.5");
+    await fs.rm(overlayPath);
+    expect((await resolveCatalog(dir)).cli.codex?.models).toContain("gpt-5.5");
+  });
 
-    const forced = await refreshCatalog(dir, { providerId: "codex", force: true, modelProbeRunner: probe });
-    expect(forced.findings[0]?.status).toBe("added");
-    expect((await loadCatalogOverlay(dir)).cli?.codex?.models).toContain("gpt-5.5");
+  it("explicit refresh and run-start auto-detect share one layer - no shadow, newest wins", async () => {
+    const { autoDetectRunModels } = await import("../src/providers/provider-model-autodetect.js");
+    const dir = await makeProject();
+    // An explicit `vibe provider refresh` caches an older catalog.
+    const older = JSON.stringify({
+      models: [{ slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list", supported_in_api: true, supported_reasoning_levels: [{ effort: "high" }] }],
+    });
+    await refreshCatalog(dir, {
+      providerId: "codex",
+      modelProbeRunner: async () => ({ exitCode: 0, stdout: older, stderr: "" }),
+    });
+    expect((await resolveCatalog(dir)).cli.codex?.models).toEqual(["gpt-5.5"]);
+
+    // Later, run-start auto-detect (bundled) finds a NEWER model. Because both
+    // write the same cache (no overlay shadow), the new model shows immediately.
+    const newer = JSON.stringify({
+      models: [
+        { slug: "gpt-5.6", display_name: "GPT-5.6", visibility: "list", supported_in_api: true, supported_reasoning_levels: [{ effort: "high" }] },
+        { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list", supported_in_api: true, supported_reasoning_levels: [{ effort: "high" }] },
+      ],
+    });
+    await autoDetectRunModels({
+      projectRoot: dir,
+      runner: async (_c, args) =>
+        args.includes("--version")
+          ? { exitCode: 0, stdout: "codex-cli 0.140.0", stderr: "" }
+          : { exitCode: 0, stdout: newer, stderr: "" },
+      now: "t2",
+    });
+    expect((await resolveCatalog(dir)).cli.codex?.models).toContain("gpt-5.6");
   });
 
   it("keeps the catalog and reports the real reason when the probe fails", async () => {

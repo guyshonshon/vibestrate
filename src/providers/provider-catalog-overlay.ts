@@ -109,9 +109,16 @@ export function mergeCatalog(
   return { cli, http };
 }
 
-/** Load + merge in one step: the catalog the surfaces and the spawn should use. */
+/** Load + merge in one step: the catalog the surfaces and the spawn should use.
+ *  Precedence (low -> high): built-in curated SPECS < auto-detected cache
+ *  (providers-detected.json, written by the run-start "Preparing models" stage)
+ *  < hand-authored providers-catalog.yml overlay. Both reads are best-effort -
+ *  a failure falls back to the lower layer. */
 export async function resolveCatalog(projectRoot: string): Promise<ResolvedCatalog> {
-  return mergeCatalog(await loadCatalogOverlay(projectRoot));
+  const { loadDetectedCache, mergeDetected } = await import("./provider-detected-store.js");
+  const cache = await loadDetectedCache(projectRoot).catch(() => null);
+  const base = cache ? mergeDetected(cache) : undefined;
+  return mergeCatalog(await loadCatalogOverlay(projectRoot), base);
 }
 
 /** Where a configured provider's spec comes from: the overlay (cli by id /

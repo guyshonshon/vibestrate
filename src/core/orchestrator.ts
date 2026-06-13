@@ -774,7 +774,7 @@ export class Orchestrator {
     // Staged startup progress (T7): emit a `run.startup` event at each setup
     // boundary so the dashboard + TUI show a checklist instead of a blank screen.
     const startup = async (
-      stage: "workspace" | "environment" | "context" | "provider",
+      stage: "workspace" | "environment" | "context" | "models" | "provider",
       status: "active" | "done" | "skipped" | "failed",
       detail?: string,
     ) => {
@@ -878,6 +878,28 @@ export class Orchestrator {
       );
     } else {
       await startup("context", "skipped", "no context sources");
+    }
+
+    // Preparing models (run-start auto-detection): refresh each probe-capable
+    // provider's real model/effort catalog from its offline bundled catalog
+    // (codex `debug models --bundled` - instant). Best-effort and time-boxed:
+    // a missing binary or slow spawn never blocks or fails the run. Keeps the
+    // model/effort pickers + this run on real models without a manual refresh.
+    await startup("models", "active");
+    try {
+      const { autoDetectRunModels } = await import(
+        "../providers/provider-model-autodetect.js"
+      );
+      const summary = await Promise.race([
+        autoDetectRunModels({ projectRoot: this.projectRoot }),
+        new Promise<{ detail: string }>((resolve) =>
+          setTimeout(() => resolve({ detail: "timed out" }), 8_000).unref?.(),
+        ),
+      ]);
+      await startup("models", "done", summary.detail);
+    } catch (err) {
+      // Detection is advisory - a failure leaves the prior catalog in place.
+      await startup("models", "skipped", describeError(err));
     }
 
     const ctx = {

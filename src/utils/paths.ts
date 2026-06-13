@@ -47,6 +47,14 @@ export function providerCatalogOverlayPath(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), PROVIDERS_CATALOG_FILENAME);
 }
 
+/** `.vibestrate/providers-detected.json` - machine-managed model/effort catalog
+ *  auto-probed at run start (codex `debug models --bundled`). Merged BELOW the
+ *  hand-authored providers-catalog.yml overlay and ABOVE the built-in curated
+ *  catalog. Delete to clear; a hand overlay always wins. */
+export function providersDetectedPath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "providers-detected.json");
+}
+
 export function projectRolesDir(projectRoot: string): string {
   return path.join(vibestrateRoot(projectRoot), ROLES_DIRNAME);
 }

@@ -133,13 +133,17 @@ export async function detectProviderModels(input: {
   command: string;
   family: "codex";
   runner: ProviderDetectionRunner;
+  /** Skip the live (network) attempt - use only the offline `--bundled`
+   *  catalog. Used by run-start auto-detection: instant, never hits the
+   *  network, reflects whatever the user's installed binary ships. */
+  bundledOnly?: boolean;
 }): Promise<ModelDetectResult> {
   const probe = PROBE_ARGS[input.family];
   const parse = PARSERS[input.family];
   if (!probe || !parse) {
     throw new CapabilityProbeError(`No model probe for "${input.family}".`);
   }
-  const attempts = [probe.live, probe.bundled];
+  const attempts = input.bundledOnly ? [probe.bundled] : [probe.live, probe.bundled];
   let lastErr = "";
   for (const args of attempts) {
     let res;

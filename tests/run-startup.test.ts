@@ -25,6 +25,7 @@ describe("deriveStartupProgress (T7)", () => {
       workspace: "done",
       environment: "active",
       context: "pending",
+      models: "pending",
       provider: "pending",
     });
     // Not complete yet - provider hasn't started and nothing failed.
@@ -37,6 +38,7 @@ describe("deriveStartupProgress (T7)", () => {
       ev("workspace", "done"),
       ev("environment", "skipped", "linkEnvironment off"),
       ev("context", "skipped", "no context sources"),
+      ev("models", "done", "codex: up to date"),
       ev("provider", "active"),
     ])!;
     expect(p.complete).toBe(true);
