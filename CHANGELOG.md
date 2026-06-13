@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.66
+
+- **Model/effort options are detected from your real CLI now, not guessed.** The
+  pickers used a hardcoded per-provider list that went stale - codex still
+  offered `gpt-5.1` long after it was gone, so picking it failed at run time.
+  `vibe provider refresh` (and the Providers page "Refresh from providers"
+  button) now reads codex's own catalog via `codex debug models` and writes the
+  real models + reasoning efforts into your provider overlay, reporting exactly
+  what changed (`+gpt-5.5 -gpt-5.1`). It refreshes stale built-in lists, still
+  yields to anything you hand-authored, and falls back to the offline
+  `--bundled` catalog when the live one is unreachable. A failed probe keeps
+  your last-known-good list and shows the real reason (e.g. "codex login")
+  instead of silently emptying the picker. Honest limit: only codex exposes a
+  models command today - claude/gemini keep curated suggestions, and an
+  occasional auto-refresh + "new model" notification is the next step. Design:
+  `docs/design/provider-capability-detection.md`.
+
 ## 0.7.65
 
 - **Consult is now a floating orb, not a top-bar button.** A glowing orb rests
@@ -9,8 +26,8 @@
   animation (pure CSS, respects reduced-motion). The old top-right Consult
   button is gone; the full-page Consult route still exists for task-scoped
   deep links, and both surfaces share one answer renderer. Provider failures
-  now show the real reason inline (see 0.7.64), with a one-line hint that model
-  /effort options are suggestions, not probed from your install.
+  now show the real reason inline (see 0.7.64); for codex, model/effort options
+  are detected from your actual CLI (see 0.7.66).
 
 ## 0.7.64
 

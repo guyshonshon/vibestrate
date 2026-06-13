@@ -61,9 +61,10 @@ export async function registerSetupRoutes(
     return { catalog, overlay: { present: overlayPresent, path: overlayFile }, sources };
   });
 
-  // Probe configured CLI providers' --help and write discovered knobs into the
-  // overlay for review (parity with `vibe provider refresh`). Local only - it
-  // runs the provider's own --help, no egress, no keys. Gap-fill unless force.
+  // Detect configured providers' real models/efforts (codex `debug models`
+  // JSON, else `--help` scraping) and write them to the overlay (parity with
+  // `vibe provider refresh`). Local only - runs the provider's own CLI, no
+  // keys. Structured probes refresh stale built-in lists; --help is gap-fill.
   app.post<{ Body: { providerId?: string; force?: boolean; dryRun?: boolean } | null }>(
     "/api/providers/catalog/refresh",
     async (req) => {

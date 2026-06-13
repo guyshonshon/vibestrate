@@ -444,7 +444,8 @@ export type ConfigViewResponse = {
   view: ConfigView;
 };
 
-/** Result of probing CLI providers' --help to gap-fill the overlay. */
+/** Result of probing CLI providers (codex `debug models` JSON, else `--help`)
+ *  to refresh the overlay. */
 export type CatalogProbeFinding = {
   providerId: string;
   status:
@@ -457,6 +458,11 @@ export type CatalogProbeFinding = {
   effort?: { flag: string; levels: string[] };
   models?: string[];
   detail?: string;
+  /** Structured-probe model deltas vs the prior list. */
+  added?: string[];
+  removed?: string[];
+  /** How the knobs were obtained ("--help" or "codex debug models"). */
+  source?: string;
 };
 export type CatalogRefreshResult = {
   findings: CatalogProbeFinding[];

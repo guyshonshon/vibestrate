@@ -518,11 +518,23 @@ function ProviderCatalogPanel() {
     setNote(null);
     try {
       const r = await api.refreshProviderCatalog({});
-      const added = r.findings.filter((f) => f.status === "added").length;
+      const updated = r.findings.filter((f) => f.status === "added");
+      const failed = r.findings.filter((f) => f.status === "probe-failed");
+      const deltas = updated
+        .filter((f) => (f.added?.length ?? 0) > 0 || (f.removed?.length ?? 0) > 0)
+        .map((f) => {
+          const a = f.added?.length ? `+${f.added.join(", ")}` : "";
+          const rem = f.removed?.length ? `-${f.removed.join(", ")}` : "";
+          return `${f.providerId}: ${[a, rem].filter(Boolean).join(" ")}`;
+        });
       setNote(
-        added > 0
-          ? `Probed --help and added ${added} provider(s) to the overlay - review below.`
-          : "Probed --help; no new machine-readable knobs found (built-in + your overlay already cover them).",
+        failed.length > 0
+          ? `Detected ${updated.length}; ${failed.length} failed - ${failed[0]!.providerId}: ${failed[0]!.detail ?? "probe failed"}`
+          : deltas.length > 0
+            ? `Detected real models - ${deltas.join(" · ")}`
+            : updated.length > 0
+              ? `Updated ${updated.length} provider(s) from their real catalog.`
+              : "No changes - built-in + your overlay already match what the providers report.",
       );
       setData(await api.getProviderCatalog());
     } catch (err) {
@@ -559,10 +571,10 @@ function ProviderCatalogPanel() {
           size="sm"
           iconLeft={<RefreshCw size={13} />}
           disabled={busy}
-          title="Probe configured CLI providers' --help and gap-fill the overlay (local only)"
+          title="Detect each provider's real models/efforts (codex `debug models`, else --help) and write them to the overlay (local only)"
           onClick={() => void refresh()}
         >
-          {busy ? "Probing…" : "Refresh from providers"}
+          {busy ? "Detecting…" : "Refresh from providers"}
         </Button>
       </div>
 

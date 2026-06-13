@@ -82,7 +82,7 @@ export function buildProviderCommand(): Command {
   cmd
     .command("refresh [providerId]")
     .description(
-      "Probe configured CLI providers' --help for model/effort knobs and write them to the catalog overlay for review (local only; gap-fill).",
+      "Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.",
     )
     .option("--force", "replace existing overlay/built-in entries instead of gap-filling")
     .option("--dry-run", "show what would be written without writing")

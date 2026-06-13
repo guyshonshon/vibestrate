@@ -12,9 +12,23 @@ function describe(f: ProbeFinding): string {
   if (f.effort) knobs.push(`effort ${f.effort.flag} ${f.effort.levels.join("/")}`);
   if (f.models && f.models.length) knobs.push(`models ${f.models.join(", ")}`);
   const detail = knobs.length ? ` (${knobs.join("; ")})` : f.detail ? ` (${f.detail})` : "";
+  // Structured-probe delta (codex debug models): show what changed vs before.
+  const delta =
+    (f.added && f.added.length) || (f.removed && f.removed.length)
+      ? "\n" +
+        indent(
+          [
+            f.added && f.added.length ? color.green(`+ ${f.added.join(", ")}`) : "",
+            f.removed && f.removed.length ? color.yellow(`- ${f.removed.join(", ")}`) : "",
+          ]
+            .filter(Boolean)
+            .join("  "),
+        )
+      : "";
+  const src = f.source ? ` ${color.dim(`via ${f.source}`)}` : "";
   switch (f.status) {
     case "added":
-      return `${symbol.ok()} ${color.bold(f.providerId)} - added${detail}`;
+      return `${symbol.ok()} ${color.bold(f.providerId)} - updated${detail}${src}${delta}`;
     case "skipped-overlay":
       return `${symbol.warn()} ${color.bold(f.providerId)} - kept your overlay entry${detail} (use --force to replace)`;
     case "skipped-builtin":
@@ -55,7 +69,7 @@ export async function runProviderRefresh(
   for (const f of result.findings) console.log(indent(describe(f)));
   console.log("");
   if (result.wrote) {
-    console.log(`${symbol.ok()} Wrote ${color.bold(result.overlayPath)}. ${color.dim("Review it; auto-parsed from --help.")}`);
+    console.log(`${symbol.ok()} Wrote ${color.bold(result.overlayPath)}. ${color.dim("Detected models now drive the model/effort pickers.")}`);
   } else if (opts.dryRun) {
     console.log(color.dim("Dry run - nothing written."));
   } else {

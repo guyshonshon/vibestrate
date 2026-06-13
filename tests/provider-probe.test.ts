@@ -78,7 +78,9 @@ async function makeProject(): Promise<string> {
 // A fake `--help` source keyed by command.
 const HELP: Record<string, string> = {
   mycli: "Options:\n  --model <id>\n  --effort <eco|turbo>\n",
-  codex: "Options:\n  --model <id>\n  --effort <low|high>\n",
+  // gemini is a built-in-wired CLI with NO structured model probe, so it still
+  // goes through the --help gap-fill path (codex now uses `debug models`).
+  gemini: "Options:\n  --model <id>\n  --effort <low|high>\n",
   boring: "Options:\n  --verbose\n",
 };
 const fakeRunner: HelpRunner = async (command) => ({
@@ -106,29 +108,29 @@ describe("refreshCatalog (gap-fill, fake runner)", () => {
     expect(overlay.cli?.mycli?.model).toEqual({ kind: "flag", flag: "--model" });
   });
 
-  it("does NOT override a built-in spec (codex) without --force", async () => {
+  it("does NOT override a built-in spec (gemini, --help path) without --force", async () => {
     const dir = await makeProject();
     await setConfigValue(
       dir,
-      "providers.codex",
-      JSON.stringify({ type: "cli", command: "codex", input: "stdin" }),
+      "providers.gemini",
+      JSON.stringify({ type: "cli", command: "gemini", input: "stdin" }),
     );
-    const r = await refreshCatalog(dir, { providerId: "codex", runner: fakeRunner });
+    const r = await refreshCatalog(dir, { providerId: "gemini", runner: fakeRunner });
     expect(r.findings[0]?.status).toBe("skipped-builtin");
     expect(r.wrote).toBe(false);
-    expect((await loadCatalogOverlay(dir)).cli?.codex).toBeUndefined();
+    expect((await loadCatalogOverlay(dir)).cli?.gemini).toBeUndefined();
   });
 
-  it("force overrides the built-in spec", async () => {
+  it("force overrides the built-in spec (--help path)", async () => {
     const dir = await makeProject();
     await setConfigValue(
       dir,
-      "providers.codex",
-      JSON.stringify({ type: "cli", command: "codex", input: "stdin" }),
+      "providers.gemini",
+      JSON.stringify({ type: "cli", command: "gemini", input: "stdin" }),
     );
-    const r = await refreshCatalog(dir, { providerId: "codex", force: true, runner: fakeRunner });
+    const r = await refreshCatalog(dir, { providerId: "gemini", force: true, runner: fakeRunner });
     expect(r.findings[0]?.status).toBe("added");
-    expect((await loadCatalogOverlay(dir)).cli?.codex?.effort?.levels).toEqual(["low", "high"]);
+    expect((await loadCatalogOverlay(dir)).cli?.gemini?.effort?.levels).toEqual(["low", "high"]);
   });
 
   it("dry-run reports but writes nothing", async () => {

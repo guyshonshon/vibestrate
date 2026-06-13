@@ -10,12 +10,38 @@
 // not trusted blindly (the catalog view shows source = overlay).
 
 import YAML from "yaml";
+import { execa } from "execa";
 import { runArgvCommand } from "../execution/command-runner.js";
 import { loadConfig } from "../project/config-loader.js";
 import { providerCatalogOverlayPath } from "../utils/paths.js";
 import { writeText } from "../utils/fs.js";
-import { effortLevels, modelIsWired, type ArgApply } from "./provider-apply.js";
+import {
+  BUILTIN_CATALOG,
+  effortLevels,
+  modelIsWired,
+  modelSuggestions,
+  type ArgApply,
+} from "./provider-apply.js";
 import { loadCatalogOverlay, type CatalogOverlay } from "./provider-catalog-overlay.js";
+import {
+  detectProviderModels,
+  modelProbeFamily,
+  CapabilityProbeError,
+} from "./provider-model-detection.js";
+import { failureExcerpt } from "../core/provider-resilience.js";
+import type { ProviderDetectionRunner } from "./provider-detection.js";
+
+/** Default spawn seam for the structured model probe (`codex debug models`).
+ *  Longer timeout than `--help` because the live form may refresh over the
+ *  network; the probe itself falls back to the offline `--bundled` form. */
+const defaultModelProbeRunner: ProviderDetectionRunner = async (command, args) => {
+  const r = await execa(command, args, { reject: false, timeout: 15_000, stdin: "ignore" });
+  return {
+    exitCode: r.exitCode ?? -1,
+    stdout: r.stdout?.toString() ?? "",
+    stderr: r.stderr?.toString() ?? "",
+  };
+};
 
 const HELP_TIMEOUT_MS = 10_000;
 
@@ -86,6 +112,11 @@ export type ProbeFinding = {
   effort?: { flag: string; levels: string[] };
   models?: string[];
   detail?: string;
+  /** Structured-probe deltas vs the prior effective list (codex `debug models`). */
+  added?: string[];
+  removed?: string[];
+  /** How the knobs were obtained ("--help" or "codex debug models"). */
+  source?: string;
 };
 
 /** Injectable for tests: run `<command> --help` and return its output. */
@@ -123,9 +154,12 @@ export async function refreshCatalog(
     force?: boolean;
     dryRun?: boolean;
     runner?: HelpRunner;
+    /** Spawn seam for the structured `codex debug models` probe (fake in tests). */
+    modelProbeRunner?: ProviderDetectionRunner;
   } = {},
 ): Promise<RefreshResult> {
   const runner = opts.runner ?? defaultRunner;
+  const modelProbeRunner = opts.modelProbeRunner ?? defaultModelProbeRunner;
   const { config } = await loadConfig(projectRoot);
   const overlay = await loadCatalogOverlay(projectRoot);
   const overlayPath = providerCatalogOverlayPath(projectRoot);
@@ -151,6 +185,70 @@ export async function refreshCatalog(
       continue;
     }
     const command = provider.type === "cli" ? provider.command : "claude";
+    const overlayKeyEarly = provider.type === "claude-code" ? "claude" : id;
+
+    // ── Structured probe (authoritative): a real model catalog from the CLI
+    // itself (codex `debug models`). It refreshes the model/effort lists even
+    // over a built-in spec - the built-in is exactly what goes stale - keeping
+    // the built-in's APPLY mechanics, and still yielding to a hand-authored
+    // overlay unless --force.
+    const family = provider.type === "cli" ? modelProbeFamily(id, provider) : null;
+    if (family) {
+      if (overlay.cli?.[overlayKeyEarly] && !opts.force) {
+        findings.push({
+          providerId: id,
+          status: "skipped-overlay",
+          source: `${family} debug models`,
+        });
+        continue;
+      }
+      try {
+        const { catalog, source } = await detectProviderModels({
+          providerId: id,
+          command,
+          family,
+          runner: modelProbeRunner,
+        });
+        const builtin = BUILTIN_CATALOG.cli[id];
+        const modelApply: ArgApply = builtin?.model ?? { kind: "flag", flag: "--model" };
+        const entry: NonNullable<CatalogOverlay["cli"]>[string] = {
+          model: modelApply,
+          models: catalog.models,
+        };
+        if (builtin?.effort && catalog.efforts.length > 0) {
+          entry.effort = { levels: catalog.efforts, apply: builtin.effort.apply };
+        }
+        const prevModels = overlay.cli?.[overlayKeyEarly]?.models ?? modelSuggestions(id);
+        const prevSet = new Set(prevModels);
+        const nextSet = new Set(catalog.models);
+        nextCli[overlayKeyEarly] = entry;
+        added++;
+        findings.push({
+          providerId: id,
+          status: "added",
+          models: catalog.models,
+          ...(entry.effort ? { effort: { flag: "model_reasoning_effort", levels: catalog.efforts } } : {}),
+          added: catalog.models.filter((m) => !prevSet.has(m)),
+          removed: prevModels.filter((m) => !nextSet.has(m)),
+          source,
+        });
+      } catch (err) {
+        // Keep the existing catalog; report the real reason (never a silent wipe).
+        // Redact the surfaced reason (parity with the 0.7.64 error path): a
+        // probe that ever echoed a token-shaped string must not leak it.
+        const raw =
+          err instanceof CapabilityProbeError || err instanceof Error
+            ? err.message
+            : String(err);
+        findings.push({
+          providerId: id,
+          status: "probe-failed",
+          source: `${family} debug models`,
+          detail: failureExcerpt(raw) || raw,
+        });
+      }
+      continue;
+    }
 
     let knobs: ProbedKnobs;
     try {
