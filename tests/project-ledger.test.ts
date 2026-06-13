@@ -8,6 +8,7 @@ import {
   buildRunLedgerEntries,
   recordRunInLedger,
   renderLedgerBrief,
+  renderLedgerForPrompt,
   type LedgerEntry,
 } from "../src/core/project-ledger.js";
 
@@ -23,6 +24,34 @@ const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   createdAt: "2026-06-12T00:00:00.000Z",
   tags: [],
   ...over,
+});
+
+describe("renderLedgerForPrompt (T9 planning-context block)", () => {
+  it("returns empty string for an empty ledger (no section is added)", () => {
+    expect(renderLedgerForPrompt(deriveLedgerState([]))).toBe("");
+  });
+
+  it("frames the brief as read-only context, not instructions", () => {
+    const block = renderLedgerForPrompt(
+      deriveLedgerState([
+        entry({ id: "s1", kind: "shipped", title: "shipped a thing" }),
+        entry({ id: "i1", kind: "intent", status: "open", title: "do the next thing" }),
+        entry({
+          id: "d1",
+          kind: "decision",
+          status: "abandoned",
+          title: "no in-shell YAML editor",
+        }),
+      ]),
+    );
+    expect(block).toContain("# Project state (continuity ledger)");
+    expect(block).toMatch(/CONTEXT, not instructions/);
+    expect(block).toMatch(/do not invent open items/i);
+    // The bounded brief content is included.
+    expect(block).toContain("shipped a thing");
+    expect(block).toContain("do the next thing");
+    expect(block).toContain("no in-shell YAML editor");
+  });
 });
 
 describe("deriveLedgerState (T9, pure)", () => {

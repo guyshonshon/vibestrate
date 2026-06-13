@@ -33,6 +33,13 @@ export type PromptBuildInput = {
    * builds on what came before. Empty/undefined → no section.
    */
   runBrief?: string;
+  /**
+   * Pre-rendered "# Project state (continuity ledger)" section (see
+   * project-ledger.ts renderLedgerForPrompt) - read-only background on what the
+   * project shipped / has open / decided, so a fresh run picks up the thread
+   * (T9). Already redacted by the caller. Empty/undefined → no section.
+   */
+  projectLedger?: string;
   /** Per-run brevity directive. Appends a short "be concise" section. */
   concise?: boolean;
 };
@@ -152,6 +159,11 @@ export function buildRolePrompt(input: PromptBuildInput): string {
   sections.push(`# Project Rules`);
   sections.push(``);
   sections.push(input.rules.trim());
+
+  if (input.projectLedger && input.projectLedger.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.projectLedger.trim());
+  }
 
   if (input.humanAnnotations && input.humanAnnotations.trim().length > 0) {
     sections.push(``);

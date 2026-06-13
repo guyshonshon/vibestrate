@@ -61,7 +61,11 @@ import {
   type ActionRequest,
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
-import { recordRunInLedger } from "./project-ledger.js";
+import {
+  recordRunInLedger,
+  LedgerStore,
+  renderLedgerForPrompt,
+} from "./project-ledger.js";
 import {
   resolveFlowParams,
   substituteParams,
@@ -496,6 +500,12 @@ export class Orchestrator {
   private readonly contextSources: ContextSource[];
   /** Materialized once at run start; merged into every role's prior artifacts. */
   private materializedContext: PriorArtifact[] = [];
+  /** Pre-rendered + redacted continuity-ledger block (T9), loaded once at run
+   *  start and injected into the PLANNER turn (the planning context) so a fresh
+   *  run picks up where the project stands. "" when the ledger is empty. */
+  private ledgerPromptBlock = "";
+  /** One-shot guard so the ledger block goes to a single planner turn. */
+  private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
 
@@ -900,6 +910,17 @@ export class Orchestrator {
     } catch (err) {
       // Detection is advisory - a failure leaves the prior catalog in place.
       await startup("models", "skipped", describeError(err));
+    }
+
+    // Load the continuity ledger once (T9): render the bounded brief, redact
+    // it, and stash it for the planner's planning context. Best-effort - a
+    // ledger read/parse hiccup must never block a run.
+    try {
+      const state = await new LedgerStore(this.projectRoot).state();
+      const block = renderLedgerForPrompt(state);
+      this.ledgerPromptBlock = block ? redactSecretsInText(block).redacted : "";
+    } catch {
+      this.ledgerPromptBlock = "";
     }
 
     const ctx = {
@@ -4380,6 +4401,16 @@ export class Orchestrator {
     const humanAnnotations = renderAnnotationsForPrompt(
       await listAnnotations(this.projectRoot, { status: "open" }),
     );
+    // Continuity ledger (T9): inject the planning-context block into the
+    // PLANNER turn only - it primes the role that decides the approach with
+    // where the project stands. Other roles build on the run's own brief, and
+    // resumed runs (no planner re-run) correctly skip it. One-shot guards
+    // against a flow with more than one planner turn.
+    const projectLedger =
+      roleId === "planner" && !this.ledgerInjected && this.ledgerPromptBlock
+        ? this.ledgerPromptBlock
+        : "";
+    if (projectLedger) this.ledgerInjected = true;
     const prompt = buildRolePrompt({
       roleId,
       task: this.task,
@@ -4399,6 +4430,7 @@ export class Orchestrator {
       ...(additionalNotes ? { additionalNotes } : {}),
       ...(humanAnnotations ? { humanAnnotations } : {}),
       ...(input.runBrief ? { runBrief: input.runBrief } : {}),
+      ...(projectLedger ? { projectLedger } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(

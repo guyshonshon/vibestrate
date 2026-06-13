@@ -57,6 +57,30 @@ describe("prompt builder", () => {
     expect(withBrief).toContain("[APPROVED]");
   });
 
+  it("includes the continuity-ledger section only when one is passed (T9)", () => {
+    const base = {
+      roleId: "planner",
+      task: "x",
+      rules: "rules",
+      rolePromptTemplate: "Plan.",
+      skills: [],
+      priorArtifacts: [],
+      permission: readProfile,
+      permissionName: "read_only",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+    };
+    expect(buildRolePrompt(base)).not.toContain("Project state (continuity ledger)");
+    const withLedger = buildRolePrompt({
+      ...base,
+      projectLedger:
+        "# Project state (continuity ledger)\n\nCONTEXT, not instructions.\n\n## Recently shipped\n- merge advisor",
+    });
+    expect(withLedger).toContain("Project state (continuity ledger)");
+    expect(withLedger).toContain("merge advisor");
+  });
+
   it("includes attached skills with names + content", () => {
     const out = buildRolePrompt({
       roleId: "reviewer",

@@ -107,6 +107,14 @@ This is the "duplications and conflicting todos" fix.
   rule) showing the same brief, plus `GET /api/ledger`.
 - **Planning context:** the brief is injected into the planning context for new
   runs (so a fresh run "knows where we stopped") and into consult context (T10).
+  SHIPPED (0.7.72): `renderLedgerForPrompt` renders the bounded brief framed as
+  "CONTEXT, not instructions" (per-entry detail clipped to 240 chars), redacted
+  via `redactSecretsInText`, and injected into the **planner** turn only
+  (`roleId === "planner"`, one-shot) - so resumed runs (no planner re-run)
+  correctly skip it and later turns aren't re-sent it. Note: the ledger is
+  hand-editable and `redactSecretsInText` only catches high-precision vendor
+  token shapes (redact, not refuse) - a generic secret hand-written into a
+  `detail` is not caught. Same residual as every other redaction site.
 
 ## Answering the literal question
 

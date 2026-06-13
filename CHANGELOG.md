@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.72
+
+- **A new run now starts knowing where the project stands.** The continuity
+  ledger (what shipped, what's open, what was decided) is injected into the
+  planner's prompt at the start of a run, framed as read-only context - so a
+  fresh run picks up the thread instead of rediscovering it. It's bounded
+  (top-5 per section, details clipped), secret-redacted, and goes to the
+  planner turn only (resumed runs and later turns aren't re-sent it). This is
+  the piece that makes the ledger actually carry context across runs, not just
+  record it.
+
 ## 0.7.71
 
 - **The project ledger has a dashboard page now.** Under **More → Ledger**,
