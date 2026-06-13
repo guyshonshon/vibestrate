@@ -36,6 +36,7 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
   const sections: { title: string; entries: LedgerEntryDto[]; tone: ChipTone; empty: string }[] =
     state
       ? [
+          { title: "Flagged — needs investigation", entries: state.flags, tone: "rose", empty: "" },
           { title: "Recently shipped", entries: state.shipped, tone: "emerald", empty: "Nothing shipped yet." },
           { title: "Open intents", entries: state.intents, tone: "violet", empty: "No open intents." },
           { title: "Follow-ups left behind", entries: state.residuals, tone: "amber", empty: "No outstanding follow-ups." },
@@ -44,12 +45,22 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
         ]
       : [];
 
+  // Resolve a flag's linked entry title across all sections (the dup/conflict
+  // it points at), so the "link between the dupes" reads as a name, not an id.
+  const titleById = new Map<string, string>();
+  if (state) {
+    for (const list of [state.shipped, state.intents, state.residuals, state.mentions, state.decisions]) {
+      for (const e of list) titleById.set(e.id, e.title);
+    }
+  }
+
   const total = state
     ? state.shipped.length +
       state.intents.length +
       state.residuals.length +
       state.mentions.length +
-      state.decisions.length
+      state.decisions.length +
+      state.flags.length
     : 0;
 
   return (
@@ -105,7 +116,12 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
               </div>
               <ul className="space-y-2">
                 {s.entries.map((e) => (
-                  <LedgerRow key={e.id} entry={e} onOpenRun={onOpenRun} />
+                  <LedgerRow
+                    key={e.id}
+                    entry={e}
+                    onOpenRun={onOpenRun}
+                    linkedTitle={e.relatesTo ? titleById.get(e.relatesTo) ?? null : null}
+                  />
                 ))}
               </ul>
             </section>
@@ -118,20 +134,31 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
 function LedgerRow({
   entry,
   onOpenRun,
+  linkedTitle,
 }: {
   entry: LedgerEntryDto;
   onOpenRun: (runId: string) => void;
+  /** For flag entries: the title of the entry this one links (relatesTo). */
+  linkedTitle?: string | null;
 }) {
   const date = formatDate(entry.createdAt);
   return (
     <li className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
       <div className="flex items-start gap-2">
+        {entry.kind === "flag" && entry.relation ? (
+          <Chip tone={entry.relation === "conflict" ? "rose" : "amber"}>{entry.relation}</Chip>
+        ) : null}
         <span className="text-[12.5px] text-fog-100">{entry.title}</span>
         {entry.status !== "open" && entry.status !== "shipped" ? (
           <Chip tone={entry.status === "abandoned" ? "rose" : "neutral"}>{entry.status}</Chip>
         ) : null}
         <span className="ml-auto shrink-0 text-[10.5px] text-fog-600">{date}</span>
       </div>
+      {entry.kind === "flag" && entry.relatesTo ? (
+        <p className="mt-1 text-[11px] text-fog-500">
+          linked to: <span className="text-fog-300">{linkedTitle ?? entry.relatesTo}</span>
+        </p>
+      ) : null}
       {entry.detail ? (
         <p className="mt-1 text-[11.5px] text-fog-400 whitespace-pre-wrap">{entry.detail}</p>
       ) : null}

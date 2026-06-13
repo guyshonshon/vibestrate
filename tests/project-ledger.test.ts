@@ -21,9 +21,44 @@ const entry = (over: Partial<LedgerEntry>): LedgerEntry => ({
   status: "shipped",
   sourceRunId: null,
   supersedes: null,
+  relation: null,
+  relatesTo: null,
   createdAt: "2026-06-12T00:00:00.000Z",
   tags: [],
   ...over,
+});
+
+describe("LedgerStore backwards-compat (pre-flag schema)", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ledger-bc-"));
+  });
+  afterEach(async () => {
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  it("reads an OLD ledger line that predates relation/relatesTo", async () => {
+    await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
+    // A line written before the T9-dedup fields existed (no relation/relatesTo).
+    const oldLine = JSON.stringify({
+      schemaVersion: 1,
+      id: "shipped:r0",
+      kind: "shipped",
+      title: "shipped a thing",
+      detail: null,
+      status: "shipped",
+      sourceRunId: "r0",
+      supersedes: null,
+      createdAt: "2026-06-01T00:00:00.000Z",
+      tags: [],
+    });
+    await fs.writeFile(path.join(dir, ".vibestrate", "ledger.ndjson"), oldLine + "\n");
+    const state = await new LedgerStore(dir).state();
+    expect(state.shipped).toHaveLength(1);
+    expect(state.shipped[0]!.relation).toBeNull();
+    expect(state.shipped[0]!.relatesTo).toBeNull();
+    expect(state.flags).toEqual([]);
+  });
 });
 
 describe("renderLedgerForPrompt (T9 planning-context block)", () => {

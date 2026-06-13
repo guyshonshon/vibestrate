@@ -67,6 +67,12 @@ import {
   renderLedgerForPrompt,
 } from "./project-ledger.js";
 import {
+  findLedgerFlags,
+  freshFlagMatches,
+  buildFlagEntries,
+  renderFlagsForPrompt,
+} from "./ledger-match.js";
+import {
   resolveFlowParams,
   substituteParams,
 } from "../flows/runtime/prompt-params.js";
@@ -504,7 +510,11 @@ export class Orchestrator {
    *  start and injected into the PLANNER turn (the planning context) so a fresh
    *  run picks up where the project stands. "" when the ledger is empty. */
   private ledgerPromptBlock = "";
-  /** One-shot guard so the ledger block goes to a single planner turn. */
+  /** Pre-rendered "# Continuity flags" block (T9) for THIS run's task - the
+   *  suspected dup/conflict heads-up. Injected into the planner turn alongside
+   *  the ledger block. "" when nothing was flagged. */
+  private ledgerFlagsBlock = "";
+  /** One-shot guard so the ledger + flags blocks go to a single planner turn. */
   private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
@@ -913,14 +923,66 @@ export class Orchestrator {
     }
 
     // Load the continuity ledger once (T9): render the bounded brief, redact
-    // it, and stash it for the planner's planning context. Best-effort - a
-    // ledger read/parse hiccup must never block a run.
+    // it, and stash it for the planner's planning context. Then run the
+    // duplicate/conflict matcher on this run's task and FLAG (never remove) any
+    // suspected overlap as an append-only ledger entry linking the two, surface
+    // it to the supervisor (planner prompt + a `ledger.flagged` event), and
+    // stash the heads-up block. Best-effort throughout - a ledger hiccup or a
+    // failed flag append must never block a run.
     try {
-      const state = await new LedgerStore(this.projectRoot).state();
+      const store = new LedgerStore(this.projectRoot);
+      const state = await store.state();
       const block = renderLedgerForPrompt(state);
       this.ledgerPromptBlock = block ? redactSecretsInText(block).redacted : "";
+
+      const matches = findLedgerFlags({ title: this.task, state });
+      if (matches.length > 0) {
+        // Warn the planner on EVERY match (the overlap is relevant this run,
+        // even if a prior run already recorded the same flag).
+        const flagBlock = renderFlagsForPrompt(matches);
+        this.ledgerFlagsBlock = flagBlock ? redactSecretsInText(flagBlock).redacted : "";
+
+        // Cross-run dedup: only APPEND flags for a (relation, target) that
+        // doesn't already have an open flag - so a recurring task can't grow
+        // the ledger without bound.
+        const fresh = freshFlagMatches(matches, state.flags);
+        let appended = 0;
+        if (fresh.length > 0) {
+          try {
+            await store.append(
+              buildFlagEntries({ matches: fresh, runId, taskTitle: this.task, now: nowIso() }),
+            );
+            appended = fresh.length;
+          } catch {
+            // a flag-append hiccup is non-fatal
+          }
+        }
+        // Event is advisory + must reflect what actually persisted; an event
+        // hiccup must not discard the stashed prompt blocks (own try/catch).
+        try {
+          await eventLog.append({
+            type: "ledger.flagged",
+            message:
+              `Continuity: this task may overlap ${matches.length} prior item(s)` +
+              (appended > 0 ? ` (${appended} newly flagged).` : " (already flagged)."),
+            data: {
+              appended,
+              flags: matches.map((m) => ({
+                relation: m.relation,
+                targetId: m.target.id,
+                targetKind: m.target.kind,
+                targetTitle: m.target.title,
+                score: Number(m.score.toFixed(3)),
+              })),
+            },
+          });
+        } catch {
+          // event log hiccup is non-fatal; the prompt blocks stand
+        }
+      }
     } catch {
       this.ledgerPromptBlock = "";
+      this.ledgerFlagsBlock = "";
     }
 
     const ctx = {
@@ -4406,11 +4468,12 @@ export class Orchestrator {
     // where the project stands. Other roles build on the run's own brief, and
     // resumed runs (no planner re-run) correctly skip it. One-shot guards
     // against a flow with more than one planner turn.
+    const injectContinuity = roleId === "planner" && !this.ledgerInjected;
     const projectLedger =
-      roleId === "planner" && !this.ledgerInjected && this.ledgerPromptBlock
-        ? this.ledgerPromptBlock
-        : "";
-    if (projectLedger) this.ledgerInjected = true;
+      injectContinuity && this.ledgerPromptBlock ? this.ledgerPromptBlock : "";
+    const continuityFlags =
+      injectContinuity && this.ledgerFlagsBlock ? this.ledgerFlagsBlock : "";
+    if (projectLedger || continuityFlags) this.ledgerInjected = true;
     const prompt = buildRolePrompt({
       roleId,
       task: this.task,
@@ -4431,6 +4494,7 @@ export class Orchestrator {
       ...(humanAnnotations ? { humanAnnotations } : {}),
       ...(input.runBrief ? { runBrief: input.runBrief } : {}),
       ...(projectLedger ? { projectLedger } : {}),
+      ...(continuityFlags ? { continuityFlags } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(

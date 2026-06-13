@@ -40,6 +40,13 @@ export type PromptBuildInput = {
    * (T9). Already redacted by the caller. Empty/undefined → no section.
    */
   projectLedger?: string;
+  /**
+   * Pre-rendered "# Continuity flags" section (see ledger-match.ts
+   * renderFlagsForPrompt) - heads-up that this task may duplicate earlier work
+   * or conflict with a decision (T9). Advisory, never a blocker. Already
+   * redacted by the caller. Empty/undefined → no section.
+   */
+  continuityFlags?: string;
   /** Per-run brevity directive. Appends a short "be concise" section. */
   concise?: boolean;
 };
@@ -159,6 +166,11 @@ export function buildRolePrompt(input: PromptBuildInput): string {
   sections.push(`# Project Rules`);
   sections.push(``);
   sections.push(input.rules.trim());
+
+  if (input.continuityFlags && input.continuityFlags.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.continuityFlags.trim());
+  }
 
   if (input.projectLedger && input.projectLedger.trim().length > 0) {
     sections.push(``);

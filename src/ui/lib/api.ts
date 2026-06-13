@@ -390,11 +390,14 @@ export type ProviderRow = {
 /** T9 project continuity ledger - the folded state surfaced read-only. */
 export type LedgerEntryDto = {
   id: string;
-  kind: "shipped" | "intent" | "decision" | "mention" | "residual";
+  kind: "shipped" | "intent" | "decision" | "mention" | "residual" | "flag";
   title: string;
   detail: string | null;
   status: "open" | "shipped" | "abandoned" | "superseded";
   sourceRunId: string | null;
+  /** `flag` entries: the relation + the id of the entry they link. */
+  relation: "duplicate" | "conflict" | null;
+  relatesTo: string | null;
   createdAt: string;
   tags: string[];
 };
@@ -404,6 +407,8 @@ export type LedgerStateDto = {
   residuals: LedgerEntryDto[];
   mentions: LedgerEntryDto[];
   decisions: LedgerEntryDto[];
+  /** Suspected duplicate/conflict flags (T9) - never auto-resolved. */
+  flags: LedgerEntryDto[];
 };
 
 export type CodebaseAnnotation = {

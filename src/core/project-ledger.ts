@@ -16,8 +16,13 @@ export const ledgerEntryKindSchema = z.enum([
   "decision", // a decision made, including "decided against"
   "mention", // mentioned in a run/consult but never acted on
   "residual", // a known follow-up left by a shipped slice
+  "flag", // a suspected duplicate/conflict link (T9) - flags, never removes
 ]);
 export type LedgerEntryKind = z.infer<typeof ledgerEntryKindSchema>;
+
+/** A `flag` entry's relation to the entry it links (`relatesTo`). */
+export const ledgerFlagRelationSchema = z.enum(["duplicate", "conflict"]);
+export type LedgerFlagRelation = z.infer<typeof ledgerFlagRelationSchema>;
 
 export const ledgerEntryStatusSchema = z.enum([
   "open",
@@ -37,6 +42,12 @@ export const ledgerEntrySchema = z
     status: ledgerEntryStatusSchema,
     sourceRunId: z.string().nullable().default(null),
     supersedes: z.string().nullable().default(null),
+    /** For `flag` entries: how this entry relates to `relatesTo`. Null on all
+     *  other kinds (and on pre-flag entries - backwards-compatible default). */
+    relation: ledgerFlagRelationSchema.nullable().default(null),
+    /** For `flag` entries: the id of the ledger entry it links (the dup/conflict
+     *  target). The link is advisory - neither entry is ever modified. */
+    relatesTo: z.string().nullable().default(null),
     createdAt: z.string(),
     tags: z.array(z.string().min(1).max(40)).default([]),
   })
@@ -57,6 +68,9 @@ export type LedgerState = {
   mentions: LedgerEntry[];
   /** Decisions, including "decided against" (status abandoned). */
   decisions: LedgerEntry[];
+  /** Suspected duplicate/conflict flags (T9), open ones, newest first. Each
+   *  links a run/task to an existing entry (`relatesTo`); never auto-resolved. */
+  flags: LedgerEntry[];
 };
 
 /** Pure: fold the append log into the current live state. Later entries win;
@@ -83,6 +97,9 @@ export function deriveLedgerState(entries: LedgerEntry[]): LedgerState {
       live.filter((e) => e.kind === "mention" && e.status === "open"),
     ),
     decisions: newestFirst(live.filter((e) => e.kind === "decision")),
+    flags: newestFirst(
+      live.filter((e) => e.kind === "flag" && e.status === "open"),
+    ),
   };
 }
 
@@ -154,6 +171,8 @@ export function buildRunLedgerEntries(input: {
       status: "shipped",
       sourceRunId: input.runId,
       supersedes: null,
+      relation: null,
+      relatesTo: null,
       createdAt: input.now,
       tags: [],
     },
@@ -170,6 +189,8 @@ export function buildRunLedgerEntries(input: {
       status: "open",
       sourceRunId: input.runId,
       supersedes: null,
+      relation: null,
+      relatesTo: null,
       createdAt: input.now,
       tags: [],
     });
@@ -233,6 +254,7 @@ export function renderLedgerBrief(
   section("Open follow-ups", state.residuals);
   section("Mentioned, never worked on", state.mentions);
   section("Decisions (incl. decided-against)", state.decisions);
+  section("Flagged (suspected dup/conflict - investigate)", state.flags);
   const body = lines.join("\n").trim();
   return body || "The project ledger is empty - no runs have been recorded yet.";
 }
@@ -250,7 +272,8 @@ export function renderLedgerForPrompt(state: LedgerState): string {
     state.intents.length +
     state.residuals.length +
     state.mentions.length +
-    state.decisions.length;
+    state.decisions.length +
+    state.flags.length;
   if (live === 0) return "";
   return [
     "# Project state (continuity ledger)",

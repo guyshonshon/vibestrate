@@ -136,4 +136,53 @@ describe("context sources reach the agent prompt (e2e)", () => {
     expect(reviewerPrompt).not.toContain("# Project state (continuity ledger)");
     expect(reviewerPrompt).not.toContain("LEDGER_MARKER");
   });
+
+  it("flags a task that duplicates a ledger intent + warns the planner (T9)", async () => {
+    await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".vibestrate", "ledger.ndjson"),
+      JSON.stringify({
+        schemaVersion: 1,
+        id: "intent:docker",
+        kind: "intent",
+        title: "Docker sandbox execution backend",
+        detail: null,
+        status: "open",
+        sourceRunId: null,
+        supersedes: null,
+        relation: null,
+        relatesTo: null,
+        createdAt: "2026-06-11T00:00:00.000Z",
+        tags: [],
+      }) + "\n",
+    );
+    const loaded = await loadConfig(dir);
+    const orch = new Orchestrator({
+      projectRoot: dir,
+      config: loaded.config,
+      rules: loaded.rules,
+      task: "build the Docker sandbox execution backend",
+      isGitRepo: true,
+      onProgress: () => {},
+    });
+    const out = await orch.run();
+
+    // The planner is warned (heads-up, not a blocker).
+    const plannerPrompt = await fs.readFile(
+      path.join(out.worktreePath!, "planner-prompt.txt"),
+      "utf8",
+    );
+    expect(plannerPrompt).toContain("# Continuity flags");
+    expect(plannerPrompt).toMatch(/May DUPLICATE/);
+
+    // A flag was APPENDED to the ledger (and the intent is untouched).
+    const ledger = await fs.readFile(path.join(dir, ".vibestrate", "ledger.ndjson"), "utf8");
+    const lines = ledger.trim().split("\n").map((l) => JSON.parse(l));
+    const flag = lines.find((e) => e.kind === "flag");
+    expect(flag).toBeTruthy();
+    expect(flag.relation).toBe("duplicate");
+    expect(flag.relatesTo).toBe("intent:docker");
+    // Original intent line still present, unmodified.
+    expect(lines.some((e) => e.id === "intent:docker" && e.kind === "intent")).toBe(true);
+  });
 });

@@ -5,6 +5,7 @@ import { nowIso } from "../utils/time.js";
 export type VibestrateEventType =
   | "run.created"
   | "run.startup"
+  | "ledger.flagged"
   | "run.rewound"
   | "run.rewound.restored"
   | "run.snapshot.captured"

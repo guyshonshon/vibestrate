@@ -216,6 +216,7 @@ export async function assembleConsultContext(
       residuals: [],
       mentions: [],
       decisions: [],
+      flags: [],
     },
     roadmapTasks: roadmapTasks.map((t) => ({ title: t.title, status: t.status })),
     recentRuns: meta?.recentRuns ?? [],

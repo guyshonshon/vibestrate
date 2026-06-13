@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.73
+
+- **Duplicate and conflicting tasks get flagged, never silently dropped.** When
+  a run starts, its task is compared against the project ledger; if it looks
+  like a duplicate of open or shipped work - or a reversal of a "decided
+  against" decision - Vibestrate records a **flag** that links the two (it never
+  removes or edits the originals) and warns the planner so the supervisor can
+  call it out before proceeding. Flags show in a "Flagged - needs
+  investigation" section on the Ledger page (with the link to the related
+  item) and in `vibe ledger`. Matching is deterministic and conservative
+  (one flag per relation, cross-run deduped so a recurring task can't pile up
+  flags); resolve them by hand.
+
 ## 0.7.72
 
 - **A new run now starts knowing where the project stands.** The continuity

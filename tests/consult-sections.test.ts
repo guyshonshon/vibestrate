@@ -15,6 +15,8 @@ const e = (over: Partial<LedgerEntry>): LedgerEntry => ({
   status: "open",
   sourceRunId: null,
   supersedes: null,
+  relation: null,
+  relatesTo: null,
   createdAt: "2026-06-12T00:00:00.000Z",
   tags: [],
   ...over,
