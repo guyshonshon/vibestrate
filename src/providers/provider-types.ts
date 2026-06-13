@@ -78,6 +78,16 @@ export type ProviderRunInput = {
    */
   allowWrite?: boolean;
   /**
+   * Harden a READ-ONLY turn at the CLI's own permission layer (opt-in,
+   * `policies.hardenReadOnlySeats`). When true AND this turn is not write-capable
+   * (`allowWrite` falsy), a provider that has a read-only/plan permission mode
+   * runs in it - the `claude-code` provider injects `--permission-mode plan` so
+   * the CLI enforces no-write rather than relying on its headless default.
+   * Ignored by providers without such a mode, and a no-op on write-capable turns
+   * (those resolve their write grant from `allowWrite`). Omitted = off.
+   */
+  hardenReadOnly?: boolean;
+  /**
    * Requested OS-level filesystem sandbox for this turn (T14 slice 1), or
    * null/omitted for none. Set by the orchestrator only when
    * `execution.isolation` is "sandboxed": a write-capable seat asks for

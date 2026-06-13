@@ -24,6 +24,11 @@ const ROWS: Row[] = [
     badge: "high-assurance",
   },
   {
+    key: "hardenReadOnlySeats",
+    label: "Harden read-only seats",
+    hint: "Read-only claude seats run with --permission-mode plan, so the CLI itself refuses writes (the agent won't attempt them). codex seats use execution.isolation instead.",
+  },
+  {
     key: "allowInteractiveTerminal",
     label: "Interactive terminal",
     hint: "Enable the dashboard's live terminal panel (scoped to a run worktree).",
@@ -92,6 +97,13 @@ function BehaviorPreview({
       text: "Agents write to the worktree directly; every write-capable turn is snapshotted and its diff reviewed by the post-turn gate before the run continues.",
     });
   }
+
+  lines.push({
+    tone: safety.hardenReadOnlySeats ? "on" : "info",
+    text: safety.hardenReadOnlySeats
+      ? "Read-only claude seats run under --permission-mode plan - the CLI refuses writes outright (codex seats confine via execution.isolation)."
+      : "Read-only seats rely on the provider's default no-write behavior (worktree + diff gate still apply).",
+  });
 
   lines.push({
     tone: actionCount > 0 ? "on" : "info",

@@ -185,6 +185,17 @@ export const policiesConfigSchema = z.object({
   // applies through the Action Broker gateway (secret/path safety + file.patch
   // policy + audited git apply). High-assurance: every change crosses the gate.
   strictApplyOnly: z.boolean().default(false),
+  // S6 follow-up - harden read-only claude seats. When true, a read-only
+  // claude-code seat (planner/architect/reviewer/verifier, investigation runs)
+  // is run with `--permission-mode plan` so the CLI itself enforces no-write
+  // (the agent won't even attempt edits), instead of relying on claude's
+  // headless default (writes prompt -> no approver -> denied). claude-only;
+  // other providers ignore it. Default OFF: today's behavior is preserved, and
+  // plan mode can add "awaiting approval" framing to an action-shaped prompt -
+  // opt in for the stronger, explicit guarantee. The worktree + diff gate apply
+  // either way. (codex read-only seats get OS confinement via
+  // `execution.isolation: sandboxed` instead - this is the claude-side lever.)
+  hardenReadOnlySeats: z.boolean().default(false),
   // How long an UNATTENDED run waits at an approval gate before it stops honestly
   // (the gate `expires` -> the run goes `blocked`) instead of hanging forever and
   // wedging a scheduler worker. Attended runs always wait indefinitely (a human is

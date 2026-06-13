@@ -1521,6 +1521,7 @@ export type PolicyStoreSnapshot = {
 /** The editable `policies.*` safety toggles (Advanced - Safety panel). */
 export type SafetyPoliciesConfig = {
   strictApplyOnly: boolean;
+  hardenReadOnlySeats: boolean;
   allowInteractiveTerminal: boolean;
   forbidMainBranchWrites: boolean;
   forbidSecretsAccess: boolean;

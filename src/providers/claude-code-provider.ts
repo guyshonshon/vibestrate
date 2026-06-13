@@ -21,6 +21,7 @@ export async function runClaudeCodeProvider(
 ): Promise<ClaudeCodeProviderRunResult> {
   const args = buildClaudeCodeArgs(config.args ?? [], config.settings, {
     writeCapable: input.allowWrite === true,
+    hardenReadOnly: input.hardenReadOnly === true,
   });
   // Apply the resolved profile's model + effort - both real `claude` flags
   // (`--model <id>`, `--effort <low|medium|high|xhigh|max>`).

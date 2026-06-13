@@ -4727,6 +4727,10 @@ export class Orchestrator {
           // a claude provider gets `--permission-mode acceptEdits` (see
           // claude-code-settings.ts) so it can actually write in the worktree.
           allowWrite: profile.allowWrite,
+          // Opt-in read-only hardening (policies.hardenReadOnlySeats): the
+          // provider applies it only on a non-write-capable turn (claude-code ->
+          // `--permission-mode plan`). A no-op when off or on a write turn.
+          hardenReadOnly: this.config.policies?.hardenReadOnlySeats === true,
           model: runtimeProfile?.model ?? undefined,
           // reduce-effort (U4): drop to the provider's minimum effort if it has one.
           effort:

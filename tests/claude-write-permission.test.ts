@@ -85,6 +85,47 @@ describe("buildClaudeCodeArgs - write capability -> claude permission mode", () 
   });
 });
 
+describe("buildClaudeCodeArgs - harden read-only seats (--permission-mode plan)", () => {
+  it("a read-only seat with hardenReadOnly on runs --permission-mode plan", () => {
+    const args = buildClaudeCodeArgs(["-p"], undefined, {
+      writeCapable: false,
+      hardenReadOnly: true,
+    });
+    expect(args.slice(0, 3)).toEqual(["-p", "--permission-mode", "plan"]);
+    expect(args).not.toContain("acceptEdits");
+  });
+
+  it("off by default: read-only WITHOUT hardenReadOnly injects no permission mode (today's behavior)", () => {
+    expect(
+      buildClaudeCodeArgs(["-p"], undefined, { writeCapable: false, hardenReadOnly: false }),
+    ).not.toContain("--permission-mode");
+    // Omitted = off.
+    expect(
+      buildClaudeCodeArgs(["-p"], undefined, { writeCapable: false }),
+    ).not.toContain("--permission-mode");
+  });
+
+  it("write capability wins over the read-only hardening (acceptEdits, never plan)", () => {
+    const args = buildClaudeCodeArgs(["-p"], undefined, {
+      writeCapable: true,
+      hardenReadOnly: true,
+    });
+    expect(args).toContain("acceptEdits");
+    expect(args).not.toContain("plan");
+    expect(args.filter((a) => a === "--permission-mode")).toHaveLength(1);
+  });
+
+  it("an explicit permissionMode still wins over the hardening (no plan override, no duplicate)", () => {
+    const args = buildClaudeCodeArgs(["-p"], { permissionMode: "default" }, {
+      writeCapable: false,
+      hardenReadOnly: true,
+    });
+    expect(args.filter((a) => a === "--permission-mode")).toHaveLength(1);
+    expect(args).toContain("default");
+    expect(args).not.toContain("plan");
+  });
+});
+
 // Integration: prove the orchestrator wires the POST-OVERRIDE `profile.allowWrite`
 // into the spawn (not the seat name, not the pre-override profile). The reviewer's
 // #1 risk was a read-only / apply-only seat leaking the write grant; these runs

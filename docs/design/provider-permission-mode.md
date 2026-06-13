@@ -57,11 +57,19 @@ permission profile and threaded to the provider:
   validates) is covered. A turn that tries an un-approved claude Bash call will
   *stall to the turn timeout* rather than fail fast - a known headless caveat of
   `acceptEdits`.
-- **Read-only enforcement still rides on the CLI default.** Read-only seats get no
-  flag, so their no-write is enforced by claude's headless default (writes prompt
-  -> no approver -> can't write). That is enforcement-by-omission. Hardening
-  read-only seats with an explicit `--permission-mode plan` is tracked in the
-  backlog (it would change reviewer/planner behavior, so it is out of this slice).
+- **Read-only enforcement: now opt-in explicit (`policies.hardenReadOnlySeats`,
+  0.7.75).** By default read-only seats still get no flag - their no-write rides
+  on claude's headless default (writes prompt -> no approver -> can't write),
+  enforcement-by-omission. Turning on `policies.hardenReadOnlySeats` runs a
+  read-only claude seat under `--permission-mode plan`, so the CLI itself refuses
+  writes (the agent won't even *attempt* them, avoiding the wasted retry/stall the
+  default path incurs). Shipped OFF by default after a headless smoke established
+  the tradeoff empirically: plan mode does **not** distort a read-only review turn
+  (it produced normal findings and touched nothing), but it does add an "awaiting
+  approval to exit plan mode" framing to an *action-shaped* prompt - so it stays
+  opt-in rather than forced on every read-only seat. Write capability and an
+  explicit `settings.permissionMode` both take precedence; codex read-only seats
+  use `execution.isolation: sandboxed` (real OS confinement) instead.
 
 ## Why this design (rejected alternatives)
 

@@ -59,7 +59,7 @@ export function effectiveClaudeOutputFormat(
 export function buildClaudeCodeArgs(
   baseArgs: readonly string[],
   settings: ClaudeCodeSettings | undefined,
-  opts?: { writeCapable?: boolean },
+  opts?: { writeCapable?: boolean; hardenReadOnly?: boolean },
 ): string[] {
   const out = [...baseArgs];
 
@@ -68,13 +68,20 @@ export function buildClaudeCodeArgs(
   // gets `--permission-mode acceptEdits` so the headless `claude -p` can apply
   // its file edits in the worktree without an interactive grant - the vibestrate
   // `code_write` permission alone never reached the claude CLI, so writes were
-  // silently denied. Guards: only when the user hasn't set an explicit
-  // permissionMode (explicit config always wins), and never for a read-only /
-  // forced-read-only / apply-only seat (writeCapable is false there, so no
-  // grant). This is a write grant only; command execution is brokered by
-  // vibestrate separately, not by claude's own Bash.
-  if (opts?.writeCapable && !settings?.permissionMode) {
-    out.push("--permission-mode", "acceptEdits");
+  // silently denied. A read-only seat with `hardenReadOnly` on (opt-in
+  // `policies.hardenReadOnlySeats`) instead gets `--permission-mode plan`, so the
+  // CLI itself refuses writes (the agent won't even attempt them) rather than
+  // leaning on claude's headless default. Guards: only when the user hasn't set
+  // an explicit permissionMode (explicit config always wins); write capability
+  // takes precedence over the read-only hardening. This is a permission-mode
+  // grant only; command execution is brokered by vibestrate separately, not by
+  // claude's own Bash.
+  if (!settings?.permissionMode) {
+    if (opts?.writeCapable) {
+      out.push("--permission-mode", "acceptEdits");
+    } else if (opts?.hardenReadOnly) {
+      out.push("--permission-mode", "plan");
+    }
   }
 
   // Output format: explicit settings > manual args > the streaming default

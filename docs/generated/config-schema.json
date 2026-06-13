@@ -742,6 +742,14 @@
           "itemType": null
         },
         {
+          "key": "hardenReadOnlySeats",
+          "fullKey": "policies.hardenReadOnlySeats",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "itemType": null
+        },
+        {
           "key": "unattendedApprovalTimeoutMs",
           "fullKey": "policies.unattendedApprovalTimeoutMs",
           "type": "number",

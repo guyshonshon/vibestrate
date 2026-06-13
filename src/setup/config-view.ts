@@ -345,6 +345,7 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
       boolRow("forbid auto-merge", config.policies.forbidAutoMerge),
       boolRow("preserve artifacts", config.policies.preserveArtifacts),
       boolRow("strict apply-only", config.policies.strictApplyOnly),
+      boolRow("harden read-only seats", config.policies.hardenReadOnlySeats),
       boolRow("interactive terminal", config.policies.allowInteractiveTerminal, {
         riskyWhenOn: true,
       }),

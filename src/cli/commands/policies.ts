@@ -233,6 +233,7 @@ export function buildPoliciesCommand(): Command {
     )
     .option("--json", "emit JSON")
     .option("--strict-apply-only <bool>", "agents propose diffs; gateway applies", boolOpt)
+    .option("--harden-read-only <bool>", "read-only claude seats run --permission-mode plan", boolOpt)
     .option("--allow-terminal <bool>", "enable the dashboard terminal panel", boolOpt)
     .option("--forbid-main-writes <bool>", "block writes to the main branch", boolOpt)
     .option("--forbid-secrets <bool>", "block reads/writes of secret files", boolOpt)
@@ -242,6 +243,7 @@ export function buildPoliciesCommand(): Command {
       async (opts: {
         json?: boolean;
         strictApplyOnly?: boolean;
+        hardenReadOnly?: boolean;
         allowTerminal?: boolean;
         forbidMainWrites?: boolean;
         forbidSecrets?: boolean;
@@ -252,6 +254,8 @@ export function buildPoliciesCommand(): Command {
         const writes: [string, boolean][] = [];
         if (opts.strictApplyOnly !== undefined)
           writes.push(["strictApplyOnly", opts.strictApplyOnly]);
+        if (opts.hardenReadOnly !== undefined)
+          writes.push(["hardenReadOnlySeats", opts.hardenReadOnly]);
         if (opts.allowTerminal !== undefined)
           writes.push(["allowInteractiveTerminal", opts.allowTerminal]);
         if (opts.forbidMainWrites !== undefined)
@@ -279,6 +283,7 @@ export function buildPoliciesCommand(): Command {
         const onOff = (b: boolean) => (b ? color.green("on") : color.dim("off"));
         console.log(color.bold("Safety behavior:"));
         console.log(`  strict apply-only:        ${onOff(p.strictApplyOnly)}`);
+        console.log(`  harden read-only seats:   ${onOff(p.hardenReadOnlySeats)}`);
         console.log(`  interactive terminal:     ${onOff(p.allowInteractiveTerminal)}`);
         console.log(`  forbid main-branch writes: ${onOff(p.forbidMainBranchWrites)}`);
         console.log(`  forbid secrets access:    ${onOff(p.forbidSecretsAccess)}`);

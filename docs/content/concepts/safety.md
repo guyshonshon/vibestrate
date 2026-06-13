@@ -82,14 +82,23 @@ Inspect what's loaded with `vibe policies list` / `vibe policies doctor`, the
 
 ### Configuring safety behavior
 
-The `policies.*` toggles - strict apply-only, interactive terminal, and the
-`forbid*` guards - are editable from both surfaces (UI⇄CLI parity):
+The `policies.*` toggles - strict apply-only, harden read-only seats, interactive
+terminal, and the `forbid*` guards - are editable from both surfaces (UI⇄CLI
+parity):
 
 - **CLI:** `vibe policies config` shows them; `vibe policies config
-  --strict-apply-only true` (and friends) set them.
+  --strict-apply-only true` / `--harden-read-only true` (and friends) set them.
 - **Dashboard:** the Policies panel's **Advanced - Safety behavior** section has
   a switch per toggle plus a **live preview** that spells out what a run will do
   under the current settings before you commit to them.
+
+**Harden read-only seats** (`policies.hardenReadOnlySeats`, off by default) runs
+read-only **claude** seats under `--permission-mode plan`, so the CLI itself
+refuses writes (the agent won't even attempt them) instead of relying on its
+headless default. It's claude's counterpart to the OS sandbox; codex read-only
+seats get real OS confinement via `execution.isolation` above. Off by default
+because plan mode can add an "awaiting approval" framing to an action-shaped
+prompt - turn it on for the stronger, explicit no-write guarantee.
 
 ## Run assurance
 

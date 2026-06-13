@@ -202,25 +202,28 @@ describe("server: policies routes", () => {
     );
     const srv = await start(project);
 
-    // Default: strictApplyOnly off.
+    // Default: strictApplyOnly + hardenReadOnlySeats off.
     const before = await fetch(`${srv.url}/api/policies/config`).then((x) =>
       x.json(),
     );
     expect(before.config.strictApplyOnly).toBe(false);
+    expect(before.config.hardenReadOnlySeats).toBe(false);
 
-    // Turn it on + enable terminal.
+    // Turn it on + enable terminal + harden read-only seats.
     const res = await fetch(`${srv.url}/api/policies/config`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         strictApplyOnly: true,
         allowInteractiveTerminal: true,
+        hardenReadOnlySeats: true,
       }),
     });
     expect(res.status).toBe(200);
     const updated = await res.json();
     expect(updated.config.strictApplyOnly).toBe(true);
     expect(updated.config.allowInteractiveTerminal).toBe(true);
+    expect(updated.config.hardenReadOnlySeats).toBe(true);
 
     // Persisted: a fresh GET reflects the change.
     const after = await fetch(`${srv.url}/api/policies/config`).then((x) =>

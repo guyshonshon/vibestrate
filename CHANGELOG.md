@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.75
+
+- **Harden read-only seats (opt-in).** A new `policies.hardenReadOnlySeats`
+  toggle (off by default) runs read-only **claude** seats - planner, architect,
+  reviewer, verifier, and investigation runs - under `--permission-mode plan`, so
+  the claude CLI itself refuses writes (the agent won't even attempt them)
+  instead of relying on its headless default. It's the claude-side counterpart to
+  the OS sandbox: codex read-only seats get real OS confinement via
+  `execution.isolation: sandboxed`; this is claude's lever. Off by default because
+  a headless smoke confirmed plan mode doesn't distort a read-only review but can
+  add an "awaiting approval" framing to an action-shaped prompt - turn it on for
+  the stronger, explicit no-write guarantee. Write-capable turns and an explicit
+  `permissionMode` both still take precedence. Editable from both surfaces (`vibe
+  policies config --harden-read-only true` or the dashboard's Advanced - Safety
+  behavior panel, with a live preview).
+
 ## 0.7.74
 
 - **Optional OS sandbox for a run's agents (off by default).** A new

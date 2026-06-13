@@ -17,6 +17,7 @@ export type PoliciesRoutesDeps = { projectRoot: string };
 const safetyConfigSchema = z
   .object({
     strictApplyOnly: z.boolean().optional(),
+    hardenReadOnlySeats: z.boolean().optional(),
     allowInteractiveTerminal: z.boolean().optional(),
     forbidMainBranchWrites: z.boolean().optional(),
     forbidSecretsAccess: z.boolean().optional(),
