@@ -34,6 +34,7 @@ scratch plans) go to `docs/archive/` (gitignored), not here.
 | [`always-on-execution.md`](./always-on-execution.md) | Always-on / laptop-closed execution. Proposed, adversarially reviewed (2026-06). Backlogged. |
 | [`provider-structured-output.md`](./provider-structured-output.md) | Structured provider output for live streaming + real CLI metrics. Endorsed direction, not built (Phase 4 A7 residual). |
 | [`crew-flow-authoring.md`](./crew-flow-authoring.md) | Open crew/flow authoring decisions (loops, per-role effort, persisted bindings). Decision doc, not built. |
+| [`docker-backend.md`](./docker-backend.md) | **T14 sandboxed execution backend** (the S6 unblocker). Proposed + adversarially reviewed (Opus). Key reframes: execution must route through the backend (it's bypassed today); provider-native sandbox (`codex --sandbox`) is the cheap first mode, Docker the heavier second; filesystem isolation is real, exfil/credential isolation needs a host proxy. Nothing built. |
 
 ## Shipped - design of record for behavior now on main
 
