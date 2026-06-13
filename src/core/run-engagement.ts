@@ -226,6 +226,10 @@ function entryFor(e: VibestrateEvent): Partial | null {
       };
     case "provider.effort_ignored":
       return { cls: "enforced", anchor: onStep(), stepId: step, title: "effort ignored", detail: str(d, "effort"), tone: "warn" };
+    case "provider.sandboxed":
+      return { cls: "enforced", anchor: onStep(), stepId: step, title: `sandboxed · ${str(d, "mode") ?? "os"}`, detail: str(d, "provider"), tone: "info" };
+    case "provider.sandbox_unavailable":
+      return { cls: "enforced", anchor: onStep(), stepId: step, title: "sandbox unavailable", detail: str(d, "provider"), tone: "warn" };
 
     // ── Structural: executing the chosen workflow shape ─────────────────────
     case "flow.frontier.scheduled": {

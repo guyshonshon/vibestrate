@@ -163,6 +163,20 @@ honored:
   assurance, write roles run read-only and instead *propose* a unified diff that
   Vibestrate applies through the broker gateway. Nothing reaches disk without
   crossing the gate; a refused patch blocks the run.
+- **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an
+  optional fourth layer that adds OS *prevention* on top of the diff gate's
+  *detection*. The gates above bound your machine structurally already (worktree +
+  diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is
+  opt-in, not a tax on every run - turn it on for an untrusted task or an
+  unattended run. With `execution.isolation: sandboxed`, each turn is asked to run
+  under the provider's own OS sandbox, scaled to the seat: a write-capable seat
+  gets writes confined to the worktree, a read-only seat gets read-only. **Today
+  this is real only for codex** (`codex exec --sandbox`, Apple Seatbelt / Linux
+  Landlock - a write outside the worktree is refused by the OS). A provider with
+  no OS sandbox flag (e.g. claude) **warns once and runs unsandboxed** rather than
+  pretending - the worktree + diff gate still apply, and the run records only the
+  sandbox that was actually enforced. Set it with `vibe config set
+  execution.isolation sandboxed` or the dashboard config editor.
 - **Run assurance** - the terminal verdict above summarizes what actually
   happened, from the evidence log.
 

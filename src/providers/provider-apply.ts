@@ -196,3 +196,46 @@ export function profileSpawnArgs(
   if (knobs.effort && spec.effort) out.push(...oneArg(spec.effort.apply, knobs.effort));
   return out;
 }
+
+// ── Provider-native OS sandbox (T14 slice 1) ─────────────────────────────────
+//
+// Same "real knobs only" rule as model/effort above: a provider appears here
+// ONLY if its CLI enforces an OS-level filesystem sandbox that we have verified
+// actually confines. The single entry today is codex, whose `codex exec
+// --sandbox <mode>` runs model-generated shell commands under Apple Seatbelt /
+// Linux Landlock. Verified on macOS: a write outside the workspace returns
+// `Operation not permitted` and no file is created (read-only and
+// workspace-write both deny escape).
+//
+// claude is deliberately ABSENT: it has no host-filesystem sandbox flag (only
+// `--permission-mode`, which is the provider's own write-gating, not OS
+// confinement - already wired via `allowWrite`). Listing it here would let us
+// claim OS sandboxing we don't get, which the repo's honesty rules forbid. The
+// orchestrator warns once when a sandbox is requested for a provider not listed
+// here and runs that turn unsandboxed (worktree + diff gate still apply).
+export type SandboxMode = "read-only" | "workspace-write";
+
+const SANDBOX_SPECS: Record<string, (mode: SandboxMode) => string[]> = {
+  codex: (mode) => ["--sandbox", mode],
+};
+
+/** Whether this provider's CLI enforces a real OS-level filesystem sandbox. */
+export function providerSupportsSandbox(providerId: string): boolean {
+  return providerId in SANDBOX_SPECS;
+}
+
+/**
+ * The extra spawn args that put this provider in the requested OS sandbox, plus
+ * whether a real sandbox was actually applied. `applied: false` (with empty
+ * args) means either no sandbox was requested or this provider has none - the
+ * caller must NOT report the turn as OS-sandboxed in that case.
+ */
+export function providerSandboxArgs(
+  providerId: string,
+  mode: SandboxMode | null,
+): { args: string[]; applied: boolean } {
+  if (!mode) return { args: [], applied: false };
+  const build = SANDBOX_SPECS[providerId];
+  if (!build) return { args: [], applied: false };
+  return { args: build(mode), applied: true };
+}

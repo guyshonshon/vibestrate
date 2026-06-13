@@ -20,6 +20,8 @@ export type VibestrateEventType =
   | "provider.completed"
   | "provider.failed"
   | "provider.effort_ignored"
+  | "provider.sandboxed"
+  | "provider.sandbox_unavailable"
   | "provider.fallback"
   | "provider.usage_limit"
   | "provider.retries_exhausted"

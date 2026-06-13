@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.74
+
+- **Optional OS sandbox for a run's agents (off by default).** A new
+  `execution.isolation` setting (`off | sandboxed`) lets you confine what an
+  agent's own shell tools can touch at the operating-system level - not just
+  audit it after the fact. With `sandboxed`, each turn runs under the provider's
+  native OS sandbox, scaled to the seat: a write-capable seat gets writes
+  confined to the worktree, a read-only seat gets read-only. Today this is real
+  for **codex** (`codex exec --sandbox`, Apple Seatbelt on macOS / Landlock on
+  Linux - a write outside the worktree is refused by the OS). A provider without
+  a real sandbox flag (e.g. claude, which has only `--permission-mode`) **warns
+  once and runs unsandboxed** rather than pretending - the worktree and post-turn
+  diff gate still apply, and the run records only the sandbox that was actually
+  enforced, so nothing over-claims. It's off by default on purpose: the worktree,
+  the diff gate, and human-review-before-merge already bound a supervised local
+  run, so confinement is a deliberate choice for an untrusted task or an
+  unattended run. Set it with `vibe config set execution.isolation sandboxed` or
+  the dashboard config editor; runs emit `provider.sandboxed` /
+  `provider.sandbox_unavailable` events so the posture is auditable.
+
 ## 0.7.73
 
 - **Duplicate and conflicting tasks get flagged, never silently dropped.** When

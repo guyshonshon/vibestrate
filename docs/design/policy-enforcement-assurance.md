@@ -1150,6 +1150,26 @@ controlled execution + hard policy gates + visible evidence
 
 ## Implementation status
 
+### S6 - OS sandbox - partially shipped (provider-native, off by default)
+
+The first real OS-enforced filesystem boundary landed via **T14 slice 1**
+([`docker-backend.md`](./docker-backend.md)), without Docker. `execution.isolation:
+off | sandboxed` (default **off**); when `sandboxed`, the orchestrator asks each
+turn's provider for an OS sandbox scaled to the seat - a write-capable seat gets
+`workspace-write` (writes confined to the worktree), a read-only seat `read-only`.
+Only providers with a **verified** OS sandbox enforce it: **codex** (`codex exec
+--sandbox`, Apple Seatbelt / Linux Landlock - verified: a write outside the
+workspace is `Operation not permitted`). claude has **no** host-filesystem sandbox
+flag (only `--permission-mode`, provider write-gating, already wired via
+`allowWrite`), so under `sandboxed` a claude turn **warns once
+(`provider.sandbox_unavailable`) and runs unsandboxed** - the worktree + S3 diff
+gate still bound it. The run result records only `appliedSandbox` (what was
+actually enforced), so assurance never over-claims. This makes
+forbidden-read/-write OS-*prevented* for codex (Phase 6's "guarantees real at the
+process boundary") while staying honest that it's per-provider. **Still open:**
+clean-room/arch isolation and the T-cred/T-exfil credential proxy need the
+deferred Docker backend + host proxy (T14 slices 2-3).
+
 ### S4 - Strict apply-only mode ✅ shipped
 
 `policies.strictApplyOnly` turns on a high-assurance mode where agents never

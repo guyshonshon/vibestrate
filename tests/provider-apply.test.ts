@@ -6,6 +6,8 @@ import {
   httpEffortLevels,
   httpModelSuggestions,
   applyHttpEffort,
+  providerSandboxArgs,
+  providerSupportsSandbox,
 } from "../src/providers/provider-apply.js";
 
 describe("provider-apply: wired capabilities", () => {
@@ -46,6 +48,37 @@ describe("profileSpawnArgs (generic-CLI path)", () => {
   it("unwired provider / no knobs -> nothing", () => {
     expect(profileSpawnArgs("ollama", { model: "x", effort: "high" })).toEqual([]);
     expect(profileSpawnArgs("codex", {})).toEqual([]);
+  });
+});
+
+describe("provider-native OS sandbox (real flags only)", () => {
+  it("codex enforces a real sandbox; nothing else does", () => {
+    expect(providerSupportsSandbox("codex")).toBe(true);
+    // claude has only --permission-mode (provider write-gating), NOT an OS
+    // sandbox - it must NOT appear, or we'd claim confinement we don't get.
+    expect(providerSupportsSandbox("claude")).toBe(false);
+    expect(providerSupportsSandbox("gemini")).toBe(false);
+    expect(providerSupportsSandbox("unknown")).toBe(false);
+  });
+
+  it("codex maps the requested mode to --sandbox <mode> and reports applied", () => {
+    expect(providerSandboxArgs("codex", "read-only")).toEqual({
+      args: ["--sandbox", "read-only"],
+      applied: true,
+    });
+    expect(providerSandboxArgs("codex", "workspace-write")).toEqual({
+      args: ["--sandbox", "workspace-write"],
+      applied: true,
+    });
+  });
+
+  it("no mode requested -> no args, not applied", () => {
+    expect(providerSandboxArgs("codex", null)).toEqual({ args: [], applied: false });
+  });
+
+  it("a provider without a real sandbox -> no args, NOT applied (no false claim)", () => {
+    expect(providerSandboxArgs("claude", "read-only")).toEqual({ args: [], applied: false });
+    expect(providerSandboxArgs("gemini", "workspace-write")).toEqual({ args: [], applied: false });
   });
 });
 

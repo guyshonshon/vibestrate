@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.63",
+  "version": "0.7.73",
   "commands": [
     {
       "name": "init",
@@ -235,7 +235,7 @@
             "provider",
             "refresh"
           ],
-          "description": "Probe configured CLI providers' --help for model/effort knobs and write them to the catalog overlay for review (local only; gap-fill).",
+          "description": "Detect each provider's real models/efforts (codex `debug models` JSON, else --help scraping) and write them to the catalog overlay. Refreshes stale built-in lists; local only.",
           "usage": "[options] [providerId]",
           "arguments": [
             {
@@ -1131,6 +1131,88 @@
               "negated": false
             }
           ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "crew",
+      "path": [
+        "vibe",
+        "crew"
+      ],
+      "description": "List crews, show a crew's roles, and set the default (\"active\") crew.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "list",
+          "path": [
+            "vibe",
+            "crew",
+            "list"
+          ],
+          "description": "List configured crews (the default is marked).",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "show",
+          "path": [
+            "vibe",
+            "crew",
+            "show"
+          ],
+          "description": "Show a crew's roles, profiles, and seats (default crew if omitted).",
+          "usage": "[options] [id]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "use",
+          "path": [
+            "vibe",
+            "crew",
+            "use"
+          ],
+          "description": "Set the default (\"active\") crew - runs without --crew use it.",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
           "subcommands": []
         }
       ]

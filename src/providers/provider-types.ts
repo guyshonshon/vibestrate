@@ -1,4 +1,4 @@
-import type { ResolvedCatalog } from "./provider-apply.js";
+import type { ResolvedCatalog, SandboxMode } from "./provider-apply.js";
 
 export type ProviderRunResult = {
   providerId: string;
@@ -16,6 +16,14 @@ export type ProviderRunResult = {
    * leave this unset and the Flow runner falls back to artifact handoffs.
    */
   session?: ProviderSessionResult | null;
+  /**
+   * The OS-level filesystem sandbox that was ACTUALLY applied to this turn, or
+   * null/absent when none was. Set only when the provider injected a real,
+   * verified sandbox flag (codex `--sandbox`) - never when a sandbox was
+   * requested but the provider has none. Downstream audit/UI reports isolation
+   * from this, so it can't over-claim confinement that didn't happen.
+   */
+  appliedSandbox?: SandboxMode | null;
 };
 
 export type ProviderStreamChunk = {
@@ -69,6 +77,16 @@ export type ProviderRunInput = {
    * preserves behavior for non-orchestrator callers (assist, setup probe, etc.).
    */
   allowWrite?: boolean;
+  /**
+   * Requested OS-level filesystem sandbox for this turn (T14 slice 1), or
+   * null/omitted for none. Set by the orchestrator only when
+   * `execution.isolation` is "sandboxed": a write-capable seat asks for
+   * "workspace-write" (writes confined to the worktree/cwd), a read-only seat
+   * for "read-only". Providers that enforce a real OS sandbox (codex) translate
+   * this into their flag; providers without one ignore it and the run warns
+   * once - it is a request, honored only where verifiably real.
+   */
+  sandbox?: SandboxMode | null;
   /** Provider-native session turn request for a Flow participant. */
   session?: ProviderSessionRequest;
   /**

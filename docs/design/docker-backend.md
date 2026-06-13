@@ -1,6 +1,7 @@
 # Design: Sandboxed execution backend (T14)
 
-Status: **proposed - adversarially reviewed (Opus), verdict folded in** · Triage:
+Status: **slice 1 SHIPPED (provider-native sandbox, OFF by default) · docker +
+proxy DEFERRED** · adversarially reviewed (Opus), verdict folded in · Triage:
 [`backlog-triage-2026-06.md`](./backlog-triage-2026-06.md) § T14 · Related:
 [`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) § S6.
 
@@ -13,6 +14,61 @@ S6 (process-level forbidden-path guarantees) and Phase C (parallel writers). It
 is hard to reverse: every run flows through it. The design is the deliverable;
 it was adversarially reviewed before any code, and the review materially changed
 it (see §0 and §3).
+
+---
+
+## 0a. What shipped, and the "do we even need Docker?" call (2026-06-13)
+
+Before writing code we asked the honest question: **is there a true need for
+Docker, any real benefit over the provider's own sandbox, and do we even always
+want a sandbox?** The answer reshaped the work:
+
+- **A sandbox is opt-in, not the default.** Vibestrate's practical protection is
+  already structural: every run is a git worktree, writes are diff-gated, secrets
+  are redacted, the action broker gates the spawn, and **a human reviews the diff
+  before anything merges - nothing is auto-pushed.** For the supervised, local,
+  trusted-codebase use Vibestrate is built around, an OS sandbox adds little on
+  top of that. So `execution.isolation` defaults to **off**; confinement is a
+  deliberate choice for an untrusted task or an unattended run, not a tax on every
+  run.
+- **Provider-native beats Docker for the only win slice 1 targets.** The headline
+  goal is OS-enforced *filesystem* isolation. `codex exec --sandbox` already
+  delivers that on the host via Apple Seatbelt / Linux Landlock - **verified on
+  this machine**: under `codex sandbox`, a write outside the workspace returns
+  `Operation not permitted` and no file is created. That is real OS confinement
+  with zero new failure surface, the provider already authenticated, host-arch
+  deps, no image build, no bind-mount I/O penalty. Docker buys a clean room and a
+  pinned toolchain - genuinely useful for *some* futures (a provider with no
+  native sandbox, arch control, parallel writers) but **premature now** and far
+  more machinery, so it is deferred until a concrete pull, not built speculatively.
+- **What slice 1 actually built (leaner than the original §9).** Because
+  provider-native sandbox is just a provider *flag*, slice 1 did **not** build the
+  `ExecutionBackend.run()` routable-execution seam (§3) - that seam only earns its
+  cost when execution has to move *off* the host into a container, i.e. with
+  Docker. Building it now would be an abstraction with one host-only
+  implementation we don't use (YAGNI). Instead the sandbox flag is injected at the
+  provider layer (`provider-apply.ts` → `cli-provider.ts`), exactly mirroring how
+  `allowWrite` already becomes claude's `--permission-mode`. The `run()` seam
+  moves into the Docker slice, where it's load-bearing.
+- **Codex-only, stated honestly.** Verified: `codex exec -s/--sandbox
+  <read-only|workspace-write|danger-full-access>` is real and OS-enforced. Verified
+  the other way too: **claude has no host-filesystem sandbox flag** - only
+  `--permission-mode` (the provider's own write-gating, already wired via
+  `allowWrite`), which is not OS confinement. So provider-native OS confinement is
+  **codex-only today**. When `isolation: sandboxed` is set and the turn's provider
+  has no real sandbox, the run **warns once and runs unsandboxed** (worktree +
+  diff gate still apply) rather than pretending - the result records only the
+  sandbox that was actually applied (`appliedSandbox`).
+
+**As-built behavior.** `execution.isolation: off | sandboxed` (default off). When
+`sandboxed`, the orchestrator asks each turn's provider for an OS sandbox scaled
+to the seat: a write-capable seat → `workspace-write` (writes confined to the
+worktree), a read-only seat → `read-only`. codex enforces it; anything else warns
+and runs unsandboxed. Events `provider.sandboxed` / `provider.sandbox_unavailable`
+make it auditable. Off-by-default means zero behavior change unless opted in.
+
+Everything below is the full design of record (threat model, the deferred Docker
+and proxy slices). §9 marks slice 1 shipped.
 
 ---
 
@@ -259,11 +315,26 @@ is explicitly opted in.
 
 ## 8. Config surface
 
+**As-built (slice 1):**
+
 ```yaml
 execution:
-  isolation: off            # off | provider-native | docker
-  provider_native:
-    mode: workspace-write   # read-only | workspace-write   (maps to codex --sandbox / claude equiv)
+  isolation: off            # off | sandboxed   (default off)
+```
+
+`sandboxed` = "use the provider's native OS sandbox where it has one." The mode
+(`read-only` vs `workspace-write`) is **not** a separate knob - it is derived per
+turn from the seat's write capability (`allowWrite`), so a read-only seat can't be
+handed write confinement and vice versa. Settable via `vibe config set
+execution.isolation sandboxed` (schema-driven, so it's a known key with enum
+completion) or the web raw-YAML editor - full CLI⇄UI parity, no bespoke wiring.
+
+**Future (when Docker / proxy land)** the enum grows and a `docker:` block
+appears; the original proposal kept for reference:
+
+```yaml
+execution:
+  isolation: off            # → off | sandboxed | docker
   docker:
     image: vibestrate/sandbox-claude:pinned   # or:
     dockerfile: ./Dockerfile.agent            # project toolchain, content-hashed
@@ -272,23 +343,28 @@ execution:
     resources: { pids: 512, memory: 4g }
 ```
 
-Per-flow/step override (`flow.yml` step `isolation:`); the `sandbox-suggested`
-posture upgrades `off → provider-native` (or `docker`) where configured - never
-downgrades, suggestion not hard rule (the raw ask's "configurable, no hard
-rules"); selection surfaced in `selection.json` + the supervisor panel.
+Per-flow/step override (`flow.yml` step `isolation:`) and the `sandbox-suggested`
+posture upgrade (`off → sandboxed`, never downgrade) are slice-4 polish, not yet
+built; selection would surface in `selection.json` + the supervisor panel.
 
 ---
 
 ## 9. Slices (reordered by the review)
 
-1. **Routable execution + provider-native sandbox (M).** Add `run()` + `isolation`
-   to the interface; dispatch `runArgvCommand` through it (local-worktree
-   byte-identical, proven by an unchanged-output test). Provider-native mode:
-   inject `codex --sandbox`/claude's flag on the host execa; `isolation` reports
-   the real per-provider level; a provider without a sandbox → `filesystem: none`
-   + an honest assurance note. **The cheap, big, low-risk win.** Tests: dispatch
-   unit tests with a stub backend; a gated real-CLI smoke that the sandbox flag
-   is passed and a forbidden write is OS-refused.
+1. **Provider-native sandbox (SHIPPED, off by default).** `execution.isolation:
+   off | sandboxed`. When `sandboxed`, inject the provider's real OS-sandbox flag
+   on the host execa - `codex exec --sandbox <read-only|workspace-write>`, scaled
+   to the seat's write capability. `providerSupportsSandbox` is codex-only (claude
+   verified to have no host-FS sandbox flag); an unsupported provider warns once
+   (`provider.sandbox_unavailable`) and runs unsandboxed, and the result records
+   only `appliedSandbox` (what was actually enforced) so nothing over-claims. **The
+   cheap, big, low-risk win.** Scoping change from the original plan: the
+   `ExecutionBackend.run()` routable-execution seam was **not** built here (it only
+   earns its cost with Docker, slice 2) - the flag is injected at the provider
+   layer like `allowWrite`→`--permission-mode`. Tests: pure flag-mapping +
+   honesty (`provider-apply`), arg-assembly + `appliedSandbox` (`cli-provider`),
+   config default-off + settable-key (`execution-isolation`). codex OS confinement
+   verified by hand (`codex sandbox`: write outside the workspace is EPERM).
 2. **Docker mode (L, gated by a real-docker spike).** Container-per-run,
    worktree + `:ro` artifacts mount, **path translation** (4a), the **`docker
    exec` option matrix incl. tree-kill rewrite** (4b), explicit **env allowlist**
@@ -312,8 +388,16 @@ rules"); selection surfaced in `selection.json` + the supervisor panel.
 - Docker mode egress mechanism on Docker Desktop macOS (sidecar proxy vs
   in-VM policy) - likely converges with slice 3's proxy; resolve before claiming
   any docker egress control.
-- Claude Code's exact sandbox surface + flag (codex is confirmed; claude needs
-  the same verification before slice 1 claims it for claude).
+- ~~Claude Code's exact sandbox surface + flag.~~ **Resolved (2026-06-13):** the
+  installed `claude` CLI exposes **no host-filesystem sandbox flag** - only
+  `--permission-mode <plan|acceptEdits|...>` (provider write-gating, already wired
+  via `allowWrite`) and `--dangerously-skip-permissions`. So provider-native OS
+  confinement is **codex-only**; claude under `isolation: sandboxed` gets the
+  warn-once-and-run-unsandboxed path. (If a future claude ships an OS sandbox
+  flag, add it to `SANDBOX_SPECS` in `provider-apply.ts` - one line.)
+- When Docker lands: the `ExecutionBackend.run()` routable-execution seam (§3),
+  deferred out of slice 1, becomes load-bearing - it's the chokepoint that moves
+  the agent process off the host into the container.
 - Container lifetime under the diff-gate quiesce requirement (§6) - pause vs stop
   between turns.
 

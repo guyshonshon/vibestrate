@@ -36,5 +36,52 @@ describe("runCliProvider applies the profile's model + effort to the spawn", () 
       cwd: process.cwd(),
     });
     expect(r.args).toEqual(["exec"]);
+    expect(r.appliedSandbox ?? null).toBeNull();
+  });
+});
+
+describe("runCliProvider injects a provider-native OS sandbox (codex only)", () => {
+  it("codex: --sandbox lands after the subcommand, before model/effort, and is reported applied", async () => {
+    const r = await runCliProvider(noop, {
+      providerId: "codex",
+      prompt: "hi",
+      cwd: process.cwd(),
+      sandbox: "workspace-write",
+      model: "gpt-5-codex",
+      effort: "high",
+    });
+    expect(r.args).toEqual([
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "--model",
+      "gpt-5-codex",
+      "-c",
+      "model_reasoning_effort=high",
+    ]);
+    expect(r.appliedSandbox).toBe("workspace-write");
+  });
+
+  it("read-only seat -> --sandbox read-only", async () => {
+    const r = await runCliProvider(noop, {
+      providerId: "codex",
+      prompt: "hi",
+      cwd: process.cwd(),
+      sandbox: "read-only",
+    });
+    expect(r.args).toEqual(["exec", "--sandbox", "read-only"]);
+    expect(r.appliedSandbox).toBe("read-only");
+  });
+
+  it("non-codex provider: no --sandbox flag, and NOT reported as sandboxed", async () => {
+    const r = await runCliProvider(noop, {
+      providerId: "gemini",
+      prompt: "hi",
+      cwd: process.cwd(),
+      sandbox: "workspace-write",
+      model: "gemini-2.5-pro",
+    });
+    expect(r.args).toEqual(["exec", "--model", "gemini-2.5-pro"]);
+    expect(r.appliedSandbox ?? null).toBeNull();
   });
 });

@@ -165,6 +165,18 @@
             "cloud-runner"
           ],
           "itemType": null
+        },
+        {
+          "key": "isolation",
+          "fullKey": "execution.isolation",
+          "type": "enum",
+          "required": false,
+          "default": "off",
+          "enum": [
+            "off",
+            "sandboxed"
+          ],
+          "itemType": null
         }
       ]
     },

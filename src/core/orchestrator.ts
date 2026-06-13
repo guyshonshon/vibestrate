@@ -54,7 +54,7 @@ import {
 } from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
-import type { ResolvedCatalog } from "../providers/provider-apply.js";
+import type { ResolvedCatalog, SandboxMode } from "../providers/provider-apply.js";
 import {
   createActionBroker,
   type ActionBroker,
@@ -459,6 +459,8 @@ export class Orchestrator {
   private resolvedCatalog: ResolvedCatalog | null = null;
   /** Dedupe key set for the "effort won't take effect" warning (per provider+effort). */
   private readonly warnedEffort = new Set<string>();
+  /** Dedupe key set for the "isolation requested but no provider sandbox" warning (per provider). */
+  private readonly warnedSandbox = new Set<string>();
   private readonly rules: string;
   private task: string;
   private readonly rawParams: Record<string, string>;
@@ -4699,11 +4701,25 @@ export class Orchestrator {
           }
         }
       }
+      // ── Provider-native OS sandbox (T14 slice 1) ────────────────────────
+      // Only when execution.isolation = "sandboxed". A write-capable seat asks
+      // for "workspace-write" (writes confined to the worktree); a read-only
+      // seat for "read-only". This is only the REQUEST passed to the provider;
+      // whether a real OS sandbox actually applied is read off the result AFTER
+      // the turn (a turn can fall back to a provider that can't sandbox), so the
+      // honest record is emitted post-run, never from this requested value.
+      const requestedSandbox: SandboxMode | null =
+        this.config.execution?.isolation === "sandboxed"
+          ? profile.allowWrite
+            ? "workspace-write"
+            : "read-only"
+          : null;
       providerResult = await this.runProviderResilient({
         args: {
           providerId: effectiveProviderId,
           prompt,
           cwd,
+          sandbox: requestedSandbox ?? undefined,
           // The resolved, POST-OVERRIDE write capability for this turn. read-only
           // runs, strict-apply-only, and read-only seats already collapsed
           // `effectivePermissions` to read_only above, so `profile.allowWrite` is
@@ -4764,6 +4780,34 @@ export class Orchestrator {
       });
       if (providerAbort.signal.aborted) {
         throw new __RunAbortedSignal();
+      }
+      // ── Honest, post-run OS-sandbox record ──────────────────────────────
+      // Record what was ACTUALLY enforced (`providerResult.appliedSandbox`),
+      // never the requested mode: the turn may have fallen back to a provider
+      // that can't sandbox, so only the result tells the truth. Emitting from
+      // the request (pre-run) would assert OS sandboxing for a turn that ran
+      // unconfined - the exact over-claim the repo forbids. Off (no request)
+      // records nothing. Keyed off the provider that actually ran.
+      if (requestedSandbox) {
+        const ranProvider = providerResult.providerId;
+        if (providerResult.appliedSandbox) {
+          await ctx.eventLog.append({
+            type: "provider.sandboxed",
+            message: `Provider ${ranProvider} ran this turn under OS sandbox "${providerResult.appliedSandbox}".`,
+            data: { roleId, stageId: input.stageId, provider: ranProvider, mode: providerResult.appliedSandbox },
+          });
+        } else if (!this.warnedSandbox.has(ranProvider)) {
+          // Sandbox was asked for but this provider has no OS sandbox - warn once
+          // (per provider that actually ran) and be explicit it ran unconfined.
+          this.warnedSandbox.add(ranProvider);
+          const msg = `Isolation is "sandboxed" but provider ${ranProvider} has no OS-level sandbox - this turn ran unsandboxed (worktree + diff gate still apply). codex provides provider-native OS confinement.`;
+          this.onProgress(msg);
+          await ctx.eventLog.append({
+            type: "provider.sandbox_unavailable",
+            message: msg,
+            data: { roleId, stageId: input.stageId, provider: ranProvider, requested: requestedSandbox },
+          });
+        }
       }
       // Fallback flush - most providers buffer all output until exit, so the
       // live panel would be empty mid-flight. Persist the *normalized* response

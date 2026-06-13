@@ -85,6 +85,24 @@ describe("deriveEngagement", () => {
     expect(out[1]!.title).toContain("policy");
   });
 
+  it("surfaces OS-sandbox posture honestly (applied vs requested-but-unavailable)", () => {
+    const out = deriveEngagement([
+      ev("provider.sandboxed", { stageId: "implement", provider: "codex", mode: "workspace-write" }),
+      ev("provider.sandbox_unavailable", { stageId: "review", provider: "claude", requested: "read-only" }),
+    ]);
+    expect(out).toHaveLength(2);
+    // Applied: positive, anchored on the step, names the real mode.
+    expect(out[0]!.cls).toBe("enforced");
+    expect(out[0]!.tone).toBe("info");
+    expect(out[0]!.stepId).toBe("implement");
+    expect(out[0]!.title).toContain("workspace-write");
+    expect(out[0]!.detail).toBe("codex");
+    // Requested but unavailable: a warning, never dressed up as sandboxed.
+    expect(out[1]!.tone).toBe("warn");
+    expect(out[1]!.title).toBe("sandbox unavailable");
+    expect(out[1]!.detail).toBe("claude");
+  });
+
   it("returns an empty list when nothing supervisory happened", () => {
     expect(
       deriveEngagement([ev("flow.step.started", { stepId: "x" }), ev("flow.step.completed", { stepId: "x" })]),

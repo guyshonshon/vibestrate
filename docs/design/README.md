@@ -24,7 +24,7 @@ scratch plans) go to `docs/archive/` (gitignored), not here.
 | [`run-experience-and-usability-batch.md`](./run-experience-and-usability-batch.md) | **The current batch (June 2026).** Seven slices: blocked-run UX, live transcript, hub UI, express/sizer, control center, UI revamp, git helpers. Adversarially reviewed; nothing shipped yet. |
 | [`proportional-orchestration.md`](./proportional-orchestration.md) | B3 (change-scoped validation) shipped 0.7.33. A2/A3/A1 are the batch's P4 slices. |
 | [`flows-hub.md`](./flows-hub.md) | Hub registry decisions (settled). Read side + seating built on a stranded branch; batch P3 merges it + adds the web browser; publish later. |
-| [`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) | The safety pillar (issue #7). S0-S5 shipped; S6 (OS sandbox) blocked on a Docker execution backend. |
+| [`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) | The safety pillar (issue #7). S0-S5 shipped; S6 (OS sandbox) partially unblocked - provider-native sandbox (codex) shipped off-by-default via T14 slice 1; the rest waits on the deferred Docker backend + credential proxy. |
 | [`rewind-phase-2.md`](./rewind-phase-2.md) | Phase 1 + 2 shipped (resume at review/fix/verify via phase snapshots). Safety follow-ups tracked in ISSUES.md (ISSUE-001). |
 
 ## Open proposals - designed, nothing shipped
@@ -34,7 +34,7 @@ scratch plans) go to `docs/archive/` (gitignored), not here.
 | [`always-on-execution.md`](./always-on-execution.md) | Always-on / laptop-closed execution. Proposed, adversarially reviewed (2026-06). Backlogged. |
 | [`provider-structured-output.md`](./provider-structured-output.md) | Structured provider output for live streaming + real CLI metrics. Endorsed direction, not built (Phase 4 A7 residual). |
 | [`crew-flow-authoring.md`](./crew-flow-authoring.md) | Open crew/flow authoring decisions (loops, per-role effort, persisted bindings). Decision doc, not built. |
-| [`docker-backend.md`](./docker-backend.md) | **T14 sandboxed execution backend** (the S6 unblocker). Proposed + adversarially reviewed (Opus). Key reframes: execution must route through the backend (it's bypassed today); provider-native sandbox (`codex --sandbox`) is the cheap first mode, Docker the heavier second; filesystem isolation is real, exfil/credential isolation needs a host proxy. Nothing built. |
+| [`docker-backend.md`](./docker-backend.md) | **T14 sandboxed execution backend** (the S6 unblocker). **Slice 1 shipped: provider-native sandbox, OFF by default** (`execution.isolation: sandboxed` → `codex exec --sandbox`, codex-only OS confinement, verified). Docker + credential proxy **deferred** (premature; no concrete pull). Filesystem isolation is real; exfil/credential isolation needs the deferred host proxy. Adversarially reviewed (Opus). |
 
 ## Shipped - design of record for behavior now on main
 
