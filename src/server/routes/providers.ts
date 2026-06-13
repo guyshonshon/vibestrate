@@ -50,6 +50,8 @@ export type ProviderRow = {
    *  are "cli"; configured HTTP-backed providers report their real type so the
    *  dashboard opens the matching advanced form. */
   kind: "cli" | "http-api" | "localhost-proxy";
+  /** Ids of the profiles that run on this provider (the reverse map). */
+  profilesUsing: string[];
 };
 
 /**
@@ -98,6 +100,13 @@ export async function registerProvidersRoutes(
     const configuredIds = new Set(
       loaded ? Object.keys(loaded.config.providers ?? {}) : [],
     );
+    // Reverse map: provider id -> the profiles that run on it.
+    const profilesByProvider = new Map<string, string[]>();
+    for (const [pid, prof] of Object.entries(loaded?.config.profiles ?? {})) {
+      const list = profilesByProvider.get(prof.provider) ?? [];
+      list.push(pid);
+      profilesByProvider.set(prof.provider, list);
+    }
     const rows: ProviderRow[] = detected.map((d) => ({
       id: d.id,
       label: d.label,
@@ -113,6 +122,7 @@ export async function registerProvidersRoutes(
       loginCommand: PROVIDER_PRESETS[d.id].loginCommand,
       loginNote: PROVIDER_PRESETS[d.id].loginNote,
       kind: "cli" as const,
+      profilesUsing: (profilesByProvider.get(d.id) ?? []).sort(),
     }));
     // Surface configured non-CLI providers (http-api / localhost-proxy) that
     // aren't in the detected-CLI list, so the dashboard can show + manage them.
@@ -143,6 +153,7 @@ export async function registerProvidersRoutes(
           : "Runs locally - no key, no egress. Start the server first.",
         external,
         kind: cfg.type,
+        profilesUsing: (profilesByProvider.get(id) ?? []).sort(),
       });
     }
     cached = { at: now, rows };

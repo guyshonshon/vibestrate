@@ -383,6 +383,8 @@ export type ProviderRow = {
   external?: boolean;
   /** Which editor shape this provider uses. */
   kind: "cli" | "http-api" | "localhost-proxy";
+  /** Ids of the profiles that run on this provider (the reverse map). */
+  profilesUsing: string[];
 };
 
 export type CodebaseAnnotation = {

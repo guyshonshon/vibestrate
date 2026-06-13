@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.70
+
+- **The Providers page now shows which profiles run on each provider.** Each
+  configured provider lists the profiles bound to it ("Used by `fast`, `deep`
+  profiles."), so the provider→profile reverse map is visible at a glance, not
+  just inside the per-provider editor.
+
 ## 0.7.69
 
 - **The Crew page is now a hub, not a one-pager.** It opens on a list of your

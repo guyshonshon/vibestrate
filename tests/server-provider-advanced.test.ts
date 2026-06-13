@@ -107,6 +107,29 @@ describe("POST /api/providers/:id/setup - HTTP-backed providers", () => {
     );
     expect(yml).toContain("type: cli");
   });
+
+  it("each provider row reports which profiles run on it (T12 reverse map)", async () => {
+    const { setConfigValue, setProfileFields } = await import(
+      "../src/setup/config-update-service.js"
+    );
+    const project = await makeProject();
+    // codex is a known/detected provider, so it appears in the row list even
+    // when not installed; configure two profiles that run on it.
+    await setConfigValue(
+      project,
+      "providers.codex",
+      JSON.stringify({ type: "cli", command: "codex", args: [], input: "stdin" }),
+    );
+    await setProfileFields(project, "fast", { provider: "codex" });
+    await setProfileFields(project, "deep", { provider: "codex" });
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const list = (await (await fetch(`${server.url}/api/providers`)).json()) as {
+      providers: { id: string; profilesUsing: string[] }[];
+    };
+    const codex = list.providers.find((p) => p.id === "codex")!;
+    expect(codex.profilesUsing.sort()).toEqual(["deep", "fast"]);
+  });
 });
 
 describe("POST /api/providers/:id/setup - fail-closed safety guards", () => {

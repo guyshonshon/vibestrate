@@ -264,6 +264,26 @@ export function ProvidersPage() {
                 ))}
               </ul>
             ) : null}
+            {p.configured ? (
+              <div className="mt-2 text-[11.5px] text-fog-500">
+                {p.profilesUsing.length > 0 ? (
+                  <>
+                    Used by{" "}
+                    {p.profilesUsing.map((id, i) => (
+                      <span key={id}>
+                        {i > 0 ? ", " : ""}
+                        <span className="mono text-fog-300">{id}</span>
+                      </span>
+                    ))}{" "}
+                    {p.profilesUsing.length === 1 ? "profile" : "profiles"}.
+                  </>
+                ) : (
+                  <span className="text-fog-600">
+                    No profiles run on this provider yet.
+                  </span>
+                )}
+              </div>
+            ) : null}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
