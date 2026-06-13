@@ -18,6 +18,7 @@ import {
 } from "../crews/crew-registry.js";
 import { createActionBroker, gateAction } from "../safety/action-broker.js";
 import { runProvider } from "../providers/provider-runner.js";
+import { failureExcerpt } from "../core/provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import type { ProvidersConfigMap } from "../providers/provider-schema.js";
 import type { ProviderRunInput } from "../providers/provider-types.js";
@@ -30,13 +31,18 @@ export class AssistError extends VibestrateError {
   }
 }
 
-/** Provider-spawn seam. Defaults to {@link runProvider}; tests inject a fake. */
+/** Provider-spawn seam. Defaults to {@link runProvider}; tests inject a fake.
+ *  `stderr`/`stdout` are optional so fakes can omit them, but the real runner
+ *  provides them - the error path surfaces their excerpt so a failed assist
+ *  says WHY (e.g. "not logged in", "unknown model"), not just "exited 1". */
 export type AssistProviderRunner = (
   providers: ProvidersConfigMap,
   input: ProviderRunInput,
 ) => Promise<{
   exitCode: number;
   normalized: { responseText: string; metrics: NormalizedMetrics | null };
+  stderr?: string;
+  stdout?: string;
 }>;
 
 /** An ad-hoc provider+knob choice that bypasses the saved-profile lookup -
@@ -253,6 +259,10 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
   let lastError = "";
   let metrics: NormalizedMetrics | null = null;
   let lastRaw = "";
+  // The real provider failure reason (redacted excerpt of stderr/stdout) from
+  // the most recent non-zero exit - surfaced in the thrown message so the user
+  // sees WHY, not just an exit code.
+  let lastFailureReason = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const prompt = buildAssistPrompt({
       label: req.label,
@@ -278,7 +288,17 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
     lastRaw = result.normalized.responseText;
 
     if (result.exitCode !== 0) {
-      lastError = `The provider exited with code ${result.exitCode}.`;
+      // Surface the provider's OWN error output (stderr first, then stdout,
+      // then any normalized text) - that line is what tells the user the real
+      // cause (not authenticated, unknown model, bad flag) instead of a bare
+      // exit code. Redacted via failureExcerpt.
+      const reason = failureExcerpt(
+        result.stderr || result.stdout || result.normalized.responseText || "",
+      );
+      lastFailureReason = reason;
+      lastError = reason
+        ? `the ${providerId} CLI exited ${result.exitCode}: ${reason}`
+        : `the ${providerId} CLI exited ${result.exitCode} with no error output (is it installed and authenticated? try \`${providerId}\` directly, or \`vibe provider test ${providerId}\`).`;
       continue;
     }
     const jsonText = extractJson(result.normalized.responseText);
@@ -324,8 +344,20 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
     summary: `assist:${req.label} failed after ${maxAttempts} attempt(s)`,
     data: { providerId, profileId },
   });
+  // Lead with the real cause in plain words, then the spawn details the user
+  // needs to debug it (which provider/model/effort actually ran). A provider
+  // that exited non-zero is the common case (auth/model/flag); a parse failure
+  // names the shape mismatch instead.
+  const target = `${providerId}${model ? ` · model ${model}` : ""}${effort ? ` · effort ${effort}` : ""}`;
+  const headline = lastFailureReason
+    ? lastFailureReason
+    : lastError || "the provider produced no usable response.";
   throw new AssistError(
-    `Assist "${req.label}" failed after ${maxAttempts} attempt(s). Last error: ${lastError}` +
+    `Couldn't complete "${req.label}": ${headline}\n` +
+      `Provider used: ${target} (${maxAttempts} attempt(s)).` +
+      (lastFailureReason
+        ? ""
+        : `\nLast error: ${lastError}`) +
       (lastRaw ? `\n\nLast raw response:\n${lastRaw.slice(0, 800)}` : ""),
   );
 }

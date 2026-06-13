@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.64
+
+- **Consult/assist errors now tell you the real reason.** When a provider CLI
+  fails (codex, gemini, ...), the message used to read only "the provider
+  exited with code 1". It now leads with the provider's own error - redacted -
+  so you see WHY ("unknown model 'gpt-5.1'", "run `codex login`", a rejected
+  flag) plus exactly which provider/model/effort ran. When a failed CLI prints
+  nothing, the message points you at `vibe provider test`. (Model/effort
+  options in the consult box are curated per-provider suggestions, not probed
+  from your install - so a value your CLI doesn't accept now fails loudly with
+  its real reason instead of a bare exit code.)
+
 ## 0.7.63
 
 - **"Analyze deeper" reads the actual diff before you merge.** The optional

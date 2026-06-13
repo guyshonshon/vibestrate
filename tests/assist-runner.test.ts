@@ -165,6 +165,50 @@ describe("runAssist", () => {
     ).rejects.toBeInstanceOf(AssistError);
   });
 
+  it("surfaces the provider's real stderr in the error, not a bare exit code", async () => {
+    // A failing CLI that explains itself on stderr (e.g. codex not logged in).
+    const runner: AssistProviderRunner = async () => ({
+      exitCode: 1,
+      normalized: { responseText: "", metrics: null },
+      stderr: "Error: unknown model 'gpt-5.1'. Run `codex login` or pick a valid model.",
+      stdout: "",
+    });
+    const err = await runAssist({
+      projectRoot,
+      label: "consult",
+      instruction: "x",
+      schema: itemsSchema,
+      schemaHint: "{}",
+      runner,
+      maxAttempts: 2,
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(AssistError);
+    // The real reason is in the message, not "exited with code 1".
+    expect(err.message).toMatch(/unknown model 'gpt-5\.1'/);
+    expect(err.message).not.toMatch(/^Assist "consult" failed after/);
+  });
+
+  it("falls back to an actionable message when a failing provider prints nothing", async () => {
+    const runner: AssistProviderRunner = async () => ({
+      exitCode: 127,
+      normalized: { responseText: "", metrics: null },
+      stderr: "",
+      stdout: "",
+    });
+    const err = await runAssist({
+      projectRoot,
+      label: "consult",
+      instruction: "x",
+      schema: itemsSchema,
+      schemaHint: "{}",
+      runner,
+      maxAttempts: 1,
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(AssistError);
+    expect(err.message).toMatch(/no error output/);
+    expect(err.message).toMatch(/installed and authenticated/);
+  });
+
   it("rejects output that parses but fails the schema", async () => {
     await expect(
       runAssist({
