@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Cpu,
+  Plug,
   FileText,
   Folder,
   FolderTree,
@@ -33,6 +34,7 @@ type Props = {
   onShowFlows: () => void;
   onShowMetrics: () => void;
   onShowCrew: () => void;
+  onShowProviders: () => void;
   onShowProfiles: () => void;
   onShowBoard: () => void;
   onShowRunsList: () => void;
@@ -81,6 +83,7 @@ export function TopBar({
   onShowFlows,
   onShowMetrics,
   onShowCrew,
+  onShowProviders,
   onShowProfiles,
   onShowBoard,
   onShowRunsList,
@@ -265,6 +268,7 @@ export function TopBar({
             active={
               currentNav === "git" ||
               currentNav === "merge" ||
+              currentNav === "providers" ||
               currentNav === "proposals" ||
               currentNav === "project" ||
               currentNav === "config"
@@ -298,6 +302,16 @@ export function TopBar({
                 icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Merge
+              </DropItem>
+              <DropItem
+                active={currentNav === "providers"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowProviders();
+                }}
+                icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Providers
               </DropItem>
               <DropItem
                 onClick={() => {
@@ -414,6 +428,16 @@ export function TopBar({
               icon={<GitMerge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Merge
+            </DropItem>
+            <DropItem
+              active={currentNav === "providers"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowProviders();
+              }}
+              icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Providers
             </DropItem>
             <DropItem
               onClick={() => {

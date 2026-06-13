@@ -939,6 +939,10 @@ export const api = {
   async getCrew(crewId: string): Promise<{ crew: CrewView }> {
     return jsonGet(`/api/crews/${encodeURIComponent(crewId)}`);
   },
+  /** Set the project's default ("active") crew - parity with `vibe crew use`. */
+  async setDefaultCrew(crewId: string): Promise<{ ok: true; defaultCrew: string }> {
+    return jsonPost("/api/crews/default", { crewId });
+  },
   async patchCrewRole(
     crewId: string,
     roleId: string,

@@ -20,6 +20,7 @@ export type NavId =
   | "flows"
   | "metrics"
   | "crew"
+  | "providers"
   | "profiles"
   | "config"
   | "consult";

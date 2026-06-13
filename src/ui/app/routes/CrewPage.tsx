@@ -76,6 +76,7 @@ export function CrewPage() {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [savingRole, setSavingRole] = useState<string | null>(null);
+  const [settingDefault, setSettingDefault] = useState(false);
 
   async function load() {
     try {
@@ -127,6 +128,20 @@ export function CrewPage() {
     () => crews?.find((c) => c.id === selectedId) ?? null,
     [crews, selectedId],
   );
+
+  async function makeDefault() {
+    if (!crew || crew.id === defaultCrew) return;
+    setSettingDefault(true);
+    try {
+      await api.setDefaultCrew(crew.id);
+      setDefaultCrew(crew.id);
+      flash({ kind: "ok", text: `"${crew.label}" is now the default crew.` });
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setSettingDefault(false);
+    }
+  }
 
   // Every seat any flow asks for, plus seats already assigned in the crew -
   // the full set the user can allocate.
@@ -221,20 +236,33 @@ export function CrewPage() {
           </p>
         </div>
         {crews && crews.length > 1 ? (
-          <label className="flex items-center gap-2 text-[12px] text-fog-300">
-            <span className="eyebrow">crew</span>
-            <select
-              value={selectedId ?? ""}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
-            >
-              {crews.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[12px] text-fog-300">
+              <span className="eyebrow">crew</span>
+              <select
+                value={selectedId ?? ""}
+                onChange={(e) => setSelectedId(e.target.value)}
+                className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+              >
+                {crews.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {crew && crew.id !== defaultCrew ? (
+              <button
+                type="button"
+                disabled={settingDefault}
+                onClick={() => void makeDefault()}
+                className="h-8 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[12px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                title="Make this the crew runs use when none is picked (writes defaultCrew)"
+              >
+                {settingDefault ? "Setting…" : "Set as default"}
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

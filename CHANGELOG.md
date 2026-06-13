@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.68
+
+- **Switch the active crew from the dashboard or the CLI.** The Crew page now has
+  a "Set as default" button (next to the crew selector) that persists your
+  choice as the project's `defaultCrew` - runs without `--crew` use it. New
+  `vibe crew` command for parity: `vibe crew list` (the default is marked),
+  `vibe crew show [id]` (roles, profiles, seats), and `vibe crew use <id>` to
+  switch. The write goes through the same validated config path as everything
+  else (an unknown crew is refused, never half-written). The Providers page -
+  previously reachable only by typing the URL - now has a proper nav entry under
+  **More**.
+
 ## 0.7.67
 
 - **Models auto-detect at run start - a "Preparing models" stage.** Every run now

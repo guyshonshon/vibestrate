@@ -112,3 +112,46 @@ describe("PATCH /api/crews/:crewId/roles/:roleId", () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe("POST /api/crews/default (set active crew - T12)", () => {
+  it("switches the default crew, and refuses an unknown crew / bad body", async () => {
+    const project = await makeProject();
+    // Add a second crew (a copy of the default) so there's something to switch to.
+    const { loadConfig } = await import("../src/project/config-loader.js");
+    const { config } = await loadConfig(project);
+    await setConfigValue(project, "crews.alt", JSON.stringify(config.crews.default));
+    server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
+
+    const before = (await (await fetch(`${server.url}/api/crews`)).json()) as {
+      defaultCrew: string;
+    };
+    expect(before.defaultCrew).toBe("default");
+
+    const ok = await fetch(`${server.url}/api/crews/default`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ crewId: "alt" }),
+    });
+    expect(ok.status).toBe(200);
+    const after = (await (await fetch(`${server.url}/api/crews`)).json()) as {
+      defaultCrew: string;
+    };
+    expect(after.defaultCrew).toBe("alt");
+
+    // Unknown crew -> 404, no write.
+    const ghost = await fetch(`${server.url}/api/crews/default`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ crewId: "ghost" }),
+    });
+    expect(ghost.status).toBe(404);
+
+    // Bad body -> 400.
+    const badBody = await fetch(`${server.url}/api/crews/default`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(badBody.status).toBe(400);
+  });
+});

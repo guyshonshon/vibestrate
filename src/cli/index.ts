@@ -21,6 +21,7 @@ import { buildSkillsCommand } from "./commands/skills/index.js";
 import { buildFlowsCommand } from "./commands/flows/index.js";
 import { buildSupervisorCommand } from "./commands/supervisor.js";
 import { buildProfilesCommand } from "./commands/profiles/index.js";
+import { buildCrewCommand } from "./commands/crew.js";
 import { buildApprovalsCommand } from "./commands/approvals/index.js";
 import { buildRoadmapCommand } from "./commands/roadmap.js";
 import { buildTasksCommand } from "./commands/tasks.js";
@@ -153,6 +154,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildFlowsCommand());
   program.addCommand(buildSupervisorCommand());
   program.addCommand(buildProfilesCommand());
+  program.addCommand(buildCrewCommand());
   program.addCommand(buildApprovalsCommand());
   program.addCommand(buildRoadmapCommand());
   program.addCommand(buildTasksCommand());

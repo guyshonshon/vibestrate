@@ -14,6 +14,7 @@ import { pathExists } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { runStateSchema } from "../../core/state-machine.js";
 import { configExists, loadConfig } from "../../project/config-loader.js";
+import { setConfigValue } from "../../setup/config-update-service.js";
 import {
   setCrewRoleFields,
   setProfileFields,
@@ -187,6 +188,28 @@ export async function registerProjectRoutes(
       serializeCrew(config, id, crew),
     );
     return { crews, defaultCrew: config.defaultCrew };
+  });
+
+  // Set the project's default ("active") crew - runs with no --crew use it.
+  // Writes through the same validated config service as `vibe config set`
+  // (its superRefine rejects a crewId that isn't in `crews`), so this is the
+  // existing config-set capability, focused - not a new write path.
+  app.post<{ Body: unknown }>("/api/crews/default", async (req) => {
+    const body = z.object({ crewId: z.string().min(1).max(120) }).safeParse(req.body);
+    if (!body.success) throw new HttpError(400, body.error.message);
+    if (!(await configExists(projectRoot))) {
+      throw new HttpError(404, "Vibestrate is not initialized here.");
+    }
+    const { config } = await loadConfig(projectRoot);
+    if (!config.crews[body.data.crewId]) {
+      throw new HttpError(404, `No crew "${body.data.crewId}".`);
+    }
+    try {
+      await setConfigValue(projectRoot, "defaultCrew", body.data.crewId);
+    } catch (err) {
+      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+    }
+    return { ok: true, defaultCrew: body.data.crewId };
   });
 
   app.get<{ Params: { crewId: string } }>("/api/crews/:crewId", async (req) => {

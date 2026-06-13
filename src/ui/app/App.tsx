@@ -274,8 +274,10 @@ export function App() {
                           ? "metrics"
                           : route.kind === "profiles"
                             ? "profiles"
-                            : route.kind === "crew" || route.kind === "providers"
-                              ? "crew"
+                            : route.kind === "providers"
+                              ? "providers"
+                              : route.kind === "crew"
+                                ? "crew"
                               : route.kind === "config"
                                 ? "config"
                                 : route.kind === "consult"
@@ -289,6 +291,7 @@ export function App() {
       onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
       onShowCrew={() => navigate({ kind: "crew" })}
+      onShowProviders={() => navigate({ kind: "providers" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
       onShowBoard={() => navigate({ kind: "board" })}
