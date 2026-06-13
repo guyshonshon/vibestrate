@@ -210,6 +210,19 @@ export function hintForRoute(route: Route): CliHint {
           "Advice is computed from git facts + check lanes - no model output; it never merges anything.",
         ],
       };
+    case "ledger":
+      return {
+        title: "Project ledger",
+        blurb:
+          "Where the project stands - shipped, open intents, follow-ups, decisions. Same view as the CLI.",
+        commands: [
+          { cmd: "vibe ledger", note: "the continuity brief in your terminal" },
+          { cmd: "vibe ledger --json", note: "the folded ledger state as JSON" },
+        ],
+        tips: [
+          "The ledger is machine-written when a run reaches merge-ready, and editable by hand under .vibestrate/.",
+        ],
+      };
     case "flow":
       return {
         title: "Flow Builder",

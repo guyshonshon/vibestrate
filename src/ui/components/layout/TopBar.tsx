@@ -10,6 +10,7 @@ import {
   GitBranch,
   GitCommit,
   GitMerge,
+  BookMarked,
   LayoutGrid,
   Library,
   ListChecks,
@@ -46,6 +47,7 @@ type Props = {
   onShowCodebase: () => void;
   onShowGit: () => void;
   onShowMerge: () => void;
+  onShowLedger: () => void;
   onShowConsult: () => void;
   onShowSettings: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
@@ -95,6 +97,7 @@ export function TopBar({
   onShowCodebase,
   onShowGit,
   onShowMerge,
+  onShowLedger,
   onShowConsult,
   onShowSettings,
   onOpenNotification,
@@ -269,6 +272,7 @@ export function TopBar({
               currentNav === "git" ||
               currentNav === "merge" ||
               currentNav === "providers" ||
+              currentNav === "ledger" ||
               currentNav === "proposals" ||
               currentNav === "project" ||
               currentNav === "config"
@@ -312,6 +316,16 @@ export function TopBar({
                 icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
               >
                 Providers
+              </DropItem>
+              <DropItem
+                active={currentNav === "ledger"}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onShowLedger();
+                }}
+                icon={<BookMarked className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+              >
+                Ledger
               </DropItem>
               <DropItem
                 onClick={() => {
@@ -438,6 +452,16 @@ export function TopBar({
               icon={<Plug className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
             >
               Providers
+            </DropItem>
+            <DropItem
+              active={currentNav === "ledger"}
+              onClick={() => {
+                setMenuOpen(false);
+                onShowLedger();
+              }}
+              icon={<BookMarked className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />}
+            >
+              Ledger
             </DropItem>
             <DropItem
               onClick={() => {

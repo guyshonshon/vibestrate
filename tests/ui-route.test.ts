@@ -218,6 +218,7 @@ describe("round-trip", () => {
       { kind: "flows" },
       { kind: "metrics" },
       { kind: "providers" },
+      { kind: "ledger" },
     ];
     for (const r of kinds) {
       expect(parseHashRoute(serializeRoute(r))).toEqual(r);

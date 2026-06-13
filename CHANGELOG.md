@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.71
+
+- **The project ledger has a dashboard page now.** Under **More → Ledger**,
+  a read-only view of where the project stands - recently shipped, open
+  intents, follow-ups left behind, mentioned-but-never-done, and decisions on
+  record - folded from the continuity ledger that's machine-written when runs
+  reach merge-ready. Each entry links to its source run. Same data as
+  `vibe ledger`; the dashboard surface the ledger was missing.
+
 ## 0.7.70
 
 - **The Providers page now shows which profiles run on each provider.** Each

@@ -16,6 +16,7 @@ export type NavId =
   | "codebase"
   | "git"
   | "merge"
+  | "ledger"
   | "flow"
   | "flows"
   | "metrics"

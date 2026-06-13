@@ -42,6 +42,7 @@ export type Route =
   | { kind: "metrics" }
   | { kind: "crew"; crewId: string | null }
   | { kind: "providers" }
+  | { kind: "ledger" }
   | { kind: "profiles" }
   | { kind: "config" }
   | { kind: "consult"; taskId: string | null }
@@ -191,6 +192,7 @@ export function parseHashRoute(hash: string): Route {
     return { kind: "crew", crewId: parts[1] ? decodeURIComponent(parts[1]) : null };
   }
   if (parts[0] === "providers") return { kind: "providers" };
+  if (parts[0] === "ledger") return { kind: "ledger" };
   if (parts[0] === "profiles") return { kind: "profiles" };
   if (parts[0] === "config") return { kind: "config" };
   if (parts[0] === "consult") {
@@ -263,6 +265,8 @@ export function serializeRoute(route: Route): string {
       return route.crewId ? `#/crew/${encodeURIComponent(route.crewId)}` : "#/crew";
     case "providers":
       return "#/providers";
+    case "ledger":
+      return "#/ledger";
     case "profiles":
       return "#/profiles";
     case "config":

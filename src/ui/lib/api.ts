@@ -387,6 +387,25 @@ export type ProviderRow = {
   profilesUsing: string[];
 };
 
+/** T9 project continuity ledger - the folded state surfaced read-only. */
+export type LedgerEntryDto = {
+  id: string;
+  kind: "shipped" | "intent" | "decision" | "mention" | "residual";
+  title: string;
+  detail: string | null;
+  status: "open" | "shipped" | "abandoned" | "superseded";
+  sourceRunId: string | null;
+  createdAt: string;
+  tags: string[];
+};
+export type LedgerStateDto = {
+  shipped: LedgerEntryDto[];
+  intents: LedgerEntryDto[];
+  residuals: LedgerEntryDto[];
+  mentions: LedgerEntryDto[];
+  decisions: LedgerEntryDto[];
+};
+
 export type CodebaseAnnotation = {
   id: string;
   path: string;
@@ -937,6 +956,10 @@ export const api = {
   // ─── crews ────────────────────────────────────────────────────────────
   async getCrews(): Promise<{ crews: CrewView[]; defaultCrew: string | null }> {
     return jsonGet("/api/crews");
+  },
+  /** T9: the project continuity ledger - folded state + a plain-text brief. */
+  async getLedger(): Promise<{ state: LedgerStateDto; brief: string }> {
+    return jsonGet("/api/ledger");
   },
   async getCrew(crewId: string): Promise<{ crew: CrewView }> {
     return jsonGet(`/api/crews/${encodeURIComponent(crewId)}`);
