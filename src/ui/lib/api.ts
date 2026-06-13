@@ -493,6 +493,33 @@ export type MergeOverviewRowDto = {
   assurance: MergeAdviceDto["assurance"];
 };
 
+/** T13 slice 2: the analyze-deeper result. Advisory prose + the deterministic
+ *  context that was fed to the model; never a merge verdict. */
+export type MergeAnalysisDto = {
+  runId: string;
+  analysis: {
+    summary: string;
+    findings: { area: string; severity: "info" | "caution" | "concern"; detail: string }[];
+    confidence: "low" | "medium" | "high";
+    caveats: string[];
+  };
+  context: {
+    branchName: string;
+    filesInDiff: number;
+    suppressedSecretFiles: string[];
+    redactedTokenCount: number;
+    truncated: boolean;
+    overlaps: { file: string; otherRunIds: string[] }[];
+    validation: { configured: boolean; commandCount: number };
+  };
+  markdown: string;
+  cachedArtifactPath: string;
+  providerId: string;
+  model: string | null;
+  effort: string | null;
+  notes: string[];
+};
+
 export type MergeAdviceDto = {
   runId: string;
   task: string;
@@ -1187,6 +1214,14 @@ export const api = {
       "/api/integration/advice",
       { runIds },
     );
+  },
+  /** T13 slice 2: optional read-only LLM pass over the run's redacted diff.
+   *  Spawns a local provider (same exposure class as /api/consult); advisory
+   *  prose only, never changes the deterministic advice. */
+  async analyzeIntegration(runId: string): Promise<{ result: MergeAnalysisDto }> {
+    return jsonPost<{ result: MergeAnalysisDto }>("/api/integration/analyze", {
+      runId,
+    });
   },
   /** P7b: merge a complete integration branch into main, locally (never
    *  pushed). The confirm token guards against accidental invocation. */

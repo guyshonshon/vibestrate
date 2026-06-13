@@ -85,6 +85,8 @@ vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
 # also: .protectedPaths (true/false), .behindMain <commits>
 ```
 
+For a deeper look, `vibe integrate analyze <runId>` (or the **Analyze deeper** button on the Merge page) runs an optional read-only pass: a local provider reads the run's diff vs main and reports semantic risk - concurrency, error handling, missing tests - that a textual merge check can't see. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. The diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed) before the provider sees it, and the result is cached under the run.
+
 Then you decide:
 
 ```bash

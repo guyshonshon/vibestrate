@@ -89,6 +89,17 @@ run - no dry-run preview and deliberately **no recommendation** (a
 recommendation computed blind to conflicts would mislead). Fast read-only
 git ops; safe per page load.
 
+`POST /api/integration/analyze` (`{ runId }`) runs the **optional**
+"analyze deeper" pass: a local provider reads the run's byte-capped, redacted
+diff vs main and returns a semantic-risk narrative (never a merge verdict).
+It is broker-gated through the assist primitive, the same exposure class as
+`POST /api/consult` - it spawns a local provider, creates no run, and writes
+only a cached markdown artifact under the run's own dir. Secret-like files are
+suppressed and secret-shaped tokens redacted before the provider sees the
+diff. The deterministic recommendation and flags are computed elsewhere and
+are never changed by this pass. CLI equivalent: `vibe integrate analyze
+<runId>`.
+
 `POST /api/integration/advice` (`{ runIds? }`) returns **read-only,
 deterministic** merge advice for the selected (or all) merge-ready runs:
 risk flags derived from the run's assurance lanes (including the honest

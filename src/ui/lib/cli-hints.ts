@@ -201,6 +201,7 @@ export function hintForRoute(route: Route): CliHint {
         commands: [
           { cmd: "vibe integrate advise", note: "deterministic advice for all merge-ready runs" },
           { cmd: `vibe integrate advise ${route.runId ?? "<runId>"} --json`, note: "one run, machine-readable" },
+          { cmd: `vibe integrate analyze ${route.runId ?? "<runId>"}`, note: "optional LLM read of the diff (advisory, not a verdict)" },
           { cmd: "vibe integrate preview", note: "dry-run merge conflict report" },
           { cmd: "vibe integrate apply --into integration/<name>", note: "integrate into a dedicated branch (never main)" },
           { cmd: "vibe integrate finish <branch>", note: "merge to main - typed confirmation, local only" },

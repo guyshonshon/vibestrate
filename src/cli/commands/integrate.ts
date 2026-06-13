@@ -13,6 +13,10 @@ import {
   adviseMergeReadyRuns,
   type MergeAdvice,
 } from "../../integration/merge-advisor.js";
+import {
+  analyzeMergeDeeper,
+  MergeAnalyzeError,
+} from "../../integration/merge-analyze.js";
 
 async function ctx() {
   const detected = await detectProject(process.cwd());
@@ -202,6 +206,30 @@ async function cmdAdvise(
   }
 }
 
+async function cmdAnalyze(
+  runId: string,
+  opts: { json?: boolean },
+): Promise<number> {
+  const root = await ctx();
+  try {
+    const result = await analyzeMergeDeeper({ projectRoot: root, runId });
+    if (opts.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return 0;
+    }
+    console.log(result.markdown);
+    console.log("");
+    console.log(color.dim(`cached: ${result.cachedArtifactPath} · provider: ${result.providerId}`));
+    for (const n of result.notes) console.log(color.dim(n));
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${err instanceof MergeAnalyzeError ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 export function buildIntegrateCommand(): Command {
   const cmd = new Command("integrate").description(
     "Preview + integrate merge-ready run branches into a dedicated branch (never main, never push).",
@@ -222,6 +250,15 @@ export function buildIntegrateCommand(): Command {
     .option("--json", "emit the advice as JSON")
     .action(async (runIds: string[], opts: { json?: boolean }) =>
       process.exit(await cmdAdvise(runIds ?? [], opts)),
+    );
+  cmd
+    .command("analyze <runId>")
+    .description(
+      "Optional read-only LLM pass over the run's redacted diff vs main: semantic risk narrative (never a merge verdict). Spawns a local provider; caches markdown under the run.",
+    )
+    .option("--json", "emit the full analysis result as JSON")
+    .action(async (runId: string, opts: { json?: boolean }) =>
+      process.exit(await cmdAnalyze(runId, opts)),
     );
   cmd
     .command("apply [runIds...]")

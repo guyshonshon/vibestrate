@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.62",
+  "version": "0.7.63",
   "commands": [
     {
       "name": "init",
@@ -2394,6 +2394,34 @@
             {
               "flags": "--json",
               "description": "emit the advice as JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "analyze",
+          "path": [
+            "vibe",
+            "integrate",
+            "analyze"
+          ],
+          "description": "Optional read-only LLM pass over the run's redacted diff vs main: semantic risk narrative (never a merge verdict). Spawns a local provider; caches markdown under the run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit the full analysis result as JSON",
               "required": false,
               "optional": false,
               "negated": false

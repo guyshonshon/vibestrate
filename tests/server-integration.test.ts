@@ -114,6 +114,41 @@ describe("integration HTTP routes", () => {
     expect(branches.stdout.trim()).toBe("");
   });
 
+  it("analyze endpoint validates input and maps a bad run to 409 (no provider spawn)", async () => {
+    const dir = await makeRepo();
+    server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });
+
+    // Bad body -> 400 (no runId). Reaches no provider.
+    const bad = await fetch(`${server.url}/api/integration/analyze`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(bad.status).toBe(400);
+
+    // Path-traversal runId -> 400, refused by the route's assertSafeRunId
+    // before any fs/git read.
+    const traversal = await fetch(`${server.url}/api/integration/analyze`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runId: "../../etc/passwd" }),
+    });
+    expect(traversal.status).toBe(400);
+
+    // Unknown run -> 409, refused BEFORE any provider spawn (the merge-ready
+    // run "r1" is deliberately NOT used here so the test never invokes a real
+    // provider CLI - the provider path is covered with a fake in
+    // merge-analyze.test.ts).
+    const res = await fetch(`${server.url}/api/integration/analyze`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ runId: "does-not-exist" }),
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(typeof body.error === "string" || typeof body.message === "string").toBe(true);
+  });
+
   it("serves read-only merge advice (T13)", async () => {
     const dir = await makeRepo();
     server = await startServer({ projectRoot: dir, port: 0, host: "127.0.0.1" });

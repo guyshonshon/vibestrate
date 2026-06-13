@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.63
+
+- **"Analyze deeper" reads the actual diff before you merge.** The optional
+  final step in the merge advisor: `vibe integrate analyze <runId>` (or the
+  Analyze deeper button on the Merge page) sends the run's diff vs main to a
+  local provider and gets back a semantic-risk narrative - concurrency
+  hazards, error-handling gaps, missing tests, security-sensitive edits - that
+  a textual conflict check and pass/fail check-lanes can't see. It is advisory
+  prose, explicitly never a merge verdict, and it never changes the
+  deterministic recommendation or flags computed before it. The diff is
+  byte-capped and runs through the existing redaction rules first (secret-like
+  files suppressed to path-only, secret-shaped tokens removed), the spawn is
+  broker-gated like consult, and the result is cached as markdown under the
+  run. T13 (merge advisor) is now complete.
+
 ## 0.7.62
 
 - **Merge-advisor thresholds are yours to set.** New `merge.advisor` config

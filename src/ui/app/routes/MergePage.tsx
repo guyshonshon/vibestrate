@@ -8,6 +8,7 @@ import {
 import {
   api,
   type MergeAdviceDto,
+  type MergeAnalysisDto,
   type MergeOverviewRowDto,
 } from "../../lib/api.js";
 import { Chip, type ChipTone } from "../../components/design/Chip.js";
@@ -232,6 +233,9 @@ function MergeWindow({
   const [msg, setMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [finishable, setFinishable] = useState<string | null>(null);
+
+  const [analysis, setAnalysis] = useState<MergeAnalysisDto | null>(null);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -492,6 +496,90 @@ function MergeWindow({
             {actionError ? (
               <div className="mt-2 text-[11.5px] text-rose-300">
                 {actionError}
+              </div>
+            ) : null}
+          </section>
+
+          {/* Analyze deeper - optional LLM pass; advisory prose, never a
+              merge verdict, never changes the recommendation above. */}
+          <section className="mt-3 rounded-lg border border-violet-soft/20 bg-violet-soft/[0.03] p-4">
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-medium text-fog-200">
+                Analyze deeper
+              </span>
+              <span className="text-[10.5px] text-fog-500">
+                optional · reads the diff with a local provider · advisory only
+              </span>
+              <button
+                type="button"
+                disabled={busy !== null}
+                onClick={() =>
+                  act("analyze", async () => {
+                    setAnalyzeError(null);
+                    try {
+                      const r = await api.analyzeIntegration(runId);
+                      setAnalysis(r.result);
+                    } catch (e) {
+                      setAnalyzeError(e instanceof Error ? e.message : String(e));
+                    }
+                  })
+                }
+                className="ml-auto h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+              >
+                {busy === "analyze" ? "Analyzing…" : analysis ? "Re-analyze" : "Analyze the diff"}
+              </button>
+            </div>
+            {analyzeError ? (
+              <div className="mt-2 text-[11.5px] text-rose-300">{analyzeError}</div>
+            ) : null}
+            {analysis ? (
+              <div className="mt-3">
+                <div className="text-[12.5px] text-fog-100">
+                  {analysis.analysis.summary}
+                </div>
+                <div className="mt-1 text-[10.5px] text-fog-500">
+                  confidence: {analysis.analysis.confidence} · {analysis.context.filesInDiff} files
+                  {analysis.context.redactedTokenCount > 0
+                    ? ` · ${analysis.context.redactedTokenCount} secret token(s) redacted`
+                    : ""}
+                  {analysis.context.truncated ? " · diff truncated" : ""}
+                  {analysis.context.suppressedSecretFiles.length > 0
+                    ? ` · ${analysis.context.suppressedSecretFiles.length} secret-like file(s) suppressed`
+                    : ""}
+                </div>
+                {analysis.analysis.findings.length > 0 ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {analysis.analysis.findings.map((f, i) => (
+                      <li key={`${f.area}-${i}`} className="text-[12px] text-fog-200">
+                        <Chip
+                          tone={
+                            f.severity === "concern"
+                              ? "rose"
+                              : f.severity === "caution"
+                                ? "amber"
+                                : "neutral"
+                          }
+                        >
+                          {f.severity}
+                        </Chip>{" "}
+                        <span className="font-medium">{f.area}</span> - {f.detail}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mt-2 text-[12px] text-fog-400">
+                    No specific risks stood out in the diff.
+                  </div>
+                )}
+                {analysis.analysis.caveats.length > 0 ? (
+                  <div className="mt-2 text-[11px] text-fog-500">
+                    Could not verify: {analysis.analysis.caveats.join("; ")}
+                  </div>
+                ) : null}
+                <div className="mt-2 text-[10px] text-fog-600">
+                  Advisory only - the recommendation above is unchanged.
+                  Cached at {analysis.cachedArtifactPath}.
+                </div>
               </div>
             ) : null}
           </section>

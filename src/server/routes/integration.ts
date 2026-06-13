@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
-import { HttpError } from "../security.js";
+import { HttpError, assertSafeRunId } from "../security.js";
 import {
   listMergeReadyRuns,
   mergePreview,
@@ -14,6 +14,10 @@ import {
   adviseMergeReadyRuns,
   mergeReadyOverview,
 } from "../../integration/merge-advisor.js";
+import {
+  analyzeMergeDeeper,
+  MergeAnalyzeError,
+} from "../../integration/merge-analyze.js";
 
 export type IntegrationRoutesDeps = { projectRoot: string };
 
@@ -79,6 +83,29 @@ export async function registerIntegrationRoutes(
       return { advice: result.advice, missing: result.missing };
     } catch (err) {
       if (err instanceof IntegrationError) throw new HttpError(409, err.message);
+      throw new HttpError(500, err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  // T13 slice 2: OPTIONAL "analyze deeper" - a read-only consult-style LLM
+  // pass over the run's redacted diff. Spawns a local provider (broker-gated
+  // via the assist primitive, same exposure class as POST /api/consult),
+  // creates no run, writes only a cached markdown artifact under the run's
+  // own dir. It is advisory prose - it never changes the deterministic
+  // recommendation or flags. Inherits the `/api/*` bearer-auth gate.
+  const analyzeBody = z.object({ runId: z.string().min(1).max(200) });
+  app.post<{ Body: unknown }>("/api/integration/analyze", async (req) => {
+    const parsed = analyzeBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, parsed.error.message);
+    assertSafeRunId(parsed.data.runId); // path-guard before any fs/git read
+    try {
+      const result = await analyzeMergeDeeper({
+        projectRoot: deps.projectRoot,
+        runId: parsed.data.runId,
+      });
+      return { result };
+    } catch (err) {
+      if (err instanceof MergeAnalyzeError) throw new HttpError(409, err.message);
       throw new HttpError(500, err instanceof Error ? err.message : String(err));
     }
   });
