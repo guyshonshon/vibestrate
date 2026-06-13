@@ -187,7 +187,7 @@ function routeFor(routeKind: string): Route {
     case "profiles":
       return { kind: "profiles" };
     case "crew":
-      return { kind: "crew" };
+      return { kind: "crew", crewId: null };
     case "flows":
       return { kind: "flows" };
     case "settings":

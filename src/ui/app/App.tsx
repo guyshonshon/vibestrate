@@ -147,7 +147,7 @@ export function App() {
           navigate({ kind: "flow", flowId: null });
           break;
         case "a":
-          navigate({ kind: "crew" });
+          navigate({ kind: "crew", crewId: null });
           break;
         case "m":
           navigate({ kind: "metrics" });
@@ -290,7 +290,7 @@ export function App() {
       onShowHome={() => navigate({ kind: "mission" })}
       onShowFlows={() => navigate({ kind: "flows" })}
       onShowMetrics={() => navigate({ kind: "metrics" })}
-      onShowCrew={() => navigate({ kind: "crew" })}
+      onShowCrew={() => navigate({ kind: "crew", crewId: null })}
       onShowProviders={() => navigate({ kind: "providers" })}
       onShowProfiles={() => navigate({ kind: "profiles" })}
       onShowRunsList={() => navigate({ kind: "runs" })}
@@ -393,7 +393,11 @@ export function App() {
       ) : route.kind === "metrics" ? (
         <MetricsPage />
       ) : route.kind === "crew" ? (
-        <CrewPage />
+        <CrewPage
+          crewId={route.crewId}
+          onOpenCrew={(crewId) => navigate({ kind: "crew", crewId })}
+          onBackToCrews={() => navigate({ kind: "crew", crewId: null })}
+        />
       ) : route.kind === "profiles" ? (
         <ProfilesPage />
       ) : route.kind === "providers" ? (

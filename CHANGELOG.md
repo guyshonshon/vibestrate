@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.69
+
+- **The Crew page is now a hub, not a one-pager.** It opens on a list of your
+  crews - each a card with its role count, seat-coverage at a glance, and
+  "Configure" / "Set as default" - and you click into a crew to get its
+  dedicated configuration page (roles, profiles, seats), with a back link to
+  the list. Two clean stages instead of one long scroll with a dropdown.
+  Deep-linkable: `#/crew` is the hub, `#/crew/<id>` a crew's config.
+
 ## 0.7.68
 
 - **Switch the active crew from the dashboard or the CLI.** The Crew page now has

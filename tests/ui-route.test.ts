@@ -217,7 +217,6 @@ describe("round-trip", () => {
     const kinds: Route[] = [
       { kind: "flows" },
       { kind: "metrics" },
-      { kind: "crew" },
       { kind: "providers" },
     ];
     for (const r of kinds) {
@@ -225,5 +224,22 @@ describe("round-trip", () => {
     }
     expect(parseHashRoute("#/flows").kind).toBe("flows");
     expect(serializeRoute({ kind: "flows" })).toBe("#/flows");
+  });
+
+  it("parses + round-trips the crews hub vs a crew config page (T12)", () => {
+    expect(parseHashRoute("#/crew")).toEqual({ kind: "crew", crewId: null });
+    expect(parseHashRoute("#/crew/review-heavy")).toEqual({
+      kind: "crew",
+      crewId: "review-heavy",
+    });
+    expect(serializeRoute({ kind: "crew", crewId: null })).toBe("#/crew");
+    expect(serializeRoute({ kind: "crew", crewId: "review-heavy" })).toBe(
+      "#/crew/review-heavy",
+    );
+    // Legacy #/agents alias still lands on the hub.
+    expect(parseHashRoute("#/agents")).toEqual({ kind: "crew", crewId: null });
+    expect(
+      parseHashRoute(serializeRoute({ kind: "crew", crewId: "x" })),
+    ).toEqual({ kind: "crew", crewId: "x" });
   });
 });

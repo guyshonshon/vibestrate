@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
   ChevronDown,
+  ChevronRight,
   Cpu,
   PenLine,
   Plus,
@@ -64,10 +66,43 @@ type SeatStatus = "covered" | "uncovered" | "ambiguous";
 type SeatCoverageEntry = { roleIds: string[]; status: SeatStatus };
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
-export function CrewPage() {
+/** Seats any flow asks for (plus seats the crew already assigns) and how many
+ *  of the crew's roles fill each - shared by the hub cards and the config page
+ *  so the numbers always agree. Pure. */
+function computeCoverage(
+  crew: CrewView | null,
+  flows: DiscoveredFlow[],
+): { knownSeats: string[]; coverage: Map<string, SeatCoverageEntry> } {
+  const set = new Set<string>();
+  for (const f of flows) {
+    for (const seatId of Object.keys(f.definition.seats ?? {})) set.add(seatId);
+  }
+  for (const r of crew?.roles ?? []) for (const s of r.seats) set.add(s);
+  const knownSeats = [...set].sort();
+  const coverage = new Map<string, SeatCoverageEntry>();
+  for (const seat of knownSeats) {
+    const roleIds = (crew?.roles ?? [])
+      .filter((r) => r.seats.includes(seat))
+      .map((r) => r.id);
+    const status: SeatStatus =
+      roleIds.length === 0 ? "uncovered" : roleIds.length > 1 ? "ambiguous" : "covered";
+    coverage.set(seat, { roleIds, status });
+  }
+  return { knownSeats, coverage };
+}
+
+export function CrewPage({
+  crewId,
+  onOpenCrew,
+  onBackToCrews,
+}: {
+  /** null = the crews hub (list); set = that crew's configuration page. */
+  crewId: string | null;
+  onOpenCrew: (crewId: string) => void;
+  onBackToCrews: () => void;
+}) {
   const [crews, setCrews] = useState<CrewView[] | null>(null);
   const [defaultCrew, setDefaultCrew] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<ProfileView[]>([]);
   const [providers, setProviders] = useState<string[]>([]);
   const [catalog, setCatalog] = useState<ProviderCatalog>({});
@@ -104,11 +139,6 @@ export function CrewPage() {
       );
       setFlows(flowsRes.flows);
       setSkills(skillsRes.skills);
-      setSelectedId((cur) =>
-        cur && crewsRes.crews.some((c) => c.id === cur)
-          ? cur
-          : crewsRes.defaultCrew ?? crewsRes.crews[0]?.id ?? null,
-      );
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -125,17 +155,18 @@ export function CrewPage() {
   }
 
   const crew = useMemo(
-    () => crews?.find((c) => c.id === selectedId) ?? null,
-    [crews, selectedId],
+    () => crews?.find((c) => c.id === crewId) ?? null,
+    [crews, crewId],
   );
 
-  async function makeDefault() {
-    if (!crew || crew.id === defaultCrew) return;
+  async function makeDefault(id: string) {
+    if (id === defaultCrew) return;
+    const label = crews?.find((c) => c.id === id)?.label ?? id;
     setSettingDefault(true);
     try {
-      await api.setDefaultCrew(crew.id);
-      setDefaultCrew(crew.id);
-      flash({ kind: "ok", text: `"${crew.label}" is now the default crew.` });
+      await api.setDefaultCrew(id);
+      setDefaultCrew(id);
+      flash({ kind: "ok", text: `"${label}" is now the default crew.` });
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -143,34 +174,10 @@ export function CrewPage() {
     }
   }
 
-  // Every seat any flow asks for, plus seats already assigned in the crew -
-  // the full set the user can allocate.
-  const knownSeats = useMemo(() => {
-    const set = new Set<string>();
-    for (const f of flows) {
-      for (const seatId of Object.keys(f.definition.seats ?? {})) set.add(seatId);
-    }
-    for (const r of crew?.roles ?? []) for (const s of r.seats) set.add(s);
-    return [...set].sort();
-  }, [flows, crew]);
-
-  // Coverage: how many roles in this crew fill each seat.
-  const coverage = useMemo(() => {
-    const map = new Map<string, SeatCoverageEntry>();
-    for (const seat of knownSeats) {
-      const roleIds = (crew?.roles ?? [])
-        .filter((r) => r.seats.includes(seat))
-        .map((r) => r.id);
-      const status: SeatStatus =
-        roleIds.length === 0
-          ? "uncovered"
-          : roleIds.length > 1
-            ? "ambiguous"
-            : "covered";
-      map.set(seat, { roleIds, status });
-    }
-    return map;
-  }, [knownSeats, crew]);
+  const { knownSeats, coverage } = useMemo(
+    () => computeCoverage(crew, flows),
+    [crew, flows],
+  );
 
   async function patchRole(
     roleId: string,
@@ -213,71 +220,73 @@ export function CrewPage() {
     }
   }
 
+  const hubView = crewId === null;
+
   return (
     <div className="relative z-10 mx-auto max-w-[1180px] px-8 pt-6 pb-16 fade-up">
-      <section className="mt-1 flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-            <Users className="h-3 w-3" strokeWidth={1.8} /> Crew
-          </div>
-          <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
-            {crew?.label ?? "Crew"}
-            {crew && crew.id === defaultCrew ? (
-              <span className="ml-2 align-middle">
-                <Chip tone="violet">default</Chip>
-              </span>
-            ) : null}
-          </h1>
-          <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-            Your local team of roles. Each role runs on a{" "}
-            <strong className="text-fog-100">Profile</strong> and lists the{" "}
-            <strong className="text-fog-100">Seats</strong> it can take. A run
-            matches a Flow's seats to these roles.
-          </p>
+      {error ? (
+        <div className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+          {error}
         </div>
-        {crews && crews.length > 1 ? (
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 text-[12px] text-fog-300">
-              <span className="eyebrow">crew</span>
-              <select
-                value={selectedId ?? ""}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
-              >
-                {crews.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {crew && crew.id !== defaultCrew ? (
+      ) : null}
+
+      {hubView ? (
+        // ── Stage 1: the crews hub - a list you select from ─────────────────
+        <CrewHub
+          crews={crews}
+          defaultCrew={defaultCrew}
+          flows={flows}
+          settingDefault={settingDefault}
+          onOpen={onOpenCrew}
+          onSetDefault={(id) => void makeDefault(id)}
+        />
+      ) : !crews ? (
+        <div className="mt-6 text-fog-400 text-[13px]">Loading crew…</div>
+      ) : !crew ? (
+        // ── Stage 2 (missing): the requested crew doesn't exist ─────────────
+        <div className="mt-6">
+          <BackToCrews onBack={onBackToCrews} />
+          <div className="mt-4 text-fog-400 text-[13px]">
+            No crew named <span className="mono">{crewId}</span>.
+          </div>
+        </div>
+      ) : (
+        // ── Stage 2: the selected crew's configuration page ─────────────────
+        <>
+          <BackToCrews onBack={onBackToCrews} />
+          <section className="mt-3 flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <div className="eyebrow mb-1.5 flex items-center gap-1.5">
+                <Users className="h-3 w-3" strokeWidth={1.8} /> Configuring crew
+              </div>
+              <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
+                {crew.label}
+                {crew.id === defaultCrew ? (
+                  <span className="ml-2 align-middle">
+                    <Chip tone="violet">default</Chip>
+                  </span>
+                ) : null}
+              </h1>
+              <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
+                Each role runs on a{" "}
+                <strong className="text-fog-100">Profile</strong> and lists the{" "}
+                <strong className="text-fog-100">Seats</strong> it can take. A run
+                matches a Flow's seats to these roles.
+              </p>
+            </div>
+            {crew.id !== defaultCrew ? (
               <button
                 type="button"
                 disabled={settingDefault}
-                onClick={() => void makeDefault()}
+                onClick={() => void makeDefault(crew.id)}
                 className="h-8 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[12px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
                 title="Make this the crew runs use when none is picked (writes defaultCrew)"
               >
                 {settingDefault ? "Setting…" : "Set as default"}
               </button>
             ) : null}
-          </div>
-        ) : null}
-      </section>
+          </section>
 
-      {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-          {error}
-        </div>
-      ) : null}
-
-      {!crews ? (
-        <div className="mt-6 text-fog-400 text-[13px]">Loading crew…</div>
-      ) : !crew ? (
-        <div className="mt-6 text-fog-400 text-[13px]">No crew configured.</div>
-      ) : (
-        <>
           <SeatCoverage seats={knownSeats} coverage={coverage} crew={crew} />
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
             {crew.roles.map((role) => (
@@ -320,6 +329,125 @@ export function CrewPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+// ─── Crews hub (the list you select from) ───────────────────────────────────
+
+function BackToCrews({ onBack }: { onBack: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="inline-flex items-center gap-1.5 text-[12px] text-fog-400 hover:text-fog-100"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.7} /> All crews
+    </button>
+  );
+}
+
+function CrewHub({
+  crews,
+  defaultCrew,
+  flows,
+  settingDefault,
+  onOpen,
+  onSetDefault,
+}: {
+  crews: CrewView[] | null;
+  defaultCrew: string | null;
+  flows: DiscoveredFlow[];
+  settingDefault: boolean;
+  onOpen: (crewId: string) => void;
+  onSetDefault: (crewId: string) => void;
+}) {
+  return (
+    <>
+      <section className="mt-1">
+        <div className="eyebrow mb-1.5 flex items-center gap-1.5">
+          <Users className="h-3 w-3" strokeWidth={1.8} /> Crews
+        </div>
+        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
+          Your crews
+        </h1>
+        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
+          Each crew is a roster of roles. Pick one to configure its roles,
+          profiles, and seats - or set the one runs use by default.
+        </p>
+      </section>
+
+      {!crews ? (
+        <div className="mt-6 text-fog-400 text-[13px]">Loading crews…</div>
+      ) : crews.length === 0 ? (
+        <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-[12.5px] text-fog-400">
+          No crews configured.
+        </div>
+      ) : (
+        <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {crews.map((c) => {
+            const { knownSeats, coverage } = computeCoverage(c, flows);
+            const uncovered = knownSeats.filter(
+              (s) => coverage.get(s)?.status === "uncovered",
+            ).length;
+            const ambiguous = knownSeats.filter(
+              (s) => coverage.get(s)?.status === "ambiguous",
+            ).length;
+            const isDefault = c.id === defaultCrew;
+            return (
+              <li
+                key={c.id}
+                className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 hover:border-violet-soft/30"
+              >
+                <button
+                  type="button"
+                  onClick={() => onOpen(c.id)}
+                  className="flex w-full items-center gap-2 text-left"
+                >
+                  <span className="text-[14px] font-medium text-fog-100 group-hover:text-violet-200">
+                    {c.label}
+                  </span>
+                  {isDefault ? <Chip tone="violet">default</Chip> : null}
+                  <ChevronRight
+                    className="ml-auto h-4 w-4 text-fog-500 group-hover:text-violet-300"
+                    strokeWidth={1.7}
+                  />
+                </button>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="text-fog-400">{c.roles.length} role(s)</span>
+                  <span className="text-fog-600">·</span>
+                  {uncovered > 0 ? (
+                    <Chip tone="rose">{uncovered} seat(s) uncovered</Chip>
+                  ) : (
+                    <Chip tone="emerald">all seats covered</Chip>
+                  )}
+                  {ambiguous > 0 ? <Chip tone="amber">{ambiguous} ambiguous</Chip> : null}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpen(c.id)}
+                    className="h-7 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
+                  >
+                    Configure
+                  </button>
+                  {!isDefault ? (
+                    <button
+                      type="button"
+                      disabled={settingDefault}
+                      onClick={() => onSetDefault(c.id)}
+                      className="h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                      title="Make this the crew runs use when none is picked"
+                    >
+                      Set as default
+                    </button>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }
 
