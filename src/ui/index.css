@@ -500,3 +500,97 @@ button:active,
 .hljs-punctuation {
   color: var(--color-fog-300);
 }
+
+/* ── Consult orb (the "AI thinking" morph) ──────────────────────────────────
+ * A physical, majestic morphing sphere shown while the consult is running.
+ * Layered blobs morph their border-radius out of phase, rotate, and breathe;
+ * a conic shimmer ring spins behind them; an outer halo pulses. The whole
+ * thing is pure CSS so it never blocks the main thread. Respects
+ * prefers-reduced-motion (animations collapse to a gentle pulse). */
+@keyframes vibestrate-orb-morph-a {
+  0%, 100% { border-radius: 56% 44% 60% 40% / 54% 50% 50% 46%; transform: rotate(0deg) scale(1); }
+  33%      { border-radius: 42% 58% 38% 62% / 46% 62% 38% 54%; transform: rotate(120deg) scale(1.06); }
+  66%      { border-radius: 62% 38% 54% 46% / 38% 44% 56% 62%; transform: rotate(240deg) scale(0.96); }
+}
+@keyframes vibestrate-orb-morph-b {
+  0%, 100% { border-radius: 44% 56% 48% 52% / 60% 42% 58% 40%; transform: rotate(0deg) scale(1.02); }
+  50%      { border-radius: 60% 40% 56% 44% / 40% 58% 42% 60%; transform: rotate(-180deg) scale(0.92); }
+}
+@keyframes vibestrate-orb-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vibestrate-orb-halo {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%      { opacity: 0.95; transform: scale(1.12); }
+}
+@keyframes vibestrate-orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+.orb { position: relative; display: grid; place-items: center; isolation: isolate; }
+.orb__halo {
+  position: absolute; inset: -22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(167,139,250,0.55) 0%, rgba(124,197,255,0.28) 40%, transparent 70%);
+  filter: blur(14px);
+  animation: vibestrate-orb-halo 4.5s ease-in-out infinite;
+  z-index: 0;
+}
+.orb__ring {
+  position: absolute; inset: 2%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(124,197,255,0.0) 40deg,
+    rgba(167,139,250,0.65) 120deg, rgba(124,197,255,0.55) 200deg,
+    rgba(139,124,255,0.0) 300deg, transparent 360deg);
+  filter: blur(3px);
+  opacity: 0.0;
+  animation: vibestrate-orb-spin 6s linear infinite;
+  transition: opacity 600ms ease;
+  z-index: 1;
+}
+.orb__blob {
+  position: absolute; inset: 12%;
+  z-index: 2;
+  mix-blend-mode: screen;
+}
+.orb__blob--a {
+  background: radial-gradient(circle at 35% 30%,
+    #c9b8ff 0%, var(--color-violet-soft) 30%, var(--color-violet-deep) 70%, #2a1d6b 100%);
+  box-shadow: inset -6px -8px 22px rgba(20,10,60,0.55), inset 6px 8px 20px rgba(201,184,255,0.35);
+  animation: vibestrate-orb-morph-a 7s ease-in-out infinite;
+}
+.orb__blob--b {
+  inset: 20%;
+  background: radial-gradient(circle at 65% 70%,
+    rgba(124,197,255,0.9) 0%, rgba(139,124,255,0.7) 45%, transparent 72%);
+  filter: blur(2px);
+  animation: vibestrate-orb-morph-b 9s ease-in-out infinite;
+}
+.orb__core {
+  position: absolute; inset: 34%;
+  z-index: 3;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 38%, #ffffff 0%, #d8ccff 22%, transparent 60%);
+  filter: blur(1px);
+  animation: vibestrate-orb-breathe 3.2s ease-in-out infinite;
+}
+/* Thinking state: energize the morph + reveal the shimmer ring. */
+.orb--thinking .orb__ring { opacity: 1; animation-duration: 3.4s; }
+.orb--thinking .orb__blob--a { animation-duration: 3.6s; }
+.orb--thinking .orb__blob--b { animation-duration: 4.6s; }
+.orb--thinking .orb__halo { animation-duration: 2.6s; }
+.orb--thinking .orb__core { animation-duration: 1.8s; }
+/* Idle state: calm, slow, dimmer. */
+.orb--idle .orb__halo { opacity: 0.4; animation-duration: 6.5s; }
+.orb--idle .orb__blob--a { animation-duration: 12s; }
+.orb--idle .orb__blob--b { animation-duration: 15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orb__blob--a, .orb__blob--b, .orb__ring, .orb__core, .orb__halo {
+    animation: vibestrate-orb-halo 3s ease-in-out infinite !important;
+  }
+  .orb__ring { opacity: 0.4; }
+}

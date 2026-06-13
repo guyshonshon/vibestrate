@@ -13,7 +13,6 @@ import {
   Library,
   ListChecks,
   Menu,
-  MessagesSquare,
   Search,
   Settings as SettingsIcon,
   Settings2,
@@ -466,23 +465,10 @@ export function TopBar({
         ) : null}
       </div>
 
-      {/* ── Right cluster (consult / jump-to / bell / settings / avatar) ── */}
+      {/* ── Right cluster (jump-to / bell / settings / avatar) ──
+          Consult moved to the floating orb dock (bottom-right, ConsultDock),
+          so it is no longer a top-bar button. */}
       <div className="flex items-center gap-2 shrink-0 ml-auto xl:ml-0">
-        <button
-          type="button"
-          onClick={onShowConsult}
-          className={cn(
-            "h-8 px-2.5 rounded-lg border flex items-center gap-2 text-[12px] whitespace-nowrap",
-            currentNav === "consult"
-              ? "border-violet-soft/40 bg-violet-soft/[0.10] text-fog-100"
-              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-fog-300",
-          )}
-          title="Consult the project orchestrator"
-          aria-label="Consult"
-        >
-          <MessagesSquare className="h-3.5 w-3.5" strokeWidth={1.7} />
-          <span className="hidden lg:inline">Consult</span>
-        </button>
         <button
           type="button"
           onClick={() =>

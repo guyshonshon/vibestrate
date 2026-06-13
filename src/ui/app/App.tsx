@@ -13,6 +13,7 @@ import { ProjectPage } from "./routes/ProjectPage.js";
 import { CodebasePage } from "./routes/CodebasePage.js";
 import { GitPage } from "./routes/GitPage.js";
 import { MergePage } from "./routes/MergePage.js";
+import { ConsultDock } from "../components/consult/ConsultDock.js";
 import { FlowBuilderPage } from "./routes/FlowBuilderPage.js";
 import { FlowsPage } from "./routes/FlowsPage.js";
 import { MetricsPage } from "./routes/MetricsPage.js";
@@ -415,6 +416,10 @@ export function App() {
       </ErrorBoundary>
       <CliHintOverlay route={route} />
       <GlobalErrorOverlay />
+      {/* Floating consult dock - the orb entry point, available on every page
+          (replaces the old top-right Consult button). The full-page Consult
+          route still exists for task-scoped deep links. */}
+      {route.kind === "consult" ? null : <ConsultDock />}
       {switcherOpen ? (
         <RunSwitcher
           onClose={() => setSwitcherOpen(false)}

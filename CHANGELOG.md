@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.65
+
+- **Consult is now a floating orb, not a top-bar button.** A glowing orb rests
+  at the bottom-right of every screen; click it to open a large chat panel and
+  ask the project orchestrator from anywhere. While it is thinking, the orb
+  takes center stage and morphs - a physical, majestic "AI is working"
+  animation (pure CSS, respects reduced-motion). The old top-right Consult
+  button is gone; the full-page Consult route still exists for task-scoped
+  deep links, and both surfaces share one answer renderer. Provider failures
+  now show the real reason inline (see 0.7.64), with a one-line hint that model
+  /effort options are suggestions, not probed from your install.
+
 ## 0.7.64
 
 - **Consult/assist errors now tell you the real reason.** When a provider CLI
