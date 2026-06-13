@@ -83,10 +83,22 @@ export function SupervisorPanel({
   children?: React.ReactNode;
 }) {
   const [feedOpen, setFeedOpen] = useState(true);
+  const [whyOpen, setWhyOpen] = useState(false);
   const persona =
     selection?.personaId ?? assurance?.supervisor?.persona ?? "staff-engineer";
   const independence = assurance?.supervisor?.independence ?? null;
   const story = selectionStory(selection);
+  // The full "Flow & why" is worth expanding only when there's more than the
+  // one-line story already carries: extra reasons, recorded risks, a non-default
+  // posture, an advisory, or a persona upgrade. Default/forced runs (no real
+  // selection reasoning) stay collapsed to the story line.
+  const hasWhy =
+    !!selection &&
+    (selection.reasons.length > 1 ||
+      selection.risks.length > 0 ||
+      selection.posture !== "normal" ||
+      !!selection.advisory ||
+      !!selection.personaUpgrade);
   const decision = arbitration?.decision?.output ?? null;
   const findings = arbitration?.findings ?? [];
   const sevCount = (sev: string) =>
@@ -116,6 +128,22 @@ export function SupervisorPanel({
             {story}
           </span>
         ) : null}
+        {hasWhy ? (
+          <button
+            type="button"
+            onClick={() => setWhyOpen((v) => !v)}
+            className="flex shrink-0 items-center gap-1 text-[11px] text-violet-soft hover:text-fog-200"
+            aria-expanded={whyOpen}
+            title="The full flow-selection reasoning the orchestrator recorded"
+          >
+            {whyOpen ? (
+              <ChevronDown className="h-3 w-3" strokeWidth={1.7} />
+            ) : (
+              <ChevronRight className="h-3 w-3" strokeWidth={1.7} />
+            )}
+            why
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setFeedOpen((v) => !v)}
@@ -129,6 +157,56 @@ export function SupervisorPanel({
           {engagement.length} decision{engagement.length === 1 ? "" : "s"}
         </button>
       </div>
+
+      {whyOpen && selection && hasWhy ? (
+        <div className="mt-2 rounded-lg border border-violet-soft/25 bg-violet-soft/[0.05] px-3 py-2 text-[11.5px]">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-fog-300">
+            <span className="eyebrow text-violet-soft">Flow &amp; why</span>
+            <span className="mono text-fog-200">{selection.flowId}</span>
+            {selection.crewId ? (
+              <span className="mono text-[10.5px] text-fog-500">crew: {selection.crewId}</span>
+            ) : null}
+            <span className="text-fog-500">·</span>
+            <span className="text-fog-400">{selection.source}</span>
+            <span className="text-fog-500">·</span>
+            <span className="text-fog-400">{selection.confidence} confidence</span>
+            {selection.posture !== "normal" ? (
+              <Chip tone="amber">{selection.posture}</Chip>
+            ) : null}
+          </div>
+          {selection.personaUpgrade ? (
+            <p className="mt-1.5 text-amber-300/90">
+              Upgraded {selection.personaUpgrade.from} → {selection.personaUpgrade.to}
+              {selection.personaUpgrade.signals.length > 0
+                ? ` (matched ${selection.personaUpgrade.signals.map((s) => `"${s}"`).join(", ")})`
+                : ""}
+            </p>
+          ) : null}
+          {selection.reasons.length > 0 ? (
+            <ul className="mt-1.5 space-y-0.5">
+              {selection.reasons.map((r, i) => (
+                <li key={i} className="flex gap-1.5 text-fog-300">
+                  <span className="text-violet-soft">•</span>
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {selection.risks.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[10.5px] text-fog-500">risks:</span>
+              {selection.risks.map((r, i) => (
+                <Chip key={i} tone="amber">
+                  {r}
+                </Chip>
+              ))}
+            </div>
+          ) : null}
+          {selection.advisory ? (
+            <p className="mt-1.5 text-fog-400">{selection.advisory}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {decision ? (
         <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[12px]">

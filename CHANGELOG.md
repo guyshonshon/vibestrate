@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.78
+
+- **"Flow & why" - see the full reasoning behind a run's flow.** The Supervisor
+  panel already showed a one-line story ("chose express - strict prose only");
+  now a **why** toggle expands it to the complete record the orchestrator kept:
+  every selection reason, the recorded risks, a non-default posture
+  (sandbox-suggested / approval-suggested), any advisory, and a persona upgrade
+  (from → to, with the signals that matched). Read-only and degrades gracefully -
+  default/forced runs that carry no real selection reasoning just keep the one
+  line, no empty panel. (This is the dashboard "Flow & why" surface; the separate
+  crew/profile/posture *auto-selection* backend remains a future slice.)
+
 ## 0.7.77
 
 - **Merge advisor notices when a run didn't get the isolation it asked for.** If
