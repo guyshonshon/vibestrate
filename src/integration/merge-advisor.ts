@@ -46,7 +46,8 @@ export type MergeRiskFlagId =
   | "protected_paths"
   | "large_change"
   | "diverged_main" // run branch far behind main: stale change
-  | "overlaps_other_ready"; // cumulative preview: conflict may be with an earlier selected branch
+  | "overlaps_other_ready" // cumulative preview: conflict may be with an earlier selected branch
+  | "isolation_incomplete"; // a sandbox was requested but a turn ran unconfined (posture "partial")
 
 export type MergeRiskFlag = {
   id: MergeRiskFlagId;
@@ -81,6 +82,10 @@ export type AssuranceProjection = {
   };
   anyRealCheckPassed: boolean;
   toleratedStepFailures: number;
+  /** How confined the run actually was (run-assurance isolation posture). Used
+   *  only for the `isolation_incomplete` caution - a "partial" posture means a
+   *  sandbox was requested but a turn ran unconfined. */
+  isolationPosture: RunAssurance["isolation"]["posture"];
 };
 
 export type MergeAdvice = {
@@ -141,6 +146,7 @@ export function projectAssurance(a: RunAssurance): AssuranceProjection {
     },
     anyRealCheckPassed: a.anyRealCheckPassed,
     toleratedStepFailures: a.coverage.toleratedStepFailures,
+    isolationPosture: a.isolation.posture,
   };
 }
 
@@ -323,6 +329,23 @@ export function computeMergeAdvice(input: MergeAdviceInput): MergeAdvice {
         severity: "caution",
         summary: "some best-effort steps failed and were tolerated - coverage is degraded",
         detail: `${assurance.toleratedStepFailures} continueOnError step(s) failed without aborting the run; whatever scrutiny they would have provided did not happen.`,
+      });
+    }
+    // Only "partial" - a sandbox was REQUESTED but a turn ran unconfined. The
+    // default "none" is the intended baseline (worktree + diff gate) and would
+    // be noise on every run, so it is NOT flagged. Caution, never a warning: the
+    // diff was still gated; this only says the run didn't get all the isolation
+    // it asked for - worth a look when the change is also sensitive.
+    if (assurance.isolationPosture === "partial") {
+      const protectedNote =
+        topology.protectedPathHits.length > 0
+          ? ` The change also touches ${topology.protectedPathHits.length} protected path(s), so the partial confinement is worth a closer look.`
+          : "";
+      flags.push({
+        id: "isolation_incomplete",
+        severity: "caution",
+        summary: "a sandbox was requested but at least one turn ran unconfined",
+        detail: `Run isolation posture: partial - confinement was requested (execution.isolation / hardenReadOnlySeats) but a turn ran on a provider that couldn't honor it, so part of the run had broader filesystem access than intended. The diff was still gated and reviewed.${protectedNote}`,
       });
     }
   }

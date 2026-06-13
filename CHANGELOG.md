@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.77
+
+- **Merge advisor notices when a run didn't get the isolation it asked for.** If
+  a run's assurance posture is `partial` - confinement was requested
+  (`execution.isolation` / `hardenReadOnlySeats`) but a turn ran on a provider
+  that couldn't honor it - the merge advisor now raises an `isolation_incomplete`
+  **caution** (never a warning, never changes the recommendation). It fires only
+  on `partial`, so the default `none` baseline stays silent and there's no noise
+  on ordinary merges. Surfaces wherever advisor flags already do: `vibe integrate
+  analyze`, the Merge page, and the API.
+
 ## 0.7.76
 
 - **Run assurance now shows how confined the run actually was.** The

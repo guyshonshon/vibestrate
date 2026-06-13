@@ -31,6 +31,7 @@ const verifiedAssurance: AssuranceProjection = {
   lanes: { validation: "passed", review: "approved", verification: "not_applicable" },
   anyRealCheckPassed: true,
   toleratedStepFailures: 0,
+  isolationPosture: "none",
 };
 
 function baseInput(overrides: Partial<MergeAdviceInput> = {}): MergeAdviceInput {
@@ -171,6 +172,7 @@ describe("computeMergeAdvice - T2 honesty (lanes + anyRealCheckPassed)", () => {
           },
           anyRealCheckPassed: false,
           toleratedStepFailures: 0,
+          isolationPosture: "none",
         },
       }),
     );
@@ -192,6 +194,7 @@ describe("computeMergeAdvice - T2 honesty (lanes + anyRealCheckPassed)", () => {
           lanes: { validation: "failed", review: "approved", verification: "not_run" },
           anyRealCheckPassed: true,
           toleratedStepFailures: 0,
+          isolationPosture: "none",
         },
       }),
     );
@@ -212,6 +215,7 @@ describe("computeMergeAdvice - T2 honesty (lanes + anyRealCheckPassed)", () => {
           },
           anyRealCheckPassed: true,
           toleratedStepFailures: 0,
+          isolationPosture: "none",
         },
       }),
     );
@@ -229,12 +233,35 @@ describe("computeMergeAdvice - T2 honesty (lanes + anyRealCheckPassed)", () => {
           lanes: { validation: "passed", review: "approved", verification: "not_applicable" },
           anyRealCheckPassed: true,
           toleratedStepFailures: 2,
+          isolationPosture: "none",
         },
       }),
     );
     expect(a.flags.map((f) => f.id)).toContain("tolerated_failures");
     expect(a.headline).not.toMatch(/^Safe to merge/);
     expect(a.detail).toMatch(/tolerated/);
+  });
+
+  it("isolation 'partial' -> isolation_incomplete caution (never a warning)", () => {
+    const a = computeMergeAdvice(
+      baseInput({
+        assurance: { ...verifiedAssurance, isolationPosture: "partial" },
+      }),
+    );
+    const flag = a.flags.find((f) => f.id === "isolation_incomplete");
+    expect(flag).toBeDefined();
+    expect(flag!.severity).toBe("caution");
+    // It's a heads-up, not a blocker: a clean verified run still recommends finish-now.
+    expect(a.recommendation).toBe("finish-now");
+  });
+
+  it("isolation 'none'/'sandboxed'/'hardened' never flags (no noise on the default baseline)", () => {
+    for (const posture of ["none", "sandboxed", "hardened"] as const) {
+      const a = computeMergeAdvice(
+        baseInput({ assurance: { ...verifiedAssurance, isolationPosture: posture } }),
+      );
+      expect(a.flags.map((f) => f.id)).not.toContain("isolation_incomplete");
+    }
   });
 
   it("a run whose branch is gone degrades to branch_gone + resolve-first", () => {
