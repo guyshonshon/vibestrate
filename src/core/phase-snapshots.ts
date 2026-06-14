@@ -191,3 +191,71 @@ export async function deletePhaseSnapshotRefs(
     await git(worktreeOrRepo, ["update-ref", "-d", ref]);
   }
 }
+
+const SNAPSHOT_REF_PREFIX = "refs/vibestrate/snapshots/";
+
+/**
+ * Given every snapshot ref (`refs/vibestrate/snapshots/<runId>/<seq>-<stage>`)
+ * with its committer date, pick the run ids to PRUNE: all but the `keepRuns`
+ * most-recent runs. A run's recency is the newest committer date across its
+ * snapshot refs, so a run touched recently is never pruned. Pure +
+ * table-testable. `keepRuns <= 0` prunes nothing (a safety opt-out, not "prune
+ * all"). Ref names that don't match the layout are ignored.
+ */
+export function selectStaleSnapshotRuns(
+  refs: { refName: string; committedAt: number }[],
+  keepRuns: number,
+): string[] {
+  if (keepRuns <= 0) return [];
+  const recency = new Map<string, number>();
+  for (const { refName, committedAt } of refs) {
+    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
+    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
+    const lastSlash = rest.lastIndexOf("/");
+    if (lastSlash <= 0) continue; // need both <runId> and a final <seq>-<stage>
+    const runId = rest.slice(0, lastSlash);
+    const prev = recency.get(runId);
+    if (prev === undefined || committedAt > prev) recency.set(runId, committedAt);
+  }
+  return [...recency.entries()]
+    .sort((a, b) => b[1] - a[1]) // newest first
+    .slice(keepRuns) // keep the head; prune the tail
+    .map(([runId]) => runId);
+}
+
+/**
+ * Prune rewind-snapshot refs so `.git` can't grow without bound (ISSUE-001 #1):
+ * keep the `keepRuns` most-recent runs' snapshots, delete the rest. Best-effort
+ * - a git failure prunes nothing and never throws. Only refs are removed (the
+ * runs' branches/worktrees/artifacts are untouched, and git's reflog keeps the
+ * objects through its gc grace), and recent runs stay fully resumable. Returns
+ * the run ids whose snapshots were pruned. `keepRuns <= 0` disables pruning.
+ */
+export async function pruneOldSnapshots(
+  repo: string,
+  keepRuns: number,
+): Promise<string[]> {
+  if (keepRuns <= 0) return [];
+  const list = await git(repo, [
+    "for-each-ref",
+    "--format=%(refname) %(committerdate:unix)",
+    "refs/vibestrate/snapshots",
+  ]);
+  if (!list.ok || !list.stdout) return [];
+  const refs = list.stdout
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const sp = line.lastIndexOf(" ");
+      return {
+        refName: sp > 0 ? line.slice(0, sp) : line,
+        committedAt: sp > 0 ? Number(line.slice(sp + 1)) || 0 : 0,
+      };
+    });
+  const stale = selectStaleSnapshotRuns(refs, keepRuns);
+  for (const runId of stale) {
+    await deletePhaseSnapshotRefs(repo, runId);
+  }
+  return stale;
+}

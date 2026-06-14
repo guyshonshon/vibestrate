@@ -9,6 +9,8 @@ import {
   pickSnapshotForResume,
   restorePhaseSnapshot,
   isSafeRestoreTarget,
+  selectStaleSnapshotRuns,
+  pruneOldSnapshots,
 } from "../src/core/phase-snapshots.js";
 
 async function git(cwd: string, args: string[]) {
@@ -112,5 +114,79 @@ describe("phase-snapshots", () => {
     expect(pickSnapshotForResume(snaps, "verifying")?.stage).toBe("fixing");
     // no snapshots ⇒ null.
     expect(pickSnapshotForResume([], "reviewing")).toBeNull();
+  });
+});
+
+describe("selectStaleSnapshotRuns (pure retention selector)", () => {
+  const ref = (runId: string, seq: number, committedAt: number) => ({
+    refName: `refs/vibestrate/snapshots/${runId}/${seq}-executing`,
+    committedAt,
+  });
+
+  it("keeps the N most-recent runs, prunes the tail (recency = newest ref per run)", () => {
+    const refs = [
+      ref("old", 0, 100),
+      ref("mid", 0, 200),
+      ref("new", 0, 150),
+      ref("new", 1, 300), // 'new' is most recent via its 2nd snapshot
+    ];
+    // keep 2 -> keep new(300) + mid(200), prune old(100).
+    expect(selectStaleSnapshotRuns(refs, 2)).toEqual(["old"]);
+    // keep 1 -> keep new only.
+    expect(new Set(selectStaleSnapshotRuns(refs, 1))).toEqual(new Set(["mid", "old"]));
+  });
+
+  it("keepRuns <= 0 prunes NOTHING (opt-out, never 'prune all')", () => {
+    const refs = [ref("a", 0, 1), ref("b", 0, 2)];
+    expect(selectStaleSnapshotRuns(refs, 0)).toEqual([]);
+    expect(selectStaleSnapshotRuns(refs, -5)).toEqual([]);
+  });
+
+  it("fewer runs than the window -> nothing pruned; malformed refs ignored", () => {
+    expect(selectStaleSnapshotRuns([ref("a", 0, 1)], 50)).toEqual([]);
+    expect(
+      selectStaleSnapshotRuns([{ refName: "refs/heads/main", committedAt: 9 }], 1),
+    ).toEqual([]);
+  });
+});
+
+describe("pruneOldSnapshots (opt-in; deletes only the stale runs' refs)", () => {
+  /** Create a snapshot ref for `runId` with an explicit committer date. */
+  async function snapAt(root: string, wt: string, runId: string, date: string) {
+    await git(wt, ["add", "-A"]);
+    const tree = (await execa("git", ["write-tree"], { cwd: wt })).stdout.trim();
+    const env = { ...process.env, GIT_COMMITTER_DATE: date, GIT_AUTHOR_DATE: date };
+    const commit = (
+      await execa("git", ["commit-tree", tree, "-m", "snap"], { cwd: wt, env })
+    ).stdout.trim();
+    await git(wt, ["update-ref", `refs/vibestrate/snapshots/${runId}/0-executing`, commit]);
+  }
+  const refsFor = async (root: string, runId: string) =>
+    (
+      await execa(
+        "git",
+        ["for-each-ref", "--format=%(refname)", `refs/vibestrate/snapshots/${runId}`],
+        { cwd: root },
+      )
+    ).stdout
+      .split("\n")
+      .filter(Boolean);
+
+  it("prunes the oldest run beyond the window, keeps recent ones; opt-out keeps all", async () => {
+    const root = await mkRepo();
+    const wt = await addWorktree(root, "w");
+    await fs.writeFile(path.join(wt, "f.txt"), "x\n");
+    await snapAt(root, wt, "run-old", "2020-01-01T00:00:00");
+    await snapAt(root, wt, "run-new", "2026-01-01T00:00:00");
+
+    // Opt-out: keepRuns 0 deletes nothing.
+    expect(await pruneOldSnapshots(root, 0)).toEqual([]);
+    expect(await refsFor(root, "run-old")).toHaveLength(1);
+
+    // keep 1 -> prune the older run only; the recent run stays resumable.
+    const pruned = await pruneOldSnapshots(root, 1);
+    expect(pruned).toEqual(["run-old"]);
+    expect(await refsFor(root, "run-old")).toHaveLength(0);
+    expect(await refsFor(root, "run-new")).toHaveLength(1);
   });
 });

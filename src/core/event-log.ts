@@ -9,6 +9,7 @@ export type VibestrateEventType =
   | "run.rewound"
   | "run.rewound.restored"
   | "run.snapshot.captured"
+  | "run.snapshot.pruned"
   | "state.changed"
   | "git.worktree.created"
   | "git.worktree.env"

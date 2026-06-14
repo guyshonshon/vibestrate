@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.79
+
+- **Opt-in cleanup for rewind snapshots (the tool never purges on its own).**
+  Every run writes durable git refs so it can be rewound to review/fix/verify;
+  over a long-lived repo those accumulate. New `git.snapshotRetentionRuns`
+  (default **0 = never prune**) lets *you* turn on a retention automation: set it
+  to N and run-start keeps the N most-recent runs' snapshots and prunes older
+  ones (refs only - branches, worktrees, and artifacts are untouched, recent runs
+  stay resumable, and git's reflog keeps the objects through its gc grace). It is
+  deliberately off by default: Vibestrate does not delete your data behind your
+  back - cleanup is something you opt into. (A consult tip that surfaces snapshot
+  growth and offers to purge or enable this is the planned next step.)
+
 ## 0.7.78
 
 - **"Flow & why" - see the full reasoning behind a run's flow.** The Supervisor

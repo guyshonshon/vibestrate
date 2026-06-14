@@ -78,6 +78,7 @@ import {
 } from "../flows/runtime/prompt-params.js";
 import {
   capturePhaseSnapshot,
+  pruneOldSnapshots,
   readPhaseSnapshots,
   pickSnapshotForResume,
   restorePhaseSnapshot,
@@ -694,6 +695,25 @@ export class Orchestrator {
         readOnly: this.readOnly,
       },
     });
+    // OPT-IN snapshot retention (ISSUE-001 #1). Vibestrate never prunes on its
+    // own (default 0 = off). When the USER has set a positive retention, run this
+    // their-configured automation at run start (not finalize, so a prior run that
+    // crashed or was killed still gets reclaimed on the next run). Keyed on
+    // snapshot recency, so recent runs stay resumable. Best-effort: a git failure
+    // here never affects the run.
+    const snapshotKeep = this.config.git.snapshotRetentionRuns;
+    if (snapshotKeep > 0) {
+      const pruned = await pruneOldSnapshots(this.projectRoot, snapshotKeep).catch(
+        () => [] as string[],
+      );
+      if (pruned.length > 0) {
+        await eventLog.append({
+          type: "run.snapshot.pruned",
+          message: `Pruned rewind snapshots for ${pruned.length} old run(s) beyond the ${snapshotKeep}-run retention window.`,
+          data: { prunedRuns: pruned.length, keepRuns: snapshotKeep },
+        });
+      }
+    }
     await eventLog.append({
       type: "flow.snapshot.written",
       message: `Resolved flow ${flow.flowId} snapshot persisted.`,

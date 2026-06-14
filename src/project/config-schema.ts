@@ -22,6 +22,15 @@ export const gitConfigSchema = z.object({
    *  each new worktree so validation commands actually run there
    *  (lockfile-guarded for JS). "off" restores bare worktrees. */
   linkEnvironment: z.enum(["auto", "off"]).default("auto"),
+  /** OPT-IN rewind-snapshot retention (ISSUE-001 #1). Each run writes durable
+   *  `refs/vibestrate/snapshots/...` so it can be rewound to review/fix/verify;
+   *  without pruning, `.git` grows over time. Vibestrate NEVER prunes on its own:
+   *  the default 0 = never prune. Set this to a positive N to enable a
+   *  user-owned automation - at run start, snapshots beyond the N most-recent
+   *  runs are pruned (refs only; branches/worktrees/artifacts untouched, recent
+   *  runs stay resumable). This is "set an automation purging," your choice -
+   *  not the tool deleting data behind your back. */
+  snapshotRetentionRuns: z.number().int().min(0).default(0),
 });
 
 /**

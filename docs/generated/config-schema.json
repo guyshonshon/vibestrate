@@ -101,6 +101,14 @@
             "off"
           ],
           "itemType": null
+        },
+        {
+          "key": "snapshotRetentionRuns",
+          "fullKey": "git.snapshotRetentionRuns",
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "itemType": null
         }
       ]
     },
