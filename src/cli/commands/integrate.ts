@@ -9,6 +9,7 @@ import {
   type MergeReadyRun,
 } from "../../integration/integration-service.js";
 import { color, header, indent, isInteractiveTTY, symbol } from "../ui/format.js";
+import { startSpinner } from "../ui/spinner.js";
 import {
   adviseMergeReadyRuns,
   type MergeAdvice,
@@ -211,8 +212,12 @@ async function cmdAnalyze(
   opts: { json?: boolean },
 ): Promise<number> {
   const root = await ctx();
+  // The deeper analysis is an LLM call (seconds); show feedback so it doesn't
+  // look frozen. Stopped before any output, on both paths.
+  const spinner = startSpinner("Analyzing");
   try {
     const result = await analyzeMergeDeeper({ projectRoot: root, runId });
+    spinner.stop();
     if (opts.json) {
       console.log(JSON.stringify(result, null, 2));
       return 0;
@@ -223,6 +228,7 @@ async function cmdAnalyze(
     for (const n of result.notes) console.log(color.dim(n));
     return 0;
   } catch (err) {
+    spinner.stop();
     console.error(
       `${symbol.fail()} ${err instanceof MergeAnalyzeError ? err.message : err instanceof Error ? err.message : String(err)}`,
     );

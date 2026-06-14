@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.82
+
+- **`vibe consult` no longer looks frozen while it thinks.** The command made a
+  multi-second provider call with zero output, so it read as hung until the
+  answer appeared. It now shows a live "Consulting" spinner with elapsed seconds
+  (a single static line when output isn't a terminal, e.g. piped or `--json`).
+  The spinner writes to stderr, so stdout stays clean for `--json` and pipes.
+  Same fix applied to `vibe integrate analyze` (the other long provider call).
+
 ## 0.7.81
 
 - **Consult tells you when rewind snapshots are piling up - and never cleans up

@@ -6,6 +6,7 @@ import {
   consultSectionsEmpty,
 } from "../../consult/consult-sections.js";
 import { color, header, indent, symbol } from "../ui/format.js";
+import { startSpinner } from "../ui/spinner.js";
 
 function collect(value: string, acc: string[]): string[] {
   return [...acc, value];
@@ -47,6 +48,10 @@ export function buildConsultCommand(): Command {
         },
       ) => {
         const { projectRoot } = await detectProject(process.cwd());
+        // The provider/LLM call takes seconds; show live feedback so the CLI
+        // doesn't look frozen. Stopped before ANY output (both paths) so the
+        // spinner line never interleaves with the answer.
+        const spinner = startSpinner("Consulting");
         let result;
         try {
           result = await runConsult({
@@ -60,7 +65,9 @@ export function buildConsultCommand(): Command {
             model: opts.model ?? null,
             effort: opts.effort ?? null,
           });
+          spinner.stop();
         } catch (err) {
+          spinner.stop();
           console.error(`${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`);
           process.exit(1);
         }
