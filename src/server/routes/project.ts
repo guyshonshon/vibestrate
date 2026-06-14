@@ -20,7 +20,9 @@ import {
   setProfileFields,
   createProfile,
   deleteProfile,
+  installCrewPreset,
 } from "../../setup/config-update-service.js";
+import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
 import { profileUsage, rolesUsingProfile } from "../../profiles/profile-usage.js";
 import { assertSafeRunId, HttpError } from "../security.js";
 import { z } from "zod";
@@ -210,6 +212,41 @@ export async function registerProjectRoutes(
       throw new HttpError(400, err instanceof Error ? err.message : String(err));
     }
     return { ok: true, defaultCrew: body.data.crewId };
+  });
+
+  // Crew presets: ready-made crews (fast / thorough) the user can install.
+  app.get("/api/crews/presets", async () => {
+    const installed = new Set<string>();
+    if (await configExists(projectRoot)) {
+      const { config } = await loadConfig(projectRoot);
+      for (const id of Object.keys(config.crews)) installed.add(id);
+    }
+    return {
+      presets: CREW_PRESETS.map((p) => ({
+        id: p.id,
+        label: p.label,
+        description: p.description,
+        installed: installed.has(p.id),
+      })),
+    };
+  });
+
+  // Install a preset crew (+ its profile) into project.yml. Additive and
+  // validated by the same write service the CLI uses (`installCrewPreset`):
+  // refuses to overwrite an existing crew/profile and rejects an invalid merge.
+  app.post<{ Body: unknown }>("/api/crews/presets/install", async (req) => {
+    const ids = CREW_PRESETS.map((p) => p.id) as [PresetTier, ...PresetTier[]];
+    const body = z.object({ id: z.enum(ids) }).safeParse(req.body);
+    if (!body.success) throw new HttpError(400, body.error.message);
+    if (!(await configExists(projectRoot))) {
+      throw new HttpError(404, "Vibestrate is not initialized here.");
+    }
+    try {
+      const res = await installCrewPreset(projectRoot, body.data.id);
+      return { ok: true, ...res };
+    } catch (err) {
+      throw new HttpError(400, err instanceof Error ? err.message : String(err));
+    }
   });
 
   app.get<{ Params: { crewId: string } }>("/api/crews/:crewId", async (req) => {

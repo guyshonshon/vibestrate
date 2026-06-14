@@ -9,6 +9,13 @@ import {
 import { projectConfigSchema, type ProjectConfig } from "../project/config-schema.js";
 import { builtinRoleIds } from "../roles/role-schema.js";
 import type { ProviderConfig } from "../providers/provider-schema.js";
+import { capabilitiesForProvider } from "../providers/provider-catalog.js";
+import {
+  buildPresetCrew,
+  buildPresetProfile,
+  presetProfileId,
+  type PresetTier,
+} from "../crews/crew-presets.js";
 
 export type ParsedValue = string | number | boolean | unknown[] | Record<string, unknown>;
 
@@ -340,4 +347,80 @@ export async function setValidationCommands(
 
 export function relativeRolesDir(projectRoot: string): string {
   return path.relative(projectRoot, projectRolesDir(projectRoot));
+}
+
+/** The provider a preset crew should run on: the provider the project's default
+ *  crew's PRIMARY (first) role uses, so presets stay consistent with the user's
+ *  setup. On a multi-provider crew that's the first role's provider (predictable,
+ *  surfaced to the user), not a vote. Falls back to the first configured provider
+ *  only for the (schema-impossible) profile-less crew. */
+function deriveProviderRef(config: ProjectConfig): string {
+  const crew = config.crews[config.defaultCrew];
+  const firstRole = crew ? Object.values(crew.roles)[0] : undefined;
+  const prof = firstRole ? config.profiles[firstRole.profile] : undefined;
+  if (prof?.provider) return prof.provider;
+  const first = Object.keys(config.providers)[0];
+  if (!first) {
+    throw new ConfigError("No providers configured; cannot build a preset crew.");
+  }
+  return first;
+}
+
+export type InstallPresetResult = {
+  crewId: string;
+  profileId: string;
+  ref: string;
+  power: string | null;
+};
+
+/** Install a crew preset (`fast` / `thorough`) into project.yml: a profile at the
+ *  tier's provider effort plus a crew (the default roster) on it. Additive and
+ *  fail-closed:
+ *   - refuses if the crew/profile id already exists (no overwrite of a prior,
+ *     serialized install),
+ *   - refuses when the provider exposes fewer than two distinct effort levels,
+ *     since `fast` and `thorough` would then be identical to the default crew,
+ *   - `writeDocument` validates the whole config before writing, so a bad merge
+ *     is rejected rather than persisted. */
+export async function installCrewPreset(
+  projectRoot: string,
+  tier: PresetTier,
+): Promise<InstallPresetResult> {
+  const { doc } = await readDocument(projectRoot);
+  const parsed = projectConfigSchema.safeParse(doc.toJS());
+  if (!parsed.success) {
+    throw new ConfigError(
+      "Current config is invalid; fix it before adding a crew preset.",
+    );
+  }
+  const config = parsed.data;
+  const ref = deriveProviderRef(config);
+  const profileId = presetProfileId(ref, tier);
+  const crewId = tier;
+  if (doc.hasIn(["crews", crewId])) {
+    throw new ConfigError(`Crew "${crewId}" already exists - not overwriting it.`);
+  }
+  if (doc.hasIn(["profiles", profileId])) {
+    throw new ConfigError(
+      `Profile "${profileId}" already exists - not overwriting it.`,
+    );
+  }
+  const provider = config.providers[ref];
+  if (!provider) {
+    throw new ConfigError(`Provider "${ref}" is not configured.`);
+  }
+  const caps = capabilitiesForProvider(ref, provider);
+  if (caps.powerLevels.length < 2) {
+    throw new ConfigError(
+      `Provider "${ref}" exposes no distinct effort levels, so a "${tier}" crew ` +
+        `would be identical to your default crew. Crew presets need a provider ` +
+        `with effort control (e.g. claude, codex).`,
+    );
+  }
+  const profile = buildPresetProfile(ref, tier, caps.powerLevels);
+  const crew = buildPresetCrew(tier, ref, relativeRolesDir(projectRoot));
+  doc.setIn(["profiles", profileId], profile);
+  doc.setIn(["crews", crewId], crew);
+  await writeDocument(projectRoot, doc);
+  return { crewId, profileId, ref, power: profile.power };
 }

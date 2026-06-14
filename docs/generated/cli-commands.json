@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.86",
+  "version": "0.7.87",
   "commands": [
     {
       "name": "init",
@@ -1214,6 +1214,63 @@
           ],
           "options": [],
           "subcommands": []
+        },
+        {
+          "name": "presets",
+          "path": [
+            "vibe",
+            "crew",
+            "presets"
+          ],
+          "description": "Ready-made crews (fast / thorough) tuned by provider effort.",
+          "usage": "[options] [command]",
+          "arguments": [],
+          "options": [],
+          "subcommands": [
+            {
+              "name": "list",
+              "path": [
+                "vibe",
+                "crew",
+                "presets",
+                "list"
+              ],
+              "description": "List available presets and whether they're installed.",
+              "usage": "[options]",
+              "arguments": [],
+              "options": [
+                {
+                  "flags": "--json",
+                  "description": "emit JSON",
+                  "required": false,
+                  "optional": false,
+                  "negated": false
+                }
+              ],
+              "subcommands": []
+            },
+            {
+              "name": "add",
+              "path": [
+                "vibe",
+                "crew",
+                "presets",
+                "add"
+              ],
+              "description": "Install a preset crew (fast / thorough) into project.yml.",
+              "usage": "[options] <id>",
+              "arguments": [
+                {
+                  "name": "name() {\n    return this._name;\n  }",
+                  "description": "",
+                  "required": true,
+                  "variadic": false
+                }
+              ],
+              "options": [],
+              "subcommands": []
+            }
+          ]
         }
       ]
     },

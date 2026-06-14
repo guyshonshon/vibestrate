@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.87
+
+- **Crew presets.** Two ready-made crews you can install instead of hand-writing
+  one: `vibe crew presets add fast` puts every role on your provider's **lowest**
+  effort (quick, cheap), and `thorough` uses the **highest** (for risky work).
+  Same roster as your default crew, so a Flow's seats stay covered; built on your
+  default crew's provider and added to `project.yml` without overwriting anything.
+  `vibe crew presets` lists them and the dashboard Crew page has a one-click
+  **Add**. Presets need a provider with effort control (claude, codex) - on one
+  without, the install refuses rather than create two identical crews.
+
 ## 0.7.86
 
 - **The interactive shell (`vibe`) is now a real full-screen app.** It renders in

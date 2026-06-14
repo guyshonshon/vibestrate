@@ -973,6 +973,18 @@ export const api = {
   async setDefaultCrew(crewId: string): Promise<{ ok: true; defaultCrew: string }> {
     return jsonPost("/api/crews/default", { crewId });
   },
+  /** Crew presets (fast / thorough) and whether each is installed. */
+  async getCrewPresets(): Promise<{
+    presets: { id: string; label: string; description: string; installed: boolean }[];
+  }> {
+    return jsonGet("/api/crews/presets");
+  },
+  /** Install a preset crew (+ its profile) - parity with `vibe crew presets add`. */
+  async installCrewPreset(
+    id: string,
+  ): Promise<{ ok: true; crewId: string; profileId: string; ref: string; power: string | null }> {
+    return jsonPost("/api/crews/presets/install", { id });
+  },
   async patchCrewRole(
     crewId: string,
     roleId: string,

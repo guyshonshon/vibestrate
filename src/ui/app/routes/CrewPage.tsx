@@ -231,15 +231,18 @@ export function CrewPage({
       ) : null}
 
       {hubView ? (
-        // ── Stage 1: the crews hub - a list you select from ─────────────────
-        <CrewHub
-          crews={crews}
-          defaultCrew={defaultCrew}
-          flows={flows}
-          settingDefault={settingDefault}
-          onOpen={onOpenCrew}
-          onSetDefault={(id) => void makeDefault(id)}
-        />
+        // ── Stage 1: the crews hub - a list you select from + presets ───────
+        <>
+          <CrewHub
+            crews={crews}
+            defaultCrew={defaultCrew}
+            flows={flows}
+            settingDefault={settingDefault}
+            onOpen={onOpenCrew}
+            onSetDefault={(id) => void makeDefault(id)}
+          />
+          <CrewPresets onInstalled={() => void load()} flash={flash} />
+        </>
       ) : !crews ? (
         <div className="mt-6 text-fog-400 text-[13px]">Loading crew…</div>
       ) : !crew ? (
@@ -333,6 +336,89 @@ export function CrewPage({
 }
 
 // ─── Crews hub (the list you select from) ───────────────────────────────────
+
+/** Ready-made crews (fast / thorough) the user can install with one click -
+ *  parity with `vibe crew presets`. Self-contained: fetches its own list and
+ *  asks the parent to reload the crews hub after an install. */
+function CrewPresets({
+  onInstalled,
+  flash,
+}: {
+  onInstalled: () => void;
+  flash: (t: Toast) => void;
+}) {
+  const [presets, setPresets] = useState<
+    { id: string; label: string; description: string; installed: boolean }[] | null
+  >(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const r = await api.getCrewPresets();
+      setPresets(r.presets);
+    } catch {
+      setPresets([]);
+    }
+  }
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function install(id: string) {
+    setBusy(id);
+    try {
+      const res = await api.installCrewPreset(id);
+      flash({ kind: "ok", text: `Installed "${res.crewId}" crew (profile ${res.profileId}).` });
+      await load();
+      onInstalled();
+    } catch (err) {
+      flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!presets || presets.length === 0) return null;
+
+  return (
+    <section className="mt-10">
+      <h2 className="text-[13px] font-semibold text-fog-200">Presets</h2>
+      <p className="mt-1 text-[12px] text-fog-400">
+        Ready-made crews tuned by provider effort - the same roster as your
+        default crew, just faster or more thorough. Adds to{" "}
+        <span className="mono">project.yml</span>.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {presets.map((p) => (
+          <div
+            key={p.id}
+            className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[13px] font-semibold text-fog-100">
+                {p.label}{" "}
+                <span className="mono text-[11px] text-fog-500">({p.id})</span>
+              </div>
+              {p.installed ? (
+                <span className="text-[11px] text-violet-300/80">installed</span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy === p.id}
+                  onClick={() => void install(p.id)}
+                  className="rounded-md border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[12px] text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
+                >
+                  {busy === p.id ? "Adding…" : "Add"}
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-[12px] text-fog-400">{p.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function BackToCrews({ onBack }: { onBack: () => void }) {
   return (

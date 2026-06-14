@@ -1,8 +1,9 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
-import { setConfigValue } from "../../setup/config-update-service.js";
+import { setConfigValue, installCrewPreset } from "../../setup/config-update-service.js";
 import { roleLabel } from "../../crews/crew-registry.js";
+import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
 import type { CrewConfig } from "../../crews/crew-schema.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
@@ -105,6 +106,79 @@ async function cmdUse(id: string): Promise<number> {
   return 0;
 }
 
+async function cmdPresets(opts: { json?: boolean }): Promise<number> {
+  const root = await ctx();
+  const { config } = await loadConfig(root);
+  const rows = CREW_PRESETS.map((p) => ({
+    id: p.id,
+    label: p.label,
+    description: p.description,
+    installed: Boolean(config.crews[p.id]),
+  }));
+  if (opts.json) {
+    console.log(JSON.stringify({ defaultCrew: config.defaultCrew, presets: rows }, null, 2));
+    return 0;
+  }
+  console.log(header("Crew presets"));
+  console.log("");
+  for (const r of rows) {
+    const mark = r.installed
+      ? color.cyan("· installed")
+      : color.dim("· not installed");
+    console.log(`${color.bold(r.label)} ${color.dim(`(${r.id})`)} ${mark}`);
+    console.log(indent(color.dim(r.description)));
+  }
+  console.log("");
+  console.log(
+    color.dim("Your everyday crew is ") +
+      color.bold(config.defaultCrew) +
+      color.dim(" (balanced)."),
+  );
+  console.log(
+    color.dim("Add one with ") +
+      color.bold("vibe crew presets add <id>") +
+      color.dim(", then ") +
+      color.bold("vibe crew use <id>") +
+      color.dim("."),
+  );
+  return 0;
+}
+
+async function cmdPresetAdd(id: string): Promise<number> {
+  const root = await ctx();
+  const known = CREW_PRESETS.map((p) => p.id);
+  if (!known.includes(id as PresetTier)) {
+    console.error(
+      `${symbol.fail()} Unknown preset "${id}". ${color.dim(`Available: ${known.join(", ")}.`)}`,
+    );
+    return 1;
+  }
+  try {
+    const res = await installCrewPreset(root, id as PresetTier);
+    console.log(
+      `${symbol.ok()} Installed crew ${color.bold(res.crewId)} on profile ${color.bold(res.profileId)} ${color.dim(`(${res.ref} · ${res.power} effort)`)}.`,
+    );
+    console.log(
+      color.dim("Built on ") +
+        color.bold(res.ref) +
+        color.dim(" - your default crew's provider."),
+    );
+    console.log(
+      color.dim("Use it with ") +
+        color.bold(`vibe crew use ${res.crewId}`) +
+        color.dim(", or one-off ") +
+        color.bold(`vibe run "…" --crew ${res.crewId}`) +
+        color.dim("."),
+    );
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 export function buildCrewCommand(): Command {
   const cmd = new Command("crew").description(
     'List crews, show a crew\'s roles, and set the default ("active") crew.',
@@ -125,5 +199,17 @@ export function buildCrewCommand(): Command {
     .command("use <id>")
     .description("Set the default (\"active\") crew - runs without --crew use it.")
     .action(async (id: string) => process.exit(await cmdUse(id)));
+  const presets = cmd
+    .command("presets")
+    .description("Ready-made crews (fast / thorough) tuned by provider effort.");
+  presets
+    .command("list", { isDefault: true })
+    .description("List available presets and whether they're installed.")
+    .option("--json", "emit JSON")
+    .action(async (opts: { json?: boolean }) => process.exit(await cmdPresets(opts)));
+  presets
+    .command("add <id>")
+    .description("Install a preset crew (fast / thorough) into project.yml.")
+    .action(async (id: string) => process.exit(await cmdPresetAdd(id)));
   return cmd;
 }
