@@ -63,7 +63,7 @@ Install Vibestrate - the command is `vibe`:
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/scripts/install.sh | sh
 
 # …or with npm directly
 npm install -g vibestrate
@@ -85,7 +85,7 @@ Add `--ui` to any run to open the Mission Control dashboard. New here? [Ready in
 > contains `fetch`, `api.telegram.org`, and `process.env` references. That is a
 > false positive: Vibestrate has no hardcoded Telegram bot token, reads only the
 > single `env:NAME` value you configured, and sends only your notification text
-> to your own chat. See [SECURITY.md](./SECURITY.md#known-false-positives).
+> to your own chat. See [SECURITY.md](./.github/SECURITY.md#known-false-positives).
 
 <p align="right"><a href="#top">↑ back to top</a></p>
 
@@ -223,8 +223,8 @@ Everything lives at **[vibestrate.com/docs](https://vibestrate.com/docs)** - get
 Contributions are genuinely welcome - this is a learning project, and a better one with you in it.
 
 - 🐛 **Found a bug?** [Open an issue](https://github.com/guyshonshon/vibestrate/issues/new/choose) - what you ran, what happened, and the `runId` if you have one.
-- 🔐 **Security concern?** Please **don't** open a public issue - see [SECURITY.md](./SECURITY.md) for private disclosure.
-- ✨ **Want to build something?** Features come in as **pull requests** - that's the path we encourage most. A quick issue first to sketch the idea is welcome but optional. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+- 🔐 **Security concern?** Please **don't** open a public issue - see [SECURITY.md](./.github/SECURITY.md) for private disclosure.
+- ✨ **Want to build something?** Features come in as **pull requests** - that's the path we encourage most. A quick issue first to sketch the idea is welcome but optional. See [CONTRIBUTING.md](./.github/CONTRIBUTING.md).
 
 Run the checks before you push:
 

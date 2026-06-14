@@ -3,7 +3,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Feature? Send a pull request
-    url: https://github.com/guyshonshon/vibestrate/blob/main/CONTRIBUTING.md
+    url: https://github.com/guyshonshon/vibestrate/blob/main/.github/CONTRIBUTING.md
     about: Features land as PRs - that's the path we encourage most. Read the contributing guide and build it.
   - name: Security vulnerability
     url: https://github.com/guyshonshon/vibestrate/security/advisories/new

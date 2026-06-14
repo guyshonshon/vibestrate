@@ -23,8 +23,9 @@
     "src/roles/default-prompts",
     "src/ui/lib/types.ts",
     "README.md",
-    "SECURITY.md",
+    ".github/SECURITY.md",
     "LICENSE",
+    "NOTICE",
     "docs/content"
   ],
   "engines": {

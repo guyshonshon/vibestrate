@@ -1,7 +1,7 @@
 #!/bin/sh
 # Vibestrate installer - installs the `vibe` CLI (npm package `vibestrate`) globally.
 #
-#   curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/scripts/install.sh | sh
 #
 # Pin a version with VIBESTRATE_VERSION before the pipe, e.g.
 #   curl -fsSL .../install.sh | VIBESTRATE_VERSION=0.1.1 sh
