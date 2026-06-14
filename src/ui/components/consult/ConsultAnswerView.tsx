@@ -137,25 +137,41 @@ export function ComputedSections({ sections }: { sections: ConsultSections }) {
     { title: "Mentioned, never worked on", items: sections.mentionedNeverWorked },
     { title: "Suggested next steps", items: sections.suggestedNextSteps },
   ].filter((g) => g.items.length > 0);
-  if (groups.length === 0) return null;
+  const housekeeping = sections.housekeeping ?? [];
+  if (groups.length === 0 && housekeeping.length === 0) return null;
   return (
     <div className="mt-3.5 rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <div className="mb-2 text-[11px] uppercase tracking-[0.12em] text-fog-500">Project state · computed</div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {groups.map((g) => (
-          <div key={g.title}>
-            <div className="mb-1 text-[12px] font-medium text-fog-200">{g.title}</div>
-            <ul className="space-y-0.5 text-[12.5px] text-fog-300">
-              {g.items.slice(0, 6).map((it, i) => (
-                <li key={i} className="flex gap-1.5">
-                  <span className="text-fog-500">·</span>
-                  <span className="truncate" title={it}>{it}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      {groups.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {groups.map((g) => (
+            <div key={g.title}>
+              <div className="mb-1 text-[12px] font-medium text-fog-200">{g.title}</div>
+              <ul className="space-y-0.5 text-[12.5px] text-fog-300">
+                {g.items.slice(0, 6).map((it, i) => (
+                  <li key={i} className="flex gap-1.5">
+                    <span className="text-fog-500">·</span>
+                    <span className="truncate" title={it}>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {housekeeping.length > 0 ? (
+        <div className={groups.length > 0 ? "mt-3 border-t border-white/[0.06] pt-2.5" : ""}>
+          <div className="mb-1 text-[12px] font-medium text-amber-300/90">Housekeeping</div>
+          <ul className="space-y-1 text-[12.5px] text-fog-300">
+            {housekeeping.map((tip, i) => (
+              <li key={i} className="flex gap-1.5">
+                <span className="text-amber-300/70">·</span>
+                <span className="leading-snug">{tip}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

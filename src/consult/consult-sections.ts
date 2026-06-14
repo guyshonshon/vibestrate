@@ -18,7 +18,40 @@ export type ConsultSections = {
   /** Mechanically-derived next steps: open follow-ups + open intents, newest
    *  first. NOT invented - every item traces to a ledger/roadmap entry. */
   suggestedNextSteps: string[];
+  /** Maintenance tips the user may act on - surfaced, never auto-applied (the
+   *  tool never deletes data itself). Empty unless something crossed a
+   *  threshold (e.g. rewind snapshots accumulating in `.git`). */
+  housekeeping: string[];
 };
+
+/** Surface the snapshot-growth tip once snapshots span more than this many runs.
+ *  Generous so a young project is never nagged - it's a heads-up, not an alarm. */
+const SNAPSHOT_TIP_RUN_THRESHOLD = 25;
+
+/** Build the housekeeping tips (pure). Only the snapshot-growth tip today, and
+ *  only when (a) snapshots span > threshold runs AND (b) the user has NOT already
+ *  enabled retention (`snapshotRetentionRuns` 0 = off) - if they opted in, it's
+ *  handled, so no nag. Points at the config knob (settable in UI + CLI), never a
+ *  CLI command, and reaffirms the tool won't purge on its own. */
+export function buildHousekeepingTips(input: {
+  snapshots: { runs: number; refs: number };
+  snapshotRetentionRuns: number;
+}): string[] {
+  const tips: string[] = [];
+  if (
+    input.snapshotRetentionRuns <= 0 &&
+    input.snapshots.runs > SNAPSHOT_TIP_RUN_THRESHOLD
+  ) {
+    tips.push(
+      `Rewind snapshots from ${input.snapshots.runs} past runs are stored in git ` +
+        `(they let you resume old runs to review/fix/verify, but add to .git over time). ` +
+        `Vibestrate won't remove them on its own. To clean up, set ` +
+        `\`git.snapshotRetentionRuns\` to keep the most recent few (e.g. 50) - older ` +
+        `snapshots are then pruned automatically at your next run start.`,
+    );
+  }
+  return tips;
+}
 
 /** Roadmap task statuses that still represent open work. */
 const OPEN_TASK_STATUSES = new Set([
@@ -52,6 +85,10 @@ export function computeConsultSections(input: {
   ledger: LedgerState;
   roadmapTasks: { title: string; status: string }[];
   recentRuns: { displayName?: string | null; task: string; status: string }[];
+  /** Rewind-snapshot stats (from countSnapshotRuns) + the active retention
+   *  setting, for the housekeeping tip. Omitted = no snapshot tip. */
+  snapshots?: { runs: number; refs: number };
+  snapshotRetentionRuns?: number;
 }): ConsultSections {
   const recentActivity = input.recentRuns
     .slice(0, 8)
@@ -70,7 +107,14 @@ export function computeConsultSections(input: {
   const residuals = input.ledger.residuals.map((e) => e.title);
   const suggestedNextSteps = dedupe([...residuals, ...openIntents]).slice(0, 8);
 
-  return { recentActivity, openIntents, mentionedNeverWorked, suggestedNextSteps };
+  const housekeeping = input.snapshots
+    ? buildHousekeepingTips({
+        snapshots: input.snapshots,
+        snapshotRetentionRuns: input.snapshotRetentionRuns ?? 0,
+      })
+    : [];
+
+  return { recentActivity, openIntents, mentionedNeverWorked, suggestedNextSteps, housekeeping };
 }
 
 /** Render the computed sections as a markdown block (for the consult context +
@@ -85,6 +129,7 @@ export function renderConsultSections(s: ConsultSections): string {
   add("Open intents", s.openIntents);
   add("Mentioned but never worked on", s.mentionedNeverWorked);
   add("Suggested next steps", s.suggestedNextSteps);
+  add("Housekeeping", s.housekeeping);
   return blocks.join("\n\n");
 }
 
@@ -94,6 +139,7 @@ export function consultSectionsEmpty(s: ConsultSections): boolean {
     s.recentActivity.length === 0 &&
     s.openIntents.length === 0 &&
     s.mentionedNeverWorked.length === 0 &&
-    s.suggestedNextSteps.length === 0
+    s.suggestedNextSteps.length === 0 &&
+    s.housekeeping.length === 0
   );
 }

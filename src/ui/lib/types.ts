@@ -362,6 +362,9 @@ export type ConsultSections = {
   openIntents: string[];
   mentionedNeverWorked: string[];
   suggestedNextSteps: string[];
+  /** Maintenance tips (e.g. rewind-snapshot growth). Surfaced, never auto-applied.
+   *  Optional: older consult responses predate it. */
+  housekeeping?: string[];
 };
 
 export type ConsultResult = {

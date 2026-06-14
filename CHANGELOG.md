@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.81
+
+- **Consult tells you when rewind snapshots are piling up - and never cleans up
+  behind your back.** Ask `vibe consult` (or the dashboard / shell) anything, and
+  once your repo has rewind snapshots from more than ~25 runs, a **Housekeeping**
+  tip appears: it names the count, explains the `.git` growth, and points at the
+  opt-in `git.snapshotRetentionRuns` setting (settable in the UI or CLI) to keep
+  only the most recent few. It's a suggestion, never an action - Vibestrate won't
+  delete your snapshots on its own, and the tip disappears once you've turned
+  retention on. Surfaces across all three consult surfaces (web, shell, CLI).
+
 ## 0.7.80
 
 - **`vibe vibestrate` is now `vibe guide`.** The command that manages

@@ -15,6 +15,7 @@ import { materializeContextSources } from "../core/context-sources.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
 import type { RunState } from "../core/state-machine.js";
 import { LedgerStore } from "../core/project-ledger.js";
+import { countSnapshotRuns } from "../core/phase-snapshots.js";
 import {
   computeConsultSections,
   renderConsultSections,
@@ -209,6 +210,9 @@ export async function assembleConsultContext(
   const roadmapTasks = await new RoadmapService(projectRoot)
     .listTasks()
     .catch(() => []);
+  // Rewind-snapshot growth -> the housekeeping tip (suggests the opt-in
+  // retention config; the tool never purges itself). Best-effort.
+  const snapshots = await countSnapshotRuns(projectRoot).catch(() => ({ runs: 0, refs: 0 }));
   const computedSections = computeConsultSections({
     ledger: ledgerState ?? {
       shipped: [],
@@ -220,6 +224,8 @@ export async function assembleConsultContext(
     },
     roadmapTasks: roadmapTasks.map((t) => ({ title: t.title, status: t.status })),
     recentRuns: meta?.recentRuns ?? [],
+    snapshots,
+    snapshotRetentionRuns: loaded?.config.git.snapshotRetentionRuns ?? 0,
   });
   if (!consultSectionsEmpty(computedSections)) {
     sections.unshift(

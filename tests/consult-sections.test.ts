@@ -3,6 +3,7 @@ import {
   computeConsultSections,
   renderConsultSections,
   consultSectionsEmpty,
+  buildHousekeepingTips,
 } from "../src/consult/consult-sections.js";
 import { deriveLedgerState, type LedgerEntry } from "../src/core/project-ledger.js";
 
@@ -83,5 +84,43 @@ describe("computeConsultSections (T10, deterministic)", () => {
     });
     expect(consultSectionsEmpty(empty)).toBe(true);
     expect(renderConsultSections(empty)).toBe("");
+  });
+});
+
+describe("housekeeping tip (snapshot growth) - suggest, never auto-purge", () => {
+  it("fires only above the run threshold AND only when retention is OFF", () => {
+    // Above threshold + retention off -> a tip that names the count + the config key.
+    const on = buildHousekeepingTips({ snapshots: { runs: 80, refs: 200 }, snapshotRetentionRuns: 0 });
+    expect(on).toHaveLength(1);
+    expect(on[0]).toContain("80");
+    expect(on[0]).toContain("git.snapshotRetentionRuns");
+    expect(on[0]).toMatch(/won't remove them on its own/i); // reaffirms "never ourselves"
+
+    // Retention already enabled -> the user opted in, so NO nag even when huge.
+    expect(
+      buildHousekeepingTips({ snapshots: { runs: 500, refs: 999 }, snapshotRetentionRuns: 50 }),
+    ).toEqual([]);
+
+    // Below threshold -> no tip (young project never nagged).
+    expect(
+      buildHousekeepingTips({ snapshots: { runs: 5, refs: 12 }, snapshotRetentionRuns: 0 }),
+    ).toEqual([]);
+  });
+
+  it("flows into computeConsultSections + render; absent when no snapshot input", () => {
+    const s = computeConsultSections({
+      ledger: deriveLedgerState([]),
+      roadmapTasks: [],
+      recentRuns: [],
+      snapshots: { runs: 80, refs: 200 },
+      snapshotRetentionRuns: 0,
+    });
+    expect(s.housekeeping).toHaveLength(1);
+    expect(consultSectionsEmpty(s)).toBe(false); // a lone housekeeping tip is not "empty"
+    expect(renderConsultSections(s)).toContain("### Housekeeping");
+
+    // No snapshot input -> no housekeeping (back-compat for callers that don't pass it).
+    const none = computeConsultSections({ ledger: deriveLedgerState([]), roadmapTasks: [], recentRuns: [] });
+    expect(none.housekeeping).toEqual([]);
   });
 });

@@ -195,6 +195,32 @@ export async function deletePhaseSnapshotRefs(
 const SNAPSHOT_REF_PREFIX = "refs/vibestrate/snapshots/";
 
 /**
+ * Count how many distinct runs have rewind-snapshot refs, and the total ref
+ * count - the signal for the consult "housekeeping" tip about `.git` growth.
+ * Read-only + best-effort: returns {runs:0,refs:0} on any git failure.
+ */
+export async function countSnapshotRuns(
+  repo: string,
+): Promise<{ runs: number; refs: number }> {
+  const list = await git(repo, [
+    "for-each-ref",
+    "--format=%(refname)",
+    "refs/vibestrate/snapshots",
+  ]);
+  if (!list.ok || !list.stdout) return { runs: 0, refs: 0 };
+  const lines = list.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+  const runIds = new Set<string>();
+  for (const refName of lines) {
+    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
+    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
+    const lastSlash = rest.lastIndexOf("/");
+    if (lastSlash <= 0) continue;
+    runIds.add(rest.slice(0, lastSlash));
+  }
+  return { runs: runIds.size, refs: lines.length };
+}
+
+/**
  * Given every snapshot ref (`refs/vibestrate/snapshots/<runId>/<seq>-<stage>`)
  * with its committer date, pick the run ids to PRUNE: all but the `keepRuns`
  * most-recent runs. A run's recency is the newest committer date across its
