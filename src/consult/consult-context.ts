@@ -211,8 +211,8 @@ export async function assembleConsultContext(
     .listTasks()
     .catch(() => []);
   // Rewind-snapshot growth -> the housekeeping tip (suggests the opt-in
-  // retention config; the tool never purges itself). Best-effort.
-  const snapshots = await countSnapshotRuns(projectRoot).catch(() => ({ runs: 0, refs: 0 }));
+  // retention config; the tool never purges itself).
+  const snapshots = await countSnapshotRuns(projectRoot);
   const computedSections = computeConsultSections({
     ledger: ledgerState ?? {
       shipped: [],

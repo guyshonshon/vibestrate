@@ -699,13 +699,10 @@ export class Orchestrator {
     // own (default 0 = off). When the USER has set a positive retention, run this
     // their-configured automation at run start (not finalize, so a prior run that
     // crashed or was killed still gets reclaimed on the next run). Keyed on
-    // snapshot recency, so recent runs stay resumable. Best-effort: a git failure
-    // here never affects the run.
+    // snapshot recency, so recent runs stay resumable.
     const snapshotKeep = this.config.git.snapshotRetentionRuns;
     if (snapshotKeep > 0) {
-      const pruned = await pruneOldSnapshots(this.projectRoot, snapshotKeep).catch(
-        () => [] as string[],
-      );
+      const pruned = await pruneOldSnapshots(this.projectRoot, snapshotKeep);
       if (pruned.length > 0) {
         await eventLog.append({
           type: "run.snapshot.pruned",
