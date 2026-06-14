@@ -197,7 +197,8 @@ const SNAPSHOT_REF_PREFIX = "refs/vibestrate/snapshots/";
 /**
  * Count how many distinct runs have rewind-snapshot refs, and the total ref
  * count - the signal for the consult "housekeeping" tip about `.git` growth.
- * Read-only + best-effort: returns {runs:0,refs:0} on any git failure.
+ * Read-only. THROWS on a real git failure (fail loud); the legitimate
+ * no-snapshots case (git ok, no matching refs) returns {runs:0,refs:0}.
  */
 export async function countSnapshotRuns(
   repo: string,
@@ -207,7 +208,9 @@ export async function countSnapshotRuns(
     "--format=%(refname)",
     "refs/vibestrate/snapshots",
   ]);
-  if (!list.ok || !list.stdout) return { runs: 0, refs: 0 };
+  if (!list.ok) {
+    throw new Error(`git for-each-ref failed reading snapshot refs: ${list.stdout || "(no output)"}`);
+  }
   const lines = list.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
   const runIds = new Set<string>();
   for (const refName of lines) {
@@ -251,11 +254,11 @@ export function selectStaleSnapshotRuns(
 
 /**
  * Prune rewind-snapshot refs so `.git` can't grow without bound (ISSUE-001 #1):
- * keep the `keepRuns` most-recent runs' snapshots, delete the rest. Best-effort
- * - a git failure prunes nothing and never throws. Only refs are removed (the
- * runs' branches/worktrees/artifacts are untouched, and git's reflog keeps the
- * objects through its gc grace), and recent runs stay fully resumable. Returns
- * the run ids whose snapshots were pruned. `keepRuns <= 0` disables pruning.
+ * keep the `keepRuns` most-recent runs' snapshots, delete the rest. Only refs
+ * are removed (the runs' branches/worktrees/artifacts are untouched, and git's
+ * reflog keeps the objects through its gc grace), and recent runs stay fully
+ * resumable. THROWS on a real git failure (fail loud); the no-snapshots case
+ * returns []. `keepRuns <= 0` disables pruning. Returns the run ids pruned.
  */
 export async function pruneOldSnapshots(
   repo: string,
@@ -267,7 +270,9 @@ export async function pruneOldSnapshots(
     "--format=%(refname) %(committerdate:unix)",
     "refs/vibestrate/snapshots",
   ]);
-  if (!list.ok || !list.stdout) return [];
+  if (!list.ok) {
+    throw new Error(`git for-each-ref failed reading snapshot refs: ${list.stdout || "(no output)"}`);
+  }
   const refs = list.stdout
     .split("\n")
     .map((l) => l.trim())

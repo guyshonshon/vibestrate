@@ -11,6 +11,7 @@ import {
   isSafeRestoreTarget,
   selectStaleSnapshotRuns,
   pruneOldSnapshots,
+  countSnapshotRuns,
 } from "../src/core/phase-snapshots.js";
 
 async function git(cwd: string, args: string[]) {
@@ -147,6 +148,26 @@ describe("selectStaleSnapshotRuns (pure retention selector)", () => {
     expect(
       selectStaleSnapshotRuns([{ refName: "refs/heads/main", committedAt: 9 }], 1),
     ).toEqual([]);
+  });
+});
+
+describe("countSnapshotRuns (fail loud, not best-effort)", () => {
+  it("returns 0 for a valid repo with no snapshots (legit empty, no throw)", async () => {
+    const root = await mkRepo();
+    try {
+      expect(await countSnapshotRuns(root)).toEqual({ runs: 0, refs: 0 });
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("THROWS on a real git failure (not a git repo) instead of swallowing to 0", async () => {
+    const nonGit = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-nogit-"));
+    try {
+      await expect(countSnapshotRuns(nonGit)).rejects.toThrow();
+    } finally {
+      await fs.rm(nonGit, { recursive: true, force: true });
+    }
   });
 });
 

@@ -783,14 +783,6 @@ export async function readRunAssurance(
           raw.review?.status === "approved" ||
           raw.verification?.status === "passed"),
       blockers: raw.blockers ?? [],
-      // isolation landed in 0.7.76; older artifacts predate the events it counts,
-      // so "none" is the honest backfill (no recorded confinement evidence).
-      isolation: raw.isolation ?? {
-        posture: "none",
-        osSandboxedTurns: 0,
-        hardenedTurns: 0,
-        unconfinedRequestedTurns: 0,
-      },
     };
   } catch {
     return null;

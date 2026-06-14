@@ -445,6 +445,7 @@ describe("adviseMergeReadyRuns (git smoke)", () => {
         notes: [],
         anyRealCheckPassed: true,
         supervisor: { persona: "staff-engineer", independence: "single-profile" },
+        isolation: { posture: "none", osSandboxedTurns: 0, hardenedTurns: 0, unconfinedRequestedTurns: 0 },
       }),
     );
     const { advice, missing } = await adviseMergeReadyRuns({
