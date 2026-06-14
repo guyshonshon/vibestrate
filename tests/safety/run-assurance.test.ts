@@ -617,26 +617,20 @@ describe("buildAndWriteRunAssurance", () => {
     }
   });
 
-  it("backfills fields missing from a pre-0.7.11 assurance.json (coverage/caps)", async () => {
+  it("treats a stale/partial assurance.json as ABSENT (returns null -> caller re-derives)", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
     try {
       const runId = "run-legacy";
       await ensureDir(runDir(root, runId));
-      // A legacy artifact written before `coverage`/`caps` existed.
+      // An old artifact written before the current fields existed. No back-compat
+      // backfill: assurance.json is a regenerable cache, so a non-current shape
+      // is treated as missing and `null` is returned (the route/CLI then
+      // re-derive from evidence). It is NOT cast into consumers un-guarded.
       await fs.writeFile(
         runAssurancePath(root, runId),
         JSON.stringify({ schemaVersion: 1, runId, status: "merge_ready", verdict: "verified" }),
       );
-
-      const read = await readRunAssurance(root, runId);
-      expect(read?.verdict).toBe("verified");
-      // The function honors its RunAssurance contract instead of returning
-      // undefined fields that crash every consumer.
-      expect(read?.coverage).toEqual({ toleratedStepFailures: 0 });
-      expect(read?.caps).toEqual([]);
-      expect(read?.notes).toEqual([]);
-      // Backfilled from the (absent) lane statuses -> no real check recorded.
-      expect(read?.anyRealCheckPassed).toBe(false);
+      expect(await readRunAssurance(root, runId)).toBeNull();
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

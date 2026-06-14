@@ -766,24 +766,31 @@ export async function readRunAssurance(
   const file = runAssurancePath(projectRoot, runId);
   if (!(await pathExists(file))) return null;
   try {
-    const raw = JSON.parse(await readText(file)) as RunAssurance;
-    // Backfill fields added after older artifacts were written so the function
-    // honors its RunAssurance return contract. `coverage` landed in 0.7.11;
-    // pre-0.7.11 assurance.json files lack it, which would otherwise surface as
-    // an undefined dereference in every consumer (CLI, API, dashboard).
-    return {
-      ...raw,
-      coverage: raw.coverage ?? { toleratedStepFailures: 0 },
-      caps: raw.caps ?? [],
-      notes: raw.notes ?? [],
-      // Backfill from the persisted lane statuses (no re-derivation needed).
-      anyRealCheckPassed:
-        raw.anyRealCheckPassed ??
-        (raw.validation?.status === "passed" ||
-          raw.review?.status === "approved" ||
-          raw.verification?.status === "passed"),
-      blockers: raw.blockers ?? [],
-    };
+    const raw = JSON.parse(await readText(file)) as Record<string, unknown>;
+    // assurance.json is a regenerable CACHE (derived from events + state + the
+    // broker log), not user data. No back-compat backfill: an artifact that
+    // isn't the current shape (a stale pre-schema-change file) is treated as
+    // ABSENT - return null so the caller re-derives from evidence
+    // (buildAndWriteRunAssurance), instead of casting a partial object into
+    // consumers that dereference these fields un-guarded. `deriveRunAssurance`
+    // is the only writer and always emits all of them, so a current artifact
+    // always passes.
+    const present =
+      raw !== null &&
+      typeof raw === "object" &&
+      raw.verdict != null &&
+      raw.policy != null &&
+      raw.validation != null &&
+      raw.review != null &&
+      raw.verification != null &&
+      raw.coverage != null &&
+      raw.caps != null &&
+      raw.notes != null &&
+      raw.blockers != null &&
+      raw.anyRealCheckPassed != null &&
+      raw.supervisor != null &&
+      raw.isolation != null;
+    return present ? (raw as unknown as RunAssurance) : null;
   } catch {
     return null;
   }
