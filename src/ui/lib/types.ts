@@ -313,6 +313,8 @@ export type CrewRoleView = {
 export type CrewView = {
   id: string;
   label: string;
+  /** Per-crew override of the global review-loop count; null = inherit. */
+  maxReviewLoops: number | null;
   roles: CrewRoleView[];
 };
 

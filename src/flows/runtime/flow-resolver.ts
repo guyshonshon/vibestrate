@@ -226,7 +226,16 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
     steps,
     // Loop-body steps can't carry a fixed repeat (schema-enforced), so their
     // resolved ids equal their source ids - the loop refs carry over as-is.
-    loop: input.flow.loop ?? null,
+    // A crew may override the loop's review-pass budget (a "fast" crew runs
+    // fewer cycles, "thorough" more): bake `crew.maxReviewLoops` onto the
+    // immutable snapshot's `loop.maxIterations` - the value the runner actually
+    // bounds on - so the override fires AND a resume reproduces it (no live
+    // config re-read). When the crew sets no override, the flow's own loop is
+    // used unchanged.
+    loop:
+      input.flow.loop && crew.maxReviewLoops !== undefined
+        ? { ...input.flow.loop, maxIterations: crew.maxReviewLoops }
+        : (input.flow.loop ?? null),
     // Same for the per-item band: its step ids are stable, so the from/to refs
     // carry over unchanged for the runner to map onto resolved step indices.
     checklistSegment: input.flow.checklistSegment ?? null,

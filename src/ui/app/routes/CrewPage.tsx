@@ -10,7 +10,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { api } from "../../lib/api.js";
+import { api, type CrewPresetView } from "../../lib/api.js";
 import type {
   CrewView,
   CrewRoleView,
@@ -269,6 +269,14 @@ export function CrewPage({
                     <Chip tone="violet">default</Chip>
                   </span>
                 ) : null}
+                {crew.maxReviewLoops !== null ? (
+                  <span className="ml-2 align-middle">
+                    <Chip tone="neutral">
+                      {crew.maxReviewLoops} review loop
+                      {crew.maxReviewLoops === 1 ? "" : "s"}
+                    </Chip>
+                  </span>
+                ) : null}
               </h1>
               <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
                 Each role runs on a{" "}
@@ -337,9 +345,10 @@ export function CrewPage({
 
 // ─── Crews hub (the list you select from) ───────────────────────────────────
 
-/** Ready-made crews (fast / thorough) the user can install with one click -
- *  parity with `vibe crew presets`. Self-contained: fetches its own list and
- *  asks the parent to reload the crews hub after an install. */
+/** Ready-made crews (fast / thorough / cheap / local) the user can install with
+ *  one click - parity with `vibe crew presets`. Self-contained: fetches its own
+ *  list (with availability + what each would do) and asks the parent to reload
+ *  the crews hub after an install. */
 function CrewPresets({
   onInstalled,
   flash,
@@ -347,9 +356,7 @@ function CrewPresets({
   onInstalled: () => void;
   flash: (t: Toast) => void;
 }) {
-  const [presets, setPresets] = useState<
-    { id: string; label: string; description: string; installed: boolean }[] | null
-  >(null);
+  const [presets, setPresets] = useState<CrewPresetView[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   async function load() {
@@ -380,13 +387,24 @@ function CrewPresets({
 
   if (!presets || presets.length === 0) return null;
 
+  const effectLine = (e: NonNullable<CrewPresetView["effect"]>): string => {
+    const bits = [
+      e.power ? `${e.power} effort` : null,
+      e.model ? `model ${e.model}` : null,
+      e.maxReviewLoops !== null
+        ? `${e.maxReviewLoops} review loop${e.maxReviewLoops === 1 ? "" : "s"}`
+        : null,
+    ].filter(Boolean);
+    return [`on ${e.provider}`, ...bits].join(" · ");
+  };
+
   return (
     <section className="mt-10">
       <h2 className="text-[13px] font-semibold text-fog-200">Presets</h2>
       <p className="mt-1 text-[12px] text-fog-400">
-        Ready-made crews tuned by provider effort - the same roster as your
-        default crew, just faster or more thorough. Adds to{" "}
-        <span className="mono">project.yml</span>.
+        Ready-made crews over the same roster as your default crew - faster,
+        more thorough, cheaper, or local. Adds to{" "}
+        <span className="mono">project.yml</span> without overwriting anything.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {presets.map((p) => (
@@ -401,7 +419,7 @@ function CrewPresets({
               </div>
               {p.installed ? (
                 <span className="text-[11px] text-violet-300/80">installed</span>
-              ) : (
+              ) : p.available ? (
                 <button
                   type="button"
                   disabled={busy === p.id}
@@ -410,9 +428,17 @@ function CrewPresets({
                 >
                   {busy === p.id ? "Adding…" : "Add"}
                 </button>
+              ) : (
+                <span className="text-[11px] text-fog-500">n/a here</span>
               )}
             </div>
             <p className="mt-1 text-[12px] text-fog-400">{p.description}</p>
+            {!p.installed && p.available && p.effect ? (
+              <p className="mt-1 mono text-[11px] text-fog-500">{effectLine(p.effect)}</p>
+            ) : null}
+            {!p.available && p.reason ? (
+              <p className="mt-1 text-[11px] text-fog-500">{p.reason}</p>
+            ) : null}
           </div>
         ))}
       </div>

@@ -44,7 +44,12 @@ describe("crew presets routes", () => {
     const body = (await res.json()) as {
       presets: { id: string; installed: boolean }[];
     };
-    expect(body.presets.map((p) => p.id).sort()).toEqual(["fast", "thorough"]);
+    expect(body.presets.map((p) => p.id).sort()).toEqual([
+      "cheap",
+      "fast",
+      "local",
+      "thorough",
+    ]);
     expect(body.presets.every((p) => p.installed === false)).toBe(true);
   });
 

@@ -1,7 +1,11 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
 import { loadConfig } from "../../project/config-loader.js";
-import { setConfigValue, installCrewPreset } from "../../setup/config-update-service.js";
+import {
+  setConfigValue,
+  installCrewPreset,
+  listCrewPresets,
+} from "../../setup/config-update-service.js";
 import { roleLabel } from "../../crews/crew-registry.js";
 import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
 import type { CrewConfig } from "../../crews/crew-schema.js";
@@ -108,34 +112,39 @@ async function cmdUse(id: string): Promise<number> {
 
 async function cmdPresets(opts: { json?: boolean }): Promise<number> {
   const root = await ctx();
-  const { config } = await loadConfig(root);
-  const rows = CREW_PRESETS.map((p) => ({
-    id: p.id,
-    label: p.label,
-    description: p.description,
-    installed: Boolean(config.crews[p.id]),
-  }));
+  const rows = await listCrewPresets(root);
   if (opts.json) {
-    console.log(JSON.stringify({ defaultCrew: config.defaultCrew, presets: rows }, null, 2));
+    console.log(JSON.stringify({ presets: rows }, null, 2));
     return 0;
   }
   console.log(header("Crew presets"));
   console.log("");
   for (const r of rows) {
-    const mark = r.installed
+    const status = r.installed
       ? color.cyan("· installed")
-      : color.dim("· not installed");
-    console.log(`${color.bold(r.label)} ${color.dim(`(${r.id})`)} ${mark}`);
+      : r.available
+        ? color.dim("· available")
+        : color.dim("· n/a here");
+    console.log(`${color.bold(r.label)} ${color.dim(`(${r.id})`)} ${status}`);
     console.log(indent(color.dim(r.description)));
+    if (!r.installed && r.available && r.effect) {
+      const bits = [
+        r.effect.power ? `${r.effect.power} effort` : null,
+        r.effect.model ? `model ${r.effect.model}` : null,
+        r.effect.maxReviewLoops !== null
+          ? `${r.effect.maxReviewLoops} review loop${r.effect.maxReviewLoops === 1 ? "" : "s"}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      console.log(indent(color.dim(`-> ${r.effect.provider}${bits ? ` · ${bits}` : ""}`)));
+    } else if (!r.available && r.reason) {
+      console.log(indent(color.dim(`(not here: ${r.reason})`)));
+    }
   }
   console.log("");
   console.log(
-    color.dim("Your everyday crew is ") +
-      color.bold(config.defaultCrew) +
-      color.dim(" (balanced)."),
-  );
-  console.log(
-    color.dim("Add one with ") +
+    color.dim("Add with ") +
       color.bold("vibe crew presets add <id>") +
       color.dim(", then ") +
       color.bold("vibe crew use <id>") +
@@ -155,13 +164,17 @@ async function cmdPresetAdd(id: string): Promise<number> {
   }
   try {
     const res = await installCrewPreset(root, id as PresetTier);
+    const bits = [
+      res.power ? `${res.power} effort` : null,
+      res.model ? `model ${res.model}` : null,
+      res.maxReviewLoops !== null
+        ? `${res.maxReviewLoops} review loop${res.maxReviewLoops === 1 ? "" : "s"}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     console.log(
-      `${symbol.ok()} Installed crew ${color.bold(res.crewId)} on profile ${color.bold(res.profileId)} ${color.dim(`(${res.ref} · ${res.power} effort)`)}.`,
-    );
-    console.log(
-      color.dim("Built on ") +
-        color.bold(res.ref) +
-        color.dim(" - your default crew's provider."),
+      `${symbol.ok()} Installed crew ${color.bold(res.crewId)} on profile ${color.bold(res.profileId)} ${color.dim(`(${res.ref}${bits ? ` · ${bits}` : ""})`)}.`,
     );
     console.log(
       color.dim("Use it with ") +

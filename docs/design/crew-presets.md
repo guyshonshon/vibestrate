@@ -1,6 +1,16 @@
 # Crew presets ("Fast Crew" / "Thorough Crew")
 
-Status: proposed (design, not built)
+Status: SHIPPED. v1 (0.7.87): `fast` / `thorough` effort-tier presets + CLI +
+dashboard. v2 (0.7.88): added `cheap` (cheapest model + low effort) and `local`
+(non-cloud provider) presets; a per-crew `maxReviewLoops` override (fast=1,
+thorough=3) applied on the resolved flow snapshot's `loop.maxIterations` (the
+value the runner bounds on - a Tier-2 review caught that `state.maxReviewLoops`
+is display-only post D2-unification); curated `cheapModel` catalog metadata
+(relative, hand-maintained - no live pricing, per the no-egress posture); and
+availability/effect surfaced in the CLI + dashboard. Init-seeding was tried and
+**rejected** (it bloats every project.yml and overlaps the on-demand path).
+Open: the GLOBAL `workflow.maxReviewLoops` is also display-only at runtime (same
+D2 root cause, predates this work) - a separate fix.
 
 ## Problem
 

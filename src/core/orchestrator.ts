@@ -652,7 +652,11 @@ export class Orchestrator {
       projectRoot: this.projectRoot,
       worktreePath: null,
       branchName: null,
-      maxReviewLoops: this.config.workflow.maxReviewLoops,
+      // Display value only (final report's "max"). The real budget is the
+      // resolved snapshot's loop.maxIterations (which already has any crew
+      // maxReviewLoops override baked in by resolveFlow) - mirror it so the
+      // report can never disagree with what actually ran.
+      maxReviewLoops: flow.loop?.maxIterations ?? this.config.workflow.maxReviewLoops,
     });
     // Persist the run-level Crew/Profile choices. The exact per-step
     // profile/provider resolution lives in flow.json (the immutable snapshot).

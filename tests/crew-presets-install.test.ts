@@ -65,6 +65,29 @@ describe("installCrewPreset", () => {
     expect(config.crews[config.defaultCrew]).toBeDefined();
   });
 
+  it("fast / thorough write per-crew maxReviewLoops overrides (1 / 3)", async () => {
+    await installCrewPreset(root, "fast");
+    await installCrewPreset(root, "thorough");
+    const { config } = await loadConfig(root);
+    expect(config.crews.fast!.maxReviewLoops).toBe(1);
+    expect(config.crews.thorough!.maxReviewLoops).toBe(3);
+    // the default crew keeps no override (inherits the global).
+    expect(config.crews[config.defaultCrew]!.maxReviewLoops).toBeUndefined();
+  });
+
+  it("cheap installs the provider's cheapest model (claude -> haiku), no loop override", async () => {
+    const res = await installCrewPreset(root, "cheap");
+    expect(res.model).toBe("haiku");
+    expect(res.maxReviewLoops).toBeNull();
+    const { config } = await loadConfig(root);
+    expect(config.profiles["claude-cheap"]?.model).toBe("haiku");
+    expect(config.crews.cheap!.maxReviewLoops).toBeUndefined();
+  });
+
+  it("local refuses on a single local-provider project (would equal default)", async () => {
+    await expect(installCrewPreset(root, "local")).rejects.toThrow(/already runs on a local/i);
+  });
+
   it("refuses on a provider with no distinct effort levels (would be identical)", async () => {
     // Point the default crew at gemini, which exposes no effort control - so
     // fast/thorough would be byte-identical to the default. Install must refuse.

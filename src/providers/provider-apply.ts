@@ -31,6 +31,10 @@ export type ProviderApplySpec = {
   model: ArgApply | null;
   /** Effort: the real levels + how each is applied. null = no effort -> hidden. */
   effort: { levels: string[]; apply: ArgApply } | null;
+  /** Curated CHEAPEST model id (a relative, hand-maintained designation - not
+   *  live pricing, which the local-first/no-egress posture deliberately avoids).
+   *  Drives the `cheap` crew preset. Omit when we can't confidently name one. */
+  cheapModel?: string;
 };
 
 const FLAG_MODEL: ArgApply = { kind: "flag", flag: "--model" };
@@ -43,6 +47,7 @@ const SPECS: Record<string, ProviderApplySpec> = {
       levels: ["low", "medium", "high", "xhigh", "max"],
       apply: { kind: "flag", flag: "--effort" },
     },
+    cheapModel: "haiku",
   },
   codex: {
     models: ["gpt-5.5", "gpt-5.1-codex-max", "gpt-5.1"],
@@ -56,6 +61,7 @@ const SPECS: Record<string, ProviderApplySpec> = {
     models: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
     model: FLAG_MODEL,
     effort: null, // CLI exposes no effort flag (thinking budget is numeric/API)
+    cheapModel: "gemini-2.5-flash-lite",
   },
   // Not wired (no verified flag) -> the UI hides model/effort for these.
   ollama: { models: [], model: null, effort: null },
@@ -109,6 +115,8 @@ export type HttpApplySpec = {
   models: string[];
   /** Effort: real levels + the request-body field they set. null = no effort. */
   effort: { levels: string[]; field: string } | null;
+  /** Curated cheapest model id (relative, hand-maintained). Drives `cheap`. */
+  cheapModel?: string;
 };
 
 const HTTP_SPECS: Record<string, HttpApplySpec> = {
@@ -118,10 +126,12 @@ const HTTP_SPECS: Record<string, HttpApplySpec> = {
       levels: ["minimal", "low", "medium", "high"],
       field: "reasoning_effort",
     },
+    cheapModel: "o4-mini",
   },
   anthropic: {
     models: ["claude-opus-4-1", "claude-sonnet-4-5", "claude-haiku-4-5"],
     effort: null, // thinking is a numeric budget_tokens, not an effort level
+    cheapModel: "claude-haiku-4-5",
   },
   ollama: { models: [], effort: null },
 };
@@ -172,6 +182,24 @@ export function modelIsWired(
   catalog: ResolvedCatalog = BUILTIN_CATALOG,
 ): boolean {
   return !!catalog.cli[providerId]?.model;
+}
+
+/** Curated cheapest model for a provider, or null when none is designated /
+ *  model selection isn't wired. Drives the `cheap` crew preset. */
+export function cheapestModel(
+  providerId: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string | null {
+  const s = catalog.cli[providerId];
+  return s?.model && s.cheapModel ? s.cheapModel : null;
+}
+
+/** Curated cheapest model for an HTTP api family, or null when none designated. */
+export function httpCheapestModel(
+  api: string,
+  catalog: ResolvedCatalog = BUILTIN_CATALOG,
+): string | null {
+  return catalog.http[api]?.cheapModel ?? null;
 }
 
 /** Real, wired effort levels for a provider ([] = effort not wired -> hidden). */

@@ -21,6 +21,7 @@ import {
   createProfile,
   deleteProfile,
   installCrewPreset,
+  listCrewPresets,
 } from "../../setup/config-update-service.js";
 import { CREW_PRESETS, type PresetTier } from "../../crews/crew-presets.js";
 import { profileUsage, rolesUsingProfile } from "../../profiles/profile-usage.js";
@@ -214,21 +215,11 @@ export async function registerProjectRoutes(
     return { ok: true, defaultCrew: body.data.crewId };
   });
 
-  // Crew presets: ready-made crews (fast / thorough) the user can install.
+  // Crew presets: ready-made crews + whether each applies to this project
+  // (availability, what it would do, or why it can't) - same data the CLI shows.
   app.get("/api/crews/presets", async () => {
-    const installed = new Set<string>();
-    if (await configExists(projectRoot)) {
-      const { config } = await loadConfig(projectRoot);
-      for (const id of Object.keys(config.crews)) installed.add(id);
-    }
-    return {
-      presets: CREW_PRESETS.map((p) => ({
-        id: p.id,
-        label: p.label,
-        description: p.description,
-        installed: installed.has(p.id),
-      })),
-    };
+    if (!(await configExists(projectRoot))) return { presets: [] };
+    return { presets: await listCrewPresets(projectRoot) };
   });
 
   // Install a preset crew (+ its profile) into project.yml. Additive and
@@ -505,6 +496,7 @@ function serializeCrew(
   return {
     id: crewId,
     label: crew.label ?? crewId,
+    maxReviewLoops: crew.maxReviewLoops ?? null,
     roles: Object.entries(crew.roles).map(([roleId, role]) => {
       const profile = config.profiles[role.profile];
       return {

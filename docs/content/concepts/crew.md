@@ -42,26 +42,35 @@ the same Seat, it's ambiguous and the run asks you to pick one.
 
 ## Presets
 
-Ready-made crews so you don't have to hand-author one:
+Ready-made crews so you don't have to hand-author one - all over the **same
+roster** as your default crew (so a Flow's Seats stay covered; a preset changes
+*how* the team runs, not *who* is on it):
 
-- `vibe crew presets` - list the presets (`fast`, `thorough`) and whether each is
-  installed. The dashboard's Crew page has the same list under **Presets**.
-- `vibe crew presets add fast` - add a `fast` crew: the same roster as your
-  default crew, every Role on a profile at your provider's **lowest** effort.
-  `thorough` uses the **highest**. Then `vibe crew use fast` to make it the
-  default, or `vibe run "…" --crew fast` for one run.
+- **`fast`** - lowest provider effort + fewer review loops (1). Quick, low-stakes.
+- **`thorough`** - highest effort + extra review loops (3). Risky / complex work.
+- **`cheap`** - the provider's cheapest model at low effort. Minimise spend.
+- **`local`** - runs on a local (non-cloud) provider. Keeps work off cloud APIs.
 
-A preset changes *how hard the team runs* (the profile effort), not *who is on
-it*, so a Flow's Seats stay covered. It's built on your default crew's provider,
-and added to `project.yml` without overwriting anything. Presets need a provider
-with effort control (e.g. claude, codex); on a provider with none, the install
-refuses - the two tiers would be identical to your default crew.
+`vibe crew presets` lists them with whether each applies to your setup and what
+it would do (provider, model, effort, review loops) - or why it can't. The
+dashboard's Crew page shows the same under **Presets** with one-click **Add**.
+`vibe crew presets add cheap` installs one (added to `project.yml` without
+overwriting anything); then `vibe crew use cheap`, or `vibe run "…" --crew cheap`
+for one run.
+
+Each preset **refuses** rather than create a crew identical to your default:
+`fast`/`thorough` need a provider with effort control (claude, codex); `cheap`
+needs a provider with a designated cheap model; `local` needs a local provider
+separate from your default. `fast`/`thorough` also set a per-crew
+`maxReviewLoops` (see below) so review depth follows the crew you pick.
 
 ## Advanced
 
 Schema (`src/crews/crew-schema.ts`, `src/roles/role-schema.ts`):
 
-- `crews.<crewId>.label?` and `crews.<crewId>.roles.<roleId>` - at least one role.
+- `crews.<crewId>.label?`, optional `crews.<crewId>.maxReviewLoops` (0..10,
+  overrides `workflow.maxReviewLoops` for runs on this crew), and
+  `crews.<crewId>.roles.<roleId>` - at least one role.
 - A Role has `seats: string[]`, `profile`, `prompt`, `permissions`, `skills`,
   and optional `mcpServers`. It runs on a [[profile]] (not a provider directly).
 - `defaultCrew` must name a crew that exists.

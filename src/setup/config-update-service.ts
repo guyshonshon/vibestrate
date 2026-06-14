@@ -11,10 +11,10 @@ import { builtinRoleIds } from "../roles/role-schema.js";
 import type { ProviderConfig } from "../providers/provider-schema.js";
 import { capabilitiesForProvider } from "../providers/provider-catalog.js";
 import {
-  buildPresetCrew,
-  buildPresetProfile,
-  presetProfileId,
+  planPreset,
+  CREW_PRESETS,
   type PresetTier,
+  type ProviderInfo,
 } from "../crews/crew-presets.js";
 
 export type ParsedValue = string | number | boolean | unknown[] | Record<string, unknown>;
@@ -371,15 +371,92 @@ export type InstallPresetResult = {
   profileId: string;
   ref: string;
   power: string | null;
+  model: string | null;
+  maxReviewLoops: number | null;
 };
 
-/** Install a crew preset (`fast` / `thorough`) into project.yml: a profile at the
- *  tier's provider effort plus a crew (the default roster) on it. Additive and
- *  fail-closed:
+/** Snapshot every configured provider's capabilities + locality for the preset
+ *  planner. Locality: cloud `http-api` is remote; everything else is local. */
+function providerInfos(config: ProjectConfig): ProviderInfo[] {
+  return Object.entries(config.providers).map(([id, p]) => {
+    const caps = capabilitiesForProvider(id, p);
+    return {
+      id,
+      isLocal: p.type !== "http-api",
+      powerLevels: caps.powerLevels,
+      modelEnabled: caps.modelEnabled,
+      cheapModel: caps.cheapModel,
+    };
+  });
+}
+
+export type PresetEffect = {
+  provider: string;
+  model: string | null;
+  power: string | null;
+  maxReviewLoops: number | null;
+};
+
+export type PresetListing = {
+  id: PresetTier;
+  label: string;
+  description: string;
+  /** A crew with this id already exists. */
+  installed: boolean;
+  /** This preset can be built for this project right now. */
+  available: boolean;
+  /** Why it can't be built (set only when `available` is false). */
+  reason?: string;
+  /** What installing it would produce (set only when `available`). */
+  effect?: PresetEffect;
+};
+
+/** Every preset with its install-state and, via a dry `planPreset`, whether it
+ *  applies to THIS project (and what it would do, or why it can't). Powers the
+ *  CLI `vibe crew presets`, the `/api/crews/presets` route, and the dashboard so
+ *  the UI can disable an inapplicable preset and explain why. */
+export async function listCrewPresets(projectRoot: string): Promise<PresetListing[]> {
+  const { doc } = await readDocument(projectRoot);
+  const parsed = projectConfigSchema.safeParse(doc.toJS());
+  if (!parsed.success) {
+    throw new ConfigError("Current config is invalid; fix it before listing presets.");
+  }
+  const config = parsed.data;
+  const ctx = {
+    defaultProviderRef: deriveProviderRef(config),
+    providers: providerInfos(config),
+    rolesDirRel: relativeRolesDir(projectRoot),
+  };
+  return CREW_PRESETS.map((p) => {
+    const installed = Boolean(config.crews[p.id]);
+    const plan = planPreset(p.id, ctx);
+    if (!plan.ok) {
+      return { id: p.id, label: p.label, description: p.description, installed, available: false, reason: plan.reason };
+    }
+    return {
+      id: p.id,
+      label: p.label,
+      description: p.description,
+      installed,
+      available: true,
+      effect: {
+        provider: plan.provider,
+        model: plan.profile.model,
+        power: plan.profile.power,
+        maxReviewLoops: plan.maxReviewLoops ?? null,
+      },
+    };
+  });
+}
+
+/** Install a crew preset (`fast` / `thorough` / `cheap` / `local`) into
+ *  project.yml: a profile tuned for the tier plus a crew (the default roster) on
+ *  it. Additive and fail-closed:
+ *   - the planner refuses when the tier can't be made distinct from the default
+ *     crew (no effort levels for fast/thorough, no cheap model for cheap, no
+ *     separate local provider for local),
  *   - refuses if the crew/profile id already exists (no overwrite of a prior,
  *     serialized install),
- *   - refuses when the provider exposes fewer than two distinct effort levels,
- *     since `fast` and `thorough` would then be identical to the default crew,
  *   - `writeDocument` validates the whole config before writing, so a bad merge
  *     is rejected rather than persisted. */
 export async function installCrewPreset(
@@ -394,33 +471,32 @@ export async function installCrewPreset(
     );
   }
   const config = parsed.data;
-  const ref = deriveProviderRef(config);
-  const profileId = presetProfileId(ref, tier);
-  const crewId = tier;
-  if (doc.hasIn(["crews", crewId])) {
-    throw new ConfigError(`Crew "${crewId}" already exists - not overwriting it.`);
+  const plan = planPreset(tier, {
+    defaultProviderRef: deriveProviderRef(config),
+    providers: providerInfos(config),
+    rolesDirRel: relativeRolesDir(projectRoot),
+  });
+  if (!plan.ok) throw new ConfigError(plan.reason);
+  if (doc.hasIn(["crews", plan.crewId])) {
+    throw new ConfigError(`Crew "${plan.crewId}" already exists - not overwriting it.`);
   }
-  if (doc.hasIn(["profiles", profileId])) {
+  if (doc.hasIn(["profiles", plan.profileId])) {
     throw new ConfigError(
-      `Profile "${profileId}" already exists - not overwriting it.`,
+      `Profile "${plan.profileId}" already exists - not overwriting it.`,
     );
   }
-  const provider = config.providers[ref];
-  if (!provider) {
-    throw new ConfigError(`Provider "${ref}" is not configured.`);
-  }
-  const caps = capabilitiesForProvider(ref, provider);
-  if (caps.powerLevels.length < 2) {
-    throw new ConfigError(
-      `Provider "${ref}" exposes no distinct effort levels, so a "${tier}" crew ` +
-        `would be identical to your default crew. Crew presets need a provider ` +
-        `with effort control (e.g. claude, codex).`,
-    );
-  }
-  const profile = buildPresetProfile(ref, tier, caps.powerLevels);
-  const crew = buildPresetCrew(tier, ref, relativeRolesDir(projectRoot));
-  doc.setIn(["profiles", profileId], profile);
-  doc.setIn(["crews", crewId], crew);
+  doc.setIn(["profiles", plan.profileId], plan.profile);
+  const crewNode: Record<string, unknown> = { label: plan.crew.label };
+  if (plan.maxReviewLoops !== undefined) crewNode.maxReviewLoops = plan.maxReviewLoops;
+  crewNode.roles = plan.crew.roles;
+  doc.setIn(["crews", plan.crewId], crewNode);
   await writeDocument(projectRoot, doc);
-  return { crewId, profileId, ref, power: profile.power };
+  return {
+    crewId: plan.crewId,
+    profileId: plan.profileId,
+    ref: plan.provider,
+    power: plan.profile.power,
+    model: plan.profile.model,
+    maxReviewLoops: plan.maxReviewLoops ?? null,
+  };
 }

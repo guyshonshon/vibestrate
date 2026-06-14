@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.88
+
+- **More crew presets + per-crew tuning.** On top of `fast` / `thorough`,
+  `vibe crew presets add` now offers **`cheap`** (the provider's cheapest model
+  at low effort) and **`local`** (runs on a non-cloud provider). `fast` and
+  `thorough` also set a per-crew **review-loop** count (1 and 3): a crew can now
+  do fewer or more review cycles than the global default without touching
+  `workflow` config. The dashboard Crew page and `vibe crew presets` now show,
+  per preset, whether it applies to your setup and exactly what it would do
+  (provider, model, effort, review loops) - or why it can't.
+- The provider catalog gained a curated **cheapest-model** designation (claude,
+  Gemini, OpenAI, Anthropic) - a relative, hand-maintained hint, not live
+  pricing (the local-first, no-egress posture is unchanged) - which is what
+  drives the `cheap` preset.
+
 ## 0.7.87
 
 - **Crew presets.** Two ready-made crews you can install instead of hand-writing

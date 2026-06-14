@@ -420,5 +420,11 @@ export async function runInit(opts: InitOptions): Promise<InitResult> {
     await writeIfMissing(target, contents, result, force);
   }
 
+  // NOTE: crew presets (fast/thorough/cheap/local) are NOT seeded at init on
+  // purpose - they'd bloat every project.yml and overlap the on-demand path.
+  // They're installed when wanted via `vibe crew presets add` / the dashboard
+  // Crew page, both of which surface availability so a fresh project still sees
+  // them.
+
   return result;
 }

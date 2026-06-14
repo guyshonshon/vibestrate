@@ -11,6 +11,8 @@ import {
   effortLevels,
   httpEffortLevels,
   httpModelSuggestions,
+  cheapestModel,
+  httpCheapestModel,
   BUILTIN_CATALOG,
   type ResolvedCatalog,
 } from "./provider-apply.js";
@@ -23,6 +25,8 @@ export type ProviderCapabilities = {
   modelEnabled: boolean;
   /** Wired effort levels; empty = no effort control (UI hides the field). */
   powerLevels: string[];
+  /** Curated cheapest model id, or null when none is designated. Drives `cheap`. */
+  cheapModel: string | null;
 };
 
 const KNOWN = [
@@ -47,6 +51,7 @@ export function providerCapabilities(
     models: modelSuggestions(id, catalog),
     modelEnabled: modelIsWired(id, catalog),
     powerLevels: effortLevels(id, catalog),
+    cheapModel: cheapestModel(id, catalog),
   };
 }
 
@@ -69,6 +74,7 @@ export function capabilitiesForProvider(
       models: httpModelSuggestions(config.api, catalog),
       modelEnabled: true, // every HTTP api takes a model id
       powerLevels: httpEffortLevels(config.api, catalog),
+      cheapModel: httpCheapestModel(config.api, catalog),
     };
   }
   // cli / claude-code: keyed by the well-known provider id.

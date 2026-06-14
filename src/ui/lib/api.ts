@@ -165,6 +165,21 @@ async function jsonDelete<T>(path: string): Promise<T> {
 
 export type OverviewRange = "24h" | "7d" | "30d" | "90d";
 
+export type CrewPresetView = {
+  id: string;
+  label: string;
+  description: string;
+  installed: boolean;
+  available: boolean;
+  reason?: string;
+  effect?: {
+    provider: string;
+    model: string | null;
+    power: string | null;
+    maxReviewLoops: number | null;
+  };
+};
+
 export type DailyOutcomeBucket = {
   date: string;
   label: string;
@@ -973,16 +988,21 @@ export const api = {
   async setDefaultCrew(crewId: string): Promise<{ ok: true; defaultCrew: string }> {
     return jsonPost("/api/crews/default", { crewId });
   },
-  /** Crew presets (fast / thorough) and whether each is installed. */
-  async getCrewPresets(): Promise<{
-    presets: { id: string; label: string; description: string; installed: boolean }[];
-  }> {
+  /** Crew presets, each with install-state, whether it applies here, and what
+   *  it would do (or why it can't). */
+  async getCrewPresets(): Promise<{ presets: CrewPresetView[] }> {
     return jsonGet("/api/crews/presets");
   },
   /** Install a preset crew (+ its profile) - parity with `vibe crew presets add`. */
-  async installCrewPreset(
-    id: string,
-  ): Promise<{ ok: true; crewId: string; profileId: string; ref: string; power: string | null }> {
+  async installCrewPreset(id: string): Promise<{
+    ok: true;
+    crewId: string;
+    profileId: string;
+    ref: string;
+    power: string | null;
+    model: string | null;
+    maxReviewLoops: number | null;
+  }> {
     return jsonPost("/api/crews/presets/install", { id });
   },
   async patchCrewRole(

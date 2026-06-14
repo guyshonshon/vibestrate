@@ -9,6 +9,13 @@ import { crewRolesConfigSchema } from "../roles/role-schema.js";
 export const crewConfigSchema = z
   .object({
     label: z.string().min(1).max(120).optional(),
+    /**
+     * Optional per-crew override of `workflow.maxReviewLoops`. When set, a run
+     * using THIS crew uses this many review/fix cycles instead of the global
+     * default; unset = inherit the global. Lets a "fast" crew do fewer loops
+     * and a "thorough" crew more, without rewriting global flow config.
+     */
+    maxReviewLoops: z.number().int().min(0).max(10).optional(),
     roles: crewRolesConfigSchema,
   })
   .strict();
