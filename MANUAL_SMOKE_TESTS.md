@@ -12,6 +12,18 @@ Tips:
   step - run it when done so nothing lingers.
 - `vibe config get <key>` shows a setting; `vibe config set <key> <value>` changes it.
 
+## Status (last run 2026-06-14)
+
+| # | Test | Result |
+|---|------|--------|
+| 1 | Provider-native sandbox (codex) | PASS - run sandboxed + OS blocked an out-of-workspace write |
+| 2 | Harden read-only seats | not run (skipped; headless-verified at 0.7.75) |
+| 3 | Consult spinner | PASS |
+| 4 | Dashboard surfaces | not run yet |
+| 5 | Snapshot retention + consult tip | not run yet |
+| 6 | `vibe guide` + apply | not run yet |
+| 7 | Stale assurance re-derives | not run yet |
+
 ---
 
 ## 1. Provider-native sandbox (codex) - the big one
@@ -49,12 +61,33 @@ no OS sandbox - see test 2 for that side).
 - `vibe assurance` prints an **`isolation: sandboxed`** line (with a turn count).
 - The file landed in the run's worktree (the change is reviewable as usual).
 
+> **Result (2026-06-14): PASS.** The codex run completed under the sandbox and
+> `vibe assurance` reported:
+>
+> ```
+> Run assurance ...create-a-file-hello-sandbox-txt-with-the-word-ok - verified
+>   policy:       passed
+>   validation:   not_applicable (0/0 passed)
+>   review:       skipped_inert_diff
+>   verification: not_applicable
+>   supervisor:   staff-engineer (single-profile)
+>   isolation:    sandboxed (1 OS-sandboxed)
+> ```
+>
+> The `isolation: sandboxed (1 OS-sandboxed)` line is the thing under test - the
+> seat ran OS-confined and the run still finished cleanly.
+
 **Optional - see the OS actually block a write (10 sec, no LLM):**
 ```
 cd /tmp && codex sandbox -- /bin/sh -c 'echo X > /tmp/should-fail.txt; echo rc=$?'
 ls -la /tmp/should-fail.txt   # should NOT exist
 ```
 Expect: `Operation not permitted` and the file is **not** created.
+
+> **Result (2026-06-14): PASS** (you had it right). Output was
+> `Operation not permitted`, `rc=1`, and `ls: ... No such file or directory` -
+> i.e. the OS itself refused the out-of-workspace write and no file was created.
+> That is exactly the pass condition.
 
 **Reset:**
 ```
@@ -93,6 +126,9 @@ this is expected. No failure.
 vibe config set policies.hardenReadOnlySeats false
 ```
 
+> **Result: NOT RUN (skipped).** Shipped + headless-smoke-verified already
+> (0.7.75); user-side manual run still pending.
+
 ---
 
 ## 3. Consult spinner (the "looks frozen" fix)
@@ -111,6 +147,8 @@ vibe consult "what's the riskiest open item in this project?"
   `vibe consult "..." | cat` to see that.)
 
 **Reset:** none.
+
+> **Result (2026-06-14): PASS.** Spinner shows live feedback, no freeze.
 
 ---
 
@@ -137,6 +175,8 @@ vibe consult "what's the riskiest open item in this project?"
 **Expect:** each element renders without errors; nothing crashes the page.
 
 **Reset:** stop `vibe ui` (Ctrl+C).
+
+> **Result: NOT RUN yet.**
 
 ---
 
@@ -172,6 +212,8 @@ about growth.
 vibe config set git.snapshotRetentionRuns 0
 ```
 
+> **Result: NOT RUN yet.**
+
 ---
 
 ## 6. `vibe guide` (renamed from `vibe vibestrate`) + apply a proposal
@@ -202,6 +244,9 @@ works; apply appends to VIBESTRATE.md (review the diff before committing).
 
 **Reset:** `git checkout VIBESTRATE.md` if you don't want to keep the applied text.
 
+> **Result: NOT RUN yet.**
+
+tested all good
 ---
 
 ## 7. (Optional) Stale assurance re-derives, doesn't crash
@@ -217,8 +262,14 @@ works; apply appends to VIBESTRATE.md (review the diff before committing).
 **Expect:** a verdict prints (it re-derives from evidence if the cached artifact
 is stale or missing). No crash, no "undefined" errors.
 
+> **Result: NOT RUN yet.**
+
 **Reset:** none.
 
+runId is unconventional. firs,t you cant select and copy from TUI, second, 
+"20260614-125024-go-through-all-runs-and-list-which-one-was-ran-on-a-sandbox" is a fucking long
+and useless one. make a 6 digit id, count uniques? or some long enough that isn't too long and hard to help the consistency
+of it, or made up names or named runs? like docker has run --name xxx or default something. lets find something conventioal
 ---
 
 ### One-shot path that covers 1, 2, 5 together
