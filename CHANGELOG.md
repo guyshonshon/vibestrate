@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.89
+
+- **Shell: no more flicker as you type, plus a header that fits narrow windows.**
+  The full-screen (alternate-screen) shell from 0.7.86 fought some terminals - it
+  left blank space and didn't re-fill on resize - so the shell is back to a
+  normal inline render. The real fix for "the screen jumps as I type a command"
+  now lives where it belongs: the completion list sits in a **constant-height
+  strip** reserved the whole time the prompt is focused, so candidates fill in
+  and clear without ever reflowing the layout (it only appears/vanishes on
+  focus/blur). The header's status (project / branch / activity) now truncates
+  instead of wrapping onto the divider on a narrow terminal.
+
 ## 0.7.88
 
 - **More crew presets + per-crew tuning.** On top of `fast` / `thorough`,

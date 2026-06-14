@@ -32,7 +32,6 @@ import {
 } from "./runner/command-runner.js";
 import { discoverFlows } from "../../flows/catalog/flow-discovery.js";
 import { configValueHints } from "../../project/config-introspection.js";
-import { useTerminalSize } from "./hooks/useTerminalSize.js";
 import { buildStatusModel } from "./status-model.js";
 import { applySessionDefaults } from "./session-defaults.js";
 import { deriveRerunArgs, formatArgv } from "../../scheduler/rerun-args.js";
@@ -237,10 +236,6 @@ export function App({
     !ui.completion.dismissed &&
     ui.runner.input.trim().length > 0 &&
     completion.items.length > 0;
-  // The whole shell is bound to the terminal height so the body region can
-  // SHRINK (clip) to make room for the completion list - the app never grows
-  // past the viewport, so nothing scrolls and the input never moves.
-  const { rows } = useTerminalSize();
 
   const acceptCompletion = (): void => {
     const item = completion.items[completionIndex];
@@ -789,15 +784,13 @@ export function App({
   }
 
   return (
-    <Box flexDirection="column" height={rows}>
+    <Box flexDirection="column">
       {/* Region 1 - header: brand + context + menu (minimal hint). */}
       <Panel borderColor={ACCENT}>
         <HeaderBar model={statusModel} page={ui.page} />
       </Panel>
-      {/* Region 3 (moved ABOVE the body) - context + prompt + key hints. The
-          input lives above the body panel on purpose: when the completion list
-          opens it shrinks the BODY below, never the input, so the prompt's row
-          never changes as you type. Border brightens while the prompt has input. */}
+      {/* Region 3 - context + prompt + key hints. Border brightens while the
+          prompt has input. */}
       <Panel borderColor={ui.promptFocused ? ACCENT_DEEP : ACCENT_DIM}>
         <ContextLine model={statusModel} />
         <Rule />
@@ -812,21 +805,28 @@ export function App({
         />
         <Footer ui={ui} capturedAt={snapshot?.capturedAt ?? null} />
       </Panel>
-      {/* Completion list: fixed-height slot directly under the input. Constant
-          height while open + the body absorbs the space = zero input movement. */}
-      {completionOpen ? (
-        <Box height={COMPLETION_SLOT_ROWS} flexDirection="column">
-          <CompletionOverlay
-            items={completion.items}
-            selectedIndex={completionIndex}
-          />
+      {/* Completion: a CONSTANT-height strip reserved the whole time the prompt
+          is focused. The list content changes inside it (candidates while there
+          are matches, a hint otherwise) but the BOX never changes size - so
+          typing never reflows the layout (no flicker). It only appears/vanishes
+          on focus/blur, a single deliberate reflow. */}
+      {ui.promptFocused ? (
+        <Box height={COMPLETION_SLOT_ROWS} flexDirection="column" marginLeft={2}>
+          {completionOpen ? (
+            <CompletionOverlay
+              items={completion.items}
+              selectedIndex={completionIndex}
+            />
+          ) : (
+            <Text dimColor>
+              {"type a vibe command  ·  ⇥ complete  ·  : palette  ·  esc done"}
+            </Text>
+          )}
         </Box>
       ) : null}
       {/* Region 2 - body: the active page (left) + command output (right),
-          or full-width output when expanded with `O`. flexGrow + overflow
-          hidden + minHeight 0 so it CLIPS to the viewport (shrinks for the
-          completion list) instead of pushing the layout past the screen. */}
-      <Panel borderColor={ACCENT_DIM} flexGrow={1} overflow="hidden" minHeight={0}>
+          or full-width output when expanded with `O`. */}
+      <Panel borderColor={ACCENT_DIM} flexGrow={1}>
        {ui.outputExpanded && ui.runner.output.length > 0 ? (
         <OutputPane
           output={ui.runner.output}

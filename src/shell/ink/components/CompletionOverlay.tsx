@@ -4,12 +4,12 @@ import type { CompletionItem } from "../completion.js";
 import { windowFromTop } from "../output-window.js";
 import { ACCENT, ACCENT_DIM } from "../theme.js";
 
-const MAX_VISIBLE = 7;
+const MAX_VISIBLE = 6;
 
 /** The most rows this overlay can ever render: the visible window + the two
  *  "↑/↓ N more" markers + the selected-item detail line + the key-hint line.
- *  App reserves exactly this many rows below the prompt so the list opening /
- *  closing / resizing as you type never changes the TUI's overall size. */
+ *  App reserves exactly this many rows below the prompt (the constant completion
+ *  strip) so the list filling/emptying as you type never changes the layout. */
 export const COMPLETION_SLOT_ROWS = MAX_VISIBLE + 4;
 
 /**
@@ -39,7 +39,7 @@ export function CompletionOverlay({
   );
 
   return (
-    <Box flexDirection="column" marginTop={0} marginLeft={2}>
+    <Box flexDirection="column" marginTop={0}>
       {win.above > 0 ? <Text dimColor>{`  ↑ ${win.above} more`}</Text> : null}
       {win.lines.map((item) => {
         const i = items.indexOf(item);

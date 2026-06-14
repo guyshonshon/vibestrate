@@ -33,12 +33,6 @@ export async function runInkShell(
     />,
     {
       exitOnCtrlC: true,
-      // Render in the terminal's alternate screen buffer (like vim / htop):
-      // a FIXED full-screen canvas the app owns. The app fills it (root
-      // height = terminal rows) and the body clips to fit, so typing a command
-      // - the completion list opening/growing - never resizes or scrolls the
-      // screen. Ink restores the original terminal content on exit.
-      alternateScreen: true,
     },
   );
   await instance.waitUntilExit();

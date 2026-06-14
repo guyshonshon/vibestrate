@@ -17,12 +17,14 @@ export function HeaderBar({ model, page }: { model: StatusModel; page: PageId })
   const meta = PAGE_META[page];
   return (
     <Box flexDirection="column">
-      <Box>
-        <Text bold color={ACCENT_BRIGHT}>
+      <Box overflow="hidden">
+        <Text bold color={ACCENT_BRIGHT} wrap="truncate-end">
           ⏵ vibestrate
         </Text>
         <Box flexGrow={1} />
-        <Text>
+        {/* truncate-start: when the terminal is narrow, keep the most useful
+            tail (branch · activity) instead of wrapping it onto the divider. */}
+        <Text wrap="truncate-start">
           <Text bold color={ACCENT}>{model.project}</Text>
           <Text dimColor>{"  ·  "}</Text>
           <Text color="white">{model.branch}</Text>
@@ -33,10 +35,10 @@ export function HeaderBar({ model, page }: { model: StatusModel; page: PageId })
       </Box>
       <Rule />
       <TabBar current={page} />
-      <Box>
-        <Text dimColor>{meta.subtitle}</Text>
+      <Box overflow="hidden">
+        <Text dimColor wrap="truncate-end">{meta.subtitle}</Text>
         <Box flexGrow={1} />
-        <Text>
+        <Text wrap="truncate-start">
           <Text color={ACCENT}>:</Text>
           <Text dimColor> commands</Text>
           <Text dimColor>{"   "}</Text>
