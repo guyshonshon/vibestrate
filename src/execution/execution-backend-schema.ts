@@ -21,8 +21,8 @@ export const isolationModeSchema = z.enum(["off", "sandboxed"]);
 export type IsolationMode = z.infer<typeof isolationModeSchema>;
 
 export const executionConfigSchema = z.object({
-  backend: executionBackendIdSchema.default("local-worktree"),
-  isolation: isolationModeSchema.default("off"),
+  backend: executionBackendIdSchema.default("local-worktree").describe("Where runs execute (default local-worktree)."),
+  isolation: isolationModeSchema.default("off").describe("OS sandbox posture: off or sandboxed (default off)."),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;

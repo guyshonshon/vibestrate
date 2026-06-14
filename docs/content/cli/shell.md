@@ -5,7 +5,7 @@ section: cli
 slug: cli/shell
 ---
 
-Running `vibe` with no arguments opens the **interactive shell** - a terminal panel (built on Ink) that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard. It needs an interactive terminal; in a pipe or CI it prints a notice and exits.
+Running `vibe` with no arguments opens the **interactive shell** - a terminal panel (built on Ink) that keeps the project's context in front of you and gives you a prompt to drive Vibestrate without leaving the keyboard. It runs **full-screen** in the terminal's alternate screen buffer (like `vim` or `htop`): a fixed canvas that never grows or scrolls as you type, and your previous terminal contents are restored when you quit. It needs an interactive terminal; in a pipe or CI it prints a notice and exits.
 
 ```bash
 vibe
@@ -13,11 +13,11 @@ vibe
 
 ## Layout
 
-The panel is split into three bordered regions:
+The panel fills the terminal and is split into three bordered regions, top to bottom:
 
 1. **Header** - the brand, a "where am I" line (project · branch · activity), the numbered tab menu, and the current page's subtitle.
-2. **Body** - the active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page (e.g. on Runs: `p` pause · `r` resume · `a` abort · `R` re-run; on Roadmap: `e` edit · `n` new · `d` delete · `Q` queue; on Queue: `s` start · `p` pause/resume · `t` cycle policy · `x` remove) plus the global keys. When a prompt command produces output, it takes that pane instead.
-3. **Context + prompt** - the mode · crew · flow line and the command prompt; its border brightens to cyan while the prompt has focus.
+2. **Context + prompt** - the mode · crew · flow line and the command prompt; its border brightens to cyan while the prompt has focus. It sits **above** the body on purpose: when the autocomplete list opens it shrinks the body below, never the prompt, so the line you're typing on never moves.
+3. **Body** - the active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page (e.g. on Runs: `p` pause · `r` resume · `a` abort · `R` re-run; on Roadmap: `e` edit · `n` new · `d` delete · `Q` queue; on Queue: `s` start · `p` pause/resume · `t` cycle policy · `x` remove) plus the global keys. When a prompt command produces output, it takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
 
 ## The status bar
 
@@ -31,18 +31,22 @@ A persistent context strip sits at the top, so you always know *where you are* a
 
 ## The prompt
 
-The bottom line is an always-visible prompt. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and **Enter** to run it - the output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
+The prompt sits just under the header, always visible. Press **`i`** (or `!`) to focus it, type a `vibe …` command, and **Enter** to run it - the output streams in place. **Esc** returns to navigation. **↑ / ↓** walk command history.
 
 **Line editing.** The prompt moves like a terminal: **Option+← / Option+→** jump by word, **Ctrl+→** (or **End** / **Ctrl+E**) goes to the end of the line and **Ctrl+←** (or **Home** / **Ctrl+A**) to the start, plain **← / →** move one character, and backspace deletes before the cursor.
 
-**Autocomplete.** As you type, a **ghost list** opens under the prompt with what fits the token at the cursor - read straight from the real CLI tree (plus your project's live ids), so it never drifts. A word completes **subcommands** (`config ` -> `view` / `show` / `get` / `set` / `validate`); a dash completes **flags** (`config show -` -> `--json`); and after a value-taking flag it completes **values** - enums like `--effort low|medium|high`, and live ids for `--crew`, `--flow`, `--profile`, and `--task` (also `--effort=hi` -> `--effort=high`). Id-typed positional arguments complete too (`replay ` -> your run ids; `tasks show ` -> task ids; `flows show ` -> flow ids); free-text arguments like a `run "…"` description never do. **Tab** accepts the highlighted candidate, **↑ / ↓** move the selection, **Esc** dismisses the list (and history stays on ↑ / ↓ while the prompt is empty).
+**Autocomplete.** As you type, a **ghost list** opens under the prompt with what fits the token at the cursor - read straight from the real CLI tree (plus your project's live ids), so it never drifts. The list lives in a fixed-height slot, so it never resizes the panel as matches narrow. A word completes **subcommands** (`config ` -> `view` / `show` / `get` / `set` / `validate`); a dash completes **flags** (`config show -` -> `--json`); and after a value-taking flag it completes **values** - enums like `--effort low|medium|high`, and live ids for `--crew`, `--flow`, `--profile`, and `--task` (also `--effort=hi` -> `--effort=high`). Id-typed positional arguments complete too (`replay ` -> your run ids; `tasks show ` -> task ids; `flows show ` -> flow ids); free-text arguments like a `run "…"` description never do. **Tab** accepts the highlighted candidate, **↑ / ↓** move the selection, **Esc** dismisses the list (and history stays on ↑ / ↓ while the prompt is empty).
+
+**Config keys show their value + what they do.** For `config set` and `config get`, the list enumerates **every settable key from the schema** with its **current value** inline (`git.mainBranch = main`) and a one-line **description of the highlighted key** beneath the list - so you don't have to remember the keys or look up their state. The descriptions come from one source (the schema's field docs), shared with the published [config reference](/docs/cli/overview), so they never drift.
 
 When you run a `run …` command from the prompt, the shell seeds it with your session selections - it appends `--crew`, `--flow`, and `--read-only` to match the status bar (anything you type explicitly always wins).
 
 ```text
-▸ vibe config sh▌
-    › show   raw project.yml dump
-      set    edit one value
+▸ vibe config set git.▌
+    › git.mainBranch             = main
+      git.branchPrefix           = vibestrate/
+      git.snapshotRetentionRuns  = 0
+    Branch the run merges into (default main).
     ⇥ complete · ↑↓ select · esc dismiss
 ```
 

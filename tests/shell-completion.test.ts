@@ -49,6 +49,21 @@ describe("completion engine", () => {
     expect(values("config set git.")).not.toContain("workflow.maxReviewLoops");
   });
 
+  it("shows each key's current value inline (= V) + tip as detail", () => {
+    const items = completeInput("config set git.main", spec, {
+      configValues: { "git.mainBranch": "develop" },
+    }).items;
+    const item = items.find((i) => i.value === "git.mainBranch");
+    expect(item).toBeDefined();
+    expect(item!.description).toBe("= develop");
+    // The tip (schema .describe()) rides on `detail`, shown on its own line.
+    expect(item!.detail).toBeTruthy();
+  });
+
+  it("also completes config keys for `config get` (read side)", () => {
+    expect(values("config get git.")).toContain("git.mainBranch");
+  });
+
   it("prefix-filters subcommands", () => {
     const out = values("config v");
     expect(out).toContain("view");

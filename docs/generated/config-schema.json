@@ -48,7 +48,8 @@
           "type": "string",
           "required": false,
           "default": "main",
-          "itemType": null
+          "itemType": null,
+          "description": "Name of the main/trunk branch (default main)."
         },
         {
           "key": "branchPrefix",
@@ -56,7 +57,8 @@
           "type": "string",
           "required": false,
           "default": "vibestrate/",
-          "itemType": null
+          "itemType": null,
+          "description": "Prefix for run branches (default vibestrate/)."
         },
         {
           "key": "worktreeDir",
@@ -64,7 +66,8 @@
           "type": "string",
           "required": false,
           "default": "../.vibestrate-worktrees",
-          "itemType": null
+          "itemType": null,
+          "description": "Where per-run git worktrees are created."
         },
         {
           "key": "requireCleanMain",
@@ -72,7 +75,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Require a clean main working tree before a run (default off)."
         },
         {
           "key": "allowAutoMerge",
@@ -80,7 +84,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Permit automatic merges to main (default off)."
         },
         {
           "key": "allowAutoPush",
@@ -88,7 +93,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Permit automatic pushes to the remote (default off)."
         },
         {
           "key": "linkEnvironment",
@@ -100,7 +106,8 @@
             "auto",
             "off"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "Link env dirs (node_modules/.venv) into worktrees (default auto)."
         },
         {
           "key": "snapshotRetentionRuns",
@@ -108,7 +115,8 @@
           "type": "number",
           "required": false,
           "default": 0,
-          "itemType": null
+          "itemType": null,
+          "description": "Prune rewind snapshots beyond N recent runs; 0 = never prune (default 0)."
         }
       ]
     },
@@ -130,7 +138,8 @@
           "type": "string",
           "required": false,
           "default": "default-plan-build-review",
-          "itemType": null
+          "itemType": null,
+          "description": "Flow/workflow id this run follows (default-plan-build-review)."
         },
         {
           "key": "maxReviewLoops",
@@ -138,7 +147,8 @@
           "type": "number",
           "required": false,
           "default": 2,
-          "itemType": null
+          "itemType": null,
+          "description": "Max review->fix loops before stopping (default 2)."
         },
         {
           "key": "requireHumanMerge",
@@ -146,7 +156,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Require a human to do the final merge (default on)."
         }
       ]
     },
@@ -172,7 +183,8 @@
             "remote-sandbox",
             "cloud-runner"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "Where runs execute (default local-worktree)."
         },
         {
           "key": "isolation",
@@ -184,7 +196,8 @@
             "off",
             "sandboxed"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "OS sandbox posture: off or sandboxed (default off)."
         }
       ]
     },
@@ -217,7 +230,8 @@
       "type": "string",
       "required": false,
       "default": "default",
-      "itemType": null
+      "itemType": null,
+      "description": "Crew used when a run doesn't pick one; must exist in crews (default \"default\")."
     },
     {
       "key": "defaultFlow",
@@ -225,7 +239,8 @@
       "type": "string | null",
       "required": false,
       "default": null,
-      "itemType": null
+      "itemType": null,
+      "description": "Default flow for runs without --flow; null = auto-select per task (default null)."
     },
     {
       "key": "personas",
@@ -241,7 +256,8 @@
       "type": "string",
       "required": false,
       "default": "staff-engineer",
-      "itemType": null
+      "itemType": null,
+      "description": "Default judgment posture; built-in or a key in personas (default staff-engineer)."
     },
     {
       "key": "flowSizing",
@@ -254,7 +270,8 @@
         "deterministic",
         "assisted"
       ],
-      "itemType": null
+      "itemType": null,
+      "description": "Route trivial tasks to a lighter flow: off, deterministic, or assisted (default deterministic)."
     },
     {
       "key": "budget",
@@ -274,7 +291,8 @@
           "type": "number | null",
           "required": false,
           "default": null,
-          "itemType": null
+          "itemType": null,
+          "description": "Daily USD spend cap across all runs; null = off (default off)."
         },
         {
           "key": "capAction",
@@ -287,7 +305,8 @@
             "downgrade-model",
             "reduce-effort"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "Action at the spend cap: stop, downgrade-model, or reduce-effort (default stop)."
         },
         {
           "key": "warnThresholdPct",
@@ -295,14 +314,16 @@
           "type": "number",
           "required": false,
           "default": 0.8,
-          "itemType": null
+          "itemType": null,
+          "description": "Fraction of the cap that triggers a one-time warning (default 0.8)."
         },
         {
           "key": "fallbackProfile",
           "fullKey": "budget.fallbackProfile",
           "type": "string",
           "required": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Cheaper profile to switch to on downgrade-model; unset falls back to stop."
         },
         {
           "key": "maxTurnsPerRun",
@@ -310,7 +331,8 @@
           "type": "number | null",
           "required": false,
           "default": null,
-          "itemType": null
+          "itemType": null,
+          "description": "Max agent turns in a single run; null = off (default off)."
         },
         {
           "key": "maxWallClockMinPerRun",
@@ -318,7 +340,8 @@
           "type": "number | null",
           "required": false,
           "default": null,
-          "itemType": null
+          "itemType": null,
+          "description": "Max wall-clock minutes for a single run; null = off (default off)."
         },
         {
           "key": "maxTurnsPerDay",
@@ -326,7 +349,8 @@
           "type": "number | null",
           "required": false,
           "default": null,
-          "itemType": null
+          "itemType": null,
+          "description": "Max agent turns across all runs today; null = off (default off)."
         },
         {
           "key": "maxWallClockMinPerDay",
@@ -334,7 +358,8 @@
           "type": "number | null",
           "required": false,
           "default": null,
-          "itemType": null
+          "itemType": null,
+          "description": "Max wall-clock minutes across all runs today; null = off (default off)."
         },
         {
           "key": "onLimit",
@@ -346,7 +371,8 @@
             "stop",
             "pause"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "When a ceiling is hit: stop or pause (attended); unattended forces stop (default stop)."
         }
       ]
     },
@@ -364,7 +390,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Auto-retry recoverable provider failures with backoff (default on)."
         },
         {
           "key": "onExhausted",
@@ -376,7 +403,8 @@
             "fail",
             "pause"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "When retries are exhausted: fail or pause (attended only) (default fail)."
         },
         {
           "key": "autoFallback",
@@ -389,7 +417,8 @@
             "crew",
             "any"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "Auto-derive a fallback profile on exhaustion: off, crew, or any (default crew)."
         },
         {
           "key": "rateLimit",
@@ -410,21 +439,24 @@
               "fullKey": "resilience.rateLimit.maxRetries",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Max retry attempts for this failure class."
             },
             {
               "key": "baseDelayMs",
               "fullKey": "resilience.rateLimit.baseDelayMs",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Initial backoff delay in ms before the first retry."
             },
             {
               "key": "maxDelayMs",
               "fullKey": "resilience.rateLimit.maxDelayMs",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Cap on the backoff delay in ms."
             },
             {
               "key": "patterns",
@@ -437,7 +469,8 @@
                 "fullKey": "[item]",
                 "type": "string",
                 "required": true
-              }
+              },
+              "description": "Extra error regexes merged with the built-ins (default none)."
             },
             {
               "key": "fallbackProfile",
@@ -445,7 +478,8 @@
               "type": "string | null",
               "required": false,
               "default": null,
-              "itemType": null
+              "itemType": null,
+              "description": "Alternate profile to try once after retries are exhausted; null = none."
             },
             {
               "key": "respectRetryAfter",
@@ -453,7 +487,8 @@
               "type": "boolean",
               "required": false,
               "default": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Honor the provider's Retry-After hint on rate limits (default on)."
             }
           ]
         },
@@ -475,21 +510,24 @@
               "fullKey": "resilience.transient.maxRetries",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Max retry attempts for this failure class."
             },
             {
               "key": "baseDelayMs",
               "fullKey": "resilience.transient.baseDelayMs",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Initial backoff delay in ms before the first retry."
             },
             {
               "key": "maxDelayMs",
               "fullKey": "resilience.transient.maxDelayMs",
               "type": "number",
               "required": true,
-              "itemType": null
+              "itemType": null,
+              "description": "Cap on the backoff delay in ms."
             },
             {
               "key": "patterns",
@@ -502,7 +540,8 @@
                 "fullKey": "[item]",
                 "type": "string",
                 "required": true
-              }
+              },
+              "description": "Extra error regexes merged with the built-ins (default none)."
             },
             {
               "key": "fallbackProfile",
@@ -510,7 +549,8 @@
               "type": "string | null",
               "required": false,
               "default": null,
-              "itemType": null
+              "itemType": null,
+              "description": "Alternate profile to try once after retries are exhausted; null = none."
             }
           ]
         },
@@ -533,7 +573,8 @@
                 "wait",
                 "fallback"
               ],
-              "itemType": null
+              "itemType": null,
+              "description": "On a usage-limit/quota hit: stop, wait for reset, or fallback (default stop)."
             },
             {
               "key": "maxWaitMin",
@@ -541,7 +582,8 @@
               "type": "number",
               "required": false,
               "default": 60,
-              "itemType": null
+              "itemType": null,
+              "description": "Cap on how long to wait for a quota reset, in minutes (default 60)."
             },
             {
               "key": "maxWaits",
@@ -549,7 +591,8 @@
               "type": "number",
               "required": false,
               "default": 2,
-              "itemType": null
+              "itemType": null,
+              "description": "How many reset-waits to attempt before escalating (default 2)."
             },
             {
               "key": "fallbackProfile",
@@ -557,7 +600,8 @@
               "type": "string | null",
               "required": false,
               "default": null,
-              "itemType": null
+              "itemType": null,
+              "description": "Alternate profile for fallback or after waits are exhausted; null = none."
             },
             {
               "key": "patterns",
@@ -570,7 +614,8 @@
                 "fullKey": "[item]",
                 "type": "string",
                 "required": true
-              }
+              },
+              "description": "Extra usage-limit error regexes merged with the built-ins (default none)."
             }
           ]
         }
@@ -590,7 +635,8 @@
           "type": "number",
           "required": false,
           "default": 0,
-          "itemType": null
+          "itemType": null,
+          "description": "Max consecutive provider-session reuses before reopening; 0 = unlimited (default 0)."
         }
       ]
     },
@@ -615,7 +661,8 @@
             "fullKey": "[item]",
             "type": "string",
             "required": true
-          }
+          },
+          "description": "Validation commands run on a run's diff (e.g. typecheck, test)."
         },
         {
           "key": "scopeValidationByChange",
@@ -623,7 +670,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Skip validation when the diff is docs/asset-only (default on)."
         },
         {
           "key": "validationProfiles",
@@ -677,7 +725,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Block direct writes to the main branch (default on)."
         },
         {
           "key": "forbidSecretsAccess",
@@ -685,7 +734,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Block reading secret-like files into prompts/artifacts (default on)."
         },
         {
           "key": "forbidAutoPush",
@@ -693,7 +743,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Block automatic pushes to the remote (default on)."
         },
         {
           "key": "forbidAutoMerge",
@@ -701,7 +752,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Block automatic merges to main (default on)."
         },
         {
           "key": "preserveArtifacts",
@@ -709,7 +761,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Keep run artifacts instead of cleaning them up (default on)."
         },
         {
           "key": "requireApprovalAtStages",
@@ -731,7 +784,8 @@
               "fixing",
               "verifying"
             ]
-          }
+          },
+          "description": "Stages that always pause for human approval (default none)."
         },
         {
           "key": "allowInteractiveTerminal",
@@ -739,7 +793,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Enable the dashboard's local terminal panel (default off)."
         },
         {
           "key": "strictApplyOnly",
@@ -747,7 +802,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Roles run read-only; changes applied via the diff gate (default off)."
         },
         {
           "key": "hardenReadOnlySeats",
@@ -755,7 +811,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Run read-only claude seats in plan mode to enforce no-write (default off)."
         },
         {
           "key": "unattendedApprovalTimeoutMs",
@@ -763,7 +820,8 @@
           "type": "number",
           "required": false,
           "default": 0,
-          "itemType": null
+          "itemType": null,
+          "description": "Ms an unattended run waits at a gate before blocking; 0 = block promptly (default 0)."
         },
         {
           "key": "protectedPaths",
@@ -776,7 +834,8 @@
             "fullKey": "[item]",
             "type": "string",
             "required": true
-          }
+          },
+          "description": "Extra globs that always demand full validation/review (default none)."
         },
         {
           "key": "unprotectedPaths",
@@ -789,7 +848,8 @@
             "fullKey": "[item]",
             "type": "string",
             "required": true
-          }
+          },
+          "description": "Globs opting out of the built-in protected set (default none)."
         }
       ]
     },
@@ -813,7 +873,8 @@
           "type": "number",
           "required": false,
           "default": 1,
-          "itemType": null
+          "itemType": null,
+          "description": "Max runs in flight at once (default 1)."
         },
         {
           "key": "maxConcurrentWriteRoles",
@@ -821,7 +882,8 @@
           "type": "number",
           "required": false,
           "default": 1,
-          "itemType": null
+          "itemType": null,
+          "description": "Max write-capable roles running concurrently (default 1)."
         },
         {
           "key": "conflictPolicy",
@@ -833,7 +895,8 @@
             "warn",
             "block"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "On a potential write conflict: warn or block (default warn)."
         },
         {
           "key": "queuePolicy",
@@ -846,7 +909,8 @@
             "priority",
             "fair"
           ],
-          "itemType": null
+          "itemType": null,
+          "description": "Queue ordering: fifo, priority, or fair (default fifo)."
         },
         {
           "key": "sourceQuotas",
@@ -861,7 +925,8 @@
           "fullKey": "scheduler.defaultSourceConcurrency",
           "type": "number",
           "required": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Default per-source in-flight cap for sources not in sourceQuotas."
         }
       ]
     },
@@ -886,7 +951,8 @@
           "type": "boolean",
           "required": false,
           "default": false,
-          "itemType": null
+          "itemType": null,
+          "description": "Enable launching a local editor from the dashboard (default off)."
         },
         {
           "key": "command",
@@ -894,7 +960,8 @@
           "type": "string",
           "required": false,
           "default": "code",
-          "itemType": null
+          "itemType": null,
+          "description": "Editor binary to launch (default code)."
         },
         {
           "key": "args",
@@ -910,7 +977,8 @@
             "fullKey": "[item]",
             "type": "string",
             "required": true
-          }
+          },
+          "description": "Editor args; {file}/{line}/{column} are substituted."
         }
       ]
     },
@@ -932,7 +1000,8 @@
           "type": "boolean",
           "required": false,
           "default": true,
-          "itemType": null
+          "itemType": null,
+          "description": "Add a Co-Authored-By trailer to authored commits (default on)."
         },
         {
           "key": "coAuthorName",
@@ -940,7 +1009,8 @@
           "type": "string",
           "required": false,
           "default": "Vibestrate",
-          "itemType": null
+          "itemType": null,
+          "description": "Name used in the co-author trailer (default Vibestrate)."
         },
         {
           "key": "coAuthorEmail",
@@ -948,7 +1018,8 @@
           "type": "string",
           "required": false,
           "default": "noreply@vibestrate.com",
-          "itemType": null
+          "itemType": null,
+          "description": "Email used in the co-author trailer."
         }
       ]
     },
@@ -986,7 +1057,8 @@
                   "type": "number",
                   "required": false,
                   "default": 25,
-                  "itemType": null
+                  "itemType": null,
+                  "description": "Suggest staging above this many changed files (default 25)."
                 },
                 {
                   "key": "protectedPaths",
@@ -994,7 +1066,8 @@
                   "type": "boolean",
                   "required": false,
                   "default": true,
-                  "itemType": null
+                  "itemType": null,
+                  "description": "Suggest staging when the diff touches a protected path (default on)."
                 },
                 {
                   "key": "behindMain",
@@ -1002,7 +1075,8 @@
                   "type": "number",
                   "required": false,
                   "default": 50,
-                  "itemType": null
+                  "itemType": null,
+                  "description": "Suggest staging when this many commits behind main (default 50)."
                 }
               ]
             }

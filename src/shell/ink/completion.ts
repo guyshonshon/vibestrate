@@ -38,8 +38,40 @@ const STATIC_VALUES: Partial<Record<ValueKind, string[]>> = {
   "config-key": configLeafKeys().map((k) => k.fullKey),
 };
 
+/** Per-config-key one-line description (from the schema's `.describe()`), so the
+ *  completion list can tell the user what each key does. Static (schema-derived);
+ *  built once. Keys without a `.describe()` simply have no tip. */
+const CONFIG_KEY_DESC: Record<string, string> = Object.fromEntries(
+  configLeafKeys()
+    .filter((k) => k.description)
+    .map((k) => [k.fullKey, k.description as string]),
+);
+
 /** Live id lists from the open project, keyed by value kind. */
-export type CompletionContext = Partial<Record<ValueKind, string[]>>;
+export type CompletionContext = Partial<Record<ValueKind, string[]>> & {
+  /** fullKey -> current value (display string), for the `config set` K = V list.
+   *  Built by the shell from the loaded config (configValueHints). */
+  configValues?: Record<string, string>;
+};
+
+/** Build the rich `config set <key>` completion items: each shows the key, its
+ *  current value (`= <value>`), and its description - so the user never has to
+ *  remember the keys or look up their current state. */
+function configKeyItems(active: string, context: CompletionContext): CompletionItem[] {
+  const values = context.configValues ?? {};
+  return (STATIC_VALUES["config-key"] ?? [])
+    .filter((k) => k.startsWith(active))
+    .map((k) => {
+      const cur = values[k];
+      return {
+        value: k,
+        kind: "value" as const,
+        // `= <current value>` inline (the K = V list), the tip on its own line.
+        description: cur !== undefined ? `= ${cur}` : undefined,
+        detail: CONFIG_KEY_DESC[k],
+      };
+    });
+}
 
 export type CompletionFlag = {
   value: string;
@@ -65,7 +97,12 @@ export type CommandNode = {
 export type CompletionItem = {
   value: string;
   kind: "command" | "flag" | "value";
+  /** Inline note shown right of the value (e.g. a flag's help, or `= <current>`
+   *  for a config key). */
   description?: string;
+  /** Longer one-line explanation shown on its own line for the SELECTED item
+   *  only (e.g. a config key's schema `.describe()` tip). */
+  detail?: string;
 };
 
 export type CompletionResult = {
@@ -300,6 +337,11 @@ export function completeInput(
     }));
   const arg = node.arguments[positionals];
   const argKind = arg ? positionalKind(arg.name, path) : undefined;
+  // `config set/get/keys <path>`: rich items (key = current value + description),
+  // so the whole settable surface is visible without memorizing it.
+  if (argKind === "config-key") {
+    return { items: [...subs, ...configKeyItems(active, context)], query: active };
+  }
   const posItems: CompletionItem[] = argKind
     ? valuesForKind(argKind, context)
         .filter((v) => v.startsWith(active))

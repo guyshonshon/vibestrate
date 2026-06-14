@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.86
+
+- **The interactive shell (`vibe`) is now a real full-screen app.** It renders in
+  the terminal's alternate screen buffer (like `vim` / `htop`): a fixed canvas
+  that no longer grows or scrolls as you type, and your terminal is restored when
+  you quit. The command prompt now sits above the body, so when the autocomplete
+  list opens it shrinks the page below - the line you're typing on never moves.
+- **`config set` / `config get` autocomplete now shows each key's current value
+  and what it does.** The list reads every settable key straight from the schema,
+  shows its current value inline (`git.mainBranch = main`), and prints a one-line
+  description of the highlighted key beneath the list - no more memorizing keys or
+  hunting for their state. The descriptions come from one source (the schema), so
+  the shell, the docs, and the generated reference never drift.
+
 ## 0.7.82
 
 - **`vibe consult` no longer looks frozen while it thinks.** The command made a

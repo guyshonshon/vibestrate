@@ -18,7 +18,24 @@ export type ConfigField = {
   children?: ConfigField[];
   itemType?: ConfigField | null;
   notes?: string[];
+  /** One-line human description from the schema's `.describe(...)`, if set.
+   *  Single source: surfaced in `config keys`, completion, and the docs. */
+  description?: string;
 };
+
+/** The `.describe(...)` text for a field, wherever it sits in the wrapper chain
+ *  (`z.x().default(d).describe(t)` puts it outermost; `z.x().describe(t).default(d)`
+ *  inside the ZodDefault). Walk the inner types so either ordering works. */
+function getDescription(schema: ZodTypeAny): string | undefined {
+  let s: ZodTypeAny | undefined = schema;
+  while (s) {
+    if (typeof s.description === "string" && s.description.length > 0) {
+      return s.description;
+    }
+    s = (s as { _def?: { innerType?: ZodTypeAny } })._def?.innerType;
+  }
+  return undefined;
+}
 
 function describeZod(schema: ZodTypeAny): {
   type: string;
@@ -116,6 +133,7 @@ export function walkObjectSchema(
       itemType: desc.extra?.itemType ?? null,
       children,
       notes: desc.notes,
+      description: getDescription(raw),
     });
   }
   return fields;
@@ -145,6 +163,50 @@ export function configLeafKeys(): ConfigField[] {
     }
   };
   visit(configFieldTree());
+  return out;
+}
+
+/** Read a dotted path out of a loaded config object (no schema needed). */
+function valueAtPath(root: Record<string, unknown>, dottedPath: string): unknown {
+  let cur: unknown = root;
+  for (const seg of dottedPath.split(".")) {
+    if (cur === null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string, unknown>)[seg];
+  }
+  return cur;
+}
+
+/** Compact one-line display of a config value for the `config set` K = V list. */
+function formatConfigValue(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return "null";
+  if (typeof value === "string") return value.length > 0 ? value : '""';
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    return `[${value.map((v) => formatConfigValue(v) ?? "?").join(", ")}]`;
+  }
+  // Objects / records have no single settable value - skip in the K = V list.
+  return undefined;
+}
+
+/** Current value of every settable leaf key, as `fullKey -> "display"` - the
+ *  live half of `config set` completion (each key's CURRENT value shown inline,
+ *  so you don't have to remember them). Falls back to the schema default when
+ *  the loaded config omits the key. Record-container leaves (arbitrary inner
+ *  keys) and object values are skipped (no single value to show). Truncated so
+ *  the completion row stays tidy. */
+export function configValueHints(config: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!config || typeof config !== "object") return out;
+  const root = config as Record<string, unknown>;
+  for (const leaf of configLeafKeys()) {
+    if (leaf.type.startsWith("record<")) continue;
+    const raw = valueAtPath(root, leaf.fullKey);
+    const display = formatConfigValue(raw !== undefined ? raw : leaf.default);
+    if (display === undefined) continue;
+    out[leaf.fullKey] = display.length > 40 ? `${display.slice(0, 39)}...` : display;
+  }
   return out;
 }
 
