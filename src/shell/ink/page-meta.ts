@@ -183,7 +183,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["x", "reject"],
       ["r", "refresh"],
     ],
-    commonCli: ['vibe consult "..."', "vibe vibestrate proposals", "vibe vibestrate apply <id>"],
+    commonCli: ['vibe consult "..."', "vibe guide proposals", "vibe guide apply <id>"],
   },
   doctor: {
     subtitle: "environment + config diagnostics · with safe auto-fixes",

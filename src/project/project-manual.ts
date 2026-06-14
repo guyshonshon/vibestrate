@@ -120,7 +120,7 @@ const MANUAL_WRITE_MAX_BYTES = 64 * 1024;
  * project root, and **refused** (not silently redacted) when the content carries
  * secret-shaped tokens - a manual is committed, so a leak there is the worst
  * case. Size-bounded. Never auto-called: only an explicit human action
- * (`vibe vibestrate init`, applying a reviewed proposal) reaches here.
+ * (`vibe guide init`, applying a reviewed proposal) reaches here.
  */
 export async function writeProjectManual(
   projectRoot: string,

@@ -4890,12 +4890,12 @@
       "subcommands": []
     },
     {
-      "name": "vibestrate",
+      "name": "guide",
       "path": [
         "vibe",
-        "vibestrate"
+        "guide"
       ],
-      "description": "Manage VIBESTRATE.md (the orchestrator's operating manual) and its proposals.",
+      "description": "Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -4904,7 +4904,7 @@
           "name": "show",
           "path": [
             "vibe",
-            "vibestrate",
+            "guide",
             "show"
           ],
           "description": "Print the project's VIBESTRATE.md (or note that there is none).",
@@ -4917,7 +4917,7 @@
           "name": "init",
           "path": [
             "vibe",
-            "vibestrate",
+            "guide",
             "init"
           ],
           "description": "Scaffold a starter VIBESTRATE.md at the project root (refuses if one exists).",
@@ -4930,7 +4930,7 @@
           "name": "proposals",
           "path": [
             "vibe",
-            "vibestrate",
+            "guide",
             "proposals"
           ],
           "description": "List open VIBESTRATE.md proposals (e.g. from consult).",
@@ -4950,7 +4950,7 @@
               "name": "show",
               "path": [
                 "vibe",
-                "vibestrate",
+                "guide",
                 "proposals",
                 "show"
               ],
@@ -4973,7 +4973,7 @@
           "name": "apply",
           "path": [
             "vibe",
-            "vibestrate",
+            "guide",
             "apply"
           ],
           "description": "Apply a proposal - append its text to VIBESTRATE.md (guarded write).",
@@ -4993,7 +4993,7 @@
           "name": "reject",
           "path": [
             "vibe",
-            "vibestrate",
+            "guide",
             "reject"
           ],
           "description": "Reject a proposal (keeps it on record, marked rejected).",

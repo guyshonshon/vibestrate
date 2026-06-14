@@ -47,7 +47,7 @@ import { buildRenameCommand } from "./commands/rename.js";
 import { buildLedgerCommand } from "./commands/ledger.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
-import { buildVibestrateCommand } from "./commands/vibestrate.js";
+import { buildGuideCommand } from "./commands/guide.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
 import { buildShellCommand } from "./commands/shell.js";
@@ -177,7 +177,7 @@ export function buildVibestrateProgram(): Command {
   program.addCommand(buildRenameCommand());
   program.addCommand(buildLedgerCommand());
   program.addCommand(buildConsultCommand());
-  program.addCommand(buildVibestrateCommand());
+  program.addCommand(buildGuideCommand());
   program.addCommand(buildBudgetCommand());
   program.addCommand(buildReplayCommand());
   program.addCommand(buildPauseCommand());

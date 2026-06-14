@@ -13,9 +13,9 @@ import {
 } from "../../project/manual-proposals.js";
 import { color, header, indent, symbol } from "../ui/format.js";
 
-export function buildVibestrateCommand(): Command {
-  const cmd = new Command("vibestrate").description(
-    "Manage VIBESTRATE.md (the orchestrator's operating manual) and its proposals.",
+export function buildGuideCommand(): Command {
+  const cmd = new Command("guide").description(
+    "Manage VIBESTRATE.md (the agent's operating guide for this project) and its proposals.",
   );
 
   cmd
@@ -25,7 +25,7 @@ export function buildVibestrateCommand(): Command {
       const { projectRoot } = await detectProject(process.cwd());
       const manual = await loadProjectManual(projectRoot);
       if (!manual.present || !manual.content) {
-        console.log(color.dim("No VIBESTRATE.md yet. Create one: vibe vibestrate init"));
+        console.log(color.dim("No VIBESTRATE.md yet. Create one: vibe guide init"));
         return;
       }
       console.log(manual.content);

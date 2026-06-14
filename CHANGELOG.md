@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.80
+
+- **`vibe vibestrate` is now `vibe guide`.** The command that manages
+  `VIBESTRATE.md` (the agent's operating guide for the project) and consult's
+  proposals was awkwardly named after the file. It's now `vibe guide
+  show | init | proposals | apply <id> | reject <id>`. Clean rename, no alias -
+  the old subcommand name is gone. (The `vibestrate` *binary* alias for the `vibe`
+  CLI is unchanged.)
+
 ## 0.7.79
 
 - **Opt-in cleanup for rewind snapshots (the tool never purges on its own).**

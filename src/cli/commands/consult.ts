@@ -115,7 +115,7 @@ export function buildConsultCommand(): Command {
           if (proposalId) {
             console.log("");
             console.log(
-              `${symbol.arrow()} Apply with ${color.bold(`vibe vibestrate apply ${proposalId}`)} (or reject it).`,
+              `${symbol.arrow()} Apply with ${color.bold(`vibe guide apply ${proposalId}`)} (or reject it).`,
             );
           }
         }

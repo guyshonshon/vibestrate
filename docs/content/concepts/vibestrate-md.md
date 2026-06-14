@@ -77,7 +77,7 @@ things it could not verify from the evidence - instead of presenting model
 confidence as fact. It may recommend actions (start a run, pick a flow, request
 sandbox mode) and, when it has an evidence-backed improvement, **propose** a
 `VIBESTRATE.md` update. A proposal is **never auto-applied** - it's saved for
-review, and a human applies it explicitly (`vibe vibestrate apply <id>`, or the
+review, and a human applies it explicitly (`vibe guide apply <id>`, or the
 **Apply** button on the consult card). Applying appends the reviewed text to the
 manual through a guarded writer (Action Broker `file.write`, path-guarded, and
 **refused** if the content carries secret-shaped tokens), so you review the diff
@@ -90,7 +90,7 @@ broker-gated, no worktree, no writes. Its evidence is audited under
 ## Surfaces
 
 - **CLI:** `vibe consult "<question>" [--task <id>] [--run <id>] [--file <path>] [--json]`;
-  manage the manual with `vibe vibestrate init | show | proposals | apply <id> | reject <id>`.
+  manage the guide with `vibe guide init | show | proposals | apply <id> | reject <id>`.
 - **Shell:** type `consult "<question>"` at the command prompt.
 - **API:** `POST /api/consult`; `GET /api/vibestrate`, `POST /api/vibestrate/init`,
   `GET /api/vibestrate/proposals`, `POST /api/vibestrate/proposals/:id/apply|reject`.
