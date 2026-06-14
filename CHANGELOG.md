@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.90
+
+- **Shell dividers fit any terminal width.** The horizontal rule was a hardcoded
+  dash count derived from the reported terminal size, so it could over- or
+  under-fill the panel (ragged or wrapping onto the next row) on a narrow,
+  resized, or different emulator. It now self-fits to the panel's actual width.
+  Verified across a 40-120 column PTY matrix.
+
 ## 0.7.89
 
 - **Shell: no more flicker as you type, plus a header that fits narrow windows.**

@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text, useStdout } from "ink";
+import { Box, Text } from "ink";
 import { ACCENT_DIM } from "../theme.js";
 
 type Props = {
@@ -34,14 +34,18 @@ export function Frame({ subtitle, children }: Props) {
 }
 
 /**
- * Horizontal separator sized to the inner terminal width. We use it
- * sparingly now - one rule between TabBar and content is enough; a
- * second between content and footer just eats vertical space.
+ * Horizontal separator that fills its panel's inner width on ANY terminal.
+ * We overshoot the dash count and let Ink truncate it to the actual content
+ * width (`wrap="truncate-end"`) - no `stdout.columns` math, so it can't end up
+ * too short (ragged) or too long (wrapping onto the next row) when the terminal
+ * is narrow, wide, resized, or a different emulator (PowerShell, etc.).
  */
 export function Rule() {
-  const { stdout } = useStdout();
-  const cols = Math.max(20, (stdout?.columns ?? 80) - 6);
-  return <Text color={ACCENT_DIM}>{"─".repeat(cols)}</Text>;
+  return (
+    <Text color={ACCENT_DIM} wrap="truncate-end">
+      {"─".repeat(400)}
+    </Text>
+  );
 }
 
 /**
