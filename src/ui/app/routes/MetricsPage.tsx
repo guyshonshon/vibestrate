@@ -658,7 +658,7 @@ function BudgetControl() {
       </div>
       <p className="mt-2 text-[11px] text-fog-500">
         Checked before each agent turn. <b>stop</b> blocks the run; <b>downgrade-model</b> switches
-        to the cheaper fallback/effortMap.low; <b>reduce-effort</b> drops the effort a notch.
+        to the cheaper fallback Profile; <b>reduce-effort</b> drops to the provider's minimum effort.
         Ceilings bind even when token cost is unmeasured (local CLI providers) - the reliable
         backstop for unattended runs. Leave a field blank for no limit.
       </p>

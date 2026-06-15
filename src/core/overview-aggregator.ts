@@ -69,7 +69,7 @@ export type PerModelEntry = {
 };
 
 export type TokensByRoleEntry = {
-  /** Flow slot id when present, else the agent id (planner/executor/…). */
+  /** Flow seat id when present, else the role id (planner/executor/…). */
   role: string;
   tokens: number;
 };

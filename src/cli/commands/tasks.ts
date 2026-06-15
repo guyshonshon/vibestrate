@@ -679,11 +679,11 @@ export function buildTasksCommand(): Command {
     .option("--files <list>", "comma-separated likely-touched files")
     .option(
       "--effort <level>",
-      "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+      "effort bucket (low|medium|high): a difficulty hint recorded for planning. Runtime strength is set by Profiles, not effort.",
     )
     .option(
       "--provider <id>",
-      "override the provider for runs spawned from this task (wins over --effort).",
+      "override the provider for runs spawned from this task.",
     )
     .option(
       "--read-only",

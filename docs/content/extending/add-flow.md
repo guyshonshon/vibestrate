@@ -1,6 +1,6 @@
 ---
 title: Add a Flow
-description: Define a custom run recipe with slots, steps, and optional approval gates.
+description: Define a custom run recipe with seats, steps, and optional approval gates.
 section: extending
 slug: extending/add-flow
 ---
@@ -18,26 +18,26 @@ A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's
    label: Spike and decide
    description: Quick prototype with a built-in stop-and-check gate.
 
-   slots:
+   seats:
+     planner:
+       label: Planner
+       description: Plans the spike.
      prototyper:
        label: Prototyper
-       description: Implements the spike.
-       defaultAgent: executor
+       description: Builds the spike.
 
    steps:
      - id: plan
        label: Plan the spike
        kind: agent-turn
-       slot: prototyper
-       agentId: planner
+       seat: planner
        inputs: [task-brief]
        outputs: [plan]
 
      - id: prototype
        label: Build the prototype
        kind: agent-turn
-       slot: prototyper
-       agentId: executor
+       seat: prototyper
        inputs: [plan]
        outputs: [diff]
 
@@ -73,21 +73,21 @@ A Flow is YAML. Drop it under `.vibestrate/flows/<id>/flow.yml` and Vibestrate's
 | Kind | When to use |
 |---|---|
 | `agent-turn` | One agent does a primary action (plan, implement). |
-| `review-turn` | A *different* slot reviews the artifact from a prior step. |
-| `response-turn` | The original slot responds to findings. |
+| `review-turn` | A *different* seat reviews the artifact from a prior step. |
+| `response-turn` | The original seat responds to findings. |
 | `validation` | Run the project's `commands.validate`. |
 | `approval-gate` | Halt the run; human decides whether to continue. |
 | `summary-turn` | An arbiter writes a final summary. |
 
-## Slot vs agent
+## Seats vs roles
 
-A *slot* is a named participant - `builder`, `challenger`, `arbiter`, `prototyper`. The slot has a `defaultAgent` (a role name like `executor` or `reviewer`), and at run start the user can override which provider each slot uses.
+A *Seat* is what a step needs filled - `planner`, `builder`, `challenger`, `prototyper`. The Flow only names Seats; it never names your local Roles or Providers, which is what keeps it shareable. At run start Vibestrate matches each Seat to a Role in your **Crew** - a Role declares the Seats it `fills`. If a step needs the same Role behavior but a stronger runtime, override its **Profile** for that one step:
 
 ```bash
-vibe run "..." --flow spike-and-decide --flow-slot prototyper=claude
+vibe run "..." --flow spike-and-decide --step-profile prototype=opus-deep
 ```
 
-That binds the `prototyper` slot to the `claude` provider for that run.
+That runs the `prototype` step on the `opus-deep` Profile without changing the Role's behavior. To pick *which* Role fills a Seat for a run, use `--seat-role prototyper=<roleId>`.
 
 ## Optional steps
 
@@ -99,7 +99,7 @@ vibe run "..." --flow spike-and-decide --flow-skip plan
 
 ## Common mistakes
 
-- **Same slot in builder *and* challenger.** They'll agree with themselves. Two slots, two different defaults.
+- **One Role filling both builder *and* challenger.** It'll agree with itself. Use two Seats filled by two different Roles.
 - **Skipping validation.** Without a `validation` step, your Flow has no ground truth.
 - **Over-stuffing one Flow.** Twelve steps is too many. If a Flow grew long, split it.
 
