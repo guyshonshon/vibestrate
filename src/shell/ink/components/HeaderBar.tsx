@@ -6,6 +6,16 @@ import { pageLabel, type PageId } from "../ui-state.js";
 import { PAGE_META } from "../page-meta.js";
 import { ACCENT, ACCENT_BRIGHT, PINK } from "../theme.js";
 import type { StatusModel } from "../status-model.js";
+import type { SpendCapState } from "../../../core/spend-cap-service.js";
+
+// Spend chip color tracks the cap state: unobtrusive under budget, yellow at
+// the warn threshold, red once exceeded - same yellow/red the run-status
+// tokens use for "approval"/"blocked", so the palette stays consistent.
+const BUDGET_COLOR: Record<SpendCapState, string> = {
+  ok: "gray",
+  warn: "yellow",
+  exceeded: "red",
+};
 
 /**
  * The top region - deliberately light: brand + "where am I" (project · branch ·
@@ -23,7 +33,8 @@ export function HeaderBar({ model, page }: { model: StatusModel; page: PageId })
         </Text>
         <Box flexGrow={1} />
         {/* truncate-start: when the terminal is narrow, keep the most useful
-            tail (branch · activity) instead of wrapping it onto the divider. */}
+            tail (approvals · budget) instead of wrapping it onto the divider.
+            The new high-value chips sit rightmost so they survive narrowing. */}
         <Text wrap="truncate-start">
           <Text bold color={ACCENT}>{model.project}</Text>
           <Text dimColor>{"  ·  "}</Text>
@@ -31,6 +42,19 @@ export function HeaderBar({ model, page }: { model: StatusModel; page: PageId })
           {model.worktree ? <Text color={PINK}> ⑂</Text> : null}
           <Text dimColor>{"  ·  "}</Text>
           <Text color={model.busy ? ACCENT : "gray"}>{model.activity}</Text>
+          {model.pendingApprovals > 0 ? (
+            <Text>
+              <Text dimColor>{"  ·  "}</Text>
+              <Text color="yellow">{`⏳ ${model.pendingApprovals} ${model.pendingApprovals === 1 ? "approval" : "approvals"}`}</Text>
+            </Text>
+          ) : null}
+          {model.budget ? (
+            <Text>
+              <Text dimColor>{"  ·  "}</Text>
+              <Text dimColor>budget </Text>
+              <Text color={BUDGET_COLOR[model.budget.state]}>{model.budget.label}</Text>
+            </Text>
+          ) : null}
         </Text>
       </Box>
       <Rule />

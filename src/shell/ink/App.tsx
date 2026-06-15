@@ -70,8 +70,10 @@ import {
   type PageId,
 } from "./ui-state.js";
 import { useSnapshot } from "./hooks/useSnapshot.js";
+import { useDailySpend } from "./hooks/useDailySpend.js";
 import { useGitContext } from "./hooks/useGitContext.js";
 import { useFlows } from "./hooks/useFlows.js";
+import { evaluateSpendCap } from "../../core/spend-cap-service.js";
 import { pauseRun, resumeRun, abortRun } from "../shell-actions.js";
 import { pauseScheduler, resumeScheduler } from "./queue/queue-actions.js";
 import type { PaletteCommand } from "./palette.js";
@@ -144,6 +146,7 @@ export function App({
     refresh: refreshDoctor,
   } = useDoctor(projectRoot);
   const { git } = useGitContext(projectRoot);
+  const { spentUsd } = useDailySpend({ projectRoot });
   const { flows: flowList, refresh: refreshFlows } = useFlows(projectRoot);
   const { exit } = useApp();
 
@@ -159,12 +162,27 @@ export function App({
     selectedRun ?? (activeRuns.length === 1 ? activeRuns[0]! : null);
 
   const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
+  // Spend chip: evaluate today's spend against the configured daily cap (null
+  // until config loads). The cost scan itself lives in useDailySpend (slow poll).
+  const spendCap = config?.budget
+    ? evaluateSpendCap(config.budget, spentUsd)
+    : null;
   const statusModel = buildStatusModel({
     projectName,
     git,
     session: ui.session,
     defaultCrewId: config?.defaultCrew ?? null,
-    aggregates: snapshot?.aggregates ?? null,
+    aggregates: snapshot?.aggregates
+      ? {
+          activeRuns: snapshot.aggregates.activeRuns,
+          queueWaiting: snapshot.aggregates.queueWaiting,
+          queueRunning: snapshot.aggregates.queueRunning,
+          pendingApprovals: snapshot.aggregates.pendingApprovalsTotal,
+        }
+      : null,
+    budget: spendCap
+      ? { spentUsd: spendCap.dailySpendUsd, cap: spendCap.cap, state: spendCap.state }
+      : null,
     runs: runs.map((r) => ({
       status: r.status,
       task: r.task,

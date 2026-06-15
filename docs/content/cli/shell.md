@@ -15,7 +15,7 @@ vibe
 
 The panel fills the terminal and is split into three bordered regions, top to bottom:
 
-1. **Header** - the brand, a "where am I" line (project · branch · activity), the numbered tab menu, and the current page's subtitle.
+1. **Header** - the brand, a "where am I" line (project · branch · activity · approvals · budget), the numbered tab menu, and the current page's subtitle.
 2. **Context + prompt** - the mode · crew · flow line and the command prompt; its border brightens to cyan while the prompt has focus. It sits **above** the body on purpose: when the autocomplete list opens it shrinks the body below, never the prompt, so the line you're typing on never moves.
 3. **Body** - the active page on the left, and on the right a **COMMANDS** panel listing what you can do on this page (e.g. on Runs: `p` pause · `r` resume · `a` abort · `R` re-run; on Roadmap: `e` edit · `n` new · `d` delete · `Q` queue; on Queue: `s` start · `p` pause/resume · `t` cycle policy · `x` remove) plus the global keys. When a prompt command produces output, it takes that pane instead. The body clips to the fixed canvas rather than scrolling the terminal.
 
@@ -26,6 +26,8 @@ A persistent context strip sits at the top, so you always know *where you are* a
 - **project** + **branch** - the project name and current git branch. A `⑂ worktree` badge appears when you're inside a linked git worktree (e.g. a run's isolated worktree) rather than the primary checkout.
 - **mode** - the safety posture the next run will use: `write` (normal) or `read-only` (investigation only - adds `--read-only`). Press **`m`** to toggle.
 - **activity** - live from the snapshot: `idle`, `running · N active`, and a `· N queued` suffix when the scheduler has work waiting.
+- **approvals** - a `⏳ N approvals` chip (yellow) appears only when runs are blocked waiting on you, so a decision you owe is visible from any page. Hidden when there's nothing to approve.
+- **budget** - today's spend against the daily cap, e.g. `budget $2.30 / $10.00`. It tracks `budget.spendCapDailyUsd`: gray under the warn threshold, **yellow** past it, **red** once exceeded. With no cap configured it shows today's spend only (`$2.30 today`), and nothing at all when that's still `$0`. Spend is summed across all of today's runs (real cost where the CLI reports it, estimated otherwise) and refreshes a few seconds behind live.
 - **crew** / **flow** - the session's selected Crew and Flow. These seed the next run you launch from the prompt. Press **`c`** to pick a Crew, **`f`** to pick a Flow (a `↑↓ / Enter` selector). They default to the project's default crew and the `default` flow until you choose.
 - **task** - the task text of the most-recently-active run, when one is running.
 

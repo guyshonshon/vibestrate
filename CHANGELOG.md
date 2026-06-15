@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.96
+
+- **Live budget in the shell header.** The top "where am I" line now carries a
+  spend chip - `budget $2.30 / $10.00` - tracking today's spend against your
+  daily cap (`budget.spendCapDailyUsd`). It stays gray under the warn threshold,
+  turns yellow past it, and red once exceeded; with no cap configured it shows
+  today's spend only, and nothing at all when that's still $0. Alongside it, a
+  `⏳ N approvals` chip surfaces (only when present) so a decision you owe is
+  visible from any page. The cost scan runs on its own slow poll, so the live
+  view stays snappy.
+
 ## 0.7.95
 
 - **Retried Claude turns no longer collide on their session id.** When a
