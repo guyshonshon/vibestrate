@@ -11,10 +11,11 @@ On a clean `main`:
 pnpm release patch    # or minor | major
 ```
 
-`scripts/release.sh` enforces the guardrails (on `main`, clean tree, in sync
-with origin), runs the full gate (typecheck → build → test → audit), then
-`npm version` (commits + tags `vX.Y.Z`) and pushes the tag. The tag triggers
-`.github/workflows/release.yml`, which re-runs the gate and publishes to npm.
+`scripts/release.sh` is a **local maintainer-only tool** (it lives outside the
+public repo - `/scripts` is gitignored). It enforces the guardrails (on `main`,
+clean tree, in sync with origin), runs the full gate (typecheck → build → test →
+audit), then `npm version` (commits + tags `vX.Y.Z`) and publishes to npm.
+Releasing is done from a maintainer's machine; there is no CI publish workflow.
 
 The version lives in `package.json` only and flows into `vibestrate --version` and
 the generated docs reference - no other place to bump.

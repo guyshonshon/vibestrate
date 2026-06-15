@@ -47,3 +47,6 @@ TODO-V3.md
 
 # Archived/completed TODO history + raw brainstorm notes (kept local only).
 docs/archive/
+
+# Local-only dev/release tooling (not part of the public repo).
+/scripts/
