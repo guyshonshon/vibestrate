@@ -2,6 +2,7 @@ import { z } from "zod";
 import { appendFile } from "node:fs/promises";
 import { pathExists, readText, ensureDir } from "../utils/fs.js";
 import { projectLedgerPath, vibestrateRoot } from "../utils/paths.js";
+import { withFileMutex } from "../utils/file-mutex.js";
 
 // ── Project continuity ledger (T9) ───────────────────────────────────────────
 //
@@ -127,14 +128,19 @@ export class LedgerStore {
   }
 
   /** Append entries. Caller supplies fully-formed entries (createdAt included)
-   *  so this stays free of Date.now() and is testable. */
+   *  so this stays free of Date.now() and is testable. Serialized by a
+   *  cross-process write mutex: an entry's `detail` can be 4 KB+, so a bare
+   *  `appendFile` is not append-atomic under concurrent runs and could tear a
+   *  line that the torn-line reader then silently drops (losing a decision). */
   async append(entries: LedgerEntry[]): Promise<void> {
     if (entries.length === 0) return;
     await ensureDir(vibestrateRoot(this.projectRoot));
     const lines = entries
       .map((e) => JSON.stringify(ledgerEntrySchema.parse(e)))
       .join("\n");
-    await appendFile(this.filePath, lines + "\n", "utf8");
+    await withFileMutex(`${this.filePath}.lock`, () =>
+      appendFile(this.filePath, lines + "\n", "utf8"),
+    );
   }
 
   async state(): Promise<LedgerState> {
@@ -225,6 +231,17 @@ export async function recordRunInLedger(
     residualTitles: input.residualTitles,
   });
   await store.append(entries);
+  // Regenerate the durable, auto-derived STATE digest from the now-current
+  // ledger. Best-effort + dynamic import to avoid a require cycle (the digest
+  // module imports this one). A digest hiccup never affects the ledger write.
+  if (entries.length > 0) {
+    try {
+      const { writeProjectStateDigest } = await import("./project-state-digest.js");
+      await writeProjectStateDigest(projectRoot, now);
+    } catch {
+      // STATE.md is a regenerable cache - a failure to refresh is non-fatal.
+    }
+  }
   return entries;
 }
 
