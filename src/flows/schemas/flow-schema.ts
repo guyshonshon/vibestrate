@@ -297,6 +297,71 @@ const TURN_STEP_KINDS = new Set<FlowStepKind>([
   "summary-turn",
 ]);
 
+/**
+ * The skipWhen (A3 express deterministic review-descent) constraints, asserted
+ * on BOTH the authored flow definition AND the resolved snapshot so a
+ * hand-crafted snapshot can't bypass them if a future code path ever feeds one
+ * in (ISSUE-003, defense-in-depth). skipWhen is valid only on a review-turn, in
+ * a linear flow (no `needs`), never in a checklist flow, and never inside the
+ * adaptive loop body - a skipped decision step would leave the loop's exit
+ * contract undefined or narrow the band review to a per-item diff slice.
+ */
+function addSkipWhenConstraintIssues(
+  flow: {
+    steps: ReadonlyArray<{
+      id: string;
+      kind: string;
+      skipWhen?: unknown;
+      needs: readonly string[];
+    }>;
+    checklistSegment?: { from: string; to: string } | null;
+    loop?: { from: string; to: string } | null;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  const anyNeeds = flow.steps.some((s) => s.needs.length > 0);
+  const loop = flow.loop;
+  const loopFrom = loop ? flow.steps.findIndex((s) => s.id === loop.from) : -1;
+  const loopTo = loop ? flow.steps.findIndex((s) => s.id === loop.to) : -1;
+  flow.steps.forEach((step, index) => {
+    if (!step.skipWhen) return;
+    if (step.kind !== "review-turn") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["steps", index, "skipWhen"],
+        message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn steps only).`,
+      });
+    }
+    if (anyNeeds) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["steps", index, "skipWhen"],
+        message: `Flow step "${step.id}" uses skipWhen, which is only supported in linear flows (no \`needs\`).`,
+      });
+    }
+    if (flow.checklistSegment) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["steps", index, "skipWhen"],
+        message: `Flow step "${step.id}" can't use skipWhen in a checklist flow (per-item commits make the diff a per-item slice).`,
+      });
+    }
+    if (
+      loop &&
+      loopFrom >= 0 &&
+      loopTo >= loopFrom &&
+      index >= loopFrom &&
+      index <= loopTo
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["steps", index, "skipWhen"],
+        message: `Flow step "${step.id}" can't use skipWhen inside the adaptive loop body.`,
+      });
+    }
+  });
+}
+
 export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
   (flow, ctx) => {
     const seatIds = new Set(Object.keys(flow.seats));
@@ -370,46 +435,6 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           message: `Flow step "${step.id}" uses continueOnError, which is only supported in graph flows (declare step \`needs\`).`,
         });
       }
-      // skipWhen (A3 express): review-turn only, linear flows only, and never
-      // inside the adaptive loop body - a skipped decision step would leave the
-      // loop's exit contract undefined.
-      if (step.skipWhen && step.kind !== "review-turn") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["steps", index, "skipWhen"],
-          message: `Flow step "${step.id}" of kind "${step.kind}" can't use skipWhen (review-turn steps only).`,
-        });
-      }
-      if (step.skipWhen && flow.steps.some((s) => s.needs.length > 0)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["steps", index, "skipWhen"],
-          message: `Flow step "${step.id}" uses skipWhen, which is only supported in linear flows (no \`needs\`).`,
-        });
-      }
-      // Checklist flows commit per item, so at a band review the diff is only
-      // the CURRENT item's slice - skip evidence there would silently narrow to
-      // a per-item view of the change (adversarial-review finding). Forbid the
-      // combination outright; the whole-run descent is a linear-flow concept.
-      if (step.skipWhen && flow.checklistSegment) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["steps", index, "skipWhen"],
-          message: `Flow step "${step.id}" can't use skipWhen in a checklist flow (per-item commits make the diff a per-item slice).`,
-        });
-      }
-      if (step.skipWhen && flow.loop) {
-        const idxOf = (id: string) => flow.steps.findIndex((s) => s.id === id);
-        const from = idxOf(flow.loop.from);
-        const to = idxOf(flow.loop.to);
-        if (from >= 0 && to >= from && index >= from && index <= to) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["steps", index, "skipWhen"],
-            message: `Flow step "${step.id}" can't use skipWhen inside the adaptive loop body.`,
-          });
-        }
-      }
       // retries mirrors continueOnError: graph scheduler + turn kinds only.
       if (step.retries > 0 && !TURN_STEP_KINDS.has(step.kind)) {
         ctx.addIssue({
@@ -426,6 +451,8 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
         });
       }
     });
+
+    addSkipWhenConstraintIssues(flow, ctx);
 
     if (flow.checklistSegment) {
       const idx = (id: string) => flow.steps.findIndex((s) => s.id === id);
@@ -818,5 +845,11 @@ export const resolvedFlowSnapshotSchema = z
     // form + re-resolution. null when the flow declares no params.
     params: z.record(flowParamNameSchema, flowParamSchema).nullable().default(null),
   })
-  .strict();
+  .strict()
+  // Re-assert the skipWhen constraints on the resolved snapshot too (ISSUE-003).
+  // Every path into a running snapshot is gated by the source schema today, so
+  // this is defense-in-depth: a hand-crafted snapshot fed in by a future code
+  // path can't bypass the review-turn-only / linear-only / no-checklist /
+  // no-loop-body rules that live on the definition schema.
+  .superRefine(addSkipWhenConstraintIssues);
 export type ResolvedFlowSnapshot = z.infer<typeof resolvedFlowSnapshotSchema>;
