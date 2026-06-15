@@ -190,6 +190,50 @@ describe("renderLedgerForPrompt (T9 planning-context block)", () => {
   });
 });
 
+describe("staleness marking in the render (Slice 5)", () => {
+  const days = (n: number) => new Date(Date.parse(NOW) - n * 86_400_000).toISOString();
+
+  it("marks a long-stale OPEN intent/residual as unconfirmed; leaves fresh ones clean", () => {
+    const state = deriveLedgerState([
+      entry({ id: "i-old", kind: "intent", status: "open", title: "old goal", createdAt: days(30) }),
+      entry({ id: "i-new", kind: "intent", status: "open", title: "new goal", createdAt: days(2) }),
+      entry({ id: "r-old", kind: "residual", status: "open", title: "old blocker", createdAt: days(40) }),
+    ]);
+    const out = renderLedgerBrief(state, { now: NOW, staleAfterDays: 14, limit: 10 });
+    expect(out).toMatch(/old goal \(unconfirmed - 30d old\)/);
+    expect(out).toMatch(/old blocker \(unconfirmed - 40d old\)/);
+    expect(out).toContain("- new goal\n"); // fresh -> no marker
+    expect(out).not.toMatch(/new goal \(unconfirmed/);
+  });
+
+  it("never marks SHIPPED or DECISIONS as unconfirmed (they're historical/durable)", () => {
+    const state = deriveLedgerState([
+      entry({ id: "s1", kind: "shipped", title: "ancient ship", createdAt: days(99) }),
+      entry({ id: "d1", kind: "decision", status: "open", title: "ancient decision", createdAt: days(99) }),
+    ]);
+    const out = renderLedgerBrief(state, { now: NOW, staleAfterDays: 14, limit: 10 });
+    expect(out).not.toMatch(/unconfirmed/);
+  });
+
+  it("no staleness marking when now/staleAfterDays are absent (off by default)", () => {
+    const state = deriveLedgerState([
+      entry({ id: "i1", kind: "intent", status: "open", title: "goal", createdAt: days(99) }),
+    ]);
+    expect(renderLedgerBrief(state, { limit: 10 })).not.toMatch(/unconfirmed/);
+  });
+
+  it("renderLedgerForPrompt explains the marker + applies it when given now", () => {
+    const block = renderLedgerForPrompt(
+      deriveLedgerState([
+        entry({ id: "i1", kind: "intent", status: "open", title: "stale goal", createdAt: days(60) }),
+      ]),
+      NOW,
+    );
+    expect(block).toMatch(/unconfirmed - Nd old.*may already be resolved/s);
+    expect(block).toMatch(/stale goal \(unconfirmed - 60d old\)/);
+  });
+});
+
 describe("deriveLedgerState (T9, pure)", () => {
   it("buckets entries by kind, newest first", () => {
     const s = deriveLedgerState([

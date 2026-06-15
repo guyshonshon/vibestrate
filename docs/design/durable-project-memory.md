@@ -299,3 +299,46 @@ The split = deterministic-structured (machine -> STATE.md) vs lossy-judgment
 A derived-but-wrong "open intent" would *mislead* the next producer. Before Slice
 5 grounds producers on the digest: age-cap or mark entries older than N runs
 **"unconfirmed"** in the render, so stale state can't masquerade as current truth.
+
+---
+
+## The efficiency principle: store vs projection (load-bearing)
+
+"The orchestrator knows a lot" must NOT mean "every turn sends a lot." Separate
+the two:
+
+- **The STORE is global** - one append-only ledger, one history, one source of
+  truth (a per-role/per-phase *store* fragments it and recreates GSD's
+  agent-maintained-files model). Grows with project history.
+- **The PROJECTION is per-role and bounded** - each agent gets only its
+  role-slice, and the *projection*, not the store, is what hits the prompt. Three
+  guards keep it flat as the store grows:
+  1. **Project, don't broadcast** - producers get the digest; judges get a clean
+     room (nothing). (`orchestrator.ts:4567,4581` - planner-only + cleanRoom drop.)
+  2. **Packet token budget** - the context packet caps per-turn tokens and
+     summarizes/references past a threshold; the digest rides that budget.
+  3. **Staleness cap** - old open intents/residuals render as `(unconfirmed)` and
+     fall out of relevance, so the digest can't grow unbounded into a turn.
+
+The "per-phase" concern is the *ephemeral* context packet (recomputed each step),
+not a durable per-phase file - which is why we ship one global STATE.md, not
+GSD-style per-phase CONTEXT.md files.
+
+## Build status (2026-06-16)
+
+- **Slice 1 (write mutex)** - SHIPPED (`ff2f030b`). Tier-2 reviewed; the reviewer
+  caught double-hold + release-deletes-peer, both fixed.
+- **Slice 2 (STATE.md digest)** - SHIPPED (`ff2f030b`).
+- **Slice 3 (run-start intents + blocked/failed residuals)** - SHIPPED.
+- **Slice 5 (staleness cap)** - SHIPPED. Grounding (planner gets the digest) and
+  clean-room judges were ALREADY in code; staleness marking is the new guard.
+- **Slice 4 (advisor co-authors VIBESTRATE.md)** - DEFERRED, deliberately. It's
+  the one Tier-2 risky-write (auto-editing a committed file) with a real scope
+  question (proactive? opt-in auto-apply?). The existing `consult` already covers
+  the on-demand propose->apply case; the proactive/auto increment is a separate,
+  reviewed decision.
+- **Methodology awareness** - DEFERRED to the separate "profiling/methodology"
+  plan (it's a planner-behavior feature, not core to durable memory).
+
+The durable memory is **complete and useful** as of Slice 5: runs ground on a
+fresh, non-misleading, role-projected project memory that survives sessions.

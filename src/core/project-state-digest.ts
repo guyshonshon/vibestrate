@@ -16,6 +16,7 @@ import {
   LedgerStore,
   deriveLedgerState,
   renderLedgerBrief,
+  STALE_OPEN_WORK_DAYS,
   type LedgerState,
 } from "./project-ledger.js";
 
@@ -42,7 +43,12 @@ export function renderProjectStateDigest(
     `_Generated ${generatedAt}._`,
     "",
   ].join("\n");
-  return `${header}${renderLedgerBrief(state, { limit: 10, maxDetail: 240 })}\n`;
+  return `${header}${renderLedgerBrief(state, {
+    limit: 10,
+    maxDetail: 240,
+    now: generatedAt,
+    staleAfterDays: STALE_OPEN_WORK_DAYS,
+  })}\n`;
 }
 
 /**

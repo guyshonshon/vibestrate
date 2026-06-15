@@ -1009,7 +1009,7 @@ export class Orchestrator {
         ...fullState,
         intents: fullState.intents.filter((e) => e.id !== `intent:${runId}`),
       };
-      const block = renderLedgerForPrompt(state);
+      const block = renderLedgerForPrompt(state, nowIso());
       this.ledgerPromptBlock = block ? redactSecretsInText(block).redacted : "";
 
       const matches = findLedgerFlags({ title: this.task, state });
