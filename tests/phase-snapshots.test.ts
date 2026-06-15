@@ -11,6 +11,8 @@ import {
   checkRestoreTarget,
   previewPhaseRestore,
   selectStaleSnapshotRuns,
+  selectOrphanedSnapshotRuns,
+  sweepOrphanedSnapshotRefs,
   pruneOldSnapshots,
   countSnapshotRuns,
 } from "../src/core/phase-snapshots.js";
@@ -221,6 +223,88 @@ describe("selectStaleSnapshotRuns (pure retention selector)", () => {
     expect(
       selectStaleSnapshotRuns([{ refName: "refs/heads/main", committedAt: 9 }], 1),
     ).toEqual([]);
+  });
+});
+
+describe("selectOrphanedSnapshotRuns (pure orphan selector)", () => {
+  const ref = (runId: string, seq: number) =>
+    `refs/vibestrate/snapshots/${runId}/${seq}-executing`;
+
+  it("picks run ids whose dir no longer exists (not in the existing set)", () => {
+    const refs = [ref("alive", 0), ref("gone", 0), ref("gone", 1), ref("also-alive", 0)];
+    const existing = new Set(["alive", "also-alive"]);
+    expect(selectOrphanedSnapshotRuns(refs, existing)).toEqual(["gone"]);
+  });
+
+  it("returns nothing when every run still exists; ignores malformed refs", () => {
+    expect(selectOrphanedSnapshotRuns([ref("a", 0)], new Set(["a"]))).toEqual([]);
+    expect(selectOrphanedSnapshotRuns(["refs/heads/main"], new Set())).toEqual([]);
+  });
+});
+
+describe("sweepOrphanedSnapshotRefs (opt-in cleanup of refs for deleted runs)", () => {
+  it("deletes only the orphaned runs' refs, keeps refs for existing runs", async () => {
+    const root = await mkRepo();
+    try {
+      // Two runs each capture a snapshot.
+      const wtX = await addWorktree(root, "run-x");
+      await fs.writeFile(path.join(wtX, "x.ts"), "x\n");
+      await capturePhaseSnapshot({ projectRoot: root, runId: "run-x", worktree: wtX, stage: "executing" });
+      const wtY = await addWorktree(root, "run-y");
+      await fs.writeFile(path.join(wtY, "y.ts"), "y\n");
+      await capturePhaseSnapshot({ projectRoot: root, runId: "run-y", worktree: wtY, stage: "executing" });
+
+      expect((await countSnapshotRuns(root)).runs).toBe(2);
+
+      // run-y's dir is "gone" (only run-x exists). Sweep removes run-y's refs.
+      const swept = await sweepOrphanedSnapshotRefs(root, new Set(["run-x"]));
+      expect(swept).toEqual(["run-y"]);
+
+      const after = await countSnapshotRuns(root);
+      expect(after.runs).toBe(1); // only run-x remains
+      const remaining = await execa(
+        "git",
+        ["for-each-ref", "--format=%(refname)", "refs/vibestrate/snapshots"],
+        { cwd: root },
+      );
+      expect(remaining.stdout).toContain("run-x");
+      expect(remaining.stdout).not.toContain("run-y");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("THROWS on a real git failure instead of silently sweeping nothing", async () => {
+    const nonGit = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-nogit-sweep-"));
+    try {
+      await expect(sweepOrphanedSnapshotRefs(nonGit, new Set())).rejects.toThrow();
+    } finally {
+      await fs.rm(nonGit, { recursive: true, force: true });
+    }
+  });
+
+  it("REFUSES to wipe everything when handed an empty run-set (no-auto-purge backstop)", async () => {
+    const root = await mkRepo();
+    try {
+      const wt = await addWorktree(root, "run-z");
+      await fs.writeFile(path.join(wt, "z.ts"), "z\n");
+      await capturePhaseSnapshot({ projectRoot: root, runId: "run-z", worktree: wt, stage: "executing" });
+      // An empty existing-set would mark every ref an orphan - must throw, not wipe.
+      await expect(sweepOrphanedSnapshotRefs(root, new Set())).rejects.toThrow(/empty run set/i);
+      // The snapshot survived the refusal.
+      expect((await countSnapshotRuns(root)).runs).toBe(1);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("an empty run-set against a repo with NO refs is a no-op (nothing to wipe)", async () => {
+    const root = await mkRepo();
+    try {
+      expect(await sweepOrphanedSnapshotRefs(root, new Set())).toEqual([]);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 });
 

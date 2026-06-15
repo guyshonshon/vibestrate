@@ -319,6 +319,65 @@ export async function restorePhaseSnapshot(
   return restoreWorktree(worktree, treeSha);
 }
 
+/**
+ * Pure: from every snapshot ref, pick the run ids whose run no longer exists on
+ * disk (its id isn't in `existingRunIds`). An orphaned ref can never be used - a
+ * run with no directory can't be rewound (resolveResumeFrom requires its
+ * artifacts) - so it's truly-uncrucial git clutter. Refs that don't match the
+ * layout are ignored. Table-testable; the I/O wrapper is sweepOrphanedSnapshotRefs.
+ */
+export function selectOrphanedSnapshotRuns(
+  refNames: string[],
+  existingRunIds: ReadonlySet<string>,
+): string[] {
+  const orphans = new Set<string>();
+  for (const refName of refNames) {
+    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
+    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
+    const lastSlash = rest.lastIndexOf("/");
+    if (lastSlash <= 0) continue;
+    const runId = rest.slice(0, lastSlash);
+    if (!existingRunIds.has(runId)) orphans.add(runId);
+  }
+  return [...orphans];
+}
+
+/**
+ * Delete snapshot refs whose run directory is gone (ISSUE-001 P1). The tool has
+ * NO run-delete path (runs are never purged behind the user's back), so this
+ * only ever cleans refs orphaned out-of-band (a run dir removed manually). It is
+ * NOT automatic: the caller runs it only under the user's opt-in
+ * snapshotRetentionRuns automation. Returns the run ids swept. THROWS on a real
+ * git failure (fail loud); the no-orphans case returns [].
+ */
+export async function sweepOrphanedSnapshotRefs(
+  repo: string,
+  existingRunIds: ReadonlySet<string>,
+): Promise<string[]> {
+  const list = await git(repo, [
+    "for-each-ref",
+    "--format=%(refname)",
+    "refs/vibestrate/snapshots",
+  ]);
+  if (!list.ok) {
+    throw new Error(`git for-each-ref failed reading snapshot refs: ${list.stdout || "(no output)"}`);
+  }
+  const refNames = list.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+  // Fail-closed backstop: an empty run-set would mark EVERY ref an orphan - a
+  // wipe-all that is never the intent of an orphan sweep. Refuse rather than let
+  // a failed/empty caller read purge live runs' snapshots (no-auto-purge rule).
+  if (existingRunIds.size === 0 && refNames.length > 0) {
+    throw new Error(
+      "refusing to sweep snapshot refs with an empty run set (would delete every snapshot)",
+    );
+  }
+  const orphans = selectOrphanedSnapshotRuns(refNames, existingRunIds);
+  for (const runId of orphans) {
+    await deletePhaseSnapshotRefs(repo, runId);
+  }
+  return orphans;
+}
+
 /** Best-effort cleanup of a run's snapshot refs (e.g. when pruning a run). */
 export async function deletePhaseSnapshotRefs(
   worktreeOrRepo: string,

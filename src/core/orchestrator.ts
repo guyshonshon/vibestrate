@@ -81,6 +81,7 @@ import {
 import {
   capturePhaseSnapshot,
   pruneOldSnapshots,
+  sweepOrphanedSnapshotRefs,
   readPhaseSnapshots,
   pickSnapshotForResume,
   restorePhaseSnapshot,
@@ -166,7 +167,8 @@ import type { SuggestionSource } from "../reviews/review-suggestion-types.js";
 import { applyPauseIfRequested } from "./pause-service.js";
 import { isTerminal } from "./state-machine.js";
 import { writeJson } from "../utils/json.js";
-import { runFlowSnapshotPath } from "../utils/paths.js";
+import { runFlowSnapshotPath, projectRunsDir } from "../utils/paths.js";
+import { readdir } from "node:fs/promises";
 import {
   isGraphFlow,
   parallelGroupsOf,
@@ -716,6 +718,32 @@ export class Orchestrator {
           message: `Pruned rewind snapshots for ${pruned.length} old run(s) beyond the ${snapshotKeep}-run retention window.`,
           data: { prunedRuns: pruned.length, keepRuns: snapshotKeep },
         });
+      }
+      // Also reclaim refs orphaned out-of-band (a run dir removed manually) -
+      // they can never be rewound, so they're pure git clutter. Rides the SAME
+      // opt-in (only when the user enabled retention); never a behind-the-back
+      // purge. ISSUE-001 P1.
+      //
+      // FAIL CLOSED on the run-dir read: a real readdir (not the error-swallowing
+      // readDirSafe), and ANY failure - or an empty result - skips the sweep.
+      // An unknown/empty run-set must never be read as "every ref is an orphan"
+      // (that would wipe live runs' snapshots). The current run's dir always
+      // exists here, so a healthy read is never empty.
+      let existingRunIds: Set<string> | null = null;
+      try {
+        existingRunIds = new Set(await readdir(projectRunsDir(this.projectRoot)));
+      } catch {
+        existingRunIds = null; // couldn't enumerate runs -> do not sweep
+      }
+      if (existingRunIds && existingRunIds.size > 0) {
+        const sweptOrphans = await sweepOrphanedSnapshotRefs(this.projectRoot, existingRunIds);
+        if (sweptOrphans.length > 0) {
+          await eventLog.append({
+            type: "run.snapshot.pruned",
+            message: `Reclaimed rewind snapshots for ${sweptOrphans.length} deleted run(s) (run directory gone).`,
+            data: { orphanedRuns: sweptOrphans.length, reason: "run-dir-gone" },
+          });
+        }
       }
     }
     await eventLog.append({
