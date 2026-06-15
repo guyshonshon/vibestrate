@@ -69,7 +69,17 @@ vibe run "<same task>" --resume-from <oldRunId> --resume-stage planning
 
 `--resume-stage` defaults to `executing`, and accepts `planning`, `architecting`, or `executing`. The flow runner finds the first step at that stage, **seeds the outputs of every earlier step from the source run** (marking them *skipped (resumed)* in the run's step ledger), and starts there. The forked run gets its own runId and a fresh worktree off your main branch - correct, because these stages regenerate the downstream code - and the original run is untouched (its `state.json` records the lineage under `resumedFrom`). Works with `--flow` too: any flow that declares the matching step `stage` can be resumed. In the dashboard, the run's **Re-run with changes** dialog has a **Start from** selector with the same choices.
 
-Resuming at *reviewing* or *verifying* isn't supported: those stages need the executor's code already present, and Vibestrate doesn't snapshot the per-step worktree yet. The CLI rejects those stages with a clear message.
+### Rewinding to review, fix, or verify (restores the run's code)
+
+`reviewing`, `fixing`, and `verifying` are also resumable - but these stages need the executor's code already present, so Vibestrate **restores the source run's per-phase worktree snapshot** into the fresh worktree first. Only runs that captured a snapshot (every run that produced code) can be rewound this way; the CLI/dashboard tell you when there's none.
+
+Because that restore overwrites and removes files, you can **dry-run it first** to see the exact blast radius - which files it would add, overwrite, or remove - before committing:
+
+```bash
+vibe run "<same task>" --resume-from <oldRunId> --resume-stage reviewing --preview
+```
+
+`--preview` prints the overwrite/remove set and exits **without starting a run**. The same data is on `GET /api/runs/<id>/restore-preview?stage=reviewing`, and the dashboard's **Re-run** dialog shows a live preview panel when you pick a downstream stage. The restore itself is bounded: it only ever runs against a real, isolated run worktree (never your checkout), and a failed or refused restore marks the run **unsafe** in its assurance verdict rather than passing as verified.
 
 ## When to file a bug
 

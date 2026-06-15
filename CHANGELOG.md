@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.7.98
+
+Rewind hardening - the destructive-restore blast radius is now fully bounded
+(closes ISSUE-001), plus a flow-schema hardening (ISSUE-003).
+
+- **A half-restored rewind can't pass as verified.** If restoring a run's code
+  snapshot fails or is refused, Run Assurance now marks the run `unsafe` (cap
+  `restore_failed`) instead of letting it read `verified` - the worktree isn't
+  trusted, just like a failed rollback.
+- **See what a rewind will overwrite before it runs.** A new restore preview /
+  dry-run lists exactly which files the restore would add, overwrite, or remove.
+  Available three ways: `vibe run --resume-from <id> --resume-stage reviewing
+  --preview`, `GET /api/runs/:id/restore-preview`, and a live panel in the
+  dashboard's rewind modal - which now also lets you rewind to review/fix/verify
+  from the UI (previously CLI-only).
+- **A stronger restore guard.** The destructive restore now positively verifies
+  its target is inside the configured worktree dir AND a real git worktree root
+  (not just "not the project root"), each path symlink-normalized so a legit
+  rewind is never falsely refused.
+- **Snapshot housekeeping.** When you opt into `git.snapshotRetentionRuns`,
+  Vibestrate also reclaims snapshot refs left behind by runs whose directory is
+  gone - fail-closed so it can never wipe a live run's snapshots. And the `.git`
+  footprint shrinks: one snapshot ref per run (chained commits) instead of one
+  per phase. (Still never purges anything when retention is off.)
+- **Flow schema hardening.** The `skipWhen` constraints (review-turn-only,
+  linear-only, no checklist, no loop body) are now re-asserted on the resolved
+  flow snapshot, not just the authored definition - defense-in-depth against a
+  hand-crafted snapshot.
+
 ## 0.7.97
 
 - **The one-line installer works again.** The documented

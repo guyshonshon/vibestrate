@@ -25,7 +25,7 @@ scratch plans) go to `docs/archive/` (gitignored), not here.
 | [`proportional-orchestration.md`](./proportional-orchestration.md) | B3 (change-scoped validation) shipped 0.7.33. A2/A3/A1 are the batch's P4 slices. |
 | [`flows-hub.md`](./flows-hub.md) | Hub registry decisions (settled). Read side + seating built on a stranded branch; batch P3 merges it + adds the web browser; publish later. |
 | [`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) | The safety pillar (issue #7). S0-S5 shipped; S6 (OS sandbox) partially unblocked - provider-native sandbox (codex) shipped off-by-default via T14 slice 1; the rest waits on the deferred Docker backend + credential proxy. |
-| [`rewind-phase-2.md`](./rewind-phase-2.md) | Phase 1 + 2 shipped (resume at review/fix/verify via phase snapshots). Safety follow-ups tracked in ISSUES.md (ISSUE-001). |
+| [`rewind-phase-2.md`](./rewind-phase-2.md) | Phase 1 + 2 shipped (resume at review/fix/verify via phase snapshots). Safety follow-ups (ISSUE-001) all resolved in 0.7.98: strengthened guard, restore-health in assurance, restore preview, orphan-ref sweep, one ref per run. |
 
 ## Open proposals - designed, nothing shipped
 

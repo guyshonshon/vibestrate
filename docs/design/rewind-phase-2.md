@@ -62,10 +62,14 @@ so the resumed downstream stages see both the code and the plan/review context.
 
 The restore is destructive (`checkout-index -f` + `clean -fd`), so it is confined
 to the run's dedicated throwaway worktree (`resolveWorktreePath` always yields a
-per-run subdir, never the project root) and guarded by `isSafeRestoreTarget`
-(refuses the project root). Snapshot ref/object accumulation, partial-restore
-handling in assurance, and a restore preview are tracked as
-**[ISSUE-001](../ISSUES.md#issue-001--rewind-restore-is-destructive--bound-its-blast-radius-)**.
+per-run subdir, never the project root) and guarded by `checkRestoreTarget`,
+which positively verifies the target is inside the configured `worktreeDir` and
+is a real git worktree root (not merely `≠ root`). The ISSUE-001 follow-ups -
+opt-in retention + orphan-ref sweep, restore-health in the assurance verdict,
+the strengthened guard, a restore preview/dry-run, and one snapshot ref per run -
+all shipped in **0.7.98**; ISSUE-001 is **resolved**. See
+**[ISSUE-001](../ISSUES.md#issue-001--rewind-restore-is-destructive--bound-its-blast-radius-)**
+for the full record.
 
 ## Out of scope / honest limits
 
