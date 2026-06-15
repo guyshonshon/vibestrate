@@ -93,6 +93,29 @@ describe("Flow Phase 8 context builder", () => {
       .not.toContain("x".repeat(2_000));
   });
 
+  it("embeds a tiny artifact full when summarizing would only add wrapper overhead", () => {
+    const s = snapshot("compact");
+    const step = s.steps.find((candidate) => candidate.id === "implementation-review")!;
+    const result = buildFlowContextPacket({
+      snapshot: s,
+      step,
+      contextMode: "stateless",
+      outputs: new Map([
+        ["plan", output("plan", "Add a --verbose flag.")],
+        ["diff", output("diff", JSON.stringify({ totals: { files: 1, insertions: 1, deletions: 0 }, files: [{ path: "src/x.ts" }] }))],
+        ["validation", output("validation", JSON.stringify({ summary: { total: 1, passed: 1, failed: 0 }, commands: [] }))],
+      ]),
+      generatedAt: "2026-05-23T00:00:00.000Z",
+    });
+    const plan = result.packet.inputs.find((input) => input.token === "plan")!;
+    // compact policy would normally summarize, but the summary wrapper would
+    // inflate a tiny artifact - the overhead guard embeds it full instead.
+    expect(plan.disposition).toBe("embedded-full");
+    const joined = result.priorArtifacts.map((artifact) => artifact.content).join("\n");
+    expect(joined).toContain("Add a --verbose flag.");
+    expect(joined).not.toContain("Summary for plan:");
+  });
+
   it("does not replay full prior artifacts into a reused participant session", () => {
     const s = snapshot("artifact-heavy");
     const step = s.steps.find((candidate) => candidate.id === "challenge-response")!;

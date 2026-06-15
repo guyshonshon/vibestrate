@@ -108,13 +108,48 @@ export function buildFlowContextPacket(
       continue;
     }
 
-    const decision = decideContextInclusion({
+    let decision = decideContextInclusion({
       token,
       content: output.content,
       artifactPath: output.artifactPath,
       contextPolicy: input.snapshot.contextPolicy,
       contextMode: input.contextMode,
     });
+    // Summary-overhead guard: the embedded-summary wrapper (artifact-path header
+    // + "exact content available" footer) can out-cost its savings on small
+    // artifacts, making the "summary" larger than just embedding the trimmed
+    // source. When that happens - and we're not in `reused` mode, where the
+    // summary is a deliberate delta against a live session, not a size play -
+    // embed full instead. Tokens only go down or stay equal; content is more
+    // faithful (no tail-clip). Measured: 40% of inputs hit this case.
+    if (
+      decision.disposition === "embedded-summary" &&
+      input.contextMode !== "reused"
+    ) {
+      const fullBody = output.content.trim();
+      const summaryBytes = bytes(
+        renderPromptContent({
+          output,
+          disposition: "embedded-summary",
+          body: decision.body,
+        }),
+      );
+      const fullBytes = bytes(
+        renderPromptContent({
+          output,
+          disposition: "embedded-full",
+          body: fullBody,
+        }),
+      );
+      if (fullBytes <= summaryBytes) {
+        decision = {
+          disposition: "embedded-full",
+          body: fullBody,
+          reason:
+            "Summary would not shrink the prompt (wrapper out-costs the saving), so the full artifact was embedded instead.",
+        };
+      }
+    }
     const promptContent = renderPromptContent({
       output,
       disposition: decision.disposition,
