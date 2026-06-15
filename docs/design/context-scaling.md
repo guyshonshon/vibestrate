@@ -241,6 +241,30 @@ Concrete changes, anchored to current code:
     catch rate. **Risk:** must verify on a real run that catch rate holds/improves -
     can't confirm on toy runs.
 
+### Build status (2026-06-15, after an adversarial Opus design review)
+
+- **Slice 1 - summary-overhead fix: SHIPPED** (`7aee72f8`). `decideContextInclusion`
+  embeds full when the summary wrapper isn't actually smaller (non-`reused` only).
+  Full suite green. This is the corrected, safe core of "2a".
+- **2a reference-only: DEFERRED - it was silent data-loss.** The review found the
+  rendered reference is run-dir-relative (`.vibestrate/runs/<id>/artifacts/...`) but
+  the agent's cwd is the worktree (a *sibling* of project root), so the path can't
+  resolve - the agent silently loses the content. The body text ("retained in the
+  live participant session") is also only true for `reused` mode. Reviving
+  reference-only needs: an **absolute** path the agent's CLI can open, a
+  redaction/permission contract (referencing a file re-exposes content the prompt
+  redacts), and gating on the actual `contextMode` - not a byte threshold.
+- **2b + 2c collapse into ONE opt-in mechanism.** Solving "attached docs full-per-seat"
+  *uniformly* (2b) has no free lunch: reference-only bets on JIT retrieval (uncertain),
+  summary is lossy, raw-file reference re-exposes redacted secrets. The clean answer is
+  role-differentiation: a **clean-room seat policy** (a flow-schema field, default OFF).
+  A clean-room seat drops run-level grounding (ledger / runBrief / annotations /
+  materialized context sources) and gets only its declared inputs + task - which
+  delivers both the clean-room judge (2c) *and* attached-source reduction (2b) in one
+  inert-by-default change. **The default-flip** (clean-rooming the built-in review/verify
+  seats) is **gated on a real-run catch-rate eval** - never a silent override of
+  flow-declared `inputs`. Not yet built (the schema+orchestrator change is the next slice).
+
 **Explicitly not building:** prompt-cache engineering (API-only); a core knowledge
 graph; LLM-based summarization for the digest (keep deterministic unless it proves
 to drop decisions). Rung 3 (graph) stays an opt-in **query skill** (graphify, local,
