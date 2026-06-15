@@ -231,4 +231,8 @@ describe("orchestrator: per-stage policy approvals", () => {
     expect(report).toContain("rejected");
     expect(report).toContain("not now");
   });
-});
+  // These are heavy full-orchestrator integration runs (~10s each in isolation);
+  // under the full parallel suite, CPU contention can push one past the 20s
+  // global testTimeout. Give the whole suite headroom so a load spike doesn't
+  // flake a green run.
+}, 40_000);
