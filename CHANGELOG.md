@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.100
+
+- **CSRF hardening on the local dashboard server.** State-changing API requests
+  (start/abort runs, prune snapshots, etc.) now reject cross-site browser
+  requests via the `Sec-Fetch-Site` fetch-metadata header, and a malformed
+  `Origin` is refused instead of waved through. Non-browser clients (the CLI uses
+  the core directly, plus your own scripts) are unaffected. Defense-in-depth: the
+  snapshot-prune endpoint no longer acts on an empty body - it requires an
+  explicit scope - so an empty/strayed POST can never trigger a deletion.
+
 ## 0.7.99
 
 - **Prune rewind snapshots on demand.** A new explicit cleanup for the

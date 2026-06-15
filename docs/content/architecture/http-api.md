@@ -24,9 +24,16 @@ unversioned forms.
 ## Binding and origin
 
 The server binds loopback (`127.0.0.1`) by default and refuses cross-origin
-requests from anything but `localhost` / `127.0.0.1` / the configured host. To
-expose it on another interface, pass `vibe ui --host <host>` - but a
-non-loopback bind **requires a token** (below) or the server refuses to start.
+requests from anything but `localhost` / `127.0.0.1` / the configured host (a
+malformed `Origin` is refused too). To expose it on another interface, pass
+`vibe ui --host <host>` - but a non-loopback bind **requires a token** (below) or
+the server refuses to start.
+
+**CSRF.** State-changing methods (POST/PUT/PATCH/DELETE) additionally reject any
+request a browser marks `Sec-Fetch-Site: cross-site`/`cross-origin`, so a page in
+your browser can't drive your local API. Non-browser clients (curl, your own
+scripts) omit that header and are unaffected - but a destructive endpoint like
+snapshot prune still requires an explicit body, never acting on an empty one.
 
 ## Authentication
 

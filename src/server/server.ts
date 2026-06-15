@@ -195,21 +195,48 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
     },
   );
 
-  // Lock down to localhost: refuse forwarded host headers, allow only local origins.
+  // Lock down to localhost + block cross-site CSRF on state-changing routes
+  // (ISSUE-004). Two layers:
+  //   1. Origin: when present it must resolve to a local host - and a MALFORMED
+  //      Origin is now refused (fail-closed), not waved through.
+  //   2. Sec-Fetch-Site: on mutating methods, reject a request a browser marked
+  //      `cross-site`/`cross-origin`. Every modern browser sends this header, so
+  //      it closes the gap where a cross-site POST carries no Origin. Non-browser
+  //      clients (curl, scripts, the CLI's own calls) omit it and stay allowed -
+  //      they're local and not a CSRF vector.
+  const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
   app.addHook("onRequest", async (req, reply) => {
     const origin = req.headers["origin"];
     if (typeof origin === "string" && origin.length > 0) {
+      let allowed = false;
       try {
         const url = new URL(origin);
-        const allowed =
+        allowed =
           url.hostname === "localhost" ||
           url.hostname === "127.0.0.1" ||
           url.hostname === host;
-        if (!allowed) {
-          await reply.code(403).send({ error: "Cross-origin requests are not allowed." });
-        }
       } catch {
-        // Malformed origin: continue to next handler.
+        allowed = false; // malformed origin -> refuse (fail closed)
+      }
+      if (!allowed) {
+        await reply.code(403).send({ error: "Cross-origin requests are not allowed." });
+        return;
+      }
+    }
+    if (MUTATING_METHODS.has(req.method)) {
+      const site = req.headers["sec-fetch-site"];
+      // Browser-sent: same-origin / same-site / none are fine; cross-site /
+      // cross-origin are CSRF. Absent (non-browser) is allowed.
+      if (
+        typeof site === "string" &&
+        site !== "same-origin" &&
+        site !== "same-site" &&
+        site !== "none"
+      ) {
+        await reply
+          .code(403)
+          .send({ error: "Cross-site state-changing requests are not allowed." });
+        return;
       }
     }
   });

@@ -347,6 +347,11 @@ export async function registerRunsRoutes(
     const body = pruneBody.safeParse(req.body ?? {});
     if (!body.success) throw new HttpError(400, body.error.message);
     const { keep, orphans, runId, dryRun } = body.data;
+    // The network surface must NOT default to a destructive scope on an empty
+    // body (defense-in-depth behind the CSRF hook): require an explicit scope.
+    if (keep === undefined && orphans === undefined && runId === undefined) {
+      throw new HttpError(400, "Specify a prune scope: orphans, keep, or runId.");
+    }
     let existingRunIds: Set<string>;
     try {
       existingRunIds = new Set(await readdir(projectRunsDir(projectRoot)));
@@ -358,10 +363,11 @@ export async function registerRunsRoutes(
     }
     let plan;
     try {
-      // Default scope: orphans when nothing else asked (mirrors the CLI).
+      // No implicit destructive default on the network surface - the caller
+      // already supplied an explicit scope above.
       plan = await planSnapshotPrune(projectRoot, existingRunIds, {
         keep: keep ?? null,
-        orphans: orphans ?? (keep == null && !runId),
+        orphans: orphans ?? false,
         runId: runId ?? null,
       });
     } catch (err) {

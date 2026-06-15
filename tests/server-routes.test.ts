@@ -164,6 +164,90 @@ describe("server routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("blocks a cross-site state-changing request (Sec-Fetch-Site: cross-site)", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "sec-fetch-site": "cross-site" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("allows a same-origin state-changing request (Sec-Fetch-Site: same-origin)", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "sec-fetch-site": "same-origin" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("refuses a cross-origin Origin header (including a malformed one)", async () => {
+    const cross = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://evil.example" },
+      body: JSON.stringify({ dryRun: true }),
+    });
+    expect(cross.status).toBe(403);
+    const malformed = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "not-a-url" },
+      body: JSON.stringify({ dryRun: true }),
+    });
+    expect(malformed.status).toBe(403);
+  });
+
+  it("a local Origin is allowed", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:1234" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("a mutating request with NO Origin and NO Sec-Fetch-Site is allowed (non-browser/local client)", async () => {
+    // node fetch sends neither header; this is the local-client path. Pinned so
+    // a future policy change to this case is a deliberate, visible decision.
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("Sec-Fetch-Site: none is allowed (user navigation, not attacker-reachable)", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "sec-fetch-site": "none" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("a form-style (non-JSON) body never reaches a successful prune", async () => {
+    // The only registered parser is application/json; a cross-site simple POST
+    // can't deliver JSON without a preflight, so this content-type defense is
+    // load-bearing. The exact reject code is Fastify's call (415/400/500); the
+    // security property is that it does NOT succeed (no prune).
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "orphans=true",
+    });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("the prune route requires an explicit scope - an empty body never prunes (400)", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("POST /api/runs/snapshots/prune executes cleanly when there's nothing to prune", async () => {
     // The fixture run has a dir but no captured snapshots, so a non-dry-run
     // prune deletes nothing and 200s (execute path; never wipes on empty refs).
