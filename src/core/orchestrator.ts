@@ -119,8 +119,11 @@ import {
   type ChecklistItemOutcome,
 } from "../pickup/item-summary.js";
 import { GitError, VibestrateError, describeError } from "../utils/errors.js";
-import { formatRunIdTimestamp, nowIso, durationMs } from "../utils/time.js";
-import { slugify } from "../utils/slug.js";
+import { nowIso, durationMs } from "../utils/time.js";
+import { makeUniqueRunId } from "../utils/run-id.js";
+// Re-exported so existing importers (server routes, workflow runner) keep
+// getting `makeRunId` from here; the implementation now lives in run-id.ts.
+export { makeRunId } from "../utils/run-id.js";
 import type {
   ProviderRunResult,
   ProviderSessionRequest,
@@ -339,10 +342,6 @@ type FlowRoleTurn = {
   fallbackReason: string | null;
   sessionRequest?: ProviderSessionRequest;
 };
-
-export function makeRunId(task: string): string {
-  return `${formatRunIdTimestamp()}-${slugify(task)}`;
-}
 
 class __ApprovalRejectedSignal extends Error {
   constructor() {
@@ -620,7 +619,7 @@ export class Orchestrator {
     // own crew).
     this.activeCrewId = flow.crewId;
 
-    const runId = this.preassignedRunId ?? makeRunId(this.task);
+    const runId = this.preassignedRunId ?? makeUniqueRunId(this.projectRoot);
 
     const artifactStore = new ArtifactStore(this.projectRoot, runId);
     const stateStore = new RunStateStore(this.projectRoot, runId);

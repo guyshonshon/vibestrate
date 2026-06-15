@@ -19,7 +19,7 @@ export async function runStatusCommand(opts: StatusOptions): Promise<number> {
   const detected = await detectProject(cwd);
 
   const runsDir = projectRunsDir(detected.projectRoot);
-  const runIds = (await readDirSafe(runsDir)).sort();
+  const runIds = await readDirSafe(runsDir);
 
   const states: RunState[] = [];
   for (const id of runIds) {
@@ -33,6 +33,8 @@ export async function runStatusCommand(opts: StatusOptions): Promise<number> {
       // Skip unreadable runs.
     }
   }
+  // Order by start time, not the id string (ids are short docker-style names).
+  states.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
 
   if (opts.json) {
     console.log(JSON.stringify(states, null, 2));

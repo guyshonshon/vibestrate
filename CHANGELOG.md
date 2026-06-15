@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.91
+
+- **Short, friendly run ids.** New runs get a docker-style `adjective-noun` id
+  (e.g. `bold-lovelace`) instead of the long `YYYYMMDD-HHMMSS-<full-task-slug>`.
+  Ids are unique (checked against existing runs, with a short-suffix fallback)
+  and serve as the run's directory / branch / display handle; the run's task is
+  still its human label. Run lists now order by start time rather than the id
+  string, so ordering stays correct with the new ids (and legacy long-id runs
+  still sort right).
+
 ## 0.7.90
 
 - **Shell dividers fit any terminal width.** The horizontal rule was a hardcoded

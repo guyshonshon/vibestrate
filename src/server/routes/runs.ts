@@ -37,7 +37,7 @@ import {
 import { buildRunAudit } from "../../core/run-audit.js";
 import { deriveEngagement } from "../../core/run-engagement.js";
 import type { RunSpec } from "../../core/run-launcher.js";
-import { makeRunId } from "../../core/orchestrator.js";
+import { makeUniqueRunId } from "../../utils/run-id.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
   appendControl,
@@ -149,7 +149,7 @@ export async function registerRunsRoutes(
 
   app.get("/api/runs", async () => {
     const runsDir = projectRunsDir(projectRoot);
-    const ids = (await readDirSafe(runsDir)).sort();
+    const ids = await readDirSafe(runsDir);
     const runs = [];
     for (const id of ids) {
       const stateFile = runStatePath(projectRoot, id);
@@ -162,6 +162,9 @@ export async function registerRunsRoutes(
         // skip
       }
     }
+    // Order by start time, not the id string - run ids are now short
+    // docker-style names with no chronological prefix.
+    runs.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
     return { runs };
   });
 
@@ -213,7 +216,7 @@ export async function registerRunsRoutes(
     if (body.resumeFrom) argv.push("# rewind from", body.resumeFrom.sourceRunId);
     // Assign the run id here so the response can carry it - the UI navigates
     // to the run screen immediately instead of toasting and waiting for polls.
-    const runId = makeRunId(body.task);
+    const runId = makeUniqueRunId(projectRoot);
     const spec: RunSpec = {
       projectRoot,
       task: body.task,

@@ -34,10 +34,12 @@ export const runSpecSchema = z.object({
   projectRoot: z.string().min(1),
   task: z.string().min(1).max(2000),
   /** Pre-assigned run id (the dashboard computes it before spawning so the UI
-   *  can navigate immediately). Same shape makeRunId produces. */
+   *  can navigate immediately). Short docker-style `adjective-noun` ids now;
+   *  the pattern also still accepts the legacy `YYYYMMDD-HHMMSS-slug` form so
+   *  old run dirs/refs keep validating. Filesystem- and git-ref-safe. */
   runId: z
     .string()
-    .regex(/^\d{8}-\d{6}-[a-z0-9-]{1,120}$/)
+    .regex(/^[a-z0-9][a-z0-9-]{0,120}$/)
     .nullable()
     .optional(),
   taskId: z.string().min(1).max(128).nullable().optional(),
