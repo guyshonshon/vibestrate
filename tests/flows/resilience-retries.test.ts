@@ -296,3 +296,104 @@ describe("resilience fallback to an alternate profile (U3)", () => {
     expect(events.some((e) => e.type === "flow.step.completed" && e.data?.stepId === "do")).toBe(true);
   }, 60_000);
 });
+
+// A claude-shaped provider that enforces REAL session semantics: it errors
+// "Session ID <U> is already in use." if it ever sees the same `--session-id`
+// (open) twice, accepts any `--resume`, registers each open id, logs every
+// argv, and rate-limits its FIRST invocation (429) so the resilience loop
+// retries WITHIN the one turn. Mirrors the ISSUE-002 (B) collision: the first
+// attempt opens U, the retry must NOT re-open U (it must re-mint a fresh id).
+const SESSION_AWARE_RATE_LIMIT_THEN_OK = `#!/usr/bin/env node
+const fs = require("node:fs");
+const path = require("node:path");
+const argv = process.argv.slice(2);
+fs.appendFileSync(process.env.VIBESTRATE_TEST_ARGV_LOG, JSON.stringify(argv) + "\\n");
+const flagValue = (flag) => { const i = argv.indexOf(flag); return i >= 0 ? argv[i + 1] : null; };
+const openId = flagValue("--session-id");
+const resumeId = flagValue("--resume");
+const openedFile = path.join(__dirname, "opened.json");
+const counter = path.join(__dirname, "attempts.txt");
+let p = "";
+process.stdin.on("data", (c) => (p += c));
+process.stdin.on("end", () => {
+  if (openId) {
+    let opened = [];
+    try { opened = JSON.parse(fs.readFileSync(openedFile, "utf8")); } catch {}
+    if (opened.includes(openId)) {
+      // Exactly claude's error - and an UNRECOGNISED (hard) failure, so without
+      // the re-mint fix this collision would fail the run, not get retried.
+      process.stderr.write("Error: Session ID " + openId + " is already in use.\\n");
+      process.exit(1);
+    }
+    opened.push(openId);
+    fs.writeFileSync(openedFile, JSON.stringify(opened));
+  }
+  let n = 0;
+  try { n = parseInt(fs.readFileSync(counter, "utf8"), 10) || 0; } catch {}
+  n += 1;
+  fs.writeFileSync(counter, String(n));
+  // First attempt registers the open id THEN rate-limits (claude opens the
+  // session before the API call fails), forcing a same-turn retry.
+  if (n < 2) { process.stderr.write("Error: 429 rate limit exceeded\\n"); process.exit(1); }
+  console.log(JSON.stringify({
+    type: "result",
+    result: "ok done",
+    session_id: openId || resumeId || "no-session",
+    model: "fake-claude",
+    total_cost_usd: 0.001,
+    usage: { input_tokens: 4, output_tokens: 2 },
+  }));
+});
+`;
+
+describe("session-aware retries don't re-open a registered session id (ISSUE-002 B)", () => {
+  it("re-mints a fresh --session-id on a rate-limit retry instead of colliding", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-sess-remint-"));
+    await execa("git", ["init", "-q", "-b", "main"], { cwd: dir });
+    await execa("git", ["config", "user.email", "x@x"], { cwd: dir });
+    await execa("git", ["config", "user.name", "x"], { cwd: dir });
+    await fs.writeFile(path.join(dir, "package.json"), '{"name":"sess"}');
+    await execa("git", ["add", "."], { cwd: dir });
+    await execa("git", ["commit", "-q", "-m", "init"], { cwd: dir });
+    await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+
+    const argvLog = path.join(dir, "claude-argv.ndjson");
+    const fakeClaude = path.join(dir, "fake-claude.js");
+    await fs.writeFile(fakeClaude, SESSION_AWARE_RATE_LIMIT_THEN_OK, { mode: 0o755 });
+    await fs.chmod(fakeClaude, 0o755);
+    await setConfigValue(
+      dir,
+      "providers.fake-claude",
+      JSON.stringify({
+        type: "claude-code",
+        command: "node",
+        args: [fakeClaude],
+        input: "stdin",
+        env: { VIBESTRATE_TEST_ARGV_LOG: argvLog },
+        settings: { outputFormat: "stream-json" },
+      }),
+    );
+    await setConfigValue(dir, "profiles.claude-balanced.provider", "fake-claude");
+
+    const loaded = await loadConfig(dir);
+    const { events } = await run(dir, fastResilience(loaded.config), loaded.rules);
+
+    // Survived the rate limit and completed - without the fix the retry would
+    // re-open the same id, hit "already in use" (hard), and fail the run.
+    expect(events.some((e) => e.type === "flow.step.completed" && e.data?.stepId === "do")).toBe(true);
+    expect(events.some((e) => e.type === "run.failed")).toBe(false);
+
+    // Two invocations, and they used DISTINCT --session-id values (re-mint).
+    const argv = (await fs.readFile(argvLog, "utf8"))
+      .split("\n")
+      .filter((l) => l.trim())
+      .map((l) => JSON.parse(l) as string[]);
+    const openIds = argv
+      .map((a) => { const i = a.indexOf("--session-id"); return i >= 0 ? a[i + 1] : null; })
+      .filter((v): v is string => v !== null);
+    expect(openIds).toHaveLength(2);
+    expect(openIds[0]).not.toBe(openIds[1]);
+    // No invocation ever re-opened an id a prior one already opened.
+    expect(new Set(openIds).size).toBe(openIds.length);
+  }, 60_000);
+});

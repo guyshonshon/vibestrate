@@ -8,6 +8,7 @@
 // Design: docs/design/unattended-resilience.md.
 
 import type { ResilienceConfig } from "../project/config-schema.js";
+import type { ProviderSessionRequest } from "../providers/provider-types.js";
 import { redactSecretsInText } from "./diff-service.js";
 
 export type ProviderFailureClass =
@@ -89,6 +90,34 @@ export function classifyProviderFailure(
   if (anyMatch(text, rate)) return "rate-limit";
   if (anyMatch(text, transient)) return "transient";
   return "hard";
+}
+
+/**
+ * Pick the session request for a provider (re)invocation inside the resilience
+ * retry loop (ISSUE-002 B). A retried `open` MUST NOT re-send a session id a
+ * prior attempt already issued: claude registers `--session-id <U>` on first use
+ * and errors "Session ID <U> is already in use." on a second open. An "opened"
+ * turn re-sends full context, so a fresh id is semantically identical and never
+ * collides - and never depends on whether the failed attempt actually
+ * registered <U> (re-mint is strictly safer than converting to `--resume`, which
+ * would error "no conversation" if <U> was never created). `resume` is
+ * replayable as-is; non-session turns are unchanged.
+ *
+ * `openAlreadyIssued` must be tracked across the WHOLE loop, NOT keyed off the
+ * retry-budget counter: that counter resets to 0 on a human-approved fresh round
+ * (`runProviderResilient`'s onExhausted=pause path), yet the id was still opened
+ * on the very first attempt - so a counter-based check would re-send it and
+ * collide again on the post-approval retry.
+ */
+export function sessionRequestForRetry(
+  session: ProviderSessionRequest | undefined,
+  openAlreadyIssued: boolean,
+  freshId: () => string,
+): ProviderSessionRequest | undefined {
+  if (!session) return undefined;
+  if (session.action !== "open") return session;
+  if (!openAlreadyIssued) return session;
+  return { action: "open", sessionId: freshId() };
 }
 
 /** Parse a Retry-After hint (seconds) from text, in ms. null if none found. */

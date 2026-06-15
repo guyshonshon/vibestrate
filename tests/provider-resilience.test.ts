@@ -5,6 +5,7 @@ import {
   deriveAutoFallbackProfile,
   failureExcerpt,
   parseRetryAfterMs,
+  sessionRequestForRetry,
 } from "../src/core/provider-resilience.js";
 import { resilienceConfigSchema } from "../src/project/config-schema.js";
 
@@ -90,6 +91,55 @@ describe("failureExcerpt", () => {
     expect(e).not.toContain("sk-live-abcdef123456");
     expect(e).not.toContain("eyJhbGciOi");
     expect(e).toContain("[REDACTED]");
+  });
+});
+
+describe("sessionRequestForRetry (ISSUE-002 B)", () => {
+  // Deterministic fresh-id minter so we can assert the re-minted value.
+  const minter = () => {
+    let n = 0;
+    return () => `fresh-${(n += 1)}`;
+  };
+
+  it("returns undefined for a non-session turn, always", () => {
+    expect(sessionRequestForRetry(undefined, false, minter())).toBeUndefined();
+    expect(sessionRequestForRetry(undefined, true, minter())).toBeUndefined();
+  });
+
+  it("leaves a resume request unchanged whether or not an open was issued", () => {
+    const resume = { action: "resume" as const, sessionId: "S1" };
+    // Same reference back, so the caller skips the args spread.
+    expect(sessionRequestForRetry(resume, false, minter())).toBe(resume);
+    expect(sessionRequestForRetry(resume, true, minter())).toBe(resume);
+  });
+
+  it("passes the original open through before it has been issued", () => {
+    const open = { action: "open" as const, sessionId: "U1" };
+    expect(sessionRequestForRetry(open, false, minter())).toBe(open);
+  });
+
+  it("re-mints a fresh open id once the original was issued", () => {
+    const open = { action: "open" as const, sessionId: "U1" };
+    const next = sessionRequestForRetry(open, true, minter());
+    expect(next).toEqual({ action: "open", sessionId: "fresh-1" });
+    expect(next).not.toBe(open);
+  });
+
+  it("re-mint is independent of the retry counter (covers the approval-reset edge)", () => {
+    // The loop tracks `openIssued`, not `attempt`. Simulate: open issued on the
+    // first attempt, then a human-approved fresh round resets the counter - the
+    // id must STILL be re-minted, never re-sent as the original.
+    const open = { action: "open" as const, sessionId: "U1" };
+    const fresh = minter();
+    let issued = false;
+    const pick = () => {
+      const s = sessionRequestForRetry(open, issued, fresh);
+      if (s?.action === "open") issued = true;
+      return s;
+    };
+    expect(pick()).toBe(open); // attempt 1: original U1, now issued
+    expect(pick()).toEqual({ action: "open", sessionId: "fresh-1" }); // retry
+    expect(pick()).toEqual({ action: "open", sessionId: "fresh-2" }); // post-approval (attempt reset) - still re-minted
   });
 });
 

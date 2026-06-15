@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.95
+
+- **Retried Claude turns no longer collide on their session id.** When a
+  resilience retry re-ran a Claude turn (a rate-limit/transient backoff, a
+  usage-limit wait, or a human-approved fresh round after retries were
+  exhausted), it re-sent the same `--session-id` the first attempt had already
+  opened, so Claude rejected it with "Session ID ... is already in use." Retries
+  now re-mint a fresh session id once the original was issued; since an opened
+  turn re-sends its full context, the fresh session is identical in effect and
+  the run rides the failure out instead of dying on it. (Closes ISSUE-002 part B
+  - part A, the nested-session env leak, shipped in 0.7.94.)
+
 ## 0.7.94
 
 - **Spawned agents no longer inherit the host's Claude Code session.** If you run

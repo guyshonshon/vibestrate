@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { ArtifactStore } from "./artifact-store.js";
 import { EventLog } from "./event-log.js";
 import {
@@ -50,6 +51,7 @@ import {
   deriveAutoFallbackProfile,
   failureExcerpt,
   parseRetryAfterMs,
+  sessionRequestForRetry,
   type ProviderFailureClass,
 } from "./provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
@@ -5521,12 +5523,26 @@ export class Orchestrator {
     if (!r || !r.enabled) return runProvider(providers, input.args);
 
     let usageWaits = 0; // U6: reset-waits used for a usage-limit, separate budget.
+    // ISSUE-002 (B): a retried `open` session must not re-send an id a prior
+    // attempt already opened (claude: "Session ID <U> is already in use."). Track
+    // whether an open was ever issued across the WHOLE loop - NOT keyed off
+    // `attempt`, which resets to 0 on the onExhausted=pause human-approval round
+    // (below), yet the id was opened on the first attempt. Re-mint a fresh open
+    // id thereafter; an "opened" turn re-sends full context, so a fresh id is
+    // identical in effect. (The resilience FALLBACK path drops the session
+    // entirely; the graph/fan-out retry path carries no session - this loop is
+    // the only place a fixed open id is replayed.)
+    let openIssued = false;
     for (let attempt = 1; ; attempt += 1) {
+      const session = sessionRequestForRetry(input.args.session, openIssued, randomUUID);
+      const args =
+        session === input.args.session ? input.args : { ...input.args, session };
+      if (args.session?.action === "open") openIssued = true;
       let result: RichProviderRunResult | null = null;
       let lastError: unknown = null;
       let failureText: string;
       try {
-        result = await runProvider(providers, input.args);
+        result = await runProvider(providers, args);
         if (result.exitCode === 0) return result; // success
         failureText = `${result.stderr ?? ""}\n${result.stdout ?? ""}`;
       } catch (err) {
