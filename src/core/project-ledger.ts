@@ -148,10 +148,63 @@ export class LedgerStore {
   }
 }
 
-/** Pure: the ledger entries a completed run contributes. Idempotent by
- *  construction - if the run is already recorded (a `shipped:<runId>` entry
- *  exists), returns []. Only merge_ready runs are recorded for now (a blocked
- *  run's residuals are noise until it actually lands). */
+const BLOCKED_TERMINAL = new Set(["blocked", "failed", "aborted"]);
+
+function baseEntry(over: Partial<LedgerEntry> & Pick<LedgerEntry, "id" | "kind" | "title" | "status" | "createdAt">): LedgerEntry {
+  return {
+    schemaVersion: 1,
+    detail: null,
+    sourceRunId: null,
+    supersedes: null,
+    relation: null,
+    relatesTo: null,
+    tags: [],
+    ...over,
+  };
+}
+
+/**
+ * Pure: the ledger entries a run contributes AT START (Slice 3). Records the
+ * run's goal as an `open` intent so STATE.md shows what's in flight / not yet
+ * shipped. Skips read-only runs (an investigation isn't a goal). A *resumed* run
+ * supersedes the source run's intent (continuity - the same goal carried
+ * forward, not a duplicate). Idempotent by `intent:<runId>`.
+ */
+export function buildRunStartLedgerEntries(input: {
+  runId: string;
+  task: string;
+  displayName: string | null;
+  readOnly: boolean;
+  resumeFromSourceRunId: string | null;
+  now: string;
+  existing: LedgerEntry[];
+}): LedgerEntry[] {
+  if (input.readOnly) return [];
+  const intentId = `intent:${input.runId}`;
+  if (input.existing.some((e) => e.id === intentId)) return [];
+  return [
+    baseEntry({
+      id: intentId,
+      kind: "intent",
+      title: (input.displayName || input.task).slice(0, 300),
+      status: "open",
+      sourceRunId: input.runId,
+      supersedes: input.resumeFromSourceRunId
+        ? `intent:${input.resumeFromSourceRunId}`
+        : null,
+      createdAt: input.now,
+    }),
+  ];
+}
+
+/** Pure: the ledger entries a completed run contributes AT TERMINAL (Slice 3).
+ *  Idempotent - returns [] if a terminal entry (`shipped:` or `blocked:`) for
+ *  this run already exists. Read-only runs don't touch the goal ledger.
+ *  - merge_ready -> a `shipped` entry (which supersedes the run's open intent,
+ *    if any) + any residual follow-ups.
+ *  - blocked/failed/aborted -> a `residual` carrying a resume hint; the run's
+ *    intent stays OPEN (the goal isn't done).
+ *  - anything else -> [] (non-terminal; shouldn't reach finalize). */
 export function buildRunLedgerEntries(input: {
   runId: string;
   status: string;
@@ -161,46 +214,114 @@ export function buildRunLedgerEntries(input: {
   existing: LedgerEntry[];
   /** Short follow-up titles the run left (e.g. from assurance caps/notes). */
   residualTitles?: string[];
+  /** Read-only runs (investigations) leave no durable goal state. */
+  readOnly?: boolean;
+  /** Best-effort: the stage the run was at when it blocked/failed (resume hint). */
+  blockedStage?: string | null;
 }): LedgerEntry[] {
-  const already = input.existing.some(
-    (e) => e.sourceRunId === input.runId && e.kind === "shipped",
+  const recorded = input.existing.some(
+    (e) =>
+      e.sourceRunId === input.runId &&
+      (e.id === `shipped:${input.runId}` || e.id === `blocked:${input.runId}`),
   );
-  if (already || input.status !== "merge_ready") return [];
+  if (recorded || input.readOnly) return [];
   const title = (input.displayName || input.task).slice(0, 300);
-  const entries: LedgerEntry[] = [
-    {
-      schemaVersion: 1,
-      id: `shipped:${input.runId}`,
-      kind: "shipped",
-      title,
-      detail: null,
-      status: "shipped",
-      sourceRunId: input.runId,
-      supersedes: null,
-      relation: null,
-      relatesTo: null,
-      createdAt: input.now,
-      tags: [],
-    },
-  ];
-  for (const [i, t] of (input.residualTitles ?? []).entries()) {
-    const trimmed = t.trim();
-    if (!trimmed) continue;
-    entries.push({
-      schemaVersion: 1,
-      id: `residual:${input.runId}:${i}`,
-      kind: "residual",
-      title: trimmed.slice(0, 300),
-      detail: null,
-      status: "open",
-      sourceRunId: input.runId,
-      supersedes: null,
-      relation: null,
-      relatesTo: null,
-      createdAt: input.now,
-      tags: [],
-    });
+  const hasOpenIntent = input.existing.some(
+    (e) => e.id === `intent:${input.runId}` && e.status === "open",
+  );
+
+  if (input.status === "merge_ready") {
+    const entries: LedgerEntry[] = [
+      baseEntry({
+        id: `shipped:${input.runId}`,
+        kind: "shipped",
+        title,
+        status: "shipped",
+        sourceRunId: input.runId,
+        // Achieving the goal closes its open intent.
+        supersedes: hasOpenIntent ? `intent:${input.runId}` : null,
+        createdAt: input.now,
+      }),
+    ];
+    for (const [i, t] of (input.residualTitles ?? []).entries()) {
+      const trimmed = t.trim();
+      if (!trimmed) continue;
+      entries.push(
+        baseEntry({
+          id: `residual:${input.runId}:${i}`,
+          kind: "residual",
+          title: trimmed.slice(0, 300),
+          status: "open",
+          sourceRunId: input.runId,
+          createdAt: input.now,
+        }),
+      );
+    }
+    return entries;
   }
+
+  if (BLOCKED_TERMINAL.has(input.status)) {
+    const where = input.blockedStage
+      ? ` (was ${input.status} at ${input.blockedStage})`
+      : ` (was ${input.status})`;
+    return [
+      baseEntry({
+        id: `blocked:${input.runId}`,
+        kind: "residual",
+        title: `Blocked: ${title.slice(0, 290)}`,
+        status: "open",
+        sourceRunId: input.runId,
+        detail: `Resume from run ${input.runId}: \`vibe run --resume-from ${input.runId}\`${where}`,
+        createdAt: input.now,
+      }),
+    ];
+  }
+  return [];
+}
+
+/** Append entries then regenerate the durable STATE digest. Best-effort: the
+ *  digest is a regenerable cache, so a refresh hiccup never affects the ledger.
+ *  Dynamic import avoids a require cycle (the digest module imports this one). */
+async function appendAndRefresh(
+  projectRoot: string,
+  store: LedgerStore,
+  entries: LedgerEntry[],
+  now: string,
+): Promise<void> {
+  await store.append(entries);
+  if (entries.length === 0) return;
+  try {
+    const { writeProjectStateDigest } = await import("./project-state-digest.js");
+    await writeProjectStateDigest(projectRoot, now);
+  } catch {
+    // STATE.md is a regenerable cache - a failure to refresh is non-fatal.
+  }
+}
+
+/** Disk write-back: record a run's GOAL as an open intent AT START (Slice 3).
+ *  Best-effort + idempotent; the orchestrator calls it in a try/catch. */
+export async function recordRunStartInLedger(
+  projectRoot: string,
+  runId: string,
+  now: string,
+  input: {
+    task: string;
+    displayName: string | null;
+    readOnly: boolean;
+    resumeFromSourceRunId: string | null;
+  },
+): Promise<LedgerEntry[]> {
+  const store = new LedgerStore(projectRoot);
+  const entries = buildRunStartLedgerEntries({
+    runId,
+    task: input.task,
+    displayName: input.displayName,
+    readOnly: input.readOnly,
+    resumeFromSourceRunId: input.resumeFromSourceRunId,
+    now,
+    existing: await store.read(),
+  });
+  await appendAndRefresh(projectRoot, store, entries, now);
   return entries;
 }
 
@@ -217,31 +338,23 @@ export async function recordRunInLedger(
     displayName: string | null;
     task: string;
     residualTitles?: string[];
+    readOnly?: boolean;
+    blockedStage?: string | null;
   },
 ): Promise<LedgerEntry[]> {
   const store = new LedgerStore(projectRoot);
-  const existing = await store.read();
   const entries = buildRunLedgerEntries({
     runId,
     status: input.status,
     displayName: input.displayName,
     task: input.task,
     now,
-    existing,
+    existing: await store.read(),
     residualTitles: input.residualTitles,
+    readOnly: input.readOnly,
+    blockedStage: input.blockedStage,
   });
-  await store.append(entries);
-  // Regenerate the durable, auto-derived STATE digest from the now-current
-  // ledger. Best-effort + dynamic import to avoid a require cycle (the digest
-  // module imports this one). A digest hiccup never affects the ledger write.
-  if (entries.length > 0) {
-    try {
-      const { writeProjectStateDigest } = await import("./project-state-digest.js");
-      await writeProjectStateDigest(projectRoot, now);
-    } catch {
-      // STATE.md is a regenerable cache - a failure to refresh is non-fatal.
-    }
-  }
+  await appendAndRefresh(projectRoot, store, entries, now);
   return entries;
 }
 

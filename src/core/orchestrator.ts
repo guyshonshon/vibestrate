@@ -65,6 +65,7 @@ import {
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import {
   recordRunInLedger,
+  recordRunStartInLedger,
   LedgerStore,
   renderLedgerForPrompt,
 } from "./project-ledger.js";
@@ -691,6 +692,20 @@ export class Orchestrator {
     };
     await writeJson(runFlowSnapshotPath(this.projectRoot, runId), flow);
     await stateStore.write(state);
+    // Project memory (Slice 3): record this run's goal as an open intent at
+    // start, so STATE.md shows what's in flight / not yet shipped. Skips
+    // read-only investigations; a resumed run carries the source run's intent
+    // forward. Best-effort - the ledger is advisory.
+    try {
+      await recordRunStartInLedger(this.projectRoot, runId, nowIso(), {
+        task: state.task,
+        displayName: state.displayName,
+        readOnly: state.readOnly,
+        resumeFromSourceRunId: state.resumedFrom?.sourceRunId ?? null,
+      });
+    } catch {
+      // ledger is advisory; swallow.
+    }
     await eventLog.append({
       type: "run.created",
       message: `Run ${runId} created.`,
@@ -985,7 +1000,15 @@ export class Orchestrator {
     // failed flag append must never block a run.
     try {
       const store = new LedgerStore(this.projectRoot);
-      const state = await store.state();
+      const fullState = await store.state();
+      // This run's own start-intent (Slice 3) is not prior context: drop it so
+      // the planner's ledger block doesn't echo the current goal back, and the
+      // duplicate matcher doesn't flag the run against its own just-recorded
+      // intent.
+      const state = {
+        ...fullState,
+        intents: fullState.intents.filter((e) => e.id !== `intent:${runId}`),
+      };
       const block = renderLedgerForPrompt(state);
       this.ledgerPromptBlock = block ? redactSecretsInText(block).redacted : "";
 
@@ -3977,15 +4000,18 @@ export class Orchestrator {
       // assurance is advisory; swallow.
     }
 
-    // ── Project continuity ledger (T9) ────────────────────────────────────
-    // Record a merge_ready run so a future session can pick up "what shipped"
-    // across runs. Idempotent (keyed by runId) + best-effort - a ledger hiccup
-    // never masks the run's real outcome.
+    // ── Project continuity ledger (T9 + Slice 3) ──────────────────────────
+    // Record the run's terminal outcome so a future session can pick up "what
+    // shipped" and "what's blocked + how to resume" across runs. Idempotent
+    // (keyed by runId) + best-effort - a ledger hiccup never masks the run's
+    // real outcome. Read-only investigations leave no durable goal state.
     try {
       await recordRunInLedger(this.projectRoot, input.runId, nowIso(), {
         status: state.status,
         displayName: state.displayName,
         task: state.task,
+        readOnly: state.readOnly,
+        blockedStage: state.flow?.currentStepId ?? state.pausedAtStatus ?? null,
       });
     } catch {
       // ledger is advisory; swallow.
