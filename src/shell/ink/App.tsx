@@ -150,6 +150,13 @@ export function App({
   const runs = snapshot?.runs ?? [];
   const selectedRun =
     ui.page === "runs" ? runs[ui.selection.runs] ?? null : null;
+  // The implicit target for pause/resume/abort from the command palette when no
+  // run is selected on the Runs page: the single in-flight run. Lets you abort a
+  // task you just launched from anywhere (`:` -> Abort run) without navigating.
+  const RUN_TERMINAL_STATES = ["merge_ready", "failed", "aborted", "blocked"];
+  const activeRuns = runs.filter((r) => !RUN_TERMINAL_STATES.includes(r.status));
+  const runControlTarget =
+    selectedRun ?? (activeRuns.length === 1 ? activeRuns[0]! : null);
 
   const projectName = projectRoot.split("/").filter(Boolean).slice(-1)[0] ?? "";
   const statusModel = buildStatusModel({
@@ -347,24 +354,28 @@ export function App({
       case "pause-run":
       case "resume-run":
       case "abort-run": {
-        if (!selectedRun) {
+        const target = runControlTarget;
+        if (!target) {
           dispatch({
             type: "toast.push",
             kind: "err",
-            message: "No run selected.",
+            message:
+              activeRuns.length > 1
+                ? "Multiple runs active - open Runs (5) and pick one."
+                : "No active run to act on.",
           });
           return;
         }
         if (cmd.action.kind === "abort-run") {
           dispatch({
             type: "confirm.set",
-            value: { action: "abort", runId: selectedRun.runId },
+            value: { action: "abort", runId: target.runId },
           });
           return;
         }
         void runAction(
           cmd.action.kind === "pause-run" ? "pause" : "resume",
-          selectedRun.runId,
+          target.runId,
         );
         return;
       }

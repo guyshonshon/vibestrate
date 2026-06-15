@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.92
+
+- **Abort a run from anywhere in the shell.** The command palette's "Abort run"
+  (and pause/resume) now target the single in-flight run when you haven't
+  selected one on the Runs page - so you can press `:` and abort the task you
+  just launched without navigating there first. The Runs-page `a` key and
+  `vibe abort <runId>` are unchanged.
+
 ## 0.7.91
 
 - **Short, friendly run ids.** New runs get a docker-style `adjective-noun` id
