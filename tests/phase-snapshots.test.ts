@@ -69,13 +69,23 @@ describe("phase-snapshots", () => {
     expect(manifest.map((s) => s.stage)).toEqual(["executing", "fixing"]);
     expect(manifest[0]!.seq).toBe(0);
 
-    // The refs keep the snapshots reachable.
+    // Ref hygiene (ISSUE-001 P3): ONE ref per run (the chain tip), not one per
+    // phase - both snapshot trees stay reachable through the commit parent chain.
     const refs = await execa(
       "git",
       ["for-each-ref", "--format=%(refname)", `refs/vibestrate/snapshots/${runId}`],
       { cwd: root },
     );
-    expect(refs.stdout.split("\n").filter(Boolean).length).toBe(2);
+    const refNames = refs.stdout.split("\n").filter(Boolean);
+    expect(refNames).toEqual([`refs/vibestrate/snapshots/${runId}`]);
+    // The tip ref's commit chains back to the executing snapshot (parent), so
+    // the earlier tree is reachable and restorable below.
+    const log = await execa(
+      "git",
+      ["rev-list", "--count", `refs/vibestrate/snapshots/${runId}`],
+      { cwd: root },
+    );
+    expect(Number(log.stdout.trim())).toBe(2); // two chained snapshot commits
 
     // Run B: a FRESH worktree with none of A's files. Restoring A's snapshot
     // materializes the exact code (proves the shared object DB cross-run path).
@@ -239,6 +249,18 @@ describe("selectOrphanedSnapshotRuns (pure orphan selector)", () => {
   it("returns nothing when every run still exists; ignores malformed refs", () => {
     expect(selectOrphanedSnapshotRuns([ref("a", 0)], new Set(["a"]))).toEqual([]);
     expect(selectOrphanedSnapshotRuns(["refs/heads/main"], new Set())).toEqual([]);
+  });
+
+  it("parses BOTH the new one-ref-per-run and old per-phase layouts (ISSUE-001 P3)", () => {
+    // New: refs/vibestrate/snapshots/<runId>   Old: .../<runId>/<seq>-<stage>
+    const refs = [
+      "refs/vibestrate/snapshots/new-run", // new layout, gone
+      ref("old-run", 0), // old layout, gone
+      "refs/vibestrate/snapshots/kept", // new layout, exists
+    ];
+    expect(new Set(selectOrphanedSnapshotRuns(refs, new Set(["kept"])))).toEqual(
+      new Set(["new-run", "old-run"]),
+    );
   });
 });
 

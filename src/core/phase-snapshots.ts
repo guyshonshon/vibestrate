@@ -104,15 +104,23 @@ export async function capturePhaseSnapshot(input: {
 }): Promise<PhaseSnapshot | null> {
   const { projectRoot, runId, worktree, stage } = input;
   try {
+    const existing = await readPhaseSnapshots(projectRoot, runId);
     const treeSha = await snapshotWorktree(worktree);
     const message = `vibestrate snapshot: run ${runId} stage ${stage}`;
-    const commit = await git(worktree, ["commit-tree", treeSha, "-m", message]);
+    // Ref hygiene (ISSUE-001 P3): ONE ref per run instead of one per phase.
+    // Chain each snapshot commit to the previous (commit-tree -p <prev>) and keep
+    // a single ref at the tip - the parent chain keeps every earlier snapshot's
+    // tree/blobs reachable across gc, so restore-by-treeSha still works for any
+    // phase while `.git` carries one ref per run, not N.
+    const parent = existing.at(-1)?.commitSha;
+    const commitArgs = ["commit-tree", treeSha, "-m", message];
+    if (parent) commitArgs.push("-p", parent);
+    const commit = await git(worktree, commitArgs);
     if (!commit.ok || !commit.stdout) return null;
     const commitSha = commit.stdout;
 
-    const existing = await readPhaseSnapshots(projectRoot, runId);
     const seq = existing.length;
-    const ref = `refs/vibestrate/snapshots/${runId}/${seq}-${stage}`;
+    const ref = `refs/vibestrate/snapshots/${runId}`;
     const updated = await git(worktree, ["update-ref", ref, commitSha]);
     if (!updated.ok) return null;
 
@@ -332,11 +340,8 @@ export function selectOrphanedSnapshotRuns(
 ): string[] {
   const orphans = new Set<string>();
   for (const refName of refNames) {
-    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
-    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
-    const lastSlash = rest.lastIndexOf("/");
-    if (lastSlash <= 0) continue;
-    const runId = rest.slice(0, lastSlash);
+    const runId = runIdFromSnapshotRef(refName);
+    if (runId === null) continue;
     if (!existingRunIds.has(runId)) orphans.add(runId);
   }
   return [...orphans];
@@ -397,6 +402,21 @@ export async function deletePhaseSnapshotRefs(
 const SNAPSHOT_REF_PREFIX = "refs/vibestrate/snapshots/";
 
 /**
+ * The runId a snapshot ref belongs to, or null if it isn't a snapshot ref.
+ * Handles both layouts: the current one-ref-per-run
+ * (`refs/vibestrate/snapshots/<runId>`, the chain tip) and any older per-phase
+ * refs (`.../<runId>/<seq>-<stage>`). runIds never contain a slash, so the first
+ * slash (when present) always separates the run id from the trailing seq-stage.
+ */
+function runIdFromSnapshotRef(refName: string): string | null {
+  if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) return null;
+  const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
+  if (!rest) return null;
+  const slash = rest.indexOf("/");
+  return slash >= 0 ? rest.slice(0, slash) : rest;
+}
+
+/**
  * Count how many distinct runs have rewind-snapshot refs, and the total ref
  * count - the signal for the consult "housekeeping" tip about `.git` growth.
  * Read-only. THROWS on a real git failure (fail loud); the legitimate
@@ -416,11 +436,8 @@ export async function countSnapshotRuns(
   const lines = list.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
   const runIds = new Set<string>();
   for (const refName of lines) {
-    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
-    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
-    const lastSlash = rest.lastIndexOf("/");
-    if (lastSlash <= 0) continue;
-    runIds.add(rest.slice(0, lastSlash));
+    const runId = runIdFromSnapshotRef(refName);
+    if (runId !== null) runIds.add(runId);
   }
   return { runs: runIds.size, refs: lines.length };
 }
@@ -440,11 +457,8 @@ export function selectStaleSnapshotRuns(
   if (keepRuns <= 0) return [];
   const recency = new Map<string, number>();
   for (const { refName, committedAt } of refs) {
-    if (!refName.startsWith(SNAPSHOT_REF_PREFIX)) continue;
-    const rest = refName.slice(SNAPSHOT_REF_PREFIX.length);
-    const lastSlash = rest.lastIndexOf("/");
-    if (lastSlash <= 0) continue; // need both <runId> and a final <seq>-<stage>
-    const runId = rest.slice(0, lastSlash);
+    const runId = runIdFromSnapshotRef(refName);
+    if (runId === null) continue;
     const prev = recency.get(runId);
     if (prev === undefined || committedAt > prev) recency.set(runId, committedAt);
   }
