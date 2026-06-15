@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.101
+
+- **Durable project memory.** Vibestrate now keeps a living, auto-derived project
+  state at `.vibestrate/STATE.md` - what's shipped, what's in flight, what's
+  blocked (with a `vibe run --resume-from <id>` hint), and the decisions made -
+  carried across runs and sessions. A new run's planner is grounded in it (so it
+  avoids redoing shipped work and respects prior decisions), while reviewers and
+  verifiers stay in a clean room. It's derived from the continuity ledger, so
+  it's regenerable and never hand-maintained; open items untouched for a while
+  are marked `(unconfirmed)` so stale state can't mislead a plan. Concurrent runs
+  write it safely (a new cross-process lock), and it's secret-redacted. The
+  global store stays lean per turn - each agent only gets its role-appropriate
+  slice, under the usual context budget.
+
 ## 0.7.100
 
 - **CSRF hardening on the local dashboard server.** State-changing API requests
