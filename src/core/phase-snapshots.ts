@@ -212,6 +212,97 @@ export async function checkRestoreTarget(
   return { safe: true };
 }
 
+export type RestorePreviewFile = {
+  /** Effect on the worktree when the snapshot is restored over the base. */
+  status: "added" | "modified" | "deleted" | "type-changed" | "other";
+  path: string;
+  insertions: number;
+  deletions: number;
+};
+
+export type RestorePreview = {
+  sourceRunId: string;
+  fromStage: DownstreamResumeStage;
+  /** The snapshot that would be restored (latest ≤ the resume stage). */
+  seq: number;
+  stage: string;
+  treeSha: string;
+  /** What the fresh rewind worktree forks from before the restore overwrites it. */
+  baseRef: string;
+  files: RestorePreviewFile[];
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
+};
+
+function mapDiffStatus(code: string): RestorePreviewFile["status"] {
+  switch (code[0]) {
+    case "A":
+      return "added";
+    case "M":
+      return "modified";
+    case "D":
+      return "deleted";
+    case "T":
+      return "type-changed";
+    default:
+      return "other";
+  }
+}
+
+/**
+ * Non-destructive DRY-RUN of a downstream rewind restore (ISSUE-001 P2): the
+ * overwrite/remove set a restore WOULD apply, computed as the diff between the
+ * snapshot tree and the ref the fresh rewind worktree forks from (HEAD by
+ * default). `added`/`modified` files the restore would write; `deleted` files it
+ * would remove (read-tree drops them, then clean -fd sweeps them). Read-only -
+ * runs `git diff` in the main repo, touches nothing. Null when the source run
+ * has no snapshot for that stage (same gate as the real resume).
+ */
+export async function previewPhaseRestore(input: {
+  projectRoot: string;
+  sourceRunId: string;
+  fromStage: DownstreamResumeStage;
+  baseRef?: string;
+}): Promise<RestorePreview | null> {
+  const snaps = await readPhaseSnapshots(input.projectRoot, input.sourceRunId);
+  const pick = pickSnapshotForResume(snaps, input.fromStage);
+  if (!pick) return null;
+  const base = input.baseRef ?? "HEAD";
+  const [statusOut, numstatOut] = await Promise.all([
+    git(input.projectRoot, ["diff", "--name-status", base, pick.treeSha]),
+    git(input.projectRoot, ["diff", "--numstat", base, pick.treeSha]),
+  ]);
+  const counts = new Map<string, { insertions: number; deletions: number }>();
+  for (const line of numstatOut.stdout.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    const parts = line.split("\t");
+    if (parts.length < 3) continue;
+    const ins = parts[0] === "-" ? 0 : Number(parts[0]) || 0; // "-" = binary
+    const del = parts[1] === "-" ? 0 : Number(parts[1]) || 0;
+    counts.set(parts.slice(2).join("\t"), { insertions: ins, deletions: del });
+  }
+  const files: RestorePreviewFile[] = [];
+  for (const line of statusOut.stdout.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    const parts = line.split("\t");
+    if (parts.length < 2) continue;
+    const p = parts[parts.length - 1]!;
+    const c = counts.get(p) ?? { insertions: 0, deletions: 0 };
+    files.push({ status: mapDiffStatus(parts[0]!), path: p, ...c });
+  }
+  return {
+    sourceRunId: input.sourceRunId,
+    fromStage: input.fromStage,
+    seq: pick.seq,
+    stage: pick.stage,
+    treeSha: pick.treeSha,
+    baseRef: base,
+    files,
+    filesChanged: files.length,
+    insertions: files.reduce((a, f) => a + f.insertions, 0),
+    deletions: files.reduce((a, f) => a + f.deletions, 0),
+  };
+}
+
 /**
  * Materialize a snapshot tree into a (resumed) run's worktree. Refuses (returns
  * false) unless the target passes every `checkRestoreTarget` assertion - a

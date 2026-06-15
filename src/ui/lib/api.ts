@@ -599,6 +599,26 @@ export type MergeAdviceDto = {
   manualSteps: string[] | null;
 };
 
+export type RestorePreviewFile = {
+  status: "added" | "modified" | "deleted" | "type-changed" | "other";
+  path: string;
+  insertions: number;
+  deletions: number;
+};
+
+export type RestorePreview = {
+  sourceRunId: string;
+  fromStage: "reviewing" | "fixing" | "verifying";
+  seq: number;
+  stage: string;
+  treeSha: string;
+  baseRef: string;
+  files: RestorePreviewFile[];
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
+};
+
 export const api = {
   async listRuns(): Promise<RunState[]> {
     const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
@@ -644,6 +664,16 @@ export const api = {
     message: string;
   }> {
     return jsonPost("/api/runs", input);
+  },
+  /** Dry-run a downstream rewind: the file overwrite/remove set the restore
+   *  would apply. `preview: null` = nothing to restore for that stage. */
+  async restorePreview(
+    sourceRunId: string,
+    stage: "reviewing" | "fixing" | "verifying",
+  ): Promise<{ preview: RestorePreview | null }> {
+    return jsonGet(
+      `/api/runs/${encodeURIComponent(sourceRunId)}/restore-preview?stage=${stage}`,
+    );
   },
   async getProviderConfig(providerId: string): Promise<{
     providerId: string;

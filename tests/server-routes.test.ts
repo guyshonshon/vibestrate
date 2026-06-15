@@ -108,6 +108,38 @@ describe("server routes", () => {
     expect(json.run.task).toBe("fixture");
   });
 
+  it("GET /api/runs/:id/restore-preview returns preview:null for an upstream stage", async () => {
+    const res = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/restore-preview?stage=executing`,
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { preview: unknown };
+    expect(json.preview).toBeNull(); // executing restores no code
+  });
+
+  it("GET /api/runs/:id/restore-preview returns preview:null when the run has no snapshot", async () => {
+    const res = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/restore-preview?stage=reviewing`,
+    );
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { preview: unknown };
+    expect(json.preview).toBeNull(); // fixture captured no phase snapshot
+  });
+
+  it("GET /api/runs/:id/restore-preview 404s for an unknown run", async () => {
+    const res = await fetch(
+      `${server!.url}/api/runs/no-such-run/restore-preview?stage=reviewing`,
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /api/runs/:id/restore-preview 400s on a bad stage", async () => {
+    const res = await fetch(
+      `${server!.url}/api/runs/20260509-120000-fixture/restore-preview?stage=bogus`,
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("serves an artifact via the run-dir-relative stamped path (artifacts/ prefix)", async () => {
     // Flow snapshots stamp outputArtifactPath relative to the RUN dir
     // ("artifacts/00-idea.md"); the route must accept that shape too - it

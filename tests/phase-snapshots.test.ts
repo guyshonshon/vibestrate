@@ -9,6 +9,7 @@ import {
   pickSnapshotForResume,
   restorePhaseSnapshot,
   checkRestoreTarget,
+  previewPhaseRestore,
   selectStaleSnapshotRuns,
   pruneOldSnapshots,
   countSnapshotRuns,
@@ -124,6 +125,43 @@ describe("phase-snapshots", () => {
     const refused = await restorePhaseSnapshot(root, "deadbeef", root, ".worktrees");
     expect(refused).toBe(false);
     expect(await fs.readFile(path.join(root, "base.txt"), "utf8")).toBe("base\n");
+  });
+
+  it("previewPhaseRestore lists the overwrite/remove set without touching anything (ISSUE-001 P2)", async () => {
+    const root = await mkRepo(); // base.txt committed on HEAD
+    const runId = "run-prev";
+    const wt = await addWorktree(root, runId);
+    // The run's worktree adds a file and modifies base.txt, then snapshots.
+    await fs.writeFile(path.join(wt, "feature.ts"), "export const v = 1;\n");
+    await fs.writeFile(path.join(wt, "base.txt"), "changed\n");
+    await capturePhaseSnapshot({ projectRoot: root, runId, worktree: wt, stage: "executing" });
+
+    const preview = await previewPhaseRestore({
+      projectRoot: root,
+      sourceRunId: runId,
+      fromStage: "reviewing",
+    });
+    expect(preview).not.toBeNull();
+    const byPath = new Map(preview!.files.map((f) => [f.path, f.status]));
+    // vs HEAD (the fresh worktree's base): feature.ts is added, base.txt modified.
+    expect(byPath.get("feature.ts")).toBe("added");
+    expect(byPath.get("base.txt")).toBe("modified");
+    expect(preview!.stage).toBe("executing");
+    expect(preview!.insertions).toBeGreaterThan(0);
+    // Dry run: nothing in the project root changed.
+    expect(await fs.readFile(path.join(root, "base.txt"), "utf8")).toBe("base\n");
+    expect(await fs.access(path.join(root, "feature.ts")).then(() => true, () => false)).toBe(false);
+  });
+
+  it("previewPhaseRestore returns null when the source run has no snapshot for the stage", async () => {
+    const root = await mkRepo();
+    // A run with NO captured snapshots.
+    const preview = await previewPhaseRestore({
+      projectRoot: root,
+      sourceRunId: "no-snaps",
+      fromStage: "reviewing",
+    });
+    expect(preview).toBeNull();
   });
 
   it("a legitimate worktree under a SYMLINKED worktreeDir is still safe (realpath consistency)", async () => {

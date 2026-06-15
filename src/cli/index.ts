@@ -282,6 +282,10 @@ export function buildVibestrateProgram(): Command {
       "stage to resume at with --resume-from: planning | architecting | executing (regenerate code) | reviewing | fixing | verifying (restore the source run's code snapshot). Default: executing.",
     )
     .option(
+      "--preview",
+      "dry-run a downstream rewind: print the files the restore would overwrite/remove (vs the worktree base), then exit without starting a run. Use with --resume-from.",
+    )
+    .option(
       "--checklist <mode>",
       "pick-up execution over the linked task's checklist: continuous | step. Needs --task and a checklist-aware flow (--flow pickup).",
     )
@@ -324,6 +328,7 @@ export function buildVibestrateProgram(): Command {
           interactive?: boolean;
           resumeFrom?: string;
           resumeStage?: string;
+          preview?: boolean;
           checklist?: string;
           contextFile?: string[];
           contextUrl?: string[];
@@ -368,6 +373,10 @@ export function buildVibestrateProgram(): Command {
         }
         if (opts.resumeStage && !opts.resumeFrom) {
           console.error("--resume-stage requires --resume-from <runId>.");
+          process.exit(2);
+        }
+        if (opts.preview && !opts.resumeFrom) {
+          console.error("--preview requires --resume-from <runId>.");
           process.exit(2);
         }
         let effort: "low" | "medium" | "high" | null = null;
@@ -443,6 +452,7 @@ export function buildVibestrateProgram(): Command {
           flowInteractive: opts.interactive ?? false,
           resumeFromRunId: opts.resumeFrom ?? null,
           resumeStage,
+          previewRestore: opts.preview ?? false,
           checklistMode,
           contextSources,
         });

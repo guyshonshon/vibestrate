@@ -37,6 +37,7 @@ import {
 import { buildRunAudit } from "../../core/run-audit.js";
 import { deriveEngagement } from "../../core/run-engagement.js";
 import type { RunSpec } from "../../core/run-launcher.js";
+import { resolveRestorePreview, RunLaunchError } from "../../core/run-launcher.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
@@ -167,6 +168,35 @@ export async function registerRunsRoutes(
     runs.sort((a, b) => a.startedAt.localeCompare(b.startedAt));
     return { runs };
   });
+
+  // ─── GET /api/runs/:id/restore-preview?stage=reviewing ────────────────
+  // Non-destructive dry-run of a downstream rewind (ISSUE-001 P2): the file
+  // overwrite/remove set the restore would apply, so the user sees the blast
+  // radius before launching. Read-only; never starts a run. `preview: null`
+  // means there's nothing to restore for that stage (upstream stage, or no
+  // snapshot) - the rewind would resume into a fresh worktree.
+  app.get<{ Params: { id: string }; Querystring: { stage?: string } }>(
+    "/api/runs/:id/restore-preview",
+    async (req) => {
+      assertSafeRunId(req.params.id);
+      const stage = z
+        .enum(["planning", "architecting", "executing", "reviewing", "fixing", "verifying"])
+        .safeParse(req.query.stage);
+      if (!stage.success) {
+        throw new HttpError(400, "stage must be a valid resume stage");
+      }
+      try {
+        const preview = await resolveRestorePreview(projectRoot, {
+          sourceRunId: req.params.id,
+          fromStage: stage.data,
+        });
+        return { preview };
+      } catch (err) {
+        if (err instanceof RunLaunchError) throw new HttpError(404, err.message);
+        throw err;
+      }
+    },
+  );
 
   // ─── POST /api/runs ───────────────────────────────────────────────
   // Start a run through the shared core run launcher (NOT the `vibe`

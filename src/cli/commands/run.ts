@@ -5,7 +5,11 @@ import {
   Orchestrator,
   type ResumeFromInput,
 } from "../../core/orchestrator.js";
-import { resolveResumeFrom, RunLaunchError } from "../../core/run-launcher.js";
+import {
+  resolveResumeFrom,
+  resolveRestorePreview,
+  RunLaunchError,
+} from "../../core/run-launcher.js";
 import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
 import { resolvePersona } from "../../orchestrator/personas.js";
 import {
@@ -120,6 +124,9 @@ export type RunCommandOptions = {
     | "reviewing"
     | "fixing"
     | "verifying";
+  /** Dry-run a downstream rewind: print the restore overwrite/remove set and
+   *  exit without starting a run. Requires resumeFromRunId. */
+  previewRestore?: boolean;
   /** Pick-up execution: iterate the linked task's checklist through the flow's
    *  checklistSegment. "continuous" runs items back-to-back; "step" pauses
    *  between items. Requires --task and a checklist-aware flow (e.g. pickup). */
@@ -455,6 +462,50 @@ export async function runRunCommand(
 
   // Rewind: fork from a prior run, reusing its upstream step outputs. The flow
   // runner seeds them - works with the default flow and an explicit --flow.
+  // --preview: dry-run the restore (what it would overwrite/remove) and exit.
+  if (options.previewRestore && options.resumeFromRunId) {
+    const stage = options.resumeStage ?? "executing";
+    try {
+      const preview = await resolveRestorePreview(detected.projectRoot, {
+        sourceRunId: options.resumeFromRunId,
+        fromStage: stage,
+      });
+      if (!preview) {
+        console.log(
+          `${symbol.bullet()} No code restore for stage ${color.bold(stage)} - a rewind there resumes into a fresh worktree (nothing to overwrite).`,
+        );
+        return 0;
+      }
+      console.log(
+        `${symbol.bullet()} Restore preview: rewinding ${color.bold(preview.sourceRunId)} to ${color.bold(preview.fromStage)} would materialize the ${color.bold(preview.stage)} snapshot (#${preview.seq}) over ${color.bold(preview.baseRef)}.`,
+      );
+      console.log(
+        `  ${preview.filesChanged} file(s) changed, ${color.green(`+${preview.insertions}`)} ${color.red(`-${preview.deletions}`)}`,
+      );
+      const GLYPH: Record<string, string> = {
+        added: "+",
+        modified: "~",
+        deleted: "-",
+        "type-changed": "t",
+        other: "?",
+      };
+      for (const f of preview.files.slice(0, 200)) {
+        console.log(`    ${GLYPH[f.status] ?? "?"} ${f.path}`);
+      }
+      if (preview.files.length > 200) {
+        console.log(`    … and ${preview.files.length - 200} more`);
+      }
+      console.log(
+        `  ${color.dim("This is a dry run - no run was started. Drop --preview to rewind.")}`,
+      );
+      return 0;
+    } catch (err) {
+      const message = err instanceof RunLaunchError ? err.message : String(err);
+      console.error(`${symbol.fail()} ${message}`);
+      return 1;
+    }
+  }
+
   let resumeFrom: ResumeFromInput | null = null;
   if (options.resumeFromRunId) {
     try {

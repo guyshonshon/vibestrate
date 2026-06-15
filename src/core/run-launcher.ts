@@ -161,6 +161,35 @@ export async function resolveResumeFrom(
   return { sourceRunId: input.sourceRunId, fromStage: input.fromStage };
 }
 
+/**
+ * Non-destructive preview of a downstream rewind: the file overwrite/remove set
+ * the restore WOULD apply (ISSUE-001 P2). Validates the source run exists, then
+ * returns the diff of the snapshot vs the worktree base. Returns null for an
+ * upstream stage (planning/architecting/executing restore no code) or when the
+ * source has no snapshot for that stage. Throws RunLaunchError if the source run
+ * is missing. Read-only - never starts a run.
+ */
+export async function resolveRestorePreview(
+  projectRoot: string,
+  input: { sourceRunId: string; fromStage: ResumeStage },
+): Promise<import("./phase-snapshots.js").RestorePreview | null> {
+  const src = new ArtifactStore(projectRoot, input.sourceRunId);
+  if (!(await src.exists("00-idea.md"))) {
+    throw new RunLaunchError(
+      "resume_source_missing",
+      `Source run "${input.sourceRunId}" not found (no artifacts to reuse).`,
+    );
+  }
+  const downstream = new Set<ResumeStage>(["reviewing", "fixing", "verifying"]);
+  if (!downstream.has(input.fromStage)) return null;
+  const { previewPhaseRestore } = await import("./phase-snapshots.js");
+  return previewPhaseRestore({
+    projectRoot,
+    sourceRunId: input.sourceRunId,
+    fromStage: input.fromStage as "reviewing" | "fixing" | "verifying",
+  });
+}
+
 export async function runFromSpec(
   spec: RunSpec,
   opts: RunLaunchOptions = {},

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, ApiError, type ProviderRow } from "../../lib/api.js";
+import {
+  api,
+  ApiError,
+  type ProviderRow,
+  type RestorePreview,
+} from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
 import { navigate, type ReplayFocus } from "../App.js";
 import type {
@@ -643,7 +648,20 @@ function RunOutcomeBanner({
   );
 }
 
-type StartFrom = "scratch" | "architecting" | "executing";
+type StartFrom =
+  | "scratch"
+  | "architecting"
+  | "executing"
+  | "reviewing"
+  | "fixing"
+  | "verifying";
+
+const DOWNSTREAM_STAGES = ["reviewing", "fixing", "verifying"] as const;
+function isDownstreamStage(
+  s: StartFrom,
+): s is "reviewing" | "fixing" | "verifying" {
+  return (DOWNSTREAM_STAGES as readonly string[]).includes(s);
+}
 
 function RerunDialog({
   run,
@@ -676,6 +694,12 @@ function RerunDialog({
     (run.flow?.steps ?? []).some((s) => s.stage === stage);
   const canArchitecting = flowHasStage("architecting") && hasPlan;
   const canExecuting = flowHasStage("executing") && hasPlan && hasArchitecture;
+  // Downstream stages restore the source run's code snapshot (a destructive
+  // restore into a fresh worktree). Offered when the flow has the stage; real
+  // snapshot availability is confirmed by the preview fetch below.
+  const canReviewing = flowHasStage("reviewing");
+  const canFixing = flowHasStage("fixing");
+  const canVerifying = flowHasStage("verifying");
   // Honor the pre-seed only when that stage is actually resumable; otherwise
   // fall back to scratch rather than presenting a disabled selection.
   const [startFrom, setStartFrom] = useState<StartFrom>(() =>
@@ -688,6 +712,11 @@ function RerunDialog({
   const [providers, setProviders] = useState<ProviderRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Restore dry-run for the selected downstream stage (ISSUE-001 P2).
+  const [preview, setPreview] = useState<RestorePreview | null>(null);
+  const [previewState, setPreviewState] = useState<
+    "idle" | "loading" | "none" | "ready" | "error"
+  >("idle");
 
   useEffect(() => {
     void api
@@ -695,6 +724,33 @@ function RerunDialog({
       .then((r) => setProviders(r.providers.filter((p) => p.configured)))
       .catch(() => {});
   }, []);
+
+  // Fetch the restore preview whenever a downstream stage is selected, so the
+  // user sees the overwrite/remove blast radius before launching the rewind.
+  useEffect(() => {
+    if (!isDownstreamStage(startFrom)) {
+      setPreview(null);
+      setPreviewState("idle");
+      return;
+    }
+    let alive = true;
+    setPreviewState("loading");
+    void api
+      .restorePreview(run.runId, startFrom)
+      .then((r) => {
+        if (!alive) return;
+        setPreview(r.preview);
+        setPreviewState(r.preview ? "ready" : "none");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPreview(null);
+        setPreviewState("error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [startFrom, run.runId]);
 
   async function submit() {
     setBusy(true);
@@ -755,7 +811,9 @@ function RerunDialog({
             ? "Starts a fresh run (new worktree) with the task below and your adjusted settings - e.g. uncheck read-only so the executor can write. The original run is untouched."
             : startFrom === "architecting"
               ? "Forks a fresh run that reuses this run's plan and re-runs from architecture onward - no re-planning. The original run is untouched."
-              : "Forks a fresh run that reuses this run's plan + architecture and re-runs from implementation onward - no re-planning or re-architecting. The original run is untouched."}
+              : startFrom === "executing"
+                ? "Forks a fresh run that reuses this run's plan + architecture and re-runs from implementation onward - no re-planning or re-architecting. The original run is untouched."
+                : "Forks a fresh run that restores this run's code snapshot into a new worktree and resumes from there. The preview below shows exactly what the restore writes. The original run is untouched."}
         </p>
         <div className="mt-3">
           <div className="eyebrow mb-1">Start from</div>
@@ -772,12 +830,75 @@ function RerunDialog({
               Implementation - reuse plan + architecture
               {canExecuting ? "" : " (unavailable)"}
             </option>
+            <option value="reviewing" disabled={!canReviewing}>
+              Review - restore this run's code{canReviewing ? "" : " (unavailable)"}
+            </option>
+            <option value="fixing" disabled={!canFixing}>
+              Fix - restore this run's code{canFixing ? "" : " (unavailable)"}
+            </option>
+            <option value="verifying" disabled={!canVerifying}>
+              Verify - restore this run's code{canVerifying ? "" : " (unavailable)"}
+            </option>
           </select>
           {!canArchitecting && !canExecuting ? (
             <p className="mt-1 text-[11px] text-fog-500">
               This flow has no resumable stage (or the upstream artifacts
               weren't captured) - re-runs start from the beginning.
             </p>
+          ) : null}
+          {isDownstreamStage(startFrom) ? (
+            <div className="mt-2 rounded-md border border-white/10 bg-ink-200/50 p-2">
+              <div className="eyebrow mb-1">
+                Restore preview (dry run)
+              </div>
+              {previewState === "loading" ? (
+                <p className="text-[11px] text-fog-500">Computing the overwrite/remove set…</p>
+              ) : previewState === "none" ? (
+                <p className="text-[11px] text-amber-300">
+                  No code snapshot for this stage - this run can't be rewound to{" "}
+                  {startFrom}. Pick another stage.
+                </p>
+              ) : previewState === "error" ? (
+                <p className="text-[11px] text-fog-500">Couldn't load the preview.</p>
+              ) : preview ? (
+                <div className="text-[11px] text-fog-300">
+                  <p>
+                    Restores the <b>{preview.stage}</b> snapshot over{" "}
+                    <b>{preview.baseRef}</b>:{" "}
+                    <b>{preview.filesChanged}</b> file(s),{" "}
+                    <span className="text-emerald-300">+{preview.insertions}</span>{" "}
+                    <span className="text-rose-300">-{preview.deletions}</span>.
+                  </p>
+                  <ul className="mt-1 max-h-32 overflow-y-auto font-mono text-[10.5px] leading-relaxed">
+                    {preview.files.slice(0, 50).map((f) => (
+                      <li key={f.path}>
+                        <span
+                          className={
+                            f.status === "added"
+                              ? "text-emerald-300"
+                              : f.status === "deleted"
+                                ? "text-rose-300"
+                                : "text-fog-400"
+                          }
+                        >
+                          {f.status === "added"
+                            ? "+"
+                            : f.status === "deleted"
+                              ? "-"
+                              : "~"}
+                        </span>{" "}
+                        {f.path}
+                      </li>
+                    ))}
+                    {preview.files.length > 50 ? (
+                      <li className="text-fog-500">
+                        … and {preview.files.length - 50} more
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <div className="mt-3">
@@ -841,7 +962,13 @@ function RerunDialog({
           <Button
             variant="primary"
             size="sm"
-            disabled={busy || !task.trim()}
+            disabled={
+              busy ||
+              !task.trim() ||
+              // A downstream rewind with no restorable snapshot can't launch.
+              (isDownstreamStage(startFrom) &&
+                (previewState === "none" || previewState === "loading"))
+            }
             onClick={() => void submit()}
           >
             {busy
