@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.93
+
+- **Leaner agent prompts.** When summarizing a handoff artifact would cost more
+  than just including it - the "Summary for X" wrapper out-weighing the saving on
+  a small artifact - Vibestrate now embeds the full artifact instead. Tokens only
+  go down, and nothing gets clipped.
+- **Clean-room seats.** A flow step can set `cleanRoom: true` so that seat sees
+  only its declared inputs plus the task and its role - not the run-level grounding
+  (attached context sources, the run brief, the project ledger). Useful for a
+  reviewer or verifier you want reasoning from the artifact itself with a fresh
+  head. Opt-in per step; off by default, so existing flows are unchanged.
+
 ## 0.7.92
 
 - **Abort a run from anywhere in the shell.** The command palette's "Abort run"

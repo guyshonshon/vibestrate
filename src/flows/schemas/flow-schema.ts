@@ -231,6 +231,14 @@ export const flowStepSchema = z
     // linear flows only, never inside an adaptive loop body (the loop's
     // decision contract needs a real decision).
     skipWhen: z.enum(["inert_diff"]).optional(),
+    // Clean-room context (context-scaling.md rung 2): when true, this step's seat
+    // gets ONLY its declared `inputs` + task / rules / role - NOT the run-level
+    // grounding injected on top (project ledger, continuity flags, human
+    // annotations, run brief, attached context sources). For judge seats
+    // (review / verify) a clean window catches more and re-ingests less; opt-in
+    // per step, default off. It never prunes the flow's declared `inputs` - that
+    // stays the author's choice.
+    cleanRoom: z.boolean().default(false),
   })
   .strict();
 export type FlowStep = z.infer<typeof flowStepSchema>;
@@ -745,6 +753,9 @@ export const resolvedFlowStepSchema = z
     enabled: z.boolean(),
     optional: z.boolean(),
     skipWhenReadOnly: z.boolean(),
+    // Clean-room context (see flowStepSchema.cleanRoom): drop run-level grounding
+    // for this seat, keeping only its declared inputs + task/rules/role.
+    cleanRoom: z.boolean().default(false),
     // A3 express deterministic review descent (see flowStepSchema.skipWhen).
     skipWhen: z.enum(["inert_diff"]).nullable().default(null),
     // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the

@@ -2069,6 +2069,7 @@ export class Orchestrator {
         priorArtifacts: context.priorArtifacts,
         validationResults: lastValidation,
         runBrief: renderRunBrief(input.runBriefState),
+        cleanRoom: step.cleanRoom,
         additionalNotes,
         metricsStore: input.metricsStore,
         ctx: input.ctx,
@@ -3394,6 +3395,7 @@ export class Orchestrator {
             priorArtifacts: context.priorArtifacts,
             validationResults: lastValidation,
             runBrief: renderRunBrief(runBriefState),
+            cleanRoom: step.cleanRoom,
             additionalNotes: this.renderFlowStepNotes({
               snapshot: input.snapshot,
               step,
@@ -4340,6 +4342,14 @@ export class Orchestrator {
     additionalNotes?: string;
     /** The run brief (story so far), injected as a prompt section. */
     runBrief?: string;
+    /**
+     * Clean-room seat (context-scaling.md rung 2): drop the run-level grounding
+     * injected on top of this turn (attached context sources, run brief, human
+     * annotations, ledger/continuity) - keep only the flow's declared prior
+     * artifacts + task/rules/role. Opt-in per flow step; default behaviour
+     * (undefined/false) is unchanged.
+     */
+    cleanRoom?: boolean;
     flowTurn?: FlowRoleTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
@@ -4498,6 +4508,12 @@ export class Orchestrator {
     const continuityFlags =
       injectContinuity && this.ledgerFlagsBlock ? this.ledgerFlagsBlock : "";
     if (projectLedger || continuityFlags) this.ledgerInjected = true;
+    // Clean-room seat (context-scaling.md rung 2): drop the run-level grounding
+    // injected on top of the turn - attached context sources, run brief, human
+    // annotations, ledger/continuity - keeping only the flow's declared prior
+    // artifacts + task/rules/role. Validation results stay (ground-truth evidence,
+    // not upstream chatter). It never touches the flow's declared `inputs`.
+    const cleanRoom = input.cleanRoom === true;
     const prompt = buildRolePrompt({
       roleId,
       task: this.task,
@@ -4505,8 +4521,10 @@ export class Orchestrator {
       rolePromptTemplate: promptTemplate,
       skills,
       // Run-level context sources are visible to every role, ahead of the
-      // flow's per-step handoff artifacts.
-      priorArtifacts: [...this.materializedContext, ...input.priorArtifacts],
+      // flow's per-step handoff artifacts - unless this is a clean-room seat.
+      priorArtifacts: cleanRoom
+        ? input.priorArtifacts
+        : [...this.materializedContext, ...input.priorArtifacts],
       permission: profile,
       permissionName: agent.permissions,
       worktreePath: ctx.worktreePath,
@@ -4515,10 +4533,10 @@ export class Orchestrator {
       validationResults: input.validationResults,
       concise: this.concise,
       ...(additionalNotes ? { additionalNotes } : {}),
-      ...(humanAnnotations ? { humanAnnotations } : {}),
-      ...(input.runBrief ? { runBrief: input.runBrief } : {}),
-      ...(projectLedger ? { projectLedger } : {}),
-      ...(continuityFlags ? { continuityFlags } : {}),
+      ...(!cleanRoom && humanAnnotations ? { humanAnnotations } : {}),
+      ...(!cleanRoom && input.runBrief ? { runBrief: input.runBrief } : {}),
+      ...(!cleanRoom && projectLedger ? { projectLedger } : {}),
+      ...(!cleanRoom && continuityFlags ? { continuityFlags } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(

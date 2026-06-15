@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.88",
+  "version": "0.7.93",
   "commands": [
     {
       "name": "init",
@@ -1833,14 +1833,14 @@
             },
             {
               "flags": "--effort <level>",
-              "description": "effort bucket (low|medium|high). Maps to a provider via project.yml#effortMap.",
+              "description": "effort bucket (low|medium|high): a difficulty hint recorded for planning. Runtime strength is set by Profiles, not effort.",
               "required": true,
               "optional": false,
               "negated": false
             },
             {
               "flags": "--provider <id>",
-              "description": "override the provider for runs spawned from this task (wins over --effort).",
+              "description": "override the provider for runs spawned from this task.",
               "required": true,
               "optional": false,
               "negated": false

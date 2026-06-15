@@ -97,6 +97,25 @@ Set `optional: true` on a step to let users skip it per run:
 vibe run "..." --flow spike-and-decide --flow-skip plan
 ```
 
+## Clean-room steps
+
+Set `cleanRoom: true` on a step and that seat sees only its declared `inputs`
+plus the task and its own role - not the run-level grounding every other seat
+gets (attached context sources, the run brief, the project ledger). It never
+changes the step's declared `inputs`; it only drops the extras layered on top.
+
+```yaml
+- id: review
+  label: Review
+  kind: review-turn
+  seat: reviewer
+  inputs: [diff]      # the reviewer reasons from the change itself
+  cleanRoom: true     # ...with a fresh head, no upstream chatter
+```
+
+Use it for a reviewer or verifier you want judging the artifact on its own
+merits. Off by default, so existing steps are unchanged.
+
 ## Common mistakes
 
 - **One Role filling both builder *and* challenger.** It'll agree with itself. Use two Seats filled by two different Roles.

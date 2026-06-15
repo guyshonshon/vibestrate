@@ -263,7 +263,11 @@ Concrete changes, anchored to current code:
   delivers both the clean-room judge (2c) *and* attached-source reduction (2b) in one
   inert-by-default change. **The default-flip** (clean-rooming the built-in review/verify
   seats) is **gated on a real-run catch-rate eval** - never a silent override of
-  flow-declared `inputs`. Not yet built (the schema+orchestrator change is the next slice).
+  flow-declared `inputs`. **SHIPPED** as the opt-in `cleanRoom` flag on flow steps
+  (default off): a clean-room seat drops attached context sources + run brief +
+  ledger/continuity/annotations, keeping its declared inputs + task/rules/role.
+  The default-flip (clean-rooming the built-in review/verify seats) stays gated on
+  the catch-rate eval - no built-in flow opts in yet.
 
 **Explicitly not building:** prompt-cache engineering (API-only); a core knowledge
 graph; LLM-based summarization for the digest (keep deterministic unless it proves
