@@ -1,4 +1,5 @@
-import { createWorktree, resolveWorktreePath } from "./git.js";
+import { createWorktree } from "./git.js";
+import { resolveWorktreePath } from "../utils/paths.js";
 
 export type WorktreePreparation = {
   worktreePath: string;

@@ -75,6 +75,24 @@ export function runDir(projectRoot: string, runId: string): string {
   return path.join(projectRunsDir(projectRoot), runId);
 }
 
+/**
+ * Absolute path of a run's git worktree. `worktreeDir` is the configured
+ * `git.worktreeDir` (default `../.vibestrate-worktrees`), resolved relative to
+ * the project root when not already absolute. The per-run subdir is the runId.
+ * Pure path math - no fs or git, so id generators can import it without
+ * dragging in execa.
+ */
+export function resolveWorktreePath(
+  projectRoot: string,
+  worktreeDir: string,
+  runId: string,
+): string {
+  const base = path.isAbsolute(worktreeDir)
+    ? worktreeDir
+    : path.resolve(projectRoot, worktreeDir);
+  return path.join(base, runId);
+}
+
 export function runArtifactsDir(projectRoot: string, runId: string): string {
   return path.join(runDir(projectRoot, runId), "artifacts");
 }

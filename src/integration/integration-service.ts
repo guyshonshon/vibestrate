@@ -24,9 +24,9 @@ import {
   removeWorktree,
   deleteBranch,
   refExists,
-  resolveWorktreePath,
   hasChanges,
 } from "../git/git.js";
+import { resolveWorktreePath } from "../utils/paths.js";
 import { creditTrailers } from "../git/commit-credit.js";
 import {
   createActionBroker,

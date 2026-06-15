@@ -11,7 +11,7 @@
 // the (small) word space is exhausted.
 
 import { existsSync } from "node:fs";
-import { runDir } from "./paths.js";
+import { runDir, resolveWorktreePath } from "./paths.js";
 
 // Lowercase, letters-only words so an id is always filesystem- and git-ref-safe.
 const ADJECTIVES = [
@@ -63,7 +63,25 @@ export function makeRunId(isTaken: (id: string) => boolean = () => false): strin
   throw new Error("Could not generate a unique run id.");
 }
 
-/** makeRunId, checking uniqueness against the project's existing run dirs. */
-export function makeUniqueRunId(projectRoot: string): string {
-  return makeRunId((id) => existsSync(runDir(projectRoot, id)));
+/**
+ * makeRunId, checking uniqueness against the project's existing run dirs AND -
+ * when `worktreeDir` is given - the resolved git worktree path for the id.
+ *
+ * The runs dir is project-scoped (`<root>/.vibestrate/runs/<id>`), but the
+ * worktree dir defaults to `../.vibestrate-worktrees` - a namespace SHARED by
+ * sibling projects. So a name unique within one project's runs dir can still
+ * collide on the worktree path that `git worktree add` hard-fails on. Checking
+ * the worktree path here pre-empts the realistic case (a sibling project's, or
+ * a prior run's, worktree already on disk). It is NOT atomic with creation, so
+ * a simultaneous mint in the tiny window before either run creates its worktree
+ * can still collide - that fails loud at createWorktree, never silently.
+ */
+export function makeUniqueRunId(projectRoot: string, worktreeDir?: string): string {
+  return makeRunId((id) => {
+    if (existsSync(runDir(projectRoot, id))) return true;
+    if (worktreeDir && existsSync(resolveWorktreePath(projectRoot, worktreeDir, id))) {
+      return true;
+    }
+    return false;
+  });
 }

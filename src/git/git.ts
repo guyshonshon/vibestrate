@@ -325,13 +325,5 @@ export async function commitMerge(
   return sha ? { sha } : null;
 }
 
-export function resolveWorktreePath(
-  projectRoot: string,
-  worktreeDir: string,
-  runId: string,
-): string {
-  const base = path.isAbsolute(worktreeDir)
-    ? worktreeDir
-    : path.resolve(projectRoot, worktreeDir);
-  return path.join(base, runId);
-}
+// resolveWorktreePath moved to utils/paths.ts (pure path math; lets the run-id
+// generator reuse it without importing this execa-heavy module).

@@ -619,7 +619,9 @@ export class Orchestrator {
     // own crew).
     this.activeCrewId = flow.crewId;
 
-    const runId = this.preassignedRunId ?? makeUniqueRunId(this.projectRoot);
+    const runId =
+      this.preassignedRunId ??
+      makeUniqueRunId(this.projectRoot, this.config.git.worktreeDir);
 
     const artifactStore = new ArtifactStore(this.projectRoot, runId);
     const stateStore = new RunStateStore(this.projectRoot, runId);
