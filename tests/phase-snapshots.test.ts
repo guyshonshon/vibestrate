@@ -14,6 +14,8 @@ import {
   selectOrphanedSnapshotRuns,
   sweepOrphanedSnapshotRefs,
   pruneOldSnapshots,
+  planSnapshotPrune,
+  executeSnapshotPrune,
   countSnapshotRuns,
 } from "../src/core/phase-snapshots.js";
 
@@ -324,6 +326,91 @@ describe("sweepOrphanedSnapshotRefs (opt-in cleanup of refs for deleted runs)", 
     const root = await mkRepo();
     try {
       expect(await sweepOrphanedSnapshotRefs(root, new Set())).toEqual([]);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("planSnapshotPrune + executeSnapshotPrune (explicit `vibe runs prune`)", () => {
+  async function threeRuns(root: string) {
+    for (const id of ["run-a", "run-b", "run-c"]) {
+      const wt = await addWorktree(root, id);
+      await fs.writeFile(path.join(wt, `${id}.ts`), `${id}\n`);
+      await capturePhaseSnapshot({ projectRoot: root, runId: id, worktree: wt, stage: "executing" });
+    }
+  }
+
+  it("plans orphans / keep-N / specific-run without deleting (read-only)", async () => {
+    const root = await mkRepo();
+    try {
+      await threeRuns(root);
+      // run-c's dir is "gone" (only a,b exist).
+      const existing = new Set(["run-a", "run-b"]);
+
+      const orphanPlan = await planSnapshotPrune(root, existing, { orphans: true });
+      expect(orphanPlan.orphanRuns).toEqual(["run-c"]);
+      expect(orphanPlan.runs).toEqual(["run-c"]);
+      expect(orphanPlan.totalRunsWithSnapshots).toBe(3);
+
+      const explicitPlan = await planSnapshotPrune(root, existing, { runId: "run-a" });
+      expect(explicitPlan.runs).toEqual(["run-a"]);
+
+      // Planning deletes nothing.
+      expect((await countSnapshotRuns(root)).runs).toBe(3);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("executes the planned set, leaving the rest intact", async () => {
+    const root = await mkRepo();
+    try {
+      await threeRuns(root);
+      const plan = await planSnapshotPrune(root, new Set(["run-a", "run-b"]), { orphans: true });
+      const pruned = await executeSnapshotPrune(root, plan.runs);
+      expect(pruned).toEqual(["run-c"]);
+      expect((await countSnapshotRuns(root)).runs).toBe(2); // a + b remain
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("a specific --run prune that has no snapshots plans nothing", async () => {
+    const root = await mkRepo();
+    try {
+      await threeRuns(root);
+      const plan = await planSnapshotPrune(root, new Set(["run-a", "run-b", "run-c"]), {
+        runId: "nonexistent",
+      });
+      expect(plan.runs).toEqual([]);
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("REFUSES an orphan plan with an empty run-set (no-auto-purge backstop)", async () => {
+    const root = await mkRepo();
+    try {
+      await threeRuns(root);
+      // Empty existing-set would mark every ref an orphan -> must throw, not plan
+      // a wipe-all (mirrors sweepOrphanedSnapshotRefs).
+      await expect(
+        planSnapshotPrune(root, new Set(), { orphans: true }),
+      ).rejects.toThrow(/empty run set/i);
+      expect((await countSnapshotRuns(root)).runs).toBe(3); // nothing touched
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("deletePhaseSnapshotRefs fails fast on a glob/ref-pattern runId", async () => {
+    const root = await mkRepo();
+    try {
+      await threeRuns(root);
+      await expect(executeSnapshotPrune(root, ["*"])).rejects.toThrow(/unsafe runId/i);
+      // The glob never reached git; every run's snapshots survive.
+      expect((await countSnapshotRuns(root)).runs).toBe(3);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

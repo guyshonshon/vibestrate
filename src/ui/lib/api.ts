@@ -619,6 +619,14 @@ export type RestorePreview = {
   deletions: number;
 };
 
+export type SnapshotPrunePlan = {
+  orphanRuns: string[];
+  retentionRuns: string[];
+  explicitRuns: string[];
+  runs: string[];
+  totalRunsWithSnapshots: number;
+};
+
 export const api = {
   async listRuns(): Promise<RunState[]> {
     const r = await jsonGet<{ runs: RunState[] }>("/api/runs");
@@ -674,6 +682,15 @@ export const api = {
     return jsonGet(
       `/api/runs/${encodeURIComponent(sourceRunId)}/restore-preview?stage=${stage}`,
     );
+  },
+  /** Prune rewind-snapshot refs. `dryRun: true` previews without deleting. */
+  async pruneSnapshots(body: {
+    keep?: number;
+    orphans?: boolean;
+    runId?: string;
+    dryRun?: boolean;
+  }): Promise<{ plan: SnapshotPrunePlan; pruned: string[] | null }> {
+    return jsonPost("/api/runs/snapshots/prune", body);
   },
   async getProviderConfig(providerId: string): Promise<{
     providerId: string;

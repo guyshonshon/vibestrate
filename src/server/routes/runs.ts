@@ -36,8 +36,13 @@ import {
 } from "../../safety/run-assurance.js";
 import { buildRunAudit } from "../../core/run-audit.js";
 import { deriveEngagement } from "../../core/run-engagement.js";
+import { readdir } from "node:fs/promises";
 import type { RunSpec } from "../../core/run-launcher.js";
 import { resolveRestorePreview, RunLaunchError } from "../../core/run-launcher.js";
+import {
+  planSnapshotPrune,
+  executeSnapshotPrune,
+} from "../../core/phase-snapshots.js";
 import { makeUniqueRunId } from "../../utils/run-id.js";
 import { startDetachedRun } from "../../core/detached-run.js";
 import {
@@ -49,6 +54,17 @@ import {
 export type RunRoutesDeps = {
   projectRoot: string;
 };
+
+// Schema for `POST /api/runs/snapshots/prune` (the dashboard half of
+// `vibe runs prune`). All fields optional; `dryRun` previews without deleting.
+const pruneBody = z
+  .object({
+    keep: z.number().int().min(0).optional(),
+    orphans: z.boolean().optional(),
+    runId: z.string().min(1).max(200).regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/).optional(),
+    dryRun: z.boolean().optional(),
+  })
+  .strict();
 
 // Schema for `POST /api/runs`. Mirrors the `vibe run` CLI surface
 // at the body level, but constrained so only audited fields flow
@@ -318,6 +334,44 @@ export async function registerRunsRoutes(
         `Failed to start run: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  });
+
+  // ─── POST /api/runs/snapshots/prune ───────────────────────────────────
+  // The dashboard half of `vibe runs prune` (ISSUE-001 P1). Explicit, user-
+  // triggered deletion of rewind-snapshot refs: orphans (run dir gone), beyond
+  // a keep-N window, or one run. `dryRun: true` returns the plan WITHOUT
+  // deleting (the UI previews, the user confirms, then re-posts to execute).
+  // FAIL CLOSED: the run-dir read uses a real readdir; a failure aborts rather
+  // than passing an empty set that would mark every ref an orphan.
+  app.post<{ Body: unknown }>("/api/runs/snapshots/prune", async (req) => {
+    const body = pruneBody.safeParse(req.body ?? {});
+    if (!body.success) throw new HttpError(400, body.error.message);
+    const { keep, orphans, runId, dryRun } = body.data;
+    let existingRunIds: Set<string>;
+    try {
+      existingRunIds = new Set(await readdir(projectRunsDir(projectRoot)));
+    } catch (err) {
+      throw new HttpError(
+        500,
+        `Couldn't read the runs directory; refusing to prune: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    let plan;
+    try {
+      // Default scope: orphans when nothing else asked (mirrors the CLI).
+      plan = await planSnapshotPrune(projectRoot, existingRunIds, {
+        keep: keep ?? null,
+        orphans: orphans ?? (keep == null && !runId),
+        runId: runId ?? null,
+      });
+    } catch (err) {
+      throw new HttpError(500, err instanceof Error ? err.message : String(err));
+    }
+    if (dryRun || plan.runs.length === 0) {
+      return { plan, pruned: null };
+    }
+    const pruned = await executeSnapshotPrune(projectRoot, plan.runs);
+    return { plan, pruned };
   });
 
   app.get<{ Params: { runId: string } }>(

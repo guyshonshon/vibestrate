@@ -140,6 +140,43 @@ describe("server routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("POST /api/runs/snapshots/prune dry-runs with an empty plan (no snapshots)", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orphans: true, dryRun: true }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as {
+      plan: { runs: string[]; totalRunsWithSnapshots: number };
+      pruned: string[] | null;
+    };
+    expect(json.plan.runs).toEqual([]);
+    expect(json.pruned).toBeNull(); // dry run never deletes
+  });
+
+  it("POST /api/runs/snapshots/prune 400s on a bad body", async () => {
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ keep: -3 }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("POST /api/runs/snapshots/prune executes cleanly when there's nothing to prune", async () => {
+    // The fixture run has a dir but no captured snapshots, so a non-dry-run
+    // prune deletes nothing and 200s (execute path; never wipes on empty refs).
+    const res = await fetch(`${server!.url}/api/runs/snapshots/prune`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orphans: true }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { plan: { runs: string[] }; pruned: string[] | null };
+    expect(json.plan.runs).toEqual([]);
+  });
+
   it("serves an artifact via the run-dir-relative stamped path (artifacts/ prefix)", async () => {
     // Flow snapshots stamp outputArtifactPath relative to the RUN dir
     // ("artifacts/00-idea.md"); the route must accept that shape too - it

@@ -81,6 +81,19 @@ vibe run "<same task>" --resume-from <oldRunId> --resume-stage reviewing --previ
 
 `--preview` prints the overwrite/remove set and exits **without starting a run**. The same data is on `GET /api/runs/<id>/restore-preview?stage=reviewing`, and the dashboard's **Re-run** dialog shows a live preview panel when you pick a downstream stage. The restore itself is bounded: it only ever runs against a real, isolated run worktree (never your checkout), and a failed or refused restore marks the run **unsafe** in its assurance verdict rather than passing as verified.
 
+### Housekeeping: pruning snapshots
+
+Each rewind-able run anchors its code as a git ref under `refs/vibestrate/snapshots/`, which slowly grows your `.git`. Vibestrate never deletes these on its own. To reclaim them explicitly:
+
+```bash
+vibe runs prune                 # drop snapshots for runs whose directory is gone (orphans)
+vibe runs prune --keep 20       # keep the 20 most-recent runs, prune the rest
+vibe runs prune --run <id>      # drop one run's snapshots
+vibe runs prune --orphans --dry-run   # preview without deleting
+```
+
+It prints the plan and asks before deleting (skip with `-y`). Only refs are removed - runs' artifacts and branches are untouched. The dashboard's **Runs** page has a **Prune snapshots** button for the same orphan cleanup, and `POST /api/runs/snapshots/prune` (with `dryRun`) is the API. For hands-off trimming, set `git.snapshotRetentionRuns` to keep the last N runs automatically.
+
 ## When to file a bug
 
 If the same task fails in the same place across multiple providers and the failure isn't traceable to your config or the task description, that's worth a bug report. Include the `runId`, the `events.jsonl` excerpt around the failure, and the provider stream log.

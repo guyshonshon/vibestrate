@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.98",
+  "version": "0.7.99",
   "commands": [
     {
       "name": "init",
@@ -5570,6 +5570,68 @@
       ],
       "options": [],
       "subcommands": []
+    },
+    {
+      "name": "runs",
+      "path": [
+        "vibe",
+        "runs"
+      ],
+      "description": "Manage runs and their rewind snapshots.",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "prune",
+          "path": [
+            "vibe",
+            "runs",
+            "prune"
+          ],
+          "description": "Delete rewind-snapshot refs you choose to drop: orphans (run dir gone), beyond a keep-N window, or one run. Shows the plan and confirms first; never purges on its own.",
+          "usage": "[options]",
+          "arguments": [],
+          "options": [
+            {
+              "flags": "--keep <n>",
+              "description": "keep the N most-recent runs' snapshots, prune the rest",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--orphans",
+              "description": "prune refs whose run directory is gone (default when no other scope is given)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--run <runId>",
+              "description": "prune one specific run's snapshots",
+              "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--dry-run",
+              "description": "show what would be pruned, delete nothing",
+              "required": false,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "-y, --yes",
+              "description": "skip the confirmation prompt",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        }
+      ]
     },
     {
       "name": "doctor",

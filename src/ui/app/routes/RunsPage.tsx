@@ -10,6 +10,7 @@ import {
   shortRunId,
 } from "../../components/design/format.js";
 import { SchedulerQueuePanel } from "../../components/runs/SchedulerQueuePanel.js";
+import { PruneSnapshotsButton } from "../../components/runs/PruneSnapshotsButton.js";
 
 function statusTone(
   s: RunStatus,
@@ -74,12 +75,15 @@ export function RunsPage({
             </span>
           </h1>
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filter by task or id…"
-          className="h-8 w-[260px] rounded-md bg-white/[0.025] border border-white/[0.08] px-3 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35"
-        />
+        <div className="flex items-center gap-3">
+          <PruneSnapshotsButton />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filter by task or id…"
+            className="h-8 w-[260px] rounded-md bg-white/[0.025] border border-white/[0.08] px-3 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35"
+          />
+        </div>
       </section>
 
       {error ? (

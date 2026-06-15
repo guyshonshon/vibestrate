@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.99
+
+- **Prune rewind snapshots on demand.** A new explicit cleanup for the
+  `.git` ref clutter that rewind snapshots accumulate - reclaim refs for runs
+  whose directory is gone (orphans), trim to the N most-recent runs, or drop one
+  run's snapshots. Three ways: `vibe runs prune` (with `--keep N` / `--orphans` /
+  `--run <id>` / `--dry-run`), `POST /api/runs/snapshots/prune`, and a "Prune
+  snapshots" button on the Runs page. It always shows the plan and asks before
+  deleting - and, like everything else, never purges on its own (it's fail-closed
+  against an empty run-set so "prune orphans" can never collapse into "delete
+  everything"). Only refs are removed; runs' artifacts and branches are untouched.
+
 ## 0.7.98
 
 Rewind hardening - the destructive-restore blast radius is now fully bounded

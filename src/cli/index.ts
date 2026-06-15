@@ -12,6 +12,7 @@ import { runInitCommand } from "./commands/init.js";
 import { runRunCommand } from "./commands/run.js";
 import { runStatusCommand } from "./commands/status.js";
 import { runAbortCommand } from "./commands/abort.js";
+import { runRunsPrune } from "./commands/runs-prune.js";
 import { runDoctorCommand } from "./commands/doctor.js";
 import { runSetupCommand } from "./commands/setup.js";
 import { runUiCommand } from "./commands/ui.js";
@@ -511,6 +512,49 @@ export function buildVibestrateProgram(): Command {
       const code = await runAbortCommand(runId);
       process.exit(code);
     });
+
+  const runs = program
+    .command("runs")
+    .description("Manage runs and their rewind snapshots.");
+  runs
+    .command("prune")
+    .description(
+      "Delete rewind-snapshot refs you choose to drop: orphans (run dir gone), beyond a keep-N window, or one run. Shows the plan and confirms first; never purges on its own.",
+    )
+    .option("--keep <n>", "keep the N most-recent runs' snapshots, prune the rest")
+    .option("--orphans", "prune refs whose run directory is gone (default when no other scope is given)")
+    .option("--run <runId>", "prune one specific run's snapshots")
+    .option("--dry-run", "show what would be pruned, delete nothing")
+    .option("-y, --yes", "skip the confirmation prompt")
+    .action(
+      async (opts: {
+        keep?: string;
+        orphans?: boolean;
+        run?: string;
+        dryRun?: boolean;
+        yes?: boolean;
+      }) => {
+        let keep: number | null = null;
+        if (opts.keep !== undefined) {
+          const n = Number(opts.keep);
+          if (!Number.isInteger(n) || n < 0) {
+            console.error(`--keep must be a non-negative integer (got "${opts.keep}").`);
+            process.exit(2);
+          }
+          keep = n;
+        }
+        const code = await runRunsPrune({
+          keep,
+          // Leave undefined when the flag is absent so runRunsPrune can apply
+          // its "orphans by default when no other scope" rule.
+          orphans: opts.orphans,
+          run: opts.run ?? null,
+          dryRun: opts.dryRun ?? false,
+          yes: opts.yes ?? false,
+        });
+        process.exit(code);
+      },
+    );
 
   program
     .command("doctor")

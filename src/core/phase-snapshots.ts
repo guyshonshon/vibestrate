@@ -383,11 +383,21 @@ export async function sweepOrphanedSnapshotRefs(
   return orphans;
 }
 
-/** Best-effort cleanup of a run's snapshot refs (e.g. when pruning a run). */
+/** Run ids are docker-style `adjective-noun(-suffix)` slugs; this is the shape
+ *  every id generator/validator enforces. Used as a depth-defense gate before a
+ *  runId reaches `git for-each-ref` (a `*` or ref-pattern would otherwise glob). */
+const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+/** Best-effort cleanup of a run's snapshot refs (e.g. when pruning a run).
+ *  Fails fast on a runId that isn't a plain slug - a `*`/ref-pattern must never
+ *  reach `for-each-ref` and glob-match refs the caller didn't intend. */
 export async function deletePhaseSnapshotRefs(
   worktreeOrRepo: string,
   runId: string,
 ): Promise<void> {
+  if (!SAFE_RUN_ID.test(runId)) {
+    throw new Error(`unsafe runId for snapshot ref deletion: ${JSON.stringify(runId)}`);
+  }
   const list = await git(worktreeOrRepo, [
     "for-each-ref",
     "--format=%(refname)",
@@ -505,4 +515,114 @@ export async function pruneOldSnapshots(
     await deletePhaseSnapshotRefs(repo, runId);
   }
   return stale;
+}
+
+/** Read every snapshot ref with its committer date (fail-loud). */
+async function readSnapshotRefs(
+  repo: string,
+): Promise<{ refName: string; committedAt: number }[]> {
+  const list = await git(repo, [
+    "for-each-ref",
+    "--format=%(refname) %(committerdate:unix)",
+    "refs/vibestrate/snapshots",
+  ]);
+  if (!list.ok) {
+    throw new Error(`git for-each-ref failed reading snapshot refs: ${list.stdout || "(no output)"}`);
+  }
+  return list.stdout
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const sp = line.lastIndexOf(" ");
+      return {
+        refName: sp > 0 ? line.slice(0, sp) : line,
+        committedAt: sp > 0 ? Number(line.slice(sp + 1)) || 0 : 0,
+      };
+    });
+}
+
+export type SnapshotPruneScope = {
+  /** Keep the N most-recent runs' snapshots, prune the rest. null/≤0 = skip. */
+  keep?: number | null;
+  /** Prune refs whose run directory is gone (needs `existingRunIds`). */
+  orphans?: boolean;
+  /** Prune one specific run's snapshots. */
+  runId?: string | null;
+};
+
+export type SnapshotPrunePlan = {
+  /** Runs whose dir is gone (only when scope.orphans). */
+  orphanRuns: string[];
+  /** Runs beyond the keep-N retention window (only when scope.keep > 0). */
+  retentionRuns: string[];
+  /** The explicit --run target, if it has snapshots. */
+  explicitRuns: string[];
+  /** Union of the above, deduped - the runs whose refs a prune would delete. */
+  runs: string[];
+  /** Distinct runs that currently have snapshots (for context). */
+  totalRunsWithSnapshots: number;
+};
+
+/**
+ * EXPLICIT manual prune planning (ISSUE-001 P1, `vibe runs prune`). Computes
+ * which runs' snapshot refs a prune would delete for the given scope - READ-ONLY,
+ * deletes nothing. The caller (CLI/API) shows this plan and only deletes on the
+ * user's confirmation (explicit consent; the tool never purges on its own).
+ * `existingRunIds` must be read FAIL-CLOSED by the caller (a failed read must
+ * abort, never be passed as an empty set that marks every ref an orphan).
+ */
+export async function planSnapshotPrune(
+  repo: string,
+  existingRunIds: ReadonlySet<string>,
+  scope: SnapshotPruneScope,
+): Promise<SnapshotPrunePlan> {
+  const refs = await readSnapshotRefs(repo);
+  const refNames = refs.map((r) => r.refName);
+  const allRuns = new Set(
+    refNames
+      .map((r) => runIdFromSnapshotRef(r))
+      .filter((r): r is string => r !== null),
+  );
+  // Same fail-closed backstop as sweepOrphanedSnapshotRefs: an empty run-set
+  // would mark EVERY ref an orphan, collapsing "prune orphans" into "delete
+  // everything". Refuse - the user asked to drop orphans, not wipe all snapshots
+  // (a genuinely empty runs dir with lingering refs must not silently mass-delete).
+  if (scope.orphans && existingRunIds.size === 0 && refNames.length > 0) {
+    throw new Error(
+      "refusing to prune orphans with an empty run set (would delete every snapshot)",
+    );
+  }
+  const orphanRuns = scope.orphans
+    ? selectOrphanedSnapshotRuns(refNames, existingRunIds)
+    : [];
+  const retentionRuns =
+    scope.keep != null && scope.keep > 0
+      ? selectStaleSnapshotRuns(refs, scope.keep)
+      : [];
+  const explicitRuns =
+    scope.runId && allRuns.has(scope.runId) ? [scope.runId] : [];
+  const runs = [...new Set([...orphanRuns, ...retentionRuns, ...explicitRuns])];
+  return {
+    orphanRuns,
+    retentionRuns,
+    explicitRuns,
+    runs,
+    totalRunsWithSnapshots: allRuns.size,
+  };
+}
+
+/**
+ * Delete the snapshot refs for the given run ids (the runs from a confirmed
+ * `planSnapshotPrune`). Returns the run ids actually pruned. Refs only - the
+ * runs' artifacts/branches are untouched; git's gc grace keeps objects briefly.
+ */
+export async function executeSnapshotPrune(
+  repo: string,
+  runs: readonly string[],
+): Promise<string[]> {
+  for (const runId of runs) {
+    await deletePhaseSnapshotRefs(repo, runId);
+  }
+  return [...runs];
 }
