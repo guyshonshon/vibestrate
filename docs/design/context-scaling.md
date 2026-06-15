@@ -1,11 +1,14 @@
 # Context scaling (inter-step context management)
 
-Status: **Assessed + measured 2026-06-15 - decision: no knowledge graph; one
-small fix justified.** No graphify-style graph and no new context subsystem. The
-orchestrator-correct layer already exists (`FlowContextPacket`) and cuts 59% of
-source tokens at current scale. Measurement (see below) found no scaling
-bottleneck yet and one cheap inefficiency worth fixing (summary overhead). This
-doc is the answer to the backlog item "Graphy (AI context-graph) integration?".
+Status: **Assessed + measured 2026-06-15. Refined after pushback: a real
+cross-agent axis exists.** The inter-step layer (`FlowContextPacket`) is sound
+and cuts 59% of flow-artifact tokens. But measurement also showed **57% of prompt
+tokens are re-ingestion of content an earlier step already had**, and **attached
+context-source docs bypass the budget entirely** (re-fed full to every seat). A
+graphify-style code graph is still the wrong first move (staleness in edit loops,
+build cost, agent-adoption risk), but a **build-once, reference/query-many shared
+context store** (rung 2/3 below) is a legitimate direction for big multi-agent
+tasks - gated on a real large-corpus measurement. Answers the "Graphy" backlog item.
 
 ## The question
 
@@ -37,6 +40,41 @@ gitignored local tooling - re-run it to refresh):
 - **Token measurement is half-real.** 9 runs had measured tokens (claude reports
   `input/output/cache` + cost), 10 were estimate-only (codex). So estimate
   fidelity (below) matters mainly for codex, not claude.
+
+## The cross-agent axis (the part the first pass missed)
+
+The first pass measured *inter-step artifact passing*. The sharper question is
+**many distinct agents (seats) each re-ingesting the same reference material** on
+a big task. Separating the two:
+
+- **Within one seat's multi-step thread** (e.g. planner across its steps): session
+  reuse + prompt caching already handle it. Recent claude runs show **90-94% cache
+  hit** (`cacheRead` up to 237k tokens). This is the FlowContextRetentionMode
+  `reused` path resuming a session - largely solved for claude.
+- **Across distinct seats** (planner vs reviewer vs verifier - separate sessions):
+  caching does **not** cross sessions. Evidence it can't be engineered from
+  Vibestrate: the prompt's first line is `# Vibestrate Agent: ${roleId}`
+  (`prompt-builder.ts:137`), so the prefix diverges per seat at byte one; and
+  Vibestrate only pipes prompt *text* to the `claude` CLI, which owns the API's
+  `cache_control`. **So "reorder the prompt for cross-seat cache hits" is not a
+  viable lever here** (investigated; rejected).
+- **Measured re-ingestion: 57% of all prompt tokens** (18,242 / 31,988) are
+  re-feeds of content an earlier step already produced, across an avg 2.6 seats/run.
+  Caveat: not all of that is *waste* - a later seat legitimately needs the prior
+  plan/diff. The reducible part is over-feeding a whole artifact when the seat
+  needs a slice.
+- **Attached context sources bypass the budget.** Materialized `.md`/URL context
+  sources are prepended **in full to every seat's prompt** outside the
+  `FlowContextPacket` (`orchestrator.ts:4509`) - not summarized, not
+  reference-only, not deduped, not counted in the 59%. With S seats a D-token
+  corpus costs ~`D*S`. This is exactly the "pass a bunch of `.md`s, every agent
+  re-reads them" cost, and it is **structurally real today**. (Magnitude unmeasured
+  - the local runs attached no docs; needs a real run with `--context-source`.)
+
+So the controllable lever is **not** caching tricks; it's a build-once,
+reference/query-many shared store (rung 2/3). A queryable index/graph earns its
+keep only for *large, stable* corpora (docs/specs - not actively-edited code, which
+goes stale mid-run) read by many seats.
 
 ## What we already have (and why it's the right shape)
 
@@ -90,23 +128,32 @@ local CLI providers only, no model APIs, no arbitrary shell from the product.
    step count. Fix: a run-level token budget with back-pressure into the
    per-step dispositions.
 
+## The ladder (cheapest first; where a graph actually wins)
+
+| Rung | What | Solves | Status |
+| --- | --- | --- | --- |
+| 1. Reliable session-reuse + caching | ensure the 90% within-seat case fires every time | within-thread re-feed | mostly works (claude); codex has no cache |
+| ~~1.5 Cross-seat cache via prompt order~~ | ~~stable shared prefix across seats~~ | ~~cross-seat re-feed~~ | **rejected** - roleId leads the prompt + CLI owns `cache_control`; not Vibestrate-controllable |
+| 2. Shared context under budget | bring attached context sources + repeated shared inputs into the packet: `reference-only`/dedup past a size threshold, or a build-once digest | cross-seat re-feed of docs (the 4509 gap) | **the justified next slice** |
+| 3. Queryable index / knowledge graph | build-once, each seat queries for the slice it needs | *large, stable* corpora read by many seats | conditional; opt-in skill; gated on a big-task measurement |
+
 ## Recommendation
 
-- **Measured (done).** No scaling bottleneck at current scale; the layer cuts
-  59%. The one justified build today is **fixing summary overhead** (item 1's
-  sibling): in `summarizeContent`, when the wrapped/summarized form isn't smaller
-  than the source, embed full instead of paying the wrapper. Safe (tokens only
-  go down or stay equal, content is more faithful), small, and measured.
-- **Don't build the rest speculatively.** Items 2-4 (codex token fidelity, loop
-  compaction, whole-run budget) wait for a *measured* signal at scale. Re-run
-  `scripts/context-scan.mjs` on a large-codebase run first; confirm whether
-  `reference-only`/`omitted` start firing.
-- **When it bites, evolve `FlowContextPacket`** (items 1-4). All local, no new
-  dependencies, on-brand.
-- **If a sub-agent genuinely chokes on a large codebase**, expose a graph/index
-  tool as an **opt-in skill** the agent invokes - never a core dependency, never
-  auto-run. Measure it against plain claude/codex navigation before adopting,
-  because those are already strong at it.
+- **Summary-overhead fix** (small, safe, measured): in `summarizeContent`, when the
+  wrapped form isn't smaller than the source, embed full. Independent of the above.
+- **Rung 2 is the real lever** and is Vibestrate-controllable: the biggest
+  structural waste is attached context sources re-fed full to every seat outside
+  the budget (`orchestrator.ts:4509`). Bringing them under the packet
+  (`reference-only` / dedup / build-once digest) is the targeted fix - but it
+  changes every agent's prompt, so it needs an independent review and its own
+  slice before building.
+- **Gate rung 3 on real numbers.** Run one big multi-agent task **with attached
+  docs** and re-run `scripts/context-scan.mjs`; if attached-doc re-ingestion
+  dominates and `reference-only` still doesn't fire, a queryable index/graph
+  (graphify as one opt-in-skill implementation) is justified - over *stable*
+  corpora only, never live code mid-edit. Measure agent query-adoption vs grep.
+- **Defer codex token fidelity, loop compaction, whole-run budget** (items 2-4)
+  until a measured signal at scale.
 
 ## Related
 
