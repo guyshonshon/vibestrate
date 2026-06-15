@@ -155,6 +155,103 @@ local CLI providers only, no model APIs, no arbitrary shell from the product.
 - **Defer codex token fidelity, loop compaction, whole-run budget** (items 2-4)
   until a measured signal at scale.
 
+## Prior art (researched 2026-06-15)
+
+We are not the first to fight this. Four research sweeps; the convergent findings:
+
+**The multi-agent context debate (Cognition vs Anthropic) reconciles to a domain split.**
+- Anthropic's orchestrator-worker research system beat single-agent by **90.2%** -
+  but at **~15x the tokens**, and they explicitly exclude "tasks that require all
+  agents to share the same context or involve many dependencies" - i.e. coding
+  pipelines. ([built-multi-agent-research-system](https://www.anthropic.com/engineering/built-multi-agent-research-system))
+- Cognition: writes stay **single-threaded**; extra agents add *intelligence, not
+  actions*. Their #1 failure mode: "actions carry implicit decisions, and
+  conflicting decisions carry bad results." Fix long horizons with **compaction**
+  (distill history into "key details, events, and decisions"), not peer handoffs.
+  ([dont-build-multi-agents](https://cognition.ai/blog/dont-build-multi-agents),
+  [multi-agents-working](https://cognition.ai/blog/multi-agents-working))
+- **Counterintuitive, decision-shaping:** their Code-Review-Loop "works best when
+  the coding and review agents do **not** share context beforehand" - a clean-window
+  reviewer catches more (Devin Review ~2 bugs/PR, ~58% severe). So re-feeding the
+  reviewer everything is *worse*, not just costlier.
+- Anthropic "context engineering": the goal is "the smallest set of high-signal
+  tokens"; beware **context rot** (recall degrades as the window grows); prefer
+  **just-in-time retrieval** (hold paths/refs, load on demand).
+  ([effective-context-engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents))
+
+**Cheapest provider-agnostic lever = a built-once digest in a shared store, injected per agent.**
+- Prompt caching (the obvious "make re-sends cheap") is **API-only** - a tool that
+  pipes text to a local CLI cannot use it. ([prompt-caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching))
+  Confirms our rejected "cross-seat cache prefix" rung.
+- Blackboard / shared-state (LangGraph, CrewAI, AutoGen) and Cognition's
+  compression-handoff all converge on **write-once / read-or-reference-many**, which
+  shrinks tokens themselves rather than discounting a re-send. Caveat: Cognition
+  calls the compression step "hard to get right" - a lossy digest must carry the
+  *decisions*, not just facts.
+
+**Knowledge graph (rung 3): narrowly justified, and a token-efficiency play, not accuracy.**
+- For **stable docs/specs**: a flat digest + on-demand read usually suffices; full
+  LLM-extracted GraphRAG costs **20-100x** vector indexing. Cheap exception:
+  LazyGraphRAG (noun-phrase, no LLM) for genuine *global/synthesis* questions vector
+  RAG can't answer even at 1M-token windows.
+  ([LazyGraphRAG](https://www.microsoft.com/en-us/research/blog/lazygraphrag-setting-a-new-standard-for-quality-and-cost/),
+  [BenchmarkQED](https://www.microsoft.com/en-us/research/blog/benchmarkqed-automated-benchmarking-of-rag-systems/))
+- For **code**: a local AST graph (graphify-style is **pure tree-sitter, no API** -
+  fits our constraints) gave **~10x fewer tokens but lower accuracy** in benchmark
+  (graph 0.83 vs grep-agent 0.92). Net-negative on actively-edited code without
+  incremental, write-triggered sync. ([Codebase-Memory](https://arxiv.org/html/2603.27277v1),
+  ["Is Grep All You Need?"](https://arxiv.org/html/2605.15184v1))
+- (aider repo-map = tree-sitter + PageRank-ranked, token-bounded; Cursor = embeddings
+  + merkle change-detection. [training-knowledge, not freshly verified - the 4th
+  research sweep hit a session limit].)
+
+**The single takeaway:** build **one writer + role-isolated context**, with
+compacted decision-carrying handoffs - **not** a shared store everyone reads and
+writes. Ground the producers; clean-room the judges. A graph is a later, narrow,
+opt-in efficiency tool, never the foundation.
+
+## Plan: per-role context projection (rung 2)
+
+The North Star (the "true context management over each task" you asked about) is a
+**context projection layer**: vibestrate owns one structured representation of the
+run's knowledge and projects the *minimal, role-appropriate* slice into each agent,
+instead of re-feeding everything. Rung 2 is the first real step; it is entirely
+Vibestrate-controllable and provider-agnostic (no API caching, no model calls).
+
+Concrete changes, anchored to current code:
+
+- **2a - Emit `reference-only` (mechanical, low risk).** `decideContextInclusion`
+  (`flow-context-builder.ts:196`) never returns `reference-only`, though
+  `renderPromptContent` already renders it. Add a size threshold: past N bytes a
+  bulky artifact becomes a path + 1-2 line descriptor the agent opens on demand
+  (just-in-time retrieval). Test: a large artifact yields `reference-only`, a small
+  one stays `embedded-full`.
+- **2b - Route attached context sources through the budget.** Today
+  `this.materializedContext` is injected raw into every seat (`orchestrator.ts:4509`),
+  bypassing the packet - so a D-token `.md` corpus costs ~`D*seats`. Feed attached
+  sources through the same disposition path so large docs become summary/reference,
+  not full-per-seat.
+- **2c - Role-differentiated projection (the research-driven one).** Project context
+  by seat kind, not uniformly:
+  - *Producers* (agent-turn: plan/architect/implement) get **grounding** - the spec
+    + a running **decision log** (extend `run-brief.ts` so it carries *decisions/why*,
+    not just step outcomes - Cognition's first law).
+  - *Judges* (review-turn/verify/summary) get a **clean room** - the artifact under
+    review + task, minus upstream chatter. Cuts tokens *and* (per Cognition) improves
+    catch rate. **Risk:** must verify on a real run that catch rate holds/improves -
+    can't confirm on toy runs.
+
+**Explicitly not building:** prompt-cache engineering (API-only); a core knowledge
+graph; LLM-based summarization for the digest (keep deterministic unless it proves
+to drop decisions). Rung 3 (graph) stays an opt-in **query skill** (graphify, local,
+no API), gated on a real big-task-with-docs measurement, justified only for large
+*stable* corpora + global/structural queries.
+
+**Sequencing & gates.** 2a -> 2b -> 2c, each its own slice. Every slice changes
+agent prompts (Tier-2), so each needs: an independent Opus design review first, and
+a before/after `scripts/context-scan.mjs` run (re-ingestion %, disposition mix) plus,
+for 2c, a real run to confirm review quality. Build 2a first (smallest, safest).
+
 ## Related
 
 - [`vocabulary.md`](./vocabulary.md), [`flows-unification.md`](./flows-unification.md) -
