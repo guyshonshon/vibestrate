@@ -99,22 +99,25 @@ vibe run "..." --flow spike-and-decide --flow-skip plan
 
 ## Clean-room steps
 
-Set `cleanRoom: true` on a step and that seat sees only its declared `inputs`
-plus the task and its own role - not the run-level grounding every other seat
-gets (attached context sources, the run brief, the project ledger). It never
-changes the step's declared `inputs`; it only drops the extras layered on top.
+Set `cleanRoom: true` on a step and that seat stops receiving the producer's
+**run narrative** - the run brief (the "story so far") and the project ledger -
+so a reviewer or verifier judges without anchoring to how the earlier steps
+framed things. It still gets **ground truth**: your attached context sources
+(specs), pinned annotations, and the step's own declared `inputs`.
 
 ```yaml
 - id: review
   label: Review
   kind: review-turn
   seat: reviewer
-  inputs: [diff]      # the reviewer reasons from the change itself
-  cleanRoom: true     # ...with a fresh head, no upstream chatter
+  inputs: [diff]      # the reviewer reasons from the change + the spec
+  cleanRoom: true     # ...without the producer's narrative of how it got there
 ```
 
-Use it for a reviewer or verifier you want judging the artifact on its own
-merits. Off by default, so existing steps are unchanged.
+Why only the narrative and not the spec: in testing, hiding the spec from a
+reviewer made it miss requirement violations it couldn't see, while hiding just
+the run brief cost nothing. So clean-room drops the chatter, keeps the truth.
+Off by default, so existing steps are unchanged.
 
 ## Common mistakes
 

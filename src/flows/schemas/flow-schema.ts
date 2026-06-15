@@ -232,12 +232,13 @@ export const flowStepSchema = z
     // decision contract needs a real decision).
     skipWhen: z.enum(["inert_diff"]).optional(),
     // Clean-room context (context-scaling.md rung 2): when true, this step's seat
-    // gets ONLY its declared `inputs` + task / rules / role - NOT the run-level
-    // grounding injected on top (project ledger, continuity flags, human
-    // annotations, run brief, attached context sources). For judge seats
-    // (review / verify) a clean window catches more and re-ingests less; opt-in
-    // per step, default off. It never prunes the flow's declared `inputs` - that
-    // stays the author's choice.
+    // does NOT get the producer's run-derived narrative - the run brief (the
+    // "story so far") and the planner-only ledger/continuity - so a judge reasons
+    // without anchoring to how the producer framed things. It KEEPS ground truth:
+    // attached context sources (the spec), user annotations, and the step's
+    // declared `inputs`. (A controlled eval showed dropping the spec from a
+    // reviewer weakens spec-compliance review, while dropping the brief cost
+    // nothing.) Opt-in per step, default off; never prunes declared `inputs`.
     cleanRoom: z.boolean().default(false),
   })
   .strict();

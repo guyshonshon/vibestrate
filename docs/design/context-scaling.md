@@ -264,10 +264,39 @@ Concrete changes, anchored to current code:
   inert-by-default change. **The default-flip** (clean-rooming the built-in review/verify
   seats) is **gated on a real-run catch-rate eval** - never a silent override of
   flow-declared `inputs`. **SHIPPED** as the opt-in `cleanRoom` flag on flow steps
-  (default off): a clean-room seat drops attached context sources + run brief +
-  ledger/continuity/annotations, keeping its declared inputs + task/rules/role.
-  The default-flip (clean-rooming the built-in review/verify seats) stays gated on
-  the catch-rate eval - no built-in flow opts in yet.
+  (default off). **Eval-corrected semantics (see below):** a clean-room seat drops
+  the producer's run **narrative** (run brief + planner-only ledger/continuity) and
+  KEEPS ground truth (attached context sources, user annotations, declared inputs).
+  No built-in flow opts in; the default-flip stays gated.
+
+## Eval: clean-room catch-rate (2026-06-15)
+
+A controlled pilot (`scripts/eval-cleanroom2.mts`): one defective `parseRange`
+diff reviewed three ways by real `claude`, scored against four known spec defects
+(no malformed-input throw, no reversed-range check, no whitespace trim, NaN not
+rejected).
+
+| Variant | Context given | Defects caught |
+| --- | --- | --- |
+| A full-grounded | spec + run brief + diff | 4/4 + extras |
+| B clean-room (first impl) | diff + task only | partial - **missed reversed-range + whitespace** (couldn't see the spec; inferred from the name) |
+| C spec-only | spec + diff, no brief | 4/4 + extras |
+
+Two findings, both decisive:
+- **A ≈ C** - dropping the producer's run brief cost nothing. Dropping the
+  producer's *narrative* is safe.
+- **B < C** - dropping the *spec* (ground truth) measurably weakened
+  spec-compliance review. So the first `cleanRoom` impl (which dropped attached
+  sources) was **too aggressive**. Cognition's "clean-room catches more" means
+  *hide the producer's reasoning, not the requirements.*
+
+Resulting change: `cleanRoom` now drops only the run narrative and keeps ground
+truth (shipped). And: the big attached-doc re-ingestion is **mostly necessary** -
+judges need the spec - so clean-room can't cheaply cut it. That re-confirms the
+only lever for a *large* doc corpus is rung 3 (a queryable store agents pull
+slices from), still gated on corpus size. Caveat: n=1 pilot; it establishes the
+*boundary* (keep the spec), not a catch-rate *improvement* - so the default-flip
+stays unjustified.
 
 **Explicitly not building:** prompt-cache engineering (API-only); a core knowledge
 graph; LLM-based summarization for the digest (keep deterministic unless it proves

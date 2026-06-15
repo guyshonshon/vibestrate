@@ -103,12 +103,13 @@ describe("clean-room seat drops run-level grounding (rung 2)", () => {
     expect(worker).toContain("CONTEXT_MARKER_42");
     expect(worker).toContain("Context - spec");
 
-    // The clean-room judge got a real prompt (its task + role), but NOT the
-    // run-level grounding: no attached context source, no run brief.
+    // The clean-room judge KEEPS ground truth (the attached spec) - an eval
+    // showed dropping it weakens spec-compliance review - but DROPS the
+    // producer's run-derived narrative (the run brief).
     expect(judge).toContain("Vibestrate Agent: j");
     expect(judge).toContain("do the thing");
-    expect(judge).not.toContain("CONTEXT_MARKER_42");
-    expect(judge).not.toContain("Context - spec");
+    expect(judge).toContain("CONTEXT_MARKER_42");
+    expect(judge).toContain("Context - spec");
     expect(judge).not.toContain("# Run brief");
   }, 30_000);
 });

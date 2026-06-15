@@ -4508,11 +4508,14 @@ export class Orchestrator {
     const continuityFlags =
       injectContinuity && this.ledgerFlagsBlock ? this.ledgerFlagsBlock : "";
     if (projectLedger || continuityFlags) this.ledgerInjected = true;
-    // Clean-room seat (context-scaling.md rung 2): drop the run-level grounding
-    // injected on top of the turn - attached context sources, run brief, human
-    // annotations, ledger/continuity - keeping only the flow's declared prior
-    // artifacts + task/rules/role. Validation results stay (ground-truth evidence,
-    // not upstream chatter). It never touches the flow's declared `inputs`.
+    // Clean-room seat (context-scaling.md rung 2): drop the producer's run-derived
+    // NARRATIVE - the run brief (the "story so far") and the planner-only
+    // ledger/continuity - so a judge reasons without being anchored to how the
+    // producer framed things. It deliberately KEEPS ground truth: attached context
+    // sources (the spec), user annotations, and the step's declared inputs. A
+    // controlled eval (see context-scaling.md) showed that dropping the attached
+    // spec from a reviewer measurably weakened spec-compliance review, while
+    // dropping only the brief cost nothing - so ground truth stays, chatter goes.
     const cleanRoom = input.cleanRoom === true;
     const prompt = buildRolePrompt({
       roleId,
@@ -4520,11 +4523,9 @@ export class Orchestrator {
       rules: this.rules,
       rolePromptTemplate: promptTemplate,
       skills,
-      // Run-level context sources are visible to every role, ahead of the
-      // flow's per-step handoff artifacts - unless this is a clean-room seat.
-      priorArtifacts: cleanRoom
-        ? input.priorArtifacts
-        : [...this.materializedContext, ...input.priorArtifacts],
+      // Run-level context sources (ground truth) are visible to every role,
+      // ahead of the flow's per-step handoff artifacts - clean-room included.
+      priorArtifacts: [...this.materializedContext, ...input.priorArtifacts],
       permission: profile,
       permissionName: agent.permissions,
       worktreePath: ctx.worktreePath,
@@ -4533,7 +4534,7 @@ export class Orchestrator {
       validationResults: input.validationResults,
       concise: this.concise,
       ...(additionalNotes ? { additionalNotes } : {}),
-      ...(!cleanRoom && humanAnnotations ? { humanAnnotations } : {}),
+      ...(humanAnnotations ? { humanAnnotations } : {}),
       ...(!cleanRoom && input.runBrief ? { runBrief: input.runBrief } : {}),
       ...(!cleanRoom && projectLedger ? { projectLedger } : {}),
       ...(!cleanRoom && continuityFlags ? { continuityFlags } : {}),
