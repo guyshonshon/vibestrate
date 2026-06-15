@@ -19,7 +19,7 @@ Vibestrate runs on macOS and Linux. Windows is not currently supported.
 One-liner (macOS / Linux) - installs the `vibe` CLI via the `vibestrate` npm package under the hood:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 ```
 
 Pin a version with `VIBESTRATE_VERSION=0.1.1 sh` after the pipe. Or install with npm / pnpm directly:

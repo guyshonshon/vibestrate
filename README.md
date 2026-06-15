@@ -63,7 +63,7 @@ Install Vibestrate - the command is `vibe`:
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/guyshonshon/vibestrate/main/install.sh | sh
 
 # …or with npm directly
 npm install -g vibestrate

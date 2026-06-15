@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.97
+
+- **The one-line installer works again.** The documented
+  `curl -fsSL .../main/scripts/install.sh | sh` pointed at `scripts/`, which is
+  gitignored and never published - so it returned a 404. The installer actually
+  ships at the repo root; the README, install docs, and the script's own header
+  now point there (`.../main/install.sh`). The npm fallback
+  (`npm install -g vibestrate`) was always fine.
+
 ## 0.7.96
 
 - **Live budget in the shell header.** The top "where am I" line now carries a
