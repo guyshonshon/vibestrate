@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.94
+
+- **Spawned agents no longer inherit the host's Claude Code session.** If you run
+  Vibestrate from inside a Claude Code session, child `claude` agents used to
+  inherit the host's `CLAUDE_CODE_*` environment and collide on session ids
+  ("Session ID … is already in use"). Vibestrate now strips that identity from
+  every process it spawns, so nested runs behave like top-level ones. (A related
+  re-open-on-retry edge is logged as ISSUE-002.)
+
 ## 0.7.93
 
 - **Leaner agent prompts.** When summarizing a handoff artifact would cost more

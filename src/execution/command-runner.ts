@@ -1,6 +1,23 @@
 import { execa } from "execa";
 import { nowIso, durationMs } from "../utils/time.js";
 
+// Host Claude Code (the CLI we may be running *inside*) injects CLAUDE_CODE_* and
+// CLAUDECODE env vars to mark its own session/instance. A child agent we spawn -
+// especially `claude` itself - must NOT inherit that identity: a nested `claude`
+// then collides on session ids ("Session ID ... is already in use" - confirmed by
+// re-opening an existing session id) and can mis-wire to the host's SSE port.
+// Strip them so every spawned process runs as a fresh top-level agent. Purely
+// subtractive; nothing we spawn legitimately needs the host's session identity.
+function childEnv(extra?: Record<string, string>): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v === undefined) continue;
+    if (k === "CLAUDECODE" || k.startsWith("CLAUDE_CODE_")) continue;
+    env[k] = v;
+  }
+  return { ...env, ...(extra ?? {}) };
+}
+
 export type CommandResult = {
   command: string;
   argv: string[];
@@ -22,7 +39,10 @@ export async function runShellCommand(input: {
   const startedAt = new Date();
   const result = await execa(input.command, {
     cwd: input.cwd,
-    env: { ...process.env, ...(input.env ?? {}) },
+    env: childEnv(input.env),
+    // childEnv already includes (filtered) process.env, so don't let execa
+    // re-extend with the raw process.env (which would re-add CLAUDE_CODE_*).
+    extendEnv: false,
     timeout: input.timeoutMs,
     reject: false,
     shell: true,
@@ -80,7 +100,10 @@ export async function runArgvCommand(input: {
   // custom-workflow-dags.md ("timeoutMs must actually fire that abort").
   const subprocess = execa(input.command, input.args, {
     cwd: input.cwd,
-    env: { ...process.env, ...(input.env ?? {}) },
+    env: childEnv(input.env),
+    // childEnv already includes (filtered) process.env, so don't let execa
+    // re-extend with the raw process.env (which would re-add CLAUDE_CODE_*).
+    extendEnv: false,
     input: input.stdin,
     reject: false,
     detached,
