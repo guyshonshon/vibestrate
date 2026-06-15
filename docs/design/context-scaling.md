@@ -1,10 +1,11 @@
 # Context scaling (inter-step context management)
 
-Status: **Assessed 2026-06-15 - decision: do not build, evolve what exists.**
-No code knowledge graph (graphify-style) and no new context subsystem now. The
-orchestrator-correct layer already exists (`FlowContextPacket`); evolve it when a
-*measured* bottleneck appears. This doc is the answer to the backlog item
-"Graphy (AI context-graph) integration?".
+Status: **Assessed + measured 2026-06-15 - decision: no knowledge graph; one
+small fix justified.** No graphify-style graph and no new context subsystem. The
+orchestrator-correct layer already exists (`FlowContextPacket`) and cuts 59% of
+source tokens at current scale. Measurement (see below) found no scaling
+bottleneck yet and one cheap inefficiency worth fixing (summary overhead). This
+doc is the answer to the backlog item "Graphy (AI context-graph) integration?".
 
 ## The question
 
@@ -12,6 +13,30 @@ Will Vibestrate hit a context / token bottleneck as Flows get longer and richer,
 and would a code knowledge graph (e.g. [graphify](https://github.com/safishamsi/graphify))
 or a RAG library help? The instinct that context is the eventual scaling axis is
 right. The shape of the fix is the part worth getting right.
+
+## Measured (2026-06-15)
+
+Read-only scan of 20 local runs / 68 context packets (`scripts/context-scan.mjs`,
+gitignored local tooling - re-run it to refresh):
+
+- **The layer works.** 77,621 source tokens compacted to 31,988 prompt tokens -
+  **59% cut.** This is the strongest evidence against bolting on a knowledge graph.
+- **No bottleneck at current scale.** Worst run = 4,615 prompt tokens over 6
+  steps; biggest single step ~1,775. Orders of magnitude below any context
+  window. Caveat: these are small/toy runs - **re-measure on a real
+  large-codebase run before trusting this for scale.**
+- **`reference-only` and `omitted` never fired (0% of 166 inputs; 37%
+  embedded-full, 63% embedded-summary).** The policy thresholds never shed an
+  artifact to a pure reference at this scale - so the "summary + on-demand
+  reference" path is defined but unexercised. Confirm it triggers at scale.
+- **New finding - summary overhead.** 40% of inputs (67/166) were "summarized"
+  into a form *larger* than the source: the `Summary for X:` wrapper + size
+  footer out-costs the savings on small artifacts (+761 tokens total). Small in
+  absolute terms here, but a clean, safe fix (don't wrap when the wrapped form
+  isn't smaller - embed full instead). **This is the one build justified today.**
+- **Token measurement is half-real.** 9 runs had measured tokens (claude reports
+  `input/output/cache` + cost), 10 were estimate-only (codex). So estimate
+  fidelity (below) matters mainly for codex, not claude.
 
 ## What we already have (and why it's the right shape)
 
@@ -50,10 +75,12 @@ local CLI providers only, no model APIs, no arbitrary shell from the product.
    review) survives only if the agent follows the retained artifact reference.
    If agents don't reliably re-read references, signal is lost. Cheap fix:
    head+tail clipping, or structure-aware text summary like the JSON path.
-2. **Estimated, not measured tokens** [evidence] - budgets use `estimateTokens`,
-   a heuristic; local CLIs don't report real token counts, so the budget can
-   drift from the provider's real context window. Fix: per-provider
-   tokenizer-accurate budgeting.
+2. **Estimated tokens for some providers** [evidence, refined by measurement] -
+   budgets use `estimateTokens` (a heuristic). claude-code *does* report real
+   tokens (`tokensEstimated=false`); codex does not, so codex runs budget on
+   estimates end-to-end with no ground truth. Fix (codex): per-provider
+   tokenizer-accurate budgeting, or surface the estimated/measured flag so the
+   number isn't trusted blindly.
 3. **Review -> fix loop accumulation** [inference] - each loop iteration re-feeds
    findings/diffs. Not yet verified whether the packet de-dupes or compacts
    across iterations; if not, long loops inflate the prompt. Fix: loop-aware
@@ -65,9 +92,15 @@ local CLI providers only, no model APIs, no arbitrary shell from the product.
 
 ## Recommendation
 
-- **Don't build speculatively.** First instrument: compare `estimatedTokensSaved`
-  and `promptEstimatedTokens` against real spend per run to see whether (and
-  where) the budget actually strains.
+- **Measured (done).** No scaling bottleneck at current scale; the layer cuts
+  59%. The one justified build today is **fixing summary overhead** (item 1's
+  sibling): in `summarizeContent`, when the wrapped/summarized form isn't smaller
+  than the source, embed full instead of paying the wrapper. Safe (tokens only
+  go down or stay equal, content is more faithful), small, and measured.
+- **Don't build the rest speculatively.** Items 2-4 (codex token fidelity, loop
+  compaction, whole-run budget) wait for a *measured* signal at scale. Re-run
+  `scripts/context-scan.mjs` on a large-codebase run first; confirm whether
+  `reference-only`/`omitted` start firing.
 - **When it bites, evolve `FlowContextPacket`** (items 1-4). All local, no new
   dependencies, on-brand.
 - **If a sub-agent genuinely chokes on a large codebase**, expose a graph/index
