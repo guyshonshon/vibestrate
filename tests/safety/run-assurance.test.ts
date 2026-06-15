@@ -47,6 +47,20 @@ describe("deriveRunAssurance verdicts", () => {
     expect(a.validation.status).toBe("passed");
   });
 
+  it("unsafe: a failed rewind restore poisons an otherwise-verified run (ISSUE-001 P1)", () => {
+    const a = deriveRunAssurance({
+      ...base,
+      runStatus: "merge_ready",
+      finalDecision: "APPROVED",
+      verification: "PASSED",
+      actionLog: [rec({ evidence: { ok: true } })], // would be "verified"
+      restoreFailed: true,
+    });
+    expect(a.verdict).toBe("unsafe");
+    expect(a.caps).toContain("restore_failed");
+    expect(a.summary).toMatch(/restore/i);
+  });
+
   it("partially_verified: approved but verification not run", () => {
     const a = deriveRunAssurance({
       ...base,
@@ -612,6 +626,94 @@ describe("buildAndWriteRunAssurance", () => {
       expect(built.coverage.toleratedStepFailures).toBe(1);
       expect(built.verdict).toBe("partially_verified");
       expect(built.caps).toContain("steps_failed_tolerated");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("downgrades to unsafe when a run.rewound.restored event reports ok:false", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
+    try {
+      const runId = "run-restore-fail";
+      await ensureDir(runDir(root, runId));
+      const ts = "2026-05-30T00:00:00.000Z";
+      await writeJson(
+        runStatePath(root, runId),
+        runStateSchema.parse({
+          runId,
+          task: "t",
+          status: "merge_ready",
+          projectRoot: root,
+          worktreePath: null,
+          branchName: null,
+          reviewLoopCount: 0,
+          maxReviewLoops: 2,
+          startedAt: ts,
+          updatedAt: ts,
+          finalDecision: "APPROVED",
+          verification: "PASSED",
+          error: null,
+        }),
+      );
+      await fs.writeFile(
+        runActionsPath(root, runId),
+        JSON.stringify(rec({ evidence: { ok: true } })) + "\n",
+      );
+      await fs.writeFile(
+        runEventsPath(root, runId),
+        JSON.stringify({
+          type: "run.rewound.restored",
+          data: { sourceRunId: "src", seq: 3, stage: "review", ok: false, safe: true },
+        }) + "\n",
+      );
+
+      const built = await buildAndWriteRunAssurance(root, runId);
+      expect(built.verdict).toBe("unsafe");
+      expect(built.caps).toContain("restore_failed");
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("a successful restore (ok:true) does NOT downgrade the verdict", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-asr-"));
+    try {
+      const runId = "run-restore-ok";
+      await ensureDir(runDir(root, runId));
+      const ts = "2026-05-30T00:00:00.000Z";
+      await writeJson(
+        runStatePath(root, runId),
+        runStateSchema.parse({
+          runId,
+          task: "t",
+          status: "merge_ready",
+          projectRoot: root,
+          worktreePath: null,
+          branchName: null,
+          reviewLoopCount: 0,
+          maxReviewLoops: 2,
+          startedAt: ts,
+          updatedAt: ts,
+          finalDecision: "APPROVED",
+          verification: "PASSED",
+          error: null,
+        }),
+      );
+      await fs.writeFile(
+        runActionsPath(root, runId),
+        JSON.stringify(rec({ evidence: { ok: true } })) + "\n",
+      );
+      await fs.writeFile(
+        runEventsPath(root, runId),
+        JSON.stringify({
+          type: "run.rewound.restored",
+          data: { sourceRunId: "src", seq: 3, stage: "review", ok: true, safe: true },
+        }) + "\n",
+      );
+
+      const built = await buildAndWriteRunAssurance(root, runId);
+      expect(built.verdict).toBe("verified");
+      expect(built.caps).not.toContain("restore_failed");
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }

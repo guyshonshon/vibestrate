@@ -261,10 +261,16 @@ export function deriveRunAssurance(input: {
   /** Isolation posture (deriveRunIsolation). Defaults to "none" so direct
    *  callers that don't compute it keep the baseline. Informational only. */
   isolation?: RunAssurance["isolation"];
+  /** A rewind worktree-snapshot restore did not complete (refused, or one of
+   *  the destructive git steps failed) - the worktree may be empty or
+   *  half-restored, so its code can't be trusted. Poisons the verdict to
+   *  `unsafe`, exactly like a failed rollback (ISSUE-001 P1). Defaults false. */
+  restoreFailed?: boolean;
   generatedAt: string;
 }): RunAssurance {
   const { actionLog } = input;
   const toleratedStepFailures = input.toleratedStepFailures ?? 0;
+  const restoreFailed = input.restoreFailed ?? false;
   const distinctModels = new Set(
     (input.modelsUsed ?? []).filter((m): m is string => !!m && m.trim().length > 0),
   );
@@ -382,12 +388,14 @@ export function deriveRunAssurance(input: {
   if (verificationStatus === "not_applicable") notes.push("verification_not_required");
   if (holds.length > 0) caps.push("approval_required");
   if (toleratedStepFailures > 0) caps.push("steps_failed_tolerated");
+  if (restoreFailed) caps.push("restore_failed");
 
   // ── Verdict ─────────────────────────────────────────────────────────────
   const verdict = pickVerdict({
     runStatus: input.runStatus,
     policyStatus,
     rollbackFailed,
+    restoreFailed,
     validationStatus,
     reviewStatus,
     verificationStatus,
@@ -421,6 +429,7 @@ export function deriveRunAssurance(input: {
       verificationStatus,
       validationScopedInert: input.validationScopedInert ?? false,
       denies: denies.length,
+      restoreFailed,
       toleratedStepFailures,
       firstBlocker: blockers[0] ?? null,
     }),
@@ -457,13 +466,16 @@ function pickVerdict(s: {
   runStatus: string;
   policyStatus: RunAssurance["policy"]["status"];
   rollbackFailed: boolean;
+  restoreFailed: boolean;
   validationStatus: RunAssurance["validation"]["status"];
   reviewStatus: RunAssurance["review"]["status"];
   verificationStatus: RunAssurance["verification"]["status"];
   toleratedStepFailures: number;
 }): RunAssuranceVerdict {
-  // A hard policy violation or a failed rollback poisons trust in the worktree.
-  if (s.policyStatus === "violated" || s.rollbackFailed) return "unsafe";
+  // A hard policy violation, a failed rollback, or a failed rewind restore
+  // poisons trust in the worktree (the code may be absent or half-restored).
+  if (s.policyStatus === "violated" || s.rollbackFailed || s.restoreFailed)
+    return "unsafe";
   // Anything that didn't reach merge_ready cannot continue.
   if (s.runStatus !== "merge_ready") return "blocked";
 
@@ -531,15 +543,20 @@ function summarize(
     verificationStatus: string;
     validationScopedInert: boolean;
     denies: number;
+    restoreFailed?: boolean;
     toleratedStepFailures: number;
     firstBlocker?: RunAssuranceBlocker | null;
   },
 ): string {
   switch (verdict) {
     case "unsafe":
-      return d.denies > 0
-        ? `A policy denied ${d.denies} action(s); the worktree is not trusted.`
-        : "A rollback failed; the worktree may be partially modified.";
+      // Precedence: a policy deny is the headline; else a failed rewind
+      // restore; else a failed rollback. All three mean "don't trust the code".
+      if (d.denies > 0)
+        return `A policy denied ${d.denies} action(s); the worktree is not trusted.`;
+      if (d.restoreFailed)
+        return "A rewind restore did not complete; the worktree may be empty or half-restored and is not trusted.";
+      return "A rollback failed; the worktree may be partially modified.";
     case "blocked": {
       const b = d.firstBlocker;
       if (!b) return "The run did not reach merge_ready.";
@@ -716,6 +733,13 @@ export async function buildAndWriteRunAssurance(
   // between `missing` and `not_applicable`. Persisting applicability into run
   // state is a T13 follow-up (it needs the verdict for merge advice).
   const validationScopedInert = events.some((e) => e.type === "validation.scoped");
+  // A rewind restore that didn't complete (refused, or a destructive git step
+  // failed) is recorded as `run.rewound.restored` with `ok: false` (covers both
+  // the refused-unsafe-target and the failed-steps cases). Poisons the verdict
+  // so a half-restored rewind can never read as `verified` (ISSUE-001 P1).
+  const restoreFailed = events.some(
+    (e) => e.type === "run.rewound.restored" && e.data?.ok === false,
+  );
   let validateCommandsConfigured = false;
   try {
     const cfg = await loadConfig(projectRoot);
@@ -750,6 +774,7 @@ export async function buildAndWriteRunAssurance(
     persona,
     modelsUsed,
     isolation: deriveRunIsolation(events),
+    restoreFailed,
     generatedAt: nowIso(),
   });
   await writeText(
