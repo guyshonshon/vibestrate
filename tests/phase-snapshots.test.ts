@@ -8,7 +8,7 @@ import {
   readPhaseSnapshots,
   pickSnapshotForResume,
   restorePhaseSnapshot,
-  isSafeRestoreTarget,
+  checkRestoreTarget,
   selectStaleSnapshotRuns,
   pruneOldSnapshots,
   countSnapshotRuns,
@@ -82,24 +82,59 @@ describe("phase-snapshots", () => {
       .catch(() => null);
     expect(beforeRestore).toBeNull(); // fresh worktree has none of A's files
 
-    const okExec = await restorePhaseSnapshot(wtB, execSnap!.treeSha, root);
+    const okExec = await restorePhaseSnapshot(wtB, execSnap!.treeSha, root, ".worktrees");
     expect(okExec).toBe(true);
     expect(await fs.readFile(path.join(wtB, "feature.ts"), "utf8")).toBe("export const v = 1;\n");
 
-    const okFix = await restorePhaseSnapshot(wtB, fixSnap!.treeSha, root);
+    const okFix = await restorePhaseSnapshot(wtB, fixSnap!.treeSha, root, ".worktrees");
     expect(okFix).toBe(true);
     expect(await fs.readFile(path.join(wtB, "feature.ts"), "utf8")).toBe("export const v = 2;\n");
   });
 
-  it("refuses a destructive restore onto the project root (safety guard)", async () => {
+  it("strengthened restore guard: only a real run worktree inside worktreeDir is safe (ISSUE-001 P2)", async () => {
     const root = await mkRepo();
-    expect(isSafeRestoreTarget(root, root)).toBe(false);
-    expect(isSafeRestoreTarget(path.join(root, ".worktrees", "x"), root)).toBe(true);
-    // restorePhaseSnapshot refuses (returns false) without touching the root.
-    const refused = await restorePhaseSnapshot(root, "deadbeef", root);
+    const wt = await addWorktree(root, "guard-run"); // root/.worktrees/guard-run
+
+    // 1. The project root itself is refused.
+    expect((await checkRestoreTarget(root, root, ".worktrees")).safe).toBe(false);
+
+    // 2. A path OUTSIDE the configured worktreeDir is refused, even if it's a
+    //    real worktree path - here worktreeDir is set to a different dir.
+    const out = await checkRestoreTarget(wt, root, ".other-worktrees");
+    expect(out.safe).toBe(false);
+    if (!out.safe) expect(out.reason).toMatch(/worktreeDir/);
+
+    // 3. A path INSIDE worktreeDir that is NOT a git worktree is refused.
+    const notWt = path.join(root, ".worktrees", "not-a-worktree");
+    await fs.mkdir(notWt, { recursive: true });
+    const bad = await checkRestoreTarget(notWt, root, ".worktrees");
+    expect(bad.safe).toBe(false);
+    if (!bad.safe) expect(bad.reason).toMatch(/git worktree/);
+
+    // 4. A real registered worktree inside worktreeDir is safe.
+    expect((await checkRestoreTarget(wt, root, ".worktrees")).safe).toBe(true);
+
+    // 5. A SUBDIR of a worktree (not its root) is refused - show-toplevel
+    //    resolves to the worktree root, not the subdir.
+    const sub = path.join(wt, "nested");
+    await fs.mkdir(sub, { recursive: true });
+    expect((await checkRestoreTarget(sub, root, ".worktrees")).safe).toBe(false);
+
+    // restorePhaseSnapshot refuses (returns false) on the root without touching it.
+    const refused = await restorePhaseSnapshot(root, "deadbeef", root, ".worktrees");
     expect(refused).toBe(false);
-    // base.txt is untouched.
     expect(await fs.readFile(path.join(root, "base.txt"), "utf8")).toBe("base\n");
+  });
+
+  it("a legitimate worktree under a SYMLINKED worktreeDir is still safe (realpath consistency)", async () => {
+    const root = await mkRepo();
+    const wt = await addWorktree(root, "sym-run"); // root/.worktrees/sym-run
+    // Point a second name at the same base via a symlink; restoring through the
+    // symlinked worktreeDir must NOT be falsely refused (lexical vs realpath).
+    await fs.symlink(path.join(root, ".worktrees"), path.join(root, ".wt-link"));
+    const viaLink = path.join(root, ".wt-link", "sym-run");
+    const check = await checkRestoreTarget(viaLink, root, ".wt-link");
+    expect(check.safe).toBe(true);
   });
 
   it("pickSnapshotForResume restores the right code per stage", async () => {

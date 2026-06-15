@@ -84,7 +84,7 @@ import {
   readPhaseSnapshots,
   pickSnapshotForResume,
   restorePhaseSnapshot,
-  isSafeRestoreTarget,
+  checkRestoreTarget,
   type SnapshotStage,
   type DownstreamResumeStage,
 } from "./phase-snapshots.js";
@@ -1714,20 +1714,26 @@ export class Orchestrator {
       );
       if (pick) {
         // Defense in depth: restore is destructive (checkout-index -f +
-        // clean -fd), so refuse outright if the target is the project root
-        // rather than a dedicated run worktree.
-        const safe = isSafeRestoreTarget(input.worktreePath, this.projectRoot);
-        const ok = safe
-          ? await restorePhaseSnapshot(input.worktreePath, pick.treeSha, this.projectRoot)
+        // clean -fd), so positively verify the target is a real run worktree
+        // (≠ root, inside the configured worktreeDir, an actual git worktree
+        // root) before touching it - never the user's checkout or a stray dir.
+        const worktreeDir = this.config.git.worktreeDir;
+        const check = await checkRestoreTarget(
+          input.worktreePath,
+          this.projectRoot,
+          worktreeDir,
+        );
+        const ok = check.safe
+          ? await restorePhaseSnapshot(input.worktreePath, pick.treeSha, this.projectRoot, worktreeDir)
           : false;
         await input.eventLog.append({
           type: "run.rewound.restored",
-          message: !safe
-            ? `Refused to restore: worktree is the project root, not an isolated run worktree.`
+          message: !check.safe
+            ? `Refused to restore: ${check.reason}.`
             : ok
               ? `Restored ${pick.stage} worktree snapshot (#${pick.seq}) from run ${resumeFrom.sourceRunId}.`
               : `Failed to restore worktree snapshot from run ${resumeFrom.sourceRunId}; the resumed stage may see no code.`,
-          data: { sourceRunId: resumeFrom.sourceRunId, seq: pick.seq, stage: pick.stage, ok, safe },
+          data: { sourceRunId: resumeFrom.sourceRunId, seq: pick.seq, stage: pick.stage, ok, safe: check.safe },
         });
       } else {
         await input.eventLog.append({

@@ -15,6 +15,7 @@
 import { execa } from "execa";
 import { z } from "zod";
 import path from "node:path";
+import { realpath } from "node:fs/promises";
 import { snapshotWorktree, restoreWorktree } from "../safety/diff-gate.js";
 import { runDir } from "../utils/paths.js";
 import { pathExists, readText, writeText, ensureDir } from "../utils/fs.js";
@@ -149,30 +150,81 @@ export function pickSnapshotForResume(
   return eligible.reduce((a, b) => (b.seq > a.seq ? b : a));
 }
 
+export type RestoreTargetCheck =
+  | { safe: true }
+  | { safe: false; reason: string };
+
+/** Resolve the configured worktree base (mirrors resolveWorktreePath's base). */
+function worktreeBase(projectRoot: string, worktreeDir: string): string {
+  return path.isAbsolute(worktreeDir)
+    ? path.resolve(worktreeDir)
+    : path.resolve(projectRoot, worktreeDir);
+}
+
+/** realpath, falling back to the lexical path when it doesn't exist yet. */
+async function realpathOr(p: string): Promise<string> {
+  try {
+    return await realpath(p);
+  } catch {
+    return p;
+  }
+}
+
 /**
- * True when `worktree` is a safe destructive-restore target: a real path that is
- * NOT the project root itself. Restore runs `checkout-index -f` + `clean -fd`, so
- * it must only ever touch a dedicated, throwaway run worktree - never the user's
- * checked-out project. `resolveWorktreePath` already guarantees a per-run subdir;
- * this is defense in depth at the destructive boundary.
+ * Decide whether `worktree` is a safe DESTRUCTIVE-restore target. Restore runs
+ * `checkout-index -f` + `clean -fd`, so it must only ever touch a dedicated,
+ * throwaway run worktree - never the user's checkout or some unrelated dir. Three
+ * positive assertions (ISSUE-001 P2 - "≠ root" alone was too weak):
+ *   1. not the project root itself;
+ *   2. strictly inside the configured `git.worktreeDir` base (a mis-set
+ *      worktreeDir pointing at a meaningful sibling can't be restored into);
+ *   3. an ACTUAL git worktree whose root is the target itself (`rev-parse
+ *      --show-toplevel` resolves back to it) - not a non-git dir, not a subdir
+ *      of one, and not the main checkout.
+ * Fail-closed: any check that can't be satisfied (incl. git failure) is unsafe.
  */
-export function isSafeRestoreTarget(worktree: string, projectRoot: string): boolean {
-  const wt = path.resolve(worktree);
-  const root = path.resolve(projectRoot);
-  return wt !== root;
+export async function checkRestoreTarget(
+  worktree: string,
+  projectRoot: string,
+  worktreeDir: string,
+): Promise<RestoreTargetCheck> {
+  // realpath EVERY path (target, root, base) so symlinks - macOS /var ->
+  // /private/var, a symlinked worktreeDir, etc. - canonicalize consistently.
+  // git's --show-toplevel is already symlink-resolved, so a lexical-only compare
+  // would falsely refuse a legitimate worktree (reviewer-flagged asymmetry).
+  const wt = await realpathOr(path.resolve(worktree));
+  const root = await realpathOr(path.resolve(projectRoot));
+  if (wt === root) {
+    return { safe: false, reason: "target is the project root, not an isolated run worktree" };
+  }
+  const base = await realpathOr(worktreeBase(root, worktreeDir));
+  const rel = path.relative(base, wt);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
+    return {
+      safe: false,
+      reason: `target is not inside the configured worktreeDir (${worktreeDir})`,
+    };
+  }
+  const top = await git(wt, ["rev-parse", "--show-toplevel"]);
+  if (!top.ok || !top.stdout || (await realpathOr(top.stdout)) !== wt) {
+    return { safe: false, reason: "target is not a git worktree root" };
+  }
+  return { safe: true };
 }
 
 /**
  * Materialize a snapshot tree into a (resumed) run's worktree. Refuses (returns
- * false) when the target would be the project root - a destructive restore must
- * never run against the user's checkout.
+ * false) unless the target passes every `checkRestoreTarget` assertion - a
+ * destructive restore must never run against the user's checkout or a stray dir.
  */
 export async function restorePhaseSnapshot(
   worktree: string,
   treeSha: string,
   projectRoot: string,
+  worktreeDir: string,
 ): Promise<boolean> {
-  if (!isSafeRestoreTarget(worktree, projectRoot)) return false;
+  const check = await checkRestoreTarget(worktree, projectRoot, worktreeDir);
+  if (!check.safe) return false;
   return restoreWorktree(worktree, treeSha);
 }
 
