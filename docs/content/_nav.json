@@ -16,8 +16,8 @@
       ]
     },
     {
-      "id": "mental-models",
-      "label": "Mental models",
+      "id": "at-a-glance",
+      "label": "At a glance",
       "items": [
         {
           "slug": "getting-started/big-picture",
@@ -26,6 +26,26 @@
         {
           "slug": "getting-started/why-a-human",
           "label": "Why a human stays in the loop"
+        },
+        {
+          "slug": "concepts/task",
+          "label": "Task"
+        },
+        {
+          "slug": "concepts/flow",
+          "label": "Flow"
+        },
+        {
+          "slug": "concepts/crew",
+          "label": "Crew"
+        },
+        {
+          "slug": "concepts/supervisor",
+          "label": "Supervisor"
+        },
+        {
+          "slug": "concepts/consult",
+          "label": "Consult"
         }
       ]
     },
@@ -52,27 +72,9 @@
       ]
     },
     {
-      "id": "concept-task",
-      "label": "Task",
-      "items": [
-        {
-          "slug": "concepts/task",
-          "label": "Task"
-        },
-        {
-          "slug": "concepts/state",
-          "label": "Run state"
-        }
-      ]
-    },
-    {
       "id": "concept-flow",
-      "label": "Flow",
+      "label": "Inside a Flow",
       "items": [
-        {
-          "slug": "concepts/flow",
-          "label": "Flow"
-        },
         {
           "slug": "concepts/seat",
           "label": "Seat"
@@ -89,12 +91,8 @@
     },
     {
       "id": "concept-crew",
-      "label": "Crew",
+      "label": "Inside a Crew",
       "items": [
-        {
-          "slug": "concepts/crew",
-          "label": "Crew"
-        },
         {
           "slug": "concepts/role",
           "label": "Role"
@@ -122,10 +120,6 @@
           "label": "Safety - Action Broker & policies"
         },
         {
-          "slug": "concepts/supervisor",
-          "label": "Supervisor"
-        },
-        {
           "slug": "concepts/skill",
           "label": "Skill"
         },
@@ -142,20 +136,10 @@
         {
           "slug": "concepts/configuration",
           "label": "Configuration & settings"
-        }
-      ]
-    },
-    {
-      "id": "concept-orchestrator",
-      "label": "Orchestrator",
-      "items": [
+        },
         {
           "slug": "concepts/vibestrate-md",
           "label": "VIBESTRATE.md"
-        },
-        {
-          "slug": "concepts/consult",
-          "label": "Consult"
         }
       ]
     },
@@ -203,6 +187,10 @@
       "id": "lifecycle",
       "label": "Run lifecycle",
       "items": [
+        {
+          "slug": "concepts/state",
+          "label": "Run state"
+        },
         {
           "slug": "task-lifecycle",
           "label": "Task lifecycle"
