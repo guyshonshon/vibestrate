@@ -30,9 +30,11 @@ import type {
  * Full width: composition on the left (brief, a 4-up flow grid, a strong config
  * panel, crew, Start), a contextual right rail on the right (the selected flow's
  * steps, plus the utilities you reach for to compose efficiently: pick up from
- * the roadmap, ask the orchestrator, recent activity). Brand-continued + crafted:
- * grain-textured ground, raised planes with real depth, Bricolage/Geist/mono
- * hierarchy, violet only as the active signal, emerald only on Start. No glass.
+ * the roadmap, ask the orchestrator, recent activity). Component vocabulary is
+ * ported 1:1 from the marketing docs: SQUARE corners, flat ink surfaces with a
+ * hairline, the `.brand-card` left-accent that turns violet on hover/active,
+ * tracked-uppercase labels, Bricolage/Geist/mono. A grain texture over the ground
+ * is the one twist; violet is only the active signal, emerald only on Start.
  */
 export function RunComposePage() {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
@@ -142,7 +144,7 @@ export function RunComposePage() {
               onChange={(e) => setBrief(e.target.value)}
               placeholder="Add structured logging to the settings save handler"
               className="slab min-h-[120px] w-full resize-y px-4 py-3.5 text-[15px] leading-[1.6] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
-              style={{ boxShadow: "var(--shadow-contact)" }}
+             
             />
 
             {/* Flow - 4-up boxes in a container */}
@@ -167,10 +169,8 @@ export function RunComposePage() {
                           type="button"
                           onClick={() => setFlowId(on ? "" : f.id)}
                           className={cn(
-                            "flex flex-col gap-2 rounded-md border px-3 py-3 text-left transition",
-                            on
-                              ? "border-violet-soft/50 bg-violet-mid/[0.12]"
-                              : "border-[color:var(--line)] bg-ink-0/40 hover:border-violet-soft/25 hover:bg-fog-100/[0.02]",
+                            "brand-card flex flex-col gap-2 px-3 py-3 text-left",
+                            on && "is-active",
                           )}
                         >
                           <div className="flex items-center justify-between">
@@ -178,7 +178,7 @@ export function RunComposePage() {
                             {on ? (
                               <Check className="h-3.5 w-3.5 text-violet-soft" strokeWidth={2.2} />
                             ) : f.id === defaultFlow ? (
-                              <span className="rounded border border-[color:var(--line)] px-1 py-px text-[9px] uppercase tracking-wide text-fog-500">
+                              <span className=" border border-[color:var(--line)] px-1 py-px text-[9px] uppercase tracking-wide text-fog-500">
                                 default
                               </span>
                             ) : null}
@@ -200,14 +200,14 @@ export function RunComposePage() {
             {/* Configuration - a strong, present panel */}
             <section>
               <SectionLabel>Configuration</SectionLabel>
-              <div className="slab p-4" style={{ boxShadow: "var(--shadow-contact)" }}>
+              <div className="slab p-4">
                 <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
                   <ConfigGroup label="Run mode">
                     <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
                     <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />
                   </ConfigGroup>
                   <ConfigGroup label="Tuning">
-                    <label className="flex h-8 items-center gap-1.5 rounded-md border border-[color:var(--line)] px-2.5 text-[11.5px] text-fog-300">
+                    <label className="flex h-8 items-center gap-1.5 border border-[color:var(--line)] px-2.5 text-[11.5px] text-fog-300">
                       <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.8} /> Effort
                       <select
                         value={effort ?? ""}
@@ -234,7 +234,7 @@ export function RunComposePage() {
                           type="button"
                           onClick={() => setCrewId(c.id)}
                           className={cn(
-                            "rounded-md border px-3 py-1.5 text-[12px] transition",
+                            " border px-3 py-1.5 text-[12px] transition",
                             on
                               ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
                               : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
@@ -250,7 +250,7 @@ export function RunComposePage() {
                       <select
                         value={personaId ?? ""}
                         onChange={(e) => setPersonaId(e.target.value || null)}
-                        className="h-8 max-w-[200px] rounded-md border border-[color:var(--line)] bg-transparent px-2.5 text-[12px] text-fog-100 outline-none"
+                        className="h-8 max-w-[200px] border border-[color:var(--line)] bg-transparent px-2.5 text-[12px] text-fog-100 outline-none"
                       >
                         {personas.map((p) => (
                           <option key={p.id} value={p.id} className="bg-ink-200">
@@ -271,7 +271,7 @@ export function RunComposePage() {
                 disabled={!canStart}
                 onClick={() => start()}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-md px-5 py-2.5 text-[13.5px] font-medium transition",
+                  "inline-flex items-center gap-2 px-5 py-2.5 text-[13.5px] font-medium transition",
                   canStart
                     ? "bg-emerald text-ink-0 hover:bg-emerald-mid"
                     : "cursor-not-allowed border border-[color:var(--line)] text-fog-500",
@@ -285,7 +285,7 @@ export function RunComposePage() {
               </span>
             </div>
             {error ? (
-              <div className="rounded-md border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2 text-[12px] text-fail">
+              <div className=" border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2 text-[12px] text-fail">
                 {error}
               </div>
             ) : null}
@@ -310,7 +310,7 @@ export function RunComposePage() {
                         type="button"
                         disabled={busy}
                         onClick={() => start(s.taskId)}
-                        className="flex w-full items-center gap-2 rounded px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04] disabled:opacity-50"
+                        className="flex w-full items-center gap-2  px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04] disabled:opacity-50"
                       >
                         <ArrowRight className="h-3 w-3 shrink-0 text-fog-500" strokeWidth={1.8} />
                         <span className="flex-1 truncate text-[12.5px] text-fog-100">{s.title}</span>
@@ -353,7 +353,7 @@ export function RunComposePage() {
                       <button
                         type="button"
                         onClick={() => navigate({ kind: "run", runId: r.runId })}
-                        className="flex w-full items-center gap-2 rounded px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04]"
+                        className="flex w-full items-center gap-2  px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04]"
                       >
                         <RunStatusBadge status={r.status} compact />
                         <span className="flex-1 truncate text-[12px] text-fog-200">
@@ -387,8 +387,8 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {});
   return (
-    <div className="slab overflow-hidden" style={{ boxShadow: "var(--shadow-contact)" }}>
-      <div className="border-b border-[color:var(--line)] bg-violet-mid/[0.10] px-4 py-2.5">
+    <div className="brand-callout overflow-hidden">
+      <div className="border-b border-[color:var(--line)] px-4 py-2.5">
         <div className="font-display text-[14px] font-medium text-fog-100">
           {flow.definition.label}
         </div>
@@ -404,7 +404,7 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
         ) : null}
         <ol className="flex flex-col gap-1">
           {steps.map((s) => (
-            <li key={s.id} className="flex items-center gap-2.5 rounded px-1.5 py-1">
+            <li key={s.id} className="flex items-center gap-2.5  px-1.5 py-1">
               <StepKindDot kind={s.kind} />
               <span className="flex-1 truncate text-[12px] text-fog-200">{s.label}</span>
               {s.seat ? (
@@ -512,7 +512,7 @@ function Toggle({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11.5px] transition",
+        "flex h-8 items-center gap-1.5 border px-2.5 text-[11.5px] transition",
         on
           ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
           : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
@@ -541,7 +541,7 @@ function StepPips({ steps, active }: { steps: FlowStepDefinition[]; active: bool
       {shown.map((s, i) => (
         <span
           key={i}
-          className={cn("w-[3px] rounded-sm", tone(s.kind))}
+          className={cn("w-[3px]", tone(s.kind))}
           style={{ height: `${7 + ((i * 5) % 10)}px` }}
         />
       ))}

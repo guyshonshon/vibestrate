@@ -176,18 +176,48 @@
  * Replaces `.glass` going forward: a solid ground, a 1px line, hard 4-8px
  * radius, a crisp contact shadow - NO backdrop blur, NO glow. Reads against any
  * scene via the --s-* tokens, falling back to the ink defaults. */
+/* Surfaces match the marketing docs exactly: SQUARE corners (radius 0), solid
+ * ink fill, a 1px hairline, FLAT (no ambient shadow - depth is rare and lives in
+ * occlusion/contact, not glow). This is what makes the dashboard read as the
+ * same site, not a generic rounded-card app. */
 .slab {
   background: var(--s-slab, var(--color-ink-100));
   color: var(--s-slab-ink, var(--color-fog-100));
   border: 1px solid var(--s-line, var(--line));
-  border-radius: 8px;
-  box-shadow: var(--shadow-contact);
+  border-radius: 0;
 }
 .slab-flat {
   background: var(--s-slab, var(--color-ink-100));
   color: var(--s-slab-ink, var(--color-fog-100));
   border: 1px solid var(--s-line, var(--line));
-  border-radius: 6px;
+  border-radius: 0;
+}
+
+/* Brand card - ported 1:1 from the marketing `.docs-cards > p`: square,
+ * `ink-50` fill, a 1px hairline + a 2px LEFT accent that turns violet on
+ * hover/active. This is the site's actual card; the left accent is the
+ * brand pattern (the marketing uses it deliberately - not a generic stripe). */
+.brand-card {
+  background: var(--color-ink-50);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  border-radius: 0;
+  transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+}
+.brand-card:hover {
+  border-left-color: var(--violet-soft);
+  background: var(--color-ink-100);
+}
+.brand-card.is-active {
+  border-left-color: var(--violet-soft);
+  background: var(--color-ink-100);
+}
+/* Brand callout - the docs aside: square, hairline + a 3px left violet edge. */
+.brand-callout {
+  background: var(--color-ink-100);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--violet-soft);
+  border-radius: 0;
 }
 
 /* ── Surface helpers ─────────────────────────────────────────────────

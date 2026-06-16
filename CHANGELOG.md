@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.112
+
+- **Run page now matches the marketing site's component language.** It was in the
+  right tokens but the wrong component vocabulary (rounded, heavy-shadow,
+  violet-tinted panels). Reworked to the docs' actual components, ported 1:1:
+  square corners (no radius), flat ink surfaces with a 1px hairline, and the
+  `.brand-card` left-accent that turns violet on hover/active (the marketing's
+  real card, from `.docs-cards`). Flow boxes, the flow-detail callout, the config
+  panel, and the rail cards all use it. Reads as the same site now, not a generic
+  rounded-card app.
+
 ## 0.7.111
 
 - **The run page is now a task command center.** Full-width, two-column: compose
