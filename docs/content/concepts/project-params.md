@@ -5,9 +5,9 @@ section: concepts
 slug: concepts/project-params
 ---
 
-Project parameters are Vibestrate's durable memory of your project's answers, so it doesn't ask you the same questions on every run. A [Flow](./flow.md) declares the *shape* of what it needs (typed `params:` like name, niche, brand color), the project params hold the *values*, and param resolution fills the gaps from them. You fill your project's data once, and every later run reuses it. The values live in `.vibestrate/project-params.json` (gitignored).
+Some Flows need a few answers before they can do their job, like a project name, a brand color, or which framework to use. **Project parameters** let you give those answers once. Every later run reuses them, so Vibestrate stops asking you the same things over and over.
 
-This is model-independent. Vibestrate owns the questions (built from the Flow's param schema) and the form. A provider is only an optional helper that can draft a value you review, never part of the answer loop.
+The [Flow](./flow.md) says what it needs (typed values like `projectName` or `framework`), you fill them in a single time, and the values are saved in `.vibestrate/project-params.json` (gitignored) and reused from then on.
 
 <div class="docs-flow">
 <div><b>Declare</b><span>A Flow lists the typed params it needs, like name, niche, brand color.</span></div>
