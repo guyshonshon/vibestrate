@@ -9,6 +9,8 @@ A skill is just a markdown file you write to teach your agents your project's co
 
 Here are the steps, in order.
 
+<div class="docs-flow"><div><b>Create</b><span>Make .vibestrate/skills/&lt;id&gt;.md.</span></div><div><b>Write</b><span>Plain markdown, your conventions.</span></div><div><b>Check</b><span>vibe skills list and show.</span></div><div><b>Attach</b><span>To an agent or a single run.</span></div></div>
+
 ## 1. Create the file
 
 Make a file at `.vibestrate/skills/<id>.md`. The filename, minus the `.md`, becomes the skill's id, so pick something short and kebab-case (lowercase words joined by hyphens), like `auth-conventions`, `payment-rules`, or `oncall-runbook`.
@@ -65,6 +67,12 @@ If your project already uses Claude Code's skill discovery, Vibestrate reads `.c
 
 ## What makes a skill good
 
+<div class="docs-callout">
+
+**Write it like docs for a colleague, not a prompt.** State what you'd tell a new engineer on day one: where the rule applies, what to do, what not to do. Skip the persuasion.
+
+</div>
+
 A good skill is precise about where it applies and what to do. A few habits that pay off:
 
 - **Name the surface.** "When touching `src/payments/...`" is much more useful to an agent than "for payment changes."
@@ -93,5 +101,12 @@ This frontmatter is optional, and most skills don't need it.
 
 ## Going deeper
 
-- [Skill (concept)](/docs/concepts/skill) - what a skill is and how agents use it.
-- [Attach skills (getting started)](/docs/getting-started/skills) - the quick path to your first one.
+<div class="docs-cards">
+
+**[Skill (concept)](/docs/concepts/skill)**
+What a skill is and how agents use it.
+
+**[Attach skills (getting started)](/docs/getting-started/skills)**
+The quick path to your first one.
+
+</div>

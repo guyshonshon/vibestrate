@@ -7,6 +7,25 @@ slug: workflows/inspect-progress
 
 When Vibestrate is doing work for you, you can watch it as it goes. There are three places to look.
 
+<div class="docs-callout">
+
+**Pick the surface that fits the moment.** The terminal for a quick glance while it runs, the dashboard for the full live picture, and the files on disk for the complete record you can read back at any time.
+
+</div>
+
+<div class="docs-cards">
+
+**The terminal**
+A per-stage header right where you started the run. Status, the agent at work, and the check output streaming to your screen.
+
+**The dashboard**
+Mission Control, a web view next to the run. A live timeline of every step, plus metrics, changed files, and the running diff.
+
+**The files on disk**
+Everything written under `.vibestrate/runs/<runId>/`. The full, append-only record of the run, there to read back whenever you want.
+
+</div>
+
 ## The terminal
 
 If you start a run with the plain `vibe run` command, the terminal prints a header for each stage. The header shows the current status, the name of the agent doing the work, and any output it captured. When the checks run (the "validation" step that runs commands to confirm the work holds up), the output of those commands streams straight to your screen.
@@ -51,7 +70,13 @@ Everything is recorded at `.vibestrate/runs/<runId>/`:
   outputs/                   raw responses received
 ```
 
-The `events.jsonl` file is the source of truth for what happened. Every state transition is one JSON line, and the file is append-only (lines are only added, never changed). Use it to dig into a run after the fact:
+<div class="docs-callout">
+
+**`events.jsonl` is the source of truth.** Every state transition is one JSON line, and the file is append-only, so lines are only added, never changed. It is the record to trust when you want to know exactly what happened.
+
+</div>
+
+Use it to dig into a run after the fact:
 
 ```bash
 cat .vibestrate/runs/abc123/events.jsonl | jq -c 'select(.type == "status-change")'

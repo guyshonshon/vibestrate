@@ -5,7 +5,17 @@ section: extending
 slug: extending/add-provider
 ---
 
-A **provider** is the local command-line tool that actually runs an AI model on your machine. Vibestrate's built-in detector already knows about Claude Code, Codex, Aider, Ollama, and OpenCode. If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`.
+A **provider** is the local command-line tool that actually runs an AI model on your machine. Vibestrate's built-in detector already knows about these five:
+
+<div class="docs-chips"><span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span><span>OpenCode</span></div>
+
+If you want to use a CLI it doesn't know about, or you want to change the flags it passes to one it does know, you declare your own under `providers:` in `project.yml`.
+
+<div class="docs-callout">
+
+**Any local CLI works.** If a command takes a prompt and returns a change, Vibestrate can drive it. There is no plugin to write and no SDK to learn. You point at the binary, say how the prompt gets in, and that is the whole contract.
+
+</div>
 
 This guide walks through that, start to finish.
 
@@ -75,17 +85,29 @@ The `claude-code` type unlocks deeper integration: it can report a session id, t
 
 ## What a provider can and can't do
 
-A provider's job is deliberately narrow. It can:
+A provider's job is deliberately narrow.
 
-- Receive a prompt, over stdin or argv.
-- Return text, and for editing providers, edit files in the working directory.
-- Optionally report token usage and a session id on stdout in a recognized shape.
+<div class="docs-cards">
 
-A provider does not:
+**Can: take a prompt**
+Receive a prompt, over stdin or argv.
 
-- Decide which agent role it's being used for.
-- Manage the worktree.
-- Apply its own output as a diff. That's the executor's job, mediated by the path guard.
+**Can: change files**
+Return text, and for editing providers, edit files in the working directory.
+
+**Can: report usage**
+Optionally report token usage and a session id on stdout in a recognized shape.
+
+**Can't: pick its role**
+A provider does not decide which agent role it's being used for. The crew config does.
+
+**Can't: touch the worktree**
+A provider does not manage the worktree. The orchestrator sets it up and points the CLI at it.
+
+**Can't: apply its own diff**
+A provider does not apply its own output as a diff. That's the executor's job, mediated by the path guard.
+
+</div>
 
 ## Common mistakes
 

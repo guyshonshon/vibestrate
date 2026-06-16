@@ -7,11 +7,28 @@ slug: troubleshooting
 
 When something goes wrong, find the symptom that matches yours below, then run the fix. Each entry tells you what you'll see, what's usually behind it, the command that fixes it, and how to check it worked.
 
+<div class="docs-callout">
+
+**Start with `vibe doctor`.** Before you dig through the list, run it once. It checks your install, your providers, and your config in one pass, and most of the fixes below begin from what it reports.
+
+</div>
+
 ## Install and setup
 
-### `vibe: command not found` right after installing
+<div class="docs-cards">
 
+**`vibe: command not found` right after installing**
 You ran `npm install -g vibestrate` and it worked, but `vibe --version` says "command not found." This almost always means your shell's PATH doesn't include npm's global bin directory.
+
+**`vibe init` says "not a git repository"**
+Init refuses to run with a "not a git repository" error. Vibestrate needs git for worktree isolation, and the current directory hasn't been initialized as a git repo yet.
+
+**`vibe doctor` says "no providers ready"**
+Doctor lists every provider as `missing` or `detected-needs-setup`. That means no coding-agent CLI is installed on your PATH, or none has a verified preset.
+
+</div>
+
+### `vibe: command not found` right after installing
 
 Find where npm puts global binaries, then add that directory to your PATH:
 
@@ -24,8 +41,6 @@ To check it took, run `which vibe`. You should get a real path back.
 
 ### `vibe init` says "not a git repository"
 
-Init refuses to run with a "not a git repository" error. Vibestrate needs git for worktree isolation, and the current directory hasn't been initialized as a git repo yet.
-
 Initialize git, make a first commit, then init:
 
 ```bash
@@ -37,8 +52,6 @@ vibe init
 To check it worked, run `git rev-parse --is-inside-work-tree`. It should return `true`.
 
 ### `vibe doctor` says "no providers ready"
-
-Doctor lists every provider as `missing` or `detected-needs-setup`. That means no coding-agent CLI is installed on your PATH, or none has a verified preset.
 
 Install at least one coding-agent CLI:
 
@@ -61,17 +74,23 @@ To check it worked, run `vibe provider detect`. At least one provider should sho
 
 ## Providers
 
-### Provider test fails with "command not found"
+<div class="docs-cards">
 
+**Provider test fails with "command not found"**
 `vibe provider test claude` comes back with "claude: command not found." The provider's CLI isn't on the PATH of the shell Vibestrate was started from.
+
+**The test passes, but real runs fail with "unexpected output"**
+`vibe provider test` reports success, yet actual runs end with "could not parse provider output." Usually the provider's prompt-flag preset is producing output Vibestrate can't read, because the provider changed its output format between releases.
+
+</div>
+
+### Provider test fails with "command not found"
 
 Add the CLI to your PATH. If you installed it through your shell, restart your terminal so the new PATH loads.
 
 To check it worked, run `which claude` (or whichever CLI you're using). It should return a real path.
 
 ### The test passes, but real runs fail with "unexpected output"
-
-`vibe provider test` reports success, yet actual runs end with "could not parse provider output." Usually the provider's prompt-flag preset is producing output Vibestrate can't read, because the provider changed its output format between releases.
 
 Walk through the setup wizard again to confirm the flags:
 
@@ -83,9 +102,23 @@ If the flags are right but the output format changed, file an issue with the pro
 
 ## Runs that won't start or stall
 
-### Run fails right away: "validation command not configured"
+<div class="docs-cards">
 
+**Run fails right away: "validation command not configured"**
 The run reaches `validating`, raises "no validation commands configured," and ends in `failed`. That means `commands.validate` in `project.yml` is empty.
+
+**Run stuck in `waiting_for_approval`**
+Status sits at `waiting_for_approval` and nothing is happening. A policy gate at this stage requires a human to approve it on purpose (set by `policies.requireApprovalAtStages`).
+
+**Run stuck in `paused`**
+Status reads `paused`, and `vibe resume` doesn't seem to do anything. Either the orchestrator isn't running anymore (the process that owns the run ended), or the resume just hasn't reached the next polling tick yet.
+
+**Worktree creation fails: "main branch has uncommitted changes"**
+The run aborts at the start with a `requireCleanMain` violation. Your `project.yml` has `git.requireCleanMain: true` and `main` has uncommitted edits.
+
+</div>
+
+### Run fails right away: "validation command not configured"
 
 Set your validation commands:
 
@@ -99,8 +132,6 @@ To check it worked, run `vibe config get commands.validate`. It should show your
 
 ### Run stuck in `waiting_for_approval`
 
-Status sits at `waiting_for_approval` and nothing is happening. A policy gate at this stage requires a human to approve it on purpose (set by `policies.requireApprovalAtStages`).
-
 List the pending approvals and decide on one:
 
 ```bash
@@ -112,8 +143,6 @@ To check it worked, watch the status move back into the stage it was about to en
 
 ### Run stuck in `paused`
 
-Status reads `paused`, and `vibe resume` doesn't seem to do anything. Either the orchestrator isn't running anymore (the process that owns the run ended), or the resume just hasn't reached the next polling tick yet.
-
 If Vibestrate's process is still alive, run `vibe resume <runId>` and give it a few seconds for the next stage-boundary check.
 
 If the process ended, start it again with `vibe run` or `vibe ui`, and the durable state gets picked up automatically.
@@ -121,8 +150,6 @@ If the process ended, start it again with `vibe run` or `vibe ui`, and the durab
 To check it worked, run `vibe status`. The run should be transitioning out of `paused`.
 
 ### Worktree creation fails: "main branch has uncommitted changes"
-
-The run aborts at the start with a `requireCleanMain` violation. Your `project.yml` has `git.requireCleanMain: true` and `main` has uncommitted edits.
 
 Commit or stash your changes, then re-run:
 
@@ -141,9 +168,17 @@ To check it worked, look for the worktree under `../.vibestrate-worktrees/`.
 
 ## Notifications and dashboard
 
-### Notifications never arrive
+<div class="docs-cards">
 
+**Notifications never arrive**
 You set up a Slack or webhook gateway, ran a task, and got nothing. Usually the gateway is registered but disabled, the webhook URL is wrong, or the notification severity is below the gateway's threshold.
+
+**A dashboard tab is blank**
+`vibe ui` opens, but a tab shows no data even though you have runs. Either the browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from.
+
+</div>
+
+### Notifications never arrive
 
 Look at your gateways and notifications:
 
@@ -160,15 +195,18 @@ vibe notifications test <gatewayId>
 
 ### A dashboard tab is blank
 
-`vibe ui` opens, but a tab shows no data even though you have runs. Either the browser cached an older asset bundle, or the runs are in a different project root than the one `vibe ui` was started from.
-
 Hard-reload the page (Cmd-Shift-R / Ctrl-Shift-R). Then confirm `vibe ui` is running from the project root you expect, since the dashboard reads `.vibestrate/runs/` from `cwd`.
 
 ## Worktrees left behind
 
-### Worktree didn't get cleaned up after an abort
+<div class="docs-cards">
 
+**Worktree didn't get cleaned up after an abort**
 `vibe abort <runId>` succeeded, but `../.vibestrate-worktrees/<runId>-<slug>` is still on disk. This is by design: worktrees are preserved across `aborted`, `blocked`, and `failed` so you can inspect or copy out partial work.
+
+</div>
+
+### Worktree didn't get cleaned up after an abort
 
 When you're done with it, remove the worktree and its branch yourself:
 
