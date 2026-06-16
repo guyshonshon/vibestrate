@@ -82,7 +82,7 @@ Add skills, add models, or write your own Flow.
 
 **A supervisor, not a chatbot.** It runs the work, judges it, and reports back with real feedback. The terminal and dashboard are how you watch and steer.
 
-**An advisor you can ask.** [Consult](/docs/concepts/vibestrate-md) knows your project and answers questions read-only, without changing a thing.
+**An advisor you can ask.** [Consult](/docs/concepts/consult) knows your project and answers questions read-only, without changing a thing.
 
 **Many models, one task.** Different AIs each bring their own view, and Vibestrate makes them check each other instead of rubber-stamping.
 
