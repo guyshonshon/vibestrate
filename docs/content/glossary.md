@@ -7,6 +7,8 @@ slug: glossary
 
 Short, plain definitions for the words Vibestrate's docs use.
 
+<div class="docs-glossary">
+
 **Action Broker.** The one checkpoint every real effect has to pass through, whether that's starting a provider, running a command, or writing a file. For each effect it decides allow, deny, or ask a human first, then writes down what it decided and why in `.vibestrate/runs/<runId>/actions.ndjson`. This is where **Policy** actually gets enforced in the running code.
 
 **Crew.** Your local team of Roles. A run picks one Crew (default: `defaultCrew`) and matches the Flow's Seats to the Roles in it. See [Crew](/docs/concepts/crew).
@@ -88,3 +90,5 @@ Short, plain definitions for the words Vibestrate's docs use.
 **Worktree.** A separate git working directory bound to its own branch. Vibestrate creates one per run under `git.worktreeDir`. See [Worktree](/docs/concepts/worktree).
 
 **Workflow.** The static, ordered description of the stages a run progresses through. See [Workflow](/docs/concepts/workflow).
+
+</div>
