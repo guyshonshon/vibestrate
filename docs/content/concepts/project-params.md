@@ -1,20 +1,20 @@
 ---
-title: Project profile
+title: Project parameters
 description: Durable param memory - fill your project's typed answers once and every run reuses them.
 section: concepts
-slug: concepts/project-profile
+slug: concepts/project-params
 ---
 
-# Project profile
+# Project parameters
 
 ## Basically
 
-A **project profile** is Vibestrate's durable memory of your project's answers.
+**Project parameters** are Vibestrate's durable memory of your project's answers.
 A [Flow](./flow.md) declares the *shape* of what it needs (typed `params:` -
-name, niche, brand color); the profile holds the *values*; param resolution
-fills the gaps from it. You fill your project's data **once**, and every later
-run reuses it instead of asking again. It lives in
-`.vibestrate/project-profile.json` (gitignored).
+name, niche, brand color); the project params hold the *values*; param
+resolution fills the gaps from them. You fill your project's data **once**, and
+every later run reuses it instead of asking again. They live in
+`.vibestrate/project-params.json` (gitignored).
 
 It's **model-independent**: Vibestrate owns the questions (built from the Flow's
 param schema) and the form. A provider is only an optional helper that can draft
@@ -24,16 +24,16 @@ a value you review - never in the answer loop.
 
 ```
 # Fill once (the --flow form type-checks each value):
-vibe profile set --flow scaffold projectName=Acme framework=astro
+vibe params set --flow scaffold projectName=Acme framework=astro
 
 # Now a run just uses them - no prompts, no flags:
 vibe run --flow scaffold
 
-vibe profile list
+vibe params list
 ```
 
-In the dashboard, the **Project profile** panel on the Settings page does the
-same, and the Composer's parameter form prefills from the profile.
+In the dashboard, the **Project parameters** panel on the Settings page does the
+same, and the Composer's parameter form prefills from the stored values.
 
 ## How a value is chosen
 
@@ -41,11 +41,11 @@ At run start each declared param resolves in this order:
 
 ```
 explicit --param / body.params   >   VIBESTRATE_PARAM_<NAME> env
-   >   project profile   >   flow default   >   prompt (TTY) / fail-fast (CI)
+   >   project params   >   flow default   >   prompt (TTY) / fail-fast (CI)
 ```
 
 - **Explicit** flags win, so a one-off override is easy (and an empty
-  `--param x=` means "not provided" - the profile/default still fills it).
+  `--param x=` means "not provided" - the stored value/default still fills it).
 - **`VIBESTRATE_PARAM_<NAME>`** is the clean CI seed: export the value, no
   interactive step, the run never hangs unattended. (`<NAME>` is the param name
   upper-snake-cased: `colorTokens` -> `VIBESTRATE_PARAM_COLOR_TOKENS`.)
@@ -63,10 +63,10 @@ param of that name - the "fill `niche` once, every Flow sees it" case.
 ## Secrets
 
 A `secret: true` param **never** stores the raw secret. You give it an
-environment variable **name**, and the profile stores an `env:NAME` reference:
+environment variable **name**, and the store keeps an `env:NAME` reference:
 
 ```
-vibe profile set --flow deploy api_key=OPENAI_API_KEY   # stores env:OPENAI_API_KEY
+vibe params set --flow deploy api_key=OPENAI_API_KEY   # stores env:OPENAI_API_KEY
 ```
 
 A run that needs it **fails fast** if that env var isn't set, rather than
@@ -85,21 +85,21 @@ params:
       instruction: Generate a cohesive color palette for a {{params.niche}} brand
 ```
 
-Then the Settings panel shows a **Generate** button (and `vibe profile generate
+Then the Settings panel shows a **Generate** button (and `vibe params generate
 --flow <id> palette` on the CLI). It calls a provider once, read-only, with your
-other known profile values interpolated in, and returns a **suggestion** you
+other known param values interpolated in, and returns a **suggestion** you
 review/edit/accept. It is strictly user-initiated and never auto-applied - a
 model can't silently make a brand color your project's truth.
 
 ## Editing and removing
 
-Editing a value in the Settings panel or via `vibe profile set` **supersedes**
+Editing a value in the Settings panel or via `vibe params set` **supersedes**
 the old one (provenance - `user` / `generated` - is tracked). Remove a value
-explicitly with `vibe profile unset <key>`; Vibestrate never purges your profile
-on its own.
+explicitly with `vibe params unset <key>`; Vibestrate never purges your stored
+params on its own.
 
 ## Related
 
-- [Flow](./flow.md) - declares the typed `params:` a profile fills.
+- [Flow](./flow.md) - declares the typed `params:` the project params fill.
 - [Profile](./profile.md) - a different thing: how *strong* a Role runs
-  (provider + model + effort), not project data.
+  (provider + model + effort), not project data. Set with `vibe profile`.

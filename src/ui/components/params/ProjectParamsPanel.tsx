@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Database, Sparkles, Trash2, Save, KeyRound } from "lucide-react";
-import { api, type ProjectProfileView } from "../../lib/api.js";
+import { api, type ProjectParamsView } from "../../lib/api.js";
 import type { DiscoveredFlow, FlowParam } from "../../lib/types.js";
 
 /**
- * Project profile (durable param memory). The explicit editor for the typed
- * answers persisted in `.vibestrate/project-profile.json` and reused across
+ * Project parameters (durable param memory). The explicit editor for the typed
+ * answers persisted in `.vibestrate/project-params.json` and reused across
  * runs. Unlike the run Composer (which only ADDS unset values), this is where
  * overwriting a stored value is allowed - editing here supersedes.
  *
@@ -13,9 +13,9 @@ import type { DiscoveredFlow, FlowParam } from "../../lib/types.js";
  * Vibestrate's, a provider is only an optional "Generate" helper. Secrets are
  * never typed here - a secret param collects an env var NAME (stored `env:NAME`).
  */
-export function ProjectProfilePanel() {
+export function ProjectParamsPanel() {
   const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
-  const [profile, setProfile] = useState<ProjectProfileView | null>(null);
+  const [stored, setStored] = useState<ProjectParamsView | null>(null);
   const [flowId, setFlowId] = useState<string>("");
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -23,21 +23,21 @@ export function ProjectProfilePanel() {
   const [notice, setNotice] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null);
 
-  async function loadProfile() {
-    setProfile(await api.getProfile());
+  async function reload() {
+    setStored(await api.getParams());
   }
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const [f, p] = await Promise.all([api.listFlows(), api.getProfile()]);
+        const [f, p] = await Promise.all([api.listFlows(), api.getParams()]);
         if (cancelled) return;
         const withParams = f.flows.filter(
           (fl) => fl.definition.params && Object.keys(fl.definition.params).length > 0,
         );
         setFlows(withParams);
-        setProfile(p);
+        setStored(p);
         if (withParams[0]) setFlowId(withParams[0].id);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -54,13 +54,13 @@ export function ProjectProfilePanel() {
   );
   const params = selected?.definition.params ?? {};
 
-  // The stored key for a param (mirrors profileKeyFor): bare if shared, else
+  // The stored key for a param (mirrors paramKeyFor): bare if shared, else
   // `<flowId>.<param>`. Used to show the current stored value per field.
   function storageKey(name: string, def: FlowParam): string {
     return def.shared ? name : `${flowId}.${name}`;
   }
-  function storedFor(name: string, def: FlowParam): ProjectProfileView["values"][string] | undefined {
-    return profile?.values[storageKey(name, def)];
+  function storedFor(name: string, def: FlowParam): ProjectParamsView["values"][string] | undefined {
+    return stored?.values[storageKey(name, def)];
   }
 
   // Reset edits when the flow changes.
@@ -81,8 +81,8 @@ export function ProjectProfilePanel() {
     setError(null);
     setNotice(null);
     try {
-      const r = await api.setProfile({ flowId, values });
-      setProfile(r.profile);
+      const r = await api.setParams({ flowId, values });
+      setStored(r.params);
       setEdits({});
       setNotice(
         r.warnings.length > 0
@@ -117,8 +117,8 @@ export function ProjectProfilePanel() {
     setBusy(true);
     setError(null);
     try {
-      await api.unsetProfileKey(key);
-      await loadProfile();
+      await api.unsetParamKey(key);
+      await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -127,15 +127,15 @@ export function ProjectProfilePanel() {
   }
 
   const storedEntries = useMemo(
-    () => Object.entries(profile?.values ?? {}).sort(([a], [b]) => a.localeCompare(b)),
-    [profile],
+    () => Object.entries(stored?.values ?? {}).sort(([a], [b]) => a.localeCompare(b)),
+    [stored],
   );
 
   return (
     <section className="px-4 py-4">
       <header className="flex items-center gap-2 text-[13px] font-medium text-vibestrate-fg">
         <Database className="h-3.5 w-3.5" strokeWidth={1.6} />
-        Project profile
+        Project parameters
         <span className="text-[11px] font-normal text-vibestrate-fg-muted">
           · durable param memory (filled once, reused across runs)
         </span>

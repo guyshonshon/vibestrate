@@ -102,7 +102,7 @@ export function buildConfigView(config: ProjectConfig): ConfigView {
     editable: {
       surface: "Profiles page",
       route: "profiles",
-      cli: ["vibe profiles list", "vibe profiles add <id> --provider <p>"],
+      cli: ["vibe profile list", "vibe profile add <id> --provider <p>"],
       live: true,
     },
     rows:

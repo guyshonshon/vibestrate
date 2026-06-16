@@ -80,9 +80,9 @@ import {
   substituteParams,
 } from "../flows/runtime/prompt-params.js";
 import {
-  ProfileStore,
-  seedParamsFromProfile,
-} from "../project/project-profile.js";
+  ParamStore,
+  seedParamsFromStore,
+} from "../project/project-params.js";
 import {
   capturePhaseSnapshot,
   pruneOldSnapshots,
@@ -606,8 +606,8 @@ export class Orchestrator {
     // server route spawns `vibe run`), so seeding here covers every run.
     let seededParams = this.rawParams;
     if (flow.params && Object.keys(flow.params).length > 0) {
-      const profile = await new ProfileStore(this.projectRoot).read();
-      seededParams = seedParamsFromProfile(
+      const profile = await new ParamStore(this.projectRoot).read();
+      seededParams = seedParamsFromStore(
         flow.params,
         flow.flowId,
         this.rawParams,

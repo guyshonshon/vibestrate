@@ -2,13 +2,13 @@ import { z } from "zod";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathExists, readText, ensureDir } from "../utils/fs.js";
-import { projectProfilePath, vibestrateRoot } from "../utils/paths.js";
+import { projectParamsPath, vibestrateRoot } from "../utils/paths.js";
 import { withFileMutex } from "../utils/file-mutex.js";
 import { scanTextForSecrets } from "../core/diff-service.js";
 import { resolveFlowParams } from "../flows/runtime/prompt-params.js";
 import type { FlowParam } from "../flows/schemas/flow-schema.js";
 
-// ── Durable project profile (Profiling / durable param memory) ───────────────
+// ── Durable param memory (project parameters) ────────────────────────────────
 //
 // A project-global store of typed param *answers* that survive across runs, so
 // a user fills "their project's data" once and every run reuses it. The mental
@@ -37,35 +37,35 @@ import type { FlowParam } from "../flows/schemas/flow-schema.js";
 export const PROFILE_SCHEMA_VERSION = 1;
 
 /** How a stored value got there - surfaced so the user knows what to trust. */
-export const profileSetBySchema = z.enum(["user", "generated", "default"]);
-export type ProfileSetBy = z.infer<typeof profileSetBySchema>;
+export const paramSetBySchema = z.enum(["user", "generated", "default"]);
+export type ParamSetBy = z.infer<typeof paramSetBySchema>;
 
-export const profileEntrySchema = z
+export const paramEntrySchema = z
   .object({
     /** The stored answer as a raw string (coerced against the param type at
      *  resolution time, exactly like a `--param` value). For a secret entry
      *  this is an `env:NAME` reference, never the literal secret. */
     value: z.string(),
-    setBy: profileSetBySchema,
+    setBy: paramSetBySchema,
     /** ISO timestamp of the write. */
     at: z.string(),
     /** True -> `value` is an `env:NAME` ref for a secret param. */
     secret: z.boolean().default(false),
   })
   .strict();
-export type ProfileEntry = z.infer<typeof profileEntrySchema>;
+export type ParamEntry = z.infer<typeof paramEntrySchema>;
 
-export const projectProfileSchema = z
+export const projectParamsSchema = z
   .object({
     schemaVersion: z.literal(PROFILE_SCHEMA_VERSION),
     /** storage key -> entry. Key is `<flowId>.<param>` (namespaced) or a bare
      *  param name (shared). */
-    values: z.record(z.string(), profileEntrySchema).default({}),
+    values: z.record(z.string(), paramEntrySchema).default({}),
   })
   .strict();
-export type ProjectProfile = z.infer<typeof projectProfileSchema>;
+export type ProjectParams = z.infer<typeof projectParamsSchema>;
 
-export function emptyProfile(): ProjectProfile {
+export function emptyParams(): ProjectParams {
   return { schemaVersion: PROFILE_SCHEMA_VERSION, values: {} };
 }
 
@@ -81,12 +81,12 @@ const ENV_REF_RE = /^env:([A-Z][A-Z0-9_]*)$/;
 const ENV_NAME_RE = /^[A-Z][A-Z0-9_]*$/;
 
 /** A valid profile storage key (shared bare name OR `<flowId>.<param>`). */
-export function isProfileKey(key: string): boolean {
+export function isParamKey(key: string): boolean {
   return SHARED_KEY_RE.test(key) || NAMESPACED_KEY_RE.test(key);
 }
 
 /** The storage key for a flow param: bare (shared) or `<flowId>.<param>`. */
-export function profileKeyFor(
+export function paramKeyFor(
   flowId: string,
   paramName: string,
   shared: boolean,
@@ -114,29 +114,29 @@ export function secretEnvVarName(value: string): string | null {
 
 // ── A typed write request the CLI / API both build ──────────────────────────
 
-export type ProfileSetRequest = {
+export type ParamSetRequest = {
   key: string;
   /** For a secret param: the env var NAME (stored as `env:NAME`). Otherwise the
    *  raw string value. */
   value: string;
-  setBy: ProfileSetBy;
+  setBy: ParamSetBy;
   secret: boolean;
 };
 
-export class ProfileWriteError extends Error {
+export class ParamWriteError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "ProfileWriteError";
+    this.name = "ParamWriteError";
   }
 }
 
 /** Validate + normalize one set request into the entry value to store. Pure;
- *  throws ProfileWriteError on a bad key, a secret-shaped non-secret value, or a
+ *  throws ParamWriteError on a bad key, a secret-shaped non-secret value, or a
  *  malformed env var name. Returns the string to persist. */
-export function normalizeProfileValue(req: ProfileSetRequest): string {
-  if (!isProfileKey(req.key)) {
-    throw new ProfileWriteError(
-      `Invalid profile key "${req.key}". Use a bare param name (shared) or "<flowId>.<param>".`,
+export function normalizeParamValue(req: ParamSetRequest): string {
+  if (!isParamKey(req.key)) {
+    throw new ParamWriteError(
+      `Invalid param key "${req.key}". Use a bare param name (shared) or "<flowId>.<param>".`,
     );
   }
   if (req.secret) {
@@ -144,7 +144,7 @@ export function normalizeProfileValue(req: ProfileSetRequest): string {
     // never lands in the JSON. Accept an already-formed `env:NAME` too.
     const name = secretEnvVarName(req.value) ?? req.value.trim();
     if (!ENV_NAME_RE.test(name)) {
-      throw new ProfileWriteError(
+      throw new ParamWriteError(
         `A secret param stores an environment variable NAME (e.g. OPENAI_API_KEY), not the value. "${req.value}" is not a valid env var name.`,
       );
     }
@@ -156,7 +156,7 @@ export function normalizeProfileValue(req: ProfileSetRequest): string {
   // unshaped credential can pass. The real secret guarantee is the env:NAME path.
   const matches = scanTextForSecrets(req.value);
   if (matches.length > 0) {
-    throw new ProfileWriteError(
+    throw new ParamWriteError(
       `Refusing to store "${req.key}": the value looks like a secret (${matches[0]!.pattern}). Declare the flow param \`secret: true\` and store an env var NAME instead.`,
     );
   }
@@ -170,16 +170,16 @@ export function normalizeProfileValue(req: ProfileSetRequest): string {
  *  (defaults to `process.env`) - returns soft `warnings` (e.g. an env var not yet
  *  set, a bare key) and hard `errors` (unknown param, bad type, bad key) for the
  *  caller to surface. Does NOT throw on a bad assignment - it collects errors. */
-export function buildProfileSetRequests(input: {
+export function buildParamSetRequests(input: {
   flowId: string | null;
   defs: Record<string, FlowParam> | null;
   assignments: { key: string; value: string }[];
-  setBy?: ProfileSetBy;
+  setBy?: ParamSetBy;
   env?: Record<string, string | undefined>;
-}): { requests: ProfileSetRequest[]; warnings: string[]; errors: string[] } {
+}): { requests: ParamSetRequest[]; warnings: string[]; errors: string[] } {
   const env = input.env ?? process.env;
   const setBy = input.setBy ?? "user";
-  const requests: ProfileSetRequest[] = [];
+  const requests: ParamSetRequest[] = [];
   const warnings: string[] = [];
   const errors: string[] = [];
 
@@ -213,15 +213,15 @@ export function buildProfileSetRequests(input: {
         }
       }
       requests.push({
-        key: profileKeyFor(input.flowId, key, def.shared),
+        key: paramKeyFor(input.flowId, key, def.shared),
         value,
         setBy,
         secret: def.secret,
       });
     } else {
-      if (!isProfileKey(key)) {
+      if (!isParamKey(key)) {
         errors.push(
-          `"${key}" is not a valid profile key. Use --flow with a param name, a bare name (project-global), or "<flowId>.<param>".`,
+          `"${key}" is not a valid param key. Use --flow with a param name, a bare name (project-global), or "<flowId>.<param>".`,
         );
         continue;
       }
@@ -240,35 +240,35 @@ export function buildProfileSetRequests(input: {
 }
 
 /** Append-or-replace store for the durable project profile. */
-export class ProfileStore {
+export class ParamStore {
   constructor(private readonly projectRoot: string) {}
 
   get filePath(): string {
-    return projectProfilePath(this.projectRoot);
+    return projectParamsPath(this.projectRoot);
   }
 
   /** Read the profile, or an empty one if absent. A torn/old-shape file throws
    *  (fail loud) rather than silently dropping a user's stored answers. */
-  async read(): Promise<ProjectProfile> {
-    if (!(await pathExists(this.filePath))) return emptyProfile();
+  async read(): Promise<ProjectParams> {
+    if (!(await pathExists(this.filePath))) return emptyParams();
     const text = await readText(this.filePath);
-    return projectProfileSchema.parse(JSON.parse(text));
+    return projectParamsSchema.parse(JSON.parse(text));
   }
 
   /** Set (create or replace) entries. Mutex-guarded read-modify-write; each
    *  value is normalized/guarded; the file is replaced atomically (temp+rename).
    *  `now` is injected so the store stays free of `Date.now()` and testable. */
-  async set(requests: ProfileSetRequest[], now: string): Promise<ProjectProfile> {
+  async set(requests: ParamSetRequest[], now: string): Promise<ProjectParams> {
     // Validate everything BEFORE taking the lock so a bad request fails fast and
     // never half-writes.
     const normalized = requests.map((r) => ({
       key: r.key,
       entry: {
-        value: normalizeProfileValue(r),
+        value: normalizeParamValue(r),
         setBy: r.setBy,
         at: now,
         secret: r.secret,
-      } satisfies ProfileEntry,
+      } satisfies ParamEntry,
     }));
     await ensureDir(vibestrateRoot(this.projectRoot));
     return withFileMutex(`${this.filePath}.lock`, async () => {
@@ -297,8 +297,8 @@ export class ProfileStore {
     });
   }
 
-  private async writeAtomic(profile: ProjectProfile): Promise<void> {
-    const body = JSON.stringify(projectProfileSchema.parse(profile), null, 2);
+  private async writeAtomic(profile: ProjectParams): Promise<void> {
+    const body = JSON.stringify(projectParamsSchema.parse(profile), null, 2);
     const tmp = `${this.filePath}.tmp.${process.pid}`;
     await fs.writeFile(tmp, body + "\n", "utf8");
     try {
@@ -313,24 +313,24 @@ export class ProfileStore {
 // ── Resolution-side helpers (pure) ───────────────────────────────────────────
 
 /** A flow param's effective profile entry, resolved through namespacing. */
-export type ResolvedProfileParam = {
+export type ResolvedParam = {
   key: string;
   /** The stored value. For a secret this is the `env:NAME` ref. */
   value: string;
-  setBy: ProfileSetBy;
+  setBy: ParamSetBy;
   secret: boolean;
 };
 
 /** For a flow's declared params, the stored profile entry of each (looked up by
  *  the namespaced/shared key). Param-name keyed for form prefill + seeding. Pure. */
-export function resolveProfileForFlow(
-  profile: ProjectProfile,
+export function resolveParamsForFlow(
+  profile: ProjectParams,
   flowId: string,
   defs: Record<string, FlowParam> | null | undefined,
-): Record<string, ResolvedProfileParam> {
-  const out: Record<string, ResolvedProfileParam> = {};
+): Record<string, ResolvedParam> {
+  const out: Record<string, ResolvedParam> = {};
   for (const [name, def] of Object.entries(defs ?? {})) {
-    const key = profileKeyFor(flowId, name, def.shared);
+    const key = paramKeyFor(flowId, name, def.shared);
     const entry = profile.values[key];
     if (!entry) continue;
     out[name] = {
@@ -362,11 +362,11 @@ export function resolveProfileForFlow(
  *     missing-required -> fail-fast, never silently starting a run with a
  *     non-functional secret. (The stored value is never the raw secret.)
  */
-export function seedParamsFromProfile(
+export function seedParamsFromStore(
   defs: Record<string, FlowParam> | null | undefined,
   flowId: string,
   provided: Record<string, string>,
-  profile: ProjectProfile,
+  profile: ProjectParams,
   env: Record<string, string | undefined> = process.env,
 ): Record<string, string> {
   const seeded: Record<string, string> = { ...provided };
@@ -379,7 +379,7 @@ export function seedParamsFromProfile(
       seeded[name] = envVal;
       continue;
     }
-    const entry = profile.values[profileKeyFor(flowId, name, def.shared)];
+    const entry = profile.values[paramKeyFor(flowId, name, def.shared)];
     if (!entry) continue;
     if (def.secret) {
       const envName = secretEnvVarName(entry.value);

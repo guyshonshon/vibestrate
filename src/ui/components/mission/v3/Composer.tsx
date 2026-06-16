@@ -47,7 +47,7 @@ import type {
 import {
   api,
   type ComposerPreset,
-  type FlowProfileValue,
+  type FlowParamValue,
 } from "../../../lib/api.js";
 
 export type ComposerProvider = {
@@ -216,23 +216,23 @@ export function ComposerV3({
   );
   // Declared params for the selected flow (T11). Reset values when the flow
   // changes so a stale param from another flow never rides along, then prefill
-  // from the durable project profile (Profiling): a stored answer becomes the
+  // from the durable project params: a stored answer becomes the
   // field's starting value, so the user fills their project once and reuses it.
   // Secret values are never prefilled into a form.
   const flowParams = selectedFlow?.definition.params ?? null;
-  const [profilePrefill, setProfilePrefill] = useState<
-    Record<string, FlowProfileValue>
+  const [paramPrefill, setParamPrefill] = useState<
+    Record<string, FlowParamValue>
   >({});
   useEffect(() => {
     setParamValues({});
-    setProfilePrefill({});
+    setParamPrefill({});
     if (!flowId) return;
     let cancelled = false;
     void api
-      .getFlowProfile(flowId)
+      .getFlowParams(flowId)
       .then((values) => {
         if (cancelled) return;
-        setProfilePrefill(values);
+        setParamPrefill(values);
         const seed: Record<string, string> = {};
         for (const [name, v] of Object.entries(values)) {
           if (!v.secret && v.value) seed[name] = v.value;
@@ -330,29 +330,29 @@ export function ComposerV3({
     });
   }
 
-  // Additive persist-on-submit (Profiling): a param the user filled that has NO
-  // stored value yet becomes durable, so "fill once" works from the dashboard.
-  // We never overwrite an already-stored value from a run form (that would let a
-  // one-off override clobber project memory) - overwrites are explicit in
-  // Project Settings / `vibe profile set`. Secrets are never auto-persisted.
-  function persistNewProfileValues() {
+  // Additive persist-on-submit (durable param memory): a param the user filled
+  // that has NO stored value yet becomes durable, so "fill once" works from the
+  // dashboard. We never overwrite an already-stored value from a run form (that
+  // would let a one-off override clobber project memory) - overwrites are
+  // explicit in Project parameters / `vibe params set`. Secrets aren't persisted.
+  function persistNewParamValues() {
     if (!flowId || !flowParams) return;
     const toPersist: Record<string, string> = {};
     for (const [name, def] of Object.entries(flowParams)) {
       if (def.secret) continue;
       const val = paramValues[name];
       if (val === undefined || val === "") continue;
-      if (profilePrefill[name]) continue; // already stored -> don't clobber
+      if (paramPrefill[name]) continue; // already stored -> don't clobber
       toPersist[name] = val;
     }
     if (Object.keys(toPersist).length === 0) return;
-    void api.setProfile({ flowId, values: toPersist }).catch(() => {});
+    void api.setParams({ flowId, values: toPersist }).catch(() => {});
   }
 
   function handleSubmit() {
     const trimmed = brief.trim();
     if (!trimmed || busy || blockers.length > 0) return;
-    persistNewProfileValues();
+    persistNewParamValues();
     void onSubmit({
       brief: trimmed,
       flowId: flowId || null,
@@ -534,12 +534,12 @@ export function ComposerV3({
                       {def.shared ? (
                         <span className="text-fog-600" title="Project-global: shared across flows"> · shared</span>
                       ) : null}
-                      {profilePrefill[name] && !def.secret ? (
+                      {paramPrefill[name] && !def.secret ? (
                         <span
                           className="text-emerald-300/80"
-                          title={`From the project profile (${profilePrefill[name]!.setBy})`}
+                          title={`From the project params (${paramPrefill[name]!.setBy})`}
                         >
-                          {" "}· {profilePrefill[name]!.setBy === "generated" ? "generated" : "saved"}
+                          {" "}· {paramPrefill[name]!.setBy === "generated" ? "generated" : "saved"}
                         </span>
                       ) : null}
                       {def.description ? (

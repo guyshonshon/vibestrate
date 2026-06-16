@@ -922,10 +922,10 @@
       ]
     },
     {
-      "name": "profiles",
+      "name": "profile",
       "path": [
         "vibe",
-        "profiles"
+        "profile"
       ],
       "description": "Runtime presets (provider + model/power) that Crew roles run on.",
       "usage": "[options] [command]",
@@ -936,7 +936,7 @@
           "name": "list",
           "path": [
             "vibe",
-            "profiles",
+            "profile",
             "list"
           ],
           "description": "List profiles, grouped by provider, with how many roles use each.",
@@ -957,7 +957,7 @@
           "name": "add",
           "path": [
             "vibe",
-            "profiles",
+            "profile",
             "add"
           ],
           "description": "Create a new profile.",
@@ -1020,7 +1020,7 @@
           "name": "set",
           "path": [
             "vibe",
-            "profiles",
+            "profile",
             "set"
           ],
           "description": "Edit an existing profile's fields.",
@@ -1083,7 +1083,7 @@
           "name": "duplicate",
           "path": [
             "vibe",
-            "profiles",
+            "profile",
             "duplicate"
           ],
           "description": "Copy a profile under a new id (e.g. claude -> claude-cheap).",
@@ -1109,7 +1109,7 @@
           "name": "remove",
           "path": [
             "vibe",
-            "profiles",
+            "profile",
             "remove"
           ],
           "description": "Delete a profile (refuses if a role uses it, unless --force).",
@@ -1136,12 +1136,12 @@
       ]
     },
     {
-      "name": "profile",
+      "name": "params",
       "path": [
         "vibe",
-        "profile"
+        "params"
       ],
-      "description": "Durable project profile: typed param answers persisted + reused across runs.",
+      "description": "Durable project parameters: typed param answers persisted + reused across runs.",
       "usage": "[options] [command]",
       "arguments": [],
       "options": [],
@@ -1150,7 +1150,7 @@
           "name": "list",
           "path": [
             "vibe",
-            "profile",
+            "params",
             "list"
           ],
           "description": "List every stored param answer (secrets shown as env refs).",
@@ -1171,7 +1171,7 @@
           "name": "get",
           "path": [
             "vibe",
-            "profile",
+            "params",
             "get"
           ],
           "description": "Print one stored value (secrets shown as env refs).",
@@ -1191,10 +1191,10 @@
           "name": "set",
           "path": [
             "vibe",
-            "profile",
+            "params",
             "set"
           ],
-          "description": "Set one or more values: `vibe profile set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw profile keys (bare = project-global).",
+          "description": "Set one or more values: `vibe params set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw param keys (bare = project-global).",
           "usage": "[options] <assignments...>",
           "arguments": [
             {
@@ -1219,7 +1219,7 @@
           "name": "generate",
           "path": [
             "vibe",
-            "profile",
+            "params",
             "generate"
           ],
           "description": "Draft a value for a `generate`-enabled param via a provider (optional, user-initiated, reviewed). Prints a suggestion; --accept stores it.",
@@ -1254,7 +1254,7 @@
           "name": "unset",
           "path": [
             "vibe",
-            "profile",
+            "params",
             "unset"
           ],
           "description": "Remove stored values by key (explicit, never automatic).",

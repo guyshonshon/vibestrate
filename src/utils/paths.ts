@@ -37,8 +37,8 @@ export function projectLedgerPath(projectRoot: string): string {
 /** Durable project profile (Profiling): typed param answers persisted across
  *  runs. A single JSON object, mutex-guarded, secret-safe (secrets are
  *  `env:NAME` refs, never raw). See docs/design/profiling-intake.md. */
-export function projectProfilePath(projectRoot: string): string {
-  return path.join(vibestrateRoot(projectRoot), "project-profile.json");
+export function projectParamsPath(projectRoot: string): string {
+  return path.join(vibestrateRoot(projectRoot), "project-params.json");
 }
 
 /** `VIBESTRATE.md` at the project root - the orchestrator's durable operating

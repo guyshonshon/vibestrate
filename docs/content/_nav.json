@@ -68,8 +68,8 @@
           "label": "Workflow"
         },
         {
-          "slug": "concepts/project-profile",
-          "label": "Project profile"
+          "slug": "concepts/project-params",
+          "label": "Project parameters"
         }
       ]
     },

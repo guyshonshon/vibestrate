@@ -5,13 +5,13 @@ import { findFlowById } from "../../../flows/catalog/flow-discovery.js";
 import type { FlowParam } from "../../../flows/schemas/flow-schema.js";
 import { confirm } from "@inquirer/prompts";
 import {
-  ProfileStore,
-  ProfileWriteError,
-  buildProfileSetRequests,
-  profileKeyFor,
+  ParamStore,
+  ParamWriteError,
+  buildParamSetRequests,
+  paramKeyFor,
   secretEnvVarName,
-} from "../../../project/project-profile.js";
-import { generateParamSuggestion } from "../../../project/profile-generate.js";
+} from "../../../project/project-params.js";
+import { generateParamSuggestion } from "../../../project/params-generate.js";
 import { nowIso } from "../../../utils/time.js";
 import { color, header, symbol, isInteractiveTTY } from "../../ui/format.js";
 
@@ -33,9 +33,9 @@ function displayValue(entry: { value: string; secret: boolean }): string {
   return entry.value;
 }
 
-export function buildProfileCommand(): Command {
-  const cmd = new Command("profile").description(
-    "Durable project profile: typed param answers persisted + reused across runs.",
+export function buildParamsCommand(): Command {
+  const cmd = new Command("params").description(
+    "Durable project parameters: typed param answers persisted + reused across runs.",
   );
 
   cmd
@@ -44,7 +44,7 @@ export function buildProfileCommand(): Command {
     .option("--json", "emit JSON")
     .action(async (opts: { json?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
-      const profile = await new ProfileStore(projectRoot).read();
+      const profile = await new ParamStore(projectRoot).read();
       const entries = Object.entries(profile.values).sort(([a], [b]) =>
         a.localeCompare(b),
       );
@@ -54,11 +54,11 @@ export function buildProfileCommand(): Command {
       }
       if (entries.length === 0) {
         console.log(
-          "No profile values yet. Fill one: vibe profile set --flow <id> <param>=<value>.",
+          "No project parameters yet. Fill one: vibe params set --flow <id> <param>=<value>.",
         );
         return;
       }
-      console.log(header(`Project profile (${entries.length})`));
+      console.log(header(`Project parameters (${entries.length})`));
       console.log("");
       for (const [key, entry] of entries) {
         console.log(
@@ -72,10 +72,10 @@ export function buildProfileCommand(): Command {
     .description("Print one stored value (secrets shown as env refs).")
     .action(async (key: string) => {
       const { projectRoot } = await detectProject(process.cwd());
-      const profile = await new ProfileStore(projectRoot).read();
+      const profile = await new ParamStore(projectRoot).read();
       const entry = profile.values[key];
       if (!entry) {
-        console.error(`${symbol.fail()} No profile value for "${key}".`);
+        console.error(`${symbol.fail()} No stored value for "${key}".`);
         process.exit(1);
       }
       console.log(entry.secret ? displayValue(entry) : entry.value);
@@ -84,7 +84,7 @@ export function buildProfileCommand(): Command {
   cmd
     .command("set <assignments...>")
     .description(
-      "Set one or more values: `vibe profile set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw profile keys (bare = project-global).",
+      "Set one or more values: `vibe params set --flow <id> name=Acme niche=SaaS`. With --flow, keys are flow params (type-checked, secret-aware). Without it, keys are raw param keys (bare = project-global).",
     )
     .option(
       "--flow <id>",
@@ -112,7 +112,7 @@ export function buildProfileCommand(): Command {
         defs = discovered.definition.params ?? {};
       }
 
-      const { requests, warnings, errors } = buildProfileSetRequests({
+      const { requests, warnings, errors } = buildParamSetRequests({
         flowId: opts.flow ?? null,
         defs,
         assignments: pairs,
@@ -124,10 +124,10 @@ export function buildProfileCommand(): Command {
       }
 
       try {
-        await new ProfileStore(projectRoot).set(requests, nowIso());
+        await new ParamStore(projectRoot).set(requests, nowIso());
       } catch (err) {
         const msg =
-          err instanceof ProfileWriteError
+          err instanceof ParamWriteError
             ? err.message
             : err instanceof Error
               ? err.message
@@ -159,7 +159,7 @@ export function buildProfileCommand(): Command {
         return;
       }
       const defs = discovered.definition.params ?? {};
-      const store = new ProfileStore(projectRoot);
+      const store = new ParamStore(projectRoot);
       let suggestion: string;
       try {
         const res = await generateParamSuggestion({
@@ -178,7 +178,7 @@ export function buildProfileCommand(): Command {
       console.log(`${symbol.ok()} Suggestion for ${color.bold(param)}: ${suggestion}`);
       let accept = opts.accept ?? false;
       if (!accept && isInteractiveTTY()) {
-        accept = await confirm({ message: "Store this value in the project profile?" });
+        accept = await confirm({ message: "Store this value in the project parameters?" });
       }
       if (!accept) {
         console.log(color.dim("Not stored. Re-run with --accept to keep it."));
@@ -188,7 +188,7 @@ export function buildProfileCommand(): Command {
       await store.set(
         [
           {
-            key: profileKeyFor(opts.flow, param, def.shared),
+            key: paramKeyFor(opts.flow, param, def.shared),
             value: suggestion,
             setBy: "generated",
             secret: false,
@@ -196,7 +196,7 @@ export function buildProfileCommand(): Command {
         ],
         nowIso(),
       );
-      console.log(`${symbol.ok()} Stored ${color.bold(profileKeyFor(opts.flow, param, def.shared))} (generated).`);
+      console.log(`${symbol.ok()} Stored ${color.bold(paramKeyFor(opts.flow, param, def.shared))} (generated).`);
     });
 
   cmd
@@ -204,9 +204,9 @@ export function buildProfileCommand(): Command {
     .description("Remove stored values by key (explicit, never automatic).")
     .action(async (keys: string[]) => {
       const { projectRoot } = await detectProject(process.cwd());
-      const removed = await new ProfileStore(projectRoot).unset(keys);
+      const removed = await new ParamStore(projectRoot).unset(keys);
       if (removed.length === 0) {
-        console.error(`${symbol.fail()} No matching profile keys to remove.`);
+        console.error(`${symbol.fail()} No matching param keys to remove.`);
         process.exit(1);
       }
       console.log(

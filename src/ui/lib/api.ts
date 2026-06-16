@@ -1097,7 +1097,7 @@ export const api = {
   },
   // ─── profiles ─────────────────────────────────────────────────────────
   async getProfiles(): Promise<{ profiles: ProfileView[] }> {
-    return jsonGet("/api/profiles");
+    return jsonGet("/api/paramss");
   },
   async getProviderCatalog(): Promise<ProviderCatalogResponse> {
     return jsonGet("/api/providers/catalog");
@@ -1118,7 +1118,7 @@ export const api = {
       timeoutMs?: number | null;
     },
   ): Promise<{ ok: true; profileId: string }> {
-    return jsonPatch(`/api/profiles/${encodeURIComponent(profileId)}`, patch);
+    return jsonPatch(`/api/paramss/${encodeURIComponent(profileId)}`, patch);
   },
   async createProfile(input: {
     id: string;
@@ -1129,14 +1129,14 @@ export const api = {
     maxTokens?: number;
     timeoutMs?: number;
   }): Promise<{ ok: true; profileId: string }> {
-    return jsonPost("/api/profiles", input);
+    return jsonPost("/api/paramss", input);
   },
   async duplicateProfile(
     profileId: string,
     input: { newId: string; label?: string },
   ): Promise<{ ok: true; profileId: string }> {
     return jsonPost(
-      `/api/profiles/${encodeURIComponent(profileId)}/duplicate`,
+      `/api/paramss/${encodeURIComponent(profileId)}/duplicate`,
       input,
     );
   },
@@ -1145,7 +1145,7 @@ export const api = {
     opts: { force?: boolean } = {},
   ): Promise<{ ok: true; profileId: string }> {
     const q = opts.force ? "?force=1" : "";
-    return jsonDelete(`/api/profiles/${encodeURIComponent(profileId)}${q}`);
+    return jsonDelete(`/api/paramss/${encodeURIComponent(profileId)}${q}`);
   },
   async resolveFlow(
     flowId: string,
@@ -2275,30 +2275,30 @@ export const api = {
     return jsonGet(`/api/runs/${encodeURIComponent(runId)}/replay`);
   },
 
-  // ── Durable project profile (Profiling / durable param memory) ────────────
-  /** The full stored profile. Secret entries hold an `env:NAME` ref, never raw. */
-  async getProfile(): Promise<ProjectProfileView> {
-    const r = await jsonGet<{ profile: ProjectProfileView }>("/api/profile");
-    return r.profile;
+  // ── Durable param memory (Project parameters) ─────────────────────────────
+  /** The full stored params. Secret entries hold an `env:NAME` ref, never raw. */
+  async getParams(): Promise<ProjectParamsView> {
+    const r = await jsonGet<{ params: ProjectParamsView }>("/api/params");
+    return r.params;
   },
-  /** The profile values that apply to one flow, keyed by param name (for the
+  /** The stored values that apply to one flow, keyed by param name (for the
    *  Composer form prefill). Secret values are blanked - only the flag ships. */
-  async getFlowProfile(flowId: string): Promise<Record<string, FlowProfileValue>> {
-    const r = await jsonGet<{ values: Record<string, FlowProfileValue> }>(
-      `/api/profile/flow/${encodeURIComponent(flowId)}`,
+  async getFlowParams(flowId: string): Promise<Record<string, FlowParamValue>> {
+    const r = await jsonGet<{ values: Record<string, FlowParamValue> }>(
+      `/api/params/flow/${encodeURIComponent(flowId)}`,
     );
     return r.values;
   },
   /** Persist values. With `flowId`, keys are the flow's declared params (typed,
-   *  secret-aware, namespaced); without it, keys are raw profile keys. */
-  async setProfile(input: {
+   *  secret-aware, namespaced); without it, keys are raw param keys. */
+  async setParams(input: {
     flowId?: string | null;
     values: Record<string, string>;
-  }): Promise<{ ok: true; warnings: string[]; profile: ProjectProfileView }> {
-    return jsonPost("/api/profile", input);
+  }): Promise<{ ok: true; warnings: string[]; params: ProjectParamsView }> {
+    return jsonPost("/api/params", input);
   },
-  async unsetProfileKey(key: string): Promise<{ ok: true; removed: string[] }> {
-    return jsonDelete(`/api/profile/${encodeURIComponent(key)}`);
+  async unsetParamKey(key: string): Promise<{ ok: true; removed: string[] }> {
+    return jsonDelete(`/api/params/${encodeURIComponent(key)}`);
   },
   /** Model-independent "generate a default" for a param declaring a `generate`
    *  hint. Strictly user-initiated; returns a suggestion the user reviews. */
@@ -2306,23 +2306,23 @@ export const api = {
     flowId: string,
     param: string,
   ): Promise<{ suggestion: string }> {
-    return jsonPost(`/api/profile/generate`, { flowId, param });
+    return jsonPost(`/api/params/generate`, { flowId, param });
   },
 };
 
-export type ProfileSetBy = "user" | "generated" | "default";
-export type ProfileEntryView = {
+export type ParamSetBy = "user" | "generated" | "default";
+export type ParamEntryView = {
   value: string;
-  setBy: ProfileSetBy;
+  setBy: ParamSetBy;
   at: string;
   secret: boolean;
 };
-export type ProjectProfileView = {
+export type ProjectParamsView = {
   schemaVersion: number;
-  values: Record<string, ProfileEntryView>;
+  values: Record<string, ParamEntryView>;
 };
-export type FlowProfileValue = {
+export type FlowParamValue = {
   value: string;
-  setBy: ProfileSetBy;
+  setBy: ParamSetBy;
   secret: boolean;
 };

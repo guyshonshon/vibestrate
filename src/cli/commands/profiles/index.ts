@@ -39,7 +39,7 @@ function fieldOptions(cmd: Command): Command {
 }
 
 export function buildProfilesCommand(): Command {
-  const cmd = new Command("profiles").description(
+  const cmd = new Command("profile").description(
     "Runtime presets (provider + model/power) that Crew roles run on.",
   );
 
@@ -66,7 +66,7 @@ export function buildProfilesCommand(): Command {
         return;
       }
       if (entries.length === 0) {
-        console.log("No profiles yet. Add one: vibe profiles add <id> --provider <p>.");
+        console.log("No profiles yet. Add one: vibe profile add <id> --provider <p>.");
         return;
       }
       console.log(header(`Profiles (${entries.length})`));

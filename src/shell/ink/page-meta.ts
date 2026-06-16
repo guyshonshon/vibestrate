@@ -59,10 +59,10 @@ export const PAGE_META: Record<PageId, PageMeta> = {
       ["x", "delete (with confirm)"],
     ],
     commonCli: [
-      "vibe profiles list",
-      "vibe profiles add <id> --provider <p> --model <m> --power <effort>",
-      "vibe profiles duplicate <id> <newId>",
-      "vibe profiles remove <id>",
+      "vibe profile list",
+      "vibe profile add <id> --provider <p> --model <m> --power <effort>",
+      "vibe profile duplicate <id> <newId>",
+      "vibe profile remove <id>",
     ],
   },
   roadmap: {

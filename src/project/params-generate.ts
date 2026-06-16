@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runAssist } from "../assist/assist-runner.js";
 import { substituteParams } from "../flows/runtime/prompt-params.js";
-import { resolveProfileForFlow, type ProjectProfile } from "./project-profile.js";
+import { resolveParamsForFlow, type ProjectParams } from "./project-params.js";
 import type { FlowParam } from "../flows/schemas/flow-schema.js";
 
 // ── Generate a default (Profiling, P4) ───────────────────────────────────────
@@ -15,10 +15,10 @@ import type { FlowParam } from "../flows/schemas/flow-schema.js";
 // profile. Works on any configured provider; required on none (if no provider /
 // offline, `runAssist` throws and the field stays a normal manual input).
 
-export class ProfileGenerateError extends Error {
+export class ParamGenerateError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "ProfileGenerateError";
+    this.name = "ParamGenerateError";
   }
 }
 
@@ -53,7 +53,7 @@ function outputSchemaFor(def: FlowParam): {
 /**
  * Generate one suggested value for a `generate`-enabled param. Pure-ish: the
  * only side effect is the single gated, read-only provider call inside
- * `runAssist` (audited under the `assist` bucket). Throws ProfileGenerateError
+ * `runAssist` (audited under the `assist` bucket). Throws ParamGenerateError
  * for a bad request (unknown / non-generatable / secret param) and surfaces
  * AssistError as-is when the provider call itself fails.
  */
@@ -62,22 +62,22 @@ export async function generateParamSuggestion(input: {
   flowId: string;
   param: string;
   defs: Record<string, FlowParam>;
-  profile: ProjectProfile;
+  profile: ProjectParams;
   signal?: AbortSignal;
 }): Promise<{ suggestion: string }> {
   const def = input.defs[input.param];
   if (!def) {
-    throw new ProfileGenerateError(
+    throw new ParamGenerateError(
       `Flow "${input.flowId}" has no param "${input.param}".`,
     );
   }
   if (def.secret) {
-    throw new ProfileGenerateError(
+    throw new ParamGenerateError(
       `Param "${input.param}" is a secret - secrets are collected as env var names, never generated.`,
     );
   }
   if (!def.generate) {
-    throw new ProfileGenerateError(
+    throw new ParamGenerateError(
       `Param "${input.param}" declares no \`generate\` hint, so there is nothing to generate.`,
     );
   }
@@ -85,7 +85,7 @@ export async function generateParamSuggestion(input: {
   // Interpolate other KNOWN profile values into the instruction; a secret value
   // resolves to its [secret:name] placeholder (never the literal). An unknown
   // {{params.x}} is left visible rather than blanked.
-  const known = resolveProfileForFlow(input.profile, input.flowId, input.defs);
+  const known = resolveParamsForFlow(input.profile, input.flowId, input.defs);
   const substitution: Record<string, string> = {};
   for (const [name, p] of Object.entries(known)) {
     if (name === input.param) continue;
@@ -96,7 +96,7 @@ export async function generateParamSuggestion(input: {
   const { schema, hint } = outputSchemaFor(def);
   const result = await runAssist({
     projectRoot: input.projectRoot,
-    label: `profile-generate:${input.flowId}.${input.param}`,
+    label: `params-generate:${input.flowId}.${input.param}`,
     instruction:
       `Generate a single value for the project setting "${input.param}". ${instruction}\n` +
       `Return only the value, typed as requested - no commentary.`,

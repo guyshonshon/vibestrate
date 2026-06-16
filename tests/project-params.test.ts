@@ -3,19 +3,19 @@ import os from "node:os";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
-  ProfileStore,
-  ProfileWriteError,
-  buildProfileSetRequests,
-  normalizeProfileValue,
-  profileKeyFor,
+  ParamStore,
+  ParamWriteError,
+  buildParamSetRequests,
+  normalizeParamValue,
+  paramKeyFor,
   paramEnvVarName,
-  isProfileKey,
-  resolveProfileForFlow,
-  seedParamsFromProfile,
-  emptyProfile,
-  projectProfileSchema,
-} from "../src/project/project-profile.js";
-import { projectProfilePath } from "../src/utils/paths.js";
+  isParamKey,
+  resolveParamsForFlow,
+  seedParamsFromStore,
+  emptyParams,
+  projectParamsSchema,
+} from "../src/project/project-params.js";
+import { projectParamsPath } from "../src/utils/paths.js";
 import { resolveFlowParams } from "../src/flows/runtime/prompt-params.js";
 import { flowParamSchema } from "../src/flows/schemas/flow-schema.js";
 import type { FlowParam } from "../src/flows/schemas/flow-schema.js";
@@ -34,17 +34,17 @@ afterEach(async () => {
 
 describe("key derivation", () => {
   it("namespaces per-flow by default, bare key when shared", () => {
-    expect(profileKeyFor("website", "name", false)).toBe("website.name");
-    expect(profileKeyFor("website", "niche", true)).toBe("niche");
+    expect(paramKeyFor("website", "name", false)).toBe("website.name");
+    expect(paramKeyFor("website", "niche", true)).toBe("niche");
   });
 
   it("accepts both shared (bare) and namespaced keys; rejects junk", () => {
-    expect(isProfileKey("niche")).toBe(true);
-    expect(isProfileKey("website.name")).toBe(true);
-    expect(isProfileKey("color_tokens")).toBe(true);
-    expect(isProfileKey("Website.Name")).toBe(false);
-    expect(isProfileKey("a.b.c")).toBe(false);
-    expect(isProfileKey("has space")).toBe(false);
+    expect(isParamKey("niche")).toBe(true);
+    expect(isParamKey("website.name")).toBe(true);
+    expect(isParamKey("color_tokens")).toBe(true);
+    expect(isParamKey("Website.Name")).toBe(false);
+    expect(isParamKey("a.b.c")).toBe(false);
+    expect(isParamKey("has space")).toBe(false);
   });
 
   it("maps camelCase and snake_case param names to the same env var", () => {
@@ -54,26 +54,26 @@ describe("key derivation", () => {
   });
 });
 
-describe("normalizeProfileValue (secret + leak guard)", () => {
+describe("normalizeParamValue (secret + leak guard)", () => {
   it("stores a secret param as an env:NAME ref, never the literal", () => {
     expect(
-      normalizeProfileValue({ key: "f.api_key", value: "OPENAI_API_KEY", setBy: "user", secret: true }),
+      normalizeParamValue({ key: "f.api_key", value: "OPENAI_API_KEY", setBy: "user", secret: true }),
     ).toBe("env:OPENAI_API_KEY");
     // already-formed env:NAME is accepted too
     expect(
-      normalizeProfileValue({ key: "f.api_key", value: "env:OPENAI_API_KEY", setBy: "user", secret: true }),
+      normalizeParamValue({ key: "f.api_key", value: "env:OPENAI_API_KEY", setBy: "user", secret: true }),
     ).toBe("env:OPENAI_API_KEY");
   });
 
   it("refuses a secret value that isn't a valid env var name", () => {
     expect(() =>
-      normalizeProfileValue({ key: "f.api_key", value: "sk-not-a-name", setBy: "user", secret: true }),
-    ).toThrow(ProfileWriteError);
+      normalizeParamValue({ key: "f.api_key", value: "sk-not-a-name", setBy: "user", secret: true }),
+    ).toThrow(ParamWriteError);
   });
 
   it("refuses a non-secret value that looks like a real credential (fail closed)", () => {
     expect(() =>
-      normalizeProfileValue({
+      normalizeParamValue({
         key: "f.token",
         value: "sk-ant-" + "a".repeat(50),
         setBy: "user",
@@ -84,15 +84,15 @@ describe("normalizeProfileValue (secret + leak guard)", () => {
 
   it("rejects an invalid storage key", () => {
     expect(() =>
-      normalizeProfileValue({ key: "Bad Key", value: "x", setBy: "user", secret: false }),
-    ).toThrow(ProfileWriteError);
+      normalizeParamValue({ key: "Bad Key", value: "x", setBy: "user", secret: false }),
+    ).toThrow(ParamWriteError);
   });
 });
 
-describe("ProfileStore round trip", () => {
+describe("ParamStore round trip", () => {
   it("set / read / unset, persisted atomically as JSON", async () => {
-    const store = new ProfileStore(root);
-    expect(await store.read()).toEqual(emptyProfile());
+    const store = new ParamStore(root);
+    expect(await store.read()).toEqual(emptyParams());
 
     await store.set(
       [{ key: "website.name", value: "Acme", setBy: "user", secret: false }],
@@ -106,8 +106,8 @@ describe("ProfileStore round trip", () => {
       secret: false,
     });
     // file is valid against the schema
-    const onDisk = JSON.parse(await fs.readFile(projectProfilePath(root), "utf8"));
-    expect(() => projectProfileSchema.parse(onDisk)).not.toThrow();
+    const onDisk = JSON.parse(await fs.readFile(projectParamsPath(root), "utf8"));
+    expect(() => projectParamsSchema.parse(onDisk)).not.toThrow();
 
     // set replaces (supersede), never duplicates
     await store.set(
@@ -123,13 +123,13 @@ describe("ProfileStore round trip", () => {
   });
 
   it("a corrupt profile file fails loud (no silent data loss)", async () => {
-    await fs.mkdir(path.dirname(projectProfilePath(root)), { recursive: true });
-    await fs.writeFile(projectProfilePath(root), "{ not json", "utf8");
-    await expect(new ProfileStore(root).read()).rejects.toThrow();
+    await fs.mkdir(path.dirname(projectParamsPath(root)), { recursive: true });
+    await fs.writeFile(projectParamsPath(root), "{ not json", "utf8");
+    await expect(new ParamStore(root).read()).rejects.toThrow();
   });
 });
 
-describe("buildProfileSetRequests", () => {
+describe("buildParamSetRequests", () => {
   const defs = {
     name: def({ type: "string" }),
     count: def({ type: "number" }),
@@ -139,7 +139,7 @@ describe("buildProfileSetRequests", () => {
   };
 
   it("namespaces flow params, keeps shared bare, type-checks values", () => {
-    const r = buildProfileSetRequests({
+    const r = buildParamSetRequests({
       flowId: "web",
       defs,
       assignments: [
@@ -153,7 +153,7 @@ describe("buildProfileSetRequests", () => {
   });
 
   it("errors on an unknown param and a bad-typed value", () => {
-    const r = buildProfileSetRequests({
+    const r = buildParamSetRequests({
       flowId: "web",
       defs,
       assignments: [
@@ -167,7 +167,7 @@ describe("buildProfileSetRequests", () => {
   });
 
   it("a secret param collects an env var NAME and warns when it isn't set", () => {
-    const r = buildProfileSetRequests({
+    const r = buildParamSetRequests({
       flowId: "web",
       defs,
       assignments: [{ key: "api_key", value: "OPENAI_API_KEY" }],
@@ -179,7 +179,7 @@ describe("buildProfileSetRequests", () => {
   });
 
   it("no flow: bare key warns about project-global scope; junk key errors", () => {
-    const r = buildProfileSetRequests({
+    const r = buildParamSetRequests({
       flowId: null,
       defs: null,
       assignments: [
@@ -194,9 +194,9 @@ describe("buildProfileSetRequests", () => {
   });
 });
 
-describe("resolveProfileForFlow", () => {
+describe("resolveParamsForFlow", () => {
   it("keys by param name through the flow namespace", async () => {
-    const profile = projectProfileSchema.parse({
+    const profile = projectParamsSchema.parse({
       schemaVersion: 1,
       values: {
         "web.name": { value: "Acme", setBy: "user", at: NOW, secret: false },
@@ -204,7 +204,7 @@ describe("resolveProfileForFlow", () => {
         "other.name": { value: "Wrong", setBy: "user", at: NOW, secret: false },
       },
     });
-    const resolved = resolveProfileForFlow(profile, "web", {
+    const resolved = resolveParamsForFlow(profile, "web", {
       name: def({ type: "string" }),
       niche: def({ type: "string", shared: true }),
     });
@@ -214,13 +214,13 @@ describe("resolveProfileForFlow", () => {
   });
 });
 
-describe("seedParamsFromProfile (precedence)", () => {
+describe("seedParamsFromStore (precedence)", () => {
   const defs = {
     name: def({ type: "string", required: true }),
     niche: def({ type: "string", shared: true }),
     count: def({ type: "number", default: 3 }),
   };
-  const profile = projectProfileSchema.parse({
+  const profile = projectParamsSchema.parse({
     schemaVersion: 1,
     values: {
       "web.name": { value: "FromProfile", setBy: "user", at: NOW, secret: false },
@@ -229,7 +229,7 @@ describe("seedParamsFromProfile (precedence)", () => {
   });
 
   it("explicit > env > profile, default left for the resolver", () => {
-    const seeded = seedParamsFromProfile(
+    const seeded = seedParamsFromStore(
       defs,
       "web",
       { name: "Explicit" }, // explicit wins
@@ -246,7 +246,7 @@ describe("seedParamsFromProfile (precedence)", () => {
   });
 
   it("profile fills a required param so the run doesn't fail fast", () => {
-    const seeded = seedParamsFromProfile(defs, "web", {}, profile, {});
+    const seeded = seedParamsFromStore(defs, "web", {}, profile, {});
     const resolved = resolveFlowParams(defs, seeded);
     expect(resolved.missing).toEqual([]);
     expect(resolved.recorded.name).toBe("FromProfile");
@@ -254,13 +254,13 @@ describe("seedParamsFromProfile (precedence)", () => {
   });
 
   it("nothing seeded -> required param still missing (fail-fast preserved)", () => {
-    const seeded = seedParamsFromProfile(defs, "web", {}, emptyProfile(), {});
+    const seeded = seedParamsFromStore(defs, "web", {}, emptyParams(), {});
     const resolved = resolveFlowParams(defs, seeded);
     expect(resolved.missing).toEqual(["name"]);
   });
 
   it("an explicit empty value falls through to the profile/default (not provided)", () => {
-    const seeded = seedParamsFromProfile(
+    const seeded = seedParamsFromStore(
       defs,
       "web",
       { name: "", count: "" },
@@ -275,9 +275,9 @@ describe("seedParamsFromProfile (precedence)", () => {
   });
 });
 
-describe("seedParamsFromProfile (secret env presence — fail-fast)", () => {
+describe("seedParamsFromStore (secret env presence — fail-fast)", () => {
   const defs = { token: def({ type: "string", required: true, secret: true }) };
-  const profile = projectProfileSchema.parse({
+  const profile = projectParamsSchema.parse({
     schemaVersion: 1,
     values: {
       "web.token": { value: "env:MY_TOKEN", setBy: "user", at: NOW, secret: true },
@@ -285,13 +285,13 @@ describe("seedParamsFromProfile (secret env presence — fail-fast)", () => {
   });
 
   it("seeds a stored secret only when its env var resolves", () => {
-    const withEnv = seedParamsFromProfile(defs, "web", {}, profile, { MY_TOKEN: "x" });
+    const withEnv = seedParamsFromStore(defs, "web", {}, profile, { MY_TOKEN: "x" });
     expect(withEnv.token).toBe("env:MY_TOKEN");
     expect(resolveFlowParams(defs, withEnv).missing).toEqual([]);
   });
 
   it("an unset env var falls through to missing-required (no silent non-functional run)", () => {
-    const noEnv = seedParamsFromProfile(defs, "web", {}, profile, {});
+    const noEnv = seedParamsFromStore(defs, "web", {}, profile, {});
     expect("token" in noEnv).toBe(false);
     expect(resolveFlowParams(defs, noEnv).missing).toEqual(["token"]);
   });

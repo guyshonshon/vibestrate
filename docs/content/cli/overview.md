@@ -103,21 +103,22 @@ vibe run "<task>" --flow <id>             # run with a Flow
 vibe run -i "<task>"                       # pick the Flow + Crew interactively, then run
 ```
 
-## Durable param memory (`vibe profile`)
+## Durable param memory (`vibe params`)
 
 Fill a Flow's typed `params:` once and every run reuses them (stored in
-`.vibestrate/project-profile.json`). Distinct from `vibe profiles` (the runtime
-*Role* presets). See [Project profile](../concepts/project-profile.md).
+`.vibestrate/project-params.json`). Distinct from `vibe profile` (the runtime
+*Role* presets - provider + model + effort). See
+[Project parameters](../concepts/project-params.md).
 
 ```bash
-vibe profile set --flow scaffold projectName=Acme framework=astro  # type-checked, per-flow
-vibe profile set --flow deploy api_key=OPENAI_API_KEY              # secret -> stores env:NAME
-vibe profile list                                                  # what's stored
-vibe profile generate --flow scaffold palette                      # provider drafts a value to review
-vibe profile unset scaffold.projectName                            # remove one
+vibe params set --flow scaffold projectName=Acme framework=astro  # type-checked, per-flow
+vibe params set --flow deploy api_key=OPENAI_API_KEY              # secret -> stores env:NAME
+vibe params list                                                  # what's stored
+vibe params generate --flow scaffold palette                      # provider drafts a value to review
+vibe params unset scaffold.projectName                            # remove one
 ```
 
-For CI, seed without an interactive step via `vibe profile set` or a
+For CI, seed without an interactive step via `vibe params set` or a
 `VIBESTRATE_PARAM_<NAME>` env var; a missing required param fails fast (never hangs).
 
 ### Interactive run setup (`-i`)

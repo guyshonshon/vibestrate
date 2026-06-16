@@ -80,50 +80,50 @@ describe("profile routes", () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    let res = await fetch(`${server.url}/api/profile`);
+    let res = await fetch(`${server.url}/api/params`);
     expect(res.status).toBe(200);
-    expect((await res.json()).profile.values).toEqual({});
+    expect((await res.json()).params.values).toEqual({});
 
-    res = await post(`${server.url}/api/profile`, {
+    res = await post(`${server.url}/api/params`, {
       flowId: "site",
       values: { name: "Acme", niche: "SaaS", count: "5" },
     });
     expect(res.status).toBe(200);
 
-    res = await fetch(`${server.url}/api/profile`);
-    const stored = (await res.json()).profile.values as Record<string, { value: string }>;
+    res = await fetch(`${server.url}/api/params`);
+    const stored = (await res.json()).params.values as Record<string, { value: string }>;
     // namespaced vs shared keys
     expect(stored["site.name"]!.value).toBe("Acme");
     expect(stored["niche"]!.value).toBe("SaaS");
     expect(stored["site.count"]!.value).toBe("5");
 
     // flow view is keyed by param name (for prefill)
-    res = await fetch(`${server.url}/api/profile/flow/site`);
+    res = await fetch(`${server.url}/api/params/flow/site`);
     const view = (await res.json()).values as Record<string, { value: string; secret: boolean }>;
     expect(view.name!.value).toBe("Acme");
     expect(view.niche!.value).toBe("SaaS");
 
-    res = await fetch(`${server.url}/api/profile/site.name`, { method: "DELETE" });
+    res = await fetch(`${server.url}/api/params/site.name`, { method: "DELETE" });
     expect(res.status).toBe(200);
-    res = await fetch(`${server.url}/api/profile`);
-    expect((await res.json()).profile.values["site.name"]).toBeUndefined();
+    res = await fetch(`${server.url}/api/params`);
+    expect((await res.json()).params.values["site.name"]).toBeUndefined();
   });
 
   it("a secret value is stored as env:NAME and blanked in the flow view", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    const res = await post(`${server.url}/api/profile`, {
+    const res = await post(`${server.url}/api/params`, {
       flowId: "site",
       values: { api_key: "OPENAI_API_KEY" },
     });
     expect(res.status).toBe(200);
 
-    const stored = (await (await fetch(`${server.url}/api/profile`)).json()).profile.values;
+    const stored = (await (await fetch(`${server.url}/api/params`)).json()).params.values;
     expect(stored["site.api_key"].value).toBe("env:OPENAI_API_KEY");
     expect(stored["site.api_key"].secret).toBe(true);
 
-    const view = (await (await fetch(`${server.url}/api/profile/flow/site`)).json()).values;
+    const view = (await (await fetch(`${server.url}/api/params/flow/site`)).json()).values;
     expect(view.api_key.secret).toBe(true);
     expect(view.api_key.value).toBe(""); // never prefilled into a form
   });
@@ -131,7 +131,7 @@ describe("profile routes", () => {
   it("rejects a bad-typed value (400)", async () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
-    const res = await post(`${server.url}/api/profile`, {
+    const res = await post(`${server.url}/api/params`, {
       flowId: "site",
       values: { count: "not-a-number" },
     });
@@ -142,10 +142,10 @@ describe("profile routes", () => {
     const project = await makeProject();
     server = await startServer({ projectRoot: project, port: 0, host: "127.0.0.1" });
 
-    let res = await post(`${server.url}/api/profile/generate`, { flowId: "site", param: "name" });
+    let res = await post(`${server.url}/api/params/generate`, { flowId: "site", param: "name" });
     expect(res.status).toBe(400); // `name` has no generate hint
 
-    res = await post(`${server.url}/api/profile/generate`, { flowId: "site", param: "api_key" });
+    res = await post(`${server.url}/api/params/generate`, { flowId: "site", param: "api_key" });
     expect(res.status).toBe(400); // secret -> never generated
   });
 });

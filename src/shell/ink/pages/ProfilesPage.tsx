@@ -124,7 +124,7 @@ export function ProfilesPage({
     if (models.length === 0) {
       onToast(
         "info",
-        `${selected.provider} has no preset models to cycle - set one in the web editor or 'vibe profiles set'.`,
+        `${selected.provider} has no preset models to cycle - set one in the web editor or 'vibe profile set'.`,
       );
       return;
     }

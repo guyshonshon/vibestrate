@@ -42,10 +42,10 @@ import {
 } from "../wizards/flow-run-wizard.js";
 import { pickFlow, pickCrew } from "../wizards/flow-crew-picker.js";
 import {
-  ProfileStore,
-  buildProfileSetRequests,
-  seedParamsFromProfile,
-} from "../../project/project-profile.js";
+  ParamStore,
+  buildParamSetRequests,
+  seedParamsFromStore,
+} from "../../project/project-params.js";
 import { nowIso } from "../../utils/time.js";
 
 function rewriteFriendly(message: string): string {
@@ -563,9 +563,9 @@ export async function runRunCommand(
   // never overwrites an existing value.
   let runParams = options.params ?? {};
   if (resolvedFlow?.params && Object.keys(resolvedFlow.params).length > 0) {
-    const store = new ProfileStore(detected.projectRoot);
+    const store = new ParamStore(detected.projectRoot);
     const profile = await store.read();
-    const seeded = seedParamsFromProfile(
+    const seeded = seedParamsFromStore(
       resolvedFlow.params,
       resolvedFlow.flowId,
       runParams,
@@ -785,7 +785,7 @@ export async function runRunCommand(
  *  are never auto-persisted (they store an env var NAME via `vibe profile set`).
  *  Best-effort - a persist hiccup never fails the run. */
 async function persistPromptedAnswers(
-  store: ProfileStore,
+  store: ParamStore,
   flowId: string,
   defs: Record<string, FlowParam>,
   finalParams: Record<string, string>,
@@ -800,7 +800,7 @@ async function persistPromptedAnswers(
     assignments.push({ key: name, value });
   }
   if (assignments.length === 0) return;
-  const { requests } = buildProfileSetRequests({ flowId, defs, assignments });
+  const { requests } = buildParamSetRequests({ flowId, defs, assignments });
   if (requests.length === 0) return;
   try {
     await store.set(requests, nowIso());

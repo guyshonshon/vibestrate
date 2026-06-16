@@ -2,24 +2,25 @@
 
 ## 0.7.102
 
-- **Durable param memory (Profiling).** Fill your project's data once and every
-  run reuses it. A flow declares typed `params:` (name, niche, brand color, ...);
-  Vibestrate now persists the answers in `.vibestrate/project-profile.json` and
-  seeds them at run start, so you stop re-typing them. Precedence is predictable:
-  an explicit `--param` wins, then a `VIBESTRATE_PARAM_*` env var (the clean CI
-  path - no interactive step, never hangs unattended), then the stored profile,
-  then the flow default. The Composer prefills its parameter form from the
-  profile, the CLI prompt only asks for what's genuinely unfilled, and a new
-  **Project profile** panel on the Settings page (plus `vibe profile
-  get/set/list/unset`) lets you edit stored values directly. It's
-  model-independent - Vibestrate owns the questions and the form; a provider is
-  only an optional helper. For a `generate`-enabled param you can press
-  **Generate** (or `vibe profile generate`) to have a provider draft a value you
-  review before keeping - never auto-applied. Safe by construction: param values
-  are stored per-flow by default (an opt-in `shared: true` makes one
-  project-global), a secret param stores an `env:NAME` reference (never the raw
-  secret, and a run fails fast if that env var is unset), and writes go through
-  the project write-mutex.
+- **Durable param memory (`vibe params`).** Fill your project's data once and
+  every run reuses it. A flow declares typed `params:` (name, niche, brand color,
+  ...); Vibestrate now persists the answers in `.vibestrate/project-params.json`
+  and seeds them at run start, so you stop re-typing them. Precedence is
+  predictable: an explicit `--param` wins, then a `VIBESTRATE_PARAM_*` env var
+  (the clean CI path - no interactive step, never hangs unattended), then the
+  stored params, then the flow default. The Composer prefills its parameter form,
+  the CLI prompt only asks for what's genuinely unfilled, and a new **Project
+  parameters** panel on the Settings page (plus `vibe params get/set/list/unset`)
+  lets you edit stored values directly. It's model-independent - Vibestrate owns
+  the questions and the form; a provider is only an optional helper. For a
+  `generate`-enabled param you can press **Generate** (or `vibe params generate`)
+  to have a provider draft a value you review before keeping - never
+  auto-applied. Safe by construction: values are stored per-flow by default (an
+  opt-in `shared: true` makes one project-global), a secret param stores an
+  `env:NAME` reference (never the raw secret, and a run fails fast if that env var
+  is unset), and writes go through the project write-mutex.
+- **`vibe profile` is now the Role-preset command** (was `vibe profiles`),
+  freeing the clearer `vibe params` name for the durable param memory above.
 
 ## 0.7.101
 
@@ -1684,7 +1685,7 @@ Rewind hardening - the destructive-restore blast radius is now fully bounded
 - **Profiles are now complete and reusable.** A profile (provider + model +
   power + budget) is a preset your crew's roles run on - keep several per
   provider (`claude`, `claude-cheap`). Create, duplicate, and delete them from
-  the dashboard or `vibe profiles`; the page groups by provider and shows which
+  the dashboard or `vibe profile`; the page groups by provider and shows which
   roles use each, and deleting one that's in use is guarded. Previously you could
   only edit existing profiles by hand-editing `project.yml`.
 

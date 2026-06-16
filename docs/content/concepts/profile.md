@@ -81,7 +81,7 @@ Schema (`src/profiles/profile-schema.ts`):
 | `timeoutMs` | number \| null | per-turn wall-clock timeout |
 | `providerOptions` | record | raw provider-specific escape hatch |
 
-- CLI: `vibe profiles list|add|set|duplicate|remove`;
+- CLI: `vibe profile list|add|set|duplicate|remove`;
   `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
 - Shell: the `[4] Profiles` page (manage presets - e/E cycle effort, m/M model,
   n new, d duplicate, x delete) and the Crew page shows each role's model/effort.
