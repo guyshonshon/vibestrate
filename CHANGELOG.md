@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.110
+
+- **The new run page, redesigned with real craft.** The first cut was a flat,
+  generic form; this is a rebuild to the brand's design bar (Linear/Vercel
+  restraint in Vibestrate's language): the brief is a single raised focal plane,
+  flows are a scannable list with a per-flow shape glyph (steps at a glance)
+  instead of an identical card grid, configuration is grouped with hairline
+  dividers, type hierarchy is Bricolage / Geist / mono, violet appears only as
+  the active signal, and emerald is reserved for the one Start action. No glass,
+  no gradients. Verified in-browser.
+
 ## 0.7.109
 
 - **A dedicated run page (`#/compose`), in the new design language.** Composing a
