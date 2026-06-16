@@ -182,7 +182,7 @@ export function RunComposePage() {
   return (
     <div data-scene className="grain scene-ground min-h-full">
       <div className="mx-auto max-w-[1520px] px-8 py-9">
-        <header className="flex items-end justify-between gap-4 border-b border-[color:var(--line)] pb-5">
+        <header className="flex items-start justify-between gap-6 border-b border-[color:var(--line)] pb-5">
           <div className="min-w-0">
             <h1 className="font-display text-[30px] font-semibold leading-none tracking-[-0.03em] text-fog-100">
               New <span className="hl-box font-wordmark text-[26px]">run</span>
@@ -193,24 +193,23 @@ export function RunComposePage() {
               then stops before anything ships.
             </p>
           </div>
+          {/* Live command mirror (CLI = TUI = UI): the exact `vibe run` this page
+              would invoke, reflecting every selection - copyable. */}
+          <button
+            type="button"
+            onClick={copyCmd}
+            title={`Copy - run this from the terminal or \`vibe shell\`:\n${runCmd}`}
+            className="group hidden w-[clamp(260px,32vw,520px)] shrink-0 items-center gap-2 border border-[color:var(--line)] bg-ink-0 px-3 py-2 text-left transition hover:border-violet-soft/30 md:flex"
+          >
+            <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+            <span className="select-none text-fog-600">$</span>
+            <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-fog-200">{runCmd}</code>
+            <span className="flex shrink-0 items-center gap-1 text-[10.5px] text-fog-500 group-hover:text-fog-300">
+              {cmdCopied ? <Check className="h-3 w-3" strokeWidth={1.8} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
+              {cmdCopied ? "copied" : "copy"}
+            </span>
+          </button>
         </header>
-
-        {/* Live command mirror (CLI = TUI = UI): the exact `vibe run` this page
-            would invoke, reflecting every selection - copyable. */}
-        <button
-          type="button"
-          onClick={copyCmd}
-          title="Copy - run this from the terminal or `vibe shell`"
-          className="group mt-3 flex w-full items-center gap-2 border border-[color:var(--line)] bg-ink-0 px-3 py-2 text-left transition hover:border-violet-soft/30"
-        >
-          <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
-          <span className="text-fog-600 select-none">$</span>
-          <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-fog-200">{runCmd}</code>
-          <span className="flex shrink-0 items-center gap-1 text-[10.5px] text-fog-500 group-hover:text-fog-300">
-            {cmdCopied ? <Check className="h-3 w-3" strokeWidth={1.8} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
-            {cmdCopied ? "copied" : "copy"}
-          </span>
-        </button>
 
         <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* ── Composition ──────────────────────────────────────────────── */}

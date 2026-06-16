@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 0.7.115
+
+- **Run-command mirror moved to the header.** The live `vibe run ...` command now
+  sits top-right beside the title (truncated, full command on hover, copyable),
+  not a full-width bar below the header.
+
 ## 0.7.114
 
 - **Compose page: context-aware consult, a live command mirror, and de-conflicted
