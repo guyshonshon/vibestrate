@@ -10,6 +10,10 @@ import {
 } from "../../crews/crew-registry.js";
 import { resolveProfile } from "../../permissions/permission-profiles.js";
 import {
+  findParamEnvCollisions,
+  paramEnvVarName,
+} from "../../project/project-params.js";
+import {
   isGraphFlow,
   parallelGroupsOf,
   resolvedFlowSnapshotSchema,
@@ -61,6 +65,20 @@ export type ResolveFlowInput = {
 };
 
 export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
+  // Durable param memory (authoring check, crew-independent): two params that map
+  // to the same `VIBESTRATE_PARAM_*` env var (e.g. `colorTokens` + `color_tokens`)
+  // would leave one silently un-seedable from the environment. Fail loud here, not
+  // at runtime.
+  const envCollisions = findParamEnvCollisions(input.flow.params);
+  if (envCollisions.length > 0) {
+    const groups = envCollisions
+      .map((names) => `${names.join(" / ")} -> ${paramEnvVarName(names[0]!)}`)
+      .join("; ");
+    throw new FlowResolutionError(
+      `Flow "${input.flow.id}" has params that collide on one env var: ${groups}. Rename one so each maps to a distinct VIBESTRATE_PARAM_* name.`,
+    );
+  }
+
   const { crewId, crew } = getCrew(input.config, input.crewId);
 
   // Seats the Flow declares. A Seat is just a contract - no provider here; the

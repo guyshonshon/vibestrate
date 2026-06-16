@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.104
+
+- **Param env-var collisions now fail loud.** If a flow declares two params that
+  map to the same `VIBESTRATE_PARAM_*` env var (e.g. `colorTokens` and
+  `color_tokens`), Vibestrate refuses to resolve the flow with a clear error
+  naming both - instead of silently leaving one un-seedable from the environment.
+  A consolidation/QA pass on the durable-param-memory work (0.7.102-0.7.103):
+  `vibe params` and methodology guidance verified end-to-end against the built
+  binary; full suite green.
+
 ## 0.7.103
 
 - **Project methodology guides the planner.** Set `vibe params set methodology=tdd`

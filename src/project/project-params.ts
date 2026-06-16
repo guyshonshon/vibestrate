@@ -96,14 +96,29 @@ export function paramKeyFor(
 
 /** The `VIBESTRATE_PARAM_<NAME>` env var that seeds a param in CI. `<NAME>` is
  *  the param name upper-snake-cased so `colorTokens` and `color_tokens` both map
- *  to `COLOR_TOKENS` (deterministic; a pathological flow declaring both collides
- *  - acceptable, documented). */
+ *  to `COLOR_TOKENS` (deterministic). A flow declaring two such params is refused
+ *  at resolve time - see `findParamEnvCollisions`. */
 export function paramEnvVarName(paramName: string): string {
   const snake = paramName
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .toUpperCase();
   return `VIBESTRATE_PARAM_${snake}`;
+}
+
+/** Groups of param names that collide on the same `VIBESTRATE_PARAM_*` env var
+ *  (e.g. `colorTokens` + `color_tokens`). Each group has >= 2 names; empty when
+ *  there's no collision. Pure - used at flow-resolve time to fail loud on the
+ *  authoring mistake rather than silently leaving one param un-seedable via env. */
+export function findParamEnvCollisions(
+  defs: Record<string, FlowParam> | null | undefined,
+): string[][] {
+  const byEnv = new Map<string, string[]>();
+  for (const name of Object.keys(defs ?? {})) {
+    const env = paramEnvVarName(name);
+    byEnv.set(env, [...(byEnv.get(env) ?? []), name]);
+  }
+  return [...byEnv.values()].filter((names) => names.length > 1);
 }
 
 /** The env var name a secret `env:NAME` ref points at, or null. */

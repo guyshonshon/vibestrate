@@ -352,8 +352,9 @@ A fresh-context Opus review of the built code found and we fixed:
 
 - `paramEnvVarName` upper-snake-cases the param name, so a single flow declaring
   both `colorTokens` and `color_tokens` would map them to one `VIBESTRATE_PARAM_*`
-  env var (one becomes un-seedable via env). Documented, not guarded at resolve
-  time.
+  env var. **Now guarded (0.7.104):** `resolveFlow` calls `findParamEnvCollisions`
+  and refuses such a flow with a `FlowResolutionError` naming the colliding params,
+  rather than silently leaving one un-seedable via env.
 - The bare-key (`vibe params set name=...` without `--flow`) path can't type-check
   or detect a secret param, so it stores raw strings (the shape-scan backstop
   still applies). `--flow` is the recommended path for typed + secret values.

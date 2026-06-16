@@ -9,6 +9,7 @@ import {
   normalizeParamValue,
   paramKeyFor,
   paramEnvVarName,
+  findParamEnvCollisions,
   isParamKey,
   resolveParamsForFlow,
   seedParamsFromStore,
@@ -51,6 +52,20 @@ describe("key derivation", () => {
     expect(paramEnvVarName("colorTokens")).toBe("VIBESTRATE_PARAM_COLOR_TOKENS");
     expect(paramEnvVarName("color_tokens")).toBe("VIBESTRATE_PARAM_COLOR_TOKENS");
     expect(paramEnvVarName("niche")).toBe("VIBESTRATE_PARAM_NICHE");
+  });
+
+  it("findParamEnvCollisions groups params that share one env var", () => {
+    expect(findParamEnvCollisions(null)).toEqual([]);
+    expect(
+      findParamEnvCollisions({ name: def({}), niche: def({}) }),
+    ).toEqual([]);
+    const collisions = findParamEnvCollisions({
+      colorTokens: def({}),
+      color_tokens: def({}),
+      niche: def({}),
+    });
+    expect(collisions).toHaveLength(1);
+    expect(collisions[0]!.sort()).toEqual(["colorTokens", "color_tokens"].sort());
   });
 });
 
