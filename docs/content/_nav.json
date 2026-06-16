@@ -8,12 +8,16 @@
         {
           "slug": "index",
           "label": "Overview"
+        },
+        {
+          "slug": "getting-started/installation",
+          "label": "Installation"
         }
       ]
     },
     {
-      "id": "getting-started",
-      "label": "Getting started",
+      "id": "mental-models",
+      "label": "Mental models",
       "items": [
         {
           "slug": "getting-started/big-picture",
@@ -22,11 +26,13 @@
         {
           "slug": "getting-started/why-a-human",
           "label": "Why a human stays in the loop"
-        },
-        {
-          "slug": "getting-started/installation",
-          "label": "Installation"
-        },
+        }
+      ]
+    },
+    {
+      "id": "getting-started",
+      "label": "Getting started",
+      "items": [
         {
           "slug": "getting-started/first-run",
           "label": "Your first run"
