@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.113
+
+- **Compose page reworked into a real task command center.** Roadmap pickup now
+  lives with the brief (it's a task source, not a sidebar afterthought). "Ask the
+  supervisor" is inline (a read-only consult right on the page, no window-switch).
+  Crew gets deeper card selection like Flow (roles + profiles at a glance). Added
+  a metrics quick-look (today's spend, active, queue). Configuration is redesigned
+  into clean labeled rows with designed controls - the effort ladder (EffortScale)
+  and supervisor/crew as pills/cards instead of native dropdowns that didn't blend.
+
 ## 0.7.112
 
 - **Run page now matches the marketing site's component language.** It was in the

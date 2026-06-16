@@ -3,7 +3,7 @@ import {
   Activity,
   ArrowRight,
   Check,
-  Cpu,
+  Gauge,
   LayoutGrid,
   Layers,
   Lock,
@@ -15,8 +15,10 @@ import {
 import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
+import { EffortScale } from "../../components/design/EffortScale.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import type {
+  ConsultResult,
   DiscoveredFlow,
   FlowStepDefinition,
   PersonaSummary,
@@ -27,14 +29,13 @@ import type {
 
 /**
  * Run composition as a task command center (#/compose), product register.
- * Full width: composition on the left (brief, a 4-up flow grid, a strong config
- * panel, crew, Start), a contextual right rail on the right (the selected flow's
- * steps, plus the utilities you reach for to compose efficiently: pick up from
- * the roadmap, ask the orchestrator, recent activity). Component vocabulary is
- * ported 1:1 from the marketing docs: SQUARE corners, flat ink surfaces with a
- * hairline, the `.brand-card` left-accent that turns violet on hover/active,
- * tracked-uppercase labels, Bricolage/Geist/mono. A grain texture over the ground
- * is the one twist; violet is only the active signal, emerald only on Start.
+ * Component vocabulary ported 1:1 from the marketing docs: SQUARE corners, flat
+ * ink surfaces + hairline, the `.brand-card` left-accent (violet on hover/active),
+ * tracked-uppercase labels, Bricolage/Geist/mono. Layout: the TASK is the brief
+ * plus roadmap pickup together (one source of intent); flow + crew are picked as
+ * cards; configuration is designed controls (no native menus). The right rail is
+ * the working context: the selected flow's steps, an INLINE "ask the supervisor"
+ * (no navigation away), a metrics quick-look, and recent runs.
  */
 export function RunComposePage() {
   const [meta, setMeta] = useState<ProjectMetadata | null>(null);
@@ -42,6 +43,7 @@ export function RunComposePage() {
   const [defaultFlow, setDefaultFlow] = useState<string | null>(null);
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
+  const [todaySpend, setTodaySpend] = useState<number | null>(null);
 
   const [brief, setBrief] = useState("");
   const [flowId, setFlowId] = useState("");
@@ -55,14 +57,21 @@ export function RunComposePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Inline consult (ask the supervisor without leaving the page).
+  const [askQ, setAskQ] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
+  const [askResult, setAskResult] = useState<ConsultResult | null>(null);
+  const [askErr, setAskErr] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [m, f, p, s] = await Promise.all([
+      const [m, f, p, s, b] = await Promise.all([
         api.getProjectMetadata().catch(() => null),
         api.listFlows().catch(() => ({ flows: [] as DiscoveredFlow[], defaultFlow: null })),
         api.listPersonas().catch(() => null),
         api.suggestNext().catch(() => [] as TaskSuggestion[]),
+        api.getBudget().catch(() => null),
       ]);
       if (cancelled) return;
       setMeta(m);
@@ -74,6 +83,7 @@ export function RunComposePage() {
         setPersonaId((cur) => cur ?? p.defaultPersona);
       }
       setSuggestions(s);
+      setTodaySpend(b?.todaySpendUsd ?? null);
     })();
     return () => {
       cancelled = true;
@@ -112,23 +122,37 @@ export function RunComposePage() {
     }
   }
 
+  async function ask() {
+    const q = askQ.trim();
+    if (!q || askBusy) return;
+    setAskBusy(true);
+    setAskErr(null);
+    try {
+      const r = await api.consult({ question: q });
+      setAskResult(r);
+    } catch (err) {
+      setAskErr(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAskBusy(false);
+    }
+  }
+
   const canStart = brief.trim().length > 0 && !busy;
   const recent = meta?.recentRuns ?? [];
+  const counts = meta?.counts;
 
   return (
     <div data-scene className="grain scene-ground min-h-full">
       <div className="mx-auto max-w-[1520px] px-8 py-9">
-        {/* Header (twist: wordmark highlight-box) */}
         <header className="flex items-end justify-between gap-4 border-b border-[color:var(--line)] pb-5">
           <div className="min-w-0">
             <h1 className="font-display text-[30px] font-semibold leading-none tracking-[-0.03em] text-fog-100">
-              New{" "}
-              <span className="hl-box font-wordmark text-[26px]">run</span>
+              New <span className="hl-box font-wordmark text-[26px]">run</span>
             </h1>
             <p className="mt-3 max-w-[62ch] text-[13px] leading-[1.55] text-fog-300">
-              Describe the change, or pick something up from your roadmap. Choose
-              the flow and crew; the run plans, builds, reviews, and verifies, then
-              stops before anything ships.
+              Describe the change or pick one up from your roadmap, choose the flow
+              and crew, and start. The run plans, builds, reviews, and verifies,
+              then stops before anything ships.
             </p>
           </div>
           <span className="hidden whitespace-nowrap font-mono text-[11px] text-fog-500 sm:block">
@@ -137,26 +161,59 @@ export function RunComposePage() {
         </header>
 
         <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-12">
-          {/* ── Main composition ─────────────────────────────────────────── */}
+          {/* ── Composition ──────────────────────────────────────────────── */}
           <div className="flex flex-col gap-7 lg:col-span-8">
-            <textarea
-              value={brief}
-              onChange={(e) => setBrief(e.target.value)}
-              placeholder="Add structured logging to the settings save handler"
-              className="slab min-h-[120px] w-full resize-y px-4 py-3.5 text-[15px] leading-[1.6] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
-             
-            />
-
-            {/* Flow - 4-up boxes in a container */}
+            {/* Task: brief + roadmap pickup, one unified source of intent */}
             <section>
-              <SectionLabel icon={<Layers className="h-3 w-3" strokeWidth={1.8} />}>
-                Flow
-              </SectionLabel>
+              <SectionLabel>Task</SectionLabel>
+              <textarea
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+                placeholder="Add structured logging to the settings save handler"
+                className="slab min-h-[112px] w-full resize-y px-4 py-3.5 text-[15px] leading-[1.6] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
+              />
+              {suggestions.length > 0 ? (
+                <div className="mt-2 border border-[color:var(--line)] border-t-0 bg-ink-50">
+                  <div className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] px-3 py-1.5">
+                    <Sparkles className="h-3 w-3 text-violet-soft" strokeWidth={1.8} />
+                    <span className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-fog-500">
+                      Or pick up from your roadmap
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => navigate({ kind: "board" })}
+                      className="ml-auto flex items-center gap-1 text-[10.5px] text-fog-500 hover:text-fog-200"
+                    >
+                      <LayoutGrid className="h-3 w-3" strokeWidth={1.8} /> Board
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 p-2">
+                    {suggestions.slice(0, 6).map((s) => (
+                      <button
+                        key={s.taskId}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => start(s.taskId)}
+                        title={s.reason}
+                        className="brand-card flex items-center gap-2 px-2.5 py-1.5 disabled:opacity-50"
+                      >
+                        <span className="max-w-[200px] truncate text-[12px] text-fog-100">{s.title}</span>
+                        <span className={cn("font-mono text-[9.5px]", s.ready ? "text-emerald" : "text-warn")}>
+                          {s.ready ? "ready" : `${s.openBlockers.length}b`}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
+            {/* Flow */}
+            <section>
+              <SectionLabel icon={<Layers className="h-3 w-3" strokeWidth={1.8} />}>Flow</SectionLabel>
               <div className="slab-flat p-3">
                 {flows.length === 0 ? (
-                  <div className="px-1 py-2 text-[12.5px] text-fog-400">
-                    No flows discovered.
-                  </div>
+                  <div className="px-1 py-2 text-[12.5px] text-fog-400">No flows discovered.</div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
                     {flows.map((f) => {
@@ -168,17 +225,14 @@ export function RunComposePage() {
                           key={f.id}
                           type="button"
                           onClick={() => setFlowId(on ? "" : f.id)}
-                          className={cn(
-                            "brand-card flex flex-col gap-2 px-3 py-3 text-left",
-                            on && "is-active",
-                          )}
+                          className={cn("brand-card flex flex-col gap-2 px-3 py-3 text-left", on && "is-active")}
                         >
                           <div className="flex items-center justify-between">
                             <StepPips steps={steps} active={on} />
                             {on ? (
                               <Check className="h-3.5 w-3.5 text-violet-soft" strokeWidth={2.2} />
                             ) : f.id === defaultFlow ? (
-                              <span className=" border border-[color:var(--line)] px-1 py-px text-[9px] uppercase tracking-wide text-fog-500">
+                              <span className="border border-[color:var(--line)] px-1 py-px text-[9px] uppercase tracking-wide text-fog-500">
                                 default
                               </span>
                             ) : null}
@@ -197,70 +251,85 @@ export function RunComposePage() {
               </div>
             </section>
 
-            {/* Configuration - a strong, present panel */}
-            <section>
-              <SectionLabel>Configuration</SectionLabel>
-              <div className="slab p-4">
-                <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-                  <ConfigGroup label="Run mode">
-                    <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
-                    <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />
-                  </ConfigGroup>
-                  <ConfigGroup label="Tuning">
-                    <label className="flex h-8 items-center gap-1.5 border border-[color:var(--line)] px-2.5 text-[11.5px] text-fog-300">
-                      <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.8} /> Effort
-                      <select
-                        value={effort ?? ""}
-                        onChange={(e) =>
-                          setEffort((e.target.value || null) as "low" | "medium" | "high" | null)
-                        }
-                        className="bg-transparent font-mono text-fog-100 outline-none"
-                      >
-                        <option value="" className="bg-ink-200">auto</option>
-                        <option value="low" className="bg-ink-200">low</option>
-                        <option value="medium" className="bg-ink-200">medium</option>
-                        <option value="high" className="bg-ink-200">high</option>
-                      </select>
-                    </label>
-                    <Toggle on={concise} onClick={() => setConcise((x) => !x)} label="Concise" />
-                    <Toggle on={forceSelect} onClick={() => setForceSelect((x) => !x)} label="Auto-pick flow" />
-                  </ConfigGroup>
-                  <ConfigGroup label="Crew">
-                    {(meta?.crews ?? []).map((c) => {
+            {/* Crew - deeper, card-based selection (like Flow) */}
+            {meta && meta.crews.length > 0 ? (
+              <section>
+                <SectionLabel icon={<Users className="h-3 w-3" strokeWidth={1.8} />}>Crew</SectionLabel>
+                <div className="slab-flat p-3">
+                  <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+                    {meta.crews.map((c) => {
                       const on = c.id === crewId;
+                      const profiles = [...new Set(c.roles.map((r) => r.profile))];
                       return (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => setCrewId(c.id)}
-                          className={cn(
-                            " border px-3 py-1.5 text-[12px] transition",
-                            on
-                              ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
-                              : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
-                          )}
+                          className={cn("brand-card flex flex-col gap-1.5 px-3 py-3 text-left", on && "is-active")}
                         >
-                          {c.label}
+                          <div className="flex items-center justify-between">
+                            <span className="font-display text-[13px] font-medium text-fog-100">{c.label}</span>
+                            {on ? <Check className="h-3.5 w-3.5 text-violet-soft" strokeWidth={2.2} /> : null}
+                          </div>
+                          <div className="font-mono text-[10px] text-fog-500">
+                            {c.roles.length} roles · {profiles.slice(0, 3).join(", ")}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap gap-1">
+                            {c.roles.slice(0, 4).map((r) => (
+                              <span key={r.id} className="border border-[color:var(--line-soft)] px-1 py-px text-[9.5px] text-fog-400">
+                                {r.label}
+                              </span>
+                            ))}
+                          </div>
                         </button>
                       );
                     })}
-                  </ConfigGroup>
-                  {personas.length > 0 ? (
-                    <ConfigGroup label="Supervisor">
-                      <select
-                        value={personaId ?? ""}
-                        onChange={(e) => setPersonaId(e.target.value || null)}
-                        className="h-8 max-w-[200px] border border-[color:var(--line)] bg-transparent px-2.5 text-[12px] text-fog-100 outline-none"
-                      >
-                        {personas.map((p) => (
-                          <option key={p.id} value={p.id} className="bg-ink-200">
-                            {p.label}
-                          </option>
-                        ))}
-                      </select>
-                    </ConfigGroup>
-                  ) : null}
+                  </div>
                 </div>
+              </section>
+            ) : null}
+
+            {/* Configuration - designed controls, no native menus */}
+            <section>
+              <SectionLabel>Configuration</SectionLabel>
+              <div className="slab-flat divide-y divide-[color:var(--line-soft)]">
+                <ConfigRow label="Effort">
+                  <div className="w-[280px] max-w-full">
+                    <EffortScale
+                      value={effort ?? ""}
+                      onChange={(v) => setEffort((v || null) as "low" | "medium" | "high" | null)}
+                      levels={["low", "medium", "high"]}
+                    />
+                  </div>
+                </ConfigRow>
+                <ConfigRow label="Run mode">
+                  <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
+                  <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />
+                </ConfigRow>
+                <ConfigRow label="Tuning">
+                  <Toggle on={concise} onClick={() => setConcise((x) => !x)} label="Concise" />
+                  <Toggle on={forceSelect} onClick={() => setForceSelect((x) => !x)} label="Auto-pick flow" />
+                </ConfigRow>
+                {personas.length > 0 ? (
+                  <ConfigRow label="Supervisor">
+                    {personas.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPersonaId(p.id)}
+                        title={p.description}
+                        className={cn(
+                          "border px-2.5 py-1.5 text-[11.5px] transition",
+                          p.id === personaId
+                            ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
+                            : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </ConfigRow>
+                ) : null}
               </div>
             </section>
 
@@ -285,80 +354,84 @@ export function RunComposePage() {
               </span>
             </div>
             {error ? (
-              <div className=" border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2 text-[12px] text-fail">
+              <div className="border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2 text-[12px] text-fail">
                 {error}
               </div>
             ) : null}
           </div>
 
-          {/* ── Right rail: flow detail + task utilities ─────────────────── */}
+          {/* ── Right rail: working context + utilities ──────────────────── */}
           <aside className="flex flex-col gap-4 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
             <FlowDetail flow={selectedFlow} />
 
-            <RailCard
-              title="Pick up from the roadmap"
-              icon={<Sparkles className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.8} />}
-              action={{ label: "Board", onClick: () => navigate({ kind: "board" }), icon: <LayoutGrid className="h-3 w-3" strokeWidth={1.8} /> }}
-            >
-              {suggestions.length === 0 ? (
-                <Empty>No open tasks ranked yet. Open the board to add some.</Empty>
-              ) : (
-                <ul className="flex flex-col">
-                  {suggestions.slice(0, 5).map((s) => (
-                    <li key={s.taskId}>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => start(s.taskId)}
-                        className="flex w-full items-center gap-2  px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04] disabled:opacity-50"
-                      >
-                        <ArrowRight className="h-3 w-3 shrink-0 text-fog-500" strokeWidth={1.8} />
-                        <span className="flex-1 truncate text-[12.5px] text-fog-100">{s.title}</span>
-                        <span className={cn("font-mono text-[10px]", s.ready ? "text-emerald" : "text-warn")}>
-                          {s.ready ? "ready" : `${s.openBlockers.length}b`}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            {/* Ask the supervisor - inline, no navigation away */}
+            <RailCard title="Ask the supervisor" icon={<MessagesSquare className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.8} />}>
+              <div className="px-1.5 pb-1">
+                <textarea
+                  value={askQ}
+                  onChange={(e) => setAskQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
+                  }}
+                  rows={2}
+                  placeholder="What should I run? Is this risky? What did we already ship here?"
+                  className="w-full resize-none border border-[color:var(--line)] bg-ink-0 px-2.5 py-2 text-[12px] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
+                />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!askQ.trim() || askBusy}
+                    onClick={ask}
+                    className={cn(
+                      "border px-2.5 py-1 text-[11.5px] transition",
+                      askQ.trim() && !askBusy
+                        ? "border-violet-soft/45 text-violet-100 hover:bg-violet-mid/10"
+                        : "cursor-not-allowed border-[color:var(--line)] text-fog-500",
+                    )}
+                  >
+                    {askBusy ? "Asking…" : "Ask"}
+                  </button>
+                  <span className="text-[10px] text-fog-600">read-only · ⌘↵</span>
+                </div>
+                {askErr ? <p className="mt-2 text-[11px] text-fail">{askErr}</p> : null}
+                {askResult ? (
+                  <div className="mt-2 border-t border-[color:var(--line-soft)] pt-2">
+                    <div className="mb-1 font-mono text-[9.5px] uppercase tracking-wide text-fog-500">
+                      {askResult.answer.confidence} confidence
+                    </div>
+                    <p className="max-h-[200px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-[1.5] text-fog-200">
+                      {askResult.answer.answer.trim()}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
             </RailCard>
 
+            {/* Metrics quick-look */}
             <RailCard
-              title="Ask the orchestrator"
-              icon={<MessagesSquare className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.8} />}
+              title="Metrics"
+              icon={<Gauge className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.8} />}
+              action={{ label: "Open", onClick: () => navigate({ kind: "metrics" }) }}
             >
-              <p className="px-1.5 text-[12px] leading-[1.5] text-fog-300">
-                Not sure what to run? Consult reads your project state - shipped,
-                open, decided - and recommends, read-only.
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate({ kind: "consult", taskId: null })}
-                className="mt-2 flex items-center gap-1.5 px-1.5 text-[12px] text-violet-soft hover:text-violet-soft/80"
-              >
-                Open consult <ArrowRight className="h-3 w-3" strokeWidth={1.8} />
-              </button>
+              <div className="flex items-stretch divide-x divide-[color:var(--line-soft)]">
+                <Stat label="Today" value={todaySpend == null ? "-" : `$${todaySpend.toFixed(2)}`} />
+                <Stat label="Active" value={`${counts?.runningTaskIds.length ?? 0}`} />
+                <Stat label="Queue" value={`${counts?.queueLength ?? 0}`} />
+              </div>
             </RailCard>
 
             {recent.length > 0 ? (
-              <RailCard
-                title="Recent runs"
-                icon={<Activity className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.8} />}
-                action={{ label: "All", onClick: () => navigate({ kind: "runs" }) }}
-              >
+              <RailCard title="Recent runs" icon={<Activity className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.8} />} action={{ label: "All", onClick: () => navigate({ kind: "runs" }) }}>
                 <ul className="flex flex-col">
-                  {recent.slice(0, 5).map((r: RunState) => (
+                  {recent.slice(0, 4).map((r: RunState) => (
                     <li key={r.runId}>
                       <button
                         type="button"
                         onClick={() => navigate({ kind: "run", runId: r.runId })}
-                        className="flex w-full items-center gap-2  px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04]"
+                        className="flex w-full items-center gap-2 px-1.5 py-1.5 text-left transition hover:bg-fog-100/[0.04]"
                       >
                         <RunStatusBadge status={r.status} compact />
-                        <span className="flex-1 truncate text-[12px] text-fog-200">
-                          {r.displayName || r.task}
-                        </span>
+                        <span className="flex-1 truncate text-[12px] text-fog-200">{r.displayName || r.task}</span>
                       </button>
                     </li>
                   ))}
@@ -372,7 +445,6 @@ export function RunComposePage() {
   );
 }
 
-/** The selected flow's content (its step sequence + seats), on the right. */
 function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
   if (!flow) {
     return (
@@ -389,29 +461,21 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
   return (
     <div className="brand-callout overflow-hidden">
       <div className="border-b border-[color:var(--line)] px-4 py-2.5">
-        <div className="font-display text-[14px] font-medium text-fog-100">
-          {flow.definition.label}
-        </div>
+        <div className="font-display text-[14px] font-medium text-fog-100">{flow.definition.label}</div>
         <div className="mt-0.5 font-mono text-[10.5px] text-fog-400">
           {flow.id} · {steps.length} steps · {seats.length} seats
         </div>
       </div>
       <div className="p-3">
         {flow.definition.description ? (
-          <p className="mb-2.5 px-1 text-[11.5px] leading-[1.5] text-fog-300">
-            {flow.definition.description}
-          </p>
+          <p className="mb-2.5 px-1 text-[11.5px] leading-[1.5] text-fog-300">{flow.definition.description}</p>
         ) : null}
         <ol className="flex flex-col gap-1">
           {steps.map((s) => (
-            <li key={s.id} className="flex items-center gap-2.5  px-1.5 py-1">
+            <li key={s.id} className="flex items-center gap-2.5 px-1.5 py-1">
               <StepKindDot kind={s.kind} />
               <span className="flex-1 truncate text-[12px] text-fog-200">{s.label}</span>
-              {s.seat ? (
-                <span className="font-mono text-[10px] text-fog-500">{s.seat}</span>
-              ) : (
-                <span className="font-mono text-[10px] text-fog-600">{s.kind}</span>
-              )}
+              <span className="font-mono text-[10px] text-fog-500">{s.seat || s.kind}</span>
             </li>
           ))}
         </ol>
@@ -422,14 +486,17 @@ function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
 
 function StepKindDot({ kind }: { kind: string }) {
   const tone =
-    kind === "review-turn"
-      ? "bg-violet-soft"
-      : kind === "validation"
-        ? "bg-fog-500"
-        : kind === "approval-gate"
-          ? "bg-warn"
-          : "bg-fog-200";
+    kind === "review-turn" ? "bg-violet-soft" : kind === "validation" ? "bg-fog-500" : kind === "approval-gate" ? "bg-warn" : "bg-fog-200";
   return <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", tone)} aria-hidden />;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex-1 px-3 py-1.5">
+      <div className="text-[9.5px] uppercase tracking-[0.12em] text-fog-500">{label}</div>
+      <div className="mt-0.5 font-mono text-[14px] text-fog-100">{value}</div>
+    </div>
+  );
 }
 
 function RailCard({
@@ -440,23 +507,16 @@ function RailCard({
 }: {
   title: string;
   icon?: React.ReactNode;
-  action?: { label: string; onClick: () => void; icon?: React.ReactNode };
+  action?: { label: string; onClick: () => void };
   children: React.ReactNode;
 }) {
   return (
     <div className="slab-flat overflow-hidden">
       <div className="flex items-center gap-1.5 border-b border-[color:var(--line-soft)] px-3 py-2">
         {icon}
-        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-fog-400">
-          {title}
-        </span>
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-fog-400">{title}</span>
         {action ? (
-          <button
-            type="button"
-            onClick={action.onClick}
-            className="ml-auto flex items-center gap-1 text-[11px] text-fog-500 hover:text-fog-200"
-          >
-            {action.icon}
+          <button type="button" onClick={action.onClick} className="ml-auto text-[11px] text-fog-500 hover:text-fog-200">
             {action.label}
           </button>
         ) : null}
@@ -466,24 +526,18 @@ function RailCard({
   );
 }
 
-function ConfigGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function ConfigRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-fog-500">
+    <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+      <div className="w-[88px] shrink-0 text-[10.5px] font-medium uppercase tracking-[0.14em] text-fog-500">
         {label}
       </div>
-      <div className="flex flex-wrap items-center gap-2">{children}</div>
+      {children}
     </div>
   );
 }
 
-function SectionLabel({
-  icon,
-  children,
-}: {
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function SectionLabel({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-fog-500">
       {icon}
@@ -492,42 +546,23 @@ function SectionLabel({
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="px-1.5 py-1 text-[11.5px] text-fog-500">{children}</div>;
-}
-
-function Toggle({
-  on,
-  onClick,
-  label,
-  icon,
-}: {
-  on: boolean;
-  onClick: () => void;
-  label: string;
-  icon?: React.ReactNode;
-}) {
+function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void; label: string; icon?: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
         "flex h-8 items-center gap-1.5 border px-2.5 text-[11.5px] transition",
-        on
-          ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
-          : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
+        on ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100" : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
       )}
     >
       {icon}
       {label}
-      <span className={cn("font-mono", on ? "text-violet-soft" : "text-fog-500")}>
-        {on ? "on" : "off"}
-      </span>
+      <span className={cn("font-mono", on ? "text-violet-soft" : "text-fog-500")}>{on ? "on" : "off"}</span>
     </button>
   );
 }
 
-/** A compact glyph of a flow's shape: one bar per step, tinted by step kind. */
 function StepPips({ steps, active }: { steps: FlowStepDefinition[]; active: boolean }) {
   const shown = steps.slice(0, 12);
   const tone = (kind: string): string => {
@@ -539,11 +574,7 @@ function StepPips({ steps, active }: { steps: FlowStepDefinition[]; active: bool
   return (
     <div className="flex h-6 items-end gap-[2px]" aria-hidden>
       {shown.map((s, i) => (
-        <span
-          key={i}
-          className={cn("w-[3px]", tone(s.kind))}
-          style={{ height: `${7 + ((i * 5) % 10)}px` }}
-        />
+        <span key={i} className={cn("w-[3px]", tone(s.kind))} style={{ height: `${7 + ((i * 5) % 10)}px` }} />
       ))}
     </div>
   );
