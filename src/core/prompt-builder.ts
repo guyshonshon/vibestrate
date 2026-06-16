@@ -47,6 +47,13 @@ export type PromptBuildInput = {
    * redacted by the caller. Empty/undefined → no section.
    */
   continuityFlags?: string;
+  /**
+   * Pre-rendered "# Methodology" section (see known-methodologies.ts
+   * renderMethodologyForPrompt) - the project's selected development methodology
+   * (TDD/BDD/incremental) as a bounded planning directive. Planner turn only.
+   * Empty/undefined → no section.
+   */
+  methodologyGuidance?: string;
   /** Per-run brevity directive. Appends a short "be concise" section. */
   concise?: boolean;
 };
@@ -175,6 +182,11 @@ export function buildRolePrompt(input: PromptBuildInput): string {
   if (input.projectLedger && input.projectLedger.trim().length > 0) {
     sections.push(``);
     sections.push(input.projectLedger.trim());
+  }
+
+  if (input.methodologyGuidance && input.methodologyGuidance.trim().length > 0) {
+    sections.push(``);
+    sections.push(input.methodologyGuidance.trim());
   }
 
   if (input.humanAnnotations && input.humanAnnotations.trim().length > 0) {

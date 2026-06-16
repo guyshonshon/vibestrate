@@ -137,6 +137,49 @@ describe("context sources reach the agent prompt (e2e)", () => {
     expect(reviewerPrompt).not.toContain("LEDGER_MARKER");
   });
 
+  it("injects the selected methodology into the planning turn only (Slice 4)", async () => {
+    // Seed a project-global `methodology` param before the run.
+    await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
+    await fs.writeFile(
+      path.join(dir, ".vibestrate", "project-params.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        values: {
+          methodology: {
+            value: "tdd",
+            setBy: "user",
+            at: "2026-06-12T00:00:00.000Z",
+            secret: false,
+          },
+        },
+      }),
+    );
+    const loaded = await loadConfig(dir);
+    const orch = new Orchestrator({
+      projectRoot: dir,
+      config: loaded.config,
+      rules: loaded.rules,
+      task: "methodology planning check",
+      isGitRepo: true,
+      onProgress: () => {},
+    });
+    const out = await orch.run();
+
+    const plannerPrompt = await fs.readFile(
+      path.join(out.worktreePath!, "planner-prompt.txt"),
+      "utf8",
+    );
+    expect(plannerPrompt).toContain("# Methodology");
+    expect(plannerPrompt).toContain("Test-Driven Development");
+
+    // Planner-only: a later (reviewer) turn must not re-receive it.
+    const reviewerPrompt = await fs.readFile(
+      path.join(out.worktreePath!, "reviewer-prompt.txt"),
+      "utf8",
+    );
+    expect(reviewerPrompt).not.toContain("# Methodology");
+  });
+
   it("flags a task that duplicates a ledger intent + warns the planner (T9)", async () => {
     await fs.mkdir(path.join(dir, ".vibestrate"), { recursive: true });
     await fs.writeFile(

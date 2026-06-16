@@ -6,6 +6,7 @@ export type VibestrateEventType =
   | "run.created"
   | "run.startup"
   | "ledger.flagged"
+  | "methodology.unknown"
   | "run.rewound"
   | "run.rewound.restored"
   | "run.snapshot.captured"

@@ -84,6 +84,11 @@ import {
   seedParamsFromStore,
 } from "../project/project-params.js";
 import {
+  renderMethodologyForPrompt,
+  resolveMethodology,
+  KNOWN_METHODOLOGY_IDS,
+} from "./known-methodologies.js";
+import {
   capturePhaseSnapshot,
   pruneOldSnapshots,
   sweepOrphanedSnapshotRefs,
@@ -525,6 +530,11 @@ export class Orchestrator {
    *  suspected dup/conflict heads-up. Injected into the planner turn alongside
    *  the ledger block. "" when nothing was flagged. */
   private ledgerFlagsBlock = "";
+  /** Pre-rendered "# Methodology" block (durable-memory Slice 4): the project's
+   *  selected methodology (`vibe params set methodology=tdd`) as bounded planning
+   *  guidance. Injected into the PLANNER turn alongside the ledger. "" when unset
+   *  or set to an unknown value. */
+  private methodologyBlock = "";
   /** One-shot guard so the ledger + flags blocks go to a single planner turn. */
   private ledgerInjected = false;
   private readonly abortSignal: AbortSignal | null;
@@ -1081,6 +1091,28 @@ export class Orchestrator {
     } catch {
       this.ledgerPromptBlock = "";
       this.ledgerFlagsBlock = "";
+    }
+
+    // Methodology (durable-memory Slice 4): the project's selected methodology is
+    // a durable param (`methodology`, project-global). If it resolves to a known
+    // value, stash that one's bounded planning guidance for the planner turn; an
+    // unknown value is warned once and ignored (no silent wrong-doing, no block).
+    // Best-effort - a params hiccup never blocks a run.
+    try {
+      const stored = await new ParamStore(this.projectRoot).read();
+      const methodology = stored.values["methodology"]?.value;
+      this.methodologyBlock = renderMethodologyForPrompt(methodology);
+      if (methodology && !resolveMethodology(methodology)) {
+        await eventLog.append({
+          type: "methodology.unknown",
+          message:
+            `Project methodology "${methodology}" is not recognized (known: ` +
+            `${KNOWN_METHODOLOGY_IDS.join(", ")}); ignoring it for planning.`,
+          data: { value: methodology, known: KNOWN_METHODOLOGY_IDS },
+        });
+      }
+    } catch {
+      this.methodologyBlock = "";
     }
 
     const ctx = {
@@ -4590,7 +4622,11 @@ export class Orchestrator {
       injectContinuity && this.ledgerPromptBlock ? this.ledgerPromptBlock : "";
     const continuityFlags =
       injectContinuity && this.ledgerFlagsBlock ? this.ledgerFlagsBlock : "";
-    if (projectLedger || continuityFlags) this.ledgerInjected = true;
+    // Methodology rides the same planner-only, one-shot channel as the ledger.
+    const methodologyGuidance =
+      injectContinuity && this.methodologyBlock ? this.methodologyBlock : "";
+    if (projectLedger || continuityFlags || methodologyGuidance)
+      this.ledgerInjected = true;
     // Clean-room seat (context-scaling.md rung 2): drop the producer's run-derived
     // NARRATIVE - the run brief (the "story so far") and the planner-only
     // ledger/continuity - so a judge reasons without being anchored to how the
@@ -4621,6 +4657,7 @@ export class Orchestrator {
       ...(!cleanRoom && input.runBrief ? { runBrief: input.runBrief } : {}),
       ...(!cleanRoom && projectLedger ? { projectLedger } : {}),
       ...(!cleanRoom && continuityFlags ? { continuityFlags } : {}),
+      ...(!cleanRoom && methodologyGuidance ? { methodologyGuidance } : {}),
     });
     if (pending.length > 0) {
       const consumed = await markPendingConsumed(

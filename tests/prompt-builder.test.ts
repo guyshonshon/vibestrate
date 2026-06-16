@@ -81,6 +81,30 @@ describe("prompt builder", () => {
     expect(withLedger).toContain("merge advisor");
   });
 
+  it("includes the methodology section only when one is passed (Slice 4)", () => {
+    const base = {
+      roleId: "planner",
+      task: "x",
+      rules: "rules",
+      rolePromptTemplate: "Plan.",
+      skills: [],
+      priorArtifacts: [],
+      permission: readProfile,
+      permissionName: "read_only",
+      worktreePath: "/wt",
+      branchName: "b",
+      projectName: "demo",
+    };
+    expect(buildRolePrompt(base)).not.toContain("# Methodology");
+    const withMethodology = buildRolePrompt({
+      ...base,
+      methodologyGuidance:
+        "# Methodology\n\nThis project follows **Test-Driven Development** (`tdd`). Plan the work accordingly:\n\nWrite a failing test first.",
+    });
+    expect(withMethodology).toContain("# Methodology");
+    expect(withMethodology).toContain("Test-Driven Development");
+  });
+
   it("includes attached skills with names + content", () => {
     const out = buildRolePrompt({
       roleId: "reviewer",

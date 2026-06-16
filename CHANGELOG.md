@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.103
+
+- **Project methodology guides the planner.** Set `vibe params set methodology=tdd`
+  (or `bdd` / `incremental`) and the planner now receives that methodology's
+  concrete planning guidance - so plans actually follow your way of working (TDD
+  plans test-first, BDD plans as Given-When-Then behaviors, incremental plans the
+  smallest safe slices). It's bounded (just the one chosen methodology's block,
+  planner turn only, so no context bloat) and built on the durable param memory
+  from 0.7.102 - methodology is just a recognized project-global param. An
+  unrecognized value is ignored with a clear run event rather than breaking the
+  run, and the orchestrator never sets your methodology for you.
+
 ## 0.7.102
 
 - **Durable param memory (`vibe params`).** Fill your project's data once and

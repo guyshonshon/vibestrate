@@ -337,8 +337,16 @@ GSD-style per-phase CONTEXT.md files.
   question (proactive? opt-in auto-apply?). The existing `consult` already covers
   the on-demand propose->apply case; the proactive/auto increment is a separate,
   reviewed decision.
-- **Methodology awareness** - DEFERRED to the separate "profiling/methodology"
-  plan (it's a planner-behavior feature, not core to durable memory).
+- **Methodology awareness** - SHIPPED (bounded, 0.7.103). It landed as a durable
+  **param**, not a `VIBESTRATE.md` field (matching profiling-intake.md's
+  "methodology is just a profile field"): `vibe params set methodology=tdd`
+  (project-global key). A fixed `known-methodologies` catalog
+  (`tdd`/`bdd`/`incremental`, `src/core/known-methodologies.ts`) maps the value to
+  ONE bounded planning-guidance block, injected into the PLANNER turn only
+  (alongside the ledger, same one-shot channel). An unknown value emits a
+  `methodology.unknown` event and is ignored (no silent wrong-doing, no block).
+  The advisor-infers-and-writes-methodology path from Slice 4 stays **CUT** -
+  methodology is user-set, full stop.
 
 The durable memory is **complete and useful** as of Slice 5: runs ground on a
 fresh, non-misleading, role-projected project memory that survives sessions.

@@ -91,6 +91,23 @@ other known param values interpolated in, and returns a **suggestion** you
 review/edit/accept. It is strictly user-initiated and never auto-applied - a
 model can't silently make a brand color your project's truth.
 
+## Methodology (a recognized project-global param)
+
+One project-global key is special: `methodology`. Set it to a known value and the
+**planner** gets that methodology's concrete planning guidance, so plans follow it:
+
+```
+vibe params set methodology=tdd          # or: bdd, incremental
+```
+
+- `tdd` - plan test-first (failing test -> pass -> refactor).
+- `bdd` - plan as Given-When-Then behaviors, then derive the implementation.
+- `incremental` - smallest safe vertical slices, green at every step.
+
+It's injected into the planning turn only (bounded - just the one block), and an
+unrecognized value is ignored with a `methodology.unknown` run event (it never
+breaks a run). The advisor never sets it for you - methodology is yours to choose.
+
 ## Editing and removing
 
 Editing a value in the Settings panel or via `vibe params set` **supersedes**
