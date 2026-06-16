@@ -1,15 +1,15 @@
 ---
 title: Your first run
-description: Walk through a complete plan → implement → validate → review → verify cycle on a small task.
+description: Give Vibestrate one small task and watch it go from idea to a finished, ready-to-merge change.
 section: getting-started
 slug: getting-started/first-run
 ---
 
-This walks through one complete cycle from a fresh init to a `merge_ready` diff.
+This walks you through a single task from start to finish: you describe what you want, Vibestrate does the work, and it stops with a finished change waiting for your approval.
 
 ## Pick a small, well-scoped task
 
-Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a known surface, testable. Don't start with "refactor the whole auth flow" - start with something like "add structured logging to the settings save handler."
+Vibestrate works best on the kind of task you'd hand a careful colleague: clear scope, a part of the code you can point to, and a way to tell when it's done. Don't open with "refactor the whole login system." Start with something like "add structured logging to the settings save handler."
 
 ## Start the run
 
@@ -17,29 +17,35 @@ Vibestrate runs best on tasks you'd give a careful colleague: clear scope, a kno
 vibe run "Add structured logging to the settings save handler"
 ```
 
-If you want to watch it as it goes, add `--ui`:
+To watch it work as it goes, add `--ui`:
 
 ```bash
 vibe run "Add structured logging to the settings save handler" --ui
 ```
 
-Vibestrate will:
+From here, Vibestrate does the rest on its own:
 
-1. Detect your project (language, package manager, validation commands).
-2. Create a git worktree under `../.vibestrate-worktrees/<runId>/`.
-3. Send the task to the planner agent.
-4. Hand the plan to the architect.
-5. Hand the architecture to the executor, which edits files in the worktree.
-6. Run your validation commands.
-7. Have the reviewer read the diff.
-8. Either pass to the verifier or loop back through fix → validate → review.
-9. Stop at `merge_ready`, `blocked`, or `failed`.
+<div class="docs-flow">
+<div><b>Look</b><span>Reads your project to learn its language, its tools, and how you run your tests.</span></div>
+<div><b>Copy</b><span>Makes a separate working copy of your code (a git worktree), off to the side, under ../.vibestrate-worktrees/&lt;runId&gt;/.</span></div>
+<div><b>Build</b><span>Plans the change, builds it, runs your tests, then reviews and verifies the result.</span></div>
+<div><b>Fix loop</b><span>If the review finds a problem, it loops back, fixes it, and checks again.</span></div>
+<div><b>Stop</b><span>Stops at one of three outcomes and leaves the call to you.</span></div>
+</div>
+
+The run ends in one of three states:
+
+<div class="docs-outcomes">
+<div class="docs-outcome ok"><b>merge_ready</b><span>The change is ready for you.</span></div>
+<div class="docs-outcome warn"><b>blocked</b><span>It needs your call.</span></div>
+<div class="docs-outcome stop"><b>failed</b><span>Something went wrong.</span></div>
+</div>
 
 ## What you'll see
 
-In the terminal, each phase prints a header, a brief status, and any captured output. With `--ui`, the same information renders as a board with phase rails, agent activity, and validation output.
+The terminal prints each step as it happens: a header, a short status, and any output. With `--ui`, the same thing shows up as a live board you can watch.
 
-When the run ends, you'll see something like:
+When the run finishes, you'll see something like:
 
 ```text
 Run abc123 → merge_ready
@@ -48,31 +54,39 @@ Run abc123 → merge_ready
   artifacts: .vibestrate/runs/abc123/
 ```
 
-## Inspect the diff
+## Look at what it changed
+
+To see every change before you accept anything:
 
 ```bash
 cd ../.vibestrate-worktrees/abc123-add-structured-logging-to-the-settings-save-handler
 git diff main
 ```
 
-Or, from the dashboard, open the **Git** tab - it renders the same diff inline with file-by-file navigation.
+Or open the **Git** tab in the dashboard, which shows the same changes inline, file by file.
 
-## Merge it (or don't)
+## Use it, or don't
 
-Vibestrate never merges for you. The diff sits on its branch in the worktree, ready for you to:
+<div class="docs-callout">
 
-- Open a PR (`gh pr create` or your tool of choice).
-- Fast-forward locally if the branch is yours alone.
-- Cherry-pick specific commits.
-- Abort the run and discard the worktree if the result isn't right.
+**Vibestrate never merges anything for you.** The finished change sits on its own branch, ready for you to take or leave. That part is always your call.
 
-## When it doesn't end at `merge_ready`
+</div>
 
-- **`blocked`** - the reviewer or verifier found something that needs a human decision. Read `.vibestrate/runs/<runId>/review.md` and `verification.md`.
-- **`failed`** - an unrecoverable error during a stage. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
+The branch is yours to:
 
-See [Debug a failed run](/docs/workflows/debug-failed) for the practical playbook.
+- Open a pull request (`gh pr create`, or whatever tool you use).
+- Pull it into your own branch if it's yours alone.
+- Take just the parts you want.
+- Throw the whole thing away if it isn't right.
+
+## When it doesn't finish clean
+
+- **`blocked`** - the reviewer or verifier flagged something that needs a human decision. Read the notes in `.vibestrate/runs/<runId>/review.md` and `verification.md`.
+- **`failed`** - something broke partway through. Check `.vibestrate/runs/<runId>/events.jsonl` and the provider stream log.
+
+See [Debug a failed run](/docs/workflows/debug-failed) for the step-by-step playbook.
 
 ## Next
 
-[Set up a provider →](/docs/getting-started/providers) - Vibestrate picks a sensible default, but knowing how providers are wired up is worth the five minutes.
+[Set up a provider →](/docs/getting-started/providers) - Vibestrate picks a sensible default, but five minutes on how the AI models are wired up is worth it.

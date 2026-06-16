@@ -1,22 +1,22 @@
 ---
 title: Attach skills
-description: Skills are markdown files that load alongside an agent's prompt. Use them to add domain context, conventions, or playbooks.
+description: A short note you hand an agent so it knows your codebase's rules before it starts.
 section: getting-started
 slug: getting-started/skills
 ---
 
-A *skill* is a markdown file that gets concatenated onto an agent's prompt. It's the most direct way to teach an agent something about your codebase - your authentication model, the conventions you actually use, the playbook for a specific kind of change.
+A **skill** is a short note, written in plain markdown, that gets added to an agent's instructions before it starts work. It's how you teach an agent something about your project: how login works, the conventions you actually follow, the right way to handle a certain kind of change.
 
-## Where they live
+Think of it as the briefing you'd give a new contractor on their first day. Instead of repeating "we do it this way here" every single time, you write it down once and hand it over.
 
-Two roots are scanned:
+## Write one
 
-- `.vibestrate/skills/` - committed alongside your project. Use this for skills that should travel with the repo.
-- `.claude/skills/` - picked up when you're already using Claude Code's skill system locally.
+A skill is just a markdown file. Drop it in one of two folders:
 
-Filename without the `.md` extension becomes the skill id. So `auth-conventions.md` is the skill `auth-conventions`.
+- `.vibestrate/skills/` - travels with your project, so anyone who clones the repo gets it too. Use this one by default.
+- `.claude/skills/` - picked up automatically if you already use Claude Code's skills locally.
 
-## A simple skill
+The file name (without the `.md`) becomes the skill's name, so `auth-conventions.md` is the skill `auth-conventions`. Inside, just write plain prose. Agents read it the same way a person would:
 
 ```markdown
 # .vibestrate/skills/auth-conventions.md
@@ -28,11 +28,9 @@ This codebase uses Lucia for sessions. When touching auth:
 - New auth routes go under `src/server/routes/auth/`.
 ```
 
-That's the whole format. Plain markdown, plain prose - agents read it the same way humans do.
+## Hand it to an agent
 
-## Attach to an agent
-
-In `project.yml`:
+Name the skills you want in `project.yml`, per agent:
 
 ```yaml
 agents:
@@ -42,35 +40,35 @@ agents:
     skills: [auth-conventions]
 ```
 
-Or per-run, with `--skills`:
+Or attach one for a single run with `--skills`:
 
 ```bash
 vibe run "Add 2FA enrollment" --skills auth-conventions,security-review
 ```
 
-Skills passed via `--skills` are *merged* with whatever's configured on each agent - they don't replace.
+Skills you pass with `--skills` are added on top of whatever each agent already has. They don't replace them.
 
-## List what's available
+To see what's available:
 
 ```bash
 vibe skills list
 vibe skills show auth-conventions
 ```
 
-## When to write a new skill
+## When a skill is worth it
 
-Write a skill when:
+Write one when:
 
-- You're repeating the same context in multiple task prompts.
-- The agent keeps making the same wrong assumption that you have to correct.
-- There's a convention that's not documented anywhere else in the codebase.
+- You keep typing the same context into task after task.
+- The agent keeps making the same wrong guess that you have to correct.
+- There's a rule that isn't written down anywhere else in the project.
 
-Don't write a skill when:
+Skip it when:
 
-- The information already lives in CLAUDE.md or your project README - agents will read those naturally as part of project rules.
-- It's a one-off - just include it in the task description.
-- It's about a single file - comments in the file itself work better.
+- It's already in CLAUDE.md or your README. Agents read those on their own as part of the project rules.
+- It's a one-off. Just say it in the task description.
+- It's about one file. A comment in that file works better.
 
-## Reference
+## Going deeper
 
-See the [skill discovery and schema reference](/docs/extending/add-skill) for the full filesystem layout and any optional metadata.
+- [Skill discovery and schema reference](/docs/extending/add-skill) - the full folder layout and any optional metadata.

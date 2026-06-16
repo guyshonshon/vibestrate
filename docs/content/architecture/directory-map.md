@@ -1,15 +1,15 @@
 ---
 title: Repository map
-description: A tour of the source tree - what lives where, and where to start reading.
+description: A tour of the source tree, showing what lives where and where to start reading.
 section: architecture
 slug: architecture/directory-map
 ---
 
-A flowd tour of `src/`. The list isn't exhaustive - small helpers and utilities are omitted - but every stable extension point appears here.
+This is a tour of `src/`, the source tree. The list isn't exhaustive, since small helpers and utilities are omitted, but every stable extension point appears here.
 
 ## `src/cli/`
 
-The commander program. `index.ts` builds the command tree (exported as `buildVibestrateProgram` so the docs generator can introspect it without parsing argv). Each command's implementation lives under `src/cli/commands/`, grouped by area.
+The commander program, which is the command-line entry point. `index.ts` builds the command tree (exported as `buildVibestrateProgram` so the docs generator can introspect it without parsing argv). Each command's implementation lives under `src/cli/commands/`, grouped by area.
 
 Read first: `src/cli/index.ts`.
 
@@ -49,7 +49,7 @@ Read first: `src/agents/agent-schema.ts`.
 
 ## `src/providers/`
 
-Local provider integration.
+Local provider integration. A provider is the agent backend, such as a generic CLI or Claude Code, that Vibestrate invokes.
 
 - `provider-schema.ts` - the discriminated union for cli vs. claude-code providers.
 - `provider-detection.ts` - the static `KNOWN_PROVIDERS` registry and the runtime detector.
@@ -95,7 +95,7 @@ Read first: `src/project/config-schema.ts`.
 
 ## `src/server/` + `src/ui/`
 
-Mission Control.
+Mission Control, the local web interface for watching and steering runs.
 
 - `src/server/` - Fastify routes, WebSocket, static-file serving.
 - `src/ui/` - the React app served by the server.
@@ -111,6 +111,8 @@ Background scheduler for queued runs.
 
 ## `src/policies/` and `src/permissions/`
 
+Repo-level policy rules and per-agent permission profiles.
+
 - `policies` - repo-level policy rules and the policy engine.
 - `permissions` - per-agent permission profiles (`read_only`, `code_write`, etc.).
 
@@ -119,6 +121,8 @@ Background scheduler for queued runs.
 Local notifications + delivery gateways.
 
 ## Top-level dirs
+
+These directories sit at the repository root, alongside `src/`.
 
 - `docs/` - this docs system, both content and generated metadata.
 - `scripts/` - utility scripts including `generate-docs-metadata.ts`.

@@ -1,65 +1,69 @@
 ---
 title: Create and run a task
-description: From "I have a thing to do" to a merged diff, end to end.
+description: Go from a thing you need done to a finished change you can merge.
 section: workflows
 slug: workflows/create-and-run
 ---
 
-The shortest path from idea to merged change.
+This guide takes you from "I have a thing to do" all the way to a change you can merge, step by step.
 
 ## 1. Frame the task
 
-Write the task description like a brief for a careful colleague. Name the file, name the convention, name the constraint.
+Write the task description the way you'd brief a careful colleague. Name the file, name the convention, name the constraint. The more exact you are, the better the result.
 
-Good:
+A good brief:
 
 > Add audit logging to the settings save handler at `src/server/routes/settings.ts`. Use the existing `auditLogger` from `src/lib/audit.ts`. Log the user id and the *keys* changed - never the values.
 
-Bad:
+A weak one:
 
 > Improve settings logging.
 
 ## 2. Start the run
 
+Kick off the task with one command:
+
 ```bash
 vibe run "Add audit logging to the settings save handler..."
 ```
 
-Add `--ui` if you want the dashboard alongside:
+Want the dashboard open alongside the terminal? Add `--ui`:
 
 ```bash
 vibe run "..." --ui
 ```
 
-Pick a Flow if the work warrants the extra rigor:
+A Flow is the routine of steps Vibestrate works through. If the work warrants the extra rigor, pick a heavier one:
 
 ```bash
 vibe run "..." --flow quality-arbitration
 ```
 
-Override the provider for this run:
+Override the AI provider for just this run:
 
 ```bash
 vibe run "..." --provider claude
 ```
 
-Or use the effort bucket:
+Or set how hard it should try, using the effort bucket:
 
 ```bash
 vibe run "..." --effort high
 ```
 
-## 3. Watch (or don't)
+## 3. Watch, or walk away
 
-Vibestrate runs through plan → architect → execute → validate → review → fix → verify on its own. You can watch each phase in the terminal or the dashboard, or close the terminal and check back later - the run keeps going as long as Vibestrate's process is alive.
+Vibestrate runs through plan → architect → execute → validate → review → fix → verify on its own. You can watch each phase in the terminal or the dashboard, or close the terminal and check back later. The run keeps going as long as Vibestrate's process is alive.
 
-When the run finishes, it lands in one of:
+When the run finishes, it lands in one of three states:
 
-- `merge_ready` - diff is ready to ship.
-- `blocked` - reviewer or verifier flagged something a human should decide.
-- `failed` - unrecoverable error during a stage.
+- `merge_ready` - the diff is ready to ship.
+- `blocked` - the reviewer or verifier flagged something a human should decide.
+- `failed` - an unrecoverable error during a stage.
 
 ## 4. Inspect the result
+
+See what landed, then dig into the details:
 
 ```bash
 vibe status                  # what landed
@@ -68,26 +72,28 @@ vibe replay <runId>          # full read-only inspector
 
 Or open the dashboard's **Git** tab to read the diff inline.
 
-## 5. Merge - by hand
+## 5. Merge it yourself
 
-Vibestrate does not push, does not merge. The run leaves the diff on its branch in the worktree. Before you decide, you can ask the merge advisor:
+Vibestrate does not push and does not merge. The run leaves the diff on its branch in the worktree, and the final call is yours.
+
+Before you decide, you can ask the merge advisor:
 
 ```bash
 vibe integrate advise <runId>
 ```
 
-It is read-only and deterministic: risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation - finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. `--json` emits the full advice for scripts. The same window lives on the dashboard's **Merge** page.
+It is read-only and deterministic. It gives you risk flags first (did any check actually run? does the change touch protected files?), then the dry-run conflict report, the branch topology, and a recommendation: finish now, stage on an integration branch, or resolve conflicts first. Nothing is merged, no branch is touched. Add `--json` to emit the full advice for scripts. The same window lives on the dashboard's **Merge** page.
 
-When the advisor suggests staging is configurable (suggestion-only - it never blocks):
+When the advisor suggests staging is configurable. It is suggestion-only and never blocks:
 
 ```bash
 vibe config set merge.advisor.suggestIntegrationBranchWhen.filesTouched 40
 # also: .protectedPaths (true/false), .behindMain <commits>
 ```
 
-For a deeper look, `vibe integrate analyze <runId>` (or the **Analyze deeper** button on the Merge page) runs an optional read-only pass: a local provider reads the run's diff vs main and reports semantic risk - concurrency, error handling, missing tests - that a textual merge check can't see. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. The diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed) before the provider sees it, and the result is cached under the run.
+For a deeper look, run `vibe integrate analyze <runId>` (or click the **Analyze deeper** button on the Merge page). This optional read-only pass has a local provider read the run's diff against main and report semantic risk that a textual merge check can't see: concurrency, error handling, missing tests. It is advisory prose, never a merge verdict, and it never changes the deterministic recommendation. Before the provider sees it, the diff is byte-capped and redacted (secret-like files suppressed, secret-shaped tokens removed), and the result is cached under the run.
 
-Then you decide:
+Then you decide. To get a human review or just share the branch:
 
 ```bash
 cd ../.vibestrate-worktrees/<runId>-<slug>
@@ -95,14 +101,14 @@ gh pr create                  # if you want review by a human
 git push                       # if you just want to share the branch
 ```
 
-Or merge locally:
+To merge it locally instead:
 
 ```bash
 git checkout main
 git merge --ff-only vibestrate/<runId>-<slug>
 ```
 
-Or abandon it:
+Or to abandon it:
 
 ```bash
 vibe abort <runId>

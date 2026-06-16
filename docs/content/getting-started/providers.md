@@ -1,11 +1,11 @@
 ---
 title: Set up a provider
-description: Detect installed coding-agent CLIs, configure flags, and verify each provider can be invoked.
+description: Tell Vibestrate which AI coding tools you have, then check each one can do the work.
 section: getting-started
 slug: getting-started/providers
 ---
 
-A *provider* is any local coding-agent CLI Vibestrate can hand a prompt to. The built-in detector knows about Claude Code, Codex, Aider, Ollama, and OpenCode. You can add more by writing a provider config in `project.yml`.
+A *provider* is the AI tool that actually does the work. It can be a coding assistant already installed on your machine - Claude Code, Codex, Aider, Ollama, OpenCode - or a model Vibestrate reaches over the internet. Setting one up is two steps: tell Vibestrate it's there, then confirm it answers.
 
 ## See what you have
 
@@ -13,36 +13,44 @@ A *provider* is any local coding-agent CLI Vibestrate can hand a prompt to. The 
 vibe provider detect
 ```
 
-This walks each known provider and reports:
+This checks each tool Vibestrate knows about and reports where it stands:
 
-- **ready** - Vibestrate ships a verified preset and can drive the CLI as-is.
-- **detected-needs-setup** - the binary is on your PATH but Vibestrate does not ship verified prompt flags for it. Run `vibe provider setup` to fill them in.
-- **missing** - the binary is not installed.
+- **ready** - Vibestrate knows how to drive it and you can use it now.
+- **detected-needs-setup** - the tool is installed, but Vibestrate doesn't yet know the right flags to talk to it. Run `vibe provider setup`.
+- **missing** - it isn't installed.
 
-## Apply the right preset
+## Set it up and test it
 
 ```bash
 vibe provider setup
 ```
 
-The wizard walks you through every detected provider, applies the preset if one exists, and lets you test the invocation. For each provider, you'll be asked for any extra arguments (model, system prompt, etc.) and Vibestrate will record them under `providers.<id>` in `project.yml`.
+The wizard walks through each tool it found, fills in the known settings, asks for any extras you want (like which model or system prompt), and lets you test the call. Your answers are saved under `providers.<id>` in `project.yml`, the file that holds your project's settings.
 
-## Verify it actually responds
+To check a provider really responds, send it a quick prompt and read the reply:
 
 ```bash
 vibe provider test claude
 vibe provider test ollama
 ```
 
-The test sends a one-shot prompt and prints the raw output. If your provider doesn't respond - or responds with an error about flags or auth - fix that before running a real task.
+If it errors out about flags or login, fix that before running a real task.
 
-## Pick the default
+## Choose which one does the work
+
+Point every step at one provider:
 
 ```bash
 vibe provider set claude
 ```
 
-This sets `agents.<role>.provider` for every role to the chosen id. You can also assign providers per role in `project.yml`:
+Or override it for a single run:
+
+```bash
+vibe run "..." --provider codex
+```
+
+You can also assign a provider per role in `project.yml`, so different steps use different tools:
 
 ```yaml
 agents:
@@ -54,13 +62,7 @@ agents:
     provider: claude
 ```
 
-## Override per run
-
-```bash
-vibe run "..." --provider codex
-```
-
-This overrides the configured provider for every agent in that single run. Or use effort buckets - `low | medium | high` map to providers via `project.yml#effortMap`:
+Or pick by how much horsepower a task needs. The buckets `low | medium | high` map to providers in `project.yml#effortMap`, so a quick job goes to a cheap model and a hard one goes to your best:
 
 ```yaml
 effortMap:
@@ -69,23 +71,16 @@ effortMap:
   high: claude
 ```
 
-Then:
-
 ```bash
 vibe run "..." --effort high
 ```
 
-## Cloud APIs and local model servers
+## Models over the internet or on your own machine
 
-Not every provider is a CLI. Vibestrate also drives a model over HTTP:
+Not every provider is an installed tool. Vibestrate can also reach a model directly:
 
-- **`http-api`** - a hosted cloud API (Anthropic or OpenAI). It speaks `https`
-  only (never loopback), and the API key is an **env reference** (`env:NAME`) -
-  the literal key never enters `project.yml`, logs, the UI, or any artifact.
-  The destination is external, so egress goes to the `baseUrl` you name.
-- **`localhost-proxy`** - a model server on your own machine (Ollama, LM Studio,
-  vLLM). The `baseUrl` must point at `localhost` / `127.0.0.1` / `[::1]`, so
-  there's no egress and no key is required.
+- **`http-api`** - a hosted service like Anthropic or OpenAI. It uses a secure (`https`) connection only, and your API key stays in an environment variable (`env:NAME`), a named slot in your shell. The literal key never lands in `project.yml`, logs, the dashboard, or any saved file.
+- **`localhost-proxy`** - a model running on your own machine (Ollama, LM Studio, vLLM). The address must be `localhost`, so nothing leaves your computer and no key is needed.
 
 ```yaml
 providers:
@@ -104,29 +99,11 @@ providers:
     maxTokens: 4096
 ```
 
-`vibe provider setup` offers **Cloud API** and **Local model server** choices
-that prompt for these fields and validate them before writing. These same
-guards (https-only, loopback-only, env-ref key) are enforced on every write
-path - a violation is refused, never silently coerced.
+`vibe provider setup` offers **Cloud API** and **Local model server** choices that prompt for these fields and check them before saving. A bad value is refused, never quietly accepted.
 
-## Install from the dashboard
+Prefer not to use the terminal? Mission Control's **Providers** page does all of this - install hints, setup, testing, and setting a default - from the dashboard.
 
-Mission Control's **Providers** page is the full management surface - nothing
-about a provider requires dropping to a terminal:
+## Going deeper
 
-- **Install** flow for the popular CLIs (Claude Code, Gemini, Codex, Ollama,
-  Aider): the exact install + login commands, then a detection re-check.
-  Vibestrate never runs those for you - install and login happen in your own
-  terminal, with your credentials.
-- **Set up / Edit** opens a type-aware editor for **every** provider type - CLI
-  (command/args/input) and the HTTP-backed cloud + local providers above
-  (api/baseUrl/model/key/maxTokens, plus optional headers for cloud APIs). It
-  previews the exact YAML and offers **Save & test** in one place.
-- **Add cloud API** / **Add local server** / **Custom CLI** create a provider
-  from scratch - the dashboard can't auto-detect those, so you name and fill them.
-- **Test** runs a safe connectivity probe (a cloud-API test only checks the key
-  env var is set - no surprise spend), and **Set default** points every agent at it.
-
-## Provider reference
-
-See the [providers reference](/docs/reference/providers) for the current list, each provider's notes, and the install hint.
+- [Providers reference](/docs/reference/providers) - the current list, notes on each one, and the install hint.
+- The dashboard **Providers** page also adds providers from scratch (cloud API, local server, custom CLI) and runs a safe connectivity probe that checks a cloud key without spending anything.

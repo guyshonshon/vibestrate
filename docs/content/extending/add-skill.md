@@ -1,69 +1,80 @@
 ---
 title: Add a skill
-description: Write a markdown file, drop it in .vibestrate/skills/, attach it to an agent or run.
+description: Write a markdown file, save it under .vibestrate/skills/, and attach it to an agent or run.
 section: extending
 slug: extending/add-skill
 ---
 
-A skill is a markdown file. There's no scaffold to run, no metadata to fill in - write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up.
+A skill is just a markdown file you write to teach your agents your project's conventions. There's no scaffold to run and no metadata form to fill in. You write the file, save it under `.vibestrate/skills/`, and Vibestrate's discovery picks it up on its own.
 
-## Steps
+Here are the steps, in order.
 
-1. Create `.vibestrate/skills/<id>.md`. The filename minus `.md` is the skill id. Pick something kebab-case: `auth-conventions`, `payment-rules`, `oncall-runbook`.
-2. Write the skill body as plain markdown. There's no required structure. Most useful skills follow:
+## 1. Create the file
 
-   ```markdown
-   # Title - what this is about
+Make a file at `.vibestrate/skills/<id>.md`. The filename, minus the `.md`, becomes the skill's id, so pick something short and kebab-case (lowercase words joined by hyphens), like `auth-conventions`, `payment-rules`, or `oncall-runbook`.
 
-   ## When to use this
+## 2. Write the body
 
-   One or two sentences naming the surface this applies to.
+The body is plain markdown, and there's no structure you're required to follow. That said, most useful skills look like this:
 
-   ## Rules
+```markdown
+# Title - what this is about
 
-   - Bullet list of conventions.
-   - Be specific. "We use X" beats "we prefer X".
+## When to use this
 
-   ## Examples
+One or two sentences naming the surface this applies to.
 
-   Short examples of the right way to do the thing. Mark anti-patterns explicitly.
-   ```
+## Rules
 
-3. Verify it's discovered:
+- Bullet list of conventions.
+- Be specific. "We use X" beats "we prefer X".
 
-   ```bash
-   vibe skills list
-   vibe skills show <id>
-   ```
+## Examples
 
-4. Attach to an agent in `project.yml`:
+Short examples of the right way to do the thing. Mark anti-patterns explicitly.
+```
 
-   ```yaml
-   agents:
-     planner:
-       skills: [auth-conventions]
-   ```
+## 3. Check that it was discovered
 
-   Or for a single run:
+Run these two commands to confirm Vibestrate found your file. The first lists every skill it knows about; the second prints one back to you so you can read it.
 
-   ```bash
-   vibe run "Add 2FA" --skills auth-conventions
-   ```
+```bash
+vibe skills list
+vibe skills show <id>
+```
 
-## Skills in `.claude/skills/`
+## 4. Attach it
 
-If your project already uses Claude Code's skill discovery, Vibestrate reads `.claude/skills/` too. You don't need to duplicate.
+A skill does nothing until you attach it to something. You can attach it to an agent in `project.yml`, so that agent always gets it:
 
-## What makes a skill *good*
+```yaml
+agents:
+  planner:
+    skills: [auth-conventions]
+```
 
-- **Names the surface.** "When touching `src/payments/...`" is much more useful than "for payment changes."
-- **States the rule, not the reasoning.** "Use `requireSession` from `src/server/auth.ts`" - not "we care a lot about security."
-- **Mentions the antipattern.** "Don't write session middleware inline" - explicitly.
-- **Bounded length.** A 200-line skill loaded on every agent is expensive. If it's huge, split it.
+Or attach it to a single run, just for that one task:
 
-## Optional: declaring MCP servers
+```bash
+vibe run "Add 2FA" --skills auth-conventions
+```
 
-A skill can declare an MCP server its agents should connect to:
+## Skills you already have in .claude/skills/
+
+If your project already uses Claude Code's skill discovery, Vibestrate reads `.claude/skills/` too. You don't need to copy those files anywhere or keep two versions in sync.
+
+## What makes a skill good
+
+A good skill is precise about where it applies and what to do. A few habits that pay off:
+
+- **Name the surface.** "When touching `src/payments/...`" is much more useful to an agent than "for payment changes."
+- **State the rule, not the reasoning.** "Use `requireSession` from `src/server/auth.ts`" lands better than "we care a lot about security."
+- **Mention the anti-pattern.** Spell out what not to do, like "Don't write session middleware inline."
+- **Keep it bounded.** A 200-line skill that loads on every agent is expensive. If one grows huge, split it into smaller skills.
+
+## Optional: pointing a skill at an MCP server
+
+A skill can also declare an MCP server (an outside tool an agent connects to) that its agents should reach. You do that with frontmatter, the small block of settings fenced by `---` lines at the top of the file:
 
 ```markdown
 ---
@@ -78,9 +89,9 @@ mcpServers:
 This skill grants agents read-only Postgres access for query inspection.
 ```
 
-The frontmatter is optional. Most skills don't need it.
+This frontmatter is optional, and most skills don't need it.
 
-## Related
+## Going deeper
 
-- [Skill (concept)](/docs/concepts/skill).
-- [Attach skills (getting started)](/docs/getting-started/skills).
+- [Skill (concept)](/docs/concepts/skill) - what a skill is and how agents use it.
+- [Attach skills (getting started)](/docs/getting-started/skills) - the quick path to your first one.

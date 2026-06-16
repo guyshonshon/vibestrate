@@ -1,228 +1,104 @@
 ---
 title: The big picture
-description: The one mental model that makes everything else click - Task, Flow, and Crew, explained with a simple story. Read this first.
+description: Vibestrate is a CTO for your AI coding - a crew of different models that check each other while you stay in control. Task, Flow, and Crew, explained once.
 section: getting-started
 slug: getting-started/big-picture
 ---
 
-# The big picture
+Spend three minutes here before any commands. This is the one short read that makes everything click.
 
-Before any commands, spend three minutes here. Vibestrate has a handful of words
-that show up everywhere - Task, Flow, Crew, Seat, Role, Profile, Provider - and
-once they click, the rest of the docs read like plain English. Skip this and
-they'll feel like jargon. Read it and you'll never have to look them up again.
+Vibestrate is a CTO for your AI coding. You hand it a job, it follows a set routine to get it done, and that routine is carried out by a team of AI workers you put together. Job, routine, team. The rest is just the real names for those three things.
 
-Here's the whole idea in one sentence:
+<div class="docs-callout">
 
-> You hand Vibestrate a **job**, it follows a **recipe** to get it done, and the
-> recipe is carried out by a **team of AI workers you put together**.
+**The disagreement is the feature.** A chat assistant agrees with you and hands back whatever you asked for. Vibestrate runs *several models* on one job and makes them check each other - one builds, a different one reviews it cold. They read the problem from different angles, and that friction catches what a single yes-man would wave through.
 
-That's it. Job, recipe, team. Everything below is just the real names for those
-three things, plus the small pieces inside them.
+</div>
 
-## The story: you're directing a small production
-
-Imagine you're putting on a play. You don't act in it yourself - you direct. You
-decide what gets made, you hire the people, and you watch it come together.
-
-- The **script** says what happens, scene by scene. It also lists the parts that
-  need filling: "we need someone to build the set, someone to check the lighting."
-- The **cast and crew** are the actual people you bring in to play those parts.
-- You decide **who plays what**, and **how much to spend** on each one - a star
-  for the lead, a budget hire for the walk-on.
-
-Vibestrate works exactly like this. The script is a **Flow**. The parts it needs
-filled are **Seats**. The people you bring in are your **Crew**, and each person
-on it is a **Role**. How much star power you give each one is a **Profile**. And
-the talent agency each person comes from - the actual AI tool doing the work - is
-the **Provider**.
-
-Let's meet them one at a time.
+You stay in control the whole way. Each Task works in an isolated copy of your project, runs your checks, and stops at a clear outcome. It never pushes or merges for you. You look, you decide.
 
 ## Task - the job you want done
 
-A **Task** is what you ask for, written in plain language, the way you'd brief a
-capable colleague:
+A **Task** is what you ask for, written in plain language, the way you'd brief a capable colleague:
 
 ```bash
 vibe run "Add structured logging to the settings save handler"
 ```
 
-You say *what* you want. You do not say *how* to do it step by step - that's the
-Flow's job. A good Task names the thing you mean (a file, a feature, a rule to
-respect); a vague Task gets you a vague result. Same as briefing a person.
+You say *what* you want, not *how* to do it step by step. A Task that names the thing you mean (a file, a feature, a rule to respect) gets a better result than a vague one. It's the only thing you have to provide. Everything else has a sensible default.
 
-That's the only thing you're strictly required to provide. Everything else has a
-sensible default, and you can ignore it until you want to tune it.
+## Flow - the routine the Task runs through
 
-## Flow - the recipe the Task runs through
+A **Flow** is the set of steps a Task moves through, from "let's go" to "ready for you to look at." The default Flow runs like this:
 
-A **Flow** is the recipe: the ordered steps a Task moves through from "let's go"
-to "ready for you to look at." The built-in default Flow looks like this:
+<div class="docs-flow">
+<div><b>Plan</b><span>Break the Task into a real plan.</span></div>
+<div><b>Build</b><span>Write the code in a safe copy of your project.</span></div>
+<div><b>Check</b><span>Run your tests to see it works.</span></div>
+<div><b>Review</b><span>Read the change with fresh eyes.</span></div>
+<div><b>Sign-off</b><span>A final pass before it reaches you.</span></div>
+</div>
 
-```text
-plan  →  build  →  check it works  →  review  →  final sign-off
-```
+If the review finds problems, it loops back to fix and check again, up to a limit, then stops and calls you over.
 
-Each step is a handoff. One worker plans, hands the plan to the next, who builds,
-hands the result to validation, and so on. If the reviewer finds problems, the
-Flow loops back to fix them and check again, up to a limit, then stops and calls
-you over.
+Here's the key part: a Flow never names a specific AI model. It just says "this step needs *a builder*." It leaves a labelled empty chair. That chair is a Seat.
 
-Here's the important part: **a Flow doesn't name any specific AI model.** It
-doesn't say "use Claude for the build step." Instead it says "this step needs
-*a builder*." It leaves a labelled empty chair. That empty chair is a Seat.
+## Seat - a labelled chair in the routine
 
-## Seat - a labelled chair in the recipe
+A **Seat** is a spot in the Flow that needs filling, named for *what it's for*: a `builder` seat, a `reviewer` seat, a `planner` seat. The Flow reserves the seats but says nothing about who sits in them.
 
-A **Seat** is a spot in the Flow that needs someone in it, with a name that says
-*what that someone is for*: a `builder` seat, a `reviewer` seat, a `planner` seat.
-
-```text
-THE FLOW:   plan  →  build  →  review
-
-            seat:    seat:     seat:
-            planner  builder   reviewer
-```
-
-The Flow reserves the seats but stays completely silent about *who* sits in them.
-
-Why does that matter so much? Because it's what makes a Flow **shareable**. A Flow
-written by someone on the other side of the world only ever says "I need a
-builder and a reviewer." It says nothing about your models, your keys, your setup.
-So you can download a Flow from the [Flow hub](/docs/concepts/flow), drop it in,
-and it just works with *your* crew - because all it ever asked for was seats, and
-you bring the people. (More on the hub in [Flow](/docs/concepts/flow).)
-
-So: the Flow brings the empty chairs. You bring the people. That's the Crew.
+That's what makes a Flow shareable. A Flow someone else wrote only asks for "a builder and a reviewer" - nothing about your models or your keys. So you can take one off the [hub](/docs/concepts/flow), drop it in, and it works with your own team, because all it asked for was seats and you bring the people.
 
 ## Crew - your team of AI workers
 
-A **Crew** is the team you assemble to fill those seats. Think of them as your
-models in costume - the same way one actor can play a king in one play and a
-beggar in the next, one AI model can be your careful Reviewer in one seat and your
-fast Builder in another.
+A **Crew** is the team you assemble to fill those seats. Each member is a **Role**: one worker with a name, a short brief ("you are the Reviewer; you critique the change"), the seats they're allowed to sit in, and how much horsepower they run with (their Profile, next). You'll have a default Crew already set up - a Planner, an Executor, a Reviewer, a Verifier - and you can keep more than one and pick which to use per Task.
 
-Each member of the Crew is a **Role** - one worker with a job description:
+When a Task starts, Vibestrate matches the Flow's seats to your Crew's roles. If a Flow needs a seat nobody can fill, it stops and tells you in plain words. If two people could both take a seat, it asks you to pick. No silent guessing.
 
-- a name and a short brief ("you are the Reviewer; you critique the diff"),
-- which **Seats** they're allowed to sit in,
-- and how much horsepower they run with (their **Profile**, coming up next).
+So the three big words fit together like this:
 
-You'll have a default Crew with the usual suspects already set up: a Planner, a
-Builder/Executor, a Reviewer, a Verifier. You can keep more than one Crew - say a
-"fast and cheap" crew for small chores and a "careful and thorough" crew for risky
-work - and pick which one to use per Task.
+<div class="docs-cards">
 
-When you start a Task, Vibestrate matches the Flow's seats to your Crew's roles:
+**Task - the job**
+What you ask for, in plain language. The only thing you have to provide.
 
-```text
-THE FLOW asks for...      YOUR CREW provides...
-  a builder seat     ←      Executor   (allowed to sit in: builder, executor)
-  a reviewer seat    ←      Reviewer   (allowed to sit in: reviewer, challenger)
-```
+**Flow - the routine**
+The fixed set of steps the job runs through. It reserves Seats, but names no models.
 
-If a Flow needs a seat that nobody on your Crew can sit in, Vibestrate stops and
-tells you in plain words ("add this seat to one of your roles"). If two of your
-people could both take the same seat, it asks you to pick. No silent guessing.
+**Crew - the team**
+The AI workers (Roles) you put in those seats. Different models, checking each other.
 
-## Profile - how strong (and expensive) each worker runs
+</div>
 
-Here's where the real power is, and it's the part most people miss at first.
+## Profile - how strong (and pricey) each worker runs
 
-A **Profile** is how much star power you give a worker: which model, how hard it
-thinks (the effort level), how much you're willing to spend. The same Role can be
-cheap or premium just by pointing it at a different Profile - you don't rebuild
-the worker, you just change their costume.
+A **Profile** is how much power you give a worker: which model, how hard it thinks (the effort level), how much you're willing to spend. The same Role can be cheap or premium just by pointing it at a different Profile.
 
-This is the move that saves you money and time:
-
-```text
-THE BUILDER seat            ←   give it your best:    Claude Opus, max effort
-  (writes the actual code)      a top model, thinking hard, no token limit
-
-THE VALIDATOR seat          ←   give it something cheap:   a small fast model
-  (just runs the lint and        it only needs to run "does it pass?",
-   test commands)                so don't pay premium prices for it
-```
-
-Your heavy lifting gets your heaviest model. The routine box-checking gets a cheap
-one. You decide, per seat, and you can change your mind any time without touching
-the Flow or the Crew's wiring.
+This is where you save money. Give the builder seat your best model at max effort, since it writes the real code. Give the validator seat a small fast model, since it only has to run "does it pass?" You decide per seat, and you can change your mind any time without touching the Flow or the Crew.
 
 ## Provider - the actual tool behind each worker
 
-Finally, a **Provider** is the real coding-agent tool a Profile runs on - Claude
-Code, Codex, Aider, Ollama, and so on. These are the CLIs already installed on
-your machine. Vibestrate doesn't ship a model of its own; it drives the ones you
-already have.
+A **Provider** is the real coding-agent tool a Profile runs on. These are the CLIs already on your machine - Vibestrate ships no model of its own; it drives the ones you already have:
 
-The chain, from the empty chair all the way down to the thing actually doing the
-work, reads like this:
+<div class="docs-chips">
+<span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span>
+</div>
 
-```text
-  a SEAT          filled by a ROLE       running a PROFILE          on a PROVIDER
-  in the Flow     in your Crew           (model + effort)           (the real tool)
+So the full chain reads: a **Seat** in the Flow is filled by a **Role** in your Crew, running at a **Profile** (model plus effort), on a **Provider** (the real tool). Every layer has one job, and you can swap any one without disturbing the others.
 
-  "builder"   →   Executor           →   Opus, max effort       →   Claude Code
-  "reviewer"  →   Reviewer           →   a cheap fast model      →   Codex
-```
+## You don't have to set any of this up
 
-Read left to right: *the recipe needs a builder; my Executor takes that seat; I've
-set my Executor to run Opus at max effort; that runs on Claude Code.* Every layer
-has one job, and you can swap any one of them without disturbing the others.
+The defaults already work. Fresh out of `vibe init` you get a default Crew with all the usual roles, a sensible default Profile, and the built-in default Flow. You can run your first Task without configuring a single seat. Each Task does its work in an isolated copy of your project (a [worktree](/docs/concepts/worktree)) and never pushes or merges for you. It stops at one of three outcomes and leaves the call to you:
 
-## Putting it together: one real Task
+<div class="docs-outcomes">
+<div class="docs-outcome ok"><b>ready to merge</b><span>The change is ready for you to keep.</span></div>
+<div class="docs-outcome warn"><b>blocked</b><span>It needs a decision from you.</span></div>
+<div class="docs-outcome stop"><b>failed</b><span>Something went wrong mid-run.</span></div>
+</div>
 
-Say you run:
+The vocabulary above is what lets you *tune* things later: hire a sharper Reviewer, swap in a downloaded Flow, send the cheap work to a cheap model.
 
-```bash
-vibe run "Add structured logging to the settings save handler"
-```
+## Going deeper
 
-Here's what happens, in the words you now know:
-
-1. Your **Task** kicks off a run.
-2. Vibestrate picks the default **Flow** (the plan → build → check → review →
-   sign-off recipe).
-3. It fills each of the Flow's **Seats** from your **Crew**: your Planner takes
-   the planner seat, your Executor the builder seat, your Reviewer the reviewer
-   seat.
-4. Each Role runs at its **Profile** - maybe your Planner and Executor are on a
-   strong model, your Validator on a cheap one.
-5. Each Profile runs on its **Provider** - the actual CLI on your machine.
-6. The run does its work in an isolated copy of your project (a
-   [worktree](/docs/concepts/worktree)), and stops at `ready to merge`,
-   `blocked`, or `failed`. It never pushes or merges for you. You look, you decide.
-
-That's the entire system. Six words, one story.
-
-## You don't have to set any of this up to start
-
-Worth saying plainly: **the defaults already work.** Fresh out of `vibe init` you
-get a default Crew with all the usual roles, a sensible default Profile, and the
-built-in default Flow. You can run your very first Task without configuring a
-single seat.
-
-The vocabulary above is what lets you *tune* things later - hire a sharper
-Reviewer, swap in a downloaded Flow, send the cheap work to a cheap model. Learn
-it once now, reach for it when you need it.
-
-## A one-card cheat sheet
-
-| Word | In one line | The play metaphor |
-|---|---|---|
-| **Task** | The job you ask for, in plain language. | The thing you want made. |
-| **Flow** | The step-by-step recipe the Task runs through. | The script. |
-| **Seat** | A labelled empty chair in the Flow ("needs a builder"). | A part that needs casting. |
-| **Crew** | Your team of AI workers. | Your cast and crew. |
-| **Role** | One worker, with a brief and the seats they can fill. | One person you hired. |
-| **Profile** | How strong/expensive a worker runs (model + effort). | How much star power you pay for. |
-| **Provider** | The real coding-agent tool behind it all. | The talent agency they came from. |
-
-## Next
-
-[Install Vibestrate →](/docs/getting-started/installation), then
-[run your first Task →](/docs/getting-started/first-run). When you want to go
-deeper on any one word, every concept has its own page under
-[Concepts](/docs/concepts/task).
+- [Task](/docs/concepts/task), [Flow](/docs/concepts/flow), [Seat](/docs/concepts/seat), [Crew](/docs/concepts/crew) - a full page for each word.
+- [Install Vibestrate](/docs/getting-started/installation), then [run your first Task](/docs/getting-started/first-run).

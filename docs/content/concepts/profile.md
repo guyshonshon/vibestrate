@@ -1,18 +1,15 @@
 ---
 title: Profile
-description: How strong and expensive a Role runs - a reusable preset of a Provider plus its model and effort.
+description: A reusable preset that says how strong and expensive a Role runs - a Provider plus its model and effort.
 section: concepts
 slug: concepts/profile
 ---
 
-# Profile
+A **Profile** decides how strong and expensive a Role runs. It is a saved preset that bundles a **Provider** (where the work happens), the **model**, and the **effort** level, so a Role can point at it instead of naming a model itself.
 
-## Basically
+Think of it like the drive modes on a car. "Eco" and "Sport" don't change who is driving. They change how hard the engine works. A Profile is that setting for an AI worker, saved with a name so you can reuse it. Keep a few per provider.
 
-A Profile is **how strong and expensive** a Role should run - a reusable preset
-of a Provider plus its model and effort. Keep several per provider.
-
-## Example
+## A quick example
 
 ```yaml
 profiles:
@@ -28,48 +25,27 @@ profiles:
     power: max
 ```
 
-A Role points at one of these by id (`profile: claude-max`).
+A Role points at one by its id, like `profile: claude-max`. Two Roles can share the same Profile. The same Role can also run on a stronger Profile for a single Step through a step override, without duplicating the Role.
 
-## More Detail
+## What a Profile sets
 
-A Profile chooses the **Provider**, the **model**, the **effort** level (the
-`power` field), an optional per-turn output cap (`maxTokens`), and a **timeout**.
-Two Roles can share a Profile, and the same Role can run on a stronger Profile
-for one Step via a step override - without duplicating the Role.
+A Profile picks the **Provider**, the **model**, the **effort** level (the `power` field), an optional per-turn output cap (`maxTokens`), and a **timeout**.
 
-**Effort and model actually take effect** - on CLI **and** HTTP providers. For a
-CLI provider they become a real flag when one exists (`claude --effort <level>
---model <id>`, codex `--model <id> -c model_reasoning_effort=<level>`); for an
-HTTP-API provider they go into the **request body** (OpenAI effort ->
-`reasoning_effort: <level>`). So a Profile changes what is actually spawned or
-sent, not just what's recorded. One declarative apply layer
-(`src/providers/provider-apply.ts`) is the single source for both the spawn/body
-mutation and the levels the editors show. Each knob is exposed **only where it is
-wired to a real flag/field** (the capability catalog): the editors offer just the
-levels/models that Provider supports and hide the field otherwise. Effort levels
-are the real ones - claude `low/medium/high/xhigh/max`, codex
-`minimal/low/medium/high/xhigh`, OpenAI HTTP `minimal/low/medium/high`. Where
-reasoning is a numeric budget rather than a level - Gemini's CLI thinking budget,
-Anthropic's `budget_tokens` - no effort knob is shown. Vibestrate never forces one
-global scale onto every provider.
+These settings really take effect, on both CLI and HTTP providers. For a CLI provider they become a real flag when one exists (`claude --effort <level> --model <id>`, codex `--model <id> -c model_reasoning_effort=<level>`). For an HTTP-API provider they go into the request body (OpenAI effort becomes `reasoning_effort: <level>`). So a Profile changes what is actually spawned or sent, not just what gets written down.
 
-If a Profile somehow sets an effort the provider won't honor (a level outside its
-real ones, or a provider with no effort knob - reachable by hand-editing
-`project.yml` or the overlay), the run **warns** (a `provider.effort_ignored`
-event) rather than silently sending a value the CLI drops.
+Each knob shows up only where it is wired to a real flag or field. The editors offer just the levels and models a Provider supports and hide the rest. The effort levels are the provider's own: claude `low/medium/high/xhigh/max`, codex `minimal/low/medium/high/xhigh`, OpenAI HTTP `minimal/low/medium/high`. Where reasoning is a numeric budget instead of a level (Gemini's CLI thinking budget, Anthropic's `budget_tokens`), no effort knob appears. Vibestrate never forces one global scale onto every provider.
 
-There is **no per-profile spend dial**. Earlier versions had a `budget`
-(low/medium/high) field on each Profile, but it was never read at runtime - it
-changed nothing - so it was removed (a legacy `budget:` key in an old
-`project.yml` is silently ignored on load). Spend is controlled where it
-actually bites: a per-turn output cap with `maxTokens`, and a real
-**project-level daily cap** (`config.budget`, the `vibe budget` command / Budget
-section) that stops or downgrades runs. Following the "only real knobs" rule, the
-editor shows a dial only where it's wired to a genuine effect.
+If a Profile sets an effort the provider won't honor (a level outside its real ones, or a provider with no effort knob, reachable by hand-editing `project.yml` or the overlay), the run **warns** with a `provider.effort_ignored` event instead of quietly sending a value the CLI drops.
+
+## There is no per-profile spend dial
+
+A Profile does not set a budget. An earlier version had a `budget` (low/medium/high) field on each Profile, but it was never read at runtime and changed nothing, so it was removed. A leftover `budget:` key in an old `project.yml` is silently ignored on load.
+
+Spend is controlled where it actually bites: a per-turn output cap with `maxTokens`, and a real project-level daily cap (`config.budget`, the `vibe budget` command and Budget section) that stops or downgrades runs. The editor shows a dial only where it ties to a genuine effect.
 
 ## Advanced
 
-Schema (`src/profiles/profile-schema.ts`):
+The schema fields:
 
 | field | type | meaning |
 | --- | --- | --- |
@@ -81,13 +57,12 @@ Schema (`src/profiles/profile-schema.ts`):
 | `timeoutMs` | number \| null | per-turn wall-clock timeout |
 | `providerOptions` | record | raw provider-specific escape hatch |
 
-- CLI: `vibe profile list|add|set|duplicate|remove`;
-  `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
-- Shell: the `[4] Profiles` page (manage presets - e/E cycle effort, m/M model,
-  n new, d duplicate, x delete) and the Crew page shows each role's model/effort.
-- API: `GET /api/profiles` (includes `usedBy` + `modelEnabled`),
-  `POST /api/profiles`, `POST /api/profiles/:id/duplicate`,
-  `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`;
-  `GET /api/providers/catalog` feeds the model/effort options.
+- **CLI:** `vibe profile list|add|set|duplicate|remove`; `vibe run "task" --profile claude-max` (run-wide), `--step-profile implement=claude-max` (one step).
+- **Shell:** the `[4] Profiles` page manages presets (e/E cycle effort, m/M model, n new, d duplicate, x delete), and the Crew page shows each role's model and effort.
+- **API:** `GET /api/profiles` (includes `usedBy` and `modelEnabled`), `POST /api/profiles`, `POST /api/profiles/:id/duplicate`, `PATCH /api/profiles/:id`, `DELETE /api/profiles/:id`; `GET /api/providers/catalog` feeds the model and effort options.
 
-Related: [[provider]], [[crew]], [[role]], [[seat]], [[flow]].
+## Going deeper
+
+- [[provider]] - where the work runs and which flags it supports.
+- [[crew]], [[role]], [[seat]] - who fills a Flow's steps and what they cost.
+- [[flow]] - the steps a task moves through.

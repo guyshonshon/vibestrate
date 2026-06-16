@@ -1,6 +1,6 @@
 ---
 title: Architecture overview
-description: How Vibestrate's pieces fit together - orchestrator, providers, agents, state machine, worktrees, dashboard.
+description: How Vibestrate's pieces fit together, from the orchestrator down to the local CLI binary.
 section: architecture
 slug: architecture/overview
 ---
@@ -8,6 +8,8 @@ slug: architecture/overview
 Vibestrate is a single Node process that orchestrates other local processes. There is no daemon, no service mesh, no cloud component.
 
 ## The components
+
+Here is how the pieces stack up, from the command you type down to the model on your machine.
 
 ```text
                 ┌──────────────────────────────────────────┐
@@ -54,7 +56,11 @@ Vibestrate is a single Node process that orchestrates other local processes. The
   └──────────────────┘
 ```
 
+The `vibe` CLI is the commander program in `src/cli`, and it hands work to the Orchestrator in `src/core/orchestrator.ts`. The orchestrator runs the show, and below it sit three siblings. Agents live in `src/agents`: the planner, executor, reviewer, and the rest. Validation lives in `src/core/validation-runner` and runs your commands. Mission Control is a Fastify server plus a React UI, split across `src/server` and `src/ui`. Agents reach down through the Providers in `src/providers` (claude, codex, aider, ollama, opencode), which call a local CLI binary on your machine.
+
 ## What the orchestrator owns
+
+The orchestrator keeps a run moving and remembers where it is. It owns:
 
 - Stage sequencing - driving a run through the workflow.
 - State machine transitions - calling `assertTransition` before every move.
@@ -64,6 +70,8 @@ Vibestrate is a single Node process that orchestrates other local processes. The
 - Pause/resume - the user-requested pause flag, durable across restarts.
 
 ## What an agent invocation does
+
+An agent invocation is one stage handing a task to a model and turning the result into a usable artifact.
 
 For each stage that runs a model:
 
@@ -78,9 +86,13 @@ For each stage that runs a model:
 
 ## What Mission Control reads
 
+Mission Control is the dashboard, and it watches far more than it touches.
+
 The Fastify server in `src/server/` exposes read-only routes over the persisted state - `.vibestrate/runs/`, `project.yml`, the provider registry, the skills index. Write-side routes are narrow and audited: approval decisions, pause/resume requests, suggestion bundle applies. The browser never executes arbitrary commands.
 
 ## What's deliberately *not* in the architecture
+
+Some things are missing on purpose. Each absence is a choice about where Vibestrate stops.
 
 - **No global daemon.** When you close the terminal, Vibestrate's process ends. Runs that are mid-stage end with it (most cleanly at the next stage boundary because of how pause works under the hood).
 - **No remote.** No relay, no telemetry beacon, no automatic update check.

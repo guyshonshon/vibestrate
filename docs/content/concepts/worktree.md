@@ -1,39 +1,32 @@
 ---
 title: Worktree
-description: Every run gets its own isolated git worktree. The orchestrator never edits your project root.
+description: Every run does its work in a separate copy of your project, so your real files are never touched.
 section: concepts
 slug: concepts/worktree
 ---
 
-Each run gets its own copy of your repo, on its own branch - your main checkout
-is never touched. That copy is a git **worktree**: a separate working directory
-linked to the same repository, created when the run starts under
-`git.worktreeDir` (default `../.vibestrate-worktrees/`) and bound to a fresh
-branch named `<git.branchPrefix><runId>-<slug>`.
+Every time Vibestrate works on a task, it does that work in a separate copy of your project. Your real files, the ones you edit yourself, are never touched.
 
-Every write the run makes is fenced into that directory by the path guard
-(`src/core/path-guard.ts`) - an attempt to write anywhere else is refused, not
-quietly redirected. And the worktree sticks around after a run ends in `aborted`
-or `blocked`, so there's always a copy on disk you can open and inspect.
+That separate copy is a git **worktree**. Git can keep a second working folder of the same project, on its own branch, sitting right next to your main one. Picture it like a contractor building your new kitchen in a workshop down the street: same blueprints, but the mess stays out of your house until you choose to bring the finished work home.
 
-## Why it matters
+The copy is created when the run starts, lives under `../.vibestrate-worktrees/` by default, and gets its own branch named `<git.branchPrefix><runId>-<slug>`.
 
-Isolation is what makes Vibestrate safe to run on a real working repo. You can have an active run editing files while you keep coding in the project root - they're on different branches in different directories, and git doesn't notice the overlap.
+## Why this keeps you safe
 
-It also means a failed run leaves a forensic copy: the worktree is on disk, the branch exists, you can `cd` in and read the half-finished work.
+Because the run works in its own folder on its own branch, you can keep coding in your real project at the same time. The two never collide, and git doesn't even notice the overlap.
 
-## Where worktrees live
+It also means nothing is lost when a run goes wrong. If a run ends `blocked`, `failed`, or `aborted`, its copy stays on disk so you can open it, read the half-finished work, and pull out anything useful.
 
-By default:
+## Where the copies live
 
 ```text
-your-project/                  ← your main checkout
+your-project/                  ← your real files
 ../.vibestrate-worktrees/
-  abc123-add-audit-logging/    ← run abc123's worktree
-  def456-fix-token-leak/       ← run def456's worktree
+  abc123-add-audit-logging/    ← run abc123's copy
+  def456-fix-token-leak/       ← run def456's copy
 ```
 
-You can change the location in `project.yml`:
+You can move them in `project.yml`. Keep the location outside your project, never inside it, or it will shadow your real files:
 
 ```yaml
 git:
@@ -42,56 +35,24 @@ git:
   linkEnvironment: auto                    # default; "off" for bare worktrees
 ```
 
-## The environment comes along
+## What can and can't be written
 
-A bare `git worktree add` checks out tracked files only - no `node_modules`,
-no virtualenv - so validation commands would fail with "command not found"
-before they checked anything. With `linkEnvironment: auto` (the default),
-Vibestrate symlinks the project's gitignored environment dirs (`node_modules`,
-`.venv`, `venv`, plus workspace-package `node_modules`) into each new worktree,
-so the worktree behaves like the project it came from.
+Inside the copy, Vibestrate writes file edits from the agents and one commit per stage. It refuses to write anywhere outside that folder, to known-secret files like `.env` or `*.pem`, or any patch that adds something shaped like a leaked token. Run records stay under your project root in `.vibestrate/runs/<runId>/`, never inside the copy.
 
-Two guards keep it honest:
+## Bringing your tools along
 
-- `node_modules` is linked only when the lockfile in the worktree's checkout
-  is byte-identical to the project root's - a branch with different deps must
-  not validate against the wrong tree.
-- A dir is linked only if it's gitignored in the worktree, so the run's commit
-  can never stage the symlink.
+A fresh copy starts with only the files git tracks. That leaves out installed folders like `node_modules` or a Python `.venv`, so your tests would fail with "command not found" before they checked anything. With `linkEnvironment: auto` (the default), Vibestrate links those gitignored folders (`node_modules`, `.venv`, `venv`, and workspace-package `node_modules`) into each copy so it behaves like the real project.
 
-One boundary note: the link is a real symlink, so a write-capable agent can
-write through it into those env dirs (and only those - never tracked source).
-The git-apply path refuses symlinked paths outright. If that trade isn't worth
-it for a project, `linkEnvironment: off` restores fully bare worktrees, and
-validation will honestly report `environment` instead of failing.
+Two safety checks keep this honest. `node_modules` is linked only when the copy's lockfile is identical to your project's, so a branch with different dependencies is never tested against the wrong set. And a folder is linked only if git is ignoring it, so the link can never end up committed.
 
-When the environment can't be linked (different lockfile, nothing to link),
-validation commands that hit a missing toolchain are recorded with status
-`environment` - distinct from `failed`: nothing was validated, but nothing
-failed, and a run is never blocked over it. The reviewer is told explicitly
-that those commands could not run.
-
-## What goes in (and out)
-
-The orchestrator writes:
-
-- File edits from the executor and fixer agents.
-- The branch's commit history (one commit per stage, signed by the role).
-- Nothing else. No `.vibestrate/runs/` artifacts go inside the worktree - those live under the project root's `.vibestrate/runs/<runId>/`.
-
-The orchestrator refuses:
-
-- Writes outside the worktree path.
-- Writes to known-secret paths (`.env`, `*.pem`, etc.).
-- Patch hunks that add high-precision token shapes (the secret-shape refusal).
+If you'd rather skip linking, set `linkEnvironment: off` for bare copies. When a tool is missing because nothing was linked, those commands are recorded with the status `environment`, which is separate from `failed`: nothing was checked, but nothing failed, and a run is never blocked over it. The reviewer is told plainly that those commands could not run.
 
 ## After the run
 
-- **`merge_ready`** - branch is ready for you to merge. The worktree stays on disk until you delete it.
-- **`blocked` / `failed`** - worktree is preserved. Inspect, copy out fragments, or abandon.
-- **`aborted`** - worktree is preserved. You'll need to `git worktree remove` it manually if you don't want it.
+- **`merge_ready`** - the branch is ready for you to merge. The copy stays on disk until you delete it.
+- **`blocked` / `failed` / `aborted`** - the copy is kept so you can inspect it or pull fragments out.
 
-To clean up:
+To clean one up:
 
 ```bash
 cd your-project
@@ -99,13 +60,9 @@ git worktree remove ../.vibestrate-worktrees/<runId>-<slug>
 git branch -D vibestrate/<runId>-<slug>
 ```
 
-## Common mistakes
+One thing to avoid: don't run `git checkout main` inside a copy. Each copy is tied to its own branch, and switching branches there undoes the separation that keeps things safe.
 
-- **Running `git checkout main` inside a worktree.** Worktrees are bound to their own branch; switching branches inside one defeats the isolation.
-- **Treating the worktree as throwaway.** If a run does interesting partial work, you can copy commits out before deleting the worktree.
-- **Configuring `worktreeDir` inside the project root.** Don't - it shadows your real working tree. Always use a sibling directory.
+## Going deeper
 
-## Related
-
-- [Run state](/docs/concepts/state) - terminal statuses determine whether you want to keep the worktree.
-- [Task lifecycle](/docs/task-lifecycle) - when the worktree is created and torn down.
+- [Run state](/docs/concepts/state) - the final statuses that tell you whether to keep a copy.
+- [Task lifecycle](/docs/task-lifecycle) - when a copy is created and torn down.

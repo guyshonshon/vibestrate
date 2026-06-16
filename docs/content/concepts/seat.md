@@ -1,19 +1,19 @@
 ---
 title: Seat
-description: What a Flow step needs filled - a labelled contract a Crew's Role fills, which is what keeps Flows shareable.
+description: The empty chair a Flow step needs filled - a label, not a name, which is what keeps Flows shareable.
 section: concepts
 slug: concepts/seat
 ---
 
-# Seat
+A **Seat** is an empty, labelled chair in a Flow that says "this step needs someone to fill it." It is a contract, not a person: it names the *kind* of worker a step needs, and nothing about who.
 
-## Basically
+Picture a Flow as a table with chairs around it. One chair is labelled "implementer", another "reviewer". The Flow sets out the chairs and what each one is for. It never says who sits down. Your [Crew](/docs/concepts/crew) does that, choosing a worker for each Seat when the task actually runs.
 
-A Seat is what a Flow step needs filled.
+That gap is the whole point. Because a Flow only names chairs and never names your AI models, you can take a Flow someone else wrote and run it with your own workers. The chairs are shared. Who fills them is yours.
 
-## Example
+## How a Flow asks for a Seat
 
-A Flow declares the Seats it needs:
+A Flow declares the Seats it needs, then points each step at one:
 
 ```yaml
 seats:
@@ -30,25 +30,16 @@ steps:
     outputs: [execution, diff]
 ```
 
-Your Crew may fill the `implementer` seat with a Role named Backend Implementer,
-Executor, Coder - anything, as long as its `seats` list includes `implementer`.
+Your Crew fills the `implementer` seat with a worker (a [Role](/docs/concepts/role)) you've set up. You can name that Role anything - Backend Implementer, Executor, Coder - as long as it lists `implementer` in its own `seats`.
 
-## More Detail
+## Which steps need a Seat
 
-A Seat is a **contract**, not a person. The Flow says "this step needs an
-implementer"; the Crew decides *who* fills it. That's what keeps Flows
-shareable - a Flow never names your local Role ids or Profiles.
+Not every step does. A step that just runs your tests, or one that pauses for your approval, needs no Seat - nobody is sitting down to think. Steps where an AI does a turn of work do: `agent-turn`, `review-turn`, `response-turn`, and `summary-turn`.
 
-Validation steps and approval gates don't need a Seat. Turn steps
-(`agent-turn` / `review-turn` / `response-turn` / `summary-turn`) do.
+## Going deeper
 
-## Advanced
+A Seat carries a `label` and an optional `description`, and nothing else - no model, no vendor. The worker who takes the Seat brings the model through its [profile](/docs/concepts/profile), so the same Flow can run on different AI depending on who fills the chair.
 
-- A Seat (`src/flows/schemas/flow-schema.ts` → `flowSeatSchema`) has a `label`
-  and optional `description`. It carries no provider - the resolved Role's
-  [[profile]] supplies the runtime.
-- At resolve time, `step.seat` → Crew Role (whose `seats` includes the seat) →
-  Profile → Provider. The resolved snapshot records `seat`, `resolvedRoleId`,
-  `resolvedRoleLabel`, `profileId`, and `providerId` per step.
+When a task runs, Vibestrate follows the chain `step.seat` to Crew Role to Profile to provider, and records who actually sat down for each step: `seat`, `resolvedRoleId`, `resolvedRoleLabel`, `profileId`, and `providerId`. The Seat shape lives in `src/flows/schemas/flow-schema.ts` as `flowSeatSchema`.
 
 Related: [[flow]], [[crew]], [[role]], [[profile]].

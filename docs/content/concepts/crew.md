@@ -1,17 +1,21 @@
 ---
 title: Crew
-description: Your local team of AI Roles. A run picks one Crew and matches the Flow's Seats to its Roles.
+description: Your set of AI workers, and which AI model each one uses.
 section: concepts
 slug: concepts/crew
 ---
 
-# Crew
+A **Crew** is your set of AI workers. Each Flow lists the *kinds* of worker it needs - a builder, a reviewer, and so on. Your Crew is who actually shows up to fill those spots.
 
-## Basically
+<div class="docs-callout">
 
-A Crew is your local team of AI Roles.
+**Different AIs, one task.** A Crew lets you put a different model in each seat, so the one that builds the change is not the one that reviews it. They read the problem from their own angle and check each other's work, instead of a single model rubber-stamping its own. The disagreement is the point.
 
-## Example
+</div>
+
+Think of a Flow as a recipe that says "you need a chef and a taster". The Crew is the people you hire for those jobs, and you decide whether the chef is a fast cook or a careful one. The same recipe works no matter who you hire, which is why a Flow someone else wrote still runs with your own people.
+
+Each worker in a Crew is called a **Role**. A Role does two things: it says which steps it can cover, and it picks the actual AI model that does the work.
 
 ```yaml
 crews:
@@ -28,56 +32,49 @@ crews:
 defaultCrew: default
 ```
 
-## More Detail
+This says: a Crew named `default` (set as `defaultCrew`, the one used when you do not pick another) has one Role, `backend-implementer`. The `seats` list is the kinds of step this Role can cover. The `profile` is the setting that names the actual model and provider, so a Role never points at a model directly. See [[profile]] for how that works.
 
-Each Crew holds a roster of **Roles**. A run picks one Crew (defaulting to
-`defaultCrew`) and matches the Flow's **Seats** to Roles in that Crew via each
-Role's `seats` list. The same Role can fill several Seats, and you can keep more
-than one Crew (e.g. a fast crew and a careful crew) and choose at run time with
-`--crew`.
+## Picking who runs
 
-When a Flow needs a Seat that no Role in the selected Crew fills, the run fails
-with a clear message ("add this seat to a role's Seats"). When two Roles fill
-the same Seat, it's ambiguous and the run asks you to pick one.
+A task uses one Crew, defaulting to `defaultCrew`. You can keep more than one - say a fast Crew and a careful Crew - and choose at run time:
 
-## Presets
+```bash
+vibe run "task" --crew default
+```
 
-Ready-made crews so you don't have to hand-author one - all over the **same
-roster** as your default crew (so a Flow's Seats stay covered; a preset changes
-*how* the team runs, not *who* is on it):
+If a Flow needs a kind of worker that no Role in your Crew covers, the run stops with a clear message telling you to add that step to a Role. If two Roles both cover the same step, it asks you to pick one.
 
-- **`fast`** - lowest provider effort + fewer review loops (1). Quick, low-stakes.
-- **`thorough`** - highest effort + extra review loops (3). Risky / complex work.
-- **`cheap`** - the provider's cheapest model at low effort. Minimise spend.
-- **`local`** - runs on a local (non-cloud) provider. Keeps work off cloud APIs.
+## Ready-made Crews (presets)
 
-`vibe crew presets` lists them with whether each applies to your setup and what
-it would do (provider, model, effort, review loops) - or why it can't. The
-dashboard's Crew page shows the same under **Presets** with one-click **Add**.
-`vibe crew presets add cheap` installs one (added to `project.yml` without
-overwriting anything); then `vibe crew use cheap`, or `vibe run "…" --crew cheap`
-for one run.
+Presets save you from writing a Crew by hand. They all use the same workers as your default Crew, so a Flow's steps stay covered. A preset changes *how* the team runs, not *who* is on it:
 
-Each preset **refuses** rather than create a crew identical to your default:
-`fast`/`thorough` need a provider with effort control (claude, codex); `cheap`
-needs a provider with a designated cheap model; `local` needs a local provider
-separate from your default. `fast`/`thorough` also set a per-crew
-`maxReviewLoops` (see below) so review depth follows the crew you pick.
+<div class="docs-cards">
 
-## Advanced
+**`fast`**
+Lowest effort, fewer review passes. Quick, low-stakes work.
 
-Schema (`src/crews/crew-schema.ts`, `src/roles/role-schema.ts`):
+**`thorough`**
+Highest effort, extra review passes. Risky or complex work.
 
-- `crews.<crewId>.label?`, optional `crews.<crewId>.maxReviewLoops` (0..10,
-  overrides `workflow.maxReviewLoops` for runs on this crew), and
-  `crews.<crewId>.roles.<roleId>` - at least one role.
-- A Role has `seats: string[]`, `profile`, `prompt`, `permissions`, `skills`,
-  and optional `mcpServers`. It runs on a [[profile]] (not a provider directly).
-- `defaultCrew` must name a crew that exists.
+**`cheap`**
+The provider's cheapest model at low effort. Keeps spend down.
 
-- CLI: `vibe run "task" --crew default`; `vibe crew presets [add <fast|thorough>]`.
-- API: `GET /api/crews`, `GET /api/crews/:crewId`,
-  `PATCH /api/crews/:crewId/roles/:roleId`, `GET /api/crews/presets`,
-  `POST /api/crews/presets/install`.
+**`local`**
+Runs on a provider on your own machine, off cloud APIs.
 
-Related: [[role]], [[seat]], [[profile]], [[flow]], [[provider]].
+</div>
+
+```bash
+vibe crew presets           # list them and whether each fits your setup
+vibe crew presets add cheap # install one into project.yml
+vibe crew use cheap         # make it your default
+```
+
+A preset refuses rather than make a copy of your default Crew. `fast` and `thorough` need a provider with effort control (claude, codex), `cheap` needs a provider with a designated cheap model, and `local` needs a local provider separate from your default. The dashboard's Crew page shows the same presets with one-click **Add**.
+
+## Going deeper
+
+- [[role]] and [[seat]] - the workers in a Crew, and the steps they can cover.
+- [[profile]] - how a Role names its actual model and provider.
+- [[flow]] - the steps a Crew fills in.
+- A Crew can also set `maxReviewLoops` (0 to 10), capping how many fix-and-review passes a run makes. It overrides `workflow.maxReviewLoops` for runs on this Crew. Roles can carry extra `permissions`, `skills`, and `mcpServers`. See [[configuration]] for the full set of keys. Related: [[provider]].

@@ -1,6 +1,6 @@
 ---
 title: HTTP API
-description: The local dashboard API - versioned /api/v1 contract, optional bearer-token auth, and the flow import/export/create endpoints.
+description: The local dashboard API, a versioned /api/v1 contract with optional bearer-token auth and the flow import, export, and create endpoints.
 section: architecture
 slug: architecture/http-api
 ---
@@ -12,6 +12,8 @@ can do too.
 
 ## Base URL and versioning
 
+There are two ways to reach the same handlers: one the bundled UI uses, and one to pin in your own scripts.
+
 - **Unversioned:** `/api/...` - what the bundled dashboard calls.
 - **Versioned:** `/api/v1/...` - the canonical contract for external callers.
 
@@ -22,6 +24,8 @@ window. `/api/v1/health` and `/api/v1/flows` behave identically to their
 unversioned forms.
 
 ## Binding and origin
+
+By default the server listens only on your own machine, and it is picky about who is allowed to call it.
 
 The server binds loopback (`127.0.0.1`) by default and refuses cross-origin
 requests from anything but `localhost` / `127.0.0.1` / the configured host (a
@@ -36,6 +40,8 @@ scripts) omit that header and are unaffected - but a destructive endpoint like
 snapshot prune still requires an explicit body, never acting on an empty one.
 
 ## Authentication
+
+Auth stays out of your way when you run locally, and switches on the moment you set a token.
 
 Auth is **off by default** on a loopback bind (single-user, local-first). It
 turns on when a token is present:
@@ -59,6 +65,8 @@ curl -H "Authorization: Bearer $VIBESTRATE_API_TOKEN" \
 ```
 
 ## Flow portability endpoints
+
+These endpoints move flows in and out of a project. A **Seat** is a named slot in a flow that says what kind of worker a step needs, not which model fills it.
 
 Flows are portable because they name **Seats**, not your local Roles or
 Providers - a flow exported from one project imports cleanly into another and
@@ -89,6 +97,8 @@ CLI equivalents: `vibe flows export <id> [--out file]` and
 page has **Export**, **Import** (paste YAML or URL), and **New flow** controls.
 
 ## Integration: merge advice + guided merge-to-main
+
+These four endpoints back the dashboard's Merge page: a cheap read to list merge-ready runs, an optional deeper analysis, deterministic advice, and the guarded merge itself.
 
 `GET /api/integration/overview` returns the **cheap** per-run projection the
 dashboard's Merge page lists: check lanes + branch topology per merge-ready

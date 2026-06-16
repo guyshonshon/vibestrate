@@ -1,29 +1,42 @@
 ---
 title: Supervisor
-description: The judgment posture watching every run - what it decides, where you see it, and how it saves you money.
+description: The setting that decides how closely Vibestrate watches a run, and records every call it makes.
 section: concepts
 slug: concepts/supervisor
 ---
 
-Every run has a **supervisor**: a judgment posture (a *persona*) the
-orchestrator applies on your behalf. It is not another agent doing work - it
-decides *how much scrutiny the work deserves* and leaves a visible trail of
-every decision.
+A **supervisor** (its config calls it a **persona**) is the attitude Vibestrate brings to a run: how closely it should watch the work, and how strict it should be before calling the work done. It does no work itself. It sets the level of scrutiny and leaves a paper trail.
 
-## What it does
+Think of a building inspector. They don't pour the concrete or hang the drywall. They decide how hard to look, send the risky parts back for a second opinion, and write down every call they make so you can trust the sign-off. The supervisor plays that role for a run.
 
-- **Risk upgrades.** Each persona declares risk signals (the built-in
-  `staff-engineer` watches for auth, payments, migrations, concurrency and
-  the like). A task that matches gets upgraded to a heavier flow - e.g. a
-  three-lens review panel - automatically, and the upgrade is recorded with
-  the exact signals that triggered it. Upgrades only ever add scrutiny.
-- **Review independence, honestly labeled.** A run reviewed by the same
-  model that wrote the code is marked `single-profile` (a self-check can
-  only lower confidence); reviews from a genuinely different model are
-  `cross-model`.
-- **A cheaper reviewer, when you choose one.** A persona can pin review
-  seats to a different Profile with `reviewerProfile` - a cheaper model for
-  routine reviews, or a different vendor for real cross-model independence:
+<div class="docs-callout">
+
+**It is not a rubber stamp.** This is what makes the AI's work trustworthy instead of a yes-man. The supervisor questions the result, tightens scrutiny on the risky changes, tells you honestly whether the review was truly independent, and records every decision it makes so you can check its reasoning later.
+
+</div>
+
+## What it decides
+
+<div class="docs-cards">
+
+**More care for risky work.**
+Each supervisor knows which changes deserve extra caution. The built-in `staff-engineer` watches for things like logins, payments, database migrations, and concurrency. When a task matches, the run is automatically upgraded to a more thorough [Flow](/docs/concepts/flow), such as a multi-reviewer panel, and the exact words that triggered it get recorded. Upgrades only ever add care, never remove it.
+
+**An honest label on the review.**
+If the same AI that wrote the code also reviewed it, the run is marked `single-profile`. That is a self-check, and a self-check can only lower confidence, not raise it. If a genuinely different AI did the review, it's marked `cross-model`.
+
+</div>
+
+These two labels tell you how much the sign-off is worth at a glance:
+
+<div class="docs-outcomes">
+<div class="docs-outcome warn"><b>single-profile</b><span>The author reviewed its own work. Treat with caution.</span></div>
+<div class="docs-outcome ok"><b>cross-model</b><span>A different AI reviewed it. Genuinely independent.</span></div>
+</div>
+
+## Picking who reviews
+
+A supervisor can hand all the review work to a different AI with `reviewerProfile`. Use a cheaper model for routine reviews, or a different vendor when you want a truly independent second pair of eyes. In the config below, the `staff-engineer` supervisor sends every review seat to a `cheap-reviewer` Profile, which here runs Claude Haiku:
 
 ```yaml
 personas:
@@ -36,23 +49,22 @@ profiles:
     model: claude-haiku-4-5-20251001
 ```
 
-Explicit choices always win over the persona: a per-step profile override or
-a run-wide `--profile` beats `reviewerProfile`.
+Anything you choose by hand wins over the supervisor. A per-step profile override, or a run-wide `--profile`, beats `reviewerProfile`.
 
 ## Where you see it
 
-The run screen opens with the **Supervisor panel**: the active persona, the
-flow-selection story in one sentence ("upgraded to panel-review - matched
-'auth', 'token'"), a live feed of every judgment and enforcement (selections,
-review decisions, denied actions, fallbacks, budget events), the arbitration
-verdict when the flow ran one, and any approval waiting on you - approve or
-reject right there.
+The run screen opens with the **Supervisor panel**. It shows the active supervisor, a one-line story of why the Flow was chosen ("upgraded to panel-review - matched 'auth', 'token'"), and a live feed of every call it makes: selections, review decisions, denied actions, fallbacks, and budget events. If the Flow ran an arbitration step (a final call that weighs the reviewers' findings) you see that verdict too, and anything waiting on you to approve or reject sits right there.
 
-Pick the persona per run with the composer's Supervisor selector or
-`vibe run --supervisor <id>`; list what's available with
-`vibe supervisor list`.
+Pick the supervisor for a run with the composer's Supervisor selector or `vibe run --supervisor <id>`. See what's available with `vibe supervisor list`.
 
-## Related
+## Going deeper
 
-- [Flow](/docs/concepts/flow) - what an upgrade actually changes.
-- [Profile](/docs/concepts/profile) - what `reviewerProfile` points at.
+<div class="docs-cards">
+
+**[Flow](/docs/concepts/flow)**
+What an upgrade actually changes.
+
+**[Profile](/docs/concepts/profile)**
+What `reviewerProfile` points at.
+
+</div>
