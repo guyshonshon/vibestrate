@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.107
+
+- **More of the run control surface in the dashboard.** The composer now exposes
+  effort (auto/low/medium/high), a concise toggle, and force-flow-selection
+  ("auto-pick flow") alongside the existing read-only / unattended / persona
+  controls - closing part of the CLI/UI parity gap (the server already accepted
+  these; the UI just didn't offer them). More controls (continuous/step checklist,
+  context sources) and a dedicated run page come next.
+
 ## 0.7.106
 
 - **Consult answers are now referenceable.** The computed "Project state" items
