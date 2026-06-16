@@ -20,12 +20,20 @@
           "label": "The big picture"
         },
         {
+          "slug": "getting-started/why-a-human",
+          "label": "Why a human stays in the loop"
+        },
+        {
           "slug": "getting-started/installation",
           "label": "Installation"
         },
         {
           "slug": "getting-started/first-run",
           "label": "Your first run"
+        },
+        {
+          "slug": "getting-started/merging",
+          "label": "Keep a change (Git & merging)"
         },
         {
           "slug": "getting-started/providers",
@@ -108,6 +116,10 @@
           "label": "Safety - Action Broker & policies"
         },
         {
+          "slug": "concepts/supervisor",
+          "label": "Supervisor"
+        },
+        {
           "slug": "concepts/skill",
           "label": "Skill"
         },
@@ -133,7 +145,11 @@
       "items": [
         {
           "slug": "concepts/vibestrate-md",
-          "label": "VIBESTRATE.md & Consult"
+          "label": "VIBESTRATE.md"
+        },
+        {
+          "slug": "concepts/consult",
+          "label": "Consult"
         }
       ]
     },
