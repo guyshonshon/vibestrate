@@ -210,6 +210,12 @@ inlined into prompts - a `{{params.<secret>}}` renders a `[secret:<name>]`
 placeholder. Vibestrate does not feed secrets to agents. The built-in `scaffold`
 Flow is a runnable worked example.
 
+**You fill these once.** The answers persist in the project profile and seed
+every later run, so you stop re-typing them. A param is stored per-flow by
+default; add `shared: true` to make it project-global (one `niche`, every Flow
+sees it). Add a `generate: { instruction: ... }` hint to offer an optional,
+user-initiated "Generate a default" button. See [Project profile](./project-profile.md).
+
 ## Project Flows
 
 Drop a `flow.yml` into `.vibestrate/flows/<id>/`:

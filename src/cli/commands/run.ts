@@ -41,6 +41,12 @@ import {
   runFlowRunWizard,
 } from "../wizards/flow-run-wizard.js";
 import { pickFlow, pickCrew } from "../wizards/flow-crew-picker.js";
+import {
+  ProfileStore,
+  buildProfileSetRequests,
+  seedParamsFromProfile,
+} from "../../project/project-profile.js";
+import { nowIso } from "../../utils/time.js";
 
 function rewriteFriendly(message: string): string {
   // Worktree already exists.
@@ -548,11 +554,32 @@ export async function runRunCommand(
     }
   }
 
-  // Flow params (T11): fill missing required params interactively on a TTY;
-  // otherwise the orchestrator fails fast with the exact missing names.
+  // Flow params (T11) + durable param memory (Profiling): seed stored answers
+  // (and VIBESTRATE_PARAM_* env) into the explicit values FIRST, so the
+  // interactive prompt only asks for what's genuinely unfilled (and never
+  // re-asks for a stored value, nor lets the answer override it). Then persist
+  // newly-typed answers additively (fill-once; never clobber a stored value).
+  // The orchestrator re-seeds at its chokepoint too - idempotent, since seeding
+  // never overwrites an existing value.
   let runParams = options.params ?? {};
-  if (resolvedFlow?.params) {
-    runParams = await promptMissingFlowParams(resolvedFlow.params, runParams);
+  if (resolvedFlow?.params && Object.keys(resolvedFlow.params).length > 0) {
+    const store = new ProfileStore(detected.projectRoot);
+    const profile = await store.read();
+    const seeded = seedParamsFromProfile(
+      resolvedFlow.params,
+      resolvedFlow.flowId,
+      runParams,
+      profile,
+    );
+    const filledBeforePrompt = new Set(Object.keys(seeded));
+    runParams = await promptMissingFlowParams(resolvedFlow.params, seeded);
+    await persistPromptedAnswers(
+      store,
+      resolvedFlow.flowId,
+      resolvedFlow.params,
+      runParams,
+      filledBeforePrompt,
+    );
   }
 
   const orchestrator = new Orchestrator({
@@ -749,6 +776,36 @@ export async function runRunCommand(
       return 3;
     default:
       return 0;
+  }
+}
+
+/** Persist interactively-entered answers into the durable project profile
+ *  (Profiling). Additive only: a param the user just typed that has NO stored
+ *  value yet becomes durable ("fill once"), so the next run reuses it. Secrets
+ *  are never auto-persisted (they store an env var NAME via `vibe profile set`).
+ *  Best-effort - a persist hiccup never fails the run. */
+async function persistPromptedAnswers(
+  store: ProfileStore,
+  flowId: string,
+  defs: Record<string, FlowParam>,
+  finalParams: Record<string, string>,
+  filledBeforePrompt: Set<string>,
+): Promise<void> {
+  const assignments: { key: string; value: string }[] = [];
+  for (const [name, def] of Object.entries(defs)) {
+    if (def.secret) continue;
+    if (filledBeforePrompt.has(name)) continue; // was already provided/stored
+    const value = finalParams[name];
+    if (value === undefined || value === "") continue;
+    assignments.push({ key: name, value });
+  }
+  if (assignments.length === 0) return;
+  const { requests } = buildProfileSetRequests({ flowId, defs, assignments });
+  if (requests.length === 0) return;
+  try {
+    await store.set(requests, nowIso());
+  } catch {
+    // Durable memory is a convenience - never fail a run because a write hiccuped.
   }
 }
 

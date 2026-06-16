@@ -2274,4 +2274,55 @@ export const api = {
   async getRunReplay(runId: string): Promise<RunReplay> {
     return jsonGet(`/api/runs/${encodeURIComponent(runId)}/replay`);
   },
+
+  // ── Durable project profile (Profiling / durable param memory) ────────────
+  /** The full stored profile. Secret entries hold an `env:NAME` ref, never raw. */
+  async getProfile(): Promise<ProjectProfileView> {
+    const r = await jsonGet<{ profile: ProjectProfileView }>("/api/profile");
+    return r.profile;
+  },
+  /** The profile values that apply to one flow, keyed by param name (for the
+   *  Composer form prefill). Secret values are blanked - only the flag ships. */
+  async getFlowProfile(flowId: string): Promise<Record<string, FlowProfileValue>> {
+    const r = await jsonGet<{ values: Record<string, FlowProfileValue> }>(
+      `/api/profile/flow/${encodeURIComponent(flowId)}`,
+    );
+    return r.values;
+  },
+  /** Persist values. With `flowId`, keys are the flow's declared params (typed,
+   *  secret-aware, namespaced); without it, keys are raw profile keys. */
+  async setProfile(input: {
+    flowId?: string | null;
+    values: Record<string, string>;
+  }): Promise<{ ok: true; warnings: string[]; profile: ProjectProfileView }> {
+    return jsonPost("/api/profile", input);
+  },
+  async unsetProfileKey(key: string): Promise<{ ok: true; removed: string[] }> {
+    return jsonDelete(`/api/profile/${encodeURIComponent(key)}`);
+  },
+  /** Model-independent "generate a default" for a param declaring a `generate`
+   *  hint. Strictly user-initiated; returns a suggestion the user reviews. */
+  async generateParam(
+    flowId: string,
+    param: string,
+  ): Promise<{ suggestion: string }> {
+    return jsonPost(`/api/profile/generate`, { flowId, param });
+  },
+};
+
+export type ProfileSetBy = "user" | "generated" | "default";
+export type ProfileEntryView = {
+  value: string;
+  setBy: ProfileSetBy;
+  at: string;
+  secret: boolean;
+};
+export type ProjectProfileView = {
+  schemaVersion: number;
+  values: Record<string, ProfileEntryView>;
+};
+export type FlowProfileValue = {
+  value: string;
+  setBy: ProfileSetBy;
+  secret: boolean;
 };

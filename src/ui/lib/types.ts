@@ -198,6 +198,10 @@ export type FlowParam = {
   default?: string | number | boolean;
   values?: string[];
   secret?: boolean;
+  /** Durable param memory: project-global (shared) vs flow-namespaced storage. */
+  shared?: boolean;
+  /** Optional model-independent "generate a default" hint (P4). */
+  generate?: { instruction: string };
 };
 
 export type FlowDefinition = {

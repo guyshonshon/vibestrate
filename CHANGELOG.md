@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.102
+
+- **Durable param memory (Profiling).** Fill your project's data once and every
+  run reuses it. A flow declares typed `params:` (name, niche, brand color, ...);
+  Vibestrate now persists the answers in `.vibestrate/project-profile.json` and
+  seeds them at run start, so you stop re-typing them. Precedence is predictable:
+  an explicit `--param` wins, then a `VIBESTRATE_PARAM_*` env var (the clean CI
+  path - no interactive step, never hangs unattended), then the stored profile,
+  then the flow default. The Composer prefills its parameter form from the
+  profile, the CLI prompt only asks for what's genuinely unfilled, and a new
+  **Project profile** panel on the Settings page (plus `vibe profile
+  get/set/list/unset`) lets you edit stored values directly. It's
+  model-independent - Vibestrate owns the questions and the form; a provider is
+  only an optional helper. For a `generate`-enabled param you can press
+  **Generate** (or `vibe profile generate`) to have a provider draft a value you
+  review before keeping - never auto-applied. Safe by construction: param values
+  are stored per-flow by default (an opt-in `shared: true` makes one
+  project-global), a secret param stores an `env:NAME` reference (never the raw
+  secret, and a run fails fast if that env var is unset), and writes go through
+  the project write-mutex.
+
 ## 0.7.101
 
 - **Durable project memory.** Vibestrate now keeps a living, auto-derived project

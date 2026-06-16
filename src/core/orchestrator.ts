@@ -80,6 +80,10 @@ import {
   substituteParams,
 } from "../flows/runtime/prompt-params.js";
 import {
+  ProfileStore,
+  seedParamsFromProfile,
+} from "../project/project-profile.js";
+import {
   capturePhaseSnapshot,
   pruneOldSnapshots,
   sweepOrphanedSnapshotRefs,
@@ -590,12 +594,27 @@ export class Orchestrator {
     // the `default` flow is resolved here. There is one runner.
     let flow = this.flow ?? (await this.resolveDefaultFlow());
 
-    // ── Flow parameters (T11) ──────────────────────────────────────────────
-    // Resolve the caller's raw values against the flow's declared `params`, fail
-    // fast on missing-required / bad values, then substitute {{params.x}} into
-    // the task + each step's instructions (a secret renders a placeholder, never
-    // the value). Recorded values (secrets redacted) land on run state.
-    const resolvedParams = resolveFlowParams(flow.params, this.rawParams);
+    // ── Flow parameters (T11) + durable param memory (Profiling) ───────────
+    // Seed the caller's explicit values with the durable project profile and
+    // `VIBESTRATE_PARAM_*` env, WITHOUT overwriting anything explicit, so the
+    // precedence is: explicit (--param / body.params) > env > project profile >
+    // flow default > prompt / fail-fast. Then resolve against the flow's declared
+    // `params`, fail fast on missing-required / bad values, and substitute
+    // {{params.x}} into the task + each step's instructions (a secret renders a
+    // placeholder, never the value). Recorded values (secrets redacted) land on
+    // run state. Both the CLI and the dashboard reach this single chokepoint (the
+    // server route spawns `vibe run`), so seeding here covers every run.
+    let seededParams = this.rawParams;
+    if (flow.params && Object.keys(flow.params).length > 0) {
+      const profile = await new ProfileStore(this.projectRoot).read();
+      seededParams = seedParamsFromProfile(
+        flow.params,
+        flow.flowId,
+        this.rawParams,
+        profile,
+      );
+    }
+    const resolvedParams = resolveFlowParams(flow.params, seededParams);
     if (resolvedParams.errors.length > 0) {
       throw new GitError(`Flow parameter error: ${resolvedParams.errors.join(" ")}`);
     }
@@ -603,7 +622,9 @@ export class Orchestrator {
       throw new GitError(
         `Missing required flow parameter(s): ${resolvedParams.missing.join(
           ", ",
-        )}. Pass each as --param <name>=<value>.`,
+        )}. Provide each with --param <name>=<value>, persist them once with ` +
+          `\`vibe profile set --flow ${flow.flowId} <name>=<value>\`, or export ` +
+          `VIBESTRATE_PARAM_<NAME> (the CI path - never hangs unattended).`,
       );
     }
     if (Object.keys(resolvedParams.substitution).length > 0) {

@@ -1,6 +1,6 @@
 ---
 title: Profiling - model-independent structured intake of project settings
-status: proposed
+status: implemented
 created: 2026-06-16
 related: [durable-project-memory.md, responsible-orchestrator.md]
 ---
@@ -294,3 +294,58 @@ claim). V1 is flat fill + reuse; don't oversell it.
 Order: P1 -> P2 -> Prefill -> P4. Same user-visible value ("fill my project once,
 reuse it"), ~20% of the original risk, zero state-machine surgery, and the two
 load-bearing bugs (cross-flow `name` collision, raw-secret-into-JSON) fixed.
+
+---
+
+## Implementation (shipped)
+
+All four slices landed on one branch (P1 -> P2 -> Prefill -> P4), each verified.
+
+- **Store** - `src/project/project-profile.ts`: `projectProfileSchema`
+  (schemaVersion 1, `values: key -> { value, setBy, at, secret }`),
+  flow-id-namespaced keys via `profileKeyFor` (+ opt-in `shared`), mutex-guarded
+  read-modify-write with atomic temp+rename, secret entries store `env:NAME`,
+  `seedParamsFromProfile` / `resolveProfileForFlow` (pure), and a shared
+  `buildProfileSetRequests` the CLI + API both use.
+- **Schema** - `flowParamSchema` gained `shared` and `generate` (with a
+  `secret`+`generate` mutual-exclusion refine).
+- **Seam** - `orchestrator.ts` seeds at the single resolution chokepoint, and
+  `run.ts` seeds + prefills before the interactive prompt (and persists prompted
+  answers additively). Both surfaces reach the orchestrator (the server route
+  spawns `vibe run`), so seeding covers every run.
+- **Surfaces** - `vibe profile get/set/list/unset/generate`; routes under
+  `/api/profile`; a "Project profile" panel on the dashboard Settings page; the
+  Composer prefills from the profile and shows a per-field saved/generated badge.
+
+### Post-implementation review hardening (second adversarial pass)
+
+A fresh-context Opus review of the built code found and we fixed:
+
+1. **CLI prefill gap (was a blocker).** The interactive `promptMissingFlowParams`
+   ran before any profile read, so a TTY run re-asked for a stored value and the
+   answer then overrode it. Fixed: `run.ts` seeds from the profile (+ env) before
+   prompting, so the prompt only asks for genuinely-unfilled params.
+2. **Inert stored secret (fail-fast).** A stored `env:NAME` whose env var is unset
+   at run time used to start the run with a non-functional secret. Fixed:
+   `seedParamsFromProfile` only seeds a secret when its env var actually resolves;
+   otherwise it falls through to missing-required -> fail-fast.
+3. **Empty-explicit shadowing.** `--param x=` now means "not provided" (the
+   profile/default fills it), instead of clearing the value for that run.
+4. **Honest secret claim.** The non-secret-write `scanTextForSecrets` guard is a
+   best-effort tripwire for vendor token SHAPES, **not** a guarantee. The real
+   secret guarantee is "declared `secret` params store `env:NAME`"; bare-key
+   (no-`--flow`) writes are non-secret-only by contract. Comments reworded so no
+   doc oversells "secret-free JSON".
+5. **Route redaction divergence documented.** `GET /api/profile` (admin/Settings)
+   returns the `env:NAME` ref (a var name is not a secret); the per-flow prefill
+   route blanks secret values (it feeds a run form). Both routes now say why.
+
+### Known limitations
+
+- `paramEnvVarName` upper-snake-cases the param name, so a single flow declaring
+  both `colorTokens` and `color_tokens` would map them to one `VIBESTRATE_PARAM_*`
+  env var (one becomes un-seedable via env). Documented, not guarded at resolve
+  time.
+- The bare-key (`vibe profile set name=...` without `--flow`) path can't type-check
+  or detect a secret param, so it stores raw strings (the shape-scan backstop
+  still applies). `--flow` is the recommended path for typed + secret values.

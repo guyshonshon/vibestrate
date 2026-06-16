@@ -22,6 +22,7 @@ import { registerIssuesRoutes } from "./routes/issues.js";
 import { registerProposalsRoutes } from "./routes/proposals.js";
 import { registerNotificationRoutes } from "./routes/notifications.js";
 import { registerProjectRoutes } from "./routes/project.js";
+import { registerProfileRoutes } from "./routes/profile.js";
 import { registerConfigRoutes } from "./routes/config.js";
 import { registerAnnotationsRoutes } from "./routes/annotations.js";
 import { registerBudgetRoutes } from "./routes/budget.js";
@@ -387,6 +388,7 @@ export async function startServer(opts: StartServerOptions): Promise<StartedServ
   await registerProposalsRoutes(app, { projectRoot: opts.projectRoot });
   await registerNotificationRoutes(app, { projectRoot: opts.projectRoot });
   await registerProjectRoutes(app, { projectRoot: opts.projectRoot });
+  await registerProfileRoutes(app, { projectRoot: opts.projectRoot });
   await registerConfigRoutes(app, { projectRoot: opts.projectRoot });
   await registerAnnotationsRoutes(app, { projectRoot: opts.projectRoot });
   await registerBudgetRoutes(app, { projectRoot: opts.projectRoot });

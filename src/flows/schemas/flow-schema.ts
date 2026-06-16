@@ -136,6 +136,28 @@ export const flowParamSchema = z
     values: z.array(z.string().min(1).max(120)).min(1).optional(),
     /** Recorded redacted + never inlined into prompts. */
     secret: z.boolean().default(false),
+    /**
+     * Durable param memory (Profiling): how this param's stored value is keyed
+     * in `.vibestrate/project-profile.json`. Default `false` -> the value is
+     * **namespaced per flow** (`<flowId>.<param>`), so two flows that both
+     * declare `name` never cross-contaminate. `true` -> a **project-global**
+     * key (the bare param name), reused by any flow declaring a `shared` param
+     * of that name ("fill `niche` once, every flow sees it"). See
+     * docs/design/profiling-intake.md.
+     */
+    shared: z.boolean().default(false),
+    /**
+     * Optional, model-independent "generate a default" hint. When present, the
+     * intake surfaces (CLI / Composer) offer a **user-initiated** Generate
+     * affordance that calls `runAssist` with this instruction (interpolating
+     * other known profile values via `{{params.x}}`) to draft a suggestion the
+     * user reviews/edits/accepts. Never auto-fired, never auto-committed; works
+     * on any provider, required on none. A secret param can't be generated.
+     */
+    generate: z
+      .object({ instruction: z.string().min(1).max(600) })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((p, ctx) => {
@@ -158,6 +180,14 @@ export const flowParamSchema = z
         code: z.ZodIssueCode.custom,
         path: ["default"],
         message: "A secret param can't carry a default value in the flow file.",
+      });
+    }
+    if (p.secret && p.generate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["generate"],
+        message:
+          "A secret param can't declare `generate` - a secret is collected as an env var name, never model-drafted.",
       });
     }
   });
