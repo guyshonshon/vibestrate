@@ -1,7 +1,17 @@
 import { AlertTriangle, ArrowRight, FileText } from "lucide-react";
-import type { ConsultResult, ConsultSections } from "../../lib/types.js";
+import type {
+  ConsultResult,
+  ConsultSections,
+  ConsultSectionItem,
+  ConsultRef,
+} from "../../lib/types.js";
 import { Button } from "../design/Button.js";
 import { cn } from "../design/cn.js";
+
+/** Hash route a computed item opens: run -> run detail, task -> board card. */
+function refHref(ref: ConsultRef): string {
+  return ref.kind === "run" ? `#/runs/${ref.id}` : `#/tasks/${ref.id}`;
+}
 
 const CONFIDENCE_TONE: Record<ConsultResult["answer"]["confidence"], string> = {
   high: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
@@ -131,7 +141,7 @@ export function ConsultAnswerView({
  *  next to the model's narration so "what's open / next" is the same for the
  *  same project state, not whatever the model volunteered. */
 export function ComputedSections({ sections }: { sections: ConsultSections }) {
-  const groups: { title: string; items: string[] }[] = [
+  const groups: { title: string; items: ConsultSectionItem[] }[] = [
     { title: "Recent activity", items: sections.recentActivity },
     { title: "Open intents", items: sections.openIntents },
     { title: "Mentioned, never worked on", items: sections.mentionedNeverWorked },
@@ -147,11 +157,21 @@ export function ComputedSections({ sections }: { sections: ConsultSections }) {
           {groups.map((g) => (
             <div key={g.title}>
               <div className="mb-1 text-[12px] font-medium text-fog-200">{g.title}</div>
-              <ul className="space-y-0.5 text-[12.5px] text-fog-300">
+              <ul className="space-y-1 text-[12.5px] text-fog-200">
                 {g.items.slice(0, 6).map((it, i) => (
                   <li key={i} className="flex gap-1.5">
-                    <span className="text-fog-500">·</span>
-                    <span className="truncate" title={it}>{it}</span>
+                    <span className="mt-[1px] text-fog-500">·</span>
+                    {it.ref ? (
+                      <a
+                        href={refHref(it.ref)}
+                        title={`Open this ${it.ref.kind}`}
+                        className="text-fog-100 underline decoration-white/20 underline-offset-2 hover:text-violet-soft hover:decoration-violet-soft/60"
+                      >
+                        {it.text}
+                      </a>
+                    ) : (
+                      <span className="text-fog-200">{it.text}</span>
+                    )}
                   </li>
                 ))}
               </ul>

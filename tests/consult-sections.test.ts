@@ -34,32 +34,41 @@ describe("computeConsultSections (T10, deterministic)", () => {
   const input = {
     ledger,
     roadmapTasks: [
-      { title: "Add params to flows", status: "backlog" },
-      { title: "Ship the merge advisor", status: "ready" }, // dup of ledger intent
-      { title: "Old thing", status: "done" }, // closed -> excluded
+      { id: "task-1", title: "Add params to flows", status: "backlog" },
+      { id: "task-2", title: "Ship the merge advisor", status: "ready" }, // dup of ledger intent
+      { id: "task-3", title: "Old thing", status: "done" }, // closed -> excluded
     ],
     recentRuns: [
-      { displayName: "Ledger foundation", task: "build the ledger", status: "merge_ready" },
-      { displayName: null, task: "fix a bug", status: "blocked" },
+      { runId: "run-a", displayName: "Ledger foundation", task: "build the ledger", status: "merge_ready" },
+      { runId: "run-b", displayName: null, task: "fix a bug", status: "blocked" },
     ],
   };
+  const texts = (items: { text: string }[]) => items.map((i) => i.text);
 
   it("computes the four sections from ledger + roadmap + runs", () => {
     const s = computeConsultSections(input);
-    expect(s.recentActivity).toEqual([
+    expect(texts(s.recentActivity)).toEqual([
       "merge_ready: Ledger foundation",
       "blocked: fix a bug",
     ]);
     // open intents = ledger intents + open roadmap tasks, deduped (the merge
     // advisor appears once), done tasks excluded.
-    expect(s.openIntents).toEqual([
+    expect(texts(s.openIntents)).toEqual([
       "Ship the merge advisor",
       "Add params to flows",
     ]);
-    expect(s.mentionedNeverWorked).toEqual(["Maybe a Graphy integration"]);
+    expect(texts(s.mentionedNeverWorked)).toEqual(["Maybe a Graphy integration"]);
     // next steps lead with concrete follow-ups, then open intents.
-    expect(s.suggestedNextSteps[0]).toBe("Wire the dashboard ledger page");
-    expect(s.suggestedNextSteps).toContain("Ship the merge advisor");
+    expect(s.suggestedNextSteps[0]!.text).toBe("Wire the dashboard ledger page");
+    expect(texts(s.suggestedNextSteps)).toContain("Ship the merge advisor");
+  });
+
+  it("attaches referenceable ids (run for activity, task for open roadmap items)", () => {
+    const s = computeConsultSections(input);
+    expect(s.recentActivity[0]!.ref).toEqual({ kind: "run", id: "run-a" });
+    // "Add params to flows" is roadmap-only -> task ref
+    const params = s.openIntents.find((i) => i.text === "Add params to flows");
+    expect(params!.ref).toEqual({ kind: "task", id: "task-1" });
   });
 
   it("is deterministic - same inputs => identical output", () => {

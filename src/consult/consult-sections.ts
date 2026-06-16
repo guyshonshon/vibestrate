@@ -8,19 +8,29 @@ import type { LedgerState } from "../core/project-ledger.js";
 // history; the LLM only narrates/ranks them. Same inputs => same sections, so
 // it's testable. Pure - no disk, no clock.
 
+/** What a computed section item points at, so the UI can link it (a consult
+ *  answer item must be openable, not a dead string). Run -> run detail, task ->
+ *  board card. Absent when the source carries no id (e.g. a bare ledger title). */
+export type ConsultRef =
+  | { kind: "run"; id: string }
+  | { kind: "task"; id: string };
+
+/** One computed item: the human text + an optional reference to open. */
+export type ConsultSectionItem = { text: string; ref?: ConsultRef };
+
 export type ConsultSections = {
   /** Recent run outcomes, newest first. */
-  recentActivity: string[];
+  recentActivity: ConsultSectionItem[];
   /** Goals not yet shipped (ledger intents + open roadmap tasks), deduped. */
-  openIntents: string[];
+  openIntents: ConsultSectionItem[];
   /** Raised in a run/consult but never acted on (ledger mentions). */
-  mentionedNeverWorked: string[];
+  mentionedNeverWorked: ConsultSectionItem[];
   /** Mechanically-derived next steps: open follow-ups + open intents, newest
    *  first. NOT invented - every item traces to a ledger/roadmap entry. */
-  suggestedNextSteps: string[];
+  suggestedNextSteps: ConsultSectionItem[];
   /** Maintenance tips the user may act on - surfaced, never auto-applied (the
-   *  tool never deletes data itself). Empty unless something crossed a
-   *  threshold (e.g. rewind snapshots accumulating in `.git`). */
+   *  tool never deletes data itself). Plain text (no ref). Empty unless something
+   *  crossed a threshold (e.g. rewind snapshots accumulating in `.git`). */
   housekeeping: string[];
 };
 
@@ -68,12 +78,12 @@ function normalize(s: string): string {
   return s.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-/** Dedupe by normalized text, preserving first-seen order. */
-function dedupe(items: string[]): string[] {
+/** Dedupe items by normalized text, preserving first-seen order (and its ref). */
+function dedupe(items: ConsultSectionItem[]): ConsultSectionItem[] {
   const seen = new Set<string>();
-  const out: string[] = [];
+  const out: ConsultSectionItem[] = [];
   for (const item of items) {
-    const key = normalize(item);
+    const key = normalize(item.text);
     if (!key || seen.has(key)) continue;
     seen.add(key);
     out.push(item);
@@ -81,30 +91,51 @@ function dedupe(items: string[]): string[] {
   return out;
 }
 
+/** A ledger entry contributes a run ref when it traces to a source run. */
+function runRef(sourceRunId: string | null | undefined): ConsultRef | undefined {
+  return sourceRunId ? { kind: "run", id: sourceRunId } : undefined;
+}
+
 export function computeConsultSections(input: {
   ledger: LedgerState;
-  roadmapTasks: { title: string; status: string }[];
-  recentRuns: { displayName?: string | null; task: string; status: string }[];
+  roadmapTasks: { id: string; title: string; status: string }[];
+  recentRuns: {
+    runId: string;
+    displayName?: string | null;
+    task: string;
+    status: string;
+  }[];
   /** Rewind-snapshot stats (from countSnapshotRuns) + the active retention
    *  setting, for the housekeeping tip. Omitted = no snapshot tip. */
   snapshots?: { runs: number; refs: number };
   snapshotRetentionRuns?: number;
 }): ConsultSections {
-  const recentActivity = input.recentRuns
+  const recentActivity: ConsultSectionItem[] = input.recentRuns
     .slice(0, 8)
-    .map((r) => `${r.status}: ${r.displayName || r.task}`);
+    .map((r) => ({
+      text: `${r.status}: ${r.displayName || r.task}`,
+      ref: { kind: "run", id: r.runId } as ConsultRef,
+    }));
 
-  const ledgerIntents = input.ledger.intents.map((e) => e.title);
-  const openTasks = input.roadmapTasks
+  const ledgerIntents: ConsultSectionItem[] = input.ledger.intents.map((e) => ({
+    text: e.title,
+    ref: runRef(e.sourceRunId),
+  }));
+  const openTasks: ConsultSectionItem[] = input.roadmapTasks
     .filter((t) => OPEN_TASK_STATUSES.has(t.status))
-    .map((t) => t.title);
+    .map((t) => ({ text: t.title, ref: { kind: "task", id: t.id } as ConsultRef }));
   const openIntents = dedupe([...ledgerIntents, ...openTasks]);
 
-  const mentionedNeverWorked = dedupe(input.ledger.mentions.map((e) => e.title));
+  const mentionedNeverWorked = dedupe(
+    input.ledger.mentions.map((e) => ({ text: e.title, ref: runRef(e.sourceRunId) })),
+  );
 
   // Next steps: concrete open follow-ups first (a shipped slice left them), then
   // open intents. Both are already newest-first from the ledger fold.
-  const residuals = input.ledger.residuals.map((e) => e.title);
+  const residuals: ConsultSectionItem[] = input.ledger.residuals.map((e) => ({
+    text: e.title,
+    ref: runRef(e.sourceRunId),
+  }));
   const suggestedNextSteps = dedupe([...residuals, ...openIntents]).slice(0, 8);
 
   const housekeeping = input.snapshots
@@ -121,15 +152,15 @@ export function computeConsultSections(input: {
  *  the CLI/UI). Only non-empty sections appear. */
 export function renderConsultSections(s: ConsultSections): string {
   const blocks: string[] = [];
-  const add = (heading: string, items: string[]) => {
+  const add = (heading: string, items: ConsultSectionItem[]) => {
     if (items.length === 0) return;
-    blocks.push(`### ${heading}\n${items.map((i) => `- ${i}`).join("\n")}`);
+    blocks.push(`### ${heading}\n${items.map((i) => `- ${i.text}`).join("\n")}`);
   };
   add("Recent activity", s.recentActivity);
   add("Open intents", s.openIntents);
   add("Mentioned but never worked on", s.mentionedNeverWorked);
   add("Suggested next steps", s.suggestedNextSteps);
-  add("Housekeeping", s.housekeeping);
+  add("Housekeeping", s.housekeeping.map((text) => ({ text })));
   return blocks.join("\n\n");
 }
 

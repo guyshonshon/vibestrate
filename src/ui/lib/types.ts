@@ -363,13 +363,20 @@ export type ConsultAnswer = {
 };
 
 /** Deterministic, code-computed consult sections (T10). */
+/** What a computed consult item links to (run -> run detail, task -> board). */
+export type ConsultRef =
+  | { kind: "run"; id: string }
+  | { kind: "task"; id: string };
+/** A computed item: human text + an optional reference to open. */
+export type ConsultSectionItem = { text: string; ref?: ConsultRef };
+
 export type ConsultSections = {
-  recentActivity: string[];
-  openIntents: string[];
-  mentionedNeverWorked: string[];
-  suggestedNextSteps: string[];
+  recentActivity: ConsultSectionItem[];
+  openIntents: ConsultSectionItem[];
+  mentionedNeverWorked: ConsultSectionItem[];
+  suggestedNextSteps: ConsultSectionItem[];
   /** Maintenance tips (e.g. rewind-snapshot growth). Surfaced, never auto-applied.
-   *  Optional: older consult responses predate it. */
+   *  Plain text (no ref). Optional: older consult responses predate it. */
   housekeeping?: string[];
 };
 

@@ -222,8 +222,17 @@ export async function assembleConsultContext(
       decisions: [],
       flags: [],
     },
-    roadmapTasks: roadmapTasks.map((t) => ({ title: t.title, status: t.status })),
-    recentRuns: meta?.recentRuns ?? [],
+    roadmapTasks: roadmapTasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+    })),
+    recentRuns: (meta?.recentRuns ?? []).map((r) => ({
+      runId: r.runId,
+      displayName: r.displayName,
+      task: r.task,
+      status: r.status,
+    })),
     snapshots,
     snapshotRetentionRuns: loaded?.config.git.snapshotRetentionRuns ?? 0,
   });

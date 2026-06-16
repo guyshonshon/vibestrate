@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.106
+
+- **Consult answers are now referenceable.** The computed "Project state" items
+  (recent activity, open intents, mentioned-never-worked, suggested next steps)
+  are clickable - each links to the run or roadmap card it came from, instead of
+  being a dead, truncated string. Full titles (no more lossy "Create a file …"),
+  and higher-contrast, linked text. The model prompt is unchanged (it still gets
+  the same plain-text rendering); only the structured output the UI renders gained
+  the references.
+
 ## 0.7.105
 
 - **A roadmap card now actually grounds its run.** When a run is bound to a card
