@@ -122,6 +122,7 @@ import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js"
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
 import { RoadmapService } from "../roadmap/roadmap-service.js";
+import { renderTaskGrounding } from "../roadmap/task-grounding.js";
 import { materializeContextSources } from "./context-sources.js";
 import type { ContextSource } from "./context-source-schema.js";
 import {
@@ -2820,12 +2821,21 @@ export class Orchestrator {
     // instant-task case, identical to today.
     const roadmap = new RoadmapService(this.projectRoot);
     let checklistItems: { id: string; text: string }[] = [];
-    if (input.snapshot.checklistSegment && this.taskId && this.checklistMode) {
+    // F1: ground the brief in the bound card's own context (description + open
+    // checklist) for ANY `--task` run, not just the pickup band - otherwise the
+    // planner sees only the task string and guesses. The per-item checklist
+    // ITERATION still gates on the pickup flow + --checklist-mode (below);
+    // grounding is unconditional when a card is bound. Redacted + bounded.
+    let cardGrounding = "";
+    if (this.taskId) {
       const task = await roadmap.getTask(this.taskId);
       if (task) {
-        checklistItems = task.checklist
-          .filter((c) => c.status !== "done")
-          .map((c) => ({ id: c.id, text: c.text }));
+        cardGrounding = redactSecretsInText(renderTaskGrounding(task)).redacted;
+        if (input.snapshot.checklistSegment && this.checklistMode) {
+          checklistItems = task.checklist
+            .filter((c) => c.status !== "done")
+            .map((c) => ({ id: c.id, text: c.text }));
+        }
       }
     }
     // Hoisted above the try so the finalize block (final report) and the catch
@@ -2839,6 +2849,7 @@ export class Orchestrator {
       `Task: ${this.task}`,
       "",
       input.snapshot.brief ? input.snapshot.brief : "_No extra Flow brief._",
+      cardGrounding ? `\n${cardGrounding}` : "",
       checklistItems.length
         ? "\n## Checklist (work these in order, one per item band)\n" +
           checklistItems.map((c, i) => `${i + 1}. ${c.text}`).join("\n")

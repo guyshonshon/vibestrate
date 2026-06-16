@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.105
+
+- **A roadmap card now actually grounds its run.** When a run is bound to a card
+  (`vibe run --task <id>` / picking a card), the card's description and open
+  checklist are injected into the planner's task brief - not just on the `pickup`
+  flow, but on every flow. Before, only the bare task string reached the planner
+  and the card's intent was dropped, so it guessed. Bounded + secret-redacted; a
+  title-only card adds nothing rather than fabricating grounding.
+
 ## 0.7.104
 
 - **Param env-var collisions now fail loud.** If a flow declares two params that
