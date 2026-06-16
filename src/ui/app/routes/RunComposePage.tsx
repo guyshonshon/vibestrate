@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowRight,
   Check,
+  ChevronRight,
   Copy,
   Gauge,
   LayoutGrid,
@@ -363,6 +364,20 @@ export function RunComposePage() {
                   </div>
                 )}
               </div>
+              {selectedFlow ? (
+                <details className="slab-flat group mt-2">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2.5 text-[11.5px] text-fog-300 transition hover:text-fog-100 [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="h-3 w-3 shrink-0 text-fog-500 transition-transform group-open:rotate-90" strokeWidth={1.8} />
+                    <span className="font-medium">Steps &amp; seats</span>
+                    <span className="font-mono text-[10px] text-fog-500">
+                      {selectedFlow.definition.label} · {(selectedFlow.definition.steps ?? []).length} steps
+                    </span>
+                  </summary>
+                  <div className="border-t border-[color:var(--line-soft)]">
+                    <FlowSteps flow={selectedFlow} />
+                  </div>
+                </details>
+              ) : null}
             </section>
 
             {/* Flow inputs - the selected flow's declared params. Required ones
@@ -487,6 +502,32 @@ export function RunComposePage() {
                 <ConfigRow label="Run mode">
                   <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
                   <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />
+                  <div className="w-full pt-1 text-[11px] leading-[1.5] text-fog-400">
+                    {readOnly || unattended ? (
+                      <ul className="space-y-1">
+                        {readOnly ? (
+                          <li className="flex items-start gap-1.5">
+                            <Lock className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.8} />
+                            <span>
+                              <span className="text-fog-200">Read-only is enforced.</span> It overrides the crew&apos;s write and execute permissions: every role runs read-only (plans and proposes, never writes), the write / validate / verify steps are skipped, and apply, validate, and revert are refused.
+                            </span>
+                          </li>
+                        ) : null}
+                        {unattended ? (
+                          <li className="flex items-start gap-1.5">
+                            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-violet-soft" aria-hidden />
+                            <span>
+                              <span className="text-fog-200">Unattended.</span> The run never pauses for a human: approval gates auto-resolve after a timeout and a budget or resilience limit ends the run instead of waiting.
+                            </span>
+                          </li>
+                        ) : null}
+                      </ul>
+                    ) : (
+                      <span className="text-fog-500">
+                        Default: agents can write inside the run&apos;s worktree and the run pauses for you at approval gates. Nothing is ever pushed or merged.
+                      </span>
+                    )}
+                  </div>
                 </ConfigRow>
                 <ConfigRow label="Tuning">
                   <Toggle on={concise} onClick={() => setConcise((x) => !x)} label="Concise" />
@@ -550,7 +591,7 @@ export function RunComposePage() {
 
           {/* ── Right rail: working context + utilities ──────────────────── */}
           <aside className="flex flex-col gap-4 lg:col-span-4 lg:sticky lg:top-6 lg:self-start">
-            <FlowDetail flow={selectedFlow} />
+            <FlowSummary flow={selectedFlow} />
 
             {/* Ask the supervisor - inline, no navigation away */}
             <RailCard title="Ask the supervisor" icon={<MessagesSquare className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.8} />}>
@@ -663,41 +704,53 @@ export function RunComposePage() {
   );
 }
 
-function FlowDetail({ flow }: { flow: DiscoveredFlow | null }) {
+// Right-rail summary: just enough to recognize the pinned flow. The full
+// step/seat breakdown lives in the "Steps & seats" disclosure under the Flow
+// picker (so the narrow rail doesn't carry a cramped wall of steps).
+function FlowSummary({ flow }: { flow: DiscoveredFlow | null }) {
   if (!flow) {
     return (
-      <div className="slab-flat p-4">
-        <div className="text-[12.5px] text-fog-400">
-          Pick a flow to preview its steps - or leave it unpinned and the
-          orchestrator chooses for the task.
-        </div>
+      <div className="slab-flat p-4 text-[12.5px] text-fog-400">
+        Pick a flow to preview its steps - or leave it unpinned and the
+        orchestrator chooses for the task.
       </div>
     );
   }
   const steps = flow.definition.steps ?? [];
   const seats = Object.keys(flow.definition.seats ?? {});
   return (
-    <div className="brand-callout overflow-hidden">
-      <div className="border-b border-[color:var(--line)] px-4 py-2.5">
-        <div className="font-display text-[14px] font-medium text-fog-100">{flow.definition.label}</div>
-        <div className="mt-0.5 font-mono text-[10.5px] text-fog-400">
-          {flow.id} · {steps.length} steps · {seats.length} seats
-        </div>
+    <div className="brand-callout p-3">
+      <div className="font-display text-[14px] font-medium text-fog-100">{flow.definition.label}</div>
+      <div className="mt-0.5 font-mono text-[10.5px] text-fog-400">
+        {flow.id} · {steps.length} steps · {seats.length} seats
       </div>
-      <div className="p-3">
-        {flow.definition.description ? (
-          <p className="mb-2.5 px-1 text-[11.5px] leading-[1.5] text-fog-300">{flow.definition.description}</p>
-        ) : null}
-        <ol className="flex flex-col gap-1">
-          {steps.map((s) => (
-            <li key={s.id} className="flex items-center gap-2.5 px-1.5 py-1">
-              <StepKindDot kind={s.kind} />
-              <span className="flex-1 truncate text-[12px] text-fog-200">{s.label}</span>
-              <span className="font-mono text-[10px] text-fog-500">{s.seat || s.kind}</span>
-            </li>
-          ))}
-        </ol>
+      {flow.definition.description ? (
+        <p className="mt-2 line-clamp-2 text-[11.5px] leading-[1.5] text-fog-300">{flow.definition.description}</p>
+      ) : null}
+      <div className="mt-2">
+        <StepPips steps={steps} active />
       </div>
+    </div>
+  );
+}
+
+// The full step/seat breakdown, rendered inside the Flow disclosure.
+function FlowSteps({ flow }: { flow: DiscoveredFlow }) {
+  const steps = flow.definition.steps ?? [];
+  return (
+    <div className="p-3">
+      {flow.definition.description ? (
+        <p className="mb-2.5 px-1 text-[11.5px] leading-[1.5] text-fog-300">{flow.definition.description}</p>
+      ) : null}
+      <ol className="flex flex-col gap-1">
+        {steps.map((s) => (
+          <li key={s.id} className="flex items-center gap-2.5 px-1.5 py-1">
+            <StepKindDot kind={s.kind} />
+            <span className="flex-1 truncate text-[12px] text-fog-200">{s.label}</span>
+            <span className="font-mono text-[10px] text-fog-500">{s.seat || s.kind}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

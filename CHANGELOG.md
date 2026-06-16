@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.118
+
+- **Effort is gone - it was never real.** The run/task-level "effort" dial
+  (the compose control, `vibe run --effort`, `vibe tasks add --effort`, the
+  roadmap-task field) was recorded and displayed but never reached a provider:
+  agents always ran at their Profile's `power`. So it's removed end-to-end.
+  Effort lives where it actually works - on a [Profile](/docs/concepts/profile),
+  picked per crew role.
+- **Run mode now explains itself.** Toggling Read-only or Unattended on the
+  compose page shows what it actually does: Read-only is *enforced* and
+  overrides the crew's write/execute permissions (every role plans only;
+  apply, validate, and revert are refused), and Unattended means the run never
+  pauses for you (gates auto-resolve, budget limits end it).
+- **Flow detail, decluttered.** The pinned flow shows a compact summary in the
+  right rail; the full step/seat breakdown moved into a "Steps & seats"
+  disclosure under the flow picker, so the rail stays scannable.
+- **Less glow.** Removed leftover decorative glow (the hover orb on run cards,
+  the brand-mark halo, gradient accent lines) so surfaces stay flat and solid.
+
 ## 0.7.117
 
 - **The whole dashboard is one surface now.** Finished the drift off

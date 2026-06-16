@@ -7,7 +7,7 @@
 export function Brand() {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="relative h-7 w-7 overflow-hidden rounded-lg ring-1 ring-violet-soft/40 shadow-[0_4px_18px_-4px_rgba(139,124,255,0.6)]">
+      <span className="relative h-7 w-7 overflow-hidden rounded-lg ring-1 ring-violet-soft/40">
         <img
           src="./logo-icon.png"
           alt=""

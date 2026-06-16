@@ -51,12 +51,6 @@ Override the AI provider for just this run:
 vibe run "..." --provider claude
 ```
 
-Or set how hard it should try, using the effort bucket:
-
-```bash
-vibe run "..." --effort high
-```
-
 ## 3. Watch, or walk away
 
 Vibestrate runs through plan → architect → execute → validate → review → fix → verify on its own. You can watch each phase in the terminal or the dashboard, or close the terminal and check back later. The run keeps going as long as Vibestrate's process is alive.

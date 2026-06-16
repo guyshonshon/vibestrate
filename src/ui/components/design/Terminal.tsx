@@ -80,7 +80,7 @@ export function MiniTerminal({
   const buf = useStream(lines, 1100, 6, paused);
   return (
     <div className="relative rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2.5 overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-soft/40 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
       <div className="space-y-[3px]">
         {buf.length === 0 ? (
           <div className="mono text-[11px] text-fog-500">
@@ -116,7 +116,7 @@ export function LiveTerminal({
   }, [buf.length]);
   return (
     <div className="relative flex flex-col rounded-xl border border-white/[0.08] bg-black/55 overflow-hidden min-h-0 h-full">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-soft/40 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-violet-soft/25" />
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-black/30">
         <div className="flex items-center gap-2">
           <span className="flex gap-1.5">

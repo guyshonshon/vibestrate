@@ -201,9 +201,6 @@ function RunCard({
       )}
       style={{ animationDelay: `${delayIdx * 80}ms` }}
     >
-      <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="absolute -top-32 -left-20 w-72 h-72 rounded-full bg-violet-soft/[0.08] blur-3xl" />
-      </div>
       <div className="relative p-4 space-y-3.5">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">

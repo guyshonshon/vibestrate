@@ -68,18 +68,7 @@ agents:
     provider: claude
 ```
 
-Or pick by how much horsepower a task needs. The buckets `low | medium | high` map to providers in `project.yml#effortMap`, so a quick job goes to a cheap model and a hard one goes to your best:
-
-```yaml
-effortMap:
-  low: ollama
-  medium: codex
-  high: claude
-```
-
-```bash
-vibe run "..." --effort high
-```
+To pick by how much horsepower a task needs, give your crew roles different [Profiles](/docs/concepts/profile) - a Profile pins the provider, model, and effort, so a quick role can run on a cheap model and a hard one on your best.
 
 ## Models over the internet or on your own machine
 
