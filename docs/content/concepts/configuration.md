@@ -7,11 +7,46 @@ slug: concepts/configuration
 
 Almost everything you can tune about Vibestrate lives in one place: the `.vibestrate/` folder at the root of your project, created by `vibe init`.
 
-Think of it like the settings folder for an app, except it sits inside your project and you can commit it. The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there. It's plain YAML, it's yours, and committing it means your whole team runs the same setup.
+The heart of it is a single file, `.vibestrate/project.yml` - your providers, profiles, crews, flows, policies, and validation commands all live there.
+
+<div class="docs-callout">
+
+**It is just a file in your project.** Plain YAML, sitting inside your repo, yours to commit. Think of it like the settings folder for an app, except it travels with the code. Commit it and your whole team runs the same setup.
+
+</div>
 
 You rarely need to open it by hand, though. Every setting has a place to view and edit it in both the dashboard and the CLI. That's a deliberate rule, not a coincidence (see [UI and CLI parity](#ui-and-cli-parity) below).
 
 ## What lives in `project.yml`
+
+The file is split into a handful of top-level sections. Each owns one slice of how a run behaves:
+
+<div class="docs-cards">
+
+**`providers`**
+The local CLIs (and HTTP models) Vibestrate can drive.
+
+**`profiles`**
+Reusable presets of a provider + model + effort.
+
+**`crews`**
+Your teams of AI workers (and the Roles inside them).
+
+**`commands`**
+The typecheck / test / build / lint commands Vibestrate trusts.
+
+**`policies`**
+Code-enforced rules that deny or pause specific actions.
+
+**`git`**
+Where worktrees live and how run branches are named.
+
+**`workflow`**
+Loop limits and other run-shaping knobs.
+
+</div>
+
+The table below is the full top-level map, with the concept page that explains each one:
 
 | Section | What it holds | Concept |
 |---|---|---|

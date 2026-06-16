@@ -9,6 +9,16 @@ A provider is the AI model you're using, wrapped so Vibestrate can talk to it. C
 
 Think of Vibestrate as the manager and the provider as the worker it hands tasks to. Vibestrate writes the prompt; the provider runs the model and hands back the response (and, for providers that edit files, the file changes too).
 
+<div class="docs-callout">
+
+**A provider just takes a prompt and returns a change.** That's the whole contract. Vibestrate compiles the prompt and routes the result; the provider runs the model and (for file-editing providers) hands back the edits. Everything model-specific stays on the provider's side of that line.
+
+</div>
+
+The built-in providers Vibestrate already knows how to drive:
+
+<div class="docs-chips"><span>claude</span><span>codex</span><span>ollama</span><span>opencode</span><span>aider</span></div>
+
 Providers are declared under `providers:` in `project.yml`. You declare each one either as a `cli` invocation (a command, its args, and how the prompt is fed in) or as a `claude-code` integration, which Vibestrate understands more deeply. Each provider advertises what it can do - reuse a session, report token usage, or hand back a session id - and Vibestrate drives them all through one uniform interface.
 
 > **Use `claude-code`, not `cli`, for Claude.** The deeper integration is what makes Vibestrate *permission-aware*: when a write-capable seat (`permissions: code_write`) runs on a `claude-code` provider, Vibestrate injects `--permission-mode acceptEdits` so the headless `claude -p` can actually apply its edits in the worktree. A seat's `code_write` only governs Vibestrate's own broker; the underlying CLI has its *own* permission gate, and a generic `cli` provider can't be granted through it (the flag is claude-specific). Read-only seats - and any read-only / strict-apply-only run - get no grant. Set your own `settings.permissionMode` to override the default.
@@ -22,6 +32,10 @@ A provider is the line between Vibestrate and "the model." Vibestrate stays prov
 This is what keeps the tool *local-first*, where local-first means **sovereignty, not zero-egress**: there's no Vibestrate-operated backend or relay, so you run an independent tool you fully control. Most providers are local CLIs that own their own auth and egress. You *may* also point a provider at a model API with your own key (see **Non-CLI providers** below). That's your sovereign choice and doesn't change the local-first guarantee, because nothing ever flows through a service *we* run.
 
 ## Built-in providers
+
+Every built-in provider lands in one of three states on your machine. The first two are detected installs; the third is just absent:
+
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>ready</b><span>preset-ready: installed and Vibestrate already knows the flags, so it works out of the box (this is claude)</span></div><div class="docs-outcome warn"><b>detected, needs setup</b><span>installed but Vibestrate won't guess the flags; run vibe provider setup once to pick them</span></div><div class="docs-outcome stop"><b>missing</b><span>the CLI isn't installed, so there's nothing to drive until you install it</span></div></div>
 
 The common case is `claude`, which works out of the box:
 
@@ -76,6 +90,8 @@ providers:
     model: qwen3.5
 ```
 
+The first block is a cloud API: `type: http-api`, an `api` family (`anthropic` or `openai`), a `baseUrl`, a `model`, and an `apiKey` given as an `env:` reference. The second is a local server: `type: localhost-proxy`, an `api` family (`ollama` or `openai`), a loopback `baseUrl`, and a `model` - no key needed.
+
 Rules the schema enforces:
 
 - **`http-api`** must be **https** and **not** a localhost host; its `apiKey` must be an `env:NAME` reference (a literal key in config is rejected). The key is resolved at call time, never written to YAML, never logged, and redacted from any error. The dashboard marks these providers **external**.
@@ -101,6 +117,8 @@ crews:
     roles:
       reviewer: { seats: [reviewer], profile: codex-balanced, prompt: .vibestrate/roles/reviewer.md, permissions: read_only }
 ```
+
+Read it bottom-up: the `reviewer` Role runs on the `codex-balanced` Profile, which names the `codex` Provider at `balanced` power; the `codex` Provider is the raw `codex exec` CLI. Roles never name a Provider directly - the Profile is the link.
 
 To run a whole run on a different Profile, or one Step on a stronger one:
 
@@ -133,6 +151,8 @@ http:
     models: [my-finetune]        # add a model suggestion to the openai api family
 ```
 
+In plain words: `mycli` gets two models (`turbo`, `eco`), its model is set with a `--model` flag, and its effort levels (`eco`, `turbo`) are applied as `--set reasoning=<level>`. The `gemini` entry sets `effort: null` to wipe a built-in knob, and the `http.openai` entry just adds a model suggestion to the existing `openai` API family.
+
 Rules: a knob still only exists where it maps to a real flag/field (no advisory dials); omit a field to keep the built-in value, set it to `null` to clear it. See the merged result and where each entry came from with:
 
 ```bash
@@ -157,9 +177,18 @@ It's **local only** - it runs each provider's own `--help` (no network, no API k
 
 ## Common mistakes
 
-- **Setting up the same provider twice.** If Claude Code is your `claude` id, don't create a `claude-pro` and `claude-haiku` row unless the flags differ. Use one provider and switch models inside the provider's own settings.
-- **Assuming session reuse where there isn't any.** Only `claude-code` reports its session id back; everything else is fresh-start per call.
-- **Putting a literal API key in `project.yml`.** Don't - and for `http-api` providers the schema refuses it. CLI providers authenticate through their own login flow; `http-api` providers take an `env:NAME` reference and read the key from the environment at run time.
+<div class="docs-cards">
+
+**Setting up the same provider twice.**
+If Claude Code is your `claude` id, don't create a `claude-pro` and `claude-haiku` row unless the flags differ. Use one provider and switch models inside the provider's own settings.
+
+**Assuming session reuse where there isn't any.**
+Only `claude-code` reports its session id back; everything else is fresh-start per call.
+
+**Putting a literal API key in `project.yml`.**
+Don't - and for `http-api` providers the schema refuses it. CLI providers authenticate through their own login flow; `http-api` providers take an `env:NAME` reference and read the key from the environment at run time.
+
+</div>
 
 ## Going deeper
 

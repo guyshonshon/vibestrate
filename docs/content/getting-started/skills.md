@@ -9,12 +9,20 @@ A **skill** is a short note, written in plain markdown, that gets added to an ag
 
 Think of it as the briefing you'd give a new contractor on their first day. Instead of repeating "we do it this way here" every single time, you write it down once and hand it over.
 
+<div class="docs-callout">
+
+**Write it once, every relevant agent reads it.** A skill is stable context that lives in your repo. Attach it to an agent and it lands in that agent's instructions before the run starts, so you stop re-typing the same rules into task after task.
+
+</div>
+
 ## Write one
 
 A skill is just a markdown file. Drop it in one of two folders:
 
 - `.vibestrate/skills/` - travels with your project, so anyone who clones the repo gets it too. Use this one by default.
 - `.claude/skills/` - picked up automatically if you already use Claude Code's skills locally.
+
+<div class="docs-chips"><span>.vibestrate/skills/</span><span>.claude/skills/</span></div>
 
 The file name (without the `.md`) becomes the skill's name, so `auth-conventions.md` is the skill `auth-conventions`. Inside, just write plain prose. Agents read it the same way a person would:
 
@@ -57,17 +65,15 @@ vibe skills show auth-conventions
 
 ## When a skill is worth it
 
-Write one when:
+<div class="docs-cards">
 
-- You keep typing the same context into task after task.
-- The agent keeps making the same wrong guess that you have to correct.
-- There's a rule that isn't written down anywhere else in the project.
+**Write one when**
+You keep typing the same context into task after task. The agent keeps making the same wrong guess that you have to correct. There's a rule that isn't written down anywhere else in the project.
 
-Skip it when:
+**Skip it when**
+It's already in CLAUDE.md or your README, since agents read those on their own as part of the project rules. It's a one-off, so just say it in the task description. It's about one file, where a comment in that file works better.
 
-- It's already in CLAUDE.md or your README. Agents read those on their own as part of the project rules.
-- It's a one-off. Just say it in the task description.
-- It's about one file. A comment in that file works better.
+</div>
 
 ## Going deeper
 

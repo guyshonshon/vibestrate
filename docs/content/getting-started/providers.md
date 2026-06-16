@@ -7,17 +7,23 @@ slug: getting-started/providers
 
 A *provider* is the AI tool that actually does the work. It can be a coding assistant already installed on your machine - Claude Code, Codex, Aider, Ollama, OpenCode - or a model Vibestrate reaches over the internet. Setting one up is two steps: tell Vibestrate it's there, then confirm it answers.
 
+<div class="docs-chips">
+<span>Claude Code</span><span>Codex</span><span>Aider</span><span>Ollama</span><span>OpenCode</span>
+</div>
+
 ## See what you have
 
 ```bash
 vibe provider detect
 ```
 
-This checks each tool Vibestrate knows about and reports where it stands:
+This checks each tool Vibestrate knows about and reports where it stands in one of three states:
 
-- **ready** - Vibestrate knows how to drive it and you can use it now.
-- **detected-needs-setup** - the tool is installed, but Vibestrate doesn't yet know the right flags to talk to it. Run `vibe provider setup`.
-- **missing** - it isn't installed.
+<div class="docs-outcomes">
+<div class="docs-outcome ok"><b>ready</b><span>Vibestrate knows how to drive it and you can use it now.</span></div>
+<div class="docs-outcome warn"><b>detected-needs-setup</b><span>The tool is installed, but Vibestrate doesn't yet know the right flags to talk to it. Run vibe provider setup.</span></div>
+<div class="docs-outcome stop"><b>missing</b><span>It isn't installed.</span></div>
+</div>
 
 ## Set it up and test it
 
@@ -81,6 +87,12 @@ Not every provider is an installed tool. Vibestrate can also reach a model direc
 
 - **`http-api`** - a hosted service like Anthropic or OpenAI. It uses a secure (`https`) connection only, and your API key stays in an environment variable (`env:NAME`), a named slot in your shell. The literal key never lands in `project.yml`, logs, the dashboard, or any saved file.
 - **`localhost-proxy`** - a model running on your own machine (Ollama, LM Studio, vLLM). The address must be `localhost`, so nothing leaves your computer and no key is needed.
+
+<div class="docs-callout">
+
+**Your keys live where they always did.** For an installed tool, Vibestrate uses the login that tool already holds (Claude Code, Codex, and the rest keep their own credentials). For an `http-api` provider, the key sits in your shell environment and `project.yml` only stores the `env:NAME` reference. Either way, Vibestrate never copies the secret into its own files.
+
+</div>
 
 ```yaml
 providers:

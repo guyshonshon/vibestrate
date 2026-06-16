@@ -11,7 +11,11 @@ Think of a single doorway with a guard. Every time a run wants to do something r
 
 In Vibestrate that doorway is the **Action Broker**. Every side-effecting operation a run performs - spawning a provider, running a validation command, applying or reverting a patch, writing a config file, opening a terminal, completing a run - crosses it.
 
-For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Decisions are **fail-closed**: anything short of an explicit `allow` refuses the effect.
+<div class="docs-callout warn">
+
+**One guarded doorway, fail-closed.** Every side-effecting operation crosses the single Action Broker. For each request the broker decides against an ordered chain of evaluators (first `deny` wins, otherwise the first `require_approval`, otherwise `allow`) and records the decision plus post-execution evidence as one line in `.vibestrate/runs/<runId>/actions.ndjson`. Decisions are **fail-closed**: anything short of an explicit `allow` refuses the effect. There is no back door.
+
+</div>
 
 **Policies** are how you supply those evaluators - the rules that block or pause specific actions.
 
@@ -19,8 +23,15 @@ For each request the broker decides against an ordered chain of evaluators (firs
 
 Policy files live in `.vibestrate/policies/*.yml`. A file may carry two lists:
 
-- **`rules:`** - gate *patch content* at apply time (suggestion / bundle apply): match added lines by regex or touched files by glob, and refuse the apply.
-- **`actions:`** - gate *broker effect kinds*: match a request and return `deny` or `require_approval`.
+<div class="docs-cards">
+
+**`rules:`**
+Gate *patch content* at apply time (suggestion / bundle apply): match added lines by regex or touched files by glob, and refuse the apply.
+
+**`actions:`**
+Gate *broker effect kinds*: match a request and return `deny` or `require_approval`.
+
+</div>
 
 ```yaml
 # .vibestrate/policies/safety.yml
@@ -47,6 +58,8 @@ actions:
     message: Writing secret files is blocked.
 ```
 
+In plain words: the first action `deny`s any `npm install` / `pip install` command run during the validation step. The second holds a run at `require_approval` so a human signs off before it becomes `merge_ready`. The third `deny`s any write or patch to a `.env` file.
+
 ### Action match fields
 
 | Field | Applies to | Meaning |
@@ -60,9 +73,18 @@ An action with no `match` applies to **every** request of the listed `on:` kinds
 
 ## Why it matters
 
-- **One path.** Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary.
-- **Evidence, not vibes.** The `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from. Decisions and outcomes are recorded, including refused attempts.
-- **Fail-closed.** A denied effect stops. A malformed policy *file* is skipped (it can't wedge every run), but a matching `deny` is always honored.
+<div class="docs-cards">
+
+**One path.**
+Because every effect is constructed through the same broker, the same policy set reaches every effect site - there is no surface that quietly skips the boundary.
+
+**Evidence, not vibes.**
+The `actions.ndjson` log is the audit trail the Run Assurance artifact and replay read from. Decisions and outcomes are recorded, including refused attempts.
+
+**Fail-closed.**
+A denied effect stops. A malformed policy *file* is skipped (it can't wedge every run), but a matching `deny` is always honored.
+
+</div>
 
 See what's loaded with `vibe policies list` / `vibe policies doctor`, the `GET /api/policies` endpoint, or the Policies panel in the dashboard.
 
@@ -79,13 +101,7 @@ The `policies.*` toggles - strict apply-only, harden read-only seats, interactiv
 
 When a run reaches a terminal state, Vibestrate derives a single honest verdict from the evidence above - the broker log plus the run's review and verification decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:
 
-| Verdict | Meaning |
-| --- | --- |
-| `verified` | Every applicable check passed - **or nothing needed checking** (see below). |
-| `partially_verified` | A check that *was* expected is missing, failed, or weak (see `caps`). |
-| `unverified` | The run reached merge_ready with no meaningful evidence. |
-| `blocked` | The run did not reach merge_ready. |
-| `unsafe` | A policy denied an action, or a rollback failed - don't trust the worktree. |
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>verified</b><span>Every applicable check passed - or nothing needed checking (see below).</span></div><div class="docs-outcome warn"><b>partially_verified</b><span>A check that was expected is missing, failed, or weak (see caps).</span></div><div class="docs-outcome warn"><b>unverified</b><span>The run reached merge_ready with no meaningful evidence.</span></div><div class="docs-outcome stop"><b>blocked</b><span>The run did not reach merge_ready.</span></div><div class="docs-outcome stop"><b>unsafe</b><span>A policy denied an action, or a rollback failed - don't trust the worktree.</span></div></div>
 
 There is **no confidence score** - a verdict is a level capped by what's missing, not a guess at truth. Read it with `vibe assurance <runId>`, `GET /api/runs/:runId/assurance`, or the badge on the run detail page.
 
@@ -93,10 +109,7 @@ There is **no confidence score** - a verdict is a level capped by what's missing
 
 The artifact also records the run's **isolation posture** - how confined the agents actually were, derived from per-turn provider evidence (not config):
 
-- `sandboxed` - a real OS sandbox ran (codex).
-- `hardened` - claude `--permission-mode plan`.
-- `partial` - a sandbox was requested for a turn that ran unconfined.
-- `none` - the default: worktree + diff gate only.
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>sandboxed</b><span>A real OS sandbox ran (codex).</span></div><div class="docs-outcome ok"><b>hardened</b><span>claude --permission-mode plan.</span></div><div class="docs-outcome warn"><b>partial</b><span>A sandbox was requested for a turn that ran unconfined.</span></div><div class="docs-outcome stop"><b>none</b><span>The default: worktree + diff gate only.</span></div></div>
 
 It is **informational and never changes the verdict** ("none" is the intended baseline, not a gap), and it's shown only when the run was actually confined. This is what lets you confirm, after the fact, that an opted-in `execution.isolation` / `hardenReadOnlySeats` run really got the confinement you asked for.
 
@@ -118,6 +131,8 @@ If a run used a **best-effort step** (a `continueOnError` reviewer, say) and tha
 
 Three gates sit on the path between an agent and your files, each independently honored:
 
+<div class="docs-flow"><div><b>Post-turn diff gate</b><span>Every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and file.patch policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.</span></div><div><b>Strict apply-only mode</b><span>policies.strictApplyOnly: write roles run read-only and propose a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.</span></div><div><b>Provider-native OS sandbox</b><span>execution.isolation, off by default: an optional fourth layer adding OS prevention on top of the diff gate's detection.</span></div><div><b>Run assurance</b><span>The terminal verdict above summarizes what actually happened, from the evidence log.</span></div></div>
+
 - **Post-turn diff gate** - every write-capable turn is snapshotted before it runs. Afterward its diff is checked against secret/path safety and `file.patch` policies. A denied or unsafe diff is rolled back to the snapshot and the run is blocked.
 - **Strict apply-only mode** (`policies.strictApplyOnly`) - for the highest assurance, write roles run read-only and instead *propose* a unified diff that Vibestrate applies through the broker gateway. Nothing reaches disk without crossing the gate; a refused patch blocks the run.
 - **Provider-native OS sandbox** (`execution.isolation`, **off by default**) - an optional fourth layer that adds OS *prevention* on top of the diff gate's *detection*. The gates above bound your machine structurally already (worktree + diff gate + human-reviews-the-diff-before-merge), which is why a sandbox is opt-in, not a tax on every run - turn it on for an untrusted task or an unattended run. With `execution.isolation: sandboxed`, each turn is asked to run under the provider's own OS sandbox, scaled to the seat: a write-capable seat gets writes confined to the worktree, a read-only seat gets read-only. **Today this is real only for codex** (`codex exec --sandbox`, Apple Seatbelt / Linux Landlock - a write outside the worktree is refused by the OS). A provider with no OS sandbox flag (e.g. claude) **warns once and runs unsandboxed** rather than pretending - the worktree + diff gate still apply, and the run records only the sandbox that was actually enforced. Set it with `vibe config set execution.isolation sandboxed` or the dashboard config editor.
@@ -134,9 +149,18 @@ Checked before every agent turn. When one is hit the run **stops (blocked)**, lo
 
 The **dollar** cap (`budget.spendCapDailyUsd`) has a configurable action when it's hit (`budget.capAction`):
 
-- `stop` (default).
-- `downgrade-model` - run the rest on the cheaper `budget.fallbackProfile` instead of stopping.
-- `reduce-effort` - continue at the provider's minimum effort.
+<div class="docs-cards">
+
+**`stop`**
+Default. The run ends when the cap is hit.
+
+**`downgrade-model`**
+Run the rest on the cheaper `budget.fallbackProfile` instead of stopping.
+
+**`reduce-effort`**
+Continue at the provider's minimum effort.
+
+</div>
 
 Downgrade/reduce keep the work going more cheaply; the count/time ceilings above are still the ultimate stop.
 
@@ -151,3 +175,5 @@ If retries run out, a **fallback** kicks in: the turn runs once on another Profi
 A **subscription usage limit** (a per-model quota that resets, often hours out) is handled separately from a per-minute rate limit - retrying it for seconds is pointless (Claude Code's "being rate limited... switch over?" prompt is detected as this class). `resilience.usageLimit.action` controls it: `wait` sleeps for the reset window (the parsed hint, capped at `maxWaitMin`) then retries - so an overnight run "runs until the window refills"; `fallback` switches to another model; `stop` (default) ends honestly - after trying the auto-derived fallback first, since switching providers is instant ("stop" opts out of waiting hours, not of using a model the run already trusts). Recorded as `provider.usage_limit`.
 
 When a provider failure does end the run, it ends **loudly with its cause**: the classified failure and a redacted excerpt of the provider's actual error ("usage-limit: This model is being rate limited...") travel into the step's error, the event log (`provider.retries_exhausted`), the Supervisor feed, and the Run Assurance verdict - not a bare "provider exited 1".
+</content>
+</invoke>

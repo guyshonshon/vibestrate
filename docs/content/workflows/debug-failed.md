@@ -7,7 +7,13 @@ slug: workflows/debug-failed
 
 When a task doesn't finish cleanly, this guide helps you find out why and decide what to do about it.
 
-A run can stop short for two different reasons. `failed` means something broke during a stage and couldn't recover. `blocked` means the reviewer or verifier looked at the work and said "do not continue." They feel similar, but they call for different responses, so the first job is to tell them apart.
+A run can stop short for two different reasons. They feel similar, but they call for different responses, so the first job is to tell them apart.
+
+<div class="docs-callout">
+
+**`failed` is a crash. `blocked` is a decision.** `failed` means something broke during a stage and couldn't recover. `blocked` means the reviewer or verifier looked at the work and said "do not continue." One needs a fix; the other needs a call from you.
+
+</div>
 
 ## Start with `replay`
 
@@ -29,10 +35,21 @@ A `failed` status means a stage raised an error it couldn't recover from. Three 
 
 Common causes:
 
-- **Provider not authenticated.** The provider is the service running the AI model. Run `vibe provider test <id>` to confirm it's connected.
-- **Validation command missing.** Check `commands.validate` in `project.yml`.
-- **Worktree creation failed.** A worktree is the isolated copy of your code the run works in. One common case: `requireCleanMain: true` is set and main has uncommitted changes.
-- **Skill referenced doesn't exist.** A skill is a reusable instruction the agent can pull in. Check `vibe skills list`.
+<div class="docs-cards">
+
+**Provider not authenticated**
+The provider is the service running the AI model. Run `vibe provider test <id>` to confirm it's connected.
+
+**Validation command missing**
+Check `commands.validate` in `project.yml`.
+
+**Worktree creation failed**
+A worktree is the isolated copy of your code the run works in. One common case: `requireCleanMain: true` is set and main has uncommitted changes.
+
+**Skill referenced doesn't exist**
+A skill is a reusable instruction the agent can pull in. Check `vibe skills list`.
+
+</div>
 
 ## If status is `blocked`
 
@@ -43,10 +60,21 @@ Common causes:
 
 Then act on what you find. The right answer is rarely "rerun and hope." Usually it's one of these:
 
-- Edit the task description to be more specific.
-- Add a skill that encodes the rule you didn't realize the agent didn't know.
-- Adjust a permission profile if the agent was reaching for something it shouldn't.
-- Drop the scope - split the work into two smaller tasks.
+<div class="docs-cards">
+
+**Sharpen the task**
+Edit the task description to be more specific.
+
+**Teach a rule**
+Add a skill that encodes the rule you didn't realize the agent didn't know.
+
+**Tighten permissions**
+Adjust a permission profile if the agent was reaching for something it shouldn't.
+
+**Drop the scope**
+Split the work into two smaller tasks.
+
+</div>
 
 ## Re-run after fixing
 
