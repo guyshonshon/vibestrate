@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowRight,
   Check,
+  Copy,
   Gauge,
   LayoutGrid,
   Layers,
@@ -10,6 +11,7 @@ import {
   MessagesSquare,
   Play,
   Sparkles,
+  Terminal,
   Users,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
@@ -128,7 +130,18 @@ export function RunComposePage() {
     setAskBusy(true);
     setAskErr(null);
     try {
-      const r = await api.consult({ question: q });
+      // Make the supervisor aware of WHERE it's standing: the compose surface and
+      // its controls, plus the current selections - so it can answer questions
+      // about this page (e.g. "what does tuning do") instead of only the project.
+      const surface = [
+        "Surface context (where I'm asking from): the Vibestrate dashboard's 'New run' (compose) page, where a run is configured before it starts.",
+        "Its controls: a Task brief; Flow selection; Crew selection; and a Configuration panel with Effort (low/medium/high reasoning depth), Run mode (Read-only, Unattended), Tuning (Concise = ask agents to keep output short; Auto-pick flow = let the orchestrator choose the flow when none is pinned), and a Supervisor persona.",
+        selectedFlow
+          ? `Currently pinned flow: ${selectedFlow.definition.label} (${selectedFlow.id}).`
+          : "No flow pinned (the orchestrator would pick).",
+        `Crew: ${crewId ?? "default"}. Effort: ${effort ?? "auto"}. Supervisor: ${personaId ?? "default"}.`,
+      ].join(" ");
+      const r = await api.consult({ question: `${surface}\n\nMy question: ${q}` });
       setAskResult(r);
     } catch (err) {
       setAskErr(err instanceof Error ? err.message : String(err));
@@ -140,6 +153,31 @@ export function RunComposePage() {
   const canStart = brief.trim().length > 0 && !busy;
   const recent = meta?.recentRuns ?? [];
   const counts = meta?.counts;
+
+  // Live CLI/TUI mirror of the current composition (CLI = TUI = UI). Shows the
+  // exact `vibe run` that this page would invoke; copyable.
+  const runCmd = useMemo(() => {
+    const parts = ["vibe run", JSON.stringify(brief.trim() || "your task")];
+    if (flowId) parts.push(`--flow ${flowId}`);
+    if (crewId && crewId !== meta?.defaultCrew) parts.push(`--crew ${crewId}`);
+    if (effort) parts.push(`--effort ${effort}`);
+    if (readOnly) parts.push("--read-only");
+    if (unattended) parts.push("--unattended");
+    if (concise) parts.push("--concise");
+    if (forceSelect) parts.push("--select");
+    if (personaId) parts.push(`--supervisor ${personaId}`);
+    return parts.join(" ");
+  }, [brief, flowId, crewId, effort, readOnly, unattended, concise, forceSelect, personaId, meta?.defaultCrew]);
+  const [cmdCopied, setCmdCopied] = useState(false);
+  async function copyCmd() {
+    try {
+      await navigator.clipboard.writeText(runCmd);
+      setCmdCopied(true);
+      window.setTimeout(() => setCmdCopied(false), 1200);
+    } catch {
+      // clipboard unavailable
+    }
+  }
 
   return (
     <div data-scene className="grain scene-ground min-h-full">
@@ -155,10 +193,24 @@ export function RunComposePage() {
               then stops before anything ships.
             </p>
           </div>
-          <span className="hidden whitespace-nowrap font-mono text-[11px] text-fog-500 sm:block">
-            vibe&nbsp;run
-          </span>
         </header>
+
+        {/* Live command mirror (CLI = TUI = UI): the exact `vibe run` this page
+            would invoke, reflecting every selection - copyable. */}
+        <button
+          type="button"
+          onClick={copyCmd}
+          title="Copy - run this from the terminal or `vibe shell`"
+          className="group mt-3 flex w-full items-center gap-2 border border-[color:var(--line)] bg-ink-0 px-3 py-2 text-left transition hover:border-violet-soft/30"
+        >
+          <Terminal className="h-3.5 w-3.5 shrink-0 text-violet-soft" strokeWidth={1.8} />
+          <span className="text-fog-600 select-none">$</span>
+          <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-fog-200">{runCmd}</code>
+          <span className="flex shrink-0 items-center gap-1 text-[10.5px] text-fog-500 group-hover:text-fog-300">
+            {cmdCopied ? <Check className="h-3 w-3" strokeWidth={1.8} /> : <Copy className="h-3 w-3" strokeWidth={1.8} />}
+            {cmdCopied ? "copied" : "copy"}
+          </span>
+        </button>
 
         <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* ── Composition ──────────────────────────────────────────────── */}
@@ -395,13 +447,43 @@ export function RunComposePage() {
                 </div>
                 {askErr ? <p className="mt-2 text-[11px] text-fail">{askErr}</p> : null}
                 {askResult ? (
-                  <div className="mt-2 border-t border-[color:var(--line-soft)] pt-2">
-                    <div className="mb-1 font-mono text-[9.5px] uppercase tracking-wide text-fog-500">
-                      {askResult.answer.confidence} confidence
+                  <div className="mt-2.5 border-t border-[color:var(--line-soft)] pt-2.5">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "border px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-wide",
+                          askResult.answer.confidence === "high"
+                            ? "border-emerald/40 text-emerald"
+                            : askResult.answer.confidence === "medium"
+                              ? "border-warn/40 text-warn"
+                              : "border-[color:var(--line)] text-fog-400",
+                        )}
+                      >
+                        {askResult.answer.confidence} confidence
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setAskResult(null)}
+                        className="ml-auto text-[10.5px] text-fog-500 hover:text-fog-200"
+                      >
+                        clear
+                      </button>
                     </div>
-                    <p className="max-h-[200px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-[1.5] text-fog-200">
+                    <p className="max-h-[220px] overflow-y-auto whitespace-pre-wrap text-[12px] leading-[1.55] text-fog-200">
                       {askResult.answer.answer.trim()}
                     </p>
+                    {askResult.answer.recommendedActions.length > 0 ? (
+                      <ul className="mt-2 space-y-1 border-t border-[color:var(--line-soft)] pt-2">
+                        {askResult.answer.recommendedActions.slice(0, 4).map((a, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-[11.5px] text-fog-300">
+                            <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.8} />
+                            <span>
+                              <span className="font-mono text-[10.5px] text-violet-soft">{a.kind}</span> {a.detail}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </div>
                 ) : null}
               </div>

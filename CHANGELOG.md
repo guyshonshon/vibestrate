@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.114
+
+- **Compose page: context-aware consult, a live command mirror, and de-conflicted
+  chrome.** "Ask the supervisor" now tells the consult *where it's standing* (the
+  compose surface + its controls + your current selections), so it can answer
+  page questions like "what does tuning do" instead of pleading no-context; the
+  answer is formatted (a colored confidence badge + recommended actions), not a
+  flat text dump. The static `vibe run` label is replaced by a live command bar -
+  the exact `vibe run "..." --flow ... --supervisor ...` for the current
+  composition, copyable (CLI = TUI = UI, made visible). And the floating CLI
+  launcher moved to the bottom-left with real presence (a labeled pill, hideable
+  with a restore nub) so it no longer overlaps the consult orb at bottom-right.
+
 ## 0.7.113
 
 - **Compose page reworked into a real task command center.** Roadmap pickup now
