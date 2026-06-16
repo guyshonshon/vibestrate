@@ -81,6 +81,33 @@
   /* The terminal / command lines. */
   --font-term:
     "JetBrains Mono Variable", "Geist Mono Variable", ui-monospace, monospace;
+  /* Desaturated violet-tinted fractal-noise grain (ported from the marketing
+   * site) - textures a flat ground so it doesn't read as dead black. */
+  --grain-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.8 0 0 0 0 0.74 0 0 0 0 1 0.34 0.34 0.34 0 -0.22'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* Grain overlay: a low-opacity textured layer over a solid ground (the twist on
+ * flat black). Put it on a positioned ancestor; it never intercepts clicks. */
+.grain { position: relative; }
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain-noise);
+  background-size: 150px 150px;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+.grain > * { position: relative; z-index: 1; }
+
+/* A restrained "highlight box" - the wordmark echo: a word in a solid violet
+ * box (DESIGN.md §2). Used sparingly for one accent moment per surface. */
+.hl-box {
+  background: var(--color-violet-deep);
+  color: #fff;
+  border-radius: 5px;
+  padding: 0 0.28em;
 }
 
 :root {

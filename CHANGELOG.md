@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.111
+
+- **The run page is now a task command center.** Full-width, two-column: compose
+  on the left (brief, a 4-up flow grid with per-flow shape glyphs, a strong
+  grouped Configuration panel - run mode / tuning / crew / supervisor, Start), a
+  contextual right rail on the right (the selected flow's actual step sequence,
+  plus the utilities you reach for to compose efficiently: pick up from the
+  roadmap, ask the orchestrator / consult, recent runs). The flat black gets a
+  twist: a grain texture over the ground, layered planes with real depth, a
+  violet wordmark highlight-box on the title, and violet only as the active
+  signal. Verified in-browser.
+
 ## 0.7.110
 
 - **The new run page, redesigned with real craft.** The first cut was a flat,
