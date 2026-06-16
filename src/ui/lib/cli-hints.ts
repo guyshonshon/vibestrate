@@ -44,6 +44,18 @@ export function hintForRoute(route: Route): CliHint {
         ],
         tips: TIPS_RUN,
       };
+    case "compose":
+      return {
+        title: "New run",
+        blurb:
+          "Compose a run: brief, flow, crew, and the full control surface - or start one from your roadmap. The CLI maps 1:1.",
+        commands: [
+          { cmd: 'vibe run "describe the change"', note: "start a run" },
+          { cmd: "vibe run --flow <id> --effort high", note: "pick flow + effort" },
+          { cmd: "vibe run --task <id>", note: "run a roadmap card (grounds on it)" },
+        ],
+        tips: TIPS_RUN,
+      };
     case "runs":
       return {
         title: "Runs & queue",

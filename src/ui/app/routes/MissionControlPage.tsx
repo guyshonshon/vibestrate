@@ -364,9 +364,14 @@ export function MissionControlPage({ onSelectRun }: Props) {
           {/* No tagline - marketing voice doesn't belong in working chrome,
            * and the Brief/Flow/Crew/Run map on the right already orients. */}
           <div className="eyebrow">Mission Control</div>
-          <div className="text-[11.5px] text-fog-500">
-            Brief → Flow → Crew → Run
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate({ kind: "compose" })}
+            className="text-[11.5px] text-violet-soft hover:text-violet-soft/80"
+            title="Open the dedicated run page (new design, full control surface)"
+          >
+            Open the full run page →
+          </button>
         </div>
         <ComposerV3
           busy={busy}

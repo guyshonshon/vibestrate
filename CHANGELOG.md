@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.109
+
+- **A dedicated run page (`#/compose`), in the new design language.** Composing a
+  run is no longer a cramped panel: a full page built natively in the solid-scene
+  aesthetic (no glass) - brief, a flow quick-look (steps/seats at a glance), crew,
+  the full control surface (effort, concise, read-only, unattended, auto-pick
+  flow, supervisor) all visible, and an empty brief proposes starts from your
+  roadmap (pick one and it runs grounded on that card). Emerald for the single
+  "Start run" action; mono only for technical bits. Reachable from Mission
+  Control ("Open the full run page"). The older composer stays for now; advanced
+  authoring (per-step profiles, presets) hasn't moved yet.
+
 ## 0.7.108
 
 - **The dashboard now wears the brand.** Imported the design foundation from the

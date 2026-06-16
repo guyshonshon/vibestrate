@@ -5,6 +5,7 @@ import { ErrorBoundary } from "../components/layout/ErrorBoundary.js";
 import { GlobalErrorOverlay } from "../components/layout/GlobalErrorOverlay.js";
 import { RunsPage } from "./routes/RunsPage.js";
 import { MissionControlPage } from "./routes/MissionControlPage.js";
+import { RunComposePage } from "./routes/RunComposePage.js";
 import { RunDetailPage } from "./routes/RunDetailPage.js";
 import { BoardPage } from "./routes/BoardPage.js";
 import { TaskDetailPage } from "./routes/TaskDetailPage.js";
@@ -326,6 +327,8 @@ export function App() {
             navigate({ kind: "run", runId, tab: "diff" })
           }
         />
+      ) : route.kind === "compose" ? (
+        <RunComposePage />
       ) : route.kind === "runs" ? (
         <RunsPage
           onSelect={(runId) => navigate({ kind: "run", runId })}
