@@ -620,7 +620,7 @@ export function FlowBuilderPage({
 
       {selected && yamlMode ? (
         <section className="mt-8" data-screen-label="03 Raw YAML">
-          <div className="glass p-5 fade-up">
+          <div className="slab p-5 fade-up">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="eyebrow">Raw YAML</div>
@@ -664,7 +664,7 @@ export function FlowBuilderPage({
       {selected && !yamlMode ? (
         <section className="mt-8 grid grid-cols-12 gap-5" data-screen-label="03 Builder">
           <div className="col-span-12 xl:col-span-7">
-            <div className="glass p-5 fade-up">
+            <div className="slab p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
                   {(() => {
@@ -792,7 +792,7 @@ function DryRunModal({
       onClick={onClose}
     >
       <div
-        className="glass w-full max-w-[640px] p-5"
+        className="slab w-full max-w-[640px] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
@@ -1092,7 +1092,7 @@ function StepInspector({
   const requiresApproval = kind === "approval-gate";
 
   return (
-    <div className="glass p-4 fade-up fade-up-delay-1">
+    <div className="slab p-4 fade-up fade-up-delay-1">
       <SectionEyebrow className="mb-3">
         <span>Step inspector · {step.label}</span>
       </SectionEyebrow>
@@ -1539,7 +1539,7 @@ function PolicyCard() {
     { label: "Auto-merge on green CI", on: false },
   ];
   return (
-    <div className="glass p-4 fade-up fade-up-delay-2">
+    <div className="slab p-4 fade-up fade-up-delay-2">
       <SectionEyebrow className="mb-3">
         <span>Policies</span>
       </SectionEyebrow>
@@ -1566,7 +1566,7 @@ function PolicyCard() {
 
 function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
   return (
-    <div className="glass p-4 fade-up fade-up-delay-3">
+    <div className="slab p-4 fade-up fade-up-delay-3">
       <SectionEyebrow className="mb-3">
         <span>Flow preview</span>
       </SectionEyebrow>
@@ -1636,7 +1636,7 @@ function LoopCard({
   }
 
   return (
-    <div className="glass p-4 fade-up fade-up-delay-2">
+    <div className="slab p-4 fade-up fade-up-delay-2">
       <SectionEyebrow
         className="mb-3"
         right={

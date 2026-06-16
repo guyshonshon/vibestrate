@@ -282,7 +282,7 @@ function CreateProfile({
   }
 
   return (
-    <div className="mt-5 glass rounded-xl border border-violet-soft/25 p-4">
+    <div className="mt-5 slab p-4">
       <div className="eyebrow mb-3">New profile</div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <FormField label="Id" hint={idTaken ? "id already exists" : "e.g. claude-cheap"}>
@@ -403,7 +403,7 @@ function ProfileCard({
   }
 
   return (
-    <div className="glass rounded-xl border border-white/[0.08] p-4">
+    <div className="slab p-4">
       <SectionEyebrow
         right={
           <span

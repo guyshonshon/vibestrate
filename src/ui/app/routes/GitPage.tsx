@@ -155,7 +155,7 @@ export function GitPage({ onSelectRun }: Props) {
 
       {/* Two-column main: changes (left) + recent commits (right) */}
       <section className="grid grid-cols-12 gap-5">
-        <div className="col-span-12 xl:col-span-7 glass p-4">
+        <div className="col-span-12 xl:col-span-7 slab p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <span className="eyebrow">Changes since the last commit</span>
             {projectStatus ? (
@@ -194,7 +194,7 @@ export function GitPage({ onSelectRun }: Props) {
           )}
         </div>
 
-        <div className="col-span-12 xl:col-span-5 glass p-4">
+        <div className="col-span-12 xl:col-span-5 slab p-4">
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <span className="eyebrow">Recent commits</span>
             {projectHistory ? (
@@ -247,7 +247,7 @@ export function GitPage({ onSelectRun }: Props) {
           </span>
         </div>
         {activeWorktrees.length === 0 ? (
-          <div className="glass px-6 py-10 text-center text-[12.5px] text-fog-400">
+          <div className="slab px-6 py-10 text-center text-[12.5px] text-fog-400">
             No active worktrees right now. Each run gets its own branch - they
             show up here while the run is in flight.
           </div>

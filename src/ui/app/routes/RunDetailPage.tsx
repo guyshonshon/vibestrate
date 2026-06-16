@@ -398,7 +398,7 @@ export function RunDetailPage({
           <span className="eyebrow">Inspect</span>
           <InspectorTabsV3 current={tab} setCurrent={setTab} />
         </div>
-        <div className="glass p-3.5">
+        <div className="slab p-3.5">
           {tab === "steps" ? (
             <StepsInspector metrics={metrics} />
           ) : tab === "events" ? (
@@ -788,7 +788,7 @@ function RerunDialog({
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="glass w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="slab w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="eyebrow">Re-run with changes</div>

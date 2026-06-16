@@ -56,13 +56,20 @@ Verified: `pnpm build:ui` (fonts resolve, CSS compiles).
 | Step | What | Risk |
 | --- | --- | --- |
 | **C2 - dedicated Run page** | a real route (not the cramped composer component): full CLI-parity controls in the solid-scene language, flow quick-look, readable contrast. First surface built natively in the new system. | Med (new route + UI) |
-| **Glass rollout** | migrate the ~21 `.glass` usages to `.slab`, screen by screen, until no `backdrop-filter` remains. | **Med-high, app-wide** |
+| ~~**Glass rollout**~~ **SHIPPED** | migrated all ~20 `.glass` usages to `.slab`; `.glass`/`.glass-flat` deleted from `index.css`. No `backdrop-filter` left on a page surface. | **Med-high, app-wide** |
 | **Component pass** | headings -> Bricolage, technical bits -> mono only, emerald reserved for approve/done, kill stray gradients/glow. | Med |
 
-**The glass rollout is high-blast (touches every screen) and gets an independent
-adversarial review before it lands** (per the supervisor protocol). The foundation
-above is additive - existing `.glass` screens are untouched and keep working until
-migrated, so nothing is stranded mid-flight.
+**The glass rollout was high-blast (touched every screen) and got an independent
+adversarial review before it landed** (per the supervisor protocol). The reviewer
+compiled the Tailwind v4 output to confirm the load-bearing assumption: `.slab` is
+**unlayered**, Tailwind utilities live in `@layer utilities`, and unlayered author
+rules win - so a slab's square radius and hairline hold even where an old
+`rounded-*` / `border-*` utility lingered on the same element. Two consequences
+shaped the final pass: the cmd-k switcher stays floating glass via `.menu-surface`
+(not a flat slab), and the two pre-existing violet/rose accent borders were already
+inert (the unlayered surface border had been suppressing them all along), so they
+were dropped rather than fake-revived. If those accents are wanted back, they need
+an unlayered mechanism, not a utility class.
 
 ## Honest limit
 

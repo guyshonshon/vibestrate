@@ -59,7 +59,7 @@ export function SchedulerQueuePanel({
   const idle = running.length === 0 && queue.length === 0;
 
   return (
-    <section className="glass mt-5 p-4">
+    <section className="slab mt-5 p-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <SectionEyebrow>
           <span className="flex items-center gap-2">

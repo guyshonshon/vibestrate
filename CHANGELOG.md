@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.117
+
+- **The whole dashboard is one surface now.** Finished the drift off
+  glassmorphism that the compose page started: every panel, table, and modal -
+  Runs, Metrics, Git, Flows, Crew, Providers, Config, Board, Workspace, Consult,
+  Proposals, Profiles - now uses the solid `slab` surface (square corners, a 1px
+  hairline, a solid ground, no backdrop blur), so the dashboard reads as one
+  designed site instead of two eras stitched together. `.glass` is gone from the
+  codebase. The only surfaces that stay translucent are the ones that should
+  float: the cmd-k run switcher, popover menus, and the notifications drawer.
+
 ## 0.7.116
 
 - **Flow inputs are back on the compose page.** A flow can declare typed

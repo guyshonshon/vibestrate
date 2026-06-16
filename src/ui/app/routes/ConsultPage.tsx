@@ -125,7 +125,7 @@ export function ConsultPage({
         ) : null}
       </section>
 
-      <section className="mt-5 glass rounded-xl border border-white/[0.08] p-4">
+      <section className="mt-5 slab p-4">
         <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}

@@ -96,7 +96,7 @@ export function RunsPage({
 
       <IntegrationPanel />
 
-      <div className="glass overflow-hidden mt-5">
+      <div className="slab overflow-hidden mt-5">
         {filtered.length === 0 ? (
           <div className="px-6 py-10 text-center text-[12.5px] text-fog-400">
             {runs.length === 0 ? (

@@ -40,7 +40,7 @@ export function ConsultAnswerView({
   const pad = compact ? "p-3" : "p-4";
   return (
     <div className={cn("space-y-3", compact ? "" : "space-y-4")}>
-      <div className={cn("glass rounded-xl border border-white/[0.08]", pad)}>
+      <div className={cn("slab", pad)}>
         <div className="mb-2.5 flex items-center justify-between gap-3">
           <span className="eyebrow">Answer</span>
           <span className={cn("rounded-md border px-2 py-0.5 text-[11px]", CONFIDENCE_TONE[answer.confidence])}>
@@ -70,7 +70,7 @@ export function ConsultAnswerView({
       </div>
 
       {answer.recommendedActions.length ? (
-        <div className={cn("glass rounded-xl border border-white/[0.08]", pad)}>
+        <div className={cn("slab", pad)}>
           <span className="eyebrow">Recommended</span>
           <ul className="mt-2 space-y-1.5">
             {answer.recommendedActions.map((a, i) => (
@@ -86,7 +86,7 @@ export function ConsultAnswerView({
       ) : null}
 
       {answer.proposedManualUpdate ? (
-        <div className={cn("glass rounded-xl border border-violet-soft/25", pad)}>
+        <div className={cn("slab", pad)}>
           <div className="mb-1.5 flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
             <span className="eyebrow">Proposed VIBESTRATE.md update</span>

@@ -991,7 +991,7 @@ function ProviderEditor({
       onClick={onClose}
     >
       <div
-        className="glass w-full max-w-[620px] p-5"
+        className="slab w-full max-w-[620px] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -1383,7 +1383,7 @@ function InstallWizard({
       className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="glass w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="slab w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="eyebrow">Install · runs on your machine</div>

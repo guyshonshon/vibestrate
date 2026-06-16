@@ -26,7 +26,7 @@ export function ApprovalsCard({
 }) {
   const top = approvals[0] ?? null;
   return (
-    <div className="glass p-4 fade-up fade-up-delay-2">
+    <div className="slab p-4 fade-up fade-up-delay-2">
       <SectionEyebrow className="mb-3">
         <span className={approvals.length > 0 ? "text-amber-300" : ""}>
           {approvals.length > 0
@@ -125,7 +125,7 @@ export function WorkspaceCard({
   const blocked = runs.filter((r) => r.status === "waiting_for_approval").length;
   const providerHist = providerUsage(runs);
   return (
-    <div className="glass p-4 fade-up fade-up-delay-3">
+    <div className="slab p-4 fade-up fade-up-delay-3">
       <SectionEyebrow
         className="mb-3"
         right={
@@ -174,7 +174,7 @@ export function ShortcutsCard() {
     { keys: ["G", "F"], label: "Open flow builder" },
   ];
   return (
-    <div className="glass p-4 fade-up fade-up-delay-4">
+    <div className="slab p-4 fade-up fade-up-delay-4">
       <SectionEyebrow className="mb-3">
         <span>Keyboard</span>
       </SectionEyebrow>
@@ -206,7 +206,7 @@ export function NotificationsCard({
 }) {
   if (notifications.length === 0) return null;
   return (
-    <div className="glass p-4 fade-up fade-up-delay-4">
+    <div className="slab p-4 fade-up fade-up-delay-4">
       <SectionEyebrow className="mb-3">
         <span>Inbox · {notifications.filter((n) => !n.readAt).length} unread</span>
       </SectionEyebrow>

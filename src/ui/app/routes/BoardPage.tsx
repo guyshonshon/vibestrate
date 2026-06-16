@@ -261,7 +261,7 @@ export function BoardPage({
   if (error) {
     return (
       <div className="relative z-10 w-full px-6 pt-6">
-        <div className="glass px-5 py-4 text-[13px] text-rose-300 border border-rose-400/30">
+        <div className="slab px-5 py-4 text-[13px] text-rose-300">
           {error}
         </div>
       </div>
@@ -435,7 +435,7 @@ export function BoardPage({
       <section className="mt-4 flex-1 min-h-0 flex flex-col">
         {tasks.length === 0 ? (
           <div className="w-full px-6">
-            <div className="glass px-6 py-10 text-center">
+            <div className="slab px-6 py-10 text-center">
               <div className="text-[15px] font-medium text-fog-100">
                 No tasks yet.
               </div>
@@ -518,7 +518,7 @@ function KpiTile({
 }) {
   const t = COLUMN_TONE[tone];
   return (
-    <div className="glass relative overflow-hidden px-3 py-2">
+    <div className="slab relative overflow-hidden px-3 py-2">
       <div className="flex items-center justify-between">
         <div className="eyebrow text-[10px]">{label}</div>
         <span

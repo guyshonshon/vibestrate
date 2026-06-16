@@ -172,14 +172,16 @@
   color: var(--s-ink);
 }
 
-/* ── Solid slab (the non-glass surface) ───────────────────────────────────────
- * Replaces `.glass` going forward: a solid ground, a 1px line, hard 4-8px
- * radius, a crisp contact shadow - NO backdrop blur, NO glow. Reads against any
- * scene via the --s-* tokens, falling back to the ink defaults. */
-/* Surfaces match the marketing docs exactly: SQUARE corners (radius 0), solid
- * ink fill, a 1px hairline, FLAT (no ambient shadow - depth is rare and lives in
- * occlusion/contact, not glow). This is what makes the dashboard read as the
- * same site, not a generic rounded-card app. */
+/* ── Solid slab (the surface that replaced `.glass`) ──────────────────────────
+ * Matches the marketing docs exactly: SQUARE corners (radius 0), solid ink fill
+ * via the --s-* tokens (falling back to ink defaults with no scene ancestor), a
+ * 1px hairline, FLAT - no backdrop blur, no glow, no ambient shadow. This is what
+ * makes the dashboard read as the same site, not a generic rounded-card app.
+ *
+ * IMPORTANT: keep `.slab`/`.slab-flat` UNLAYERED (never wrap in @layer). They sit
+ * outside Tailwind's `utilities` layer on purpose, so their square radius and
+ * hairline WIN over any leftover `rounded-*` / `border-*` utility on the same
+ * element. Move them into a layer and that inverts - every slab re-rounds. */
 .slab {
   background: var(--s-slab, var(--color-ink-100));
   color: var(--s-slab-ink, var(--color-fog-100));
@@ -304,27 +306,9 @@ body {
     radial-gradient(900px 800px at 0% 18%, rgba(139, 124, 255, 0.05), transparent 55%);
 }
 
-/* ── Glass surfaces ──────────────────────────────────────────────── */
-.glass {
-  background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.025) 0%,
-      rgba(255, 255, 255, 0.012) 100%
-    ),
-    rgba(14, 17, 24, 0.55);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow-card);
-}
-.glass-flat {
-  background: rgba(14, 17, 24, 0.45);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid var(--line-soft);
-  border-radius: 12px;
-}
+/* `.glass` / `.glass-flat` were removed once every surface migrated to `.slab`.
+ * The sanctioned floating-glass surfaces that remain are `.menu-surface` and
+ * `.drawer-surface` above (popovers, command palette, notifications drawer). */
 .hairline {
   border: 1px solid var(--line);
 }

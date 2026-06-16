@@ -117,7 +117,7 @@ export function LiveRunsSection({
         </div>
       </div>
       {runs.length === 0 ? (
-        <div className="glass p-8 text-center">
+        <div className="slab p-8 text-center">
           <div className="text-[14px] text-fog-200 font-medium">
             Nothing is running.
           </div>

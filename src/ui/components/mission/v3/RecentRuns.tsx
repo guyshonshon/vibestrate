@@ -28,7 +28,7 @@ export function RecentRunsSection({
           View all <ArrowRight className="h-3 w-3" strokeWidth={1.7} />
         </button>
       </div>
-      <div className="glass overflow-hidden">
+      <div className="slab overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">

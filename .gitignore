@@ -50,3 +50,4 @@ docs/archive/
 
 # Local-only dev/release tooling (not part of the public repo).
 /scripts/
+.playwright-mcp/

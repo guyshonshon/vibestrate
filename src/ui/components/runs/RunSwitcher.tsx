@@ -84,7 +84,7 @@ export function RunSwitcher({
       onClick={onClose}
     >
       <div
-        className="glass w-full max-w-[620px] overflow-hidden"
+        className="menu-surface w-full max-w-[620px] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">

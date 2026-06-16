@@ -131,37 +131,37 @@ export function MetricsPage() {
 
       {/* ── Runs + Outcomes ─ */}
       <section className="mt-7 grid grid-cols-12 gap-5">
-        <div className="col-span-12 xl:col-span-8 glass p-5">
+        <div className="col-span-12 xl:col-span-8 slab p-5">
           <RunsAreaChart overview={overview} />
         </div>
-        <div className="col-span-12 xl:col-span-4 glass p-5">
+        <div className="col-span-12 xl:col-span-4 slab p-5">
           <OutcomesDonut overview={overview} />
         </div>
       </section>
 
       {/* ── Spend + Latency ─ */}
       <section className="mt-5 grid grid-cols-12 gap-5">
-        <div className="col-span-12 lg:col-span-7 glass p-5">
+        <div className="col-span-12 lg:col-span-7 slab p-5">
           <SpendByRolePanel overview={overview} />
         </div>
-        <div className="col-span-12 lg:col-span-5 glass p-5">
+        <div className="col-span-12 lg:col-span-5 slab p-5">
           <LatencyByPhasePanel overview={overview} />
         </div>
       </section>
 
       {/* ── Heatmap ─ */}
       <section className="mt-5">
-        <div className="glass p-5">
+        <div className="slab p-5">
           <ActivityHeatmapPanel overview={overview} />
         </div>
       </section>
 
       {/* ── Token ledger: per-model + tokens-by-role ─ */}
       <section className="mt-5 grid grid-cols-12 gap-5">
-        <div className="col-span-12 lg:col-span-7 glass p-5">
+        <div className="col-span-12 lg:col-span-7 slab p-5">
           <PerModelPanel overview={overview} />
         </div>
-        <div className="col-span-12 lg:col-span-5 glass p-5">
+        <div className="col-span-12 lg:col-span-5 slab p-5">
           <TokensByRolePanel overview={overview} />
         </div>
       </section>
@@ -276,7 +276,7 @@ function BigKpi({
   tone: "violet" | "sky" | "amber" | "emerald";
 }) {
   return (
-    <div className="glass p-4 relative overflow-hidden">
+    <div className="slab p-4 relative overflow-hidden">
       <div className="flex items-center justify-between">
         <div className="eyebrow">{label}</div>
       </div>
@@ -547,7 +547,7 @@ function BudgetControl() {
   const pct = cap && cap > 0 ? Math.min(100, Math.round((today / cap) * 100)) : 0;
 
   return (
-    <section className="mt-3 glass p-4">
+    <section className="mt-3 slab p-4">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="eyebrow">Daily spend cap</div>
         <div className="flex items-center gap-1.5 text-[12.5px]">
@@ -1147,12 +1147,12 @@ function LeaderboardTable({
   const maxRuns = Math.max(...rows.map((r) => r.runs), 1);
   if (rows.length === 0)
     return (
-      <div className="glass">
+      <div className="slab">
         <EmptyState text="No agents have produced runs in this window yet." />
       </div>
     );
   return (
-    <div className="glass overflow-hidden">
+    <div className="slab overflow-hidden">
       <table className="w-full">
         <thead>
           <tr className="text-left text-[10.5px] uppercase tracking-[0.14em] text-fog-500">

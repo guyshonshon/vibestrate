@@ -214,7 +214,7 @@ function Kpi({
             ? "text-fog-300"
             : "text-fog-100";
   return (
-    <div className="glass p-4">
+    <div className="slab p-4">
       <div className="eyebrow">{label}</div>
       <div className={cn("mt-2 text-[26px] font-semibold tracking-tight num-tabular", valueTone)}>
         {value}
@@ -247,7 +247,7 @@ function ProjectCard({
     w.successRate !== null ? `${Math.round(w.successRate * 100)}%` : "-";
 
   return (
-    <div className="glass p-5 flex flex-col">
+    <div className="slab p-5 flex flex-col">
       {/* header */}
       <div className="flex items-start gap-2.5">
         <span className="w-8 h-8 rounded-md bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft shrink-0">
@@ -413,7 +413,7 @@ function CloseDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={onCancel}
     >
-      <div className="w-full max-w-[460px] glass p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[460px] slab p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between">
           <div>
             <div className="eyebrow mb-1">Close project</div>

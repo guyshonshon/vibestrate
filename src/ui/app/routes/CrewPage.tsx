@@ -578,7 +578,7 @@ function SeatCoverage({
   const uncovered = seats.filter((s) => coverage.get(s)?.status === "uncovered");
   const ambiguous = seats.filter((s) => coverage.get(s)?.status === "ambiguous");
   return (
-    <section className="mt-6 glass rounded-xl border border-white/[0.08] p-4">
+    <section className="mt-6 slab p-4">
       <SectionEyebrow
         right={
           <span className="text-[11px] text-fog-400">
@@ -688,7 +688,7 @@ function RoleCard({
   const [newProfileOpen, setNewProfileOpen] = useState(false);
 
   return (
-    <div className="glass rounded-xl border border-white/[0.08] p-4 flex flex-col gap-3">
+    <div className="slab p-4 flex flex-col gap-3">
       {/* header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">

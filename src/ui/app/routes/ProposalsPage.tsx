@@ -56,7 +56,7 @@ export function ProposalsPage({
       </p>
 
       {proposals.length === 0 ? (
-        <div className="glass mt-5 px-6 py-10 text-center text-[12.5px] text-fog-400">
+        <div className="slab mt-5 px-6 py-10 text-center text-[12.5px] text-fog-400">
           No proposals yet.
         </div>
       ) : (

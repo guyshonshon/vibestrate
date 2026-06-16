@@ -109,7 +109,7 @@ function SectionCard({ section }: { section: ConfigSection }) {
   const e = section.editable;
   const editRoute = e.live && e.route ? e.route : null;
   return (
-    <div className="glass rounded-xl border border-white/[0.08] p-4 flex flex-col gap-3">
+    <div className="slab p-4 flex flex-col gap-3">
       <SectionEyebrow
         right={
           <Chip tone={e.live ? "emerald" : "neutral"}>
