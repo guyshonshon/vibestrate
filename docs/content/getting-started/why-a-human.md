@@ -31,7 +31,7 @@ Vibestrate is the layer that makes AI output safe to use. It does the work, then
 
 ## Why it never auto-merges
 
-The merge is the one irreversible step. It puts the change into your real project, where other people and other code depend on it. A model is exactly the wrong thing to trust with an irreversible step it cannot fully verify.
+Merging is the moment a change becomes real. It joins your shared history, other people pull it, and it can ship to production from there. You can always revert a bad merge, but by then the wrong code was already trusted, already built on, maybe already out the door. The revert is cleanup after the fact. Merging is the point of commitment, and a model that cannot fully vouch for its own work is the wrong thing to make that commitment on your behalf.
 
 So Vibestrate stops at `merge_ready` and hands you the diff. You read it, or let the [merge advisor](/docs/getting-started/merging) flag the risks for you, and you decide. Slower than full-auto, by design: nothing lands that you did not choose to land.
 
