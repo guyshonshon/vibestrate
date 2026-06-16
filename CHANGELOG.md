@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.108
+
+- **The dashboard now wears the brand.** Imported the design foundation from the
+  marketing site so product and site read as one: the real brand fonts are loaded
+  (Geist for body, Bricolage Grotesque for display, Space Grotesk for the
+  wordmark, JetBrains/Geist Mono for terminal text) - previously the UI referenced
+  these by name but never loaded them and silently fell back to system fonts.
+  Added the emerald "approve/done" accent, the `[data-scene]` solid-surface token
+  system, and a `.slab` primitive - the move off glassmorphism toward the
+  marketing site's solid, hard-edged, high-contrast language. Additive so far
+  (existing screens keep working); the screen-by-screen migration off `.glass`
+  comes next.
+
 ## 0.7.107
 
 - **More of the run control surface in the dashboard.** The composer now exposes

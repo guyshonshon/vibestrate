@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* ── Brand fonts (self-hosted variable, Fontsource) - derived 1:1 from the
+ * marketing site (vibestrate-marketing/src/styles/global.css). The product
+ * referenced "Geist"/"Bricolage Grotesque" by NAME but never loaded them, so it
+ * fell back to system fonts; these imports make the dashboard render in the
+ * actual brand type. The variable families are named "<Family> Variable". */
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist-mono/wght.css";
+@import "@fontsource-variable/bricolage-grotesque/wght.css";
+@import "@fontsource-variable/space-grotesk/wght.css";
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+
 @theme {
   /* ── Design system: ink / fog / violet (Mission Control v3) ── */
   --color-ink-0: #06070b;
@@ -20,6 +31,15 @@
   --color-violet-mid: #8b7cff;
   --color-violet-deep: #6951f0;
   --color-sky-glow: #7cc5ff;
+
+  /* Emerald - the second accent: the approve / shipped / done / under-control
+   * world (DESIGN.md §4). Reserve for the single "loud" success action. */
+  --color-emerald: #34d399;
+  --color-emerald-mid: #10b981;
+  --color-emerald-deep: #059669;
+  --color-success: #4ade80;
+  --color-warn: #fbbf24;
+  --color-fail: #fb7185;
 
   /* ── Legacy vibestrate-* tokens (kept so non-redesigned routes don't
    * break - the new screens use the ink/fog/violet tokens above) ── */
@@ -42,16 +62,25 @@
   --color-vibestrate-diff-del: #3d2326;
   --color-vibestrate-diff-del-fg: #f0a5a5;
 
+  /* Four type voices (DESIGN.md §5). The "* Variable" family names match the
+   * loaded Fontsource variable fonts. */
   --font-sans:
-    "Geist", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    "Geist Variable", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono:
-    "Geist Mono", "JetBrains Mono", "SFMono-Regular", "Menlo", Consolas,
-    ui-monospace, monospace;
+    "Geist Mono Variable", "JetBrains Mono Variable", "SFMono-Regular", "Menlo",
+    Consolas, ui-monospace, monospace;
   --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  /* Editorial display: headlines, card titles, phase labels. */
   --font-display:
-    "Bricolage Grotesque", "Geist", -apple-system, BlinkMacSystemFont,
-    ui-sans-serif, system-ui, sans-serif;
+    "Bricolage Grotesque Variable", "Geist Variable", -apple-system,
+    BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
+  /* Wordmark + powertype objects only. */
+  --font-wordmark:
+    "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  /* The terminal / command lines. */
+  --font-term:
+    "JetBrains Mono Variable", "Geist Mono Variable", ui-monospace, monospace;
 }
 
 :root {
@@ -60,6 +89,78 @@
   --line-strong: rgba(255, 255, 255, 0.14);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 24px 60px -28px rgba(8, 6, 22, 0.7);
+  /* Crisp directional contact shadow for an elevated slab sitting ON a surface
+   * (DESIGN.md §7: occlusion + tight contact shadows, never ambient halos). */
+  --shadow-contact: 0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px -24px rgba(8, 6, 22, 0.85);
+  --emerald: #34d399;
+  --emerald-mid: #10b981;
+  --emerald-deep: #059669;
+  --success: #4ade80;
+  --warn: #fbbf24;
+  --fail: #fb7185;
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-wordmark: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-term: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Scene surfaces (DESIGN.md §4) - solid colour fields + inverting components.
+ * The aesthetic the product is migrating TO, away from `.glass`: every surface
+ * is a solid ground; components read the --s-* tokens so the same slab works on
+ * dark / paper / violet without per-instance overrides. Solid fills + hard
+ * geometry only, no gradients, no glow. Default ground is ink (near-black). */
+[data-scene] {
+  --s-bg: var(--color-ink-0);
+  --s-ink: var(--color-fog-100);
+  --s-ink-dim: var(--color-fog-300);
+  --s-line: var(--line-strong);
+  --s-accent: var(--color-violet-deep);
+  --s-on-accent: #ffffff;
+  --s-slab: var(--color-ink-100);
+  --s-slab-ink: var(--color-fog-100);
+}
+[data-scene="paper"] {
+  --s-bg: #f4f5fa;
+  --s-ink: #06070b;
+  --s-ink-dim: #4a5063;
+  --s-line: rgba(0, 0, 0, 0.16);
+  --s-accent: var(--color-violet-deep);
+  --s-on-accent: #ffffff;
+  --s-slab: #ffffff;
+  --s-slab-ink: #06070b;
+}
+[data-scene="violet"] {
+  --s-bg: var(--color-violet-deep);
+  --s-ink: #ffffff;
+  --s-ink-dim: rgba(255, 255, 255, 0.74);
+  --s-line: rgba(255, 255, 255, 0.30);
+  --s-accent: #ffffff;
+  --s-on-accent: var(--color-violet-deep);
+  --s-slab: #ffffff;
+  --s-slab-ink: var(--color-violet-deep);
+}
+[data-scene].scene-ground {
+  background: var(--s-bg);
+  color: var(--s-ink);
+}
+
+/* ── Solid slab (the non-glass surface) ───────────────────────────────────────
+ * Replaces `.glass` going forward: a solid ground, a 1px line, hard 4-8px
+ * radius, a crisp contact shadow - NO backdrop blur, NO glow. Reads against any
+ * scene via the --s-* tokens, falling back to the ink defaults. */
+.slab {
+  background: var(--s-slab, var(--color-ink-100));
+  color: var(--s-slab-ink, var(--color-fog-100));
+  border: 1px solid var(--s-line, var(--line));
+  border-radius: 8px;
+  box-shadow: var(--shadow-contact);
+}
+.slab-flat {
+  background: var(--s-slab, var(--color-ink-100));
+  color: var(--s-slab-ink, var(--color-fog-100));
+  border: 1px solid var(--s-line, var(--line));
+  border-radius: 6px;
 }
 
 /* ── Surface helpers ─────────────────────────────────────────────────
