@@ -93,7 +93,7 @@ export const DEFAULT_PALETTE: PaletteCommand[] = [
       "Workflow board grouped by task status. Navigate states with ←/→, tasks with ↑/↓; n creates, e edits, d deletes, Q queues.",
     cli: "vibe tasks list",
     examples: [
-      'vibe tasks add "title" --priority high --effort medium',
+      'vibe tasks add "title" --priority high',
       "vibe tasks show <taskId>",
       "vibe roadmap show                  # raw roadmap document",
     ],

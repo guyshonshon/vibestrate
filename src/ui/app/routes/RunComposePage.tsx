@@ -17,7 +17,6 @@ import {
 import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
-import { EffortScale } from "../../components/design/EffortScale.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
 import type {
   ConsultResult,
@@ -51,7 +50,6 @@ export function RunComposePage() {
   const [flowId, setFlowId] = useState("");
   const [crewId, setCrewId] = useState<string | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
-  const [effort, setEffort] = useState<"low" | "medium" | "high" | null>(null);
   const [concise, setConcise] = useState(false);
   const [readOnly, setReadOnly] = useState(false);
   const [unattended, setUnattended] = useState(false);
@@ -175,7 +173,6 @@ export function RunComposePage() {
         flow: flowId ? { id: flowId } : undefined,
         crewId: crewId ?? undefined,
         persona: personaId ?? undefined,
-        effort: effort ?? undefined,
         concise: concise || undefined,
         readOnly: readOnly || undefined,
         unattended: unattended || undefined,
@@ -199,11 +196,11 @@ export function RunComposePage() {
       // about this page (e.g. "what does tuning do") instead of only the project.
       const surface = [
         "Surface context (where I'm asking from): the Vibestrate dashboard's 'New run' (compose) page, where a run is configured before it starts.",
-        "Its controls: a Task brief; Flow selection; Crew selection; and a Configuration panel with Effort (low/medium/high reasoning depth), Run mode (Read-only, Unattended), Tuning (Concise = ask agents to keep output short; Auto-pick flow = let the orchestrator choose the flow when none is pinned), and a Supervisor persona.",
+        "Its controls: a Task brief; Flow selection; Crew selection; and a Configuration panel with Run mode (Read-only, Unattended), Tuning (Concise = ask agents to keep output short; Auto-pick flow = let the orchestrator choose the flow when none is pinned), and a Supervisor persona.",
         selectedFlow
           ? `Currently pinned flow: ${selectedFlow.definition.label} (${selectedFlow.id}).`
           : "No flow pinned (the orchestrator would pick).",
-        `Crew: ${crewId ?? "default"}. Effort: ${effort ?? "auto"}. Supervisor: ${personaId ?? "default"}.`,
+        `Crew: ${crewId ?? "default"}. Supervisor: ${personaId ?? "default"}.`,
         brief.trim()
           ? `The current Task brief is: "${brief.trim()}".`
           : "No Task brief has been written yet.",
@@ -227,14 +224,13 @@ export function RunComposePage() {
     const parts = ["vibe run", JSON.stringify(brief.trim() || "your task")];
     if (flowId) parts.push(`--flow ${flowId}`);
     if (crewId && crewId !== meta?.defaultCrew) parts.push(`--crew ${crewId}`);
-    if (effort) parts.push(`--effort ${effort}`);
     if (readOnly) parts.push("--read-only");
     if (unattended) parts.push("--unattended");
     if (concise) parts.push("--concise");
     if (forceSelect) parts.push("--select");
     if (personaId) parts.push(`--supervisor ${personaId}`);
     return parts.join(" ");
-  }, [brief, flowId, crewId, effort, readOnly, unattended, concise, forceSelect, personaId, meta?.defaultCrew]);
+  }, [brief, flowId, crewId, readOnly, unattended, concise, forceSelect, personaId, meta?.defaultCrew]);
   const [cmdCopied, setCmdCopied] = useState(false);
   async function copyCmd() {
     try {
@@ -488,15 +484,6 @@ export function RunComposePage() {
             <section>
               <SectionLabel>Configuration</SectionLabel>
               <div className="slab-flat divide-y divide-[color:var(--line-soft)]">
-                <ConfigRow label="Effort">
-                  <div className="w-[280px] max-w-full">
-                    <EffortScale
-                      value={effort ?? ""}
-                      onChange={(v) => setEffort((v || null) as "low" | "medium" | "high" | null)}
-                      levels={["low", "medium", "high"]}
-                    />
-                  </div>
-                </ConfigRow>
                 <ConfigRow label="Run mode">
                   <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
                   <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />

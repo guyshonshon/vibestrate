@@ -330,7 +330,6 @@ describe("server routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         task: "smoke test",
-        effort: "low",
         readOnly: true,
       }),
     });
@@ -346,8 +345,6 @@ describe("server routes", () => {
       expect(json.argv).toEqual([
         "run",
         "smoke test",
-        "--effort",
-        "low",
         "--read-only",
       ]);
     }

@@ -77,7 +77,6 @@ const spawnRunBody = z.object({
     .max(128)
     .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
     .optional(),
-  effort: z.enum(["low", "medium", "high"]).optional(),
   /** Crew to resolve the flow against (default: project.defaultCrew). */
   crewId: z.string().min(1).max(128).optional(),
   /** Run-wide Profile override applied to every seated step. */
@@ -228,7 +227,6 @@ export async function registerRunsRoutes(
     const body = parsed.data;
     const argv: string[] = ["run", body.task];
     if (body.taskId) argv.push("--task", body.taskId);
-    if (body.effort) argv.push("--effort", body.effort);
     if (body.crewId) argv.push("--crew", body.crewId);
     if (body.profileOverride) argv.push("--profile", body.profileOverride);
     for (const [seat, role] of Object.entries(body.seatRoleOverrides ?? {})) {
@@ -268,7 +266,6 @@ export async function registerRunsRoutes(
       task: body.task,
       runId,
       taskId: body.taskId ?? null,
-      effort: body.effort ?? null,
       crewId: body.crewId ?? null,
       profileOverride: body.profileOverride ?? null,
       seatRoleOverrides: body.seatRoleOverrides ?? {},
@@ -704,7 +701,6 @@ export async function registerRunsRoutes(
         projectRoot,
         task: run.task,
         taskId: run.taskId ?? null,
-        effort: run.effort ?? null,
         crewId: run.crewId ?? null,
         profileOverride: run.profileOverride ?? null,
         readOnly: run.readOnly ?? false,

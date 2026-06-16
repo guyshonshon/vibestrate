@@ -23,13 +23,11 @@ const FIELD_LABELS: Record<TaskFormField, string> = {
   title: "title",
   description: "description",
   priority: "priority",
-  effort: "effort",
   profileOverride: "profile override",
   readOnly: "read-only",
 };
 
 const PRIORITY_VALUES = ["low", "medium", "high"] as const;
-const EFFORT_VALUES = ["", "low", "medium", "high"] as const;
 
 export function TaskForm({ form, dispatch, profiles, onSubmit, onCancel }: Props) {
   const isCreate = form.mode === "create";
@@ -137,13 +135,6 @@ function FieldRow({
           value={form.priority}
           focused={focused}
           onChange={(v) => dispatch({ type: "field", field: "priority", value: v })}
-        />
-      ) : field === "effort" ? (
-        <EnumPicker
-          values={EFFORT_VALUES as readonly string[]}
-          value={form.effort}
-          focused={focused}
-          onChange={(v) => dispatch({ type: "field", field: "effort", value: v })}
         />
       ) : field === "profileOverride" ? (
         <Box flexDirection="column">

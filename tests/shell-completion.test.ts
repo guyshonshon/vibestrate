@@ -98,17 +98,17 @@ describe("value completion", () => {
   }
 
   it("completes a flag's static enum after a space", () => {
-    const out = vals("run x --effort ");
+    const out = vals("consult x --effort ");
     expect(out).toEqual(["low", "medium", "high"]);
   });
 
   it("prefix-filters the flag enum", () => {
-    expect(vals("run x --effort hi")).toEqual(["high"]);
-    expect(completeInput("run x --effort hi", spec).query).toBe("hi");
+    expect(vals("consult x --effort hi")).toEqual(["high"]);
+    expect(completeInput("consult x --effort hi", spec).query).toBe("hi");
   });
 
   it("completes the inline --flag=value form", () => {
-    expect(vals("run x --effort=me")).toEqual(["--effort=medium"]);
+    expect(vals("consult x --effort=me")).toEqual(["--effort=medium"]);
   });
 
   it("completes live ids for --crew / --flow / --profile from context", () => {

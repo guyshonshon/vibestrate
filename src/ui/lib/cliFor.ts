@@ -17,7 +17,7 @@ export type UiAction =
   | { kind: "abort-run"; runId: string }
   | { kind: "approve-approval"; runId: string; approvalId: string }
   | { kind: "reject-approval"; runId: string; approvalId: string }
-  | { kind: "spawn-run"; task: string; provider?: string; effort?: string; readOnly?: boolean; skills?: string[]; concise?: boolean }
+  | { kind: "spawn-run"; task: string; provider?: string; readOnly?: boolean; skills?: string[]; concise?: boolean }
   | { kind: "start-scheduler" };
 
 export function cliFor(a: UiAction): string | null {
@@ -53,7 +53,6 @@ export function cliFor(a: UiAction): string | null {
     case "spawn-run": {
       const parts = ["vibe", "run"];
       if (a.provider) parts.push("--provider", a.provider);
-      if (a.effort) parts.push("--effort", a.effort);
       if (a.readOnly) parts.push("--read-only");
       if (a.skills && a.skills.length > 0)
         parts.push("--skills", a.skills.join(","));

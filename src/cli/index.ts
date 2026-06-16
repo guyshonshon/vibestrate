@@ -197,10 +197,6 @@ export function buildVibestrateProgram(): Command {
       "link this run to a roadmap task; updates task status and runIds.",
     )
     .option(
-      "--effort <level>",
-      "task-difficulty hint (low|medium|high). Recorded for planning; does not pick a provider.",
-    )
-    .option(
       "--crew <id>",
       "crew to resolve the flow's seats against (default: project.defaultCrew).",
     )
@@ -215,10 +211,6 @@ export function buildVibestrateProgram(): Command {
     .option(
       "--unattended",
       "never pause for a human: forces budget onLimit->stop and resilience onExhausted->fail, so the run always terminates on its own.",
-    )
-    .option(
-      "--auto-effort",
-      "apply the heuristic effort suggestion when --effort isn't passed.",
     )
     .option(
       "--skills <list>",
@@ -311,12 +303,10 @@ export function buildVibestrateProgram(): Command {
           ui?: boolean;
           uiPort?: number;
           task?: string;
-          effort?: string;
           crew?: string;
           profile?: string;
           readOnly?: boolean;
           unattended?: boolean;
-          autoEffort?: boolean;
           skills?: string;
           concise?: boolean;
           flow?: string;
@@ -382,14 +372,6 @@ export function buildVibestrateProgram(): Command {
           console.error("--preview requires --resume-from <runId>.");
           process.exit(2);
         }
-        let effort: "low" | "medium" | "high" | null = null;
-        if (opts.effort) {
-          if (opts.effort !== "low" && opts.effort !== "medium" && opts.effort !== "high") {
-            console.error(`--effort must be one of low|medium|high (got "${opts.effort}").`);
-            process.exit(2);
-          }
-          effort = opts.effort;
-        }
         const runtimeSkills = (opts.skills ?? "")
           .split(",")
           .map((s) => s.trim())
@@ -435,13 +417,11 @@ export function buildVibestrateProgram(): Command {
           ui: opts.ui,
           uiPort: opts.uiPort,
           taskId: opts.task ?? null,
-          effort,
           crewId: opts.crew ?? null,
           seatRoleOverrides,
           profileOverride: opts.profile ?? null,
           readOnly: opts.readOnly ?? false,
           unattended: opts.unattended ?? false,
-          autoEffort: opts.autoEffort ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,
           params: opts.param ?? {},

@@ -85,7 +85,6 @@ export type RunCommandOptions = {
   ui?: boolean;
   uiPort?: number;
   taskId?: string | null;
-  effort?: "low" | "medium" | "high" | null;
   /** Crew to resolve against. null = project.defaultCrew. */
   crewId?: string | null;
   /** Run-wide Profile override applied to every seated step. */
@@ -95,7 +94,6 @@ export type RunCommandOptions = {
   readOnly?: boolean;
   /** Never pause for a human (forces budget onLimit->stop, onExhausted->fail). */
   unattended?: boolean;
-  autoEffort?: boolean;
   /** Skill ids attached only for this run, merged into role skills. */
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */
@@ -404,9 +402,8 @@ export async function runRunCommand(
     }
   }
 
-  // If --task <id> was passed and the user did NOT override effort /
-  // provider / read-only on the CLI, inherit those from the roadmap task.
-  let effort: "low" | "medium" | "high" | null = options.effort ?? null;
+  // If --task <id> was passed and the user did NOT override provider /
+  // read-only on the CLI, inherit those from the roadmap task.
   let profileOverride: string | null = options.profileOverride ?? null;
   let readOnly: boolean = options.readOnly ?? false;
   if (roadmapTaskId) {
@@ -415,7 +412,6 @@ export async function runRunCommand(
       const svc = new RoadmapService(detected.projectRoot);
       const t = await svc.getTask(roadmapTaskId);
       if (t) {
-        if (effort === null) effort = t.effort;
         if (profileOverride === null) profileOverride = t.profileOverride;
         if (!options.readOnly) readOnly = t.readOnly;
       }
@@ -423,25 +419,6 @@ export async function runRunCommand(
       // Best-effort. The orchestrator will still honor the explicit CLI
       // flags; missing roadmap inheritance is non-fatal.
     }
-  }
-
-  // Always classify, even when the user passed --effort, so we can print
-  // an honest "(suggested: …)" line. --auto-effort applies the suggestion
-  // when --effort wasn't passed.
-  const { classifyEffort } = await import("../../core/effort-heuristic.js");
-  const heuristic = classifyEffort({ text: resolvedTask });
-  if (effort === null && options.autoEffort) {
-    effort = heuristic.effort;
-  }
-  const verdictLine =
-    effort === heuristic.effort && effort !== null
-      ? `${symbol.bullet()} effort ${color.bold(effort)} (matches suggestion @ ${heuristic.confidence})`
-      : effort
-        ? `${symbol.bullet()} effort ${color.bold(effort)} ${color.dim(`(suggested ${heuristic.effort} @ ${heuristic.confidence})`)}`
-        : `${symbol.bullet()} effort ${color.dim("(none)")} ${color.dim(`- suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
-  console.log(verdictLine);
-  for (const r of heuristic.reasons.slice(0, 3)) {
-    console.log(indent(color.dim(`· ${r}`)));
   }
 
   const cliAbort = new AbortController();
@@ -535,8 +512,7 @@ export async function runRunCommand(
     const { inferFlowComplexity, flowComplexityAdvice, flowFanoutAdvice } =
       await import("../../flows/runtime/flow-complexity.js");
     const { classifyEffort } = await import("../../core/effort-heuristic.js");
-    const taskEffort =
-      effort ?? classifyEffort({ text: resolvedTask, files: [] }).effort;
+    const taskEffort = classifyEffort({ text: resolvedTask, files: [] }).effort;
     const advice = flowComplexityAdvice({
       flowComplexity: inferFlowComplexity(resolvedFlow),
       taskEffort,
@@ -590,7 +566,6 @@ export async function runRunCommand(
     params: runParams,
     isGitRepo: detected.isGitRepo,
     taskId: roadmapTaskId,
-    effort,
     crewId: activeCrewId,
     profileOverride,
     stepProfileOverrides: options.flowStepProfiles ?? {},

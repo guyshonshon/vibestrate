@@ -25,8 +25,8 @@ import { contextSourceSchema } from "./context-source-schema.js";
  * binary. It takes a fully-structured spec, loads config, resolves the Flow,
  * and drives the orchestrator - no terminal output, no prompts.
  *
- * The CLI command keeps its own presentation layer (effort heuristic, wizard,
- * friendly errors) and constructs the orchestrator directly; the orchestrator
+ * The CLI command keeps its own presentation layer (wizard, friendly errors)
+ * and constructs the orchestrator directly; the orchestrator
  * itself is the single shared core. UI ⇄ CLI stay independent.
  */
 export const runSpecSchema = z.object({
@@ -43,7 +43,6 @@ export const runSpecSchema = z.object({
     .nullable()
     .optional(),
   taskId: z.string().min(1).max(128).nullable().optional(),
-  effort: z.enum(["low", "medium", "high"]).nullable().optional(),
   /** Crew to resolve the flow against (default: project.defaultCrew). */
   crewId: z.string().min(1).max(128).nullable().optional(),
   /** Run-wide Profile override applied to every seated step. */
@@ -211,9 +210,8 @@ export async function runFromSpec(
   const loaded = await loadConfig(detected.projectRoot);
   // Profile → provider integrity is enforced by the config schema at load time.
 
-  // Inherit effort / profile override / read-only from a linked roadmap task
+  // Inherit profile override / read-only from a linked roadmap task
   // when the spec didn't set them - same precedence as `vibe run --task`.
-  let effort = spec.effort ?? null;
   let profileOverride = spec.profileOverride ?? null;
   let readOnly = spec.readOnly ?? false;
   let contextSources = spec.contextSources ?? null;
@@ -227,7 +225,6 @@ export async function runFromSpec(
         `Roadmap task "${spec.taskId}" not found.`,
       );
     }
-    if (effort === null) effort = task.effort;
     if (profileOverride === null) profileOverride = task.profileOverride;
     if (!spec.readOnly) readOnly = task.readOnly;
     if (contextSources === null && task.contextSources.length > 0) {
@@ -301,7 +298,6 @@ export async function runFromSpec(
     isGitRepo: detected.isGitRepo,
     runId: spec.runId ?? null,
     taskId: spec.taskId ?? null,
-    effort,
     crewId: effectiveCrewId,
     profileOverride,
     stepProfileOverrides: spec.flow?.stepProfileOverrides ?? {},

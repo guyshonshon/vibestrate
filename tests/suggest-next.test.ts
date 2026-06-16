@@ -30,7 +30,6 @@ function task(
     riskLevel: "medium",
     commentsCount: 0,
     lastEventAt: null,
-    effort: null,
     profileOverride: null,
     readOnly: false,
     checklist: [],

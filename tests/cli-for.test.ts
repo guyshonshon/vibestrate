@@ -32,12 +32,11 @@ describe("cliFor", () => {
         kind: "spawn-run",
         task: "add health check",
         provider: "claude",
-        effort: "high",
         readOnly: true,
         skills: ["sec", "logs"],
       }),
     ).toBe(
-      'vibe run --provider claude --effort high --read-only --skills sec,logs "add health check"',
+      'vibe run --provider claude --read-only --skills sec,logs "add health check"',
     );
   });
 

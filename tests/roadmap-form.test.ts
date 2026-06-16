@@ -13,26 +13,23 @@ describe("validateTaskForm", () => {
     if (!r.ok) expect(r.errors.title).toMatch(/required/i);
   });
 
-  it("normalizes empty effort to null and empty profileOverride to null", () => {
+  it("normalizes empty profileOverride to null", () => {
     let s = initTaskForm("create", null, { title: "x" });
     s = reduceTaskForm(s, { type: "field", field: "profileOverride", value: "  " });
     const r = validateTaskForm(s);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.effort).toBeNull();
       expect(r.value.profileOverride).toBeNull();
     }
   });
 
-  it("preserves valid effort + provider overrides", () => {
+  it("preserves valid provider override + read-only", () => {
     let s = initTaskForm("create", null, { title: "x" });
-    s = reduceTaskForm(s, { type: "field", field: "effort", value: "high" });
     s = reduceTaskForm(s, { type: "field", field: "profileOverride", value: "codex" });
     s = reduceTaskForm(s, { type: "field", field: "readOnly", value: true });
     const r = validateTaskForm(s);
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.effort).toBe("high");
       expect(r.value.profileOverride).toBe("codex");
       expect(r.value.readOnly).toBe(true);
     }
@@ -71,7 +68,6 @@ describe("reduceTaskForm", () => {
       title: "abc",
       description: "hi",
       priority: "high",
-      effort: "low",
       profileOverride: "codex",
       readOnly: true,
     });
@@ -79,7 +75,6 @@ describe("reduceTaskForm", () => {
     expect(s.existingId).toBe("T-1");
     expect(s.title).toBe("abc");
     expect(s.priority).toBe("high");
-    expect(s.effort).toBe("low");
     expect(s.profileOverride).toBe("codex");
     expect(s.readOnly).toBe(true);
   });

@@ -59,7 +59,6 @@ export type ShellRunRow = {
   displayName: string | null;
   taskId: string | null;
   status: RunStatus;
-  effort: "low" | "medium" | "high" | null;
   readOnly: boolean;
   crewId: string | null;
   profileOverride: string | null;
@@ -249,7 +248,6 @@ export async function buildShellSnapshot(
       displayName: s.displayName ?? null,
       taskId: s.taskId,
       status: s.status,
-      effort: s.effort,
       readOnly: s.readOnly,
       crewId: s.crewId,
       profileOverride: s.profileOverride,

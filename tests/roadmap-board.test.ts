@@ -30,7 +30,6 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     riskLevel: "medium",
     commentsCount: 0,
     lastEventAt: updatedAt,
-    effort: null,
     profileOverride: null,
     readOnly: false,
     checklist: [],

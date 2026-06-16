@@ -12,13 +12,9 @@ export type TaskFormField =
   | "title"
   | "description"
   | "priority"
-  | "effort"
   | "profileOverride"
   | "readOnly";
 
-// `effort` is intentionally NOT a form field: it's only a planning hint and
-// never sets the model (the Profile's `power` does). The model field is kept
-// for back-compat (defaults to null) but isn't shown or navigated.
 export const TASK_FORM_FIELDS: TaskFormField[] = [
   "title",
   "description",
@@ -33,8 +29,6 @@ export type TaskFormState = {
   title: string;
   description: string;
   priority: Priority;
-  /** "" represents "not set" (effort is nullable on Task). */
-  effort: "" | "low" | "medium" | "high";
   /** "" represents "no override". */
   profileOverride: string;
   readOnly: boolean;
@@ -49,7 +43,6 @@ export type TaskFormSeed = Partial<
     | "title"
     | "description"
     | "priority"
-    | "effort"
     | "profileOverride"
     | "readOnly"
   >
@@ -66,7 +59,6 @@ export function initTaskForm(
     title: seed.title ?? "",
     description: seed.description ?? "",
     priority: seed.priority ?? "medium",
-    effort: seed.effort ?? "",
     profileOverride: seed.profileOverride ?? "",
     readOnly: seed.readOnly ?? false,
     focused: "title",
@@ -98,16 +90,6 @@ export function reduceTaskForm(
         case "priority":
           if (value === "low" || value === "medium" || value === "high") {
             next.priority = value;
-          }
-          break;
-        case "effort":
-          if (
-            value === "" ||
-            value === "low" ||
-            value === "medium" ||
-            value === "high"
-          ) {
-            next.effort = value;
           }
           break;
         case "profileOverride":
@@ -143,7 +125,6 @@ export type TaskFormReady = {
   title: string;
   description: string;
   priority: Priority;
-  effort: "low" | "medium" | "high" | null;
   profileOverride: string | null;
   readOnly: boolean;
 };
@@ -153,8 +134,8 @@ export type ValidateResult =
   | { ok: false; errors: Partial<Record<TaskFormField, string>> };
 
 /**
- * Pure validation: the form is ready when title is non-empty. Effort
- * "" becomes null; profileOverride trimmed-empty becomes null.
+ * Pure validation: the form is ready when title is non-empty.
+ * profileOverride trimmed-empty becomes null.
  */
 export function validateTaskForm(state: TaskFormState): ValidateResult {
   const errors: Partial<Record<TaskFormField, string>> = {};
@@ -167,7 +148,6 @@ export function validateTaskForm(state: TaskFormState): ValidateResult {
       title,
       description: state.description,
       priority: state.priority,
-      effort: state.effort === "" ? null : state.effort,
       profileOverride:
         state.profileOverride.trim() === ""
           ? null

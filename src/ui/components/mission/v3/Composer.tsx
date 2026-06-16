@@ -72,8 +72,6 @@ export type ComposerSubmitInput = {
   skills: string[];
   readOnly: boolean;
   unattended: boolean;
-  /** Effort hint (null = auto/provider default). */
-  effort: "low" | "medium" | "high" | null;
   /** Brevity directive for every agent prompt this run. */
   concise: boolean;
   /** Force orchestrator flow selection even when a default flow is set. */
@@ -154,8 +152,7 @@ export function ComposerV3({
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [readOnly, setReadOnly] = useState(false);
   const [unattended, setUnattended] = useState(false);
-  // Advanced run controls (CLI=UI parity): effort, brevity, force-flow-selection.
-  const [effort, setEffort] = useState<"low" | "medium" | "high" | null>(null);
+  // Advanced run controls (CLI=UI parity): brevity, force-flow-selection.
   const [concise, setConcise] = useState(false);
   const [forceSelect, setForceSelect] = useState(false);
   // Supervisor persona (orchestrator-personas.md): the run's judgment posture.
@@ -375,7 +372,6 @@ export function ComposerV3({
       skills: selectedSkills,
       readOnly,
       unattended,
-      effort,
       concise,
       select: forceSelect,
     });
@@ -701,27 +697,8 @@ export function ComposerV3({
           >
             {unattended ? "Unattended on" : "Unattended off"}
           </button>
-          {/* Advanced run controls (CLI=UI parity): effort, brevity, force flow
+          {/* Advanced run controls (CLI=UI parity): brevity, force flow
               selection. Always visible - the full control surface, not hidden. */}
-          <label
-            className="h-7 pl-2.5 pr-1.5 rounded-full text-[11.5px] flex items-center gap-1.5 border border-white/[0.08] bg-white/[0.02] text-fog-300 whitespace-nowrap"
-            title="Reasoning effort for this run (auto = provider/profile default)."
-          >
-            <Cpu className="h-3 w-3 text-violet-300" strokeWidth={1.7} />
-            <span>Effort</span>
-            <select
-              value={effort ?? ""}
-              onChange={(e) =>
-                setEffort((e.target.value || null) as "low" | "medium" | "high" | null)
-              }
-              className="bg-transparent text-fog-100 outline-none text-[11.5px]"
-            >
-              <option value="" className="bg-ink-200">auto</option>
-              <option value="low" className="bg-ink-200">low</option>
-              <option value="medium" className="bg-ink-200">medium</option>
-              <option value="high" className="bg-ink-200">high</option>
-            </select>
-          </label>
           <button
             type="button"
             onClick={() => setConcise((x) => !x)}

@@ -150,9 +150,6 @@ export const runStateSchema = z.object({
   // the originating task/config is later edited. The resolved per-step
   // profile/provider lives in flow.json (the immutable snapshot); these
   // record the run-level choices that fed resolution.
-  // `effort` is a task-difficulty hint carried through from the roadmap; it
-  // no longer maps to a provider (that's a Profile's job now).
-  effort: z.enum(["low", "medium", "high"]).nullable().default(null),
   /** Crew the run resolved against (null = project.defaultCrew). */
   crewId: z.string().nullable().default(null),
   /** Run-wide Profile override applied to every seated step (null = none). */
@@ -427,7 +424,6 @@ export function createInitialState(input: {
     taskId: null,
     pauseRequested: false,
     pausedAtStatus: null,
-    effort: null,
     crewId: null,
     profileOverride: null,
     stepProfileOverrides: {},

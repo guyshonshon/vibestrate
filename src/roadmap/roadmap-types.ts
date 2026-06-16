@@ -42,13 +42,6 @@ export type TaskStatus = z.infer<typeof taskStatusSchema>;
 export const prioritySchema = z.enum(["low", "medium", "high"]);
 export type Priority = z.infer<typeof prioritySchema>;
 
-/**
- * "Effort" is a coarse task-difficulty hint (low/medium/high) used for
- * planning and heuristics. It no longer maps to a provider - runtime strength
- * is chosen by a Profile now (see `profiles/profile-schema.ts`).
- */
-export const effortSchema = z.enum(["low", "medium", "high"]);
-export type Effort = z.infer<typeof effortSchema>;
 
 export const microStepStageSchema = z.enum([
   "planning",
@@ -169,12 +162,10 @@ export const taskSchema = z.object({
   riskLevel: prioritySchema.default("medium"),
   commentsCount: z.number().int().min(0).default(0),
   lastEventAt: z.string().nullable().default(null),
-  // ─── Per-task effort / profile override / read-only ──────────────────
-  // effort is a difficulty hint (it no longer maps to a provider - Profiles
-  // own runtime now). profileOverride pins a run-wide Profile for every seated
-  // step. readOnly forces every role to the readOnly permission profile and
-  // short-circuits the executor / fix loop - investigation only.
-  effort: effortSchema.nullable().default(null),
+  // ─── Per-task profile override / read-only ──────────────────
+  // profileOverride pins a run-wide Profile for every seated step. readOnly
+  // forces every role to the readOnly permission profile and short-circuits
+  // the executor / fix loop - investigation only.
   profileOverride: z.string().nullable().default(null),
   readOnly: z.boolean().default(false),
   // Ordered breakdown that lives inside the card (Phase 3 "Checklist"). The

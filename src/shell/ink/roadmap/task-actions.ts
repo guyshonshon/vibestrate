@@ -23,7 +23,6 @@ export async function createTask(
       title: form.title,
       description: form.description,
       priority: form.priority,
-      effort: form.effort,
       profileOverride: form.profileOverride,
       readOnly: form.readOnly,
     });
@@ -44,7 +43,6 @@ export async function editTask(
       title: form.title,
       description: form.description,
       priority: form.priority,
-      effort: form.effort,
       profileOverride: form.profileOverride,
       readOnly: form.readOnly,
     });

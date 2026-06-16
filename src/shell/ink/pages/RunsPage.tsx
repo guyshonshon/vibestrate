@@ -264,7 +264,6 @@ function OverviewSection({ row }: { row: ShellRunRow }) {
       <Box flexDirection="row" flexWrap="wrap">
         <Field label="updated" value={timeAgo(row.updatedAt)} />
         {row.taskId ? <Field label="task" value={row.taskId} /> : null}
-        {row.effort ? <Field label="effort" value={row.effort} /> : null}
         {row.crewId ? <Field label="crew" value={row.crewId} /> : null}
         {row.profileOverride ? (
           <Field label="profile" value={row.profileOverride} />

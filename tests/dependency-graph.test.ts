@@ -40,7 +40,6 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     riskLevel: "medium",
     commentsCount: 0,
     lastEventAt: null,
-    effort: null,
     profileOverride: null,
     readOnly: false,
     checklist: [],

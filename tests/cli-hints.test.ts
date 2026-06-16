@@ -67,7 +67,7 @@ describe("hintForRoute", () => {
   it("includes run-flag tips on routes that can launch runs", () => {
     const tipsRuns = hintForRoute({ kind: "runs" }).tips ?? [];
     const tipsTask = hintForRoute({ kind: "task", taskId: "T-1" }).tips ?? [];
-    expect(tipsRuns.some((t) => t.includes("--effort"))).toBe(true);
+    expect(tipsRuns.some((t) => t.includes("--crew"))).toBe(true);
     expect(tipsRuns.some((t) => t.includes("--read-only"))).toBe(true);
     expect(tipsTask.some((t) => t.includes("--profile"))).toBe(true);
   });

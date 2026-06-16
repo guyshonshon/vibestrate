@@ -1969,13 +1969,6 @@
               "negated": false
             },
             {
-              "flags": "--effort <level>",
-              "description": "effort bucket (low|medium|high): a difficulty hint recorded for planning. Runtime strength is set by Profiles, not effort.",
-              "required": true,
-              "optional": false,
-              "negated": false
-            },
-            {
               "flags": "--provider <id>",
               "description": "override the provider for runs spawned from this task.",
               "required": true,
@@ -1985,13 +1978,6 @@
             {
               "flags": "--read-only",
               "description": "investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert.",
-              "required": false,
-              "optional": false,
-              "negated": false
-            },
-            {
-              "flags": "--auto-effort",
-              "description": "apply the heuristic effort suggestion when --effort isn't passed.",
               "required": false,
               "optional": false,
               "negated": false
@@ -5452,13 +5438,6 @@
           "negated": false
         },
         {
-          "flags": "--effort <level>",
-          "description": "task-difficulty hint (low|medium|high). Recorded for planning; does not pick a provider.",
-          "required": true,
-          "optional": false,
-          "negated": false
-        },
-        {
           "flags": "--crew <id>",
           "description": "crew to resolve the flow's seats against (default: project.defaultCrew).",
           "required": true,
@@ -5482,13 +5461,6 @@
         {
           "flags": "--unattended",
           "description": "never pause for a human: forces budget onLimit->stop and resilience onExhausted->fail, so the run always terminates on its own.",
-          "required": false,
-          "optional": false,
-          "negated": false
-        },
-        {
-          "flags": "--auto-effort",
-          "description": "apply the heuristic effort suggestion when --effort isn't passed.",
           "required": false,
           "optional": false,
           "negated": false

@@ -66,8 +66,7 @@ const patchBody = z.object({
   touchedFiles: z.array(z.string()).optional(),
   riskLevel: z.enum(["low", "medium", "high"]).optional(),
   validationProfile: z.string().nullable().optional(),
-  // Phase A/B: per-task effort + provider override + read-only.
-  effort: z.enum(["low", "medium", "high"]).nullable().optional(),
+  // Phase A/B: per-task provider override + read-only.
   providerOverride: z.string().nullable().optional(),
   readOnly: z.boolean().optional(),
 });
@@ -95,22 +94,6 @@ export async function registerTasksRoutes(
   app.get("/api/tasks/suggest", async () => {
     await svc.init();
     return { suggestions: await svc.suggestNext() };
-  });
-
-  // Phase C: heuristic effort suggestion. Pure, free, deterministic -
-  // safe to expose without any rate limit. The dashboard's task-add /
-  // task-detail surface a "Suggested: …" panel that calls this.
-  app.post<{
-    Body: { text?: string; files?: string[] };
-  }>("/api/effort/classify", async (req) => {
-    const text = typeof req.body?.text === "string" ? req.body.text : "";
-    const files = Array.isArray(req.body?.files)
-      ? req.body.files.filter((f): f is string => typeof f === "string")
-      : [];
-    const { classifyEffort } = await import(
-      "../../core/effort-heuristic.js"
-    );
-    return classifyEffort({ text, files });
   });
 
   app.post<{ Body: unknown }>("/api/tasks", async (req) => {

@@ -72,7 +72,6 @@ function run(over: Partial<RunState> & { resolvedProviderId?: string }): RunStat
     taskId: null,
     pauseRequested: false,
     pausedAtStatus: null,
-    effort: null,
     crewId: null,
     profileOverride: null,
     stepProfileOverrides: {},

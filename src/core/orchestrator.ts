@@ -281,9 +281,6 @@ export type OrchestratorInput = {
   /** Pre-assigned run id (dashboard spawns compute it server-side so the UI
    * can navigate to the run immediately). Omitted = derive from the task. */
   runId?: string | null;
-  /** Task-difficulty hint carried from the roadmap. Recorded for audit; it no
-   * longer maps to a provider (Profiles own runtime now). */
-  effort?: "low" | "medium" | "high" | null;
   /** Crew to resolve the flow against. null = project.defaultCrew. Ignored when
    * an already-resolved `flow` snapshot is supplied (it carries its own crew). */
   crewId?: string | null;
@@ -485,7 +482,6 @@ export class Orchestrator {
   private readonly onProgress: (message: string) => void;
   private readonly taskId: string | null;
   private readonly preassignedRunId: string | null;
-  private readonly effort: "low" | "medium" | "high" | null;
   private readonly crewId: string | null;
   private readonly profileOverride: string | null;
   private readonly stepProfileOverrides: Record<string, string>;
@@ -551,7 +547,6 @@ export class Orchestrator {
     this.onProgress = input.onProgress ?? (() => {});
     this.taskId = input.taskId ?? null;
     this.preassignedRunId = input.runId ?? null;
-    this.effort = input.effort ?? null;
     this.crewId = input.crewId ?? null;
     this.profileOverride = input.profileOverride ?? null;
     this.stepProfileOverrides = input.stepProfileOverrides ?? {};
@@ -703,7 +698,6 @@ export class Orchestrator {
     state = {
       ...state,
       taskId: this.taskId,
-      effort: this.effort,
       crewId: flow.crewId,
       profileOverride: this.profileOverride,
       stepProfileOverrides: this.stepProfileOverrides,
@@ -744,7 +738,6 @@ export class Orchestrator {
       data: {
         task: this.task,
         taskId: this.taskId,
-        effort: this.effort,
         crewId: flow.crewId,
         profileOverride: this.profileOverride,
         stepProfileOverrides: this.stepProfileOverrides,

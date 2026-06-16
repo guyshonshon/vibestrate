@@ -222,7 +222,6 @@ export class ProposalService {
       riskLevel: t.riskLevel,
       commentsCount: 0,
       lastEventAt: null,
-      effort: null,
       profileOverride: null,
       readOnly: false,
       checklist: [],

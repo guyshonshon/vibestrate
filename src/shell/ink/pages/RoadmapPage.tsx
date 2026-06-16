@@ -93,7 +93,6 @@ export function RoadmapPage({
         title: selected.title,
         description: selected.description,
         priority: selected.priority,
-        effort: selected.effort ?? "",
         profileOverride: selected.profileOverride ?? "",
         readOnly: selected.readOnly,
       });
@@ -105,7 +104,6 @@ export function RoadmapPage({
           k === "title" ||
           k === "description" ||
           k === "priority" ||
-          k === "effort" ||
           k === "profileOverride" ||
           k === "readOnly"
         ) {
@@ -118,7 +116,6 @@ export function RoadmapPage({
         dispatchForm({ type: "field", field: k, value: seeded[k] });
       }
       dispatchForm({ type: "field", field: "priority", value: "medium" });
-      dispatchForm({ type: "field", field: "effort", value: "" });
       dispatchForm({ type: "field", field: "readOnly", value: false });
       dispatchForm({ type: "focus", field: "title" });
     }
@@ -487,8 +484,6 @@ function TaskRow({ task, selected }: { task: Task; selected: boolean }) {
         </Text>
         <Text dimColor>  prio </Text>
         <Text>{task.priority.padEnd(6)}</Text>
-        <Text dimColor>  effort </Text>
-        <Text>{(task.effort ?? "-").padEnd(6)}</Text>
         {task.readOnly ? <Text color="yellow">  ◉ read-only</Text> : null}
         <Text dimColor>  {clip(task.id, 24)}</Text>
       </Text>
@@ -504,7 +499,6 @@ function TaskDetail({ task }: { task: Task }) {
         <DetailRow label="ID" value={task.id} mono />
         <DetailRow label="Status" value={task.status} />
         <DetailRow label="Priority" value={task.priority} />
-        <DetailRow label="Effort" value={task.effort ?? "-"} />
         <DetailRow
           label="Mode"
           value={task.readOnly ? "read-only" : "writable"}

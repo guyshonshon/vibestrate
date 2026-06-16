@@ -274,7 +274,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
         task: input.brief,
         readOnly: input.readOnly || undefined,
         unattended: input.unattended || undefined,
-        effort: input.effort ?? undefined,
         concise: input.concise || undefined,
         select: input.select || undefined,
         crewId: input.crewId ?? undefined,

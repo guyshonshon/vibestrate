@@ -635,7 +635,6 @@ export const api = {
   async spawnRun(input: {
     task: string;
     taskId?: string;
-    effort?: "low" | "medium" | "high";
     crewId?: string;
     profileOverride?: string;
     seatRoleOverrides?: Record<string, string>;
@@ -1435,16 +1434,6 @@ export const api = {
     );
     return r.comment;
   },
-  async classifyEffort(input: {
-    text: string;
-    files?: string[];
-  }): Promise<{
-    effort: "low" | "medium" | "high";
-    confidence: number;
-    reasons: string[];
-  }> {
-    return jsonPost("/api/effort/classify", input);
-  },
   async patchTask(
     taskId: string,
     patch: Partial<{
@@ -1452,7 +1441,6 @@ export const api = {
       description: string;
       priority: "low" | "medium" | "high";
       validationProfile: string | null;
-      effort: "low" | "medium" | "high" | null;
       profileOverride: string | null;
       readOnly: boolean;
     }>,

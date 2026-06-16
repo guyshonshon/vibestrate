@@ -18,14 +18,13 @@ export type CliHint = {
   title: string;
   blurb: string;
   commands: CliCommand[];
-  /** Extra tips for non-obvious flags (effort, read-only, provider). */
+  /** Extra tips for non-obvious flags (read-only, provider). */
   tips?: string[];
   /** Direct link into the CLI section of the README, if any. */
   docs?: string;
 };
 
 const TIPS_RUN: string[] = [
-  "Add `--effort low|medium|high` to bucket the work; the heuristic picks one when omitted.",
   "Add `--read-only` for an investigation-only run (refuses apply/validate/revert).",
   "Add `--crew <id>` to pick the crew, or `--profile <id>` to run every seated step on one profile.",
 ];
@@ -51,7 +50,7 @@ export function hintForRoute(route: Route): CliHint {
           "Compose a run: brief, flow, crew, and the full control surface - or start one from your roadmap. The CLI maps 1:1.",
         commands: [
           { cmd: 'vibe run "describe the change"', note: "start a run" },
-          { cmd: "vibe run --flow <id> --effort high", note: "pick flow + effort" },
+          { cmd: "vibe run --flow <id>", note: "pin a specific flow" },
           { cmd: "vibe run --task <id>", note: "run a roadmap card (grounds on it)" },
         ],
         tips: TIPS_RUN,
@@ -62,7 +61,7 @@ export function hintForRoute(route: Route): CliHint {
         blurb:
           "Browse, start, and inspect runs - plus the scheduler queue at the top. Everything you see here is also exposed on the CLI.",
         commands: [
-          { cmd: "vibe shell", note: "live interactive panel (runs, agent, effort, MCP, pause/resume)" },
+          { cmd: "vibe shell", note: "live interactive panel (runs, agent, MCP, pause/resume)" },
           { cmd: "vibe status", note: "one-shot run table" },
           { cmd: 'vibe run "describe the change"', note: "start a new run" },
           { cmd: "vibe replay <runId>", note: "open the run timeline in the terminal" },
@@ -94,10 +93,7 @@ export function hintForRoute(route: Route): CliHint {
           "Tasks across status columns. The same backlog drives `vibe tasks` and `vibe queue`.",
         commands: [
           { cmd: "vibe tasks list", note: "table of tasks with status + linked runs" },
-          {
-            cmd: 'vibe tasks add "title" --effort medium',
-            note: "create a new task with an effort bucket",
-          },
+          { cmd: 'vibe tasks add "title"', note: "create a new task" },
           { cmd: "vibe roadmap show", note: "raw roadmap document" },
         ],
         tips: [

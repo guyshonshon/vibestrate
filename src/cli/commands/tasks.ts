@@ -39,34 +39,16 @@ async function cmdAdd(
     skills?: string;
     files?: string;
     json?: boolean;
-    effort?: string;
     provider?: string;
     readOnly?: boolean;
-    autoEffort?: boolean;
   },
 ): Promise<number> {
   try {
     const { svc: s } = await svc();
     await s.init();
-    if (opts.effort && opts.effort !== "low" && opts.effort !== "medium" && opts.effort !== "high") {
-      console.error(`--effort must be one of low|medium|high (got "${opts.effort}").`);
-      return 2;
-    }
-    // Always classify, even when the user didn't ask for --auto-effort, so
-    // we can print an honest "(suggested: …)" line below. The classifier
-    // is free and deterministic.
     const fileList = opts.files
       ? opts.files.split(",").map((s) => s.trim()).filter(Boolean)
       : [];
-    const { classifyEffort } = await import("../../core/effort-heuristic.js");
-    const heuristic = classifyEffort({
-      text: `${title}${opts.description ? " " + opts.description : ""}`,
-      files: fileList,
-    });
-    let effortToUse = opts.effort as "low" | "medium" | "high" | undefined;
-    if (!effortToUse && opts.autoEffort) {
-      effortToUse = heuristic.effort;
-    }
     const task = await s.addTask({
       title,
       description: opts.description,
@@ -77,12 +59,11 @@ async function cmdAdd(
       roadmapItemId: opts.roadmap ?? null,
       requiredSkills: opts.skills ? opts.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
       touchedFiles: fileList,
-      effort: effortToUse ?? null,
       profileOverride: opts.provider ?? null,
       readOnly: opts.readOnly ?? false,
     });
     if (opts.json) {
-      console.log(JSON.stringify({ ...task, _heuristic: heuristic }, null, 2));
+      console.log(JSON.stringify(task, null, 2));
       return 0;
     }
     console.log(`${symbol.ok()} Task added.`);
@@ -90,18 +71,6 @@ async function cmdAdd(
     console.log(indent(`title: ${task.title}`));
     if (task.roadmapItemId) {
       console.log(indent(`roadmap item: ${task.roadmapItemId}`));
-    }
-    // Always surface the heuristic verdict so the user can see what the
-    // signals say - even when --effort or --auto-effort was used.
-    const verdictLine =
-      task.effort === heuristic.effort
-        ? `effort: ${color.bold(task.effort ?? "(none)")} ${color.dim(`(matches suggestion @ ${heuristic.confidence})`)}`
-        : task.effort
-          ? `effort: ${color.bold(task.effort)} ${color.dim(`(suggested ${heuristic.effort} @ ${heuristic.confidence})`)}`
-          : `effort: ${color.dim("(none)")} ${color.dim(`- suggested ${heuristic.effort} @ ${heuristic.confidence}; pass --auto-effort or --effort ${heuristic.effort} to apply`)}`;
-    console.log(indent(verdictLine));
-    for (const r of heuristic.reasons.slice(0, 3)) {
-      console.log(indent(color.dim(`  · ${r}`)));
     }
     return 0;
   } catch (err) {
@@ -678,20 +647,12 @@ export function buildTasksCommand(): Command {
     .option("--skills <list>", "comma-separated skill names")
     .option("--files <list>", "comma-separated likely-touched files")
     .option(
-      "--effort <level>",
-      "effort bucket (low|medium|high): a difficulty hint recorded for planning. Runtime strength is set by Profiles, not effort.",
-    )
-    .option(
       "--provider <id>",
       "override the provider for runs spawned from this task.",
     )
     .option(
       "--read-only",
       "investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert.",
-    )
-    .option(
-      "--auto-effort",
-      "apply the heuristic effort suggestion when --effort isn't passed.",
     )
     .option("--json", "emit JSON")
     .action(async (title: string, opts) => {

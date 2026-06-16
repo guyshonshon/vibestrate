@@ -9,12 +9,11 @@ describe("deriveRerunArgs", () => {
     ]);
   });
 
-  it("forwards taskId, effort, providerOverride, readOnly in stable order", () => {
+  it("forwards taskId, providerOverride, readOnly in stable order", () => {
     expect(
       deriveRerunArgs({
         task: "ship it",
         taskId: "task-ship-1",
-        effort: "high",
         providerOverride: "claude",
         readOnly: true,
       }),
@@ -22,8 +21,6 @@ describe("deriveRerunArgs", () => {
       "run",
       "--task",
       "task-ship-1",
-      "--effort",
-      "high",
       "--provider",
       "claude",
       "--read-only",
@@ -36,7 +33,6 @@ describe("deriveRerunArgs", () => {
       deriveRerunArgs({
         task: "x",
         taskId: null,
-        effort: null,
         providerOverride: null,
         readOnly: false,
       }),
@@ -59,8 +55,8 @@ describe("deriveRerunArgs", () => {
   });
 
   it("formatArgv quotes args with spaces", () => {
-    expect(formatArgv(["run", "say hello", "--effort", "low"])).toBe(
-      'run "say hello" --effort low',
+    expect(formatArgv(["run", "say hello", "--provider", "claude"])).toBe(
+      'run "say hello" --provider claude',
     );
   });
 });

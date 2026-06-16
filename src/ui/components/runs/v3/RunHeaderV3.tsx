@@ -182,7 +182,7 @@ export function RunHeaderV3({
           <button
             type="button"
             onClick={onRerun}
-            title="Re-run this task with adjusted settings (write access, effort, provider)"
+            title="Re-run this task with adjusted settings (write access, provider)"
             className="h-8 px-2.5 rounded-lg border border-violet-soft/40 bg-violet-soft/10 hover:bg-violet-soft/20 flex items-center gap-2 text-[12px] text-fog-100 whitespace-nowrap"
           >
             <RotateCcw className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />

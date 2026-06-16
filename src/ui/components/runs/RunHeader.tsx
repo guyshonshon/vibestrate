@@ -8,7 +8,6 @@ import {
   Play,
   RotateCcw,
   StopCircle,
-  Zap,
 } from "lucide-react";
 import type { RunState } from "../../lib/types.js";
 import { api } from "../../lib/api.js";
@@ -139,15 +138,6 @@ export function RunHeader({
                 >
                   <Eye className="h-3 w-3" strokeWidth={1.5} aria-hidden />
                   read-only
-                </span>
-              ) : null}
-              {run.effort ? (
-                <span
-                  className="vibestrate-mono inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted"
-                  title={`Task effort: ${run.effort}.`}
-                >
-                  <Zap className="h-3 w-3" strokeWidth={1.5} aria-hidden />
-                  {run.effort}
                 </span>
               ) : null}
               {run.profileOverride ? (

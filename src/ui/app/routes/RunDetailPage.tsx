@@ -681,9 +681,6 @@ function RerunDialog({
 }) {
   const [task, setTask] = useState(run.task);
   const [readOnly, setReadOnly] = useState(run.readOnly);
-  const [effort, setEffort] = useState<"" | "low" | "medium" | "high">(
-    run.effort ?? "",
-  );
   const [provider, setProvider] = useState(run.profileOverride ?? "");
   // Rewind seeds the upstream steps and restarts at a stage. It's available
   // when the run's flow declares a step at that stage and the run captured the
@@ -759,7 +756,6 @@ function RerunDialog({
       await api.spawnRun({
         task,
         readOnly: readOnly || undefined,
-        effort: effort || undefined,
         profileOverride: provider || undefined,
         // Re-run the same flow (resume seeds the upstream steps of that flow).
         // Omitting it for the built-in default is also fine, but passing the id
@@ -925,19 +921,6 @@ function RerunDialog({
               className="accent-violet-500"
             />
             Read-only (no writes)
-          </label>
-          <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
-            effort
-            <select
-              value={effort}
-              onChange={(e) => setEffort(e.target.value as typeof effort)}
-              className={selectCls}
-            >
-              <option value="">default</option>
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
-            </select>
           </label>
           <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
             provider

@@ -51,7 +51,6 @@ export type AddTaskInput = {
   touchedFiles?: string[];
   riskLevel?: Priority;
   validationProfile?: string | null;
-  effort?: "low" | "medium" | "high" | null;
   profileOverride?: string | null;
   readOnly?: boolean;
   derivedFrom?: { taskId: string; itemId: string } | null;
@@ -167,7 +166,6 @@ export class RoadmapService {
       riskLevel: input.riskLevel ?? "medium",
       commentsCount: 0,
       lastEventAt: ts,
-      effort: input.effort ?? null,
       profileOverride: input.profileOverride ?? null,
       readOnly: input.readOnly ?? false,
       checklist: [],
@@ -227,7 +225,6 @@ export class RoadmapService {
         | "validationProfile"
         | "touchedFiles"
         | "riskLevel"
-        | "effort"
         | "profileOverride"
         | "readOnly"
       >

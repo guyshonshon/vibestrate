@@ -79,7 +79,7 @@ export const PAGE_META: Record<PageId, PageMeta> = {
     ],
     commonCli: [
       "vibe tasks list",
-      'vibe tasks add "title" --priority high --effort medium',
+      'vibe tasks add "title" --priority high',
       "vibe tasks show <taskId>",
     ],
   },

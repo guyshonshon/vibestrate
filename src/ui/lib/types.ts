@@ -106,7 +106,6 @@ export type RunState = {
   taskId?: string | null;
   pauseRequested?: boolean;
   pausedAtStatus?: RunStatus | null;
-  effort?: "low" | "medium" | "high" | null;
   /** Crew the run resolved against (null = project.defaultCrew). */
   crewId?: string | null;
   /** Run-wide Profile override applied to every seated step. */
@@ -540,7 +539,6 @@ export type Task = {
   riskLevel: Priority;
   commentsCount: number;
   lastEventAt: string | null;
-  effort?: "low" | "medium" | "high" | null;
   profileOverride?: string | null;
   readOnly?: boolean;
   checklist?: ChecklistItem[];
