@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.116
+
+- **Flow inputs are back on the compose page.** A flow can declare typed
+  `params:` (its required inputs); the new run page now renders an **Inputs**
+  section when the selected flow has them - prefilled from the project profile,
+  with a Generate affordance for generatable params, enum/boolean/secret-aware
+  controls. Required inputs gate Start (it tells you which to fill), and they're
+  passed to the run. This was missing in the rebuilt page (a regression from the
+  old composer). Also: the inline "ask the supervisor" now includes the current
+  Task brief in its context, so it can judge whether settings (e.g. Effort) fit.
 
 ## 0.7.115
 

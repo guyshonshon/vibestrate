@@ -59,6 +59,14 @@ export function RunComposePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Flow inputs (the flow's declared params - required ones must be filled
+  // before the run starts). Prefilled from the durable project profile.
+  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramPrefill, setParamPrefill] = useState<
+    Record<string, { value: string; setBy: string; secret: boolean }>
+  >({});
+  const [generating, setGenerating] = useState<string | null>(null);
+
   // Inline consult (ask the supervisor without leaving the page).
   const [askQ, setAskQ] = useState("");
   const [askBusy, setAskBusy] = useState(false);
@@ -96,6 +104,58 @@ export function RunComposePage() {
     () => flows.find((f) => f.id === flowId) ?? null,
     [flows, flowId],
   );
+  const flowParams = selectedFlow?.definition.params ?? null;
+
+  // Prefill the flow's inputs from the project profile when the flow changes
+  // (a stored answer becomes the field's starting value); secrets are never
+  // prefilled into a visible field.
+  useEffect(() => {
+    setParamValues({});
+    setParamPrefill({});
+    if (!flowId) return;
+    let cancelled = false;
+    void api
+      .getFlowParams(flowId)
+      .then((values) => {
+        if (cancelled) return;
+        setParamPrefill(values);
+        const seed: Record<string, string> = {};
+        for (const [name, v] of Object.entries(values)) {
+          if (!v.secret && v.value) seed[name] = v.value;
+        }
+        if (Object.keys(seed).length > 0) setParamValues(seed);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [flowId]);
+
+  function paramFilled(name: string, def: { required?: boolean; default?: unknown }): boolean {
+    const v = paramValues[name];
+    if (v !== undefined && v.trim() !== "") return true;
+    if (def.default !== undefined) return true;
+    const pf = paramPrefill[name];
+    return !!pf && (pf.secret || pf.value.length > 0);
+  }
+  const missingRequired = flowParams
+    ? Object.entries(flowParams)
+        .filter(([n, d]) => d.required && !paramFilled(n, d))
+        .map(([n]) => n)
+    : [];
+
+  async function generateParam(name: string) {
+    if (!flowId) return;
+    setGenerating(name);
+    try {
+      const { suggestion } = await api.generateParam(flowId, name);
+      setParamValues((c) => ({ ...c, [name]: suggestion }));
+    } catch {
+      // generation is optional - leave the field for manual entry
+    } finally {
+      setGenerating(null);
+    }
+  }
 
   async function start(taskId?: string) {
     const typed = brief.trim();
@@ -103,11 +163,15 @@ export function RunComposePage() {
     setBusy(true);
     setError(null);
     try {
+      const params = Object.fromEntries(
+        Object.entries(paramValues).filter(([, v]) => v && v.trim() !== ""),
+      );
       const r = await api.spawnRun({
         task:
           typed ||
           (taskId ? suggestions.find((s) => s.taskId === taskId)?.title ?? "" : ""),
         taskId,
+        params: Object.keys(params).length > 0 ? params : undefined,
         flow: flowId ? { id: flowId } : undefined,
         crewId: crewId ?? undefined,
         persona: personaId ?? undefined,
@@ -140,6 +204,9 @@ export function RunComposePage() {
           ? `Currently pinned flow: ${selectedFlow.definition.label} (${selectedFlow.id}).`
           : "No flow pinned (the orchestrator would pick).",
         `Crew: ${crewId ?? "default"}. Effort: ${effort ?? "auto"}. Supervisor: ${personaId ?? "default"}.`,
+        brief.trim()
+          ? `The current Task brief is: "${brief.trim()}".`
+          : "No Task brief has been written yet.",
       ].join(" ");
       const r = await api.consult({ question: `${surface}\n\nMy question: ${q}` });
       setAskResult(r);
@@ -150,7 +217,7 @@ export function RunComposePage() {
     }
   }
 
-  const canStart = brief.trim().length > 0 && !busy;
+  const canStart = brief.trim().length > 0 && missingRequired.length === 0 && !busy;
   const recent = meta?.recentRuns ?? [];
   const counts = meta?.counts;
 
@@ -302,6 +369,83 @@ export function RunComposePage() {
               </div>
             </section>
 
+            {/* Flow inputs - the selected flow's declared params. Required ones
+                must be filled before the run starts (they ARE part of the task). */}
+            {flowParams && Object.keys(flowParams).length > 0 ? (
+              <section>
+                <SectionLabel icon={<Sparkles className="h-3 w-3" strokeWidth={1.8} />}>
+                  Inputs
+                </SectionLabel>
+                <div className="slab-flat grid grid-cols-1 gap-x-6 gap-y-3.5 p-4 sm:grid-cols-2">
+                  {Object.entries(flowParams).map(([name, def]) => {
+                    const pf = paramPrefill[name];
+                    const val =
+                      paramValues[name] ??
+                      (def.secret ? "" : pf && !pf.secret ? pf.value : def.default != null ? String(def.default) : "");
+                    const set = (v: string) => setParamValues((c) => ({ ...c, [name]: v }));
+                    return (
+                      <label key={name} className="flex flex-col gap-1">
+                        <span className="flex items-center gap-1.5 text-[11.5px] text-fog-200">
+                          <span className="font-medium">{name}</span>
+                          {def.required ? <span className="text-fail">*</span> : null}
+                          {def.shared ? <span className="text-fog-600" title="Project-global">· shared</span> : null}
+                          {pf && !def.secret ? (
+                            <span className="text-emerald/80" title={`From the project profile (${pf.setBy})`}>
+                              · {pf.setBy === "generated" ? "generated" : "saved"}
+                            </span>
+                          ) : null}
+                          {def.description ? <span className="text-fog-500">· {def.description}</span> : null}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {def.type === "boolean" ? (
+                            <Toggle on={val === "true"} onClick={() => set(val === "true" ? "false" : "true")} label={name} />
+                          ) : def.type === "enum" && def.values?.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {def.values.map((opt) => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => set(opt)}
+                                  className={cn(
+                                    "border px-2 py-1 text-[11.5px] transition",
+                                    val === opt
+                                      ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100"
+                                      : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
+                                  )}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <input
+                              type={def.secret ? "text" : def.type === "number" ? "number" : "text"}
+                              value={val}
+                              onChange={(e) => set(e.target.value)}
+                              placeholder={def.secret ? "env var NAME (e.g. OPENAI_API_KEY)" : def.type}
+                              className="min-w-0 flex-1 border border-[color:var(--line)] bg-ink-0 px-2.5 py-1.5 text-[12px] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
+                            />
+                          )}
+                          {def.generate && !def.secret ? (
+                            <button
+                              type="button"
+                              disabled={generating === name}
+                              onClick={() => generateParam(name)}
+                              title={def.generate.instruction}
+                              className="flex shrink-0 items-center gap-1 border border-violet-soft/40 px-2 py-1.5 text-[11px] text-violet-100 transition hover:bg-violet-mid/10 disabled:opacity-50"
+                            >
+                              <Sparkles className="h-3 w-3" strokeWidth={1.8} />
+                              {generating === name ? "…" : "Generate"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
             {/* Crew - deeper, card-based selection (like Flow) */}
             {meta && meta.crews.length > 0 ? (
               <section>
@@ -400,9 +544,15 @@ export function RunComposePage() {
                 <Play className="h-3.5 w-3.5" strokeWidth={2.2} />
                 {busy ? "Starting…" : "Start run"}
               </button>
-              <span className="text-[11.5px] text-fog-400">
-                Nothing pushes or merges. The run stops at merge-ready, blocked, or failed.
-              </span>
+              {missingRequired.length > 0 ? (
+                <span className="text-[11.5px] text-warn">
+                  Fill required input{missingRequired.length > 1 ? "s" : ""}: {missingRequired.join(", ")}
+                </span>
+              ) : (
+                <span className="text-[11.5px] text-fog-400">
+                  Nothing pushes or merges. The run stops at merge-ready, blocked, or failed.
+                </span>
+              )}
             </div>
             {error ? (
               <div className="border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2 text-[12px] text-fail">
