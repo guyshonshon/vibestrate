@@ -603,9 +603,9 @@ function RoadmapChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-xl border px-3.5 py-2.5 text-left transition relative overflow-hidden min-w-[200px]",
+        "shrink-0 border px-3.5 py-2.5 text-left transition relative overflow-hidden min-w-[200px]",
         active
-          ? "border-violet-soft/45 bg-violet-soft/[0.08] ring-1 ring-violet-soft/30"
+          ? "border-violet-soft/55 bg-violet-deep/20 text-fog-100"
           : "border-white/[0.08] bg-white/[0.018] hover:bg-white/[0.035]",
       )}
     >
@@ -613,10 +613,7 @@ function RoadmapChip({
         {all ? (
           <Grid3X3 className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
         ) : (
-          <span
-            className={cn("w-1.5 h-1.5 rounded-full", swatch[tone])}
-            style={{ boxShadow: "0 0 8px currentColor" }}
-          />
+          <span className={cn("w-1.5 h-1.5 rounded-full", swatch[tone])} />
         )}
         <span className="text-[12.5px] text-fog-100 font-medium truncate">
           {label}
