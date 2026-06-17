@@ -519,10 +519,7 @@ function KpiTile({
     <div className="slab relative overflow-hidden px-3 py-2">
       <div className="flex items-center justify-between">
         <div className="eyebrow text-[10px]">{label}</div>
-        <span
-          className={cn("w-1.5 h-1.5 rounded-full", t.dot)}
-          style={{ boxShadow: "0 0 10px currentColor" }}
-        />
+        <span className={cn("w-1.5 h-1.5 rounded-full", t.dot)} />
       </div>
       <div className="mt-0.5 flex items-baseline justify-between gap-2">
         <div className="text-[20px] font-semibold tracking-tight num-tabular leading-none">
