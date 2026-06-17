@@ -1545,6 +1545,14 @@ export const api = {
     );
     return r.task;
   },
+  /** Permanently remove a task card. 409 if the task is live (terminate first).
+   *  The git worktree, if any, is left in place; its path comes back so the
+   *  caller can tell the user it's still there. */
+  async deleteTask(
+    taskId: string,
+  ): Promise<{ ok: true; task: Task; worktreePath: string | null }> {
+    return jsonDelete(`/api/tasks/${encodeURIComponent(taskId)}`);
+  },
   async cancelTask(taskId: string): Promise<Task> {
     const r = await jsonPost<{ task: Task }>(
       `/api/tasks/${encodeURIComponent(taskId)}/cancel`,

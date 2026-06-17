@@ -146,6 +146,29 @@ export async function registerTasksRoutes(
     },
   );
 
+  // Permanently remove a task card. Inherits the standard CSRF/auth gate (DELETE
+  // is a mutating method) - never more open than PATCH. The service guard
+  // refuses while the task is live; past the existence check the only failure is
+  // that guard, so it maps to 409. The git worktree (if any) is left in place;
+  // we return its path so the caller can tell the user it's still there.
+  app.delete<{ Params: { taskId: string } }>(
+    "/api/tasks/:taskId",
+    async (req) => {
+      assertSafeId(req.params.taskId);
+      const existing = await svc.getTask(req.params.taskId);
+      if (!existing) throw new HttpError(404, "Task not found.");
+      try {
+        const task = await svc.deleteTask(req.params.taskId);
+        return { ok: true, task, worktreePath: task.worktreePath };
+      } catch (err) {
+        throw new HttpError(
+          409,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    },
+  );
+
   app.post<{ Params: { taskId: string }; Body: unknown }>(
     "/api/tasks/:taskId/comments",
     async (req) => {
