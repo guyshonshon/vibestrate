@@ -737,21 +737,11 @@ function BoardColumn({
     <section
       data-column={column.id}
       className={cn(
-        "flex flex-col rounded-xl border surface-ink-100-55 backdrop-blur-xl h-full min-h-0",
-        urgent ? "border-amber-400/25" : "border-white/[0.06]",
+        "flex flex-col slab h-full min-h-0",
+        urgent ? "border-amber-400/40" : undefined,
       )}
-      style={{
-        boxShadow: urgent
-          ? "0 0 0 1px rgba(251,191,36,0.08) inset, 0 8px 24px -16px rgba(251,191,36,0.25)"
-          : undefined,
-      }}
     >
-      <div
-        className="h-[2px] rounded-t-xl"
-        style={{
-          background: `linear-gradient(90deg, ${column.accent} 0%, transparent 100%)`,
-        }}
-      />
+      <div className="h-[2px]" style={{ background: column.accent }} />
       <header className="px-3 py-2.5 flex items-center justify-between border-b border-white/[0.05]">
         <div className="flex items-center gap-1.5 min-w-0">
           {isRunning ? (
