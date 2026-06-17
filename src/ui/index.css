@@ -327,12 +327,15 @@ body {
   font-family: var(--font-mono);
   font-feature-settings: "ss02", "tnum", "zero";
 }
+/* A small section label - readable, not a faint uppercase "slug". The text is
+   rendered as written (sentence case), in mono, slightly brighter than body
+   muted so panels are actually labeled. Redundant title kickers were removed
+   rather than styled. */
 .eyebrow {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-fog-400);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: var(--color-fog-300);
   white-space: nowrap;
 }
 .num-tabular {

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.123
+
+- **No more "slug" kickers; section labels you can actually read.** The faint
+  uppercase eyebrow that echoed the page name above each title is gone
+  (Runs, Board, Proposals, Git, Workspace, Metrics, Providers, Codebase,
+  Mission Control) - the heading carries the page now. The eyebrow style that
+  remains on genuine section labels (Daily spend cap, Changed files, Recent
+  commits, Inspector...) dropped the uppercase + wide tracking and brightened,
+  so a panel's label is legible instead of a grey whisper.
+
 ## 0.7.122
 
 - **Flows page, rebuilt to the real vibestrate.com look.** Full-width now, and

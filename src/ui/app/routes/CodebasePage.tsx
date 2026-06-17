@@ -175,7 +175,6 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
     <div className="flex h-full overflow-hidden">
       <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-ink-100/40 backdrop-blur-xl">
         <header className="flex flex-col gap-2 border-b border-white/10 px-3 py-2.5">
-          <div className="eyebrow">Codebase</div>
           <div className="flex items-center gap-1.5">
             <SourceTab active={source === "project"} onClick={() => setSource("project")}>
               Project
@@ -444,7 +443,7 @@ function AnnotationsPanel(props: {
 
       <div className="mt-4 mb-2 flex items-center gap-2 border-t border-white/10 pt-3">
         <MessageSquarePlus className="h-3.5 w-3.5 text-violet-soft" />
-        <div className="eyebrow !tracking-[0.14em]">Annotations</div>
+        <div className="eyebrow">Annotations</div>
       </div>
       <p className="mb-3 text-[11px] leading-snug text-fog-500">
         Notes pinned to this file. Ones marked{" "}

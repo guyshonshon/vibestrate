@@ -359,10 +359,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
     <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
       {/* Eyebrow row */}
       <section className="mt-2">
-        <div className="flex items-baseline justify-between mb-3">
-          {/* No tagline - marketing voice doesn't belong in working chrome,
-           * and the Brief/Flow/Crew/Run map on the right already orients. */}
-          <div className="eyebrow">Mission Control</div>
+        <div className="flex items-baseline justify-end mb-3">
           <button
             type="button"
             onClick={() => navigate({ kind: "compose" })}

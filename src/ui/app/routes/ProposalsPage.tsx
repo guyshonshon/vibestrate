@@ -35,8 +35,6 @@ export function ProposalsPage({
   return (
     <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
       <section className="flex items-baseline gap-3 flex-wrap">
-        <span className="eyebrow">Proposals</span>
-        <span className="text-fog-500">·</span>
         <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
           Roadmap proposals{" "}
           <span className="mono text-[12px] text-fog-500 num-tabular">

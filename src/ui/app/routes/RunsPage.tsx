@@ -66,8 +66,6 @@ export function RunsPage({
     <div className="relative z-10 w-full px-6 pt-5 pb-12">
       <section className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
-          <span className="eyebrow">Runs</span>
-          <span className="text-fog-500">·</span>
           <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
             All runs{" "}
             <span className="mono text-[12px] text-fog-500 num-tabular">

@@ -345,7 +345,6 @@ export function ProvidersPage() {
   return (
     <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Providers · the CLIs Vibestrate drives</div>
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           {rows ? `${availableCount} detected` : "-"}
           <span className="text-fog-400">

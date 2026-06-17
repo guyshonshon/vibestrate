@@ -274,8 +274,6 @@ export function BoardPage({
       <section className="w-full px-6 pt-5 shrink-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-baseline gap-3 min-w-0">
-            <span className="eyebrow">Board</span>
-            <span className="text-fog-500">·</span>
             <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
               Tasks{" "}
               <span className="mono text-[12px] text-fog-500 num-tabular">

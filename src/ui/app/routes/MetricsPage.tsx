@@ -75,9 +75,6 @@ export function MetricsPage() {
       {/* ── Hero ─ */}
       <section className="mt-2 flex items-start justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[720px]">
-          <div className="eyebrow mb-1.5">
-            Metrics · how the crew is performing
-          </div>
           <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
             What did your{" "}
             <em className="text-display italic text-violet-soft">agents</em>{" "}
