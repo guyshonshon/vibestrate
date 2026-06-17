@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.124
+
+- **Board, brought into the flat slab look.** The task kanban dropped its
+  glassmorphism for the same solid, square language as Flows and the marketing
+  site: columns are flat slabs with hairline borders, task cards are square with
+  a flat hover (no glow), and the priority / status / skill labels lost their
+  pills for flat tinted mono text. Role avatars are solid-tone squares (no
+  gradients), the roadmap rail and the add-task / add-roadmap forms are flat and
+  square, and the header actions reuse the shared flat button. Density is
+  unchanged - it's the same compact board, just quieter. An independent review
+  caught one bug before merge: the "needs testing" column's amber warning border
+  was being silently overridden by the slab's own border, so it now forces the
+  amber through.
+
 ## 0.7.123
 
 - **No more "slug" kickers; section labels you can actually read.** The faint
