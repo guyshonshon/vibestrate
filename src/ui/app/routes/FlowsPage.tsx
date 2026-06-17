@@ -2,25 +2,13 @@ import { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
-  Download,
-  Flag,
-  GitFork,
-  Library,
-  PenLine,
   Plus,
-  Trash2,
+  Search,
   Upload,
 } from "lucide-react";
 import { api } from "../../lib/api.js";
-import type {
-  DiscoveredFlow,
-  FlowStepDefinition,
-  FlowCoverage,
-  HubFlowRow,
-  SeatCoverage,
-} from "../../lib/types.js";
+import type { DiscoveredFlow, HubFlowRow } from "../../lib/types.js";
 import { Button } from "../../components/design/Button.js";
-import { Chip, type ChipTone } from "../../components/design/Chip.js";
 import { cn } from "../../components/design/cn.js";
 
 type Props = {
@@ -73,7 +61,6 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const [invalid, setInvalid] = useState<{ path: string; message: string }[]>([]);
   const [defaultFlowId, setDefaultFlowId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<Busy>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -110,12 +97,11 @@ export function FlowsPage({ onOpenInFlow }: Props) {
     try {
       const r = await api.forkFlowToProject(flowId);
       await load();
-      setExpanded(r.flowId);
       flash({
         kind: "ok",
         text: r.alreadyForked
           ? `${flowId} is already a project flow.`
-          : `Forked ${flowId} into .vibestrate/flows/ - customize it in the Flow Builder.`,
+          : `Copied ${flowId} into your project - customize it in the Flow Builder.`,
       });
     } catch (err) {
       flash({ kind: "err", text: err instanceof Error ? err.message : String(err) });
@@ -187,7 +173,6 @@ export function FlowsPage({ onOpenInFlow }: Props) {
           : { yaml: importText, overwrite: importOverwrite };
       const r = await api.importFlow(input);
       await load();
-      setExpanded(r.flowId);
       setImportOpen(false);
       setImportText("");
       setImportUrl("");
@@ -227,16 +212,15 @@ export function FlowsPage({ onOpenInFlow }: Props) {
   const effectiveDefault = defaultFlowId ?? "default";
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
+    <div className="relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
-        <div className="eyebrow mb-1.5">Flows</div>
-        <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
+        <h1 className="font-display font-semibold leading-[1.02] tracking-[-0.025em] text-[clamp(30px,3.4vw,46px)]">
           All flows{" "}
-          <span className="mono text-[15px] text-fog-500 num-tabular">
+          <span className="mono align-middle text-[clamp(15px,1.4vw,20px)] text-fog-500 num-tabular">
             {flows ? defaultFlowCount + otherFlows.length : ""}
           </span>
         </h1>
-        <p className="text-fog-300 text-[13px] mt-1.5 max-w-[68ch]">
+        <p className="text-fog-300 text-[14.5px] leading-[1.55] mt-3 max-w-[68ch]">
           A flow is the recipe your crew follows - ordered steps, the roles that
           run them, approval gates. The <strong className="text-fog-100">Default
           flow</strong> runs unless you pick another.
@@ -358,37 +342,46 @@ export function FlowsPage({ onOpenInFlow }: Props) {
         </div>
       ) : null}
 
-      <section className="mt-7 space-y-3">
-        {defaultFlow ? (
-          <DefaultFlowCard
-            flow={defaultFlow}
-            busy={busy?.id === "default" ? busy.action : null}
-            isDefault={effectiveDefault === "default"}
-            onForkEdit={() => void forkAndEdit("default")}
-            onExport={() => void exportFlow("default")}
-            onUseAsDefault={() => void useAsDefault("default")}
-          />
-        ) : null}
+      <section className="mt-8">
         {!flows ? (
           <div className="text-fog-400 text-[13px]">Loading flows…</div>
-        ) : otherFlows.length === 0 ? (
-          <div className="text-fog-400 text-[13px]">No other flows yet.</div>
         ) : (
-          otherFlows.map((g) => (
-            <FlowCard
-              key={g.id}
-              flow={g}
-              expanded={expanded === g.id}
-              busy={busy?.id === g.id ? busy.action : null}
-              isDefault={effectiveDefault === g.id}
-              onToggle={() => setExpanded((cur) => (cur === g.id ? null : g.id))}
-              onOpenInFlow={() => onOpenInFlow(g.id)}
-              onFork={() => void fork(g.id)}
-              onDelete={() => void remove(g.id)}
-              onExport={() => void exportFlow(g.id)}
-              onUseAsDefault={() => void useAsDefault(g.id)}
-            />
-          ))
+          <div className="hubp-grid">
+            {defaultFlow ? (
+              <LocalFlowCard
+                flow={defaultFlow}
+                variant={effectiveDefault === "default" ? "selected" : "violet"}
+                busy={busy?.id === "default" ? busy.action : null}
+                onOpen={() => onOpenInFlow("default")}
+                onUseAsDefault={() => void useAsDefault("default")}
+                onExport={() => void exportFlow("default")}
+                onFork={() => void forkAndEdit("default")}
+                onDelete={null}
+              />
+            ) : null}
+            {otherFlows.map((g, i) => {
+              const isProject = g.source.kind === "project";
+              const variant =
+                effectiveDefault === g.id
+                  ? "selected"
+                  : i % 2 === 0
+                    ? "violet"
+                    : "white";
+              return (
+                <LocalFlowCard
+                  key={g.id}
+                  flow={g}
+                  variant={variant}
+                  busy={busy?.id === g.id ? busy.action : null}
+                  onOpen={() => onOpenInFlow(g.id)}
+                  onUseAsDefault={() => void useAsDefault(g.id)}
+                  onExport={() => void exportFlow(g.id)}
+                  onFork={isProject ? null : () => void fork(g.id)}
+                  onDelete={isProject ? () => void remove(g.id) : null}
+                />
+              );
+            })}
+          </div>
         )}
       </section>
 
@@ -450,7 +443,7 @@ function HubSection({
   const [hubError, setHubError] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
 
-  // Debounced search whenever the section is open.
+  // Debounced search; runs only while open, on open + on query change.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -511,488 +504,200 @@ function HubSection({
   }
 
   return (
-    <section className="mt-8">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 text-left"
-        >
-          {open ? (
-            <ChevronDown className="h-4 w-4 text-fog-400" strokeWidth={1.7} />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-fog-400" strokeWidth={1.7} />
-          )}
-          <Library className="h-4 w-4 text-fog-300" strokeWidth={1.7} />
-          <span className="text-display text-[15px] text-fog-100">Flows Hub</span>
-        </button>
-        <span className="text-[11.5px] text-fog-500">
-          community flows from vibestrate.com - installed through the validated,
-          secret-guarded import writer
+    <section className="mt-12 border-t border-[color:var(--line)] pt-8">
+      {/* Hub - collapsed by default; these flows are downloaded over the internet. */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-3 text-left"
+      >
+        {open ? (
+          <ChevronDown className="h-5 w-5 shrink-0 text-fog-400" strokeWidth={1.8} />
+        ) : (
+          <ChevronRight className="h-5 w-5 shrink-0 text-fog-400" strokeWidth={1.8} />
+        )}
+        <h2 className="font-display font-semibold leading-[1.05] tracking-[-0.025em] text-[clamp(22px,2.4vw,32px)] text-fog-100">
+          Pull a <span className="hl-box font-wordmark">flow</span>
+        </h2>
+        <span className="mono text-[11px] uppercase tracking-[0.1em] text-fog-500">
+          download from the internet
         </span>
-      </div>
+        {open ? (
+          <span className="mono ml-auto text-[11px] uppercase tracking-[0.08em] text-fog-500 whitespace-nowrap">
+            {hubError ? "hub unavailable" : rows ? `${rows.length} ${rows.length === 1 ? "flow" : "flows"}` : "loading…"}
+          </span>
+        ) : null}
+      </button>
 
-      {open ? (
-        <div className="mt-3 space-y-3">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search the hub (name, tag, description)…"
-            className="w-full max-w-[420px] border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
-          />
-          {hubError ? (
-            <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
-              {hubError}
-            </div>
-          ) : loading && rows === null ? (
-            <div className="text-[13px] text-fog-400">Searching the hub…</div>
-          ) : rows && rows.length === 0 ? (
-            <div className="text-[13px] text-fog-400">No hub flows match.</div>
-          ) : rows ? (
-            <ul className="space-y-2">
-              {rows.map((row) => {
-                const diag = hubDiagnosisLabel(row.diagnosis);
-                return (
-                  <li
-                    key={row.ref}
-                    className="slab-flat px-4 py-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="text-[13.5px] font-medium text-fog-100">
-                        {row.label || row.name || row.ref}
-                      </span>
-                      <span className="mono text-[11px] text-fog-500">{row.ref}</span>
+      {!open ? (
+        <p className="mt-2 max-w-[68ch] text-[13px] leading-[1.5] text-fog-400">
+          Browse and install community flows from vibestrate.com - downloaded over
+          the internet, vetted through the secret-guarded import writer.
+        </p>
+      ) : (
+        <>
+          <div className="relative mb-4 mt-5 max-w-[420px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fog-500" strokeWidth={1.8} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name or @handle…"
+              className="mono slab w-full py-2 pl-9 pr-3 text-[13px] text-fog-100 outline-none placeholder:text-fog-500 focus:ring-1 focus:ring-violet-soft/40"
+            />
+          </div>
+
+          <div className="mt-0">
+        {hubError ? (
+          <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[12.5px] text-rose-300">
+            Couldn&apos;t load the hub right now: {hubError}
+          </div>
+        ) : loading && rows === null ? (
+          <div className="hubp-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="fcard" aria-hidden style={{ background: "rgba(255,255,255,0.015)" }} />
+            ))}
+          </div>
+        ) : rows && rows.length === 0 ? (
+          <div className="slab px-6 py-10 text-center text-[13px] text-fog-400">
+            No hub flows match these filters.
+          </div>
+        ) : rows ? (
+          <div className="hubp-grid">
+            {rows.map((row) => {
+              const risk = hubDiagnosisLabel(row.diagnosis);
+              const name = row.label || row.name || row.ref;
+              const primaryTag = (row.tags ?? [])[0];
+              return (
+                <button
+                  key={row.ref}
+                  type="button"
+                  className={cn("fcard", row.verified && "is-verified")}
+                  disabled={installing !== null}
+                  onClick={() => void install(row)}
+                  title={`Install ${row.ref}`}
+                >
+                  <div className="fcard-top">
+                    <div className="fcard-id">
                       {row.verified ? (
-                        <Chip tone="emerald">hub-curated</Chip>
+                        <>
+                          <span className="fcard-check">✓</span>
+                          <span className="fcard-verified">hub-curated</span>
+                        </>
+                      ) : row.author ? (
+                        <span className="fcard-author">@{row.author}</span>
                       ) : null}
-                      {diag ? (
-                        <span className="text-[11px] text-fog-400">{diag}</span>
-                      ) : null}
-                      <span className="flex-1" />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={installing !== null}
-                        onClick={() => void install(row)}
-                      >
-                        <Download className="mr-1 h-3.5 w-3.5" strokeWidth={1.7} />
-                        {installing === row.ref ? "Installing…" : "Install"}
-                      </Button>
                     </div>
-                    {row.description ? (
-                      <p className="mt-1 text-[12.5px] text-fog-300">
-                        {row.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-fog-500">
-                      {row.author ? <span>by {row.author}</span> : null}
-                      {typeof row.steps === "number" ? (
-                        <span>{row.steps} steps</span>
-                      ) : null}
-                      {row.version ? <span>v{row.version}</span> : null}
-                      {(row.tags ?? []).map((t) => (
-                        <span key={t} className="mono">
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-          <p className="text-[11.5px] text-fog-500">
-            Checksums verify transport integrity only; "hub-curated" is the
-            hub's curation claim, not an integrity guarantee. Review an
-            installed flow before running it.
+                  </div>
+                  <span className="fcard-name">{name}</span>
+                  {row.description ? <p className="fcard-sum">{row.description}</p> : null}
+                  <div className="fcard-strip">
+                    {primaryTag ? <span className="fcard-cell">{primaryTag}</span> : null}
+                    {row.version ? <span className="fcard-cell">v{row.version}</span> : null}
+                    {typeof row.steps === "number" ? <span className="fcard-cell">{row.steps} steps</span> : null}
+                    {typeof row.installs === "number" ? <span className="fcard-cell">{row.installs.toLocaleString()} ↓</span> : null}
+                    {installing === row.ref ? <span className="fcard-cell">installing…</span> : null}
+                    {risk ? <span className="fcard-cell fcard-cell-risk">{risk}</span> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+          </div>
+
+          <p className="mt-4 max-w-[80ch] text-[12.5px] leading-[1.5] text-fog-300">
+            &ldquo;Hub-curated&rdquo; is the hub&apos;s curation claim, not an integrity
+            guarantee; checksums verify transport only. A hub flow is executable
+            configuration: review an installed flow before running it.
           </p>
-        </div>
-      ) : null}
+        </>
+      )}
     </section>
   );
 }
 
-// The built-in Default flow, sourced from its real definition (single source of
-// truth). It runs as the implicit default via the orchestrator's standard path,
-// and is also runnable explicitly as `--flow default`. Shown as a distinct
-// "runs by default" card - not forked/deleted here. Loop-body steps (the
-// adaptive review→fix loop) are marked with ↺.
-function DefaultFlowCard({
+// Unified flow card: the same fcard slab the hub uses. The default flow is the
+// white "hero" card; other flows are violet. The card name opens the flow;
+// management actions are revealed on hover (no buttons/pills in the resting card).
+function LocalFlowCard({
   flow,
+  variant,
   busy,
-  isDefault,
-  onForkEdit,
-  onExport,
+  onOpen,
   onUseAsDefault,
-}: {
-  flow: DiscoveredFlow;
-  busy: "fork" | "delete" | "export" | null;
-  isDefault: boolean;
-  onForkEdit: () => void;
-  onExport: () => void;
-  onUseAsDefault: () => void;
-}) {
-  const steps = flow.definition.steps;
-  const loop = flow.definition.loop ?? null;
-  const loopBody = loop
-    ? {
-        from: steps.findIndex((s) => s.id === loop.from),
-        to: steps.findIndex((s) => s.id === loop.to),
-      }
-    : null;
-  const isProject = flow.source.kind === "project";
-  return (
-    <div className="slab px-4 py-3.5">
-      <div className="flex items-center gap-2">
-        <span className="text-[14px] font-medium text-fog-100">{flow.label}</span>
-        <Chip tone={isProject ? "violet" : "neutral"}>
-          {isProject ? "edited (project)" : "built-in"}
-        </Chip>
-        {isDefault ? (
-          <Chip tone="emerald">runs by default</Chip>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            iconLeft={<Flag size={13} />}
-            onClick={onUseAsDefault}
-            title="Make this the project's default flow"
-          >
-            Use as default
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-auto"
-          iconLeft={isProject ? <PenLine size={13} /> : <GitFork size={13} />}
-          disabled={busy !== null}
-          onClick={onForkEdit}
-        >
-          {isProject ? "Edit" : busy === "fork" ? "Forking…" : "Fork & edit"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          iconLeft={<Download size={13} />}
-          disabled={busy !== null}
-          onClick={onExport}
-          title="Export this flow as YAML"
-        >
-          {busy === "export" ? "Exporting…" : "Export"}
-        </Button>
-      </div>
-      <p className="mt-1 text-[12px] text-fog-400 max-w-[68ch]">
-        {flow.description} Each step is performed by a role (configure providers
-        in Crew).
-      </p>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        {steps.map((s, i) => {
-          const inLoop =
-            loopBody !== null &&
-            loopBody.from >= 0 &&
-            i >= loopBody.from &&
-            i <= loopBody.to;
-          return (
-            <span key={s.id} className="flex items-center gap-1.5">
-              {i > 0 ? <span className="text-fog-500 text-[11px]">→</span> : null}
-              <span className="border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
-                {s.label}
-                {inLoop ? (
-                  <span
-                    className="ml-1 text-[10px] text-sky-300"
-                    title="part of the adaptive review→fix loop"
-                  >
-                    ↺
-                  </span>
-                ) : null}
-                {s.seat ? (
-                  <span className="mono ml-1 text-[10px] text-violet-soft">{s.seat}</span>
-                ) : null}
-              </span>
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function FlowCard({
-  flow: g,
-  expanded,
-  busy,
-  isDefault,
-  onToggle,
-  onOpenInFlow,
+  onExport,
   onFork,
   onDelete,
-  onExport,
-  onUseAsDefault,
 }: {
   flow: DiscoveredFlow;
-  expanded: boolean;
+  variant: "selected" | "violet" | "white";
   busy: "fork" | "delete" | "export" | null;
-  isDefault: boolean;
-  onToggle: () => void;
-  onOpenInFlow: () => void;
-  onFork: () => void;
-  onDelete: () => void;
-  onExport: () => void;
+  onOpen: () => void;
   onUseAsDefault: () => void;
+  onExport: () => void;
+  onFork: (() => void) | null;
+  onDelete: (() => void) | null;
 }) {
-  const isProject = g.source.kind === "project";
-  const steps = g.definition.steps;
-  const seats = Object.entries(g.definition.seats);
-  const gateCount = steps.filter(
-    (s) => s.kind === "approval-gate" || s.approval,
-  ).length;
-
+  const isProject = flow.source.kind === "project";
+  const isSelected = variant === "selected";
+  const steps = flow.definition.steps ?? [];
+  const seats = Object.keys(flow.definition.seats ?? {}).length;
+  const gates = steps.filter((s) => s.kind === "approval-gate" || !!s.approval).length;
   return (
-    <div className="slab">
-      <div className="flex items-start justify-between gap-4 px-4 py-3.5">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex min-w-0 items-start gap-2.5 text-left"
-        >
-          {expanded ? (
-            <ChevronDown size={15} className="mt-0.5 shrink-0 text-fog-400" />
+    <div className={cn("fcard", variant === "selected" && "is-selected", variant === "white" && "is-verified")}>
+      <div className="fcard-top">
+        <div className="fcard-id">
+          {isSelected ? (
+            <>
+              <span className="fcard-check">✓</span>
+              <span className="fcard-verified">runs by default</span>
+            </>
           ) : (
-            <ChevronRight size={15} className="mt-0.5 shrink-0 text-fog-400" />
+            <span className="fcard-author">{isProject ? "project" : "built-in"}</span>
           )}
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Library size={14} className="text-violet-soft shrink-0" />
-              <span className="text-[15px] font-medium text-fog-100">{g.label}</span>
-              <span className="mono text-[11px] text-fog-500">{g.id}</span>
-              <Chip tone={isProject ? "violet" : "neutral"}>
-                {isProject ? "project" : g.source.kind}
-              </Chip>
-              {isDefault ? <Chip tone="emerald">runs by default</Chip> : null}
-              <span className="mono text-[10.5px] text-fog-500">v{g.version}</span>
-            </div>
-            <p className="mt-1 text-[12.5px] leading-snug text-fog-400 max-w-[75ch]">
-              {g.description}
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-fog-500">
-              <span>{steps.length} steps</span>
-              <span>·</span>
-              <span>{seats.length} seats</span>
-              {gateCount > 0 ? (
-                <>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1 text-amber-300/90">
-                    <Flag size={11} />
-                    {gateCount} approval {gateCount === 1 ? "gate" : "gates"}
-                  </span>
-                </>
-              ) : null}
-            </div>
-          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="fcard-name block w-full bg-transparent p-0 text-left"
+      >
+        {flow.label}
+      </button>
+      {flow.definition.description ? (
+        <p className="fcard-sum">{flow.definition.description}</p>
+      ) : null}
+      <div className="fcard-strip">
+        <span className="fcard-cell">{steps.length} steps</span>
+        <span className="fcard-cell">{seats} {seats === 1 ? "seat" : "seats"}</span>
+        {gates > 0 ? (
+          <span className="fcard-cell">{gates} {gates === 1 ? "gate" : "gates"}</span>
+        ) : null}
+        {flow.version != null ? <span className="fcard-cell">v{flow.version}</span> : null}
+      </div>
+      <div className="fcard-actions">
+        {!isSelected ? (
+          <button type="button" className="fcard-act" onClick={onUseAsDefault}>
+            set default
+          </button>
+        ) : null}
+        <button type="button" className="fcard-act" onClick={onOpen}>
+          {isProject ? "edit" : "open"}
         </button>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {!isDefault ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              iconLeft={<Flag size={13} />}
-              onClick={onUseAsDefault}
-              title="Make this the project's default flow"
-            >
-              Use as default
-            </Button>
-          ) : null}
-          {/* Row actions stay quiet - a primary button on every row means no
-           * row stands out. The page-level "New flow" keeps the one accent. */}
-          {!isProject ? (
-            <Button
-              variant="outline"
-              size="sm"
-              iconLeft={<GitFork size={13} />}
-              disabled={busy !== null}
-              onClick={onFork}
-            >
-              {busy === "fork" ? "Forking…" : "Fork to project"}
-            </Button>
-          ) : null}
-          <Button
-            variant="outline"
-            size="sm"
-            iconLeft={<PenLine size={13} />}
-            onClick={onOpenInFlow}
-            title="Open the flow editor (preview, customize, dry-run)"
-          >
-            {isProject ? "Edit" : "Open"}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            iconLeft={<Download size={13} />}
-            disabled={busy !== null}
-            onClick={onExport}
-            title="Export this flow as YAML"
-          >
-            {busy === "export" ? "Exporting…" : "Export"}
-          </Button>
-          {isProject ? (
-            <Button
-              variant="outline"
-              size="sm"
-              iconLeft={<Trash2 size={13} />}
-              disabled={busy !== null}
-              onClick={onDelete}
-            >
-              {busy === "delete" ? "Deleting…" : "Delete"}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
-      {expanded ? (
-        <div className="border-t border-white/10 px-4 py-3.5">
-          {seats.length > 0 ? (
-            <div className="mb-3">
-              <div className="eyebrow mb-1.5">Seats</div>
-              <div className="flex flex-wrap gap-1.5">
-                {seats.map(([id, seat]) => (
-                  <span
-                    key={id}
-                    className="border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
-                    title={seat.description ?? undefined}
-                  >
-                    <span className="text-fog-100">{seat.label}</span>{" "}
-                    <span className="text-fog-500">({id})</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <CoverageBadges flowId={g.id} />
-
-          <div className="eyebrow mb-1.5">Flow</div>
-          <ol className="space-y-1.5">
-            {steps.map((step, i) => (
-              <StepRow key={step.id} index={i + 1} step={step} />
-            ))}
-          </ol>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/** Lazy per-seat coverage of a flow against the default crew: is it crewed and
- *  runnable? Fetched when the card expands. */
-function CoverageBadges({ flowId }: { flowId: string }) {
-  const [cov, setCov] = useState<FlowCoverage | null>(null);
-  const [err, setErr] = useState<string | null>(null);
-  useEffect(() => {
-    let alive = true;
-    void api
-      .flowCoverage(flowId)
-      .then((c) => alive && setCov(c))
-      .catch((e) => alive && setErr(e instanceof Error ? e.message : String(e)));
-    return () => {
-      alive = false;
-    };
-  }, [flowId]);
-
-  if (err) {
-    return (
-      <div className="mb-3 text-[11.5px] text-amber-200/80">
-        Coverage unavailable: {err}
-      </div>
-    );
-  }
-  if (!cov) {
-    return <div className="mb-3 text-[11.5px] text-fog-500">Checking crew coverage…</div>;
-  }
-  const tone = (s: SeatCoverage["status"]): ChipTone =>
-    s === "filled" ? "emerald" : s === "ambiguous" ? "amber" : "rose";
-  return (
-    <div className="mb-3">
-      <div className="eyebrow mb-1.5 flex items-center gap-2">
-        Crew coverage
-        <span className="text-fog-500 normal-case">crew: {cov.crewId}</span>
-        <Chip tone={cov.runnable ? "emerald" : "rose"}>
-          {cov.runnable ? "runnable" : "has gaps"}
-        </Chip>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {cov.seats.map((s) => (
-          <span
-            key={s.seatId}
-            className="inline-flex items-center gap-1 border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
-            title={
-              s.status === "filled"
-                ? `filled by ${s.resolvedRoleId}`
-                : s.status === "ambiguous"
-                  ? `ambiguous: ${s.candidateRoleIds.join(", ")}`
-                  : "no role fills this seat"
-            }
-          >
-            <span className="text-fog-200">{s.seatId}</span>
-            <Chip tone={tone(s.status)}>{s.status}</Chip>
-            {!s.usedByStep ? (
-              <span className="text-fog-600 text-[10px]">unused</span>
-            ) : null}
-          </span>
-        ))}
+        {onFork ? (
+          <button type="button" className="fcard-act" disabled={busy !== null} onClick={onFork}>
+            {busy === "fork" ? "copying…" : "customize"}
+          </button>
+        ) : null}
+        <button type="button" className="fcard-act" disabled={busy !== null} onClick={onExport}>
+          {busy === "export" ? "exporting…" : "export"}
+        </button>
+        {onDelete ? (
+          <button type="button" className="fcard-act" disabled={busy !== null} onClick={onDelete}>
+            {busy === "delete" ? "deleting…" : "delete"}
+          </button>
+        ) : null}
       </div>
     </div>
   );
-}
-
-function StepRow({ index, step }: { index: number; step: FlowStepDefinition }) {
-  const kind = stepKindChip(step.kind);
-  const target = step.seat ?? null;
-  const hasApproval = step.kind === "approval-gate" || !!step.approval;
-  return (
-    <li className="flex items-center gap-2.5 border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5">
-      <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{index}</span>
-      <Chip tone={kind.tone}>{kind.label}</Chip>
-      <span className="min-w-0 truncate text-[12.5px] text-fog-200">{step.label}</span>
-      {target ? (
-        <span className="mono text-[10.5px] text-fog-500">{target}</span>
-      ) : null}
-      {step.optional ? (
-        <span className="border border-white/10 px-1 text-[10px] text-fog-500">optional</span>
-      ) : null}
-      {step.repeat ? (
-        <span className="border border-white/10 px-1 text-[10px] text-fog-500">×{step.repeat.times}</span>
-      ) : null}
-      {hasApproval ? (
-        <span
-          className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-amber-300/90"
-          title={step.approval?.reason ?? "Human approval gate"}
-        >
-          <Flag size={11} />
-          {step.approval?.riskLevel ? `${step.approval.riskLevel} risk` : "approval"}
-        </span>
-      ) : null}
-    </li>
-  );
-}
-
-function stepKindChip(kind: FlowStepDefinition["kind"]): {
-  label: string;
-  tone: ChipTone;
-} {
-  switch (kind) {
-    case "agent-turn":
-      return { label: "agent", tone: "neutral" };
-    case "review-turn":
-      return { label: "review", tone: "sky" };
-    case "response-turn":
-      return { label: "response", tone: "neutral" };
-    case "validation":
-      return { label: "validation", tone: "emerald" };
-    case "approval-gate":
-      return { label: "approval", tone: "amber" };
-    case "summary-turn":
-      return { label: "summary", tone: "neutral" };
-  }
 }

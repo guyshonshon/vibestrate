@@ -9,13 +9,15 @@ export type ChipTone =
   | "amber"
   | "rose";
 
+// No pill chrome - no rounded box, border, or fill. A flat tinted mono label,
+// matching the marketing site's own label treatment (e.g. the hub's "verified").
 const TONE: Record<ChipTone, string> = {
-  neutral: "bg-white/[0.04] border-white/10 text-fog-200",
-  violet: "bg-violet-soft/10 border-violet-soft/30 text-violet-soft",
-  sky: "bg-sky-glow/10 border-sky-glow/30 text-sky-glow",
-  emerald: "bg-emerald-500/10 border-emerald-400/30 text-emerald-300",
-  amber: "bg-amber-500/10 border-amber-400/30 text-amber-300",
-  rose: "bg-rose-500/10 border-rose-400/30 text-rose-300",
+  neutral: "text-fog-400",
+  violet: "text-violet-soft",
+  sky: "text-sky-glow",
+  emerald: "text-emerald-300",
+  amber: "text-amber-300",
+  rose: "text-rose-300",
 };
 
 export function Chip({
@@ -30,7 +32,7 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] text-[11px] font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1 font-mono text-[11px] font-medium whitespace-nowrap",
         TONE[tone],
         className,
       )}

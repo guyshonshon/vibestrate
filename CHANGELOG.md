@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.122
+
+- **Flows page, rebuilt to the real vibestrate.com look.** Full-width now, and
+  your local flows + the community hub share one card design: solid card slabs
+  with big display names, a hairline-divided meta strip (steps / seats / gates /
+  version), and a hover that shifts color and reveals the actions. The
+  runs-by-default flow is a green card; the rest alternate violet and white. The
+  hub ("Pull a flow") is collapsed by default, labeled as downloaded over the
+  internet, shows install counts, and only hits the network when you open it.
+  "Fork" is now the clearer "Customize."
+- **No more pill labels.** The shared label component dropped its rounded
+  pill (border + fill) for flat tinted text, app-wide - matching the marketing
+  site's own label treatment.
+
 ## 0.7.121
 
 - **The Flows page joined the flat slab design (P6).** The flow catalog had
