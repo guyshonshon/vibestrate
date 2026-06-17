@@ -504,14 +504,16 @@ button:active,
   text-decoration-thickness: 1px;
 }
 
-/* ── Board scene ───────────────────────────────────────────────────
- * Board-scoped surface override (NOT the global token). The app page is
+/* ── Deep scene ────────────────────────────────────────────────────
+ * Page-scoped surface override (NOT the global token). The app page is
  * near-black (--color-ink-0 #06070b); the default .slab is the lighter
- * #0e1118, which left columns/cards floating as one muddy mid grey-blue.
- * Here we pull board slabs down toward the page so columns recede into the
- * dark and the colour (tinted headers, status, violet) does the talking.
- * Scoped to .board-scene so the rest of the app keeps the default slab. */
-.board-scene {
+ * #0e1118, which left slabs floating as one muddy mid grey-blue. Here we
+ * pull slabs down toward the page so they recede into the dark and the
+ * colour (tinted headers, status, violet) does the talking. Add `deep-scene`
+ * to a page root and every descendant `.slab` inherits the darker surface;
+ * pages without it keep the default. `.board-scene` is the original alias. */
+.board-scene,
+.deep-scene {
   --s-slab: #080b11;
   --s-line: rgba(255, 255, 255, 0.08);
 }

@@ -223,9 +223,9 @@ export function CrewPage({
   const hubView = crewId === null;
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1180px] px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mb-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -290,7 +290,7 @@ export function CrewPage({
                 type="button"
                 disabled={settingDefault}
                 onClick={() => void makeDefault(crew.id)}
-                className="h-8 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[12px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                className="h-8 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[12px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
                 title="Make this the crew runs use when none is picked (writes defaultCrew)"
               >
                 {settingDefault ? "Setting…" : "Set as default"}
@@ -329,7 +329,7 @@ export function CrewPage({
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 rounded-lg border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
@@ -410,7 +410,7 @@ function CrewPresets({
         {presets.map((p) => (
           <div
             key={p.id}
-            className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3"
+            className="slab px-4 py-3"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="text-[13px] font-semibold text-fog-100">
@@ -424,7 +424,7 @@ function CrewPresets({
                   type="button"
                   disabled={busy === p.id}
                   onClick={() => void install(p.id)}
-                  className="rounded-md border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[12px] text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
+                  className="border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[12px] text-violet-200 hover:bg-violet-500/20 disabled:opacity-50"
                 >
                   {busy === p.id ? "Adding…" : "Add"}
                 </button>
@@ -491,7 +491,7 @@ function CrewHub({
       {!crews ? (
         <div className="mt-6 text-fog-400 text-[13px]">Loading crews…</div>
       ) : crews.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-[12.5px] text-fog-400">
+        <div className="mt-6 slab px-4 py-6 text-[12.5px] text-fog-400">
           No crews configured.
         </div>
       ) : (
@@ -508,7 +508,7 @@ function CrewHub({
             return (
               <li
                 key={c.id}
-                className="group rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 hover:border-violet-soft/30"
+                className="group slab p-4 hover:border-violet-soft/30"
               >
                 <button
                   type="button"
@@ -538,7 +538,7 @@ function CrewHub({
                   <button
                     type="button"
                     onClick={() => onOpen(c.id)}
-                    className="h-7 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
+                    className="h-7 border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
                   >
                     Configure
                   </button>
@@ -547,7 +547,7 @@ function CrewHub({
                       type="button"
                       disabled={settingDefault}
                       onClick={() => onSetDefault(c.id)}
-                      className="h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                      className="h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
                       title="Make this the crew runs use when none is picked"
                     >
                       Set as default
@@ -610,7 +610,7 @@ function SeatCoverage({
                     ? `Two roles take "${seat}" (${roleLabels}) - a run must pick one.`
                     : `${roleLabels} takes the "${seat}" seat.`
               }
-              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
+              className="inline-flex items-center gap-1.5 border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
             >
               <ToneDot tone={tone} />
               <span className="text-fog-100">{seat}</span>
@@ -694,7 +694,7 @@ function RoleCard({
         <div className="flex items-center gap-2.5 min-w-0">
           <span
             className={cn(
-              "h-9 w-9 shrink-0 rounded-lg ring-1 flex items-center justify-center mono text-[13px] uppercase",
+              "h-9 w-9 shrink-0 ring-1 flex items-center justify-center mono text-[13px] uppercase",
               TONE_RING[tone],
             )}
             style={{ background: "rgba(255,255,255,0.04)" }}
@@ -760,7 +760,7 @@ function RoleCard({
                   );
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition",
+                  "inline-flex items-center gap-1 border px-2 py-1 text-[11.5px] transition",
                   on
                     ? ambiguous
                       ? "border-amber-400/40 bg-amber-500/10 text-amber-200"
@@ -789,7 +789,7 @@ function RoleCard({
                 `${role.label} now runs on ${e.target.value}.`,
               )
             }
-            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
+            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
@@ -801,7 +801,7 @@ function RoleCard({
             ) : null}
           </select>
           {profile ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-ink-200/40 px-2 py-1 text-[11px] text-fog-300">
+            <span className="inline-flex items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-1 text-[11px] text-fog-300">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
               <span
                 className={cn(
@@ -826,7 +826,7 @@ function RoleCard({
             type="button"
             disabled={saving}
             onClick={() => setNewProfileOpen((v) => !v)}
-            className="rounded-md border border-white/10 bg-ink-200/40 px-2 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
+            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
             title="Create a new profile and assign it to this role"
           >
             + New
@@ -840,7 +840,7 @@ function RoleCard({
                 `${role.label} permissions → ${e.target.value}.`,
               )
             }
-            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12px] text-fog-200 outline-none focus:border-violet-soft/40"
+            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[12px] text-fog-200 outline-none focus:border-violet-soft/40"
           >
             {[...new Set([...PERMISSION_OPTIONS, role.permissions])].map((p) => (
               <option key={p} value={p}>
@@ -918,7 +918,7 @@ function SkillsRow({
           role.skills.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-ink-200/50 px-2 py-0.5 text-[11px] text-fog-200"
+              className="inline-flex items-center gap-1 border border-white/10 bg-ink-200/50 px-2 py-0.5 text-[11px] text-fog-200"
             >
               {s}
               <button
@@ -953,7 +953,7 @@ function SkillsRow({
                 setAdding(false);
               }}
               onBlur={() => setAdding(false)}
-              className="rounded-md border border-white/10 bg-ink-200/70 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none"
+              className="border border-white/10 bg-ink-200 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none"
             >
               <option value="">+ skill…</option>
               {available.map((n) => (
@@ -966,7 +966,7 @@ function SkillsRow({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-0.5 text-[11px] text-fog-400 hover:text-fog-200 hover:border-white/20"
+              className="inline-flex items-center gap-1 border border-white/10 px-2 py-0.5 text-[11px] text-fog-400 hover:text-fog-200 hover:border-white/20"
             >
               <Plus className="h-2.5 w-2.5" /> skill
             </button>
@@ -1042,7 +1042,7 @@ function PromptEditor({
         }}
         spellCheck={false}
         rows={8}
-        className="w-full rounded-md border border-white/10 bg-ink-0/60 px-2.5 py-2 mono text-[11.5px] leading-[1.55] text-fog-200 outline-none focus:border-violet-soft/40 resize-y"
+        className="w-full border border-white/10 bg-ink-200 px-2.5 py-2 mono text-[11.5px] leading-[1.55] text-fog-200 outline-none focus:border-violet-soft/40 resize-y"
       />
       <div className="mt-1.5 flex items-center justify-between">
         <span className="mono text-[10px] text-fog-500 truncate">{path}</span>
@@ -1087,10 +1087,10 @@ function NewProfileInline({
   const valid =
     /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id.trim()) && !idTaken && !!provider;
   const inputCls =
-    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
+    "border border-white/10 bg-ink-200 px-2 py-1.5 text-[12px] text-fog-100 outline-none focus:border-violet-soft/40";
 
   return (
-    <div className="mt-2.5 rounded-lg border border-violet-soft/25 bg-ink-200/40 p-3">
+    <div className="mt-2.5 slab border-violet-soft/25 p-3">
       <div className="eyebrow mb-2">New profile for this role</div>
       <div className="flex flex-wrap items-center gap-2">
         <input

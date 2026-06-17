@@ -38,7 +38,7 @@ const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 type Toast = { kind: "ok" | "err"; text: string } | null;
 
 const INPUT_CLS =
-  "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40 w-full";
+  "border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40 w-full";
 
 // A Profile's editable shape (strings for form inputs; "" = null).
 type Draft = {
@@ -115,7 +115,7 @@ export function ProfilesPage() {
   const groupedProviders = [...groups.keys()].sort();
 
   return (
-    <div className="relative z-10 mx-auto max-w-[980px] px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1 flex items-start justify-between gap-4">
         <div>
           <div className="eyebrow mb-1.5 flex items-center gap-1.5">
@@ -142,7 +142,7 @@ export function ProfilesPage() {
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -164,7 +164,7 @@ export function ProfilesPage() {
       {!profiles ? (
         <div className="mt-6 text-fog-400 text-[13px]">Loading profiles…</div>
       ) : profiles.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-white/10 bg-ink-100/50 px-5 py-8 text-center">
+        <div className="slab mt-8 px-5 py-8 text-center">
           <p className="text-[13.5px] text-fog-300">No profiles yet.</p>
           <p className="mx-auto mt-1 max-w-[48ch] text-[12.5px] text-fog-500">
             Create one to give your crew's roles a provider, model, and effort to run
@@ -213,7 +213,7 @@ export function ProfilesPage() {
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 rounded-lg border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
@@ -408,10 +408,10 @@ function ProfileCard({
         right={
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px]",
+              "inline-flex items-center gap-1.5 border px-2 py-0.5 text-[11px]",
               usedBy.length > 0
-                ? "border-white/10 bg-ink-200/40 text-fog-300"
-                : "border-white/10 bg-ink-200/40 text-fog-500",
+                ? "border-white/10 bg-ink-200 text-fog-300"
+                : "border-white/10 bg-ink-200 text-fog-500",
             )}
             title={usedBy.map((u) => `${u.crewId}/${u.roleId}`).join(", ") || "not used by any role"}
           >
