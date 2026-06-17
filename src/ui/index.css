@@ -504,6 +504,18 @@ button:active,
   text-decoration-thickness: 1px;
 }
 
+/* ── Board scene ───────────────────────────────────────────────────
+ * Board-scoped surface override (NOT the global token). The app page is
+ * near-black (--color-ink-0 #06070b); the default .slab is the lighter
+ * #0e1118, which left columns/cards floating as one muddy mid grey-blue.
+ * Here we pull board slabs down toward the page so columns recede into the
+ * dark and the colour (tinted headers, status, violet) does the talking.
+ * Scoped to .board-scene so the rest of the app keeps the default slab. */
+.board-scene {
+  --s-slab: #080b11;
+  --s-line: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Board / drawer horizontal scroll - slimmer track ──────────── */
 .board-scroll::-webkit-scrollbar {
   height: 8px;

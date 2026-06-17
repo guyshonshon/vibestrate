@@ -89,13 +89,15 @@ function coarseColumnOf(task: Task): CoarseId {
   }
 }
 
-const COLUMN_TONE: Record<ColumnTone, { dot: string; text: string }> = {
-  fog:     { dot: "bg-fog-500",     text: "text-fog-300"     },
-  sky:     { dot: "bg-sky-glow",    text: "text-sky-glow"    },
-  violet:  { dot: "bg-violet-soft", text: "text-violet-soft" },
-  emerald: { dot: "bg-emerald-400", text: "text-emerald-300" },
-  amber:   { dot: "bg-amber-300",   text: "text-amber-300"   },
-  rose:    { dot: "bg-rose-400",    text: "text-rose-300"    },
+// `head` is a faint tone wash on the column header / KPI tile - colour where
+// it carries meaning (column + metric identity), bodies stay calm.
+const COLUMN_TONE: Record<ColumnTone, { dot: string; text: string; head: string }> = {
+  fog:     { dot: "bg-fog-500",     text: "text-fog-300",     head: "bg-white/[0.02]"        },
+  sky:     { dot: "bg-sky-glow",    text: "text-sky-glow",    head: "bg-sky-glow/[0.08]"     },
+  violet:  { dot: "bg-violet-soft", text: "text-violet-soft", head: "bg-violet-soft/[0.08]"  },
+  emerald: { dot: "bg-emerald-400", text: "text-emerald-300", head: "bg-emerald-400/[0.08]"  },
+  amber:   { dot: "bg-amber-300",   text: "text-amber-300",   head: "bg-amber-400/[0.08]"    },
+  rose:    { dot: "bg-rose-400",    text: "text-rose-300",    head: "bg-rose-400/[0.08]"     },
 };
 
 const PRIORITY_PILL: Record<Priority, { label: string; cls: string }> = {
@@ -270,7 +272,7 @@ export function BoardPage({
   }
 
   return (
-    <div className="relative z-10 flex flex-col h-full min-h-0">
+    <div className="board-scene relative z-10 flex flex-col h-full min-h-0">
       {/* ── Compact header row ────────────────────────────────────── */}
       <section className="w-full px-6 pt-5 shrink-0">
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -509,13 +511,13 @@ function KpiTile({
 }) {
   const t = COLUMN_TONE[tone];
   return (
-    <div className="slab relative overflow-hidden px-3 py-2">
+    <div className={cn("slab relative overflow-hidden px-3 py-2", t.head)}>
       <div className="flex items-center justify-between">
-        <div className="eyebrow text-[10px]">{label}</div>
+        <div className={cn("eyebrow text-[10px]", t.text)}>{label}</div>
         <span className={cn("w-1.5 h-1.5 rounded-full", t.dot)} />
       </div>
       <div className="mt-0.5 flex items-baseline justify-between gap-2">
-        <div className="text-[20px] font-semibold tracking-tight num-tabular leading-none">
+        <div className="text-[20px] font-semibold tracking-tight num-tabular leading-none text-fog-100">
           {value}
         </div>
         <div className="text-[10.5px] text-fog-400 truncate">{sub}</div>
@@ -731,14 +733,19 @@ function BoardColumn({
       )}
     >
       <div className="h-[2px]" style={{ background: column.accent }} />
-      <header className="px-3 py-2.5 flex items-center justify-between border-b border-white/[0.05]">
+      <header
+        className={cn(
+          "px-3 py-2.5 flex items-center justify-between border-b border-white/[0.05]",
+          tone.head,
+        )}
+      >
         <div className="flex items-center gap-1.5 min-w-0">
           {isRunning ? (
             <span className={cn("pulse-dot", tone.text)} />
           ) : (
             <span className={cn("w-1.5 h-1.5 rounded-full", tone.dot)} />
           )}
-          <span className="mono text-[10px] uppercase tracking-[0.14em] text-fog-300 truncate">
+          <span className={cn("mono text-[10px] uppercase tracking-[0.14em] truncate", tone.text)}>
             {column.label}
           </span>
         </div>
@@ -879,8 +886,8 @@ function TaskCard({
           : isFailed
             ? "border-rose-400/40 bg-rose-500/[0.04]"
             : isDone
-              ? "border-white/[0.06] bg-white/[0.012] opacity-80"
-              : "border-white/[0.07] bg-white/[0.022] hover:border-violet-soft/40 hover:bg-white/[0.04]",
+              ? "border-white/[0.06] bg-white/[0.015] opacity-75"
+              : "border-white/[0.09] bg-white/[0.04] hover:border-violet-soft/45 hover:bg-white/[0.06]",
       )}
     >
       {roadmap && rmTone ? (
