@@ -127,6 +127,16 @@ export class RoadmapStore {
     }
   }
 
+  /** Remove a task's comments file (metadata, not user code). Path-guarded
+   *  like every other fs op here so a bad id can't escape the project. */
+  async deleteComments(taskId: string): Promise<void> {
+    safeIdSchema.parse(taskId);
+    const file = roadmapCommentsFile(this.projectRoot, taskId);
+    if (await pathExists(file)) {
+      await fs.unlink(file);
+    }
+  }
+
   // ─── comments ─────────────────────────────────────────────────────────────
 
   async listComments(taskId: string): Promise<Comment[]> {

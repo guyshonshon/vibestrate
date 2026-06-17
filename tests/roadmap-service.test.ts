@@ -104,4 +104,80 @@ describe("RoadmapService", () => {
     await svc.setTaskRun({ taskId: t.id, runId: "run-1" });
     await expect(svc.deleteTask(t.id)).rejects.toThrow(/active run/);
   });
+
+  // The currentRunId guard alone is a near-no-op: during a live run the
+  // scheduler sets status="running" but currentRunId stays null (it's only
+  // set at run completion). These cover the real liveness signals.
+  it.each(["queued", "running", "waiting_for_approval"] as const)(
+    "deleteTask refuses to remove a %s task (real in-flight signal)",
+    async (status) => {
+      const svc = new RoadmapService(projectRoot);
+      await svc.init();
+      const t = await svc.addTask({ title: "busy" });
+      await svc.updateTaskStatus(t.id, status);
+      await expect(svc.deleteTask(t.id)).rejects.toThrow(/terminate|cancel/i);
+      expect(await svc.getTask(t.id)).not.toBeNull();
+    },
+  );
+
+  it("deleteTask refuses when an associated run-state file is non-terminal", async () => {
+    const { RunStateStore, createInitialState } = await import(
+      "../src/core/state-machine.js"
+    );
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const t = await svc.addTask({ title: "leaked run" });
+    // Associate a run, then clear currentRunId (leaves runIds + a done status)
+    // - simulating a run that finished on the card but leaked a live state file.
+    await svc.setTaskRun({ taskId: t.id, runId: "run-live" });
+    await svc.clearTaskCurrentRun(t.id, "done");
+    const store = new RunStateStore(projectRoot, "run-live");
+    await store.write(
+      createInitialState({
+        runId: "run-live",
+        task: "leaked run",
+        projectRoot,
+        worktreePath: null,
+        branchName: null,
+        maxReviewLoops: 1,
+      }),
+    ); // status "created" = non-terminal
+    await expect(svc.deleteTask(t.id)).rejects.toThrow(/live run/i);
+  });
+
+  it("deleteTask refuses a task sitting in the scheduler queue", async () => {
+    const { RunQueue } = await import("../src/scheduler/run-queue.js");
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const t = await svc.addTask({ title: "queued elsewhere" });
+    // Leave the card status idle but enqueue it directly (scheduler-owned state).
+    await new RunQueue(projectRoot).enqueue({
+      taskId: t.id,
+      priority: "medium",
+      enqueuedAt: new Date(0).toISOString(),
+      source: "manual",
+    });
+    await expect(svc.deleteTask(t.id)).rejects.toThrow(/queue/i);
+    expect(await svc.getTask(t.id)).not.toBeNull();
+  });
+
+  it("deleteTask cleans up comments and the parent roadmap link", async () => {
+    const svc = new RoadmapService(projectRoot);
+    await svc.init();
+    const item = await svc.addRoadmapItem({ title: "epic" });
+    const t = await svc.addTask({ title: "child", roadmapItemId: item.id });
+    await svc.addComment(t.id, { body: "a note" });
+    // Pre-conditions: link + comment exist.
+    expect((await svc.getRoadmapItem(item.id))!.linkedTaskIds).toContain(t.id);
+    expect(await svc.store.listComments(t.id)).toHaveLength(1);
+
+    const deleted = await svc.deleteTask(t.id);
+
+    expect(deleted.id).toBe(t.id);
+    expect(await svc.getTask(t.id)).toBeNull();
+    expect(await svc.store.listComments(t.id)).toHaveLength(0);
+    expect((await svc.getRoadmapItem(item.id))!.linkedTaskIds).not.toContain(
+      t.id,
+    );
+  });
 });

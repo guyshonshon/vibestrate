@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { nowIso } from "../utils/time.js";
 import { slugify } from "../utils/slug.js";
+import { pathExists } from "../utils/fs.js";
+import { runStatePath } from "../utils/paths.js";
+import { RunStateStore, isTerminal } from "../core/state-machine.js";
+import { RunQueue } from "../scheduler/run-queue.js";
 import { RoadmapStore } from "./roadmap-store.js";
 import {
   type ChecklistItem,
@@ -266,18 +270,71 @@ export class RoadmapService {
   }
 
   /**
-   * Delete a task. Refuses to delete a task that is currently linked
-   * to a non-terminal run - call abort first. Used by the interactive
-   * panel; the store already exposes the lower-level passthrough.
+   * Refuse to remove a task that is live anywhere. The card's `currentRunId`
+   * is NOT a reliable liveness signal - it's only set for the two lines around
+   * run completion, so a genuinely-executing task usually has it null. We check
+   * the real signals: the card's own in-flight status, any associated run whose
+   * state file is non-terminal (a leaked/parallel run), and the scheduler's
+   * queue / running set. Lives in the service so the TUI, web, and CLI all
+   * inherit the same guard.
    */
-  async deleteTask(id: string): Promise<void> {
-    const t = await this.store.getTask(id);
-    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
-    if (t.currentRunId) {
+  private async assertTaskRemovable(t: Task): Promise<void> {
+    const inFlight: TaskStatus[] = ["queued", "running", "waiting_for_approval"];
+    if (inFlight.includes(t.status)) {
       throw new RoadmapServiceError(
-        `Task "${id}" is linked to active run ${t.currentRunId}; abort the run before deleting.`,
+        `Task "${t.id}" is ${t.status}; terminate or cancel its run before removing it.`,
       );
     }
+    if (t.currentRunId) {
+      throw new RoadmapServiceError(
+        `Task "${t.id}" is linked to active run ${t.currentRunId}; terminate it before removing.`,
+      );
+    }
+    const runIds = [
+      ...new Set(
+        [t.currentRunId, ...t.runIds].filter((x): x is string => Boolean(x)),
+      ),
+    ];
+    for (const runId of runIds) {
+      const stateFile = runStatePath(this.projectRoot, runId);
+      if (!(await pathExists(stateFile))) continue;
+      try {
+        const state = await new RunStateStore(this.projectRoot, runId).read();
+        if (!isTerminal(state.status)) {
+          throw new RoadmapServiceError(
+            `Task "${t.id}" has a live run ${runId} (status: ${state.status}); terminate it before removing.`,
+          );
+        }
+      } catch (err) {
+        if (err instanceof RoadmapServiceError) throw err;
+        // Unreadable/partial state file - treat as not-live (best-effort).
+      }
+    }
+    const queue = new RunQueue(this.projectRoot);
+    const [qf, st] = await Promise.all([queue.readQueue(), queue.readState()]);
+    if (
+      qf.entries.some((e) => e.taskId === t.id) ||
+      st.runningTaskIds.includes(t.id)
+    ) {
+      throw new RoadmapServiceError(
+        `Task "${t.id}" is in the run queue; cancel it before removing.`,
+      );
+    }
+  }
+
+  /**
+   * Permanently remove a task card. Refuses while the task is live (see
+   * `assertTaskRemovable`). Cleans up everything the card owns as metadata:
+   * the promoted-from checklist back-pointer, the parent roadmap item's
+   * `linkedTaskIds`, the comments file, and the task file. Does NOT touch the
+   * git worktree, run state, transcripts, or artifacts - that's the user's
+   * work/history (no auto-purge); callers surface the leftover worktree path.
+   * Returns the deleted task so callers can report what was removed.
+   */
+  async deleteTask(id: string): Promise<Task> {
+    const t = await this.store.getTask(id);
+    if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    await this.assertTaskRemovable(t);
     // If this card was promoted from a checklist item, clear the origin item's
     // forward-pointer so it no longer shows "→ card X" pointing at nothing.
     if (t.derivedFrom) {
@@ -297,7 +354,20 @@ export class RoadmapService {
         }
       }
     }
+    // Detach from the parent roadmap item so it doesn't keep claiming this id.
+    if (t.roadmapItemId) {
+      const item = await this.store.getRoadmapItem(t.roadmapItemId);
+      if (item && item.linkedTaskIds.includes(id)) {
+        await this.store.upsertRoadmapItem({
+          ...item,
+          linkedTaskIds: item.linkedTaskIds.filter((x) => x !== id),
+          updatedAt: nowIso(),
+        });
+      }
+    }
+    await this.store.deleteComments(id);
     await this.store.deleteTask(id);
+    return t;
   }
 
   async clearTaskCurrentRun(taskId: string, finalStatus: TaskStatus): Promise<Task> {
