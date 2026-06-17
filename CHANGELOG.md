@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.126
+
+- **The whole dashboard now speaks one design language.** Every page - Crew,
+  Profiles, Metrics, Codebase, Run detail, Consult, Flow Builder, Providers,
+  Merge, Git, Ledger, Config, Workspace, Runs, Proposals, Settings, and the
+  task pages - is full-width, flat, and high-contrast: solid square slabs, no
+  glassmorphism or glow, brighter text (the old light-grey-on-dark was hard on
+  the eye). The Crew catalog uses the same colored cards as Flows (the default
+  crew is the green hero), and the crew page now explains seat coverage (each
+  seat shows which role fills it) instead of a wall of chips.
+- **New dropdowns everywhere.** The native browser `<select>` (ugly and
+  un-styleable) is replaced by a custom flat dropdown across the app -
+  keyboard-navigable, with the option you're on checked and a secondary hint
+  (e.g. the model) on each row.
+
 ## 0.7.125
 
 - **Remove a task from the Board (and the CLI).** Cards now have a trash action
