@@ -1098,7 +1098,7 @@ export const api = {
   },
   // ─── profiles ─────────────────────────────────────────────────────────
   async getProfiles(): Promise<{ profiles: ProfileView[] }> {
-    return jsonGet("/api/paramss");
+    return jsonGet("/api/profiles");
   },
   async getProviderCatalog(): Promise<ProviderCatalogResponse> {
     return jsonGet("/api/providers/catalog");
@@ -1119,7 +1119,7 @@ export const api = {
       timeoutMs?: number | null;
     },
   ): Promise<{ ok: true; profileId: string }> {
-    return jsonPatch(`/api/paramss/${encodeURIComponent(profileId)}`, patch);
+    return jsonPatch(`/api/profiles/${encodeURIComponent(profileId)}`, patch);
   },
   async createProfile(input: {
     id: string;
@@ -1130,14 +1130,14 @@ export const api = {
     maxTokens?: number;
     timeoutMs?: number;
   }): Promise<{ ok: true; profileId: string }> {
-    return jsonPost("/api/paramss", input);
+    return jsonPost("/api/profiles", input);
   },
   async duplicateProfile(
     profileId: string,
     input: { newId: string; label?: string },
   ): Promise<{ ok: true; profileId: string }> {
     return jsonPost(
-      `/api/paramss/${encodeURIComponent(profileId)}/duplicate`,
+      `/api/profiles/${encodeURIComponent(profileId)}/duplicate`,
       input,
     );
   },
@@ -1146,7 +1146,7 @@ export const api = {
     opts: { force?: boolean } = {},
   ): Promise<{ ok: true; profileId: string }> {
     const q = opts.force ? "?force=1" : "";
-    return jsonDelete(`/api/paramss/${encodeURIComponent(profileId)}${q}`);
+    return jsonDelete(`/api/profiles/${encodeURIComponent(profileId)}${q}`);
   },
   async resolveFlow(
     flowId: string,

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.120
+
+- **Fixed: the Profiles screen was broken.** A rename refactor had pointed the
+  Profiles API calls at `/api/paramss` instead of `/api/profiles`, so loading,
+  creating, editing, duplicating, and deleting Profiles all 404'd - and the
+  Crew and Mission screens silently fell back to an empty profile list. The
+  endpoints are corrected; Profiles work again. (Found in a dashboard-wide QA
+  pass, which otherwise confirmed the slab + flat-button migrations are
+  regression-free.)
+
 ## 0.7.119
 
 - **Buttons match the slab language.** Action buttons dropped their violet
