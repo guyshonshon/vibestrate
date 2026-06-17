@@ -881,20 +881,20 @@ function TaskCard({
       }}
       data-task-id={task.id}
       className={cn(
-        "group block w-full text-left rounded-lg border px-2.5 py-2 transition relative card-hover cursor-pointer",
+        "group block w-full text-left border px-2.5 py-2 transition relative cursor-pointer",
         isWaiting
-          ? "border-amber-400/30 bg-amber-500/[0.05]"
+          ? "border-amber-400/40 bg-amber-500/[0.05]"
           : isFailed
-            ? "border-rose-400/25 bg-rose-500/[0.04]"
+            ? "border-rose-400/40 bg-rose-500/[0.04]"
             : isDone
-              ? "border-white/[0.05] bg-white/[0.012] opacity-80"
-              : "border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04]",
+              ? "border-white/[0.06] bg-white/[0.012] opacity-80"
+              : "border-white/[0.07] bg-white/[0.022] hover:border-violet-soft/40 hover:bg-white/[0.04]",
       )}
     >
       {roadmap && rmTone ? (
         <span
           className={cn(
-            "absolute left-0 top-2.5 bottom-2.5 w-[2px] rounded-r-full",
+            "absolute left-0 top-2.5 bottom-2.5 w-[2px]",
             rmSwatch[rmTone],
           )}
           aria-label={roadmap.title}
