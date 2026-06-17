@@ -522,7 +522,7 @@ function ActiveRolePanel({
         Live metrics
       </SectionEyebrow>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white shadow-[0_8px_22px_-8px_rgba(139,124,255,0.5)]">
+        <div className="w-10 h-10 rounded-xl bg-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white">
           <Cpu className="h-4 w-4" strokeWidth={1.7} />
         </div>
         <div className="flex-1 min-w-0">
@@ -634,7 +634,7 @@ function RunOutcomeBanner({
                 onClick={() => run_(a)}
                 className={
                   i === 0
-                    ? "h-8 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep px-3 text-[12px] text-white ring-1 ring-violet-soft/35"
+                    ? "h-8 bg-violet-deep px-3 text-[12px] text-white hover:bg-violet-mid"
                     : "h-8 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[12px] text-fog-200 hover:bg-white/[0.06]"
                 }
               >

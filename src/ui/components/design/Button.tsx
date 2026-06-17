@@ -17,7 +17,7 @@ const SIZE: Record<ButtonSize, string> = {
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-b from-violet-mid to-violet-deep text-white border border-violet-soft/40 hover:brightness-110 shadow-[0_8px_24px_-8px_rgba(139,124,255,0.55)] ring-1 ring-violet-soft/35",
+    "bg-violet-deep text-white border border-violet-soft/30 hover:bg-violet-mid",
   secondary:
     "bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-fog-100",
   ghost:
@@ -48,7 +48,7 @@ export function Button({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium select-none whitespace-nowrap",
+        "inline-flex items-center justify-center rounded-none font-medium select-none whitespace-nowrap",
         "disabled:opacity-50 disabled:pointer-events-none",
         SIZE[size],
         VARIANT[variant],

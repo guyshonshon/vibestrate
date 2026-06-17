@@ -230,7 +230,7 @@ export function ProposalDetailPage({
           type="button"
           onClick={accept}
           disabled={busy !== null || acceptDisabled}
-          className="h-8 px-3 rounded-lg bg-gradient-to-b from-emerald-500/30 to-emerald-700/50 border border-emerald-400/40 text-emerald-100 text-[12px] hover:from-emerald-500/45 disabled:opacity-50"
+          className="h-8 px-3 bg-emerald text-ink-0 text-[12px] font-medium hover:bg-emerald-mid disabled:opacity-50"
         >
           {busy === "accept" ? "Accepting…" : "Accept proposal"}
         </button>

@@ -666,7 +666,7 @@ export function FlowBuilderPage({
           <div className="col-span-12 xl:col-span-7">
             <div className="slab p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-mid to-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
                   {(() => {
                     const Icon = flowIcon(selected.label);
                     return <Icon className="h-4 w-4" strokeWidth={1.7} />;

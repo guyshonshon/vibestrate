@@ -106,8 +106,8 @@ export function RunStatusSection({
     run.profileOverride ?? run.crewId ??
     null;
   return (
-    <section className="bevel-violet p-[1px] fade-up" data-screen-label="01 Status">
-      <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl">
+    <section className="slab fade-up" data-screen-label="01 Status">
+      <div>
         {/* Eyebrow + controls */}
         <div className="px-5 pt-4 pb-3 flex items-baseline justify-between gap-4 flex-wrap">
           {/* Hierarchy: this block is the BRIEF (what you asked for). The

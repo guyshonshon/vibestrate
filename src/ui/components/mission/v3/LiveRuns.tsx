@@ -281,7 +281,7 @@ function RunCard({
                   e.stopPropagation();
                   onOpen(run.runId);
                 }}
-                className="h-7 px-2.5 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep text-white text-[12px] flex items-center gap-1.5 ring-1 ring-violet-soft/35"
+                className="h-7 px-2.5 bg-violet-deep text-white text-[12px] flex items-center gap-1.5 hover:bg-violet-mid"
               >
                 <Check className="h-3 w-3" strokeWidth={1.7} /> Open approval
               </button>

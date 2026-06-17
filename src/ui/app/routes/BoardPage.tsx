@@ -316,7 +316,7 @@ export function BoardPage({
                 setShowTaskForm((v) => !v);
                 setShowRoadmapForm(false);
               }}
-              className="h-7 inline-flex items-center gap-1.5 rounded-md border border-violet-soft/35 bg-gradient-to-b from-violet-mid/40 to-violet-deep/60 px-2.5 text-[11.5px] font-medium text-white hover:from-violet-mid/55 hover:to-violet-deep/75"
+              className="h-7 inline-flex items-center gap-1.5 border border-violet-soft/35 bg-violet-deep px-2.5 text-[11.5px] font-medium text-white hover:bg-violet-mid"
             >
               <Plus className="h-3 w-3" strokeWidth={1.7} />
               New task

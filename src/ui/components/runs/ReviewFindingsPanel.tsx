@@ -119,7 +119,7 @@ export function ReviewFindingsPanel({
               <button
                 type="button"
                 onClick={onRerunWithFixes}
-                className="h-7 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep px-3 text-[12px] text-white ring-1 ring-violet-soft/35"
+                className="h-7 bg-violet-deep px-3 text-[12px] text-white hover:bg-violet-mid"
               >
                 Re-run with fixes
               </button>

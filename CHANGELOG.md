@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.119
+
+- **Buttons match the slab language.** Action buttons dropped their violet
+  gradient + glow for a flat solid fill and square corners: solid violet for a
+  primary action, solid emerald reserved for approve/ship/go. The shared
+  `Button` is now flat + square at the source, so every consumer follows. Also
+  flattened the gradient icon-badges and the legacy composer's glass panels to
+  slab, kept the user avatar distinct with a flat sky ring, and removed the
+  now-unused bevelled-violet / top-rim glow CSS. The dashboard reads as one
+  flat, solid surface end to end - no gradients or glow left on a component.
+
 ## 0.7.118
 
 - **Effort is gone - it was never real.** The run/task-level "effort" dial

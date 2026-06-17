@@ -316,24 +316,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-/* ── Violet-bevelled accent surface used by Composer & Status ── */
-.bevel-violet {
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(167, 139, 250, 0.08), rgba(105, 81, 240, 0.02)) padding-box,
-    linear-gradient(180deg, rgba(167, 139, 250, 0.55), rgba(105, 81, 240, 0.12)) border-box;
-  border: 1px solid transparent;
-  border-radius: 14px;
-}
-.bevel-violet::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  pointer-events: none;
-  background:
-    radial-gradient(220px 90px at 30% -10%, rgba(167, 139, 250, 0.22), transparent 60%);
-}
 
 /* ── Typography niceties ─────────────────────────────────────────── */
 .text-display {
@@ -483,22 +465,6 @@ button:active,
     0 28px 64px -28px rgba(105, 81, 240, 0.45);
 }
 
-/* ── Top rim inner highlight ─────────────────────────────────────── */
-.top-rim {
-  position: relative;
-}
-.top-rim::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.05),
-    transparent 30%
-  );
-}
 
 /* ── Phase rail ──────────────────────────────────────────────────── */
 .phase-segment {

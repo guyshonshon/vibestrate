@@ -434,8 +434,8 @@ export function ComposerV3({
   }
 
   return (
-    <div className="bevel-violet top-rim p-[1px] fade-up">
-      <div className="rounded-[13px] surface-ink-100-70 backdrop-blur-2xl">
+    <div className="slab fade-up">
+      <div>
         {/* 1 · The brief */}
         <div className="px-5 pt-5 pb-4">
           <div className="flex items-baseline justify-between mb-2">
@@ -802,7 +802,7 @@ export function ComposerV3({
                 ? "Resolve the seat issues below before sending."
                 : undefined
             }
-            className="h-10 px-5 rounded-lg bg-gradient-to-b from-violet-mid to-violet-deep text-white font-medium text-[13.5px] flex items-center gap-2 ring-1 ring-violet-soft/35 shadow-[0_8px_24px_-8px_rgba(139,124,255,0.55)] whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-10 px-5 bg-violet-deep text-white font-medium text-[13.5px] flex items-center gap-2 hover:bg-violet-mid whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Play className="h-3 w-3" strokeWidth={2} />
             {busy ? "Starting…" : "Send to crew"}
@@ -947,7 +947,7 @@ function FlowChip({
       className={cn(
         "relative text-left rounded-xl px-3.5 py-3 border transition group min-w-0",
         selected
-          ? "border-violet-soft/45 bg-gradient-to-br from-violet-soft/[0.08] to-violet-deep/[0.04] ring-1 ring-violet-soft/30"
+          ? "border-violet-soft/45 bg-violet-mid/[0.10] ring-1 ring-violet-soft/30"
           : "border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/15",
       )}
     >

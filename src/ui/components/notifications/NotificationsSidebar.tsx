@@ -642,7 +642,7 @@ function NotificationItem({
             e.stopPropagation();
             onApprove(n);
           }}
-          className="h-7 px-2.5 rounded-md bg-gradient-to-b from-violet-mid to-violet-deep text-white text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap ring-1 ring-violet-soft/35 disabled:opacity-50"
+          className="h-7 px-2.5 bg-violet-deep text-white text-[11.5px] font-medium flex items-center gap-1.5 whitespace-nowrap hover:bg-violet-mid disabled:opacity-50"
         >
           <Check className="h-3 w-3" strokeWidth={1.7} /> Approve
         </button>

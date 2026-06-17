@@ -552,7 +552,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onShowSettings}
-          className="w-8 h-8 rounded-lg overflow-hidden border border-white/10 bg-gradient-to-br from-violet-deep to-sky-500/40 flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
+          className="w-8 h-8 rounded-lg overflow-hidden border border-white/10 bg-violet-deep ring-1 ring-sky-glow/40 flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
         >
           AM
         </button>
