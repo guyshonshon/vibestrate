@@ -41,6 +41,7 @@ import type {
 import { cn } from "../../components/design/cn.js";
 import { Chip, ToneDot } from "../../components/design/Chip.js";
 import type { ChipTone } from "../../components/design/Chip.js";
+import { Button } from "../../components/design/Button.js";
 
 // ── Columns ──────────────────────────────────────────────────────────────
 
@@ -288,7 +289,7 @@ export function BoardPage({
                 type="button"
                 onClick={() => onOpenTask(suggestions[0]!.taskId)}
                 title={`Suggested next - ${suggestions[0]!.reason}`}
-                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-violet-soft/30 bg-violet-mid/15 px-2.5 py-0.5 text-[11px] text-fog-100 hover:bg-violet-mid/25 max-w-[280px]"
+                className="hidden lg:inline-flex items-center gap-1.5 border border-violet-soft/30 bg-violet-mid/15 px-2.5 py-1 text-[11px] text-fog-100 hover:bg-violet-mid/25 max-w-[280px]"
               >
                 <Sparkles className="h-3 w-3 text-violet-soft shrink-0" strokeWidth={1.7} />
                 <span className="text-fog-500">next:</span>
@@ -297,28 +298,28 @@ export function BoardPage({
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 setShowRoadmapForm((v) => !v);
                 setShowTaskForm(false);
               }}
-              className="h-7 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
+              iconLeft={<Plus className="h-3 w-3" strokeWidth={1.7} />}
             >
-              <Plus className="h-3 w-3" strokeWidth={1.7} />
               Roadmap item
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => {
                 setShowTaskForm((v) => !v);
                 setShowRoadmapForm(false);
               }}
-              className="h-7 inline-flex items-center gap-1.5 border border-violet-soft/35 bg-violet-deep px-2.5 text-[11.5px] font-medium text-white hover:bg-violet-mid"
+              iconLeft={<Plus className="h-3 w-3" strokeWidth={1.7} />}
             >
-              <Plus className="h-3 w-3" strokeWidth={1.7} />
               New task
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -331,15 +332,11 @@ export function BoardPage({
               value={newRoadmapTitle}
               onChange={(e) => setNewRoadmapTitle(e.target.value)}
               placeholder="Build onboarding flow"
-              className="mono flex-1 h-8 rounded-md border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
+              className="mono flex-1 h-8 border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
             />
-            <button
-              type="submit"
-              disabled={busy || !newRoadmapTitle.trim()}
-              className="h-8 px-3 rounded-md border border-white/10 bg-white/[0.05] text-[11.5px] text-fog-100 hover:bg-white/[0.08] disabled:opacity-50"
-            >
+            <Button type="submit" variant="secondary" size="sm" disabled={busy || !newRoadmapTitle.trim()}>
               Add
-            </button>
+            </Button>
           </form>
         ) : null}
         {showTaskForm ? (
@@ -352,12 +349,12 @@ export function BoardPage({
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Create setup wizard"
-              className="mono flex-1 min-w-[240px] h-8 rounded-md border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
+              className="mono flex-1 min-w-[240px] h-8 border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
             />
             <select
               value={newTaskRoadmap}
               onChange={(e) => setNewTaskRoadmap(e.target.value)}
-              className="mono h-8 rounded-md border border-white/[0.1] bg-white/[0.03] px-2 text-[11.5px] text-fog-100"
+              className="mono h-8 border border-white/[0.1] bg-white/[0.03] px-2 text-[11.5px] text-fog-100"
             >
               <option value="">no roadmap link</option>
               {items.map((i) => (
@@ -366,13 +363,9 @@ export function BoardPage({
                 </option>
               ))}
             </select>
-            <button
-              type="submit"
-              disabled={busy || !newTaskTitle.trim()}
-              className="h-8 px-3 rounded-md border border-white/10 bg-white/[0.05] text-[11.5px] text-fog-100 hover:bg-white/[0.08] disabled:opacity-50"
-            >
+            <Button type="submit" variant="secondary" size="sm" disabled={busy || !newTaskTitle.trim()}>
               Add
-            </button>
+            </Button>
           </form>
         ) : null}
 
@@ -380,7 +373,7 @@ export function BoardPage({
           <div
             role="status"
             className={cn(
-              "mt-3 inline-block rounded-md border px-2.5 py-1 text-[11.5px]",
+              "mt-3 inline-block border px-2.5 py-1 text-[11.5px]",
               toast.kind === "ok"
                 ? "border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
                 : "border-rose-400/30 bg-rose-500/5 text-rose-300",
@@ -669,7 +662,7 @@ function BoardToolbar({
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Filter by title…"
-          className="w-full h-8 pl-8 pr-3 rounded-md bg-white/[0.025] border border-white/[0.08] text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35 focus:bg-white/[0.04]"
+          className="w-full h-8 pl-8 pr-3 bg-white/[0.025] border border-white/[0.08] text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35 focus:bg-white/[0.04]"
         />
         {query ? (
           <button
@@ -681,14 +674,14 @@ function BoardToolbar({
           </button>
         ) : null}
       </div>
-      <div className="inline-flex rounded-md border border-white/[0.08] bg-white/[0.025] p-[2px]">
+      <div className="inline-flex border border-white/[0.08] bg-white/[0.025] p-[2px]">
         {priorities.map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => onPriority(p)}
             className={cn(
-              "h-[26px] px-2.5 rounded text-[11.5px] font-medium",
+              "h-[26px] px-2.5 text-[11.5px] font-medium",
               priority === p
                 ? "bg-white/[0.08] text-fog-100"
                 : "text-fog-400 hover:text-fog-100",
