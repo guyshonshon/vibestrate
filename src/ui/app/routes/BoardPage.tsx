@@ -98,9 +98,9 @@ const COLUMN_TONE: Record<ColumnTone, { dot: string; text: string }> = {
 };
 
 const PRIORITY_PILL: Record<Priority, { label: string; cls: string }> = {
-  low:    { label: "low",  cls: "border-white/10 text-fog-400 bg-white/[0.025]" },
-  medium: { label: "med",  cls: "border-violet-soft/35 text-violet-soft bg-violet-soft/10" },
-  high:   { label: "high", cls: "border-amber-400/40 text-amber-300 bg-amber-500/10" },
+  low:    { label: "low",  cls: "text-fog-400" },
+  medium: { label: "med",  cls: "text-violet-soft" },
+  high:   { label: "high", cls: "text-amber-300" },
 };
 
 const ROADMAP_TONES: ChipTone[] = ["violet", "sky", "emerald", "amber", "rose"];
@@ -904,7 +904,7 @@ function TaskCard({
       <div className="flex items-center gap-1 flex-wrap">
         <span
           className={cn(
-            "mono text-[9px] uppercase tracking-[0.12em] inline-flex items-center rounded border px-1 py-[1px]",
+            "mono text-[9px] uppercase tracking-[0.12em] inline-flex items-center",
             prio.cls,
           )}
         >
@@ -913,7 +913,7 @@ function TaskCard({
         {isWaiting ? (
           <Chip
             tone="amber"
-            className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
+            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
           >
             <Hourglass className="h-2.5 w-2.5" strokeWidth={1.7} /> approval
           </Chip>
@@ -921,7 +921,7 @@ function TaskCard({
         {isRunning ? (
           <Chip
             tone="emerald"
-            className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
+            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
           >
             <span className="pulse-dot" /> running
           </Chip>
@@ -929,7 +929,7 @@ function TaskCard({
         {isFailed ? (
           <Chip
             tone="rose"
-            className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
+            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
           >
             <Bolt className="h-2.5 w-2.5" strokeWidth={1.7} /> failed
           </Chip>
@@ -937,7 +937,7 @@ function TaskCard({
         {task.needsTesting ? (
           <Chip
             tone="amber"
-            className="!text-[9px] !px-1 !py-[1px] !rounded !uppercase !tracking-[0.12em] !font-normal"
+            className="!text-[9px] !uppercase !tracking-[0.12em] !font-normal"
           >
             <FlaskConical className="h-2.5 w-2.5" strokeWidth={1.7} /> needs testing
           </Chip>
@@ -1000,7 +1000,7 @@ function TaskCard({
           {task.requiredSkills.slice(0, 2).map((sid) => (
             <span
               key={sid}
-              className="inline-flex items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.02] px-1.5 py-[1px] text-[9.5px] text-fog-300"
+              className="inline-flex items-center gap-1 text-[9.5px] text-fog-300"
             >
               <ToneDot tone="sky" />
               <span className="truncate max-w-[80px]">{sid}</span>
