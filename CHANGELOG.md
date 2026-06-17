@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.125
+
+- **Remove a task from the Board (and the CLI).** Cards now have a trash action
+  next to rename: it asks once, then permanently removes the card and its
+  comments. Same on the CLI: `vibe tasks delete <id>` (interactive confirm, or
+  `--yes`). It refuses while a run is still live - and that guard is now real:
+  it was keyed on a field that's only set for an instant at run completion, so a
+  genuinely-running task could have been deleted out from under its process;
+  it now checks the actual run state and the scheduler queue. Your runs,
+  transcripts, and git worktree are left untouched (the worktree path is
+  reported so you know it's still there).
+
 ## 0.7.124
 
 - **Board, brought into the flat slab look.** The task kanban dropped its
