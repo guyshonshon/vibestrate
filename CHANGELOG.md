@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.121
+
+- **The Flows page joined the flat slab design (P6).** The flow catalog had
+  been missed by the slab migration - it styled its cards directly with
+  translucent, rounded surfaces instead of the `.glass` class the migration
+  swept - so it still read as the old era. Its flow cards, import panel, hub
+  cards, inputs, alerts, and chips are now flat, solid, square slabs, matching
+  the rest of the dashboard.
+
 ## 0.7.120
 
 - **Fixed: the Profiles screen was broken.** A rename refactor had pointed the

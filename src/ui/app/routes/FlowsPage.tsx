@@ -263,17 +263,17 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       </section>
 
       {importOpen ? (
-        <section className="mt-4 rounded-xl border border-white/10 surface-ink-100-55 px-4 py-3.5">
+        <section className="mt-4 slab px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="eyebrow">Import a flow</div>
-            <div className="ml-auto inline-flex rounded-md border border-white/10 p-0.5 text-[11.5px]">
+            <div className="ml-auto inline-flex border border-white/10 p-0.5 text-[11.5px]">
               {(["yaml", "url"] as ImportMode[]).map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setImportMode(m)}
                   className={cn(
-                    "rounded px-2 py-0.5",
+                    "px-2 py-0.5",
                     importMode === m
                       ? "bg-violet-soft/20 text-fog-100"
                       : "text-fog-400 hover:text-fog-200",
@@ -290,7 +290,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               onChange={(e) => setImportText(e.target.value)}
               placeholder="Paste a flow.yml here…"
               spellCheck={false}
-              className="mono mt-3 h-44 w-full resize-y rounded-md border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+              className="mono mt-3 h-44 w-full resize-y border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
             />
           ) : (
             <input
@@ -298,7 +298,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
               value={importUrl}
               onChange={(e) => setImportUrl(e.target.value)}
               placeholder="https://example.com/path/flow.yml"
-              className="mono mt-3 w-full rounded-md border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
+              className="mono mt-3 w-full border border-white/10 bg-ink-200/50 px-2.5 py-2 text-[12px] text-fog-200 outline-none focus:border-violet-soft/50"
             />
           )}
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -336,13 +336,13 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       ) : null}
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {invalid.length > 0 ? (
-        <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2.5 text-[12.5px] text-amber-200">
+        <div className="mt-4 border border-amber-400/30 bg-amber-500/5 px-3 py-2.5 text-[12.5px] text-amber-200">
           <div className="font-medium">
             {invalid.length} project flow{invalid.length === 1 ? "" : "s"} couldn't
             be loaded and {invalid.length === 1 ? "was" : "were"} skipped:
@@ -403,7 +403,7 @@ export function FlowsPage({ onOpenInFlow }: Props) {
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 rounded-lg border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
@@ -538,10 +538,10 @@ function HubSection({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search the hub (name, tag, description)…"
-            className="w-full max-w-[420px] rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+            className="w-full max-w-[420px] border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
           />
           {hubError ? (
-            <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+            <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
               {hubError}
             </div>
           ) : loading && rows === null ? (
@@ -555,7 +555,7 @@ function HubSection({
                 return (
                   <li
                     key={row.ref}
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-3"
+                    className="slab-flat px-4 py-3"
                   >
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="text-[13.5px] font-medium text-fog-100">
@@ -642,7 +642,7 @@ function DefaultFlowCard({
     : null;
   const isProject = flow.source.kind === "project";
   return (
-    <div className="rounded-xl border border-violet-soft/25 surface-ink-100-55 px-4 py-3.5">
+    <div className="slab px-4 py-3.5">
       <div className="flex items-center gap-2">
         <span className="text-[14px] font-medium text-fog-100">{flow.label}</span>
         <Chip tone={isProject ? "violet" : "neutral"}>
@@ -696,7 +696,7 @@ function DefaultFlowCard({
           return (
             <span key={s.id} className="flex items-center gap-1.5">
               {i > 0 ? <span className="text-fog-500 text-[11px]">→</span> : null}
-              <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
+              <span className="border border-white/10 bg-white/[0.03] px-2 py-1 text-[11.5px] text-fog-200">
                 {s.label}
                 {inLoop ? (
                   <span
@@ -749,7 +749,7 @@ function FlowCard({
   ).length;
 
   return (
-    <div className="rounded-xl border border-white/10 surface-ink-100-55">
+    <div className="slab">
       <div className="flex items-start justify-between gap-4 px-4 py-3.5">
         <button
           type="button"
@@ -859,7 +859,7 @@ function FlowCard({
                 {seats.map(([id, seat]) => (
                   <span
                     key={id}
-                    className="rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
+                    className="border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
                     title={seat.description ?? undefined}
                   >
                     <span className="text-fog-100">{seat.label}</span>{" "}
@@ -925,7 +925,7 @@ function CoverageBadges({ flowId }: { flowId: string }) {
         {cov.seats.map((s) => (
           <span
             key={s.seatId}
-            className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
+            className="inline-flex items-center gap-1 border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
             title={
               s.status === "filled"
                 ? `filled by ${s.resolvedRoleId}`
@@ -951,7 +951,7 @@ function StepRow({ index, step }: { index: number; step: FlowStepDefinition }) {
   const target = step.seat ?? null;
   const hasApproval = step.kind === "approval-gate" || !!step.approval;
   return (
-    <li className="flex items-center gap-2.5 rounded-md border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5">
+    <li className="flex items-center gap-2.5 border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5">
       <span className="mono w-5 shrink-0 text-right text-[11px] text-fog-600">{index}</span>
       <Chip tone={kind.tone}>{kind.label}</Chip>
       <span className="min-w-0 truncate text-[12.5px] text-fog-200">{step.label}</span>
@@ -959,10 +959,10 @@ function StepRow({ index, step }: { index: number; step: FlowStepDefinition }) {
         <span className="mono text-[10.5px] text-fog-500">{target}</span>
       ) : null}
       {step.optional ? (
-        <span className="rounded border border-white/10 px-1 text-[10px] text-fog-500">optional</span>
+        <span className="border border-white/10 px-1 text-[10px] text-fog-500">optional</span>
       ) : null}
       {step.repeat ? (
-        <span className="rounded border border-white/10 px-1 text-[10px] text-fog-500">×{step.repeat.times}</span>
+        <span className="border border-white/10 px-1 text-[10px] text-fog-500">×{step.repeat.times}</span>
       ) : null}
       {hasApproval ? (
         <span
