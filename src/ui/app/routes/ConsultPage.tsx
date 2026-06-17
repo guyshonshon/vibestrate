@@ -4,13 +4,11 @@ import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../../components/design/Button.js";
+import { Select } from "../../components/design/Select.js";
 import {
   ConsultAnswerView,
   type ProposalState,
 } from "../../components/consult/ConsultAnswerView.js";
-
-const SELECT_CLASS =
-  "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[11.5px] text-fog-200 outline-none focus:border-violet-soft/40";
 
 export function ConsultPage({
   taskId,
@@ -100,7 +98,7 @@ export function ConsultPage({
   const answer = result?.answer;
 
   return (
-    <div className="relative z-10 mx-auto max-w-[860px] px-8 pt-6 pb-20 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-20 fade-up">
       <section className="mt-1">
         <div className="eyebrow mb-1.5 flex items-center gap-1.5">
           <MessagesSquare className="h-3 w-3" strokeWidth={1.8} /> Consult
@@ -118,7 +116,7 @@ export function ConsultPage({
           <button
             type="button"
             onClick={() => onOpenTask(taskId)}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-ink-200/40 px-2 py-0.5 text-[11px] text-fog-300 hover:text-fog-100"
+            className="mt-2 inline-flex items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-0.5 text-[11px] text-fog-300 hover:text-fog-100"
           >
             scoped to task <span className="mono">{taskId}</span>
           </button>
@@ -134,45 +132,51 @@ export function ConsultPage({
           }}
           placeholder="e.g. Should this auth refactor use a heavier review flow? Why did the last run block?"
           rows={3}
-          className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
+          className="w-full resize-y border border-white/10 bg-ink-200 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40"
         />
         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-fog-400">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] text-fog-300">
             <span className="flex items-center gap-1.5">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.9} /> Model
             </span>
             {/* Provider → Model → Effort, all from the real capability catalog. */}
-            <select value={providerId} onChange={(e) => onProviderChange(e.target.value)} className={SELECT_CLASS}>
-              <option value="">Default · planner (crew)</option>
-              {configuredProviders.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label || p.id}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={providerId}
+              ariaLabel="Provider"
+              className="min-w-[150px]"
+              onChange={(v) => onProviderChange(v)}
+              options={[
+                { value: "", label: "Default · planner (crew)" },
+                ...configuredProviders.map((p) => ({ value: p.id, label: p.label || p.id })),
+              ]}
+            />
             {providerId ? (
               models.length > 0 ? (
-                <select value={model} onChange={(e) => setModel(e.target.value)} className={SELECT_CLASS}>
-                  <option value="">model: provider default</option>
-                  {models.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={model}
+                  ariaLabel="Model"
+                  className="min-w-[150px]"
+                  onChange={(v) => setModel(v)}
+                  options={[
+                    { value: "", label: "model: provider default" },
+                    ...models.map((m) => ({ value: m, label: m })),
+                  ]}
+                />
               ) : (
-                <span className="text-[10.5px] text-fog-600">model: provider default</span>
+                <span className="text-[10.5px] text-fog-500">model: provider default</span>
               )
             ) : null}
             {providerId && efforts.length > 0 ? (
-              <select value={effort} onChange={(e) => setEffort(e.target.value)} className={SELECT_CLASS}>
-                <option value="">effort: default</option>
-                {efforts.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    effort: {lvl}
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={effort}
+                ariaLabel="Effort"
+                className="min-w-[150px]"
+                onChange={(v) => setEffort(v)}
+                options={[
+                  { value: "", label: "effort: default" },
+                  ...efforts.map((lvl) => ({ value: lvl, label: `effort: ${lvl}` })),
+                ]}
+              />
             ) : null}
           </div>
           <div className="flex items-center gap-3">
@@ -191,7 +195,7 @@ export function ConsultPage({
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}

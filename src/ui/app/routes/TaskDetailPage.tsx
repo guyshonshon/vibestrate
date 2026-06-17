@@ -24,6 +24,7 @@ import type {
 } from "../../lib/types.js";
 import { MicroStepPipeline } from "../../components/board/MicroStepPipeline.js";
 import { TaskGitActivity } from "../../components/tasks/TaskGitActivity.js";
+import { Select } from "../../components/design/Select.js";
 
 export function TaskDetailPage({
   taskId,
@@ -128,50 +129,50 @@ export function TaskDetailPage({
   }
 
   if (error)
-    return <div className="px-6 py-8 text-vibestrate-fail">{error}</div>;
+    return <div className="deep-scene px-6 py-8 text-rose-400">{error}</div>;
   if (!data)
-    return <div className="px-6 py-8 text-vibestrate-fg-muted">Loading task…</div>;
+    return <div className="deep-scene px-6 py-8 text-fog-300">Loading task…</div>;
 
   const { task, comments, microSteps } = data;
   const open = comments.filter((c) => !c.resolved);
   const resolved = comments.filter((c) => c.resolved);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <header className="border-b border-vibestrate-border bg-vibestrate-panel px-6 py-4">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+    <div className="deep-scene flex h-full flex-col overflow-y-auto">
+      <header className="border-b border-white/10 bg-ink-100 px-6 py-4">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
           task · {task.id}
         </div>
         {task.derivedFrom ? (
           <button
             type="button"
             onClick={() => onOpenTask(task.derivedFrom!.taskId)}
-            className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-vibestrate-fg-muted hover:text-vibestrate-accent"
+            className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] text-fog-300 hover:text-violet-soft"
             title="This card was promoted from a checklist item on another card."
           >
             <ArrowUpRight className="h-3 w-3" strokeWidth={1.5} />
             derived from {task.derivedFrom.taskId}
           </button>
         ) : null}
-        <h1 className="mt-1 text-[16px] font-medium">{task.title}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-vibestrate-fg-dim">
-          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
+        <h1 className="mt-1 text-[16px] font-medium text-fog-100">{task.title}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-fog-300">
+          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
             {task.status}
           </span>
-          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
+          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
             priority: {task.priority}
           </span>
-          <span className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px]">
+          <span className="vibestrate-mono border border-white/10 px-1.5 py-0.5 text-[10.5px]">
             risk: {task.riskLevel}
           </span>
           {task.roadmapItemId ? (
-            <span className="vibestrate-mono text-vibestrate-fg-muted">
+            <span className="vibestrate-mono text-fog-400">
               roadmap: {task.roadmapItemId}
             </span>
           ) : null}
           {task.profileOverride ? (
             <span
-              className="vibestrate-mono rounded border border-vibestrate-accent/40 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent"
+              className="vibestrate-mono border border-violet-soft/40 px-1.5 py-0.5 text-[10.5px] text-violet-soft"
               title="Every agent in runs spawned from this task uses this provider."
             >
               provider: {task.profileOverride}
@@ -179,7 +180,7 @@ export function TaskDetailPage({
           ) : null}
           {task.readOnly ? (
             <span
-              className="vibestrate-mono rounded border border-vibestrate-warn/60 bg-vibestrate-warn/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-vibestrate-warn"
+              className="vibestrate-mono border border-amber-400/60 bg-amber-400/15 px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-amber-300"
               title="Investigation-only - runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
             >
               read-only
@@ -200,21 +201,21 @@ export function TaskDetailPage({
               task.status === "queued" ||
               task.status === "running"
             }
-            className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-2.5 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
+            className="border border-violet-soft/40 bg-violet-soft/10 px-2.5 py-1 text-[12px] text-violet-soft hover:bg-violet-soft/20 disabled:opacity-50"
           >
             {busy === "queue" ? "Queueing…" : "Queue task"}
           </button>
           <button
             onClick={cancel}
             disabled={busy !== null || task.status === "cancelled"}
-            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+            className="border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={() => toggleArchive(!task.archived)}
             disabled={busy !== null}
-            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+            className="border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
           >
             {busy === "archive"
               ? "…"
@@ -222,9 +223,9 @@ export function TaskDetailPage({
                 ? "Un-archive"
                 : "Archive"}
           </button>
-          <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
+          <span className="ml-auto text-[10.5px] text-fog-400">
             Run from CLI:{" "}
-            <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1 py-0.5">
+            <code className="vibestrate-mono bg-ink-200 px-1 py-0.5">
               vibe tasks run {task.id}
             </code>
           </span>
@@ -236,11 +237,11 @@ export function TaskDetailPage({
           <NeedsTestingBanner task={task} onResolved={load} />
         ) : null}
         {task.description ? (
-          <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-            <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+          <section className="slab p-3">
+            <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
               description
             </div>
-            <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-vibestrate-fg">
+            <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-fog-200">
               {task.description}
             </div>
           </section>
@@ -250,24 +251,24 @@ export function TaskDetailPage({
 
         <ContextSourcesSection task={task} onChanged={load} />
 
-        <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        <section className="slab p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
             runs
           </div>
           {task.runIds.length === 0 ? (
-            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">No runs yet.</div>
+            <div className="mt-1 text-[12px] text-fog-400">No runs yet.</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {task.runIds.map((rid) => (
                 <li key={rid}>
                   <button
                     onClick={() => onOpenRun(rid)}
-                    className="vibestrate-mono inline-flex items-center gap-1.5 text-[12px] text-vibestrate-fg-dim hover:text-vibestrate-fg"
+                    className="vibestrate-mono inline-flex items-center gap-1.5 text-[12px] text-fog-300 hover:text-fog-100"
                   >
                     <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
                     {rid}
                     {rid === task.currentRunId ? (
-                      <span className="vibestrate-mono ml-1 rounded border border-vibestrate-accent/50 px-1 text-[10px] text-vibestrate-accent">
+                      <span className="vibestrate-mono ml-1 border border-violet-soft/50 px-1 text-[10px] text-violet-soft">
                         current
                       </span>
                     ) : null}
@@ -299,8 +300,8 @@ export function TaskDetailPage({
           onOpenTask={onOpenTask}
         />
 
-        <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        <section className="slab p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
             comments
           </div>
           <form onSubmit={submitComment} className="mt-2 flex gap-2">
@@ -309,28 +310,28 @@ export function TaskDetailPage({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment (saved to .vibestrate/roadmap/comments/<task>.json)"
-              className="flex-1 resize-y rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted"
+              className="flex-1 resize-y border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 placeholder-fog-500"
             />
             <button
               type="submit"
               disabled={busy === "comment" || !newComment.trim()}
-              className="self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
+              className="self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
             >
               {busy === "comment" ? "Saving…" : "Add"}
             </button>
           </form>
           {open.length > 0 ? (
             <div className="mt-3 space-y-1.5">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
                 open ({open.length})
               </div>
               {open.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12.5px] text-vibestrate-fg"
+                  className="border border-white/10 bg-ink-200 p-2 text-[12.5px] text-fog-100"
                 >
                   <div>{c.body}</div>
-                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-vibestrate-fg-muted">
+                  <div className="mt-1 flex items-center gap-2 text-[10.5px] text-fog-400">
                     <span className="vibestrate-mono">{c.target}</span>
                     <span className="vibestrate-mono">
                       {new Date(c.createdAt).toLocaleString()}
@@ -338,7 +339,7 @@ export function TaskDetailPage({
                     <button
                       onClick={() => resolveComment(c.id)}
                       disabled={busy === c.id}
-                      className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:text-vibestrate-fg"
+                      className="ml-auto inline-flex items-center gap-1 border border-white/10 bg-ink-100 px-1.5 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100"
                     >
                       <Check className="h-3 w-3" strokeWidth={1.5} /> resolve
                     </button>
@@ -349,13 +350,13 @@ export function TaskDetailPage({
           ) : null}
           {resolved.length > 0 ? (
             <div className="mt-3 space-y-1.5 opacity-60">
-              <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
                 resolved ({resolved.length})
               </div>
               {resolved.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12.5px] text-vibestrate-fg-dim"
+                  className="border border-white/10 bg-ink-200 p-2 text-[12.5px] text-fog-300"
                 >
                   <div className="line-through">{c.body}</div>
                 </div>
@@ -396,17 +397,17 @@ function DependenciesSection({
   const isDone = (s: Task["status"]) => s === "done" || s === "cancelled";
 
   return (
-    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+    <section className="slab p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
         dependencies
       </div>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         <div>
-          <div className="text-[11px] text-vibestrate-fg-muted">
+          <div className="text-[11px] text-fog-400">
             Blocked by ({blockers.length + missingBlockers.length})
           </div>
           {blockers.length === 0 && missingBlockers.length === 0 ? (
-            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">-</div>
+            <div className="mt-1 text-[12px] text-fog-400">-</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {blockers.map((b) => {
@@ -415,15 +416,15 @@ function DependenciesSection({
                   <li key={b.id}>
                     <button
                       onClick={() => onOpenTask(b.id)}
-                      className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left hover:bg-vibestrate-panel"
+                      className="flex w-full items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-vibestrate-warn" : "bg-vibestrate-success"}`}
+                        className={`h-1.5 w-1.5 rounded-full ${open ? "bg-amber-400" : "bg-emerald-400"}`}
                       />
-                      <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+                      <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
                         {b.title}
                       </span>
-                      <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
+                      <span className="vibestrate-mono text-[10.5px] text-fog-400">
                         {b.status}
                       </span>
                     </button>
@@ -433,7 +434,7 @@ function DependenciesSection({
               {missingBlockers.map((id) => (
                 <li
                   key={id}
-                  className="flex items-center gap-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 px-2 py-1 text-[12px] text-vibestrate-fail"
+                  className="flex items-center gap-2 border border-rose-400/40 bg-rose-400/5 px-2 py-1 text-[12px] text-rose-400"
                 >
                   <span className="vibestrate-mono flex-1 truncate">{id}</span>
                   <span className="vibestrate-mono text-[10.5px]">missing</span>
@@ -443,23 +444,23 @@ function DependenciesSection({
           )}
         </div>
         <div>
-          <div className="text-[11px] text-vibestrate-fg-muted">
+          <div className="text-[11px] text-fog-400">
             Unlocks ({unlocks.length})
           </div>
           {unlocks.length === 0 ? (
-            <div className="mt-1 text-[12px] text-vibestrate-fg-muted">-</div>
+            <div className="mt-1 text-[12px] text-fog-400">-</div>
           ) : (
             <ul className="mt-1 space-y-1">
               {unlocks.map((u) => (
                 <li key={u.id}>
                   <button
                     onClick={() => onOpenTask(u.id)}
-                    className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left hover:bg-vibestrate-panel"
+                    className="flex w-full items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
                   >
-                    <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+                    <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
                       {u.title}
                     </span>
-                    <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
+                    <span className="vibestrate-mono text-[10.5px] text-fog-400">
                       {u.status}
                     </span>
                   </button>
@@ -497,17 +498,17 @@ function NeedsTestingBanner({
   }
 
   return (
-    <section className="rounded border border-vibestrate-warn/50 bg-vibestrate-warn/10 p-3">
+    <section className="border border-amber-400/50 bg-amber-400/10 p-3">
       <div className="flex items-start gap-2">
         <FlaskConical
-          className="mt-0.5 h-4 w-4 shrink-0 text-vibestrate-warn"
+          className="mt-0.5 h-4 w-4 shrink-0 text-amber-300"
           strokeWidth={1.7}
         />
         <div className="flex-1">
-          <div className="text-[12.5px] font-medium text-vibestrate-warn">
+          <div className="text-[12.5px] font-medium text-amber-300">
             Needs testing - a human should check this
           </div>
-          <div className="mt-0.5 text-[12px] text-vibestrate-fg-dim">
+          <div className="mt-0.5 text-[12px] text-fog-300">
             {task.needsTestingReason ||
               "A run finished but flagged something for human review (e.g. visual / UX the model can't perceive)."}
           </div>
@@ -516,7 +517,7 @@ function NeedsTestingBanner({
               type="button"
               onClick={() => verdict("pass")}
               disabled={busy !== null}
-              className="rounded border border-vibestrate-success/50 bg-vibestrate-success/15 px-2 py-1 text-[12px] text-vibestrate-success hover:bg-vibestrate-success/25 disabled:opacity-50"
+              className="border border-emerald-400/50 bg-emerald-400/15 px-2 py-1 text-[12px] text-emerald-300 hover:bg-emerald-400/25 disabled:opacity-50"
             >
               {busy === "pass" ? "…" : "Looks good → Done"}
             </button>
@@ -524,13 +525,13 @@ function NeedsTestingBanner({
               type="button"
               onClick={() => verdict("fail")}
               disabled={busy !== null}
-              className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel disabled:opacity-50"
+              className="border border-white/10 bg-ink-200 px-2 py-1 text-[12px] text-fog-300 hover:bg-ink-100 disabled:opacity-50"
             >
               {busy === "fail" ? "…" : "Needs work → Reopen"}
             </button>
           </div>
           {error ? (
-            <div className="mt-1 text-[10.5px] text-vibestrate-fail">{error}</div>
+            <div className="mt-1 text-[10.5px] text-rose-400">{error}</div>
           ) : null}
         </div>
       </div>
@@ -573,11 +574,11 @@ function ContextSourcesSection({
   }
 
   return (
-    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+    <section className="slab p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
         context sources
       </div>
-      <div className="mt-0.5 text-[10.5px] text-vibestrate-fg-muted">
+      <div className="mt-0.5 text-[10.5px] text-fog-400">
         Files / URLs injected into every agent prompt for this card's runs (path-guarded, SSRF-guarded, secrets redacted).
       </div>
       {sources.length > 0 ? (
@@ -585,17 +586,17 @@ function ContextSourcesSection({
           {sources.map((s, i) => (
             <li
               key={`${s.kind}-${s.ref}-${i}`}
-              className="flex items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1"
+              className="flex items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1"
             >
-              <span className="vibestrate-mono shrink-0 rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+              <span className="vibestrate-mono shrink-0 border border-white/10 px-1 text-[10px] text-fog-400">
                 {s.kind}
               </span>
               {s.kind === "url" ? (
-                <ExternalLink className="h-3 w-3 shrink-0 text-vibestrate-warn" strokeWidth={1.5} />
+                <ExternalLink className="h-3 w-3 shrink-0 text-amber-300" strokeWidth={1.5} />
               ) : (
-                <FileCode className="h-3 w-3 shrink-0 text-vibestrate-fg-muted" strokeWidth={1.5} />
+                <FileCode className="h-3 w-3 shrink-0 text-fog-400" strokeWidth={1.5} />
               )}
-              <span className="vibestrate-mono flex-1 truncate text-[12px] text-vibestrate-fg">
+              <span className="vibestrate-mono flex-1 truncate text-[12px] text-fog-100">
                 {s.ref}
               </span>
               <button
@@ -608,7 +609,7 @@ function ContextSourcesSection({
                   )
                 }
                 disabled={busy}
-                className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fail disabled:opacity-50"
+                className="shrink-0 text-fog-400 hover:text-rose-400 disabled:opacity-50"
                 title="Remove"
               >
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -618,31 +619,33 @@ function ContextSourcesSection({
         </ul>
       ) : null}
       <form onSubmit={add} className="mt-2 flex gap-2">
-        <select
+        <Select
           value={kind}
-          onChange={(e) => setKind(e.target.value as "file" | "url")}
-          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1 py-1 text-[11px] text-vibestrate-fg-dim"
-        >
-          <option value="file">file</option>
-          <option value="url">url</option>
-        </select>
+          ariaLabel="Context source kind"
+          className="min-w-[110px]"
+          onChange={(v) => setKind(v as "file" | "url")}
+          options={[
+            { value: "file", label: "file" },
+            { value: "url", label: "url" },
+          ]}
+        />
         <input
           value={ref}
           onChange={(e) => setRef(e.target.value)}
           placeholder={kind === "file" ? "path/in/project.md" : "https://…"}
-          className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
+          className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
         />
         <button
           type="submit"
           disabled={busy || !ref.trim()}
-          className="inline-flex items-center gap-1 self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
+          className="inline-flex items-center gap-1 self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
         >
           <Plus className="h-3 w-3" strokeWidth={1.5} />
           Add
         </button>
       </form>
       {error ? (
-        <div className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+        <div className="mt-2 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
           {error}
         </div>
       ) : null}
@@ -752,19 +755,19 @@ function ChecklistSection({
   }
 
   return (
-    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
+    <section className="slab p-3">
       <div className="flex items-center gap-2">
-        <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
           checklist
         </div>
         {items.length > 0 ? (
           <>
-            <span className="vibestrate-mono text-[10.5px] text-vibestrate-fg-muted">
+            <span className="vibestrate-mono text-[10.5px] text-fog-400">
               {done}/{items.length}
             </span>
-            <div className="ml-1 h-1 w-24 overflow-hidden rounded-full bg-vibestrate-panel-2">
+            <div className="ml-1 h-1 w-24 overflow-hidden rounded-full bg-ink-200">
               <div
-                className="h-full bg-vibestrate-success transition-all"
+                className="h-full bg-emerald-400 transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -775,7 +778,7 @@ function ChecklistSection({
           onClick={enhance}
           disabled={busy !== null}
           title="Propose a checklist with an AI assist (read-only - you choose whether to add the items)"
-          className="ml-auto inline-flex items-center gap-1 rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-1.5 py-0.5 text-[10.5px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
+          className="ml-auto inline-flex items-center gap-1 border border-violet-soft/40 bg-violet-soft/10 px-1.5 py-0.5 text-[10.5px] text-violet-soft hover:bg-violet-soft/20 disabled:opacity-50"
         >
           <Sparkles className="h-3 w-3" strokeWidth={1.5} />
           {busy === "enhance" ? "Thinking…" : "Enhance"}
@@ -783,16 +786,16 @@ function ChecklistSection({
       </div>
 
       {proposed ? (
-        <div className="mt-2 rounded border border-vibestrate-accent/30 bg-vibestrate-accent-soft/10 p-2">
+        <div className="mt-2 border border-violet-soft/30 bg-violet-soft/10 p-2">
           <div className="flex items-center gap-2">
-            <span className="vibestrate-mono text-[10px] uppercase tracking-[0.10em] text-vibestrate-accent">
+            <span className="vibestrate-mono text-[10px] uppercase tracking-[0.10em] text-violet-soft">
               proposed ({proposed.length}) - not added yet
             </span>
             <button
               type="button"
               onClick={acceptProposed}
               disabled={busy !== null || proposed.length === 0}
-              className="ml-auto rounded border border-vibestrate-accent/50 bg-vibestrate-accent/15 px-1.5 py-0.5 text-[11px] text-vibestrate-accent hover:bg-vibestrate-accent/25 disabled:opacity-50"
+              className="ml-auto border border-violet-soft/50 bg-violet-soft/15 px-1.5 py-0.5 text-[11px] text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
             >
               {busy === "accept" ? "Adding…" : "Add all"}
             </button>
@@ -800,15 +803,15 @@ function ChecklistSection({
               type="button"
               onClick={() => setProposed(null)}
               disabled={busy !== null}
-              className="rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-0.5 text-[11px] text-vibestrate-fg-dim hover:text-vibestrate-fg disabled:opacity-50"
+              className="border border-white/10 bg-ink-100 px-1.5 py-0.5 text-[11px] text-fog-300 hover:text-fog-100 disabled:opacity-50"
             >
               Dismiss
             </button>
           </div>
           <ol className="mt-1.5 space-y-0.5">
             {proposed.map((t, i) => (
-              <li key={i} className="text-[12px] text-vibestrate-fg">
-                <span className="vibestrate-mono text-vibestrate-fg-muted">
+              <li key={i} className="text-[12px] text-fog-100">
+                <span className="vibestrate-mono text-fog-400">
                   {i + 1}.
                 </span>{" "}
                 {t}
@@ -819,7 +822,7 @@ function ChecklistSection({
       ) : null}
 
       {items.length === 0 ? (
-        <div className="mt-2 text-[12px] text-vibestrate-fg-muted">
+        <div className="mt-2 text-[12px] text-fog-400">
           No items yet. Break this card into a concrete ordered checklist below.
         </div>
       ) : (
@@ -877,19 +880,19 @@ function ChecklistSection({
       )}
 
       {items.length > 0 ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5">
+        <div className="mt-2 flex flex-wrap items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1.5">
           <button
             type="button"
             onClick={pickup}
             disabled={busy !== null || pending === 0}
             title="Execute the checklist item-by-item in one run (a commit per item)."
-            className="inline-flex items-center gap-1 rounded border border-vibestrate-accent/50 bg-vibestrate-accent/15 px-2 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/25 disabled:opacity-50"
+            className="inline-flex items-center gap-1 border border-violet-soft/50 bg-violet-soft/15 px-2 py-1 text-[12px] text-violet-soft hover:bg-violet-soft/25 disabled:opacity-50"
           >
             {busy === "pickup"
               ? "Starting…"
               : `Run checklist (${pending} item${pending === 1 ? "" : "s"})`}
           </button>
-          <label className="flex items-center gap-1 text-[11px] text-vibestrate-fg-dim">
+          <label className="flex items-center gap-1 text-[11px] text-fog-300">
             <input
               type="checkbox"
               checked={stepMode}
@@ -899,9 +902,9 @@ function ChecklistSection({
             step-by-step
           </label>
           {launched ? (
-            <span className="text-[10.5px] text-vibestrate-success">{launched}</span>
+            <span className="text-[10.5px] text-emerald-400">{launched}</span>
           ) : (
-            <span className="ml-auto text-[10.5px] text-vibestrate-fg-muted">
+            <span className="ml-auto text-[10.5px] text-fog-400">
               one worktree · a commit per item · summaries carried forward
             </span>
           )}
@@ -913,12 +916,12 @@ function ChecklistSection({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Add a checklist item…"
-          className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12.5px] text-vibestrate-fg placeholder-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
+          className="flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12.5px] text-fog-100 placeholder-fog-500 focus:border-violet-soft/60 focus:outline-none"
         />
         <button
           type="submit"
           disabled={busy === "add" || !text.trim()}
-          className="inline-flex items-center gap-1 self-start rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2.5 py-1 text-[12px] text-vibestrate-fg hover:bg-vibestrate-panel disabled:opacity-50"
+          className="inline-flex items-center gap-1 self-start border border-white/10 bg-ink-200 px-2.5 py-1 text-[12px] text-fog-100 hover:bg-ink-100 disabled:opacity-50"
         >
           <Plus className="h-3 w-3" strokeWidth={1.5} />
           {busy === "add" ? "Adding…" : "Add"}
@@ -926,7 +929,7 @@ function ChecklistSection({
       </form>
 
       {error ? (
-        <div className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+        <div className="mt-2 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
           {error}
         </div>
       ) : null}
@@ -977,12 +980,12 @@ function ChecklistRow({
   const anyBusy = busy !== null;
   const glyphColor =
     item.status === "done"
-      ? "text-vibestrate-success"
+      ? "text-emerald-400"
       : item.status === "in_progress"
-        ? "text-vibestrate-accent"
+        ? "text-violet-soft"
         : item.status === "blocked"
-          ? "text-vibestrate-warn"
-          : "text-vibestrate-fg-muted";
+          ? "text-amber-300"
+          : "text-fog-400";
 
   return (
     <li
@@ -1002,12 +1005,12 @@ function ChecklistRow({
         setGrabbed(false);
         onDrop();
       }}
-      className={`flex items-center gap-1.5 rounded border bg-vibestrate-panel-2 px-2 py-1 transition ${
+      className={`flex items-center gap-1.5 border bg-ink-200 px-2 py-1 transition ${
         dragging
-          ? "border-vibestrate-accent/50 opacity-50"
+          ? "border-violet-soft/50 opacity-50"
           : dragOver
-            ? "border-vibestrate-accent/60 ring-1 ring-vibestrate-accent/40"
-            : "border-vibestrate-border"
+            ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
+            : "border-white/10"
       }`}
     >
       <span
@@ -1016,7 +1019,7 @@ function ChecklistRow({
         title="Drag to reorder"
         onMouseDown={() => setGrabbed(true)}
         onMouseUp={() => setGrabbed(false)}
-        className="shrink-0 cursor-grab text-vibestrate-fg-muted hover:text-vibestrate-fg active:cursor-grabbing"
+        className="shrink-0 cursor-grab text-fog-400 hover:text-fog-100 active:cursor-grabbing"
       >
         <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
       </span>
@@ -1039,29 +1042,24 @@ function ChecklistRow({
         }}
         className={`flex-1 bg-transparent text-[12.5px] focus:outline-none ${
           item.status === "done"
-            ? "text-vibestrate-fg-muted line-through"
-            : "text-vibestrate-fg"
+            ? "text-fog-400 line-through"
+            : "text-fog-100"
         }`}
       />
-      <select
+      <Select
         value={item.status}
         disabled={anyBusy}
-        onChange={(e) => onStatus(e.target.value as ChecklistItemStatus)}
-        className="vibestrate-mono shrink-0 rounded border border-vibestrate-border bg-vibestrate-panel px-1 py-0.5 text-[10px] text-vibestrate-fg-dim focus:border-vibestrate-accent/60 focus:outline-none"
-        title="Item status"
-      >
-        {CHECKLIST_STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
+        ariaLabel="Item status"
+        className="min-w-[120px] shrink-0"
+        onChange={(v) => onStatus(v as ChecklistItemStatus)}
+        options={CHECKLIST_STATUSES.map((s) => ({ value: s, label: s }))}
+      />
       {item.promotedTaskId ? (
         <button
           type="button"
           onClick={() => onOpenCard(item.promotedTaskId!)}
           title={`Promoted to card ${item.promotedTaskId}`}
-          className="shrink-0 text-vibestrate-accent hover:text-vibestrate-fg"
+          className="shrink-0 text-violet-soft hover:text-fog-100"
         >
           <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
@@ -1071,7 +1069,7 @@ function ChecklistRow({
           onClick={onPromote}
           disabled={anyBusy}
           title="Promote this item to its own card"
-          className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-accent disabled:opacity-50"
+          className="shrink-0 text-fog-400 hover:text-violet-soft disabled:opacity-50"
         >
           <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
         </button>
@@ -1081,7 +1079,7 @@ function ChecklistRow({
         onClick={onRemove}
         disabled={anyBusy}
         title="Remove item"
-        className="shrink-0 text-vibestrate-fg-muted hover:text-vibestrate-fail disabled:opacity-50"
+        className="shrink-0 text-fog-400 hover:text-rose-400 disabled:opacity-50"
       >
         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
       </button>
@@ -1122,13 +1120,13 @@ function FilesSection({ task }: { task: Task }) {
   }
 
   return (
-    <section className="rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+    <section className="slab p-3">
+      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
         Files
       </div>
       {task.touchedFiles.length > 0 ? (
         <div className="mt-2">
-          <div className="text-[10.5px] text-vibestrate-fg-muted">
+          <div className="text-[10.5px] text-fog-400">
             declared (touchedFiles)
           </div>
           <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -1142,7 +1140,7 @@ function FilesSection({ task }: { task: Task }) {
       ) : null}
       {runFiles.length > 0 ? (
         <div className="mt-3">
-          <div className="text-[10.5px] text-vibestrate-fg-muted">
+          <div className="text-[10.5px] text-fog-400">
             changed by linked runs
           </div>
           <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -1193,10 +1191,10 @@ function FileLink({
             })
       }
       disabled={redacted}
-      className={`flex w-full items-center gap-1.5 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left text-[11.5px] ${
+      className={`flex w-full items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-1 text-left text-[11.5px] ${
         redacted
-          ? "text-vibestrate-warn opacity-80"
-          : "text-vibestrate-fg-dim hover:border-vibestrate-accent/40 hover:text-vibestrate-fg"
+          ? "text-amber-300 opacity-80"
+          : "text-fog-300 hover:border-violet-soft/40 hover:text-fog-100"
       }`}
       title={redacted ? "Secret file - contents redacted" : path}
     >
@@ -1207,7 +1205,7 @@ function FileLink({
       )}
       <span className="truncate vibestrate-mono">{path}</span>
       {status ? (
-        <span className="vibestrate-mono ml-auto rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+        <span className="vibestrate-mono ml-auto border border-white/10 px-1 text-[10px] text-fog-400">
           {status}
         </span>
       ) : null}
@@ -1253,11 +1251,11 @@ function TaskRunMode({
   }
 
   return (
-    <div className="mt-3 grid grid-cols-1 gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2 text-[12px] md:grid-cols-3">
+    <div className="mt-3 grid grid-cols-1 gap-2 border border-white/10 bg-ink-200 p-2 text-[12px] md:grid-cols-3">
 
       <label className="flex flex-col gap-1">
         <span
-          className="vibestrate-mono text-[10px] uppercase tracking-[0.12em] text-vibestrate-fg-muted"
+          className="vibestrate-mono text-[10px] uppercase tracking-[0.12em] text-fog-400"
           title="Pin every agent in runs spawned from this task to a specific provider id. Wins over effort."
         >
           provider override
@@ -1272,7 +1270,7 @@ function TaskRunMode({
             if (v === (task.profileOverride ?? "")) return;
             void setField("profileOverride", v.length === 0 ? null : v);
           }}
-          className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1.5 py-1 text-[11.5px] text-vibestrate-fg placeholder:text-vibestrate-fg-muted focus:border-vibestrate-accent/60 focus:outline-none"
+          className="vibestrate-mono border border-white/10 bg-ink-100 px-1.5 py-1 text-[11.5px] text-fog-100 placeholder:text-fog-500 focus:border-violet-soft/60 focus:outline-none"
         />
       </label>
 
@@ -1285,7 +1283,7 @@ function TaskRunMode({
           className="h-3.5 w-3.5"
         />
         <span
-          className="vibestrate-mono text-[11px] uppercase tracking-[0.10em] text-vibestrate-fg-dim"
+          className="vibestrate-mono text-[11px] uppercase tracking-[0.10em] text-fog-300"
           title="Investigation-only: runs spawned from this task skip executor + fix loop and refuse apply/validate/revert."
         >
           read-only
@@ -1293,7 +1291,7 @@ function TaskRunMode({
       </label>
 
       {error ? (
-        <div className="md:col-span-3 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[10.5px] text-vibestrate-fail">
+        <div className="md:col-span-3 border border-rose-400/40 bg-rose-400/10 px-2 py-1 text-[10.5px] text-rose-400">
           {error}
         </div>
       ) : null}

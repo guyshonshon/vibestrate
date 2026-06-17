@@ -125,18 +125,18 @@ function MergeHub({
   }, [load]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
+    <div className="deep-scene mx-auto max-w-[1520px] px-8 py-6">
       <div className="flex items-center gap-2.5">
         <GitMerge className="h-4.5 w-4.5 text-emerald-300" strokeWidth={1.7} />
         <h1 className="text-[16px] font-semibold text-fog-100">Merge window</h1>
-        <span className="text-[11px] text-fog-500">
+        <span className="text-[11px] text-fog-300">
           advice is read-only · merging stays explicit · never pushed
         </span>
         <button
           type="button"
           onClick={() => void load()}
           disabled={busy}
-          className="ml-auto h-7 w-7 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-center disabled:opacity-50"
+          className="ml-auto h-7 w-7 border border-white/10 bg-ink-200 hover:bg-ink-100 flex items-center justify-center disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw className={cn("h-3.5 w-3.5 text-fog-300", busy && "animate-spin")} strokeWidth={1.7} />
@@ -144,17 +144,17 @@ function MergeHub({
       </div>
 
       {error ? (
-        <div className="mt-4 rounded-md border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {rows === null && !error ? (
-        <div className="mt-6 text-[12.5px] text-fog-400">Loading merge-ready runs…</div>
+        <div className="mt-6 text-[12.5px] text-fog-300">Loading merge-ready runs…</div>
       ) : null}
 
       {rows !== null && rows.length === 0 ? (
-        <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-[12.5px] text-fog-400">
+        <div className="mt-6 slab px-4 py-6 text-[12.5px] text-fog-300">
           No merge-ready runs. A run lands here when its checks make it
           merge-ready; until then there is nothing to merge.
         </div>
@@ -164,7 +164,7 @@ function MergeHub({
         {(rows ?? []).map((r) => (
           <li
             key={r.runId}
-            className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3 hover:border-emerald-400/25"
+            className="border border-white/[0.07] bg-ink-100 p-3 hover:border-emerald-400/25"
           >
             <div className="flex items-center gap-2">
               <button
@@ -179,7 +179,7 @@ function MergeHub({
               <button
                 type="button"
                 onClick={() => onOpenRun(r.runId)}
-                className="text-[11px] text-fog-400 hover:text-fog-200"
+                className="text-[11px] text-fog-300 hover:text-fog-100"
               >
                 open run
               </button>
@@ -200,7 +200,7 @@ function MergeHub({
               <button
                 type="button"
                 onClick={() => onOpenMergeRun(r.runId)}
-                className="h-6.5 rounded-md border border-emerald-400/25 bg-emerald-500/10 px-2 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
+                className="h-6.5 border border-emerald-400/25 bg-emerald-500/10 px-2 text-[11px] text-emerald-200 hover:bg-emerald-500/20"
               >
                 Get merge advice
               </button>
@@ -275,12 +275,12 @@ function MergeWindow({
   const warnings = advice?.flags.filter((f) => f.severity === "warning") ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
+    <div className="deep-scene mx-auto max-w-[1520px] px-8 py-6">
       <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={onBack}
-          className="h-7 w-7 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-center"
+          className="h-7 w-7 border border-white/10 bg-ink-200 hover:bg-ink-100 flex items-center justify-center"
           aria-label="Back to merge list"
         >
           <ArrowLeft className="h-3.5 w-3.5 text-fog-300" strokeWidth={1.7} />
@@ -292,24 +292,24 @@ function MergeWindow({
         <button
           type="button"
           onClick={() => onOpenRun(runId)}
-          className="ml-auto text-[11px] text-fog-400 hover:text-fog-200 shrink-0"
+          className="ml-auto text-[11px] text-fog-300 hover:text-fog-100 shrink-0"
         >
           open run
         </button>
       </div>
 
       {loading ? (
-        <div className="mt-5 text-[12.5px] text-fog-400">
+        <div className="mt-5 text-[12.5px] text-fog-300">
           Computing advice (dry-run merge + topology)…
         </div>
       ) : null}
       {error ? (
-        <div className="mt-4 rounded-md border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
           {error}
         </div>
       ) : null}
       {notReady ? (
-        <div className="mt-4 rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-[12.5px] text-fog-300">
+        <div className="mt-4 slab px-3 py-2 text-[12.5px] text-fog-300">
           This run is not merge-ready (anymore). Go back to the merge list.
         </div>
       ) : null}
@@ -319,7 +319,7 @@ function MergeWindow({
           {/* headline + recommendation */}
           <section
             className={cn(
-              "mt-4 rounded-lg border p-4",
+              "mt-4 border p-4",
               warnings.length > 0
                 ? "border-amber-400/25 bg-amber-500/[0.04]"
                 : "border-emerald-400/20 bg-emerald-500/[0.03]",
@@ -331,7 +331,7 @@ function MergeWindow({
                 {advice.recommendation}
               </Chip>
               <Chip tone="neutral">shape: {advice.predictedShape}</Chip>
-              <span className="text-[11px] text-fog-500">
+              <span className="text-[11px] text-fog-300">
                 {advice.recommendationReason}
               </span>
             </div>
@@ -343,7 +343,7 @@ function MergeWindow({
 
           {/* flags */}
           {advice.flags.length > 0 ? (
-            <section className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
+            <section className="mt-3 slab p-4">
               <div className="text-[12px] font-medium text-fog-200">
                 Concerns ({advice.flags.length})
               </div>
@@ -362,7 +362,7 @@ function MergeWindow({
                           {f.severity}
                         </Chip>
                       </summary>
-                      <p className="mt-1 ml-5 text-[11.5px] text-fog-400">{f.detail}</p>
+                      <p className="mt-1 ml-5 text-[11.5px] text-fog-300">{f.detail}</p>
                     </details>
                   </li>
                 ))}
@@ -371,7 +371,7 @@ function MergeWindow({
           ) : null}
 
           {/* facts: lanes, topology, conflicts */}
-          <section className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-4 space-y-2">
+          <section className="mt-3 slab p-4 space-y-2">
             <div className="flex flex-wrap items-center gap-1.5">
               <LaneChips assurance={advice.assurance} />
             </div>
@@ -401,28 +401,28 @@ function MergeWindow({
             {advice.manualSteps ? (
               <ul className="space-y-1">
                 {advice.manualSteps.map((s) => (
-                  <li key={s} className="mono text-[11px] text-fog-400">
+                  <li key={s} className="mono text-[11px] text-fog-300">
                     {s}
                   </li>
                 ))}
               </ul>
             ) : null}
             <details>
-              <summary className="cursor-pointer text-[11.5px] text-fog-400">
+              <summary className="cursor-pointer text-[11.5px] text-fog-300">
                 Developer detail
               </summary>
-              <pre className="mt-1 whitespace-pre-wrap mono text-[11px] text-fog-400">
+              <pre className="mt-1 whitespace-pre-wrap mono text-[11px] text-fog-300">
                 {advice.detail}
               </pre>
             </details>
           </section>
 
           {/* actions - the existing gated integrate/finish, unchanged semantics */}
-          <section className="mt-3 rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
+          <section className="mt-3 slab p-4">
             <div className="text-[12px] font-medium text-fog-200">
               Act on it
             </div>
-            <div className="mt-1 text-[11px] text-fog-500">
+            <div className="mt-1 text-[11px] text-fog-300">
               Integrating creates a dedicated branch (never main). Completing
               the merge runs a local git merge into main - explicit, gated,
               never pushed.
@@ -438,7 +438,7 @@ function MergeWindow({
                 value={into}
                 onChange={(e) => setInto(e.target.value)}
                 placeholder="integration/branch"
-                className="h-7 w-[200px] rounded-md bg-white/[0.025] border border-white/[0.08] px-2.5 text-[11.5px] text-fog-100 mono focus:outline-none focus:border-emerald-400/35"
+                className="h-7 w-[200px] bg-ink-200 border border-white/[0.08] px-2.5 text-[11.5px] text-fog-100 mono focus:outline-none focus:border-emerald-400/35"
               />
               {/* Apply stays enabled on a conflicted preview - integrate
                   stops at the conflict and leaves a mergeable worktree, the
@@ -458,7 +458,7 @@ function MergeWindow({
                     setFinishable(res.stoppedAt ? null : res.integrationBranch);
                   })
                 }
-                className="h-7 rounded-md border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
+                className="h-7 border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
               >
                 {busy === "apply" ? "Integrating…" : "Integrate this run"}
               </button>
@@ -484,7 +484,7 @@ function MergeWindow({
                       setFinishable(null);
                     });
                   }}
-                  className="h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                  className="h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
                 >
                   {busy === "finish" ? "Merging…" : "Complete merge to main"}
                 </button>
@@ -502,12 +502,12 @@ function MergeWindow({
 
           {/* Analyze deeper - optional LLM pass; advisory prose, never a
               merge verdict, never changes the recommendation above. */}
-          <section className="mt-3 rounded-lg border border-violet-soft/20 bg-violet-soft/[0.03] p-4">
+          <section className="mt-3 border border-violet-soft/20 bg-violet-soft/[0.03] p-4">
             <div className="flex items-center gap-2">
               <span className="text-[12px] font-medium text-fog-200">
                 Analyze deeper
               </span>
-              <span className="text-[10.5px] text-fog-500">
+              <span className="text-[10.5px] text-fog-400">
                 optional · reads the diff with a local provider · advisory only
               </span>
               <button
@@ -524,7 +524,7 @@ function MergeWindow({
                     }
                   })
                 }
-                className="ml-auto h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+                className="ml-auto h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
               >
                 {busy === "analyze" ? "Analyzing…" : analysis ? "Re-analyze" : "Analyze the diff"}
               </button>
@@ -567,7 +567,7 @@ function MergeWindow({
                     ))}
                   </ul>
                 ) : (
-                  <div className="mt-2 text-[12px] text-fog-400">
+                  <div className="mt-2 text-[12px] text-fog-300">
                     No specific risks stood out in the diff.
                   </div>
                 )}

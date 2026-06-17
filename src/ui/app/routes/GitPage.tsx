@@ -111,7 +111,7 @@ export function GitPage({ onSelectRun }: Props) {
   );
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
       {/* Compact header */}
       <section className="flex items-center justify-between gap-4 flex-wrap mb-4">
         <div className="flex items-baseline gap-3 min-w-0">
@@ -135,7 +135,7 @@ export function GitPage({ onSelectRun }: Props) {
           type="button"
           onClick={() => void load()}
           disabled={refreshing}
-          className="h-8 px-2.5 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-[12px] text-fog-300 flex items-center gap-1.5 disabled:opacity-50"
+          className="h-8 px-2.5 border border-white/10 bg-ink-200 hover:bg-ink-100 text-[12px] text-fog-300 flex items-center gap-1.5 disabled:opacity-50"
         >
           <RefreshCw
             className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
@@ -146,7 +146,7 @@ export function GitPage({ onSelectRun }: Props) {
       </section>
 
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mb-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -164,9 +164,9 @@ export function GitPage({ onSelectRun }: Props) {
             ) : null}
           </div>
           {!projectStatus ? (
-            <div className="text-[12.5px] text-fog-400">Loading…</div>
+            <div className="text-[12.5px] text-fog-300">Loading…</div>
           ) : projectStatus.changedFiles.length === 0 ? (
-            <div className="text-[12.5px] text-fog-400">
+            <div className="text-[12.5px] text-fog-300">
               Nothing changed. Your working tree matches the last commit.
             </div>
           ) : (
@@ -174,7 +174,7 @@ export function GitPage({ onSelectRun }: Props) {
               {projectStatus.changedFiles.slice(0, 50).map((f) => (
                 <li
                   key={f.path}
-                  className="flex items-center gap-2.5 rounded-md border border-white/[0.05] bg-white/[0.018] px-2.5 py-1.5"
+                  className="flex items-center gap-2.5 border border-white/[0.07] bg-ink-200 px-2.5 py-1.5"
                 >
                   <ChangeKindBadge status={f.status} />
                   <FileText className="h-3 w-3 text-fog-500" strokeWidth={1.7} />
@@ -202,15 +202,15 @@ export function GitPage({ onSelectRun }: Props) {
             ) : null}
           </div>
           {!projectHistory ? (
-            <div className="text-[12.5px] text-fog-400">Loading…</div>
+            <div className="text-[12.5px] text-fog-300">Loading…</div>
           ) : projectHistory.commits.length === 0 ? (
-            <div className="text-[12.5px] text-fog-400">No commits yet.</div>
+            <div className="text-[12.5px] text-fog-300">No commits yet.</div>
           ) : (
             <ol className="space-y-2">
               {projectHistory.commits.map((c) => (
                 <li
                   key={c.hash}
-                  className="rounded-md border border-white/[0.05] bg-white/[0.018] px-2.5 py-2"
+                  className="border border-white/[0.07] bg-ink-200 px-2.5 py-2"
                 >
                   <div className="flex items-start gap-2">
                     <GitCommitIcon
@@ -245,7 +245,7 @@ export function GitPage({ onSelectRun }: Props) {
           </span>
         </div>
         {activeWorktrees.length === 0 ? (
-          <div className="slab px-6 py-10 text-center text-[12.5px] text-fog-400">
+          <div className="slab px-6 py-10 text-center text-[12.5px] text-fog-300">
             No active worktrees right now. Each run gets its own branch - they
             show up here while the run is in flight.
           </div>
@@ -330,10 +330,10 @@ function WorktreeCard({
   return (
     <div
       className={cn(
-        "rounded-xl border transition overflow-hidden",
+        "border transition overflow-hidden",
         open
-          ? "border-violet-soft/30 bg-white/[0.03]"
-          : "border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] hover:border-violet-soft/30",
+          ? "border-violet-soft/30 bg-ink-100"
+          : "border-white/[0.07] bg-ink-200 hover:bg-ink-100 hover:border-violet-soft/30",
       )}
     >
       <button
@@ -385,7 +385,7 @@ function WorktreeCard({
             e.stopPropagation();
             onOpenRun(run.runId);
           }}
-          className="ml-1 inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] px-2 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 shrink-0 cursor-pointer"
+          className="ml-1 inline-flex items-center gap-1 border border-white/10 bg-ink-200 hover:bg-ink-100 px-2 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 shrink-0 cursor-pointer"
           title="Open this run"
         >
           Open run
@@ -404,7 +404,7 @@ function WorktreeCard({
                 onSelect={setSelectedFile}
               />
             ) : (
-              <div className="text-[12px] text-fog-500">
+              <div className="text-[12px] text-fog-300">
                 No files changed in this worktree yet.
               </div>
             )}
@@ -433,12 +433,12 @@ function WorktreeCard({
                   }
                 />
               ) : (
-                <div className="text-[12.5px] text-fog-400 px-1 py-3">
+                <div className="text-[12.5px] text-fog-300 px-1 py-3">
                   Pick a file on the left to view its diff.
                 </div>
               )
             ) : (
-              <div className="text-[12.5px] text-fog-400 px-1 py-3">
+              <div className="text-[12.5px] text-fog-300 px-1 py-3">
                 Nothing to show yet.
               </div>
             )}

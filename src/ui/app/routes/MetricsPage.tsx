@@ -8,6 +8,7 @@ import {
   type OverviewRange,
 } from "../../lib/api.js";
 import { Button } from "../../components/design/Button.js";
+import { Select } from "../../components/design/Select.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { Sparkline } from "../../components/design/Sparkline.js";
 import { cn } from "../../components/design/cn.js";
@@ -71,7 +72,7 @@ export function MetricsPage() {
   };
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       {/* ── Hero ─ */}
       <section className="mt-2 flex items-start justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[720px]">
@@ -86,17 +87,17 @@ export function MetricsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.025] p-[3px]">
+          <div className="inline-flex border border-white/[0.12] bg-ink-200 p-[3px]">
             {RANGES.map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
                 className={cn(
-                  "h-7 px-3 rounded-md text-[12px] font-medium",
+                  "h-7 px-3 text-[12px] font-medium",
                   range === r
                     ? "bg-white/[0.08] text-fog-100"
-                    : "text-fog-400 hover:text-fog-100",
+                    : "text-fog-300 hover:text-fog-100",
                 )}
               >
                 {r}
@@ -115,7 +116,7 @@ export function MetricsPage() {
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -282,7 +283,7 @@ function BigKpi({
           <div className="text-[28px] font-semibold tracking-tight num-tabular">
             {value}
           </div>
-          <div className="text-[11.5px] text-fog-400 mt-0.5">{sub}</div>
+          <div className="text-[11.5px] text-fog-300 mt-0.5">{sub}</div>
         </div>
         <div className="opacity-90 mb-1">
           <Sparkline values={spark} tone={tone} width={110} height={36} />
@@ -476,7 +477,7 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
+    <div className="border border-white/[0.08] bg-ink-200 py-10 text-center text-[12.5px] text-fog-300">
       {text}
     </div>
   );
@@ -548,7 +549,7 @@ function BudgetControl() {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="eyebrow">Daily spend cap</div>
         <div className="flex items-center gap-1.5 text-[12.5px]">
-          <span className="text-fog-400">$</span>
+          <span className="text-fog-300">$</span>
           <input
             type="number"
             min={0}
@@ -556,21 +557,19 @@ function BudgetControl() {
             value={capInput}
             onChange={(e) => setCapInput(e.target.value)}
             placeholder="off"
-            className="w-20 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+            className="w-20 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
           />
           <span className="text-fog-500">/day</span>
         </div>
         <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
           at cap:
-          <select
+          <Select
             value={action}
-            onChange={(e) => setAction(e.target.value as BudgetSettings["capAction"])}
-            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
-          >
-            {CAP_ACTIONS.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+            ariaLabel="At cap action"
+            className="min-w-[170px]"
+            onChange={(v) => setAction(v as BudgetSettings["capAction"])}
+            options={CAP_ACTIONS.map((a) => ({ value: a, label: a }))}
+          />
         </label>
         {action === "downgrade-model" ? (
           <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
@@ -579,7 +578,7 @@ function BudgetControl() {
               value={fallback}
               onChange={(e) => setFallback(e.target.value)}
               placeholder="profile id"
-              className="w-28 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+              className="w-28 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
             />
           </label>
         ) : null}
@@ -620,21 +619,23 @@ function BudgetControl() {
               value={val}
               onChange={(e) => set(e.target.value)}
               placeholder="off"
-              className="w-16 rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
+              className="w-16 border border-white/15 bg-ink-200 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
             />
             {label}
           </label>
         ))}
         <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
           on hit:
-          <select
+          <Select
             value={onLimit}
-            onChange={(e) => setOnLimit(e.target.value as "stop" | "pause")}
-            className="rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-fog-100 outline-none focus:border-violet-soft/40"
-          >
-            <option value="stop">stop</option>
-            <option value="pause">pause</option>
-          </select>
+            ariaLabel="On limit hit"
+            className="min-w-[110px]"
+            onChange={(v) => setOnLimit(v as "stop" | "pause")}
+            options={[
+              { value: "stop", label: "stop" },
+              { value: "pause", label: "pause" },
+            ]}
+          />
         </label>
         <Button
           variant="secondary"
@@ -886,19 +887,19 @@ function SpendByRolePanel({ overview }: { overview: MetricsOverview | null }) {
                 className="grid grid-cols-[140px_1fr_72px] items-center gap-3"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-7 h-7 rounded-md bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[12px]">
+                  <span className="w-7 h-7 bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[12px]">
                     {d.label.charAt(0)}
                   </span>
                   <span className="text-[12.5px] text-fog-200 truncate">
                     {d.label}
                   </span>
                 </div>
-                <div className="relative h-7 rounded-md bg-white/[0.025] overflow-hidden border border-white/[0.06]">
+                <div className="relative h-7 bg-ink-200 overflow-hidden border border-white/[0.08]">
                   <div
-                    className="absolute inset-y-0 left-0 rounded-md"
+                    className="absolute inset-y-0 left-0"
                     style={{
                       width: `${Math.max(pct, 2)}%`,
-                      background: `linear-gradient(90deg, ${color}66, ${color}22)`,
+                      background: `${color}33`,
                       borderRight: `1.5px solid ${color}`,
                     }}
                   />
@@ -1185,7 +1186,7 @@ function LeaderboardTable({
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-7 h-7 rounded-md bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[13px]">
+                    <span className="w-7 h-7 bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft mono text-[13px]">
                       {row.label.charAt(0)}
                     </span>
                     <div className="min-w-0">

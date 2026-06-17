@@ -63,7 +63,7 @@ export function RunsPage({
     : runs;
 
   return (
-    <div className="relative z-10 w-full px-6 pt-5 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
       <section className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
           <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
@@ -79,13 +79,13 @@ export function RunsPage({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter by task or id…"
-            className="h-8 w-[260px] rounded-md bg-white/[0.025] border border-white/[0.08] px-3 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/35"
+            className="h-8 w-[260px] bg-ink-200 border border-white/[0.08] px-3 text-[12px] text-fog-100 placeholder:text-fog-400 focus:outline-none focus:border-violet-soft/35"
           />
         </div>
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -96,7 +96,7 @@ export function RunsPage({
 
       <div className="slab overflow-hidden mt-5">
         {filtered.length === 0 ? (
-          <div className="px-6 py-10 text-center text-[12.5px] text-fog-400">
+          <div className="px-6 py-10 text-center text-[12.5px] text-fog-300">
             {runs.length === 0 ? (
               <>
                 No runs yet. Try{" "}
@@ -168,7 +168,7 @@ export function RunsPage({
                       ),
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right text-[11.5px] text-fog-400 whitespace-nowrap">
+                  <td className="px-3 py-3 text-right text-[11.5px] text-fog-300 whitespace-nowrap">
                     {relTime(r.updatedAt)}
                   </td>
                   <td
@@ -185,7 +185,7 @@ export function RunsPage({
                           e.stopPropagation();
                           onOpenReplay(r.runId);
                         }}
-                        className="inline-flex items-center gap-1 rounded border border-white/[0.08] bg-white/[0.02] px-1.5 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 hover:bg-white/[0.05]"
+                        className="inline-flex items-center gap-1 border border-white/[0.08] bg-ink-100 px-1.5 py-0.5 text-[10.5px] text-fog-300 hover:text-fog-100 hover:bg-white/[0.05]"
                         title="Open the read-only Replay timeline"
                       >
                         <History className="h-3 w-3" strokeWidth={1.6} />
@@ -254,7 +254,7 @@ function IntegrationPanel() {
   }
 
   return (
-    <section className="mt-5 rounded-lg border border-emerald-400/20 bg-emerald-500/[0.03] p-4">
+    <section className="mt-5 border border-emerald-400/20 bg-emerald-500/[0.03] p-4">
       <div className="flex items-center gap-2">
         <GitMerge className="h-4 w-4 text-emerald-300" strokeWidth={1.7} />
         <span className="text-[13px] font-medium text-fog-100">
@@ -310,7 +310,7 @@ function IntegrationPanel() {
           onClick={() =>
             run("preview", async () => setPreview(await api.previewIntegration(ids())))
           }
-          className="h-7 rounded-md border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06] disabled:opacity-50"
+          className="h-7 border border-white/10 bg-ink-100 px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06] disabled:opacity-50"
         >
           {busy === "preview" ? "Previewing…" : "Preview merges"}
         </button>
@@ -318,7 +318,7 @@ function IntegrationPanel() {
           value={into}
           onChange={(e) => setInto(e.target.value)}
           placeholder="integration/branch"
-          className="h-7 w-[200px] rounded-md bg-white/[0.025] border border-white/[0.08] px-2.5 text-[11.5px] text-fog-100 mono focus:outline-none focus:border-emerald-400/35"
+          className="h-7 w-[200px] bg-ink-200 border border-white/[0.08] px-2.5 text-[11.5px] text-fog-100 mono focus:outline-none focus:border-emerald-400/35"
         />
         <button
           type="button"
@@ -334,7 +334,7 @@ function IntegrationPanel() {
               setFinishable(res.stoppedAt ? null : res.integrationBranch);
             })
           }
-          className="h-7 rounded-md border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
+          className="h-7 border border-emerald-400/30 bg-emerald-500/15 px-2.5 text-[11.5px] text-emerald-200 hover:bg-emerald-500/25 disabled:opacity-50"
         >
           {busy === "apply" ? "Integrating…" : "Integrate selected"}
         </button>
@@ -360,7 +360,7 @@ function IntegrationPanel() {
                 setFinishable(null);
               });
             }}
-            className="h-7 rounded-md border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
+            className="h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
           >
             {busy === "finish" ? "Merging…" : "Complete merge to main"}
           </button>

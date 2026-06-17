@@ -33,7 +33,7 @@ export function ProposalsPage({
     return <div className="px-6 py-8 text-vibestrate-fail">{error}</div>;
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
       <section className="flex items-baseline gap-3 flex-wrap">
         <h1 className="text-[15px] font-semibold tracking-tight text-fog-100">
           Roadmap proposals{" "}
@@ -43,18 +43,18 @@ export function ProposalsPage({
         </h1>
         <span className="text-[11.5px] text-fog-500 mono ml-auto">
           generate one:{" "}
-          <code className="bg-white/[0.04] rounded px-1 py-0.5 text-fog-200">
+          <code className="bg-white/[0.04] px-1 py-0.5 text-fog-200">
             vibe roadmap plan "&lt;goal&gt;"
           </code>
         </span>
       </section>
-      <p className="text-[12.5px] text-fog-400 mt-2 max-w-[760px]">
+      <p className="text-[12.5px] text-fog-300 mt-2 max-w-[760px]">
         Drafts produced by the planner agent. Review, dry-run, then accept to
         create the corresponding roadmap items and tasks.
       </p>
 
       {proposals.length === 0 ? (
-        <div className="slab mt-5 px-6 py-10 text-center text-[12.5px] text-fog-400">
+        <div className="slab mt-5 px-6 py-10 text-center text-[12.5px] text-fog-300">
           No proposals yet.
         </div>
       ) : (
@@ -64,7 +64,7 @@ export function ProposalsPage({
               <button
                 type="button"
                 onClick={() => onOpenProposal(p.id)}
-                className="flex w-full items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.022] hover:bg-white/[0.04] p-3 text-left transition"
+                className="flex w-full items-center gap-3 border border-white/[0.09] bg-ink-100 hover:bg-ink-200 p-3 text-left transition"
               >
                 {p.accepted ? (
                   <CheckCircle2
@@ -175,7 +175,7 @@ export function ProposalDetailPage({
         <div className="mt-2">
           <button
             onClick={onBack}
-            className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg-dim hover:bg-vibestrate-panel"
+            className="border border-white/[0.09] bg-ink-200 px-2 py-1 text-[12px] text-fog-300 hover:bg-ink-100"
           >
             Back to proposals
           </button>
@@ -189,11 +189,11 @@ export function ProposalDetailPage({
     accepted !== null || errorList.length > 0 || preview === null;
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
       <button
         type="button"
         onClick={onBack}
-        className="text-[11.5px] text-fog-400 hover:text-fog-100"
+        className="text-[11.5px] text-fog-300 hover:text-fog-100"
       >
         ← back to proposals
       </button>
@@ -220,7 +220,7 @@ export function ProposalDetailPage({
           type="button"
           onClick={refreshDry}
           disabled={busy !== null}
-          className="h-8 px-3 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] text-[12px] text-fog-100 disabled:opacity-50"
+          className="h-8 px-3 border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] text-[12px] text-fog-100 disabled:opacity-50"
         >
           {busy === "dryrun" ? "Refreshing…" : "Dry-run"}
         </button>
@@ -235,23 +235,23 @@ export function ProposalDetailPage({
       </div>
 
       <div className="grid grid-cols-[1fr_1fr] gap-4 mt-5">
-        <section className="flex flex-col rounded border border-vibestrate-border bg-vibestrate-panel">
-          <header className="border-b border-vibestrate-border px-3 py-1.5 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        <section className="slab flex flex-col">
+          <header className="border-b border-white/[0.09] px-3 py-1.5 text-[10.5px] uppercase tracking-[0.14em] text-fog-300">
             raw markdown
           </header>
-          <pre className="vibestrate-mono flex-1 overflow-auto whitespace-pre-wrap p-3 text-[12px] text-vibestrate-fg">
+          <pre className="vibestrate-mono flex-1 overflow-auto whitespace-pre-wrap p-3 text-[12px] text-fog-200">
             {body || ""}
           </pre>
         </section>
-        <section className="flex flex-col gap-3 overflow-y-auto rounded border border-vibestrate-border bg-vibestrate-panel p-3">
-          <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+        <section className="slab flex flex-col gap-3 overflow-y-auto p-3">
+          <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-300">
             preview
           </div>
           {preview === null ? (
-            <div className="text-[12px] text-vibestrate-fg-muted">Loading…</div>
+            <div className="text-[12px] text-fog-300">Loading…</div>
           ) : (
             <>
-              <div className="text-[12.5px] text-vibestrate-fg">
+              <div className="text-[12.5px] text-fog-200">
                 Will create:{" "}
                 <span className="vibestrate-mono">
                   {preview.willCreate.roadmapItems.length} roadmap item(s),{" "}
@@ -261,17 +261,17 @@ export function ProposalDetailPage({
               </div>
               {preview.willCreate.roadmapItems.length > 0 ? (
                 <div>
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-300">
                     roadmap items
                   </div>
                   <ul className="mt-1 space-y-0.5">
                     {preview.willCreate.roadmapItems.map((r) => (
                       <li
                         key={r.title}
-                        className="vibestrate-mono text-[12px] text-vibestrate-fg"
+                        className="vibestrate-mono text-[12px] text-fog-200"
                       >
                         + {r.title}{" "}
-                        <span className="text-vibestrate-fg-muted">({r.priority})</span>
+                        <span className="text-fog-400">({r.priority})</span>
                       </li>
                     ))}
                   </ul>
@@ -279,17 +279,17 @@ export function ProposalDetailPage({
               ) : null}
               {preview.willCreate.tasks.length > 0 ? (
                 <div>
-                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+                  <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-300">
                     tasks
                   </div>
                   <ul className="mt-1 space-y-0.5">
                     {preview.willCreate.tasks.map((t) => (
                       <li
                         key={t.title}
-                        className="vibestrate-mono text-[12px] text-vibestrate-fg"
+                        className="vibestrate-mono text-[12px] text-fog-200"
                       >
                         + {t.title}{" "}
-                        <span className="text-vibestrate-fg-muted">
+                        <span className="text-fog-400">
                           ({t.priority}, risk {t.riskLevel})
                           {t.dependencies.length > 0
                             ? ` ← ${t.dependencies.join(", ")}`
@@ -301,12 +301,12 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {preview.cycle.length > 0 ? (
-                <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
+                <div className="border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
                   Cycle: {preview.cycle.join(" → ")} → {preview.cycle[0]}
                 </div>
               ) : null}
               {warnList.length > 0 ? (
-                <div className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/5 p-2 text-[12px] text-vibestrate-warn">
+                <div className="border border-vibestrate-warn/40 bg-vibestrate-warn/5 p-2 text-[12px] text-vibestrate-warn">
                   <div className="text-[10.5px] uppercase tracking-[0.14em]">
                     warnings ({warnList.length})
                   </div>
@@ -318,7 +318,7 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {errorList.length > 0 ? (
-                <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
+                <div className="border border-vibestrate-fail/40 bg-vibestrate-fail/5 p-2 text-[12px] text-vibestrate-fail">
                   <div className="text-[10.5px] uppercase tracking-[0.14em]">
                     errors ({errorList.length})
                   </div>
@@ -334,7 +334,7 @@ export function ProposalDetailPage({
                 </div>
               ) : null}
               {accepted ? (
-                <div className="rounded border border-vibestrate-success/40 bg-vibestrate-success/5 p-2 text-[12px] text-vibestrate-success">
+                <div className="border border-vibestrate-success/40 bg-vibestrate-success/5 p-2 text-[12px] text-vibestrate-success">
                   This proposal was already accepted.
                 </div>
               ) : null}

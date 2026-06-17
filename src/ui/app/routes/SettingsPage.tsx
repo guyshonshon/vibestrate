@@ -5,8 +5,8 @@ import { ProjectParamsPanel } from "../../components/params/ProjectParamsPanel.j
 
 export function SettingsPage() {
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="border-b border-vibestrate-border bg-vibestrate-panel/40 px-4 py-3">
+    <div className="deep-scene h-full overflow-y-auto">
+      <div className="border-b border-vibestrate-border bg-vibestrate-panel px-4 py-3">
         <h1 className="text-[14px] font-medium text-vibestrate-fg">Settings</h1>
         <p className="mt-0.5 text-[11.5px] text-vibestrate-fg-muted">
           Project parameters (durable param memory), notification routing, browser

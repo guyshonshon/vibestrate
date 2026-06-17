@@ -58,7 +58,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
     );
   if (!meta)
     return (
-      <div className="p-6 text-[12.5px] text-vibestrate-fg-muted">Loading…</div>
+      <div className="p-6 text-[12.5px] text-vibestrate-fg-dim">Loading…</div>
     );
 
   const cards: StatusCard[] = [
@@ -112,7 +112,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
   ];
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-5 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-5 pb-12">
       <section className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-baseline gap-3 min-w-0">
           <span className="eyebrow">Project</span>
@@ -120,11 +120,11 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
           <h1 className="text-[15px] font-semibold tracking-tight text-fog-100 truncate">
             {meta.projectName}
           </h1>
-          <span className="mono text-[11px] text-fog-500">
+          <span className="mono text-[11px] text-fog-300">
             {meta.projectTypeLabel}
           </span>
           <span className="text-fog-500">·</span>
-          <span className="mono text-[11px] text-fog-500">
+          <span className="mono text-[11px] text-fog-300">
             {meta.packageManager}
           </span>
           {!meta.status.initialised ? (
@@ -135,7 +135,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
         </div>
         <FreshnessIndicator freshness={freshness} onRefresh={load} />
       </section>
-      <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fog-400">
+      <div className="mt-1 flex items-center gap-1.5 text-[12px] text-fog-300">
         <span className="mono truncate">{meta.projectRoot}</span>
         <CopyButton text={meta.projectRoot} title="Copy project root" />
       </div>
@@ -183,7 +183,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
 
         <Section title="Validation commands">
           {meta.validationCommands.length === 0 ? (
-            <div className="text-[12px] text-vibestrate-fg-muted">
+            <div className="text-[12px] text-vibestrate-fg-dim">
               No commands configured. Run{" "}
               <span className="vibestrate-mono">vibe config set commands.validate</span>.
             </div>
@@ -192,7 +192,7 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               {meta.validationCommands.map((c) => (
                 <li
                   key={c}
-                  className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px]"
+                  className="vibestrate-mono border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px]"
                 >
                   {c}
                 </li>
@@ -212,14 +212,14 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               {meta.providers.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
+                  className="flex items-center gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                 >
                   <span className="font-medium">{p.id}</span>
-                  <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
+                  <span className="vibestrate-mono border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-dim">
                     {p.type}
                   </span>
                   {p.command ? (
-                    <span className="vibestrate-mono ml-auto truncate text-[11px] text-vibestrate-fg-muted">
+                    <span className="vibestrate-mono ml-auto truncate text-[11px] text-vibestrate-fg-dim">
                       {p.command}
                     </span>
                   ) : null}
@@ -244,21 +244,21 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                   {roles.map((a) => (
                     <li
                       key={a.id}
-                      className="flex flex-wrap items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
+                      className="flex flex-wrap items-center gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                     >
                       <span className="font-medium">{a.label}</span>
                       {a.seats.map((s) => (
                         <span
                           key={s}
-                          className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted"
+                          className="vibestrate-mono border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-dim"
                         >
                           {s}
                         </span>
                       ))}
-                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
+                      <span className="vibestrate-mono border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-dim">
                         {a.profile}
                       </span>
-                      <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-muted">
+                      <span className="vibestrate-mono border border-vibestrate-border px-1 text-[10.5px] text-vibestrate-fg-dim">
                         {a.permissions}
                       </span>
                       {a.skills.length > 0 ? (
@@ -282,15 +282,15 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
               {meta.skills.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-baseline gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
+                  className="flex items-baseline gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px]"
                   title={s.filePath}
                 >
                   <Layers
-                    className="h-3 w-3 text-vibestrate-fg-muted"
+                    className="h-3 w-3 text-vibestrate-fg-dim"
                     strokeWidth={1.5}
                   />
                   <span>{s.name}</span>
-                  <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
+                  <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-dim">
                     {s.source}
                   </span>
                 </li>
@@ -335,11 +335,11 @@ export function ProjectPage({ onSelectRun, onShowQueue }: Props) {
                   <button
                     type="button"
                     onClick={() => onSelectRun(r.runId)}
-                    className="flex w-full items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left text-[12px] hover:border-vibestrate-accent/40"
+                    className="flex w-full items-center gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-left text-[12px] hover:border-vibestrate-accent/40"
                   >
                     <RunStatusBadge status={r.status} compact />
                     <span className="truncate">{r.task}</span>
-                    <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-muted">
+                    <span className="vibestrate-mono ml-auto text-[10.5px] text-vibestrate-fg-dim">
                       {r.runId}
                     </span>
                   </button>
@@ -389,8 +389,8 @@ function StatusCardView({ card }: { card: StatusCard }) {
         : "border-vibestrate-border text-vibestrate-fg";
   const Icon = card.icon;
   return (
-    <div className={`rounded border ${tone} bg-vibestrate-panel-2/60 px-3 py-2`}>
-      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-muted">
+    <div className={`border ${tone} bg-vibestrate-panel-2 px-3 py-2`}>
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-vibestrate-fg-dim">
         <Icon className="h-3 w-3" strokeWidth={1.5} />
         {card.label}
       </div>
@@ -407,8 +407,8 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded border border-vibestrate-border bg-vibestrate-panel/30">
-      <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-1.5 text-[11.5px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
+    <section className="slab">
+      <header className="flex items-center gap-2 border-b border-vibestrate-border px-3 py-1.5 text-[11.5px] uppercase tracking-[0.12em] text-vibestrate-fg-dim">
         <Package className="h-3 w-3" strokeWidth={1.5} />
         {title}
       </header>
@@ -420,7 +420,7 @@ function Section({
 function KV({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[160px_1fr] gap-3 py-0.5 text-[12px]">
-      <span className="text-vibestrate-fg-muted">{label}</span>
+      <span className="text-vibestrate-fg-dim">{label}</span>
       <span className="text-vibestrate-fg">{children}</span>
     </div>
   );
@@ -428,7 +428,7 @@ function KV({ label, children }: { label: string; children: React.ReactNode }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[11.5px] text-vibestrate-fg-muted">{children}</div>
+    <div className="text-[11.5px] text-vibestrate-fg-dim">{children}</div>
   );
 }
 
@@ -458,7 +458,7 @@ function CopyButton({ text, title }: { text: string; title: string }) {
           // ignore
         }
       }}
-      className="inline-flex items-center gap-1 rounded border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
+      className="inline-flex items-center gap-1 border border-vibestrate-border px-1.5 py-0.5 text-[10.5px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
       title={title}
     >
       <Copy className="h-3 w-3" strokeWidth={1.5} />

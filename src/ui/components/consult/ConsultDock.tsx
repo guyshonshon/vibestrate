@@ -4,12 +4,9 @@ import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
 import { Button } from "../design/Button.js";
-import { cn } from "../design/cn.js";
+import { Select } from "../design/Select.js";
 import { ConsultOrb } from "./ConsultOrb.js";
 import { ConsultAnswerView, type ProposalState } from "./ConsultAnswerView.js";
-
-const SELECT_CLASS =
-  "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[11.5px] text-fog-200 outline-none focus:border-violet-soft/40";
 
 /**
  * Floating consult dock. A resting orb at the bottom-right of every screen
@@ -111,7 +108,7 @@ export function ConsultDock() {
     <div className="fixed bottom-5 right-5 z-40 print:hidden">
       {open ? (
         <div
-          className="flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-white/[0.1] bg-ink-50/95 shadow-2xl shadow-black/50 backdrop-blur-xl fade-up"
+          className="flex w-[min(440px,calc(100vw-2.5rem))] flex-col overflow-hidden border border-white/[0.1] bg-ink-50 shadow-2xl shadow-black/50 fade-up"
           style={{ height: "min(78vh, 720px)" }}
           role="dialog"
           aria-label="Consult the project orchestrator"
@@ -126,7 +123,7 @@ export function ConsultDock() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="ml-auto grid h-7 w-7 place-items-center rounded-md text-fog-400 hover:bg-white/[0.06] hover:text-fog-100"
+              className="ml-auto grid h-7 w-7 place-items-center text-fog-300 hover:bg-white/[0.06] hover:text-fog-100"
               aria-label="Close consult"
             >
               <X className="h-4 w-4" strokeWidth={1.8} />
@@ -152,10 +149,10 @@ export function ConsultDock() {
               </div>
             ) : error ? (
               <div className="space-y-3">
-                <div className="rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[12.5px] leading-relaxed text-rose-200 whitespace-pre-wrap">
+                <div className="border border-rose-400/30 bg-rose-500/5 px-3 py-2.5 text-[12.5px] leading-relaxed text-rose-200 whitespace-pre-wrap">
                   {error}
                 </div>
-                <p className="text-[11px] text-fog-500">
+                <p className="text-[11px] text-fog-400">
                   Tip: model and effort options are per-provider suggestions, not probed from your
                   install - if your CLI rejects one, pick the provider default or run{" "}
                   <span className="mono">vibe provider test</span>.
@@ -171,7 +168,7 @@ export function ConsultDock() {
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
                 <ConsultOrb state="idle" size={96} />
-                <p className="max-w-[30ch] text-[12.5px] text-fog-400">
+                <p className="max-w-[30ch] text-[12.5px] text-fog-300">
                   Ask about this project - why a run blocked, whether a change needs a heavier
                   review, what to do next. It answers only from your project context and never acts.
                 </p>
@@ -191,47 +188,51 @@ export function ConsultDock() {
               placeholder="Ask the project orchestrator…"
               rows={2}
               disabled={busy}
-              className="w-full resize-none rounded-md border border-white/10 bg-ink-200/70 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-60"
+              className="w-full resize-none border border-white/10 bg-ink-200 px-3 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-60"
             />
             <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-fog-400">
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] text-fog-300">
                 <Cpu className="h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.9} />
-                <select
+                <Select
                   value={providerId}
-                  onChange={(e) => {
-                    setProviderId(e.target.value);
+                  ariaLabel="Consult provider"
+                  className="min-w-[150px]"
+                  disabled={busy}
+                  onChange={(v) => {
+                    setProviderId(v);
                     setModel("");
                     setEffort("");
                   }}
-                  className={SELECT_CLASS}
-                  disabled={busy}
-                >
-                  <option value="">Default · planner</option>
-                  {configuredProviders.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label || p.id}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "Default · planner" },
+                    ...configuredProviders.map((p) => ({ value: p.id, label: p.label || p.id })),
+                  ]}
+                />
                 {providerId && models.length > 0 ? (
-                  <select value={model} onChange={(e) => setModel(e.target.value)} className={SELECT_CLASS} disabled={busy}>
-                    <option value="">model: default</option>
-                    {models.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={model}
+                    ariaLabel="Consult model"
+                    className="min-w-[150px]"
+                    disabled={busy}
+                    onChange={(v) => setModel(v)}
+                    options={[
+                      { value: "", label: "model: default" },
+                      ...models.map((m) => ({ value: m, label: m })),
+                    ]}
+                  />
                 ) : null}
                 {providerId && efforts.length > 0 ? (
-                  <select value={effort} onChange={(e) => setEffort(e.target.value)} className={SELECT_CLASS} disabled={busy}>
-                    <option value="">effort: default</option>
-                    {efforts.map((lvl) => (
-                      <option key={lvl} value={lvl}>
-                        effort: {lvl}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={effort}
+                    ariaLabel="Consult effort"
+                    className="min-w-[150px]"
+                    disabled={busy}
+                    onChange={(v) => setEffort(v)}
+                    options={[
+                      { value: "", label: "effort: default" },
+                      ...efforts.map((lvl) => ({ value: lvl, label: `effort: ${lvl}` })),
+                    ]}
+                  />
                 ) : null}
               </div>
               <Button
@@ -250,7 +251,7 @@ export function ConsultDock() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-ink-50/80 p-1.5 shadow-xl shadow-black/40 backdrop-blur-xl transition-all hover:border-violet-soft/50 hover:pr-4"
+          className="group flex items-center gap-0 rounded-full border border-violet-soft/30 bg-ink-50 p-1.5 shadow-xl shadow-black/40 transition-all hover:border-violet-soft/50 hover:pr-4"
           aria-label="Open consult"
           title="Consult the project orchestrator"
         >

@@ -34,6 +34,7 @@ import {
 import { Button } from "../../components/design/Button.js";
 import { Chip } from "../../components/design/Chip.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
+import { Select } from "../../components/design/Select.js";
 import { cn } from "../../components/design/cn.js";
 import { FlowGraph, isGraphSteps } from "../../components/workflow/FlowGraph.js";
 import { extractFlowFromYaml, renderFlowYaml } from "../../lib/flow-yaml.js";
@@ -432,7 +433,7 @@ export function FlowBuilderPage({
   }
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-12">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12">
       <header
         className="flex flex-wrap items-center justify-between gap-3"
         data-screen-label="00 Header"
@@ -575,21 +576,20 @@ export function FlowBuilderPage({
         {/* Builtins open read-only - calling that "Editing" contradicted the
          * card's own "fork to edit" note. */}
         <div className="eyebrow">{isProjectFlow ? "Editing" : "Viewing"}</div>
-        <select
+        <Select
           value={selected?.id ?? ""}
-          onChange={(e) => {
-            setSelectedId(e.target.value);
+          ariaLabel="Select flow"
+          className="max-w-[320px]"
+          onChange={(v) => {
+            setSelectedId(v);
             setActiveStepIdx(0);
           }}
-          aria-label="Select flow"
-          className="rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 max-w-[320px]"
-        >
-          {flows.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.label} · {g.source.kind === "project" ? "project" : g.source.kind}
-            </option>
-          ))}
-        </select>
+          options={flows.map((g) => ({
+            value: g.id,
+            label: g.label,
+            hint: g.source.kind === "project" ? "project" : g.source.kind,
+          }))}
+        />
         {selected ? (
           <span className="text-[11.5px] text-fog-500">
             {selected.definition.steps.length} steps ·{" "}
@@ -600,7 +600,7 @@ export function FlowBuilderPage({
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -609,8 +609,8 @@ export function FlowBuilderPage({
           role="status"
           className={
             toast.kind === "ok"
-              ? "mt-4 rounded-lg border px-3 py-1.5 text-[12.5px] border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
-              : "mt-4 rounded-lg border px-3 py-1.5 text-[12.5px] border-rose-400/30 bg-rose-500/5 text-rose-300"
+              ? "mt-4 border px-3 py-1.5 text-[12.5px] border-emerald-400/30 bg-emerald-500/5 text-emerald-300"
+              : "mt-4 border px-3 py-1.5 text-[12.5px] border-rose-400/30 bg-rose-500/5 text-rose-300"
           }
         >
           {toast.kind === "ok" ? "✓ " : "✗ "}
@@ -624,7 +624,7 @@ export function FlowBuilderPage({
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="eyebrow">Raw YAML</div>
-                <div className="mt-0.5 text-[12.5px] text-fog-400">
+                <div className="mt-0.5 text-[12.5px] text-fog-300">
                   The flow's source. Saving validates the full schema and runs the
                   secret / size guards server-side.
                   {!isProjectFlow ? (
@@ -645,7 +645,7 @@ export function FlowBuilderPage({
               spellCheck={false}
               rows={Math.min(40, Math.max(14, yamlText.split("\n").length + 1))}
               className={cn(
-                "mono w-full resize-y rounded-md border bg-black/40 px-3 py-2.5 text-[11.5px] text-fog-100 outline-none",
+                "mono w-full resize-y border bg-black/40 px-3 py-2.5 text-[11.5px] text-fog-100 outline-none",
                 yamlError
                   ? "border-rose-400/40 focus:border-rose-400/60"
                   : "border-violet-soft/30 focus:border-violet-soft/50",
@@ -653,7 +653,7 @@ export function FlowBuilderPage({
               )}
             />
             {yamlError ? (
-              <div className="mt-2 rounded-md border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12px] text-rose-300 whitespace-pre-wrap">
+              <div className="mt-2 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12px] text-rose-300 whitespace-pre-wrap">
                 {yamlError}
               </div>
             ) : null}
@@ -666,7 +666,7 @@ export function FlowBuilderPage({
           <div className="col-span-12 xl:col-span-7">
             <div className="slab p-5 fade-up">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
+                <div className="w-10 h-10 bg-violet-deep ring-1 ring-violet-soft/30 flex items-center justify-center text-white shrink-0">
                   {(() => {
                     const Icon = flowIcon(selected.label);
                     return <Icon className="h-4 w-4" strokeWidth={1.7} />;
@@ -684,7 +684,7 @@ export function FlowBuilderPage({
                         : "opacity-70 cursor-not-allowed")
                     }
                   />
-                  <div className="text-[11.5px] text-fog-400 mt-1">
+                  <div className="text-[11.5px] text-fog-300 mt-1">
                     {displayedSteps.length} steps · source{" "}
                     <span className="text-fog-200">{selected.source.kind}</span>
                     {!isProjectFlow ? (
@@ -723,7 +723,7 @@ export function FlowBuilderPage({
                     <button
                       type="button"
                       onClick={addStep}
-                      className="rounded-xl border border-dashed border-white/[0.12] hover:border-violet-soft/40 hover:bg-violet-500/[0.04] px-3 py-2.5 text-[12.5px] text-fog-300 hover:text-fog-100 flex items-center gap-2 w-full"
+                      className="border border-dashed border-white/[0.12] hover:border-violet-soft/40 hover:bg-violet-500/[0.04] px-3 py-2.5 text-[12.5px] text-fog-300 hover:text-fog-100 flex items-center gap-2 w-full"
                     >
                       <Plus className="h-3 w-3" strokeWidth={1.7} /> Add step
                     </button>
@@ -788,7 +788,7 @@ function DryRunModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/80 px-4 py-10"
       onClick={onClose}
     >
       <div
@@ -803,7 +803,7 @@ function DryRunModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
           >
             Close
           </button>
@@ -812,7 +812,7 @@ function DryRunModal({
         {busy ? (
           <div className="mt-4 text-[13px] text-fog-400">Resolving the flow…</div>
         ) : error ? (
-          <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+          <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
             {error}
           </div>
         ) : snapshot ? (
@@ -825,7 +825,7 @@ function DryRunModal({
                 {snapshot.seats.map((s) => (
                   <span
                     key={s.id}
-                    className="rounded-md border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px] text-fog-300"
+                    className="border border-white/10 bg-ink-200 px-2 py-1 text-[11.5px] text-fog-300"
                     title={s.description ?? undefined}
                   >
                     <span className="text-fog-100">{s.label}</span>{" "}
@@ -861,7 +861,7 @@ function DryRunModal({
                   <li
                     key={`${s.id}-${i}`}
                     className={cn(
-                      "flex items-center gap-2 rounded-md border border-white/[0.06] bg-ink-200/30 px-2.5 py-1.5 text-[12px]",
+                      "flex items-center gap-2 border border-white/[0.06] bg-ink-200 px-2.5 py-1.5 text-[12px]",
                       s.enabled ? "" : "opacity-45",
                     )}
                   >
@@ -940,10 +940,10 @@ function StepRow({
     <li
       onClick={onClick}
       className={cn(
-        "relative rounded-xl border cursor-pointer transition px-3.5 py-3 flex items-center gap-3",
+        "relative border cursor-pointer transition px-3.5 py-3 flex items-center gap-3",
         active
           ? "border-violet-soft/40 bg-violet-500/[0.06] ring-1 ring-violet-soft/25"
-          : "border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04]",
+          : "border-white/[0.07] bg-ink-200 hover:bg-ink-100",
       )}
     >
       <span className="absolute -left-[27px] top-[16px] w-3.5 h-3.5 rounded-full ring-2 ring-ink-50">
@@ -973,7 +973,7 @@ function StepRow({
           ) : null}
           {step.optional ? <Chip tone="neutral">optional</Chip> : null}
         </div>
-        <div className="text-[11.5px] text-fog-400 mt-0.5 flex items-center gap-2 flex-wrap">
+        <div className="text-[11.5px] text-fog-300 mt-0.5 flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 whitespace-nowrap">
             <Cpu className="h-3 w-3 text-fog-500" strokeWidth={1.7} />{" "}
             {step.seat ?? "-"}
@@ -1026,7 +1026,7 @@ function StepRow({
           </IconBtn>
         </div>
       ) : null}
-      <ChevronRight className="h-3.5 w-3.5 text-fog-400" strokeWidth={1.7} />
+      <ChevronRight className="h-3.5 w-3.5 text-fog-300" strokeWidth={1.7} />
     </li>
   );
 }
@@ -1051,7 +1051,7 @@ function IconBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "h-6 w-6 inline-flex items-center justify-center rounded-md border transition",
+        "h-6 w-6 inline-flex items-center justify-center border transition",
         disabled
           ? "border-white/5 text-fog-600 cursor-not-allowed"
           : danger
@@ -1103,7 +1103,7 @@ function StepInspector({
           onChange={(e) => onPatchDraft({ label: e.target.value })}
           disabled={!editable}
           className={cn(
-            "w-full bg-white/[0.03] border border-white/10 transition rounded-lg h-9 px-3 text-[13px] text-fog-100 outline-none",
+            "w-full bg-ink-200 border border-white/10 transition h-9 px-3 text-[13px] text-fog-100 outline-none",
             editable
               ? "focus:border-violet-soft/40"
               : "opacity-70 cursor-not-allowed",
@@ -1120,10 +1120,10 @@ function StepInspector({
               disabled={!editable}
               onClick={() => onPatchDraft({ kind: k })}
               className={cn(
-                "text-[11.5px] px-2 py-1 rounded-md border whitespace-nowrap transition",
+                "text-[11.5px] px-2 py-1 border whitespace-nowrap transition",
                 k === kind
                   ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
-                  : "border-white/[0.08] bg-white/[0.02] text-fog-300 hover:text-fog-100",
+                  : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
                 !editable && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -1136,27 +1136,23 @@ function StepInspector({
       <Field
         label={requiresSeat ? "Seat (required)" : "Seat (optional)"}
       >
-        <select
+        <Select
           value={seatId ?? ""}
+          ariaLabel="Seat for this step"
           disabled={!editable || seatOptions.length === 0}
-          onChange={(e) => {
-            const v = e.target.value;
+          className="w-full"
+          onChange={(v) => {
             onPatchDraft({ seat: v === "" ? null : v });
           }}
-          className={cn(
-            "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-3 text-[13px] text-fog-100 outline-none",
-            editable
-              ? "focus:border-violet-soft/40"
-              : "opacity-70 cursor-not-allowed",
-          )}
-        >
-          <option value="">- no seat -</option>
-          {seatOptions.map(([id, def]) => (
-            <option key={id} value={id}>
-              {def.label} ({id})
-            </option>
-          ))}
-        </select>
+          options={[
+            { value: "", label: "- no seat -" },
+            ...seatOptions.map(([id, def]) => ({
+              value: id,
+              label: def.label,
+              hint: id,
+            })),
+          ]}
+        />
         {requiresSeat && !seatId ? (
           <div className="text-[11px] text-amber-300 mt-1">
             {kind} steps need a seat.
@@ -1281,7 +1277,7 @@ function ApprovalEditor({
         }
         placeholder="Why is this gate here?"
         className={cn(
-          "w-full bg-white/[0.03] border border-white/10 rounded-lg h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
           editable
             ? "focus:border-violet-soft/40"
             : "opacity-70 cursor-not-allowed",
@@ -1295,7 +1291,7 @@ function ApprovalEditor({
         }
         placeholder="What is the user being asked to do?"
         className={cn(
-          "w-full bg-white/[0.03] border border-white/10 rounded-lg h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
           editable
             ? "focus:border-violet-soft/40"
             : "opacity-70 cursor-not-allowed",
@@ -1313,7 +1309,7 @@ function ApprovalEditor({
         }}
         placeholder="Optional message to surface in the approval card"
         className={cn(
-          "w-full bg-white/[0.03] border border-white/10 rounded-lg h-8 px-3 text-[12.5px] text-fog-100 outline-none",
+          "w-full bg-ink-200 border border-white/10 h-8 px-3 text-[12.5px] text-fog-100 outline-none",
           editable
             ? "focus:border-violet-soft/40"
             : "opacity-70 cursor-not-allowed",
@@ -1331,14 +1327,14 @@ function ApprovalEditor({
               disabled={!editable}
               onClick={() => onChange({ ...effective, riskLevel: r })}
               className={cn(
-                "text-[11.5px] px-2 py-0.5 rounded-full border transition",
+                "text-[11.5px] px-2 py-0.5 border transition",
                 r === effective.riskLevel
                   ? r === "high"
                     ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
                     : r === "low"
                       ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300"
                       : "border-amber-400/40 bg-amber-500/10 text-amber-300"
-                  : "border-white/[0.08] bg-white/[0.02] text-fog-300 hover:text-fog-100",
+                  : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
                 !editable && "opacity-60 cursor-not-allowed",
               )}
             >
@@ -1503,7 +1499,7 @@ function Row({ label, items }: { label: string; items: string[] }) {
           items.map((it) => (
             <span
               key={it}
-              className="mono text-[11px] px-1.5 py-0.5 rounded border border-white/[0.07] bg-white/[0.02] text-fog-300"
+              className="mono text-[11px] px-1.5 py-0.5 border border-white/[0.07] bg-ink-200 text-fog-300"
             >
               {it}
             </span>
@@ -1549,10 +1545,10 @@ function PolicyCard() {
             <span className="text-fog-200">{p.label}</span>
             <span
               className={cn(
-                "text-[11px] mono px-2 py-0.5 rounded-full border",
+                "text-[11px] mono px-2 py-0.5 border",
                 p.on
                   ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/25"
-                  : "bg-white/[0.04] text-fog-400 border-white/10",
+                  : "bg-ink-200 text-fog-400 border-white/10",
               )}
             >
               {p.on ? "enforced" : "off"}
@@ -1575,7 +1571,7 @@ function PreviewCard({ steps }: { steps: FlowStepDefinition[] }) {
           <Fragment key={s.id}>
             <span
               className={cn(
-                "px-2 py-1 rounded-md border whitespace-nowrap",
+                "px-2 py-1 border whitespace-nowrap",
                 s.approval
                   ? "border-amber-400/35 bg-amber-500/[0.06] text-amber-200"
                   : "border-violet-soft/30 bg-violet-soft/[0.06] text-violet-soft",
@@ -1604,8 +1600,8 @@ function LoopCard({
   editable: boolean;
   onChange: (loop: FlowLoop | null) => void;
 }) {
-  const selectCls = cn(
-    "w-full bg-white/[0.03] border border-white/10 rounded-lg h-9 px-2.5 text-[12.5px] text-fog-100 outline-none",
+  const numCls = cn(
+    "w-full bg-ink-200 border border-white/10 h-9 px-2.5 text-[12.5px] text-fog-100 outline-none",
     editable ? "focus:border-violet-soft/40" : "opacity-70 cursor-not-allowed",
   );
   const idx = (id: string): number => steps.findIndex((s) => s.id === id);
@@ -1664,59 +1660,52 @@ function LoopCard({
         <div className="space-y-2.5">
           <div className="grid grid-cols-2 gap-2.5">
             <Field label="From step">
-              <select
-                className={selectCls}
+              <Select
+                className="w-full"
+                ariaLabel="Loop start step"
                 disabled={!editable}
                 value={loop.from}
-                onChange={(e) => update({ from: e.target.value })}
-              >
-                {steps.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => update({ from: v })}
+                options={steps.map((s) => ({ value: s.id, label: s.label }))}
+              />
             </Field>
             <Field label="To step">
-              <select
-                className={selectCls}
+              <Select
+                className="w-full"
+                ariaLabel="Loop end step"
                 disabled={!editable}
                 value={loop.to}
-                onChange={(e) => update({ to: e.target.value })}
-              >
-                {steps.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => update({ to: v })}
+                options={steps.map((s) => ({ value: s.id, label: s.label }))}
+              />
             </Field>
           </div>
           <Field label="Decision step - a review in the range">
-            <select
-              className={selectCls}
+            <Select
+              className="w-full"
+              ariaLabel="Loop decision step"
               disabled={!editable}
               value={loop.decisionStep}
-              onChange={(e) => update({ decisionStep: e.target.value })}
-            >
-              {!decisionOk ? (
-                <option value={loop.decisionStep}>
-                  {loop.decisionStep} (not a review in range)
-                </option>
-              ) : null}
-              {reviewsInRange.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => update({ decisionStep: v })}
+              options={[
+                ...(!decisionOk
+                  ? [
+                      {
+                        value: loop.decisionStep,
+                        label: `${loop.decisionStep} (not a review in range)`,
+                      },
+                    ]
+                  : []),
+                ...reviewsInRange.map((s) => ({ value: s.id, label: s.label })),
+              ]}
+            />
           </Field>
           <Field label="Max iterations">
             <input
               type="number"
               min={1}
               max={8}
-              className={selectCls}
+              className={numCls}
               disabled={!editable}
               value={loop.maxIterations}
               onChange={(e) =>

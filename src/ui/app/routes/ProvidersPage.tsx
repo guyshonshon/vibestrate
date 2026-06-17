@@ -198,7 +198,7 @@ export function ProvidersPage() {
             : undefined
         }
         className={cn(
-          "rounded-xl border surface-ink-100-55 px-4 py-3.5 transition",
+          "border bg-ink-100 px-4 py-3.5 transition",
           isDropTarget
             ? "border-violet-soft/60 ring-1 ring-violet-soft/40"
             : "border-white/10",
@@ -258,7 +258,7 @@ export function ProvidersPage() {
             {p.notes.length > 0 ? (
               <ul className="mt-2 space-y-0.5">
                 {p.notes.map((n, i) => (
-                  <li key={i} className="text-[12px] text-fog-400 leading-snug">
+                  <li key={i} className="text-[12px] text-fog-300 leading-snug">
                     {n}
                   </li>
                 ))}
@@ -343,11 +343,11 @@ export function ProvidersPage() {
   };
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1100px] px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1">
         <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
           {rows ? `${availableCount} detected` : "-"}
-          <span className="text-fog-400">
+          <span className="text-fog-300">
             {rows ? ` · ${configuredCount} configured` : ""}
           </span>
         </h1>
@@ -363,14 +363,14 @@ export function ProvidersPage() {
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {!rows ? (
         <section className="mt-7">
-          <div className="text-fog-400 text-[13px]">Detecting providers…</div>
+          <div className="text-fog-300 text-[13px]">Detecting providers…</div>
         </section>
       ) : (
         <>
@@ -384,7 +384,7 @@ export function ProvidersPage() {
           {optionalRows.length > 0 ? (
             <section className="mt-7 space-y-3">
               <div className="eyebrow">Optional · opt-in, not auto-configured</div>
-              <p className="text-fog-400 text-[12.5px] -mt-1 max-w-[70ch]">
+              <p className="text-fog-300 text-[12.5px] -mt-1 max-w-[70ch]">
                 Detected but never auto-bound. Set one up to wire it into this
                 project, then test it like any other provider. Drag the handle to
                 reorder, or lock a row to pin it.
@@ -399,7 +399,7 @@ export function ProvidersPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <div className="eyebrow">Cloud APIs & local model servers</div>
-                <p className="text-fog-400 text-[12.5px] mt-0.5 max-w-[70ch]">
+                <p className="text-fog-300 text-[12.5px] mt-0.5 max-w-[70ch]">
                   Drive a model over HTTP instead of a CLI. Cloud APIs use{" "}
                   <span className="text-fog-100">your own key</span> (an env
                   reference, never stored in config) over https; local servers
@@ -485,7 +485,7 @@ export function ProvidersPage() {
       {toast ? (
         <div
           className={cn(
-            "fixed bottom-4 right-4 z-30 rounded-lg border px-3.5 py-2 text-[12.5px] shadow-2xl",
+            "fixed bottom-4 right-4 z-30 border px-3.5 py-2 text-[12.5px] shadow-2xl",
             toast.kind === "ok"
               ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
               : "border-rose-400/30 bg-rose-500/10 text-rose-200",
@@ -578,7 +578,7 @@ function ProviderCatalogPanel() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <div className="eyebrow">Capability catalog · models & effort per provider</div>
-          <p className="text-fog-400 text-[12.5px] mt-0.5 max-w-[70ch]">
+          <p className="text-fog-300 text-[12.5px] mt-0.5 max-w-[70ch]">
             The model and effort knobs the Profile editor offers - built-in, plus
             your overlay.{" "}
             <code className="text-violet-soft">vibe provider catalog</code> shows
@@ -598,7 +598,7 @@ function ProviderCatalogPanel() {
       </div>
 
       {note ? (
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] text-fog-300">
+        <div className="border border-white/10 bg-ink-200 px-3 py-2 text-[12px] text-fog-300">
           {note}
         </div>
       ) : null}
@@ -625,7 +625,7 @@ function ProviderCatalogPanel() {
           return (
             <div
               key={id}
-              className="rounded-lg border border-white/[0.08] surface-ink-100-55 px-3.5 py-2.5"
+              className="slab px-3.5 py-2.5"
             >
               <div className="flex items-center gap-2">
                 <span className="text-[13.5px] text-fog-100 font-medium mono">{id}</span>
@@ -979,14 +979,14 @@ function ProviderEditor({
   }
 
   const inputCls =
-    "mono w-full h-9 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40";
+    "mono w-full h-9 border border-white/10 bg-ink-200 px-3 text-[12.5px] text-fog-100 focus:outline-none focus:border-violet-soft/40";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={`${eyebrow} ${headerTitle}`}
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10"
       onClick={onClose}
     >
       <div
@@ -1015,14 +1015,14 @@ function ProviderEditor({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
           >
             Close
           </button>
         </div>
 
         {loading ? (
-          <div className="mt-5 text-[13px] text-fog-400">Loading config…</div>
+          <div className="mt-5 text-[13px] text-fog-300">Loading config…</div>
         ) : (
           <>
             <div className="mt-4 grid grid-cols-1 gap-2.5">
@@ -1056,7 +1056,7 @@ function ProviderEditor({
                     />
                   </FormField>
                   <FormField label="input">
-                    <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
+                    <div className="inline-flex border border-white/10 bg-ink-200 p-[2px]">
                       {(["stdin", "arg"] as const).map((mode) => (
                         <button
                           key={mode}
@@ -1065,8 +1065,8 @@ function ProviderEditor({
                           className={cn(
                             "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
                             input === mode
-                              ? "bg-white/[0.08] text-fog-100"
-                              : "text-fog-400 hover:text-fog-100",
+                              ? "bg-ink-50 text-fog-100"
+                              : "text-fog-300 hover:text-fog-100",
                           )}
                         >
                           {mode}
@@ -1078,7 +1078,7 @@ function ProviderEditor({
               ) : (
                 <>
                   <FormField label="api (wire protocol)">
-                    <div className="inline-flex rounded-md border border-white/10 bg-white/[0.025] p-[2px]">
+                    <div className="inline-flex border border-white/10 bg-ink-200 p-[2px]">
                       {apiOptions.map((opt) => (
                         <button
                           key={opt}
@@ -1087,8 +1087,8 @@ function ProviderEditor({
                           className={cn(
                             "h-[26px] px-3 rounded text-[11.5px] font-medium mono",
                             apiName === opt
-                              ? "bg-white/[0.08] text-fog-100"
-                              : "text-fog-400 hover:text-fog-100",
+                              ? "bg-ink-50 text-fog-100"
+                              : "text-fog-300 hover:text-fog-100",
                           )}
                         >
                           {opt}
@@ -1144,7 +1144,7 @@ function ProviderEditor({
                         rows={2}
                         spellCheck={false}
                         placeholder="anthropic-beta: prompt-caching-2024-07-31"
-                        className="mono w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-[12px] text-fog-100 focus:outline-none focus:border-violet-soft/40 resize-y"
+                        className="mono w-full border border-white/10 bg-ink-200 px-3 py-2 text-[12px] text-fog-100 focus:outline-none focus:border-violet-soft/40 resize-y"
                       />
                     </FormField>
                   ) : null}
@@ -1172,7 +1172,7 @@ function ProviderEditor({
                     onChange={(e) => setYamlText(e.target.value)}
                     spellCheck={false}
                     rows={Math.min(22, Math.max(8, yamlText.split("\n").length + 1))}
-                    className="mono text-[11.5px] w-full resize-y text-fog-100 rounded-md border border-violet-soft/30 bg-black/40 px-3 py-2.5 focus:outline-none focus:border-violet-soft/60"
+                    className="mono text-[11.5px] w-full resize-y text-fog-100 border border-violet-soft/30 bg-black/40 px-3 py-2.5 focus:outline-none focus:border-violet-soft/60"
                   />
                   <div className="text-[11px] text-fog-500 mt-1.5 leading-relaxed">
                     Edit the whole block, so anything the form doesn't surface is
@@ -1188,7 +1188,7 @@ function ProviderEditor({
                   </div>
                 </>
               ) : (
-                <pre className="mono text-[11.5px] text-fog-200 rounded-md border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
+                <pre className="mono text-[11.5px] text-fog-200 border border-white/[0.07] bg-black/40 px-3 py-2.5 overflow-x-auto whitespace-pre">
                   {yamlPreview}
                 </pre>
               )}
@@ -1306,7 +1306,7 @@ function TestResultRow({
 }) {
   if (result.ok) {
     return (
-      <div className="mt-3 rounded-lg border border-emerald-400/25 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-200">
+      <div className="mt-3 border border-emerald-400/25 bg-emerald-500/5 px-3 py-2 text-[12px] text-emerald-200">
         ✓ Responded with the magic token in {result.durationMs}ms.
       </div>
     );
@@ -1314,7 +1314,7 @@ function TestResultRow({
   if (result.needsLogin) {
     const cmd = result.loginCommand ?? loginCommand;
     return (
-      <div className="mt-3 rounded-lg border border-amber-300/30 bg-amber-400/5 px-3 py-2.5 text-[12px] text-amber-200">
+      <div className="mt-3 border border-amber-300/30 bg-amber-400/5 px-3 py-2.5 text-[12px] text-amber-200">
         <div className="font-medium">Not logged in.</div>
         {cmd ? (
           <div className="mt-1.5">
@@ -1330,7 +1330,7 @@ function TestResultRow({
     );
   }
   return (
-    <div className="mt-3 rounded-lg border border-rose-400/25 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-200">
+    <div className="mt-3 border border-rose-400/25 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-200">
       <div className="flex items-center gap-1.5">
         <X size={12} /> Test failed (exit {result.exitCode}).
       </div>
@@ -1379,7 +1379,7 @@ function InstallWizard({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-10"
       onClick={onClose}
     >
       <div className="slab w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
@@ -1391,14 +1391,14 @@ function InstallWizard({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
           >
             Close
           </button>
         </div>
 
         {p.available ? (
-          <div className="mt-4 rounded-lg border border-emerald-400/30 bg-emerald-500/5 px-3 py-2 text-[12.5px] text-emerald-200">
+          <div className="mt-4 border border-emerald-400/30 bg-emerald-500/5 px-3 py-2 text-[12.5px] text-emerald-200">
             ✓ {p.command} detected{p.version ? ` (v${p.version})` : ""}. Close this,
             then <span className="text-fog-100">Set up</span> and{" "}
             <span className="text-fog-100">Test</span>.
@@ -1411,7 +1411,7 @@ function InstallWizard({
             {installCmds.length > 0 ? (
               installCmds.map((c, i) => <CopyLine key={i} cmd={c} />)
             ) : (
-              <p className="mt-1 text-[12px] text-fog-400">
+              <p className="mt-1 text-[12px] text-fog-300">
                 See {p.label}'s site for install instructions.
               </p>
             )}
@@ -1448,7 +1448,7 @@ function InstallWizard({
 function CopyLine({ cmd }: { cmd: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="mt-1 flex items-center gap-2 rounded-md bg-black/30 px-2 py-1.5">
+    <div className="mt-1 flex items-center gap-2 bg-black/30 px-2 py-1.5">
       <code className="mono flex-1 truncate text-[12px] text-fog-100">{cmd}</code>
       <button
         type="button"

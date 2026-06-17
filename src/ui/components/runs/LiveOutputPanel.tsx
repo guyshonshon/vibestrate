@@ -3,6 +3,7 @@ import { Radio, TerminalSquare } from "lucide-react";
 import { api } from "../../lib/api.js";
 import { ApiError } from "../../lib/api.js";
 import type { RunStatus } from "../../lib/types.js";
+import { Select } from "../design/Select.js";
 
 type Line = {
   stream: "stdout" | "stderr";
@@ -188,7 +189,7 @@ export function LiveOutputPanel({
   return (
     <section
       aria-label="Active provider CLI"
-      className="overflow-hidden rounded border border-vibestrate-border bg-vibestrate-panel"
+      className="overflow-hidden border border-vibestrate-border bg-vibestrate-panel"
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-vibestrate-border-soft px-3 py-2 text-[11px]">
         <TerminalSquare
@@ -196,28 +197,27 @@ export function LiveOutputPanel({
           strokeWidth={1.5}
           aria-hidden
         />
-        <span className="vibestrate-mono uppercase tracking-[0.12em] text-vibestrate-fg-muted">
+        <span className="vibestrate-mono uppercase tracking-[0.12em] text-vibestrate-fg-dim">
           active CLI
         </span>
-        <span className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted">
+        <span className="vibestrate-mono border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim">
           read-only attach
         </span>
         {streams.length > 0 ? (
-          <select
+          <Select
             value={active ?? ""}
-            onChange={(e) => {
-              setActive(e.target.value || null);
+            ariaLabel="Pick provider stream"
+            className="min-w-[150px]"
+            onChange={(v) => {
+              setActive(v || null);
               setFollowLatest(false);
             }}
-            aria-label="Pick provider stream"
-            className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg focus:outline-none focus:ring-1 focus:ring-vibestrate-accent"
-          >
-            {streams.map((s) => (
-              <option key={s.promptName} value={s.promptName}>
-                {s.promptName} ({s.bytes.toLocaleString()} B)
-              </option>
-            ))}
-          </select>
+            options={streams.map((s) => ({
+              value: s.promptName,
+              label: s.promptName,
+              hint: `${s.bytes.toLocaleString()} B`,
+            }))}
+          />
         ) : null}
         {streams.length > 1 ? (
           <button
@@ -226,10 +226,10 @@ export function LiveOutputPanel({
               setFollowLatest(true);
               setActive(streams[0]?.promptName ?? null);
             }}
-            className={`vibestrate-mono inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
+            className={`vibestrate-mono inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] ${
               followLatest
                 ? "border-vibestrate-success/40 text-vibestrate-success"
-                : "border-vibestrate-border text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
+                : "border-vibestrate-border text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
             }`}
             title="Follow the newest provider CLI stream"
           >
@@ -244,10 +244,10 @@ export function LiveOutputPanel({
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`vibestrate-mono rounded border px-1.5 py-0.5 text-[10px] ${
+                className={`vibestrate-mono border px-1.5 py-0.5 text-[10px] ${
                   view === v
                     ? "border-vibestrate-accent/50 text-vibestrate-accent"
-                    : "border-vibestrate-border text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
+                    : "border-vibestrate-border text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
                 }`}
               >
                 {v}
@@ -265,7 +265,7 @@ export function LiveOutputPanel({
       {routeMissing ? (
         <p className="px-3 py-2 text-[11.5px] text-vibestrate-warn">
           The streams endpoint returned 404. Your{" "}
-          <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
+          <code className="vibestrate-mono bg-vibestrate-panel-2 px-1">
             vibe ui
           </code>{" "}
           server bundle predates live streaming. Restart it after a
@@ -273,23 +273,23 @@ export function LiveOutputPanel({
           clean.
         </p>
       ) : streams.length === 0 ? (
-        <div className="border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
+        <div className="border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
           {isTerminal
             ? "This run finished without recording any provider CLI output."
             : "No provider CLI output recorded yet for this run."}{" "}
           Streams are captured per agent invocation under{" "}
-          <code className="vibestrate-mono rounded bg-vibestrate-panel-2 px-1">
+          <code className="vibestrate-mono bg-vibestrate-panel-2 px-1">
             .vibestrate/runs/&lt;runId&gt;/streams/*.ndjson
           </code>
           .
         </div>
       ) : lines.length === 0 || !active ? (
-        <div className="min-h-[220px] border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
+        <div className="min-h-[220px] border-t border-vibestrate-border-soft bg-[#0b0e13] px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
           Waiting for provider stdout/stderr…
         </div>
       ) : (
         <div className="bg-[#0b0e13]">
-          <div className="flex items-center gap-2 border-t border-vibestrate-border-soft px-3 py-1.5 text-[10.5px] text-vibestrate-fg-muted">
+          <div className="flex items-center gap-2 border-t border-vibestrate-border-soft px-3 py-1.5 text-[10.5px] text-vibestrate-fg-dim">
             <span className="vibestrate-mono truncate">
               {activeStream?.promptName ?? active}
             </span>
@@ -297,7 +297,7 @@ export function LiveOutputPanel({
               <button
                 type="button"
                 onClick={() => setShowThinking((v) => !v)}
-                className="vibestrate-mono rounded border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-muted hover:bg-vibestrate-panel-2"
+                className="vibestrate-mono border border-vibestrate-border px-1.5 py-0.5 text-[10px] text-vibestrate-fg-dim hover:bg-vibestrate-panel-2"
               >
                 {showThinking ? "hide thinking" : "show thinking"}
               </button>
@@ -311,7 +311,7 @@ export function LiveOutputPanel({
           ) : (
             <Suspense
               fallback={
-                <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-muted">
+                <div className="min-h-[220px] border-t border-vibestrate-border-soft px-3 py-3 text-[11.5px] text-vibestrate-fg-dim">
                   Opening terminal view…
                 </div>
               }
@@ -369,10 +369,10 @@ function TranscriptView({
         b.kind === "tool" || b.kind === "subagent" ? (
           <div
             key={i}
-            className="vibestrate-mono my-0.5 flex items-center gap-1.5 text-[11px] text-vibestrate-fg-muted"
+            className="vibestrate-mono my-0.5 flex items-center gap-1.5 text-[11px] text-vibestrate-fg-dim"
           >
             <span
-              className={`rounded border px-1 py-px text-[9.5px] uppercase tracking-[0.08em] ${
+              className={`border px-1 py-px text-[9.5px] uppercase tracking-[0.08em] ${
                 b.kind === "subagent"
                   ? "border-vibestrate-accent/40 text-vibestrate-accent"
                   : "border-vibestrate-border"
@@ -386,7 +386,7 @@ function TranscriptView({
           showThinking ? (
             <pre
               key={i}
-              className="vibestrate-mono my-1 whitespace-pre-wrap border-l-2 border-vibestrate-border pl-2 text-[11px] italic leading-relaxed text-vibestrate-fg-muted"
+              className="vibestrate-mono my-1 whitespace-pre-wrap border-l-2 border-vibestrate-border pl-2 text-[11px] italic leading-relaxed text-vibestrate-fg-dim"
             >
               {b.text}
             </pre>
@@ -401,7 +401,7 @@ function TranscriptView({
         ),
       )}
       {!showThinking && thinkingChars > 0 ? (
-        <p className="vibestrate-mono mt-1 text-[10.5px] text-vibestrate-fg-muted">
+        <p className="vibestrate-mono mt-1 text-[10.5px] text-vibestrate-fg-dim">
           {thinkingChars.toLocaleString()} chars of thinking hidden - use
           "show thinking" above.
         </p>

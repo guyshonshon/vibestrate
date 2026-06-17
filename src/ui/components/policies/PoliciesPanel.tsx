@@ -7,6 +7,7 @@ import type {
   SafetyPoliciesConfig,
 } from "../../lib/types.js";
 import { AdvancedSafetySection } from "./AdvancedSafetySection.js";
+import { Select } from "../design/Select.js";
 
 /**
  * Read-only Policies surface.
@@ -103,7 +104,7 @@ export function PoliciesPanel() {
     <div className="space-y-4 p-4 text-[12px]">
       <header>
         <h2 className="text-[13px] font-medium text-vibestrate-fg">Policies</h2>
-        <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-muted">
+        <p className="mt-0.5 text-[10.5px] text-vibestrate-fg-dim">
           User-defined rules in <code>.vibestrate/policies/*.yml</code>. Rules can
           refuse a suggestion or bundle apply; they never bypass built-in
           safety checks. Authoring is file-based.
@@ -111,7 +112,7 @@ export function PoliciesPanel() {
       </header>
 
       {error ? (
-        <div className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
+        <div className="border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-vibestrate-fail">
           {error}
         </div>
       ) : null}
@@ -125,11 +126,11 @@ export function PoliciesPanel() {
       ) : null}
 
       {!snap ? (
-        <div className="text-vibestrate-fg-muted">Loading…</div>
+        <div className="text-vibestrate-fg-dim">Loading…</div>
       ) : (
         <>
           <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
               Status
             </h3>
             <div className="mt-1 vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
@@ -147,7 +148,7 @@ export function PoliciesPanel() {
           </section>
 
           {snap.malformedFiles.length > 0 ? (
-            <section className="rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 p-2">
+            <section className="border border-vibestrate-fail/40 bg-vibestrate-fail/10 p-2">
               <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fail">
                 Malformed files (skipped)
               </h3>
@@ -163,7 +164,7 @@ export function PoliciesPanel() {
           ) : null}
 
           {snap.duplicateIds.length > 0 ? (
-            <section className="rounded border border-vibestrate-warn/40 bg-vibestrate-warn/10 p-2 text-[10.5px] text-vibestrate-warn">
+            <section className="border border-vibestrate-warn/40 bg-vibestrate-warn/10 p-2 text-[10.5px] text-vibestrate-warn">
               <span className="font-medium">Duplicate ids:</span>{" "}
               {snap.duplicateIds.join(", ")} - first occurrence wins; resolve by
               renaming the rule(s).
@@ -171,19 +172,19 @@ export function PoliciesPanel() {
           ) : null}
 
           <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
               Rule files
             </h3>
             <ul className="mt-1 space-y-1">
               {snap.ruleFiles.length === 0 ? (
-                <li className="text-vibestrate-fg-muted">
+                <li className="text-vibestrate-fg-dim">
                   No <code>.vibestrate/policies/*.yml</code> files.
                 </li>
               ) : (
                 snap.ruleFiles.map((f) => (
                   <li
                     key={f.file}
-                    className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
+                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
                   >
                     <div className="vibestrate-mono truncate text-vibestrate-fg">{f.file}</div>
                     <div className="vibestrate-mono text-[10px] text-vibestrate-fg-muted">
@@ -207,17 +208,17 @@ export function PoliciesPanel() {
           </section>
 
           <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
               Rules
             </h3>
             <ul className="mt-1 space-y-1">
               {snap.rules.length === 0 ? (
-                <li className="text-vibestrate-fg-muted">No rules loaded.</li>
+                <li className="text-vibestrate-fg-dim">No rules loaded.</li>
               ) : (
                 snap.rules.map((r) => (
                   <li
                     key={r.id}
-                    className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
+                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
                   >
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-medium">{r.id}</span>
@@ -237,7 +238,7 @@ export function PoliciesPanel() {
                         {r.matchAddedContent.flags ?? ""}
                       </p>
                     ) : null}
-                    <p className="text-[10.5px] text-vibestrate-fg-muted">
+                    <p className="text-[10.5px] text-vibestrate-fg-dim">
                       message: {r.message}
                     </p>
                   </li>
@@ -247,19 +248,19 @@ export function PoliciesPanel() {
           </section>
 
           <section>
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
               Action policies (Action Broker)
             </h3>
             <ul className="mt-1 space-y-1">
               {snap.actions.length === 0 ? (
-                <li className="text-vibestrate-fg-muted">
+                <li className="text-vibestrate-fg-dim">
                   No action policies loaded.
                 </li>
               ) : (
                 snap.actions.map((a) => (
                   <li
                     key={a.id}
-                    className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
+                    className="border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1.5"
                   >
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-medium">{a.id}</span>
@@ -294,7 +295,7 @@ export function PoliciesPanel() {
                         status: {a.match.status}
                       </p>
                     ) : null}
-                    <p className="text-[10.5px] text-vibestrate-fg-muted">
+                    <p className="text-[10.5px] text-vibestrate-fg-dim">
                       message: {a.message}
                     </p>
                   </li>
@@ -303,32 +304,34 @@ export function PoliciesPanel() {
             </ul>
           </section>
 
-          <section className="rounded border border-vibestrate-border bg-vibestrate-panel-2 p-2">
-            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-muted">
+          <section className="border border-vibestrate-border bg-vibestrate-panel-2 p-2">
+            <h3 className="text-[11px] uppercase tracking-[0.1em] text-vibestrate-fg-dim">
               Check patch
             </h3>
-            <p className="text-[10.5px] text-vibestrate-fg-muted">
+            <p className="text-[10.5px] text-vibestrate-fg-dim">
               Paste a unified diff. Runs the same engine the apply flow uses.
               Does <strong>not</strong> apply the patch and does{" "}
               <strong>not</strong> run any command.
             </p>
-            <div className="mt-2 flex items-center gap-2 text-[10.5px]">
+            <div className="mt-2 flex items-center gap-2 text-[10.5px] text-vibestrate-fg-dim">
               <label className="flex items-center gap-1">
                 surface:
-                <select
+                <Select
                   value={surface}
-                  onChange={(e) => setSurface(e.target.value as PolicySurface)}
-                  className="vibestrate-mono rounded border border-vibestrate-border bg-vibestrate-panel px-1 py-0.5"
-                >
-                  <option value="suggestion-apply">suggestion-apply</option>
-                  <option value="bundle-apply">bundle-apply</option>
-                </select>
+                  ariaLabel="patch check surface"
+                  className="min-w-[150px]"
+                  onChange={(v) => setSurface(v as PolicySurface)}
+                  options={[
+                    { value: "suggestion-apply", label: "suggestion-apply" },
+                    { value: "bundle-apply", label: "bundle-apply" },
+                  ]}
+                />
               </label>
               <button
                 type="button"
                 onClick={() => void runCheck()}
                 disabled={checking}
-                className="rounded border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-60"
+                className="border border-vibestrate-accent/40 bg-vibestrate-accent-soft/30 px-2 py-0.5 text-vibestrate-fg hover:bg-vibestrate-accent-soft/50 disabled:opacity-60"
               >
                 {checking ? "Checking…" : "Run check"}
               </button>
@@ -337,12 +340,12 @@ export function PoliciesPanel() {
               value={patch}
               onChange={(e) => setPatch(e.target.value)}
               placeholder={"diff --git a/example.ts b/example.ts\n--- a/example.ts\n+++ b/example.ts\n@@ -1 +1,2 @@\n ok\n+new line"}
-              className="vibestrate-mono mt-2 w-full rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5 text-[10.5px]"
+              className="vibestrate-mono mt-2 w-full border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5 text-[10.5px]"
               rows={10}
               spellCheck={false}
             />
             {check ? (
-              <div className="mt-2 rounded border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
+              <div className="mt-2 border border-vibestrate-border bg-vibestrate-panel px-2 py-1.5">
                 <div className="vibestrate-mono text-[10.5px] text-vibestrate-fg-dim">
                   surface: {check.surface} · evaluated{" "}
                   {check.ruleCountForSurface}/{check.ruleCountTotal} rule(s)

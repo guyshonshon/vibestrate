@@ -64,7 +64,7 @@ export function WorkspacePage() {
   const totals = overview?.totals;
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       {/* ── Hero ─ */}
       <section className="mt-2 flex items-start justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[720px]">
@@ -79,17 +79,17 @@ export function WorkspacePage() {
           </p>
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <div className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.025] p-[3px]">
+          <div className="inline-flex border border-white/[0.08] bg-ink-200 p-[3px]">
             {RANGES.map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
                 className={cn(
-                  "h-7 px-3 rounded-md text-[12px] font-medium",
+                  "h-7 px-3 text-[12px] font-medium",
                   range === r
                     ? "bg-white/[0.08] text-fog-100"
-                    : "text-fog-400 hover:text-fog-100",
+                    : "text-fog-300 hover:text-fog-100",
                 )}
               >
                 {r}
@@ -113,7 +113,7 @@ export function WorkspacePage() {
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/5 px-3 py-1.5 text-[12.5px] text-rose-300">
           {error}
         </div>
       ) : null}
@@ -163,7 +163,7 @@ export function WorkspacePage() {
           />
         ))}
         {overview && overview.projects.length === 0 ? (
-          <div className="col-span-full rounded-xl border border-white/[0.06] bg-white/[0.015] py-10 text-center text-[12.5px] text-fog-400">
+          <div className="col-span-full slab py-10 text-center text-[12.5px] text-fog-300">
             No projects registered yet. Run <span className="mono">vibe ui</span> in a
             project, or <span className="mono">vibe workspace add</span>.
           </div>
@@ -249,7 +249,7 @@ function ProjectCard({
     <div className="slab p-5 flex flex-col">
       {/* header */}
       <div className="flex items-start gap-2.5">
-        <span className="w-8 h-8 rounded-md bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft shrink-0">
+        <span className="w-8 h-8 bg-violet-soft/15 ring-1 ring-violet-soft/30 flex items-center justify-center text-violet-soft shrink-0">
           <Folder className="h-4 w-4" strokeWidth={1.7} />
         </span>
         <div className="min-w-0 flex-1">
@@ -258,7 +258,7 @@ function ProjectCard({
               {project.label}
             </span>
             {project.current ? (
-              <span className="text-[10px] rounded px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-400/20">
+              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-400/20">
                 current
               </span>
             ) : (
@@ -270,7 +270,7 @@ function ProjectCard({
           </div>
         </div>
         {project.activeRuns > 0 ? (
-          <span className="text-[10.5px] rounded-full px-2 py-0.5 bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/20 shrink-0 flex items-center gap-1">
+          <span className="text-[10.5px] px-2 py-0.5 bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/20 shrink-0 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-soft animate-pulse" />
             {project.activeRuns} live
           </span>
@@ -315,7 +315,7 @@ function ProjectCard({
                 <span
                   className={cn(
                     "mono text-[10px] shrink-0 w-[92px] truncate",
-                    STATUS_TONE[r.status] ?? "text-fog-400",
+                    STATUS_TONE[r.status] ?? "text-fog-300",
                   )}
                 >
                   {r.status}
@@ -342,7 +342,7 @@ function ProjectCard({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-[11.5px] text-fog-400 hover:text-rose-300 flex items-center gap-1.5"
+                className="text-[11.5px] text-fog-300 hover:text-rose-300 flex items-center gap-1.5"
                 title="Shut down this project's dashboard + scheduler"
               >
                 <Power className="h-3 w-3" strokeWidth={1.7} />
@@ -409,7 +409,7 @@ function CloseDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onCancel}
     >
       <div className="w-full max-w-[460px] slab p-5" onClick={(e) => e.stopPropagation()}>
@@ -433,9 +433,9 @@ function CloseDialog({
         </p>
 
         {/* busy status */}
-        <div className="mt-3 rounded-lg border border-white/[0.06] bg-white/[0.015] p-3">
+        <div className="mt-3 border border-white/[0.06] bg-ink-200 p-3">
           {loadingStatus ? (
-            <div className="text-[12px] text-fog-500">Checking activity…</div>
+            <div className="text-[12px] text-fog-300">Checking activity…</div>
           ) : busy ? (
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" strokeWidth={1.7} />
@@ -458,14 +458,14 @@ function CloseDialog({
               </div>
             </div>
           ) : (
-            <div className="text-[12px] text-fog-400">
+            <div className="text-[12px] text-fog-300">
               Idle - no active runs or queued tasks. Safe to close.
             </div>
           )}
         </div>
 
         {err ? (
-          <div className="mt-3 rounded-md border border-rose-400/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] text-rose-300">
+          <div className="mt-3 border border-rose-400/30 bg-rose-500/5 px-2.5 py-1.5 text-[12px] text-rose-300">
             {err}
           </div>
         ) : null}
@@ -491,12 +491,12 @@ function CloseDialog({
 
 function LiveChip({ live }: { live: boolean }) {
   return live ? (
-    <span className="text-[10px] rounded px-1.5 py-0.5 bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/20 flex items-center gap-1">
+    <span className="text-[10px] px-1.5 py-0.5 bg-violet-soft/10 text-violet-soft ring-1 ring-violet-soft/20 flex items-center gap-1">
       <span className="w-1.5 h-1.5 rounded-full bg-violet-soft" />
       live
     </span>
   ) : (
-    <span className="text-[10px] rounded px-1.5 py-0.5 bg-white/[0.04] text-fog-500 ring-1 ring-white/[0.06]">
+    <span className="text-[10px] px-1.5 py-0.5 bg-white/[0.04] text-fog-400 ring-1 ring-white/[0.06]">
       dormant
     </span>
   );
@@ -568,7 +568,7 @@ function Stat({
             ? "text-amber-300"
             : "text-fog-100";
   return (
-    <div className="rounded-md bg-white/[0.02] border border-white/[0.05] py-2">
+    <div className="bg-white/[0.02] border border-white/[0.05] py-2">
       <div className={cn("text-[15px] font-semibold num-tabular", valueTone)}>{value}</div>
       <div className="text-[9.5px] uppercase tracking-[0.1em] text-fog-500 mt-0.5">
         {label}

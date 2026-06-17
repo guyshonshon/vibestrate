@@ -1,4 +1,5 @@
 import { useValidationProfiles } from "../../lib/useValidationProfiles.js";
+import { Select } from "../design/Select.js";
 
 type Props = {
   value: string | null;
@@ -28,25 +29,25 @@ export function ProfileSelect({
 
   return (
     <div className="flex flex-col gap-1 text-[10.5px]">
-      <label className="flex items-center gap-1.5 text-vibestrate-fg-dim">
+      <label className="flex items-center gap-1.5 text-vibestrate-fg">
         <span>{label}</span>
-        <select
+        <Select
           value={selected}
-          onChange={(e) => {
-            const next = e.target.value;
-            onChange(next === "default" ? null : next);
-          }}
+          ariaLabel={label}
+          className="min-w-[150px]"
           disabled={disabled || loading || profiles.length === 0}
-          className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-1.5 py-0.5 text-[11px] text-vibestrate-fg disabled:opacity-50"
-        >
-          {profiles.map((p) => (
-            <option key={p.profileName} value={p.profileName}>
-              {p.profileName}
-              {p.profileName === suggestedFromMarker ? "  (from marker)" : ""}
-              {p.hasCommands ? "" : "  (empty)"}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onChange(v === "default" ? null : v)}
+          options={profiles.map((p) => ({
+            value: p.profileName,
+            label: p.profileName,
+            hint:
+              p.profileName === suggestedFromMarker
+                ? "(from marker)"
+                : p.hasCommands
+                  ? undefined
+                  : "(empty)",
+          }))}
+        />
       </label>
       {error ? (
         <span className="text-vibestrate-fail">{error}</span>

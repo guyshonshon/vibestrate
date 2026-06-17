@@ -43,6 +43,7 @@ import {
   type RunOutcomeAction,
 } from "../../lib/run-outcome.js";
 import { Chip } from "../../components/design/Chip.js";
+import { Select } from "../../components/design/Select.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import type { InspectorTabId } from "../../components/layout/inspector-tabs.js";
 
@@ -154,13 +155,13 @@ export function RunDetailPage({
 
   if (error)
     return (
-      <div className="mx-auto max-w-[1480px] px-8 pt-6 text-rose-300">
+      <div className="deep-scene mx-auto max-w-[1520px] px-8 pt-6 text-rose-300">
         {error}
       </div>
     );
   if (!run)
     return (
-      <div className="mx-auto max-w-[1480px] px-8 pt-6 flex items-center gap-2.5 text-fog-400">
+      <div className="deep-scene mx-auto max-w-[1520px] px-8 pt-6 flex items-center gap-2.5 text-fog-200">
         <span className="pulse-dot" />
         <span>
           Starting run
@@ -204,7 +205,7 @@ export function RunDetailPage({
   };
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-12 flex flex-col gap-5">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
       <RunHeaderV3
         run={run}
         onBack={() => navigate({ kind: "mission" })}
@@ -385,7 +386,7 @@ export function RunDetailPage({
             minW: 4,
             minH: 4,
             render: () => (
-              <div className="h-full overflow-hidden rounded-xl border border-white/[0.08] bg-black/55">
+              <div className="h-full overflow-hidden border border-white/[0.08] bg-ink-0">
                 <LiveOutputPanel runId={runId} status={run.status} />
               </div>
             ),
@@ -437,7 +438,7 @@ export function RunDetailPage({
                      * a generated file is viewable HERE, in the worktree it
                      * actually lives in, without leaving the run screen. */}
                     {selectedFile ? (
-                      <div className="inline-flex rounded-md border border-white/10 p-0.5 text-[11.5px]">
+                      <div className="inline-flex border border-white/10 p-0.5 text-[11.5px]">
                         {(["diff", "file"] as const).map((m) => (
                           <button
                             key={m}
@@ -481,8 +482,8 @@ export function RunDetailPage({
 
 function cnFileTab(active: boolean): string {
   return active
-    ? "rounded px-2 py-0.5 bg-white/[0.08] text-fog-100"
-    : "rounded px-2 py-0.5 text-fog-400 hover:text-fog-200";
+    ? "px-2 py-0.5 bg-white/[0.08] text-fog-100"
+    : "px-2 py-0.5 text-fog-300 hover:text-fog-100";
 }
 
 function ActiveRolePanel({
@@ -522,7 +523,7 @@ function ActiveRolePanel({
         Live metrics
       </SectionEyebrow>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white">
+        <div className="w-10 h-10 bg-violet-deep ring-1 ring-violet-soft/40 flex items-center justify-center text-white">
           <Cpu className="h-4 w-4" strokeWidth={1.7} />
         </div>
         <div className="flex-1 min-w-0">
@@ -531,7 +532,7 @@ function ActiveRolePanel({
               run.profileOverride ?? run.crewId ??
               "auto"}
           </div>
-          <div className="text-[11.5px] text-fog-400 truncate">
+          <div className="text-[11.5px] text-fog-300 truncate">
             {agent?.flowSeat ?? agent?.stageId ?? "-"}
           </div>
         </div>
@@ -595,8 +596,8 @@ function RunOutcomeBanner({
   if (!outcome) return null;
   const rose = outcome.kind !== "aborted";
   const accent = rose
-    ? "border-rose-400/30 bg-rose-500/[0.06]"
-    : "border-white/10 bg-white/[0.03]";
+    ? "border-rose-400/30 bg-rose-500/10"
+    : "border-white/10 bg-ink-200";
   const label: Record<RunOutcomeAction, string> = {
     rerun: "Re-run with changes",
     review: "See review",
@@ -611,12 +612,12 @@ function RunOutcomeBanner({
   };
   return (
     <section
-      className={`rounded-xl border ${accent} px-5 py-4`}
+      className={`border ${accent} px-5 py-4`}
       data-screen-label="01b Outcome"
     >
       <div className="flex items-start gap-3">
         <AlertTriangle
-          className={`mt-0.5 h-4 w-4 shrink-0 ${rose ? "text-rose-300" : "text-fog-400"}`}
+          className={`mt-0.5 h-4 w-4 shrink-0 ${rose ? "text-rose-300" : "text-fog-300"}`}
           strokeWidth={1.7}
         />
         <div className="min-w-0 flex-1">
@@ -635,7 +636,7 @@ function RunOutcomeBanner({
                 className={
                   i === 0
                     ? "h-8 bg-violet-deep px-3 text-[12px] text-white hover:bg-violet-mid"
-                    : "h-8 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[12px] text-fog-200 hover:bg-white/[0.06]"
+                    : "h-8 border border-white/10 bg-ink-200 px-3 text-[12px] text-fog-200 hover:bg-white/[0.06]"
                 }
               >
                 {label[a]}
@@ -776,12 +777,9 @@ function RerunDialog({
     }
   }
 
-  const selectCls =
-    "rounded-md border border-white/10 bg-ink-200/70 px-2 py-1 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40";
-
   return (
     <div
-      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-10 backdrop-blur-sm"
+      className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-ink-0/80 px-4 py-10"
       onClick={onClose}
     >
       <div className="slab w-full max-w-[560px] p-5" onClick={(e) => e.stopPropagation()}>
@@ -797,12 +795,12 @@ function RerunDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
+            className="border border-white/10 px-2 py-1 text-[12px] text-fog-300 hover:text-fog-100"
           >
             Close
           </button>
         </div>
-        <p className="mt-2 text-[11.5px] text-fog-500">
+        <p className="mt-2 text-[11.5px] text-fog-300">
           {startFrom === "scratch"
             ? "Starts a fresh run (new worktree) with the task below and your adjusted settings - e.g. uncheck read-only so the executor can write. The original run is untouched."
             : startFrom === "architecting"
@@ -813,29 +811,58 @@ function RerunDialog({
         </p>
         <div className="mt-3">
           <div className="eyebrow mb-1">Start from</div>
-          <select
-            value={startFrom}
-            onChange={(e) => setStartFrom(e.target.value as StartFrom)}
-            className={`${selectCls} w-full`}
-          >
-            <option value="scratch">Beginning - re-plan from scratch</option>
-            <option value="architecting" disabled={!canArchitecting}>
-              Architecture - reuse the plan{canArchitecting ? "" : " (unavailable)"}
-            </option>
-            <option value="executing" disabled={!canExecuting}>
-              Implementation - reuse plan + architecture
-              {canExecuting ? "" : " (unavailable)"}
-            </option>
-            <option value="reviewing" disabled={!canReviewing}>
-              Review - restore this run's code{canReviewing ? "" : " (unavailable)"}
-            </option>
-            <option value="fixing" disabled={!canFixing}>
-              Fix - restore this run's code{canFixing ? "" : " (unavailable)"}
-            </option>
-            <option value="verifying" disabled={!canVerifying}>
-              Verify - restore this run's code{canVerifying ? "" : " (unavailable)"}
-            </option>
-          </select>
+          {(() => {
+            // Per-stage availability mirrors the old native `disabled` options:
+            // unavailable stages stay visible (labelled "unavailable") but can't
+            // be selected, since the shared Select has no per-option disabled.
+            const stageAvailable: Record<StartFrom, boolean> = {
+              scratch: true,
+              architecting: canArchitecting,
+              executing: canExecuting,
+              reviewing: canReviewing,
+              fixing: canFixing,
+              verifying: canVerifying,
+            };
+            return (
+              <Select
+                value={startFrom}
+                ariaLabel="Start the re-run from this stage"
+                className="w-full"
+                onChange={(v) => {
+                  const next = v as StartFrom;
+                  if (stageAvailable[next]) setStartFrom(next);
+                }}
+                options={[
+                  { value: "scratch", label: "Beginning - re-plan from scratch" },
+                  {
+                    value: "architecting",
+                    label: "Architecture - reuse the plan",
+                    hint: canArchitecting ? undefined : "unavailable",
+                  },
+                  {
+                    value: "executing",
+                    label: "Implementation - reuse plan + architecture",
+                    hint: canExecuting ? undefined : "unavailable",
+                  },
+                  {
+                    value: "reviewing",
+                    label: "Review - restore this run's code",
+                    hint: canReviewing ? undefined : "unavailable",
+                  },
+                  {
+                    value: "fixing",
+                    label: "Fix - restore this run's code",
+                    hint: canFixing ? undefined : "unavailable",
+                  },
+                  {
+                    value: "verifying",
+                    label: "Verify - restore this run's code",
+                    hint: canVerifying ? undefined : "unavailable",
+                  },
+                ]}
+              />
+            );
+          })()}
           {!canArchitecting && !canExecuting ? (
             <p className="mt-1 text-[11px] text-fog-500">
               This flow has no resumable stage (or the upstream artifacts
@@ -843,19 +870,19 @@ function RerunDialog({
             </p>
           ) : null}
           {isDownstreamStage(startFrom) ? (
-            <div className="mt-2 rounded-md border border-white/10 bg-ink-200/50 p-2">
+            <div className="mt-2 border border-white/10 bg-ink-200 p-2">
               <div className="eyebrow mb-1">
                 Restore preview (dry run)
               </div>
               {previewState === "loading" ? (
-                <p className="text-[11px] text-fog-500">Computing the overwrite/remove set…</p>
+                <p className="text-[11px] text-fog-300">Computing the overwrite/remove set…</p>
               ) : previewState === "none" ? (
                 <p className="text-[11px] text-amber-300">
                   No code snapshot for this stage - this run can't be rewound to{" "}
                   {startFrom}. Pick another stage.
                 </p>
               ) : previewState === "error" ? (
-                <p className="text-[11px] text-fog-500">Couldn't load the preview.</p>
+                <p className="text-[11px] text-fog-300">Couldn't load the preview.</p>
               ) : preview ? (
                 <div className="text-[11px] text-fog-300">
                   <p>
@@ -904,7 +931,7 @@ function RerunDialog({
             onChange={(e) => setTask(e.target.value)}
             rows={3}
             disabled={startFrom !== "scratch"}
-            className="w-full resize-y rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-50"
+            className="w-full resize-y border border-white/10 bg-ink-200 px-2.5 py-2 text-[13px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-50"
           />
           {startFrom !== "scratch" ? (
             <p className="mt-1 text-[11px] text-fog-500">
@@ -924,20 +951,20 @@ function RerunDialog({
           </label>
           <label className="flex items-center gap-1.5 text-[12.5px] text-fog-300">
             provider
-            <select
+            <Select
               value={provider}
-              onChange={(e) => setProvider(e.target.value)}
-              className={selectCls}
-            >
-              <option value="">auto</option>
-              {providers.map((p) => (
-                <option key={p.id} value={p.id}>{p.label}</option>
-              ))}
-            </select>
+              ariaLabel="Provider override"
+              className="min-w-[150px]"
+              onChange={(v) => setProvider(v)}
+              options={[
+                { value: "", label: "auto" },
+                ...providers.map((p) => ({ value: p.id, label: p.label })),
+              ]}
+            />
           </label>
         </div>
         {err ? (
-          <div className="mt-3 rounded-lg border border-rose-400/30 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-300">
+          <div className="mt-3 border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
             {err}
           </div>
         ) : null}
@@ -1012,29 +1039,29 @@ function WorkspacePanel({
     );
   };
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+    <div className="slab px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-[11px] uppercase tracking-[0.12em] opacity-60">
+        <span className="text-[11px] uppercase tracking-[0.12em] text-fog-300">
           Workspace
         </span>
         {branchName ? (
-          <span className="vibestrate-mono text-xs opacity-80">
+          <span className="vibestrate-mono text-xs text-fog-200">
             branch {branchName}
           </span>
         ) : null}
         <button
           type="button"
           onClick={copy}
-          className="ml-auto h-7 rounded-lg border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]"
+          className="ml-auto h-7 border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]"
           title="Copy a cd command for this run's git worktree"
         >
           {copied ? "copied" : "copy cd"}
         </button>
       </div>
-      <div className="vibestrate-mono mt-1.5 truncate text-[12px] opacity-80" title={worktreePath}>
+      <div className="vibestrate-mono mt-1.5 truncate text-[12px] text-fog-200" title={worktreePath}>
         {worktreePath}
       </div>
-      <div className="mt-1 text-[11px] opacity-50">
+      <div className="mt-1 text-[11px] text-fog-400">
         The run's isolated git worktree. Run <span className="vibestrate-mono">vibe path</span> for the same from the CLI.
       </div>
     </div>
@@ -1055,9 +1082,9 @@ function AssuranceBadge({
 }) {
   const a = assurance;
   const actionCls =
-    "h-7 rounded-lg border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]";
+    "h-7 border border-white/15 bg-white/[0.06] px-2.5 text-[11.5px] hover:bg-white/[0.1]";
   return (
-    <div className={`rounded-xl border px-4 py-3 ${ASSURANCE_TONE[a.verdict]}`}>
+    <div className={`border px-4 py-3 ${ASSURANCE_TONE[a.verdict]}`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-[11px] uppercase tracking-[0.12em] opacity-70">
           Run assurance

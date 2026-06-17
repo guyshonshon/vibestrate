@@ -64,7 +64,7 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
     : 0;
 
   return (
-    <div className="relative z-10 mx-auto max-w-4xl px-8 pt-6 pb-16 fade-up">
+    <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-16 fade-up">
       <section className="mt-1 flex items-start justify-between gap-3">
         <div>
           <div className="eyebrow mb-1.5 flex items-center gap-1.5">
@@ -84,7 +84,7 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
           type="button"
           onClick={() => void load()}
           disabled={busy}
-          className="mt-1 h-7 w-7 shrink-0 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] flex items-center justify-center disabled:opacity-50"
+          className="mt-1 h-7 w-7 shrink-0 border border-white/10 bg-ink-200 hover:bg-ink-100 flex items-center justify-center disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw className={cn("h-3.5 w-3.5 text-fog-300", busy && "animate-spin")} strokeWidth={1.7} />
@@ -92,13 +92,13 @@ export function LedgerPage({ onOpenRun }: { onOpenRun: (runId: string) => void }
       </section>
 
       {error ? (
-        <div className="mt-4 rounded-md border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
+        <div className="mt-4 border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-300">
           {error}
         </div>
       ) : null}
 
       {state && total === 0 && !error ? (
-        <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-6 text-[12.5px] text-fog-400">
+        <div className="slab mt-6 px-4 py-6 text-[12.5px] text-fog-300">
           The ledger is empty. It fills in as runs reach merge-ready - each one
           records what it shipped (and any follow-ups it left). You can also add
           entries by hand under <span className="mono">.vibestrate/</span>.
@@ -143,7 +143,7 @@ function LedgerRow({
 }) {
   const date = formatDate(entry.createdAt);
   return (
-    <li className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
+    <li className="slab p-3">
       <div className="flex items-start gap-2">
         {entry.kind === "flag" && entry.relation ? (
           <Chip tone={entry.relation === "conflict" ? "rose" : "amber"}>{entry.relation}</Chip>
@@ -160,7 +160,7 @@ function LedgerRow({
         </p>
       ) : null}
       {entry.detail ? (
-        <p className="mt-1 text-[11.5px] text-fog-400 whitespace-pre-wrap">{entry.detail}</p>
+        <p className="mt-1 text-[11.5px] text-fog-300 whitespace-pre-wrap">{entry.detail}</p>
       ) : null}
       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
         {entry.tags.map((t) => (
@@ -172,7 +172,7 @@ function LedgerRow({
           <button
             type="button"
             onClick={() => onOpenRun(entry.sourceRunId!)}
-            className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-fog-400 hover:text-violet-300"
+            className="ml-auto inline-flex items-center gap-1 text-[10.5px] text-fog-300 hover:text-violet-300"
           >
             open run <ArrowRight className="h-3 w-3" strokeWidth={1.7} />
           </button>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Database, Sparkles, Trash2, Save, KeyRound } from "lucide-react";
 import { api, type ProjectParamsView } from "../../lib/api.js";
 import type { DiscoveredFlow, FlowParam } from "../../lib/types.js";
+import { Select } from "../design/Select.js";
 
 /**
  * Project parameters (durable param memory). The explicit editor for the typed
@@ -142,36 +143,32 @@ export function ProjectParamsPanel() {
       </header>
 
       {error ? (
-        <div className="mt-2 rounded border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11.5px] text-vibestrate-fail">
+        <div className="mt-2 border border-vibestrate-fail/40 bg-vibestrate-fail/10 px-2 py-1 text-[11.5px] text-vibestrate-fail">
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="mt-2 rounded border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-[11.5px] text-vibestrate-success">
+        <div className="mt-2 border border-vibestrate-success/40 bg-vibestrate-success/10 px-2 py-1 text-[11.5px] text-vibestrate-success">
           {notice}
         </div>
       ) : null}
 
       {flows.length === 0 ? (
-        <div className="mt-3 text-[11.5px] text-vibestrate-fg-muted">
+        <div className="mt-3 text-[11.5px] text-vibestrate-fg-dim">
           No flow declares parameters yet. A flow's <span className="vibestrate-mono">params:</span> block
           defines what the profile can store.
         </div>
       ) : (
-        <div className="mt-3 rounded border border-vibestrate-border bg-vibestrate-panel/30 p-3">
+        <div className="slab mt-3 p-3">
           <div className="flex items-center gap-2">
-            <label className="text-[11.5px] text-vibestrate-fg-muted">Flow</label>
-            <select
+            <label className="text-[11.5px] text-vibestrate-fg-dim">Flow</label>
+            <Select
               value={flowId}
-              onChange={(e) => setFlowId(e.target.value)}
-              className="rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg"
-            >
-              {flows.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label} ({f.id})
-                </option>
-              ))}
-            </select>
+              ariaLabel="Flow whose parameters to edit"
+              className="min-w-[150px]"
+              onChange={(v) => setFlowId(v)}
+              options={flows.map((f) => ({ value: f.id, label: `${f.label} (${f.id})` }))}
+            />
           </div>
 
           <div className="mt-3 flex flex-col gap-2.5">
@@ -182,11 +179,11 @@ export function ProjectParamsPanel() {
                 <div key={name} className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5 text-[12px] text-vibestrate-fg">
                     <span className="font-medium">{name}</span>
-                    <span className="vibestrate-mono rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted">
+                    <span className="vibestrate-mono border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-dim">
                       {def.type}
                     </span>
                     {def.shared ? (
-                      <span className="rounded border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-muted" title="Project-global: shared across flows">
+                      <span className="border border-vibestrate-border px-1 text-[10px] text-vibestrate-fg-dim" title="Project-global: shared across flows">
                         shared
                       </span>
                     ) : null}
@@ -196,23 +193,21 @@ export function ProjectParamsPanel() {
                       </span>
                     ) : null}
                     {def.description ? (
-                      <span className="text-[11px] text-vibestrate-fg-muted">· {def.description}</span>
+                      <span className="text-[11px] text-vibestrate-fg-dim">· {def.description}</span>
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2">
                     {def.type === "enum" && def.values?.length && !def.secret ? (
-                      <select
+                      <Select
                         value={editVal ?? (stored && !stored.secret ? stored.value : "")}
-                        onChange={(e) => setEdits((c) => ({ ...c, [name]: e.target.value }))}
-                        className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg"
-                      >
-                        <option value="">(unset)</option>
-                        {def.values.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
+                        ariaLabel={`Value for ${name}`}
+                        className="flex-1"
+                        onChange={(v) => setEdits((c) => ({ ...c, [name]: v }))}
+                        options={[
+                          { value: "", label: "(unset)" },
+                          ...def.values.map((v) => ({ value: v, label: v })),
+                        ]}
+                      />
                     ) : (
                       <input
                         type="text"
@@ -232,7 +227,7 @@ export function ProjectParamsPanel() {
                               : "value"
                         }
                         onChange={(e) => setEdits((c) => ({ ...c, [name]: e.target.value }))}
-                        className="flex-1 rounded border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg"
+                        className="flex-1 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[12px] text-vibestrate-fg"
                       />
                     )}
                     {def.generate && !def.secret ? (
@@ -241,7 +236,7 @@ export function ProjectParamsPanel() {
                         disabled={generating === name || busy}
                         onClick={() => generate(name)}
                         title={def.generate.instruction}
-                        className="inline-flex items-center gap-1 rounded border border-violet-400/40 px-2 py-1 text-[11px] text-violet-200 hover:bg-violet-400/10 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 border border-violet-400/40 px-2 py-1 text-[11px] text-violet-200 hover:bg-violet-400/10 disabled:opacity-50"
                       >
                         <Sparkles className="h-3 w-3" strokeWidth={1.6} />
                         {generating === name ? "…" : "Generate"}
@@ -264,11 +259,11 @@ export function ProjectParamsPanel() {
               type="button"
               disabled={busy}
               onClick={save}
-              className="inline-flex items-center gap-1.5 rounded border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-3 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 border border-vibestrate-accent/40 bg-vibestrate-accent/10 px-3 py-1 text-[12px] text-vibestrate-accent hover:bg-vibestrate-accent/20 disabled:opacity-50"
             >
               <Save className="h-3.5 w-3.5" strokeWidth={1.6} /> Save
             </button>
-            <span className="text-[10.5px] text-vibestrate-fg-muted">
+            <span className="text-[10.5px] text-vibestrate-fg-dim">
               Editing here overwrites a stored value (supersedes). Secrets store an env var NAME only.
             </span>
           </div>
@@ -277,14 +272,14 @@ export function ProjectParamsPanel() {
 
       {storedEntries.length > 0 ? (
         <div className="mt-4">
-          <div className="text-[11px] uppercase tracking-[0.12em] text-vibestrate-fg-muted">
+          <div className="text-[11px] uppercase tracking-[0.12em] text-vibestrate-fg-dim">
             All stored values ({storedEntries.length})
           </div>
           <ul className="mt-1.5 flex flex-col gap-1">
             {storedEntries.map(([key, entry]) => (
               <li
                 key={key}
-                className="flex items-center gap-2 rounded border border-vibestrate-border bg-vibestrate-panel-2/50 px-2 py-1 text-[11.5px]"
+                className="flex items-center gap-2 border border-vibestrate-border bg-vibestrate-panel-2 px-2 py-1 text-[11.5px]"
               >
                 <span className="vibestrate-mono text-vibestrate-fg">{key}</span>
                 <span className="text-vibestrate-fg-muted">=</span>

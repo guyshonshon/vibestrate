@@ -80,28 +80,28 @@ export function RunSwitcher({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 py-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-4 py-[12vh]"
       onClick={onClose}
     >
       <div
-        className="menu-surface w-full max-w-[620px] overflow-hidden"
+        className="slab w-full max-w-[620px] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-          <Search className="h-4 w-4 text-fog-400" strokeWidth={1.7} />
+          <Search className="h-4 w-4 text-fog-300" strokeWidth={1.7} />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="Jump to a run - task, id, or status…"
-            className="w-full bg-transparent text-[14px] text-fog-100 outline-none placeholder:text-fog-500"
+            className="w-full bg-transparent text-[14px] text-fog-100 outline-none placeholder:text-fog-400"
           />
-          <span className="text-[10.5px] text-fog-500">esc</span>
+          <span className="text-[10.5px] text-fog-400">esc</span>
         </div>
         <div className="max-h-[46vh] overflow-y-auto py-1">
           {filtered.length === 0 ? (
-            <div className="px-4 py-6 text-center text-[12.5px] text-fog-500">
+            <div className="px-4 py-6 text-center text-[12.5px] text-fog-300">
               {runs.length === 0 ? "No runs yet." : "No runs match."}
             </div>
           ) : (

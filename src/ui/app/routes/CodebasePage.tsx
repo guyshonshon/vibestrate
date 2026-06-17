@@ -9,6 +9,7 @@ import type {
 import { FileTreeView } from "../../components/codebase/FileTreeView.js";
 import { FileViewer } from "../../components/codebase/FileViewer.js";
 import { FreshnessIndicator } from "../../components/codebase/FreshnessIndicator.js";
+import { Select } from "../../components/design/Select.js";
 import { useCodebaseEvents } from "../../lib/useCodebaseEvents.js";
 
 type Props = {
@@ -172,8 +173,8 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
   }, [source, runId]);
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-ink-100/40 backdrop-blur-xl">
+    <div className="deep-scene flex h-full overflow-hidden">
+      <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-ink-100">
         <header className="flex flex-col gap-2 border-b border-white/10 px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <SourceTab active={source === "project"} onClick={() => setSource("project")}>
@@ -183,22 +184,20 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
               Worktree
             </SourceTab>
             {source === "worktree" ? (
-              <select
+              <Select
                 value={runId ?? ""}
-                onChange={(e) => {
-                  setRunId(e.target.value || null);
+                ariaLabel="Run worktree to inspect"
+                className="ml-auto min-w-[150px] max-w-[150px]"
+                onChange={(v) => {
+                  setRunId(v || null);
                   setPath(null);
                   setLine(null);
                 }}
-                className="ml-auto max-w-[150px] truncate rounded-md border border-white/10 bg-ink-200/70 px-1.5 py-0.5 text-[11px] text-fog-300"
-              >
-                <option value="">- choose run -</option>
-                {runs.map((r) => (
-                  <option key={r.runId} value={r.runId}>
-                    {r.runId}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "- choose run -" },
+                  ...runs.map((r) => ({ value: r.runId, label: r.runId })),
+                ]}
+              />
             ) : null}
           </div>
           <input
@@ -206,7 +205,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter files…"
-            className="rounded-md border border-white/10 bg-ink-200/70 px-2.5 py-1.5 text-[12px] text-fog-100 placeholder-fog-500 outline-none focus:border-violet-soft/40"
+            className="border border-white/10 bg-ink-200 px-2.5 py-1.5 text-[12px] text-fog-100 placeholder-fog-500 outline-none focus:border-violet-soft/40"
           />
           <FreshnessIndicator
             freshness={freshness}
@@ -230,7 +229,7 @@ export function CodebasePage({ initial, onUrlChange }: Props) {
               }}
             />
           ) : (
-            <div className="px-3 py-2 text-[11.5px] text-fog-500">
+            <div className="px-3 py-2 text-[11.5px] text-fog-300">
               {source === "worktree" && !runId
                 ? "Pick a run to inspect its worktree."
                 : "Loading…"}
@@ -295,10 +294,10 @@ function SourceTab({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md border px-2 py-0.5 text-[11px] transition ${
+      className={`border px-2 py-0.5 text-[11px] transition ${
         active
           ? "border-violet-soft/40 bg-violet-soft/10 text-fog-100"
-          : "border-white/10 text-fog-400 hover:bg-white/[0.04]"
+          : "border-white/10 text-fog-300 hover:bg-white/[0.04]"
       }`}
     >
       {children}
@@ -415,7 +414,7 @@ function AnnotationsPanel(props: {
   }
 
   return (
-    <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-ink-100/40 px-3 py-3 backdrop-blur-xl lg:flex">
+    <aside className="hidden w-80 shrink-0 flex-col overflow-y-auto border-l border-white/10 bg-ink-100 px-3 py-3 lg:flex">
       <div className="eyebrow">Inspector</div>
       <div className="mono mt-2 truncate text-[11.5px] text-fog-100">{sourceLabel}</div>
       {tree ? (
@@ -445,34 +444,34 @@ function AnnotationsPanel(props: {
         <MessageSquarePlus className="h-3.5 w-3.5 text-violet-soft" />
         <div className="eyebrow">Annotations</div>
       </div>
-      <p className="mb-3 text-[11px] leading-snug text-fog-500">
+      <p className="mb-3 text-[11px] leading-snug text-fog-300">
         Notes pinned to this file. Ones marked{" "}
         <span className="text-fog-300">visible to agents</span> are added to every
         agent's prompt during runs - your guidance, acknowledged by the crew.
       </p>
 
       {err ? (
-        <div className="mb-2 rounded-md border border-rose-400/30 bg-rose-500/5 px-2 py-1.5 text-[11px] text-rose-300">
+        <div className="mb-2 border border-rose-400/30 bg-rose-500/5 px-2 py-1.5 text-[11px] text-rose-300">
           {err}
         </div>
       ) : null}
 
       {source !== "project" ? (
-        <div className="rounded-md border border-white/10 bg-ink-200/40 px-2.5 py-2 text-[11.5px] text-fog-400">
+        <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
           Switch to <span className="text-fog-200">Project</span> to read or add
           annotations - they're pinned to the project codebase.
         </div>
       ) : !path ? (
-        <div className="rounded-md border border-white/10 bg-ink-200/40 px-2.5 py-2 text-[11.5px] text-fog-400">
+        <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
           Select a file to see and add annotations.
         </div>
       ) : (
         <>
           {canAnnotate ? (
-            <div className="rounded-lg border border-white/10 bg-ink-200/40 p-2.5">
-              <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-fog-400">
+            <div className="border border-white/10 bg-ink-200 p-2.5">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[11px] text-fog-300">
                 <span>Anchor:</span>
-                <span className="rounded border border-white/10 px-1.5 py-0.5 text-fog-200">
+                <span className="border border-white/10 px-1.5 py-0.5 text-fog-200">
                   {anchorLabel(props.draftLine, props.draftEndLine)}
                 </span>
                 <input
@@ -483,7 +482,7 @@ function AnnotationsPanel(props: {
                   onChange={(e) =>
                     props.setDraftLine(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="ml-auto w-14 rounded border border-white/10 bg-ink-300/60 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40"
+                  className="ml-auto w-14 border border-white/10 bg-ink-300 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40"
                 />
                 <span className="text-fog-600">–</span>
                 <input
@@ -495,7 +494,7 @@ function AnnotationsPanel(props: {
                   onChange={(e) =>
                     props.setDraftEndLine(e.target.value ? Number(e.target.value) : null)
                   }
-                  className="w-14 rounded border border-white/10 bg-ink-300/60 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-40"
+                  className="w-14 border border-white/10 bg-ink-300 px-1.5 py-0.5 text-[11px] text-fog-100 outline-none focus:border-violet-soft/40 disabled:opacity-40"
                 />
               </div>
               <textarea
@@ -503,7 +502,7 @@ function AnnotationsPanel(props: {
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="e.g. don't refactor this - it's load-bearing for the migration."
                 rows={3}
-                className="w-full resize-y rounded-md border border-white/10 bg-ink-300/60 px-2 py-1.5 text-[12px] text-fog-100 placeholder-fog-600 outline-none focus:border-violet-soft/40"
+                className="w-full resize-y border border-white/10 bg-ink-300 px-2 py-1.5 text-[12px] text-fog-100 placeholder-fog-600 outline-none focus:border-violet-soft/40"
               />
               <div className="mt-2 flex items-center justify-between">
                 <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-fog-300">
@@ -520,14 +519,14 @@ function AnnotationsPanel(props: {
                   type="button"
                   disabled={!body.trim() || saving}
                   onClick={() => void add()}
-                  className="rounded-md border border-violet-soft/40 bg-violet-soft/10 px-2.5 py-1 text-[11.5px] text-fog-100 hover:bg-violet-soft/20 disabled:opacity-40"
+                  className="border border-violet-soft/40 bg-violet-soft/10 px-2.5 py-1 text-[11.5px] text-fog-100 hover:bg-violet-soft/20 disabled:opacity-40"
                 >
                   {saving ? "Adding…" : "Add note"}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="rounded-md border border-white/10 bg-ink-200/40 px-2.5 py-2 text-[11.5px] text-fog-400">
+            <div className="border border-white/10 bg-ink-200 px-2.5 py-2 text-[11.5px] text-fog-300">
               Annotations are disabled for secret-like files.
             </div>
           )}
@@ -574,12 +573,12 @@ function AnnotationCard({
   const resolved = a.status === "resolved";
   return (
     <div
-      className={`rounded-lg border border-white/10 bg-ink-200/40 p-2.5 ${
+      className={`border border-white/10 bg-ink-200 p-2.5 ${
         resolved ? "opacity-55" : ""
       }`}
     >
       <div className="flex items-center gap-1.5">
-        <span className="mono rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-fog-300">
+        <span className="mono border border-white/10 px-1.5 py-0.5 text-[10px] text-fog-300">
           {anchorLabel(a.line, a.endLine)}
         </span>
         <button
@@ -587,7 +586,7 @@ function AnnotationCard({
           onClick={onToggleShare}
           disabled={busy}
           title={a.shareWithRoles ? "Shared with agents - click to make private" : "Private - click to share with agents"}
-          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
+          className={`inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] ${
             a.shareWithRoles
               ? "border-violet-soft/40 bg-violet-soft/10 text-violet-soft"
               : "border-white/10 text-fog-500"
@@ -629,7 +628,7 @@ function IconBtn({
       title={title}
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-white/10 text-fog-400 hover:bg-white/[0.05] hover:text-fog-100 disabled:opacity-40"
+      className="inline-flex h-6 w-6 items-center justify-center border border-white/10 text-fog-300 hover:bg-white/[0.05] hover:text-fog-100 disabled:opacity-40"
     >
       {children}
     </button>
