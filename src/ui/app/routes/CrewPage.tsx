@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronRight,
   Cpu,
   PenLine,
   Plus,
@@ -495,8 +494,8 @@ function CrewHub({
           No crews configured.
         </div>
       ) : (
-        <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {crews.map((c) => {
+        <div className="hubp-grid mt-5">
+          {crews.map((c, i) => {
             const { knownSeats, coverage } = computeCoverage(c, flows);
             const uncovered = knownSeats.filter(
               (s) => coverage.get(s)?.status === "uncovered",
@@ -505,59 +504,77 @@ function CrewHub({
               (s) => coverage.get(s)?.status === "ambiguous",
             ).length;
             const isDefault = c.id === defaultCrew;
+            // The default crew is the green "hero" card; the rest alternate
+            // violet / white, exactly like the Flows catalog.
+            const variant = isDefault
+              ? "selected"
+              : i % 2 === 0
+                ? "violet"
+                : "white";
             return (
-              <li
+              <div
                 key={c.id}
-                className="group slab p-4 hover:border-violet-soft/30"
+                className={cn(
+                  "fcard",
+                  variant === "selected" && "is-selected",
+                  variant === "white" && "is-verified",
+                )}
               >
+                <div className="fcard-top">
+                  <div className="fcard-id">
+                    {isDefault ? (
+                      <>
+                        <span className="fcard-check">✓</span>
+                        <span className="fcard-verified">default crew</span>
+                      </>
+                    ) : (
+                      <span className="fcard-author">crew</span>
+                    )}
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => onOpen(c.id)}
-                  className="flex w-full items-center gap-2 text-left"
+                  className="fcard-name block w-full bg-transparent p-0 text-left"
                 >
-                  <span className="text-[14px] font-medium text-fog-100 group-hover:text-violet-200">
-                    {c.label}
-                  </span>
-                  {isDefault ? <Chip tone="violet">default</Chip> : null}
-                  <ChevronRight
-                    className="ml-auto h-4 w-4 text-fog-500 group-hover:text-violet-300"
-                    strokeWidth={1.7}
-                  />
+                  {c.label}
                 </button>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                  <span className="text-fog-400">{c.roles.length} role(s)</span>
-                  <span className="text-fog-600">·</span>
-                  {uncovered > 0 ? (
-                    <Chip tone="rose">{uncovered} seat(s) uncovered</Chip>
-                  ) : (
-                    <Chip tone="emerald">all seats covered</Chip>
-                  )}
-                  {ambiguous > 0 ? <Chip tone="amber">{ambiguous} ambiguous</Chip> : null}
+                <div className="fcard-strip">
+                  <span className="fcard-cell">
+                    {c.roles.length} {c.roles.length === 1 ? "role" : "roles"}
+                  </span>
+                  <span className="fcard-cell">
+                    {uncovered > 0
+                      ? `${uncovered} seat${uncovered === 1 ? "" : "s"} uncovered`
+                      : "all seats covered"}
+                  </span>
+                  {ambiguous > 0 ? (
+                    <span className="fcard-cell">{ambiguous} ambiguous</span>
+                  ) : null}
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="fcard-actions">
                   <button
                     type="button"
+                    className="fcard-act"
                     onClick={() => onOpen(c.id)}
-                    className="h-7 border border-white/10 bg-white/[0.03] px-2.5 text-[11.5px] text-fog-200 hover:bg-white/[0.06]"
                   >
-                    Configure
+                    configure
                   </button>
                   {!isDefault ? (
                     <button
                       type="button"
+                      className="fcard-act"
                       disabled={settingDefault}
                       onClick={() => onSetDefault(c.id)}
-                      className="h-7 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[11.5px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
-                      title="Make this the crew runs use when none is picked"
                     >
-                      Set as default
+                      set default
                     </button>
                   ) : null}
                 </div>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       )}
     </>
   );

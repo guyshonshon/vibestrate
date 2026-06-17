@@ -40,6 +40,22 @@ type Toast = { kind: "ok" | "err"; text: string } | null;
 const INPUT_CLS =
   "border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40 w-full";
 
+// Faint tone wash for the per-provider group header - colour where it carries
+// meaning (provider identity), like the board's tinted column headers. The
+// editable profile cards below stay readable dark slabs (solid colour fills
+// would wreck the form inputs' contrast).
+const PROVIDER_TONES: Array<{ tint: string; text: string }> = [
+  { tint: "bg-violet-soft/[0.1]", text: "text-violet-soft" },
+  { tint: "bg-sky-glow/[0.1]", text: "text-sky-glow" },
+  { tint: "bg-emerald-400/[0.1]", text: "text-emerald-300" },
+  { tint: "bg-amber-400/[0.1]", text: "text-amber-300" },
+];
+function providerTone(name: string): { tint: string; text: string } {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return PROVIDER_TONES[h % PROVIDER_TONES.length]!;
+}
+
 // A Profile's editable shape (strings for form inputs; "" = null).
 type Draft = {
   provider: string;
@@ -183,11 +199,16 @@ export function ProfilesPage() {
         </div>
       ) : (
         <div className="mt-7 space-y-7">
-          {groupedProviders.map((prov) => (
+          {groupedProviders.map((prov) => {
+            const tone = providerTone(prov);
+            return (
             <div key={prov}>
-              <div className="mb-2.5 flex items-center gap-2">
-                <Cpu className="h-3.5 w-3.5 text-violet-soft" strokeWidth={1.7} />
-                <span className="mono text-[12.5px] text-fog-200">{prov}</span>
+              {/* Not `.slab` here: .slab is unlayered and its solid background
+                  would override the layered tint utility. Explicit border +
+                  tint instead so the colour actually shows. */}
+              <div className={cn("mb-2.5 flex items-center gap-2 border border-white/[0.08] px-3 py-2", tone.tint)}>
+                <Cpu className={cn("h-3.5 w-3.5", tone.text)} strokeWidth={1.7} />
+                <span className={cn("mono text-[12.5px]", tone.text)}>{prov}</span>
                 <span className="text-[11.5px] text-fog-500">
                   {groups.get(prov)!.length} preset
                   {groups.get(prov)!.length === 1 ? "" : "s"}
@@ -206,7 +227,8 @@ export function ProfilesPage() {
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
