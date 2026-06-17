@@ -24,6 +24,7 @@ import {
   Lock,
   MessageSquare,
   Pencil,
+  Trash2,
   Plus,
   Search,
   Sparkles,
@@ -220,6 +221,38 @@ export function BoardPage({
       try {
         await api.patchTask(taskId, { title: nextTitle });
         setToast({ kind: "ok", text: `Renamed ${taskId}` });
+      } catch (err) {
+        setToast({
+          kind: "err",
+          text: err instanceof Error ? err.message : String(err),
+        });
+        await load();
+      }
+    },
+    [tasks, load],
+  );
+
+  const handleDelete = useCallback(
+    async (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task) return;
+      if (
+        !window.confirm(
+          `Remove task "${task.title}"?\n\nThis permanently deletes the card and its comments. Its runs, transcripts, and git worktree (if any) are left in place. It refuses if a run is still live.`,
+        )
+      ) {
+        return;
+      }
+      // Optimistic: drop the card now; reconcile on failure.
+      setTasks((cur) => cur.filter((t) => t.id !== taskId));
+      try {
+        const { worktreePath } = await api.deleteTask(taskId);
+        setToast({
+          kind: "ok",
+          text: worktreePath
+            ? `Removed ${taskId} (worktree left at ${worktreePath})`
+            : `Removed ${taskId}`,
+        });
       } catch (err) {
         setToast({
           kind: "err",
@@ -460,6 +493,7 @@ export function BoardPage({
                     items={items}
                     onOpenTask={onOpenTask}
                     onRename={handleRename}
+                    onDelete={handleDelete}
                   />
                 );
               })}
@@ -710,6 +744,7 @@ function BoardColumn({
   items,
   onOpenTask,
   onRename,
+  onDelete,
 }: {
   column: ColumnDef;
   tasks: Task[];
@@ -717,6 +752,7 @@ function BoardColumn({
   items: RoadmapItem[];
   onOpenTask: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
+  onDelete: (taskId: string) => Promise<void> | void;
 }) {
   const tone = COLUMN_TONE[column.tone];
   const isRunning = column.id === "in_progress";
@@ -782,6 +818,7 @@ function BoardColumn({
                   unlocks={unlocks}
                   onOpen={onOpenTask}
                   onRename={onRename}
+                  onDelete={onDelete}
                 />
               </li>
             );
@@ -801,6 +838,7 @@ function TaskCard({
   unlocks,
   onOpen,
   onRename,
+  onDelete,
 }: {
   task: Task;
   roadmap: RoadmapItem | null;
@@ -808,6 +846,7 @@ function TaskCard({
   unlocks: number;
   onOpen: (taskId: string) => void;
   onRename: (taskId: string, nextTitle: string) => Promise<void> | void;
+  onDelete: (taskId: string) => Promise<void> | void;
 }) {
   const prio = PRIORITY_PILL[task.priority];
   const isRunning = task.status === "running";
@@ -984,6 +1023,19 @@ function TaskCard({
           aria-label="Rename task"
         >
           <Pencil className="h-3 w-3" strokeWidth={1.7} />
+        </button>
+        <button
+          type="button"
+          data-no-open
+          onClick={(e) => {
+            e.stopPropagation();
+            void onDelete(task.id);
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-fog-500 hover:text-rose-300 p-0.5 shrink-0"
+          title="Remove task"
+          aria-label="Remove task"
+        >
+          <Trash2 className="h-3 w-3" strokeWidth={1.7} />
         </button>
       </div>
 

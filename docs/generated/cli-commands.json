@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.123",
+  "version": "0.7.124",
   "commands": [
     {
       "name": "init",
@@ -2180,6 +2180,34 @@
             }
           ],
           "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "delete",
+          "path": [
+            "vibe",
+            "tasks",
+            "delete"
+          ],
+          "description": "Permanently remove a task card (refuses while its run is live).",
+          "usage": "[options] <id>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "-y, --yes",
+              "description": "skip the confirmation prompt",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
           "subcommands": []
         },
         {

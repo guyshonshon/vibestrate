@@ -466,6 +466,41 @@ async function cmdArchive(taskId: string, archived: boolean): Promise<number> {
   }
 }
 
+async function cmdDelete(taskId: string, yes: boolean): Promise<number> {
+  try {
+    const { svc: s } = await svc();
+    const t = await s.getTask(taskId);
+    if (!t) {
+      console.error(`${symbol.fail()} Task "${taskId}" not found.`);
+      return 1;
+    }
+    if (!yes) {
+      const { confirm } = await import("@inquirer/prompts");
+      const ok = await confirm({
+        message: `Permanently remove task "${t.title}" (${taskId})? This deletes the card and its comments. Runs, transcripts, and the git worktree (if any) are left in place.`,
+        default: false,
+      });
+      if (!ok) {
+        console.log("Aborted.");
+        return 0;
+      }
+    }
+    const deleted = await s.deleteTask(taskId);
+    console.log(`${symbol.ok()} Removed task ${color.bold(taskId)}.`);
+    if (deleted.worktreePath) {
+      console.log(
+        `  Its git worktree was left in place: ${deleted.worktreePath}`,
+      );
+    }
+    return 0;
+  } catch (err) {
+    console.error(
+      `${symbol.fail()} ${isVibestrateError(err) ? err.message : err instanceof Error ? err.message : String(err)}`,
+    );
+    return 1;
+  }
+}
+
 async function cmdQueue(taskId: string): Promise<number> {
   try {
     const { svc: s, root } = await svc();
@@ -724,6 +759,16 @@ export function buildTasksCommand(): Command {
     .description("Un-archive a task.")
     .action(async (id: string) => {
       process.exit(await cmdArchive(id, false));
+    });
+
+  cmd
+    .command("delete <id>")
+    .description(
+      "Permanently remove a task card (refuses while its run is live).",
+    )
+    .option("-y, --yes", "skip the confirmation prompt")
+    .action(async (id: string, opts: { yes?: boolean }) => {
+      process.exit(await cmdDelete(id, opts.yes ?? false));
     });
 
   cmd
