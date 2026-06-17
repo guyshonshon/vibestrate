@@ -2,7 +2,7 @@
 title: Design-system import from the marketing site (drift off glass to solid scenes)
 status: in-progress
 created: 2026-06-16
-related: [experience-overhaul.md, amaco-ui-supervisor-addendum.md]
+related: [experience-overhaul.md]
 ---
 
 # Design-system import (product <- marketing)

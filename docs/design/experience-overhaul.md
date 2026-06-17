@@ -2,7 +2,7 @@
 title: Experience overhaul - consult efficiency, referenceable answers, full run-control surface, contextual orb
 status: proposed
 created: 2026-06-16
-related: [responsible-orchestrator.md, context-scaling.md, supervisor-task-grounding.md, amaco-ui-supervisor-addendum.md]
+related: [responsible-orchestrator.md, context-scaling.md, supervisor-task-grounding.md]
 ---
 
 # Experience overhaul
@@ -157,7 +157,7 @@ replace.
    justifies it. Graph stays deferred.
 2. **D (biggest):** replace vs merge vs relocate Mission Control. Recommend
    *merge* (assistant-led home that launches runs), not delete. Needs its own IA
-   sketch + the addendum (`amaco-ui-supervisor-addendum.md`) re-read.
+   sketch.
 3. **C:** mechanically derive the UI run-option list from the CLI options so
    parity can't silently drift again - is there a shared schema, or do we
    introduce one?
