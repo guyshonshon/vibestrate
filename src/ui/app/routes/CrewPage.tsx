@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
+  Check,
   ChevronDown,
   Cpu,
   PenLine,
@@ -24,6 +25,7 @@ import { EffortScale } from "../../components/design/EffortScale.js";
 
 const EMPTY_CAPS = { models: [], modelEnabled: false, powerLevels: [] };
 import { Chip, ToneDot, type ChipTone } from "../../components/design/Chip.js";
+import { Select } from "../../components/design/Select.js";
 import { SectionEyebrow } from "../../components/design/SectionEyebrow.js";
 import { cn } from "../../components/design/cn.js";
 
@@ -52,6 +54,17 @@ const TONE_SEAT_ON: Record<ChipTone, string> = {
   emerald: "border-emerald-400/40 bg-white/[0.05] text-fog-100",
   amber: "border-amber-300/40 bg-white/[0.05] text-fog-100",
   rose: "border-rose-400/40 bg-white/[0.05] text-fog-100",
+};
+// Solid hex per tone for the role card's left accent stripe. Applied inline so
+// it wins over `.slab`'s unlayered `border` shorthand (a Tailwind border-color
+// utility would be overridden - the cascade trap from the board/profiles work).
+const TONE_HEX: Record<ChipTone, string> = {
+  neutral: "#6a7186",
+  violet: "#a78bfa",
+  sky: "#7cc5ff",
+  emerald: "#34d399",
+  amber: "#fbbf24",
+  rose: "#fb7185",
 };
 
 const PERMISSION_OPTIONS = [
@@ -258,42 +271,50 @@ export function CrewPage({
           <BackToCrews onBack={onBackToCrews} />
           <section className="mt-3 flex items-end justify-between gap-4 flex-wrap">
             <div>
-              <div className="eyebrow mb-1.5 flex items-center gap-1.5">
-                <Users className="h-3 w-3" strokeWidth={1.8} /> Configuring crew
+              <div className="mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-fog-300">
+                <Users className="h-3 w-3" strokeWidth={1.8} /> Crew
               </div>
-              <h1 className="text-display text-[21px] sm:text-[23px] leading-[1.2]">
+              <h1 className="font-display font-semibold leading-[1.05] tracking-[-0.02em] text-[clamp(26px,3vw,38px)] text-fog-100">
                 {crew.label}
-                {crew.id === defaultCrew ? (
-                  <span className="ml-2 align-middle">
-                    <Chip tone="violet">default</Chip>
-                  </span>
-                ) : null}
-                {crew.maxReviewLoops !== null ? (
-                  <span className="ml-2 align-middle">
-                    <Chip tone="neutral">
-                      {crew.maxReviewLoops} review loop
-                      {crew.maxReviewLoops === 1 ? "" : "s"}
-                    </Chip>
-                  </span>
-                ) : null}
               </h1>
-              <p className="text-fog-300 text-[13px] mt-1.5 max-w-[70ch]">
-                Each role runs on a{" "}
-                <strong className="text-fog-100">Profile</strong> and lists the{" "}
-                <strong className="text-fog-100">Seats</strong> it can take. A run
-                matches a Flow's seats to these roles.
+              <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]">
+                {crew.id === defaultCrew ? (
+                  <span className="inline-flex items-center gap-1 font-medium text-emerald-300">
+                    <Check className="h-3.5 w-3.5" strokeWidth={2.2} /> runs by
+                    default
+                  </span>
+                ) : null}
+                <span className="text-fog-300">
+                  {crew.roles.length} {crew.roles.length === 1 ? "role" : "roles"}
+                </span>
+                {crew.maxReviewLoops !== null ? (
+                  <span className="text-fog-300">
+                    {crew.maxReviewLoops} review loop
+                    {crew.maxReviewLoops === 1 ? "" : "s"}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-3 max-w-[74ch] text-[13.5px] leading-[1.6] text-fog-200">
+                A crew is the cast for a run. Each{" "}
+                <strong className="font-semibold text-fog-100">role</strong> runs
+                on a{" "}
+                <strong className="font-semibold text-fog-100">profile</strong>{" "}
+                (the model + effort) and claims one or more{" "}
+                <strong className="font-semibold text-fog-100">seats</strong>.
+                When a run starts, the flow's required seats are matched to these
+                roles.
               </p>
             </div>
             {crew.id !== defaultCrew ? (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
                 disabled={settingDefault}
                 onClick={() => void makeDefault(crew.id)}
-                className="h-8 border border-violet-soft/40 bg-violet-soft/15 px-2.5 text-[12px] text-violet-200 hover:bg-violet-soft/25 disabled:opacity-50"
-                title="Make this the crew runs use when none is picked (writes defaultCrew)"
+                iconLeft={<Check className="h-4 w-4" strokeWidth={2} />}
               >
                 {settingDefault ? "Setting…" : "Set as default"}
-              </button>
+              </Button>
             ) : null}
           </section>
 
@@ -594,19 +615,44 @@ function SeatCoverage({
   if (seats.length === 0) return null;
   const uncovered = seats.filter((s) => coverage.get(s)?.status === "uncovered");
   const ambiguous = seats.filter((s) => coverage.get(s)?.status === "ambiguous");
+  // Problem seats first (empty, then ambiguous, then filled) so the things
+  // that need attention sit at the front of the list.
+  const order: Record<SeatStatus, number> = {
+    uncovered: 0,
+    ambiguous: 1,
+    covered: 2,
+  };
+  const sortedSeats = [...seats].sort(
+    (a, b) =>
+      order[coverage.get(a)!.status] - order[coverage.get(b)!.status] ||
+      a.localeCompare(b),
+  );
   return (
-    <section className="mt-6 slab p-4">
-      <SectionEyebrow
-        right={
-          <span className="text-[11px] text-fog-400">
-            {seats.length - uncovered.length}/{seats.length} seats covered
-          </span>
-        }
-      >
-        Seat coverage
-      </SectionEyebrow>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {seats.map((seat) => {
+    <section className="mt-6 slab p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold text-fog-100">Seat coverage</h2>
+        <span className="text-[12px] font-medium text-fog-200">
+          {seats.length - uncovered.length}/{seats.length} seats filled
+        </span>
+      </div>
+      <p className="mt-1.5 max-w-[80ch] text-[12.5px] leading-[1.55] text-fog-300">
+        A <strong className="text-fog-100">seat</strong> is a slot a flow can ask
+        for. Each should be filled by exactly one role below - a run can only use
+        a flow whose seats this crew all fills.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[11.5px] text-fog-300">
+        <span className="inline-flex items-center gap-1.5">
+          <ToneDot tone="emerald" /> filled by one role
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <ToneDot tone="amber" /> filled by several - a run picks which
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <ToneDot tone="rose" /> empty - a flow needing it fails
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {sortedSeats.map((seat) => {
           const c = coverage.get(seat)!;
           const tone: ChipTone =
             c.status === "covered"
@@ -620,43 +666,39 @@ function SeatCoverage({
           return (
             <span
               key={seat}
-              title={
-                c.status === "uncovered"
-                  ? `No role takes the "${seat}" seat - a flow needing it will fail.`
-                  : c.status === "ambiguous"
-                    ? `Two roles take "${seat}" (${roleLabels}) - a run must pick one.`
-                    : `${roleLabels} takes the "${seat}" seat.`
-              }
-              className="inline-flex items-center gap-1.5 border border-white/10 bg-ink-200/50 px-2 py-1 text-[11.5px]"
+              className="inline-flex items-center gap-2 border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[12px]"
             >
               <ToneDot tone={tone} />
-              <span className="text-fog-100">{seat}</span>
-              {c.status !== "covered" ? (
-                <span
-                  className={cn(
-                    "mono text-[10px]",
-                    c.status === "uncovered" ? "text-rose-300" : "text-amber-300",
-                  )}
-                >
-                  {c.status === "uncovered" ? "empty" : `×${c.roleIds.length}`}
-                </span>
-              ) : null}
+              <span className="font-medium text-fog-100">{seat}</span>
+              <span className="ml-auto truncate pl-2 text-[11px] text-fog-400">
+                {c.status === "uncovered"
+                  ? "no role"
+                  : c.status === "ambiguous"
+                    ? `${c.roleIds.length} roles`
+                    : roleLabels}
+              </span>
             </span>
           );
         })}
       </div>
       {uncovered.length > 0 || ambiguous.length > 0 ? (
-        <p className="mt-2.5 text-[11.5px] text-fog-400">
+        <p className="mt-3 text-[12px] leading-[1.5] text-fog-300">
           {uncovered.length > 0 ? (
             <>
-              <span className="text-rose-300">{uncovered.join(", ")}</span> need a
-              role.{" "}
+              <span className="font-medium text-rose-300">
+                {uncovered.join(", ")}
+              </span>{" "}
+              {uncovered.length === 1 ? "has" : "have"} no role - assign{" "}
+              {uncovered.length === 1 ? "it" : "them"} below.{" "}
             </>
           ) : null}
           {ambiguous.length > 0 ? (
             <>
-              <span className="text-amber-300">{ambiguous.join(", ")}</span> are
-              filled by more than one role - a run will ask which.
+              <span className="font-medium text-amber-300">
+                {ambiguous.join(", ")}
+              </span>{" "}
+              {ambiguous.length === 1 ? "is" : "are"} filled by more than one role
+              - a run will ask which.
             </>
           ) : null}
         </p>
@@ -705,21 +747,21 @@ function RoleCard({
   const [newProfileOpen, setNewProfileOpen] = useState(false);
 
   return (
-    <div className="slab p-4 flex flex-col gap-3">
+    <div
+      className="slab flex flex-col gap-5 p-5"
+      style={{ borderLeft: `3px solid ${TONE_HEX[tone]}` }}
+    >
       {/* header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className={cn(
-              "h-9 w-9 shrink-0 ring-1 flex items-center justify-center mono text-[13px] uppercase",
-              TONE_RING[tone],
-            )}
-            style={{ background: "rgba(255,255,255,0.04)" }}
+            className="flex h-12 w-12 shrink-0 items-center justify-center mono text-[16px] font-semibold uppercase text-white"
+            style={{ background: TONE_HEX[tone] }}
           >
             {role.label.slice(0, 2)}
           </span>
           <div className="min-w-0">
-            <div className="text-[14px] text-fog-100 font-medium truncate">
+            <div className="truncate text-[17px] font-semibold leading-tight text-fog-100">
               {role.label}
             </div>
             {/* The id is only worth showing when it adds something the label
@@ -728,7 +770,7 @@ function RoleCard({
                 the duplicate line is noise, so we drop it. */}
             {role.id.toLowerCase() !==
             role.label.toLowerCase().replace(/[^a-z0-9]+/g, "") ? (
-              <div className="mono text-[10.5px] text-fog-500 truncate">
+              <div className="mono text-[11px] text-fog-400 truncate">
                 {role.id}
               </div>
             ) : null}
@@ -736,10 +778,10 @@ function RoleCard({
         </div>
         <span
           className={cn(
-            "rounded px-1.5 py-0.5 text-[10px] mono",
+            "shrink-0 px-2 py-1 text-[10.5px] mono",
             role.permissions === "code_write"
-              ? "border border-amber-400/30 bg-amber-500/10 text-amber-300"
-              : "border border-white/10 bg-ink-200/60 text-fog-400",
+              ? "border border-amber-400/40 bg-amber-500/10 text-amber-300"
+              : "border border-white/15 bg-ink-200 text-fog-300",
           )}
         >
           {role.permissions}
@@ -795,30 +837,29 @@ function RoleCard({
 
       {/* profile */}
       <div>
-        <div className="eyebrow mb-1.5">Profile (runtime)</div>
+        <div className="eyebrow mb-2 text-fog-300">Profile (runtime)</div>
         <div className="flex items-center gap-2 flex-wrap">
-          <select
+          <Select
             value={role.profile}
             disabled={saving}
-            onChange={(e) =>
-              onPatch(
-                { profile: e.target.value },
-                `${role.label} now runs on ${e.target.value}.`,
-              )
+            ariaLabel="Profile"
+            className="min-w-[170px]"
+            onChange={(v) =>
+              onPatch({ profile: v }, `${role.label} now runs on ${v}.`)
             }
-            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[12.5px] text-fog-100 outline-none focus:border-violet-soft/40"
-          >
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-            {!profile ? (
-              <option value={role.profile}>{role.profile} (missing)</option>
-            ) : null}
-          </select>
+            options={[
+              ...profiles.map((p) => ({
+                value: p.id,
+                label: p.label,
+                hint: p.model ?? undefined,
+              })),
+              ...(!profile
+                ? [{ value: role.profile, label: `${role.profile} (missing)` }]
+                : []),
+            ]}
+          />
           {profile ? (
-            <span className="inline-flex items-center gap-1.5 border border-white/10 bg-ink-200 px-2 py-1 text-[11px] text-fog-300">
+            <span className="inline-flex items-center gap-1.5 border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[11.5px] text-fog-300">
               <Cpu className="h-3 w-3 text-violet-soft" strokeWidth={1.7} />
               <span
                 className={cn(
@@ -830,41 +871,36 @@ function RoleCard({
                 {!role.providerConfigured ? " (not set up)" : ""}
               </span>
               {profile.model ? (
-                <span className="text-fog-500">· {profile.model}</span>
+                <span className="text-fog-400">· {profile.model}</span>
               ) : null}
               {profile.power ? (
-                <span className="text-fog-500">· {profile.power}</span>
+                <span className="text-fog-400">· {profile.power}</span>
               ) : null}
             </span>
           ) : (
-            <span className="text-[11px] text-rose-300">profile not found</span>
+            <span className="text-[11.5px] text-rose-300">profile not found</span>
           )}
           <button
             type="button"
             disabled={saving}
             onClick={() => setNewProfileOpen((v) => !v)}
-            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
+            className="border border-white/12 bg-ink-200 px-2.5 py-1.5 text-[11.5px] text-fog-300 hover:border-violet-soft/40 hover:text-fog-100 disabled:opacity-50"
             title="Create a new profile and assign it to this role"
           >
             + New
           </button>
-          <select
+          <Select
             value={role.permissions}
             disabled={saving}
-            onChange={(e) =>
-              onPatch(
-                { permissions: e.target.value },
-                `${role.label} permissions → ${e.target.value}.`,
-              )
+            ariaLabel="Permissions"
+            className="min-w-[130px]"
+            onChange={(v) =>
+              onPatch({ permissions: v }, `${role.label} permissions → ${v}.`)
             }
-            className="border border-white/10 bg-ink-200 px-2 py-1.5 text-[12px] text-fog-200 outline-none focus:border-violet-soft/40"
-          >
-            {[...new Set([...PERMISSION_OPTIONS, role.permissions])].map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+            options={[
+              ...new Set([...PERMISSION_OPTIONS, role.permissions]),
+            ].map((p) => ({ value: p, label: p }))}
+          />
         </div>
         {newProfileOpen ? (
           <NewProfileInline
