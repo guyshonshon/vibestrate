@@ -334,7 +334,7 @@ export function BoardPage({
               placeholder="Build onboarding flow"
               className="mono flex-1 h-8 border border-white/[0.1] bg-white/[0.03] px-2.5 text-[12px] text-fog-100 placeholder:text-fog-500 focus:outline-none focus:border-violet-soft/40"
             />
-            <Button type="submit" variant="secondary" size="sm" disabled={busy || !newRoadmapTitle.trim()}>
+            <Button type="submit" variant="secondary" size="sm" className="h-8" disabled={busy || !newRoadmapTitle.trim()}>
               Add
             </Button>
           </form>
@@ -363,7 +363,7 @@ export function BoardPage({
                 </option>
               ))}
             </select>
-            <Button type="submit" variant="secondary" size="sm" disabled={busy || !newTaskTitle.trim()}>
+            <Button type="submit" variant="secondary" size="sm" className="h-8" disabled={busy || !newTaskTitle.trim()}>
               Add
             </Button>
           </form>
@@ -725,7 +725,9 @@ function BoardColumn({
       data-column={column.id}
       className={cn(
         "flex flex-col slab h-full min-h-0",
-        urgent ? "border-amber-400/40" : undefined,
+        // .slab is unlayered so its `border` shorthand beats a layered
+        // `border-amber-400/40` utility; `!` forces the urgent amber to win.
+        urgent ? "!border-amber-400/40" : undefined,
       )}
     >
       <div className="h-[2px]" style={{ background: column.accent }} />
