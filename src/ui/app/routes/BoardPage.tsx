@@ -1078,13 +1078,13 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
   const max = 3;
   const shown = roleIds.slice(0, max);
   const extra = roleIds.length - max;
-  const gradient: Record<ChipTone, string> = {
-    neutral: "linear-gradient(135deg,#9aa0b3,#6a7186)",
-    violet: "linear-gradient(135deg,#a78bfa,#6951f0)",
-    sky: "linear-gradient(135deg,#7cc5ff,#5fa6ff)",
-    emerald: "linear-gradient(135deg,#6ee7b7,#10b981)",
-    amber: "linear-gradient(135deg,#fcd34d,#f59e0b)",
-    rose: "linear-gradient(135deg,#fda4af,#e11d48)",
+  const solid: Record<ChipTone, string> = {
+    neutral: "#6a7186",
+    violet: "#6951f0",
+    sky: "#5fa6ff",
+    emerald: "#10b981",
+    amber: "#f59e0b",
+    rose: "#e11d48",
   };
   return (
     <div className="flex items-center -space-x-1">
@@ -1095,8 +1095,8 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         return (
           <span
             key={id}
-            className="w-4 h-4 rounded ring-2 ring-ink-100 flex items-center justify-center font-serif leading-none text-[9px] text-white"
-            style={{ background: gradient[tone] }}
+            className="w-4 h-4 ring-2 ring-ink-100 flex items-center justify-center font-serif leading-none text-[9px] text-white"
+            style={{ background: solid[tone] }}
             title={id}
           >
             {initial}
@@ -1104,7 +1104,7 @@ function RoleStack({ roleIds }: { roleIds: string[] }) {
         );
       })}
       {extra > 0 ? (
-        <span className="w-4 h-4 rounded ring-2 ring-ink-100 bg-white/[0.06] flex items-center justify-center text-[8.5px] mono text-fog-300">
+        <span className="w-4 h-4 ring-2 ring-ink-100 bg-white/[0.06] flex items-center justify-center text-[8.5px] mono text-fog-300">
           +{extra}
         </span>
       ) : null}
