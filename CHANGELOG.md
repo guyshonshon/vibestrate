@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.127
+
+- **The dashboard's run composer is now the "new run" card.** Mission Control's
+  home composer was a one-off layout (a step-by-step allocation table); it's
+  replaced by the same flat, card-based surface as the full New-run page -
+  pick a flow and a crew as cards, set run mode / tuning / supervisor with
+  designed toggles, and start. The card is self-contained (it loads its own
+  flows, crews, and personas and starts the run itself), so the dashboard no
+  longer carries a separate composer data feed. The dedicated `#/compose` page
+  keeps the extras the card drops: the steps breakdown, the working-context
+  rail, and the metrics quick-look.
+
 ## 0.7.126
 
 - **The whole dashboard now speaks one design language.** Every page - Crew,

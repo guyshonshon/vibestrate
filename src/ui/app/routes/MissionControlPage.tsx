@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
-import { api, type ComposerPreset } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
-import {
-  ComposerV3,
-  type ComposerProvider,
-  type ComposerSkill,
-  type ComposerSubmitInput,
-} from "../../components/mission/v3/Composer.js";
+import { RunComposerCard } from "../../components/mission/v3/RunComposerCard.js";
 import { LiveRunsSection } from "../../components/mission/v3/LiveRuns.js";
 import { RecentRunsSection } from "../../components/mission/v3/RecentRuns.js";
 import {
@@ -20,9 +15,6 @@ import {
 import type {
   VibestrateEvent,
   ApprovalRequest,
-  DiscoveredFlow,
-  CrewView,
-  ProfileView,
   NotificationRecord,
   RunState,
   RunStatus,
@@ -61,13 +53,6 @@ function isActive(s: RunStatus): boolean {
 
 export function MissionControlPage({ onSelectRun }: Props) {
   const [runs, setRuns] = useState<RunState[]>([]);
-  const [providers, setProviders] = useState<ComposerProvider[]>([]);
-  const [skills, setSkills] = useState<ComposerSkill[]>([]);
-  const [flows, setFlows] = useState<DiscoveredFlow[]>([]);
-  const [crews, setCrews] = useState<CrewView[]>([]);
-  const [defaultCrewId, setDefaultCrewId] = useState<string | null>(null);
-  const [composerProfiles, setComposerProfiles] = useState<ProfileView[]>([]);
-  const [presets, setPresets] = useState<ComposerPreset[]>([]);
   const [eventsByRun, setEventsByRun] = useState<Record<string, VibestrateEvent[]>>({});
   const [diffByRun, setDiffByRun] = useState<
     Record<string, { insertions: number; deletions: number; files: number }>
@@ -75,57 +60,11 @@ export function MissionControlPage({ onSelectRun }: Props) {
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
   const [scheduler, setScheduler] = useState<SchedulerState | null>(null);
-  const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{
     kind: "ok" | "err";
     text: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // ── Composer feeds: providers / skills / flows / presets ──
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const [p, s, g, pr, cr, pf] = await Promise.all([
-          api.listProviders(),
-          api.listSkills(),
-          api.listFlows(),
-          api
-            .listComposerPresets()
-            .catch(() => ({ presets: [] as ComposerPreset[] })),
-          api
-            .getCrews()
-            .catch(() => ({ crews: [] as CrewView[], defaultCrew: null })),
-          api.getProfiles().catch(() => ({ profiles: [] as ProfileView[] })),
-        ]);
-        if (cancelled) return;
-        setCrews(cr.crews);
-        setDefaultCrewId(cr.defaultCrew);
-        setComposerProfiles(pf.profiles);
-        setProviders(
-          p.providers.map((row) => ({
-            id: row.id,
-            label: row.label,
-            available: row.available,
-            configured: row.configured,
-            confidence: row.confidence,
-          })),
-        );
-        setSkills(s.skills.map((sk) => ({ id: sk.id, name: sk.name })));
-        setFlows(g.flows);
-        setPresets(pr.presets);
-      } catch {
-        /* swallow - server not ready yet */
-      }
-    };
-    void load();
-    const id = window.setInterval(load, 30_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
 
   // ── Runs + per-run events / diff / approvals ──
   useEffect(() => {
@@ -257,56 +196,6 @@ export function MissionControlPage({ onSelectRun }: Props) {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 6);
 
-  const defaultProvider =
-    providers.find((p) => p.configured && p.available) ??
-    providers.find((p) => p.configured) ??
-    providers.find((p) => p.available) ??
-    null;
-
-  const handleComposerSubmit = async (input: ComposerSubmitInput) => {
-    setBusy(true);
-    try {
-      const overrides: Record<string, string> = {};
-      for (const [k, v] of Object.entries(input.stepProfileOverrides)) {
-        if (v) overrides[k] = v;
-      }
-      const r = await api.spawnRun({
-        task: input.brief,
-        readOnly: input.readOnly || undefined,
-        unattended: input.unattended || undefined,
-        concise: input.concise || undefined,
-        select: input.select || undefined,
-        crewId: input.crewId ?? undefined,
-        persona: input.persona ?? undefined,
-        params:
-          Object.keys(input.params).length > 0 ? input.params : undefined,
-        seatRoleOverrides:
-          Object.keys(input.seatRoleOverrides).length > 0
-            ? input.seatRoleOverrides
-            : undefined,
-        skills: input.skills.length > 0 ? input.skills : undefined,
-        flow: input.flowId
-          ? {
-              id: input.flowId,
-              contextPolicy: input.contextPolicy,
-              stepProfileOverrides:
-                Object.keys(overrides).length > 0 ? overrides : undefined,
-            }
-          : undefined,
-      });
-      // The server assigns the run id before spawning - go straight to the
-      // run screen instead of toasting and waiting for the poll to find it.
-      navigate({ kind: "run", runId: r.runId });
-    } catch (err) {
-      setToast({
-        kind: "err",
-        text: err instanceof Error ? err.message : String(err),
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleAction = async (
     kind: "pause" | "resume" | "abort",
     runId: string,
@@ -369,53 +258,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
             Open the full run page →
           </button>
         </div>
-        <ComposerV3
-          busy={busy}
-          providers={providers}
-          defaultProviderId={defaultProvider?.id ?? null}
-          skills={skills}
-          flows={flows}
-          crews={crews}
-          defaultCrewId={defaultCrewId}
-          profiles={composerProfiles}
-          presets={presets}
-          onSubmit={handleComposerSubmit}
-          onSavePreset={async (preset) => {
-            try {
-              const r = await api.saveComposerPreset(preset);
-              setPresets((cur) => {
-                const idx = cur.findIndex((p) => p.name === r.preset.name);
-                if (idx >= 0)
-                  return cur.map((p, i) => (i === idx ? r.preset : p));
-                return [...cur, r.preset];
-              });
-              setToast({
-                kind: "ok",
-                text: `Saved preset "${r.preset.name}"`,
-              });
-            } catch (err) {
-              setToast({
-                kind: "err",
-                text: err instanceof Error ? err.message : String(err),
-              });
-            }
-          }}
-          onDeletePreset={async (name) => {
-            try {
-              await api.deleteComposerPreset(name);
-              setPresets((cur) => cur.filter((p) => p.name !== name));
-              setToast({ kind: "ok", text: `Deleted preset "${name}"` });
-            } catch (err) {
-              setToast({
-                kind: "err",
-                text: err instanceof Error ? err.message : String(err),
-              });
-            }
-          }}
-          onCustomizeFlow={() =>
-            navigate({ kind: "flow", flowId: null })
-          }
-        />
+        <RunComposerCard />
       </section>
 
       {/* Live now - appears the instant a run is sent, so it's obvious the

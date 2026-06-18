@@ -19,10 +19,15 @@ import { api } from "../../lib/api.js";
 import { navigate } from "../App.js";
 import { cn } from "../../components/design/cn.js";
 import { RunStatusBadge } from "../../components/runs/RunStatusBadge.js";
+import {
+  ConfigRow,
+  SectionLabel,
+  StepPips,
+  Toggle,
+} from "../../components/mission/v3/composeKit.js";
 import type {
   ConsultResult,
   DiscoveredFlow,
-  FlowStepDefinition,
   PersonaSummary,
   ProjectMetadata,
   RunState,
@@ -797,56 +802,3 @@ function RailCard({
   );
 }
 
-function ConfigRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-      <div className="w-[88px] shrink-0 text-[10.5px] font-medium uppercase tracking-[0.14em] text-fog-500">
-        {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function SectionLabel({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-fog-500">
-      {icon}
-      {children}
-    </div>
-  );
-}
-
-function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void; label: string; icon?: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex h-8 items-center gap-1.5 border px-2.5 text-[11.5px] transition",
-        on ? "border-violet-soft/45 bg-violet-mid/[0.12] text-fog-100" : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
-      )}
-    >
-      {icon}
-      {label}
-      <span className={cn("font-mono", on ? "text-violet-soft" : "text-fog-500")}>{on ? "on" : "off"}</span>
-    </button>
-  );
-}
-
-function StepPips({ steps, active }: { steps: FlowStepDefinition[]; active: boolean }) {
-  const shown = steps.slice(0, 12);
-  const tone = (kind: string): string => {
-    if (kind === "review-turn") return active ? "bg-violet-soft" : "bg-fog-300";
-    if (kind === "validation") return "bg-fog-500";
-    if (kind === "approval-gate") return active ? "bg-violet-soft" : "bg-fog-400";
-    return active ? "bg-violet-mid" : "bg-fog-200";
-  };
-  return (
-    <div className="flex h-6 items-end gap-[2px]" aria-hidden>
-      {shown.map((s, i) => (
-        <span key={i} className={cn("w-[3px]", tone(s.kind))} style={{ height: `${7 + ((i * 5) % 10)}px` }} />
-      ))}
-    </div>
-  );
-}
