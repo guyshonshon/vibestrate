@@ -260,9 +260,9 @@ export function MissionRunV5() {
             )}
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* ── LEFT: composition ──────────────────────────────────────────── */}
-        <div className="flex flex-col gap-6 lg:col-span-8">
+        <div className="flex flex-col gap-5 lg:col-span-8">
           {/* Task */}
           <section>
             <PaneTitle>Task</PaneTitle>
@@ -276,7 +276,7 @@ export function MissionRunV5() {
                 }
               }}
               placeholder="Add structured logging to the settings save handler"
-              className="s-glass-2 min-h-[116px] w-full resize-y rounded-xl border border-[color:var(--s-line)] px-5 py-3.5 text-[16px] leading-[1.6] outline-none transition placeholder:text-[color:var(--s-ink-faint)] focus:border-[color:var(--s-accent)]"
+              className="s-glass-2 s-focusable min-h-[112px] w-full resize-y rounded-xl border border-[color:var(--s-line)] px-4 py-3 text-[15px] leading-[1.55] placeholder:text-[color:var(--s-ink-faint)]"
               style={{ color: "var(--s-ink)" }}
             />
             {suggestions.length > 0 ? (
@@ -302,7 +302,7 @@ export function MissionRunV5() {
                   <button
                     type="button"
                     onClick={() => navigate({ kind: "board" })}
-                    className="ml-auto flex items-center gap-1.5 font-mono text-[12px] transition hover:brightness-125"
+                    className="s-interact ml-auto flex items-center gap-1.5 rounded-md px-1 font-mono text-[12px]"
                     style={{ color: "var(--s-ink-faint)" }}
                   >
                     <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.8} /> Board
@@ -316,7 +316,7 @@ export function MissionRunV5() {
                       disabled={busy}
                       onClick={() => void start(s.taskId)}
                       title={s.reason}
-                      className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition hover:brightness-110 disabled:opacity-50"
+                      className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left s-interact disabled:opacity-50"
                       style={{
                         background: "var(--s-slab)",
                         borderColor: "var(--s-line)",
@@ -396,7 +396,7 @@ export function MissionRunV5() {
                         type="button"
                         onClick={() => setPersonaId(p.id)}
                         title={p.description}
-                        className="rounded-lg border px-3.5 py-2 text-[13px] transition hover:brightness-110"
+                        className="rounded-lg border px-3.5 py-2 text-[13px] s-interact"
                         style={
                           p.id === personaId
                             ? {
@@ -471,7 +471,7 @@ export function MissionRunV5() {
                 No flows discovered.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {flows.map((f) => {
                   const steps = f.definition.steps ?? [];
                   const seats = Object.keys(f.definition.seats ?? {}).length;
@@ -502,7 +502,7 @@ export function MissionRunV5() {
               >
                 Crew
               </PaneTitle>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {crews.map((c) => {
                   const on = c.id === crewId;
                   const profiles = [...new Set(c.roles.map((r) => r.profile))];
@@ -599,7 +599,7 @@ export function MissionRunV5() {
                                 key={opt}
                                 type="button"
                                 onClick={() => set(opt)}
-                                className="rounded-lg border px-3 py-1.5 text-[13px] transition hover:brightness-110"
+                                className="rounded-lg border px-3 py-1.5 text-[13px] s-interact"
                                 style={
                                   val === opt
                                     ? {
@@ -633,7 +633,7 @@ export function MissionRunV5() {
                                 ? "env var NAME (e.g. OPENAI_API_KEY)"
                                 : def.type
                             }
-                            className="min-w-0 flex-1 rounded-lg border border-[color:var(--s-line)] px-3 py-2 text-[13.5px] outline-none transition placeholder:text-[color:var(--s-ink-faint)] focus:border-[color:var(--s-accent)]"
+                            className="s-focusable min-w-0 flex-1 rounded-lg border border-[color:var(--s-line)] px-3 py-2 text-[13.5px] placeholder:text-[color:var(--s-ink-faint)]"
                             style={{ background: "var(--s-slab)", color: "var(--s-ink)" }}
                           />
                         )}
@@ -643,7 +643,7 @@ export function MissionRunV5() {
                             disabled={generating === name}
                             onClick={() => void generateParam(name)}
                             title={def.generate.instruction}
-                            className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] transition hover:brightness-110 disabled:opacity-50"
+                            className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] s-interact disabled:opacity-50"
                             style={{
                               borderColor: "var(--s-line)",
                               color: "var(--s-accent-bright)",
@@ -879,7 +879,7 @@ function PaneTitle({
 }) {
   return (
     <h2
-      className="mb-3 flex items-center gap-2.5 font-display text-[20px] font-semibold tracking-[-0.02em]"
+      className="mb-2.5 flex items-center gap-2 font-display text-[17px] font-semibold tracking-[-0.02em]"
       style={{ color: "var(--s-ink)" }}
     >
       {icon ? (
@@ -968,7 +968,7 @@ function SelectCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col gap-2 overflow-hidden rounded-xl border px-3.5 py-3 text-left transition hover:brightness-110",
+        "flex flex-col gap-1.5 overflow-hidden rounded-xl border px-3.5 py-2.5 text-left s-interact",
         !on && "s-glass",
       )}
       style={
@@ -1046,7 +1046,7 @@ function BigToggle({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] transition hover:brightness-110"
+      className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] s-interact"
       style={
         on
           ? {

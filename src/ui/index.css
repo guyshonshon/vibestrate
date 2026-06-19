@@ -151,6 +151,9 @@
   --s-slab-2: var(--color-ink-200);
   --s-glass: rgba(17, 19, 29, 0.58);
   --s-glass-2: rgba(28, 31, 44, 0.5);
+  --s-ring: rgba(139, 124, 255, 0.34);
+  --s-hover-line: rgba(167, 139, 250, 0.5);
+  --s-glow: rgba(99, 81, 240, 0.32);
   --s-ok: rgba(52, 211, 153, 0.15);
   --s-ok-ink: #5eead4;
   --s-soft: rgba(139, 124, 255, 0.18);
@@ -182,6 +185,9 @@
   --s-slab-2: #eef0f5;
   --s-glass: rgba(255, 255, 255, 0.62);
   --s-glass-2: rgba(233, 235, 243, 0.7);
+  --s-ring: rgba(105, 81, 240, 0.24);
+  --s-hover-line: rgba(105, 81, 240, 0.42);
+  --s-glow: rgba(105, 81, 240, 0.18);
   --s-ok: #d9f3e9;
   --s-ok-ink: #0f6e56;
   --s-soft: #ece9fd;
@@ -250,6 +256,31 @@
   background: var(--s-glass-2);
   backdrop-filter: blur(10px) saturate(130%);
   -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+
+/* Soft, on-brand interaction states (replaces harsh focus borders + crude
+ * brightness hovers). `s-focusable` = a soft violet focus-ring for inputs;
+ * `s-interact` = the same ring on keyboard focus PLUS a gentle hover glow +
+ * border lift for clickable cards/toggles. Ring/glow colors are --s-* tokens,
+ * so both work in dark and paper. No harsh 1px accent border on focus. */
+.s-focusable {
+  outline: none;
+  transition: box-shadow 0.16s var(--ease-out), border-color 0.16s var(--ease-out);
+}
+.s-focusable:focus {
+  box-shadow: 0 0 0 3px var(--s-ring);
+  border-color: var(--s-accent);
+}
+.s-interact {
+  outline: none;
+  transition: box-shadow 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+.s-interact:hover {
+  border-color: var(--s-hover-line);
+  box-shadow: 0 6px 22px -14px var(--s-glow), 0 0 0 1px var(--s-hover-line);
+}
+.s-interact:focus-visible {
+  box-shadow: 0 0 0 3px var(--s-ring);
 }
 
 /* Brand card - ported 1:1 from the marketing `.docs-cards > p`: square,
