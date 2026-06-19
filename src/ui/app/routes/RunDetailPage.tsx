@@ -12,10 +12,12 @@ import type {
   ApprovalRequest,
   EngagementEntry,
   RunAssurance,
+  RunAudit,
   RunState,
   RuntimeMetrics,
   WorkflowSelectionView,
 } from "../../lib/types.js";
+import { RunTree } from "../../components/runs/RunTree.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
@@ -85,6 +87,7 @@ export function RunDetailPage({
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
+  const [audit, setAudit] = useState<RunAudit | null>(null);
   const [arbitration, setArbitration] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -95,7 +98,7 @@ export function RunDetailPage({
     let loadedOnce = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel, eng, arb] = await Promise.all([
+        const [r, m, a, d, sel, eng, arb, aud] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
@@ -103,6 +106,7 @@ export function RunDetailPage({
           api.getRunSelection(runId).catch(() => null),
           api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
           api.getRunArbitration(runId).catch(() => null),
+          api.getRunAudit(runId).catch(() => null),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -112,6 +116,7 @@ export function RunDetailPage({
         setSelection(sel);
         setEngagement(eng);
         setArbitration(arb);
+        setAudit(aud);
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -400,7 +405,9 @@ export function RunDetailPage({
           <InspectorTabsV3 current={tab} setCurrent={setTab} />
         </div>
         <div className="slab p-3.5">
-          {tab === "steps" ? (
+          {tab === "tree" ? (
+            <RunTree audit={audit} engagement={engagement} />
+          ) : tab === "steps" ? (
             <StepsInspector metrics={metrics} />
           ) : tab === "events" ? (
             <EventStream runId={runId} />

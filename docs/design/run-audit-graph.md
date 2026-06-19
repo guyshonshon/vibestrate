@@ -4,6 +4,15 @@ Status: **Phase A SHIPPED (0.7.18) - derivation + `vibe audit` + API; Phase B
 SHIPPED (0.7.19) - web visual; Phase C SHIPPED (0.7.22) - inside-the-box (tool
 calls + sub-agent spawns from stream-json). Complete.** Owner: maintainer.
 
+> **Update (0.8.0):** the unified `RunGraph.tsx` described in Phase B below was
+> later removed; the audit derivation + `GET /api/runs/:id/audit` endpoint stayed
+> (unused by the UI). 0.8.0 re-surfaces it as a live **"Tree" tab** on the
+> run-detail page (`src/ui/components/runs/RunTree.tsx`): the flow as supervisor
+> root, steps phase-grouped + depth-indented from `needs`, agent activity
+> (tools / sub-agents / opaque marker) as leaves, refreshed on the page's 2s
+> poll. The Phase B narrative below is kept for the design rationale; treat the
+> `RunGraph.tsx` references as historical.
+
 A single, complete, visual hierarchy of what happened inside a task/run: the
 orchestrator -> the flow's steps (the DAG we already draw) -> each step's agent
 turn(s) -> what each turn did (succeeded, got rate-limited then retried, fell back

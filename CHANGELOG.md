@@ -2,6 +2,16 @@
 
 ## 0.8.0
 
+- **A live node-tree of what the supervisor and agents are doing.** The run
+  detail page gains a "Tree" tab: the flow is the supervisor root, each step is
+  a node grouped by phase (planning / architecting / executing / reviewing /
+  verifying) and indented by its dependencies, and the inside-the-turn agent
+  activity (tool calls and sub-agent spawns, or an honest "opaque" marker when
+  the provider streamed nothing) hangs off each node. Per-node telemetry -
+  tokens, tool calls, elapsed, cost - reads in aligned columns, and the
+  supervisor's own decisions ride a lane on the root. It refreshes on the run
+  page's existing poll (every couple of seconds), built on the run-audit
+  derivation that already existed but was unused.
 - **"Plan" is now a CTO, not a plan-for-a-code-change.** The new Shape phase
   takes a vague brief ("a mini ecommerce store"), surfaces the unstated
   decisions (sign-in, payments, scale, data), and asks you the gap questions
