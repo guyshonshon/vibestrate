@@ -363,13 +363,21 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
   // 2. Orchestrator selection - opt-in only (--select), and never with --no-select.
   if (input.forceSelect && !input.noSelect) {
     const discovered = await discoverFlows(input.projectRoot).catch(() => []);
-    const availableFlows: AvailableFlow[] = discovered.map((f) => ({
-      id: f.id,
-      label: f.label,
-      description: f.description,
-      complexity: f.definition.complexity ?? null,
-      capabilities: f.definition.capabilities ?? null,
-    }));
+    // Exclude no-write flows (e.g. plan-only) from AUTO selection: they produce
+    // no diff, so a cost-minimizing selector could otherwise route an
+    // implement-style task to one and silently write nothing. They stay
+    // explicitly selectable - a forced pick bypasses this branch entirely.
+    const availableFlows: AvailableFlow[] = discovered
+      .filter((f) =>
+        f.definition.steps.some((s) => (s.outputs ?? []).includes("diff")),
+      )
+      .map((f) => ({
+        id: f.id,
+        label: f.label,
+        description: f.description,
+        complexity: f.definition.complexity ?? null,
+        capabilities: f.definition.capabilities ?? null,
+      }));
     const availableCrews = Object.entries(input.config.crews ?? {}).map(([id, c]) => ({
       id,
       label: (c as { label?: string }).label ?? id,

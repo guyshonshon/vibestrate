@@ -96,4 +96,16 @@ describe("run launcher (shared core run pipeline)", () => {
     expect(out.runId).toBeTruthy();
     expect(out.state.status).toBe("merge_ready");
   }, 30_000);
+
+  it("forces read-only for a no-write flow (plan-only) even when the spec doesn't ask for it", async () => {
+    const dir = await makeProject();
+    // Deliberately omit readOnly: the launcher must clamp it to true because the
+    // plan-only flow produces no diff, so it can never run write-capable.
+    const out = await runFromSpec(
+      { projectRoot: dir, task: "think it through", flow: { id: "plan-only" } },
+      { onProgress: () => {} },
+    );
+    expect(out.state.readOnly).toBe(true);
+    expect(out.state.status).toBe("merge_ready");
+  }, 30_000);
 });

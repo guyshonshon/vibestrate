@@ -270,6 +270,18 @@ export async function runFromSpec(
         `No Flow named "${effectiveFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );
     }
+    // Safety clamp: a flow with no write step (no step produces a `diff`, e.g.
+    // the plan-only flow) must never run write-capable. Force read-only so the
+    // permission clamp in runRole applies to every role - regardless of how the
+    // flow was chosen (grid pick, default, or auto-select). The real guard is
+    // this clamp, NOT the mere absence of write steps (an agent-turn under a
+    // write-capable profile can still touch disk unless readOnly is set).
+    const flowProducesDiff = flow.definition.steps.some((s) =>
+      (s.outputs ?? []).includes("diff"),
+    );
+    if (!flowProducesDiff && !readOnly) {
+      readOnly = true;
+    }
     const persona = resolvePersona(
       loaded.config,
       spec.persona ?? selection?.personaId ?? null,

@@ -924,8 +924,66 @@ export const scaffoldFlow = flowDefinitionSchema.parse({
   ],
 });
 
+// ── Plan-only ("Plan mode") ─────────────────────────────────────────────────
+// A plan + review flow: a planner turns the task into a plan and a reviewer
+// critiques it. There are no implement/validate/fix/verify steps. The guard is
+// NOT the mere absence of write steps - an agent-turn under a write-capable
+// crew profile can still touch disk. The real guard is `run-launcher.ts`, which
+// forces `readOnly: true` for any flow that produces no `diff`, clamping every
+// role to the read-only permission profile; and `select-workflow.ts` excludes
+// no-write flows from auto-selection so a cost-minimizing `--select` can't route
+// implement-work here and silently write nothing. Reviewing a plan with no diff
+// is the same path a read-only default run already takes (implement skipped,
+// review still runs). Merge-readiness is APPROVED-only under read-only: the plan
+// itself is what the reviewer approves; CHANGES_REQUESTED terminates as BLOCKED.
+export const planOnlyFlow = flowDefinitionSchema.parse({
+  id: "plan-only",
+  version: 1,
+  label: "Plan",
+  description:
+    "Plan + review only - WRITES NO CODE. A planner turns the task into a concrete plan and a reviewer critiques it; nothing is implemented, validated, or written to disk. Produces a vetted plan and an APPROVED / BLOCKED verdict. Do not pick this for tasks that need code changes - it is for thinking a change through before building it.",
+  seats: {
+    planner: {
+      label: "Planner",
+      description: "Turns the task into a concrete plan.",
+    },
+    reviewer: {
+      label: "Reviewer",
+      description: "Critiques the plan and decides whether it is sound.",
+    },
+  },
+  steps: [
+    {
+      id: "plan",
+      label: "Plan",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["plan"],
+    },
+    {
+      id: "plan-review",
+      label: "Review plan",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "plan"],
+      outputs: ["findings", "review-decision"],
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: [],
+    strengths: ["planning", "analysis"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
+  planOnlyFlow,
   qualityArbitrationFlow,
   pickupFlow,
   reviewPanelFlow,
