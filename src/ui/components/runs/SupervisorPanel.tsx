@@ -55,6 +55,8 @@ function selectionStory(sel: WorkflowSelectionView | null): string | null {
     }
     case "sized":
       return `sized this task to ${sel.flowId}${reason ? ` - ${reason}` : ""}`;
+    case "shaped":
+      return `routed this brief into shaping first${reason ? ` - ${reason}` : ""}`;
     case "selected":
       return `chose ${sel.flowId} (${sel.confidence} confidence)${reason ? ` - ${reason}` : ""}`;
     case "forced":

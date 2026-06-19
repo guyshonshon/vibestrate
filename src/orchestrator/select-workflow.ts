@@ -16,7 +16,12 @@
 import { z } from "zod";
 import { classifyEffort } from "../core/effort-heuristic.js";
 import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js";
-import { classifyObviousTrivial, SIZER_TARGET_FLOW } from "./flow-sizing.js";
+import {
+  classifyObviousTrivial,
+  classifyPlanWorthy,
+  SIZER_TARGET_FLOW,
+  SHAPE_TARGET_FLOW,
+} from "./flow-sizing.js";
 import { discoverFlows } from "../flows/catalog/flow-discovery.js";
 import {
   classifyTaskRisk,
@@ -33,6 +38,7 @@ export type WorkflowSelectionSource =
   | "selected"
   | "only-flow"
   | "sized"
+  | "shaped"
   | "supervisor-upgraded";
 export type WorkflowPosture = "normal" | "sandbox-suggested" | "approval-suggested";
 
@@ -400,6 +406,36 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     // it over an LLM pick could downgrade it. The deterministic upgrade is the
     // safety net for the NON-LLM default path below.
     return tag(selected);
+  }
+
+  // 3a-shape. Adaptive depth: a plan-worthy greenfield/system brief is routed
+  //     into the read-only `shape-intake` flow (which asks the gap questions)
+  //     BEFORE any execution. Same guard as the sizer (no --flow, no --select,
+  //     no --no-select, no config.defaultFlow) so an explicit choice always wins.
+  //     It BIASES TO EXECUTE - classifyPlanWorthy fires only on a clear
+  //     build-a-system reading, never when a concrete code file is named. The
+  //     resulting run is read-only (shape-intake emits no diff -> launcher clamp).
+  //     `--flow shape-intake` force-shapes; `adaptiveShape: "off"` disables it.
+  if (
+    defaultFlowId === null &&
+    !input.noSelect &&
+    (input.config.adaptiveShape ?? "auto") !== "off" &&
+    classifyPlanWorthy(input.task).planWorthy
+  ) {
+    const pw = classifyPlanWorthy(input.task);
+    return tag({
+      flowId: SHAPE_TARGET_FLOW,
+      crewId: null,
+      source: "shaped",
+      confidence: "medium",
+      reasons: [
+        "Plan-worthy brief - shaping it (scope, spec, architecture, risks) before any code.",
+        ...pw.reasons,
+      ],
+      risks: [],
+      posture: "normal",
+      advisory: null,
+    });
   }
 
   // 3a. A1 flow sizing (flow-sizing.ts) - ONLY when nothing explicit applies:

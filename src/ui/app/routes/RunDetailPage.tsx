@@ -15,9 +15,11 @@ import type {
   RunAudit,
   RunState,
   RuntimeMetrics,
+  ShapeQuestion,
   WorkflowSelectionView,
 } from "../../lib/types.js";
 import { RunTree } from "../../components/runs/RunTree.js";
+import { RunGapQuestions } from "../../components/runs/RunGapQuestions.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
@@ -88,6 +90,7 @@ export function RunDetailPage({
   const [assurance, setAssurance] = useState<RunAssurance | null>(null);
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [audit, setAudit] = useState<RunAudit | null>(null);
+  const [shapeQuestions, setShapeQuestions] = useState<ShapeQuestion[] | null>(null);
   const [arbitration, setArbitration] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -98,7 +101,7 @@ export function RunDetailPage({
     let loadedOnce = false;
     const load = async () => {
       try {
-        const [r, m, a, d, sel, eng, arb, aud] = await Promise.all([
+        const [r, m, a, d, sel, eng, arb, aud, shp] = await Promise.all([
           api.getRun(runId),
           api.getMetrics(runId).catch(() => null),
           api.listApprovals(runId).catch(() => [] as ApprovalRequest[]),
@@ -107,6 +110,7 @@ export function RunDetailPage({
           api.getRunEngagement(runId).catch(() => [] as EngagementEntry[]),
           api.getRunArbitration(runId).catch(() => null),
           api.getRunAudit(runId).catch(() => null),
+          api.getShapeQuestions(runId).catch(() => null),
         ]);
         if (cancelled) return;
         loadedOnce = true;
@@ -117,6 +121,7 @@ export function RunDetailPage({
         setEngagement(eng);
         setArbitration(arb);
         setAudit(aud);
+        setShapeQuestions(shp?.questions ?? null);
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -208,6 +213,36 @@ export function RunDetailPage({
       /* the input reverts on next poll */
     }
   };
+
+  // Shape phase: when the supervisor routed this run into the read-only
+  // shape-intake flow, it terminates having emitted gap questions. Show those
+  // as the run's surface - answering them launches the shaping run and hands
+  // off to it. (The questions artifact persists on the intake run, so revisiting
+  // it re-offers them; the chain moves forward via the spawned run.)
+  const awaitingShapeAnswers =
+    run.flow?.flowId === "shape-intake" && (shapeQuestions?.length ?? 0) > 0;
+  if (awaitingShapeAnswers) {
+    return (
+      <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
+        <RunHeaderV3
+          run={run}
+          onBack={() => navigate({ kind: "mission" })}
+          onOpenDiff={() => setTab("artifacts")}
+          onOpenGit={() => navigate({ kind: "git", runId })}
+          onRerun={() => {
+            setRerunStart(null);
+            setRerunOpen(true);
+          }}
+          onRename={handleRename}
+        />
+        <RunGapQuestions
+          runId={runId}
+          questions={shapeQuestions!}
+          onSubmitted={(shapeRunId) => navigate({ kind: "run", runId: shapeRunId })}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">

@@ -822,7 +822,8 @@ export class Orchestrator {
       this.selection &&
       (this.selection.source === "selected" ||
         this.selection.source === "supervisor-upgraded" ||
-        this.selection.source === "sized")
+        this.selection.source === "sized" ||
+        this.selection.source === "shaped")
     ) {
       await artifactStore.writeJson("selection.json", this.selection);
       await eventLog.append({

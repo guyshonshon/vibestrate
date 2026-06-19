@@ -680,13 +680,6 @@ export const api = {
     return jsonPost("/api/runs", input);
   },
   // ── Shape phase (docs/design/shape-phase.md): the CTO planning chain. ──
-  /** Start the chain: launch the intake run from a brief ("Plan"). */
-  async startShapeIntake(input: {
-    task: string;
-    persona?: string;
-  }): Promise<{ ok: true; runId: string; pid: number | null }> {
-    return jsonPost("/api/shape/intake", input);
-  },
   /** Read an intake run's pending gap questions (null = not an intake run). */
   async getShapeQuestions(
     runId: string,

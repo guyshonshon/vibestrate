@@ -845,6 +845,7 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     selected: `selected · ${selection.confidence} confidence`,
     "only-flow": "only flow",
     sized: "sized (trivial task; back gates stay diff-decided)",
+    shaped: "shaped (plan-worthy brief; read-only Shape chain)",
     "supervisor-upgraded": "supervisor-upgraded",
   };
   console.log("");
@@ -858,7 +859,9 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
     `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
   );
   if (
-    (selection.source === "selected" || selection.source === "supervisor-upgraded") &&
+    (selection.source === "selected" ||
+      selection.source === "supervisor-upgraded" ||
+      selection.source === "shaped") &&
     selection.reasons.length
   ) {
     console.log(indent(color.dim(selection.reasons[selection.reasons.length - 1]!)));

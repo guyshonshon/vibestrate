@@ -46,11 +46,18 @@ and your answers are carried forward as a context file with secrets redacted.
 
 ## Where to find it
 
-- Dashboard: the **Plan** tab. Start from a brief, answer the questions, and the
-  shaping run drafts the spec / architecture / risks for you to review.
-- CLI: `vibe shape start "<brief>"`, then `vibe shape questions <runId>`,
-  `vibe shape answer <runId> --answer <id>="..."`, and
-  `vibe shape roadmap <runId>` to turn a finished roadmap run into a proposal.
+Shape is not a separate screen - it is a run outcome. Just start a run (the
+dashboard's New-run card, or `vibe run "<brief>"`): when the supervisor judges
+the brief plan-worthy, the run opens on its gap-questions; answer them and the
+shaping run drafts the spec / architecture / risks for you to review, then the
+live node-tree (the "Tree" tab) shows the supervisor and agents at work. The
+trigger biases to execute - a targeted change ("add X to foo.ts") just runs.
+
+- Force shaping on a brief the heuristic skips: `vibe run --flow shape-intake "<brief>"`.
+- Disable auto-shaping entirely: set `adaptiveShape: off` in `project.yml`.
+- CLI parity for the chain: `vibe shape questions <runId>`,
+  `vibe shape answer <runId> --answer <id>="..."`, `vibe shape approve <runId>`,
+  and `vibe shape roadmap <runId>` to turn a finished roadmap run into a proposal.
 
 ## Honest limits (v1)
 

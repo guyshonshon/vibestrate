@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   classifyObviousTrivial,
+  classifyPlanWorthy,
   SIZER_TARGET_FLOW,
+  SHAPE_TARGET_FLOW,
 } from "../src/orchestrator/flow-sizing.js";
 import { chooseRunFlow } from "../src/orchestrator/select-workflow.js";
 import { loadConfig } from "../src/project/config-loader.js";
@@ -33,6 +35,48 @@ describe("classifyObviousTrivial (deterministic tier)", () => {
 
   it("never sizes long/wordy tasks", () => {
     expect(classifyObviousTrivial(`update notes.md ${"and also ".repeat(40)}`).trivial).toBe(false);
+  });
+});
+
+describe("classifyPlanWorthy (the adaptive Shape trigger)", () => {
+  // The corpus the Tier-2 review required: must fire on greenfield/system briefs
+  // (the flagship "build a mini ecommerce store" especially) and stay OFF
+  // targeted edits / trivial work.
+  it("FIRES on greenfield / system-build briefs", () => {
+    for (const t of [
+      "build a mini ecommerce store",
+      "create a SaaS dashboard for analytics",
+      "design a CRM system for a small sales team",
+      "I want a marketplace from scratch",
+      "build a real-time chat feature with websockets and message persistence and presence",
+      "make a landing page and a backend API for signups",
+    ]) {
+      expect(classifyPlanWorthy(t).planWorthy, t).toBe(true);
+    }
+  });
+
+  it("does NOT fire on targeted edits, trivial work, or non-build asks (bias to execute)", () => {
+    for (const t of [
+      "add a comment to foo.ts",
+      "fix the failing test in auth.ts",
+      "add dark mode toggle to the navbar",
+      "build a button component",
+      "rename getUser to fetchUser",
+      "update the readme",
+      "implement password reset via email",
+      "migrate the database from sqlite to postgres",
+      "bump the dependency version",
+      // verb+noun collisions that are tweaks, not greenfield builds (Tier-2 #2):
+      "make the API faster",
+      "build a tool",
+      "make the dashboard load faster and also tidy up the header",
+    ]) {
+      expect(classifyPlanWorthy(t).planWorthy, t).toBe(false);
+    }
+  });
+
+  it("a named code file always means execute, even with build words", () => {
+    expect(classifyPlanWorthy("build a new store module in src/store/index.ts").planWorthy).toBe(false);
   });
 });
 
@@ -71,6 +115,46 @@ describe("chooseRunFlow + sizing (A1)", () => {
     expect(sel.flowId).toBe(SIZER_TARGET_FLOW);
     expect(sel.source).toBe("sized");
     expect(sel.reasons.join(" ")).toMatch(/diff-decided/);
+  });
+
+  it("routes a plan-worthy greenfield brief into shape-intake, recorded as shaped", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "build a mini ecommerce store",
+      config: loaded.config,
+      loaded,
+    });
+    expect(sel.flowId).toBe(SHAPE_TARGET_FLOW);
+    expect(sel.source).toBe("shaped");
+  });
+
+  it("adaptiveShape: off disables the shape trigger (brief executes)", async () => {
+    const project = await makeProject((yml) => `${yml}\nadaptiveShape: off\n`);
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "build a mini ecommerce store",
+      config: loaded.config,
+      loaded,
+    });
+    expect(sel.flowId).not.toBe(SHAPE_TARGET_FLOW);
+    expect(sel.source).not.toBe("shaped");
+  });
+
+  it("an explicit --flow still wins over the shape trigger", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "build a mini ecommerce store",
+      config: loaded.config,
+      loaded,
+      forcedFlowId: "default",
+    });
+    expect(sel.flowId).toBe("default");
+    expect(sel.source).toBe("forced");
   });
 
   it("a risk-tagged trivial-looking task gets persona-upgraded past express", async () => {

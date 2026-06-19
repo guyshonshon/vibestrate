@@ -2000,6 +2000,26 @@
           "subcommands": []
         },
         {
+          "name": "approve",
+          "path": [
+            "vibe",
+            "shape",
+            "approve"
+          ],
+          "description": "Approve the shaped draft and launch the roadmap synthesis run.",
+          "usage": "[options] <shapeRunId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
+          "subcommands": []
+        },
+        {
           "name": "roadmap",
           "path": [
             "vibe",

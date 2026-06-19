@@ -339,6 +339,7 @@ export type WorkflowSelectionView = {
     | "selected"
     | "only-flow"
     | "sized"
+    | "shaped"
     | "supervisor-upgraded";
   confidence: "low" | "medium" | "high";
   reasons: string[];

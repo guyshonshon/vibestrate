@@ -22,7 +22,6 @@ import { MetricsPage } from "./routes/MetricsPage.js";
 import { CrewPage } from "./routes/CrewPage.js";
 import { ProfilesPage } from "./routes/ProfilesPage.js";
 import { ConsultPage } from "./routes/ConsultPage.js";
-import { ShapePage } from "./routes/ShapePage.js";
 import { ProvidersPage } from "./routes/ProvidersPage.js";
 import { ConfigPage } from "./routes/ConfigPage.js";
 import { RunSwitcher } from "../components/runs/RunSwitcher.js";
@@ -287,8 +286,6 @@ export function App() {
                                 ? "config"
                                 : route.kind === "consult"
                                   ? "consult"
-                                  : route.kind === "shape"
-                                    ? "shape"
                                   : route.kind === "runs"
                                     ? "runs"
                                     : "home"
@@ -309,7 +306,6 @@ export function App() {
       onShowProject={() => navigate({ kind: "project" })}
       onShowConfig={() => navigate({ kind: "config" })}
       onShowConsult={() => navigate({ kind: "consult", taskId: null })}
-      onShowShape={() => navigate({ kind: "shape", runId: null })}
       onShowCodebase={() =>
         navigate({ kind: "codebase", filePath: null, line: null, runId: null })
       }
@@ -421,12 +417,6 @@ export function App() {
         <ConsultPage
           taskId={route.taskId}
           onOpenTask={(taskId) => navigate({ kind: "task", taskId })}
-        />
-      ) : route.kind === "shape" ? (
-        <ShapePage
-          runId={route.runId}
-          onOpenIntake={(runId) => navigate({ kind: "shape", runId })}
-          onOpenRun={(runId) => navigate({ kind: "run", runId })}
         />
       ) : route.kind === "proposals" ? (
         <ProposalsPage

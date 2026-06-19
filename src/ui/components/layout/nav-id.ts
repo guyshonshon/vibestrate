@@ -24,5 +24,4 @@ export type NavId =
   | "providers"
   | "profiles"
   | "config"
-  | "consult"
-  | "shape";
+  | "consult";

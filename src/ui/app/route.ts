@@ -47,9 +47,6 @@ export type Route =
   | { kind: "profiles" }
   | { kind: "config" }
   | { kind: "consult"; taskId: string | null }
-  // Shape phase: the CTO planning chain. `runId` = an intake run whose questions
-  // to answer; null = the start/gallery surface.
-  | { kind: "shape"; runId: string | null }
   | {
       kind: "codebase";
       filePath: string | null;
@@ -204,10 +201,6 @@ export function parseHashRoute(hash: string): Route {
     const taskId = query.get("task");
     return { kind: "consult", taskId: taskId ?? null };
   }
-  if (parts[0] === "shape") {
-    const run = query.get("run");
-    return { kind: "shape", runId: run ?? null };
-  }
   if (parts[0] === "proposals" && parts[1])
     return { kind: "proposal", proposalId: parts.slice(1).join("/") };
   if (parts[0] === "proposals") return { kind: "proposals" };
@@ -246,10 +239,6 @@ export function serializeRoute(route: Route): string {
       return "#/settings";
     case "project":
       return "#/project";
-    case "shape":
-      return route.runId
-        ? `#/shape?run=${encodeURIComponent(route.runId)}`
-        : "#/shape";
     case "codebase": {
       const q = new URLSearchParams();
       if (route.filePath) q.set("path", route.filePath);
