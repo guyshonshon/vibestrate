@@ -3,7 +3,7 @@ import { api } from "../../lib/api.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
-import { RunComposerCard } from "../../components/mission/v3/RunComposerCard.js";
+import { MissionRunV5 } from "../../components/mission/variants/MissionRunV5.js";
 import { LiveRunsSection } from "../../components/mission/v3/LiveRuns.js";
 import { RecentRunsSection } from "../../components/mission/v3/RecentRuns.js";
 import {
@@ -245,20 +245,19 @@ export function MissionControlPage({ onSelectRun }: Props) {
   };
 
   return (
-    <div className="relative z-10 mx-auto max-w-[1480px] px-8 pt-6 pb-16 fade-up">
-      {/* Eyebrow row */}
+    <div className="relative z-10 px-8 pt-6 pb-16 fade-up">
       <section className="mt-2">
-        <div className="flex items-baseline justify-end mb-3">
+        <div className="mb-3 flex justify-end">
           <button
             type="button"
             onClick={() => navigate({ kind: "compose" })}
             className="text-[11.5px] text-violet-soft hover:text-violet-soft/80"
-            title="Open the dedicated run page (new design, full control surface)"
+            title="Open the dedicated run page (full control surface)"
           >
             Open the full run page →
           </button>
         </div>
-        <RunComposerCard />
+        <MissionRunV5 />
       </section>
 
       {/* Live now - appears the instant a run is sent, so it's obvious the
