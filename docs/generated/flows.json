@@ -221,6 +221,67 @@
       }
     },
     {
+      "id": "plan-only",
+      "version": 1,
+      "label": "Plan",
+      "description": "Plan + review only - WRITES NO CODE. A planner turns the task into a concrete plan and a reviewer critiques it; nothing is implemented, validated, or written to disk. Produces a vetted plan and an APPROVED / BLOCKED verdict. Do not pick this for tasks that need code changes - it is for thinking a change through before building it.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "Planner",
+          "description": "Turns the task into a concrete plan."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Critiques the plan and decides whether it is sound."
+        }
+      ],
+      "steps": [
+        {
+          "id": "plan",
+          "label": "Plan",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "plan"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "plan-review",
+          "label": "Review plan",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "plan"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
       "id": "quality-arbitration",
       "version": 1,
       "label": "Quality Arbitration",
@@ -1240,6 +1301,304 @@
           ],
           "outputs": [
             "validation"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "executing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
+      "id": "shape-intake",
+      "version": 1,
+      "label": "Shape: Intake",
+      "description": "Shape phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the shape run. Launched by 'Plan'.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "CTO (intake)",
+          "description": "Reads the brief and asks the scoping questions."
+        }
+      ],
+      "steps": [
+        {
+          "id": "intake",
+          "label": "Intake",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "questions"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
+      "id": "shape",
+      "version": 1,
+      "label": "Shape",
+      "description": "Shape phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "CTO (shape)",
+          "description": "Scopes the work and writes the spec and risks."
+        },
+        {
+          "id": "architect",
+          "label": "Architect",
+          "description": "Designs the architecture and provisioning checklist."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Checks the shape for completeness against the approved scope."
+        }
+      ],
+      "steps": [
+        {
+          "id": "scope",
+          "label": "Scope",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "scope"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "spec",
+          "label": "Spec",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "scope"
+          ],
+          "outputs": [
+            "spec"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "architecture",
+          "label": "Architecture",
+          "kind": "agent-turn",
+          "seat": "architect",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec"
+          ],
+          "outputs": [
+            "architecture"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "risks",
+          "label": "Risks",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec",
+            "architecture"
+          ],
+          "outputs": [
+            "risks"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "shape-review",
+          "label": "Review shape",
+          "kind": "review-turn",
+          "seat": "reviewer",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec",
+            "architecture",
+            "risks"
+          ],
+          "outputs": [
+            "findings",
+            "review-decision"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "reviewing",
+          "approval": null,
+          "repeat": null
+        }
+      ],
+      "loop": null
+    },
+    {
+      "id": "shape-roadmap",
+      "version": 1,
+      "label": "Shape: Roadmap",
+      "description": "Shape phase link 3 - WRITES NO CODE. Resumes the approved shape and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
+      "seats": [
+        {
+          "id": "planner",
+          "label": "CTO (roadmap)",
+          "description": "Synthesizes the approved shape into board cards."
+        },
+        {
+          "id": "architect",
+          "label": "Architect",
+          "description": "Seeded architecture context."
+        },
+        {
+          "id": "reviewer",
+          "label": "Reviewer",
+          "description": "Seeded review context."
+        }
+      ],
+      "steps": [
+        {
+          "id": "scope",
+          "label": "Scope",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief"
+          ],
+          "outputs": [
+            "scope"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "spec",
+          "label": "Spec",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "scope"
+          ],
+          "outputs": [
+            "spec"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "planning",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "architecture",
+          "label": "Architecture",
+          "kind": "agent-turn",
+          "seat": "architect",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec"
+          ],
+          "outputs": [
+            "architecture"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "risks",
+          "label": "Risks",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec",
+            "architecture"
+          ],
+          "outputs": [
+            "risks"
+          ],
+          "optional": false,
+          "skipWhenReadOnly": false,
+          "continueOnError": false,
+          "retries": 0,
+          "stage": "architecting",
+          "approval": null,
+          "repeat": null
+        },
+        {
+          "id": "synthesize",
+          "label": "Synthesize roadmap",
+          "kind": "agent-turn",
+          "seat": "planner",
+          "inputs": [
+            "task-brief",
+            "scope",
+            "spec",
+            "architecture",
+            "risks"
+          ],
+          "outputs": [
+            "roadmap-proposal"
           ],
           "optional": false,
           "skipWhenReadOnly": false,

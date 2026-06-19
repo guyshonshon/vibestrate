@@ -24,6 +24,8 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     roadmapItemId: null,
     title: id,
     description: "",
+    acceptanceCriteria: "",
+    est: "",
     status,
     priority: "medium",
     dependencies: deps,

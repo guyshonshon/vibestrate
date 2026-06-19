@@ -1,3 +1,12 @@
+// ── Shape phase: one CTO intake gap-question rendered as a form input. ──
+export type ShapeQuestion = {
+  id: string;
+  question: string;
+  why: string;
+  kind: "choice" | "text";
+  options: string[];
+};
+
 export type RunStatus =
   | "created"
   | "planning"
@@ -523,6 +532,9 @@ export type Task = {
   roadmapItemId: string | null;
   title: string;
   description: string;
+  // Shape phase (M4): prose acceptance criteria + a rough size estimate.
+  acceptanceCriteria?: string;
+  est?: string;
   status: TaskStatus;
   priority: Priority;
   dependencies: string[];

@@ -38,6 +38,10 @@ export type ProposalRoadmapDraft = {
 export type ProposalTaskDraft = {
   title: string;
   description: string;
+  /** Prose acceptance criteria from an ACCEPTANCE marker (Shape roadmap). */
+  acceptanceCriteria: string;
+  /** Rough size label from an EST marker, e.g. "S" / "M" / "L" (Shape roadmap). */
+  est: string;
   /** Title of a roadmap item in the same proposal, or null. */
   roadmapTitle: string | null;
   priority: Priority;
@@ -232,6 +236,8 @@ const KNOWN_TASK_FIELDS = new Set([
   "LIKELY_FILES",
   "VALIDATION",
   "TAGS",
+  "ACCEPTANCE",
+  "EST",
 ]);
 
 /**
@@ -364,6 +370,8 @@ export function parseProposal(input: {
     tasks.push({
       title,
       description: (block.fields.get("DESCRIPTION") ?? "").trim(),
+      acceptanceCriteria: (block.fields.get("ACCEPTANCE") ?? "").trim(),
+      est: (block.fields.get("EST") ?? "").trim(),
       roadmapTitle,
       priority: priorityRes.value,
       riskLevel: riskRes.value,

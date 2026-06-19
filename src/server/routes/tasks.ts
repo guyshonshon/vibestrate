@@ -11,6 +11,8 @@ import { nowIso } from "../../utils/time.js";
 const addBody = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
+  acceptanceCriteria: z.string().optional(),
+  est: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   roadmapItemId: z.string().nullable().optional(),
   dependencies: z.array(z.string()).optional(),
@@ -60,6 +62,8 @@ const contextSourcesBody = z.object({
 const patchBody = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
+  acceptanceCriteria: z.string().optional(),
+  est: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]).optional(),
   dependencies: z.array(z.string()).optional(),
   requiredSkills: z.array(z.string()).optional(),

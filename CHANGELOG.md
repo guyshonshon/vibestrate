@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.8.0
+
+- **"Plan" is now a CTO, not a plan-for-a-code-change.** The new Shape phase
+  takes a vague brief ("a mini ecommerce store"), surfaces the unstated
+  decisions (sign-in, payments, scale, data), and asks you the gap questions
+  before drafting anything. Answer them and it writes a scope, a spec, an
+  architecture with a provisioning checklist (env var NAMES only, never
+  values), and a risks register - then synthesizes a dependency-aware roadmap
+  of board cards. Every step is a read-only run; nothing touches your code.
+  Reach it from the new "Plan" tab or `vibe shape start "<brief>"`.
+- **It runs as a chain of short read-only runs, not one held-open process.**
+  intake (asks the questions) -> you answer in a form -> shape (drafts the
+  spec/architecture/risks) -> you approve -> roadmap (cards). Each link is a
+  fresh run glued by Rewind, so it survives a reboot and never depends on
+  durable pause (which does not exist yet). The submit launches the next run
+  only through the same gated launcher the dashboard uses - the browser never
+  spawns a command, and answers ride as a secret-redacted context file.
+- **Roadmap cards gained acceptance criteria and an estimate.** The synthesis
+  emits "done when..." prose and a rough size per card, threaded through the
+  proposal review and accept path.
+- **Three run-control UI directions to choose from.** The "Plan > Run-control
+  concepts" tab previews three takes on the spec-entry + live node-tree task
+  view - a telemetry Mission Tree, a spatial Graph Canvas, and a calm Guided
+  Document - so the run experience can be picked before it is wired in.
+
 ## 0.7.127
 
 - **The dashboard's run composer is now the "new run" card.** Mission Control's

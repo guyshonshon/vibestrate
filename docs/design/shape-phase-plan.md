@@ -1,10 +1,40 @@
 # Shape phase - implementation plan
 
-Status: proposed (2026-06-19), branch `feat/shape-phase`. The **what/why** lives
-in [`shape-phase.md`](./shape-phase.md); this is the **how/when** - a sequenced,
-dependency-ordered build plan. Produced with the `architecture-design`
-methodology (ground in code, exists/proposed/foundation, adversarial review,
-phase by dependency).
+Status: **v1 IMPLEMENTED (2026-06-19), branch `feat/shape-phase`** (uncommitted
+pending review/merge). The **what/why** lives in [`shape-phase.md`](./shape-phase.md);
+this is the **how/when** - a sequenced, dependency-ordered build plan. Produced
+with the `architecture-design` methodology (ground in code, exists/proposed/
+foundation, adversarial review, phase by dependency).
+
+## Implementation status (v1)
+
+Landed green (typecheck + build + 11 new tests + full suite): M0 (scout
+verified the keystone), M1 (chain wiring: `planning` added to the HTTP
+`fromStage` enum + `contextSources` on `spawnRunBody`; the keystone
+`src/shape/shape-chain.ts` + `src/server/routes/shape.ts` + `vibe shape` CLI),
+M2 (the `shape-intake`/`shape`/`shape-roadmap` flows + a `questions` structured
+contract; the CTO posture rides each step's `instructions`), M3 (spec/
+architecture/risks/provisioning are the steps' markdown `output.md`, reviewable
+via the existing artifact viewer), M4 (card fields `acceptanceCriteria` + `est`
+threaded through the proposal parser/service; the synthesis -> proposal bridge),
+M5 (a "Plan" nav tab -> a functional `/shape` page: start + answer the gap form;
+3 run-control UI proposals in a gallery).
+
+Deliberate v1 deltas from the plan (Tier-2 review, 2026-06-19):
+- **Completeness loop dropped** (single-pass `shape-review`). The adaptive loop
+  is hard-gated on `!readOnly`; the narrow `loopBodyWriteFree` fix was shelved
+  because it amplifies the "reviewer judges its own prose" risk for little v1
+  value. Human approval between chain links is the iterate path.
+- **`shapingPosture` persona field deferred.** The CTO director is delivered via
+  per-step `instructions` (reaches the prompt today) instead of net-new persona
+  prompt-injection wiring.
+- **Artifact edit/approve + the dependency-edge graph editor are partial.**
+  Artifacts are reviewable (read-only viewer); inline edit/approve and a DAG
+  edge editor remain net-new UI (the plan + reviewer both defer the editor).
+- **intake -> shape uses a fresh launch with the answers as a `file`
+  contextSource**, not `resumeFrom`, to avoid the single-step seeding coupling;
+  `resumeFrom` is used only for shape -> roadmap (seeded at stage `executing`),
+  guarded by a chain-integrity test.
 
 ## Scoreboard (the honest cost)
 

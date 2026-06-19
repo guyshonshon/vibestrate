@@ -55,6 +55,18 @@ export function hintForRoute(route: Route): CliHint {
         ],
         tips: TIPS_RUN,
       };
+    case "shape":
+      return {
+        title: "Shape (plan as a CTO)",
+        blurb:
+          "Discovery -> spec -> architecture -> roadmap, as a chain of read-only runs. The CLI maps 1:1.",
+        commands: [
+          { cmd: 'vibe shape start "a mini ecommerce store"', note: "launch the intake run (asks the gap questions)" },
+          { cmd: "vibe shape questions <runId>", note: "show the gap questions + their ids" },
+          { cmd: 'vibe shape answer <runId> --answer id="..."', note: "answer + launch the shaping run" },
+          { cmd: "vibe shape roadmap <runId>", note: "turn a finished roadmap run into a proposal" },
+        ],
+      };
     case "runs":
       return {
         title: "Runs & queue",

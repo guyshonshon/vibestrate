@@ -14,6 +14,8 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     roadmapItemId: null,
     title: id,
     description: "",
+    acceptanceCriteria: "",
+    est: "",
     status,
     priority: "medium",
     dependencies: [],

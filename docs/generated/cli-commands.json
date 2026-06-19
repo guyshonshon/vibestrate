@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.7.124",
+  "version": "0.8.0",
   "commands": [
     {
       "name": "init",
@@ -1899,6 +1899,124 @@
               "negated": false
             }
           ],
+          "subcommands": []
+        }
+      ]
+    },
+    {
+      "name": "shape",
+      "path": [
+        "vibe",
+        "shape"
+      ],
+      "description": "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
+      "usage": "[options] [command]",
+      "arguments": [],
+      "options": [],
+      "subcommands": [
+        {
+          "name": "start",
+          "path": [
+            "vibe",
+            "shape",
+            "start"
+          ],
+          "description": "Start shaping: launch the intake run that asks the gap questions.",
+          "usage": "[options] <brief...>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": true
+            }
+          ],
+          "options": [
+            {
+              "flags": "--persona <id>",
+              "description": "supervisor persona (judgment posture) for the run",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "questions",
+          "path": [
+            "vibe",
+            "shape",
+            "questions"
+          ],
+          "description": "Show the intake run's gap questions (and their ids).",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--json",
+              "description": "emit the questions as JSON",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "answer",
+          "path": [
+            "vibe",
+            "shape",
+            "answer"
+          ],
+          "description": "Answer the intake questions and launch the shape run.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--answer <id=value>",
+              "description": "answer for a question id (repeatable)",
+              "defaultValue": "[]",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "roadmap",
+          "path": [
+            "vibe",
+            "shape",
+            "roadmap"
+          ],
+          "description": "Turn a finished shape-roadmap run into a reviewable proposal.",
+          "usage": "[options] <runId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [],
           "subcommands": []
         }
       ]

@@ -38,6 +38,7 @@ import { buildRunAudit } from "../../core/run-audit.js";
 import { deriveEngagement } from "../../core/run-engagement.js";
 import { readdir } from "node:fs/promises";
 import type { RunSpec } from "../../core/run-launcher.js";
+import { contextSourceSchema } from "../../core/context-source-schema.js";
 import { resolveRestorePreview, RunLaunchError } from "../../core/run-launcher.js";
 import {
   planSnapshotPrune,
@@ -135,9 +136,18 @@ const spawnRunBody = z.object({
     })
     .strict()
     .optional(),
+  // Context sources (files/URLs) injected into every agent prompt. Path-guarded
+  // to project root + run worktree, secret-redacted, and (for url) SSRF-guarded
+  // at materialization in core - the same guarantees the CLI/linked-task path
+  // already has. RunSpec supported this; the route used to drop it silently.
+  contextSources: z.array(contextSourceSchema).max(32).optional(),
   // Rewind: fork a fresh run from a prior run, resuming at a chosen stage and
   // reusing its upstream artifacts. The launcher loads + validates the seeded
-  // artifacts. Mutually exclusive with `flow`.
+  // artifacts. May be combined with `flow` (the shape roadmap link does exactly
+  // this: it resumes the shape run at "executing" to seed scope/spec/
+  // architecture/risks). Adding "planning" re-syncs this body with core
+  // ResumeStage (orchestrator.ts) and the restore-preview enum above, which
+  // already list it - it was the only stage the launch enum was missing.
   resumeFrom: z
     .object({
       sourceRunId: z
@@ -146,6 +156,7 @@ const spawnRunBody = z.object({
         .max(200)
         .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
       fromStage: z.enum([
+        "planning",
         "architecting",
         "executing",
         "reviewing",
@@ -257,6 +268,9 @@ export async function registerRunsRoutes(
         argv.push("--flow-skip", stepId);
       }
     }
+    for (const src of body.contextSources ?? []) {
+      argv.push("--context", src.ref);
+    }
     if (body.resumeFrom) argv.push("# rewind from", body.resumeFrom.sourceRunId);
     // Assign the run id here so the response can carry it - the UI navigates
     // to the run screen immediately instead of toasting and waiting for polls.
@@ -277,6 +291,7 @@ export async function registerRunsRoutes(
       select: body.select ?? null,
       persona: body.persona ?? null,
       flow: body.flow ?? null,
+      contextSources: body.contextSources,
       resumeFrom: body.resumeFrom ?? null,
     };
     // C1: best-effort flow-complexity advice (non-blocking, informational).

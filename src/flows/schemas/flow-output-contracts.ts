@@ -8,6 +8,9 @@ export const FLOW_FINDING_RESOLUTIONS_CONTRACT =
   "vibestrate.flow.finding-resolutions.v1";
 export const FLOW_DECISION_SUMMARY_CONTRACT =
   "vibestrate.flow.decision-summary.v1";
+// Shape phase: the intake step emits a structured set of gap questions the
+// consult surface renders as a form. The submitted answers seed the shape run.
+export const FLOW_QUESTIONS_CONTRACT = "vibestrate.flow.questions.v1";
 
 export const flowFindingCategorySchema = z.enum([
   "correctness",
@@ -229,6 +232,30 @@ export type FlowArchitectureHandoffOutput = z.infer<
   typeof flowArchitectureHandoffOutputSchema
 >;
 
+// Shape phase intake: one gap question the CTO must ask to scope the work.
+// `kind: "choice"` renders as a select of `options`; `kind: "text"` as a field.
+// Questions request scope decisions only - never secret values (the safety model
+// allows env var NAMES, never values).
+export const flowShapeQuestionSchema = z
+  .object({
+    id: flowTokenSchema,
+    question: z.string().min(1).max(400),
+    why: z.string().min(1).max(400),
+    kind: z.enum(["choice", "text"]),
+    options: z.array(z.string().min(1).max(160)).max(8).default([]),
+  })
+  .strict();
+export type FlowShapeQuestion = z.infer<typeof flowShapeQuestionSchema>;
+
+export const flowQuestionsOutputSchema = z
+  .object({
+    contract: z.literal(FLOW_QUESTIONS_CONTRACT),
+    stepId: flowTokenSchema,
+    questions: z.array(flowShapeQuestionSchema).min(1).max(20),
+  })
+  .strict();
+export type FlowQuestionsOutput = z.infer<typeof flowQuestionsOutputSchema>;
+
 export const flowExecutionStepStatusSchema = z.enum([
   "done",
   "partial",
@@ -321,6 +348,24 @@ export const flowHandoffContracts = {
       risks: ["..."],
     },
   },
+  questions: {
+    contractId: FLOW_QUESTIONS_CONTRACT,
+    schema: flowQuestionsOutputSchema,
+    label: "Shape Intake Questions",
+    example: {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "__stepId__",
+      questions: [
+        {
+          id: "accounts",
+          question: "Do users need to sign in?",
+          why: "Decides whether you need an auth system and a user store.",
+          kind: "choice",
+          options: ["No accounts", "Email + password", "Social login", "Not sure"],
+        },
+      ],
+    },
+  },
 } as const;
 export type FlowHandoffToken = keyof typeof flowHandoffContracts;
 
@@ -337,4 +382,5 @@ export const flowOutputContractSchemas = {
   planHandoff: flowPlanHandoffOutputSchema,
   architectureHandoff: flowArchitectureHandoffOutputSchema,
   executionHandoff: flowExecutionHandoffOutputSchema,
+  questions: flowQuestionsOutputSchema,
 } as const;

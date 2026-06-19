@@ -2,6 +2,7 @@ import type { EditorProviderConfig } from "./provider-yaml.js";
 import type {
   RoleWorkReport,
   VibestrateEvent,
+  ShapeQuestion,
   ApprovalRequest,
   ArtifactEntry,
   ChecklistItem,
@@ -656,9 +657,13 @@ export const api = {
       stepProfileOverrides?: Record<string, string>;
       skippedOptionalSteps?: string[];
     };
+    /** Context sources (files/URLs) injected into every agent prompt. */
+    contextSources?: { kind: "file" | "url"; ref: string; label?: string }[];
     resumeFrom?: {
       sourceRunId: string;
+      // Mirrors the core ResumeStage + the route enum; "planning" is in sync.
       fromStage:
+        | "planning"
         | "architecting"
         | "executing"
         | "reviewing"
@@ -673,6 +678,39 @@ export const api = {
     message: string;
   }> {
     return jsonPost("/api/runs", input);
+  },
+  // ── Shape phase (docs/design/shape-phase.md): the CTO planning chain. ──
+  /** Start the chain: launch the intake run from a brief ("Plan"). */
+  async startShapeIntake(input: {
+    task: string;
+    persona?: string;
+  }): Promise<{ ok: true; runId: string; pid: number | null }> {
+    return jsonPost("/api/shape/intake", input);
+  },
+  /** Read an intake run's pending gap questions (null = not an intake run). */
+  async getShapeQuestions(
+    runId: string,
+  ): Promise<{ questions: ShapeQuestion[] | null; hasBrief?: boolean }> {
+    return jsonGet(`/api/runs/${encodeURIComponent(runId)}/shape-questions`);
+  },
+  /** Submit answers -> launch the shape run seeded with them as context. */
+  async submitShapeAnswers(input: {
+    sourceRunId: string;
+    answers: { id: string; answer: string }[];
+  }): Promise<{ ok: true; runId: string; pid: number | null }> {
+    return jsonPost("/api/shape/answers", input);
+  },
+  /** Approve the shaped draft -> launch the roadmap synthesis run. */
+  async approveShapeRoadmap(
+    shapeRunId: string,
+  ): Promise<{ ok: true; runId: string; pid: number | null }> {
+    return jsonPost("/api/shape/roadmap", { shapeRunId });
+  },
+  /** Turn a finished shape-roadmap run into a reviewable proposal. */
+  async createShapeRoadmapProposal(
+    runId: string,
+  ): Promise<{ ok: true; proposalId: string }> {
+    return jsonPost("/api/shape/roadmap-proposal", { runId });
   },
   /** Dry-run a downstream rewind: the file overwrite/remove set the restore
    *  would apply. `preview: null` = nothing to restore for that stage. */
@@ -1439,6 +1477,8 @@ export const api = {
     patch: Partial<{
       title: string;
       description: string;
+      acceptanceCriteria: string;
+      est: string;
       priority: "low" | "medium" | "high";
       validationProfile: string | null;
       profileOverride: string | null;

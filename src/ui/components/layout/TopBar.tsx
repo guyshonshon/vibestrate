@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
+  Compass,
   Cpu,
   Plug,
   FileText,
@@ -49,6 +50,7 @@ type Props = {
   onShowMerge: () => void;
   onShowLedger: () => void;
   onShowConsult: () => void;
+  onShowShape: () => void;
   onShowSettings: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
 };
@@ -99,6 +101,7 @@ export function TopBar({
   onShowMerge,
   onShowLedger,
   onShowConsult,
+  onShowShape,
   onShowSettings,
   onOpenNotification,
 }: Props) {
@@ -161,6 +164,13 @@ export function TopBar({
       active: currentNav === "home" || currentNav === "runs",
       icon: LayoutGrid,
       onClick: onShowHome,
+    },
+    {
+      id: "shape",
+      label: "Plan",
+      active: currentNav === "shape",
+      icon: Compass,
+      onClick: onShowShape,
     },
     {
       id: "flows",

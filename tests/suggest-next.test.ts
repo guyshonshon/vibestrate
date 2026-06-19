@@ -14,6 +14,8 @@ function task(
     roadmapItemId: null,
     title: id,
     description: "",
+    acceptanceCriteria: "",
+    est: "",
     status: "backlog",
     priority: "medium",
     dependencies: [],

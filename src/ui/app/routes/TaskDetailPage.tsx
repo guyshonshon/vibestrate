@@ -247,6 +247,30 @@ export function TaskDetailPage({
           </section>
         ) : null}
 
+        {task.acceptanceCriteria || task.est ? (
+          <section className="slab p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
+                acceptance criteria
+              </div>
+              {task.est ? (
+                <div className="text-[11px] text-fog-300">
+                  est <span className="font-semibold text-fog-100">{task.est}</span>
+                </div>
+              ) : null}
+            </div>
+            {task.acceptanceCriteria ? (
+              <div className="mt-1 whitespace-pre-wrap text-[12.5px] text-fog-200">
+                {task.acceptanceCriteria}
+              </div>
+            ) : (
+              <div className="mt-1 text-[12px] text-fog-400">
+                No acceptance criteria yet.
+              </div>
+            )}
+          </section>
+        ) : null}
+
         <ChecklistSection task={task} onChanged={load} onOpenTask={onOpenTask} />
 
         <ContextSourcesSection task={task} onChanged={load} />

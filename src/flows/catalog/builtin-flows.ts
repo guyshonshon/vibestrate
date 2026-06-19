@@ -981,6 +981,208 @@ export const planOnlyFlow = flowDefinitionSchema.parse({
   },
 });
 
+// ── Shape phase ("Plan" as a CTO) ────────────────────────────────────────────
+// Three read-only links in a human-stepped chain (no durable pause, no nested
+// runs - see docs/design/shape-phase.md). The CTO posture lives in each step's
+// `instructions` (the director, v1; a persona `shapingPosture` field is a tracked
+// follow-up). None of the steps produce a `diff`, so run-launcher clamps every
+// link read-only by construction.
+//
+// Chain integrity (the load-bearing invariant, asserted by a test): the roadmap
+// link resumes the shape run at stage "executing", so seedResumedSteps copies the
+// output.md of every step BEFORE the first executing step - scope/spec/
+// architecture/risks - keyed by the roadmap flow's step ids. Those ids + stages
+// MUST match the shape flow exactly, or the second link throws at seed time.
+
+// Link 1: intake. Reads the brief, classifies it, emits the structured gap
+// questions the consult surface renders as a form. Terminates.
+export const shapeIntakeFlow = flowDefinitionSchema.parse({
+  id: "shape-intake",
+  version: 1,
+  label: "Shape: Intake",
+  description:
+    "Shape phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the shape run. Launched by 'Plan'.",
+  seats: {
+    planner: { label: "CTO (intake)", description: "Reads the brief and asks the scoping questions." },
+  },
+  steps: [
+    {
+      id: "intake",
+      label: "Intake",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["questions"],
+      instructions:
+        "You are the CTO doing intake on a new brief, before any planning. Read the brief and classify it. Then produce the most important GAP QUESTIONS you must ask to scope the work - the unstated decisions a vague brief leaves open (sign-in? payments? data persistence? expected scale? deadline? an existing system to fit?). For each: a stable kebab-case id, the question, why it matters in one line, kind 'choice' (with 2-4 bounded options) or 'text'. Ask only what changes the plan; skip trivia. Never ask for secret values - only what to build. Emit the questions JSON exactly per the contract.",
+    },
+  ],
+  complexity: "low",
+  capabilities: {
+    taskKinds: [],
+    strengths: ["planning", "analysis"],
+    costClass: "low",
+    latencyClass: "low",
+  },
+});
+
+// Link 2: shape. With the answers as context, the CTO scopes the work, writes a
+// spec + architecture (incl. a provisioning checklist of env var NAMES) + risks,
+// and a reviewer checks completeness against the APPROVED scope (single pass v1 -
+// the read-only clamp disables the adaptive loop; the human approves between
+// links). Terminates with reviewable draft artifacts.
+export const shapeFlow = flowDefinitionSchema.parse({
+  id: "shape",
+  version: 1,
+  label: "Shape",
+  description:
+    "Shape phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
+  seats: {
+    planner: { label: "CTO (shape)", description: "Scopes the work and writes the spec and risks." },
+    architect: { label: "Architect", description: "Designs the architecture and provisioning checklist." },
+    reviewer: { label: "Reviewer", description: "Checks the shape for completeness against the approved scope." },
+  },
+  steps: [
+    {
+      id: "scope",
+      label: "Scope",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["scope"],
+      instructions:
+        "You are the CTO shaping this work before any code. From the brief and the user's answers, define the SCOPE: what is in, what is explicitly OUT, and your assumptions. Surface unstated requirements the user likely didn't mention (auth, persistence, payments, scale, privacy) - but thorough means surface-then-scope to what the user actually wants, NOT build everything. State which gap questions are now answered and any that remain. Be concrete and decisive.",
+    },
+    {
+      id: "spec",
+      label: "Spec",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief", "scope"],
+      outputs: ["spec"],
+      instructions:
+        "As CTO, turn the approved scope into a SPECIFICATION: the capabilities to build, the data model, the key user flows, and acceptance criteria in plain prose. Explain tradeoffs so a non-expert can steer ('you need auth because customers store payment data; here are the options and their costs'). Reference env var NAMES only, never secret values. Stay within the approved scope; flag anything you think is missing as an open question rather than silently expanding.",
+    },
+    {
+      id: "architecture",
+      label: "Architecture",
+      kind: "agent-turn",
+      seat: "architect",
+      stage: "architecting",
+      inputs: ["task-brief", "scope", "spec"],
+      outputs: ["architecture"],
+      instructions:
+        "As CTO/architect, design the ARCHITECTURE from the spec: components and their responsibilities, the interfaces between them, the chosen stack and why, and a PROVISIONING checklist (services to set up and the env var NAMES to fill in a gitignored .env - never real values). Give 2-3 options for the load-bearing decisions with cost / maintainability tradeoffs. Prefer the simplest design that meets the approved scope.",
+    },
+    {
+      id: "risks",
+      label: "Risks",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "architecting",
+      inputs: ["task-brief", "scope", "spec", "architecture"],
+      outputs: ["risks"],
+      instructions:
+        "As CTO, enumerate the RISKS: what is most likely to go wrong, the failure modes, the security and data-privacy concerns, and what is hardest to get right. For each, give a concrete mitigation. Be honest about what this plan does NOT guarantee, and call out where the user must make an informed decision.",
+    },
+    {
+      id: "shape-review",
+      label: "Review shape",
+      kind: "review-turn",
+      seat: "reviewer",
+      stage: "reviewing",
+      inputs: ["task-brief", "scope", "spec", "architecture", "risks"],
+      outputs: ["findings", "review-decision"],
+      instructions:
+        "Review the scope, spec, architecture, and risks for COMPLETENESS AGAINST THE APPROVED SCOPE - not against an ideal system. Does the spec cover everything in scope? Are the acceptance criteria checkable? Are there unaddressed risks or unstated requirements WITHIN scope? Decide APPROVED if the shape is sound and complete for the approved scope, or CHANGES_REQUESTED with the specific gaps. Do not request scope expansion.",
+    },
+  ],
+  complexity: "high",
+  capabilities: {
+    taskKinds: [],
+    strengths: ["planning", "analysis", "architecture"],
+    costClass: "medium",
+    latencyClass: "medium",
+  },
+});
+
+// Link 3: roadmap. Resumes the shape run (stage "executing"), so scope/spec/
+// architecture/risks are seeded as context, and synthesizes them into a
+// dependency-aware proposal in the VIBESTRATE_TASK marker format the existing
+// proposal parser/accept path consumes. The four seeded steps must mirror the
+// shape flow's ids + stages exactly (chain integrity).
+export const shapeRoadmapFlow = flowDefinitionSchema.parse({
+  id: "shape-roadmap",
+  version: 1,
+  label: "Shape: Roadmap",
+  description:
+    "Shape phase link 3 - WRITES NO CODE. Resumes the approved shape and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
+  seats: {
+    planner: { label: "CTO (roadmap)", description: "Synthesizes the approved shape into board cards." },
+    architect: { label: "Architect", description: "Seeded architecture context." },
+    reviewer: { label: "Reviewer", description: "Seeded review context." },
+  },
+  steps: [
+    {
+      id: "scope",
+      label: "Scope",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief"],
+      outputs: ["scope"],
+    },
+    {
+      id: "spec",
+      label: "Spec",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "planning",
+      inputs: ["task-brief", "scope"],
+      outputs: ["spec"],
+    },
+    {
+      id: "architecture",
+      label: "Architecture",
+      kind: "agent-turn",
+      seat: "architect",
+      stage: "architecting",
+      inputs: ["task-brief", "scope", "spec"],
+      outputs: ["architecture"],
+    },
+    {
+      id: "risks",
+      label: "Risks",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "architecting",
+      inputs: ["task-brief", "scope", "spec", "architecture"],
+      outputs: ["risks"],
+    },
+    {
+      id: "synthesize",
+      label: "Synthesize roadmap",
+      kind: "agent-turn",
+      seat: "planner",
+      stage: "executing",
+      inputs: ["task-brief", "scope", "spec", "architecture", "risks"],
+      outputs: ["roadmap-proposal"],
+      instructions:
+        "Synthesize the approved scope, spec, architecture, and risks into an ordered, dependency-aware ROADMAP of board cards. Decompose the work to directly-buildable leaves: a trivial brief is one card; a large system is a multi-level tree (auth, data, billing, rendering...). For each card emit a VIBESTRATE_TASK block with TITLE, DESCRIPTION, PRIORITY, DEPENDS_ON (titles of blocking cards), ACCEPTANCE (the prose acceptance criteria), and EST (a rough size like S / M / L). Order so dependencies come first; never create a cycle.",
+    },
+  ],
+  complexity: "medium",
+  capabilities: {
+    taskKinds: [],
+    strengths: ["planning", "analysis"],
+    costClass: "medium",
+    latencyClass: "medium",
+  },
+});
+
 export const builtinFlows: readonly FlowDefinition[] = [
   defaultFlow,
   planOnlyFlow,
@@ -991,6 +1193,9 @@ export const builtinFlows: readonly FlowDefinition[] = [
   securityReviewFlow,
   expressFlow,
   scaffoldFlow,
+  shapeIntakeFlow,
+  shapeFlow,
+  shapeRoadmapFlow,
 ];
 
 export function findBuiltinFlow(id: string): FlowDefinition | null {

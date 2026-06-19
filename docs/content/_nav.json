@@ -46,6 +46,10 @@
         {
           "slug": "concepts/consult",
           "label": "Consult"
+        },
+        {
+          "slug": "concepts/shape",
+          "label": "Shape (plan as a CTO)"
         }
       ]
     },

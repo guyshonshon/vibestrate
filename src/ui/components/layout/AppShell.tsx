@@ -30,6 +30,7 @@ type AppShellProps = {
   onShowMerge: () => void;
   onShowLedger: () => void;
   onShowConsult: () => void;
+  onShowShape: () => void;
   onOpenNotification: (n: NotificationRecord) => void;
 };
 
@@ -62,6 +63,7 @@ export function AppShell({
   onShowMerge,
   onShowLedger,
   onShowConsult,
+  onShowShape,
   onOpenNotification,
 }: AppShellProps) {
   return (
@@ -87,6 +89,7 @@ export function AppShell({
         onShowMerge={onShowMerge}
         onShowLedger={onShowLedger}
         onShowConsult={onShowConsult}
+        onShowShape={onShowShape}
         onShowSettings={onShowSettings}
         onOpenNotification={onOpenNotification}
       />

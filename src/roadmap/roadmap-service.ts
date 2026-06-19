@@ -48,6 +48,8 @@ export type AddRoadmapInput = {
 export type AddTaskInput = {
   title: string;
   description?: string;
+  acceptanceCriteria?: string;
+  est?: string;
   priority?: Priority;
   roadmapItemId?: string | null;
   dependencies?: string[];
@@ -154,6 +156,8 @@ export class RoadmapService {
       roadmapItemId: input.roadmapItemId ?? null,
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
+      acceptanceCriteria: input.acceptanceCriteria?.trim() ?? "",
+      est: input.est?.trim() ?? "",
       status: "backlog",
       priority: input.priority ?? "medium",
       dependencies: input.dependencies ?? [],
@@ -223,6 +227,8 @@ export class RoadmapService {
         Task,
         | "title"
         | "description"
+        | "acceptanceCriteria"
+        | "est"
         | "priority"
         | "dependencies"
         | "requiredSkills"

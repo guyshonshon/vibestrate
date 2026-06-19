@@ -206,6 +206,8 @@ export class ProposalService {
       roadmapItemId: null,
       title: t.title,
       description: t.description,
+      acceptanceCriteria: t.acceptanceCriteria,
+      est: t.est,
       status: "backlog",
       priority: t.priority,
       dependencies: t.dependencies,
@@ -332,6 +334,8 @@ export class ProposalService {
         const t = await this.roadmap.addTask({
           title: draft.title,
           description: draft.description,
+          acceptanceCriteria: draft.acceptanceCriteria,
+          est: draft.est,
           priority: draft.priority,
           riskLevel: draft.riskLevel,
           roadmapItemId: draft.roadmapTitle
