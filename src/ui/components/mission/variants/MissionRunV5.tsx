@@ -5,9 +5,11 @@ import {
   Layers,
   LayoutGrid,
   Lock,
+  Moon,
   Play,
   ShieldCheck,
   Sparkles,
+  Sun,
   Terminal,
   Users,
 } from "lucide-react";
@@ -44,6 +46,9 @@ export function MissionRunV5() {
   const [personas, setPersonas] = useState<PersonaSummary[]>([]);
   const [suggestions, setSuggestions] = useState<TaskSuggestion[]>([]);
 
+  // Local preview toggle for the themeable run-control (B: this surface is
+  // light/dark-ready via --s-* scene tokens; the rest of the app stays dark).
+  const [runTheme, setRunTheme] = useState<"dark" | "paper">("dark");
   const [brief, setBrief] = useState("");
   const [flowId, setFlowId] = useState("");
   const [crewId, setCrewId] = useState<string | null>(null);
@@ -225,20 +230,39 @@ export function MissionRunV5() {
 
   return (
     <div
-      className="fade-up relative overflow-hidden rounded-[18px] border border-violet-soft/25"
+      data-scene={runTheme === "paper" ? "paper" : "dark"}
+      className="fade-up overflow-hidden rounded-2xl border"
       style={{
-        background:
-          "linear-gradient(180deg, rgba(168,139,250,0.14) 0%, rgba(255,255,255,0.03) 24%, rgba(14,17,24,0.20) 100%), rgba(11,12,20,0.46)",
-        backdropFilter: "blur(28px) saturate(155%)",
-        WebkitBackdropFilter: "blur(28px) saturate(155%)",
-        boxShadow:
-          "0 1px 0 rgba(255,255,255,0.10) inset, 0 40px 90px -34px rgba(76,42,170,0.60), 0 24px 60px -40px rgba(8,6,22,0.9)",
+        background: "var(--s-aurora)",
+        borderColor: "var(--s-line)",
+        color: "var(--s-ink)",
       }}
     >
-      <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <div className="px-5 py-5 sm:px-7 sm:py-6">
+        {/* One toggle themes the whole run-control (preview light / dark). */}
+        <div className="mb-4 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => setRunTheme((t) => (t === "paper" ? "dark" : "paper"))}
+            title="Preview the run control in light / dark"
+            aria-label="Toggle light or dark preview"
+            className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] transition"
+            style={{ borderColor: "var(--s-line)", color: "var(--s-ink-dim)" }}
+          >
+            {runTheme === "paper" ? (
+              <>
+                <Sun className="h-3.5 w-3.5" strokeWidth={1.8} /> Light
+              </>
+            ) : (
+              <>
+                <Moon className="h-3.5 w-3.5" strokeWidth={1.8} /> Dark
+              </>
+            )}
+          </button>
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* ── LEFT: composition ──────────────────────────────────────────── */}
-        <div className="flex flex-col gap-8 lg:col-span-8">
+        <div className="flex flex-col gap-6 lg:col-span-8">
           {/* Task */}
           <section>
             <PaneTitle>Task</PaneTitle>
@@ -252,22 +276,34 @@ export function MissionRunV5() {
                 }
               }}
               placeholder="Add structured logging to the settings save handler"
-              className="slab min-h-[128px] w-full resize-y px-5 py-4 text-[16px] leading-[1.6] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
+              className="s-glass-2 min-h-[116px] w-full resize-y rounded-xl border border-[color:var(--s-line)] px-5 py-3.5 text-[16px] leading-[1.6] outline-none transition placeholder:text-[color:var(--s-ink-faint)] focus:border-[color:var(--s-accent)]"
+              style={{ color: "var(--s-ink)" }}
             />
             {suggestions.length > 0 ? (
-              <div className="mt-3 slab-flat">
-                <div className="flex items-center gap-2 border-b border-[color:var(--line-soft)] px-4 py-2.5">
+              <div
+                className="s-glass-2 mt-2.5 overflow-hidden rounded-xl border"
+                style={{ borderColor: "var(--s-line)" }}
+              >
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5"
+                  style={{ borderBottom: "1px solid var(--s-line)" }}
+                >
                   <Sparkles
-                    className="h-3.5 w-3.5 text-violet-soft"
+                    className="h-3.5 w-3.5"
                     strokeWidth={1.8}
+                    style={{ color: "var(--s-accent-bright)" }}
                   />
-                  <span className="font-mono text-[12px] text-fog-300">
+                  <span
+                    className="font-mono text-[12px]"
+                    style={{ color: "var(--s-ink-dim)" }}
+                  >
                     Or pick up from your roadmap
                   </span>
                   <button
                     type="button"
                     onClick={() => navigate({ kind: "board" })}
-                    className="ml-auto flex items-center gap-1.5 font-mono text-[12px] text-fog-400 transition hover:text-fog-100"
+                    className="ml-auto flex items-center gap-1.5 font-mono text-[12px] transition hover:brightness-125"
+                    style={{ color: "var(--s-ink-faint)" }}
                   >
                     <LayoutGrid className="h-3.5 w-3.5" strokeWidth={1.8} /> Board
                   </button>
@@ -280,16 +316,25 @@ export function MissionRunV5() {
                       disabled={busy}
                       onClick={() => void start(s.taskId)}
                       title={s.reason}
-                      className="flex items-center gap-2.5 border border-[color:var(--line)] bg-ink-50 px-3.5 py-2 text-left transition hover:border-violet-soft/40 hover:bg-ink-100 disabled:opacity-50"
+                      className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2 text-left transition hover:brightness-110 disabled:opacity-50"
+                      style={{
+                        background: "var(--s-slab)",
+                        borderColor: "var(--s-line)",
+                      }}
                     >
-                      <span className="max-w-[240px] truncate text-[13.5px] text-fog-100">
+                      <span
+                        className="max-w-[240px] truncate text-[13.5px]"
+                        style={{ color: "var(--s-ink)" }}
+                      >
                         {s.title}
                       </span>
                       <span
-                        className={cn(
-                          "font-mono text-[11px]",
-                          s.ready ? "text-emerald" : "text-warn",
-                        )}
+                        className="font-mono text-[11px]"
+                        style={{
+                          color: s.ready
+                            ? "var(--s-ok-ink)"
+                            : "var(--s-warn-ink)",
+                        }}
                       >
                         {s.ready ? "ready" : `${s.openBlockers.length}b`}
                       </span>
@@ -303,9 +348,9 @@ export function MissionRunV5() {
           {/* Configuration - dense grid sitting with the Task brief, no box. */}
           <section>
             <PaneTitle>Configuration</PaneTitle>
-            <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2.5">
-                <span className="font-mono text-[12px] text-fog-400">
+                <span className="font-mono text-[12px] text-[color:var(--s-ink-dim)]">
                   Run mode
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -323,7 +368,7 @@ export function MissionRunV5() {
                 </div>
               </div>
               <div className="flex flex-col gap-2.5">
-                <span className="font-mono text-[12px] text-fog-400">
+                <span className="font-mono text-[12px] text-[color:var(--s-ink-dim)]">
                   Tuning
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -341,7 +386,7 @@ export function MissionRunV5() {
               </div>
               {personas.length > 0 ? (
                 <div className="flex flex-col gap-2.5 sm:col-span-2">
-                  <span className="font-mono text-[12px] text-fog-400">
+                  <span className="font-mono text-[12px] text-[color:var(--s-ink-dim)]">
                     Supervisor
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -351,12 +396,19 @@ export function MissionRunV5() {
                         type="button"
                         onClick={() => setPersonaId(p.id)}
                         title={p.description}
-                        className={cn(
-                          "border px-3.5 py-2 text-[13px] transition",
+                        className="rounded-lg border px-3.5 py-2 text-[13px] transition hover:brightness-110"
+                        style={
                           p.id === personaId
-                            ? "border-violet-soft/50 bg-violet-mid/[0.14] text-fog-100"
-                            : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
-                        )}
+                            ? {
+                                background: "var(--s-soft)",
+                                borderColor: "transparent",
+                                color: "var(--s-soft-ink)",
+                              }
+                            : {
+                                borderColor: "var(--s-line)",
+                                color: "var(--s-ink-dim)",
+                              }
+                        }
                       >
                         {p.label}
                       </button>
@@ -364,12 +416,15 @@ export function MissionRunV5() {
                   </div>
                 </div>
               ) : null}
-              <p className="text-[12.5px] leading-[1.6] text-fog-300 sm:col-span-2">
+              <p
+                className="text-[12.5px] leading-[1.6] sm:col-span-2"
+                style={{ color: "var(--s-ink-dim)" }}
+              >
                 {readOnly || unattended ? (
                   <span className="flex flex-col gap-1.5">
                     {readOnly ? (
                       <span>
-                        <span className="text-fog-100">
+                        <span style={{ color: "var(--s-ink)" }}>
                           Read-only is enforced.
                         </span>{" "}
                         Every role plans and proposes but never writes; the write
@@ -379,15 +434,15 @@ export function MissionRunV5() {
                     ) : null}
                     {unattended ? (
                       <span>
-                        <span className="text-fog-100">Unattended.</span> The run
-                        never pauses for a human: approval gates auto-resolve after
-                        a timeout and a budget or resilience limit ends the run
-                        instead of waiting.
+                        <span style={{ color: "var(--s-ink)" }}>Unattended.</span>{" "}
+                        The run never pauses for a human: approval gates
+                        auto-resolve after a timeout and a budget or resilience
+                        limit ends the run instead of waiting.
                       </span>
                     ) : null}
                   </span>
                 ) : (
-                  <span className="text-fog-300">
+                  <span>
                     Default: agents can write inside the run&apos;s worktree and
                     the run pauses for you at approval gates. Nothing is ever
                     pushed or merged.
@@ -405,11 +460,18 @@ export function MissionRunV5() {
               Flow
             </PaneTitle>
             {flows.length === 0 ? (
-              <div className="slab-flat px-5 py-4 text-[14px] text-fog-300">
+              <div
+                className="rounded-xl border px-5 py-4 text-[14px]"
+                style={{
+                  background: "var(--s-slab-2)",
+                  borderColor: "var(--s-line)",
+                  color: "var(--s-ink-dim)",
+                }}
+              >
                 No flows discovered.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                 {flows.map((f) => {
                   const steps = f.definition.steps ?? [];
                   const seats = Object.keys(f.definition.seats ?? {}).length;
@@ -440,7 +502,7 @@ export function MissionRunV5() {
               >
                 Crew
               </PaneTitle>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                 {crews.map((c) => {
                   const on = c.id === crewId;
                   const profiles = [...new Set(c.roles.map((r) => r.profile))];
@@ -472,7 +534,10 @@ export function MissionRunV5() {
               >
                 Inputs
               </PaneTitle>
-              <div className="slab-flat grid grid-cols-1 gap-x-7 gap-y-5 p-5 sm:grid-cols-2">
+              <div
+                className="s-glass-2 grid grid-cols-1 gap-x-7 gap-y-4 rounded-xl border p-4 sm:grid-cols-2"
+                style={{ borderColor: "var(--s-line)" }}
+              >
                 {Object.entries(flowParams).map(([name, def]) => {
                   const pf = paramPrefill[name];
                   const val =
@@ -488,26 +553,32 @@ export function MissionRunV5() {
                     setParamValues((c) => ({ ...c, [name]: v }));
                   return (
                     <label key={name} className="flex flex-col gap-1.5">
-                      <span className="flex flex-wrap items-center gap-1.5 text-[13px] text-fog-200">
+                      <span
+                        className="flex flex-wrap items-center gap-1.5 text-[13px]"
+                        style={{ color: "var(--s-ink)" }}
+                      >
                         <span className="font-medium">{name}</span>
                         {def.required ? (
                           <span className="text-fail">*</span>
                         ) : null}
                         {def.shared ? (
-                          <span className="text-fog-400" title="Project-global">
+                          <span
+                            style={{ color: "var(--s-ink-faint)" }}
+                            title="Project-global"
+                          >
                             · shared
                           </span>
                         ) : null}
                         {pf && !def.secret ? (
                           <span
-                            className="text-emerald/80"
+                            style={{ color: "var(--s-ok-ink)" }}
                             title={`From the project profile (${pf.setBy})`}
                           >
                             · {pf.setBy === "generated" ? "generated" : "saved"}
                           </span>
                         ) : null}
                         {def.description ? (
-                          <span className="text-fog-400">
+                          <span style={{ color: "var(--s-ink-faint)" }}>
                             · {def.description}
                           </span>
                         ) : null}
@@ -528,12 +599,19 @@ export function MissionRunV5() {
                                 key={opt}
                                 type="button"
                                 onClick={() => set(opt)}
-                                className={cn(
-                                  "border px-3 py-1.5 text-[13px] transition",
+                                className="rounded-lg border px-3 py-1.5 text-[13px] transition hover:brightness-110"
+                                style={
                                   val === opt
-                                    ? "border-violet-soft/50 bg-violet-mid/[0.14] text-fog-100"
-                                    : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
-                                )}
+                                    ? {
+                                        background: "var(--s-soft)",
+                                        borderColor: "transparent",
+                                        color: "var(--s-soft-ink)",
+                                      }
+                                    : {
+                                        borderColor: "var(--s-line)",
+                                        color: "var(--s-ink-dim)",
+                                      }
+                                }
                               >
                                 {opt}
                               </button>
@@ -555,7 +633,8 @@ export function MissionRunV5() {
                                 ? "env var NAME (e.g. OPENAI_API_KEY)"
                                 : def.type
                             }
-                            className="min-w-0 flex-1 border border-[color:var(--line)] bg-ink-0 px-3 py-2 text-[13.5px] text-fog-100 outline-none placeholder:text-fog-500 focus:border-violet-soft/45"
+                            className="min-w-0 flex-1 rounded-lg border border-[color:var(--s-line)] px-3 py-2 text-[13.5px] outline-none transition placeholder:text-[color:var(--s-ink-faint)] focus:border-[color:var(--s-accent)]"
+                            style={{ background: "var(--s-slab)", color: "var(--s-ink)" }}
                           />
                         )}
                         {def.generate && !def.secret ? (
@@ -564,7 +643,11 @@ export function MissionRunV5() {
                             disabled={generating === name}
                             onClick={() => void generateParam(name)}
                             title={def.generate.instruction}
-                            className="flex shrink-0 items-center gap-1.5 border border-violet-soft/40 px-3 py-2 text-[12.5px] text-violet-100 transition hover:bg-violet-mid/10 disabled:opacity-50"
+                            className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-[12.5px] transition hover:brightness-110 disabled:opacity-50"
+                            style={{
+                              borderColor: "var(--s-line)",
+                              color: "var(--s-accent-bright)",
+                            }}
                           >
                             <Sparkles className="h-3.5 w-3.5" strokeWidth={1.8} />
                             {generating === name ? "…" : "Generate"}
@@ -579,17 +662,29 @@ export function MissionRunV5() {
           ) : null}
         </div>
 
-        {/* ── RIGHT: run summary (sticky) ────────────────────────────────── */}
+        {/* ── RIGHT: run summary (04 "soft cards", themeable via --s-* tokens) ── */}
         <aside className="lg:col-span-4 lg:sticky lg:top-6">
           <PaneTitle>Run summary</PaneTitle>
-          <div className="slab-flat">
-            <p className="border-b border-[color:var(--line-soft)] px-5 py-3 text-[12.5px] leading-[1.55] text-fog-300">
-              What this run will do, before you start it.
-            </p>
+          <div
+            className="s-glass overflow-hidden rounded-2xl border pb-2"
+            style={{
+              borderColor: "var(--s-line)",
+              color: "var(--s-slab-ink)",
+            }}
+          >
+            <div className="px-4 pt-3.5 pb-2.5">
+              <p
+                className="text-[12.5px] leading-[1.5]"
+                style={{ color: "var(--s-ink-dim)" }}
+              >
+                What this run will do, before you start it.
+              </p>
+            </div>
 
-            {/* Readback rows - clean labels, mono values */}
-            <dl className="flex flex-col divide-y divide-[color:var(--line-soft)]">
+            {/* Readback rows - soft rounded panels with accent chips */}
+            <div className="flex flex-col gap-2 px-3">
               <SummaryRow
+                icon={<Layers className="h-4 w-4" strokeWidth={1.8} />}
                 label="Flow"
                 value={selectedFlow ? selectedFlow.definition.label : "auto"}
                 hint={
@@ -597,20 +692,25 @@ export function MissionRunV5() {
                     ? `${(selectedFlow.definition.steps ?? []).length} steps`
                     : "orchestrator picks"
                 }
-                accent={selectedFlow ? "emerald" : "muted"}
+                accent={selectedFlow ? "ok" : "muted"}
               />
               <SummaryRow
+                icon={<Users className="h-4 w-4" strokeWidth={1.8} />}
                 label="Crew"
                 value={selectedCrew ? selectedCrew.label : "default"}
                 hint={
                   selectedCrew ? `${selectedCrew.roles.length} roles` : undefined
                 }
+                accent={selectedCrew ? "ok" : "muted"}
               />
               <SummaryRow
+                icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.8} />}
                 label="Supervisor"
                 value={selectedPersona ? selectedPersona.label : "default"}
+                accent={selectedPersona ? undefined : "muted"}
               />
               <SummaryRow
+                icon={<Lock className="h-4 w-4" strokeWidth={1.8} />}
                 label="Mode"
                 value={
                   readOnly && unattended
@@ -621,10 +721,11 @@ export function MissionRunV5() {
                         ? "unattended"
                         : "interactive · writes"
                 }
-                accent={readOnly ? "violet" : undefined}
+                accent={readOnly || unattended ? "soft" : undefined}
               />
               {concise || forceSelect ? (
                 <SummaryRow
+                  icon={<Sparkles className="h-4 w-4" strokeWidth={1.8} />}
                   label="Tuning"
                   value={[
                     concise ? "concise" : null,
@@ -632,16 +733,21 @@ export function MissionRunV5() {
                   ]
                     .filter(Boolean)
                     .join(" · ")}
+                  accent="soft"
                 />
               ) : null}
-            </dl>
+            </div>
 
             {/* Readiness line */}
-            <div className="border-t border-[color:var(--line-soft)] px-5 py-4">
+            <div className="px-4 pt-3.5">
               {!canStart ? (
-                <div className="flex items-start gap-2.5 text-[13px] leading-[1.5] text-warn">
+                <div
+                  className="flex items-start gap-2.5 text-[13px] leading-[1.5]"
+                  style={{ color: "var(--s-warn-ink)" }}
+                >
                   <span
-                    className="mt-[7px] h-1.5 w-1.5 shrink-0 bg-warn"
+                    className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: "var(--s-warn-ink)" }}
                     aria-hidden
                   />
                   <span>
@@ -655,28 +761,34 @@ export function MissionRunV5() {
                   </span>
                 </div>
               ) : (
-                <div className="flex items-start gap-2.5 text-[13px] leading-[1.5] text-emerald">
-                  <Check
-                    className="mt-0.5 h-4 w-4 shrink-0"
-                    strokeWidth={2.2}
-                  />
+                <div
+                  className="flex items-start gap-2.5 text-[13px] leading-[1.5]"
+                  style={{ color: "var(--s-ok-ink)" }}
+                >
+                  <Check className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2.2} />
                   <span>Ready to start. Nothing pushes or merges.</span>
                 </div>
               )}
             </div>
 
-            {/* Start button */}
-            <div className="px-5 pb-4">
+            {/* Start button - accent fill */}
+            <div className="px-4 pt-3">
               <button
                 type="button"
                 disabled={!canStart}
                 onClick={() => void start()}
-                className={cn(
-                  "flex w-full items-center justify-center gap-2.5 px-5 py-3.5 text-[15px] font-medium transition",
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-[15px] font-medium transition disabled:cursor-not-allowed"
+                style={
                   canStart
-                    ? "border border-violet-deep bg-violet-deep text-white hover:bg-white hover:text-violet-deep"
-                    : "cursor-not-allowed border border-[color:var(--line)] text-fog-500",
-                )}
+                    ? {
+                        background: "var(--s-accent)",
+                        color: "var(--s-on-accent)",
+                      }
+                    : {
+                        background: "var(--s-slab-2)",
+                        color: "var(--s-ink-faint)",
+                      }
+                }
               >
                 <Play className="h-4 w-4" strokeWidth={2.2} />
                 {busy ? "Starting…" : "Start run"}
@@ -684,22 +796,34 @@ export function MissionRunV5() {
             </div>
 
             {/* Live command mirror - copyable */}
-            <div className="px-5 pb-5">
+            <div className="px-4 pt-2.5">
               <button
                 type="button"
                 onClick={() => void copyCmd()}
                 title={`Copy - run this from the terminal or \`vibe shell\`:\n${runCmd}`}
-                className="group flex w-full items-center gap-2 border border-[color:var(--line)] bg-ink-0 px-3 py-2.5 text-left transition hover:border-violet-soft/30"
+                className="s-glass-2 group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left"
               >
                 <Terminal
-                  className="h-3.5 w-3.5 shrink-0 text-violet-soft"
+                  className="h-3.5 w-3.5 shrink-0"
                   strokeWidth={1.8}
+                  style={{ color: "var(--s-accent-bright)" }}
                 />
-                <span className="select-none font-mono text-fog-500">$</span>
-                <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-fog-200">
+                <span
+                  className="select-none font-mono"
+                  style={{ color: "var(--s-ink-faint)" }}
+                >
+                  $
+                </span>
+                <code
+                  className="min-w-0 flex-1 truncate font-mono text-[12px]"
+                  style={{ color: "var(--s-ink-dim)" }}
+                >
                   {runCmd}
                 </code>
-                <span className="flex shrink-0 items-center gap-1 font-mono text-[11px] text-fog-500 group-hover:text-fog-300">
+                <span
+                  className="flex shrink-0 items-center gap-1 font-mono text-[11px]"
+                  style={{ color: "var(--s-ink-faint)" }}
+                >
                   {cmdCopied ? (
                     <Check className="h-3 w-3" strokeWidth={1.8} />
                   ) : (
@@ -711,10 +835,17 @@ export function MissionRunV5() {
             </div>
 
             {/* Safety reassurance */}
-            <div className="flex items-start gap-2.5 border-t border-[color:var(--line-soft)] px-5 py-4 text-[12px] leading-[1.55] text-fog-300">
+            <div
+              className="mt-3.5 flex items-start gap-2.5 px-4 py-3.5 text-[12px] leading-[1.55]"
+              style={{
+                borderTop: "1px solid var(--s-line)",
+                color: "var(--s-ink-dim)",
+              }}
+            >
               <ShieldCheck
-                className="mt-px h-4 w-4 shrink-0 text-emerald"
+                className="mt-px h-4 w-4 shrink-0"
                 strokeWidth={1.8}
+                style={{ color: "var(--s-ok-ink)" }}
               />
               <span>
                 Nothing pushes or merges. The run stops at merge-ready, blocked,
@@ -723,7 +854,7 @@ export function MissionRunV5() {
             </div>
 
             {error ? (
-              <div className="mx-5 mb-5 border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2.5 text-[12.5px] text-fail">
+              <div className="mx-4 mb-2 rounded-lg border border-[color:var(--fail)]/40 bg-[color:var(--fail)]/[0.08] px-3 py-2.5 text-[12.5px] text-fail">
                 {error}
               </div>
             ) : null}
@@ -747,8 +878,13 @@ function PaneTitle({
   children: React.ReactNode;
 }) {
   return (
-    <h2 className="mb-4 flex items-center gap-2.5 font-display text-[20px] font-semibold tracking-[-0.02em] text-fog-100">
-      {icon ? <span className="text-violet-soft">{icon}</span> : null}
+    <h2
+      className="mb-3 flex items-center gap-2.5 font-display text-[20px] font-semibold tracking-[-0.02em]"
+      style={{ color: "var(--s-ink)" }}
+    >
+      {icon ? (
+        <span style={{ color: "var(--s-accent-bright)" }}>{icon}</span>
+      ) : null}
       {children}
     </h2>
   );
@@ -791,19 +927,15 @@ function FlowBars({ steps, on }: { steps: FlowStepLike[]; on: boolean }) {
           key={i}
           style={{
             height: `${4 + Math.round(((weights[i] ?? 0) / peak) * 14)}px`,
+            background: on ? "#04231a" : "var(--s-accent-bright)",
           }}
-          className={cn(
-            "w-[3px] rounded-[1px]",
-            on ? "bg-ink-0/70" : "bg-violet-soft/55",
-          )}
+          className={cn("w-[3px] rounded-[1px]", on ? "opacity-70" : "opacity-60")}
         />
       ))}
       {extra > 0 ? (
         <span
-          className={cn(
-            "ml-1 self-center font-mono text-[10px]",
-            on ? "text-ink-0/60" : "text-fog-400",
-          )}
+          className="ml-1 self-center font-mono text-[10px]"
+          style={{ color: on ? "rgba(4,35,26,0.65)" : "var(--s-ink-faint)" }}
         >
           +{extra}
         </span>
@@ -836,40 +968,43 @@ function SelectCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col gap-2.5 border px-4 py-4 text-left transition",
-        on
-          ? "border-emerald bg-emerald text-ink-0"
-          : "border-[color:var(--line)] bg-ink-50 hover:border-violet-soft/40 hover:bg-ink-100",
+        "flex flex-col gap-2 overflow-hidden rounded-xl border px-3.5 py-3 text-left transition hover:brightness-110",
+        !on && "s-glass",
       )}
+      style={
+        on
+          ? { background: "var(--emerald)", borderColor: "transparent", color: "#04231a" }
+          : { borderColor: "var(--s-line)", color: "var(--s-ink)" }
+      }
     >
       <div className="flex items-center justify-between gap-2">
         <span
-          className={cn(
-            "font-display text-[15.5px] font-semibold leading-tight",
-            on ? "text-ink-0" : "text-fog-100",
-          )}
+          className="font-display text-[15.5px] font-semibold leading-tight"
+          style={{ color: on ? "#04231a" : "var(--s-ink)" }}
         >
           {title}
         </span>
         {on ? (
           <span
-            className="grid h-5 w-5 shrink-0 place-items-center bg-ink-0 text-emerald"
+            className="grid h-5 w-5 shrink-0 place-items-center rounded-md"
+            style={{ background: "#04231a", color: "var(--emerald)" }}
             aria-hidden
           >
             <Check className="h-3.5 w-3.5" strokeWidth={2.4} />
           </span>
         ) : badge ? (
-          <span className="border border-[color:var(--line)] px-1.5 py-px font-mono text-[10px] uppercase tracking-wide text-fog-400">
+          <span
+            className="rounded-md border px-1.5 py-px font-mono text-[10px] uppercase tracking-wide"
+            style={{ borderColor: "var(--s-line)", color: "var(--s-ink-faint)" }}
+          >
             {badge}
           </span>
         ) : null}
       </div>
       {pips ? <div className="-my-0.5">{pips}</div> : null}
       <span
-        className={cn(
-          "font-mono text-[12px]",
-          on ? "text-ink-0/75" : "text-fog-400",
-        )}
+        className="font-mono text-[12px]"
+        style={{ color: on ? "rgba(4,35,26,0.72)" : "var(--s-ink-faint)" }}
       >
         {meta}
       </span>
@@ -878,12 +1013,12 @@ function SelectCard({
           {tags.map((t) => (
             <span
               key={t}
-              className={cn(
-                "border px-1.5 py-px text-[11px]",
+              className="rounded-md border px-1.5 py-px text-[11px]"
+              style={
                 on
-                  ? "border-ink-0/25 text-ink-0/80"
-                  : "border-[color:var(--line-soft)] text-fog-400",
-              )}
+                  ? { borderColor: "rgba(4,35,26,0.25)", color: "rgba(4,35,26,0.8)" }
+                  : { borderColor: "var(--s-line)", color: "var(--s-ink-dim)" }
+              }
             >
               {t}
             </span>
@@ -911,64 +1046,93 @@ function BigToggle({
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={cn(
-        "inline-flex items-center gap-2 border px-3.5 py-2 text-[13px] transition",
+      className="inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-[13px] transition hover:brightness-110"
+      style={
         on
-          ? "border-violet-soft/50 bg-violet-mid/[0.14] text-fog-100"
-          : "border-[color:var(--line)] text-fog-300 hover:text-fog-100",
-      )}
+          ? {
+              background: "var(--s-soft)",
+              borderColor: "transparent",
+              color: "var(--s-soft-ink)",
+            }
+          : { borderColor: "var(--s-line)", color: "var(--s-ink-dim)" }
+      }
     >
       {icon ? (
-        <span className={on ? "text-violet-soft" : "text-fog-400"}>{icon}</span>
+        <span
+          style={{ color: on ? "var(--s-soft-ink)" : "var(--s-ink-faint)" }}
+        >
+          {icon}
+        </span>
       ) : null}
       <span>{label}</span>
       <span
-        className={cn(
-          "h-1.5 w-1.5",
-          on ? "bg-violet-soft" : "bg-[color:var(--line-strong)]",
-        )}
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: on ? "var(--s-soft-ink)" : "var(--s-line)" }}
         aria-hidden
       />
     </button>
   );
 }
 
-/** A run-summary readback row: label left, value + hint right (mono value). */
+/** 04 "soft card" readback row: a rounded inner panel with a leading accent
+ * icon, a dim label, and a value that becomes a colored chip when accented.
+ * All colors come from --s-* scene tokens so it works in dark and paper. */
 function SummaryRow({
+  icon,
   label,
   value,
   hint,
   accent,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: string;
   hint?: string;
-  accent?: "emerald" | "violet" | "muted";
+  accent?: "ok" | "soft" | "muted";
 }) {
+  const chip = accent === "ok" || accent === "soft";
   return (
-    <div className="flex items-baseline justify-between gap-4 px-5 py-3">
-      <dt className="font-mono text-[12px] text-fog-400">{label}</dt>
-      <dd className="flex min-w-0 items-baseline gap-2 text-right">
-        <span
-          className={cn(
-            "truncate font-mono text-[13px]",
-            accent === "emerald"
-              ? "text-emerald"
-              : accent === "violet"
-                ? "text-violet-soft"
-                : accent === "muted"
-                  ? "text-fog-400"
-                  : "text-fog-100",
-          )}
-        >
-          {value}
+    <div className="s-glass-2 flex items-center justify-between gap-3 rounded-xl px-3.5 py-2">
+      <span
+        className="flex items-center gap-2.5 text-[13px]"
+        style={{ color: "var(--s-ink-dim)" }}
+      >
+        <span className="flex" style={{ color: "var(--s-accent-bright)" }}>
+          {icon}
         </span>
+        {label}
+      </span>
+      <span className="flex min-w-0 items-baseline gap-2 text-right">
+        {chip ? (
+          <span
+            className="truncate rounded-lg px-2.5 py-1 text-[12.5px] font-medium"
+            style={{
+              background: accent === "ok" ? "var(--s-ok)" : "var(--s-soft)",
+              color: accent === "ok" ? "var(--s-ok-ink)" : "var(--s-soft-ink)",
+            }}
+          >
+            {value}
+          </span>
+        ) : (
+          <span
+            className="truncate text-[13.5px] font-medium"
+            style={{
+              color:
+                accent === "muted" ? "var(--s-ink-faint)" : "var(--s-slab-ink)",
+            }}
+          >
+            {value}
+          </span>
+        )}
         {hint ? (
-          <span className="shrink-0 font-mono text-[11px] text-fog-500">
+          <span
+            className="shrink-0 text-[11px]"
+            style={{ color: "var(--s-ink-faint)" }}
+          >
             {hint}
           </span>
         ) : null}
-      </dd>
+      </span>
     </div>
   );
 }

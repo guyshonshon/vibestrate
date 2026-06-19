@@ -141,21 +141,63 @@
   --s-bg: var(--color-ink-0);
   --s-ink: var(--color-fog-100);
   --s-ink-dim: var(--color-fog-300);
+  --s-ink-faint: var(--color-fog-500);
   --s-line: var(--line-strong);
   --s-accent: var(--color-violet-deep);
+  --s-accent-bright: var(--color-violet-soft);
   --s-on-accent: #ffffff;
   --s-slab: var(--color-ink-100);
   --s-slab-ink: var(--color-fog-100);
+  --s-slab-2: var(--color-ink-200);
+  --s-glass: rgba(17, 19, 29, 0.58);
+  --s-glass-2: rgba(28, 31, 44, 0.5);
+  --s-ok: rgba(52, 211, 153, 0.15);
+  --s-ok-ink: #5eead4;
+  --s-soft: rgba(139, 124, 255, 0.18);
+  --s-soft-ink: #c9b8ff;
+  --s-warn-ink: #fbbf24;
+  --s-aurora: radial-gradient(
+      125% 110% at 6% -18%,
+      rgba(74, 58, 160, 0.42) 0%,
+      rgba(74, 58, 160, 0) 56%
+    ),
+    radial-gradient(
+      115% 100% at 110% 8%,
+      rgba(40, 54, 130, 0.34) 0%,
+      rgba(40, 54, 130, 0) 52%
+    ),
+    var(--color-ink-0);
 }
 [data-scene="paper"] {
   --s-bg: #f4f5fa;
   --s-ink: #06070b;
   --s-ink-dim: #4a5063;
+  --s-ink-faint: #8a90a2;
   --s-line: rgba(0, 0, 0, 0.16);
   --s-accent: var(--color-violet-deep);
+  --s-accent-bright: var(--color-violet-deep);
   --s-on-accent: #ffffff;
   --s-slab: #ffffff;
   --s-slab-ink: #06070b;
+  --s-slab-2: #eef0f5;
+  --s-glass: rgba(255, 255, 255, 0.62);
+  --s-glass-2: rgba(233, 235, 243, 0.7);
+  --s-ok: #d9f3e9;
+  --s-ok-ink: #0f6e56;
+  --s-soft: #ece9fd;
+  --s-soft-ink: #3c3489;
+  --s-warn-ink: #854f0b;
+  --s-aurora: radial-gradient(
+      125% 110% at 6% -18%,
+      rgba(167, 139, 250, 0.16) 0%,
+      rgba(167, 139, 250, 0) 56%
+    ),
+    radial-gradient(
+      115% 100% at 110% 8%,
+      rgba(120, 150, 255, 0.12) 0%,
+      rgba(120, 150, 255, 0) 52%
+    ),
+    #f4f5fa;
 }
 [data-scene="violet"] {
   --s-bg: var(--color-violet-deep);
@@ -193,6 +235,21 @@
   color: var(--s-slab-ink, var(--color-fog-100));
   border: 1px solid var(--s-line, var(--line));
   border-radius: 0;
+}
+
+/* Frosted-glass card surface: a translucent fill + a capped backdrop blur so an
+ * aurora/gradient ground diffuses softly behind the card. `s-glass` is the
+ * card-level surface; `s-glass-2` is the lighter inner-panel surface. Colors
+ * come from the --s-* scene tokens, so both work in dark and paper. */
+.s-glass {
+  background: var(--s-glass);
+  backdrop-filter: blur(13px) saturate(135%);
+  -webkit-backdrop-filter: blur(13px) saturate(135%);
+}
+.s-glass-2 {
+  background: var(--s-glass-2);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
 }
 
 /* Brand card - ported 1:1 from the marketing `.docs-cards > p`: square,
