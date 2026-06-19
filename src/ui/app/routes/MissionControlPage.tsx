@@ -246,6 +246,16 @@ export function MissionControlPage({ onSelectRun }: Props) {
 
   return (
     <div className="relative z-10 px-8 pt-6 pb-16 fade-up">
+      {/* Violet ambient ground behind the run hero - gives the glass panel
+       * something to sit on and blur/tint through. Scoped to the hero band. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[760px]"
+        style={{
+          background:
+            "radial-gradient(56% 54% at 30% 26%, rgba(139,92,246,0.42), rgba(139,92,246,0) 60%), radial-gradient(46% 46% at 82% 6%, rgba(139,92,246,0.26), rgba(139,92,246,0) 56%)",
+        }}
+      />
       <section className="mt-2">
         <div className="mb-3 flex justify-end">
           <button

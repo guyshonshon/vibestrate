@@ -224,7 +224,17 @@ export function MissionRunV5() {
   }
 
   return (
-    <div className="fade-up grain relative overflow-hidden border border-[color:var(--line)] bg-ink-0">
+    <div
+      className="fade-up relative overflow-hidden rounded-[18px] border border-violet-soft/25"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(168,139,250,0.14) 0%, rgba(255,255,255,0.03) 24%, rgba(14,17,24,0.20) 100%), rgba(11,12,20,0.46)",
+        backdropFilter: "blur(28px) saturate(155%)",
+        WebkitBackdropFilter: "blur(28px) saturate(155%)",
+        boxShadow:
+          "0 1px 0 rgba(255,255,255,0.10) inset, 0 40px 90px -34px rgba(76,42,170,0.60), 0 24px 60px -40px rgba(8,6,22,0.9)",
+      }}
+    >
       <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* ── LEFT: composition ──────────────────────────────────────────── */}
