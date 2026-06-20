@@ -692,15 +692,47 @@ export const api = {
     questions: ShapeQuestion[] | null;
     hasBrief?: boolean;
     targetFlowId?: string | null;
+    round?: number;
+    coverageComplete?: boolean;
   }> {
     return jsonGet(`/api/runs/${encodeURIComponent(runId)}/shape-questions`);
   },
-  /** Submit answers -> launch the shape run seeded with them as context. */
+  /** Submit a round's answers -> either a gap-check round or the shape run.
+   *  `proceed` finalizes now (skip further gap-checks). */
   async submitShapeAnswers(input: {
     sourceRunId: string;
     answers: { id: string; answer: string }[];
-  }): Promise<{ ok: true; runId: string; pid: number | null }> {
+    proceed?: boolean;
+  }): Promise<{ ok: true; runId: string; pid: number | null; action: "gap-check" | "finalize" }> {
     return jsonPost("/api/shape/answers", input);
+  },
+  /** "Proceed to spec" with no new answers: finalize the accumulated set. */
+  async proceedShape(
+    sourceRunId: string,
+  ): Promise<{ ok: true; runId: string; pid: number | null }> {
+    return jsonPost("/api/shape/proceed", { sourceRunId });
+  },
+  /** Per-question assist (read-only, draft-only): Simplify / Suggest / Suggest-all. */
+  async shapeAssist(input: {
+    sourceRunId: string;
+    mode: "simplify" | "suggest" | "suggest-all";
+    questionId?: string;
+    questionIds?: string[];
+    forNonDeveloper?: boolean;
+  }): Promise<{
+    ok: true;
+    mode: string;
+    // simplify
+    text?: string;
+    affects?: string;
+    analogy?: string;
+    // suggest
+    suggestedValue?: string;
+    why?: string;
+    // suggest-all
+    items?: { questionId: string; suggestedValue: string; why: string }[];
+  }> {
+    return jsonPost("/api/shape/assist", input);
   },
   /** Approve the shaped draft -> launch the roadmap synthesis run. */
   async approveShapeRoadmap(
@@ -1055,6 +1087,8 @@ export const api = {
     providerId?: string | null;
     model?: string | null;
     effort?: string | null;
+    /** Screen-aware orb: a snapshot of the current screen (redacted server-side). */
+    viewContext?: { screen: string; details: string } | null;
   }): Promise<ConsultResult> {
     return jsonPost("/api/consult", input);
   },

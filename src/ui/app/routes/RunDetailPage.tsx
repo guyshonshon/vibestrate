@@ -93,6 +93,7 @@ export function RunDetailPage({
   const [engagement, setEngagement] = useState<EngagementEntry[]>([]);
   const [audit, setAudit] = useState<RunAudit | null>(null);
   const [shapeQuestions, setShapeQuestions] = useState<ShapeQuestion[] | null>(null);
+  const [shapeMeta, setShapeMeta] = useState<{ round: number; coverageComplete: boolean } | null>(null);
   const [arbitration, setArbitration] = useState<Record<string, unknown> | null>(
     null,
   );
@@ -124,6 +125,11 @@ export function RunDetailPage({
         setArbitration(arb);
         setAudit(aud);
         setShapeQuestions(shp?.questions ?? null);
+        setShapeMeta(
+          shp && shp.questions != null
+            ? { round: shp.round ?? 1, coverageComplete: shp.coverageComplete ?? false }
+            : null,
+        );
         setError(null);
         // Assurance only exists once a run is terminal.
         if (["merge_ready", "blocked", "failed", "aborted"].includes(r.status)) {
@@ -222,7 +228,9 @@ export function RunDetailPage({
   // off to it. (The questions artifact persists on the intake run, so revisiting
   // it re-offers them; the chain moves forward via the spawned run.)
   const awaitingShapeAnswers =
-    run.flow?.flowId === "shape-intake" && (shapeQuestions?.length ?? 0) > 0;
+    run.flow?.flowId === "shape-intake" &&
+    shapeQuestions != null &&
+    ((shapeQuestions.length ?? 0) > 0 || (shapeMeta?.coverageComplete ?? false));
   if (awaitingShapeAnswers) {
     return (
       <div className="deep-scene relative z-10 mx-auto max-w-[1520px] px-8 pt-6 pb-12 flex flex-col gap-5">
@@ -240,7 +248,9 @@ export function RunDetailPage({
         <RunGapQuestions
           runId={runId}
           questions={shapeQuestions!}
-          onSubmitted={(shapeRunId) => navigate({ kind: "run", runId: shapeRunId })}
+          round={shapeMeta?.round ?? 1}
+          coverageComplete={shapeMeta?.coverageComplete ?? false}
+          onSubmitted={(nextRunId) => navigate({ kind: "run", runId: nextRunId })}
         />
       </div>
     );

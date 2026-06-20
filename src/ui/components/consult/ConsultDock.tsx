@@ -3,6 +3,7 @@ import { Cpu, Send, X } from "lucide-react";
 import { api, type ProviderRow } from "../../lib/api.js";
 import type { ConsultResult, ProviderCatalog } from "../../lib/types.js";
 import { usePersistedState } from "../../lib/usePersistedState.js";
+import { getViewContext } from "../../lib/view-context.js";
 import { Button } from "../design/Button.js";
 import { Select } from "../design/Select.js";
 import { ConsultOrb } from "./ConsultOrb.js";
@@ -81,6 +82,9 @@ export function ConsultDock() {
         providerId: providerId || undefined,
         model: providerId && models.includes(model) ? model : undefined,
         effort: providerId && efforts.includes(effort) ? effort : undefined,
+        // Screen-aware: hand the orb a snapshot of whatever screen published one
+        // (e.g. the shape questions + answers). Redacted server-side.
+        viewContext: getViewContext(),
       });
       setResult(res);
     } catch (err) {
