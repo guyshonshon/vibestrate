@@ -25,6 +25,7 @@ function makeTask(id: string, deps: string[], status: TaskStatus = "ready"): Tas
     title: id,
     description: "",
     acceptanceCriteria: "",
+    acceptanceCommands: [],
     est: "",
     status,
     priority: "medium",

@@ -150,6 +150,12 @@ export const taskSchema = z.object({
   // omitted"; "" is the empty state (a card without criteria yet), not a
   // back-compat backfill.
   acceptanceCriteria: z.string().default(""),
+  // Machine-checkable acceptance (P5): shell commands that must PASS for the card
+  // to be "done" - run as an extra validation pass on the card's run, feeding the
+  // same gate as `commands.validate`. USER-AUTHORED (not LLM-generated), so it
+  // carries the same trust as the project's validate commands. Empty = LLM-judged
+  // acceptanceCriteria only.
+  acceptanceCommands: z.array(z.string().min(1).max(2000)).max(20).default([]),
   est: z.string().default(""),
   status: taskStatusSchema.default("backlog"),
   priority: prioritySchema.default("medium"),

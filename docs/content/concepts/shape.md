@@ -64,8 +64,14 @@ trigger biases to execute - a targeted change ("add X to foo.ts") just runs.
 Shape v1 is an educated draft and a scope-decision tool, not a novice autopilot.
 Its job is to make you an informed decision-maker about *scope and direction* -
 which you can judge - while technical correctness is guarded downstream by
-execution-time review, not by you nodding at an architecture doc. Termination is
-the reviewer's verdict plus your approval, not a machine-checked gate. See
-`docs/design/shape-phase.md` for the full reasoning, including what is
-deliberately deferred (a completeness loop, machine-checkable acceptance
-criteria, and one continuous "brief it and walk away" run).
+execution-time review, not by you nodding at an architecture doc.
+
+When a card runs, its acceptance criteria are now a **real gate**: they are
+carried into the run (so the agent builds to them) and the verifier must confirm
+each one before the run can pass - the prose criteria are judged by the verifier
+against the artifacts, and a card can also carry `acceptanceCommands` (shell
+checks you author) that run as an extra validation pass, so a failed acceptance
+check blocks merge-readiness like a failed test. See [Safety](concepts/safety) for
+the validation gate and `docs/design/shape-phase.md` for the full reasoning,
+including what is still deferred (a completeness loop, and one continuous "brief
+it and walk away" run).

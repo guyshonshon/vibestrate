@@ -5718,8 +5718,61 @@ export class Orchestrator {
         },
       });
     }
+    // P5: the linked card's machine-checkable acceptance commands run as an
+    // extra validation pass, feeding the SAME gate (a failure caps merge_ready).
+    await this.mergeAcceptanceValidation(results, ctx, input.prefix);
     await ctx.artifactStore.writeJson(input.artifactsName, results);
     return results;
+  }
+
+  /**
+   * P5 acceptance gate (machine half): run the linked roadmap card's
+   * `acceptanceCommands` (USER-authored - same trust as `commands.validate`) and
+   * merge them into `results`, so an unmet machine criterion fails validation and
+   * caps the verdict. No-op when there's no linked card / no commands. The prose
+   * `acceptanceCriteria` are the LLM-judge half (verifier confirms each).
+   */
+  private async mergeAcceptanceValidation(
+    results: ValidationResults,
+    ctx: { worktreePath: string | null; artifactStore: ArtifactStore; eventLog: EventLog },
+    prefix: string | undefined,
+  ): Promise<void> {
+    if (!this.taskId || !ctx.worktreePath) return;
+    let commands: string[] = [];
+    try {
+      const { RoadmapService } = await import("../roadmap/roadmap-service.js");
+      const card = await new RoadmapService(this.projectRoot).getTask(this.taskId);
+      commands = card?.acceptanceCommands ?? [];
+    } catch {
+      return;
+    }
+    if (commands.length === 0) return;
+    const acc = await runValidationCommands({
+      commands,
+      cwd: ctx.worktreePath,
+      store: ctx.artifactStore,
+      prefix: prefix ? `${prefix}-acceptance` : "acceptance",
+      broker: this.broker ?? undefined,
+      runId: ctx.artifactStore.runIdValue,
+    });
+    for (const c of acc.commands) {
+      await ctx.eventLog.append({
+        type: "validation.command.completed",
+        message: `[acceptance] ${c.command} → exit ${c.exitCode}`,
+        data: {
+          command: c.command,
+          exitCode: c.exitCode,
+          status: c.status,
+          durationMs: c.durationMs,
+          acceptance: true,
+        },
+      });
+    }
+    results.commands.push(...acc.commands);
+    results.summary.total += acc.summary.total;
+    results.summary.passed += acc.summary.passed;
+    results.summary.failed += acc.summary.failed;
+    results.summary.environment += acc.summary.environment;
   }
 
   private defaultPromptName(index: number, roleId: string): string {

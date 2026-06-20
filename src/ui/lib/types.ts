@@ -542,6 +542,9 @@ export type Task = {
   description: string;
   // Shape phase (M4): prose acceptance criteria + a rough size estimate.
   acceptanceCriteria?: string;
+  // P5: user-authored machine-checkable acceptance commands (extra validation
+  // pass on the card's run). Prose criteria are LLM-judged; these are machine-run.
+  acceptanceCommands?: string[];
   est?: string;
   status: TaskStatus;
   priority: Priority;

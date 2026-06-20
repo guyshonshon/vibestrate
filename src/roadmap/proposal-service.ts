@@ -207,6 +207,7 @@ export class ProposalService {
       title: t.title,
       description: t.description,
       acceptanceCriteria: t.acceptanceCriteria,
+      acceptanceCommands: [],
       est: t.est,
       status: "backlog",
       priority: t.priority,

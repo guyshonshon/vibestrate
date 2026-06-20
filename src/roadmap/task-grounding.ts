@@ -43,6 +43,19 @@ export function renderTaskGrounding(task: Task): string {
     }
     parts.push(`Checklist:\n${lines.join("\n")}`);
   }
+  // Acceptance criteria (P5): the card's "done-when". Carried into the brief so
+  // the implementer builds TO it and the VERIFIER confirms each criterion (the
+  // LLM-judge half of the acceptance gate). Bounded like the description.
+  const acceptance = task.acceptanceCriteria.trim();
+  if (acceptance) {
+    const clipped =
+      acceptance.length > MAX_DESCRIPTION
+        ? `${acceptance.slice(0, MAX_DESCRIPTION - 1)}…`
+        : acceptance;
+    parts.push(
+      `Acceptance criteria (the card is DONE only when each of these holds):\n${clipped}`,
+    );
+  }
   if (parts.length === 0) return "";
   return [
     `## From the roadmap card "${task.title}"`,

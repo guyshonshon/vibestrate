@@ -50,6 +50,7 @@ export type AddTaskInput = {
   title: string;
   description?: string;
   acceptanceCriteria?: string;
+  acceptanceCommands?: string[];
   est?: string;
   priority?: Priority;
   roadmapItemId?: string | null;
@@ -158,6 +159,9 @@ export class RoadmapService {
       title: input.title.trim(),
       description: input.description?.trim() ?? "",
       acceptanceCriteria: input.acceptanceCriteria?.trim() ?? "",
+      acceptanceCommands: (input.acceptanceCommands ?? [])
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0),
       est: input.est?.trim() ?? "",
       status: "backlog",
       priority: input.priority ?? "medium",
@@ -229,6 +233,7 @@ export class RoadmapService {
         | "title"
         | "description"
         | "acceptanceCriteria"
+        | "acceptanceCommands"
         | "est"
         | "priority"
         | "dependencies"
@@ -270,6 +275,15 @@ export class RoadmapService {
     const next: Task = {
       ...t,
       ...patch,
+      // Normalize acceptanceCommands like addTask does (trim + drop blanks) so an
+      // edit can't persist a whitespace-only command.
+      ...(patch.acceptanceCommands !== undefined
+        ? {
+            acceptanceCommands: patch.acceptanceCommands
+              .map((c) => c.trim())
+              .filter((c) => c.length > 0),
+          }
+        : {}),
       updatedAt: nowIso(),
       lastEventAt: nowIso(),
     };

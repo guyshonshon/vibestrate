@@ -15,6 +15,7 @@ function task(id: string, status: Task["status"], updatedAt: string): Task {
     title: id,
     description: "",
     acceptanceCriteria: "",
+    acceptanceCommands: [],
     est: "",
     status,
     priority: "medium",

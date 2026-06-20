@@ -15,6 +15,7 @@ function task(
     title: id,
     description: "",
     acceptanceCriteria: "",
+    acceptanceCommands: [],
     est: "",
     status: "backlog",
     priority: "medium",
