@@ -81,6 +81,12 @@ export const runSpecSchema = z.object({
   /** Adaptive Shape (P1): the flow to BUILD once shaping is approved. Carried
    *  across the detached chain via the `shape-target-flow.json` sidecar. */
   shapeTargetFlowId: z.string().min(1).max(80).nullable().optional(),
+  /** Deep-questioning loop: the round this intake run represents (server-owned,
+   *  never model-emitted). Persisted as the `shape-round.json` sidecar. */
+  shapeRound: z.number().int().min(1).max(20).nullable().optional(),
+  /** Deep-questioning loop: the chain-root run id where accumulated cross-round
+   *  answers live. Persisted as the `shape-root-run.json` sidecar. */
+  shapeRootRunId: z.string().min(1).max(200).nullable().optional(),
   flow: z
     .object({
       id: z.string().min(1).max(80),
@@ -349,6 +355,8 @@ export async function runFromSpec(
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
     shapeTargetFlowId,
+    shapeRound: spec.shapeRound ?? null,
+    shapeRootRunId: spec.shapeRootRunId ?? null,
     // Permission mode (P4): explicit spec value, else the legacy readOnly alias,
     // else config default (resolved in the orchestrator).
     permissionMode: spec.permissionMode ?? (readOnly ? "read-only" : undefined),

@@ -130,7 +130,7 @@ describe("shape answers I/O", () => {
       contract: FLOW_QUESTIONS_CONTRACT,
       stepId: "intake",
       questions: [
-        { id: "accounts", question: "Do users sign in?", why: "auth", kind: "choice", options: ["yes", "no"] },
+        { id: "accounts", question: "Do users sign in?", why: "auth", kind: "choice", options: ["yes", "no"], category: "users" },
       ],
     });
     const pending = await readShapeQuestions(root, runId);

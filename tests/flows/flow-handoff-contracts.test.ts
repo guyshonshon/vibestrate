@@ -351,8 +351,8 @@ describe("parseFlowJsonContract robustness (real model formatting)", () => {
           contract: FLOW_QUESTIONS_CONTRACT,
           stepId: "intake",
           questions: [
-            { id: "accounts", question: "Sign in?", why: "auth", kind: "choice", options: ["yes", "no"] },
-            { id: "catalog_source", question: "Where do products come from?", why: "data", kind: "text", options: [] },
+            { id: "accounts", question: "Sign in?", why: "auth", kind: "choice", options: ["yes", "no"], category: "users" },
+            { id: "catalog_source", question: "Where do products come from?", why: "data", kind: "text", options: [], category: "data" },
           ],
         },
       },
@@ -379,7 +379,7 @@ describe("parseFlowJsonContract robustness (real model formatting)", () => {
     const plain = `VIBESTRATE_FLOW_OUTPUT:\n${JSON.stringify({
       contract: FLOW_QUESTIONS_CONTRACT,
       stepId: "intake",
-      questions: [{ id: "a", question: "q", why: "w", kind: "text", options: [] }],
+      questions: [{ id: "a", question: "q", why: "w", kind: "text", options: [], category: "scope" }],
     })}\nVIBESTRATE_FLOW_OUTPUT_END`;
     const r = parseFlowJsonContract({ text: plain, schema: flowQuestionsOutputSchema, expectedStepId: "intake" });
     expect(r.ok).toBe(true);

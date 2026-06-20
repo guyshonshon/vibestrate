@@ -44,6 +44,17 @@ const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
 /** The flow to BUILD after shaping (P1), written at run start by the orchestrator
  *  and carried across the detached chain (intake -> shape -> build). */
 const TARGET_FLOW_PATH = "shape-target-flow.json";
+/** Deep-questioning loop (server-owned): the current round, written at run start
+ *  from RunSpec.shapeRound. */
+const ROUND_PATH = "shape-round.json";
+/** Deep-questioning loop: the FIRST intake run id (the chain root), where the
+ *  accumulated cross-round answers live. Carried forward so every gap-check round
+ *  appends to one growing doc instead of overwriting. */
+const ROOT_RUN_PATH = "shape-root-run.json";
+/** Hard cap on questioning rounds. Server-enforced: the loop NEVER asks past this,
+ *  regardless of what the model judges - it finalizes into the spec instead. This
+ *  is the anti-interrogation brake. */
+export const ROUND_CAP = 4;
 const APPROVED_SPEC_PATH = "shape-approved-spec.md";
 /** The shape flow's spec-producing step outputs, concatenated into the spec that
  *  seeds the chosen build flow. Step id -> output.md (see builtin-flows shapeFlow). */
@@ -66,6 +77,52 @@ async function readTargetFlowId(
   }
 }
 
+/** Read the server-owned round counter from a run's sidecar. Defaults to 1 (the
+ *  first intake run has no sidecar). The model NEVER controls this. */
+async function readRound(store: ArtifactStore): Promise<number> {
+  if (!(await store.exists(ROUND_PATH))) return 1;
+  try {
+    const parsed = JSON.parse(await store.read(ROUND_PATH)) as { round?: unknown };
+    const n = typeof parsed.round === "number" ? Math.floor(parsed.round) : 1;
+    return n >= 1 ? n : 1;
+  } catch {
+    return 1;
+  }
+}
+
+/** Read the chain-root run id (where accumulated answers live). null = this run
+ *  IS the root (round 1). */
+async function readRootRunId(store: ArtifactStore): Promise<string | null> {
+  if (!(await store.exists(ROOT_RUN_PATH))) return null;
+  try {
+    const parsed = JSON.parse(await store.read(ROOT_RUN_PATH)) as {
+      rootRunId?: unknown;
+    };
+    return typeof parsed.rootRunId === "string" && parsed.rootRunId.length > 0
+      ? parsed.rootRunId
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The deep-questioning brake, as a pure function so the cap is unit-testable and
+ * lives in deterministic server state - never the model, never the request body.
+ * Given the round of the run just answered, decide whether to ask one more
+ * gap-check round or finalize into the spec.
+ */
+export function decideShapeNext(input: {
+  round: number;
+  proceed: boolean;
+  cap: number;
+}): { action: "gap-check" | "finalize"; nextRound: number } {
+  if (input.proceed || input.round >= input.cap) {
+    return { action: "finalize", nextRound: input.round };
+  }
+  return { action: "gap-check", nextRound: input.round + 1 };
+}
+
 /** One submitted answer. `id` must match a question's id; answers are bounded so
  *  a huge payload can't bloat the prompt. */
 export const shapeAnswerSchema = z
@@ -82,14 +139,24 @@ export type ShapeAnswer = z.infer<typeof shapeAnswerSchema>;
 
 export const shapeAnswersSchema = z.array(shapeAnswerSchema).min(1).max(20);
 
+/** A question as SERVED to the UI/CLI: the model-emitted question plus the
+ *  server-stamped round it was raised in. `round` is chain state, not model
+ *  output - it never appears on the model-facing `flowShapeQuestionSchema`. */
+export type ServedShapeQuestion = FlowShapeQuestion & { round: number };
+
 export type PendingShapeQuestions = {
-  questions: FlowShapeQuestion[];
+  questions: ServedShapeQuestion[];
   /** The original brief, carried forward as the shape run's task. */
   task: string;
   /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried
    *  from the run that triggered shaping. null = no bound flow (build with the
    *  project default at approve time). */
   targetFlowId: string | null;
+  /** Deep-questioning loop: the round these questions belong to (server-owned). */
+  round: number;
+  /** Deep-questioning loop: a gap-check round that found no further material gaps
+   *  returns coverageComplete with an empty question set. */
+  coverageComplete: boolean;
 };
 
 /**
@@ -117,41 +184,128 @@ export async function readShapeQuestions(
     task = (await store.read(IDEA_PATH)).trim();
   }
   const targetFlowId = await readTargetFlowId(store);
-  return { questions: parsed.data.questions, task, targetFlowId };
+  const round = await readRound(store);
+  const questions: ServedShapeQuestion[] = parsed.data.questions.map((q) => ({
+    ...q,
+    round,
+  }));
+  return {
+    questions,
+    task,
+    targetFlowId,
+    round,
+    coverageComplete: parsed.data.coverageComplete === true,
+  };
 }
 
-function renderAnswersDoc(
-  pending: PendingShapeQuestions,
+/**
+ * Append one round's answers to the accumulated answers doc (pure). The first
+ * round seeds the header; later rounds are appended so the terminal spec run sees
+ * the UNION of every round, grouped by round + category. Replaces the old
+ * single-pass overwrite (reviewer SHOULD-FIX #3).
+ */
+export function appendAnswersDoc(
+  priorDoc: string,
+  questions: Array<{ id: string; question: string; why: string; category: string }>,
   answers: ShapeAnswer[],
+  round: number,
 ): string {
-  const byId = new Map(pending.questions.map((q) => [q.id, q]));
-  const lines: string[] = [
-    "# Shape: the user's answers to the intake questions",
-    "",
-    "These answers scope the work. Treat them as the user's decisions.",
-    "",
-  ];
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  const head = priorDoc.trim()
+    ? priorDoc.replace(/\s+$/, "")
+    : [
+        "# Shape: the user's answers to the intake questions",
+        "",
+        "These answers scope the work. Treat them as the user's decisions.",
+      ].join("\n");
+
+  // Group this round's answers by category for a legible spec.
+  const byCategory = new Map<string, ShapeAnswer[]>();
   for (const a of answers) {
-    const q = byId.get(a.id);
-    lines.push(`## ${q ? q.question : a.id}`);
-    if (q) lines.push(`> Why it matters: ${q.why}`, "");
-    lines.push(a.answer.trim(), "");
+    const cat = byId.get(a.id)?.category ?? "other";
+    (byCategory.get(cat) ?? byCategory.set(cat, []).get(cat)!).push(a);
+  }
+
+  const lines: string[] = [head, "", `## Round ${round}`, ""];
+  for (const [cat, as] of byCategory) {
+    lines.push(`### ${cat}`, "");
+    for (const a of as) {
+      const q = byId.get(a.id);
+      lines.push(`**${q ? q.question : a.id}**`);
+      if (q) lines.push(`> Why it matters: ${q.why}`, "");
+      lines.push(a.answer.trim(), "");
+    }
   }
   return `${lines.join("\n")}\n`;
 }
 
 /**
- * Submit answers to an intake run's questions and launch the shape run. Writes a
- * redactable answers artifact into the source run dir and references it as a
- * `file` contextSource on a typed RunSpec, then launches through the gated
- * detached-run path. The shape flow produces no diff, so the launcher clamps the
- * run read-only by construction.
+ * Resolve the chain root (where accumulated answers live) for the run being
+ * answered. A round-1 intake run is its own root; gap-check rounds carry the root
+ * id forward via the `shape-root-run.json` sidecar.
+ */
+async function resolveRootRunId(
+  projectRoot: string,
+  sourceRunId: string,
+): Promise<string> {
+  const store = new ArtifactStore(projectRoot, sourceRunId);
+  return (await readRootRunId(store)) ?? sourceRunId;
+}
+
+/**
+ * Terminal handoff: launch the `shape` flow seeded with the accumulated answers
+ * (the union of every round) as a `file` contextSource, carrying the chosen build
+ * flow forward (P1). Shared by submit (finalize branch) and proceed.
+ */
+async function finalizeShapeSpec(input: {
+  projectRoot: string;
+  rootRunId: string;
+  task: string;
+  targetFlowId: string | null;
+}): Promise<{ runId: string; pid: number | null }> {
+  const { projectRoot, rootRunId } = input;
+  const rootStore = new ArtifactStore(projectRoot, rootRunId);
+  if (!(await rootStore.exists(ANSWERS_PATH))) {
+    throw new ShapeChainError(
+      `Cannot build a spec for "${rootRunId}": no answers have been recorded yet.`,
+    );
+  }
+  const absAnswers = rootStore.resolveArtifactPath(ANSWERS_PATH);
+  const ref = path.relative(projectRoot, absAnswers);
+  const runId = makeUniqueRunId(projectRoot);
+  const spec: RunSpec = {
+    projectRoot,
+    task: input.task || "Shape this work (brief carried from intake).",
+    runId,
+    // A shape-phase run: never re-shaped (loop guard). The chosen build flow is
+    // carried forward so the `approve & build` handoff can target it (P1).
+    shaped: true,
+    shapeTargetFlowId: input.targetFlowId,
+    flow: { id: "shape", brief: null },
+    contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
+  };
+  const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
+  return { runId, pid };
+}
+
+/**
+ * Submit one round's answers. Accumulates them into the chain-root answers doc,
+ * then either asks one more gap-check round (deep questioning) or finalizes into
+ * the spec - the decision is the deterministic `decideShapeNext` brake (cap +
+ * proceed are server-owned; the model and the request body never control it).
+ *
+ * The gap-check round is the SAME `shape-intake` flow, re-launched with the
+ * accumulated answers as context; the intake prompt asks only for remaining gaps
+ * and may declare coverage complete. The chosen build flow + the round counter +
+ * the chain-root id are all re-threaded forward via sidecars (reviewer #2/#3).
  */
 export async function submitShapeAnswers(input: {
   projectRoot: string;
   sourceRunId: string;
   answers: ShapeAnswer[];
-}): Promise<{ runId: string; pid: number | null }> {
+  /** The user clicked "Proceed to spec" - finalize now regardless of coverage. */
+  proceed?: boolean;
+}): Promise<{ runId: string; pid: number | null; action: "gap-check" | "finalize" }> {
   const { projectRoot, sourceRunId } = input;
   assertSafeRunId(sourceRunId);
   const answers = shapeAnswersSchema.parse(input.answers);
@@ -161,27 +315,73 @@ export async function submitShapeAnswers(input: {
       `No pending shape questions for run "${sourceRunId}".`,
     );
   }
-  const store = new ArtifactStore(projectRoot, sourceRunId);
-  const absAnswers = await store.write(
+
+  // Accumulate this round's answers into the chain-root doc (read-forward + append).
+  const rootRunId = await resolveRootRunId(projectRoot, sourceRunId);
+  const rootStore = new ArtifactStore(projectRoot, rootRunId);
+  const priorDoc = (await rootStore.exists(ANSWERS_PATH))
+    ? await rootStore.read(ANSWERS_PATH)
+    : "";
+  await rootStore.write(
     ANSWERS_PATH,
-    renderAnswersDoc(pending, answers),
+    appendAnswersDoc(priorDoc, pending.questions, answers, pending.round),
   );
-  // Project-relative ref so the path guard (project root + worktree) accepts it.
+
+  const decision = decideShapeNext({
+    round: pending.round,
+    proceed: input.proceed === true,
+    cap: ROUND_CAP,
+  });
+
+  if (decision.action === "finalize") {
+    const r = await finalizeShapeSpec({
+      projectRoot,
+      rootRunId,
+      task: pending.task,
+      targetFlowId: pending.targetFlowId,
+    });
+    return { ...r, action: "finalize" };
+  }
+
+  // Gap-check round: re-launch intake seeded with the answers so far, carrying the
+  // round counter, the chain root, and the chosen build flow forward.
+  const absAnswers = rootStore.resolveArtifactPath(ANSWERS_PATH);
   const ref = path.relative(projectRoot, absAnswers);
   const runId = makeUniqueRunId(projectRoot);
   const spec: RunSpec = {
     projectRoot,
     task: pending.task || "Shape this work (brief carried from intake).",
     runId,
-    // A shape-phase run: never re-shaped (loop guard). The chosen build flow is
-    // carried forward so the `approve & build` handoff can target it (P1).
     shaped: true,
     shapeTargetFlowId: pending.targetFlowId,
-    flow: { id: "shape", brief: null },
-    contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
+    shapeRound: decision.nextRound,
+    shapeRootRunId: rootRunId,
+    flow: { id: "shape-intake", brief: null },
+    contextSources: [{ kind: "file", ref, label: "Shape: answers so far" }],
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
-  return { runId, pid };
+  return { runId, pid, action: "gap-check" };
+}
+
+/**
+ * "Proceed to spec" without answering more: finalize the chain with whatever
+ * answers are already accumulated. Used when a gap-check declared coverage
+ * complete (no questions to answer) or the user stops early. Never traps the user
+ * in the loop.
+ */
+export async function proceedToShapeSpec(input: {
+  projectRoot: string;
+  sourceRunId: string;
+}): Promise<{ runId: string; pid: number | null }> {
+  const { projectRoot, sourceRunId } = input;
+  assertSafeRunId(sourceRunId);
+  const rootRunId = await resolveRootRunId(projectRoot, sourceRunId);
+  // Task + target flow come from the run being viewed (carried across the chain).
+  const srcStore = new ArtifactStore(projectRoot, sourceRunId);
+  let task = "";
+  if (await srcStore.exists(IDEA_PATH)) task = (await srcStore.read(IDEA_PATH)).trim();
+  const targetFlowId = await readTargetFlowId(srcStore);
+  return finalizeShapeSpec({ projectRoot, rootRunId, task, targetFlowId });
 }
 
 /**
@@ -355,6 +555,10 @@ export async function startShapeIntake(input: {
     // the chosen build flow forward via the shape-target sidecar.
     shaped: true,
     shapeTargetFlowId: input.targetFlowId ?? null,
+    // Round 1 of the deep-questioning loop; this run is its own chain root (where
+    // accumulated answers will live).
+    shapeRound: 1,
+    shapeRootRunId: runId,
     flow: { id: "shape-intake", brief: null },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });

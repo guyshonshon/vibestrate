@@ -1018,7 +1018,7 @@ export const shapeIntakeFlow = flowDefinitionSchema.parse({
       inputs: ["task-brief"],
       outputs: ["questions"],
       instructions:
-        "You are the CTO doing intake on a new brief, before any planning. Read the brief and classify it. Then produce the most important GAP QUESTIONS you must ask to scope the work - the unstated decisions a vague brief leaves open (sign-in? payments? data persistence? expected scale? deadline? an existing system to fit?). For each: a stable kebab-case id, the question, why it matters in one line, kind 'choice' (with 2-4 bounded options) or 'text'. Ask only what changes the plan; skip trivia. Never ask for secret values - only what to build. Emit the questions JSON exactly per the contract.",
+        "You are the CTO doing intake before planning. Produce the GAP QUESTIONS that scope the work - the decisions a vague brief leaves open (sign-in? payments? persistence? scale? deadline? existing system?). For each: a kebab-case id, the question, why it matters (one line), kind 'choice' (2-4 options) or 'text', and a `category` from: scope, users, data, constraints, success, integrations, other. Be thorough; never ask for secret values. DEEP-QUESTIONING: if context already holds the user's prior answers, treat them as settled and ask ONLY follow-ups still open - drill deeper, never repeat answered ones. If no material gap remains, set `coverageComplete: true` with empty `questions`; else `false` with the rest. Emit the questions JSON per the contract.",
     },
   ],
   complexity: "low",

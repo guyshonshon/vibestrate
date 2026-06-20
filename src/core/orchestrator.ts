@@ -334,6 +334,11 @@ export type OrchestratorInput = {
    *  detached chain; persisted as the `shape-target-flow.json` sidecar at run
    *  start and read by the `approve & build` handoff. null = no build target. */
   shapeTargetFlowId?: string | null;
+  /** Deep-questioning loop: the round this intake run represents + the chain-root
+   *  run id (where accumulated answers live). Persisted as `shape-round.json` /
+   *  `shape-root-run.json` sidecars at run start, read by the shape-chain. */
+  shapeRound?: number | null;
+  shapeRootRunId?: string | null;
   /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. The
    *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
    *  config.policies.defaultPermissionMode (default "auto"). */
@@ -589,6 +594,8 @@ export class Orchestrator {
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
   private readonly shapeTargetFlowId: string | null;
+  private readonly shapeRound: number | null;
+  private readonly shapeRootRunId: string | null;
   /** Container/cloud execution strategy (T14 slice 2), set at run startup when
    *  execution.backend runs turns off-host. null ⇒ host execution. */
   private execStrategy: ExecStrategy | null = null;
@@ -647,6 +654,8 @@ export class Orchestrator {
     this.abortSignal = input.abortSignal ?? null;
     this.selection = input.selection ?? null;
     this.shapeTargetFlowId = input.shapeTargetFlowId ?? null;
+    this.shapeRound = input.shapeRound ?? null;
+    this.shapeRootRunId = input.shapeRootRunId ?? null;
   }
 
   /** Resolve the `default` flow against this run's config. Used when a run
@@ -935,6 +944,18 @@ export class Orchestrator {
     if (this.shapeTargetFlowId) {
       await artifactStore.writeJson("shape-target-flow.json", {
         flowId: this.shapeTargetFlowId,
+      });
+    }
+
+    // Deep-questioning loop: persist the server-owned round counter + the chain
+    // root (where accumulated answers live), so the next gap-check round resolves
+    // them from disk - never from the model or the request body.
+    if (this.shapeRound !== null) {
+      await artifactStore.writeJson("shape-round.json", { round: this.shapeRound });
+    }
+    if (this.shapeRootRunId) {
+      await artifactStore.writeJson("shape-root-run.json", {
+        rootRunId: this.shapeRootRunId,
       });
     }
 
