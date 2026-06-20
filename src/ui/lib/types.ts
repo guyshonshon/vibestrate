@@ -177,6 +177,8 @@ export type FlowStepDefinition = {
   needs?: string[];
   /** Step-specific prompt instruction (e.g. a reviewer's lens). */
   instructions?: string;
+  /** Per-step skills (P2): skill ids injected into this turn's prompt. */
+  skills?: string[];
   optional: boolean;
   skipWhenReadOnly?: boolean;
   stage?: "planning" | "architecting" | "executing" | "reviewing" | "verifying";

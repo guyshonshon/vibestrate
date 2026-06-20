@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.0
+
+- **A flow phase can carry its own skills.** A flow step now takes a `skills`
+  list - domain knowledge (a "WhatsApp integration" rulebook, a house style
+  guide) bound to the phase that needs it. The agent on that step gets those
+  skills injected into its prompt, merged with the run-level skills, and scoped
+  to that turn only - the next step starts clean. Authorable in the flow YAML, on
+  the web flow builder (a per-step skills picker), and visible in
+  `vibe flows show`; it works on linear and graph/parallel flows alike. This is
+  the de-Recipe answer: knowledge rides the flow, with no new top-level concept
+  to learn.
+
 ## 0.9.0
 
 - **Shape now enriches the flow you picked - it no longer replaces it.** This is

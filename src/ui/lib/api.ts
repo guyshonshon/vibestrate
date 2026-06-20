@@ -468,6 +468,8 @@ export type FlowStepPatch = {
   kind?: FlowStepKind;
   seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
+  /** Per-step skills (P2). */
+  skills?: string[];
 };
 
 /** Full step shape - accepted by `replaceSteps`. Mirrors the server's
@@ -484,6 +486,8 @@ export type FlowStepFull = {
   optional?: boolean;
   approval?: FlowApprovalGatePatch;
   repeat?: { times: number };
+  /** Per-step skills (P2). */
+  skills?: string[];
 };
 
 export type FlowSeatFull = {

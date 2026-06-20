@@ -64,9 +64,12 @@ export async function runFlowsShow(
     const needs = step.needs?.length
       ? ` ${color.dim(`needs ${step.needs.join(", ")}`)}`
       : "";
+    const skills = step.skills?.length
+      ? ` ${color.dim(`skills ${step.skills.join(", ")}`)}`
+      : "";
     console.log(
       indent(
-        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${seat}${optional}${repeat}${gate})`)}${needs}`,
+        `${index + 1}. ${step.id}: ${step.label} ${color.dim(`(${step.kind}${seat}${optional}${repeat}${gate})`)}${needs}${skills}`,
       ),
     );
   }

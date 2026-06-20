@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { approvalRiskSchema } from "../../core/approval-types.js";
+import { skillReferenceSchema } from "../../skills/skill-schema.js";
 
 const FLOW_TOKEN_RE = /^[a-z][a-z0-9-]*$/;
 const FLOW_AGENT_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
@@ -270,6 +271,14 @@ export const flowStepSchema = z
     // reviewer weakens spec-compliance review, while dropping the brief cost
     // nothing.) Opt-in per step, default off; never prunes declared `inputs`.
     cleanRoom: z.boolean().default(false),
+    // Per-step skills (P2 / "flow owns skills"): skill ids attached to THIS
+    // step's agent prompt, merged (deduped) with the agent's own skills and the
+    // run-level runtimeSkills - scoped to this turn only. Knowledge bound to a
+    // phase (e.g. a "WhatsApp integration" skill on the build step) without a new
+    // top-level primitive. Validated against skillReferenceSchema so a saveable
+    // value is always a well-formed id; a missing skill still hard-fails the turn
+    // at loadSkills (same as a run-level skill typo). Restricted to turn kinds.
+    skills: z.array(skillReferenceSchema).max(32).default([]),
   })
   .strict();
 export type FlowStep = z.infer<typeof flowStepSchema>;
@@ -477,6 +486,15 @@ export const flowDefinitionSchema = flowDefinitionBaseSchema.superRefine(
           code: z.ZodIssueCode.custom,
           path: ["steps", index, "retries"],
           message: `Flow step "${step.id}" of kind "${step.kind}" can't use retries (turn steps only).`,
+        });
+      }
+      // Per-step skills (P2) only attach to a model turn's prompt; a seatless
+      // validation/approval-gate step has no prompt to inject them into.
+      if (step.skills.length > 0 && !TURN_STEP_KINDS.has(step.kind)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["steps", index, "skills"],
+          message: `Flow step "${step.id}" of kind "${step.kind}" can't declare skills (turn steps only).`,
         });
       }
       if (step.retries > 0 && !flow.steps.some((s) => s.needs.length > 0)) {
@@ -820,6 +838,8 @@ export const resolvedFlowStepSchema = z
     // Clean-room context (see flowStepSchema.cleanRoom): drop run-level grounding
     // for this seat, keeping only its declared inputs + task/rules/role.
     cleanRoom: z.boolean().default(false),
+    // Per-step skills (see flowStepSchema.skills): merged into this turn's prompt.
+    skills: z.array(skillReferenceSchema).max(32).default([]),
     // A3 express deterministic review descent (see flowStepSchema.skipWhen).
     skipWhen: z.enum(["inert_diff"]).nullable().default(null),
     // Best-effort turn (Slice 5): a hard runtime failure is tolerated by the

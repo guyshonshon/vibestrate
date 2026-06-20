@@ -20,6 +20,7 @@ import {
   flowSeatSchema,
   type FlowDefinition,
 } from "../schemas/flow-schema.js";
+import { skillReferenceSchema } from "../../skills/skill-schema.js";
 import {
   findFlowById,
   type DiscoveredFlow,
@@ -48,6 +49,7 @@ const stepPatchSchema = z
     stage: flowStageSchema.nullable().optional(),
     skipWhenReadOnly: z.boolean().optional(),
     approval: flowApprovalGateSchema.nullable().optional(),
+    skills: z.array(skillReferenceSchema).max(32).optional(),
   })
   .strict();
 
@@ -111,6 +113,9 @@ function mergeStep<S extends FlowDefinition["steps"][number]>(
   }
   if (edit.skipWhenReadOnly !== undefined) {
     next.skipWhenReadOnly = edit.skipWhenReadOnly;
+  }
+  if (edit.skills !== undefined) {
+    next.skills = edit.skills;
   }
   if ("approval" in edit) {
     if (edit.approval === null) delete next.approval;

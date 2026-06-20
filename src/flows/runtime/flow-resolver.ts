@@ -197,6 +197,7 @@ export function resolveFlow(input: ResolveFlowInput): ResolvedFlowSnapshot {
         optional: step.optional,
         skipWhenReadOnly: step.skipWhenReadOnly,
         cleanRoom: step.cleanRoom,
+        skills: step.skills,
         skipWhen: step.skipWhen ?? null,
         continueOnError: step.continueOnError,
         retries: step.retries,

@@ -2210,6 +2210,7 @@ export class Orchestrator {
         validationResults: lastValidation,
         runBrief: renderRunBrief(input.runBriefState),
         cleanRoom: step.cleanRoom,
+        skills: step.skills,
         additionalNotes,
         metricsStore: input.metricsStore,
         ctx: input.ctx,
@@ -3546,6 +3547,7 @@ export class Orchestrator {
             validationResults: lastValidation,
             runBrief: renderRunBrief(runBriefState),
             cleanRoom: step.cleanRoom,
+            skills: step.skills,
             additionalNotes: this.renderFlowStepNotes({
               snapshot: input.snapshot,
               step,
@@ -4506,6 +4508,13 @@ export class Orchestrator {
      * (undefined/false) is unchanged.
      */
     cleanRoom?: boolean;
+    /**
+     * Per-step skills (P2 / "flow owns skills"): skill ids declared on the flow
+     * step, merged (deduped) with the agent's own skills + run-level
+     * runtimeSkills for THIS turn only. Omitted/undefined = the step declares no
+     * skills (unchanged behaviour).
+     */
+    skills?: string[];
     flowTurn?: FlowRoleTurn;
     metricsStore: MetricsStore;
     reviewDecisionForStage?: string | null;
@@ -4583,13 +4592,18 @@ export class Orchestrator {
     });
 
     const promptTemplate = await loadRolePrompt(this.projectRoot, agent.prompt);
-    // Merge per-run runtimeSkills into the agent's configured skill ids
-    // (deduped, order-preserving). Empty runtimeSkills is a no-op so
-    // existing runs keep their exact behavior.
+    // Merge the agent's configured skills with the per-run runtimeSkills and the
+    // per-STEP skills (P2 / "flow owns skills") into one deduped, order-preserving
+    // list, scoped to THIS turn (the set is rebuilt per runRole call, so step
+    // skills never leak into the next step). All-empty is a no-op, so existing
+    // runs keep their exact behavior.
+    const stepSkills = input.skills ?? [];
     const effectiveSkillIds =
-      this.runtimeSkills.length === 0
+      this.runtimeSkills.length === 0 && stepSkills.length === 0
         ? agent.skills
-        : Array.from(new Set([...agent.skills, ...this.runtimeSkills]));
+        : Array.from(
+            new Set([...agent.skills, ...this.runtimeSkills, ...stepSkills]),
+          );
     const skills = await loadSkills(this.projectRoot, effectiveSkillIds);
 
     // MCP: gather servers from the agent + each skill, materialize them

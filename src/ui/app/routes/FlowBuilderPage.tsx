@@ -58,6 +58,8 @@ type StepDraft = {
   // null = clear; undefined = no change; string = set
   seat?: string | null;
   approval?: FlowApprovalGatePatch | null;
+  // Per-step skills (P2): undefined = no change; array = set the whole list.
+  skills?: string[];
 };
 
 const STEP_KINDS: FlowStepKind[] = [
@@ -1077,6 +1079,21 @@ function StepInspector({
   draft: StepDraft;
   onPatchDraft: (patch: StepDraft) => void;
 }) {
+  // The project's discovered skills (for the per-step skills picker). Fetched
+  // once; failures degrade to "only the already-selected ids are shown".
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void api
+      .listSkills()
+      .then((r) => {
+        if (alive) setAvailableSkills(r.skills.map((s) => s.name));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
   if (!step) return null;
 
   // Effective values fold the draft over the saved step so the inputs
@@ -1202,6 +1219,62 @@ function StepInspector({
           onChange={(next) => onPatchDraft({ approval: next })}
         />
       </Field>
+
+      {requiresSeat ? (
+        <Field label="Skills (this step)">
+          {(() => {
+            const stepSkills = draft.skills ?? step.skills ?? [];
+            const all = Array.from(
+              new Set([...availableSkills, ...stepSkills]),
+            ).sort();
+            const toggle = (name: string) => {
+              const next = stepSkills.includes(name)
+                ? stepSkills.filter((s) => s !== name)
+                : [...stepSkills, name];
+              onPatchDraft({ skills: next });
+            };
+            if (all.length === 0) {
+              return (
+                <div className="text-[11px] text-fog-500">
+                  No skills found in this project (.vibestrate/skills or
+                  .claude/skills).
+                </div>
+              );
+            }
+            return (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {all.map((name) => {
+                    const on = stepSkills.includes(name);
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        disabled={!editable}
+                        onClick={() => toggle(name)}
+                        className={cn(
+                          "text-[11.5px] px-2 py-1 border whitespace-nowrap transition",
+                          on
+                            ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
+                            : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
+                          !editable && "opacity-60 cursor-not-allowed",
+                        )}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="text-[11px] text-fog-500 mt-1">
+                  Knowledge injected into this step's prompt (merged with run-level
+                  skills). Portable - the flow carries them, not a separate
+                  primitive.
+                </div>
+              </>
+            );
+          })()}
+        </Field>
+      ) : null}
 
       <Field label="Inputs / outputs (read-only)">
         <div className="space-y-1.5 text-[12px]">
@@ -1383,6 +1456,14 @@ function diffStep(
     if (!approvalEqual(draft.approval, currentApproval))
       out.approval = draft.approval;
   }
+  if (draft.skills !== undefined) {
+    const curSkills = cur.skills ?? [];
+    if (
+      draft.skills.length !== curSkills.length ||
+      draft.skills.some((s, i) => s !== curSkills[i])
+    )
+      out.skills = draft.skills;
+  }
   return Object.keys(out).length === 0 ? null : out;
 }
 
@@ -1409,6 +1490,10 @@ function toFlowStepFull(
     base.skipWhenReadOnly = step.skipWhenReadOnly;
   if (step.approval !== undefined) base.approval = step.approval;
   if (step.repeat !== undefined) base.repeat = step.repeat;
+  // Preserve per-step skills through structural (replaceSteps) edits - else a
+  // reorder/add/remove in the builder would silently wipe YAML-authored skills.
+  if (step.skills !== undefined && step.skills.length > 0)
+    base.skills = step.skills;
   return applyDraftToFullStep(base, draft);
 }
 
@@ -1428,6 +1513,7 @@ function toFlowStepDefinition(step: FlowStepFull): FlowStepDefinition {
     out.skipWhenReadOnly = step.skipWhenReadOnly;
   if (step.approval !== undefined) out.approval = step.approval;
   if (step.repeat !== undefined) out.repeat = step.repeat;
+  if (step.skills !== undefined) out.skills = step.skills;
   return out;
 }
 
@@ -1449,6 +1535,7 @@ function applyDraftToFullStep(
     if (draft.approval === null) delete next.approval;
     else next.approval = draft.approval;
   }
+  if (draft.skills !== undefined) next.skills = draft.skills;
   return next;
 }
 
