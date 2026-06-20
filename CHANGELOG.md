@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.1
+
+- **Every AI advisor prompt is now secret-redacted by default.** The consult orb,
+  the per-question Simplify/Suggest helpers, and the other read-only assist paths
+  all run their assembled prompt through the same secret scrubber before it
+  reaches a provider - so a token you happened to type or paste never crosses to
+  the model, on any of those paths, not just the ones that already scrubbed their
+  own input.
+- Hardened the deep-questioning chain with an end-to-end test covering the whole
+  loop: round increments, the four-round cap, cross-round answer accumulation, the
+  "proceed" escape, and the chosen build flow surviving every round.
+
 ## 0.15.0
 
 - **Shaping now goes deep, in rounds, until the work is actually scoped.** The
