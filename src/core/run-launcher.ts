@@ -14,6 +14,7 @@ import {
 } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
+import { SHAPE_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../orchestrator/personas.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";
@@ -68,6 +69,13 @@ export const runSpecSchema = z.object({
   /** Context sources (Phase 4): files/URLs injected into every agent prompt.
    *  Omitted ⇒ inherit the linked task's sources (if any). */
   contextSources: z.array(contextSourceSchema).max(32).optional(),
+  /** Adaptive Shape (P1): true marks this run as a shape-phase run (intake/shape/
+   *  roadmap) or the post-shape executor, so it is NOT itself re-shaped (loop
+   *  guard). Omitted = a normal user run, eligible for adaptive shaping. */
+  shaped: z.boolean().optional(),
+  /** Adaptive Shape (P1): the flow to BUILD once shaping is approved. Carried
+   *  across the detached chain via the `shape-target-flow.json` sidecar. */
+  shapeTargetFlowId: z.string().min(1).max(80).nullable().optional(),
   flow: z
     .object({
       id: z.string().min(1).max(80),
@@ -251,13 +259,25 @@ export async function runFromSpec(
       forcedFlowId: spec.flow?.id ?? null,
       forceSelect: spec.select === true,
       noSelect: spec.select === false,
+      shaped: spec.shaped === true,
       personaOverride: spec.persona ?? null,
       loaded,
       signal: opts.abortSignal,
     });
   }
 
-  const effectiveFlowId = selection?.flowId ?? spec.flow?.id ?? null;
+  // Adaptive Shape (P1): an under-specified brief is SHAPED FIRST. This run
+  // becomes the read-only `shape-intake` run (emits the gap questions); the
+  // CHOSEN flow (selection.flowId) is carried to the post-shape `approve & build`
+  // handoff via the shape-target sidecar - it is never replaced. The loop guard
+  // (`spec.shaped`) keeps shape-phase / executor runs from re-entering shaping.
+  const willShape = selection?.needsShaping === true && spec.shaped !== true;
+  const shapeTargetFlowId = willShape
+    ? (selection?.flowId ?? spec.flow?.id ?? null)
+    : (spec.shapeTargetFlowId ?? null);
+  const effectiveFlowId = willShape
+    ? SHAPE_TARGET_FLOW
+    : (selection?.flowId ?? spec.flow?.id ?? null);
   // Apply a recommended crew only when the request didn't specify one.
   const effectiveCrewId = spec.crewId ?? selection?.crewId ?? null;
   let resolvedFlow: ResolvedFlowSnapshot | null = null;
@@ -323,6 +343,7 @@ export async function runFromSpec(
     resumeFrom,
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
+    shapeTargetFlowId,
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

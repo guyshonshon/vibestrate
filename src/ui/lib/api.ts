@@ -683,7 +683,11 @@ export const api = {
   /** Read an intake run's pending gap questions (null = not an intake run). */
   async getShapeQuestions(
     runId: string,
-  ): Promise<{ questions: ShapeQuestion[] | null; hasBrief?: boolean }> {
+  ): Promise<{
+    questions: ShapeQuestion[] | null;
+    hasBrief?: boolean;
+    targetFlowId?: string | null;
+  }> {
     return jsonGet(`/api/runs/${encodeURIComponent(runId)}/shape-questions`);
   },
   /** Submit answers -> launch the shape run seeded with them as context. */
@@ -698,6 +702,17 @@ export const api = {
     shapeRunId: string,
   ): Promise<{ ok: true; runId: string; pid: number | null }> {
     return jsonPost("/api/shape/roadmap", { shapeRunId });
+  },
+  /** Approve the shaped draft -> BUILD it: run the chosen flow seeded with the
+   *  approved spec as context (P1). `flowId` overrides the carried target. */
+  async buildShape(
+    shapeRunId: string,
+    flowId?: string | null,
+  ): Promise<{ ok: true; runId: string; pid: number | null; flowId: string }> {
+    return jsonPost("/api/shape/build", {
+      shapeRunId,
+      ...(flowId ? { flowId } : {}),
+    });
   },
   /** Turn a finished shape-roadmap run into a reviewable proposal. */
   async createShapeRoadmapProposal(

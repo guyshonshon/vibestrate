@@ -19,6 +19,7 @@ import path from "node:path";
 import { z } from "zod";
 import { ArtifactStore } from "../core/artifact-store.js";
 import { startDetachedRun } from "../core/detached-run.js";
+import { discoverFlows, findFlowById } from "../flows/catalog/flow-discovery.js";
 import { makeUniqueRunId } from "../utils/run-id.js";
 import type { RunSpec } from "../core/run-launcher.js";
 import {
@@ -40,6 +41,30 @@ const INTAKE_QUESTIONS_PATH = "flows/intake/questions.json";
 const IDEA_PATH = "00-idea.md";
 const ANSWERS_PATH = "shape-answers.md";
 const SYNTHESIZE_OUTPUT_PATH = "flows/synthesize/output.md";
+/** The flow to BUILD after shaping (P1), written at run start by the orchestrator
+ *  and carried across the detached chain (intake -> shape -> build). */
+const TARGET_FLOW_PATH = "shape-target-flow.json";
+const APPROVED_SPEC_PATH = "shape-approved-spec.md";
+/** The shape flow's spec-producing step outputs, concatenated into the spec that
+ *  seeds the chosen build flow. Step id -> output.md (see builtin-flows shapeFlow). */
+const SHAPE_SPEC_STEPS = ["scope", "spec", "architecture", "risks"] as const;
+
+/** Read the carried build-target flow id (P1) from a run's sidecar, or null. */
+async function readTargetFlowId(
+  store: ArtifactStore,
+): Promise<string | null> {
+  if (!(await store.exists(TARGET_FLOW_PATH))) return null;
+  try {
+    const parsed = JSON.parse(await store.read(TARGET_FLOW_PATH)) as {
+      flowId?: unknown;
+    };
+    return typeof parsed.flowId === "string" && parsed.flowId.length > 0
+      ? parsed.flowId
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 /** One submitted answer. `id` must match a question's id; answers are bounded so
  *  a huge payload can't bloat the prompt. */
@@ -61,6 +86,10 @@ export type PendingShapeQuestions = {
   questions: FlowShapeQuestion[];
   /** The original brief, carried forward as the shape run's task. */
   task: string;
+  /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried
+   *  from the run that triggered shaping. null = no bound flow (build with the
+   *  project default at approve time). */
+  targetFlowId: string | null;
 };
 
 /**
@@ -87,7 +116,8 @@ export async function readShapeQuestions(
   if (await store.exists(IDEA_PATH)) {
     task = (await store.read(IDEA_PATH)).trim();
   }
-  return { questions: parsed.data.questions, task };
+  const targetFlowId = await readTargetFlowId(store);
+  return { questions: parsed.data.questions, task, targetFlowId };
 }
 
 function renderAnswersDoc(
@@ -143,6 +173,10 @@ export async function submitShapeAnswers(input: {
     projectRoot,
     task: pending.task || "Shape this work (brief carried from intake).",
     runId,
+    // A shape-phase run: never re-shaped (loop guard). The chosen build flow is
+    // carried forward so the `approve & build` handoff can target it (P1).
+    shaped: true,
+    shapeTargetFlowId: pending.targetFlowId,
     flow: { id: "shape", brief: null },
     contextSources: [{ kind: "file", ref, label: "Shape: intake answers" }],
   };
@@ -179,11 +213,97 @@ export async function approveShapeAndStartRoadmap(input: {
     projectRoot: input.projectRoot,
     task,
     runId,
+    shaped: true,
     flow: { id: "shape-roadmap", brief: null },
     resumeFrom: { sourceRunId: input.shapeRunId, fromStage: "executing" },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
   return { runId, pid };
+}
+
+/**
+ * Approve the shaped draft and BUILD it (P1). Reads the shape run's spec outputs
+ * (scope / spec / architecture / risks), concatenates them into one approved-spec
+ * artifact, and launches the CHOSEN flow (carried via the shape-target sidecar,
+ * or `fallbackFlowId` / the caller's override) seeded with that spec as a `file`
+ * contextSource - so the executor builds FROM the spec, never re-derives from the
+ * bare task. This is the terminal handoff that makes Shape an enrichment over the
+ * chosen flow rather than a replacement. Fails fast (throws) if the chosen flow
+ * is unknown or the shape run produced no spec, so an empty-context build is
+ * impossible by construction.
+ */
+export async function approveShapeAndBuild(input: {
+  projectRoot: string;
+  shapeRunId: string;
+  /** Override the carried build flow (e.g. the user picked a different one). */
+  flowId?: string | null;
+  /** Used when neither the sidecar nor `flowId` names a flow (the project default). */
+  fallbackFlowId?: string | null;
+}): Promise<{ runId: string; pid: number | null; flowId: string }> {
+  assertSafeRunId(input.shapeRunId);
+  const src = new ArtifactStore(input.projectRoot, input.shapeRunId);
+  if (!(await src.exists(IDEA_PATH))) {
+    throw new ShapeChainError(`Shape run "${input.shapeRunId}" not found.`);
+  }
+  const flowId =
+    input.flowId ??
+    (await readTargetFlowId(src)) ??
+    input.fallbackFlowId ??
+    null;
+  if (!flowId) {
+    throw new ShapeChainError(
+      `No build flow for shape run "${input.shapeRunId}" (no carried target, no override, no default).`,
+    );
+  }
+  // Validate the flow exists BEFORE spawning - otherwise the detached run dies in
+  // the background while the caller sees a success. Fail fast with a clear error.
+  if (!(await findFlowById(input.projectRoot, flowId))) {
+    const ids = (await discoverFlows(input.projectRoot)).map((g) => g.id);
+    throw new ShapeChainError(
+      `Build flow "${flowId}" not found. Available: ${ids.join(", ") || "(none)"}.`,
+    );
+  }
+
+  // Assemble the approved spec from the shape run's spec-producing steps. Fail
+  // fast if NONE produced content - launching a build with empty context would
+  // silently re-derive from the bare task (the P1 keystone failure).
+  const sections: string[] = [];
+  for (const step of SHAPE_SPEC_STEPS) {
+    const p = `flows/${step}/output.md`;
+    if (!(await src.exists(p))) continue;
+    const body = (await src.read(p)).trim();
+    if (body) sections.push(`# ${step[0]!.toUpperCase()}${step.slice(1)}\n\n${body}`);
+  }
+  if (sections.length === 0) {
+    throw new ShapeChainError(
+      `Shape run "${input.shapeRunId}" has no spec to build from (no scope/spec/architecture/risks output).`,
+    );
+  }
+  const specDoc = `# Shape: the approved spec\n\nBuild strictly to this spec - it is the user's approved scope, derived during shaping. Treat it as ground truth.\n\n${sections.join("\n\n")}\n`;
+  const absSpec = await src.write(APPROVED_SPEC_PATH, specDoc);
+  const ref = path.relative(input.projectRoot, absSpec);
+
+  let task = "Build the approved shaped work.";
+  try {
+    const idea = (await src.read(IDEA_PATH)).trim();
+    if (idea) task = idea;
+  } catch {
+    /* keep the default task */
+  }
+
+  const runId = makeUniqueRunId(input.projectRoot);
+  const spec: RunSpec = {
+    projectRoot: input.projectRoot,
+    task,
+    runId,
+    // The executor: already shaped, so it runs the chosen flow directly (loop
+    // guard) seeded with the approved spec as context.
+    shaped: true,
+    flow: { id: flowId, brief: null },
+    contextSources: [{ kind: "file", ref, label: "Shape: approved spec" }],
+  };
+  const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });
+  return { runId, pid, flowId };
 }
 
 /**
@@ -219,6 +339,9 @@ export async function startShapeIntake(input: {
   projectRoot: string;
   task: string;
   persona?: string | null;
+  /** Adaptive Shape (P1): the flow to BUILD once the spec is approved, carried to
+   *  the `approve & build` handoff. null = build with the project default. */
+  targetFlowId?: string | null;
 }): Promise<{ runId: string; pid: number | null }> {
   const task = input.task.trim();
   if (!task) throw new ShapeChainError("A brief is required to start shaping.");
@@ -228,6 +351,10 @@ export async function startShapeIntake(input: {
     task,
     runId,
     persona: input.persona ?? null,
+    // The intake run IS the shape phase: never re-shaped (loop guard); it carries
+    // the chosen build flow forward via the shape-target sidecar.
+    shaped: true,
+    shapeTargetFlowId: input.targetFlowId ?? null,
     flow: { id: "shape-intake", brief: null },
   };
   const pid = await startDetachedRun({ spec, spawnedBy: "dashboard" });

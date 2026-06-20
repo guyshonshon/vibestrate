@@ -117,7 +117,7 @@ describe("chooseRunFlow + sizing (A1)", () => {
     expect(sel.reasons.join(" ")).toMatch(/diff-decided/);
   });
 
-  it("routes a plan-worthy greenfield brief into shape-intake, recorded as shaped", async () => {
+  it("P1: a plan-worthy brief is marked needsShaping but keeps the chosen (default) flow, NOT shape-intake", async () => {
     const project = await makeProject();
     const loaded = await loadConfig(project);
     const sel = await chooseRunFlow({
@@ -126,11 +126,46 @@ describe("chooseRunFlow + sizing (A1)", () => {
       config: loaded.config,
       loaded,
     });
-    expect(sel.flowId).toBe(SHAPE_TARGET_FLOW);
-    expect(sel.source).toBe("shaped");
+    // Shape is now an ORTHOGONAL enrichment: the flow is the chosen/default flow,
+    // never replaced by a shape flow. The run is shaped first, then this flow runs.
+    expect(sel.flowId).not.toBe(SHAPE_TARGET_FLOW);
+    expect(sel.flowId).toBe("default");
+    expect(sel.needsShaping).toBe(true);
   });
 
-  it("adaptiveShape: off disables the shape trigger (brief executes)", async () => {
+  it("P1 acceptance: --flow express + plan-worthy keeps express AND marks needsShaping", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    // The forced-flow short-circuit used to skip the shape decision entirely;
+    // needsShaping is now layered onto every return path, so an explicit flow is
+    // honored (never replaced) AND still shaped first when the brief warrants it.
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "build a mini ecommerce store",
+      config: loaded.config,
+      loaded,
+      forcedFlowId: "express",
+    });
+    expect(sel.flowId).toBe("express");
+    expect(sel.source).toBe("forced");
+    expect(sel.needsShaping).toBe(true);
+  });
+
+  it("P1: a well-specified/targeted task skips shaping (needsShaping false)", async () => {
+    const project = await makeProject();
+    const loaded = await loadConfig(project);
+    const sel = await chooseRunFlow({
+      projectRoot: project,
+      task: "add a comment to src/store/index.ts",
+      config: loaded.config,
+      loaded,
+      forcedFlowId: "express",
+    });
+    expect(sel.flowId).toBe("express");
+    expect(sel.needsShaping).toBe(false);
+  });
+
+  it("adaptiveShape: off suppresses shaping entirely", async () => {
     const project = await makeProject((yml) => `${yml}\nadaptiveShape: off\n`);
     const loaded = await loadConfig(project);
     const sel = await chooseRunFlow({
@@ -138,12 +173,13 @@ describe("chooseRunFlow + sizing (A1)", () => {
       task: "build a mini ecommerce store",
       config: loaded.config,
       loaded,
+      forcedFlowId: "express",
     });
-    expect(sel.flowId).not.toBe(SHAPE_TARGET_FLOW);
-    expect(sel.source).not.toBe("shaped");
+    expect(sel.flowId).toBe("express");
+    expect(sel.needsShaping).toBe(false);
   });
 
-  it("an explicit --flow still wins over the shape trigger", async () => {
+  it("the shaped loop guard suppresses re-shaping (a shape-phase/executor run)", async () => {
     const project = await makeProject();
     const loaded = await loadConfig(project);
     const sel = await chooseRunFlow({
@@ -151,10 +187,11 @@ describe("chooseRunFlow + sizing (A1)", () => {
       task: "build a mini ecommerce store",
       config: loaded.config,
       loaded,
-      forcedFlowId: "default",
+      forcedFlowId: "express",
+      shaped: true,
     });
-    expect(sel.flowId).toBe("default");
-    expect(sel.source).toBe("forced");
+    expect(sel.flowId).toBe("express");
+    expect(sel.needsShaping).toBe(false);
   });
 
   it("a risk-tagged trivial-looking task gets persona-upgraded past express", async () => {

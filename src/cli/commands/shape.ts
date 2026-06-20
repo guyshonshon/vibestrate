@@ -1,11 +1,13 @@
 import { Command } from "commander";
 import { detectProject } from "../../project/project-detector.js";
+import { loadConfig } from "../../project/config-loader.js";
 import { color, header, symbol } from "../ui/format.js";
 import {
   startShapeIntake,
   readShapeQuestions,
   submitShapeAnswers,
   approveShapeAndStartRoadmap,
+  approveShapeAndBuild,
   createRoadmapProposal,
   ShapeChainError,
 } from "../../shape/shape-chain.js";
@@ -37,13 +39,15 @@ export function buildShapeCommand(): Command {
     .command("start <brief...>")
     .description("Start shaping: launch the intake run that asks the gap questions.")
     .option("--persona <id>", "supervisor persona (judgment posture) for the run")
-    .action(async (brief: string[], opts: { persona?: string }) => {
+    .option("--flow <id>", "the flow to BUILD once the spec is approved (carried to `shape build`)")
+    .action(async (brief: string[], opts: { persona?: string; flow?: string }) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
         const { runId } = await startShapeIntake({
           projectRoot,
           task: brief.join(" "),
           persona: opts.persona ?? null,
+          targetFlowId: opts.flow ?? null,
         });
         console.log(`${symbol.ok()} ${header("Shape: intake started")}`);
         console.log(`Run: ${color.bold(runId)}`);
@@ -112,6 +116,37 @@ export function buildShapeCommand(): Command {
         console.log(`${header("Shape: roadmap run launched")}`);
         console.log(`Run: ${color.bold(runId)}`);
         console.log(color.dim(`When it finishes:  vibe shape roadmap ${runId}`));
+      } catch (err) {
+        if (err instanceof ShapeChainError) fail(err.message);
+        fail(err instanceof Error ? err.message : String(err));
+      }
+    });
+
+  cmd
+    .command("build <shapeRunId>")
+    .description("Approve the shaped draft and BUILD it: run the chosen flow seeded with the approved spec.")
+    .option("--flow <id>", "build flow override (default: the flow carried from the shaped run)")
+    .action(async (shapeRunId: string, opts: { flow?: string }) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      // Mirror the server route: an unbound shape run builds with the project
+      // default (UI<->CLI parity) rather than erroring.
+      let fallbackFlowId = "default";
+      try {
+        fallbackFlowId = (await loadConfig(projectRoot)).config.defaultFlow ?? "default";
+      } catch {
+        /* keep "default" */
+      }
+      try {
+        const { runId, flowId } = await approveShapeAndBuild({
+          projectRoot,
+          shapeRunId,
+          flowId: opts.flow ?? null,
+          fallbackFlowId,
+        });
+        console.log(`${header("Shape: build run launched")}`);
+        console.log(`Flow: ${color.bold(flowId)}`);
+        console.log(`Run: ${color.bold(runId)}`);
+        console.log(color.dim("The flow builds from the approved spec (seeded as run context)."));
       } catch (err) {
         if (err instanceof ShapeChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));

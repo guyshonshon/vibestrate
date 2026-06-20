@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "commands": [
     {
       "name": "init",
@@ -1938,6 +1938,13 @@
               "required": true,
               "optional": false,
               "negated": false
+            },
+            {
+              "flags": "--flow <id>",
+              "description": "the flow to BUILD once the spec is approved (carried to `shape build`)",
+              "required": true,
+              "optional": false,
+              "negated": false
             }
           ],
           "subcommands": []
@@ -2017,6 +2024,34 @@
             }
           ],
           "options": [],
+          "subcommands": []
+        },
+        {
+          "name": "build",
+          "path": [
+            "vibe",
+            "shape",
+            "build"
+          ],
+          "description": "Approve the shaped draft and BUILD it: run the chosen flow seeded with the approved spec.",
+          "usage": "[options] <shapeRunId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--flow <id>",
+              "description": "build flow override (default: the flow carried from the shaped run)",
+              "required": true,
+              "optional": false,
+              "negated": false
+            }
+          ],
           "subcommands": []
         },
         {

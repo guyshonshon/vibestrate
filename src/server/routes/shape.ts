@@ -6,10 +6,23 @@ import {
   submitShapeAnswers,
   startShapeIntake,
   approveShapeAndStartRoadmap,
+  approveShapeAndBuild,
   createRoadmapProposal,
   shapeAnswerSchema,
   ShapeChainError,
 } from "../../shape/shape-chain.js";
+import { loadConfig } from "../../project/config-loader.js";
+
+/** Best-effort project default flow (fallback build target for an unbound shape
+ *  run). The built-in `default` flow always exists, so this never throws. */
+async function defaultBuildFlow(projectRoot: string): Promise<string> {
+  try {
+    const loaded = await loadConfig(projectRoot);
+    return loaded.config.defaultFlow ?? "default";
+  } catch {
+    return "default";
+  }
+}
 
 const runIdParam = z
   .string()
@@ -23,6 +36,20 @@ const startBody = z
   .object({
     task: z.string().min(1).max(2000),
     persona: z.string().min(1).max(40).optional(),
+    /** Adaptive Shape (P1): the flow to BUILD once the spec is approved. */
+    flowId: z.string().min(1).max(80).optional(),
+  })
+  .strict();
+
+const buildBody = z
+  .object({
+    shapeRunId: z
+      .string()
+      .min(1)
+      .max(200)
+      .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+    /** Override the carried build flow (the user picked a different one). */
+    flowId: z.string().min(1).max(80).optional(),
   })
   .strict();
 
@@ -60,6 +87,7 @@ export async function registerShapeRoutes(
         projectRoot,
         task: parsed.data.task,
         persona: parsed.data.persona ?? null,
+        targetFlowId: parsed.data.flowId ?? null,
       });
       return { ok: true, runId, pid };
     } catch (err) {
@@ -76,9 +104,35 @@ export async function registerShapeRoutes(
       assertSafeRunId(req.params.id);
       const pending = await readShapeQuestions(projectRoot, req.params.id);
       if (!pending) return { questions: null };
-      return { questions: pending.questions, hasBrief: pending.task.length > 0 };
+      return {
+        questions: pending.questions,
+        hasBrief: pending.task.length > 0,
+        targetFlowId: pending.targetFlowId,
+      };
     },
   );
+
+  // Approve the shaped draft -> BUILD it (P1): launch the chosen flow seeded with
+  // the approved spec as context. The chosen flow is the carried target unless
+  // the body overrides it; falls back to the project default when unbound.
+  app.post<{ Body: unknown }>("/api/shape/build", async (req) => {
+    const parsed = buildBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, parsed.error.issues[0]?.message ?? "shapeRunId is required.");
+    }
+    try {
+      const { runId, pid, flowId } = await approveShapeAndBuild({
+        projectRoot,
+        shapeRunId: parsed.data.shapeRunId,
+        flowId: parsed.data.flowId ?? null,
+        fallbackFlowId: await defaultBuildFlow(projectRoot),
+      });
+      return { ok: true, runId, pid, flowId };
+    } catch (err) {
+      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
 
   // Approve the shaped draft -> launch the roadmap run (resumeFrom the shape run).
   app.post<{ Body: { shapeRunId?: unknown } }>("/api/shape/roadmap", async (req) => {

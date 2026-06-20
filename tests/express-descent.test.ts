@@ -57,6 +57,7 @@ describe("evaluateReviewDescent", () => {
 const base: MergeReadinessInput = {
   readOnly: false,
   reviewDecision: "BLOCKED",
+  hasReviewStep: true,
   reviewTurnRan: false,
   reviewSkipEvidence: null,
   validationPassed: true,
@@ -124,6 +125,44 @@ describe("computeMergeReady - express skip semantics", () => {
     expect(
       computeMergeReady({
         ...base,
+        reviewTurnRan: true,
+        reviewDecision: "APPROVED",
+      }),
+    ).toBe(true);
+  });
+
+  // ── P1: a read-only run with NO review step succeeds (not blocked) ─────────
+  it("a read-only run with no review step is merge_ready (shape-intake enrichment)", () => {
+    // shape-intake: read-only, single agent-turn, no reviewer -> nothing to
+    // approve. reviewDecision stays at its pessimistic default, but completing
+    // the steps IS success - it must NOT land blocked.
+    expect(
+      computeMergeReady({
+        ...base,
+        readOnly: true,
+        hasReviewStep: false,
+        reviewDecision: "BLOCKED",
+      }),
+    ).toBe(true);
+  });
+
+  it("a read-only run WITH a review step still requires APPROVED (shape blocks on changes)", () => {
+    // The shape flow HAS a reviewer: a genuine CHANGES_REQUESTED/BLOCKED must
+    // still block. The P1 clause is scoped strictly to no-review-step runs.
+    expect(
+      computeMergeReady({
+        ...base,
+        readOnly: true,
+        hasReviewStep: true,
+        reviewTurnRan: true,
+        reviewDecision: "BLOCKED",
+      }),
+    ).toBe(false);
+    expect(
+      computeMergeReady({
+        ...base,
+        readOnly: true,
+        hasReviewStep: true,
         reviewTurnRan: true,
         reviewDecision: "APPROVED",
       }),

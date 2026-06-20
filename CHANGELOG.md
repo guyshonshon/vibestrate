@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.9.0
+
+- **Shape now enriches the flow you picked - it no longer replaces it.** This is
+  the model correction. Before, an under-specified brief ("build a mini
+  ecommerce store") got silently rerouted into a standalone Shape flow that
+  *discarded* whatever flow you chose. Now "needs shaping" is an orthogonal
+  signal: pick Express (or any flow), and a plan-worthy brief is shaped first (a
+  read-only intake derives the scope/spec/architecture/risks), then **your flow
+  builds from that approved spec**, seeded as run context. A well-specified task
+  skips shaping and runs straight away. Selecting a flow is honored, never
+  overwritten; `adaptiveShape: off` turns the whole thing off.
+- **"Approve & build" closes the loop.** A shaped draft now has a primary
+  action: approve it and the chosen flow runs against the derived spec (the spec
+  is concatenated from the shape run's scope/spec/architecture/risks and handed
+  over as a file context source - secret-redacted, never re-derived from the
+  bare task). "Generate roadmap" stays as the alternative path. Reachable from
+  the run page, `vibe shape build <runId>`, and `POST /api/shape/build` - same
+  behavior on every surface.
+- **A successful read-only intake reads as success, not "blocked".** A read-only
+  enrichment phase has no reviewer and nothing to approve, so it now lands
+  merge-ready when it completes instead of showing a misleading blocked verdict.
+- **Read-only really means read-only, on every launch path.** The no-write
+  safety clamp (a flow that emits no diff can never run write-capable) moved into
+  the core so the direct `vibe run` path inherits it too, not just the dashboard
+  launcher.
+
 ## 0.8.0
 
 - **A live node-tree of what the supervisor and agents are doing.** The run

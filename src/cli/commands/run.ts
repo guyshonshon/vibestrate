@@ -11,6 +11,7 @@ import {
   RunLaunchError,
 } from "../../core/run-launcher.js";
 import { chooseRunFlow, type WorkflowSelection } from "../../orchestrator/select-workflow.js";
+import { SHAPE_TARGET_FLOW } from "../../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../../orchestrator/personas.js";
 import {
   color,
@@ -245,6 +246,9 @@ export async function runRunCommand(
   // Choose the Flow transparently (forced > default > orchestrator selection),
   // unless resuming or running a checklist (the flow is implied). Always shown.
   let selection: WorkflowSelection | null = null;
+  // Adaptive Shape (P1): the chosen flow to BUILD after shaping (carried via the
+  // shape-target sidecar). Set when chooseRunFlow marks the brief needs-shaping.
+  let shapeTargetFlowId: string | null = null;
   if (!options.resumeFromRunId && !options.checklistMode) {
     try {
       selection = await chooseRunFlow({
@@ -259,6 +263,12 @@ export async function runRunCommand(
       activeFlowId = selection.flowId;
       // Apply a recommended crew only when the user didn't pick one.
       if (selection.crewId && !activeCrewId) activeCrewId = selection.crewId;
+      // Under-specified brief: run the read-only `shape-intake` first and carry
+      // the chosen flow to the post-shape build, rather than executing it now.
+      if (selection.needsShaping) {
+        shapeTargetFlowId = selection.flowId;
+        activeFlowId = SHAPE_TARGET_FLOW;
+      }
     } catch (err) {
       console.error(
         `${symbol.warn()} Flow selection failed; falling back to the default flow. ${
@@ -576,6 +586,7 @@ export async function runRunCommand(
     concise: options.concise ?? false,
     flow: resolvedFlow,
     selection,
+    shapeTargetFlowId,
     resumeFrom,
     checklistMode: options.checklistMode ?? null,
     contextSources: options.contextSources ?? [],
@@ -858,6 +869,17 @@ function printFlowChoice(label: string, selection: WorkflowSelection): void {
   console.log(
     `${header("Flow:")} ${color.bold(label)} ${color.dim(`(${selection.flowId})`)}  ${color.dim("·")}  ${color.cyan(sourceLabel[selection.source])}`,
   );
+  // Adaptive Shape (P1): the brief is under-specified, so it is shaped FIRST
+  // (a read-only intake -> spec) and the chosen flow then builds from the spec.
+  if (selection.needsShaping) {
+    console.log(
+      indent(
+        `${symbol.arrow()} ${color.cyan(
+          `Under-specified brief - shaping first (read-only intake -> spec); "${selection.flowId}" then builds from the approved spec.`,
+        )}`,
+      ),
+    );
+  }
   if (
     (selection.source === "selected" ||
       selection.source === "supervisor-upgraded" ||

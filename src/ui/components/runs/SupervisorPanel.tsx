@@ -43,8 +43,7 @@ const TONE_TEXT: Record<string, string> = {
   info: "text-fog-200",
 };
 
-function selectionStory(sel: WorkflowSelectionView | null): string | null {
-  if (!sel) return null;
+function flowStory(sel: WorkflowSelectionView): string {
   const reason = sel.reasons[0] ?? null;
   switch (sel.source) {
     case "supervisor-upgraded": {
@@ -68,6 +67,16 @@ function selectionStory(sel: WorkflowSelectionView | null): string | null {
     default:
       return `flow ${sel.flowId}`;
   }
+}
+
+function selectionStory(sel: WorkflowSelectionView | null): string | null {
+  if (!sel) return null;
+  // Adaptive Shape (P1): the brief is under-specified, so it is shaped FIRST
+  // (a read-only intake -> spec) and the chosen flow then builds from the spec.
+  if (sel.needsShaping) {
+    return `shaped this brief first, then builds with ${sel.flowId} from the approved spec`;
+  }
+  return flowStory(sel);
 }
 
 export function SupervisorPanel({

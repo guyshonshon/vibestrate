@@ -5,12 +5,13 @@ import type { RunState } from "../../lib/types.js";
 
 // ── In-run Shape chain actions ───────────────────────────────────────────────
 // The shape chain advances by human steps. The intake run's gap-questions are
-// handled by RunGapQuestions; this is the next two links, surfaced on the run
+// handled by RunGapQuestions; this is the terminal links, surfaced on the run
 // they belong to so the whole chain is advanceable from the run view (UI<->CLI
-// parity with `vibe shape approve` / `vibe shape roadmap`):
-//   - a completed `shape` run        -> "Approve & generate roadmap"
+// parity with `vibe shape build` / `vibe shape approve` / `vibe shape roadmap`):
+//   - a completed `shape` run         -> "Approve & build" (P1: run the chosen
+//        flow seeded with the approved spec) OR "Approve & generate roadmap"
 //   - a completed `shape-roadmap` run -> "Create board cards"
-// Both reuse the already-gated shape endpoints; nothing spawns a command.
+// All reuse the already-gated shape endpoints; nothing spawns a command.
 
 const TERMINAL = new Set([
   "merge_ready",
@@ -67,12 +68,25 @@ export function ShapeRunActions({
     }
   }
 
+  async function buildNow() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { runId: buildRunId } = await api.buildShape(runId);
+      onOpenRun(buildRunId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setBusy(false);
+    }
+  }
+
   const isShape = flowId === "shape";
   const title = isShape ? "Shape draft ready" : "Roadmap synthesized";
   const body = isShape
     ? blocked
-      ? "The reviewer flagged gaps (see the verdict). Re-run shaping to address them, or approve as-is to synthesize the roadmap."
-      : "Review the spec, architecture, and risks below. When you are happy with the scope, approve to synthesize the roadmap."
+      ? "The reviewer flagged gaps (see the verdict). Re-run shaping to address them, or approve as-is to build / synthesize a roadmap."
+      : "Review the spec, architecture, and risks below. When the scope is right, approve to build it with the chosen flow - or synthesize a roadmap first."
     : "The roadmap is ready as a proposal. Turn it into dependency-ordered board cards you can review and accept.";
 
   return (
@@ -111,33 +125,56 @@ export function ShapeRunActions({
           <div style={{ fontSize: 12, color: "var(--s-warn-ink)", marginTop: 6 }}>{error}</div>
         ) : null}
       </div>
-      <button
-        onClick={() => void (isShape ? approveRoadmap() : createCards())}
-        disabled={busy}
-        style={{
-          flexShrink: 0,
-          padding: "9px 14px",
-          borderRadius: 9,
-          fontSize: 13.5,
-          fontWeight: 600,
-          cursor: busy ? "default" : "pointer",
-          border: "1px solid var(--s-accent)",
-          background: busy ? "var(--s-slab-2)" : "var(--s-accent)",
-          color: busy ? "var(--s-ink-faint)" : "var(--s-on-accent)",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        {busy
-          ? isShape
-            ? "Launching roadmap..."
-            : "Creating cards..."
-          : isShape
-            ? "Approve & generate roadmap"
-            : "Create board cards"}
-        <ArrowRight size={15} />
-      </button>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        {isShape ? (
+          <button
+            onClick={() => void approveRoadmap()}
+            disabled={busy}
+            style={{
+              padding: "9px 13px",
+              borderRadius: 9,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: busy ? "default" : "pointer",
+              border: "1px solid var(--s-line)",
+              background: "var(--s-slab-2)",
+              color: busy ? "var(--s-ink-faint)" : "var(--s-ink)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <ClipboardList size={14} />
+            Generate roadmap
+          </button>
+        ) : null}
+        <button
+          onClick={() => void (isShape ? buildNow() : createCards())}
+          disabled={busy}
+          style={{
+            padding: "9px 14px",
+            borderRadius: 9,
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: busy ? "default" : "pointer",
+            border: "1px solid var(--s-accent)",
+            background: busy ? "var(--s-slab-2)" : "var(--s-accent)",
+            color: busy ? "var(--s-ink-faint)" : "var(--s-on-accent)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          {busy
+            ? isShape
+              ? "Launching build..."
+              : "Creating cards..."
+            : isShape
+              ? "Approve & build"
+              : "Create board cards"}
+          <ArrowRight size={15} />
+        </button>
+      </div>
     </section>
   );
 }

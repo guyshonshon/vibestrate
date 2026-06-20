@@ -1,5 +1,14 @@
 # Shape phase ("Plan" as a CTO)
 
+> **Update (0.9.0, P1 realignment).** Shape is no longer a flow that *replaces*
+> the chosen one. It is a pre-flow **enrichment** over whatever flow the user
+> picked: `chooseRunFlow` sets an orthogonal `needsShaping` flag, the run is
+> shaped first (read-only intake -> spec), and then the **chosen** flow builds
+> from the approved spec (seeded as a file contextSource via
+> `approveShapeAndBuild`). See
+> `docs/superpowers/specs/2026-06-20-shape-program-design.md` (P1) for the
+> authoritative model; the sections below are the original v1 design.
+
 Status: proposed, **revised after an adversarial review** (2026-06-19). The
 review found a fatal flaw in the first draft (it assumed durable pause/resume
 exists - it does not) and several concrete errors. This version corrects them.

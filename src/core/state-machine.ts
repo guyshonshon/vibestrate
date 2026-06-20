@@ -252,6 +252,11 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
+    // A read-only no-review enrichment flow (e.g. shape-intake) has its only
+    // step at the planning stage and nothing to approve - it goes terminal from
+    // here. Gated by computeMergeReady, so a WRITE flow stuck at planning (no
+    // review satisfied) still cannot reach merge_ready - it blocks.
+    "merge_ready",
     "failed",
     "aborted",
     "blocked",
@@ -276,6 +281,8 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
+    // Read-only no-review flow terminating at architecting (see `planning`).
+    "merge_ready",
     "failed",
     "aborted",
     "blocked",
@@ -287,6 +294,8 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
+    // Read-only no-review flow terminating at executing (see `planning`).
+    "merge_ready",
     "failed",
     "aborted",
     "blocked",

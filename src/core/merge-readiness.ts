@@ -18,6 +18,10 @@ export type ReviewSkipEvidence = {
 export type MergeReadinessInput = {
   readOnly: boolean;
   reviewDecision: ReviewDecision;
+  /** True when the resolved flow declares ANY review-turn step. A read-only flow
+   *  with no review step (e.g. the shape-intake enrichment phase) has nothing to
+   *  approve - completing its steps IS success, not `blocked`. */
+  hasReviewStep: boolean;
   /** True when ANY review-turn actually executed (even without a decision). */
   reviewTurnRan: boolean;
   /** Set ONLY by the deterministic inert-diff evaluator (review-descent.ts). */
@@ -38,7 +42,17 @@ export function isReviewSatisfied(i: MergeReadinessInput): boolean {
 }
 
 export function computeMergeReady(i: MergeReadinessInput): boolean {
-  if (i.readOnly) return i.reviewDecision === "APPROVED";
+  if (i.readOnly) {
+    // A read-only run with NO review step (the shape-intake enrichment phase, or
+    // any no-reviewer single-turn read-only flow) has nothing to approve: it is
+    // merge_ready on completion - provided any validation it ran still passed
+    // (it never can for shape-intake, but this keeps the invariant honest for a
+    // future no-reviewer read-only flow that DOES validate). A read-only run that
+    // DOES declare a reviewer still requires a real APPROVED decision (a genuine
+    // CHANGES_REQUESTED must still block).
+    if (!i.hasReviewStep) return i.validationPassed;
+    return i.reviewDecision === "APPROVED";
+  }
   return (
     isReviewSatisfied(i) &&
     i.validationPassed &&

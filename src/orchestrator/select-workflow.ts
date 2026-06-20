@@ -20,7 +20,6 @@ import {
   classifyObviousTrivial,
   classifyPlanWorthy,
   SIZER_TARGET_FLOW,
-  SHAPE_TARGET_FLOW,
 } from "./flow-sizing.js";
 import { discoverFlows } from "../flows/catalog/flow-discovery.js";
 import {
@@ -55,6 +54,11 @@ export type WorkflowSelection = {
   /** Recommended crew, when the orchestrator chose one (else null = config/default). */
   crewId: string | null;
   source: WorkflowSelectionSource;
+  /** Adaptive Shape (P1): the brief is under-specified, so the run is SHAPED
+   *  FIRST (read-only intake -> spec) and then `flowId` (the chosen/default
+   *  flow, NOT a shape flow) executes seeded with that spec. Orthogonal to flow
+   *  selection - any flow can be shaped. Omitted/false = run the flow directly. */
+  needsShaping?: boolean;
   confidence: "low" | "medium" | "high";
   reasons: string[];
   risks: string[];
@@ -267,6 +271,10 @@ export type ChooseRunFlowInput = {
   forceSelect?: boolean;
   /** --no-select: skip selection; use the default (or built-in default) flow. */
   noSelect?: boolean;
+  /** Loop guard (P1): this run is itself a shape-phase run (intake/shape/roadmap)
+   *  or the post-shape executor launched from the chain. Suppresses adaptive
+   *  shaping so a shaped run never re-enters shaping. */
+  shaped?: boolean;
   files?: string[];
   loaded?: LoadedConfig | null;
   signal?: AbortSignal;
@@ -338,10 +346,23 @@ async function maybeUpgradeForPersona(input: {
 export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<WorkflowSelection> {
   const defaultFlowId = input.config.defaultFlow ?? null;
   const persona = resolvePersona(input.config, input.personaOverride);
+  // Adaptive Shape (P1) is ORTHOGONAL to flow selection: decide it ONCE here and
+  // stamp it on every return path via `tag`. A plan-worthy/under-specified brief
+  // is shaped FIRST (read-only intake -> spec) and then the CHOSEN flow runs
+  // seeded with that spec - the chosen flow is never replaced by a shape flow.
+  // Suppressed for a shape-phase/executor run (`shaped`), with --no-select, or
+  // when `adaptiveShape: "off"`. classifyPlanWorthy biases to execute (fires
+  // only on a clear build-a-system reading, never when a concrete file is named).
+  const needsShaping =
+    !input.shaped &&
+    !input.noSelect &&
+    (input.config.adaptiveShape ?? "auto") !== "off" &&
+    classifyPlanWorthy(input.task).planWorthy;
   const tag = (s: WorkflowSelection): WorkflowSelection => ({
     ...s,
     personaId: persona.id,
     personaUpgrade: s.personaUpgrade ?? null,
+    needsShaping,
   });
   const upgrade = (base: WorkflowSelection): Promise<WorkflowSelection> =>
     maybeUpgradeForPersona({
@@ -406,36 +427,6 @@ export async function chooseRunFlow(input: ChooseRunFlowInput): Promise<Workflow
     // it over an LLM pick could downgrade it. The deterministic upgrade is the
     // safety net for the NON-LLM default path below.
     return tag(selected);
-  }
-
-  // 3a-shape. Adaptive depth: a plan-worthy greenfield/system brief is routed
-  //     into the read-only `shape-intake` flow (which asks the gap questions)
-  //     BEFORE any execution. Same guard as the sizer (no --flow, no --select,
-  //     no --no-select, no config.defaultFlow) so an explicit choice always wins.
-  //     It BIASES TO EXECUTE - classifyPlanWorthy fires only on a clear
-  //     build-a-system reading, never when a concrete code file is named. The
-  //     resulting run is read-only (shape-intake emits no diff -> launcher clamp).
-  //     `--flow shape-intake` force-shapes; `adaptiveShape: "off"` disables it.
-  if (
-    defaultFlowId === null &&
-    !input.noSelect &&
-    (input.config.adaptiveShape ?? "auto") !== "off" &&
-    classifyPlanWorthy(input.task).planWorthy
-  ) {
-    const pw = classifyPlanWorthy(input.task);
-    return tag({
-      flowId: SHAPE_TARGET_FLOW,
-      crewId: null,
-      source: "shaped",
-      confidence: "medium",
-      reasons: [
-        "Plan-worthy brief - shaping it (scope, spec, architecture, risks) before any code.",
-        ...pw.reasons,
-      ],
-      risks: [],
-      posture: "normal",
-      advisory: null,
-    });
   }
 
   // 3a. A1 flow sizing (flow-sizing.ts) - ONLY when nothing explicit applies:
