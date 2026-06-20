@@ -18,6 +18,7 @@ import {
 } from "../crews/crew-registry.js";
 import { createActionBroker, gateAction } from "../safety/action-broker.js";
 import { runProvider } from "../providers/provider-runner.js";
+import { redactSecretsInText } from "../core/diff-service.js";
 import { failureExcerpt } from "../core/provider-resilience.js";
 import { resolveCatalog } from "../providers/provider-catalog-overlay.js";
 import type { ProvidersConfigMap } from "../providers/provider-schema.js";
@@ -264,13 +265,21 @@ export async function runAssist<T>(req: AssistRequest<T>): Promise<AssistResult<
   // sees WHY, not just an exit code.
   let lastFailureReason = "";
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const prompt = buildAssistPrompt({
-      label: req.label,
-      instruction: req.instruction,
-      schemaHint: req.schemaHint,
-      rules: loaded.rules,
-      retryError: attempt > 1 ? lastError : undefined,
-    });
+    // Redact secret-shaped tokens from the WHOLE assembled prompt before it ever
+    // reaches a provider. assist/consult feed free-text (the question, prior
+    // answers, view snapshots, rules) that file-source materialization never sees,
+    // so this is the one chokepoint that makes every assist + consult path
+    // redacted-by-default (no-secrets-exposure invariant). High-precision patterns
+    // => effectively no false positives on structural prompt text.
+    const prompt = redactSecretsInText(
+      buildAssistPrompt({
+        label: req.label,
+        instruction: req.instruction,
+        schemaHint: req.schemaHint,
+        rules: loaded.rules,
+        retryError: attempt > 1 ? lastError : undefined,
+      }),
+    ).redacted;
     const result = await runner(loaded.config.providers, {
       providerId,
       prompt,

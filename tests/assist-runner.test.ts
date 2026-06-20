@@ -138,6 +138,28 @@ describe("runAssist", () => {
     expect(res.attempts).toBe(1);
   });
 
+  it("redacts secrets in the assembled prompt before the provider sees it", async () => {
+    let seenPrompt = "";
+    const capturing: AssistProviderRunner = async (_p, input) => {
+      seenPrompt = input.prompt;
+      return { exitCode: 0, normalized: { responseText: '{"items":[]}', metrics: null } };
+    };
+    await runAssist({
+      projectRoot,
+      label: "test",
+      instruction: "consider this key: AKIAIOSFODNN7EXAMPLE in the plan",
+      schema: itemsSchema,
+      schemaHint: "{}",
+      runner: capturing,
+    });
+    // Central redaction protects EVERY assist + consult caller, not just the ones
+    // that redact their own inputs.
+    expect(seenPrompt).not.toContain("AKIAIOSFODNN7EXAMPLE");
+    expect(seenPrompt).toContain("REDACTED");
+    // non-secret instruction text still reaches the model
+    expect(seenPrompt).toContain("in the plan");
+  });
+
   it("retries once on an unparseable response, then succeeds", async () => {
     const res = await runAssist({
       projectRoot,
