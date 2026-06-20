@@ -4,6 +4,7 @@ import { HttpError, assertSafeRunId } from "../security.js";
 import {
   readShapeQuestions,
   submitShapeAnswers,
+  proceedToShapeSpec,
   startShapeIntake,
   approveShapeAndStartRoadmap,
   approveShapeAndBuild,
@@ -11,6 +12,12 @@ import {
   shapeAnswerSchema,
   ShapeChainError,
 } from "../../shape/shape-chain.js";
+import {
+  shapeSimplify,
+  shapeSuggest,
+  shapeSuggestAll,
+  ShapeAssistError,
+} from "../../shape/shape-assist.js";
 import { loadConfig } from "../../project/config-loader.js";
 
 /** Best-effort project default flow (fallback build target for an unbound shape
@@ -55,12 +62,28 @@ const buildBody = z
 
 const answersBody = z
   .object({
-    sourceRunId: z
-      .string()
-      .min(1)
-      .max(200)
-      .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
+    sourceRunId: runIdParam,
     answers: z.array(shapeAnswerSchema).min(1).max(20),
+    /** Deep-questioning loop: "Proceed to spec" - finalize now, skip gap-check. */
+    proceed: z.boolean().optional(),
+  })
+  .strict();
+
+const proceedShapeBody = z.object({ sourceRunId: runIdParam }).strict();
+
+const questionIdParam = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9][a-z0-9_-]*$/);
+
+const assistBody = z
+  .object({
+    sourceRunId: runIdParam,
+    mode: z.enum(["simplify", "suggest", "suggest-all"]),
+    questionId: questionIdParam.optional(),
+    questionIds: z.array(questionIdParam).max(20).optional(),
+    forNonDeveloper: z.boolean().optional(),
   })
   .strict();
 
@@ -108,6 +131,8 @@ export async function registerShapeRoutes(
         questions: pending.questions,
         hasBrief: pending.task.length > 0,
         targetFlowId: pending.targetFlowId,
+        round: pending.round,
+        coverageComplete: pending.coverageComplete,
       };
     },
   );
@@ -173,20 +198,64 @@ export async function registerShapeRoutes(
     },
   );
 
-  // Submit answers -> launch the shape run seeded with the answers as context.
+  // Submit a round's answers -> either a gap-check round or the shape run.
   app.post<{ Body: unknown }>("/api/shape/answers", async (req) => {
     const parsed = answersBody.safeParse(req.body);
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid answers.");
     }
     try {
-      const { runId, pid } = await submitShapeAnswers({
+      const { runId, pid, action } = await submitShapeAnswers({
         projectRoot,
         sourceRunId: parsed.data.sourceRunId,
         answers: parsed.data.answers,
+        proceed: parsed.data.proceed ?? false,
+      });
+      return { ok: true, runId, pid, action };
+    } catch (err) {
+      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // "Proceed to spec" without answering more: finalize with accumulated answers.
+  app.post<{ Body: unknown }>("/api/shape/proceed", async (req) => {
+    const parsed = proceedShapeBody.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, "sourceRunId is required.");
+    try {
+      const { runId, pid } = await proceedToShapeSpec({
+        projectRoot,
+        sourceRunId: parsed.data.sourceRunId,
       });
       return { ok: true, runId, pid };
     } catch (err) {
+      if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
+      throw err;
+    }
+  });
+
+  // Per-question assist: Simplify / Suggest / Suggest-all (read-only, draft-only).
+  app.post<{ Body: unknown }>("/api/shape/assist", async (req) => {
+    const parsed = assistBody.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid assist request.");
+    }
+    const { sourceRunId, mode, questionId, questionIds, forNonDeveloper } = parsed.data;
+    try {
+      if (mode === "simplify") {
+        if (!questionId) throw new HttpError(400, "questionId is required for simplify.");
+        const r = await shapeSimplify({ projectRoot, sourceRunId, questionId, forNonDeveloper });
+        return { ok: true, mode, ...r };
+      }
+      if (mode === "suggest") {
+        if (!questionId) throw new HttpError(400, "questionId is required for suggest.");
+        const r = await shapeSuggest({ projectRoot, sourceRunId, questionId });
+        return { ok: true, mode, ...r };
+      }
+      const r = await shapeSuggestAll({ projectRoot, sourceRunId, questionIds });
+      return { ok: true, mode, ...r };
+    } catch (err) {
+      if (err instanceof ShapeAssistError) throw new HttpError(400, err.message);
       if (err instanceof ShapeChainError) throw new HttpError(400, err.message);
       throw err;
     }

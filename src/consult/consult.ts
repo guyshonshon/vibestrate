@@ -15,6 +15,7 @@ import { runAssist, type AssistProviderRunner } from "../assist/assist-runner.js
 import { assembleConsultContext } from "./consult-context.js";
 import type { ConsultSections } from "./consult-sections.js";
 import { saveManualProposal } from "../project/manual-proposals.js";
+import { redactSecretsInText } from "../core/diff-service.js";
 
 export class ConsultError extends VibestrateError {
   constructor(message: string, cause?: unknown) {
@@ -76,12 +77,27 @@ const CONSULT_SCHEMA_HINT = `{
   "proposedManualUpdate": null
 }`;
 
+/** A typed, decoupled snapshot of what the user is currently looking at, so the
+ *  orb can advise in full context. The caller serializes the screen's meaningful
+ *  state into `details`; consult REDACTS it server-side before the model sees it
+ *  (the engine never trusts the client to have redacted). Reactive only - used
+ *  when the user asks. */
+export type ConsultViewContext = {
+  /** Short screen label, e.g. "Shape questions". */
+  screen: string;
+  /** Human-readable serialization of the screen's state (questions, answers,
+   *  focused field). Redacted before it reaches the prompt. */
+  details: string;
+};
+
 export type ConsultRequest = {
   projectRoot: string;
   question: string;
   taskId?: string | null;
   runId?: string | null;
   files?: string[];
+  /** Screen-aware orb: a snapshot of the current screen (redacted server-side). */
+  viewContext?: ConsultViewContext | null;
   /** Explicit profile; else the crew's read-only planner (cheap, read-only). */
   profileId?: string | null;
   crewId?: string | null;
@@ -114,8 +130,13 @@ export type ConsultResult = {
   effort: string | null;
 };
 
-function buildInstruction(question: string, contextText: string, usedSources: string[]): string {
-  return [
+function buildInstruction(
+  question: string,
+  contextText: string,
+  usedSources: string[],
+  screen: ConsultViewContext | null,
+): string {
+  const lines = [
     "You are Vibestrate's project consult - a project-aware engineering advisor.",
     "Answer the user's question about THIS project using ONLY the project context below. You are READ-ONLY: recommend actions, never assume any were taken.",
     "Be honest about your verification boundary: only deterministic evidence (validation results, config, run outcomes, annotations) is reliable. Where the context is insufficient to be sure, say so in `caveats` and lower `confidence`. Never invent facts or fake authority.",
@@ -127,10 +148,17 @@ function buildInstruction(question: string, contextText: string, usedSources: st
     "",
     "# Project context",
     contextText.trim() || "(no project context was available)",
-    "",
-    "# Question",
-    question.trim(),
-  ].join("\n");
+  ];
+  if (screen) {
+    lines.push(
+      "",
+      `# Current screen: ${screen.screen}`,
+      "What the user is looking at right now (use it to ground field-specific advice):",
+      screen.details.trim() || "(no detail)",
+    );
+  }
+  lines.push("", "# Question", question.trim());
+  return lines.join("\n");
 }
 
 export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
@@ -152,11 +180,20 @@ export async function runConsult(req: ConsultRequest): Promise<ConsultResult> {
     loaded,
   });
 
+  // Screen-aware orb: redact the screen snapshot HERE (the engine never trusts
+  // the caller to have redacted) before it reaches the prompt.
+  const screen: ConsultViewContext | null = req.viewContext
+    ? {
+        screen: req.viewContext.screen,
+        details: redactSecretsInText(req.viewContext.details).redacted,
+      }
+    : null;
+
   const result = await runAssist<ConsultAnswer>({
     projectRoot: req.projectRoot,
     label: "consult",
     auditBucket: "consult",
-    instruction: buildInstruction(question, context.text, context.usedSources),
+    instruction: buildInstruction(question, context.text, context.usedSources, screen),
     schema: consultAnswerSchema,
     schemaHint: CONSULT_SCHEMA_HINT,
     // Suppress assist's own rules.md injection - our context already includes it,

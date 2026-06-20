@@ -6,11 +6,18 @@ import {
   startShapeIntake,
   readShapeQuestions,
   submitShapeAnswers,
+  proceedToShapeSpec,
   approveShapeAndStartRoadmap,
   approveShapeAndBuild,
   createRoadmapProposal,
   ShapeChainError,
 } from "../../shape/shape-chain.js";
+import {
+  shapeSimplify,
+  shapeSuggest,
+  shapeSuggestAll,
+  ShapeAssistError,
+} from "../../shape/shape-assist.js";
 
 function fail(message: string): never {
   console.error(`${symbol.fail()} ${message}`);
@@ -71,9 +78,14 @@ export function buildShapeCommand(): Command {
         console.log(JSON.stringify(pending.questions, null, 2));
         return;
       }
-      console.log(header("Shape: gap questions"));
+      console.log(header(`Shape: gap questions (round ${pending.round})`));
+      if (pending.coverageComplete && pending.questions.length === 0) {
+        console.log(color.dim("Coverage complete - no more questions."));
+        console.log(color.dim(`Build the spec:  vibe shape answer ${runId} --proceed`));
+        return;
+      }
       for (const q of pending.questions) {
-        console.log(`\n${color.bold(q.id)}  ${q.question}`);
+        console.log(`\n${color.bold(q.id)}  ${color.dim(`[${q.category}]`)}  ${q.question}`);
         console.log(color.dim(`  why: ${q.why}`));
         if (q.kind === "choice" && q.options.length > 0) {
           console.log(color.dim(`  options: ${q.options.join(" | ")}`));
@@ -82,26 +94,93 @@ export function buildShapeCommand(): Command {
       console.log(
         color.dim(`\nAnswer:  vibe shape answer ${runId} --answer ${pending.questions[0]?.id ?? "id"}="..."`),
       );
+      console.log(color.dim(`Unsure?  vibe shape simplify ${runId} ${pending.questions[0]?.id ?? "id"}  |  suggest a draft:  vibe shape suggest ${runId} ${pending.questions[0]?.id ?? "id"}`));
     });
 
   cmd
     .command("answer <runId>")
-    .description("Answer the intake questions and launch the shape run.")
+    .description("Answer a round's questions; loops to a gap-check round or builds the spec.")
     .option("--answer <id=value>", "answer for a question id (repeatable)", collectAnswer, [])
-    .action(async (runId: string, opts: { answer: { id: string; answer: string }[] }) => {
-      if (opts.answer.length === 0) fail("Pass at least one --answer id=value.");
+    .option("--proceed", "stop questioning and build the spec now (skip further gap-checks)")
+    .action(async (runId: string, opts: { answer: { id: string; answer: string }[]; proceed?: boolean }) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
-        const { runId: shapeRunId } = await submitShapeAnswers({
+        // "Proceed to spec" with no new answers: finalize the accumulated set.
+        if (opts.answer.length === 0) {
+          if (!opts.proceed) fail("Pass at least one --answer id=value, or --proceed to build now.");
+          const { runId: shapeRunId } = await proceedToShapeSpec({ projectRoot, sourceRunId: runId });
+          console.log(`${header("Shape: building the spec")}`);
+          console.log(`Run: ${color.bold(shapeRunId)}`);
+          return;
+        }
+        const { runId: nextRunId, action } = await submitShapeAnswers({
           projectRoot,
           sourceRunId: runId,
           answers: opts.answer,
+          proceed: opts.proceed ?? false,
         });
-        console.log(`${header("Shape: shaping run launched")}`);
-        console.log(`Run: ${color.bold(shapeRunId)}`);
-        console.log(color.dim("Review the spec/architecture/risks, then:  vibe roadmap ... (after approval)"));
+        if (action === "gap-check") {
+          console.log(`${header("Shape: more questions coming")}`);
+          console.log(`Round run: ${color.bold(nextRunId)}`);
+          console.log(color.dim(`See them:  vibe shape questions ${nextRunId}  (or build now:  vibe shape answer ${runId} --proceed)`));
+        } else {
+          console.log(`${header("Shape: building the spec")}`);
+          console.log(`Run: ${color.bold(nextRunId)}`);
+          console.log(color.dim("Review the spec/architecture/risks, then approve."));
+        }
       } catch (err) {
         if (err instanceof ShapeChainError) fail(err.message);
+        fail(err instanceof Error ? err.message : String(err));
+      }
+    });
+
+  cmd
+    .command("simplify <runId> <questionId>")
+    .description("Explain a question in plain language (what it asks + what it affects).")
+    .option("--for-non-developer", "add an everyday-life analogy (no jargon)")
+    .action(async (runId: string, questionId: string, opts: { forNonDeveloper?: boolean }) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      try {
+        const r = await shapeSimplify({
+          projectRoot,
+          sourceRunId: runId,
+          questionId,
+          forNonDeveloper: opts.forNonDeveloper ?? false,
+        });
+        console.log(header(`Shape: ${questionId}`));
+        console.log(r.text);
+        console.log(color.dim(`\nWhat it affects: ${r.affects}`));
+        if (r.analogy) console.log(color.dim(`Analogy: ${r.analogy}`));
+      } catch (err) {
+        if (err instanceof ShapeAssistError || err instanceof ShapeChainError) fail(err.message);
+        fail(err instanceof Error ? err.message : String(err));
+      }
+    });
+
+  cmd
+    .command("suggest <runId> [questionId]")
+    .description("Draft an answer grounded in your prior answers (you still decide). --all for every blank.")
+    .option("--all", "suggest a draft for every question in the round")
+    .action(async (runId: string, questionId: string | undefined, opts: { all?: boolean }) => {
+      const { projectRoot } = await detectProject(process.cwd());
+      try {
+        if (opts.all) {
+          const { items } = await shapeSuggestAll({ projectRoot, sourceRunId: runId });
+          console.log(header("Shape: suggested drafts (review + edit)"));
+          for (const it of items) {
+            console.log(`\n${color.bold(it.questionId)}  ${it.suggestedValue}`);
+            console.log(color.dim(`  why: ${it.why}`));
+          }
+          return;
+        }
+        if (!questionId) fail("Pass a questionId, or --all to suggest for every question.");
+        const r = await shapeSuggest({ projectRoot, sourceRunId: runId, questionId });
+        console.log(header(`Shape: suggested draft for ${questionId}`));
+        console.log(r.suggestedValue);
+        console.log(color.dim(`\nwhy: ${r.why}`));
+        console.log(color.dim(`(a draft - edit it, then:  vibe shape answer ${runId} --answer ${questionId}="...")`));
+      } catch (err) {
+        if (err instanceof ShapeAssistError || err instanceof ShapeChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
       }
     });
