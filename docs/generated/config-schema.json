@@ -764,6 +764,21 @@
       "itemType": null,
       "children": [
         {
+          "key": "defaultPermissionMode",
+          "fullKey": "policies.defaultPermissionMode",
+          "type": "enum",
+          "required": false,
+          "default": "auto",
+          "enum": [
+            "read-only",
+            "ask",
+            "accept-edits",
+            "auto"
+          ],
+          "itemType": null,
+          "description": "Baseline permission mode for runs that don't set one (default auto)."
+        },
+        {
           "key": "forbidMainBranchWrites",
           "fullKey": "policies.forbidMainBranchWrites",
           "type": "boolean",

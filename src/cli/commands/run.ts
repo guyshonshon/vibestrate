@@ -93,6 +93,8 @@ export type RunCommandOptions = {
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides?: Record<string, string>;
   readOnly?: boolean;
+  /** Permission mode (P4): read-only / ask / accept-edits / auto. */
+  permissionMode?: "read-only" | "ask" | "accept-edits" | "auto";
   /** Never pause for a human (forces budget onLimit->stop, onExhausted->fail). */
   unattended?: boolean;
   /** Skill ids attached only for this run, merged into role skills. */
@@ -581,6 +583,8 @@ export async function runRunCommand(
     stepProfileOverrides: options.flowStepProfiles ?? {},
     seatRoleOverrides: options.seatRoleOverrides ?? {},
     readOnly,
+    // Permission mode (P4): explicit flag, else the legacy --read-only alias.
+    permissionMode: options.permissionMode ?? (readOnly ? "read-only" : undefined),
     unattended: options.unattended ?? false,
     runtimeSkills: options.runtimeSkills ?? [],
     concise: options.concise ?? false,

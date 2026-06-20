@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.12.0
+
+- **Permission modes - pick how much rope a run gets.** A run now takes a
+  `--permission-mode`: **read-only** (no writes at all), **ask** (a human
+  approves every change before it's kept), **accept-edits** (changes auto-apply,
+  but you sign off before the run completes), or **auto** (fully hands-off, the
+  default). The mode is enforced by Vibestrate, the same way for every provider -
+  it's not a per-model flag. Set it per run (`--permission-mode`, the API, the
+  dashboard) or as a project default (`policies.defaultPermissionMode`);
+  `--read-only` is now an alias for read-only mode.
+- **Two fail-open holes in the safety gate, closed.** Both are the kind of bug
+  that's invisible until it bites: (1) if the action-policy file couldn't be read
+  at all, the broker used to wave every effect through - now it **refuses writes
+  and run completion** (while still letting a run start, so a transient disk hiccup
+  can't brick everything). (2) If Vibestrate couldn't snapshot the worktree before
+  a write turn, it used to silently skip the diff check and keep the writes anyway
+  - now that turn is **refused outright**, because a change it can't gate or roll
+  back shouldn't land. Default behavior is unchanged for healthy runs.
+
 ## 0.11.0
 
 - **Run inside a disposable container (opt-in).** Set `execution.backend: docker`

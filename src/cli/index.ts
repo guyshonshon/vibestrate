@@ -211,6 +211,10 @@ export function buildVibestrateProgram(): Command {
       "investigation-only run: skip executor + fix loop; refuse apply/validate/revert; force readOnly permissions on every role.",
     )
     .option(
+      "--permission-mode <mode>",
+      "permission mode: read-only | ask (approve each change) | accept-edits (auto-apply, then hold for your review before merge) | auto (default). --read-only is the alias for read-only.",
+    )
+    .option(
       "--unattended",
       "never pause for a human: forces budget onLimit->stop and resilience onExhausted->fail, so the run always terminates on its own.",
     )
@@ -308,6 +312,7 @@ export function buildVibestrateProgram(): Command {
           crew?: string;
           profile?: string;
           readOnly?: boolean;
+          permissionMode?: string;
           unattended?: boolean;
           skills?: string;
           concise?: boolean;
@@ -334,6 +339,15 @@ export function buildVibestrateProgram(): Command {
           ...(opts.contextFile ?? []).map((ref) => ({ kind: "file" as const, ref })),
           ...(opts.contextUrl ?? []).map((ref) => ({ kind: "url" as const, ref })),
         ];
+        if (
+          opts.permissionMode &&
+          !["read-only", "ask", "accept-edits", "auto"].includes(opts.permissionMode)
+        ) {
+          console.error(
+            `--permission-mode must be one of read-only|ask|accept-edits|auto (got "${opts.permissionMode}").`,
+          );
+          process.exit(2);
+        }
         let checklistMode: "continuous" | "step" | null = null;
         if (opts.checklist) {
           if (opts.checklist !== "continuous" && opts.checklist !== "step") {
@@ -423,6 +437,12 @@ export function buildVibestrateProgram(): Command {
           seatRoleOverrides,
           profileOverride: opts.profile ?? null,
           readOnly: opts.readOnly ?? false,
+          permissionMode: opts.permissionMode as
+            | "read-only"
+            | "ask"
+            | "accept-edits"
+            | "auto"
+            | undefined,
           unattended: opts.unattended ?? false,
           runtimeSkills,
           concise: opts.concise ?? false,

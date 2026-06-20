@@ -16,6 +16,7 @@ import { resolveFlow } from "../flows/runtime/flow-resolver.js";
 import { chooseRunFlow, type WorkflowSelection } from "../orchestrator/select-workflow.js";
 import { SHAPE_TARGET_FLOW } from "../orchestrator/flow-sizing.js";
 import { resolvePersona } from "../orchestrator/personas.js";
+import { permissionModeSchema } from "../project/config-schema.js";
 import type { ResolvedFlowSnapshot } from "../flows/schemas/flow-schema.js";
 import { contextSourceSchema } from "./context-source-schema.js";
 
@@ -51,6 +52,10 @@ export const runSpecSchema = z.object({
   /** Seat → Role overrides (disambiguate seats filled by >1 crew role). */
   seatRoleOverrides: z.record(z.string(), z.string()).optional(),
   readOnly: z.boolean().optional(),
+  /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. Omitted ⇒
+   *  config.policies.defaultPermissionMode. `readOnly: true` is the legacy alias
+   *  for read-only. */
+  permissionMode: permissionModeSchema.optional(),
   /** Unattended run: never pause for a human (forces budget onLimit->stop and
    *  resilience onExhausted->fail), so the run always terminates on its own. */
   unattended: z.boolean().optional(),
@@ -344,6 +349,9 @@ export async function runFromSpec(
     checklistMode: spec.checklistMode ?? null,
     contextSources: contextSources ?? [],
     shapeTargetFlowId,
+    // Permission mode (P4): explicit spec value, else the legacy readOnly alias,
+    // else config default (resolved in the orchestrator).
+    permissionMode: spec.permissionMode ?? (readOnly ? "read-only" : undefined),
     abortSignal: opts.abortSignal,
     onProgress: opts.onProgress,
   });

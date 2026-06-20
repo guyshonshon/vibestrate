@@ -97,6 +97,18 @@ The `policies.*` toggles - strict apply-only, harden read-only seats, interactiv
 
 **Harden read-only seats** (`policies.hardenReadOnlySeats`, off by default) runs read-only **claude** seats under `--permission-mode plan`, so the CLI itself refuses writes (the agent won't even attempt them) instead of relying on its headless default. It's claude's counterpart to the OS sandbox; codex read-only seats get real OS confinement via `execution.isolation` below. Off by default because plan mode can add an "awaiting approval" framing to an action-shaped prompt - turn it on for the stronger, explicit no-write guarantee.
 
+## Permission modes
+
+A run takes a **permission mode** that decides how much rope it gets - enforced by Vibestrate the same way for **every** provider, not a per-model flag. Set it per run with `vibe run --permission-mode <mode>` (or the API / dashboard), or set the baseline with `policies.defaultPermissionMode`.
+
+<div class="docs-outcomes"><div class="docs-outcome ok"><b>read-only</b><span>No writes at all. Every seat runs read-only (no write grant); claude additionally gets plan mode when hardened, and a codex run gets OS confinement under the container backend.</span></div><div class="docs-outcome ok"><b>ask</b><span>The agent writes into the worktree, then every resulting change waits for your approval before it's kept - reject and the worktree is rolled back.</span></div><div class="docs-outcome warn"><b>accept-edits</b><span>Changes auto-apply, but the run does not auto-complete - it holds for your review of the applied diff before it's merged (the run lands held pending review, rather than reaching merge_ready on its own).</span></div><div class="docs-outcome warn"><b>auto</b><span>Fully hands-off (the default) - changes apply and the run completes on the evidence, bounded by the gates above and your budget ceilings.</span></div></div>
+
+A note on **ask** combined with `strictApplyOnly`: ask's "approve each change" runs on the post-turn diff gate (the direct-write path). With `strictApplyOnly` on, changes are routed through the apply gateway instead, which currently *refuses* a change pending approval rather than prompting for it - so a run lands blocked instead of pausing. Use one or the other for now (ask alone gives you the per-change prompt).
+
+What's **honest** about this: the modes gate the run-level effects Vibestrate owns - the agent's resulting **diff**, and run **completion** - not each shell command the agent runs inside an opaque provider (codex's subprocess can't be intercepted per-command, and claude's `tool_use` stream is display-only). So "ask" means "approve each change", not "approve each command". `read-only` is a real no-write guarantee because Vibestrate never grants write capability; for the strongest wall around a non-codex provider, combine it with the [container backend](concepts/sandbox).
+
+The mode is the **soft policy**; the container backend is the **hard wall**. They layer: read-only mode + `execution.backend: docker` gives you "no writes" enforced by both the orchestrator and the container.
+
 ## Run assurance
 
 When a run reaches a terminal state, Vibestrate derives a single honest verdict from the evidence above - the broker log plus the run's review and verification decisions - and writes it to `.vibestrate/runs/<runId>/assurance.json`:

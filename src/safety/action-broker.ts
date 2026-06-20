@@ -55,6 +55,38 @@ export type ActionEvidence = {
   data?: Record<string, unknown>;
 };
 
+/** The write/outcome/irreversible kinds that must FAIL CLOSED when policy can't
+ *  be loaded (P4): file writes, run completion, and the merge to main. The
+ *  remaining kinds (provider.spawn, command.run, terminal.create,
+ *  network.request, mcp.tool) stay permissive so a transient policy-load error
+ *  can't brick benign runs - provider.spawn throwing would stop every run from
+ *  even starting. git.merge is denied (not abstained) because it is the most
+ *  irreversible effect and is only ever human-initiated, so failing it closed
+ *  just makes the user retry once policy loads - the safer default. */
+const POLICY_UNAVAILABLE_KINDS = new Set<ActionKind>([
+  "file.patch",
+  "file.write",
+  "run.complete",
+  "git.merge",
+]);
+
+/**
+ * Injected in place of `[]` when the policy loader throws (P4): a loader error
+ * is no longer fail-OPEN. It DENIES write/outcome effects (so an apply refuses, a
+ * diff rolls back, a run can't reach merge_ready) and ABSTAINS on everything else
+ * (so runs still start). Malformed policy FILES never reach here - the store
+ * swallows them - so this fires only on a genuinely unexpected fs/read error.
+ */
+export const POLICY_UNAVAILABLE_EVALUATOR: ActionEvaluator = (request) =>
+  POLICY_UNAVAILABLE_KINDS.has(request.kind)
+    ? {
+        effect: "deny",
+        ruleIds: ["policy.unavailable"],
+        reason:
+          "Action policy could not be loaded; failing closed for write/outcome effects.",
+      }
+    : null;
+
 /** A pure veto/escalation hook. Returns a non-allow decision to override the
  *  default, or null to abstain. The first deny wins; otherwise the first
  *  require_approval; otherwise allow. Evaluators must not perform side effects. */
@@ -109,10 +141,14 @@ export class DefaultActionBroker implements ActionBroker {
   private async allEvaluators(): Promise<ActionEvaluator[]> {
     if (!this.evaluatorLoader) return this.evaluators;
     if (!this.loaded) {
-      // Fail-open on a loader error: a broken policy load must not wedge every
-      // effect. Malformed policy FILES are already skipped by the store; this
-      // guards an unexpected throw (e.g. fs error).
-      this.loaded = this.evaluatorLoader().catch(() => []);
+      // Fail-CLOSED on a loader error (P4): a broken policy load denies
+      // write/outcome effects (apply refuses, diff rolls back, run can't
+      // complete) but abstains on read-only kinds so runs still start. Malformed
+      // policy FILES are already skipped by the store; this guards an unexpected
+      // throw (e.g. fs error). Previously this returned [] (fail-open).
+      this.loaded = this.evaluatorLoader().catch(() => [
+        POLICY_UNAVAILABLE_EVALUATOR,
+      ]);
     }
     return [...this.evaluators, ...(await this.loaded)];
   }

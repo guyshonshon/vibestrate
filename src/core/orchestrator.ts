@@ -36,7 +36,7 @@ import {
 } from "./run-control.js";
 import { renderFinalReport } from "./final-report.js";
 import { runPreflightChecks, type PolicyWarning } from "./policy-engine.js";
-import type { ProjectConfig } from "../project/config-schema.js";
+import type { ProjectConfig, PermissionMode } from "../project/config-schema.js";
 import { loadRolePrompt } from "../project/config-loader.js";
 import { getCrew, getCrewRole, roleLabel } from "../crews/crew-registry.js";
 import { resolveProfile } from "../permissions/permission-profiles.js";
@@ -61,6 +61,7 @@ import {
   createActionBroker,
   type ActionBroker,
   type ActionRequest,
+  type ActionEvaluator,
 } from "../safety/action-broker.js";
 import { buildAndWriteRunAssurance } from "../safety/run-assurance.js";
 import {
@@ -333,6 +334,10 @@ export type OrchestratorInput = {
    *  detached chain; persisted as the `shape-target-flow.json` sidecar at run
    *  start and read by the `approve & build` handoff. null = no build target. */
   shapeTargetFlowId?: string | null;
+  /** Permission mode (T14 P4): read-only / ask / accept-edits / auto. The
+   *  model-agnostic policy Vibestrate applies to this run's writes. Omitted ⇒
+   *  config.policies.defaultPermissionMode (default "auto"). */
+  permissionMode?: PermissionMode;
   /** CLI/process lifecycle signal. Aborting it kills the active provider
    * invocation and records the run as aborted instead of leaving orphan CLIs. */
   abortSignal?: AbortSignal;
@@ -393,6 +398,47 @@ class __ActionDeniedSignal extends Error {
     super(message);
     this.name = "ActionDeniedSignal";
   }
+}
+
+/**
+ * Permission mode (T14 P4) as broker evaluators, scoped to the run-level effects
+ * Vibestrate actually owns (NOT per-shell-command - codex is opaque, claude
+ * tool_use is display-only):
+ *  - ask: every turn diff (file.patch) requires human approval before it's kept.
+ *  - accept-edits: writes auto-apply, but the run does NOT auto-complete - it
+ *    HOLDS at the completion boundary (require_approval on run.complete) so a
+ *    human reviews the applied diff and merges it, instead of reaching merge_ready
+ *    on its own. (V1: the hold lands the run `blocked`-pending-review; a resumable
+ *    approve->merge_ready hold is a tracked enhancement.)
+ *  - auto / read-only: none here (read-only is the readOnly clamp).
+ */
+export function permissionModeEvaluators(mode: PermissionMode): ActionEvaluator[] {
+  if (mode === "ask") {
+    return [
+      (req) =>
+        req.kind === "file.patch"
+          ? {
+              effect: "require_approval",
+              ruleIds: ["permission-mode.ask"],
+              reason: "Permission mode 'ask': a human approves each change.",
+            }
+          : null,
+    ];
+  }
+  if (mode === "accept-edits") {
+    return [
+      (req) =>
+        req.kind === "run.complete"
+          ? {
+              effect: "require_approval",
+              ruleIds: ["permission-mode.accept-edits"],
+              reason:
+                "Permission mode 'accept-edits': the run holds for human review (the applied diff) before it can be merged.",
+            }
+          : null,
+    ];
+  }
+  return [];
 }
 
 /** Thrown when a count/time budget ceiling is hit (unattended-resilience U1).
@@ -549,6 +595,8 @@ export class Orchestrator {
   private execStrategy: ExecStrategy | null = null;
   /** Backend teardown (e.g. `docker rm -f`), run when the flow finishes. */
   private containerTeardown: (() => Promise<void>) | null = null;
+  /** Permission mode (T14 P4) governing this run's writes. */
+  private readonly permissionMode: PermissionMode;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -579,6 +627,19 @@ export class Orchestrator {
       this.flow &&
       !this.flow.steps.some((s) => (s.outputs ?? []).includes("diff"))
     ) {
+      this.readOnly = true;
+    }
+    // Permission mode (T14 P4). "read-only" forces the read-only clamp (no write
+    // grant on any seat) - the honest model-agnostic no-write guarantee. The
+    // ask/accept-edits approval policy is wired into the broker at run start.
+    this.permissionMode = input.permissionMode ?? input.config.policies.defaultPermissionMode ?? "auto";
+    // --read-only (the legacy flag / a no-diff flow) is the STRICTER guarantee, so
+    // it wins over a weaker explicit mode: resolve to read-only rather than ship
+    // an incoherent "auto mode but readOnly clamp on" state.
+    if (this.readOnly) {
+      this.permissionMode = "read-only";
+    }
+    if (this.permissionMode === "read-only") {
       this.readOnly = true;
     }
     this.resumeFrom = input.resumeFrom ?? null;
@@ -711,7 +772,9 @@ export class Orchestrator {
     const eventLog = new EventLog(this.projectRoot, runId);
     const metricsStore = new MetricsStore(this.projectRoot, runId);
     const approvalService = new ApprovalService(this.projectRoot, runId);
-    this.broker = createActionBroker(this.projectRoot, runId);
+    this.broker = createActionBroker(this.projectRoot, runId, {
+      evaluators: permissionModeEvaluators(this.permissionMode),
+    });
     const notifications = new NotificationService(this.projectRoot);
     const notify = (draft: NotificationDraft): void => {
       // Fire-and-forget: gateway delivery never blocks the orchestrator and
@@ -990,6 +1053,13 @@ export class Orchestrator {
       });
       worktreePath = prep.worktreePath;
       branchName = prep.branchName;
+      // Record the RESOLVED permission mode (P4) so the audit/assurance reflect
+      // the policy that actually governed this run, not just the request.
+      await eventLog.append({
+        type: "policy.permission_mode",
+        message: `Permission mode: ${this.permissionMode}.`,
+        data: { permissionMode: this.permissionMode },
+      });
       this.execStrategy = prep.exec ?? null;
       this.containerTeardown = prep.teardown ?? null;
       if (prep.exec) {
@@ -4887,6 +4957,20 @@ export class Orchestrator {
     let preTurnTree: string | null = null;
     if (profile.allowWrite && ctx.worktreePath) {
       preTurnTree = await snapshotWorktree(ctx.worktreePath).catch(() => null);
+      if (preTurnTree === null) {
+        // Fail-CLOSED (T14 P4): a write-capable turn with no pre-turn baseline
+        // can't be diff-gated OR rolled back. Refuse it BEFORE the provider runs,
+        // so no unevaluated writes ever land - rather than silently skipping the
+        // gate (the second fail-open seam the broker fix alone wouldn't close).
+        await ctx.eventLog.append({
+          type: "action.denied",
+          message: `Refused a write turn (${roleId}): the worktree could not be snapshotted, so its writes can't be gated or rolled back. Failing closed.`,
+          data: { kind: "snapshot.unavailable", roleId, stageId: input.stageId },
+        });
+        throw new __ActionDeniedSignal(
+          `Write turn refused: could not snapshot the worktree for ${roleId} (failing closed - no baseline to gate or roll back writes).`,
+        );
+      }
     }
 
     let providerResult: RichProviderRunResult;

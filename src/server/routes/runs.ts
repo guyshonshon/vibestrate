@@ -90,6 +90,7 @@ const spawnRunBody = z.object({
     )
     .optional(),
   readOnly: z.boolean().optional(),
+  permissionMode: z.enum(["read-only", "ask", "accept-edits", "auto"]).optional(),
   unattended: z.boolean().optional(),
   // Pick-up execution: iterate the linked task's checklist through the flow's
   // checklistSegment (needs taskId + a checklist-aware flow like "pickup").
@@ -244,6 +245,7 @@ export async function registerRunsRoutes(
       argv.push("--seat-role", `${seat}=${role}`);
     }
     if (body.readOnly) argv.push("--read-only");
+    if (body.permissionMode) argv.push("--permission-mode", body.permissionMode);
     if (body.unattended) argv.push("--unattended");
     if (body.checklistMode) argv.push("--checklist", body.checklistMode);
     if (body.skills && body.skills.length > 0) {
@@ -284,6 +286,7 @@ export async function registerRunsRoutes(
       profileOverride: body.profileOverride ?? null,
       seatRoleOverrides: body.seatRoleOverrides ?? {},
       readOnly: body.readOnly ?? false,
+      ...(body.permissionMode ? { permissionMode: body.permissionMode } : {}),
       unattended: body.unattended ?? false,
       checklistMode: body.checklistMode ?? null,
       runtimeSkills: body.skills ?? [],

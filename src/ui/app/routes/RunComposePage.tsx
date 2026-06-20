@@ -57,7 +57,12 @@ export function RunComposePage() {
   const [crewId, setCrewId] = useState<string | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [concise, setConcise] = useState(false);
-  const [readOnly, setReadOnly] = useState(false);
+  // Permission mode (P4): read-only is the strict end of the same axis, so it's
+  // derived from the mode rather than a separate toggle.
+  const [permissionMode, setPermissionMode] = useState<
+    "read-only" | "ask" | "accept-edits" | "auto"
+  >("auto");
+  const readOnly = permissionMode === "read-only";
   const [unattended, setUnattended] = useState(false);
   const [forceSelect, setForceSelect] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -181,6 +186,7 @@ export function RunComposePage() {
         persona: personaId ?? undefined,
         concise: concise || undefined,
         readOnly: readOnly || undefined,
+        permissionMode: permissionMode === "auto" ? undefined : permissionMode,
         unattended: unattended || undefined,
         select: forceSelect || undefined,
       });
@@ -230,13 +236,14 @@ export function RunComposePage() {
     const parts = ["vibe run", JSON.stringify(brief.trim() || "your task")];
     if (flowId) parts.push(`--flow ${flowId}`);
     if (crewId && crewId !== meta?.defaultCrew) parts.push(`--crew ${crewId}`);
-    if (readOnly) parts.push("--read-only");
+    if (permissionMode === "read-only") parts.push("--read-only");
+    else if (permissionMode !== "auto") parts.push(`--permission-mode ${permissionMode}`);
     if (unattended) parts.push("--unattended");
     if (concise) parts.push("--concise");
     if (forceSelect) parts.push("--select");
     if (personaId) parts.push(`--supervisor ${personaId}`);
     return parts.join(" ");
-  }, [brief, flowId, crewId, readOnly, unattended, concise, forceSelect, personaId, meta?.defaultCrew]);
+  }, [brief, flowId, crewId, permissionMode, unattended, concise, forceSelect, personaId, meta?.defaultCrew]);
   const [cmdCopied, setCmdCopied] = useState(false);
   async function copyCmd() {
     try {
@@ -505,16 +512,50 @@ export function RunComposePage() {
               <SectionLabel>Configuration</SectionLabel>
               <div className="slab-flat divide-y divide-[color:var(--line-soft)]">
                 <ConfigRow label="Run mode">
-                  <Toggle on={readOnly} onClick={() => setReadOnly((x) => !x)} label="Read-only" icon={<Lock className="h-3 w-3" strokeWidth={1.8} />} />
+                  <div className="flex w-full flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-fog-500">Permission</span>
+                    {(["auto", "ask", "accept-edits", "read-only"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setPermissionMode(m)}
+                        className={cn(
+                          "inline-flex items-center gap-1 border px-2 py-1 text-[11.5px] transition",
+                          m === permissionMode
+                            ? "border-violet-soft/45 bg-violet-soft/10 text-violet-soft"
+                            : "border-white/[0.08] bg-ink-200 text-fog-300 hover:text-fog-100",
+                        )}
+                      >
+                        {m === "read-only" ? <Lock className="h-3 w-3" strokeWidth={1.8} /> : null}
+                        {m}
+                      </button>
+                    ))}
+                  </div>
                   <Toggle on={unattended} onClick={() => setUnattended((x) => !x)} label="Unattended" />
                   <div className="w-full pt-1 text-[11px] leading-[1.5] text-fog-400">
-                    {readOnly || unattended ? (
+                    {readOnly || unattended || permissionMode === "ask" || permissionMode === "accept-edits" ? (
                       <ul className="space-y-1">
                         {readOnly ? (
                           <li className="flex items-start gap-1.5">
                             <Lock className="mt-0.5 h-3 w-3 shrink-0 text-violet-soft" strokeWidth={1.8} />
                             <span>
                               <span className="text-fog-200">Read-only is enforced.</span> It overrides the crew&apos;s write and execute permissions: every role runs read-only (plans and proposes, never writes), the write / validate / verify steps are skipped, and apply, validate, and revert are refused.
+                            </span>
+                          </li>
+                        ) : null}
+                        {permissionMode === "ask" ? (
+                          <li className="flex items-start gap-1.5">
+                            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-violet-soft" aria-hidden />
+                            <span>
+                              <span className="text-fog-200">Ask.</span> The agent writes, then every resulting change waits for your approval before it&apos;s kept - reject and the worktree is rolled back.
+                            </span>
+                          </li>
+                        ) : null}
+                        {permissionMode === "accept-edits" ? (
+                          <li className="flex items-start gap-1.5">
+                            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-violet-soft" aria-hidden />
+                            <span>
+                              <span className="text-fog-200">Accept-edits.</span> Changes auto-apply, but the run does not auto-complete - it holds for your review of the applied diff before it&apos;s merged.
                             </span>
                           </li>
                         ) : null}
