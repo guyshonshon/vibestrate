@@ -253,6 +253,22 @@ async function resolveRootRunId(
 }
 
 /**
+ * Read the accumulated cross-round answers for a chain (resolving the root run),
+ * or "" when none recorded yet. Used to ground the per-question assist helpers.
+ */
+export async function readAccumulatedAnswers(
+  projectRoot: string,
+  sourceRunId: string,
+): Promise<string> {
+  assertSafeRunId(sourceRunId);
+  const rootRunId = await resolveRootRunId(projectRoot, sourceRunId);
+  const rootStore = new ArtifactStore(projectRoot, rootRunId);
+  return (await rootStore.exists(ANSWERS_PATH))
+    ? rootStore.read(ANSWERS_PATH)
+    : "";
+}
+
+/**
  * Terminal handoff: launch the `shape` flow seeded with the accumulated answers
  * (the union of every round) as a `file` contextSource, carrying the chosen build
  * flow forward (P1). Shared by submit (finalize branch) and proceed.
