@@ -120,6 +120,10 @@
           "label": "Worktree"
         },
         {
+          "slug": "concepts/sandbox",
+          "label": "Container isolation"
+        },
+        {
           "slug": "concepts/safety",
           "label": "Safety - Action Broker & policies"
         },
