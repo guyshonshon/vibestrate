@@ -1000,6 +1000,9 @@ export const shapeIntakeFlow = flowDefinitionSchema.parse({
   id: "shape-intake",
   version: 1,
   label: "Shape: Intake",
+  // Internal phase, not a user-selectable flow - hidden from every picker; the
+  // adaptive trigger + consult-submit launch it by id.
+  hidden: true,
   description:
     "Shape phase link 1 - WRITES NO CODE. The CTO reads the brief and asks the gap questions needed to scope the work (auth? payments? scale? persistence?). Emits a structured questions artifact; the answers seed the shape run. Launched by 'Plan'.",
   seats: {
@@ -1036,6 +1039,7 @@ export const shapeFlow = flowDefinitionSchema.parse({
   id: "shape",
   version: 1,
   label: "Shape",
+  hidden: true,
   description:
     "Shape phase link 2 - WRITES NO CODE. The CTO turns the brief + answers into a scope, a spec, an architecture with a provisioning checklist, and a risks register, then a reviewer checks completeness against the approved scope. Produces reviewable spec/architecture/risks drafts. Launched after the intake questions are answered.",
   seats: {
@@ -1118,6 +1122,7 @@ export const shapeRoadmapFlow = flowDefinitionSchema.parse({
   id: "shape-roadmap",
   version: 1,
   label: "Shape: Roadmap",
+  hidden: true,
   description:
     "Shape phase link 3 - WRITES NO CODE. Resumes the approved shape and synthesizes the spec/architecture/risks into an ordered, dependency-aware roadmap proposal (board cards with acceptance criteria and estimates). Review and accept it from the proposals surface. Launched after the spec is approved.",
   seats: {

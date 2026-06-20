@@ -30,7 +30,7 @@ import {
   spawnVibestrateDetached,
   openInBrowser,
 } from "./runner/command-runner.js";
-import { discoverFlows } from "../../flows/catalog/flow-discovery.js";
+import { discoverSelectableFlows } from "../../flows/catalog/flow-discovery.js";
 import { configValueHints } from "../../project/config-introspection.js";
 import { buildStatusModel } from "./status-model.js";
 import { applySessionDefaults } from "./session-defaults.js";
@@ -203,7 +203,7 @@ export function App({
   };
 
   const openFlowPicker = async (): Promise<void> => {
-    const flows = await discoverFlows(projectRoot);
+    const flows = await discoverSelectableFlows(projectRoot);
     const items = flows.map((f) => ({ id: f.id, label: f.label || f.id }));
     if (items.length === 0) {
       dispatch({ type: "toast.push", kind: "err", message: "No flows available." });

@@ -315,6 +315,12 @@ const flowDefinitionBaseSchema = z
     checklistSegment: flowChecklistSegmentSchema.optional(),
     complexity: flowComplexitySchema.optional(),
     capabilities: flowCapabilitiesSchema.optional(),
+    /** Hidden from user-facing flow listings/pickers (composer, Flows hub, `vibe
+     *  flows`, suggestion). Still launchable by id (the adaptive Shape trigger,
+     *  the consult-submit, `--flow <id>`). For internal phases like Shape that
+     *  use the flow runner as a substrate but must NOT read as a selectable
+     *  flow. NOT access control - the by-id resolvers still serve it. */
+    hidden: z.boolean().optional(),
     /** Typed parameters the caller fills at run start (T11), keyed by name. */
     params: z.record(flowParamNameSchema, flowParamSchema).optional(),
   })

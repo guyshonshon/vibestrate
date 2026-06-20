@@ -182,6 +182,16 @@ export async function discoverFlows(projectRoot: string): Promise<DiscoveredFlow
   return (await discoverFlowCatalog(projectRoot)).flows;
 }
 
+/** Flows the user may pick from a list/picker - excludes `hidden` flows (e.g.
+ *  the internal Shape phase). USER-FACING LISTINGS ONLY: the by-id resolvers
+ *  (findFlowById) and auto-selection stay on the unfiltered `discoverFlows`, so
+ *  a hidden flow still launches by id (the adaptive trigger, `--flow`, etc.). */
+export async function discoverSelectableFlows(
+  projectRoot: string,
+): Promise<DiscoveredFlow[]> {
+  return (await discoverFlows(projectRoot)).filter((f) => !f.definition.hidden);
+}
+
 export async function findFlowById(
   projectRoot: string,
   flowId: string,

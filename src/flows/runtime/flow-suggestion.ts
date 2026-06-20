@@ -3,7 +3,7 @@ import { readDirSafe } from "../../utils/fs.js";
 import { readJson } from "../../utils/json.js";
 import { projectRunsDir, runStatePath } from "../../utils/paths.js";
 import type { RunStatus } from "../../workflow/workflow-types.js";
-import { discoverFlows } from "../catalog/flow-discovery.js";
+import { discoverSelectableFlows } from "../catalog/flow-discovery.js";
 
 export type FlowSuggestionRisk = "low" | "medium" | "high";
 
@@ -159,7 +159,7 @@ export async function suggestFlowsForProject(
   input: SuggestFlowsForProjectInput,
 ): Promise<FlowSuggestion[]> {
   const [flows, pastOutcomes] = await Promise.all([
-    discoverFlows(input.projectRoot),
+    discoverSelectableFlows(input.projectRoot),
     readRecentFlowOutcomes(input.projectRoot),
   ]);
   return suggestFlows({

@@ -117,7 +117,10 @@ export async function registerFlowsRoutes(
     } catch {
       // config may be absent/invalid; the list still loads.
     }
-    return { flows: catalog.flows, invalid: catalog.invalid, defaultFlow };
+    // Hidden flows (the internal Shape phase) never appear in pickers/the hub;
+    // they remain launchable by id via the per-id routes + the run launcher.
+    const flows = catalog.flows.filter((f) => !f.definition.hidden);
+    return { flows, invalid: catalog.invalid, defaultFlow };
   });
 
   // ─── hub (Phase 5) ────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ import { isVibestrateError } from "../../utils/errors.js";
 import { startServer, DEFAULT_VIBESTRATE_PORT } from "../../server/server.js";
 import { setCliWriter } from "../../notifications/gateways/cli-gateway.js";
 import {
-  discoverFlows,
+  discoverSelectableFlows,
   findFlowById,
 } from "../../flows/catalog/flow-discovery.js";
 import {
@@ -223,7 +223,7 @@ export async function runRunCommand(
       return 1;
     }
     if (!activeFlowId) {
-      const flows = await discoverFlows(detected.projectRoot);
+      const flows = await discoverSelectableFlows(detected.projectRoot);
       if (flows.length === 0) {
         console.error(`${symbol.fail()} No Flows available to pick from.`);
         return 1;
@@ -272,7 +272,7 @@ export async function runRunCommand(
   if (activeFlowId) {
     const flow = await findFlowById(detected.projectRoot, activeFlowId);
     if (!flow) {
-      const ids = (await discoverFlows(detected.projectRoot)).map((item) => item.id);
+      const ids = (await discoverSelectableFlows(detected.projectRoot)).map((item) => item.id);
       console.error(
         `${symbol.fail()} No Flow named "${activeFlowId}". Found: ${ids.join(", ") || "(none)"}.`,
       );

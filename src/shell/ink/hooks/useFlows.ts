@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  discoverFlows,
+  discoverSelectableFlows,
   type DiscoveredFlow,
 } from "../../../flows/catalog/flow-discovery.js";
 
@@ -12,7 +12,7 @@ export function useFlows(projectRoot: string, refreshMs = 4000) {
 
   const refresh = useCallback(async () => {
     try {
-      const list = await discoverFlows(projectRoot);
+      const list = await discoverSelectableFlows(projectRoot);
       if (!mounted.current) return;
       setFlows(list);
       setError(null);

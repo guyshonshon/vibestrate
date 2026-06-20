@@ -4,7 +4,10 @@ import { color, header, indent, symbol } from "../../ui/format.js";
 
 export async function runFlowsList(opts: { json?: boolean }): Promise<number> {
   const detected = await detectProject(process.cwd());
-  const { flows, invalid } = await discoverFlowCatalog(detected.projectRoot);
+  const catalog = await discoverFlowCatalog(detected.projectRoot);
+  // Hidden flows (internal Shape phase) are not user-selectable - omit from the list.
+  const flows = catalog.flows.filter((f) => !f.definition.hidden);
+  const { invalid } = catalog;
 
   if (opts.json) {
     console.log(JSON.stringify({ flows, invalid }, null, 2));
