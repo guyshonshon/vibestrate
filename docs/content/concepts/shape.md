@@ -17,8 +17,16 @@ every step is a read-only run.
 
 ## What you get
 
-1. **Gap questions.** The CTO reads the brief and asks the handful of decisions
-   that change what gets built. You answer them in a form (or on the CLI).
+1. **Gap questions, in rounds.** The CTO reads the brief and asks the decisions
+   that change what gets built, grouped by area (scope, users, data, constraints,
+   success, integrations). You answer a round; it reads your answers and asks the
+   follow-ups that are still genuinely open, drilling deeper - up to four rounds.
+   A **Proceed to spec** button on every round stops the questioning whenever you
+   want. The round counter and the four-round cap are enforced by Vibestrate, not
+   the model, so the questioning always terminates. Stuck on a question? **Simplify**
+   re-explains it in plain language and says what it changes in the build;
+   **Suggest** drafts an answer grounded in what you've already decided (a draft
+   you edit - it never answers for you).
 2. **A scope.** What is in, what is explicitly out, and the assumptions - so the
    plan is bounded to what you actually want, not everything that is possible.
 3. **A spec.** The capabilities, the data model, the key flows, and acceptance
@@ -36,13 +44,17 @@ Shape is a chain of short, read-only runs you step between, not one long process
 that holds open:
 
 ```
-intake  ->  (you answer the gap questions)  ->  shape  ->  (you approve)  ->  roadmap
+intake  ->  (answer round 1)  ->  gap-check  ->  (answer round 2) ... ->  shape  ->  (you approve)  ->  roadmap
 ```
 
 Each link is a fresh run. Because none of them write code, each is clamped
-read-only automatically. Submitting your answers launches the next link through
-the same gated launcher the dashboard uses - the browser never runs a command -
-and your answers are carried forward as a context file with secrets redacted.
+read-only automatically. Submitting a round either launches another gap-check
+round (more questions) or, once coverage is complete or you proceed, the shaping
+run - through the same gated launcher the dashboard uses, so the browser never
+runs a command. Your answers accumulate across rounds into one context file,
+carried forward with secrets redacted. The **consult orb** is screen-aware here:
+ask it "what should I put for X?" and it already has the questions and your
+answers in view (redacted before the model sees them).
 
 ## Where to find it
 
@@ -56,8 +68,10 @@ trigger biases to execute - a targeted change ("add X to foo.ts") just runs.
 - Force shaping on a brief the heuristic skips: `vibe run --flow shape-intake "<brief>"`.
 - Disable auto-shaping entirely: set `adaptiveShape: off` in `project.yml`.
 - CLI parity for the chain: `vibe shape questions <runId>`,
-  `vibe shape answer <runId> --answer <id>="..."`, `vibe shape approve <runId>`,
-  and `vibe shape roadmap <runId>` to turn a finished roadmap run into a proposal.
+  `vibe shape answer <runId> --answer <id>="..."` (add `--proceed` to build the
+  spec now), `vibe shape simplify <runId> <id>` / `vibe shape suggest <runId> <id>`
+  (`--all` for the round), `vibe shape approve <runId>`, and
+  `vibe shape roadmap <runId>` to turn a finished roadmap run into a proposal.
 
 ## Honest limits (v1)
 
@@ -72,6 +86,7 @@ each one before the run can pass - the prose criteria are judged by the verifier
 against the artifacts, and a card can also carry `acceptanceCommands` (shell
 checks you author) that run as an extra validation pass, so a failed acceptance
 check blocks merge-readiness like a failed test. See [Safety](concepts/safety) for
-the validation gate and `docs/design/shape-phase.md` for the full reasoning,
-including what is still deferred (a completeness loop, and one continuous "brief
-it and walk away" run).
+the validation gate and `docs/design/shape-phase.md` for the full reasoning. The
+completeness loop (multi-round questioning) now ships; what's still deferred is
+one continuous "brief it and walk away" run (the chain stays a set of short runs
+you step between, not one long process that pauses mid-flight).

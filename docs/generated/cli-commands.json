@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "commands": [
     {
       "name": "init",
@@ -1984,7 +1984,7 @@
             "shape",
             "answer"
           ],
-          "description": "Answer the intake questions and launch the shape run.",
+          "description": "Answer a round's questions; loops to a gap-check round or builds the spec.",
           "usage": "[options] <runId>",
           "arguments": [
             {
@@ -2000,6 +2000,81 @@
               "description": "answer for a question id (repeatable)",
               "defaultValue": "[]",
               "required": true,
+              "optional": false,
+              "negated": false
+            },
+            {
+              "flags": "--proceed",
+              "description": "stop questioning and build the spec now (skip further gap-checks)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "simplify",
+          "path": [
+            "vibe",
+            "shape",
+            "simplify"
+          ],
+          "description": "Explain a question in plain language (what it asks + what it affects).",
+          "usage": "[options] <runId> <questionId>",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--for-non-developer",
+              "description": "add an everyday-life analogy (no jargon)",
+              "required": false,
+              "optional": false,
+              "negated": false
+            }
+          ],
+          "subcommands": []
+        },
+        {
+          "name": "suggest",
+          "path": [
+            "vibe",
+            "shape",
+            "suggest"
+          ],
+          "description": "Draft an answer grounded in your prior answers (you still decide). --all for every blank.",
+          "usage": "[options] <runId> [questionId]",
+          "arguments": [
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": true,
+              "variadic": false
+            },
+            {
+              "name": "name() {\n    return this._name;\n  }",
+              "description": "",
+              "required": false,
+              "variadic": false
+            }
+          ],
+          "options": [
+            {
+              "flags": "--all",
+              "description": "suggest a draft for every question in the round",
+              "required": false,
               "optional": false,
               "negated": false
             }

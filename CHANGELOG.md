@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.15.0
+
+- **Shaping now goes deep, in rounds, until the work is actually scoped.** The
+  intake used to ask one batch of questions and stop. Now it loops: you answer a
+  round, and the CTO reads your answers and asks the follow-ups that are still
+  genuinely open - drilling into what you just decided - up to four rounds, with
+  a **"Proceed to spec"** escape on every round so you're never trapped. Questions
+  are grouped by area (scope, users, data, constraints, success, integrations) so
+  you can see coverage fill in. The round counter and the cap are server-owned -
+  the model can't run the loop forever, and a request can't skip the cap.
+- **Two helpers on every question.** **Simplify** re-explains a question in plain
+  language and tells you what it actually changes in the build (with an optional
+  no-jargon analogy for non-developers). **Suggest** drafts an answer grounded in
+  what you've already decided, with a one-line "why" - but it's a *draft you edit*,
+  never auto-submitted, and a guard warns before you submit answers you haven't
+  reviewed. There's a "Suggest all remaining" for a whole round. Both run on the
+  same read-only assist engine as consult.
+- **The consult orb now knows what screen you're on.** On the shape screen it's
+  handed a live snapshot of the questions and your answers, so when you ask "what
+  should I put for auth?" it already has the context. The snapshot is redacted
+  before it ever reaches the model.
+
 ## 0.14.0
 
 - **Acceptance criteria are now a real gate, not just a note.** A roadmap card's
