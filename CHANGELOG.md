@@ -32,6 +32,13 @@
 - **Roadmap cards gained acceptance criteria and an estimate.** The synthesis
   emits "done when..." prose and a rough size per card, threaded through the
   proposal review and accept path, and shown on the card.
+- **Editable roadmap dependencies.** A card's "Blocked by" list is now editable -
+  add or remove a blocker right on the card. The edit is guarded server-side: a
+  change that would create a cycle (or a self/unknown dependency) is refused with
+  a clear message, so the roadmap always stays a DAG.
+- **Review the shape draft in the run.** A completed shape run shows its scope,
+  spec, architecture, and risks as collapsible sections to read through before
+  you approve and synthesize the roadmap.
 
 ## 0.7.127
 

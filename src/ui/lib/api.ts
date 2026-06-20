@@ -1473,6 +1473,7 @@ export const api = {
       acceptanceCriteria: string;
       est: string;
       priority: "low" | "medium" | "high";
+      dependencies: string[];
       validationProfile: string | null;
       profileOverride: string | null;
       readOnly: boolean;

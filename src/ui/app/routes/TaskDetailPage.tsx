@@ -322,6 +322,7 @@ export function TaskDetailPage({
           task={task}
           allTasks={allTasks}
           onOpenTask={onOpenTask}
+          onChanged={load}
         />
 
         <section className="slab p-3">
@@ -397,11 +398,17 @@ function DependenciesSection({
   task,
   allTasks,
   onOpenTask,
+  onChanged,
 }: {
   task: Task;
   allTasks: Task[];
   onOpenTask: (taskId: string) => void;
+  onChanged: () => void | Promise<void>;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
   const blockers = task.dependencies
     .map((id) => allTasks.find((t) => t.id === id) ?? null)
     .filter((t): t is Task => t !== null);
@@ -409,22 +416,72 @@ function DependenciesSection({
     (id) => !allTasks.find((t) => t.id === id),
   );
   const unlocks = allTasks.filter((t) => t.dependencies.includes(task.id));
-
-  if (
-    blockers.length === 0 &&
-    missingBlockers.length === 0 &&
-    unlocks.length === 0
-  ) {
-    return null;
-  }
+  // Candidates to depend on: any other task not already a blocker.
+  const candidates = allTasks.filter(
+    (t) => t.id !== task.id && !task.dependencies.includes(t.id),
+  );
 
   const isDone = (s: Task["status"]) => s === "done" || s === "cancelled";
 
+  async function setDeps(next: string[]) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.patchTask(task.id, { dependencies: next });
+      setAdding(false);
+      await onChanged();
+    } catch (err) {
+      // The server rejects a cycle / self / unknown dependency with a 400.
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="slab p-3">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
-        dependencies
+      <div className="flex items-center justify-between">
+        <div className="text-[10.5px] uppercase tracking-[0.14em] text-fog-400">
+          dependencies
+        </div>
+        {candidates.length > 0 ? (
+          <button
+            onClick={() => {
+              setError(null);
+              setAdding((v) => !v);
+            }}
+            className="text-[11px] text-fog-300 hover:text-fog-100"
+          >
+            {adding ? "Cancel" : "+ Add blocker"}
+          </button>
+        ) : null}
       </div>
+
+      {adding ? (
+        <div className="mt-2 flex items-center gap-2">
+          <select
+            disabled={busy}
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) void setDeps([...task.dependencies, e.target.value]);
+            }}
+            className="vibestrate-mono min-w-0 flex-1 border border-white/10 bg-ink-200 px-2 py-1 text-[12px] text-fog-100"
+          >
+            <option value="" disabled>
+              This task is blocked by...
+            </option>
+            {candidates.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {error ? (
+        <div className="mt-2 text-[12px] text-rose-400">{error}</div>
+      ) : null}
+
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         <div>
           <div className="text-[11px] text-fog-400">
@@ -437,10 +494,10 @@ function DependenciesSection({
               {blockers.map((b) => {
                 const open = !isDone(b.status);
                 return (
-                  <li key={b.id}>
+                  <li key={b.id} className="flex items-center gap-1">
                     <button
                       onClick={() => onOpenTask(b.id)}
-                      className="flex w-full items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
+                      className="flex min-w-0 flex-1 items-center gap-2 border border-white/10 bg-ink-200 px-2 py-1 text-left hover:bg-ink-100"
                     >
                       <span
                         className={`h-1.5 w-1.5 rounded-full ${open ? "bg-amber-400" : "bg-emerald-400"}`}
@@ -452,16 +509,38 @@ function DependenciesSection({
                         {b.status}
                       </span>
                     </button>
+                    <button
+                      title="Remove this blocker"
+                      disabled={busy}
+                      onClick={() =>
+                        void setDeps(task.dependencies.filter((d) => d !== b.id))
+                      }
+                      className="shrink-0 px-1.5 py-1 text-[12px] text-fog-500 hover:text-rose-400"
+                    >
+                      x
+                    </button>
                   </li>
                 );
               })}
               {missingBlockers.map((id) => (
                 <li
                   key={id}
-                  className="flex items-center gap-2 border border-rose-400/40 bg-rose-400/5 px-2 py-1 text-[12px] text-rose-400"
+                  className="flex items-center gap-1"
                 >
-                  <span className="vibestrate-mono flex-1 truncate">{id}</span>
-                  <span className="vibestrate-mono text-[10.5px]">missing</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2 border border-rose-400/40 bg-rose-400/5 px-2 py-1 text-[12px] text-rose-400">
+                    <span className="vibestrate-mono flex-1 truncate">{id}</span>
+                    <span className="vibestrate-mono text-[10.5px]">missing</span>
+                  </span>
+                  <button
+                    title="Remove this blocker"
+                    disabled={busy}
+                    onClick={() =>
+                      void setDeps(task.dependencies.filter((d) => d !== id))
+                    }
+                    className="shrink-0 px-1.5 py-1 text-[12px] text-fog-500 hover:text-rose-400"
+                  >
+                    x
+                  </button>
                 </li>
               ))}
             </ul>

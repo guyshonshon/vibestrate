@@ -6,6 +6,7 @@ import { runStatePath } from "../utils/paths.js";
 import { RunStateStore, isTerminal } from "../core/state-machine.js";
 import { RunQueue } from "../scheduler/run-queue.js";
 import { RoadmapStore } from "./roadmap-store.js";
+import { buildDependencyGraph, findFirstCycle } from "./dependency-graph.js";
 import {
   type ChecklistItem,
   type ChecklistItemStatus,
@@ -242,6 +243,30 @@ export class RoadmapService {
   ): Promise<Task> {
     const t = await this.store.getTask(id);
     if (!t) throw new RoadmapServiceError(`Task "${id}" not found.`);
+    // Dependency edits must keep the roadmap a DAG: a cycle corrupts the
+    // ready/blocked logic (a card could block itself). Validate against the
+    // full task set BEFORE persisting - the route + accept both reach here, so
+    // this is the single guard. (Edges toward an acyclic target are always a
+    // subgraph of it, so accept's incremental second pass never trips this.)
+    if (patch.dependencies !== undefined) {
+      const deps = [...new Set(patch.dependencies)];
+      if (deps.includes(id)) {
+        throw new RoadmapServiceError(`A task cannot depend on itself ("${id}").`);
+      }
+      const all = await this.store.listTasks();
+      const known = new Set(all.map((x) => x.id));
+      const missing = deps.find((d) => !known.has(d));
+      if (missing) {
+        throw new RoadmapServiceError(`Unknown dependency "${missing}".`);
+      }
+      const proposed = all.map((x) => (x.id === id ? { ...x, dependencies: deps } : x));
+      const cycle = findFirstCycle(buildDependencyGraph(proposed));
+      if (cycle.cyclic) {
+        throw new RoadmapServiceError(
+          `That dependency would create a cycle: ${cycle.cycle.join(" -> ")}.`,
+        );
+      }
+    }
     const next: Task = {
       ...t,
       ...patch,

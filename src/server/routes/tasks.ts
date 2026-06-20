@@ -142,10 +142,10 @@ export async function registerTasksRoutes(
         const task = await svc.patchTask(req.params.taskId, parsed.data);
         return { task };
       } catch (err) {
-        throw new HttpError(
-          404,
-          err instanceof Error ? err.message : String(err),
-        );
+        const msg = err instanceof Error ? err.message : String(err);
+        // "not found" is a 404; a rejected edit (cycle, self/unknown dependency)
+        // is a 400 so the UI can show it as a validation error, not a missing task.
+        throw new HttpError(/not found/i.test(msg) ? 404 : 400, msg);
       }
     },
   );

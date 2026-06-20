@@ -21,6 +21,7 @@ import type {
 import { RunTree } from "../../components/runs/RunTree.js";
 import { RunGapQuestions } from "../../components/runs/RunGapQuestions.js";
 import { ShapeRunActions } from "../../components/runs/ShapeRunActions.js";
+import { ShapeReview } from "../../components/runs/ShapeReview.js";
 import { RunHeaderV3 } from "../../components/runs/v3/RunHeaderV3.js";
 import { RunStatusSection } from "../../components/runs/v3/RunStatusSection.js";
 import { SupervisorPanel } from "../../components/runs/SupervisorPanel.js";
@@ -259,6 +260,7 @@ export function RunDetailPage({
         onRename={handleRename}
       />
 
+      <ShapeReview runId={runId} flowId={run.flow?.flowId} />
       <ShapeRunActions
         runId={runId}
         run={run}

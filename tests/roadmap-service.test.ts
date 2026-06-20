@@ -181,3 +181,35 @@ describe("RoadmapService", () => {
     );
   });
 });
+
+describe("RoadmapService.patchTask dependency guard (M4)", () => {
+  let projectRoot: string;
+  beforeEach(async () => {
+    projectRoot = await tempProject();
+  });
+
+  it("rejects a dependency edit that would create a cycle", async () => {
+    const svc = new RoadmapService(projectRoot);
+    const a = await svc.addTask({ title: "A" });
+    const b = await svc.addTask({ title: "B", dependencies: [a.id] }); // B blocked by A
+    // Making A blocked by B closes the loop A -> B -> A.
+    await expect(svc.patchTask(a.id, { dependencies: [b.id] })).rejects.toThrow(/cycle/i);
+  });
+
+  it("rejects a self-dependency and an unknown dependency", async () => {
+    const svc = new RoadmapService(projectRoot);
+    const a = await svc.addTask({ title: "A" });
+    await expect(svc.patchTask(a.id, { dependencies: [a.id] })).rejects.toThrow(/itself/i);
+    await expect(svc.patchTask(a.id, { dependencies: ["ghost"] })).rejects.toThrow(
+      /Unknown dependency/i,
+    );
+  });
+
+  it("accepts a valid acyclic dependency edit", async () => {
+    const svc = new RoadmapService(projectRoot);
+    const a = await svc.addTask({ title: "A" });
+    const b = await svc.addTask({ title: "B" });
+    const patched = await svc.patchTask(b.id, { dependencies: [a.id] });
+    expect(patched.dependencies).toEqual([a.id]);
+  });
+});
