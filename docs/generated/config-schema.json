@@ -198,6 +198,37 @@
           ],
           "itemType": null,
           "description": "OS sandbox posture: off or sandboxed (default off)."
+        },
+        {
+          "key": "container",
+          "fullKey": "execution.container",
+          "type": "object",
+          "required": false,
+          "default": {},
+          "itemType": null,
+          "children": [
+            {
+              "key": "image",
+              "fullKey": "execution.container.image",
+              "type": "string",
+              "required": false,
+              "default": "node:22-bookworm-slim",
+              "itemType": null
+            },
+            {
+              "key": "onUnavailable",
+              "fullKey": "execution.container.onUnavailable",
+              "type": "enum",
+              "required": false,
+              "default": "fail",
+              "enum": [
+                "fail",
+                "degrade"
+              ],
+              "itemType": null
+            }
+          ],
+          "description": "Container backend settings (used when backend=docker)."
         }
       ]
     },

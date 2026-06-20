@@ -68,13 +68,24 @@ export async function runClaudeCodeProvider(
     env.VIBESTRATE_MCP_CONFIG = input.mcpConfigPath;
   }
 
+  // Container/cloud execution (T14 slice 2): rewrite the spawn through the
+  // backend's strategy (e.g. `docker exec`), keeping backend=docker consistent
+  // across providers. The strategy controls the in-container env (allowlist).
+  const wrapped = input.execStrategy
+    ? input.execStrategy.wrap({ command: config.command, args, cwd: input.cwd, env })
+    : null;
+  const spawn = wrapped
+    ? { command: wrapped.command, args: wrapped.args, env: wrapped.env }
+    : { command: config.command, args, env };
+  const executedIn = input.execStrategy?.location ?? "host";
+
   let result;
   try {
     result = await runArgvCommand({
-      command: config.command,
-      args,
+      command: spawn.command,
+      args: spawn.args,
       cwd: input.cwd,
-      env,
+      env: spawn.env,
       stdin,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.onChunk ? { onChunk: input.onChunk } : {}),
@@ -106,6 +117,7 @@ export async function runClaudeCodeProvider(
     startedAt: result.startedAt,
     endedAt: result.endedAt,
     appliedReadOnlyHardening,
+    executedIn,
     session: input.session
       ? {
           action: input.session.action === "resume" ? "reused" : "opened",

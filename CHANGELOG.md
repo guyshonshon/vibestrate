@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.0
+
+- **Run inside a disposable container (opt-in).** Set `execution.backend: docker`
+  and each agent turn runs inside a throwaway Docker container instead of on your
+  host - model-agnostic isolation that a provider's own sandbox can't give (that
+  only confines its own process, not other providers or a multi-agent run). The
+  container mounts exactly two things: the run's git worktree (read-write, so your
+  diff still flows back) and the codex credential (read-only, when present);
+  nothing else - no Docker socket, no home dir, no SSH/AWS keys. The container's
+  environment is built from a fixed provider-auth allowlist, so host secrets like
+  `AWS_*`/`GITHUB_TOKEN` never cross the wall. It's **fail-closed**: if Docker
+  isn't running the run refuses with a "start Docker" message rather than quietly
+  running unsandboxed (opt into host fallback with
+  `execution.container.onUnavailable: degrade`). Off by default; the image you
+  point it at must carry the provider CLI. Honest about its limits: network egress
+  is open, so it is not a safe box for genuinely untrusted code yet (a warning
+  says so on every container run). Validated against a live daemon - a write lands
+  in the worktree, a write outside it never reaches the host.
+
 ## 0.10.0
 
 - **A flow phase can carry its own skills.** A flow step now takes a `skills`

@@ -1,7 +1,33 @@
 # Design: Sandboxed execution backend (T14)
 
-Status: **slice 1 SHIPPED (provider-native sandbox, OFF by default) · docker +
-proxy DEFERRED** · adversarially reviewed (Opus), verdict folded in · Triage:
+> **Update (0.11.0, P3 slice 2 SHIPPED — container backend, opt-in).**
+> `execution.backend: docker` runs each provider turn inside a disposable
+> container (`src/execution/docker-backend.ts`). Why a container and not just the
+> provider-native sandbox of slice 1: provider-native isolation is **provider-
+> specific** (codex's Seatbelt only confines codex) - it can't isolate a non-codex
+> provider or a multi-agent run, which is the whole model-agnostic point. Posture
+> (Tier-2 reviewed, empirically validated against a live daemon): **exactly two
+> mounts** - the run worktree (RW, identical host path) + the codex `auth.json`
+> (RO, when present); container env from a **hardcoded provider-auth allowlist**
+> (no host secret crosses); `--cap-drop=ALL --security-opt=no-new-privileges`, no
+> socket/privileged; **fail-closed** when Docker is down (refuse, with a start/
+> install-Docker message; host fallback is opt-in via
+> `execution.container.onUnavailable: degrade`); honest `executedIn` reporting; the
+> container is torn down on any exit. **V1 LIMITATIONS (tracked):** the `image`
+> must carry the provider CLI (the host binary is the wrong arch); **egress is
+> OPEN** (a credential read in-container can be exfiltrated - backend=docker warns
+> loudly; not safe for genuinely untrusted code without an egress proxy);
+> rootless/userns-remap is not yet the default (hardened-rootful); abort/timeout
+> kills the `docker exec` client, not the in-container process (reaped at run-end
+> teardown); MCP-config turns + in-container validation are out of scope. claude
+> auth is **not** mountable (no on-disk credential) - inject `ANTHROPIC_API_KEY`
+> via the allowlist. Deferred: egress allowlist proxy, named-volume deps, the
+> `remote-sandbox`/`cloud-runner` backends (the `ExecStrategy` abstraction is
+> already cloud-extensible).
+
+Status: **slice 1 SHIPPED (provider-native sandbox, OFF by default) · slice 2
+container backend SHIPPED (opt-in, 0.11.0) · egress-proxy DEFERRED** ·
+adversarially reviewed (Opus), verdict folded in · Triage:
 [`backlog-triage-2026-06.md`](./backlog-triage-2026-06.md) § T14 · Related:
 [`policy-enforcement-assurance.md`](./policy-enforcement-assurance.md) § S6.
 

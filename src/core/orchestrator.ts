@@ -118,6 +118,8 @@ import {
   ensureStreamsDir,
 } from "./provider-stream-store.js";
 import { localWorktreeBackend } from "../execution/local-worktree-backend.js";
+import { makeDockerBackend } from "../execution/docker-backend.js";
+import type { ExecutionBackend, ExecStrategy } from "../execution/execution-backend-schema.js";
 import { isGitAvailable, stageAndCommitAll, filesInCommit } from "../git/git.js";
 import { creditTrailers } from "../git/commit-credit.js";
 import { linkWorktreeEnvironment } from "../git/worktree-env.js";
@@ -542,6 +544,11 @@ export class Orchestrator {
   private readonly abortSignal: AbortSignal | null;
   private readonly selection: WorkflowSelection | null;
   private readonly shapeTargetFlowId: string | null;
+  /** Container/cloud execution strategy (T14 slice 2), set at run startup when
+   *  execution.backend runs turns off-host. null ⇒ host execution. */
+  private execStrategy: ExecStrategy | null = null;
+  /** Backend teardown (e.g. `docker rm -f`), run when the flow finishes. */
+  private containerTeardown: (() => Promise<void>) | null = null;
 
   constructor(input: OrchestratorInput) {
     this.projectRoot = input.projectRoot;
@@ -602,6 +609,31 @@ export class Orchestrator {
       seatRoleOverrides: this.seatRoleOverrides,
       reviewerProfile: persona.config.reviewerProfile ?? null,
     });
+  }
+
+  /** Pick the execution backend from config. Unknown/unimplemented backends fall
+   *  back to local-worktree (host) rather than silently pretending to sandbox. */
+  private selectExecutionBackend(): ExecutionBackend {
+    if ((this.config.execution?.backend ?? "local-worktree") === "docker") {
+      const c = this.config.execution?.container;
+      return makeDockerBackend({
+        image: c?.image ?? "node:22-bookworm-slim",
+        onUnavailable: c?.onUnavailable ?? "fail",
+      });
+    }
+    return localWorktreeBackend;
+  }
+
+  /** Tear down the disposable container (T14 slice 2), idempotent. MUST run on
+   *  any throw once the container exists, not only on a flow-end throw - else a
+   *  failure between container creation and the flow leaks a container with the
+   *  worktree (RW) + provider credential (RO) still mounted. */
+  private async teardownContainer(): Promise<void> {
+    if (this.containerTeardown) {
+      const t = this.containerTeardown;
+      this.containerTeardown = null;
+      await t().catch(() => {});
+    }
   }
 
   async run(): Promise<OrchestratorOutput> {
@@ -935,7 +967,21 @@ export class Orchestrator {
 
     try {
       await startup("workspace", "active");
-      const prep = await localWorktreeBackend.prepareRun({
+      // Execution backend (T14 slice 2): local-worktree (host) by default, or a
+      // disposable Docker container when execution.backend = "docker". A failed
+      // container preflight throws here (fail-closed) before any turn runs.
+      const backend = this.selectExecutionBackend();
+      if (backend.id === "docker") {
+        await eventLog.append({
+          type: "policy.warning",
+          message:
+            "Container backend: turns run in a disposable Docker container (writes confined to the worktree). " +
+            "WARNING: network egress is OPEN and a mounted provider credential is reachable in-container - " +
+            "this is NOT credential-safe against malicious code. The image must carry the provider CLI.",
+          data: { kind: "container-backend", image: this.config.execution?.container?.image ?? null },
+        });
+      }
+      const prep = await backend.prepareRun({
         projectRoot: this.projectRoot,
         runId,
         branchPrefix: this.config.git.branchPrefix,
@@ -944,6 +990,23 @@ export class Orchestrator {
       });
       worktreePath = prep.worktreePath;
       branchName = prep.branchName;
+      this.execStrategy = prep.exec ?? null;
+      this.containerTeardown = prep.teardown ?? null;
+      if (prep.exec) {
+        await eventLog.append({
+          type: "execution.containerized",
+          message: `Run executes in a ${prep.exec.location} (execution.backend=${backend.id}).`,
+          data: { backend: backend.id, location: prep.exec.location },
+        });
+      } else if (backend.id === "docker") {
+        // backend=docker but no strategy ⇒ onUnavailable:"degrade" fell back to
+        // host. Record it honestly so the assurance posture never claims a sandbox.
+        await eventLog.append({
+          type: "execution.container_unavailable",
+          message: "Docker unavailable; degraded to host execution (execution.container.onUnavailable=degrade).",
+          data: { backend: backend.id },
+        });
+      }
       state = { ...state, worktreePath, branchName, updatedAt: nowIso() };
       await stateStore.write(state);
       await eventLog.append({
@@ -993,8 +1056,14 @@ export class Orchestrator {
         type: "run.failed",
         message: `Failed to prepare worktree: ${describeError(err)}`,
       });
+      // A container may already be up (created inside the workspace try); reap it.
+      await this.teardownContainer();
       throw err;
     }
+
+    // Everything past here can throw too (context sources, model resolution, the
+    // flow run); wrap it so the container is always torn down once it exists.
+    try {
 
     // Materialize context sources once (path-guarded files / SSRF-guarded URLs,
     // secret-redacted). Merged into every role's prompt below. Failures are
@@ -1162,22 +1231,28 @@ export class Orchestrator {
     // over from here; the startup checklist steps aside once this fires.
     await startup("provider", "active");
 
-    return this.runFlowSequence({
-      snapshot: flow,
-      runId,
-      state,
-      worktreePath,
-      branchName,
-      artifactStore,
-      stateStore,
-      eventLog,
-      metricsStore,
-      approvalService,
-      notify,
-      policyWarnings: policy.warnings,
-      policyStagesAlreadyForced,
-      ctx,
-    });
+      return await this.runFlowSequence({
+        snapshot: flow,
+        runId,
+        state,
+        worktreePath,
+        branchName,
+        artifactStore,
+        stateStore,
+        eventLog,
+        metricsStore,
+        approvalService,
+        notify,
+        policyWarnings: policy.warnings,
+        policyStagesAlreadyForced,
+        ctx,
+      });
+    } finally {
+      // Tear down the disposable container (T14 slice 2) on ANY exit of the
+      // post-prepare region - success or throw. The worktree persists (the host
+      // diff-gate reads it). Idempotent + null when no container was created.
+      await this.teardownContainer();
+    }
   }
 
   private createFlowRunState(
@@ -4959,6 +5034,8 @@ export class Orchestrator {
           timeoutMs: runtimeProfile?.timeoutMs ?? undefined,
           catalog: this.resolvedCatalog,
           mcpConfigPath: mcpConfigAbsPath ?? undefined,
+          // Container/cloud execution (T14 slice 2): run this turn off-host.
+          execStrategy: this.execStrategy ?? undefined,
           onChunk: (c) => {
             if (transcriptFilter && c.stream === "stdout") {
               for (const t of transcriptFilter(c.chunk)) {

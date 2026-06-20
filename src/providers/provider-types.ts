@@ -1,4 +1,5 @@
 import type { ResolvedCatalog, SandboxMode } from "./provider-apply.js";
+import type { ExecStrategy } from "../execution/execution-backend-schema.js";
 
 export type ProviderRunResult = {
   providerId: string;
@@ -32,6 +33,13 @@ export type ProviderRunResult = {
    * the run-assurance isolation posture. Absent/false otherwise.
    */
   appliedReadOnlyHardening?: boolean;
+  /**
+   * Where this turn ACTUALLY ran (T14 slice 2): "container" only when the turn
+   * was wrapped through `docker exec` against the run's container, "host"
+   * otherwise. The assurance posture keys off this - it never claims a container
+   * a turn didn't run in. Absent ⇒ host (unchanged).
+   */
+  executedIn?: "host" | "container" | "remote";
 };
 
 export type ProviderStreamChunk = {
@@ -139,4 +147,10 @@ export type ProviderRunInput = {
    * unbounded. Omitted = no wall-clock cap.
    */
   timeoutMs?: number | null;
+  /**
+   * Container/cloud execution strategy (T14 slice 2). When set, the turn's spawn
+   * is rewritten through it (e.g. `docker exec` into the run's container) instead
+   * of running on the host. Omitted ⇒ run on the host as before.
+   */
+  execStrategy?: ExecStrategy;
 };

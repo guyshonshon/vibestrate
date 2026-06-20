@@ -40,13 +40,25 @@ export async function runCliProvider(
     env.VIBESTRATE_MCP_CONFIG = input.mcpConfigPath;
   }
 
+  // Container/cloud execution (T14 slice 2): rewrite the spawn through the
+  // backend's strategy (e.g. `docker exec` into the run's container). The
+  // strategy controls the in-container env (allowlist), so the host env is not
+  // forwarded into the container. location records where it actually ran.
+  const wrapped = input.execStrategy
+    ? input.execStrategy.wrap({ command: config.command, args, cwd: input.cwd, env })
+    : null;
+  const spawn = wrapped
+    ? { command: wrapped.command, args: wrapped.args, env: wrapped.env }
+    : { command: config.command, args, env };
+  const executedIn = input.execStrategy?.location ?? "host";
+
   let result;
   try {
     result = await runArgvCommand({
-      command: config.command,
-      args,
+      command: spawn.command,
+      args: spawn.args,
       cwd: input.cwd,
-      env,
+      env: spawn.env,
       stdin,
       ...(input.timeoutMs ? { timeoutMs: input.timeoutMs } : {}),
       ...(input.onChunk ? { onChunk: input.onChunk } : {}),
@@ -61,6 +73,8 @@ export async function runCliProvider(
 
   return {
     providerId: input.providerId,
+    // Report the provider's own command/args (not the docker-exec wrapper) - the
+    // provider ran codex/etc.; executedIn records that it ran in a container.
     command: config.command,
     args,
     cwd: input.cwd,
@@ -72,5 +86,6 @@ export async function runCliProvider(
     endedAt: result.endedAt,
     // Honest record: only what a real provider sandbox actually applied.
     appliedSandbox: sandbox.applied ? input.sandbox ?? null : null,
+    executedIn,
   };
 }
