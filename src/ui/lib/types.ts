@@ -122,6 +122,8 @@ export type RunState = {
   /** Per-step Profile overrides (step id → profile id). */
   stepProfileOverrides?: Record<string, string>;
   readOnly?: boolean;
+  /** The resolved permission mode (P4) that governed this run. */
+  permissionMode?: "read-only" | "ask" | "accept-edits" | "auto";
   /** Skill ids attached to every agent for this single run. */
   runtimeSkills?: string[];
   /** Brevity directive applied to every agent prompt for this run. */

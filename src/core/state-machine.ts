@@ -159,6 +159,11 @@ export const runStateSchema = z.object({
   /** Seat → Role overrides used to disambiguate seats filled by >1 role. */
   seatRoleOverrides: z.record(z.string(), z.string()).default({}),
   readOnly: z.boolean().default(false),
+  /** The RESOLVED permission mode (T14 P4) that governed this run - recorded so
+   *  reports reflect the policy actually enforced, not the request. */
+  permissionMode: z
+    .enum(["read-only", "ask", "accept-edits", "auto"])
+    .optional(),
   /** Resolved flow parameter values (T11), name -> value. Secret params are
    *  recorded as "[secret]" - the real value never lands on disk. */
   params: z
@@ -333,6 +338,11 @@ const ALLOWED_TRANSITIONS: Record<RunStatus, RunStatus[]> = {
     "verifying",
     "waiting_for_approval",
     "paused",
+    // Belt-and-suspenders (P4): a flow that ends merge-ready at the fixing stage
+    // (e.g. a response-turn terminal) - including via the accept-edits approval
+    // hold's resume - can reach merge_ready. Gated by computeMergeReady like every
+    // other stage, so a write flow stuck at fixing without review still blocks.
+    "merge_ready",
     "blocked",
     "failed",
     "aborted",

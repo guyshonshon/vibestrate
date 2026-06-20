@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.13.0
+
+- **accept-edits now actually holds and resumes.** The accept-edits mode used to
+  auto-apply your changes and then just block the run; now it genuinely **pauses
+  for your sign-off** at the finish line and **resumes to merge-ready when you
+  approve** (reject it, or let an unattended timeout lapse, and it blocks). The
+  permission mode a run ran under is now recorded on the run so reports reflect
+  the policy that was actually enforced, not the one requested. The dashboard
+  launch form gains the full permission-mode picker (read-only / ask /
+  accept-edits / auto), matching the CLI and API.
+- **A policy-load failure now fail-closes the merge too.** Extends the 0.12.0
+  fail-closed fix: if the action policy can't be read, the merge-to-main is also
+  refused (not just writes and run completion) - it's the most irreversible
+  effect and only ever human-initiated, so a refusal just means retry once policy
+  loads.
+
 ## 0.12.0
 
 - **Permission modes - pick how much rope a run gets.** A run now takes a

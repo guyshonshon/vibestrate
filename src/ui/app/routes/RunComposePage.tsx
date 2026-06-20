@@ -555,7 +555,7 @@ export function RunComposePage() {
                           <li className="flex items-start gap-1.5">
                             <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-violet-soft" aria-hidden />
                             <span>
-                              <span className="text-fog-200">Accept-edits.</span> Changes auto-apply, but the run does not auto-complete - it holds for your review of the applied diff before it&apos;s merged.
+                              <span className="text-fog-200">Accept-edits.</span> Changes auto-apply, but the run does not auto-complete - it holds for your sign-off, then resumes to merge-ready on approval.
                             </span>
                           </li>
                         ) : null}

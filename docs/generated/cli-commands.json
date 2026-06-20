@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "binary": "vibe",
   "description": "Vibestrate - local-first autonomous multi-agent completion orchestrator. Runs your local agent CLIs through plan → architect → implement → validate → review → fix → verify in isolated git worktrees.",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "commands": [
     {
       "name": "init",
@@ -5661,7 +5661,7 @@
         },
         {
           "flags": "--permission-mode <mode>",
-          "description": "permission mode: read-only | ask (approve each change) | accept-edits (auto-apply, then hold for your review before merge) | auto (default). --read-only is the alias for read-only.",
+          "description": "permission mode: read-only | ask (approve each change) | accept-edits (auto-apply, then hold for your sign-off before completing) | auto (default). --read-only is the alias for read-only.",
           "required": true,
           "optional": false,
           "negated": false

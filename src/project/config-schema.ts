@@ -175,8 +175,9 @@ export type PolicyApprovalStage = z.infer<typeof policyApprovalStageSchema>;
 // Permission modes (T14 P4): the model-agnostic policy Vibestrate applies to a
 // run's writes. read-only = no writes (clamp + claude plan flag + the P3
 // container as the hard wall); ask = each turn diff requires human approval;
-// accept-edits = writes auto-apply, but the run holds for human review before it
-// can be merged (it does not auto-complete); auto = fully hands-off (today's
+// accept-edits = writes auto-apply, but the run does not auto-complete - it holds
+// for your sign-off at the completion boundary and resumes to merge_ready on
+// approval (reject / unattended-timeout -> blocked); auto = fully hands-off (today's
 // default). Per-run override via --permission-mode. Note: ask's per-change
 // approval runs on the direct-write diff gate; combined with strictApplyOnly
 // (which routes changes through the apply gateway) it refuses changes rather than

@@ -406,10 +406,9 @@ class __ActionDeniedSignal extends Error {
  * tool_use is display-only):
  *  - ask: every turn diff (file.patch) requires human approval before it's kept.
  *  - accept-edits: writes auto-apply, but the run does NOT auto-complete - it
- *    HOLDS at the completion boundary (require_approval on run.complete) so a
- *    human reviews the applied diff and merges it, instead of reaching merge_ready
- *    on its own. (V1: the hold lands the run `blocked`-pending-review; a resumable
- *    approve->merge_ready hold is a tracked enhancement.)
+ *    HOLDS at the completion boundary (require_approval on run.complete) for human
+ *    sign-off and RESUMES to merge_ready on approval (reject / unattended-timeout
+ *    -> blocked). See the run.complete handler in runFlowSequence.
  *  - auto / read-only: none here (read-only is the readOnly clamp).
  */
 export function permissionModeEvaluators(mode: PermissionMode): ActionEvaluator[] {
@@ -819,6 +818,7 @@ export class Orchestrator {
       runtimeSkills: this.runtimeSkills,
       concise: this.concise,
       readOnly: this.readOnly,
+      permissionMode: this.permissionMode,
       params: this.recordedParams,
       checklistMode: this.checklistMode,
       contextSources: this.contextSources,
@@ -4031,7 +4031,39 @@ export class Orchestrator {
       };
       const completeDecision = await this.broker!.decide(completeReq);
       let effectiveMergeReady = mergeReady;
-      if (completeDecision.effect !== "allow") {
+      // `accept-edits` (and any require_approval run.complete policy) HOLDS a run
+      // that earned merge_ready for human sign-off, then RESUMES to merge_ready on
+      // approval (reject / unattended-expire -> blocked). awaitApprovalRequest
+      // already transitions to blocked on reject, so guard the terminal transition
+      // below to avoid a blocked->blocked double-transition.
+      let completionApprovalRejected = false;
+      if (completeDecision.effect === "require_approval" && mergeReady) {
+        const reason =
+          "reason" in completeDecision ? completeDecision.reason : "policy";
+        const held = await this.awaitApprovalRequest({
+          state,
+          fromStatus: state.status,
+          stageId: "run.complete",
+          roleId: "supervisor",
+          reason,
+          prompt: null,
+          sourceArtifactPath: null,
+          requestedAction: "run.complete",
+          riskLevel: "medium",
+          source: "policy",
+          alsoRequiredByPolicy: true,
+          progressMessage: "Pausing for human sign-off before completing the run...",
+          requestedMessage: "Run completion is held for your review (permission mode).",
+          resumedMessage: "Approved - completing the run.",
+          approvalService: input.approvalService,
+          stateStore: input.stateStore,
+          eventLog: input.eventLog,
+        });
+        state = held.state;
+        completionApprovalRejected = held.rejected;
+        effectiveMergeReady = !held.rejected;
+      } else if (completeDecision.effect !== "allow") {
+        // deny, or require_approval on a run that DIDN'T earn merge_ready anyway.
         effectiveMergeReady = false;
         const reason =
           "reason" in completeDecision ? completeDecision.reason : "policy";
@@ -4058,11 +4090,15 @@ export class Orchestrator {
         needsTesting: needsTestingAdvisory,
       };
       await input.stateStore.write(state);
-      state = applyTransition(
-        state,
-        effectiveMergeReady ? "merge_ready" : "blocked",
-      );
-      await input.stateStore.write(state);
+      // Skip the terminal transition when the completion-approval already moved
+      // the run to a terminal `blocked` (else blocked->blocked is illegal).
+      if (!completionApprovalRejected) {
+        state = applyTransition(
+          state,
+          effectiveMergeReady ? "merge_ready" : "blocked",
+        );
+        await input.stateStore.write(state);
+      }
       // Propagate a needs-testing advisory to the linked card (best-effort,
       // non-blocking). The run keeps its real verdict; the card is flagged so a
       // human can pass it or send it back.

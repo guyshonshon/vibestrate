@@ -212,7 +212,7 @@ export function buildVibestrateProgram(): Command {
     )
     .option(
       "--permission-mode <mode>",
-      "permission mode: read-only | ask (approve each change) | accept-edits (auto-apply, then hold for your review before merge) | auto (default). --read-only is the alias for read-only.",
+      "permission mode: read-only | ask (approve each change) | accept-edits (auto-apply, then hold for your sign-off before completing) | auto (default). --read-only is the alias for read-only.",
     )
     .option(
       "--unattended",
