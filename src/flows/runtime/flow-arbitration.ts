@@ -331,19 +331,26 @@ export function parseFlowJsonContract<S extends z.ZodTypeAny>(input: {
       failures.push(err instanceof Error ? err.message : String(err));
       continue;
     }
-    const parsed = input.schema.safeParse(raw);
-    if (!parsed.success) {
-      failures.push(parsed.error.issues[0]?.message ?? "schema mismatch");
-      continue;
+    // Models sometimes nest the contract under a single wrapper key (often the
+    // output token's own name), e.g. {"questions": {contract, stepId, ...}}.
+    // Try the object as-is AND, if it has exactly one object-valued key, its
+    // unwrapped inner value. The schema (still strict) is the gate - we never
+    // accept a shape that doesn't validate, we just look one level in.
+    for (const shape of contractShapeCandidates(raw)) {
+      const parsed = input.schema.safeParse(shape);
+      if (!parsed.success) {
+        failures.push(parsed.error.issues[0]?.message ?? "schema mismatch");
+        continue;
+      }
+      const output = parsed.data as z.output<S> & { stepId?: unknown };
+      if (output.stepId !== input.expectedStepId) {
+        failures.push(
+          `Structured Flow output stepId "${String(output.stepId)}" does not match "${input.expectedStepId}".`,
+        );
+        continue;
+      }
+      return { ok: true, output: parsed.data };
     }
-    const output = parsed.data as z.output<S> & { stepId?: unknown };
-    if (output.stepId !== input.expectedStepId) {
-      failures.push(
-        `Structured Flow output stepId "${String(output.stepId)}" does not match "${input.expectedStepId}".`,
-      );
-      continue;
-    }
-    return { ok: true, output: parsed.data };
   }
 
   return {
@@ -607,7 +614,9 @@ function extractJsonCandidates(text: string): string[] {
     "g",
   );
   for (const match of text.matchAll(marker)) {
-    const candidate = match[1]?.trim();
+    // Models routinely wrap the JSON in a ```json fence even inside the markers;
+    // strip it so the marker candidate is parseable JSON, not "```json{...}```".
+    const candidate = stripCodeFence(match[1]?.trim() ?? "");
     if (candidate) out.push(candidate);
   }
 
@@ -626,6 +635,27 @@ function extractJsonCandidates(text: string): string[] {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Strip a surrounding ```json ... ``` (or bare ```) code fence, if present. */
+function stripCodeFence(value: string): string {
+  const m = value.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/);
+  return m ? m[1]!.trim() : value;
+}
+
+/** The raw parsed object plus, when it has exactly one object-valued key (a
+ *  model wrapping the contract under a key like the output token's name), its
+ *  unwrapped inner value - so the strict schema can validate either shape. */
+function contractShapeCandidates(raw: unknown): unknown[] {
+  const shapes: unknown[] = [raw];
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const keys = Object.keys(raw as Record<string, unknown>);
+    if (keys.length === 1) {
+      const inner = (raw as Record<string, unknown>)[keys[0]!];
+      if (inner && typeof inner === "object") shapes.push(inner);
+    }
+  }
+  return shapes;
 }
 
 export class FlowArbitrationStore {

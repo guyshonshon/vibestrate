@@ -238,7 +238,13 @@ export type FlowArchitectureHandoffOutput = z.infer<
 // allows env var NAMES, never values).
 export const flowShapeQuestionSchema = z
   .object({
-    id: flowTokenSchema,
+    // A form/answer key, not a flow token: allow underscores (models reliably
+    // use them, e.g. "catalog_source") as well as dashes.
+    id: z
+      .string()
+      .min(1)
+      .max(80)
+      .regex(/^[a-z0-9][a-z0-9_-]*$/, "Question ids use lowercase letters, digits, underscores, and dashes."),
     question: z.string().min(1).max(400),
     why: z.string().min(1).max(400),
     kind: z.enum(["choice", "text"]),

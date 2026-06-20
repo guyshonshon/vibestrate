@@ -13,9 +13,11 @@ import {
 } from "../../src/flows/runtime/flow-arbitration.js";
 import {
   FLOW_PLAN_HANDOFF_CONTRACT,
+  FLOW_QUESTIONS_CONTRACT,
   flowArchitectureHandoffOutputSchema,
   flowExecutionHandoffOutputSchema,
   flowPlanHandoffOutputSchema,
+  flowQuestionsOutputSchema,
 } from "../../src/flows/schemas/flow-output-contracts.js";
 import type { ResolvedFlowStep } from "../../src/flows/schemas/flow-schema.js";
 import { loadConfig } from "../../src/project/config-loader.js";
@@ -332,4 +334,62 @@ describe("structured handoff contracts (panel-review end to end)", () => {
       fs.access(path.join(artifactsDir, "flows", "plan", "plan-handoff.json")),
     ).rejects.toBeTruthy();
   }, 60_000);
+});
+
+describe("parseFlowJsonContract robustness (real model formatting)", () => {
+  // The exact failure that broke the Shape intake live: gpt-5.5 fenced the JSON
+  // inside the VIBESTRATE_FLOW_OUTPUT markers, nested the contract under a single
+  // "questions" key, and used an underscore id ("catalog_source").
+  const fencedNestedUnderscore = [
+    "Here are the gap questions.",
+    "",
+    "VIBESTRATE_FLOW_OUTPUT:",
+    "```json",
+    JSON.stringify(
+      {
+        questions: {
+          contract: FLOW_QUESTIONS_CONTRACT,
+          stepId: "intake",
+          questions: [
+            { id: "accounts", question: "Sign in?", why: "auth", kind: "choice", options: ["yes", "no"] },
+            { id: "catalog_source", question: "Where do products come from?", why: "data", kind: "text", options: [] },
+          ],
+        },
+      },
+      null,
+      2,
+    ),
+    "```",
+    "VIBESTRATE_FLOW_OUTPUT_END",
+  ].join("\n");
+
+  it("strips the code fence, unwraps the single-key wrapper, and accepts underscore ids", () => {
+    const r = parseFlowJsonContract({
+      text: fencedNestedUnderscore,
+      schema: flowQuestionsOutputSchema,
+      expectedStepId: "intake",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.output.questions.map((q) => q.id)).toEqual(["accounts", "catalog_source"]);
+    }
+  });
+
+  it("still accepts the plain, unwrapped contract shape", () => {
+    const plain = `VIBESTRATE_FLOW_OUTPUT:\n${JSON.stringify({
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [{ id: "a", question: "q", why: "w", kind: "text", options: [] }],
+    })}\nVIBESTRATE_FLOW_OUTPUT_END`;
+    const r = parseFlowJsonContract({ text: plain, schema: flowQuestionsOutputSchema, expectedStepId: "intake" });
+    expect(r.ok).toBe(true);
+  });
+
+  it("does not unwrap into an invalid shape (the schema is still the gate)", () => {
+    const wrong = `VIBESTRATE_FLOW_OUTPUT:\n${JSON.stringify({
+      questions: { nope: true },
+    })}\nVIBESTRATE_FLOW_OUTPUT_END`;
+    const r = parseFlowJsonContract({ text: wrong, schema: flowQuestionsOutputSchema, expectedStepId: "intake" });
+    expect(r.ok).toBe(false);
+  });
 });

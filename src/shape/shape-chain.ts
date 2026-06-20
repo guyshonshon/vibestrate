@@ -49,7 +49,7 @@ export const shapeAnswerSchema = z
       .string()
       .min(1)
       .max(80)
-      .regex(/^[a-z0-9][a-z0-9-]*$/),
+      .regex(/^[a-z0-9][a-z0-9_-]*$/),
     answer: z.string().min(1).max(2000),
   })
   .strict();
