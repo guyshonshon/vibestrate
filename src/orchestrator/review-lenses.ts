@@ -99,3 +99,23 @@ export function isReviewerStep(step: {
     !isArbiterShaped
   );
 }
+
+/**
+ * Pure. Compose the `additionalNotes` for a flow-step turn: base notes, the step's
+ * own lens/instructions, and - ONLY for a lensed reviewer turn - the persona's
+ * reviewLens emphasis block. Extracted so the injection rule (the design's "behave
+ * or cut" acceptance test) is directly unit-testable, not buried in the runner.
+ */
+export function composeReviewerStepNotes(input: {
+  baseNotes: string;
+  stepInstructions?: string | null;
+  lensEmphasis: string | null;
+  isReviewer: boolean;
+}): string {
+  const withStepLens = input.stepInstructions
+    ? `${input.baseNotes}\n\nStep lens / instructions:\n${input.stepInstructions}`
+    : input.baseNotes;
+  return input.lensEmphasis && input.isReviewer
+    ? `${withStepLens}\n\n${input.lensEmphasis}`
+    : withStepLens;
+}

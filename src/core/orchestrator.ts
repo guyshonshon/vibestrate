@@ -196,6 +196,7 @@ import { resolvePersona } from "../orchestrator/personas.js";
 import {
   renderPersonaReviewLensEmphasis,
   isReviewerStep,
+  composeReviewerStepNotes,
 } from "../orchestrator/review-lenses.js";
 import { findFlowById } from "../flows/catalog/flow-discovery.js";
 import { resolveFlow } from "../flows/runtime/flow-resolver.js";
@@ -2391,17 +2392,15 @@ export class Orchestrator {
 
     // Concurrency-safe: only spawns the provider turn (no shared-state writes).
     const runTurn = (step: ResolvedFlowStep, context: StepContext) => {
-      const baseNotes = this.renderFlowStepNotes({ snapshot, step });
-      const withStepLens = step.instructions
-        ? `${baseNotes}\n\nStep lens / instructions:\n${step.instructions}`
-        : baseNotes;
-      // Persona reviewLens emphasis: append the closed-vocabulary block to lensed
-      // reviewer turns only (never the arbiter, never executors/planners), so the
-      // active persona actually aims WHAT is scrutinised.
-      const additionalNotes =
-        this.reviewLensEmphasis && isReviewerStep(step)
-          ? `${withStepLens}\n\n${this.reviewLensEmphasis}`
-          : withStepLens;
+      // Persona reviewLens emphasis is appended to lensed reviewer turns only
+      // (never the arbiter, never executors/planners), so the active persona
+      // actually aims WHAT is scrutinised. Composition is a pure, tested helper.
+      const additionalNotes = composeReviewerStepNotes({
+        baseNotes: this.renderFlowStepNotes({ snapshot, step }),
+        stepInstructions: step.instructions,
+        lensEmphasis: this.reviewLensEmphasis,
+        isReviewer: isReviewerStep(step),
+      });
       return this.runRole({
         roleId: step.resolvedRoleId!,
         providerId: step.providerId,

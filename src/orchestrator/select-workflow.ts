@@ -328,7 +328,9 @@ async function maybeUpgradeForPersona(input: {
     result = {
       ...result,
       posture: prefersPosture,
-      advisory: result.advisory ?? postureMsg,
+      // Keep any prior advisory (e.g. the sizer's note) AND surface the posture so
+      // the human-facing line never contradicts the nudged posture.
+      advisory: result.advisory ? `${result.advisory} ${postureMsg}` : postureMsg,
       reasons: [
         ...result.reasons,
         `Supervisor "${persona.config.label}" suggests posture "${prefersPosture}" for a risk-tagged task (signal: ${matched.join(", ")}).`,

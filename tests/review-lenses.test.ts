@@ -3,6 +3,7 @@ import {
   REVIEW_LENS_FRAGMENTS,
   renderPersonaReviewLensEmphasis,
   isReviewerStep,
+  composeReviewerStepNotes,
 } from "../src/orchestrator/review-lenses.js";
 import { BUILTIN_PERSONAS } from "../src/orchestrator/personas.js";
 
@@ -76,5 +77,50 @@ describe("review-lenses - isReviewerStep predicate", () => {
     expect(isReviewerStep({ kind: "turn", stage: "executing", seat: "implementer" })).toBe(false);
     expect(isReviewerStep({ stage: "verifying", seat: "verifier" })).toBe(false);
     expect(isReviewerStep({ kind: "turn", stage: "planning", seat: "planner" })).toBe(false);
+  });
+});
+
+describe("review-lenses - composeReviewerStepNotes (the injection rule)", () => {
+  const lens = "Supervisor review lenses - ...";
+
+  it("appends the lens block ONLY to a reviewer turn", () => {
+    const out = composeReviewerStepNotes({
+      baseNotes: "BASE",
+      stepInstructions: null,
+      lensEmphasis: lens,
+      isReviewer: true,
+    });
+    expect(out).toBe(`BASE\n\n${lens}`);
+  });
+
+  it("does NOT append the lens block to a non-reviewer turn (arbiter/executor)", () => {
+    const out = composeReviewerStepNotes({
+      baseNotes: "BASE",
+      stepInstructions: null,
+      lensEmphasis: lens,
+      isReviewer: false,
+    });
+    expect(out).toBe("BASE");
+    expect(out).not.toContain(lens);
+  });
+
+  it("never injects when there is no lens emphasis (byte-identical to before)", () => {
+    const out = composeReviewerStepNotes({
+      baseNotes: "BASE",
+      stepInstructions: "STEP-LENS",
+      lensEmphasis: null,
+      isReviewer: true,
+    });
+    expect(out).toBe("BASE\n\nStep lens / instructions:\nSTEP-LENS");
+  });
+
+  it("layers step instructions then the persona lens block, in order", () => {
+    const out = composeReviewerStepNotes({
+      baseNotes: "BASE",
+      stepInstructions: "STEP-LENS",
+      lensEmphasis: lens,
+      isReviewer: true,
+    });
+    expect(out).toBe(`BASE\n\nStep lens / instructions:\nSTEP-LENS\n\n${lens}`);
   });
 });
