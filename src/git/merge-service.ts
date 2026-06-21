@@ -21,13 +21,13 @@
 
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import { promises as fs } from "node:fs";
+import { promises as fs, constants as fsConstants } from "node:fs";
 import { execa } from "execa";
 import { loadConfig, type LoadedConfig } from "../project/config-loader.js";
 import { resolveWorktreePath } from "../utils/paths.js";
 import { creditTrailers } from "./commit-credit.js";
 import { isSecretLikePath } from "../core/diff-service.js";
-import { hasConflictMarkers } from "./conflict-parser.js";
+import { hasConflictMarkers, isLikelyBinary } from "./conflict-parser.js";
 import {
   createWorktree,
   removeWorktree,
@@ -481,7 +481,58 @@ export async function applyResolvedMerge(input: {
           `The resolution for "${p}" still contains conflict markers.`,
         );
       }
-      await fs.writeFile(path.join(input.projectRoot, p), rf.content, "utf8");
+      if (isLikelyBinary(rf.content)) {
+        await fail(
+          `resolved apply ${source} -> ${target}: binary content for "${p}"`,
+          `Refusing a binary resolution for "${p}" - resolve it manually.`,
+        );
+      }
+      // Symlink-safe write (adversarial-review BLOCKER): `conflicted.has(p)`
+      // only validates the path STRING, but git can leave a conflict as a
+      // symlink - a naive writeFile would follow it outside the repo or into
+      // `.git/hooks` (RCE). Refuse a symlinked leaf, a parent that resolves
+      // outside the project root or into `.git`, and use O_NOFOLLOW so a
+      // TOCTOU re-link between check and write can't escape either.
+      const abs = path.join(input.projectRoot, p);
+      const lst = await fs.lstat(abs).catch(() => null);
+      if (lst?.isSymbolicLink()) {
+        await fail(
+          `resolved apply ${source} -> ${target}: symlink path "${p}"`,
+          `Refusing to write to "${p}": it is a symlink - resolve symlink conflicts manually.`,
+        );
+      }
+      const realRoot = await fs.realpath(input.projectRoot);
+      const realParent = await fs.realpath(path.dirname(abs)).catch(() => null);
+      const insideRoot =
+        realParent === realRoot || (realParent?.startsWith(realRoot + path.sep) ?? false);
+      const gitDir = path.join(realRoot, ".git");
+      const underGit =
+        realParent === gitDir || (realParent?.startsWith(gitDir + path.sep) ?? false);
+      if (!realParent || !insideRoot || underGit) {
+        await fail(
+          `resolved apply ${source} -> ${target}: path "${p}" resolves outside the worktree`,
+          `Refusing to write "${p}": it resolves outside the project worktree (or into .git).`,
+        );
+      }
+      try {
+        const fh = await fs.open(
+          abs,
+          fsConstants.O_WRONLY |
+            fsConstants.O_CREAT |
+            fsConstants.O_TRUNC |
+            fsConstants.O_NOFOLLOW,
+        );
+        try {
+          await fh.writeFile(rf.content, "utf8");
+        } finally {
+          await fh.close();
+        }
+      } catch {
+        await fail(
+          `resolved apply ${source} -> ${target}: write refused for "${p}"`,
+          `Refusing to write "${p}": the path could not be opened safely (symlink?).`,
+        );
+      }
       const add = await execa("git", ["add", "--", p], {
         cwd: input.projectRoot,
         reject: false,

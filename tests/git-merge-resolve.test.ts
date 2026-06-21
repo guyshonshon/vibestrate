@@ -238,6 +238,81 @@ async function makeSecretApplyRepo(): Promise<string> {
   return dir;
 }
 
+/** Repo where merging feat into main conflicts on a SYMLINK `link`, whose
+ *  checked-out (ours/main) target is `linkTarget`. */
+async function makeSymlinkConflictRepo(linkTarget: string): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-symlink-"));
+  await git(dir, "init", "-q", "-b", "main");
+  await git(dir, "config", "user.email", "x@x");
+  await git(dir, "config", "user.name", "x");
+  await fs.writeFile(path.join(dir, "innocent.txt"), "innocent");
+  await fs.symlink("innocent.txt", path.join(dir, "link"));
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "base");
+  await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+  await setConfigValue(dir, "git.worktreeDir", path.join(dir, "worktrees"));
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "setup");
+
+  await git(dir, "checkout", "-q", "-b", "feat", "main");
+  await fs.rm(path.join(dir, "link"));
+  await fs.symlink("feat-target.txt", path.join(dir, "link"));
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "feat");
+
+  await git(dir, "checkout", "-q", "main");
+  await fs.rm(path.join(dir, "link"));
+  await fs.symlink(linkTarget, path.join(dir, "link"));
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "main");
+  return dir;
+}
+
+describe("applyResolvedMerge - symlink escape (adversarial-review BLOCKER)", () => {
+  it("refuses to write through a conflicted symlink pointing outside the repo", async () => {
+    const victimDir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-victim-"));
+    const victim = path.join(victimDir, "secret.txt");
+    await fs.writeFile(victim, "SAFE");
+    const dir = await makeSymlinkConflictRepo(victim); // ours: link -> absolute victim
+    const pre = await sha(dir, "main");
+
+    await expect(
+      applyResolvedMerge({
+        projectRoot: dir,
+        source: "feat",
+        target: "main",
+        resolvedFiles: [{ path: "link", content: "PWNED" }],
+        humanConfirmed: true,
+      }),
+    ).rejects.toThrow(/symlink|outside the project worktree/);
+
+    expect(await fs.readFile(victim, "utf8")).toBe("SAFE"); // never written
+    expect(await sha(dir, "main")).toBe(pre); // tip unmoved
+    expect(await readMergeRecord(dir, "main")).toBeNull();
+  });
+
+  it("refuses to write through a conflicted symlink into .git/hooks", async () => {
+    const dir = await makeSymlinkConflictRepo(".git/hooks/post-merge");
+    const hook = path.join(dir, ".git", "hooks", "post-merge");
+    const pre = await sha(dir, "main");
+
+    await expect(
+      applyResolvedMerge({
+        projectRoot: dir,
+        source: "feat",
+        target: "main",
+        resolvedFiles: [{ path: "link", content: "#!/bin/sh\ntouch /tmp/PWNED\n" }],
+        humanConfirmed: true,
+      }),
+    ).rejects.toThrow(/symlink|outside the project worktree/);
+
+    // The hook payload was never written.
+    const hookContent = await fs.readFile(hook, "utf8").catch(() => "");
+    expect(hookContent).not.toContain("touch /tmp/PWNED");
+    expect(await sha(dir, "main")).toBe(pre);
+  });
+});
+
 describe("applyResolvedMerge - secret path", () => {
   it("refuses to write a resolution to a secret-like path", async () => {
     const dir = await makeSecretApplyRepo();
