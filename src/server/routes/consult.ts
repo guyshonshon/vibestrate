@@ -29,6 +29,16 @@ const consultBody = z
     providerId: z.string().min(1).max(200).optional(),
     model: z.string().min(1).max(200).optional(),
     effort: z.string().min(1).max(60).optional(),
+    /** Screen-aware orb snapshot; redacted server-side inside runConsult. The
+     *  inner object is intentionally NOT strict so an added client field never
+     *  re-trips this 400. */
+    viewContext: z
+      .object({
+        screen: z.string().min(1).max(200),
+        details: z.string().max(20000),
+      })
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -49,7 +59,8 @@ export async function registerConsultRoutes(
     if (!parsed.success) {
       throw new HttpError(400, parsed.error.issues[0]?.message ?? "Invalid consult request.");
     }
-    const { question, taskId, runId, files, profileId, providerId, model, effort } = parsed.data;
+    const { question, taskId, runId, files, profileId, providerId, model, effort, viewContext } =
+      parsed.data;
     try {
       const result = await runConsult({
         projectRoot,
@@ -57,6 +68,7 @@ export async function registerConsultRoutes(
         taskId: taskId ?? null,
         runId: runId ?? null,
         files: files ?? [],
+        viewContext: viewContext ?? null,
         profileId: profileId ?? null,
         providerId: providerId ?? null,
         model: model ?? null,
