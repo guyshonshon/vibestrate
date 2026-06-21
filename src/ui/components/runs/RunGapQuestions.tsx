@@ -67,7 +67,15 @@ const CATEGORY_ICON: Record<ShapeQuestionCategory, LucideIcon> = {
 };
 
 const ACCENT = "var(--s-accent-bright)";
-const tint = (c: string, pct: number) => `color-mix(in oklab, ${c} ${pct}%, transparent)`;
+// Explicit rgba tints (NOT color-mix - it silently fails to render in some
+// browsers, which made the panel look unstyled). Violet = the brand accent,
+// teal = answered/done.
+const RGB: Record<string, string> = {
+  "var(--s-accent-bright)": "139, 124, 255",
+  "var(--s-ok-ink)": "94, 234, 212",
+  "var(--s-ink-faint)": "138, 144, 162",
+};
+const tint = (c: string, pct: number) => `rgba(${RGB[c] ?? "138, 144, 162"}, ${(pct / 100).toFixed(3)})`;
 
 type SimplifyState = { loading: boolean; text?: string; affects?: string; analogy?: string };
 type Suggestion = { value: string; why: string };
@@ -263,16 +271,20 @@ export function RunGapQuestions({
           </div>
         );
       })}
-      <div style={{ height: 1, background: "var(--s-line)", margin: "14px 0 11px" }} />
-      <div style={{ fontSize: 11.5, color: "var(--s-ink-dim)", lineHeight: 1.5, marginBottom: 11 }}>
-        Answer what you can. We ask follow-ups only where it's still open.
-      </div>
-      {error ? <div style={errorLine}>{error}</div> : null}
-      <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0)}>
-        {busy ? "Working..." : "Submit answers"} <ArrowRight size={14} />
+    </div>
+  );
+
+  const footer = (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--s-line)" }}>
+      <span style={{ flex: 1, fontSize: 11.5, color: "var(--s-ink-dim)", lineHeight: 1.5 }}>
+        Answer what you can - we ask follow-ups only where it's still open.
+      </span>
+      {error ? <span style={{ color: "var(--s-warn-ink)", fontSize: 12 }}>{error}</span> : null}
+      <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn(false)}>
+        Proceed to spec
       </button>
-      <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn(true)}>
-        Proceed to spec now
+      <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0, true)}>
+        {busy ? "Working..." : "Submit answers"} <ArrowRight size={14} />
       </button>
     </div>
   );
@@ -370,10 +382,11 @@ export function RunGapQuestions({
               </div>
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "176px 1fr", gap: 18 }} className="run-gap-grid">
-            <aside style={{ alignSelf: "start", position: "sticky", top: 12 }}>{timeline}</aside>
+          <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 20 }} className="run-gap-grid">
+            <aside style={{ alignSelf: "start" }}>{timeline}</aside>
             <div style={{ minWidth: 0 }}>{content}</div>
           </div>
+          {footer}
         </>
       )}
       <style>{`@media (max-width: 820px){ .run-gap-grid{ grid-template-columns: 1fr !important; } }`}</style>
