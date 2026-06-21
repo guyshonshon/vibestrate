@@ -58,17 +58,15 @@ export function ConflictResolver({ source, target, conflictedFiles, onApplied }:
       // Seed file states
       const states: FileState[] = p.files.map((f) => {
         // Seed with the FULL reconstructed file (conflict regions resolved,
-        // surrounding context preserved). The joined-hunks fallback is only for
-        // the rare case reconstruction failed - writing it would truncate the
-        // file, so leave it unaccepted for the human to complete.
+        // surrounding context + line endings preserved). A "proposed" file always
+        // carries a non-null proposedFile; anything un-reconstructable is reported
+        // as manual, so there is no truncating per-hunk fallback to write.
         const content =
-          f.status === "proposed"
-            ? (f.proposedFile ?? f.hunks.map((h) => h.proposed).join("\n\n"))
-            : "";
+          f.status === "proposed" && f.proposedFile != null ? f.proposedFile : "";
         return {
           resolution: f,
           content,
-          accepted: f.status === "proposed" && f.proposedFile !== null,
+          accepted: f.status === "proposed" && f.proposedFile != null,
         };
       });
       setFileStates(states);

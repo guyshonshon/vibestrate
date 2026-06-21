@@ -219,14 +219,25 @@ export async function proposeResolutions(input: {
         content,
         hunks.map((h) => h.proposed),
       );
+      if (!rebuilt.ok) {
+        // Can't safely produce a whole file -> downgrade to manual rather than
+        // emit a "proposed" file with no proposedFile (which a UI fallback could
+        // turn back into a truncating write). A "proposed" file ALWAYS carries a
+        // full proposedFile.
+        files.push({
+          file,
+          status: "unparseable",
+          hunks: [],
+          proposedFile: null,
+          note: `could not reconstruct full file (${rebuilt.reason}); resolve manually`,
+        });
+        continue;
+      }
       files.push({
         file,
         status: "proposed",
         hunks,
-        proposedFile: rebuilt.ok ? rebuilt.file : null,
-        note: rebuilt.ok
-          ? undefined
-          : `could not reconstruct full file (${rebuilt.reason}); resolve manually`,
+        proposedFile: rebuilt.file,
       });
     }
     return { source, target, clean: false, files };

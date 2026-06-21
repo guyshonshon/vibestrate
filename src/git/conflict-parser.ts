@@ -129,11 +129,17 @@ export type RebuiltFile =
  * makes a resolution whole-file-correct: per-hunk proposals alone drop all
  * shared context, so writing them as the file would delete unconflicted lines.
  * `regionTexts` must have one entry per conflict region, in order.
+ *
+ * The original file's dominant line ending is preserved: a CRLF file is rebuilt
+ * CRLF (so a resolved apply doesn't silently rewrite it to LF), and the spliced
+ * resolution text is normalized to that ending too.
  */
 export function rebuildResolvedFile(
   content: string,
   regionTexts: string[],
 ): RebuiltFile {
+  // Preserve the file's line ending: CRLF if it has any, else LF.
+  const eol = /\r\n/.test(content) ? "\r\n" : "\n";
   const lines = content.split(/\r?\n/);
   const out: string[] = [];
   let phase: "outside" | "ours" | "base" | "theirs" = "outside";
@@ -173,9 +179,13 @@ export function rebuildResolvedFile(
       if (regionIdx >= regionTexts.length) {
         return { ok: false, reason: "more conflict regions than resolutions" };
       }
-      const rep = regionTexts[regionIdx]!;
-      // Empty resolution removes the region entirely; otherwise splice its lines.
-      if (rep.length > 0) out.push(...rep.split("\n"));
+      // Strip ONE trailing newline: a provider/human resolution commonly ends in
+      // a newline ("merged\n"), but the region's line boundaries are owned by the
+      // surrounding splice - keeping it would insert a spurious blank line.
+      const rep = regionTexts[regionIdx]!.replace(/\r?\n$/, "");
+      // Empty resolution removes the region entirely; otherwise splice its lines
+      // (split EOL-agnostically so the join below normalizes them to `eol`).
+      if (rep.length > 0) out.push(...rep.split(/\r?\n/));
       regionIdx++;
       phase = "outside";
       continue;
@@ -192,5 +202,5 @@ export function rebuildResolvedFile(
       reason: `expected ${regionIdx} resolution(s), got ${regionTexts.length}`,
     };
   }
-  return { ok: true, file: out.join("\n") };
+  return { ok: true, file: out.join(eol) };
 }

@@ -138,6 +138,29 @@ describe("rebuildResolvedFile", () => {
     const r = rebuildResolvedFile(content, []);
     expect(r.ok).toBe(false);
   });
+
+  it("preserves CRLF line endings (no silent LF rewrite)", () => {
+    const content = ["a", "<<<<<<< HEAD", "x", "=======", "y", ">>>>>>> f", "b"].join("\r\n");
+    const r = rebuildResolvedFile(content, ["MERGED"]);
+    expect(r.ok).toBe(true);
+    // Output is CRLF, and an LF-only resolution gets normalized to the file's CRLF.
+    if (r.ok) expect(r.file).toBe("a\r\nMERGED\r\nb");
+  });
+
+  it("keeps an LF file LF", () => {
+    const content = ["a", "<<<<<<< HEAD", "x", "=======", "y", ">>>>>>> f", "b"].join("\n");
+    const r = rebuildResolvedFile(content, ["MERGED"]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.file).toBe("a\nMERGED\nb");
+  });
+
+  it("does not add a blank line when the resolution ends in a newline", () => {
+    const content = ["a", "<<<<<<< HEAD", "x", "=======", "y", ">>>>>>> f", "b"].join("\n");
+    // Providers commonly return trailing-newline text; the splice owns line breaks.
+    const r = rebuildResolvedFile(content, ["MERGED\n"]);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.file).toBe("a\nMERGED\nb"); // no double newline
+  });
 });
 
 describe("hasConflictMarkers / isLikelyBinary", () => {

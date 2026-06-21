@@ -338,3 +338,61 @@ describe("applyResolvedMerge - secret path", () => {
     expect(await readMergeRecord(dir, "main")).toBeNull();
   });
 });
+
+/** Repo where merging feat into main conflicts on the MIDDLE line of doc.txt,
+ *  with non-conflicting context above (alpha) and below (gamma). */
+async function makeContextRepo(): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "vibestrate-ctx-"));
+  await git(dir, "init", "-q", "-b", "main");
+  await git(dir, "config", "user.email", "x@x");
+  await git(dir, "config", "user.name", "x");
+  await fs.writeFile(path.join(dir, "doc.txt"), "alpha\nbeta\ngamma\n");
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "base");
+  await applySetup({ options: { projectRoot: dir }, detectionRunner: noProvider });
+  await setConfigValue(dir, "git.worktreeDir", path.join(dir, "worktrees"));
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "setup");
+  await git(dir, "checkout", "-q", "-b", "feat", "main");
+  await fs.writeFile(path.join(dir, "doc.txt"), "alpha\nbeta-feat\ngamma\n");
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "feat");
+  await git(dir, "checkout", "-q", "main");
+  await fs.writeFile(path.join(dir, "doc.txt"), "alpha\nbeta-main\ngamma\n");
+  await git(dir, "add", ".");
+  await git(dir, "commit", "-q", "-m", "main");
+  return dir;
+}
+
+describe("conflict resolution round-trip (non-conflicting context preserved)", () => {
+  it("propose -> applyResolved keeps the surrounding lines in the commit", async () => {
+    const dir = await makeContextRepo();
+    const proposal = await proposeResolutions({
+      projectRoot: dir,
+      source: "feat",
+      target: "main",
+      runner: capturingRunner([]),
+    });
+    const doc = proposal.files.find((f) => f.file === "doc.txt");
+    expect(doc?.status).toBe("proposed");
+    // The reconstructed FULL file resolves the middle region but keeps alpha/gamma.
+    expect(doc?.proposedFile).toBe("alpha\nMERGED\ngamma\n");
+
+    const r = await applyResolvedMerge({
+      projectRoot: dir,
+      source: "feat",
+      target: "main",
+      resolvedFiles: [{ path: "doc.txt", content: doc!.proposedFile! }],
+      humanConfirmed: true,
+    });
+    expect(r.mergedSha).toBeTruthy();
+
+    // The COMMITTED blob retains the non-conflicting context lines (no truncation).
+    const blob = (await execa("git", ["show", "main:doc.txt"], { cwd: dir })).stdout;
+    expect(blob).toBe("alpha\nMERGED\ngamma");
+    expect(blob).toContain("alpha");
+    expect(blob).toContain("gamma");
+    expect(blob).not.toContain("beta-main");
+    expect(blob).not.toContain("beta-feat");
+  });
+});
