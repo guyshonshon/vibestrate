@@ -61,22 +61,24 @@ export async function registerConfigRoutes(
     } catch {
       // fall back to the built-in default
     }
-    const merged: Record<string, { label: string; description?: string; reviewLenses: string[]; reviewerProfile: string | null; builtin: boolean }> = {};
+    const merged: Record<string, { label: string; description?: string; reviewLenses: string[]; reviewerProfile: string | null; prefersPosture: string | null; builtin: boolean }> = {};
     for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
       merged[id] = {
         label: p.label,
         description: p.description,
         reviewLenses: p.reviewLenses,
         reviewerProfile: p.reviewerProfile ?? null,
+        prefersPosture: p.prefersPosture ?? null,
         builtin: true,
       };
     }
-    for (const [id, p] of Object.entries(projectPersonas as Record<string, { label: string; description?: string; reviewLenses?: string[]; reviewerProfile?: string | null }>)) {
+    for (const [id, p] of Object.entries(projectPersonas as Record<string, { label: string; description?: string; reviewLenses?: string[]; reviewerProfile?: string | null; prefersPosture?: string | null }>)) {
       merged[id] = {
         label: p.label,
         description: p.description,
         reviewLenses: p.reviewLenses ?? [],
         reviewerProfile: p.reviewerProfile ?? null,
+        prefersPosture: p.prefersPosture ?? null,
         builtin: false,
       };
     }

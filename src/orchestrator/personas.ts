@@ -41,6 +41,8 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     prefersFlows: ["panel-review"],
     reviewerProfile: null,
     reviewLenses: ["correctness", "tests", "security-risk"],
+    // The default persona stays posture-neutral: a plain `vibe run` is unchanged.
+    prefersPosture: null,
   },
   // A security-minded supervisor: it prefers the `security-review` panel (authz /
   // secrets / injection lenses) instead of the generalist panel, so the SAME
@@ -81,6 +83,8 @@ export const BUILTIN_PERSONAS: Record<string, PersonaConfig> = {
     prefersFlows: ["security-review"],
     reviewerProfile: null,
     reviewLenses: ["authz", "secrets", "injection"],
+    // Security work favors a sandboxed posture for risk-tagged tasks (advisory).
+    prefersPosture: "sandbox-suggested",
   },
 };
 

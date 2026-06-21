@@ -1765,6 +1765,8 @@ export type PersonaSummary = {
   reviewLenses: string[];
   /** Review seats run this Profile when set (the supervisor's cost lever). */
   reviewerProfile?: string | null;
+  /** Advisory posture this persona suggests for risky tasks (null = none). */
+  prefersPosture?: string | null;
   builtin: boolean;
 };
 export type PersonasResponse = {

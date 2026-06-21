@@ -164,6 +164,54 @@ describe("supervisor personas - the upgrade-only flow bias (the teeth)", () => {
   });
 });
 
+describe("supervisor personas - prefersPosture nudge (Slice B, advisory)", () => {
+  const projectRoot = os.tmpdir();
+
+  it("nudges posture to the persona's prefersPosture on a risk-matched task (security)", async () => {
+    const sel = await chooseRunFlow({
+      projectRoot,
+      task: "Refactor the auth login + token handling",
+      config: baseConfig(),
+      personaOverride: "security",
+    });
+    // The security built-in prefers a sandbox posture for risky work.
+    expect(sel.posture).toBe("sandbox-suggested");
+    expect(sel.advisory).toMatch(/sandbox/i);
+    expect(sel.reasons.some((r) => /posture/i.test(r))).toBe(true);
+  });
+
+  it("the default staff-engineer (no prefersPosture) keeps posture normal on a risk task", async () => {
+    const sel = await chooseRunFlow({
+      projectRoot,
+      task: "Refactor the auth login flow and add a migration",
+      config: baseConfig(),
+    });
+    expect(sel.posture).toBe("normal");
+  });
+
+  it("does NOT nudge posture on a non-risky task even under the security persona", async () => {
+    const sel = await chooseRunFlow({
+      projectRoot,
+      task: "Tweak the footer spacing and copy",
+      config: baseConfig(),
+      personaOverride: "security",
+    });
+    expect(sel.posture).toBe("normal");
+  });
+
+  it("never nudges posture when --flow is forced (persona is only tagged)", async () => {
+    const sel = await chooseRunFlow({
+      projectRoot,
+      task: "Refactor the auth login + token handling",
+      config: baseConfig(),
+      personaOverride: "security",
+      forcedFlowId: "default",
+    });
+    expect(sel.source).toBe("forced");
+    expect(sel.posture).toBe("normal");
+  });
+});
+
 describe("supervisor personas - a second persona with distinct lenses (security)", () => {
   const projectRoot = os.tmpdir();
 

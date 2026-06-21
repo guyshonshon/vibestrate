@@ -304,34 +304,71 @@ async function maybeUpgradeForPersona(input: {
   projectRoot: string;
 }): Promise<WorkflowSelection> {
   const { base, persona } = input;
+  // Defensive: the forced path never calls this, but if it did, an explicit user
+  // choice is never touched by a persona.
+  if (base.source === "forced") return base;
   const signals = persona.config.riskSignals ?? [];
-  const targets = persona.config.prefersFlows ?? [];
-  if (base.source === "forced" || signals.length === 0 || targets.length === 0) {
-    return base;
-  }
-  if (targets.includes(base.flowId)) return base; // already on a preferred flow
-  const matched = classifyTaskRisk(input.task, signals);
+  const matched = signals.length ? classifyTaskRisk(input.task, signals) : [];
+  // No risk match => no persona teeth at all (neither posture nor flow).
   if (matched.length === 0) return base;
-  const discovered = await discoverFlows(input.projectRoot).catch(() => []);
-  const byId = new Map(discovered.map((f) => [f.id, f]));
-  const baseWeight = flowWeight(byId.get(base.flowId)?.definition.complexity ?? null);
-  // First available preferred flow that is NOT lighter than the current one.
-  const target = targets.find((t) => {
-    const f = byId.get(t);
-    return f !== undefined && t !== base.flowId && flowWeight(f.definition.complexity) >= baseWeight;
-  });
-  if (!target) return base;
-  return {
-    ...base,
-    flowId: target,
-    source: "supervisor-upgraded",
-    reasons: [
-      ...base.reasons,
-      `Supervisor "${persona.config.label}" upgraded ${base.flowId} -> ${target} for a risk-tagged task (signal: ${matched.join(", ")}).`,
-    ],
-    risks: [...base.risks, `Task matched risk signal(s): ${matched.join(", ")}.`],
-    personaUpgrade: { from: base.flowId, to: target, signals: matched },
-  };
+
+  let result = base;
+  let teethFired = false;
+
+  // Slice B - posture nudge (advisory, upgrade-only): a risk-matched task under a
+  // persona that prefers a heavier posture nudges the run's posture UP from
+  // "normal". Never a downgrade, never a gate. Fires independently of the flow
+  // upgrade below (a persona may want sandbox without changing the flow).
+  const prefersPosture = persona.config.prefersPosture ?? null;
+  if (prefersPosture && result.posture === "normal") {
+    const postureMsg =
+      prefersPosture === "sandbox-suggested"
+        ? "Sandbox mode suggested for this task."
+        : "An approval gate is suggested for this task.";
+    result = {
+      ...result,
+      posture: prefersPosture,
+      advisory: result.advisory ?? postureMsg,
+      reasons: [
+        ...result.reasons,
+        `Supervisor "${persona.config.label}" suggests posture "${prefersPosture}" for a risk-tagged task (signal: ${matched.join(", ")}).`,
+      ],
+    };
+    teethFired = true;
+  }
+
+  // The shipped upgrade-only flow bias: move to the first available preferred flow
+  // that is NOT a lighter weight class than the chosen one.
+  const targets = persona.config.prefersFlows ?? [];
+  if (targets.length > 0 && !targets.includes(result.flowId)) {
+    const discovered = await discoverFlows(input.projectRoot).catch(() => []);
+    const byId = new Map(discovered.map((f) => [f.id, f]));
+    const baseWeight = flowWeight(byId.get(result.flowId)?.definition.complexity ?? null);
+    const target = targets.find((t) => {
+      const f = byId.get(t);
+      return f !== undefined && t !== result.flowId && flowWeight(f.definition.complexity) >= baseWeight;
+    });
+    if (target) {
+      result = {
+        ...result,
+        flowId: target,
+        source: "supervisor-upgraded",
+        reasons: [
+          ...result.reasons,
+          `Supervisor "${persona.config.label}" upgraded ${base.flowId} -> ${target} for a risk-tagged task (signal: ${matched.join(", ")}).`,
+        ],
+        personaUpgrade: { from: base.flowId, to: target, signals: matched },
+      };
+      teethFired = true;
+    }
+  }
+
+  // Record the matched signal once if any persona teeth fired (so the evidence is
+  // present whether the posture, the flow, or both changed).
+  if (teethFired) {
+    result = { ...result, risks: [...result.risks, `Task matched risk signal(s): ${matched.join(", ")}.`] };
+  }
+  return result;
 }
 
 /**

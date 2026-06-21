@@ -408,6 +408,18 @@ export const personaConfigSchema = z
     /** The reviewer's profile (provider-neutral); null = strongest available. */
     reviewerProfile: z.string().min(1).nullable().default(null).describe("Reviewer profile for this persona; null = strongest available."),
     /**
+     * Advisory execution posture this persona favors for risky tasks. Applied
+     * ONLY on a risk-signal match, ONLY when the run is otherwise "normal" posture
+     * (upgrade-only nudge, never a downgrade), and ONLY on the non-forced path -
+     * it is a suggestion surfaced to the human, never a code-enforced gate. null =
+     * no posture preference (the default; behavior unchanged).
+     */
+    prefersPosture: z
+      .enum(["sandbox-suggested", "approval-suggested"])
+      .nullable()
+      .default(null)
+      .describe("Advisory posture this persona suggests for risky tasks (null = none)."),
+    /**
      * Descriptive lens-set shown in the UI (what this persona inspects). Not yet
      * enforced as a panel-review filter this slice - that is a follow-up.
      */

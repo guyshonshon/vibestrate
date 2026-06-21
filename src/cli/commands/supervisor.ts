@@ -13,13 +13,14 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
   let defaultPersona = "staff-engineer";
   const merged: Record<
     string,
-    { label: string; description?: string; reviewLenses: string[]; builtin: boolean }
+    { label: string; description?: string; reviewLenses: string[]; prefersPosture: string | null; builtin: boolean }
   > = {};
   for (const [id, p] of Object.entries(BUILTIN_PERSONAS)) {
     merged[id] = {
       label: p.label,
       description: p.description,
       reviewLenses: p.reviewLenses,
+      prefersPosture: p.prefersPosture ?? null,
       builtin: true,
     };
   }
@@ -32,6 +33,7 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
           label: p.label,
           description: p.description,
           reviewLenses: p.reviewLenses ?? [],
+          prefersPosture: p.prefersPosture ?? null,
           builtin: false,
         };
       }
@@ -53,6 +55,9 @@ export async function runSupervisorList(opts: { json?: boolean }): Promise<numbe
     if (p.description) console.log(`      ${color.dim(p.description)}`);
     if (p.reviewLenses.length) {
       console.log(`      ${color.dim(`lenses: ${p.reviewLenses.join(", ")}`)}`);
+    }
+    if (p.prefersPosture) {
+      console.log(`      ${color.dim(`posture: prefers ${p.prefersPosture} for risky tasks`)}`);
     }
   }
   return 0;
