@@ -325,5 +325,94 @@ export async function commitMerge(
   return sha ? { sha } : null;
 }
 
+// ── Merge undo primitives ───────────────────────────────────────────────────
+//
+// The apply/undo contract these back (see src/git/merge-service.ts): apply is
+// NOT atomic - it records the target's pre-merge sha to disk, THEN runs
+// `git merge --no-ff` on the checked-out target branch. If the process dies
+// between the merge commit landing and the record being finalized, the on-disk
+// preSha is still enough to reverse it, because the merge commit always has the
+// preSha as a parent. `reset(target, preSha, { hard })` is that reversal; the
+// helpers below let the undo guard verify "nothing was built on top" and
+// "this isn't published" before it pulls the trigger.
+
+/**
+ * Reset the CHECKED-OUT branch in `cwd` to `sha`. With `hard`, the working tree
+ * and index are restored too, which also clears any in-progress merge state
+ * (MERGE_HEAD). The caller owns the safety contract: it must have verified that
+ * `sha` is the intended pre-merge tip, that nothing was built on top, and that
+ * the reset will not silently discard the user's uncommitted work.
+ */
+export async function reset(
+  cwd: string,
+  sha: string,
+  opts: { hard?: boolean } = {},
+): Promise<void> {
+  const args = ["reset"];
+  if (opts.hard) args.push("--hard");
+  args.push(sha);
+  const r = await execa("git", args, { cwd, reject: false });
+  if (r.exitCode !== 0) {
+    throw new GitError(`git reset failed in ${cwd}: ${r.stderr || r.stdout}`);
+  }
+}
+
+/** True when a merge is in progress (MERGE_HEAD present). Lets undo tell a
+ *  crashed mid-apply (recoverable by reset) from genuine uncommitted work. */
+export async function mergeInProgress(cwd: string): Promise<boolean> {
+  const r = await execa("git", ["rev-parse", "-q", "--verify", "MERGE_HEAD"], {
+    cwd,
+    reject: false,
+  });
+  return r.exitCode === 0;
+}
+
+/** Parent shas of a commit (empty array on error or for a root commit). */
+export async function commitParents(cwd: string, sha: string): Promise<string[]> {
+  const r = await execa("git", ["rev-list", "--parents", "-n", "1", sha], {
+    cwd,
+    reject: false,
+  });
+  if (r.exitCode !== 0) return [];
+  // Output: "<sha> <parent1> <parent2> …"; drop the commit itself.
+  return r.stdout.trim().split(/\s+/).slice(1).filter(Boolean);
+}
+
+/** True when `ancestor` is an ancestor of (or equal to) `descendant`. */
+export async function isAncestor(
+  cwd: string,
+  ancestor: string,
+  descendant: string,
+): Promise<boolean> {
+  const r = await execa(
+    "git",
+    ["merge-base", "--is-ancestor", ancestor, descendant],
+    { cwd, reject: false },
+  );
+  return r.exitCode === 0;
+}
+
+/** Resolve a ref to its full sha, or null when it doesn't resolve. */
+export async function revParse(cwd: string, ref: string): Promise<string | null> {
+  const r = await execa("git", ["rev-parse", "--verify", "--quiet", ref], {
+    cwd,
+    reject: false,
+  });
+  return r.exitCode === 0 ? r.stdout.trim() || null : null;
+}
+
+/** The upstream tracking ref of `branch` (e.g. "origin/feat"), or null. */
+export async function upstreamRef(
+  cwd: string,
+  branch: string,
+): Promise<string | null> {
+  const r = await execa(
+    "git",
+    ["rev-parse", "--abbrev-ref", "--symbolic-full-name", `${branch}@{u}`],
+    { cwd, reject: false },
+  );
+  return r.exitCode === 0 ? r.stdout.trim() || null : null;
+}
+
 // resolveWorktreePath moved to utils/paths.ts (pure path math; lets the run-id
 // generator reuse it without importing this execa-heavy module).
