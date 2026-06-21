@@ -373,10 +373,13 @@ export function leaderboard({
     .map((id) => {
       const curRuns = cur.get(id) ?? [];
       const prevRuns = prev.get(id) ?? [];
-      const completed = curRuns.filter((r) =>
+      // Read-only runs (e.g. shape-intake) land merge_ready but ship nothing, so
+      // they must not inflate the merge/success rate - base it on build runs.
+      const buildRuns = curRuns.filter((r) => !r.readOnly);
+      const completed = buildRuns.filter((r) =>
         ["merge_ready", "failed", "aborted"].includes(r.status),
       );
-      const merged = curRuns.filter((r) => r.status === "merge_ready");
+      const merged = buildRuns.filter((r) => r.status === "merge_ready");
       const successRate =
         completed.length > 0 ? merged.length / completed.length : null;
       const durs = durByProvider.get(id) ?? [];
@@ -735,10 +738,12 @@ export function buildProvidersOverview(input: {
       };
     }
     const durs = entry.roles.map((a) => a.durationMs);
-    const completed = entry.runs.filter((r) =>
+    // Read-only runs (e.g. shape-intake) land merge_ready but ship nothing.
+    const buildRuns = entry.runs.filter((r) => !r.readOnly);
+    const completed = buildRuns.filter((r) =>
       ["merge_ready", "failed", "aborted"].includes(r.status),
     );
-    const merged = entry.runs.filter((r) => r.status === "merge_ready");
+    const merged = buildRuns.filter((r) => r.status === "merge_ready");
     return {
       providerId: p.id,
       label: p.label,
