@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
-import { isShapingRun } from "../../lib/run-outcome.js";
 import { streamAllEvents } from "../../lib/aggregateEvents.js";
 import { push as pushDesktop } from "../../lib/desktopNotify.js";
 import { navigate } from "../App.js";
@@ -186,12 +185,7 @@ export function MissionControlPage({ onSelectRun }: Props) {
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  // A shaping run (shape-intake + "blocked") isn't in ACTIVE_STATUSES and isn't
-  // merge_ready/failed/aborted, so without this it shows in NEITHER mission
-  // section - invisible. It's attention-needed (awaiting your answers), so treat
-  // it as active; LiveRunsSection already labels it "Shaping" and opening it
-  // lands on the gap-questions screen.
-  const activeRuns = runs.filter((r) => isActive(r.status) || isShapingRun(r));
+  const activeRuns = runs.filter((r) => isActive(r.status));
   const completed = runs
     .filter(
       (r) =>
