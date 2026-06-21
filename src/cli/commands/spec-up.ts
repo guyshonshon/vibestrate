@@ -33,12 +33,12 @@ function collectAnswer(value: string, acc: { id: string; answer: string }[]): { 
 }
 
 /**
- * `vibe shape` - the CTO planning chain (docs/design/shape-phase.md). UI <-> CLI
+ * `vibe spec-up` - the CTO planning chain (docs/design/spec-up-phase.md). UI <-> CLI
  * parity: every step the dashboard can do is reachable here. Each link launches a
  * fresh read-only run through the shared core launcher.
  */
 export function buildSpecUpCommand(): Command {
-  const cmd = new Command("shape").description(
+  const cmd = new Command("spec-up").description(
     "Plan as a CTO: discovery -> spec -> architecture -> roadmap (a chain of read-only runs).",
   );
 
@@ -46,7 +46,7 @@ export function buildSpecUpCommand(): Command {
     .command("start <brief...>")
     .description("Start shaping: launch the intake run that asks the gap questions.")
     .option("--persona <id>", "supervisor persona (judgment posture) for the run")
-    .option("--flow <id>", "the flow to BUILD once the spec is approved (carried to `shape build`)")
+    .option("--flow <id>", "the flow to BUILD once the spec is approved (carried to `spec-up build`)")
     .action(async (brief: string[], opts: { persona?: string; flow?: string }) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
@@ -56,9 +56,9 @@ export function buildSpecUpCommand(): Command {
           persona: opts.persona ?? null,
           targetFlowId: opts.flow ?? null,
         });
-        console.log(`${symbol.ok()} ${header("Shape: intake started")}`);
+        console.log(`${symbol.ok()} ${header("Spec-up: intake started")}`);
         console.log(`Run: ${color.bold(runId)}`);
-        console.log(color.dim(`Answer the questions:  vibe shape questions ${runId}`));
+        console.log(color.dim(`Answer the questions:  vibe spec-up questions ${runId}`));
       } catch (err) {
         fail(err instanceof Error ? err.message : String(err));
       }
@@ -73,15 +73,15 @@ export function buildSpecUpCommand(): Command {
       const pending = await readSpecUpQuestions(projectRoot, runId).catch((err) =>
         fail(err instanceof Error ? err.message : String(err)),
       );
-      if (!pending) fail(`No pending shape questions for run "${runId}" (yet?).`);
+      if (!pending) fail(`No pending spec-up questions for run "${runId}" (yet?).`);
       if (opts.json) {
         console.log(JSON.stringify(pending.questions, null, 2));
         return;
       }
-      console.log(header(`Shape: gap questions (round ${pending.round})`));
+      console.log(header(`Spec-up: gap questions (round ${pending.round})`));
       if (pending.coverageComplete && pending.questions.length === 0) {
         console.log(color.dim("Coverage complete - no more questions."));
-        console.log(color.dim(`Build the spec:  vibe shape answer ${runId} --proceed`));
+        console.log(color.dim(`Build the spec:  vibe spec-up answer ${runId} --proceed`));
         return;
       }
       for (const q of pending.questions) {
@@ -92,9 +92,9 @@ export function buildSpecUpCommand(): Command {
         }
       }
       console.log(
-        color.dim(`\nAnswer:  vibe shape answer ${runId} --answer ${pending.questions[0]?.id ?? "id"}="..."`),
+        color.dim(`\nAnswer:  vibe spec-up answer ${runId} --answer ${pending.questions[0]?.id ?? "id"}="..."`),
       );
-      console.log(color.dim(`Unsure?  vibe shape simplify ${runId} ${pending.questions[0]?.id ?? "id"}  |  suggest a draft:  vibe shape suggest ${runId} ${pending.questions[0]?.id ?? "id"}`));
+      console.log(color.dim(`Unsure?  vibe spec-up simplify ${runId} ${pending.questions[0]?.id ?? "id"}  |  suggest a draft:  vibe spec-up suggest ${runId} ${pending.questions[0]?.id ?? "id"}`));
     });
 
   cmd
@@ -109,7 +109,7 @@ export function buildSpecUpCommand(): Command {
         if (opts.answer.length === 0) {
           if (!opts.proceed) fail("Pass at least one --answer id=value, or --proceed to build now.");
           const { runId: specUpRunId } = await proceedToSpecUpSpec({ projectRoot, sourceRunId: runId });
-          console.log(`${header("Shape: building the spec")}`);
+          console.log(`${header("Spec-up: building the spec")}`);
           console.log(`Run: ${color.bold(specUpRunId)}`);
           return;
         }
@@ -120,11 +120,11 @@ export function buildSpecUpCommand(): Command {
           proceed: opts.proceed ?? false,
         });
         if (action === "gap-check") {
-          console.log(`${header("Shape: more questions coming")}`);
+          console.log(`${header("Spec-up: more questions coming")}`);
           console.log(`Round run: ${color.bold(nextRunId)}`);
-          console.log(color.dim(`See them:  vibe shape questions ${nextRunId}  (or build now:  vibe shape answer ${runId} --proceed)`));
+          console.log(color.dim(`See them:  vibe spec-up questions ${nextRunId}  (or build now:  vibe spec-up answer ${runId} --proceed)`));
         } else {
-          console.log(`${header("Shape: building the spec")}`);
+          console.log(`${header("Spec-up: building the spec")}`);
           console.log(`Run: ${color.bold(nextRunId)}`);
           console.log(color.dim("Review the spec/architecture/risks, then approve."));
         }
@@ -147,7 +147,7 @@ export function buildSpecUpCommand(): Command {
           questionId,
           forNonDeveloper: opts.forNonDeveloper ?? false,
         });
-        console.log(header(`Shape: ${questionId}`));
+        console.log(header(`Spec-up: ${questionId}`));
         console.log(r.text);
         console.log(color.dim(`\nWhat it affects: ${r.affects}`));
         if (r.analogy) console.log(color.dim(`Analogy: ${r.analogy}`));
@@ -166,7 +166,7 @@ export function buildSpecUpCommand(): Command {
       try {
         if (opts.all) {
           const { items } = await specUpSuggestAll({ projectRoot, sourceRunId: runId });
-          console.log(header("Shape: suggested drafts (review + edit)"));
+          console.log(header("Spec-up: suggested drafts (review + edit)"));
           for (const it of items) {
             console.log(`\n${color.bold(it.questionId)}  ${it.suggestedValue}`);
             console.log(color.dim(`  why: ${it.why}`));
@@ -175,10 +175,10 @@ export function buildSpecUpCommand(): Command {
         }
         if (!questionId) fail("Pass a questionId, or --all to suggest for every question.");
         const r = await specUpSuggest({ projectRoot, sourceRunId: runId, questionId });
-        console.log(header(`Shape: suggested draft for ${questionId}`));
+        console.log(header(`Spec-up: suggested draft for ${questionId}`));
         console.log(r.suggestedValue);
         console.log(color.dim(`\nwhy: ${r.why}`));
-        console.log(color.dim(`(a draft - edit it, then:  vibe shape answer ${runId} --answer ${questionId}="...")`));
+        console.log(color.dim(`(a draft - edit it, then:  vibe spec-up answer ${runId} --answer ${questionId}="...")`));
       } catch (err) {
         if (err instanceof SpecUpAssistError || err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
@@ -187,14 +187,14 @@ export function buildSpecUpCommand(): Command {
 
   cmd
     .command("approve <specUpRunId>")
-    .description("Approve the shaped draft and launch the roadmap synthesis run.")
+    .description("Approve the spec-up draft and launch the roadmap synthesis run.")
     .action(async (specUpRunId: string) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
         const { runId } = await approveSpecUpAndStartRoadmap({ projectRoot, specUpRunId });
-        console.log(`${header("Shape: roadmap run launched")}`);
+        console.log(`${header("Spec-up: roadmap run launched")}`);
         console.log(`Run: ${color.bold(runId)}`);
-        console.log(color.dim(`When it finishes:  vibe shape roadmap ${runId}`));
+        console.log(color.dim(`When it finishes:  vibe spec-up roadmap ${runId}`));
       } catch (err) {
         if (err instanceof SpecUpChainError) fail(err.message);
         fail(err instanceof Error ? err.message : String(err));
@@ -203,11 +203,11 @@ export function buildSpecUpCommand(): Command {
 
   cmd
     .command("build <specUpRunId>")
-    .description("Approve the shaped draft and BUILD it: run the chosen flow seeded with the approved spec.")
-    .option("--flow <id>", "build flow override (default: the flow carried from the shaped run)")
+    .description("Approve the spec-up draft and BUILD it: run the chosen flow seeded with the approved spec.")
+    .option("--flow <id>", "build flow override (default: the flow carried from the spec-up run)")
     .action(async (specUpRunId: string, opts: { flow?: string }) => {
       const { projectRoot } = await detectProject(process.cwd());
-      // Mirror the server route: an unbound shape run builds with the project
+      // Mirror the server route: an unbound spec-up run builds with the project
       // default (UI<->CLI parity) rather than erroring.
       let fallbackFlowId = "default";
       try {
@@ -222,7 +222,7 @@ export function buildSpecUpCommand(): Command {
           flowId: opts.flow ?? null,
           fallbackFlowId,
         });
-        console.log(`${header("Shape: build run launched")}`);
+        console.log(`${header("Spec-up: build run launched")}`);
         console.log(`Flow: ${color.bold(flowId)}`);
         console.log(`Run: ${color.bold(runId)}`);
         console.log(color.dim("The flow builds from the approved spec (seeded as run context)."));
@@ -234,12 +234,12 @@ export function buildSpecUpCommand(): Command {
 
   cmd
     .command("roadmap <runId>")
-    .description("Turn a finished shape-roadmap run into a reviewable proposal.")
+    .description("Turn a finished spec-up-roadmap run into a reviewable proposal.")
     .action(async (runId: string) => {
       const { projectRoot } = await detectProject(process.cwd());
       try {
         const { proposalId } = await createRoadmapProposal({ projectRoot, runId });
-        console.log(`${header("Shape: roadmap proposal created")}`);
+        console.log(`${header("Spec-up: roadmap proposal created")}`);
         console.log(`Proposal: ${color.bold(proposalId)}`);
         console.log(color.dim(`Review + accept:  vibe roadmap accept ${proposalId}`));
       } catch (err) {

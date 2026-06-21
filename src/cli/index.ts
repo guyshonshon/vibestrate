@@ -49,7 +49,7 @@ import { buildRenameCommand } from "./commands/rename.js";
 import { buildLedgerCommand } from "./commands/ledger.js";
 import { buildBudgetCommand } from "./commands/budget.js";
 import { buildConsultCommand } from "./commands/consult.js";
-import { buildSpecUpCommand } from "./commands/shape.js";
+import { buildSpecUpCommand } from "./commands/spec-up.js";
 import { buildGuideCommand } from "./commands/guide.js";
 import { buildReplayCommand } from "./commands/replay.js";
 import { buildPauseCommand, buildResumeCommand } from "./commands/pause.js";
