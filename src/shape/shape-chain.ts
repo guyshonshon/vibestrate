@@ -160,6 +160,38 @@ export type PendingShapeQuestions = {
 };
 
 /**
+ * Deterministically de-duplicate model-generated question ids (pure). The
+ * `flowShapeQuestionSchema` does NOT enforce id uniqueness, but every downstream
+ * consumer keys on `id`: the client keys answer/simplify/suggestion state and React
+ * keys on it, `findQuestion` (assist) does a FIRST-match `find`, and the
+ * record-path `appendAnswersDoc` builds a `byId` map (LAST-wins). With a collision
+ * those three disagree and answers/assist attach to the wrong question.
+ *
+ * Fixing it at the single serve boundary (readShapeQuestions) means every consumer
+ * - serve (UI/CLI), assist, AND the answer-record path - sees the SAME unique,
+ * stable id-set, so an id can only ever name one question. Order is preserved (the
+ * first occurrence keeps its id); later collisions are suffixed `-2`, `-3`, ...,
+ * skipping any suffix that would itself collide with an id already in the set.
+ */
+export function dedupeQuestionIds<T extends { id: string }>(questions: T[]): T[] {
+  const used = new Set<string>();
+  return questions.map((q) => {
+    if (!used.has(q.id)) {
+      used.add(q.id);
+      return q;
+    }
+    let n = 2;
+    let candidate = `${q.id}-${n}`;
+    while (used.has(candidate)) {
+      n += 1;
+      candidate = `${q.id}-${n}`;
+    }
+    used.add(candidate);
+    return { ...q, id: candidate };
+  });
+}
+
+/**
  * Read the pending intake questions for a run. Returns null when the run has no
  * parsed `questions` artifact (not an intake run, or it didn't parse).
  */
@@ -185,10 +217,12 @@ export async function readShapeQuestions(
   }
   const targetFlowId = await readTargetFlowId(store);
   const round = await readRound(store);
-  const questions: ServedShapeQuestion[] = parsed.data.questions.map((q) => ({
-    ...q,
-    round,
-  }));
+  // De-dup BEFORE stamping the round: model ids aren't guaranteed unique, and
+  // every consumer (serve, assist, AND the answer-record path that re-reads this
+  // same function) keys on `id`. One serve boundary => one unique id-set.
+  const questions: ServedShapeQuestion[] = dedupeQuestionIds(
+    parsed.data.questions,
+  ).map((q) => ({ ...q, round }));
   return {
     questions,
     task,

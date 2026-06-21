@@ -15,6 +15,8 @@ import {
   readShapeQuestions,
   shapeAnswersSchema,
   approveShapeAndStartRoadmap,
+  appendAnswersDoc,
+  dedupeQuestionIds,
   ShapeChainError,
 } from "../src/shape/shape-chain.js";
 
@@ -156,5 +158,118 @@ describe("shape answers I/O", () => {
     expect(shapeAnswersSchema.safeParse(tooMany).success).toBe(false);
     expect(shapeAnswersSchema.safeParse([{ id: "Bad Id", answer: "a" }]).success).toBe(false);
     expect(shapeAnswersSchema.safeParse([{ id: "accounts", answer: "yes" }]).success).toBe(true);
+  });
+});
+
+describe("shape question id de-duplication (correctness: ids are not unique by schema)", () => {
+  it("suffixes colliding ids deterministically, preserving order + first occurrence", () => {
+    const out = dedupeQuestionIds([
+      { id: "scope", question: "a" },
+      { id: "scope", question: "b" },
+      { id: "scope", question: "c" },
+      { id: "users", question: "d" },
+    ]);
+    expect(out.map((q) => q.id)).toEqual(["scope", "scope-2", "scope-3", "users"]);
+    // First occurrence keeps the bare id; questions stay paired with their text.
+    expect(out.map((q) => q.question)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("skips a suffix that would itself collide with an existing id", () => {
+    // "dup-2" already exists, so the second "dup" must become "dup-3", not "dup-2".
+    const out = dedupeQuestionIds([
+      { id: "dup", question: "a" },
+      { id: "dup-2", question: "b" },
+      { id: "dup", question: "c" },
+    ]);
+    expect(out.map((q) => q.id)).toEqual(["dup", "dup-2", "dup-3"]);
+  });
+
+  it("produces a fully unique id-set", () => {
+    const out = dedupeQuestionIds([
+      { id: "x" },
+      { id: "x" },
+      { id: "x" },
+      { id: "y" },
+      { id: "y" },
+    ]);
+    const ids = out.map((q) => q.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("is a no-op when ids are already unique (referential stability of payload)", () => {
+    const input = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    const out = dedupeQuestionIds(input);
+    expect(out.map((q) => q.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("readShapeQuestions de-dups a duplicate-id artifact (deterministic + stable across calls)", async () => {
+    const root = await tempProject();
+    const runId = "brave-otter";
+    const store = new ArtifactStore(root, runId);
+    await store.init();
+    await store.write("00-idea.md", "Build a mini ecommerce store");
+    // Two questions share the model-generated id "scope" - the schema permits it.
+    await store.writeJson("flows/intake/questions.json", {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [
+        { id: "scope", question: "What's in scope?", why: "bounds the work", kind: "text", options: [], category: "scope" },
+        { id: "scope", question: "What's explicitly out?", why: "bounds the work", kind: "text", options: [], category: "scope" },
+        { id: "accounts", question: "Do users sign in?", why: "auth", kind: "choice", options: ["yes", "no"], category: "users" },
+      ],
+    });
+
+    const first = await readShapeQuestions(root, runId);
+    const ids = (first?.questions ?? []).map((q) => q.id);
+    expect(ids).toEqual(["scope", "scope-2", "accounts"]);
+    expect(new Set(ids).size).toBe(ids.length); // unique
+    // The deduped id stays paired with the SECOND question's text, not the first.
+    expect(first?.questions[1]?.question).toBe("What's explicitly out?");
+
+    // Stable across calls: the same artifact deterministically yields the same ids.
+    const second = await readShapeQuestions(root, runId);
+    expect((second?.questions ?? []).map((q) => q.id)).toEqual(ids);
+  });
+
+  it("submit/record round-trip attributes answers to the right deduped question", async () => {
+    // The record path (appendAnswersDoc) consumes the SAME deduped questions
+    // readShapeQuestions serves, so an answer keyed by the deduped id lands on the
+    // intended question - not the first id-twin.
+    const root = await tempProject();
+    const runId = "calm-yak";
+    const store = new ArtifactStore(root, runId);
+    await store.init();
+    await store.writeJson("flows/intake/questions.json", {
+      contract: FLOW_QUESTIONS_CONTRACT,
+      stepId: "intake",
+      questions: [
+        { id: "scope", question: "What's IN scope?", why: "bounds the work", kind: "text", options: [], category: "scope" },
+        { id: "scope", question: "What's OUT of scope?", why: "bounds the work", kind: "text", options: [], category: "scope" },
+      ],
+    });
+
+    const pending = await readShapeQuestions(root, runId);
+    expect(pending).not.toBeNull();
+    const served = pending!.questions;
+    expect(served.map((q) => q.id)).toEqual(["scope", "scope-2"]);
+
+    // The client answers each served (deduped) id with a distinct value.
+    const answers = [
+      { id: "scope", answer: "the storefront" },
+      { id: "scope-2", answer: "no admin dashboard" },
+    ];
+    const doc = appendAnswersDoc("", served, answers, pending!.round);
+
+    // Each answer is paired with ITS question text, proving no mis-attribution.
+    const inScopeIdx = doc.indexOf("What's IN scope?");
+    const outScopeIdx = doc.indexOf("What's OUT of scope?");
+    expect(inScopeIdx).toBeGreaterThanOrEqual(0);
+    expect(outScopeIdx).toBeGreaterThanOrEqual(0);
+    expect(doc).toContain("the storefront");
+    expect(doc).toContain("no admin dashboard");
+    // The "IN scope" question appears before the "the storefront" answer body, and
+    // the "OUT of scope" question before its answer - i.e. they didn't swap.
+    expect(doc.indexOf("the storefront")).toBeGreaterThan(inScopeIdx);
+    expect(doc.indexOf("no admin dashboard")).toBeGreaterThan(outScopeIdx);
   });
 });
