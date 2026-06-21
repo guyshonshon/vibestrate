@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.17.0
+
+- **"Shape" is now "Spec-up".** The planning phase that turns a vague brief into a
+  scoped spec, an architecture, the risks, and a reviewable roadmap got a clearer
+  name. This is a full rename - the `vibe spec-up` command (and its `start` /
+  `questions` / `answer` / `simplify` / `suggest` / `approve` / `build` /
+  `roadmap` subcommands), the `/api/spec-up/*` routes, the flow ids
+  (`spec-up-intake` / `spec-up` / `spec-up-roadmap`), the `adaptiveSpecUp` config
+  key, the dashboard labels, and the docs all moved together. Nothing about the
+  behaviour changed.
+- **Heads-up for in-flight runs:** the rename touches persisted state - the run
+  loop-guard flag (`shaped` -> `specUpPhase`), the selection source
+  (`"shaped"` -> `"spec-up"`), and the on-disk sidecars (`spec-up-*.json`). Runs
+  started before this version won't resume; finished runs are unaffected.
+
 ## 0.16.0
 
 - **Start the planning phase from the dashboard.** The intake that gathers
