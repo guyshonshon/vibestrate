@@ -53,6 +53,7 @@ scratch plans) go to `docs/archive/` (gitignored), not here.
 | [`provider-apply-layer.md`](./provider-apply-layer.md) | `provider-apply.ts` as the single source for model/effort application. |
 | [`provider-permission-mode.md`](./provider-permission-mode.md) | Write capability reaches the claude CLI permission mode (0.7.32). |
 | [`multi-project-navigator.md`](./multi-project-navigator.md) | Workspace navigator over isolated per-project tenants. |
+| [`git-tree-merge.md`](./git-tree-merge.md) | **0.18.0:** interactive git tree + supervisor-assisted merge (predict/apply/undo + AI conflict resolution). UI-only; reviewed by ~39 Opus-4.8 agents (3 BLOCKERs fixed). |
 
 ## Archived (moved to `docs/archive/`, gitignored)
 

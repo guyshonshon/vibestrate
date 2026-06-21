@@ -188,6 +188,10 @@
         {
           "slug": "workflows/debug-failed",
           "label": "Debug a failed run"
+        },
+        {
+          "slug": "workflows/git-tree-merge",
+          "label": "Merge from the git tree"
         }
       ]
     },

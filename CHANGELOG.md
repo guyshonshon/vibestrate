@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.18.0
+
+- **Interactive git tree + supervisor-assisted merge.** A new dashboard surface
+  draws your branches and commits as an explorable graph. Pick any source and any
+  target, see the *predicted* merge and its conflicts **before** anything is
+  applied, apply on an explicit click, and undo a merge with one click. It is the
+  any-node-to-any-node evolution of the merge advisor, not a separate tool.
+- **The supervisor proposes conflict resolutions.** On a conflict, your local
+  provider proposes a merged version of each conflict region to review and edit -
+  and it is secret-safe: a secret-shaped file is refused outright (never sent to a
+  provider), and conflict bodies are redacted before they leave your machine.
+- **Reversible and gated, like everything else.** Every merge is human-clicked,
+  passes the Action Broker (`git.merge`), runs `--no-ff` locally, never pushes,
+  and records the pre-merge sha so Undo is a guarded reset. Undo refuses once the
+  merge is built upon or has reached an upstream. Dashboard merges require
+  `VIBESTRATE_API_TOKEN` (a tokenless local API is reachable by any process). The
+  interactive canvas is UI-only by design; the underlying operations are plain git.
+
 ## 0.17.0
 
 - **"Shape" is now "Spec-up".** The planning phase that turns a vague brief into a
