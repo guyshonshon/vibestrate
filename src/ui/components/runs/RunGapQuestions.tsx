@@ -1,16 +1,15 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, Sparkles, HelpCircle, Wand2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, X, HelpCircle, PenLine } from "lucide-react";
 import { api } from "../../lib/api.js";
 import type { ShapeQuestion, ShapeQuestionCategory } from "../../lib/types.js";
 import { usePublishViewContext } from "../../lib/view-context.js";
 
-// ── In-run gap-questions screen (the "spec entry" face of Shape) ─────────────
-// Deep-questioning loop: questions arrive in rounds, grouped by category with
-// per-area progress. Each question carries on-demand helpers - Simplify (plain
-// language) and Suggest (a draft grounded in prior answers, which you still
-// review). Submitting either loops to a gap-check round or builds the spec; a
-// "Proceed to spec" escape is always available. The screen also publishes a
-// snapshot to the consult orb so it can advise in context.
+// ── In-run gap-questions screen (Shape) - C2 "vertical timeline" design ──────
+// A left timeline lists every category (area) with its status + count; the
+// current area's questions show on the right, one area at a time. Steps are
+// jumpable, "Proceed to spec" is always reachable, and a single-area round
+// collapses to one screen (no timeline). Suggest is ADVISORY: it surfaces a
+// recommendation you accept with one click - it never pre-selects your answer.
 
 const CATEGORY_ORDER: ShapeQuestionCategory[] = [
   "scope",
@@ -32,8 +31,18 @@ const CATEGORY_LABEL: Record<ShapeQuestionCategory, string> = {
   other: "Other",
 };
 
+const CATEGORY_BLURB: Record<ShapeQuestionCategory, string> = {
+  scope: "What's in, what's out, how big.",
+  users: "Who uses it and how they get in.",
+  data: "What you store and where it comes from.",
+  constraints: "Limits, deadlines, and must-nots.",
+  success: "What makes a launch a success.",
+  integrations: "Payments, sync, third-party services.",
+  other: "Everything else worth deciding.",
+};
+
 type SimplifyState = { loading: boolean; text?: string; affects?: string; analogy?: string };
-type SuggestMeta = { why: string; reviewed: boolean };
+type Suggestion = { value: string; why: string };
 
 export function RunGapQuestions({
   runId,
@@ -49,19 +58,12 @@ export function RunGapQuestions({
   onSubmitted: (nextRunId: string) => void;
 }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [suggested, setSuggested] = useState<Record<string, SuggestMeta>>({});
+  // Advisory recommendations, shown but NOT applied until the user accepts.
+  const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({});
   const [simplify, setSimplify] = useState<Record<string, SimplifyState>>({});
-  const [focused, setFocused] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [suggestingAll, setSuggestingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmUnreviewed, setConfirmUnreviewed] = useState(false);
-
-  const answeredCount = questions.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
-  // A field filled by Suggest and not yet touched by the user.
-  const unreviewedIds = questions
-    .map((q) => q.id)
-    .filter((id) => (answers[id] ?? "").trim().length > 0 && suggested[id] && !suggested[id].reviewed);
 
   const byCategory = useMemo(() => {
     const groups = new Map<ShapeQuestionCategory, ShapeQuestion[]>();
@@ -72,27 +74,44 @@ export function RunGapQuestions({
     return CATEGORY_ORDER.filter((c) => groups.has(c)).map((c) => ({ category: c, items: groups.get(c)! }));
   }, [questions]);
 
-  // Publish a snapshot for the screen-aware orb (redacted server-side).
+  const answeredOf = (items: ShapeQuestion[]) =>
+    items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
+  const answeredCount = questions.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
+
+  // The current step is explicit: it starts at the first area and only changes
+  // when the user navigates (Next/Back/click a step). Answering never auto-jumps,
+  // so you always see the answer you just gave.
+  const [active, setActive] = useState<ShapeQuestionCategory | null>(null);
+  const activeCat = active ?? byCategory[0]?.category ?? null;
+  const activeIdx = byCategory.findIndex((g) => g.category === activeCat);
+  const activeGroup = byCategory[activeIdx];
+
   usePublishViewContext({
     screen: "Shape questions",
     details:
-      `Round ${round}. The user is answering scoping questions.\n` +
+      `Round ${round}. Current area: ${activeCat ? CATEGORY_LABEL[activeCat] : "-"}.\n` +
       questions
-        .map((q) => {
-          const a = (answers[q.id] ?? "").trim();
-          return `- [${q.category}] ${q.id}: "${q.question}" -> ${a ? a : "(blank)"}`;
-        })
-        .join("\n") +
-      (focused ? `\nFocused field: ${focused}` : ""),
+        .map((q) => `- [${q.category}] ${q.id}: "${q.question}" -> ${(answers[q.id] ?? "").trim() || "(blank)"}`)
+        .join("\n"),
   });
 
-  function setAnswer(id: string, value: string, byUser: boolean) {
+  function setAnswer(id: string, value: string) {
     setAnswers((a) => ({ ...a, [id]: value }));
-    if (byUser) {
-      // Touching a suggested field counts as reviewing it.
-      setSuggested((s) => (s[id] ? { ...s, [id]: { ...s[id], reviewed: true } } : s));
-      setConfirmUnreviewed(false);
-    }
+    // Accepting/typing an answer clears any standing recommendation for it.
+    setSuggestions((s) => {
+      if (!s[id]) return s;
+      const next = { ...s };
+      delete next[id];
+      return next;
+    });
+    setError(null);
+  }
+  function clearAnswer(id: string) {
+    setAnswers((a) => {
+      const next = { ...a };
+      delete next[id];
+      return next;
+    });
   }
 
   async function doSimplify(id: string, forNonDeveloper: boolean) {
@@ -108,30 +127,22 @@ export function RunGapQuestions({
   async function doSuggest(id: string) {
     try {
       const r = await api.shapeAssist({ sourceRunId: runId, mode: "suggest", questionId: id });
-      if (r.suggestedValue) {
-        setAnswers((a) => ({ ...a, [id]: r.suggestedValue! }));
-        setSuggested((s) => ({ ...s, [id]: { why: r.why ?? "", reviewed: false } }));
-      }
+      if (r.suggestedValue) setSuggestions((s) => ({ ...s, [id]: { value: r.suggestedValue!, why: r.why ?? "" } }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
   }
 
   async function doSuggestAll() {
-    const blanks = questions.filter((q) => (answers[q.id] ?? "").trim().length === 0).map((q) => q.id);
+    const blanks = (activeGroup?.items ?? []).filter((q) => (answers[q.id] ?? "").trim().length === 0).map((q) => q.id);
     if (blanks.length === 0) return;
     setSuggestingAll(true);
     setError(null);
     try {
       const r = await api.shapeAssist({ sourceRunId: runId, mode: "suggest-all", questionIds: blanks });
-      const filled: Record<string, string> = {};
-      const meta: Record<string, SuggestMeta> = {};
-      for (const it of r.items ?? []) {
-        filled[it.questionId] = it.suggestedValue;
-        meta[it.questionId] = { why: it.why, reviewed: false };
-      }
-      setAnswers((a) => ({ ...a, ...filled }));
-      setSuggested((s) => ({ ...s, ...meta }));
+      const next: Record<string, Suggestion> = {};
+      for (const it of r.items ?? []) next[it.questionId] = { value: it.suggestedValue, why: it.why };
+      setSuggestions((s) => ({ ...s, ...next }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -144,14 +155,8 @@ export function RunGapQuestions({
       .map((q) => ({ id: q.id, answer: (answers[q.id] ?? "").trim() }))
       .filter((a) => a.answer.length > 0);
     if (payload.length === 0) {
-      // No new answers: a bare "proceed" finalizes the accumulated set.
       if (proceed) return finalizeNoAnswers();
-      setError("Answer at least one question, or use Suggest to draft one.");
-      return;
-    }
-    // Unreviewed-suggestion guard: warn before submitting model-authored answers.
-    if (unreviewedIds.length > 0 && !confirmUnreviewed) {
-      setConfirmUnreviewed(true);
+      setError("Answer at least one question, or use a suggestion.");
       return;
     }
     setBusy(true);
@@ -177,17 +182,14 @@ export function RunGapQuestions({
     }
   }
 
-  // Coverage-complete round (gap-check found no further gaps): no questions to
-  // answer, just build the spec.
   if (questions.length === 0 && coverageComplete) {
     return (
-      <section style={panelStyle}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Coverage complete</h2>
+      <section style={panel}>
+        <h2 style={{ fontSize: 17, fontWeight: 500, margin: "0 0 6px" }}>Coverage complete</h2>
         <p style={{ fontSize: 13, color: "var(--s-ink-dim)", lineHeight: 1.5, margin: "0 0 16px" }}>
-          The CTO has everything it needs from your answers (round {round}). Build the
-          spec, architecture, and risks from what you decided.
+          The CTO has what it needs from your answers (round {round}). Build the spec, architecture, and risks.
         </p>
-        {error ? <div style={{ color: "var(--s-warn-ink)", fontSize: 12, marginBottom: 10 }}>{error}</div> : null}
+        {error ? <div style={errorLine}>{error}</div> : null}
         <button onClick={() => void finalizeNoAnswers()} disabled={busy} style={primaryBtn(true)}>
           {busy ? "Building..." : "Build the spec"} <ArrowRight size={15} />
         </button>
@@ -195,260 +197,406 @@ export function RunGapQuestions({
     );
   }
 
+  const single = byCategory.length <= 1;
+
+  const stepper = (
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {byCategory.map((g, i) => {
+        const ans = answeredOf(g.items);
+        const done = ans === g.items.length;
+        const current = g.category === activeCat;
+        return (
+          <div key={g.category}>
+            <button
+              onClick={() => setActive(g.category)}
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
+                width: "100%",
+                textAlign: "left",
+                cursor: "pointer",
+                padding: current ? "6px 8px" : "5px 0",
+                margin: current ? "0 -8px" : 0,
+                borderRadius: 6,
+                background: current ? "var(--s-soft)" : "transparent",
+                border: current ? "1px solid var(--s-accent)" : "1px solid transparent",
+              }}
+            >
+              <span style={stepNode(done, current)}>{done ? <Check size={11} /> : i + 1}</span>
+              <span style={{ flex: 1, fontSize: 12.5, color: current ? "var(--s-soft-ink)" : "var(--s-ink-dim)", fontWeight: current ? 500 : 400 }}>
+                {CATEGORY_LABEL[g.category]}
+              </span>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10.5, color: done ? "var(--s-ok-ink)" : "var(--s-ink-faint)" }}>
+                {ans}/{g.items.length}
+              </span>
+            </button>
+            {i < byCategory.length - 1 ? (
+              <div style={{ width: 1, height: 10, background: done ? "var(--s-ok-ink)" : "var(--s-line)", marginLeft: 8 }} />
+            ) : null}
+          </div>
+        );
+      })}
+      <div style={{ height: 1, background: "var(--s-line)", margin: "13px 0 11px" }} />
+      <div style={{ fontSize: 11.5, color: "var(--s-ink-dim)", lineHeight: 1.5, marginBottom: 11 }}>
+        Answer what you can. We ask follow-ups only where it's still open.
+      </div>
+      {error ? <div style={errorLine}>{error}</div> : null}
+      <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0)}>
+        {busy ? "Working..." : "Submit answers"} <ArrowRight size={14} />
+      </button>
+      <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn(true)}>
+        Proceed to spec now
+      </button>
+    </div>
+  );
+
+  const content = activeGroup ? (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 13 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.01em" }}>{CATEGORY_LABEL[activeGroup.category]}</div>
+          <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)", marginTop: 2 }}>{CATEGORY_BLURB[activeGroup.category]}</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "var(--s-ink-dim)" }}>
+            {answeredOf(activeGroup.items)}/{activeGroup.items.length}
+          </span>
+          <div style={{ display: "flex", gap: 3 }}>
+            {activeGroup.items.map((q) => (
+              <div key={q.id} style={{ width: 16, height: 4, borderRadius: 2, background: (answers[q.id] ?? "").trim() ? "var(--s-ok-ink)" : "var(--s-line)" }} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {activeGroup.items.map((q) => (
+        <QuestionCard
+          key={q.id}
+          q={q}
+          value={answers[q.id] ?? ""}
+          suggestion={suggestions[q.id]}
+          simplify={simplify[q.id]}
+          onAnswer={(v) => setAnswer(q.id, v)}
+          onClear={() => clearAnswer(q.id)}
+          onSimplify={(nd) => void doSimplify(q.id, nd)}
+          onSuggest={() => void doSuggest(q.id)}
+          onUseSuggestion={() => suggestions[q.id] && setAnswer(q.id, suggestions[q.id]!.value)}
+          onDismissSuggestion={() =>
+            setSuggestions((s) => {
+              const next = { ...s };
+              delete next[q.id];
+              return next;
+            })
+          }
+        />
+      ))}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 13 }}>
+        {activeIdx > 0 ? (
+          <button onClick={() => setActive(byCategory[activeIdx - 1]!.category)} style={navBtn}>
+            <ArrowLeft size={14} /> {CATEGORY_LABEL[byCategory[activeIdx - 1]!.category]}
+          </button>
+        ) : (
+          <span />
+        )}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button onClick={() => void doSuggestAll()} disabled={suggestingAll} style={ghostInline}>
+            <PenLine size={13} /> {suggestingAll ? "Drafting..." : "Suggest all here"}
+          </button>
+          {activeIdx < byCategory.length - 1 ? (
+            <button onClick={() => setActive(byCategory[activeIdx + 1]!.category)} style={primaryBtn(true, true)}>
+              {CATEGORY_LABEL[byCategory[activeIdx + 1]!.category]} <ArrowRight size={14} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <section style={panelStyle}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 240px", gap: 22 }} className="run-gap-grid">
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Scope the work</h2>
-            <span style={{ fontSize: 12, color: "var(--s-ink-dim)", fontVariantNumeric: "tabular-nums" }}>
-              Round {round} &middot; {answeredCount} of {questions.length} answered
+    <section style={panel}>
+      {single ? (
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 500, marginBottom: 2 }}>Scope the work</div>
+          <div style={{ fontSize: 11.5, color: "var(--s-ink-faint)", marginBottom: 14 }}>Round {round}. Answer what you can.</div>
+          {content}
+          {error ? <div style={{ ...errorLine, marginTop: 12 }}>{error}</div> : null}
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0)}>
+              {busy ? "Working..." : "Submit answers"} <ArrowRight size={14} />
+            </button>
+            <button onClick={() => void submit(true)} disabled={busy} style={ghostBtn(false)}>
+              Proceed to spec
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 15 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--s-ink)" }}>Scope the work</div>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 11, color: "var(--s-ink-faint)" }}>
+              round {round} &middot; {byCategory.filter((g) => answeredOf(g.items) === g.items.length).length} of {byCategory.length} areas covered
             </span>
           </div>
-          <p style={{ fontSize: 13, color: "var(--s-ink-dim)", lineHeight: 1.5, margin: "0 0 16px" }}>
-            The CTO asks until the work is fully scoped, drilling deeper each round. Answer
-            what you can - tap <b>Simplify</b> if a question is unclear, or <b>Suggest</b> for a
-            draft grounded in your earlier answers (you still decide).
-          </p>
-
-          {byCategory.map(({ category, items }) => {
-            const ans = items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
-            return (
-              <div key={category} style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, color: "var(--s-soft-ink)" }}>
-                    {CATEGORY_LABEL[category]}
-                  </span>
-                  <span style={{ fontSize: 11, color: ans === items.length ? "var(--s-ok-ink)" : "var(--s-ink-faint)", fontVariantNumeric: "tabular-nums" }}>
-                    {ans === items.length ? "covered" : `${ans}/${items.length}`}
-                  </span>
-                </div>
-                <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {items.map((q) => {
-                    const value = answers[q.id] ?? "";
-                    const answered = value.trim().length > 0;
-                    const sug = suggested[q.id];
-                    const simp = simplify[q.id];
-                    return (
-                      <li key={q.id} style={cardStyle}>
-                        <span aria-hidden style={spineStyle(answered)} />
-                        <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
-                          <span style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.35, flex: 1 }}>{q.question}</span>
-                          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                            <button title="Explain this in plain language" onClick={() => void doSimplify(q.id, false)} style={ghostBtn}>
-                              <HelpCircle size={12} /> Simplify
-                            </button>
-                            <button title="Draft an answer from your prior answers" onClick={() => void doSuggest(q.id)} style={ghostBtn}>
-                              <Sparkles size={12} /> Suggest
-                            </button>
-                          </div>
-                        </div>
-                        <div style={whyStyle}>
-                          <span style={{ color: "var(--s-soft-ink)", fontWeight: 500 }}>Why it matters. </span>
-                          {q.why}
-                        </div>
-
-                        {simp ? (
-                          <div style={simplifyBoxStyle}>
-                            {simp.loading ? (
-                              <span style={{ color: "var(--s-ink-faint)" }}>Explaining...</span>
-                            ) : (
-                              <>
-                                <div>{simp.text}</div>
-                                {simp.affects ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b>What it affects:</b> {simp.affects}</div> : null}
-                                {simp.analogy ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b>Analogy:</b> {simp.analogy}</div> : null}
-                                {!simp.analogy ? (
-                                  <button onClick={() => void doSimplify(q.id, true)} style={{ ...ghostBtn, marginTop: 8 }}>
-                                    Explain for a non-developer
-                                  </button>
-                                ) : null}
-                              </>
-                            )}
-                          </div>
-                        ) : null}
-
-                        {q.kind === "choice" && q.options.length > 0 ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
-                            {q.options.map((opt) => {
-                              const active = value === opt;
-                              return (
-                                <button key={opt} onClick={() => setAnswer(q.id, opt, true)} style={optionBtn(active)}>
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <input
-                            value={value}
-                            onFocusCapture={() => setFocused(q.id)}
-                            onBlur={() => setFocused((f) => (f === q.id ? null : f))}
-                            onChange={(e) => setAnswer(q.id, e.target.value, true)}
-                            placeholder="Your answer"
-                            style={inputStyle}
-                          />
-                        )}
-
-                        {sug ? (
-                          <div style={{ marginTop: 8, fontSize: 11.5, color: sug.reviewed ? "var(--s-ink-faint)" : "var(--s-soft-ink)" }}>
-                            <Wand2 size={11} style={{ verticalAlign: "-1px" }} />{" "}
-                            {sug.reviewed ? "edited from a suggestion" : "suggested - review or edit it"}
-                            {sug.why ? <span style={{ color: "var(--s-ink-faint)" }}> &middot; {sug.why}</span> : null}
-                          </div>
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Readiness rail */}
-        <aside style={{ alignSelf: "start", position: "sticky", top: 12 }}>
-          <div style={railStyle}>
-            <div style={{ fontSize: 11.5, color: "var(--s-ink-dim)", fontWeight: 600 }}>Readiness &middot; round {round}</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-              <span style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{answeredCount}</span>
-              <span style={{ fontSize: 12.5, color: "var(--s-ink-faint)" }}>/ {questions.length} answered</span>
-            </div>
-
-            <div style={{ height: 1, background: "var(--s-line)", margin: "12px 0" }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {byCategory.map(({ category, items }) => {
-                const ans = items.filter((q) => (answers[q.id] ?? "").trim().length > 0).length;
-                const done = ans === items.length;
-                return (
-                  <div key={category} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={dotStyle(done)} />
-                      <span style={{ color: done ? "var(--s-ink)" : "var(--s-ink-faint)" }}>{CATEGORY_LABEL[category]}</span>
-                    </span>
-                    <span style={{ color: "var(--s-ink-faint)", fontVariantNumeric: "tabular-nums" }}>{ans}/{items.length}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <button onClick={() => void doSuggestAll()} disabled={suggestingAll} style={{ ...ghostBtn, width: "100%", justifyContent: "center", marginTop: 14, padding: "7px 10px" }}>
-              <Sparkles size={12} /> {suggestingAll ? "Drafting..." : "Suggest all remaining"}
-            </button>
-
-            {unreviewedIds.length > 0 ? (
-              <div style={{ color: "var(--s-warn-ink)", fontSize: 11.5, marginTop: 10, lineHeight: 1.4 }}>
-                {unreviewedIds.length} suggested answer{unreviewedIds.length > 1 ? "s" : ""} not yet reviewed.
-              </div>
-            ) : null}
-            {error ? <div style={{ color: "var(--s-warn-ink)", fontSize: 12, marginTop: 10 }}>{error}</div> : null}
-
-            <button onClick={() => void submit(false)} disabled={busy || answeredCount === 0} style={primaryBtn(answeredCount > 0)}>
-              {busy ? "Working..." : confirmUnreviewed ? "Submit suggested as-is?" : "Submit answers"}
-              <ArrowRight size={15} />
-            </button>
-            <button onClick={() => void submit(true)} disabled={busy} style={{ ...ghostBtn, width: "100%", justifyContent: "center", marginTop: 8, padding: "8px 10px" }}>
-              Proceed to spec now
-            </button>
-            <div style={{ fontSize: 11, color: "var(--s-ink-faint)", marginTop: 8, lineHeight: 1.45 }}>
-              Read-only. We ask follow-ups if anything's still open, or build the spec - a
-              draft you approve before anything is written.
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "168px 1fr", gap: 20 }} className="run-gap-grid">
+            <aside style={{ alignSelf: "start", position: "sticky", top: 12 }}>{stepper}</aside>
+            <div style={{ minWidth: 0 }}>{content}</div>
           </div>
-        </aside>
-      </div>
-      <style>{`@media (max-width: 880px){ .run-gap-grid{ grid-template-columns: 1fr !important; } }`}</style>
+        </>
+      )}
+      <style>{`@media (max-width: 820px){ .run-gap-grid{ grid-template-columns: 1fr !important; } }`}</style>
     </section>
   );
 }
 
+function QuestionCard({
+  q,
+  value,
+  suggestion,
+  simplify,
+  onAnswer,
+  onClear,
+  onSimplify,
+  onSuggest,
+  onUseSuggestion,
+  onDismissSuggestion,
+}: {
+  q: ShapeQuestion;
+  value: string;
+  suggestion?: Suggestion;
+  simplify?: SimplifyState;
+  onAnswer: (v: string) => void;
+  onClear: () => void;
+  onSimplify: (nonDev: boolean) => void;
+  onSuggest: () => void;
+  onUseSuggestion: () => void;
+  onDismissSuggestion: () => void;
+}) {
+  const answered = value.trim().length > 0;
+  const isChoice = q.kind === "choice" && q.options.length > 0;
+  return (
+    <div style={card}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.35 }}>{q.question}</span>
+        {answered ? (
+          <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: "var(--s-ok-ink)", display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", paddingTop: 2 }}>
+            <Check size={12} /> answered
+          </span>
+        ) : (
+          <div style={{ display: "flex", gap: 9, color: "var(--s-ink-faint)", paddingTop: 2 }}>
+            <button onClick={() => onSimplify(false)} style={miniAction}><HelpCircle size={13} /> simplify</button>
+            <button onClick={() => onSuggest()} style={miniAction}><PenLine size={13} /> suggest</button>
+          </div>
+        )}
+      </div>
+
+      {isChoice ? (
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
+          {q.options.map((opt) => {
+            const sel = value === opt;
+            const rec = !answered && suggestion?.value === opt;
+            return (
+              <button key={opt} onClick={() => onAnswer(opt)} style={optionBtn(sel, rec)}>
+                {sel ? <Check size={13} /> : null} {opt}
+              </button>
+            );
+          })}
+          {answered ? (
+            <button onClick={onClear} style={clearBtn}><X size={13} /> clear</button>
+          ) : null}
+        </div>
+      ) : (
+        <input
+          value={value}
+          onChange={(e) => onAnswer(e.target.value)}
+          placeholder="Type your answer"
+          style={textInput}
+        />
+      )}
+
+      {!answered && suggestion ? (
+        <div style={adviseRow}>
+          <PenLine size={14} style={{ color: "var(--s-accent-bright)", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, color: "var(--s-ink)" }}>
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 10, color: "var(--s-soft-ink)" }}>suggested</span>{" "}
+              {suggestion.value}
+            </div>
+            {suggestion.why ? <div style={{ fontSize: 11, color: "var(--s-ink-faint)", marginTop: 1 }}>{suggestion.why}</div> : null}
+          </div>
+          <button onClick={onUseSuggestion} style={useBtn}>Use</button>
+          <button onClick={onDismissSuggestion} style={{ ...miniAction, color: "var(--s-ink-faint)" }}>dismiss</button>
+        </div>
+      ) : null}
+
+      {simplify ? (
+        <div style={simplifyBox}>
+          {simplify.loading ? (
+            <span style={{ color: "var(--s-ink-faint)" }}>Explaining...</span>
+          ) : (
+            <>
+              <div>{simplify.text}</div>
+              {simplify.affects ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>What it affects:</b> {simplify.affects}</div> : null}
+              {simplify.analogy ? <div style={{ marginTop: 6, color: "var(--s-ink-dim)" }}><b style={{ fontWeight: 500 }}>Analogy:</b> {simplify.analogy}</div> : null}
+              {!simplify.analogy ? <button onClick={() => onSimplify(true)} style={{ ...miniAction, marginTop: 8 }}>Explain for a non-developer</button> : null}
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 9, fontSize: 11.5, lineHeight: 1.55, borderTop: "1px solid var(--s-line)", paddingTop: 9, marginTop: 10 }}>
+          <span style={{ fontFamily: "ui-monospace, monospace", color: "var(--s-ink-faint)", minWidth: 44 }}>why</span>
+          <span style={{ color: "var(--s-ink-dim)" }}>{q.why}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── styles ──
-const panelStyle: React.CSSProperties = {
+const panel: React.CSSProperties = {
   border: "1px solid var(--s-line)",
-  borderRadius: 14,
+  borderRadius: 12,
   background: "var(--s-slab)",
-  padding: "18px 20px",
+  padding: "16px 18px",
   color: "var(--s-ink)",
 };
-const cardStyle: React.CSSProperties = {
+const card: React.CSSProperties = {
   background: "var(--s-slab-2)",
   border: "1px solid var(--s-line)",
   borderRadius: 8,
-  padding: "14px 16px",
+  padding: "13px 14px",
   marginBottom: 10,
-  position: "relative",
-  overflow: "hidden",
 };
-const railStyle: React.CSSProperties = {
-  border: "1px solid var(--s-line)",
-  borderRadius: 10,
-  background: "var(--s-glass-2)",
-  padding: "14px 14px 16px",
+const adviseRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 9,
+  marginTop: 9,
+  background: "var(--s-soft)",
+  border: "1px solid var(--s-accent)",
+  borderRadius: 6,
+  padding: "8px 10px",
 };
-const whyStyle: React.CSSProperties = {
-  marginTop: 7,
-  paddingLeft: 11,
-  borderLeft: "2px solid var(--s-soft)",
-  fontSize: 12.5,
-  lineHeight: 1.5,
-  color: "var(--s-ink-dim)",
-};
-const simplifyBoxStyle: React.CSSProperties = {
+const simplifyBox: React.CSSProperties = {
   marginTop: 10,
   padding: "10px 12px",
   borderRadius: 7,
   background: "var(--s-soft)",
   color: "var(--s-soft-ink)",
-  fontSize: 12.5,
-  lineHeight: 1.5,
+  fontSize: 12,
+  lineHeight: 1.55,
 };
-const inputStyle: React.CSSProperties = {
+const textInput: React.CSSProperties = {
   width: "100%",
-  marginTop: 12,
   background: "var(--s-slab)",
   color: "var(--s-slab-ink)",
   border: "1px solid var(--s-line)",
-  borderRadius: 7,
+  borderRadius: 6,
   padding: "8px 11px",
-  fontSize: 13.5,
+  fontSize: 13,
   outline: "none",
 };
-const ghostBtn: React.CSSProperties = {
+const errorLine: React.CSSProperties = { color: "var(--s-warn-ink)", fontSize: 12, marginBottom: 10 };
+const miniAction: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  fontSize: 11,
+  color: "var(--s-ink-faint)",
+  padding: 0,
+};
+const ghostInline: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 5,
-  padding: "4px 9px",
-  borderRadius: 6,
-  fontSize: 11.5,
-  cursor: "pointer",
+  background: "transparent",
   border: "1px solid var(--s-line)",
-  background: "var(--s-slab)",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontSize: 11.5,
   color: "var(--s-slab-ink)",
+  padding: "6px 10px",
 };
-function spineStyle(answered: boolean): React.CSSProperties {
-  return { position: "absolute", left: 0, top: 0, bottom: 0, width: 2, background: answered ? "var(--s-ok-ink)" : "var(--s-line)", transition: "background 200ms" };
-}
-function optionBtn(active: boolean): React.CSSProperties {
+const navBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  fontSize: 12,
+  color: "var(--s-ink-faint)",
+  padding: 0,
+};
+const clearBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  background: "transparent",
+  border: "none",
+  cursor: "pointer",
+  fontSize: 11,
+  color: "var(--s-ink-faint)",
+  padding: "0 2px",
+};
+const useBtn: React.CSSProperties = {
+  fontSize: 11.5,
+  fontWeight: 500,
+  color: "var(--s-on-accent)",
+  background: "var(--s-accent)",
+  border: "none",
+  borderRadius: 5,
+  padding: "5px 11px",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+function stepNode(done: boolean, current: boolean): React.CSSProperties {
   return {
-    padding: "6px 12px",
-    borderRadius: 7,
-    fontSize: 13,
-    cursor: "pointer",
-    border: `1px solid ${active ? "var(--s-accent)" : "var(--s-line)"}`,
-    background: active ? "var(--s-soft)" : "var(--s-slab)",
-    color: active ? "var(--s-soft-ink)" : "var(--s-slab-ink)",
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10.5,
+    fontWeight: 500,
+    background: done ? "color-mix(in oklab, var(--s-ok-ink) 16%, transparent)" : current ? "var(--s-soft)" : "transparent",
+    border: `1px solid ${done ? "var(--s-ok-ink)" : current ? "var(--s-accent)" : "var(--s-line)"}`,
+    color: done ? "var(--s-ok-ink)" : current ? "var(--s-soft-ink)" : "var(--s-ink-faint)",
   };
 }
-function dotStyle(done: boolean): React.CSSProperties {
-  return { width: 7, height: 7, borderRadius: 7, background: done ? "var(--s-ok-ink)" : "transparent", border: `1.5px solid ${done ? "var(--s-ok-ink)" : "var(--s-ink-faint)"}`, flexShrink: 0 };
-}
-function primaryBtn(enabled: boolean): React.CSSProperties {
+function optionBtn(selected: boolean, recommended: boolean): React.CSSProperties {
   return {
-    width: "100%",
-    marginTop: 14,
-    padding: "9px 12px",
-    borderRadius: 8,
-    fontSize: 13.5,
-    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 12px",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+    fontWeight: selected ? 500 : 400,
+    background: selected ? "color-mix(in oklab, var(--s-ok-ink) 14%, transparent)" : "var(--s-slab)",
+    border: selected
+      ? "1px solid var(--s-ok-ink)"
+      : recommended
+        ? "1px dashed var(--s-accent)"
+        : "1px solid var(--s-line)",
+    color: selected ? "var(--s-ok-ink)" : recommended ? "var(--s-soft-ink)" : "var(--s-slab-ink)",
+  };
+}
+function primaryBtn(enabled: boolean, compact = false): React.CSSProperties {
+  return {
+    width: compact ? undefined : "100%",
+    marginTop: compact ? 0 : 0,
+    padding: compact ? "7px 14px" : "9px 12px",
+    borderRadius: 7,
+    fontSize: 12.5,
+    fontWeight: 500,
     cursor: enabled ? "pointer" : "default",
     border: "1px solid var(--s-accent)",
     background: enabled ? "var(--s-accent)" : "var(--s-slab-2)",
@@ -457,5 +605,21 @@ function primaryBtn(enabled: boolean): React.CSSProperties {
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+  };
+}
+function ghostBtn(block: boolean): React.CSSProperties {
+  return {
+    width: block ? "100%" : undefined,
+    marginTop: block ? 8 : 0,
+    padding: "8px 12px",
+    borderRadius: 7,
+    fontSize: 12,
+    cursor: "pointer",
+    border: "1px solid var(--s-line)",
+    background: "transparent",
+    color: "var(--s-slab-ink)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   };
 }
